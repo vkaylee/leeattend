@@ -42,3 +42,8 @@ webdashboard/.env.local
 # Binaries and Local Databases
 *.exe
 *.db
+
+# PyInstaller / Build Artifacts
+dist/
+build/
+*.spec
