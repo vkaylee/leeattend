@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  output: 'export',
+  images: {
+    unoptimized: true,
+  },
   /* Thêm các cấu hình tối ưu hóa khác nếu cần */
 };
 

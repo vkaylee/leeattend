@@ -1,19 +1,30 @@
+"use client";
+
 import { fetchAgents, fetchDevices, AgentStatus, Device } from '@/lib/api';
 import { Users, Monitor, ShieldCheck, ShieldAlert, Activity, Cpu } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
-export const dynamic = 'force-dynamic';
+export default function DashboardPage() {
+  const [agents, setAgents] = useState<AgentStatus[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-export default async function DashboardPage() {
-  let agents: AgentStatus[] = [];
-  let devices: Device[] = [];
-  let error = null;
-
-  try {
-    [agents, devices] = await Promise.all([fetchAgents(), fetchDevices()]);
-  } catch (e) {
-    error = "Không thể kết nối tới API Server. Hãy đảm bảo apiserver đang chạy tại cổng 3000.";
-  }
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [agentsData, devicesData] = await Promise.all([fetchAgents(), fetchDevices()]);
+        setAgents(agentsData);
+        setDevices(devicesData);
+      } catch (e) {
+        setError("Không thể kết nối tới API Server. Hãy đảm bảo apiserver đang chạy tại cổng 3000.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   const onlineAgents = agents.filter(a => a.is_online).length;
   const activeDevices = devices.filter(d => d.is_enabled).length;
@@ -33,7 +44,7 @@ export default async function DashboardPage() {
               <Users className="w-6 h-6" />
             </div>
             <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Tổng Agents</p>
-            <p className="text-3xl font-black text-slate-900 mt-1">{agents.length}</p>
+            <p className="text-3xl font-black text-slate-900 mt-1">{isLoading ? "..." : agents.length}</p>
           </div>
           
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
@@ -41,7 +52,7 @@ export default async function DashboardPage() {
               <Activity className="w-6 h-6" />
             </div>
             <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Agents Online</p>
-            <p className="text-3xl font-black text-slate-900 mt-1">{onlineAgents}</p>
+            <p className="text-3xl font-black text-slate-900 mt-1">{isLoading ? "..." : onlineAgents}</p>
           </div>
 
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
@@ -49,7 +60,7 @@ export default async function DashboardPage() {
               <Cpu className="w-6 h-6" />
             </div>
             <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Tổng thiết bị</p>
-            <p className="text-3xl font-black text-slate-900 mt-1">{devices.length}</p>
+            <p className="text-3xl font-black text-slate-900 mt-1">{isLoading ? "..." : devices.length}</p>
           </div>
 
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
@@ -57,7 +68,7 @@ export default async function DashboardPage() {
               <ShieldCheck className="w-6 h-6" />
             </div>
             <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Thiết bị hoạt động</p>
-            <p className="text-3xl font-black text-slate-900 mt-1">{activeDevices}</p>
+            <p className="text-3xl font-black text-slate-900 mt-1">{isLoading ? "..." : activeDevices}</p>
           </div>
         </div>
 
@@ -76,28 +87,36 @@ export default async function DashboardPage() {
               <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-tighter">Thời gian thực</span>
             </div>
             <div className="space-y-4">
-              {agents.map((agent) => (
-                <div key={agent.agent_id} className="bg-white p-5 rounded-3xl border border-slate-100 flex items-center justify-between hover:shadow-md transition-shadow">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-slate-50 p-3 rounded-2xl text-slate-400">
-                      <Monitor className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900">{agent.agent_id}</h3>
-                      <p className="text-xs text-slate-400 italic">Last seen: {new Date(agent.last_seen).toLocaleTimeString()}</p>
-                    </div>
-                  </div>
-                  <span className={`px-4 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest ${
-                    agent.is_online ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                  }`}>
-                    {agent.is_online ? 'Connected' : 'Disconnected'}
-                  </span>
+              {isLoading ? (
+                <div className="bg-white p-12 text-center rounded-3xl border border-dashed border-slate-200 text-slate-400 font-medium animate-pulse">
+                  Đang tải...
                 </div>
-              ))}
-              {agents.length === 0 && (
-                <div className="bg-white p-12 text-center rounded-3xl border border-dashed border-slate-200 text-slate-400 font-medium">
-                  Chưa có Agent nào kết nối
-                </div>
+              ) : (
+                <>
+                  {agents.map((agent) => (
+                    <div key={agent.agent_id} className="bg-white p-5 rounded-3xl border border-slate-100 flex items-center justify-between hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-slate-50 p-3 rounded-2xl text-slate-400">
+                          <Monitor className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-900">{agent.agent_id}</h3>
+                          <p className="text-xs text-slate-400 italic">Last seen: {new Date(agent.last_seen).toLocaleTimeString()}</p>
+                        </div>
+                      </div>
+                      <span className={`px-4 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest ${
+                        agent.is_online ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {agent.is_online ? 'Connected' : 'Disconnected'}
+                      </span>
+                    </div>
+                  ))}
+                  {agents.length === 0 && (
+                    <div className="bg-white p-12 text-center rounded-3xl border border-dashed border-slate-200 text-slate-400 font-medium">
+                      Chưa có Agent nào kết nối
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </section>
