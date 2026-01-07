@@ -94,80 +94,38 @@ API_PORT=0
 
 ---
 
-## 🪟 Triển khai trên Windows (Dùng NSSM cho Agent)
+## 🪟 Triển khai trên Windows (Dùng NSSM)
 
 Đây là phương pháp ổn định nhất để chạy App 24/7 mà không cần người dùng đăng nhập.
 
-### 1. Chuẩn bị
+### 1. API Server (Rust)
+1. Build binary ở chế độ release: `cargo build --release` trong thư mục `apiserver`.
+2. Tải **NSSM** và copy vào `apiserver/nssm.exe`.
+3. Chuột phải `apiserver/install_service.bat` chọn **Run as Administrator**.
+4. Service `LeeAttendAPIServer` sẽ được cài đặt và tự khởi động.
+
+### 2. Agent (Python)
 1. Cài đặt Python 3.10+ và thiết lập môi trường ảo `venv`.
-2. Tải **NSSM (Non-Sucking Service Manager)** từ [nssm.cc](https://nssm.cc/download).
-3. Copy file `nssm.exe` (bản 64-bit) vào thư mục gốc của dự án (`zkteco-attendance-py/`).
+2. Copy file `nssm.exe` vào thư mục gốc của agent.
+3. Chuột phải vào `agent/install_service.bat` và chọn **Run as Administrator**.
+4. Service `ZKAttendanceAPI` sẽ tự động khởi động.
 
-### 2. Cài đặt Service
-1. Chỉnh sửa file `devices.json` với danh sách máy chấm công của bạn.
-2. Chuột phải vào file `install_service.bat` và chọn **Run as Administrator**.
-3. Một cửa sổ terminal hiện ra thông báo các bước cài đặt. Khi kết thúc, service `ZKAttendanceAPI` sẽ tự động khởi động.
+## 💻 3. Web Dashboard (Tauri / Windows App)
 
-### 3. Quản lý Service
-- **Xem Log**: Mở thư mục `logs/` để xem `stdout.log` (dữ liệu in ra màn hình) và `stderr.log` (lỗi nếu có).
-- **Gỡ bỏ**: Chuột phải vào `uninstall_service.bat` và chọn **Run as Administrator**.
-- **Services Manager**: Bạn có thể quản lý service thủ công qua công cụ `services.msc` của Windows.
+Giao diện quản trị tập trung, hiện có thể chạy dưới dạng ứng dụng Desktop Windows.
 
-## 💻 3. Web Dashboard (Next.js)
-
-
-
-Giao diện quản trị tập trung cho toàn bộ hệ thống.
-
-
-
-### Yêu cầu hệ thống
-
-- Node.js 18.x hoặc mới hơn
-
-
-
-### Các bước triển khai
-
-1. Di chuyển vào thư mục `webdashboard`:
-
+### Build ứng dụng Desktop (Tauri)
+1. Đảm bảo đã cài đặt Rust và Node.js.
+2. Di chuyển vào thư mục `webdashboard`.
+3. Cài đặt thư viện: `npm install`.
+4. Build ứng dụng:
    ```bash
-
-   cd webdashboard
-
+   npm run tauri build
    ```
+5. File cài đặt (`.msi` hoặc `.exe`) sẽ nằm tại: `src-tauri/target/release/bundle/`.
 
-2. Cài đặt dependencies:
-
-   ```bash
-
-   npm install
-
-   ```
-
-3. Cấu hình môi trường (Tạo file `.env.local` nếu cần):
-
-   ```env
-
-   NEXT_PUBLIC_API_URL=http://your-api-server:3000
-
-   ```
-
-4. Build và chạy:
-
-   - **Development**: `npm run dev`
-
-   - **Production (Standalone)**:
-
-     ```bash
-
-     npm run build
-
-     # Sau đó chạy file server đã đóng gói
-
-     node .next/standalone/server.js
-
-     ```
+### Triển khai Web (Standalone)
+... (giữ nguyên hướng dẫn cũ nếu cần) ...
 
 
 

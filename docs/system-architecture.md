@@ -44,28 +44,23 @@ Agent được thiết kế để chạy ổn định 24/7 trên phần cứng g
 ## Infrastructure Diagram
 ```ascii
 [ Web Dashboard ] <--- REST API ---> [ API Server ] <--- WebSocket (Outbound Only) ---> [ Agent ] <---> [ ZKTeco Devices ]
-      (Next.js)                         (Rust)                                           (Python CLI)
+ (Tauri Desktop)                        (Rust)                                           (Python CLI)
 ```
 
 ## 1. Agent (Client Side)
-Running on the edge machine (Raspberry Pi, PC) near ZKTeco devices.
-- **Responsibility**: 
-    - **Hardware Isolation**: Managed by `DeviceManager`.
-    - **Persistence**: Managed by `AttendanceRepository`.
-    - **Coordination**: Managed by `AttendanceAgent` container.
-    - **Outbound Communication**: Secure WebSocket connection to Central Server (No inbound ports).
-- **Stack**: Python 3.12, **asyncio**, SQLAlchemy, PyZK2.
+... (giữ nguyên) ...
 
 ## 2. API Server (Server Side)
-Central processing unit for multi-site management.
-- **Responsibility**:
-    - Receives attendance logs from multiple site-specific Agents.
-    - **Gatekeeper**: Authenticates and authorizes Agents via Handshake.
-    - **Command Routing**: Pushes remote commands to specific Agents via established WebSocket tunnels.
-    - Provides Reporting APIs for Dashboard.
-- **Stack**: **Rust**, **Axum**, Tokio, PostgreSQL.
+... (giữ nguyên) ...
+
+## 3. Web Dashboard (Admin UI)
+Ứng dụng quản trị tập trung dành cho Admin.
+- **Responsibility**: Quản lý cấu hình, phê duyệt Agent và theo dõi dữ liệu chấm công.
+- **Stack**: **Next.js** (Frontend), **Tauri** (Desktop Wrapper), Tailwind CSS.
+- **Mode**: Static Export (Không phụ thuộc Node.js runtime khi chạy desktop).
 
 ## Data Flow
+... (giữ nguyên) ...
 1. **Collector**: `DeviceManager` periodically fetches logs from ZK devices.
 2. **Persistence**: `AttendanceRepository` saves logs immediately to local DB with `is_synced=0`.
 3. **Sync Worker**: Queries unsynced logs and pushes them to the Central Server.

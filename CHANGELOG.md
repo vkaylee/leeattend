@@ -2,6 +2,15 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
+## [3.2.0] - 2026-01-07
+### Added
+- **API Server Windows Service**: Integrated NSSM wrapper for `apiserver` (Rust), allowing it to run as a reliable background service on Windows.
+- **Tauri Desktop App**: Packaged `webdashboard` as a native Windows application (`.exe`/`.msi`) using Tauri 2.0.
+- **Static Export Flow**: Optimized Web Dashboard for static export (`output: 'export'`), removing Node.js runtime dependency for client-side distribution.
+
+### Changed
+- **Dashboard Architecture**: Refactored `page.tsx` into a Client Component to support static site generation and Tauri compatibility.
+
 ## [3.1.0] - 2026-01-07
 ### Added
 - **Memory Safety Guard**: Implemented bounded queues with backpressure to prevent RAM saturation during network outages.
