@@ -7,7 +7,7 @@ if %errorLevel% neq 0 (
     exit /b
 )
 
-set SERVICE_NAME=ZKAttendanceAPI
+set SERVICE_NAME=ZKAttendanceAgent
 set BASE_DIR=%~dp0
 set NSSM_EXE=%BASE_DIR%nssm.exe
 

@@ -31,14 +31,15 @@ if not exist "%APP_EXE%" (
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
 echo [1/4] Dang cai dat service %SERVICE_NAME%...
-"%NSSM_EXE%" install %SERVICE_NAME% "%APP_EXE%"
+:: Remove quotes to prevent "Error 3: Path not found" issues
+"%NSSM_EXE%" install %SERVICE_NAME% %APP_EXE%
 
 echo [2/4] Cau hinh thu muc lam viec...
-"%NSSM_EXE%" set %SERVICE_NAME% AppDirectory "%BASE_DIR%"
+"%NSSM_EXE%" set %SERVICE_NAME% AppDirectory %BASE_DIR%
 
 echo [3/4] Cau hinh log file...
-"%NSSM_EXE%" set %SERVICE_NAME% AppStdout "%LOG_DIR%\stdout.log"
-"%NSSM_EXE%" set %SERVICE_NAME% AppStderr "%LOG_DIR%\stderr.log"
+"%NSSM_EXE%" set %SERVICE_NAME% AppStdout %LOG_DIR%\stdout.log
+"%NSSM_EXE%" set %SERVICE_NAME% AppStderr %LOG_DIR%\stderr.log
 "%NSSM_EXE%" set %SERVICE_NAME% AppRotateFiles 1
 "%NSSM_EXE%" set %SERVICE_NAME% AppRotateOnline 1
 "%NSSM_EXE%" set %SERVICE_NAME% AppRotateSeconds 86400

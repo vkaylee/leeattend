@@ -40,19 +40,21 @@ async def main():
             loop.add_signal_handler(sig, shutdown_handler)
     except NotImplementedError:
         # Fallback for systems without signal handler support (like Windows)
-        pass
+        logger.debug("Signal handlers not supported, relying on KeyboardInterrupt")
 
     # 3. Start Agent
-    await agent_instance.start()
+    agent_task = asyncio.create_task(agent_instance.start())
     
-    # 4. Wait for stop event
+    # 4. Wait for stop event or task completion
     try:
         await stop_event.wait()
-    except asyncio.CancelledError:
-        pass
+    except (asyncio.CancelledError, KeyboardInterrupt):
+        logger.info("Interrupt received...")
     finally:
         # 5. Stop Agent
+        logger.info("Shutting down agent...")
         await agent_instance.stop()
+        agent_task.cancel()
         logger.info("Agent stopped cleanly.")
 
 if __name__ == "__main__":

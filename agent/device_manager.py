@@ -10,7 +10,7 @@ from pyzk2 import ZK, const
 logger = logging.getLogger("zkteco-device-manager")
 
 class ZKService:
-    """Wrapper cho PyZK để quản lý kết nối an toàn"""
+    """Wrapper cho PyZK để quản lý kết nối an toàn (Async Threaded)"""
     def __init__(self, device_id: str, ip: str, port: int = 4370):
         self.device_id = device_id
         self.ip = ip
@@ -18,23 +18,23 @@ class ZKService:
         self.zk = ZK(ip, port=port, timeout=5, force_udp=True, ommit_ping=True)
         self.conn = None
 
-    def connect(self):
+    async def connect(self):
         if not self.conn:
-            self.conn = self.zk.connect()
+            self.conn = await asyncio.to_thread(self.zk.connect)
         return self.conn
 
-    def disconnect(self):
+    async def disconnect(self):
         if self.conn:
             try:
-                self.zk.disconnect()
+                await asyncio.to_thread(self.zk.disconnect)
             except:
                 pass
             self.conn = None
 
-    def get_attendance_logs(self):
-        self.connect()
+    async def get_attendance_logs(self):
+        conn = await self.connect()
         # Chuyển đổi object thành dict thuần để dễ serialize/lưu trữ
-        raw_logs = self.conn.get_attendance()
+        raw_logs = await asyncio.to_thread(conn.get_attendance)
         logs = []
         for log in raw_logs:
             logs.append({
@@ -45,15 +45,15 @@ class ZKService:
             })
         return logs
 
-    def sync_time(self):
-        self.connect()
+    async def sync_time(self):
+        conn = await self.connect()
         now = datetime.now()
-        self.conn.set_time(now)
+        await asyncio.to_thread(conn.set_time, now)
         return now.strftime("%Y-%m-%d %H:%M:%S")
 
-    def get_users(self):
-        self.connect()
-        users = self.conn.get_users()
+    async def get_users(self):
+        conn = await self.connect()
+        users = await asyncio.to_thread(conn.get_users)
         return [{"uid": u.uid, "user_id": u.user_id, "name": u.name} for u in users]
 
 class DeviceManager:
@@ -85,7 +85,9 @@ class DeviceManager:
             del self.monitoring_tasks[device_id]
         
         if device_id in self.services:
-            self.services[device_id].disconnect()
+            service = self.services[device_id]
+            # Fire and forget disconnect in a task since remove_device is synchronous
+            asyncio.create_task(service.disconnect())
             del self.services[device_id]
             
         if device_id in self.device_states:
@@ -111,7 +113,7 @@ class DeviceManager:
 
         while not self._stop_event.is_set():
             try:
-                logs = service.get_attendance_logs()
+                logs = await service.get_attendance_logs()
                 new_count = 0
                 
                 # Smart Polling: Adjust delay based on data volume

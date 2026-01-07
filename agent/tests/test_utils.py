@@ -74,7 +74,8 @@ class AsyncTestFactory:
     def create_mock_service(self, device_id="TEST_DEV"):
         """Tạo và đăng ký một ZKService giả lập vào agent hiện tại"""
         from device_manager import ZKService
-        mock = MagicMock(spec=ZKService)
+        from unittest.mock import AsyncMock
+        mock = AsyncMock(spec=ZKService)
         mock.device_id = device_id
         mock.ip = "127.0.0.1"
         if main.agent_instance:

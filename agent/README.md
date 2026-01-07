@@ -15,36 +15,68 @@
 
 ## 📦 Cài đặt & Cấu hình
 
-1. **Cài đặt thư viện:**
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
+### Yêu cầu
+- Python 3.10 trở lên
+- Mạng internet (để kết nối WebSocket tới Central Server)
 
-2. **Biến môi trường (`.env`):**
-   ```env
-   CENTRAL_SERVER_URL=ws://your-server.com/ws
-   AGENT_ID=SITE_01
-   AGENT_TOKEN=your_secret_token
-   DATABASE_URL=sqlite:///./attendance.db
-   ```
+### 1. Thiết lập Môi trường
+
+**Trên Windows (PowerShell):**
+```powershell
+python -m venv venv
+.\venv\Scripts\pip install -r requirements.txt
+# Copy file cấu hình mẫu
+copy .env.example .env
+```
+
+**Trên Linux/macOS:**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+### 2. Cấu hình (`.env`)
+Chỉnh sửa file `.env` với thông tin kết nối của bạn:
+```env
+# Kết nối tới Server Trung tâm
+CENTRAL_SERVER_URL=ws://localhost:3000/ws
+AGENT_TOKEN=your_secure_token_here
+AGENT_ID=SITE_01
+
+# Database Local (Mặc định dùng SQLite trên Windows)
+DATABASE_URL=sqlite:///./attendance.db
+
+# Tùy chỉnh Sync
+SYNC_BATCH_SIZE=100
+SYNC_INTERVAL=0.5
+```
 
 ## 🏃 Vận hành
 
-### Chạy trực tiếp
-```bash
-# Khởi chạy Agent (CLI Mode)
-python main.py
-
-# Chạy bộ test toàn diện (60+ cases)
-cd agent && ../venv/bin/pytest -v
+### Chạy trực tiếp (Debug)
+**Windows:**
+```powershell
+.\venv\Scripts\python.exe main.py
 ```
 
-### Chạy dưới dạng Windows Service (Khuyên dùng cho Prod)
-1. Tải `nssm.exe` từ [nssm.cc](https://nssm.cc/download) và copy vào thư mục gốc của agent.
-2. Chuột phải vào `install_service.bat` chọn **Run as Administrator**.
-3. Hệ thống sẽ tự động cài đặt và khởi chạy `AttendanceAgent` như một service ngầm.
+**Linux/macOS:**
+```bash
+./venv/bin/python main.py
+```
+
+### Chạy dưới dạng Service (Production)
+
+#### Windows Service
+1. Đảm bảo bạn đã cài đặt môi trường (`venv`) và cấu hình `.env` đầy đủ.
+2. Tải `nssm.exe` từ [nssm.cc](https://nssm.cc/download) (hoặc dùng bản có sẵn trong repo nếu có) và đặt vào thư mục `agent`.
+3. Chuột phải vào file `install_service.bat` và chọn **Run as Administrator**.
+   - Script sẽ tự động phát hiện Python trong `venv` và cài đặt service `ZKAttendanceAgent`.
+4. Để gỡ cài đặt, chạy `uninstall_service.bat` với quyền Admin.
+
+#### Linux Systemd
+(Đang cập nhật...)
 
 ## 🛠️ Kiến trúc nội bộ
 - **`app_container.py`**: Trái tim của Agent, điều phối mọi hoạt động.

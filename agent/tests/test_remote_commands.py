@@ -49,7 +49,8 @@ async def test_handle_command_device_not_found(test_agent):
 async def test_handle_command_unknown_method(test_agent):
     agent = test_agent
     # Cần truyền device_id hợp lệ để vượt qua bước check device
-    agent.device_manager.services["DEV1"] = MagicMock()
+    from unittest.mock import AsyncMock
+    agent.device_manager.services["DEV1"] = AsyncMock()
     command = {"method": "unknown_method", "device_id": "DEV1"}
     result = await agent.handle_remote_command(command)
     assert result["success"] is False

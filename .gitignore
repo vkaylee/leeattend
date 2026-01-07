@@ -38,3 +38,7 @@ build/
 # Project Specific
 agent/devices.json
 webdashboard/.env.local
+
+# Binaries and Local Databases
+*.exe
+*.db

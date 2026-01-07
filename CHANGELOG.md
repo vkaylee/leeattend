@@ -2,6 +2,16 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
+## [3.3.0] - 2026-01-07
+### Improved
+- **Windows Compatibility**: Optimized `agent/main.py` signal handling for graceful shutdown on Windows (where `add_signal_handler` is limited).
+- **Service Installation**: Enhanced `install_service.bat` to auto-detect `venv`, handle `.env` creation, and reliably register the service via NSSM.
+- **Database Flexibility**: `agent/database.py` now supports SQLite via `DATABASE_URL` as the default fallback, eliminating the hard dependency on PostgreSQL for local agents.
+
+### Fixed
+- **Blocking I/O**: Resolved critical event loop blocking on Windows by wrapping synchronous `pyzk2` calls in `asyncio.to_thread` within `DeviceManager`.
+- **Test Stability**: Updated test suite (`conftest.py`, `test_utils.py`) to use `AsyncMock`, ensuring full compatibility with the new async architecture.
+
 ## [3.2.0] - 2026-01-07
 ### Added
 - **API Server Windows Service**: Integrated NSSM wrapper for `apiserver` (Rust), allowing it to run as a reliable background service on Windows.

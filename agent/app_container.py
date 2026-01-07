@@ -121,10 +121,10 @@ class AttendanceAgent:
 
             # 4. Thực hiện lệnh
             if method == "sync_time":
-                new_time = service.sync_time()
+                new_time = await service.sync_time()
                 return {"success": True, "data": {"new_time": new_time}}
             elif method == "get_users":
-                users = service.get_users()
+                users = await service.get_users()
                 return {"success": True, "data": {"users": users}}
             
             # 5. Nếu đi đến đây tức là method chưa được implement cho device

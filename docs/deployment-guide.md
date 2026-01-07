@@ -57,38 +57,43 @@ Chỉnh sửa file `agent/devices.json`:
 
 Tạo file `agent/.env`:
 ```env
-# Central Database (PostgreSQL)
-PG_DATABASE_ADDR=192.168.x.x
-PG_DATABASE_PORT=5432
-PG_DATABASE_DB=leeatt
-PG_DATABASE_USER=leeatt
-PG_DATABASE_PASS=@Elite@123456
-
-# CENTRAL SERVER (WebSocket)
+# Central Server (WebSocket)
 CENTRAL_SERVER_URL=ws://your-api-server:3000/ws
 AGENT_TOKEN=your_secure_token
 AGENT_ID=BRANCH_NAME_01
+
+# Local Database (SQLite mặc định hoặc Postgres)
+DATABASE_URL=sqlite:///./attendance.db
+
 # Cấu hình đồng bộ
 SYNC_BATCH_SIZE=100
-SYNC_INTERVAL=0.1
-# Đặt 0 để chọn port ngẫu nhiên (tránh xung đột local)
-API_PORT=0 
+SYNC_INTERVAL=0.5
 ```
 
 ### 🚀 Khởi tạo và Chạy
 1. Cài đặt thư viện:
    ```bash
    cd agent
+   # Windows
    python -m venv venv
-   source venv/bin/activate  # Hoặc venv\Scripts\activate trên Windows
+   .\venv\Scripts\pip install -r requirements.txt
+   
+   # Linux/Mac
+   python3 -m venv venv
+   source venv/bin/activate
    pip install -r requirements.txt
    ```
-2. Khởi tạo Database (Migration):
+2. Khởi tạo Database:
    ```bash
-   alembic upgrade head
+   # Agent tự động tạo bảng khi khởi động
+   # Nếu dùng Postgres, hãy đảm bảo DB đã được tạo
    ```
 3. Chạy Agent:
    ```bash
+   # Windows
+   .\venv\Scripts\python main.py
+   
+   # Linux/Mac
    python main.py
    ```
 
@@ -106,9 +111,9 @@ API_PORT=0
 
 ### 2. Agent (Python)
 1. Cài đặt Python 3.10+ và thiết lập môi trường ảo `venv`.
-2. Copy file `nssm.exe` vào thư mục gốc của agent.
+2. Copy file `nssm.exe` vào thư mục gốc của agent (nếu chưa có).
 3. Chuột phải vào `agent/install_service.bat` và chọn **Run as Administrator**.
-4. Service `ZKAttendanceAPI` sẽ tự động khởi động.
+4. Service `ZKAttendanceAgent` sẽ tự động được cài đặt và khởi động.
 
 ## 💻 3. Web Dashboard (Tauri / Windows App)
 
