@@ -26,6 +26,16 @@ Central high-performance API server for LeeAttend, built with Rust and Axum.
    cargo build
    ```
 
+### 🏃 Running as Windows Service
+
+1. Copy `nssm.exe` to the `apiserver/` directory.
+2. Build the project in release mode: `cargo build --release`.
+3. Right-click `install_service.bat` and select **Run as Administrator**.
+4. The service `LeeAttendAPIServer` will be installed and started.
+5. Logs can be found in `apiserver/logs/`.
+
+To remove the service, run `uninstall_service.bat` as Administrator.
+
 ### Running the Server
 
 #### Development mode (with auto-reload)
