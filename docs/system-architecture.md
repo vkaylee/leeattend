@@ -34,42 +34,43 @@ Hệ thống sử dụng cơ chế phê duyệt danh tính chủ động:
 
 ## Infrastructure Diagram
 ```ascii
-[ Web Dashboard ] <--- REST API ---> [ API Server ] <--- WebSocket ---> [ Agent ] <---> [ ZKTeco Devices ]
-      (Next.js)                         (Rust)                           (Python)
+[ Web Dashboard ] <--- REST API ---> [ API Server ] <--- WebSocket (Outbound Only) ---> [ Agent ] <---> [ ZKTeco Devices ]
+      (Next.js)                         (Rust)                                           (Python CLI)
 ```
 
 ## 1. Agent (Client Side)
-Running on the local machine where ZKTeco devices are located.
+Running on the edge machine (Raspberry Pi, PC) near ZKTeco devices.
 - **Responsibility**: 
-    - Connects to ZK devices.
-    - Buffers logs locally (Safety).
-    - Syncs logs to Central Server via WebSocket.
-    - **Executes remote commands** (sync-time, reboot, etc.) received from Central Server.
-- **Stack**: Python 3.12, FastAPI, PyZK2.
+    - **Hardware Isolation**: Managed by `DeviceManager`.
+    - **Persistence**: Managed by `AttendanceRepository`.
+    - **Coordination**: Managed by `AttendanceAgent` container.
+    - **Outbound Communication**: Secure WebSocket connection to Central Server (No inbound ports).
+- **Stack**: Python 3.12, **asyncio**, SQLAlchemy, PyZK2.
 
 ## 2. API Server (Server Side)
 Central processing unit for multi-site management.
 - **Responsibility**:
-    - Receives attendance logs from multiple Agents.
-    - **Manages active WebSocket connections** from Agents.
-    - **Routes remote commands** to specific Agents.
+    - Receives attendance logs from multiple site-specific Agents.
+    - **Gatekeeper**: Authenticates and authorizes Agents via Handshake.
+    - **Command Routing**: Pushes remote commands to specific Agents via established WebSocket tunnels.
     - Provides Reporting APIs for Dashboard.
 - **Stack**: **Rust**, **Axum**, Tokio, PostgreSQL.
 
 ## Data Flow
-1. **Collector**: Agent periodically fetches logs from ZK devices.
-2. **Persistence**: Logs are saved immediately to local PostgreSQL with `is_synced=0`.
-3. **Sync Worker**: A dedicated background task queries unsynced logs and pushes them to the Central Server.
-4. **Reliability (ACK)**: Server sends an acknowledgment for each log. Agent updates `is_synced=1` only upon receiving ACK.
-5. **Backoff**: If the connection fails, the Central Client uses an **Exponential Backoff** strategy to reconnect safely.
-6. **Storage**: Central Server stores logs in the Cloud Database.
+1. **Collector**: `DeviceManager` periodically fetches logs from ZK devices.
+2. **Persistence**: `AttendanceRepository` saves logs immediately to local DB with `is_synced=0`.
+3. **Sync Worker**: Queries unsynced logs and pushes them to the Central Server.
+4. **Reliability (ACK)**: Server sends an acknowledgment for each batch. Agent updates `is_synced=1` only upon receiving ACK.
+5. **Backoff**: If any connection fails (ZK device or Central Server), the Agent applies **Exponential Backoff with Jitter**.
 
 ## Technology Stack
 
 ### Agent
 - **Language**: Python 3.12+
-- **Framework**: FastAPI (Async)
-- **Library**: pyzk2 (Protocol)
+- **Architecture**: **Single Responsibility Principle (SRP)**, Factory Pattern.
+- **Runtime**: asyncio (Non-blocking I/O)
+- **Library**: pyzk2 (Hardware Protocol)
+- **Framework**: **None (Pure CLI)** - FastAPI removed for performance.
 
 ### API Server
 - **Language**: Rust (1.75+)

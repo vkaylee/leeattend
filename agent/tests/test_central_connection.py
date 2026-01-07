@@ -31,9 +31,15 @@ class MockCentralServer:
             pass
 
 @pytest.mark.asyncio
-async def test_central_client_connection_and_tunnel():
+async def test_central_client_connection_and_tunnel(test_ctx):
     """Test quy trình kết nối, handshake và phản hồi lệnh về server"""
     server = MockCentralServer()
+    
+    # Đảm bảo reset trạng thái trước khi bắt đầu
+    from central_client import central_client
+    central_client.is_connected = False
+    while not central_client.send_queue.empty():
+        central_client.send_queue.get_nowait()
     
     async with websockets.serve(server.handler, "127.0.0.1", 0) as ws_server:
         port = ws_server.sockets[0].getsockname()[1]

@@ -1,99 +1,87 @@
 import pytest
 import asyncio
 from unittest.mock import MagicMock, patch
-from main import monitor_attendance, main_runner, log_queue, ZKService, processed_logs
+import main
+from device_manager import ZKService
 
 @pytest.mark.asyncio
-async def test_system_event_on_startup():
+async def test_system_event_on_startup(test_ctx, test_agent):
     """Xác nhận monitor gửi thông báo hệ thống khi khởi động"""
-    # Xóa hàng chờ
-    while not log_queue.empty():
-        log_queue.get_nowait()
-
-    mock_service = MagicMock(spec=ZKService)
-    mock_service.device_id = "SYS_TEST"
-    mock_service.ip = "1.1.1.1"
+    agent = test_agent
+    mock_service = test_ctx.create_mock_service("SYS_TEST")
     
-    # Dừng ngay sau vòng lặp đầu
-    async def mock_sleep_stop(delay):
-        raise asyncio.CancelledError()
-
-    with patch("asyncio.sleep", side_effect=mock_sleep_stop):
+    from tests.test_utils import LoopBreak
+    with test_ctx.mock_infinite_loop(max_loops=0):
         try:
-            await monitor_attendance(mock_service)
-        except (asyncio.CancelledError, Exception):
-            pass
-
-    # Kiểm tra queue: Phải có ít nhất 1 tin nhắn 'system'
-    found_sys_msg = False
-    while not log_queue.empty():
-        item = log_queue.get_nowait()
-        if item.get("type") == "system" and "Bắt đầu giám sát" in item.get("message"):
-            found_sys_msg = True
-            break
-    
-    assert found_sys_msg, "Không tìm thấy thông báo khởi động hệ thống trong Queue"
-
-@pytest.mark.asyncio
-async def test_system_event_on_failure():
-    """Xác nhận monitor gửi cảnh báo WARN khi mất kết nối"""
-    # Xóa hàng chờ trước khi test
-    while not log_queue.empty():
-        log_queue.get_nowait()
-
-    mock_service = MagicMock(spec=ZKService)
-    mock_service.device_id = "FAIL_TEST"
-    mock_service.ip = "1.1.1.1"
-    mock_service.get_attendance_logs.side_effect = Exception("Hardware Error")
-    
-    # Chỉ cho chạy 1 chu kỳ sleep rồi dừng
-    sleep_count = 0
-    async def mock_sleep_count(delay):
-        nonlocal sleep_count
-        sleep_count += 1
-        if sleep_count >= 1:
-            raise asyncio.CancelledError()
-
-    with patch("asyncio.sleep", side_effect=mock_sleep_count):
-        try:
-            await monitor_attendance(mock_service)
-        except asyncio.CancelledError:
+            # Gọi phương thức monitor của DeviceManager
+            await agent.device_manager._monitor_device(mock_service)
+        except LoopBreak:
             pass
 
     # Kiểm tra queue
-    items = []
-    while not log_queue.empty():
-        items.append(log_queue.get_nowait())
-    
-    found_warn = any(item.get("type") == "system" and item.get("level") == "WARN" for item in items)
-    assert found_warn, f"Không tìm thấy cảnh báo lỗi kết nối trong Queue. Items found: {items}"
+    item = await agent.log_queue.get()
+    assert item is not None
+    assert item.get("type") == "system"
+    assert "Bắt đầu giám sát" in item.get("message")
 
 @pytest.mark.asyncio
-async def test_main_runner_handles_system_msg():
+async def test_system_event_on_failure(test_ctx, test_agent):
+    """Xác nhận monitor gửi cảnh báo WARN khi mất kết nối"""
+    agent = test_agent
+    mock_service = test_ctx.create_mock_service("FAIL_TEST")
+    mock_service.get_attendance_logs.side_effect = Exception("Hardware Error")
+    
+    from tests.test_utils import LoopBreak
+    with test_ctx.mock_infinite_loop(max_loops=0):
+        try:
+            await agent.device_manager._monitor_device(mock_service)
+        except LoopBreak:
+            pass
+
+    # Kiểm tra queue
+    # Message 1: Bắt đầu giám sát
+    await agent.log_queue.get()
+    # Message 2: Cảnh báo lỗi
+    item = await agent.log_queue.get()
+    assert item is not None
+    assert item.get("type") == "system"
+    assert item.get("level") == "WARN"
+
+@pytest.mark.asyncio
+async def test_main_runner_handles_system_msg(test_ctx, test_agent):
     """Kiểm tra main_runner in đúng định dạng cho tin nhắn hệ thống"""
+    agent = test_agent
     test_msg = {
         "type": "system",
         "level": "INFO",
         "device_id": "DEV_01",
         "message": "Test System Message"
     }
-    await log_queue.put(test_msg)
 
-    with patch("builtins.print") as mock_print:
-        # Chạy runner xử lý 1 item
-        original_get = log_queue.get
-        async def get_once():
-            item = await original_get()
-            asyncio.get_event_loop().call_soon(lambda: runner_task.cancel())
-            return item
+    # Mock print và central_client
+    with patch("builtins.print"), \
+         patch.object(agent, "central_client") as mock_central:
         
-        with patch.object(log_queue, "get", side_effect=get_once):
-            runner_task = asyncio.create_task(main_runner())
-            try:
-                await runner_task
-            except asyncio.CancelledError:
-                pass
-
-        # Kiểm tra xem có in dòng chứa 'INFO' và 'Test System Message' không
-        print_calls = [str(call) for call in mock_print.call_args_list]
-        assert any("INFO" in call and "Test System Message" in call for call in print_calls)
+        # Khởi chạy main_runner như một background task
+        runner_task = asyncio.create_task(agent._main_runner())
+        
+        # Đẩy tin nhắn vào queue
+        await agent.log_queue.put(test_msg)
+        
+        # Đợi cho đến khi mock được gọi (tối đa 2s)
+        for _ in range(20):
+            if mock_central.push_system_event.called:
+                break
+            if runner_task.done() and runner_task.exception():
+                break
+            await asyncio.sleep(0.1)
+        
+        # Kiểm tra xem central_client.push_system_event có được gọi đúng không
+        mock_central.push_system_event.assert_called_with("INFO", "Test System Message", "DEV_01")
+        
+        # Hủy runner task và dọn dẹp
+        runner_task.cancel()
+        try:
+            await runner_task
+        except asyncio.CancelledError:
+            pass

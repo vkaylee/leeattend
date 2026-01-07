@@ -1,75 +1,48 @@
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, StaticPool
-from sqlalchemy.orm import sessionmaker
-from datetime import datetime
+from models import ZKTRawAttendance
+from database import SessionLocal
+from datetime import datetime, timedelta
 
-from main import app
-from database import get_db
-from models import Base, ZKTRawAttendance
-
-# Setup SQLite in-memory with StaticPool for sharing connection
-SQLALCHEMY_DATABASE_URL = "sqlite://"
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Create tables once for all tests
-Base.metadata.create_all(bind=engine)
-
-@pytest.fixture
-def db_session():
-    connection = engine.connect()
-    transaction = connection.begin()
-    session = TestingSessionLocal(bind=connection)
+@pytest.fixture(autouse=True)
+def setup_db():
+    """Dọn dẹp và nạp dữ liệu mẫu vào DB trước mỗi test"""
+    db = SessionLocal()
+    db.query(ZKTRawAttendance).delete()
     
-    # Seed data
+    # Tạo dữ liệu mẫu
     logs = [
-        ZKTRawAttendance(device_id="DEV1", user_id="101", timestamp=datetime(2026, 1, 1, 8, 0), status=1, punch=0),
-        ZKTRawAttendance(device_id="DEV1", user_id="102", timestamp=datetime(2026, 1, 2, 8, 0), status=1, punch=0),
-        ZKTRawAttendance(device_id="DEV2", user_id="101", timestamp=datetime(2026, 1, 3, 8, 0), status=1, punch=0),
+        ZKTRawAttendance(device_id="DEV1", user_id="101", timestamp=datetime.now() - timedelta(days=1), status=1, punch=0, is_synced=1),
+        ZKTRawAttendance(device_id="DEV2", user_id="102", timestamp=datetime.now() - timedelta(hours=5), status=1, punch=0, is_synced=0),
+        ZKTRawAttendance(device_id="DEV1", user_id="101", timestamp=datetime.now(), status=1, punch=0, is_synced=0),
     ]
-    session.add_all(logs)
-    session.commit()
-    
-    yield session
-    
-    session.close()
-    transaction.rollback()
-    connection.close()
+    db.add_all(logs)
+    db.commit()
+    db.close()
+    yield
+    db = SessionLocal()
+    db.query(ZKTRawAttendance).delete()
+    db.commit()
+    db.close()
 
-@pytest.fixture
-def client(db_session):
-    def override_get_db():
-        yield db_session
-    app.dependency_overrides[get_db] = override_get_db
-    yield TestClient(app)
-    app.dependency_overrides.clear()
+@pytest.mark.asyncio
+async def test_query_all_raw_logs(test_agent):
+    """Test logic truy vấn dữ liệu từ repository trực tiếp"""
+    res = test_agent.repository.query_logs()
+    assert len(res) == 3
 
-def test_query_all_raw_logs(client):
-    response = client.get("/attendance/raw")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 3
+@pytest.mark.asyncio
+async def test_filter_by_device(test_agent):
+    res = test_agent.repository.query_logs(device_id="DEV2")
+    assert len(res) == 1
+    assert res[0].device_id == "DEV2"
 
-def test_filter_by_device(client):
-    response = client.get("/attendance/raw?device_id=DEV2")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 1
-    assert data[0]["device_id"] == "DEV2"
+@pytest.mark.asyncio
+async def test_filter_by_user(test_agent):
+    res = test_agent.repository.query_logs(user_id="101")
+    assert len(res) == 2
 
-def test_filter_by_user(client):
-    response = client.get("/attendance/raw?user_id=101")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 2
-
-def test_filter_by_date_range(client):
-    response = client.get("/attendance/raw?start_date=2026-01-02T00:00:00")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 2
+@pytest.mark.asyncio
+async def test_filter_by_date_range(test_agent):
+    start = datetime.now() - timedelta(hours=10)
+    res = test_agent.repository.query_logs(start_date=start)
+    assert len(res) == 2

@@ -116,143 +116,95 @@ Command sent
 
 ---
 
-## 🤖 Agent API (Local - Python)
-Base URL: `http://localhost:8000`
+## 🤖 Agent Remote Control (WebSocket Tunnels)
 
-## GET /health
+Agent không cung cấp HTTP API local. Mọi tương tác với Agent được thực hiện gián tiếp thông qua Central Server WebSocket. 
 
-Kiểm tra xem service Agent có đang hoạt động hay không.
+Admin gửi lệnh tới API Server, và API Server sẽ định tuyến lệnh đó tới Agent tương ứng qua kết nối WebSocket đang hoạt động.
 
-### Response (200 OK)
+### POST /agent/:agent_id/command (Central Server API)
+Gửi lệnh điều khiển đến một Agent đang online.
+
+**Request Body:**
 ```json
 {
-  "status": "healthy",
-  "timestamp": "2026-01-07T11:00:00.123456"
+  "method": "sync_time",
+  "device_id": "OFFICE_01",
+  "data": {}
 }
 ```
 
-## GET /status
+**Supported Methods:**
+- `sync_time`: Đồng bộ thời gian cho máy chấm công cụ thể.
+- `get_users`: Lấy danh sách nhân viên từ máy.
+- `ping`: Kiểm tra kết nối và độ trễ tới Agent.
 
-Báo cáo chi tiết trạng thái vận hành của Agent và các máy chấm công đang kết nối.
-
-### Response (200 OK)
+**Response (200 OK):**
 ```json
 {
-  "status": "running",
-  "uptime_seconds": 3600.5,
-  "total_processed": 1250,
-  "queue_size": 0,
+  "success": true,
+  "data": { ... result of method ... },
+  "error": null
+}
+```
+
+---
+
+## 🌐 Agent Outbound Giao thức (WebSocket)
+
+Agent chủ động kết nối tới `CENTRAL_SERVER_URL` để thiết lập kênh giao tiếp 2 chiều.
+
+### 1. Handshake (Agent -> Server)
+Bản tin đầu tiên để xác thực.
+```json
+{
+  "type": "handshake",
+  "agent_id": "AGENT_01",
+  "token": "secret_token_abc",
+  "timestamp": "ISO-8601"
+}
+```
+
+### 2. Status Update (Agent -> Server)
+Agent định kỳ (mỗi 30s) gửi trạng thái chi tiết của các máy chấm công local.
+```json
+{
+  "type": "status_update",
+  "agent_id": "AGENT_01",
   "devices": [
     {
-      "device_id": "OFFICE_01",
+      "device_id": "DEV_01",
       "status": "online",
-      "last_sync": "2026-01-07T10:55:00",
+      "last_sync": "2026-01-07T18:00:00",
       "error": null
     }
   ]
 }
 ```
 
-## GET /attendance/raw
-
-Truy vấn dữ liệu chấm công thô (raw) từ cơ sở dữ liệu PostgreSQL. Dữ liệu này được lưu trữ tự động ngay khi máy chấm công đẩy về hệ thống.
-
-### Query Parameters
-
-| Tham số | Kiểu | Bắt buộc | Mô tả |
-|---------|------|----------|-------|
-| `device_id` | string | Không | Lọc theo ID của máy chấm công |
-| `user_id` | string | Không | Lọc theo ID của nhân viên |
-| `start_date` | datetime | Không | Lọc từ thời điểm (ISO 8601, e.g., `2026-01-01T08:00:00`) |
-| `end_date` | datetime | Không | Lọc đến thời điểm |
-| `page` | integer | Không | Số trang (Mặc định: 1) |
-| `page_size` | integer | Không | Số bản ghi trên mỗi trang (Mặc định: 100) |
-
-### Response (200 OK)
-
-Trả về danh sách các bản ghi chấm công thô, sắp xếp theo thời gian mới nhất trước.
-
-```json
-[
-  {
-    "id": 125,
-    "device_id": "OFFICE_01",
-    "user_id": "1001",
-    "timestamp": "2026-01-07T10:30:00",
-    "status": 1,
-    "punch": 0,
-    "created_at": "2026-01-07T10:30:05"
-  }
-]
-```
-
-### cURL Example
-```bash
-curl -X GET "http://localhost:8000/attendance/raw?user_id=1001&page_size=10"
-```
-
----
-
-# 🌐 Central Server Integration (Legacy/WebSocket)
-*Note: This section describes the Agent's WebSocket capability.*
-
-Agent kết nối đến Server trung tâm qua WebSocket (Outbound) để đẩy dữ liệu và nhận cấu hình.
-
-## Outbound Payloads (Agent -> Server)
-
-### Attendance Log
+### 3. Attendance Batch (Agent -> Server)
+Gửi dữ liệu chấm công theo lô (batch) để tối ưu hiệu năng.
 ```json
 {
   "type": "attendance",
-  "agent_id": "BRANCH_01",
-  "device_id": "DEV_01",
-  "data": {
-    "user_id": "101",
-    "timestamp": "2026-01-07 10:00:00",
-    "status": 1,
-    "punch": 0
-  },
-  "timestamp": "ISO-8601-Timestamp"
+  "msg_id": "uuid-v4",
+  "agent_id": "AGENT_01",
+  "device_id": "BATCH",
+  "data": [
+    { "user_id": "101", "timestamp": "2026-01-07 18:00:00", "status": 1, "punch": 0 },
+    { "user_id": "102", "timestamp": "2026-01-07 18:01:00", "status": 1, "punch": 0 }
+  ]
 }
 ```
-
-## Inbound Commands (Server -> Agent)
-
-#### Remote Configuration (Server -> Agent)
-Server gửi payload này để cập nhật danh sách máy chấm công Agent cần quản lý:
-```json
-{
-  "type": "config_push",
-  "data": {
-    "devices": [
-      { "device_id": "NEW_DEV", "ip": "192.168.1.100", "port": 4370 }
-    ]
-  }
-}
-```
-
-## GET /devices
-Liệt kê trạng thái hiện tại của tất cả các máy trong cấu hình.
-
-### GET `/devices/{device_id}/logs`
-Tải dữ liệu chấm công của một máy cụ thể.
-- **Example**: `GET /devices/OFFICE_01/logs`
-
-### GET `/devices/{device_id}/users`
-Liệt kê danh sách nhân viên của một máy cụ thể.
-
-### POST `/devices/{device_id}/sync-time`
-Đồng bộ giờ cho một máy cụ thể.
 
 ---
 
-## 🛠 Định dạng Log đầu ra (Console)
+## 🛠 Định dạng Log (Agent Console Output)
 
-Hệ thống sẽ in log kèm theo `device_id`:
+Dù không có HTTP server, Agent vẫn in thông tin hoạt động ra Console:
 ```text
-[🔔 NEW LOG - OFFICE_01] - 12:00:00
- 👤 User ID  : 101
- ⏰ Time     : 2026-01-06 11:59:00
- 📍 Status   : 1
------------------------------------
+[18:00:00] [SYSTEM] ℹ️ INFO : Agent đã khởi động và đang giám sát thiết bị local.
+[18:05:00] [OFFICE_01] ⚠️ WARN : Lỗi kết nối máy chấm công (ZKError). Thử lại sau 15.0s.
+[18:10:00] [OFFICE_01] ℹ️ INFO : Kết nối máy chấm công đã được phục hồi.
 ```
+

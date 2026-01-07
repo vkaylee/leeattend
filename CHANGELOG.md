@@ -2,6 +2,27 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
+## [3.0.0] - 2026-01-07
+### Added
+- **SRP Architecture in Agent**: Separated concerns into `AttendanceRepository` (DB), `DeviceManager` (Hardware), and `AttendanceAgent` (Container/Mediator).
+- **Async Test Factory**: New robust testing environment with loop breaking and absolute state isolation for reliable async tests.
+- **Robust Connection Handling**: Implemented singleton connection tasks and explicit error propagation in `CentralClient`.
+
+### Changed
+- **Pure CLI Mode**: Removed FastAPI, Uvicorn, and HTTPX from the agent. It now runs as a lightweight background service.
+- **Outbound-Only Communication**: Agent now only connects to Central Server via Websocket; no listening ports are opened, enhancing security.
+- **Exponential Backoff with Jitter**: Applied consistent retry logic across all components (Central Server, Sync Worker, ZK Devices).
+
+### Fixed
+- **Memory Safety**: Resolved memory leaks caused by stale `asyncio.Future` objects in ACK tracking.
+- **Hanging Tests**: Fixed deadlocks and infinite busy-loops in the test suite by ensuring proper task cancellation and loop breaking.
+- **State Contamination**: Eliminated test interference by resetting global instances between test runs.
+
+## [2.3.1] - 2026-01-07
+### Fixed
+- **Filtered Synchronization**: SyncWorker hiện chỉ đồng bộ dữ liệu của các thiết bị có trong cấu hình hiện tại, ngăn chặn việc đẩy log của các thiết bị đã bị xóa.
+- **Smart Idle Sync**: SyncWorker sẽ tạm dừng hoạt động hoàn toàn khi không có thiết bị nào được cấu hình, giúp tối ưu hóa tài nguyên hệ thống.
+
 ## [2.3.0] - 2026-01-07
 ### Added
 - **Agent Trust Management**: API Server hiện đã hỗ trợ phê duyệt danh tính Agent trước khi cho phép hoạt động chính thức.
