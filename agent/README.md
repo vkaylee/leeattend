@@ -9,6 +9,7 @@
 - **Outbound WebSocket**: Tự động kết nối tới Cloud, làm việc tốt sau NAT/Firewall mà không cần mở port.
 - **Guaranteed Delivery**: Cơ chế ACK đảm bảo dữ liệu không bị thất lạc khi mạng chập chờn.
 - **Multi-Device Support**: Quản lý hàng chục máy chấm công song song qua các Async Tasks.
+- **Memory Safety**: Cơ chế Bounded Queue và Rolling Cache giúp Agent chạy ổn định 24/7 chỉ với <100MB RAM.
 - **Robust Error Handling**: Áp dụng **Exponential Backoff với Jitter** cho mọi nỗ lực kết nối lại.
 - **Offline-first**: Tự động nạp cấu hình từ `devices.json` và lưu trữ log tạm thời vào SQLite khi mất mạng.
 

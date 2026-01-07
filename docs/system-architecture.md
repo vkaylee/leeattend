@@ -32,6 +32,15 @@ Hệ thống sử dụng cơ chế phê duyệt danh tính chủ động:
    - Nếu chưa được phê duyệt (`is_trusted=false`) -> Trả về `AGENT_NOT_TRUSTED` -> Ngắt.
 4. **Active State**: Chỉ Agent đã được Trust mới nhận được Config Push và có quyền đẩy Attendance Logs.
 
+### 6. Memory Safety & Resource Protection
+Agent được thiết kế để chạy ổn định 24/7 trên phần cứng giới hạn (Raspberry Pi/Mini PC):
+- **Bounded Queue**: Hàng đợi xử lý log được giới hạn (Max 1000 items). Khi hàng đợi đầy (do mất mạng hoặc DB chậm), quy trình đọc dữ liệu từ thiết bị sẽ tạm dừng (Backpressure), ngăn chặn tràn RAM.
+- **Smart Polling**: Tần suất đọc dữ liệu tự động điều chỉnh dựa trên tải:
+  - Default: 10s
+  - Logs > 5000: 60s
+  - Logs > 20000: 300s
+- **Rolling Deduplication**: Bộ nhớ đệm chống trùng lặp sử dụng cấu trúc `deque` + `set` với cửa sổ trượt cố định (20,000 items), đảm bảo bộ nhớ không tăng theo thời gian.
+
 ## Infrastructure Diagram
 ```ascii
 [ Web Dashboard ] <--- REST API ---> [ API Server ] <--- WebSocket (Outbound Only) ---> [ Agent ] <---> [ ZKTeco Devices ]

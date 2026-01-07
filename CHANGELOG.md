@@ -2,6 +2,15 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
+## [3.1.0] - 2026-01-07
+### Added
+- **Memory Safety Guard**: Implemented bounded queues with backpressure to prevent RAM saturation during network outages.
+- **Smart Polling**: Adaptive polling interval (10s -> 60s -> 300s) based on device log volume to reduce CPU stress.
+- **Rolling Window Deduplication**: Optimized log cache using a `deque` + `set` hybrid to maintain a fixed 20k window, preventing memory leaks while ensuring accurate deduplication.
+
+### Improved
+- **Resource Monitoring**: Enhanced internal status reporting to include queue size and cache utilization metrics.
+
 ## [3.0.0] - 2026-01-07
 ### Added
 - **SRP Architecture in Agent**: Separated concerns into `AttendanceRepository` (DB), `DeviceManager` (Hardware), and `AttendanceAgent` (Container/Mediator).
