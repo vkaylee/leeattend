@@ -46,6 +46,7 @@ class CentralClient:
                     await websocket.send(json.dumps({
                         "type": "handshake",
                         "agent_id": self.agent_id,
+                        "token": self.token, # Thêm token vào handshake
                         "timestamp": datetime.now().isoformat()
                     }))
 

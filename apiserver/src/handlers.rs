@@ -73,29 +73,83 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                             }
                         } else if v["type"] == "handshake" || !agent_id.is_empty() {
                             if agent_id.is_empty() {
-                                if let Some(id) = v["agent_id"].as_str() {
-                                    let is_duplicate = {
-                                        let active_agents = state_clone.agent_manager.agents.read().await;
-                                        active_agents.contains_key(id)
-                                    };
+                                if let (Some(id), Some(token)) = (v["agent_id"].as_str(), v["token"].as_str()) {
+                                    // 1. Kiểm tra Agent trong Database
+                                    let auth_result = sqlx::query_as::<_, crate::models::AuthorizedAgent>(
+                                        "SELECT * FROM authorized_agents WHERE id = $1"
+                                    )
+                                    .bind(id)
+                                    .fetch_optional(&state_clone.db)
+                                    .await;
 
-                                    if is_duplicate {
-                                        tracing::warn!("Rejecting duplicate connection attempt for agent {}", id);
-                                        let error_msg = serde_json::json!({
-                                            "type": "error",
-                                            "code": "DUPLICATE_ID",
-                                            "message": format!("Agent ID {} is already active on the server.", id)
-                                        });
-                                        let _ = tx.send(Message::Text(error_msg.to_string()));
-                                        break;
+                                    match auth_result {
+                                        Ok(Some(agent)) => {
+                                            // Kiểm tra Token và Trạng thái Trust
+                                            if agent.token != token {
+                                                tracing::warn!("Unauthorized access attempt for agent {}: Invalid Token", id);
+                                                let _ = tx.send(Message::Text(serde_json::json!({
+                                                    "type": "error",
+                                                    "code": "INVALID_TOKEN",
+                                                    "message": "Token không chính xác."
+                                                }).to_string()));
+                                                break;
+                                            }
+
+                                            if !agent.is_trusted {
+                                                tracing::warn!("Connection blocked for agent {}: Not Trusted", id);
+                                                let _ = tx.send(Message::Text(serde_json::json!({
+                                                    "type": "error",
+                                                    "code": "AGENT_NOT_TRUSTED",
+                                                    "message": "Agent chưa được phê duyệt bởi quản trị viên."
+                                                }).to_string()));
+                                                break;
+                                            }
+
+                                            // 2. Check duplicate connection
+                                            let is_duplicate = {
+                                                let active_agents = state_clone.agent_manager.agents.read().await;
+                                                active_agents.contains_key(id)
+                                            };
+
+                                            if is_duplicate {
+                                                tracing::warn!("Rejecting duplicate connection attempt for agent {}", id);
+                                                let _ = tx.send(Message::Text(serde_json::json!({
+                                                    "type": "error",
+                                                    "code": "DUPLICATE_ID",
+                                                    "message": format!("Agent ID {} đã có kết nối hoạt động.", id)
+                                                }).to_string()));
+                                                break;
+                                            }
+
+                                            // 3. Chấp nhận kết nối
+                                            agent_id = id.to_string();
+                                            state_clone.agent_manager.add_agent(agent_id.clone(), tx.clone()).await;
+                                            tracing::info!("Agent {} verified and connected", agent_id);
+                                            
+                                            // Cập nhật IP cuối của Agent
+                                            let _ = sqlx::query("UPDATE authorized_agents SET last_ip = $1 WHERE id = $2")
+                                                .bind("websocket_conn") // Có thể lấy IP thật từ socket nếu cần
+                                                .bind(&agent_id)
+                                                .execute(&state_clone.db)
+                                                .await;
+
+                                            // Gửi cấu hình ban đầu
+                                            let _ = notify_agent_config_update(&state_clone, &agent_id).await;
+                                        },
+                                        Ok(None) => {
+                                            tracing::warn!("Unauthorized connection attempt: Agent ID {} not found in whitelist", id);
+                                            let _ = tx.send(Message::Text(serde_json::json!({
+                                                "type": "error",
+                                                "code": "UNAUTHORIZED_AGENT",
+                                                "message": "Agent ID không nằm trong danh sách được phép."
+                                            }).to_string()));
+                                            break;
+                                        },
+                                        Err(e) => {
+                                            tracing::error!("Database error during handshake for agent {}: {}", id, e);
+                                            break;
+                                        }
                                     }
-
-                                    agent_id = id.to_string();
-                                    state_clone.agent_manager.add_agent(agent_id.clone(), tx.clone()).await;
-                                    tracing::info!("Agent {} connected", agent_id);
-                                    
-                                    // Send initial config push
-                                    let _ = notify_agent_config_update(&state_clone, &agent_id).await;
                                 }
                             }
                         }
@@ -239,6 +293,59 @@ pub async fn delete_device(
             }
             StatusCode::NO_CONTENT.into_response()
         },
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+// --- Authorized Agents Handlers ---
+
+pub async fn get_authorized_agents(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    match sqlx::query_as::<_, crate::models::AuthorizedAgent>("SELECT * FROM authorized_agents ORDER BY created_at DESC")
+        .fetch_all(&state.db)
+        .await
+    {
+        Ok(agents) => Json(agents).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+pub async fn create_authorized_agent(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<crate::models::CreateAuthorizedAgentRequest>,
+) -> impl IntoResponse {
+    match sqlx::query(
+        "INSERT INTO authorized_agents (id, name, token) VALUES ($1, $2, $3)"
+    )
+    .bind(&req.id)
+    .bind(&req.name)
+    .bind(&req.token)
+    .execute(&state.db)
+    .await
+    {
+        Ok(_) => (StatusCode::CREATED, Json(serde_json::json!({ "id": req.id }))).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+pub async fn update_agent_trust(
+    Path(id): Path<String>,
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<crate::models::TrustAgentRequest>,
+) -> impl IntoResponse {
+    match sqlx::query("UPDATE authorized_agents SET is_trusted = $1 WHERE id = $2")
+        .bind(req.is_trusted)
+        .bind(&id)
+        .execute(&state.db)
+        .await
+    {
+        Ok(res) if res.rows_affected() > 0 => {
+            // Nếu revoke trust, ngắt kết nối websocket hiện tại
+            if !req.is_trusted {
+                state.agent_manager.remove_agent(&id).await;
+            }
+            StatusCode::OK.into_response()
+        },
+        Ok(_) => StatusCode::NOT_FOUND.into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }

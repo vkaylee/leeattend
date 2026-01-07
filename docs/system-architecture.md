@@ -23,13 +23,14 @@ Quy trình khởi động của Agent:
 3. **Cloud Connect**: Kết nối WebSocket tới API Server.
 4. **Sync & Update**: Gửi trạng thái hiện tại và nhận cấu hình mới nhất (nếu có).
 
-### 4. Graceful Shutdown
-Quy trình khi tắt API Server:
-1. Nhận tín hiệu dừng (`SIGINT`/`SIGTERM`).
-2. Server ngừng nhận các request HTTP mới.
-3. Gửi message `{"type": "system", "code": "SERVER_SHUTDOWN"}` tới toàn bộ Agent đang online.
-4. Đóng Database Connection Pool.
-5. Server chính thức kết thúc sau khi các task xử lý xong.
+### 5. Agent Trust & Whitelisting
+Hệ thống sử dụng cơ chế phê duyệt danh tính chủ động:
+1. **Registration**: Admin khai báo `agent_id` và `token` trên Dashboard.
+2. **Connection**: Agent kết nối WebSocket và gửi `token` trong bản tin Handshake.
+3. **Verification**: 
+   - Nếu Token sai -> Trả về `INVALID_TOKEN` -> Ngắt.
+   - Nếu chưa được phê duyệt (`is_trusted=false`) -> Trả về `AGENT_NOT_TRUSTED` -> Ngắt.
+4. **Active State**: Chỉ Agent đã được Trust mới nhận được Config Push và có quyền đẩy Attendance Logs.
 
 ## Infrastructure Diagram
 ```ascii

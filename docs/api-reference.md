@@ -28,55 +28,62 @@ Thêm thiết bị mới. Server sẽ tự động sinh UUID v4 và gửi cấu 
 Xóa thiết bị. Agent sẽ ngay lập tức ngừng giám sát thiết bị này.
 - **Response (204)**: No Content
 
-### 3. WebSocket Messages
+### 3. Agent Trust Management
+
+Các endpoint dành cho Web Dashboard để kiểm soát quyền truy cập của Agent.
+
+#### GET /authorized-agents
+Lấy danh sách tất cả các Agent đã từng khai báo trong hệ thống.
+- **Response (200)**: `Array<AuthorizedAgent>`
+
+#### POST /authorized-agents
+Khai báo một Agent mới vào hệ thống.
+- **Request**:
+  ```json
+  {
+    "id": "AGENT_01",
+    "name": "Chi nhánh Hà Nội",
+    "token": "secret_token_123"
+  }
+  ```
+- **Response (201)**: `{ "id": "AGENT_01" }`
+
+#### PUT /authorized-agents/:id/trust
+Phê duyệt (Trust) hoặc Thu hồi quyền của một Agent. Khi thu hồi, kết nối WebSocket hiện tại sẽ bị ngắt.
+- **Request**:
+  ```json
+  { "is_trusted": true }
+  ```
+- **Response (200 OK)**
+
+### WebSocket Messages
 Agent gửi dữ liệu chấm công thô lên Server.
 
-**Message (Agent -> Server):**
+#### Handshake (Agent -> Server)
+Bản tin đầu tiên sau khi kết nối để xác thực định danh.
 ```json
 {
-  "type": "attendance",
-  "msg_id": "uuid-v4-string",
+  "type": "handshake",
   "agent_id": "AGENT_01",
-  "device_id": "M1",
-  "data": {
-    "user_id": "123",
-    "timestamp": "2026-01-07 10:00:00",
-    "status": 1,
-    "punch": 0
-  }
+  "token": "secret_token_abc_123",
+  "timestamp": "2026-01-07T10:00:00Z"
 }
 ```
 
-**Acknowledgment (Server -> Agent):**
-Server phản hồi sau khi nhận và xử lý thành công.
-```json
-{
-  "type": "ack",
-  "msg_id": "uuid-v4-string",
-  "status": "success",
-  "timestamp": "2026-01-07T10:00:01Z"
-}
-```
-*Lưu ý: Agent sẽ gửi lại tin nhắn nếu không nhận được ACK trong vòng 5 giây.*
-
-#### Server Shutdown (Server -> Agent)
-Thông báo khi Server sắp tắt để bảo trì.
-```json
-{
-  "type": "system",
-  "code": "SERVER_SHUTDOWN",
-  "message": "API Server is shutting down gracefully."
-}
-```
+#### Attendance Log (Agent -> Server)
+... (giữ nguyên cấu trúc cũ) ...
 
 ---
 
 ### WebSocket Error Codes
-Khi có lỗi xảy ra trong quá trình Handshake hoặc kết nối, Server sẽ gửi message `type: "error"`.
+Khi có lỗi xảy ra trong quá trình Handshake hoặc kết nối, Server sẽ gửi message `type: "error"` và đóng kết nối.
 
 | Code | Message | Mô tả |
 |------|---------|-------|
-| `DUPLICATE_ID` | Agent ID ... is already active | ID này đã có một connection khác đang chạy. |
+| `UNAUTHORIZED_AGENT` | Agent ID không nằm trong danh sách... | ID này chưa được khai báo trong bảng `authorized_agents`. |
+| `INVALID_TOKEN` | Token không chính xác. | ID đúng nhưng chuỗi bí mật `token` không khớp. |
+| `AGENT_NOT_TRUSTED` | Agent chưa được phê duyệt... | Agent đã khai báo nhưng cờ `is_trusted` đang là `false`. |
+| `DUPLICATE_ID` | Agent ID ... đã có kết nối hoạt động. | ID này hiện đang có một WebSocket session khác đang chạy. |
 
 ---
 

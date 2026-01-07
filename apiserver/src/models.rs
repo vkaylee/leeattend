@@ -24,6 +24,28 @@ pub struct AgentStatus {
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct AuthorizedAgent {
+    pub id: String,
+    pub name: String,
+    pub token: String,
+    pub is_trusted: bool,
+    pub last_ip: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateAuthorizedAgentRequest {
+    pub id: String,
+    pub name: String,
+    pub token: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TrustAgentRequest {
+    pub is_trusted: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct Device {
     pub id: Uuid,
     pub agent_id: String,

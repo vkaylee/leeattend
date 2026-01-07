@@ -34,6 +34,15 @@ export interface Device {
   created_at: string;
 }
 
+export interface AuthorizedAgent {
+  id: string;
+  name: string;
+  token: string;
+  is_trusted: boolean;
+  last_ip?: string;
+  created_at: string;
+}
+
 export async function fetchAgents(): Promise<AgentStatus[]> {
   const response = await fetch(`${API_BASE_URL}/agents`);
   if (!response.ok) throw new Error('Failed to fetch agents');
@@ -57,8 +66,63 @@ export async function createDevice(device: Partial<Device>): Promise<{ id: strin
 }
 
 export async function deleteDevice(id: string): Promise<void> {
+
   const response = await fetch(`${API_BASE_URL}/devices/${id}`, {
+
     method: 'DELETE',
+
   });
+
   if (!response.ok) throw new Error('Failed to delete device');
+
+}
+
+
+
+export async function fetchAuthorizedAgents(): Promise<AuthorizedAgent[]> {
+
+  const response = await fetch(`${API_BASE_URL}/authorized-agents`);
+
+  if (!response.ok) throw new Error('Failed to fetch authorized agents');
+
+  return response.json();
+
+}
+
+
+
+export async function createAuthorizedAgent(agent: Partial<AuthorizedAgent>): Promise<{ id: string }> {
+
+  const response = await fetch(`${API_BASE_URL}/authorized-agents`, {
+
+    method: 'POST',
+
+    headers: { 'Content-Type': 'application/json' },
+
+    body: JSON.stringify(agent),
+
+  });
+
+  if (!response.ok) throw new Error('Failed to create authorized agent');
+
+  return response.json();
+
+}
+
+
+
+export async function updateAgentTrust(id: string, is_trusted: boolean): Promise<void> {
+
+  const response = await fetch(`${API_BASE_URL}/authorized-agents/${id}/trust`, {
+
+    method: 'PUT',
+
+    headers: { 'Content-Type': 'application/json' },
+
+    body: JSON.stringify({ is_trusted }),
+
+  });
+
+  if (!response.ok) throw new Error('Failed to update agent trust');
+
 }

@@ -43,6 +43,9 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         // Device Management
         .route("/devices", get(handlers::get_devices).post(handlers::create_device))
         .route("/devices/:id", put(handlers::update_device).delete(handlers::delete_device))
+        // Authorized Agents
+        .route("/authorized-agents", get(handlers::get_authorized_agents).post(handlers::create_authorized_agent))
+        .route("/authorized-agents/:id/trust", put(handlers::update_agent_trust))
         .layer(cors)
         .with_state(state)
 }

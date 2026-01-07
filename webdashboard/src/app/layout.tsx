@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { LayoutDashboard, Cpu, History, Settings } from 'lucide-react';
+import { LayoutDashboard, Cpu, History, Settings, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 
 const inter = Inter({ subsets: ["latin"] });
@@ -35,6 +35,10 @@ export default function RootLayout({
               <Link href="/" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group">
                 <LayoutDashboard className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 <span className="font-semibold">Bảng điều khiển</span>
+              </Link>
+              <Link href="/agents" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group">
+                <UserCheck className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold">Quản lý Agent</span>
               </Link>
               <Link href="/devices" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group">
                 <Cpu className="w-5 h-5 group-hover:scale-110 transition-transform" />

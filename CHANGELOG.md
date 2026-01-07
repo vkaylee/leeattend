@@ -2,6 +2,14 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
+## [2.3.0] - 2026-01-07
+### Added
+- **Agent Trust Management**: API Server hiện đã hỗ trợ phê duyệt danh tính Agent trước khi cho phép hoạt động chính thức.
+- **WebSocket Gatekeeper**: Thực thi xác thực `token` và trạng thái `is_trusted` ngay trong bước Handshake của WebSocket.
+- **Agent Approval UI**: Trang quản lý mới trên Dashboard cho phép Admin khai báo, phê duyệt hoặc thu hồi quyền truy cập của bất kỳ Agent nào.
+- **Unified Navigation**: Bổ sung Sidebar cố định vào Dashboard giúp quản lý Agent và Thiết bị tập trung.
+- **Security Whitelist**: Chống giả mạo Agent ID bằng cơ chế so khớp Token bí mật.
+
 ## [2.2.1] - 2026-01-07
 ### Fixed
 - **Empty Config Handling**: Sửa lỗi Agent bỏ qua cấu hình khi danh sách thiết bị trống (`[]`). Agent hiện đã có thể dừng tất cả monitors một cách chính xác khi Admin xóa sạch thiết bị trên Dashboard.
