@@ -4,6 +4,7 @@ import random
 import time
 from datetime import datetime
 from typing import Dict, Set, List
+from collections import deque
 from pyzk2 import ZK, const
 
 logger = logging.getLogger("zkteco-device-manager")
@@ -60,7 +61,8 @@ class DeviceManager:
         self.log_queue = log_queue
         self.services: Dict[str, ZKService] = {}
         self.device_states: Dict[str, dict] = {}
-        self.processed_logs: Set[str] = set()
+        self.cache_set: Set[str] = set()
+        self.cache_deque: deque = deque()
         self.monitoring_tasks: Dict[str, asyncio.Task] = {}
         self._stop_event = asyncio.Event()
 
@@ -96,8 +98,8 @@ class DeviceManager:
             self.remove_device(device_id)
 
     async def _monitor_device(self, service: ZKService):
-        """Vòng lặp giám sát cho một thiết bị cụ thể"""
-        self.log_queue.put_nowait({
+        """Vòng lặp giám sát cho một thiết bị cụ thể (Memory Safe Version)"""
+        await self.log_queue.put({
             "type": "system",
             "device_id": service.device_id,
             "message": f"Bắt đầu giám sát tại {service.ip}"
@@ -112,13 +114,32 @@ class DeviceManager:
                 logs = service.get_attendance_logs()
                 new_count = 0
                 
+                # Smart Polling: Adjust delay based on data volume
+                # If logs > 5000, wait longer to reduce load
+                current_delay = base_delay
+                if len(logs) > 20000:
+                    current_delay = 300  # 5 minutes
+                    logger.warning(f"Device {service.device_id} has {len(logs)} logs. Slowing down to 300s.")
+                elif len(logs) > 5000:
+                    current_delay = 60   # 1 minute
+                    logger.warning(f"Device {service.device_id} has {len(logs)} logs. Slowing down to 60s.")
+
                 if logs:
                     for log in logs:
                         log_sig = f"{service.device_id}_{log['user_id']}_{log['timestamp']}"
-                        if log_sig not in self.processed_logs:
-                            self.processed_logs.add(log_sig)
+                        if log_sig not in self.cache_set:
+                            # Rolling Window Deduplication
+                            self.cache_set.add(log_sig)
+                            self.cache_deque.append(log_sig)
+                            
+                            # Maintain fixed size window (20k)
+                            while len(self.cache_deque) > 20000:
+                                old_sig = self.cache_deque.popleft()
+                                self.cache_set.discard(old_sig)
+
                             new_count += 1
-                            self.log_queue.put_nowait({
+                            # Backpressure: await here blocks if queue is full (maxsize=1000)
+                            await self.log_queue.put({
                                 "type": "attendance",
                                 "device_id": service.device_id,
                                 "log": log
@@ -126,7 +147,7 @@ class DeviceManager:
                 
                 # Success cleanup
                 if consecutive_errors > 0:
-                    self.log_queue.put_nowait({
+                    await self.log_queue.put({
                         "type": "system",
                         "device_id": service.device_id,
                         "message": "Kết nối máy chấm công đã được phục hồi."
@@ -137,13 +158,8 @@ class DeviceManager:
                     "last_sync": datetime.now(),
                     "error": None
                 }
-                
-                # Cleanup internal cache if too big
-                if len(self.processed_logs) > 20000:
-                    list_logs = list(self.processed_logs)
-                    self.processed_logs = set(list_logs[-10000:])
 
-                await asyncio.sleep(base_delay)
+                await asyncio.sleep(current_delay)
 
             except asyncio.CancelledError:
                 break
@@ -152,15 +168,18 @@ class DeviceManager:
                 backoff = min(max_delay, base_delay * (2 ** (consecutive_errors - 1)))
                 wait_time = random.uniform(base_delay, backoff)
                 
-                # Đảm bảo có entry trong device_states
                 if service.device_id not in self.device_states:
                     self.device_states[service.device_id] = {"last_sync": None, "error": None}
                 
                 self.device_states[service.device_id]["error"] = str(e)
-                self.log_queue.put_nowait({
-                    "type": "system",
-                    "level": "WARN",
-                    "device_id": service.device_id,
-                    "message": f"Lỗi kết nối máy chấm công ({type(e).__name__}). Thử lại sau {wait_time:.1f}s."
-                })
+                try:
+                    await self.log_queue.put({
+                        "type": "system",
+                        "level": "WARN",
+                        "device_id": service.device_id,
+                        "message": f"Lỗi kết nối máy chấm công ({type(e).__name__}). Thử lại sau {wait_time:.1f}s."
+                    })
+                except:
+                    pass # If queue full during error, just ignore error log
+                
                 await asyncio.sleep(wait_time)

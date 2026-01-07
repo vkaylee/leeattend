@@ -17,7 +17,7 @@ logger = logging.getLogger("zkteco-agent")
 class AttendanceAgent:
     def __init__(self, agent_id=None, token=None, server_url=None):
         self.start_time = time.time()
-        self.log_queue = asyncio.Queue()
+        self.log_queue = asyncio.Queue(maxsize=1000)
         
         # Infrastructure
         self.repository = AttendanceRepository(SessionLocal)
@@ -134,7 +134,7 @@ class AttendanceAgent:
 
     async def handle_central_error(self, code, message):
         """Xử lý lỗi từ Central Server"""
-        self.log_queue.put_nowait({
+        await self.log_queue.put({
             "type": "system",
             "level": "ERROR",
             "message": f"CENTRAL SERVER ERROR [{code}]: {message}"

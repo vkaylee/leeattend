@@ -1,30 +1,78 @@
-# Implementation Plan: Agent Memory Safety & Sync Optimization
+# Implementation Plan: Agent Memory Safety & Stability
+
+**Task:** Prevent memory leaks and high resource consumption during 24/7 operation.
+**Mode:** HARD (Stability/Performance)
 
 ## Root Cause Analysis
-1. **Symptom:** RAM usage increases over time during network instability.
-2. **Technical Cause:** `CentralClient.pending_acks` holds `asyncio.Future` objects that are never removed if a timeout occurs in `SyncWorker`.
-3. **Secondary Issue:** `SyncWorker` continues to pile messages into `send_queue` even if the server is not responding, leading to memory pressure and potential redundant data processing.
+1.  **Unbounded Queue:** `asyncio.Queue()` has no limit. If the DB/Network is slower than the device polling (e.g., during network outage), the queue grows indefinitely until OOM.
+2.  **Full Fetch Spikes:** `ZKService.get_attendance_logs()` fetches *all* logs (potentially 100k+) every 10 seconds. This creates massive temporary objects and CPU churn.
+3.  **Inefficient Deduplication:** The `processed_logs` set grows until 20k, then arbitrarily cuts 10k. This "bulk chop" might remove recent logs, causing re-processing of old logs on the next fetch.
 
-## Fix Plan
+## Implementation Steps
 
-### 1. CentralClient Enhancements (`agent/central_client.py`)
-- Modify `push_attendance_sync` to return both the `Future` and the `msg_id`.
-- Add `discard_pending_ack(msg_id)` method to safely remove stale futures.
-- Implement a maximum size for `pending_acks` as a safety guard.
+### Step 1: Bounded Queue & Backpressure (Core Fix)
+**Goal:** Prevent the queue from eating all RAM.
+- **File:** `agent/app_container.py`
+- **Action:**
+    - Initialize `self.log_queue = asyncio.Queue(maxsize=1000)`.
+- **File:** `agent/device_manager.py`
+- **Action:**
+    - Change `self.log_queue.put_nowait(...)` to `await self.log_queue.put(...)` in `_monitor_device`.
+    - This creates natural backpressure: if the consumer (DB saver) is slow, the producer (poller) will pause.
 
-### 2. SyncWorker Robustness (`agent/sync_worker.py`)
-- Update `sync_batch` to handle the new return type from `push_attendance_sync`.
-- Use a `try...finally` block to ensure `discard_pending_ack` is called after timeout or error.
-- Add checks to skip sync if the `send_queue` is backlogged.
+### Step 2: Smart Polling (Adaptive Interval)
+**Goal:** Reduce CPU/RAM stress when the device has too much data.
+- **File:** `agent/device_manager.py`
+- **Logic:**
+    - Default Interval: `10s`.
+    - If `fetched_count > 5000`: Increase interval to `60s`.
+    - If `fetched_count > 20000`: Increase interval to `300s`.
+    - Log a warning suggesting the user to clear data on the device.
 
-### 3. Verification
-- Create `agent/tests/test_memory_safety.py` to specifically test:
-    - Future cleanup on timeout.
-    - Future cleanup on success.
-    - Queue pressure handling.
+### Step 3: Optimized Deduplication (Rolling Window)
+**Goal:** Stable memory usage for the deduplication cache without "forgetting" recent logs.
+- **File:** `agent/device_manager.py`
+- **Refactor:**
+    - Replace `processed_logs: Set` with a combination of `Set` (fast lookup) and `Deque` (ordering).
+    - **Logic:**
+      ```python
+      # On new log
+      if log_id not in self.cache_set:
+          self.cache_set.add(log_id)
+          self.cache_deque.append(log_id)
+          
+          # Maintain size
+          while len(self.cache_deque) > 20000:
+              old_id = self.cache_deque.popleft()
+              self.cache_set.discard(old_id)
+      ```
+    - This ensures we always keep the *most recent* 20,000 logs in memory, preventing re-processing loops.
 
-## Rollback
-- Revert changes to `central_client.py` and `sync_worker.py`.
+### Step 4: Add Resource Monitoring (Optional)
+- **File:** `agent/app_container.py`
+- **Action:** Add a simple log in `get_agent_status` showing current queue size.
 
-## Security
-- No changes to authentication or data encryption logic.
+## Testing Plan (New Test File: `tests/test_memory_safety.py`)
+1.  **Test Queue Backpressure:**
+    - Mock a slow consumer.
+    - Flood producer.
+    - Assert producer blocks or waits.
+2.  **Test Adaptive Interval:**
+    - Mock `ZKService` returning 10,000 logs.
+    - Assert next sleep time is > 10s.
+3.  **Test Deduplication Logic:**
+    - Feed 25,000 unique logs.
+    - Assert cache size stays at 20,000.
+    - Assert oldest 5,000 are removed.
+
+## Timeline
+| Phase | Duration |
+|-------|----------|
+| Queue & Backpressure | 10 min |
+| Smart Polling | 15 min |
+| Deduplication Refactor | 15 min |
+| Testing | 20 min |
+| **Total** | **1 hour** |
+
+## Verification
+- Run `pytest tests/test_memory_safety.py`.
