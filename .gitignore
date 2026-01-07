@@ -1,0 +1,40 @@
+# IDEs
+.vscode/
+.idea/
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Logs
+*.log
+logs/
+agent_boot.log
+apiserver_boot.log
+debug.log
+processed_logs.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Rust
+target/
+**/*.rs.bk
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+build/
+.eslintcache
+
+# Project Specific
+agent/devices.json
+webdashboard/.env.local
