@@ -57,7 +57,10 @@ Agent được thiết kế để chạy ổn định 24/7 trên phần cứng g
 Ứng dụng quản trị tập trung dành cho Admin.
 - **Responsibility**: Quản lý cấu hình, phê duyệt Agent và theo dõi dữ liệu chấm công.
 - **Stack**: **Next.js** (Frontend), **Tauri** (Desktop Wrapper), Tailwind CSS.
-- **Mode**: Static Export (Không phụ thuộc Node.js runtime khi chạy desktop).
+- **Mode**: 
+  - **Static Export**: Chạy như static HTML/CSS/JS.
+  - **Desktop App**: Chạy như ứng dụng Windows native (Tauri).
+  - **Standalone Server**: Chạy như một Web Server độc lập (Rust Wrapper), không cần cài đặt Node.js.
 
 ## Data Flow
 ... (giữ nguyên) ...

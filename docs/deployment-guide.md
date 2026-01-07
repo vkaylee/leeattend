@@ -129,6 +129,28 @@ Giao diện quản trị tập trung, hiện có thể chạy dưới dạng ứ
    ```
 5. File cài đặt (`.msi` hoặc `.exe`) sẽ nằm tại: `src-tauri/target/release/bundle/`.
 
+### 🚀 Build ứng dụng Web Server (Standalone EXE)
+Giải pháp thay thế cho việc cài đặt Node.js/IIS. Đóng gói toàn bộ giao diện Web thành 1 file `.exe` duy nhất.
+
+1. Di chuyển vào thư mục `webdashboard`.
+2. Chạy script build tự động:
+   ```cmd
+   build_standalone.bat
+   ```
+3. File kết quả sẽ nằm tại `webdashboard/dist/LeeAttendDashboard.exe`.
+4. Cách chạy:
+   - Chạy trực tiếp (mặc định port 3000, tự mở trình duyệt).
+   - Chạy với port tùy chỉnh: `LeeAttendDashboard.exe --port 8080`
+   - Chạy ngầm (không mở browser): `LeeAttendDashboard.exe --no-open`
+
+### 🪟 Cài đặt Web Dashboard Service (Windows)
+Để Dashboard chạy ngầm 24/7 và tự khởi động cùng Windows:
+
+1. Chạy `build_standalone.bat` để tạo file exe.
+2. Chuột phải vào `webdashboard/install_service.bat` chọn **Run as Administrator**.
+3. Service `LeeAttendDashboard` sẽ được cài đặt với cấu hình an toàn (Port 3000, No Browser).
+4. Để gỡ cài đặt: Chạy `webdashboard/uninstall_service.bat` (Admin).
+
 ### Triển khai Web (Standalone)
 ... (giữ nguyên hướng dẫn cũ nếu cần) ...
 

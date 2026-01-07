@@ -2,6 +2,11 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
+## [Unreleased]
+### Added
+- **Dashboard Standalone Server**: Đóng gói Web Dashboard thành 1 file thực thi (`.exe`) duy nhất bằng Rust. Tích hợp sẵn Web Server gọn nhẹ, không cần cài đặt Node.js hay cấu hình IIS. Hỗ trợ tham số `--port` và `--no-open`.
+- **Dashboard Windows Service**: Scripts `install_service.bat` và `uninstall_service.bat` để quản lý Web Dashboard dưới dạng Windows Service, đảm bảo chạy ổn định 24/7.
+
 ## [3.3.0] - 2026-01-07
 ### Improved
 - **Windows Compatibility**: Optimized `agent/main.py` signal handling for graceful shutdown on Windows (where `add_signal_handler` is limited).
