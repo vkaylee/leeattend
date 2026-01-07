@@ -25,9 +25,24 @@ pub fn create_app(state: Arc<AppState>) -> Router {
     
     let mut origins = Vec::new();
     for origin in allowed_origins_str.split(',') {
-        if let Ok(header_value) = origin.trim().parse::<HeaderValue>() {
-            origins.push(header_value);
+        let trimmed = origin.trim();
+        if trimmed.is_empty() {
+            continue;
         }
+
+        match trimmed.parse::<HeaderValue>() {
+            Ok(header_value) => {
+                origins.push(header_value);
+                tracing::info!("CORS: Allowed origin added: {}", trimmed);
+            }
+            Err(e) => {
+                tracing::error!("CORS: Failed to parse origin '{}': {}", trimmed, e);
+            }
+        }
+    }
+
+    if origins.is_empty() {
+        tracing::warn!("CORS: No valid origins found. All cross-origin requests will be rejected!");
     }
 
     let cors = CorsLayer::new()

@@ -2,6 +2,15 @@
 pub fn run() {
   tauri::Builder::default()
     .setup(|app| {
+      // Enable DevTools for debugging (remove in production)
+      #[cfg(any(debug_assertions, not(debug_assertions)))] 
+      {
+        use tauri::Manager;
+        if let Some(window) = app.get_webview_window("main") {
+            window.open_devtools();
+        }
+      }
+
       if cfg!(debug_assertions) {
         app.handle().plugin(
           tauri_plugin_log::Builder::default()
