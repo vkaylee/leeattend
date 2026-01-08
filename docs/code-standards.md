@@ -19,6 +19,10 @@ Sử dụng `Arc<dyn RepositoryTrait>` để inject vào Services. Khởi tạo 
 ### 4. Testing
 - **Unit Testing**: Viết unit test cho Services bằng cách sử dụng Mock Repositories.
 - **Test Factory Pattern**: Sử dụng `TestFactory` trong `tests/common/factory.rs` để tạo dữ liệu mẫu cho Integration tests. 
+- **Timeout Wrapping (Anti-Hanging)**: Tất cả các bài test bất đồng bộ hoặc thao tác khởi tạo dữ liệu (Factory) **PHẢI** được bọc trong một khối `timeout`. Điều này ngăn chặn việc bộ test suite bị treo vô hạn do deadlock hoặc network issues.
+  ```rust
+  tokio::time::timeout(Duration::from_secs(5), async { ... }).await.expect("Timed out");
+  ```
 - **Fluent API**: Builder pattern được khuyến khích để tạo data test sạch sẽ.
 - **Cleanup**: Sử dụng `factory.cleanup().await` ở đầu mỗi hàm `spawn_app` hoặc setup test.
 

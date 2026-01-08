@@ -9,20 +9,22 @@ class LoopBreak(Exception):
     pass
 
 class AsyncTestFactory:
-    def __init__(self):
+    def __init__(self, default_timeout=5):
         self.backups = {}
         self.sleep_patcher = None
         self.max_loops = 1
         self.loop_count = 0
+        self.default_timeout = default_timeout
 
     async def cancel_all_tasks(self):
-        """Cancel all running tasks except the current one"""
-        current = asyncio.current_task()
-        tasks = [t for t in asyncio.all_tasks() if t is not current]
-        for t in tasks:
-            t.cancel()
-        if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
+        """Cancel all running tasks except the current one with timeout protection"""
+        async with asyncio.timeout(self.default_timeout):
+            current = asyncio.current_task()
+            tasks = [t for t in asyncio.all_tasks() if t is not current]
+            for t in tasks:
+                t.cancel()
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
 
     def clear_globals(self):
         """Xóa triệt để trạng thái của agent instance hiện tại"""

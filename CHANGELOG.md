@@ -5,6 +5,12 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Sidecar Architecture**: Migrated Agent core to Rust while retaining Python for hardware communication.
+- **Rust-Python JSON-RPC Protocol**: Implemented a lightweight JSON-RPC 2.0 interface over TCP for communication between Rust Orchestrator and Python Worker.
+- **Enhanced Test Reliability**: 
+    - Implemented **Timeout Wrapping** across all test factories (`AsyncTestFactory` in Python, `TestFactory` in Rust) to prevent hanging tests.
+    - Added unit tests for ZK Worker and Client with built-in timeout protection.
+- **Prominent Auth Notifications**: Added high-visibility console output for critical authentication errors in the Edge Agent.
 - **WebSocket Heartbeat**: Refactored heartbeat mechanism from redundant HTTP requests to native WebSocket messages, significantly reducing overhead and improving reliability.
 - **Shared UI Components**: Implemented a common UI library starting with a highly reusable, accessible, and animated **DropdownMenu** component based on Radix UI.
 - **Archive/Restore Agents**: UI now supports toggling "Archived" agents and restoring them directly from the dashboard.

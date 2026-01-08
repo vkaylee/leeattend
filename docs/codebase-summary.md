@@ -4,7 +4,11 @@
 
 ```
 leeattend/
-├── agent/             # Python CLI Agent (Hardware integration)
+├── agent/             # Python Sidecar (Hardware integration)
+│   └── zk_worker.py   # JSON-RPC Server for ZK devices
+├── agent-rust/        # Rust Main Agent (Orchestrator)
+│   ├── src/           # Rust Logic
+│   └── Cargo.toml     # Rust dependencies
 ├── apiserver/         # Rust (Axum) Central Server
 │   ├── migrations/    # SQLx migrations
 │   ├── src/           # API Logic
@@ -38,10 +42,9 @@ leeattend/
     - Onboarding & Workspace management flows.
     - Real-time agent status via **Heartbeat Badges**.
     - Discovery: Auto-proxy configuration based on `.api_port`.
-3.  **Local Agent (Python)**:
-    - Multi-threaded worker for ZK fingerprint devices.
-    - WebSocket tunnel to Central Server.
-    - **WebSocket Heartbeat**: Periodic (30s) health pings via existing WS tunnel.
+3.  **Hybrid Edge Agent (Rust & Python)**:
+    - **Rust Orchestrator**: Manages high-level logic, WebSocket tunnel, and SQLite.
+    - **Python Sidecar**: Specialized worker for ZK hardware integration via JSON-RPC.
     - Memory-safe event queue & auto-retry logic.
 
 ### 🚦 Current Status
@@ -53,6 +56,9 @@ leeattend/
 
 ### 🛠️ Debugging & Automation Tools
 
+- **Test Factories (Rust & Python):** 
+    - `TestFactory` (Rust): Cung cấp Fluent API để tạo Users, Workspaces, Agents với cơ chế **Self-Timeout (5s)** tích hợp sẵn.
+    - `AsyncTestFactory` (Python): Hỗ trợ bẻ gãy vòng lặp vô hạn và dọn dẹp task bất đồng bộ an toàn.
 - **Playwright Tests (`webdashboard/tests/`):** 
     - `debug-ui.spec.ts`: Script dùng để kiểm tra luồng Auth, Loading loop và lấy logs từ trình duyệt.
 - **Port Discovery:**

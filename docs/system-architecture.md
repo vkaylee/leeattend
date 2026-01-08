@@ -54,11 +54,21 @@ Hệ thống hỗ trợ phân tách dữ liệu hoàn toàn giữa các tổ ch�
 
 ## Infrastructure Diagram
 ```ascii
-[ Web Dashboard ] <--- REST API ---> [ API Server ] <--- WebSocket (Outbound Only) ---> [ Agent ] <---> [ ZKTeco Devices ]
- (Tauri Desktop)                        (Rust)                                           (Python CLI)
+[ Web Dashboard ] <--- REST API ---> [ API Server ] <--- WebSocket (Outbound Only) ---> [ Agent (Rust) ] <--- JSON-RPC (TCP) ---> [ ZK Worker (Python) ] <---> [ ZKTeco Devices ]
+ (Tauri Desktop)                        (Rust)                                           (Orchestrator)                        (Sidecar Driver)
 ```
 
 ## 1. Agent (Client Side)
+Hệ thống sử dụng mô hình **Sidecar Architecture** để tối ưu hóa hiệu năng và độ ổn định:
+
+### 1.1. Rust Agent (Main Orchestrator)
+- **Responsibility**: Quản lý vòng đời ứng dụng, kết nối WebSocket tới Server trung tâm, quản lý cơ sở dữ liệu local (SQLite), và điều phối các worker.
+- **Why Rust**: Đảm bảo an toàn bộ nhớ, tiêu tốn ít tài nguyên (RAM < 20MB) và tốc độ xử lý đồng thời cao.
+
+### 1.2. Python ZK Worker (Hardware Sidecar)
+- **Responsibility**: Chuyên biệt cho việc giao tiếp với phần cứng ZKTeco thông qua thư viện `pyzk2`.
+- **Communication**: Kết nối với Rust Agent qua giao thức **JSON-RPC 2.0** chạy trên Localhost TCP (Port 5000).
+- **Isolation**: Nếu driver phần cứng gặp lỗi hoặc treo, Rust Agent vẫn duy trì kết nối với Server để báo cáo tình trạng lỗi mà không làm sập toàn bộ Agent.
 ... (giữ nguyên) ...
 
 ## 2. API Server (Server Side)

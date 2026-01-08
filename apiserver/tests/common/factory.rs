@@ -23,33 +23,6 @@ impl TestFactory {
     pub fn agent(&self) -> AgentBuilder {
         AgentBuilder::new(self.pool.clone())
     }
-
-    pub async fn cleanup(&self) {
-        sqlx::query("DELETE FROM member_extra_roles")
-            .execute(&self.pool)
-            .await
-            .unwrap();
-        sqlx::query("DELETE FROM workspace_members")
-            .execute(&self.pool)
-            .await
-            .unwrap();
-        sqlx::query("DELETE FROM devices")
-            .execute(&self.pool)
-            .await
-            .unwrap();
-        sqlx::query("DELETE FROM authorized_agents")
-            .execute(&self.pool)
-            .await
-            .unwrap();
-        sqlx::query("DELETE FROM users")
-            .execute(&self.pool)
-            .await
-            .unwrap();
-        sqlx::query("DELETE FROM workspaces")
-            .execute(&self.pool)
-            .await
-            .unwrap();
-    }
 }
 
 pub struct UserBuilder {
@@ -82,15 +55,17 @@ impl UserBuilder {
     }
 
     pub async fn create(self) -> Uuid {
-        sqlx::query_scalar(
-            "INSERT INTO users (email, full_name, password_hash) VALUES ($1, $2, $3) RETURNING id",
-        )
-        .bind(self.email)
-        .bind(self.full_name)
-        .bind(self.password_hash)
-        .fetch_one(&self.pool)
-        .await
-        .unwrap()
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            sqlx::query_scalar(
+                "INSERT INTO users (email, full_name, password_hash) VALUES ($1, $2, $3) RETURNING id",
+            )
+            .bind(self.email)
+            .bind(self.full_name)
+            .bind(self.password_hash)
+            .fetch_one(&self.pool)
+            .await
+            .unwrap()
+        }).await.expect("User creation timed out")
     }
 }
 
@@ -115,11 +90,13 @@ impl WorkspaceBuilder {
     }
 
     pub async fn create(self) -> Uuid {
-        sqlx::query_scalar("INSERT INTO workspaces (name) VALUES ($1) RETURNING id")
-            .bind(self.name)
-            .fetch_one(&self.pool)
-            .await
-            .unwrap()
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            sqlx::query_scalar("INSERT INTO workspaces (name) VALUES ($1) RETURNING id")
+                .bind(self.name)
+                .fetch_one(&self.pool)
+                .await
+                .unwrap()
+        }).await.expect("Workspace creation timed out")
     }
 
     pub async fn create_with_owner(self, user_id: Uuid) -> Uuid {
@@ -220,18 +197,51 @@ impl AgentBuilder {
     }
 
     pub async fn create(self) -> String {
-        let ws_id = self.workspace_id.expect("Workspace ID is required for Agent");
-        sqlx::query(
-            "INSERT INTO authorized_agents (id, name, token, workspace_id, is_trusted) VALUES ($1, $2, $3, $4, $5)",
-        )
-        .bind(&self.id)
-        .bind(&self.name)
-        .bind(&self.token)
-        .bind(ws_id)
-        .bind(self.is_trusted)
-        .execute(&self.pool)
-        .await
-        .unwrap();
-        self.id
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            let ws_id = self.workspace_id.expect("Workspace ID is required for Agent");
+            sqlx::query(
+                "INSERT INTO authorized_agents (id, name, token, workspace_id, is_trusted) VALUES ($1, $2, $3, $4, $5)",
+            )
+            .bind(&self.id)
+            .bind(&self.name)
+            .bind(&self.token)
+            .bind(ws_id)
+            .bind(self.is_trusted)
+            .execute(&self.pool)
+            .await
+            .unwrap();
+            self.id
+        }).await.expect("Agent creation timed out")
+    }
+}
+
+impl TestFactory {
+    pub async fn cleanup(&self) {
+        tokio::time::timeout(std::time::Duration::from_secs(10), async {
+            sqlx::query("DELETE FROM member_extra_roles")
+                .execute(&self.pool)
+                .await
+                .unwrap();
+            sqlx::query("DELETE FROM workspace_members")
+                .execute(&self.pool)
+                .await
+                .unwrap();
+            sqlx::query("DELETE FROM devices")
+                .execute(&self.pool)
+                .await
+                .unwrap();
+            sqlx::query("DELETE FROM authorized_agents")
+                .execute(&self.pool)
+                .await
+                .unwrap();
+            sqlx::query("DELETE FROM users")
+                .execute(&self.pool)
+                .await
+                .unwrap();
+            sqlx::query("DELETE FROM workspaces")
+                .execute(&self.pool)
+                .await
+                .unwrap();
+        }).await.expect("Cleanup timed out");
     }
 }
