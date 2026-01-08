@@ -187,18 +187,13 @@ Phê duyệt (Trust) hoặc Thu hồi quyền của một Agent. Khi thu hồi, 
   ```
 - **Response (200 OK)**
 
-#### POST /agents/heartbeat (New)
-Cập nhật trạng thái hoạt động của Agent qua HTTP.
-- **Headers**: 
-  - `X-Agent-Id`: ID của Agent
-  - `X-Agent-Token`: Token bí mật của Agent
-- **Description**: Agent chủ động gọi định kỳ (mỗi 30s) để duy trì trạng thái "Online" trong DB. Dashboard sẽ coi Agent là Offline nếu không nhận được heartbeat trong 90s.
-- **Response (200 OK)**
+---
 
-### WebSocket Messages
-Agent gửi dữ liệu chấm công thô lên Server.
+### WebSocket Giao thức (Agent <-> Server)
 
-#### Handshake (Agent -> Server)
+Agent gửi dữ liệu chấm công thô và trạng thái sức khỏe lên Server qua một kết nối duy nhất.
+
+#### 1. Handshake (Agent -> Server)
 Bản tin đầu tiên sau khi kết nối để xác thực định danh.
 ```json
 {
@@ -209,7 +204,34 @@ Bản tin đầu tiên sau khi kết nối để xác thực định danh.
 }
 ```
 
-#### Attendance Log (Agent -> Server)
+#### 2. Heartbeat (Agent -> Server)
+Agent gửi định kỳ (mỗi 30s) để duy trì trạng thái "Online" trong Database.
+```json
+{
+  "type": "heartbeat",
+  "agent_id": "AGENT_01",
+  "timestamp": "ISO-8601"
+}
+```
+
+#### 3. Status Update (Agent -> Server)
+Cập nhật chi tiết trạng thái của các máy chấm công đang được giám sát.
+```json
+{
+  "type": "status_update",
+  "agent_id": "AGENT_01",
+  "devices": [
+    {
+      "device_id": "DEV_01",
+      "status": "online",
+      "last_sync": "...",
+      "error": null
+    }
+  ]
+}
+```
+
+#### 4. Attendance Log (Agent -> Server)
 ... (giữ nguyên cấu trúc cũ) ...
 
 ---

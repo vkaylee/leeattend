@@ -5,25 +5,31 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
-- **Heartbeat Mechanism**: Implemented a robust time-based heartbeat system to accurately track Agent and Device online status.
-- **Member Management**: Added APIs and UI to update member roles and remove members from workspaces.
-- **Create Workspace UI**: New dialog in Workspace Switcher to allow users to create new organizations easily.
-- **Agent Heartbeat API**: New authenticated endpoint `POST /api/agents/heartbeat` for Edge Agents.
-- **Real-time Status Badges**: UI now displays "Online/Offline" status based on heartbeat timestamps with a 90-second threshold.
-- **Rust Repository Refactoring**: Reorganized backend repositories (Agent, Workspace) for better maintainability and SRP compliance.
+- **WebSocket Heartbeat**: Refactored heartbeat mechanism from redundant HTTP requests to native WebSocket messages, significantly reducing overhead and improving reliability.
+- **Shared UI Components**: Implemented a common UI library starting with a highly reusable, accessible, and animated **DropdownMenu** component based on Radix UI.
+- **Archive/Restore Agents**: UI now supports toggling "Archived" agents and restoring them directly from the dashboard.
+- **Agent Token Editing**: Re-enabled the ability to update agent security tokens via the dashboard (fixed backend model and handler).
+- **Health Check Endpoint**: Properly registered `/health` route in the API server for monitoring.
+- **Centralized Status Logic**: Extracted `isAgentOnline` utility for consistent status calculation across the dashboard.
 
 ### Changed
-- Refactored `LoginPage.tsx` and `RegisterPage.tsx` to resolve `ReferenceError` and improve stability.
-- Updated `CentralClient` in Python Agent to send periodic HTTP heartbeats every 30 seconds.
-- Enhanced `WorkspaceSwitcher` component to be more modular and user-friendly.
+- **UI Standardization**: Refactored `WorkspaceSwitcher` and `DevicesPage` to use the new shared `DropdownMenu` component.
+- **Backend Clean-up**: Removed obsolete `/agents/heartbeat` HTTP endpoint and associated auth extractors.
+- **Agent Optimization**: Removed `httpx` dependency from the Python Agent as HTTP calls are no longer needed for heartbeats.
+- **Repository Pattern**: Refined `AgentRepository` to use Rust-side timestamps for `last_seen_at` updates to ensure cross-platform consistency.
 
 ### Fixed
-- Fixed a "white screen" issue on the Login page caused by missing variable declarations.
-- Resolved backend test initialization errors related to missing JWT secret configurations.
-- Fixed inconsistent component naming in `RegisterPage.tsx`.
+- **404 Heartbeat Errors**: Resolved the persistent 404 errors in agent logs by eliminating redundant HTTP heartbeat calls.
+- **White Screen Fix**: Restored missing imports in `AgentsPage.tsx` that caused component crashes.
+- **Async Test Races**: Fixed flaky hook tests by properly waiting for React Query re-fetches.
+- **Linter Warnings**: Cleared `dead_code` and `unused_variables` warnings across the Rust test suite.
 
-### Added (Previous)
-- **Authentication System**: Full JWT flow (Register, Login, Refresh Token, Change Password).
+### Added (Previous Changes - Jan 8)
+- **Heartbeat Mechanism (Initial)**: Implemented time-based tracking for Agent and Device online status.
+- **Member Management**: Added APIs and UI to update member roles and remove members.
+- **Create Workspace UI**: New dialog in Workspace Switcher for easy organization creation.
+- **Real-time Status Badges**: UI indicators for Online/Offline status with a 90s threshold.
+- **Rust Repository Refactoring**: Reorganized backend repositories for SRP compliance.
 - **Workspace Management**: Create organizations, invite members, and manage roles.
 - **RBAC Support**: Basic role-based access control (Owner, Admin, Member) and custom roles.
 - **Dynamic Port Selection**: Backend and Frontend now automatically find available ports (3000-3100 for API, 5173-5273 for Web) to avoid `EADDRINUSE` errors.

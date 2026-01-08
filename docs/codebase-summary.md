@@ -34,13 +34,14 @@ leeattend/
     - **Heartbeat Engine**: Time-based tracking of edge agent connectivity.
 2.  **Web Dashboard (React/Vite)**:
     - Modern UI with Tailwind CSS & Lucide icons.
+    - **Common UI Library**: Standardized components (DropdownMenu, etc.) based on Radix UI.
     - Onboarding & Workspace management flows.
     - Real-time agent status via **Heartbeat Badges**.
     - Discovery: Auto-proxy configuration based on `.api_port`.
 3.  **Local Agent (Python)**:
     - Multi-threaded worker for ZK fingerprint devices.
     - WebSocket tunnel to Central Server.
-    - **HTTP Heartbeat**: Periodic (30s) health pings to central API.
+    - **WebSocket Heartbeat**: Periodic (30s) health pings via existing WS tunnel.
     - Memory-safe event queue & auto-retry logic.
 
 ### 🚦 Current Status
