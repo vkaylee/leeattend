@@ -47,3 +47,4 @@ webdashboard/.env.local
 dist/
 build/
 *.spec
+agent/venv_linux/

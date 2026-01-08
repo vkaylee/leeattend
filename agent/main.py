@@ -26,7 +26,25 @@ async def main():
     # 1. Initialize Agent
     agent_instance = AttendanceAgent()
     
-    # 2. Setup Signal Handlers for Graceful Shutdown
+    # 2. Register Error Handler for prominent console output
+    async def on_central_error(code, message):
+        auth_errors = ["INVALID_TOKEN", "AGENT_NOT_TRUSTED", "UNAUTHORIZED_AGENT"]
+        if code in auth_errors:
+            print("\n" + "!" * 60)
+            print(f"🛑 AUTH ERROR: [{code}]")
+            print(f"📢 {message}")
+            print("!" * 60 + "\n")
+            
+    # Wrap existing handler to keep both functionalities
+    original_handler = agent_instance.central_client.on_error_received
+    async def combined_error_handler(code, msg):
+        await on_central_error(code, msg)
+        if original_handler:
+            await original_handler(code, msg)
+            
+    agent_instance.central_client.on_error_received = combined_error_handler
+
+    # 3. Setup Signal Handlers for Graceful Shutdown
     stop_event = asyncio.Event()
     loop = asyncio.get_running_loop()
     
