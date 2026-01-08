@@ -31,22 +31,24 @@ leeattend/
     - Workspace: Organizational isolation.
     - Agent Manager: WebSocket handler for remote agents.
     - Discovery: Dynamic port selection (3000+).
+    - **Heartbeat Engine**: Time-based tracking of edge agent connectivity.
 2.  **Web Dashboard (React/Vite)**:
     - Modern UI with Tailwind CSS & Lucide icons.
     - Onboarding & Workspace management flows.
-    - Real-time agent status via WebSocket proxy.
+    - Real-time agent status via **Heartbeat Badges**.
     - Discovery: Auto-proxy configuration based on `.api_port`.
-3.  **Local Agent (Python/PySide6)**:
+3.  **Local Agent (Python)**:
     - Multi-threaded worker for ZK fingerprint devices.
     - WebSocket tunnel to Central Server.
+    - **HTTP Heartbeat**: Periodic (30s) health pings to central API.
     - Memory-safe event queue & auto-retry logic.
 
 ### 🚦 Current Status
 - [x] JWT Authentication & Security (Change Password).
 - [x] Workspace & Member management (RBAC).
-- [x] Real-time Agent/Device monitoring.
-- [x] Dynamic Dev Environment Setup.
-- [ ] Production Build & Deployment scripts (NSSM/Service).
+- [x] Accurate Real-time Status (Heartbeat).
+- [x] Backend Repository/Service pattern refactor.
+- [ ] Automated Deployment scripts (NSSM/Service for production).
 
 ### 🛠️ Debugging & Automation Tools
 

@@ -81,7 +81,17 @@ Mời thành viên vào workspace.
 - **Headers**: `X-User-Id`, `X-Workspace-Id`
 - **Request**: `{ "email": "user@example.com", "role": "admin|member" }`
 - **Response (201)**: Created
-- **Errors**: `404 User Not Found` (Người dùng phải có tài khoản global trước), `403 Forbidden` (Không đủ quyền).
+
+#### PATCH /workspaces/:id/members/:user_id
+Cập nhật vai trò (Primary Role) của thành viên.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**: `{ "role": "admin|member" }`
+- **Response (200 OK)**
+
+#### DELETE /workspaces/:id/members/:user_id
+Xóa thành viên khỏi workspace.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`. Không thể tự xóa chính mình.
+- **Response (204)**: No Content
 
 ---
 
@@ -175,6 +185,14 @@ Phê duyệt (Trust) hoặc Thu hồi quyền của một Agent. Khi thu hồi, 
   ```json
   { "is_trusted": true }
   ```
+- **Response (200 OK)**
+
+#### POST /agents/heartbeat (New)
+Cập nhật trạng thái hoạt động của Agent qua HTTP.
+- **Headers**: 
+  - `X-Agent-Id`: ID của Agent
+  - `X-Agent-Token`: Token bí mật của Agent
+- **Description**: Agent chủ động gọi định kỳ (mỗi 30s) để duy trì trạng thái "Online" trong DB. Dashboard sẽ coi Agent là Offline nếu không nhận được heartbeat trong 90s.
 - **Response (200 OK)**
 
 ### WebSocket Messages
