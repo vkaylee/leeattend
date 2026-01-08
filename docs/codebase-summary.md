@@ -4,11 +4,11 @@
 
 ```
 leeattend/
-├── agent/             # Python Sidecar (Hardware integration)
-│   └── zk_worker.py   # JSON-RPC Server for ZK devices
-├── agent-rust/        # Rust Main Agent (Orchestrator)
-│   ├── src/           # Rust Logic
+├── agent-main/        # Rust Main Agent (Orchestrator)
+│   ├── src/           # Rust Logic (Management, WS, SQLite)
 │   └── Cargo.toml     # Rust dependencies
+├── agent-zk-worker/   # Python Sidecar (Hardware integration)
+│   └── zk_worker.py   # JSON-RPC Server for ZK devices
 ├── apiserver/         # Rust (Axum) Central Server
 │   ├── migrations/    # SQLx migrations
 │   ├── src/           # API Logic
@@ -43,9 +43,9 @@ leeattend/
     - Real-time agent status via **Heartbeat Badges**.
     - Discovery: Auto-proxy configuration based on `.api_port`.
 3.  **Hybrid Edge Agent (Rust & Python)**:
-    - **Rust Orchestrator**: Manages high-level logic, WebSocket tunnel, and SQLite.
-    - **Python Sidecar**: Specialized worker for ZK hardware integration via JSON-RPC.
-    - Memory-safe event queue & auto-retry logic.
+    - **Rust Orchestrator (`agent-main`)**: Trái tim của hệ thống. Quản lý SQLite (`attendance.db`), logic đồng bộ dữ liệu (ACK protocol), WebSocket bền bỉ (Exponential Backoff), và điều phối lệnh tới driver.
+    - **Python Sidecar (`agent-zk-worker`)**: Một "Thin Driver" siêu nhẹ. Chỉ cung cấp giao thức JSON-RPC để Rust điều khiển thiết bị ZKTeco. Đã được loại bỏ hoàn toàn các logic dư thừa (DB, Cloud logic).
+    - **Protocol**: JSON-RPC over TCP (Localhost:5000) giúp tách biệt lỗi phần cứng khỏi logic nghiệp vụ.
 
 ### 🚦 Current Status
 - [x] JWT Authentication & Security (Change Password).

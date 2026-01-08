@@ -34,68 +34,83 @@ Server sẽ mặc định chạy tại cổng `3000`.
 
 ---
 
-## 🤖 2. Agent (Python) - Local Site Agent
+## 🤖 2. Agent (Rust Core + Python Sidecar)
 
-Agent chạy tại máy tính nội bộ nơi kết nối với các máy chấm công ZKTeco.
+Agent được thiết kế theo mô hình **Orchestrator (Rust)** quản lý **Worker (Python)** để đảm bảo hiệu năng và độ ổn định.
 
 ### Yêu cầu hệ thống
-- Python 3.10+
+- Rust (để build Orchestrator)
+- Python 3.10+ (để build Worker)
 - Kết nối mạng đến API Server
 
-### 🐧 Cấu hình đa máy chấm công
+### 🐧 Quy trình Đóng gói & Cài đặt
 
-Chỉnh sửa file `agent/devices.json`:
+Chúng tôi cung cấp script tự động để đóng gói toàn bộ Agent thành các file binary gọn nhẹ.
 
-```json
-[
-  { "id": "M1", "name": "Máy 1", "ip": "192.168.12.14", "port": 4370 },
-  { "id": "M2", "name": "Máy 2", "ip": "192.168.12.15", "port": 4370 }
-]
+#### Bước 1: Đóng gói Python ZK Worker
+```bash
+cd agent-zk-worker
+
+# Linux
+chmod +x build_linux.sh
+./build_linux.sh
+
+# Windows
+build_exe.bat
+```
+Sau bước này, bạn sẽ có file `agent-zk-worker` (hoặc `.exe`) trong thư mục `agent-zk-worker/dist`.
+
+#### Bước 2: Build Rust Orchestrator
+```bash
+cd agent-main
+cargo build --release
+```
+File kết quả: `target/release/agent` (hoặc `agent.exe`).
+
+#### Bước 3: Triển khai (Deploy)
+Tạo một thư mục chứa ứng dụng (ví dụ `/opt/leeattend-agent`) và copy các file sau vào:
+
+1.  **File thực thi chính**: `agent` (từ bước 2)
+2.  **Sidecar Worker**: `agent-zk-worker` (từ bước 1)
+3.  **Cấu hình**: File `.env` và `devices.json`
+
+Cấu trúc thư mục cuối cùng sẽ trông như sau:
+```text
+/deploy-folder/
+├── agent              # Chạy file này
+├── agent-zk-worker    # Để yên đây (Agent sẽ tự gọi)
+├── .env
+└── devices.json
 ```
 
-### 🗄️ Cấu hình Database & Central (.env)
+### ⚙️ Cấu hình (.env)
 
-Tạo file `agent/.env`:
+Tạo file `.env` tại thư mục deploy:
 ```env
-# Central Server (WebSocket)
+# Central Server
 CENTRAL_SERVER_URL=ws://your-api-server:3000/ws
 AGENT_TOKEN=your_secure_token
 AGENT_ID=BRANCH_NAME_01
 
-# Local Database (SQLite mặc định hoặc Postgres)
+# Database Local
 DATABASE_URL=sqlite:///./attendance.db
 
-# Cấu hình đồng bộ
+# Sync Config
 SYNC_BATCH_SIZE=100
 SYNC_INTERVAL=0.5
 ```
 
-### 🚀 Khởi tạo và Chạy
-1. Cài đặt thư viện:
-   ```bash
-   cd agent
-   # Windows
-   python -m venv venv
-   .\venv\Scripts\pip install -r requirements.txt
-   
-   # Linux/Mac
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
-2. Khởi tạo Database:
-   ```bash
-   # Agent tự động tạo bảng khi khởi động
-   # Nếu dùng Postgres, hãy đảm bảo DB đã được tạo
-   ```
-3. Chạy Agent:
-   ```bash
-   # Windows
-   .\venv\Scripts\python main.py
-   
-   # Linux/Mac
-   python main.py
-   ```
+### 🏃 Vận hành
+
+Chỉ cần chạy file `agent`:
+```bash
+./agent
+```
+Nó sẽ tự động khởi động `agent-zk-worker`, kết nối database và bắt đầu đồng bộ.
+
+---
+
+## 🪟 Triển khai Service trên Windows (NSSM)
 
 ---
 

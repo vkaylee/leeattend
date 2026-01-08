@@ -6,8 +6,11 @@ A comprehensive attendance management system comprising a local agent for ZKTeco
 
 ```
 leeattend/
-├── agent/            # Python Client (Runs on local machine/site)
-│   ├── Connects to ZKTeco XFace100 devices
+├── agent-main/       # Rust Agent Orchestrator (Main Entry Point)
+│   └── Manages Python Sidecar processes
+│
+├── agent-zk-worker/  # Python ZK Worker (Sidecar)
+│   ├── Connects to ZKTeco devices
 │   └── Syncs data to Central Server
 │
 ├── apiserver/        # Rust API Server (Runs on Central Cloud/Server)
@@ -20,9 +23,10 @@ leeattend/
 ## Dự án bao gồm các thành phần:
 
 1.  **apiserver**: Viết bằng **Rust (Axum)**, chịu trách nhiệm quản lý Agent, nhận log và cung cấp API cho Dashboard.
-2.  **agent**: Viết bằng **Python (FastAPI/PyZK)**, chạy tại local để kết nối máy chấm công ZKTeco.
-3.  **webdashboard**: Viết bằng **Next.js**, giao diện web để quản lý và theo dõi hệ thống.
-4.  **docs**: Tài liệu hướng dẫn chi tiết.
+2.  **agent-main**: Viết bằng **Rust**, đóng vai trò Agent Orchestrator quản lý tiến trình.
+3.  **agent-zk-worker**: Viết bằng **Python**, chứa logic xử lý thiết bị ZKTeco và đồng bộ dữ liệu.
+4.  **webdashboard**: Viết bằng **Next.js**, giao diện web để quản lý và theo dõi hệ thống.
+5.  **docs**: Tài liệu hướng dẫn chi tiết.
 
 
 ## 🤖 For AI Agents: How to Debug UI

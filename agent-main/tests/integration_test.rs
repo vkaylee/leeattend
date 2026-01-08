@@ -1,15 +1,15 @@
 use std::process::Stdio;
 use tokio::process::Command;
 use tokio::time::{sleep, Duration, timeout};
-use agent_rust::zk_client::ZKClient;
+use agent::zk_client::ZKClient;
 use serde_json::json;
 
 #[tokio::test]
 async fn test_full_process_handshake() {
     timeout(Duration::from_secs(20), async {
         // 1. Khởi động Python Worker (dùng venv)
-        let mut child = Command::new("../agent/venv_linux/bin/python3")
-            .arg("../agent/zk_worker.py")
+        let mut child = Command::new("../agent-zk-worker/venv_linux/bin/python3")
+            .arg("../agent-zk-worker/zk_worker.py")
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
@@ -27,7 +27,13 @@ async fn test_full_process_handshake() {
             }
         };
 
-        // 3. Gửi lệnh connect (giả lập kết nối thiết bị)
+        // 3. Test invalid method (Fast)
+        let result_err = client.call("zk.invalid_method", json!({})).await;
+        assert!(result_err.is_err());
+        let err_msg = result_err.unwrap_err().to_string();
+        assert!(err_msg.contains("Method not found"));
+
+        // 4. Gửi lệnh connect (giả lập kết nối thiết bị - có thể timeout nếu không có thiết bị)
         let result = client.call("zk.connect", json!({
             "device_id": "INT_TEST",
             "ip": "127.0.0.1",
@@ -37,7 +43,7 @@ async fn test_full_process_handshake() {
         // Verify result (đối với integration test, ta chỉ cần protocol pass)
         assert!(result.is_err() || result.is_ok()); 
         
-        // 4. Cleanup
+        // 5. Cleanup
         child.kill().await.unwrap();
     }).await.expect("Integration test timed out");
 }

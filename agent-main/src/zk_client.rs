@@ -3,6 +3,7 @@ use serde_json::Value;
 use std::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpStream;
+use tokio::time::{timeout, Duration};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JsonRpcRequest {
@@ -54,12 +55,18 @@ impl ZKClient {
 
         let mut reader = BufReader::new(&mut self.stream);
         let mut line = String::new();
-        reader.read_line(&mut line).await?;
+        
+        // Add timeout for reading response
+        let read_future = reader.read_line(&mut line);
+        match timeout(Duration::from_secs(5), read_future).await {
+            Ok(result) => result?, // IO Result
+            Err(_) => return Err(io::Error::new(io::ErrorKind::TimedOut, "RPC Call Timed Out")),
+        };
 
         let response: JsonRpcResponse = serde_json::from_str(&line)?;
         
         if let Some(error) = response.error {
-            return Err(io::Error::new(io::ErrorKind::Other, error.message));
+            return Err(io::Error::other(error.message));
         }
 
         Ok(response.result.unwrap_or(Value::Null))
@@ -71,7 +78,7 @@ mod tests {
     use super::*;
     use tokio::net::TcpListener;
     use serde_json::json;
-    use tokio::time::{timeout, Duration};
+    use tokio::time::{timeout, sleep, Duration};
 
     #[tokio::test]
     async fn test_zk_client_call() {
@@ -141,5 +148,31 @@ mod tests {
             assert!(result.is_err());
             assert_eq!(result.unwrap_err().to_string(), "Hardware Error");
         }).await.expect("Test timed out");
+    }
+
+    #[tokio::test]
+    async fn test_zk_client_timeout() {
+        // Test that the client times out if server doesn't respond
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+
+        tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut reader = BufReader::new(&mut socket);
+            let mut line = String::new();
+            // Server reads request but never responds
+            reader.read_line(&mut line).await.unwrap();
+            // Just sleep effectively forever (longer than client timeout)
+            sleep(Duration::from_secs(10)).await;
+        });
+
+        let mut client = ZKClient::connect(&addr.to_string()).await.unwrap();
+        
+        // The client internal timeout is 5s. We wait slightly longer to ensure it triggers.
+        let result = client.call("test.timeout", json!({})).await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::TimedOut);
     }
 }

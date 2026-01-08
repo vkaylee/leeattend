@@ -5,6 +5,23 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Robust WebSocket Client**: Implemented a state-of-the-art connection manager in Rust with **Exponential Backoff** and **Smart Heartbeat** (30s interval).
+- **Stability Logic**: Added a stability detection window (10s) and message-based reset to prevent rapid reconnection loops.
+- **Unit Tested Reliability**: Integrated comprehensive tests for `RetryManager` covering initial failures, premature drops, and stability resets.
+- **Stateless Thin Driver**: Refactored the Python ZK Worker into a stateless driver. Removed 100% of business logic, database management, and cloud sync code from Python.
+- **Unified Persistence**: Centralized all local storage logic into Rust using SQLite (`attendance.db`) via `sqlx`.
+
+### Changed
+- **Lighter Dependencies**: Reduced Python worker footprint by removing `sqlalchemy`, `alembic`, `websockets`, and `psycopg2`.
+- **Improved Fault Isolation**: JSON-RPC over TCP (Localhost:5000) now strictly separates hardware communication from core business orchestration.
+
+### Fixed
+- **1s Retry Loop**: Resolved a critical bug where the agent would reconnect every 1s upon handshake failure instead of increasing the delay.
+- **Resource Leakage**: Ensured proper cleanup of child processes and WebSocket streams on the Rust side.
+
+## [Unreleased] (Previous)
+
+### Added
 - **Sidecar Architecture**: Migrated Agent core to Rust while retaining Python for hardware communication.
 - **Rust-Python JSON-RPC Protocol**: Implemented a lightweight JSON-RPC 2.0 interface over TCP for communication between Rust Orchestrator and Python Worker.
 - **Enhanced Test Reliability**: 

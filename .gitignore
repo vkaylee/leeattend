@@ -48,3 +48,4 @@ dist/
 build/
 *.spec
 agent/venv_linux/
+agent-zk-worker/venv_linux/
