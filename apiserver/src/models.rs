@@ -324,106 +324,114 @@ pub struct AttendanceSummary {
 
 // --- Payroll and Shift Models ---
 
-
-
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
-
 pub struct Shift {
-
     pub id: Uuid,
-
     pub workspace_id: Uuid,
-
     pub name: String,
-
     pub start_time: chrono::NaiveTime,
-
     pub end_time: chrono::NaiveTime,
-
     pub break_duration_minutes: i32,
-
     pub created_at: DateTime<Utc>,
-
     pub updated_at: DateTime<Utc>,
-
 }
 
-
-
 #[derive(Debug, Deserialize)]
-
 pub struct CreateShiftRequest {
-
     pub name: String,
-
     pub start_time: chrono::NaiveTime,
-
     pub end_time: chrono::NaiveTime,
-
     pub break_duration_minutes: i32,
-
 }
-
-
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
-
-pub struct SalarySettings {
-
+pub struct SalaryHistory {
+    pub id: Uuid,
     pub employee_id: Uuid,
-
     pub base_salary: rust_decimal::Decimal,
-
     pub salary_type: String,
-
     pub currency: String,
-
+    pub effective_date: NaiveDate,
     pub created_at: DateTime<Utc>,
-
     pub updated_at: DateTime<Utc>,
-
 }
-
-
 
 #[derive(Debug, Deserialize)]
-
-pub struct UpdateSalarySettingsRequest {
-
+pub struct CreateSalaryHistoryRequest {
     pub base_salary: rust_decimal::Decimal,
-
     pub salary_type: String,
-
     pub currency: String,
-
+    pub effective_date: NaiveDate,
 }
 
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct Payslip {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub period_start: NaiveDate,
+    pub period_end: NaiveDate,
+    pub base_pay_amount: rust_decimal::Decimal,
+    pub overtime_pay_amount: rust_decimal::Decimal,
+    pub deductions_amount: rust_decimal::Decimal,
+    pub net_pay_amount: rust_decimal::Decimal,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
 
+// --- Department Models ---
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
-
-pub struct Payslip {
-
+pub struct Department {
     pub id: Uuid,
-
-    pub employee_id: Uuid,
-
-    pub period_start: NaiveDate,
-
-    pub period_end: NaiveDate,
-
-    pub base_pay_amount: rust_decimal::Decimal,
-
-    pub overtime_pay_amount: rust_decimal::Decimal,
-
-    pub deductions_amount: rust_decimal::Decimal,
-
-    pub net_pay_amount: rust_decimal::Decimal,
-
-    pub status: String,
-
+    pub workspace_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub manager_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
-
     pub updated_at: DateTime<Utc>,
+}
 
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+pub struct ShiftRoster {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub shift_id: Option<Uuid>,
+    pub date: NaiveDate,
+    pub status: String,
+    pub notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateRosterRequest {
+    pub employee_id: Uuid,
+    pub shift_id: Option<Uuid>,
+    pub date: NaiveDate,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateDepartmentRequest {
+    pub name: String,
+    pub description: Option<String>,
+    pub manager_id: Option<Uuid>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct EmployeeDepartmentHistory {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub department_id: Uuid,
+    pub effective_date: NaiveDate,
+    pub notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TransferEmployeeRequest {
+    pub department_id: Uuid,
+    pub effective_date: NaiveDate,
+    pub notes: Option<String>,
 }

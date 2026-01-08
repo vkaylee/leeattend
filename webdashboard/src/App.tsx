@@ -19,6 +19,7 @@ import {
   UserRound,
   Banknote,
   CalendarRange,
+  Building2,
 } from "lucide-react"; // Added new icons
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import DashboardPage from "./pages/DashboardPage";
@@ -31,11 +32,13 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import EmployeesPage from "./pages/EmployeesPage"; // New pages
+import DepartmentsPage from "./pages/DepartmentsPage";
 import TimeTrackingPage from "./pages/TimeTrackingPage";
 import LeaveRequestsPage from "./pages/LeaveRequestsPage";
 import ReportsPage from "./pages/ReportsPage";
 import PayrollPage from "./pages/PayrollPage";
 import ShiftsPage from "./pages/ShiftsPage";
+import RosterPage from "./pages/RosterPage";
 import WorkspaceSwitcher from "./components/WorkspaceSwitcher";
 import AuthGuard from "./components/AuthGuard";
 import WorkspaceGuard from "./components/WorkspaceGuard";
@@ -99,6 +102,13 @@ function Layout() {
             <UserRound className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span className="font-semibold">Nhân viên</span>
           </Link>
+          <Link
+            to="/departments"
+            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
+          >
+            <Building2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-semibold">Phòng ban</span>
+          </Link>
 
           <div className="pt-4 pb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
             Chấm công & Nghỉ phép
@@ -134,6 +144,13 @@ function Layout() {
           >
             <CalendarRange className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span className="font-semibold">Ca làm việc</span>
+          </Link>
+          <Link
+            to="/rosters"
+            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
+          >
+            <CalendarDays className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-semibold">Phân ca</span>
           </Link>
           <Link
             to="/payroll"
@@ -216,10 +233,12 @@ function App() {
                 <Route path="/devices" element={<DevicesPage />} />
                 <Route path="/members" element={<MembersPage />} />
                 <Route path="/employees" element={<EmployeesPage />} />
+                <Route path="/departments" element={<DepartmentsPage />} />
                 <Route path="/time-tracking" element={<TimeTrackingPage />} />
                 <Route path="/leave-requests" element={<LeaveRequestsPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/shifts" element={<ShiftsPage />} />
+                <Route path="/rosters" element={<RosterPage />} />
                 <Route path="/payroll" element={<PayrollPage />} />
                 <Route
                   path="/workspace/settings"

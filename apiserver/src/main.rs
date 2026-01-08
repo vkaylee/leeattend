@@ -63,6 +63,9 @@ async fn main() {
         .unwrap_or(3000);
 
     // Try to bind to the preferred port, or find another one if it's busy
+    // Dọn dẹp file cũ nếu có để tránh stale data
+    let _ = std::fs::remove_file(".api_port");
+
     let listener = {
         let mut listener = None;
         let max_port = preferred_port + 100; // Try up to 100 next ports

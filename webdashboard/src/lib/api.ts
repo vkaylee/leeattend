@@ -1,5 +1,16 @@
-const API_BASE_URL = "/api";
-const WS_BASE_URL = `ws://${window.location.host}/ws`;
+// Trong môi trường Tauri hoặc Production build, chúng ta cần một địa chỉ tuyệt đối nếu không qua proxy.
+// Vite sẽ thay thế import.meta.env.VITE_API_URL lúc build.
+const BASE_URL_FROM_ENV = import.meta.env.VITE_API_URL?.replace(/\/$/, "");
+
+// Nếu đang chạy web dev (có proxy) thì dùng "/api", nếu build tauri thì dùng URL tuyệt đối.
+const isTauri = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__;
+const API_BASE_URL = isTauri || !window.location.host.includes("localhost") 
+  ? (BASE_URL_FROM_ENV || "http://localhost:3000") 
+  : "/api";
+
+const WS_BASE_URL = BASE_URL_FROM_ENV
+  ? `${BASE_URL_FROM_ENV.replace(/^http/, "ws")}/ws`
+  : `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${isTauri ? "localhost:3000" : window.location.host}/ws`;
 
 export interface DeviceStatus {
   device_id: string;
@@ -142,11 +153,13 @@ export interface Shift {
   updated_at: string;
 }
 
-export interface SalarySettings {
+export interface SalaryHistory {
+  id: string;
   employee_id: string;
   base_salary: string;
   salary_type: "hourly" | "monthly";
   currency: string;
+  effective_date: string;
   created_at: string;
   updated_at: string;
 }
@@ -161,6 +174,38 @@ export interface Payslip {
   deductions_amount: string;
   net_pay_amount: string;
   status: "draft" | "published" | "paid";
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Department Models ---
+
+export interface Department {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description?: string;
+  manager_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmployeeDepartmentHistory {
+  id: string;
+  employee_id: string;
+  department_id: string;
+  effective_date: string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface ShiftRoster {
+  id: string;
+  employee_id: string;
+  shift_id: string | null;
+  date: string;
+  status: string;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -670,159 +715,145 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
 }
 
 export async function fetchDevSuperUser(): Promise<{
-
   user_id: string;
-
   workspace_id: string;
-
   access_token?: string;
-
   refresh_token?: string;
-
 }> {
-
   const response = await fetch(`${API_BASE_URL}/dev/super-user`);
-
   if (!response.ok) throw new Error("Failed to fetch dev super user");
-
   return response.json();
-
 }
-
-
 
 // --- Payroll API ---
 
-
-
-export async function fetchSalarySettings(wsId: string, employeeId: string): Promise<SalarySettings> {
-
+export async function fetchSalaryHistory(wsId: string, employeeId: string): Promise<SalaryHistory[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/salary`);
-
-  if (!response.ok) throw new Error("Failed to fetch salary settings");
-
+  if (!response.ok) throw new Error("Failed to fetch salary history");
   return response.json();
-
 }
 
-
-
-export async function updateSalarySettings(
-
+export async function addSalaryHistory(
   wsId: string, 
-
   employeeId: string, 
-
-  data: Partial<SalarySettings>
-
-): Promise<SalarySettings> {
-
+  data: Partial<SalaryHistory>
+): Promise<SalaryHistory> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/salary`, {
-
-    method: "PUT",
-
+    method: "POST",
     body: JSON.stringify(data),
-
   });
-
-  if (!response.ok) throw new Error("Failed to update salary settings");
-
+  if (!response.ok) throw new Error("Failed to add salary history");
   return response.json();
-
 }
-
-
 
 export async function calculatePayroll(
-
   wsId: string,
-
   employeeId: string,
-
   year: number,
-
   month: number,
-
 ): Promise<Payslip> {
-
   const response = await apiFetch(
-
     `${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/calculate-payroll?year=${year}&month=${month}`,
-
     { method: "POST" }
-
   );
-
   if (!response.ok) throw new Error("Failed to calculate payroll");
-
   return response.json();
-
 }
-
-
 
 export async function fetchEmployeePayslips(wsId: string, employeeId: string): Promise<Payslip[]> {
-
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/payslips`);
-
   if (!response.ok) throw new Error("Failed to fetch payslips");
-
   return response.json();
-
 }
-
-
 
 // --- Shift API ---
 
-
-
 export async function fetchShifts(wsId: string): Promise<Shift[]> {
-
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/shifts`);
-
   if (!response.ok) throw new Error("Failed to fetch shifts");
-
   return response.json();
-
 }
-
-
 
 export async function createShift(wsId: string, data: Partial<Shift>): Promise<Shift> {
-
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/shifts`, {
-
     method: "POST",
-
     body: JSON.stringify(data),
-
   });
-
   if (!response.ok) throw new Error("Failed to create shift");
-
   return response.json();
-
 }
 
-
-
 export async function assignShift(
-
   wsId: string,
-
   data: { employee_id: string; shift_id: string; effective_date: string }
-
 ): Promise<void> {
-
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/shifts/assign`, {
-
     method: "POST",
-
     body: JSON.stringify(data),
-
   });
-
   if (!response.ok) throw new Error("Failed to assign shift");
+}
 
+// --- Department API ---
+
+export async function fetchDepartments(wsId: string): Promise<Department[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/departments`);
+  if (!response.ok) throw new Error("Failed to fetch departments");
+  return response.json();
+}
+
+export async function createDepartment(wsId: string, data: Partial<Department>): Promise<Department> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/departments`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to create department");
+  return response.json();
+}
+
+export async function transferEmployee(
+  wsId: string,
+  employeeId: string,
+  data: { department_id: string; effective_date: string; notes?: string }
+): Promise<EmployeeDepartmentHistory> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/departments`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to transfer employee");
+  return response.json();
+}
+
+export async function fetchEmployeeDepartmentHistory(wsId: string, employeeId: string): Promise<EmployeeDepartmentHistory[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/departments`);
+  if (!response.ok) throw new Error("Failed to fetch dept history");
+  return response.json();
+}
+
+// --- Roster API ---
+
+export async function fetchEmployeeRosters(
+  wsId: string, 
+  employeeId: string, 
+  startDate?: string, 
+  endDate?: string
+): Promise<ShiftRoster[]> {
+  let url = `${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/rosters`;
+  const params = new URLSearchParams();
+  if (startDate) params.append("start_date", startDate);
+  if (endDate) params.append("end_date", endDate);
+  if (params.toString()) url += `?${params.toString()}`;
+  
+  const response = await apiFetch(url);
+  if (!response.ok) throw new Error("Failed to fetch rosters");
+  return response.json();
+}
+
+export async function upsertRoster(wsId: string, employeeId: string, data: any): Promise<ShiftRoster> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/rosters`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to upsert roster");
+  return response.json();
 }

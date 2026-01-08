@@ -5,6 +5,8 @@ pub mod employee_repository;
 pub mod time_entry_repository;
 pub mod leave_request_repository;
 pub mod payroll_repository;
+pub mod department_repository;
+pub mod roster_repository;
 pub mod shift_repository;
 
 pub use agent_repository::{AgentRepository, SqlxAgentRepository};

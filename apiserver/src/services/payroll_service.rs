@@ -18,24 +18,25 @@ impl PayrollService {
         year: i32,
         month: u32,
     ) -> Result<Payslip, StatusCode> {
-        // 1. Get employee and salary settings
+        // 1. Get employee and salary settings (use reference date as end of period)
         let _employee = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
-        let settings = payroll_repository::get_salary_settings(pool, employee_id)
+        let end_date = if month == 12 {
+            NaiveDate::from_ymd_opt(year + 1, 1, 1)
+        } else {
+            NaiveDate::from_ymd_opt(year, month + 1, 1)
+        }.unwrap().pred_opt().unwrap();
+
+        let settings = payroll_repository::get_latest_salary(pool, employee_id, end_date)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::BAD_REQUEST)?; // Salary settings must be configured
 
         // 2. Define period
         let start_date = NaiveDate::from_ymd_opt(year, month, 1).ok_or(StatusCode::BAD_REQUEST)?;
-        let end_date = if month == 12 {
-            NaiveDate::from_ymd_opt(year + 1, 1, 1)
-        } else {
-            NaiveDate::from_ymd_opt(year, month + 1, 1)
-        }.unwrap().pred_opt().unwrap();
 
         // Convert NaiveDate to DateTime<Utc> for query
         let start_dt = Utc.from_local_datetime(&start_date.and_hms_opt(0, 0, 0).unwrap()).unwrap();

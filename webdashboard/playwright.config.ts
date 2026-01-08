@@ -4,16 +4,35 @@ import path from "path";
 
 /**
  * Read the web port from the discovery file or fallback to 5173
+ * Includes a retry logic to wait for the file if Vite is still starting.
  */
 function getWebPort() {
-  try {
-    const portFile = path.resolve(__dirname, ".web_port");
-    if (fs.existsSync(portFile)) {
-      return fs.readFileSync(portFile, "utf8").trim();
+  const portFile = path.resolve(__dirname, ".web_port");
+  const maxAttempts = 20; // Thử trong 10 giây (20 * 500ms)
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      if (fs.existsSync(portFile)) {
+        const port = fs.readFileSync(portFile, "utf8").trim();
+        if (port) {
+          console.log(`📡 Playwright: Discovered Web Dashboard on port ${port} (Attempt ${attempt + 1})`);
+          return port;
+        }
+      }
+    } catch (e) {
+      // Ignore error and retry
     }
-  } catch (e) {
-    // Ignore error
+    
+    // Nếu chưa thấy file, đợi 500ms trước khi thử lại (Synchronous wait for config phase)
+    if (attempt < maxAttempts - 1) {
+      const waitTill = new Date(new Date().getTime() + 500);
+      while (waitTill > new Date()) {
+        // Busy wait
+      }
+    }
   }
+
+  console.warn("📡 Playwright: Could not discover .web_port, falling back to 5173");
   return "5173";
 }
 

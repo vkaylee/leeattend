@@ -5,16 +5,16 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
-- **Payroll & Shift Infrastructure**: Implemented a comprehensive backend system for salary configuration and automated payslip generation.
-- **Dynamic Shift Scheduling**: Added support for defining workspace-wide shifts (Start/End times, break duration) and assigning them to employees.
-- **Precise Financial Calculations**: Integrated `rust_decimal` for high-precision payroll calculations, preventing floating-point errors.
-- **Monthly Payroll Automation**: Created `PayrollService` to calculate net pay based on worked hours, leave days, and configured salary rates (hourly/monthly).
-- **Payroll UI Foundation**: Integrated navigation links for "Payroll" and "Shifts" into the dashboard sidebar and registered new frontend routes.
-- **Extended API Client**: Updated the frontend `api.ts` with comprehensive interfaces and functions for interacting with salary, payslip, and shift endpoints.
+- **Departmental Hierarchy**: Introduced `departments` table and management UI, allowing organization of employees into functional units with designated managers.
+- **Salary History Tracking**: Migrated from static salary settings to a time-series `salary_history` model, enabling accurate payroll auditing for past periods when pay rates change.
+- **Dynamic Shift Rostering (Scheduling)**: Implemented a calendar-based rostering system (`shift_rosters`) for date-specific shift assignments, supporting complex schedules and rotating shifts.
+- **Master-Detail Employee UI**: Upgraded the employee management dashboard with a slide-in detail panel, providing a 360-degree view of employee profiles, salary history, and department transfers.
+- **Department Transfer Workflow**: Added logic to track employee movement between departments with effective dates and historical notes.
+- **Shift Assignment Priority**: Refactored `PayrollService` to determine work schedules using a 3-tier priority logic: **Roster** (Daily) > **Employee Default** > **Department Default**.
 
 ### Changed
-- **Database Schema Expansion**: Added `salary_settings`, `shifts`, `employee_shifts`, and `payslips` tables via SQLX migrations.
-- **Enhanced Repository Pattern**: Added `PayrollRepository` and `ShiftRepository` for structured database access.
+- **Database Schema Upgrade**: Successfully migrated `salary_settings` data to the new `salary_history` table without data loss.
+- **Repository Expansion**: Registered `DepartmentRepository` and `RosterRepository` in the backend orchestrator.
 
 ### Added
 - **Robust WebSocket Client**: Implemented a state-of-the-art connection manager in Rust with **Exponential Backoff** and **Smart Heartbeat** (30s interval).

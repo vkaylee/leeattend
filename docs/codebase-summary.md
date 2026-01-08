@@ -12,10 +12,10 @@ leeattend/
 ├── apiserver/         # Rust (Axum) Central Server
 │   ├── migrations/    # SQLx migrations
 │   ├── src/           # API Logic
-│   │   ├── handlers/  # API endpoints
-│   │   ├── services/  # Business logic
-│   │   ├── repositories/ # Database access traits & SQLx impl
-│   │   └── models.rs  # Domain models
+│   │   ├── handlers.rs # API endpoints
+│   │   ├── services/  # Business logic (PayrollService, etc.)
+│   │   ├── repositories/ # Database access (Dept, Roster, Payroll)
+│   │   └── models.rs  # Domain models (Employee, Shift, Roster)
 │   └── tests/         # Integration tests with TestFactory
 ├── webdashboard/      # React (Vite) Admin UI
 │   ├── src/
@@ -50,8 +50,9 @@ leeattend/
 ### 🚦 Current Status
 - [x] JWT Authentication & Security (Change Password).
 - [x] Workspace & Member management (RBAC).
+- [x] Time-series Salary History & Departments management.
+- [x] Shift Rostering System (Weekly calendar & Priority logic).
 - [x] Accurate Real-time Status (Heartbeat).
-- [x] Backend Repository/Service pattern refactor.
 - [ ] Automated Deployment scripts (NSSM/Service for production).
 
 ### 🛠️ Debugging & Automation Tools

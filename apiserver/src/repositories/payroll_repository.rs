@@ -1,35 +1,49 @@
 use sqlx::{PgPool, query_as};
 use uuid::Uuid;
-use chrono::Utc;
+use chrono::{Utc, NaiveDate};
 use rust_decimal::Decimal;
 
-use crate::models::{SalarySettings, Payslip};
+use crate::models::{SalaryHistory, Payslip};
 
-pub async fn get_salary_settings(pool: &PgPool, employee_id: Uuid) -> Result<Option<SalarySettings>, sqlx::Error> {
+pub async fn get_latest_salary(pool: &PgPool, employee_id: Uuid, reference_date: NaiveDate) -> Result<Option<SalaryHistory>, sqlx::Error> {
     query_as!(
-        SalarySettings,
-        r#"SELECT employee_id, base_salary, salary_type, currency, created_at as "created_at!", updated_at as "updated_at!" FROM salary_settings WHERE employee_id = $1"#,
-        employee_id
+        SalaryHistory,
+        r#"SELECT id, employee_id, base_salary, salary_type, currency, effective_date, created_at as "created_at!", updated_at as "updated_at!" 
+           FROM salary_history 
+           WHERE employee_id = $1 AND effective_date <= $2 
+           ORDER BY effective_date DESC, created_at DESC 
+           LIMIT 1"#,
+        employee_id,
+        reference_date
     )
     .fetch_optional(pool)
     .await
 }
 
-pub async fn update_salary_settings(pool: &PgPool, employee_id: Uuid, base_salary: Decimal, salary_type: String, currency: String) -> Result<SalarySettings, sqlx::Error> {
+pub async fn get_salary_history(pool: &PgPool, employee_id: Uuid) -> Result<Vec<SalaryHistory>, sqlx::Error> {
     query_as!(
-        SalarySettings,
-        r#"INSERT INTO salary_settings (employee_id, base_salary, salary_type, currency, updated_at)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (employee_id) DO UPDATE SET
-            base_salary = EXCLUDED.base_salary,
-            salary_type = EXCLUDED.salary_type,
-            currency = EXCLUDED.currency,
-            updated_at = EXCLUDED.updated_at
-         RETURNING employee_id, base_salary, salary_type, currency, created_at as "created_at!", updated_at as "updated_at!""#,
+        SalaryHistory,
+        r#"SELECT id, employee_id, base_salary, salary_type, currency, effective_date, created_at as "created_at!", updated_at as "updated_at!" 
+           FROM salary_history 
+           WHERE employee_id = $1 
+           ORDER BY effective_date DESC"#,
+        employee_id
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn add_salary_history(pool: &PgPool, employee_id: Uuid, base_salary: Decimal, salary_type: String, currency: String, effective_date: NaiveDate) -> Result<SalaryHistory, sqlx::Error> {
+    query_as!(
+        SalaryHistory,
+        r#"INSERT INTO salary_history (employee_id, base_salary, salary_type, currency, effective_date, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, employee_id, base_salary, salary_type, currency, effective_date, created_at as "created_at!", updated_at as "updated_at!""#,
         employee_id,
         base_salary,
         salary_type,
         currency,
+        effective_date,
         Utc::now()
     )
     .fetch_one(pool)

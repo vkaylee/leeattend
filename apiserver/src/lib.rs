@@ -251,7 +251,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         // Payroll
         .route(
             "/workspaces/:ws_id/employees/:id/salary",
-            get(handlers::get_salary_settings).put(handlers::update_salary_settings),
+            get(handlers::get_salary_history).post(handlers::add_salary_history),
         )
         .route(
             "/workspaces/:ws_id/employees/:id/payslips",
@@ -261,15 +261,20 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/employees/:id/calculate-payroll",
             post(handlers::calculate_payroll),
         )
+        // Departments
+        .route(
+            "/workspaces/:ws_id/departments",
+            get(handlers::get_departments).post(handlers::create_department),
+        )
+        .route(
+            "/workspaces/:ws_id/employees/:id/departments",
+            get(handlers::get_employee_department_history).post(handlers::transfer_employee),
+        )
         // Shifts
-        .route(
-            "/workspaces/:ws_id/shifts",
-            get(handlers::get_shifts).post(handlers::create_shift),
-        )
-        .route(
-            "/workspaces/:ws_id/shifts/assign",
-            post(handlers::assign_shift),
-        )
+                .route("/shifts", get(handlers::get_shifts).post(handlers::create_shift))
+                .route("/shifts/assign", post(handlers::assign_shift))
+                // Rosters
+                .route("/employees/:id/rosters", get(handlers::get_employee_rosters).post(handlers::upsert_roster))
         .layer(cors)
         .with_state(state)
 }

@@ -301,28 +301,63 @@ Gán ca làm việc cho nhân viên.
   ```
 
 #### GET /workspaces/:ws_id/employees/:id/salary
-Lấy cấu hình lương của nhân viên.
-- **Response (200)**: `SalarySettings`
+Lấy lịch sử lương của nhân viên (từ mới đến cũ).
+- **Response (200)**: `Array<SalaryHistory>`
 
-#### PUT /workspaces/:ws_id/employees/:id/salary
-Cập nhật cấu hình lương (định mức lương, loại lương giờ/tháng).
+#### POST /workspaces/:ws_id/employees/:id/salary
+Cập nhật mức lương mới. Hệ thống sẽ lưu vết lịch sử thay vì ghi đè.
 - **Request**:
   ```json
   {
     "base_salary": "15000000.00",
     "salary_type": "monthly",
-    "currency": "VND"
+    "currency": "VND",
+    "effective_date": "2026-02-01"
   }
   ```
+- **Response (201)**: `SalaryHistory` object
 
-#### POST /workspaces/:ws_id/employees/:id/calculate-payroll
-Yêu cầu hệ thống tính toán lương cho một tháng cụ thể.
-- **Query Params**: `?year=2026&month=1`
-- **Response (200)**: `Payslip` object
+---
 
-#### GET /workspaces/:ws_id/employees/:id/payslips
-Lấy danh sách lịch sử phiếu lương của nhân viên.
-- **Response (200)**: `Array<Payslip>`
+### 9. Departments & Rostering (New)
+
+Quản lý cơ cấu tổ chức và lịch trình làm việc linh hoạt.
+
+#### GET /workspaces/:ws_id/departments
+Lấy danh sách các phòng ban.
+- **Response (200)**: `Array<Department>`
+
+#### POST /workspaces/:ws_id/departments
+Tạo phòng ban mới.
+- **Request**: `{ "name": "IT", "description": "...", "manager_id": "uuid" }`
+- **Response (201)**: `Department` object
+
+#### POST /workspaces/:ws_id/employees/:id/departments
+Điều chuyển phòng ban cho nhân viên.
+- **Request**: `{ "department_id": "...", "effective_date": "...", "notes": "..." }`
+- **Response (201)**: `EmployeeDepartmentHistory` object
+
+#### GET /workspaces/:ws_id/employees/:id/departments
+Xem lịch sử điều chuyển phòng ban của một nhân viên.
+- **Response (200)**: `Array<EmployeeDepartmentHistory>`
+
+#### GET /workspaces/:ws_id/employees/:id/rosters
+Lấy lịch biểu (ca làm việc thực tế) của nhân viên trong một khoảng thời gian.
+- **Query Params**: `?start_date=2026-01-01&end_date=2026-01-07`
+- **Response (200)**: `Array<ShiftRoster>`
+
+#### POST /workspaces/:ws_id/employees/:id/rosters
+Cập nhật hoặc gán ca làm việc cho một ngày cụ thể (Upsert).
+- **Request**:
+  ```json
+  {
+    "employee_id": "...",
+    "date": "2026-01-01",
+    "shift_id": "shift-uuid-or-null",
+    "notes": "..."
+  }
+  ```
+- **Response (200 OK)**
 
 ---
 
