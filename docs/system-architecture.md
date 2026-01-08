@@ -82,17 +82,18 @@ Hệ thống hỗ trợ phân tách dữ liệu hoàn toàn giữa các tổ ch�
 4. **Reliability (ACK)**: Server sends an acknowledgment for each batch. Agent updates `is_synced=1` only upon receiving ACK.
 5. **Backoff**: If any connection fails (ZK device or Central Server), the Agent applies **Exponential Backoff with Jitter**.
 
-## Technology Stack
+## 🛰️ Service Discovery (Development)
 
-### Agent
-- **Language**: Python 3.12+
-- **Architecture**: **Single Responsibility Principle (SRP)**, Factory Pattern.
-- **Runtime**: asyncio (Non-blocking I/O)
-- **Library**: pyzk2 (Hardware Protocol)
-- **Framework**: **None (Pure CLI)** - FastAPI removed for performance.
+Để hỗ trợ AI tự động khởi chạy và debug mà không gây xung đột với môi trường của người dùng, hệ thống sử dụng cơ chế **File-based Discovery**:
 
-### API Server
-- **Language**: Rust (1.75+)
-- **Framework**: Axum (Web), Tokio (Runtime)
-- **Database**: PostgreSQL
-- **Logging**: Tracing
+1.  **API Server:** Khi khởi chạy với `API_PORT=0`, OS sẽ cấp một port ngẫu nhiên. Server sẽ ghi port này vào file `apiserver/.api_port`.
+2.  **Web Dashboard (Vite):** Khi khởi chạy, `vite.config.ts` sẽ kiểm tra sự tồn tại của file `../apiserver/.api_port`. Nếu thấy, nó sẽ tự động cấu hình `proxy` để chuyển hướng các request `/api` tới đúng port đó.
+3.  **Playwright (AI Mắt thần):** Sử dụng các script trong `webdashboard/tests/debug-ui.spec.ts` để tự động hóa việc kiểm tra giao diện, lắng nghe console log và chụp ảnh màn hình.
+
+## 🛠️ AI Debugging Workflow
+
+Khi gặp lỗi giao diện, AI Agent nên thực hiện các bước sau:
+1.  Khởi chạy Backend trong background: `cd apiserver && cargo run`.
+2.  Khởi chạy Frontend: `cd webdashboard && npm run dev`.
+3.  Chạy Playwright Debug: `npx playwright test tests/debug-ui.spec.ts`.
+4.  Phân tích log bắt đầu bằng `[BROWSER]` để tìm nguyên nhân gốc rễ.

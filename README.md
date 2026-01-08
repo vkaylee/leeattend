@@ -25,10 +25,19 @@ leeattend/
 4.  **docs**: Tài liệu hướng dẫn chi tiết.
 
 
-## 🛠️ Prerequisites
+## 🤖 For AI Agents: How to Debug UI
 
-- **Python 3.10+** (For Agent)
-- **Rust 1.75+** (For API Server)
+If you need to verify UI changes or fix loading issues:
+
+1.  **Ensure Backend is running**: `cd apiserver && cargo run`
+2.  **Ensure Frontend is running**: `cd webdashboard && npm run dev`
+3.  **Run Automated Debug**:
+    ```bash
+    cd webdashboard
+    npx playwright test tests/debug-ui.spec.ts --reporter=line
+    ```
+4.  **Analyze**: Look for `[BROWSER]` logs in the output to see what's happening inside the browser.
+
 
 ## 📖 Documentation
 - [System Architecture](docs/system-architecture.md)

@@ -26,8 +26,9 @@ export function useProfile() {
   });
 
   return {
-    profile: profileQuery.data,
+    user: profileQuery.data,
     isLoading: profileQuery.isLoading,
+    isError: profileQuery.isError,
     error: profileQuery.error,
     refetch: profileQuery.refetch,
     

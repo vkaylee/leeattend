@@ -34,6 +34,7 @@ export function useWorkspaces() {
   return {
     workspaces: workspacesQuery.data ?? [],
     isLoading: workspacesQuery.isLoading,
+    isError: workspacesQuery.isError,
     createWorkspace: createMutation.mutateAsync,
   };
 }

@@ -42,6 +42,11 @@ leeattend/
 - **Device Manager**: Giao tiếp trực tiếp với máy chấm công ZKTeco.
 - **Sync Worker**: Đảm bảo dữ liệu được đẩy lên Central Server an toàn.
 
-## 🧪 Testing Strategy
-- **Backend**: Integration tests sử dụng `sqlx` và `TestFactory`. Chạy bằng `cargo test`.
-- **Frontend**: Unit & Component tests sử dụng `Vitest` và `factories.ts`. Chạy bằng `npm test`.
+### 🛠️ Debugging & Automation Tools
+
+- **Playwright Tests (`webdashboard/tests/`):** 
+    - `debug-ui.spec.ts`: Script dùng để kiểm tra luồng Auth, Loading loop và lấy logs từ trình duyệt.
+- **Port Discovery:**
+    - `apiserver/.api_port`: File tạm chứa port hiện tại của backend.
+- **Frontend Coverage:** Core hooks (`use-profile`, `use-workspace`) đạt >80% test coverage qua Vitest.
+

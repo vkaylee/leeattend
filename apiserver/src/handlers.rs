@@ -761,14 +761,21 @@ pub async fn get_user_profile(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
 ) -> impl IntoResponse {
+    tracing::debug!("Fetching profile for user: {}", user_id);
     match sqlx::query_as::<_, crate::models::User>("SELECT * FROM users WHERE id = $1")
         .bind(user_id)
         .fetch_optional(&state.db)
         .await
     {
         Ok(Some(user)) => Json(user).into_response(),
-        Ok(None) => StatusCode::NOT_FOUND.into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        Ok(None) => {
+            tracing::warn!("User {} not found in database", user_id);
+            StatusCode::NOT_FOUND.into_response()
+        }
+        Err(e) => {
+            tracing::error!("Database error fetching user {}: {}", user_id, e);
+            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
+        }
     }
 }
 
@@ -800,4 +807,57 @@ pub async fn update_user_profile(
         Ok(user) => Json(user).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
+}
+
+#[cfg(debug_assertions)]
+pub async fn get_dev_super_user(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    use serde_json::json;
+    tracing::info!("Dev fast login requested");
+    
+    // 1. Thử lấy user admin mặc định (từ seed)
+    let user_id: Uuid = match sqlx::query_scalar::<_, Uuid>("SELECT id FROM users WHERE email = 'admin@leeattend.com' LIMIT 1")
+        .fetch_one(&state.db)
+        .await {
+            Ok(id) => id,
+            Err(_) => {
+                // Nếu không thấy admin@, lấy đại bất kỳ user nào
+                match sqlx::query_scalar::<_, Uuid>("SELECT id FROM users LIMIT 1")
+                    .fetch_one(&state.db)
+                    .await {
+                        Ok(id) => id,
+                        Err(e) => {
+                            tracing::error!("Dev login failed: No users found in DB: {}", e);
+                            return (StatusCode::NOT_FOUND, "No users found in database. Run migrations or seed your DB.").into_response();
+                        }
+                    }
+            }
+        };
+
+    // 2. Lấy workspace đầu tiên mà user này là thành viên
+    let workspace_id: Uuid = match sqlx::query_scalar::<_, Uuid>(
+        "SELECT workspace_id FROM workspace_members WHERE user_id = $1 LIMIT 1"
+    )
+    .bind(user_id)
+    .fetch_one(&state.db)
+    .await {
+        Ok(id) => id,
+        Err(_) => {
+            // Nếu user đầu tiên không có workspace, thử tìm bất kỳ workspace nào
+            match sqlx::query_scalar::<_, Uuid>("SELECT workspace_id FROM workspace_members LIMIT 1")
+                .fetch_one(&state.db)
+                .await {
+                    Ok(ws_id) => ws_id,
+                    Err(e) => {
+                        tracing::error!("Dev login failed: No workspace memberships found: {}", e);
+                        return (StatusCode::NOT_FOUND, "No workspace memberships found. Please invite user to a workspace.").into_response();
+                    }
+                }
+        },
+    };
+
+    tracing::info!("Dev login successful: user={}, workspace={}", user_id, workspace_id);
+    Json(json!({
+        "user_id": user_id,
+        "workspace_id": workspace_id
+    })).into_response()
 }

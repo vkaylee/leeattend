@@ -1,8 +1,20 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
 import path from 'path';
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
+import fs from 'fs';
 
-// https://vitejs.dev/config/
+// Tự động tìm port của API từ file Discovery
+let apiPort = '3000';
+try {
+  const apiPortFile = path.resolve(__dirname, '../apiserver/.api_port');
+  if (fs.existsSync(apiPortFile)) {
+    apiPort = fs.readFileSync(apiPortFile, 'utf8').trim();
+    console.log(`📡 Vite: Discovered API server on port ${apiPort}`);
+  }
+} catch (e) {
+  console.warn('📡 Vite: Could not discover API port, using default 3000');
+}
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -10,23 +22,30 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  // Tauri expects fixed port, fail if not available
   server: {
-    port: 1420,
-    strictPort: true,
-    watch: {
-      // 3. tell vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+    // Tự động chọn port nếu 5173 bận
+    strictPort: false,
+    // Cấu hình Proxy
+    proxy: {
+      '/api': {
+        target: `http://localhost:${apiPort}`,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      '/ws': {
+        target: `ws://localhost:${apiPort}`,
+        ws: true,
+      },
     },
   },
-  // to access the Tauri environment variables set by the CLI with information about the current target
-  envPrefix: ['VITE_', 'TAURI_'],
-  build: {
-    // Tauri uses Chromium on Windows and WebKit on macOS and Linux
-    target: process.env.TAURI_ENV_PLATFORM == 'windows' ? 'chrome105' : 'safari13',
-    // don't minify for debug builds
-    minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
-    // produce sourcemaps for debug builds
-    sourcemap: !!process.env.TAURI_ENV_DEBUG,
+  // @ts-ignore
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+    },
   },
 });

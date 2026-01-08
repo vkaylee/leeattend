@@ -26,45 +26,58 @@ pub struct AppState {
 }
 
 pub fn create_app(state: Arc<AppState>) -> Router {
-    // Cấu hình CORS từ biến môi trường
-    let allowed_origins_str =
-        std::env::var("ALLOWED_ORIGINS").unwrap_or_else(|_| "http://localhost:3001".to_string());
+    // Cấu hình CORS
+    let cors = if cfg!(debug_assertions) {
+        // Trong môi trường dev, cho phép tất cả để tránh phiền phức về port
+        CorsLayer::new()
+            .allow_origin(Any)
+            .allow_methods([
+                Method::GET,
+                Method::POST,
+                Method::PUT,
+                Method::PATCH,
+                Method::DELETE,
+                Method::OPTIONS,
+            ])
+            .allow_headers(Any)
+    } else {
+        // Trong môi trường production, cấu hình nghiêm ngặt từ env
+        let allowed_origins_str =
+            std::env::var("ALLOWED_ORIGINS").unwrap_or_else(|_| "".to_string());
 
-    let mut origins = Vec::new();
-    for origin in allowed_origins_str.split(',') {
-        let trimmed = origin.trim();
-        if trimmed.is_empty() {
-            continue;
-        }
+        let mut origins = Vec::new();
+        for origin in allowed_origins_str.split(',') {
+            let trimmed = origin.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
 
-        match trimmed.parse::<HeaderValue>() {
-            Ok(header_value) => {
+            if let Ok(header_value) = trimmed.parse::<HeaderValue>() {
                 origins.push(header_value);
-                tracing::info!("CORS: Allowed origin added: {}", trimmed);
-            }
-            Err(e) => {
-                tracing::error!("CORS: Failed to parse origin '{}': {}", trimmed, e);
             }
         }
+
+        CorsLayer::new()
+            .allow_origin(origins)
+            .allow_methods([
+                Method::GET,
+                Method::POST,
+                Method::PUT,
+                Method::PATCH,
+                Method::DELETE,
+            ])
+            .allow_headers(Any)
+    };
+
+    let mut router = Router::new()
+        .route("/health", get(handlers::health_check));
+
+    #[cfg(debug_assertions)]
+    {
+        router = router.route("/dev/super-user", get(handlers::get_dev_super_user));
     }
 
-    if origins.is_empty() {
-        tracing::warn!("CORS: No valid origins found. All cross-origin requests will be rejected!");
-    }
-
-    let cors = CorsLayer::new()
-        .allow_origin(origins)
-        .allow_methods([
-            Method::GET,
-            Method::POST,
-            Method::PUT,
-            Method::PATCH,
-            Method::DELETE,
-        ])
-        .allow_headers(Any);
-
-    Router::new()
-        .route("/health", get(handlers::health_check))
+    router
         .route("/ws", get(handlers::ws_handler))
         .route("/agents", get(handlers::get_agents))
         .route("/agent/:agent_id/command", post(handlers::send_command))

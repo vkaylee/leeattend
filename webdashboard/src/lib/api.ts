@@ -2,12 +2,8 @@
  * Lấy địa chỉ API Base từ biến môi trường.
  * Mặc định là http://localhost:3000 nếu không được cấu hình.
  */
-export const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
-
-/**
- * Tự động tạo URL WebSocket dựa trên API_BASE_URL
- */
-export const SOCKET_URL = API_BASE_URL.replace(/^http/, 'ws') + '/ws';
+const API_BASE_URL = '/api';
+const WS_BASE_URL = `ws://${window.location.host}/ws`;
 
 export interface DeviceStatus {
   device_id: string;
@@ -80,9 +76,14 @@ export function getCurrentUserId(): string | null {
   return localStorage.getItem('active_user_id');
 }
 
-export function setCurrentUserId(id: string) {
+export const setCurrentUserId = (id: string) => {
   localStorage.setItem('active_user_id', id);
-}
+};
+
+export const clearAuthSession = () => {
+  localStorage.removeItem('active_user_id');
+  localStorage.removeItem('active_workspace_id');
+};
 
 function getHeaders() {
   const headers: Record<string, string> = {
@@ -265,4 +266,10 @@ export async function revokeExtraRole(wsId: string, userId: string, roleId: stri
     headers: getHeaders(),
   });
   if (!response.ok) throw new Error('Failed to revoke role');
+}
+
+export async function fetchDevSuperUser(): Promise<{ user_id: string; workspace_id: string }> {
+  const response = await fetch(`${API_BASE_URL}/dev/super-user`);
+  if (!response.ok) throw new Error('Failed to fetch dev super user');
+  return response.json();
 }

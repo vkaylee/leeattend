@@ -62,11 +62,21 @@ async fn main() {
 
     // Start the server with graceful shutdown
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    let actual_addr = listener.local_addr().unwrap();
+    tracing::info!("Actual listening on {}", actual_addr);
+
+    // Ghi port vào file để Frontend/AI có thể tự động khám phá
+    if let Ok(_) = std::fs::write(".api_port", actual_addr.port().to_string()) {
+        tracing::info!("Saved actual port to .api_port: {}", actual_addr.port());
+    }
 
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();
+
+    // Cleanup port file on exit
+    let _ = std::fs::remove_file(".api_port");
 
     // Sau khi server ngừng nhận request, thực hiện thông báo cho Agent và đóng tài nguyên
     state.agent_manager.shutdown().await;
