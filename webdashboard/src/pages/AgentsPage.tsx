@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { AuthorizedAgent } from "@/lib/api";
+import { isAgentOnline } from "@/lib/utils";
 import {
   Plus,
   ShieldCheck,
@@ -17,13 +18,6 @@ import {
 export default function AgentsPage() {
   // ... (keep existing state)
   
-  const isOnline = (lastSeenAt: string) => {
-    if (!lastSeenAt) return false;
-    const lastSeen = new Date(lastSeenAt).getTime();
-    const now = new Date().getTime();
-    return now - lastSeen < 90000; // 90 seconds threshold
-  };
-
   // Add a local timer to refresh the UI every 15s to update online status
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -253,7 +247,7 @@ export default function AgentsPage() {
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex flex-col gap-2">
-                      {isOnline(agent.last_seen_at) ? (
+                      {isAgentOnline(agent.last_seen_at) ? (
                         <span className="flex items-center gap-1.5 text-blue-600 font-bold text-[10px] bg-blue-50 px-3 py-1 rounded-full w-fit uppercase tracking-wider animate-pulse">
                           <Activity className="w-3 h-3" />
                           Online

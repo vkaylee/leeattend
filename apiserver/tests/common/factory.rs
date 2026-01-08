@@ -19,6 +19,10 @@ impl TestFactory {
         WorkspaceBuilder::new(self.pool.clone())
     }
 
+    pub fn agent(&self) -> AgentBuilder {
+        AgentBuilder::new(self.pool.clone())
+    }
+
     pub async fn cleanup(&self) {
         sqlx::query("DELETE FROM member_extra_roles")
             .execute(&self.pool)
@@ -162,5 +166,64 @@ impl TestFactory {
             .execute(&self.pool)
             .await
             .unwrap();
+    }
+}
+
+pub struct AgentBuilder {
+    pool: PgPool,
+    id: String,
+    name: String,
+    token: String,
+    workspace_id: Option<Uuid>,
+    is_trusted: bool,
+}
+
+impl AgentBuilder {
+    pub fn new(pool: PgPool) -> Self {
+        let id = Uuid::new_v4().to_string();
+        Self {
+            pool,
+            id: format!("AGENT_{}", &id[..8]),
+            name: "Test Agent".to_string(),
+            token: "test_token".to_string(),
+            workspace_id: None,
+            is_trusted: false,
+        }
+    }
+
+    pub fn with_id(mut self, id: &str) -> Self {
+        self.id = id.to_string();
+        self
+    }
+
+    pub fn with_token(mut self, token: &str) -> Self {
+        self.token = token.to_string();
+        self
+    }
+
+    pub fn with_workspace(mut self, ws_id: Uuid) -> Self {
+        self.workspace_id = Some(ws_id);
+        self
+    }
+
+    pub fn with_trust(mut self, trusted: bool) -> Self {
+        self.is_trusted = trusted;
+        self
+    }
+
+    pub async fn create(self) -> String {
+        let ws_id = self.workspace_id.expect("Workspace ID is required for Agent");
+        sqlx::query(
+            "INSERT INTO authorized_agents (id, name, token, workspace_id, is_trusted) VALUES ($1, $2, $3, $4, $5)",
+        )
+        .bind(&self.id)
+        .bind(&self.name)
+        .bind(&self.token)
+        .bind(ws_id)
+        .bind(self.is_trusted)
+        .execute(&self.pool)
+        .await
+        .unwrap();
+        self.id
     }
 }
