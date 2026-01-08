@@ -48,14 +48,17 @@ async fn spawn_app() -> (String, Uuid, Arc<AppState>) {
         .await
         .unwrap();
 
+    let agent_manager = AgentManager::new();
     let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: db_pool.clone() });
     let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: db_pool.clone() });
+    let agent_service = Arc::new(apiserver::services::AgentService::new(agent_repo.clone(), agent_manager.clone()));
 
     let state = Arc::new(AppState {
-        agent_manager: AgentManager::new(),
+        agent_manager,
         db: db_pool,
         agent_repo,
         workspace_repo,
+        agent_service,
     });
 
 
@@ -106,7 +109,7 @@ async fn test_websocket_auth_success() {
 
     // 4. Check if agent is added to manager
     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-    let active_agents = state.agent_manager.agents.read().await;
+    let active_agents = state.agent_manager.inner.agents.read().await;
     assert!(active_agents.contains_key(agent_id));
 }
 

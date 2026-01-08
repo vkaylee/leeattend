@@ -11,6 +11,7 @@ use axum::{
 
 use crate::agent_manager::AgentManager;
 use crate::repositories::{AgentRepository, WorkspaceRepository};
+use crate::services::AgentService;
 use axum::http::{HeaderValue, Method};
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -21,6 +22,7 @@ pub struct AppState {
     pub db: PgPool,
     pub agent_repo: Arc<dyn AgentRepository>,
     pub workspace_repo: Arc<dyn WorkspaceRepository>,
+    pub agent_service: Arc<AgentService>,
 }
 
 pub fn create_app(state: Arc<AppState>) -> Router {

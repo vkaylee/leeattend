@@ -3,6 +3,7 @@ use axum::extract::ws::Message;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -14,7 +15,12 @@ pub struct AgentCommand {
     pub data: Option<serde_json::Value>,
 }
 
+#[derive(Clone)]
 pub struct AgentManager {
+    pub inner: Arc<AgentManagerInner>,
+}
+
+pub struct AgentManagerInner {
     // Map Agent ID -> Sender to push messages to that agent's websocket
     pub agents: RwLock<HashMap<String, mpsc::UnboundedSender<Message>>>,
     // Cache for device statuses per agent
@@ -26,37 +32,37 @@ pub struct AgentManager {
 impl AgentManager {
     pub fn new() -> Self {
         Self {
-            agents: RwLock::new(HashMap::new()),
-            device_cache: RwLock::new(HashMap::new()),
-            agent_last_seen: RwLock::new(HashMap::new()),
+            inner: Arc::new(AgentManagerInner {
+                agents: RwLock::new(HashMap::new()),
+                device_cache: RwLock::new(HashMap::new()),
+                agent_last_seen: RwLock::new(HashMap::new()),
+            }),
         }
     }
 
     pub async fn add_agent(&self, agent_id: String, tx: mpsc::UnboundedSender<Message>) {
-        let mut agents = self.agents.write().await;
+        let mut agents = self.inner.agents.write().await;
         agents.insert(agent_id.clone(), tx);
 
-        let mut last_seen = self.agent_last_seen.write().await;
+        let mut last_seen = self.inner.agent_last_seen.write().await;
         last_seen.insert(agent_id, Utc::now());
     }
 
     pub async fn remove_agent(&self, agent_id: &str) {
-        let mut agents = self.agents.write().await;
+        let mut agents = self.inner.agents.write().await;
         agents.remove(agent_id);
-
-        // We keep the last seen and device cache for a while or until next reconnect
     }
 
     pub async fn update_status(&self, agent_id: String, devices: Vec<DeviceStatus>) {
-        let mut last_seen = self.agent_last_seen.write().await;
+        let mut last_seen = self.inner.agent_last_seen.write().await;
         last_seen.insert(agent_id.clone(), Utc::now());
 
-        let mut cache = self.device_cache.write().await;
+        let mut cache = self.inner.device_cache.write().await;
         cache.insert(agent_id, devices);
     }
 
     pub async fn send_command(&self, agent_id: &str, command: AgentCommand) -> Result<(), String> {
-        let agents = self.agents.read().await;
+        let agents = self.inner.agents.read().await;
         if let Some(tx) = agents.get(agent_id) {
             let msg_text = serde_json::to_string(&command).map_err(|e| e.to_string())?;
             tx.send(Message::Text(msg_text))
@@ -68,9 +74,9 @@ impl AgentManager {
     }
 
     pub async fn get_all_agents_status(&self) -> Vec<AgentStatus> {
-        let last_seen_map = self.agent_last_seen.read().await;
-        let device_cache = self.device_cache.read().await;
-        let active_agents = self.agents.read().await;
+        let last_seen_map = self.inner.agent_last_seen.read().await;
+        let device_cache = self.inner.device_cache.read().await;
+        let active_agents = self.inner.agents.read().await;
 
         let now = Utc::now();
         let mut results = Vec::new();
@@ -90,9 +96,8 @@ impl AgentManager {
         results
     }
 
-    /// Thông báo cho tất cả các Agent rằng Server đang tắt
     pub async fn shutdown(&self) {
-        let agents = self.agents.read().await;
+        let agents = self.inner.agents.read().await;
         tracing::info!(
             "Notifying {} connected agents about shutdown...",
             agents.len()
@@ -111,6 +116,11 @@ impl AgentManager {
             }
         }
     }
+
+    pub async fn is_online(&self, agent_id: &str) -> bool {
+        let agents = self.inner.agents.read().await;
+        agents.contains_key(agent_id)
+    }
 }
 
 #[cfg(test)]
@@ -126,9 +136,9 @@ mod tests {
         // Test add
         manager.add_agent(agent_id.clone(), tx).await;
         {
-            let agents = manager.agents.read().await;
+            let agents = manager.inner.agents.read().await;
             assert!(agents.contains_key(&agent_id));
-            let last_seen = manager.agent_last_seen.read().await;
+            let last_seen = manager.inner.agent_last_seen.read().await;
             assert!(last_seen.contains_key(&agent_id));
         }
 
@@ -169,7 +179,7 @@ mod tests {
         // Test remove
         manager.remove_agent(&agent_id).await;
         {
-            let agents = manager.agents.read().await;
+            let agents = manager.inner.agents.read().await;
             assert!(!agents.contains_key(&agent_id));
         }
     }

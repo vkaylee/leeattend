@@ -20,7 +20,7 @@ use crate::models::{
     CreateDeviceRequest, CreateWorkspaceRequest, Device, GenericResponse, MemberExtraRole,
     UpdateAuthorizedAgentRequest, UpdateDeviceRequest, Workspace,
 };
-use crate::services::{AgentService, WorkspaceService};
+use crate::services::WorkspaceService;
 use crate::AppState;
 
 // --- Extractors ---
@@ -211,12 +211,10 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                 if let (Some(id), Some(token)) =
                                     (v["agent_id"].as_str(), v["token"].as_str())
                                 {
-                                    match AgentService::authorize_agent(
-                                        state_clone.agent_repo.as_ref(),
-                                        id,
-                                        token,
-                                    )
-                                    .await
+                                    match state_clone
+                                        .agent_service
+                                        .authorize_agent(id, token)
+                                        .await
                                     {
                                         Ok(Some(_agent)) => {
                                             agent_id = id.to_string();
@@ -225,18 +223,15 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                                 .add_agent(agent_id.clone(), tx.clone())
                                                 .await;
 
-                                            let _ = AgentService::update_last_ip(
-                                                state_clone.agent_repo.as_ref(),
-                                                &agent_id,
-                                                "websocket_conn",
-                                            )
-                                            .await;
+                                            let _ = state_clone
+                                                .agent_service
+                                                .update_last_ip(&agent_id, "websocket_conn")
+                                                .await;
 
-                                            let _ = AgentService::notify_config_update(
-                                                &state_clone,
-                                                &agent_id,
-                                            )
-                                            .await;
+                                            let _ = state_clone
+                                                .agent_service
+                                                .notify_config_update(&agent_id)
+                                                .await;
                                         }
                                         Ok(None) => {
                                             let _ = tx.send(Message::Text(
@@ -352,7 +347,7 @@ pub async fn create_device(
     .await
     {
         Ok(_) => {
-            let _ = AgentService::notify_config_update(&state, &req.agent_id).await;
+            let _ = state.agent_service.notify_config_update(&req.agent_id).await;
             (StatusCode::CREATED, Json(serde_json::json!({ "id": id }))).into_response()
         }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
@@ -395,7 +390,7 @@ pub async fn update_device(
     .await
     {
         Ok(_) => {
-            let _ = AgentService::notify_config_update(&state, &current_device.agent_id).await;
+            let _ = state.agent_service.notify_config_update(&current_device.agent_id).await;
             StatusCode::OK.into_response()
         }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
@@ -423,7 +418,7 @@ pub async fn delete_device(
     {
         Ok(res) if res.rows_affected() > 0 => {
             if let Some(aid) = agent_id {
-                let _ = AgentService::notify_config_update(&state, &aid).await;
+                let _ = state.agent_service.notify_config_update(&aid).await;
             }
             StatusCode::NO_CONTENT.into_response()
         }
@@ -582,12 +577,7 @@ pub async fn update_authorized_agent(
     {
         Ok(Some(agent)) => {
             if (req.is_trusted == Some(false) || req.is_active == Some(false))
-                && state
-                    .agent_manager
-                    .agents
-                    .read()
-                    .await
-                    .contains_key(&agent.id)
+                && state.agent_manager.is_online(&agent.id).await
             {
                 state.agent_manager.remove_agent(&agent.id).await;
             }
