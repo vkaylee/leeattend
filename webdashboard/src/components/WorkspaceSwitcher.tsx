@@ -7,13 +7,20 @@ import {
 } from "@/lib/api";
 import CreateWorkspaceDialog from "./CreateWorkspaceDialog";
 import { useWorkspaces } from "@/hooks/use-workspace";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 export default function WorkspaceSwitcher() {
   const { workspaces, isLoading } = useWorkspaces();
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(
     null,
   );
-  const [isOpen, setIsOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   useEffect(() => {
@@ -32,7 +39,6 @@ export default function WorkspaceSwitcher() {
   function handleSwitch(ws: Workspace) {
     setActiveWorkspace(ws);
     setCurrentWorkspaceId(ws.id);
-    setIsOpen(false);
     // Reload page to refresh all data with new workspace header
     window.location.reload();
   }
@@ -45,70 +51,51 @@ export default function WorkspaceSwitcher() {
 
   return (
     <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-all group border border-slate-100"
-      >
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="bg-white p-1.5 rounded-lg shadow-sm">
-            <Briefcase className="w-4 h-4 text-blue-600" />
-          </div>
-          <span className="font-bold text-sm text-slate-700 truncate">
-            {activeWorkspace?.name || "Chọn Workspace"}
-          </span>
-        </div>
-        <ChevronDown
-          className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
-        />
-      </button>
-
-      {isOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-20 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="px-4 py-2 mb-1">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Workspaces của bạn
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-all group border border-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="bg-white p-1.5 rounded-lg shadow-sm">
+                <Briefcase className="w-4 h-4 text-blue-600" />
+              </div>
+              <span className="font-bold text-sm text-slate-700 truncate">
+                {activeWorkspace?.name || "Chọn Workspace"}
               </span>
             </div>
+            <ChevronDown className="w-4 h-4 text-slate-400 group-data-[state=open]:rotate-180 transition-transform" />
+          </button>
+        </DropdownMenuTrigger>
 
-            <div className="max-h-60 overflow-y-auto">
-              {workspaces.map((ws) => (
-                <button
-                  key={ws.id}
-                  onClick={() => handleSwitch(ws)}
-                  className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-slate-50 transition-colors text-left group"
-                >
-                  <span
-                    className={`text-sm font-semibold ${ws.id === activeWorkspace?.id ? "text-blue-600" : "text-slate-600"}`}
-                  >
-                    {ws.name}
-                  </span>
-                  {ws.id === activeWorkspace?.id && (
-                    <Check className="w-4 h-4 text-blue-600" />
-                  )}
-                </button>
-              ))}
-            </div>
-
-            <div className="border-t border-slate-50 mt-2 pt-2 px-2">
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  setIsCreateOpen(true);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all text-sm font-bold group"
+        <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
+          <DropdownMenuLabel>Workspaces của bạn</DropdownMenuLabel>
+          <div className="max-h-60 overflow-y-auto">
+            {workspaces.map((ws) => (
+              <DropdownMenuItem
+                key={ws.id}
+                onSelect={() => handleSwitch(ws)}
+                className="justify-between"
               >
-                <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                Thêm Workspace
-              </button>
-            </div>
+                <span
+                  className={`font-semibold ${ws.id === activeWorkspace?.id ? "text-blue-600" : "text-slate-600"}`}
+                >
+                  {ws.name}
+                </span>
+                {ws.id === activeWorkspace?.id && (
+                  <Check className="w-4 h-4 text-blue-600" />
+                )}
+              </DropdownMenuItem>
+            ))}
           </div>
-        </>
-      )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onSelect={() => setIsCreateOpen(true)}
+            className="text-slate-500 focus:text-blue-600 focus:bg-blue-50 font-bold gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Thêm Workspace
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <CreateWorkspaceDialog
         isOpen={isCreateOpen}
