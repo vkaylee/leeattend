@@ -205,8 +205,13 @@ export async function deleteDevice(id: string): Promise<void> {
   if (!response.ok) throw new Error("Failed to delete device");
 }
 
-export async function fetchAuthorizedAgents(): Promise<AuthorizedAgent[]> {
-  const response = await apiFetch(`${API_BASE_URL}/authorized-agents`);
+export async function fetchAuthorizedAgents(
+  includeInactive: boolean = false,
+): Promise<AuthorizedAgent[]> {
+  const url = includeInactive
+    ? `${API_BASE_URL}/authorized-agents?include_inactive=true`
+    : `${API_BASE_URL}/authorized-agents`;
+  const response = await apiFetch(url);
   if (!response.ok) throw new Error("Failed to fetch authorized agents");
   return response.json();
 }

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchAuthorizedAgents,
@@ -10,22 +11,24 @@ import {
 } from "@/lib/api";
 
 export const agentsKeys = {
-  authorized: ["authorized-agents"] as const,
+  authorized: (includeInactive: boolean) =>
+    ["authorized-agents", { includeInactive }] as const,
   status: ["agents-status"] as const,
 };
 
 export function useAuthorizedAgents() {
   const queryClient = useQueryClient();
+  const [includeInactive, setIncludeInactive] = useState(false);
 
   const agentsQuery = useQuery({
-    queryKey: agentsKeys.authorized,
-    queryFn: fetchAuthorizedAgents,
+    queryKey: agentsKeys.authorized(includeInactive),
+    queryFn: () => fetchAuthorizedAgents(includeInactive),
   });
 
   const createMutation = useMutation({
     mutationFn: createAuthorizedAgent,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: agentsKeys.authorized });
+      queryClient.invalidateQueries({ queryKey: ["authorized-agents"] });
     },
   });
 
@@ -33,14 +36,14 @@ export function useAuthorizedAgents() {
     mutationFn: ({ id, is_trusted }: { id: string; is_trusted: boolean }) =>
       updateAgentTrust(id, is_trusted),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: agentsKeys.authorized });
+      queryClient.invalidateQueries({ queryKey: ["authorized-agents"] });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteAuthorizedAgent,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: agentsKeys.authorized });
+      queryClient.invalidateQueries({ queryKey: ["authorized-agents"] });
     },
   });
 
@@ -53,7 +56,7 @@ export function useAuthorizedAgents() {
       agent: Partial<AuthorizedAgent>;
     }) => updateAuthorizedAgent(id, agent),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: agentsKeys.authorized });
+      queryClient.invalidateQueries({ queryKey: ["authorized-agents"] });
     },
   });
 
@@ -63,6 +66,8 @@ export function useAuthorizedAgents() {
     isFetching: agentsQuery.isFetching,
     error: agentsQuery.error,
     refetch: agentsQuery.refetch,
+    includeInactive,
+    setIncludeInactive,
 
     createAgent: createMutation.mutateAsync,
     updateTrust: updateTrustMutation.mutateAsync,

@@ -13,6 +13,9 @@ import {
   Edit2,
   Trash2,
   Activity,
+  Eye,
+  EyeOff,
+  RotateCcw,
 } from "lucide-react";
 import AgentEditModal from "@/components/AgentEditModal";
 import { useAuthorizedAgents } from "@/hooks/use-agents";
@@ -36,6 +39,9 @@ export default function AgentsPage() {
     createAgent,
     updateTrust,
     deleteAgent,
+    updateAgent,
+    includeInactive,
+    setIncludeInactive,
   } = useAuthorizedAgents();
 
   const [showAddForm, setShowAddForm] = useState(false);
@@ -46,6 +52,14 @@ export default function AgentsPage() {
     null,
   );
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  async function handleRestore(agent: AuthorizedAgent) {
+    try {
+      await updateAgent({ id: agent.id, agent: { is_active: true } });
+    } catch (e) {
+      alert("Lỗi khi khôi phục Agent.");
+    }
+  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -110,6 +124,24 @@ export default function AgentsPage() {
             </p>
           </div>
           <div className="flex gap-3">
+            <button
+              onClick={() => setIncludeInactive(!includeInactive)}
+              className={`px-4 py-2.5 rounded-2xl border font-bold flex items-center gap-2 transition-all ${
+                includeInactive
+                  ? "bg-slate-100 border-slate-300 text-slate-900 shadow-inner"
+                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+              title={
+                includeInactive ? "Ẩn Agent đã đóng" : "Hiện Agent đã đóng"
+              }
+            >
+              {includeInactive ? (
+                <Eye className="w-5 h-5" />
+              ) : (
+                <EyeOff className="w-5 h-5" />
+              )}
+              {includeInactive ? "Đang hiện lưu trữ" : "Hiện lưu trữ"}
+            </button>
             <button
               onClick={() => refetch()}
               className="bg-white p-2.5 rounded-2xl border border-slate-200 hover:bg-slate-50 transition-colors text-slate-600"
@@ -220,15 +252,34 @@ export default function AgentsPage() {
               {agents.map((agent) => (
                 <tr
                   key={agent.id}
-                  className="hover:bg-slate-50/50 transition-colors group"
+                  className={`hover:bg-slate-50/50 transition-colors group ${
+                    !agent.is_active ? "opacity-60 bg-slate-50/30" : ""
+                  }`}
                 >
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
-                      <div className="bg-slate-100 p-2 rounded-xl text-slate-500 group-hover:bg-white group-hover:shadow-sm transition-all">
+                      <div
+                        className={`p-2 rounded-xl transition-all ${
+                          agent.is_active
+                            ? "bg-slate-100 text-slate-500 group-hover:bg-white group-hover:shadow-sm"
+                            : "bg-slate-200 text-slate-400"
+                        }`}
+                      >
                         <UserCheck className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900">{agent.name}</p>
+                        <p
+                          className={`font-bold ${
+                            agent.is_active ? "text-slate-900" : "text-slate-500"
+                          }`}
+                        >
+                          {agent.name}
+                          {!agent.is_active && (
+                            <span className="ml-2 text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                              Đã đóng
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs font-mono text-slate-400">
                           {agent.id}
                         </p>
@@ -276,32 +327,44 @@ export default function AgentsPage() {
                   </td>
                   <td className="px-6 py-5 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => handleEdit(agent)}
-                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                        title="Chỉnh sửa"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
+                      {agent.is_active ? (
+                        <>
+                          <button
+                            onClick={() => handleEdit(agent)}
+                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                            title="Chỉnh sửa"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
 
-                      <button
-                        onClick={() => handleToggleTrust(agent)}
-                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
-                          agent.is_trusted
-                            ? "text-rose-600 hover:bg-rose-50 border-rose-100"
-                            : "bg-blue-600 text-white hover:bg-blue-700 border-transparent shadow-md shadow-blue-100"
-                        }`}
-                      >
-                        {agent.is_trusted ? "Revoke" : "Trust"}
-                      </button>
+                          <button
+                            onClick={() => handleToggleTrust(agent)}
+                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                              agent.is_trusted
+                                ? "text-rose-600 hover:bg-rose-50 border-rose-100"
+                                : "bg-blue-600 text-white hover:bg-blue-700 border-transparent shadow-md shadow-blue-100"
+                            }`}
+                          >
+                            {agent.is_trusted ? "Revoke" : "Trust"}
+                          </button>
 
-                      <button
-                        onClick={() => handleDelete(agent)}
-                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                        title="Xóa"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                          <button
+                            onClick={() => handleDelete(agent)}
+                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                            title="Xóa"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => handleRestore(agent)}
+                          className="flex items-center gap-1 px-4 py-2 bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          Khôi phục
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
