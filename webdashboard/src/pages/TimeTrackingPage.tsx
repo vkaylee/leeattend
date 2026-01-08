@@ -22,6 +22,7 @@ export default function TimeTrackingPage() {
     punchIn: "08:00",
     punchOut: "17:00",
     reason: "",
+    isBreakOvertime: false,
     timeEntryId: undefined as string | undefined
   });
 
@@ -77,6 +78,7 @@ export default function TimeTrackingPage() {
       time_entry_id: adjustmentData.timeEntryId,
       requested_punch_in_time: punchInTime,
       requested_punch_out_time: punchOutTime,
+      is_break_overtime: adjustmentData.isBreakOvertime,
       reason: adjustmentData.reason
     });
   };
@@ -191,6 +193,7 @@ export default function TimeTrackingPage() {
                               punchIn: new Date(entry.punch_in_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
                               punchOut: entry.punch_out_time ? new Date(entry.punch_out_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : "17:00",
                               reason: "",
+                              isBreakOvertime: entry.is_break_overtime,
                               timeEntryId: entry.id
                             });
                             setIsAdjustmentModalOpen(true);
@@ -246,6 +249,18 @@ export default function TimeTrackingPage() {
                     required
                   />
                 </div>
+              </div>
+              <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+                <input 
+                  type="checkbox" 
+                  id="isBreakOvertime"
+                  checked={adjustmentData.isBreakOvertime}
+                  onChange={e => setAdjustmentData({...adjustmentData, isBreakOvertime: e.target.checked})}
+                  className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="isBreakOvertime" className="text-sm font-bold text-blue-900 cursor-pointer">
+                  Làm việc thông trưa (Tính tăng ca giờ nghỉ)
+                </label>
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Lý do</label>

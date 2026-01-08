@@ -36,6 +36,7 @@ impl TimeTrackingService {
             punch_in_time: Utc::now(),
             punch_out_time: None,
             duration_minutes: None,
+            is_break_overtime: req.is_break_overtime.unwrap_or(false),
             entry_type: req.entry_type.unwrap_or_else(|| "work".to_string()),
             note: req.note,
             created_at: Utc::now(),

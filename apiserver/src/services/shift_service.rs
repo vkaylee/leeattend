@@ -16,8 +16,9 @@ impl ShiftService {
         start_time: NaiveTime,
         end_time: NaiveTime,
         break_duration_minutes: i32,
+        break_is_overtime: bool,
     ) -> Result<Shift, StatusCode> {
-        shift_repository::create_shift(pool, workspace_id, name, start_time, end_time, break_duration_minutes)
+        shift_repository::create_shift(pool, workspace_id, name, start_time, end_time, break_duration_minutes, break_is_overtime)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }

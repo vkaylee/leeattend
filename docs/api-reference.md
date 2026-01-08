@@ -223,7 +223,7 @@ Theo dõi dữ liệu chấm công thực tế.
 
 #### POST /workspaces/:ws_id/time/punch-in
 Ghi nhận giờ vào làm.
-- **Request**: `{ "employee_id": "...", "entry_type": "work|break", "note": "..." }`
+- **Request**: `{ "employee_id": "...", "entry_type": "work|break", "is_break_overtime": true/false, "note": "..." }`
 - **Response (201)**: `TimeEntry` object
 
 #### POST /workspaces/:ws_id/time/punch-out/:employee_id
@@ -281,7 +281,8 @@ Gửi yêu cầu xác nhận/điều chỉnh công mới.
     "time_entry_id": "optional-uuid-if-editing",
     "requested_punch_in_time": "2026-01-08T08:00:00Z",
     "requested_punch_out_time": "2026-01-08T17:00:00Z",
-    "reason": "Quên mang thẻ"
+    "is_break_overtime": true,
+    "reason": "Làm thông trưa"
   }
   ```
 - **Response (201)**: `AttendanceAdjustmentRequest` object
@@ -319,7 +320,8 @@ Tạo ca làm việc mới.
     "name": "Ca Hành Chính",
     "start_time": "08:00:00",
     "end_time": "17:00:00",
-    "break_duration_minutes": 60
+    "break_duration_minutes": 60,
+    "break_is_overtime": false
   }
   ```
 - **Response (201)**: `Shift` object

@@ -2,31 +2,31 @@ use axum::{
     async_trait,
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
-        FromRef, FromRequestParts, Path, Query, State,
+        FromRef, FromRequestParts, Path, Query, State, Extension,
     },
     http::{request::Parts, StatusCode},
-    response::IntoResponse,
-    Json,
+    response::{IntoResponse, Json},
 };
 use futures_util::{sink::SinkExt, stream::StreamExt};
 use serde::Deserialize;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use uuid::Uuid;
+use chrono::{Utc, DateTime, NaiveDate};
 
 use crate::agent_manager::AgentCommand;
+use crate::{AppState, UserId};
 use crate::models::{
-    AddMemberRequest, AssignRoleRequest, AuthResponse, AuthorizedAgent, ChangePasswordRequest,
-    CreateAuthorizedAgentRequest, CreateDeviceRequest, CreateWorkspaceRequest, Device,
-    GenericResponse, LoginRequest, MemberExtraRole, RefreshRequest, RegisterRequest,
-    UpdateAuthorizedAgentRequest, UpdateDeviceRequest, User, UserResponse, // Removed UpdateUserRequest
-    Workspace,
+    AddMemberRequest, ApproveAttendanceAdjustmentRequest, AssignRoleRequest,
+    CreateDeviceRequest, CreateShiftRequest, CreateWorkspaceRequest, Device,
+    GenericResponse, LoginRequest, MemberExtraRole, PunchInRequest,
+    RegisterRequest, TimeEntry, UpdateAuthorizedAgentRequest, UpdateDeviceRequest,
+    User, UserResponse, AuthResponse, RefreshRequest, ChangePasswordRequest,
+    Workspace, AuthorizedAgent, CreateAuthorizedAgentRequest, CreateAttendanceAdjustmentRequest
 };
 use crate::repositories::user_repository;
 use crate::services::auth_service::AuthService;
 use crate::services::WorkspaceService;
-use crate::{AppState, UserId};
-use chrono::{Utc, DateTime, NaiveDate}; // Added NaiveDate
 
 // --- Extractors ---
 
@@ -1262,12 +1262,25 @@ pub async fn delete_employee(
 
 pub async fn punch_in(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
-    Json(req): Json<crate::models::PunchInRequest>,
-) -> impl IntoResponse {
-    match crate::services::time_tracking_service::TimeTrackingService::punch_in(&state.db, workspace_id, req).await {
-        Ok(entry) => (StatusCode::CREATED, Json(entry)).into_response(),
-        Err(status) => status.into_response(),
+    Path(_workspace_id): Path<Uuid>,
+    Json(req): Json<PunchInRequest>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let entry = TimeEntry {
+        id: Uuid::new_v4(),
+        employee_id: req.employee_id,
+        punch_in_time: Utc::now(),
+        punch_out_time: None,
+        duration_minutes: None,
+        is_break_overtime: req.is_break_overtime.unwrap_or(false),
+        entry_type: req.entry_type.unwrap_or_else(|| "work".to_string()),
+        note: req.note,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    };
+
+    match crate::repositories::time_entry_repository::create_time_entry(&state.db, &entry).await {
+        Ok(_) => Ok((StatusCode::CREATED, Json(entry))),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 
@@ -1382,26 +1395,40 @@ pub async fn get_workspace_leave_requests(
 
 pub async fn submit_attendance_adjustment(
     State(state): State<Arc<AppState>>,
-    UserId(user_id): UserId,
-    MemberContext { workspace_id, .. }: MemberContext,
-    Json(req): Json<crate::models::SubmitAttendanceAdjustmentRequest>,
-) -> impl IntoResponse {
-    match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::submit_request(&state.db, workspace_id, user_id, req).await {
-        Ok(request) => (StatusCode::CREATED, Json(request)).into_response(),
-        Err(status) => status.into_response(),
+    Path(_workspace_id): Path<Uuid>,
+    Extension(user_id): Extension<Uuid>,
+    Json(req): Json<CreateAttendanceAdjustmentRequest>,
+) -> Result<impl IntoResponse, StatusCode> {
+    match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::submit_request(
+        &state.db,
+        _workspace_id,
+        user_id,
+        req,
+    )
+    .await
+    {
+        Ok(adjustment) => Ok((StatusCode::CREATED, Json(adjustment))),
+        Err(e) => Err(e),
     }
 }
 
 pub async fn approve_attendance_adjustment(
-    Path(id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
-    UserId(user_id): UserId,
-    MemberContext { workspace_id, .. }: MemberContext,
-    Json(req): Json<crate::models::ApproveAttendanceAdjustmentRequest>,
-) -> impl IntoResponse {
-    match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::approve_request(&state.db, workspace_id, user_id, id, req).await {
-        Ok(_) => StatusCode::OK.into_response(),
-        Err(status) => status.into_response(),
+    Path((_workspace_id, id)): Path<(Uuid, Uuid)>,
+    Extension(user_id): Extension<Uuid>,
+    Json(req): Json<ApproveAttendanceAdjustmentRequest>,
+) -> Result<impl IntoResponse, StatusCode> {
+    match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::approve_request(
+        &state.db,
+        _workspace_id,
+        user_id,
+        id,
+        req.status,
+    )
+    .await
+    {
+        Ok(_) => Ok(StatusCode::OK),
+        Err(e) => Err(e),
     }
 }
 
@@ -1611,23 +1638,14 @@ pub async fn get_shifts(
 
 
 pub async fn create_shift(
-
     State(state): State<Arc<AppState>>,
-
-    MemberContext { workspace_id, .. }: MemberContext,
-
-    Json(req): Json<crate::models::CreateShiftRequest>,
-
-) -> impl IntoResponse {
-
-    match crate::services::shift_service::ShiftService::create_shift(&state.db, workspace_id, req.name, req.start_time, req.end_time, req.break_duration_minutes).await {
-
-        Ok(shift) => (StatusCode::CREATED, Json(shift)).into_response(),
-
-        Err(status) => status.into_response(),
-
+    Path(workspace_id): Path<Uuid>,
+    Json(req): Json<CreateShiftRequest>,
+) -> Result<impl IntoResponse, StatusCode> {
+    match crate::services::shift_service::ShiftService::create_shift(&state.db, workspace_id, req.name, req.start_time, req.end_time, req.break_duration_minutes, req.break_is_overtime).await {
+        Ok(shift) => Ok((StatusCode::CREATED, Json(shift))),
+        Err(e) => Err(e),
     }
-
 }
 
 

@@ -5,6 +5,16 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Dynamic Break-to-Overtime Logic**: Implemented a flexible system to handle cases where employees work through their lunch breaks. This can now be tracked per-entry rather than being a fixed shift setting.
+- **Smart Overtime Calculation**: Refactored `PayrollService` to automatically detect 'worked-through breaks' and categorize those minutes as overtime (typically at a 1.5x rate).
+- **Employee Self-Declaration**: Added an "is_break_overtime" toggle to the Attendance Adjustment modal, allowing employees to claim overtime for days they missed their break.
+- **Manager Visibility**: Enhanced the approval dashboard with prominent "LÀM THÔNG TRƯA" badges for clear identification of extra-pay requests.
+
+### Changed
+- **Database Schema**: Added `is_break_overtime` column to `time_entries` and `attendance_adjustment_requests`.
+- **Shift Integration**: Payroll calculation now cross-references `time_entries` with active `shifts` to precisely determine work vs. break vs. overtime boundaries.
+
+### Added (Previous)
 - **Attendance Adjustment Workflow**: Introduced a formal process for handling forgotten punches. Employees can now submit adjustment requests (Attendance Confirmation Sheets) for past dates.
 - **Automated Time Entry Updates**: Approved adjustment requests automatically create or update the corresponding official `time_entries` records, ensuring accurate payroll data.
 - **Manager Approval Dashboard**: A dedicated UI for administrators to review, approve, or reject attendance adjustment requests with historical context and reasons.

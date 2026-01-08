@@ -95,6 +95,13 @@ export default function AttendanceAdjustmentsPage() {
                       {new Date(req.requested_punch_in_time).toLocaleTimeString('vi-VN')} - 
                       {req.requested_punch_out_time ? new Date(req.requested_punch_out_time).toLocaleTimeString('vi-VN') : "?"}
                     </div>
+                    {req.is_break_overtime && (
+                      <div className="mt-1">
+                        <span className="px-2 py-0.5 bg-blue-600 text-white rounded-md text-[10px] font-bold uppercase tracking-wider">
+                          Làm thông trưa
+                        </span>
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 max-w-xs">
                     <div className="text-sm text-slate-600 truncate flex items-center gap-2">

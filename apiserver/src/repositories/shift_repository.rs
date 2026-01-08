@@ -4,17 +4,18 @@ use chrono::{NaiveTime, NaiveDate};
 
 use crate::models::Shift;
 
-pub async fn create_shift(pool: &PgPool, workspace_id: Uuid, name: String, start_time: NaiveTime, end_time: NaiveTime, break_duration_minutes: i32) -> Result<Shift, sqlx::Error> {
+pub async fn create_shift(pool: &PgPool, workspace_id: Uuid, name: String, start_time: NaiveTime, end_time: NaiveTime, break_duration_minutes: i32, break_is_overtime: bool) -> Result<Shift, sqlx::Error> {
     query_as!(
         Shift,
-        r#"INSERT INTO shifts (workspace_id, name, start_time, end_time, break_duration_minutes)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING id, workspace_id, name, start_time, end_time, break_duration_minutes, created_at as "created_at!", updated_at as "updated_at!""#,
+        r#"INSERT INTO shifts (workspace_id, name, start_time, end_time, break_duration_minutes, break_is_overtime)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, workspace_id, name, start_time, end_time, break_duration_minutes, break_is_overtime, created_at as "created_at!", updated_at as "updated_at!""#,
         workspace_id,
         name,
         start_time,
         end_time,
-        break_duration_minutes
+        break_duration_minutes,
+        break_is_overtime
     )
     .fetch_one(pool)
     .await
@@ -23,7 +24,7 @@ pub async fn create_shift(pool: &PgPool, workspace_id: Uuid, name: String, start
 pub async fn get_workspace_shifts(pool: &PgPool, workspace_id: Uuid) -> Result<Vec<Shift>, sqlx::Error> {
     query_as!(
         Shift,
-        r#"SELECT id, workspace_id, name, start_time, end_time, break_duration_minutes, created_at as "created_at!", updated_at as "updated_at!" FROM shifts WHERE workspace_id = $1 ORDER BY name"#,
+        r#"SELECT id, workspace_id, name, start_time, end_time, break_duration_minutes, break_is_overtime, created_at as "created_at!", updated_at as "updated_at!" FROM shifts WHERE workspace_id = $1 ORDER BY name"#,
         workspace_id
     )
     .fetch_all(pool)
@@ -47,7 +48,7 @@ pub async fn assign_employee_shift(pool: &PgPool, employee_id: Uuid, shift_id: U
 pub async fn get_employee_active_shift(pool: &PgPool, employee_id: Uuid, date: NaiveDate) -> Result<Option<Shift>, sqlx::Error> {
     query_as!(
         Shift,
-        r#"SELECT s.id, s.workspace_id, s.name, s.start_time, s.end_time, s.break_duration_minutes, s.created_at as "created_at!", s.updated_at as "updated_at!"
+        r#"SELECT s.id, s.workspace_id, s.name, s.start_time, s.end_time, s.break_duration_minutes, s.break_is_overtime, s.created_at as "created_at!", s.updated_at as "updated_at!"
          FROM shifts s
          JOIN employee_shifts es ON s.id = es.shift_id
          WHERE es.employee_id = $1 AND es.effective_date <= $2

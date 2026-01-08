@@ -245,6 +245,7 @@ pub struct TimeEntry {
     pub punch_in_time: DateTime<Utc>,
     pub punch_out_time: Option<DateTime<Utc>>,
     pub duration_minutes: Option<i32>,
+    pub is_break_overtime: bool,
     pub entry_type: String,
     pub note: Option<String>,
     pub created_at: DateTime<Utc>,
@@ -255,6 +256,7 @@ pub struct TimeEntry {
 pub struct PunchInRequest {
     pub employee_id: Uuid,
     pub entry_type: Option<String>,
+    pub is_break_overtime: Option<bool>,
     pub note: Option<String>,
 }
 
@@ -311,6 +313,7 @@ pub struct AttendanceAdjustmentRequest {
     pub time_entry_id: Option<Uuid>,
     pub requested_punch_in_time: DateTime<Utc>,
     pub requested_punch_out_time: Option<DateTime<Utc>>,
+    pub is_break_overtime: bool,
     pub reason: Option<String>,
     pub status: String,
     pub requested_by_user_id: Option<Uuid>,
@@ -320,11 +323,12 @@ pub struct AttendanceAdjustmentRequest {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct SubmitAttendanceAdjustmentRequest {
+pub struct CreateAttendanceAdjustmentRequest {
     pub employee_id: Uuid,
     pub time_entry_id: Option<Uuid>,
     pub requested_punch_in_time: DateTime<Utc>,
     pub requested_punch_out_time: Option<DateTime<Utc>>,
+    pub is_break_overtime: bool,
     pub reason: Option<String>,
 }
 
@@ -363,6 +367,7 @@ pub struct Shift {
     pub start_time: chrono::NaiveTime,
     pub end_time: chrono::NaiveTime,
     pub break_duration_minutes: i32,
+    pub break_is_overtime: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -373,6 +378,7 @@ pub struct CreateShiftRequest {
     pub start_time: chrono::NaiveTime,
     pub end_time: chrono::NaiveTime,
     pub break_duration_minutes: i32,
+    pub break_is_overtime: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
