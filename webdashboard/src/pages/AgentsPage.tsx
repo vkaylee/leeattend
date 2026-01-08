@@ -14,6 +14,8 @@ import {
   Trash2,
   Activity,
 } from "lucide-react";
+import AgentEditModal from "@/components/AgentEditModal";
+import { useAuthorizedAgents } from "@/hooks/use-agents";
 
 export default function AgentsPage() {
   // ... (keep existing state)
