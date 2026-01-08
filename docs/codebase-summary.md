@@ -36,6 +36,8 @@ leeattend/
     - Agent Manager: WebSocket handler for remote agents.
     - Discovery: Dynamic port selection (3000+).
     - **Heartbeat Engine**: Time-based tracking of edge agent connectivity.
+    - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections.
+    - **Overtime Engine**: Priority-based calculation logic supporting worked-through breaks and daily OT thresholds.
 2.  **Web Dashboard (React/Vite)**:
     - Modern UI with Tailwind CSS & Lucide icons.
     - **Common UI Library**: Standardized components (DropdownMenu, etc.) based on Radix UI.
@@ -52,6 +54,8 @@ leeattend/
 - [x] Workspace & Member management (RBAC).
 - [x] Time-series Salary History & Departments management.
 - [x] Shift Rostering System (Weekly calendar & Priority logic).
+- [x] Attendance Adjustment Workflow (Manual confirmation requests).
+- [x] Dynamic Break-to-Overtime calculation.
 - [x] Accurate Real-time Status (Heartbeat).
 - [ ] Automated Deployment scripts (NSSM/Service for production).
 
