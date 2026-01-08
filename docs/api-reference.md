@@ -67,7 +67,47 @@ Mời thành viên vào workspace.
 
 ---
 
-### 3. Device Management (CRUD)
+### 3. Member Roles (Temporal RBAC) (New)
+
+Hệ thống cho phép gán thêm các Role phụ có thời hạn cho thành viên.
+
+#### GET /workspaces/:id/members/:user_id/roles
+Lấy danh sách tất cả các role của một thành viên (bao gồm role chính và các role phụ).
+- **Response (200)**: 
+  ```json
+  {
+    "primary": "member",
+    "extra": [
+      {
+        "id": "...",
+        "role": "admin",
+        "assigned_at": "...",
+        "expires_at": "..."
+      }
+    ]
+  }
+  ```
+
+#### POST /workspaces/:id/members/:user_id/roles
+Gán một role phụ có thời hạn cho thành viên.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**:
+  ```json
+  {
+    "role": "admin",
+    "expires_at": "2026-01-10T00:00:00Z"
+  }
+  ```
+- **Response (201)**: `MemberExtraRole` object
+
+#### DELETE /workspaces/:id/members/:user_id/roles/:role_id
+Thu hồi một role phụ trước thời hạn.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Response (204)**: No Content
+
+---
+
+### 4. Device Management (CRUD)
 
 **Yêu cầu headers: `X-User-Id`, `X-Workspace-Id`**.
 
