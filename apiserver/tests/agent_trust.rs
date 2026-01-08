@@ -1,9 +1,9 @@
-use sqlx::postgres::PgPoolOptions;
-use apiserver::create_app;
-use std::sync::Arc;
-use apiserver::AppState;
 use apiserver::agent_manager::AgentManager;
+use apiserver::create_app;
+use apiserver::AppState;
 use serial_test::serial;
+use sqlx::postgres::PgPoolOptions;
+use std::sync::Arc;
 
 async fn spawn_app() -> String {
     dotenvy::dotenv().ok();
@@ -21,21 +21,24 @@ async fn spawn_app() -> String {
         .expect("Failed to run migrations");
 
     // Dọn dẹp dữ liệu cũ trước khi test
-    sqlx::query("DELETE FROM authorized_agents").execute(&db_pool).await.unwrap();
+    sqlx::query("DELETE FROM authorized_agents")
+        .execute(&db_pool)
+        .await
+        .unwrap();
 
     let state = Arc::new(AppState {
         agent_manager: AgentManager::new(),
         db: db_pool,
     });
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("Failed to bind random port");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("Failed to bind random port");
     let port = listener.local_addr().unwrap().port();
     let app = create_app(state);
 
     tokio::spawn(async move {
-        axum::serve(listener, app)
-            .await
-            .unwrap();
+        axum::serve(listener, app).await.unwrap();
     });
 
     format!("http://127.0.0.1:{}", port)
@@ -72,7 +75,10 @@ async fn test_authorized_agent_lifecycle() {
         .unwrap();
 
     let agents: Vec<serde_json::Value> = response.json().await.unwrap();
-    let test_agent = agents.iter().find(|a| a["id"] == agent_id).expect("Agent not found");
+    let test_agent = agents
+        .iter()
+        .find(|a| a["id"] == agent_id)
+        .expect("Agent not found");
     assert_eq!(test_agent["is_trusted"], false);
 
     // 3. Phê duyệt Agent (Trust)

@@ -1,17 +1,17 @@
+pub mod agent_manager;
 pub mod handlers;
 pub mod models;
-pub mod agent_manager;
 
 use axum::{
     routing::{get, post, put},
     Router,
 };
 
-use std::sync::Arc;
 use crate::agent_manager::AgentManager;
-use sqlx::PgPool;
-use tower_http::cors::{Any, CorsLayer};
 use axum::http::{HeaderValue, Method};
+use sqlx::PgPool;
+use std::sync::Arc;
+use tower_http::cors::{Any, CorsLayer};
 
 pub struct AppState {
     pub agent_manager: AgentManager,
@@ -20,9 +20,9 @@ pub struct AppState {
 
 pub fn create_app(state: Arc<AppState>) -> Router {
     // Cấu hình CORS từ biến môi trường
-    let allowed_origins_str = std::env::var("ALLOWED_ORIGINS")
-        .unwrap_or_else(|_| "http://localhost:3001".to_string());
-    
+    let allowed_origins_str =
+        std::env::var("ALLOWED_ORIGINS").unwrap_or_else(|_| "http://localhost:3001".to_string());
+
     let mut origins = Vec::new();
     for origin in allowed_origins_str.split(',') {
         let trimmed = origin.trim();
@@ -56,11 +56,29 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route("/agents", get(handlers::get_agents))
         .route("/agent/:agent_id/command", post(handlers::send_command))
         // Device Management
-        .route("/devices", get(handlers::get_devices).post(handlers::create_device))
-        .route("/devices/:id", put(handlers::update_device).delete(handlers::delete_device))
+        .route(
+            "/devices",
+            get(handlers::get_devices).post(handlers::create_device),
+        )
+        .route(
+            "/devices/:id",
+            put(handlers::update_device).delete(handlers::delete_device),
+        )
         // Authorized Agents
-        .route("/authorized-agents", get(handlers::get_authorized_agents).post(handlers::create_authorized_agent))
-        .route("/authorized-agents/:id/trust", put(handlers::update_agent_trust))
+        .route(
+            "/authorized-agents",
+            get(handlers::get_authorized_agents).post(handlers::create_authorized_agent),
+        )
+        .route(
+            "/authorized-agents/:id",
+            get(handlers::get_authorized_agent_by_id)
+                .patch(handlers::update_authorized_agent)
+                .delete(handlers::delete_authorized_agent),
+        )
+        .route(
+            "/authorized-agents/:id/trust",
+            put(handlers::update_agent_trust),
+        )
         .layer(cors)
         .with_state(state)
 }

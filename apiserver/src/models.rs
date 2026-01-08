@@ -1,6 +1,6 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GenericResponse {
@@ -31,6 +31,14 @@ pub struct AuthorizedAgent {
     pub is_trusted: bool,
     pub last_ip: Option<String>,
     pub created_at: DateTime<Utc>,
+    pub is_active: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateAuthorizedAgentRequest {
+    pub name: Option<String>,
+    pub is_trusted: Option<bool>,
+    pub is_active: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]

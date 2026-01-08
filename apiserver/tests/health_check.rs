@@ -1,8 +1,8 @@
-use apiserver::create_app;
-use std::sync::Arc;
-use apiserver::AppState;
 use apiserver::agent_manager::AgentManager;
+use apiserver::create_app;
+use apiserver::AppState;
 use sqlx::postgres::PgPoolOptions;
+use std::sync::Arc;
 
 async fn spawn_app() -> String {
     dotenvy::dotenv().ok();
@@ -17,7 +17,9 @@ async fn spawn_app() -> String {
         db: pool,
     });
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("Failed to bind random port");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("Failed to bind random port");
     let port = listener.local_addr().unwrap().port();
     let app = create_app(state);
 

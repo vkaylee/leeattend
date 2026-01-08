@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react';
-import { fetchAuthorizedAgents, createAuthorizedAgent, updateAgentTrust, AuthorizedAgent } from '@/lib/api';
-import { Plus, ShieldCheck, ShieldAlert, ShieldX, Key, UserCheck, Globe, RefreshCcw } from 'lucide-react';
+import { fetchAuthorizedAgents, createAuthorizedAgent, updateAgentTrust, deleteAuthorizedAgent, AuthorizedAgent } from '@/lib/api';
+import { Plus, ShieldCheck, ShieldAlert, ShieldX, Key, UserCheck, Globe, RefreshCcw, Edit2, Trash2 } from 'lucide-react';
+import AgentEditModal from '@/components/AgentEditModal';
 
 export default function AgentsPage() {
   const [agents, setAgents] = useState<AuthorizedAgent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAgent, setNewAgent] = useState({ id: '', name: '', token: '' });
+
+  // State for editing
+  const [editingAgent, setEditingAgent] = useState<AuthorizedAgent | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -45,6 +50,30 @@ export default function AgentsPage() {
       loadData();
     } catch (e) {
       alert('Lỗi khi cập nhật trạng thái.');
+    }
+  }
+
+  async function handleDelete(agent: AuthorizedAgent) {
+    if (!confirm(`Bạn có chắc chắn muốn xóa Agent ${agent.name} (${agent.id})? \nThao tác này sẽ ngắt kết nối và ẩn Agent khỏi hệ thống.`)) return;
+    
+    try {
+      await deleteAuthorizedAgent(agent.id);
+      loadData();
+    } catch (e) {
+      alert('Lỗi khi xóa Agent.');
+    }
+  }
+
+  function handleEdit(agent: AuthorizedAgent) {
+    setEditingAgent(agent);
+    setIsEditModalOpen(true);
+  }
+
+  function handleSave(updated: AuthorizedAgent) {
+    setAgents(agents.map(a => a.id === updated.id ? updated : a));
+    // If it was deactivated, we might want to reload to hide it
+    if (!updated.is_active) {
+      loadData();
     }
   }
 
@@ -173,16 +202,34 @@ export default function AgentsPage() {
                     )}
                   </td>
                   <td className="px-6 py-5 text-right">
-                    <button 
-                      onClick={() => handleToggleTrust(agent)}
-                      className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                        agent.is_trusted 
-                        ? 'text-rose-600 hover:bg-rose-50 border border-transparent' 
-                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-100'
-                      }`}
-                    >
-                      {agent.is_trusted ? 'Revoke' : 'Trust'}
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button 
+                        onClick={() => handleEdit(agent)}
+                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                        title="Chỉnh sửa"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      
+                      <button 
+                        onClick={() => handleToggleTrust(agent)}
+                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                          agent.is_trusted 
+                          ? 'text-rose-600 hover:bg-rose-50 border-rose-100' 
+                          : 'bg-blue-600 text-white hover:bg-blue-700 border-transparent shadow-md shadow-blue-100'
+                        }`}
+                      >
+                        {agent.is_trusted ? 'Revoke' : 'Trust'}
+                      </button>
+
+                      <button 
+                        onClick={() => handleDelete(agent)}
+                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                        title="Xóa"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -197,6 +244,13 @@ export default function AgentsPage() {
           )}
         </div>
       </div>
+
+      <AgentEditModal 
+        agent={editingAgent}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSave={handleSave}
+      />
     </div>
   );
 }

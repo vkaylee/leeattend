@@ -1,8 +1,8 @@
-use apiserver::{create_app, AppState, agent_manager::AgentManager};
+use apiserver::{agent_manager::AgentManager, create_app, AppState};
+use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use sqlx::postgres::PgPoolOptions;
 
 #[tokio::main]
 async fn main() {
@@ -54,16 +54,16 @@ async fn main() {
 
     // Start the server with graceful shutdown
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    
+
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();
-    
+
     // Sau khi server ngừng nhận request, thực hiện thông báo cho Agent và đóng tài nguyên
     state.agent_manager.shutdown().await;
     state.db.close().await;
-    
+
     tracing::info!("Server stopped.");
 }
 

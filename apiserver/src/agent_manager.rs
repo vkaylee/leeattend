@@ -1,9 +1,9 @@
+use crate::models::{AgentStatus, DeviceStatus};
+use axum::extract::ws::Message;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tokio::sync::{mpsc, RwLock};
-use axum::extract::ws::Message;
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
-use crate::models::{DeviceStatus, AgentStatus};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentCommand {
@@ -18,9 +18,9 @@ pub struct AgentManager {
     // Map Agent ID -> Sender to push messages to that agent's websocket
     pub agents: RwLock<HashMap<String, mpsc::UnboundedSender<Message>>>,
     // Cache for device statuses per agent
-    pub device_cache: RwLock<HashMap<String, Vec<DeviceStatus>>> ,
+    pub device_cache: RwLock<HashMap<String, Vec<DeviceStatus>>>,
     // Last seen timestamp for each agent
-    pub agent_last_seen: RwLock<HashMap<String, DateTime<Utc>>> ,
+    pub agent_last_seen: RwLock<HashMap<String, DateTime<Utc>>>,
 }
 
 impl AgentManager {
@@ -35,7 +35,7 @@ impl AgentManager {
     pub async fn add_agent(&self, agent_id: String, tx: mpsc::UnboundedSender<Message>) {
         let mut agents = self.agents.write().await;
         agents.insert(agent_id.clone(), tx);
-        
+
         let mut last_seen = self.agent_last_seen.write().await;
         last_seen.insert(agent_id, Utc::now());
     }
@@ -43,14 +43,14 @@ impl AgentManager {
     pub async fn remove_agent(&self, agent_id: &str) {
         let mut agents = self.agents.write().await;
         agents.remove(agent_id);
-        
+
         // We keep the last seen and device cache for a while or until next reconnect
     }
 
     pub async fn update_status(&self, agent_id: String, devices: Vec<DeviceStatus>) {
         let mut last_seen = self.agent_last_seen.write().await;
         last_seen.insert(agent_id.clone(), Utc::now());
-        
+
         let mut cache = self.device_cache.write().await;
         cache.insert(agent_id, devices);
     }
@@ -59,7 +59,8 @@ impl AgentManager {
         let agents = self.agents.read().await;
         if let Some(tx) = agents.get(agent_id) {
             let msg_text = serde_json::to_string(&command).map_err(|e| e.to_string())?;
-            tx.send(Message::Text(msg_text)).map_err(|e| e.to_string())?;
+            tx.send(Message::Text(msg_text))
+                .map_err(|e| e.to_string())?;
             Ok(())
         } else {
             Err(format!("Agent {} not found or offline", agent_id))
@@ -76,8 +77,9 @@ impl AgentManager {
 
         for (agent_id, last_seen) in last_seen_map.iter() {
             let devices = device_cache.get(agent_id).cloned().unwrap_or_default();
-            let is_online = active_agents.contains_key(agent_id) && (now - *last_seen).num_seconds() < 65;
-            
+            let is_online =
+                active_agents.contains_key(agent_id) && (now - *last_seen).num_seconds() < 65;
+
             results.push(AgentStatus {
                 agent_id: agent_id.clone(),
                 last_seen: *last_seen,
@@ -91,13 +93,17 @@ impl AgentManager {
     /// Thông báo cho tất cả các Agent rằng Server đang tắt
     pub async fn shutdown(&self) {
         let agents = self.agents.read().await;
-        tracing::info!("Notifying {} connected agents about shutdown...", agents.len());
-        
+        tracing::info!(
+            "Notifying {} connected agents about shutdown...",
+            agents.len()
+        );
+
         let shutdown_msg = serde_json::json!({
             "type": "system",
             "code": "SERVER_SHUTDOWN",
             "message": "API Server is shutting down gracefully."
-        }).to_string();
+        })
+        .to_string();
 
         for (id, tx) in agents.iter() {
             if let Err(e) = tx.send(Message::Text(shutdown_msg.clone())) {
@@ -133,8 +139,10 @@ mod tests {
             last_sync: None,
             error: None,
         }];
-        manager.update_status(agent_id.clone(), devices.clone()).await;
-        
+        manager
+            .update_status(agent_id.clone(), devices.clone())
+            .await;
+
         let statuses = manager.get_all_agents_status().await;
         assert_eq!(statuses.len(), 1);
         assert_eq!(statuses[0].agent_id, agent_id);

@@ -1,19 +1,23 @@
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
-        Path, State,
+        Path, Query, State,
     },
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
 use futures_util::{sink::SinkExt, stream::StreamExt};
+use serde::Deserialize;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::agent_manager::AgentCommand;
-use crate::models::{GenericResponse, CreateDeviceRequest, UpdateDeviceRequest, Device};
+use crate::models::{
+    AuthorizedAgent, CreateDeviceRequest, Device, GenericResponse, UpdateAuthorizedAgentRequest,
+    UpdateDeviceRequest,
+};
 use crate::AppState;
 
 pub async fn health_check() -> impl IntoResponse {
@@ -54,7 +58,11 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                     if let Ok(v) = serde_json::from_str::<serde_json::Value>(&text) {
                         // Handle handshake or messages
                         if v["type"] == "attendance" {
-                            tracing::info!("Received attendance log from {}: {:?}", v["agent_id"], v["data"]);
+                            tracing::info!(
+                                "Received attendance log from {}: {:?}",
+                                v["agent_id"],
+                                v["data"]
+                            );
                             // Send ACK back to agent
                             if let Some(msg_id) = v["msg_id"].as_str() {
                                 let ack = serde_json::json!({
@@ -66,37 +74,55 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                 let _ = tx.send(Message::Text(ack.to_string()));
                             }
                         } else if v["type"] == "status_update" {
-                            if let (Some(id), Some(devices_json)) = (v["agent_id"].as_str(), v["devices"].as_array()) {
-                                let devices: Vec<crate::models::DeviceStatus> = serde_json::from_value(serde_json::Value::Array(devices_json.clone())).unwrap_or_default();
-                                state_clone.agent_manager.update_status(id.to_string(), devices).await;
+                            if let (Some(id), Some(devices_json)) =
+                                (v["agent_id"].as_str(), v["devices"].as_array())
+                            {
+                                let devices: Vec<crate::models::DeviceStatus> =
+                                    serde_json::from_value(serde_json::Value::Array(
+                                        devices_json.clone(),
+                                    ))
+                                    .unwrap_or_default();
+                                state_clone
+                                    .agent_manager
+                                    .update_status(id.to_string(), devices)
+                                    .await;
                                 tracing::debug!("Updated status for agent {}", id);
                             }
                         } else if v["type"] == "handshake" || !agent_id.is_empty() {
                             if agent_id.is_empty() {
-                                if let (Some(id), Some(token)) = (v["agent_id"].as_str(), v["token"].as_str()) {
+                                if let (Some(id), Some(token)) =
+                                    (v["agent_id"].as_str(), v["token"].as_str())
+                                {
                                     // 1. Kiểm tra Agent trong Database
-                                    let auth_result = sqlx::query_as::<_, crate::models::AuthorizedAgent>(
-                                        "SELECT * FROM authorized_agents WHERE id = $1"
-                                    )
-                                    .bind(id)
-                                    .fetch_optional(&state_clone.db)
-                                    .await;
+                                    let auth_result =
+                                        sqlx::query_as::<_, crate::models::AuthorizedAgent>(
+                                            "SELECT * FROM authorized_agents WHERE id = $1",
+                                        )
+                                        .bind(id)
+                                        .fetch_optional(&state_clone.db)
+                                        .await;
 
                                     match auth_result {
                                         Ok(Some(agent)) => {
                                             // Kiểm tra Token và Trạng thái Trust
                                             if agent.token != token {
                                                 tracing::warn!("Unauthorized access attempt for agent {}: Invalid Token", id);
-                                                let _ = tx.send(Message::Text(serde_json::json!({
-                                                    "type": "error",
-                                                    "code": "INVALID_TOKEN",
-                                                    "message": "Token không chính xác."
-                                                }).to_string()));
+                                                let _ = tx.send(Message::Text(
+                                                    serde_json::json!({
+                                                        "type": "error",
+                                                        "code": "INVALID_TOKEN",
+                                                        "message": "Token không chính xác."
+                                                    })
+                                                    .to_string(),
+                                                ));
                                                 break;
                                             }
 
                                             if !agent.is_trusted {
-                                                tracing::warn!("Connection blocked for agent {}: Not Trusted", id);
+                                                tracing::warn!(
+                                                    "Connection blocked for agent {}: Not Trusted",
+                                                    id
+                                                );
                                                 let _ = tx.send(Message::Text(serde_json::json!({
                                                     "type": "error",
                                                     "code": "AGENT_NOT_TRUSTED",
@@ -107,7 +133,8 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
 
                                             // 2. Check duplicate connection
                                             let is_duplicate = {
-                                                let active_agents = state_clone.agent_manager.agents.read().await;
+                                                let active_agents =
+                                                    state_clone.agent_manager.agents.read().await;
                                                 active_agents.contains_key(id)
                                             };
 
@@ -123,9 +150,15 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
 
                                             // 3. Chấp nhận kết nối
                                             agent_id = id.to_string();
-                                            state_clone.agent_manager.add_agent(agent_id.clone(), tx.clone()).await;
-                                            tracing::info!("Agent {} verified and connected", agent_id);
-                                            
+                                            state_clone
+                                                .agent_manager
+                                                .add_agent(agent_id.clone(), tx.clone())
+                                                .await;
+                                            tracing::info!(
+                                                "Agent {} verified and connected",
+                                                agent_id
+                                            );
+
                                             // Cập nhật IP cuối của Agent
                                             let _ = sqlx::query("UPDATE authorized_agents SET last_ip = $1 WHERE id = $2")
                                                 .bind("websocket_conn") // Có thể lấy IP thật từ socket nếu cần
@@ -134,8 +167,10 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                                 .await;
 
                                             // Gửi cấu hình ban đầu
-                                            let _ = notify_agent_config_update(&state_clone, &agent_id).await;
-                                        },
+                                            let _ =
+                                                notify_agent_config_update(&state_clone, &agent_id)
+                                                    .await;
+                                        }
                                         Ok(None) => {
                                             tracing::warn!("Unauthorized connection attempt: Agent ID {} not found in whitelist", id);
                                             let _ = tx.send(Message::Text(serde_json::json!({
@@ -144,9 +179,13 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                                 "message": "Agent ID không nằm trong danh sách được phép."
                                             }).to_string()));
                                             break;
-                                        },
+                                        }
                                         Err(e) => {
-                                            tracing::error!("Database error during handshake for agent {}: {}", id, e);
+                                            tracing::error!(
+                                                "Database error during handshake for agent {}: {}",
+                                                id,
+                                                e
+                                            );
                                             break;
                                         }
                                     }
@@ -184,7 +223,10 @@ pub async fn send_command(
     let command = AgentCommand {
         id: Uuid::new_v4().to_string(),
         r#type: "command".to_string(),
-        method: command_request["method"].as_str().unwrap_or("unknown").to_string(),
+        method: command_request["method"]
+            .as_str()
+            .unwrap_or("unknown")
+            .to_string(),
         device_id: command_request["device_id"].as_str().map(|s| s.to_string()),
         data: command_request.get("data").cloned(),
     };
@@ -215,7 +257,7 @@ pub async fn create_device(
     let port = req.port.unwrap_or(4370);
 
     match sqlx::query(
-        "INSERT INTO devices (id, agent_id, name, ip, port) VALUES ($1, $2, $3, $4, $5)"
+        "INSERT INTO devices (id, agent_id, name, ip, port) VALUES ($1, $2, $3, $4, $5)",
     )
     .bind(id)
     .bind(&req.agent_id)
@@ -228,7 +270,7 @@ pub async fn create_device(
         Ok(_) => {
             let _ = notify_agent_config_update(&state, &req.agent_id).await;
             (StatusCode::CREATED, Json(serde_json::json!({ "id": id }))).into_response()
-        },
+        }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
@@ -242,10 +284,11 @@ pub async fn update_device(
     let current_device = match sqlx::query_as::<_, Device>("SELECT * FROM devices WHERE id = $1")
         .bind(id)
         .fetch_one(&state.db)
-        .await {
-            Ok(d) => d,
-            Err(_) => return StatusCode::NOT_FOUND.into_response(),
-        };
+        .await
+    {
+        Ok(d) => d,
+        Err(_) => return StatusCode::NOT_FOUND.into_response(),
+    };
 
     let name = req.name.unwrap_or(current_device.name);
     let ip = req.ip.unwrap_or(current_device.ip);
@@ -253,7 +296,7 @@ pub async fn update_device(
     let is_enabled = req.is_enabled.unwrap_or(current_device.is_enabled);
 
     match sqlx::query(
-        "UPDATE devices SET name = $1, ip = $2, port = $3, is_enabled = $4 WHERE id = $5"
+        "UPDATE devices SET name = $1, ip = $2, port = $3, is_enabled = $4 WHERE id = $5",
     )
     .bind(name)
     .bind(ip)
@@ -266,7 +309,7 @@ pub async fn update_device(
         Ok(_) => {
             let _ = notify_agent_config_update(&state, &current_device.agent_id).await;
             StatusCode::OK.into_response()
-        },
+        }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
@@ -292,15 +335,32 @@ pub async fn delete_device(
                 let _ = notify_agent_config_update(&state, &aid).await;
             }
             StatusCode::NO_CONTENT.into_response()
-        },
+        }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
 
 // --- Authorized Agents Handlers ---
 
-pub async fn get_authorized_agents(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    match sqlx::query_as::<_, crate::models::AuthorizedAgent>("SELECT * FROM authorized_agents ORDER BY created_at DESC")
+#[derive(Debug, Deserialize)]
+pub struct GetAgentsQueryParams {
+    pub include_inactive: Option<bool>,
+}
+
+pub async fn get_authorized_agents(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<GetAgentsQueryParams>,
+) -> impl IntoResponse {
+    let include_inactive = params.include_inactive.unwrap_or(false);
+
+    let query = if include_inactive {
+        "SELECT * FROM authorized_agents ORDER BY created_at DESC".to_string()
+    } else {
+        "SELECT * FROM authorized_agents WHERE is_active = TRUE ORDER BY created_at DESC"
+            .to_string()
+    };
+
+    match sqlx::query_as::<_, crate::models::AuthorizedAgent>(&query)
         .fetch_all(&state.db)
         .await
     {
@@ -313,16 +373,18 @@ pub async fn create_authorized_agent(
     State(state): State<Arc<AppState>>,
     Json(req): Json<crate::models::CreateAuthorizedAgentRequest>,
 ) -> impl IntoResponse {
-    match sqlx::query(
-        "INSERT INTO authorized_agents (id, name, token) VALUES ($1, $2, $3)"
-    )
-    .bind(&req.id)
-    .bind(&req.name)
-    .bind(&req.token)
-    .execute(&state.db)
-    .await
+    match sqlx::query("INSERT INTO authorized_agents (id, name, token) VALUES ($1, $2, $3)")
+        .bind(&req.id)
+        .bind(&req.name)
+        .bind(&req.token)
+        .execute(&state.db)
+        .await
     {
-        Ok(_) => (StatusCode::CREATED, Json(serde_json::json!({ "id": req.id }))).into_response(),
+        Ok(_) => (
+            StatusCode::CREATED,
+            Json(serde_json::json!({ "id": req.id })),
+        )
+            .into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
@@ -344,7 +406,105 @@ pub async fn update_agent_trust(
                 state.agent_manager.remove_agent(&id).await;
             }
             StatusCode::OK.into_response()
-        },
+        }
+        Ok(_) => StatusCode::NOT_FOUND.into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+pub async fn get_authorized_agent_by_id(
+    Path(id): Path<String>,
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    match sqlx::query_as::<_, AuthorizedAgent>("SELECT * FROM authorized_agents WHERE id = $1")
+        .bind(id)
+        .fetch_optional(&state.db)
+        .await
+    {
+        Ok(Some(agent)) => Json(agent).into_response(),
+        Ok(None) => StatusCode::NOT_FOUND.into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+pub async fn update_authorized_agent(
+    Path(id): Path<String>,
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<UpdateAuthorizedAgentRequest>,
+) -> impl IntoResponse {
+    let mut query_builder: sqlx::query_builder::QueryBuilder<sqlx::Postgres> =
+        sqlx::query_builder::QueryBuilder::new("UPDATE authorized_agents SET ");
+    let mut has_fields_to_update = false;
+
+    if let Some(name) = req.name {
+        query_builder.push("name = ");
+        query_builder.push_bind(name);
+        has_fields_to_update = true;
+    }
+    if let Some(is_trusted) = req.is_trusted {
+        if has_fields_to_update {
+            query_builder.push(", ");
+        }
+        query_builder.push("is_trusted = ");
+        query_builder.push_bind(is_trusted);
+        has_fields_to_update = true;
+    }
+    if let Some(is_active) = req.is_active {
+        if has_fields_to_update {
+            query_builder.push(", ");
+        }
+        query_builder.push("is_active = ");
+        query_builder.push_bind(is_active);
+        has_fields_to_update = true;
+    }
+
+    if !has_fields_to_update {
+        return (StatusCode::BAD_REQUEST, "No fields to update").into_response();
+    }
+
+    query_builder.push(" WHERE id = ");
+    query_builder.push_bind(id.clone());
+    query_builder.push(" RETURNING *");
+
+    match query_builder
+        .build_query_as::<AuthorizedAgent>()
+        .fetch_optional(&state.db)
+        .await
+    {
+        Ok(Some(agent)) => {
+            // If is_trusted was changed to false or is_active to false, disconnect agent
+            if (req.is_trusted == Some(false) || req.is_active == Some(false))
+                && state
+                    .agent_manager
+                    .agents
+                    .read()
+                    .await
+                    .contains_key(&agent.id)
+            {
+                state.agent_manager.remove_agent(&agent.id).await;
+            }
+            Json(agent).into_response()
+        }
+        Ok(None) => StatusCode::NOT_FOUND.into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+pub async fn delete_authorized_agent(
+    // This is a soft delete
+    Path(id): Path<String>,
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    match sqlx::query("UPDATE authorized_agents SET is_active = FALSE WHERE id = $1")
+        .bind(&id)
+        .execute(&state.db)
+        .await
+    {
+        Ok(res) if res.rows_affected() > 0 => {
+            // Disconnect agent if it was active
+            state.agent_manager.remove_agent(&id).await;
+            StatusCode::NO_CONTENT.into_response()
+        }
         Ok(_) => StatusCode::NOT_FOUND.into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
@@ -352,11 +512,13 @@ pub async fn update_agent_trust(
 
 async fn notify_agent_config_update(state: &AppState, agent_id: &str) -> Result<(), String> {
     // Fetch all enabled devices for this agent
-    let devices = sqlx::query_as::<_, Device>("SELECT * FROM devices WHERE agent_id = $1 AND is_enabled = true")
-        .bind(agent_id)
-        .fetch_all(&state.db)
-        .await
-        .map_err(|e| e.to_string())?;
+    let devices = sqlx::query_as::<_, Device>(
+        "SELECT * FROM devices WHERE agent_id = $1 AND is_enabled = true",
+    )
+    .bind(agent_id)
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| e.to_string())?;
 
     let config_msg = serde_json::json!({
         "type": "config_update",
@@ -377,6 +539,9 @@ async fn notify_agent_config_update(state: &AppState, agent_id: &str) -> Result<
         data: Some(config_msg),
     };
 
-    state.agent_manager.send_command(agent_id, command).await
+    state
+        .agent_manager
+        .send_command(agent_id, command)
+        .await
         .map_err(|e| e.to_string())
 }

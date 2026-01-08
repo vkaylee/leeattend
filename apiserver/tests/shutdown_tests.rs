@@ -1,6 +1,6 @@
 use apiserver::agent_manager::AgentManager;
-use tokio::sync::mpsc;
 use axum::extract::ws::Message;
+use tokio::sync::mpsc;
 
 #[tokio::test]
 async fn test_agent_manager_shutdown_notification() {

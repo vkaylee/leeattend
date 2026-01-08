@@ -1,10 +1,10 @@
-use sqlx::postgres::PgPoolOptions;
-use uuid::Uuid;
-use apiserver::create_app;
-use std::sync::Arc;
-use apiserver::AppState;
 use apiserver::agent_manager::AgentManager;
+use apiserver::create_app;
+use apiserver::AppState;
 use serial_test::serial;
+use sqlx::postgres::PgPoolOptions;
+use std::sync::Arc;
+use uuid::Uuid;
 
 async fn spawn_app() -> String {
     dotenvy::dotenv().ok();
@@ -16,21 +16,24 @@ async fn spawn_app() -> String {
         .expect("Failed to connect to Postgres");
 
     // Clean up devices before each test
-    sqlx::query("DELETE FROM devices").execute(&db_pool).await.unwrap();
+    sqlx::query("DELETE FROM devices")
+        .execute(&db_pool)
+        .await
+        .unwrap();
 
     let state = Arc::new(AppState {
         agent_manager: AgentManager::new(),
         db: db_pool,
     });
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("Failed to bind random port");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("Failed to bind random port");
     let port = listener.local_addr().unwrap().port();
     let app = create_app(state);
 
     tokio::spawn(async move {
-        axum::serve(listener, app)
-            .await
-            .unwrap();
+        axum::serve(listener, app).await.unwrap();
     });
 
     format!("http://127.0.0.1:{}", port)
@@ -88,7 +91,7 @@ async fn test_delete_device() {
         .send()
         .await
         .unwrap();
-    
+
     let json: serde_json::Value = response.json().await.unwrap();
     let id = json["id"].as_str().unwrap();
 
@@ -100,7 +103,11 @@ async fn test_delete_device() {
 
     assert_eq!(response.status().as_u16(), 204);
 
-    let response = client.get(&format!("{}/devices", address)).send().await.unwrap();
+    let response = client
+        .get(&format!("{}/devices", address))
+        .send()
+        .await
+        .unwrap();
     let devices: Vec<serde_json::Value> = response.json().await.unwrap();
     assert_eq!(devices.len(), 0);
 }

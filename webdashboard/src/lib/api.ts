@@ -41,6 +41,7 @@ export interface AuthorizedAgent {
   is_trusted: boolean;
   last_ip?: string;
   created_at: string;
+  is_active: boolean;
 }
 
 export async function fetchAgents(): Promise<AgentStatus[]> {
@@ -124,5 +125,21 @@ export async function updateAgentTrust(id: string, is_trusted: boolean): Promise
   });
 
   if (!response.ok) throw new Error('Failed to update agent trust');
+}
 
+export async function updateAuthorizedAgent(id: string, agent: Partial<AuthorizedAgent>): Promise<AuthorizedAgent> {
+  const response = await fetch(`${API_BASE_URL}/authorized-agents/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(agent),
+  });
+  if (!response.ok) throw new Error('Failed to update authorized agent');
+  return response.json();
+}
+
+export async function deleteAuthorizedAgent(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/authorized-agents/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) throw new Error('Failed to delete authorized agent');
 }
