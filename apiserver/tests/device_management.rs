@@ -1,3 +1,5 @@
+mod common;
+use common::factory::TestFactory;
 use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
 use apiserver::AppState;
@@ -6,7 +8,7 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use uuid::Uuid;
 
-async fn spawn_app() -> (String, Uuid, Uuid) {
+async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
     dotenvy::dotenv().ok();
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let db_pool = PgPoolOptions::new()
@@ -21,36 +23,11 @@ async fn spawn_app() -> (String, Uuid, Uuid) {
         .await
         .expect("Failed to run migrations");
 
-    // Clean up
-    sqlx::query("DELETE FROM workspace_members").execute(&db_pool).await.unwrap();
-    sqlx::query("DELETE FROM devices").execute(&db_pool).await.unwrap();
-    sqlx::query("DELETE FROM authorized_agents").execute(&db_pool).await.unwrap();
-    sqlx::query("DELETE FROM users").execute(&db_pool).await.unwrap();
-    sqlx::query("DELETE FROM workspaces").execute(&db_pool).await.unwrap();
+    let factory = TestFactory::new(db_pool.clone());
+    factory.cleanup().await;
 
-    // Create a test user
-    let user_id = sqlx::query_scalar("INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id")
-        .bind("device-test@example.com")
-        .bind("hash")
-        .fetch_one(&db_pool)
-        .await
-        .unwrap();
-
-    // Create a test workspace
-    let workspace_id = sqlx::query_scalar("INSERT INTO workspaces (name) VALUES ($1) RETURNING id")
-        .bind("Device Test Workspace")
-        .fetch_one(&db_pool)
-        .await
-        .unwrap();
-
-    // Add user to workspace as owner
-    sqlx::query("INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3)")
-        .bind(workspace_id)
-        .bind(user_id)
-        .bind("owner")
-        .execute(&db_pool)
-        .await
-        .unwrap();
+    let user_id = factory.user().with_email("device-test@example.com").create().await;
+    let workspace_id = factory.workspace().with_name("Device Test Workspace").create_with_owner(user_id).await;
 
     let state = Arc::new(AppState {
         agent_manager: AgentManager::new(),
@@ -67,13 +44,13 @@ async fn spawn_app() -> (String, Uuid, Uuid) {
         axum::serve(listener, app).await.unwrap();
     });
 
-    (format!("http://127.0.0.1:{}", port), workspace_id, user_id)
+    (format!("http://127.0.0.1:{}", port), workspace_id, user_id, factory)
 }
 
 #[tokio::test]
 #[serial]
 async fn test_create_and_get_device() {
-    let (address, workspace_id, user_id) = spawn_app().await;
+    let (address, workspace_id, user_id, _) = spawn_app().await;
     let client = reqwest::Client::new();
     let ws_header = ("X-Workspace-Id", workspace_id.to_string());
     let user_header = ("X-User-Id", user_id.to_string());
@@ -115,7 +92,7 @@ async fn test_create_and_get_device() {
 #[tokio::test]
 #[serial]
 async fn test_delete_device() {
-    let (address, workspace_id, user_id) = spawn_app().await;
+    let (address, workspace_id, user_id, _) = spawn_app().await;
     let client = reqwest::Client::new();
     let ws_header = ("X-Workspace-Id", workspace_id.to_string());
     let user_header = ("X-User-Id", user_id.to_string());

@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import AgentEditModal from './AgentEditModal';
 import * as api from '@/lib/api';
+import { agentFactory } from '@/test/factories';
 
 // Mock the API
 vi.mock('@/lib/api', async () => {
@@ -12,15 +13,11 @@ vi.mock('@/lib/api', async () => {
   };
 });
 
-const mockAgent: api.AuthorizedAgent = {
+const mockAgent = agentFactory({
   id: 'TEST_001',
   name: 'Test Agent',
   token: 'secret123',
-  is_trusted: true,
-  is_active: true,
-  workspace_id: 'ws-123',
-  created_at: new Date().toISOString(),
-};
+});
 
 describe('AgentEditModal', () => {
   it('renders agent data when open', () => {
