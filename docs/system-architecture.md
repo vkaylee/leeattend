@@ -56,11 +56,12 @@ Agent được thiết kế để chạy ổn định 24/7 trên phần cứng g
 ## 3. Web Dashboard (Admin UI)
 Ứng dụng quản trị tập trung dành cho Admin.
 - **Responsibility**: Quản lý cấu hình, phê duyệt Agent và theo dõi dữ liệu chấm công.
-- **Stack**: **Next.js** (Frontend), **Tauri** (Desktop Wrapper), Tailwind CSS.
+- **Stack**: **React 19** + **Vite**, **Tauri** (Desktop Wrapper), **Tailwind CSS 4**.
+- **Architecture**: Single Page Application (SPA) sử dụng **React Router 7** để điều hướng client-side.
 - **Mode**: 
-  - **Static Export**: Chạy như static HTML/CSS/JS.
+  - **SPA Build**: Build thành static assets (HTML/JS/CSS).
   - **Desktop App**: Chạy như ứng dụng Windows native (Tauri).
-  - **Standalone Server**: Chạy như một Web Server độc lập (Rust Wrapper), không cần cài đặt Node.js.
+  - **Standalone Server**: Chạy như một Web Server độc lập (Rust Wrapper), không cần cài đặt Node.js hay bất kỳ runtime nào khác.
 
 ## Data Flow
 ... (giữ nguyên) ...

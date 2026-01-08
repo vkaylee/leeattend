@@ -115,22 +115,35 @@ SYNC_INTERVAL=0.5
 3. Chuột phải vào `agent/install_service.bat` và chọn **Run as Administrator**.
 4. Service `ZKAttendanceAgent` sẽ tự động được cài đặt và khởi động.
 
-## 💻 3. Web Dashboard (Tauri / Windows App)
+## 💻 3. Web Dashboard (React + Vite)
 
-Giao diện quản trị tập trung, hiện có thể chạy dưới dạng ứng dụng Desktop Windows.
+Giao diện quản trị tập trung, hiện có thể chạy dưới dạng ứng dụng Desktop Windows (Tauri) hoặc Web Server độc lập.
 
-### Build ứng dụng Desktop (Tauri)
-1. Đảm bảo đã cài đặt Rust và Node.js.
-2. Di chuyển vào thư mục `webdashboard`.
-3. Cài đặt thư viện: `npm install`.
-4. Build ứng dụng:
+### Yêu cầu hệ thống
+- Node.js 18+
+- Rust (để build Tauri hoặc Standalone EXE)
+
+### 🚀 Phát triển và Cấu hình
+1. Cài đặt thư viện:
+   ```bash
+   cd webdashboard
+   npm install
+   ```
+2. Cấu hình môi trường:
+   Tạo file `webdashboard/.env.local`:
+   ```env
+   VITE_API_URL=http://your-apiserver:3000
+   ```
+
+### 📦 Build ứng dụng Desktop (Tauri)
+1. Build ứng dụng:
    ```bash
    npm run tauri build
    ```
-5. File cài đặt (`.msi` hoặc `.exe`) sẽ nằm tại: `src-tauri/target/release/bundle/`.
+2. File cài đặt (`.msi` hoặc `.exe`) sẽ nằm tại: `src-tauri/target/release/bundle/`.
 
 ### 🚀 Build ứng dụng Web Server (Standalone EXE)
-Giải pháp thay thế cho việc cài đặt Node.js/IIS. Đóng gói toàn bộ giao diện Web thành 1 file `.exe` duy nhất.
+Giải pháp tối ưu để triển khai mà không cần Node.js runtime. Đóng gói toàn bộ giao diện Web thành 1 file `.exe` duy nhất tích hợp sẵn server.
 
 1. Di chuyển vào thư mục `webdashboard`.
 2. Chạy script build tự động:
@@ -139,7 +152,7 @@ Giải pháp thay thế cho việc cài đặt Node.js/IIS. Đóng gói toàn b�
    ```
 3. File kết quả sẽ nằm tại `webdashboard/dist/LeeAttendDashboard.exe`.
 4. Cách chạy:
-   - Chạy trực tiếp (mặc định port 3000, tự mở trình duyệt).
+   - Chạy trực tiếp (mặc định port 1420, tự mở trình duyệt).
    - Chạy với port tùy chỉnh: `LeeAttendDashboard.exe --port 8080`
    - Chạy ngầm (không mở browser): `LeeAttendDashboard.exe --no-open`
 

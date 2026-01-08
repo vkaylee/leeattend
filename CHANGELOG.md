@@ -3,6 +3,12 @@
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
 ## [Unreleased]
+### Changed
+- **Webdashboard Architecture**: Di chuyển toàn bộ Webdashboard từ Next.js (App Router) sang **Vite + React SPA**. Loại bỏ hoàn toàn sự phụ thuộc vào Next.js runtime, giúp giảm dung lượng bundle và tăng tốc độ phát triển.
+- **Routing Engine**: Chuyển sang sử dụng `react-router-dom` (v7) thay cho Next.js File-system Routing.
+- **Styling**: Nâng cấp lên **Tailwind CSS v4** và chuẩn hóa font chữ Inter qua `@fontsource/inter`.
+- **API Integration**: Cập nhật cách truy cập biến môi trường sang style của Vite (`import.meta.env.VITE_`).
+
 ### Added
 - **Dashboard Standalone Server**: Đóng gói Web Dashboard thành 1 file thực thi (`.exe`) duy nhất bằng Rust. Tích hợp sẵn Web Server gọn nhẹ, không cần cài đặt Node.js hay cấu hình IIS. Hỗ trợ tham số `--port` và `--no-open`.
 - **Dashboard Windows Service**: Scripts `install_service.bat` và `uninstall_service.bat` để quản lý Web Dashboard dưới dạng Windows Service, đảm bảo chạy ổn định 24/7.
