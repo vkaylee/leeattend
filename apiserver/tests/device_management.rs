@@ -1,8 +1,8 @@
 mod common;
-use common::factory::TestFactory;
 use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
 use apiserver::AppState;
+use common::factory::TestFactory;
 use serial_test::serial;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
@@ -26,8 +26,16 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
     let factory = TestFactory::new(db_pool.clone());
     factory.cleanup().await;
 
-    let user_id = factory.user().with_email("device-test@example.com").create().await;
-    let workspace_id = factory.workspace().with_name("Device Test Workspace").create_with_owner(user_id).await;
+    let user_id = factory
+        .user()
+        .with_email("device-test@example.com")
+        .create()
+        .await;
+    let workspace_id = factory
+        .workspace()
+        .with_name("Device Test Workspace")
+        .create_with_owner(user_id)
+        .await;
 
     let state = Arc::new(AppState {
         agent_manager: AgentManager::new(),
@@ -44,7 +52,12 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
         axum::serve(listener, app).await.unwrap();
     });
 
-    (format!("http://127.0.0.1:{}", port), workspace_id, user_id, factory)
+    (
+        format!("http://127.0.0.1:{}", port),
+        workspace_id,
+        user_id,
+        factory,
+    )
 }
 
 #[tokio::test]

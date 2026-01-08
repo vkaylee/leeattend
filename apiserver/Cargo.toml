@@ -24,6 +24,9 @@ sqlx = { version = "0.8", default-features = false, features = [
 ] }
 tower-http = { version = "0.6.8", features = ["cors"] }
 
+[lints.rust]
+warnings = "deny"
+
 [dev-dependencies]
 http = "1.4.0"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

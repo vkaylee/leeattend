@@ -3,7 +3,7 @@ pub mod handlers;
 pub mod models;
 
 use axum::{
-    routing::{get, post, put, delete},
+    routing::{delete, get, post, put},
     Router,
 };
 
@@ -47,7 +47,13 @@ pub fn create_app(state: Arc<AppState>) -> Router {
 
     let cors = CorsLayer::new()
         .allow_origin(origins)
-        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::PATCH, Method::DELETE])
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::PATCH,
+            Method::DELETE,
+        ])
         .allow_headers(Any);
 
     Router::new()
@@ -56,7 +62,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route("/agents", get(handlers::get_agents))
         .route("/agent/:agent_id/command", post(handlers::send_command))
         // Profile
-        .route("/me", get(handlers::get_user_profile).patch(handlers::update_user_profile))
+        .route(
+            "/me",
+            get(handlers::get_user_profile).patch(handlers::update_user_profile),
+        )
         .route("/users", get(handlers::get_users))
         // Device Management
         .route(

@@ -1,9 +1,9 @@
-use sqlx::postgres::PgPoolOptions;
-use apiserver::create_app;
-use std::sync::Arc;
-use apiserver::AppState;
 use apiserver::agent_manager::AgentManager;
+use apiserver::create_app;
+use apiserver::AppState;
 use serial_test::serial;
+use sqlx::postgres::PgPoolOptions;
+use std::sync::Arc;
 use uuid::Uuid;
 
 async fn spawn_app() -> (String, Uuid, Uuid) {
@@ -22,19 +22,35 @@ async fn spawn_app() -> (String, Uuid, Uuid) {
         .expect("Failed to run migrations");
 
     // Dọn dẹp dữ liệu cũ trước khi test
-    sqlx::query("DELETE FROM workspace_members").execute(&db_pool).await.unwrap();
-    sqlx::query("DELETE FROM devices").execute(&db_pool).await.unwrap();
-    sqlx::query("DELETE FROM authorized_agents").execute(&db_pool).await.unwrap();
-    sqlx::query("DELETE FROM users").execute(&db_pool).await.unwrap();
-    sqlx::query("DELETE FROM workspaces").execute(&db_pool).await.unwrap();
-
-    // Create a test user
-    let user_id = sqlx::query_scalar("INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id")
-        .bind("trust-test@example.com")
-        .bind("hash")
-        .fetch_one(&db_pool)
+    sqlx::query("DELETE FROM workspace_members")
+        .execute(&db_pool)
         .await
         .unwrap();
+    sqlx::query("DELETE FROM devices")
+        .execute(&db_pool)
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM authorized_agents")
+        .execute(&db_pool)
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM users")
+        .execute(&db_pool)
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM workspaces")
+        .execute(&db_pool)
+        .await
+        .unwrap();
+
+    // Create a test user
+    let user_id =
+        sqlx::query_scalar("INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id")
+            .bind("trust-test@example.com")
+            .bind("hash")
+            .fetch_one(&db_pool)
+            .await
+            .unwrap();
 
     // Create a test workspace
     let workspace_id = sqlx::query_scalar("INSERT INTO workspaces (name) VALUES ($1) RETURNING id")
@@ -57,14 +73,14 @@ async fn spawn_app() -> (String, Uuid, Uuid) {
         db: db_pool,
     });
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("Failed to bind random port");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("Failed to bind random port");
     let port = listener.local_addr().unwrap().port();
     let app = create_app(state);
 
     tokio::spawn(async move {
-        axum::serve(listener, app)
-            .await
-            .unwrap();
+        axum::serve(listener, app).await.unwrap();
     });
 
     (format!("http://127.0.0.1:{}", port), workspace_id, user_id)
@@ -107,7 +123,10 @@ async fn test_authorized_agent_lifecycle() {
         .unwrap();
 
     let agents: Vec<serde_json::Value> = response.json().await.unwrap();
-    let test_agent = agents.iter().find(|a| a["id"] == agent_id).expect("Agent not found");
+    let test_agent = agents
+        .iter()
+        .find(|a| a["id"] == agent_id)
+        .expect("Agent not found");
     assert_eq!(test_agent["is_trusted"], false);
 
     // 3. Phê duyệt Agent (Trust)

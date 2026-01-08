@@ -24,10 +24,22 @@ async fn spawn_app() -> (String, Uuid, Arc<AppState>) {
         .expect("Failed to run migrations");
 
     // Clean up
-    sqlx::query("DELETE FROM workspace_members").execute(&db_pool).await.unwrap();
-    sqlx::query("DELETE FROM devices").execute(&db_pool).await.unwrap();
-    sqlx::query("DELETE FROM authorized_agents").execute(&db_pool).await.unwrap();
-    sqlx::query("DELETE FROM workspaces").execute(&db_pool).await.unwrap();
+    sqlx::query("DELETE FROM workspace_members")
+        .execute(&db_pool)
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM devices")
+        .execute(&db_pool)
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM authorized_agents")
+        .execute(&db_pool)
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM workspaces")
+        .execute(&db_pool)
+        .await
+        .unwrap();
 
     // Create a test workspace
     let workspace_id = sqlx::query_scalar("INSERT INTO workspaces (name) VALUES ($1) RETURNING id")
@@ -73,7 +85,7 @@ async fn test_websocket_auth_success() {
 
     // 2. Connect
     let (ws_stream, _) = connect_async(&address).await.expect("Failed to connect");
-    let (mut write, mut read) = ws_stream.split();
+    let (mut write, _read) = ws_stream.split();
 
     // 3. Send handshake
     let handshake = serde_json::json!({

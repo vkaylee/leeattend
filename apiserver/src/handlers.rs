@@ -229,11 +229,14 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                             }
 
                                             if !agent.is_trusted {
-                                                let _ = tx.send(Message::Text(serde_json::json!({
-                                                    "type": "error",
-                                                    "code": "AGENT_NOT_TRUSTED",
-                                                    "message": "Agent chưa được phê duyệt."
-                                                }).to_string()));
+                                                let _ = tx.send(Message::Text(
+                                                    serde_json::json!({
+                                                        "type": "error",
+                                                        "code": "AGENT_NOT_TRUSTED",
+                                                        "message": "Agent chưa được phê duyệt."
+                                                    })
+                                                    .to_string(),
+                                                ));
                                                 break;
                                             }
 
@@ -254,11 +257,14 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                                     .await;
                                         }
                                         Ok(None) => {
-                                            let _ = tx.send(Message::Text(serde_json::json!({
-                                                "type": "error",
-                                                "code": "UNAUTHORIZED_AGENT",
-                                                "message": "Agent ID không hợp lệ."
-                                            }).to_string()));
+                                            let _ = tx.send(Message::Text(
+                                                serde_json::json!({
+                                                    "type": "error",
+                                                    "code": "UNAUTHORIZED_AGENT",
+                                                    "message": "Agent ID không hợp lệ."
+                                                })
+                                                .to_string(),
+                                            ));
                                             break;
                                         }
                                         Err(_) => break,
@@ -404,14 +410,13 @@ pub async fn delete_device(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> impl IntoResponse {
-    let agent_id: Option<String> = sqlx::query_scalar(
-        "SELECT agent_id FROM devices WHERE id = $1 AND workspace_id = $2",
-    )
-    .bind(id)
-    .bind(workspace_id)
-    .fetch_optional(&state.db)
-    .await
-    .unwrap_or(None);
+    let agent_id: Option<String> =
+        sqlx::query_scalar("SELECT agent_id FROM devices WHERE id = $1 AND workspace_id = $2")
+            .bind(id)
+            .bind(workspace_id)
+            .fetch_optional(&state.db)
+            .await
+            .unwrap_or(None);
 
     match sqlx::query("DELETE FROM devices WHERE id = $1 AND workspace_id = $2")
         .bind(id)
@@ -445,7 +450,8 @@ pub async fn get_authorized_agents(
     let include_inactive = params.include_inactive.unwrap_or(false);
 
     let query = if include_inactive {
-        "SELECT * FROM authorized_agents WHERE workspace_id = $1 ORDER BY created_at DESC".to_string()
+        "SELECT * FROM authorized_agents WHERE workspace_id = $1 ORDER BY created_at DESC"
+            .to_string()
     } else {
         "SELECT * FROM authorized_agents WHERE workspace_id = $1 AND is_active = TRUE ORDER BY created_at DESC"
             .to_string()
@@ -646,7 +652,7 @@ pub async fn create_workspace(
     };
 
     let workspace: Workspace = match sqlx::query_as::<_, Workspace>(
-        "INSERT INTO workspaces (name) VALUES ($1) RETURNING *"
+        "INSERT INTO workspaces (name) VALUES ($1) RETURNING *",
     )
     .bind(&req.name)
     .fetch_one(&mut *tx)
@@ -657,7 +663,7 @@ pub async fn create_workspace(
     };
 
     if let Err(e) = sqlx::query(
-        "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3)"
+        "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3)",
     )
     .bind(workspace.id)
     .bind(user_id)
