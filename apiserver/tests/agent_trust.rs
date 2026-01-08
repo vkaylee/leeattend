@@ -1,11 +1,12 @@
-use apiserver::agent_manager::AgentManager;
-use apiserver::create_app;
-use apiserver::AppState;
-use serial_test::serial;
 use sqlx::postgres::PgPoolOptions;
+use apiserver::create_app;
 use std::sync::Arc;
+use apiserver::AppState;
+use apiserver::agent_manager::AgentManager;
+use serial_test::serial;
+use uuid::Uuid;
 
-async fn spawn_app() -> String {
+async fn spawn_app() -> (String, Uuid) {
     dotenvy::dotenv().ok();
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let db_pool = PgPoolOptions::new()
@@ -21,8 +22,15 @@ async fn spawn_app() -> String {
         .expect("Failed to run migrations");
 
     // Dọn dẹp dữ liệu cũ trước khi test
-    sqlx::query("DELETE FROM authorized_agents")
-        .execute(&db_pool)
+    sqlx::query("DELETE FROM workspace_members").execute(&db_pool).await.unwrap();
+    sqlx::query("DELETE FROM devices").execute(&db_pool).await.unwrap();
+    sqlx::query("DELETE FROM authorized_agents").execute(&db_pool).await.unwrap();
+    sqlx::query("DELETE FROM workspaces").execute(&db_pool).await.unwrap();
+
+    // Create a test workspace
+    let workspace_id = sqlx::query_scalar("INSERT INTO workspaces (name) VALUES ($1) RETURNING id")
+        .bind("Test Workspace")
+        .fetch_one(&db_pool)
         .await
         .unwrap();
 
@@ -31,24 +39,25 @@ async fn spawn_app() -> String {
         db: db_pool,
     });
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("Failed to bind random port");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("Failed to bind random port");
     let port = listener.local_addr().unwrap().port();
     let app = create_app(state);
 
     tokio::spawn(async move {
-        axum::serve(listener, app).await.unwrap();
+        axum::serve(listener, app)
+            .await
+            .unwrap();
     });
 
-    format!("http://127.0.0.1:{}", port)
+    (format!("http://127.0.0.1:{}", port), workspace_id)
 }
 
 #[tokio::test]
 #[serial]
 async fn test_authorized_agent_lifecycle() {
-    let address = spawn_app().await;
+    let (address, workspace_id) = spawn_app().await;
     let client = reqwest::Client::new();
+    let ws_header = ("X-Workspace-Id", workspace_id.to_string());
 
     // 1. Khai báo Agent mới
     let agent_id = "AGENT_TEST_001";
@@ -60,6 +69,7 @@ async fn test_authorized_agent_lifecycle() {
 
     let response = client
         .post(&format!("{}/authorized-agents", address))
+        .header(ws_header.0, ws_header.1.clone())
         .json(&body)
         .send()
         .await
@@ -70,20 +80,19 @@ async fn test_authorized_agent_lifecycle() {
     // 2. Kiểm tra danh sách (phải có agent vừa tạo và is_trusted = false)
     let response = client
         .get(&format!("{}/authorized-agents", address))
+        .header(ws_header.0, ws_header.1.clone())
         .send()
         .await
         .unwrap();
 
     let agents: Vec<serde_json::Value> = response.json().await.unwrap();
-    let test_agent = agents
-        .iter()
-        .find(|a| a["id"] == agent_id)
-        .expect("Agent not found");
+    let test_agent = agents.iter().find(|a| a["id"] == agent_id).expect("Agent not found");
     assert_eq!(test_agent["is_trusted"], false);
 
     // 3. Phê duyệt Agent (Trust)
     let response = client
         .put(&format!("{}/authorized-agents/{}/trust", address, agent_id))
+        .header(ws_header.0, ws_header.1.clone())
         .json(&serde_json::json!({ "is_trusted": true }))
         .send()
         .await
@@ -94,6 +103,7 @@ async fn test_authorized_agent_lifecycle() {
     // 4. Kiểm tra lại trạng thái
     let response = client
         .get(&format!("{}/authorized-agents", address))
+        .header(ws_header.0, ws_header.1.clone())
         .send()
         .await
         .unwrap();

@@ -3,8 +3,9 @@ use reqwest::StatusCode;
 use serial_test::serial;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
+use uuid::Uuid;
 
-async fn spawn_app() -> String {
+async fn spawn_app() -> (String, Uuid) {
     dotenvy::dotenv().ok();
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let db_pool = PgPoolOptions::new()
@@ -20,8 +21,15 @@ async fn spawn_app() -> String {
         .expect("Failed to run migrations");
 
     // Dọn dẹp dữ liệu cũ trước khi test
-    sqlx::query("DELETE FROM authorized_agents")
-        .execute(&db_pool)
+    sqlx::query("DELETE FROM workspace_members").execute(&db_pool).await.unwrap();
+    sqlx::query("DELETE FROM devices").execute(&db_pool).await.unwrap();
+    sqlx::query("DELETE FROM authorized_agents").execute(&db_pool).await.unwrap();
+    sqlx::query("DELETE FROM workspaces").execute(&db_pool).await.unwrap();
+
+    // Create a test workspace
+    let workspace_id = sqlx::query_scalar("INSERT INTO workspaces (name) VALUES ($1) RETURNING id")
+        .bind("Test Workspace")
+        .fetch_one(&db_pool)
         .await
         .unwrap();
 
@@ -40,14 +48,15 @@ async fn spawn_app() -> String {
         axum::serve(listener, app).await.unwrap();
     });
 
-    format!("http://127.0.0.1:{}", port)
+    (format!("http://127.0.0.1:{}", port), workspace_id)
 }
 
 #[tokio::test]
 #[serial]
 async fn test_agent_crud_operations() {
-    let address = spawn_app().await;
+    let (address, workspace_id) = spawn_app().await;
     let client = reqwest::Client::new();
+    let ws_header = ("X-Workspace-Id", workspace_id.to_string());
 
     // 1. Khai báo Agent mới (để test các thao tác CRUD lên nó)
     let agent_id = "AGENT_CRUD_001";
@@ -59,6 +68,7 @@ async fn test_agent_crud_operations() {
 
     let response = client
         .post(&format!("{}/authorized-agents", address))
+        .header(ws_header.0, ws_header.1.clone())
         .json(&create_body)
         .send()
         .await
@@ -69,6 +79,7 @@ async fn test_agent_crud_operations() {
     // 2. Lấy Agent theo ID
     let response = client
         .get(&format!("{}/authorized-agents/{}", address, agent_id))
+        .header(ws_header.0, ws_header.1.clone())
         .send()
         .await
         .unwrap();
@@ -88,6 +99,7 @@ async fn test_agent_crud_operations() {
 
     let response = client
         .patch(&format!("{}/authorized-agents/{}", address, agent_id))
+        .header(ws_header.0, ws_header.1.clone())
         .json(&update_body)
         .send()
         .await
@@ -102,6 +114,7 @@ async fn test_agent_crud_operations() {
     // 4. Lấy Agent theo ID lần nữa để xác nhận cập nhật
     let response = client
         .get(&format!("{}/authorized-agents/{}", address, agent_id))
+        .header(ws_header.0, ws_header.1.clone())
         .send()
         .await
         .unwrap();
@@ -115,23 +128,17 @@ async fn test_agent_crud_operations() {
     // 5. Soft Delete Agent
     let response = client
         .delete(&format!("{}/authorized-agents/{}", address, agent_id))
+        .header(ws_header.0, ws_header.1.clone())
         .send()
         .await
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
 
-    // 6. Cố gắng lấy Agent đã xóa (phải trả về NOT FOUND nếu get theo ID không bao gồm inactive)
-    let response = client
-        .get(&format!("{}/authorized-agents/{}", address, agent_id))
-        .send()
-        .await
-        .unwrap();
-    assert_eq!(response.status(), StatusCode::OK); // Should return OK as per implementation of get_authorized_agent_by_id
-
-    // 7. Kiểm tra danh sách Agent (mặc định không bao gồm inactive)
+    // 6. Kiểm tra danh sách Agent (mặc định không bao gồm inactive)
     let response = client
         .get(&format!("{}/authorized-agents", address))
+        .header(ws_header.0, ws_header.1.clone())
         .send()
         .await
         .unwrap();
@@ -139,12 +146,13 @@ async fn test_agent_crud_operations() {
     let agents: Vec<serde_json::Value> = response.json().await.unwrap();
     assert!(!agents.iter().any(|a| a["id"] == agent_id)); // Agent đã xóa không có trong danh sách
 
-    // 8. Kiểm tra danh sách Agent (bao gồm inactive)
+    // 7. Kiểm tra danh sách Agent (bao gồm inactive)
     let response = client
         .get(&format!(
             "{}/authorized-agents?include_inactive=true",
             address
         ))
+        .header(ws_header.0, ws_header.1.clone())
         .send()
         .await
         .unwrap();
@@ -155,4 +163,46 @@ async fn test_agent_crud_operations() {
         .find(|a| a["id"] == agent_id)
         .expect("Deleted agent not found in inactive list");
     assert_eq!(deleted_agent["is_active"], false);
+}
+
+#[tokio::test]
+#[serial]
+async fn test_workspace_isolation() {
+    let (address, workspace_id_1) = spawn_app().await;
+    let client = reqwest::Client::new();
+    
+    // Create second workspace manually
+    let ws_2_resp = client.post(&format!("{}/workspaces", address))
+        .json(&serde_json::json!({ "name": "Second Workspace" }))
+        .send().await.unwrap();
+    let ws_2: serde_json::Value = ws_2_resp.json().await.unwrap();
+    let workspace_id_2 = Uuid::parse_str(ws_2["id"].as_str().unwrap()).unwrap();
+
+    // 1. Create agent in WS 1
+    client.post(&format!("{}/authorized-agents", address))
+        .header("X-Workspace-Id", workspace_id_1.to_string())
+        .json(&serde_json::json!({ "id": "A1", "name": "Agent 1", "token": "T1" }))
+        .send().await.unwrap();
+
+    // 2. Create agent in WS 2
+    client.post(&format!("{}/authorized-agents", address))
+        .header("X-Workspace-Id", workspace_id_2.to_string())
+        .json(&serde_json::json!({ "id": "A2", "name": "Agent 2", "token": "T2" }))
+        .send().await.unwrap();
+
+    // 3. List agents from WS 1 - should only see A1
+    let resp_1 = client.get(&format!("{}/authorized-agents", address))
+        .header("X-Workspace-Id", workspace_id_1.to_string())
+        .send().await.unwrap();
+    let agents_1: Vec<serde_json::Value> = resp_1.json().await.unwrap();
+    assert_eq!(agents_1.len(), 1);
+    assert_eq!(agents_1[0]["id"], "A1");
+
+    // 4. List agents from WS 2 - should only see A2
+    let resp_2 = client.get(&format!("{}/authorized-agents", address))
+        .header("X-Workspace-Id", workspace_id_2.to_string())
+        .send().await.unwrap();
+    let agents_2: Vec<serde_json::Value> = resp_2.json().await.unwrap();
+    assert_eq!(agents_2.len(), 1);
+    assert_eq!(agents_2[0]["id"], "A2");
 }

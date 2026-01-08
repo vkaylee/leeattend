@@ -6,7 +6,7 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use uuid::Uuid;
 
-async fn spawn_app() -> String {
+async fn spawn_app() -> (String, Uuid) {
     dotenvy::dotenv().ok();
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let db_pool = PgPoolOptions::new()
@@ -15,9 +15,22 @@ async fn spawn_app() -> String {
         .await
         .expect("Failed to connect to Postgres");
 
-    // Clean up devices before each test
-    sqlx::query("DELETE FROM devices")
-        .execute(&db_pool)
+    // Run migrations
+    sqlx::migrate!("./migrations")
+        .run(&db_pool)
+        .await
+        .expect("Failed to run migrations");
+
+    // Clean up
+    sqlx::query("DELETE FROM workspace_members").execute(&db_pool).await.unwrap();
+    sqlx::query("DELETE FROM devices").execute(&db_pool).await.unwrap();
+    sqlx::query("DELETE FROM authorized_agents").execute(&db_pool).await.unwrap();
+    sqlx::query("DELETE FROM workspaces").execute(&db_pool).await.unwrap();
+
+    // Create a test workspace
+    let workspace_id = sqlx::query_scalar("INSERT INTO workspaces (name) VALUES ($1) RETURNING id")
+        .bind("Test Workspace")
+        .fetch_one(&db_pool)
         .await
         .unwrap();
 
@@ -36,13 +49,13 @@ async fn spawn_app() -> String {
         axum::serve(listener, app).await.unwrap();
     });
 
-    format!("http://127.0.0.1:{}", port)
+    (format!("http://127.0.0.1:{}", port), workspace_id)
 }
 
 #[tokio::test]
 #[serial]
 async fn test_create_and_get_device() {
-    let address = spawn_app().await;
+    let (address, workspace_id) = spawn_app().await;
     let client = reqwest::Client::new();
 
     let body = serde_json::json!({
@@ -54,6 +67,7 @@ async fn test_create_and_get_device() {
 
     let response = client
         .post(&format!("{}/devices", address))
+        .header("X-Workspace-Id", workspace_id.to_string())
         .json(&body)
         .send()
         .await
@@ -66,6 +80,7 @@ async fn test_create_and_get_device() {
 
     let response = client
         .get(&format!("{}/devices", address))
+        .header("X-Workspace-Id", workspace_id.to_string())
         .send()
         .await
         .expect("Failed to execute request.");
@@ -78,11 +93,12 @@ async fn test_create_and_get_device() {
 #[tokio::test]
 #[serial]
 async fn test_delete_device() {
-    let address = spawn_app().await;
+    let (address, workspace_id) = spawn_app().await;
     let client = reqwest::Client::new();
 
     let response = client
         .post(&format!("{}/devices", address))
+        .header("X-Workspace-Id", workspace_id.to_string())
         .json(&serde_json::json!({
             "agent_id": "TEST_AGENT",
             "name": "To Delete",
@@ -97,6 +113,7 @@ async fn test_delete_device() {
 
     let response = client
         .delete(&format!("{}/devices/{}", address, id))
+        .header("X-Workspace-Id", workspace_id.to_string())
         .send()
         .await
         .unwrap();
@@ -105,6 +122,7 @@ async fn test_delete_device() {
 
     let response = client
         .get(&format!("{}/devices", address))
+        .header("X-Workspace-Id", workspace_id.to_string())
         .send()
         .await
         .unwrap();

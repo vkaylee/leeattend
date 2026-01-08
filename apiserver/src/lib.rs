@@ -79,6 +79,15 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/authorized-agents/:id/trust",
             put(handlers::update_agent_trust),
         )
+        // Workspace Management
+        .route(
+            "/workspaces",
+            get(handlers::get_workspaces).post(handlers::create_workspace),
+        )
+        .route(
+            "/workspaces/:ws_id/members",
+            get(handlers::get_workspace_members).post(handlers::add_workspace_member),
+        )
         .layer(cors)
         .with_state(state)
 }

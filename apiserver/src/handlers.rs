@@ -1,9 +1,10 @@
 use axum::{
+    async_trait,
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
-        Path, Query, State,
+        FromRequestParts, Path, Query, State,
     },
-    http::StatusCode,
+    http::{request::Parts, StatusCode},
     response::IntoResponse,
     Json,
 };
@@ -15,10 +16,35 @@ use uuid::Uuid;
 
 use crate::agent_manager::AgentCommand;
 use crate::models::{
-    AuthorizedAgent, CreateDeviceRequest, Device, GenericResponse, UpdateAuthorizedAgentRequest,
-    UpdateDeviceRequest,
+    AuthorizedAgent, CreateDeviceRequest,
+    CreateWorkspaceRequest, Device, GenericResponse, UpdateAuthorizedAgentRequest,
+    UpdateDeviceRequest, Workspace,
 };
 use crate::AppState;
+
+// Extractor to get workspace ID from header
+pub struct WorkspaceId(pub Uuid);
+
+#[async_trait]
+impl<S> FromRequestParts<S> for WorkspaceId
+where
+    S: Send + Sync,
+{
+    type Rejection = (StatusCode, String);
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let workspace_id_str = parts
+            .headers
+            .get("X-Workspace-Id")
+            .and_then(|h| h.to_str().ok())
+            .ok_or((StatusCode::BAD_REQUEST, "Missing X-Workspace-Id header".to_string()))?;
+
+        let workspace_id = Uuid::parse_str(workspace_id_str)
+            .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid X-Workspace-Id format".to_string()))?;
+
+        Ok(WorkspaceId(workspace_id))
+    }
+}
 
 pub async fn health_check() -> impl IntoResponse {
     let response = GenericResponse {
@@ -239,8 +265,12 @@ pub async fn send_command(
 
 // --- Device Management Handlers ---
 
-pub async fn get_devices(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    match sqlx::query_as::<_, Device>("SELECT * FROM devices ORDER BY created_at DESC")
+pub async fn get_devices(
+    State(state): State<Arc<AppState>>,
+    WorkspaceId(ws_id): WorkspaceId,
+) -> impl IntoResponse {
+    match sqlx::query_as::<_, Device>("SELECT * FROM devices WHERE workspace_id = $1 ORDER BY created_at DESC")
+        .bind(ws_id)
         .fetch_all(&state.db)
         .await
     {
@@ -251,19 +281,21 @@ pub async fn get_devices(State(state): State<Arc<AppState>>) -> impl IntoRespons
 
 pub async fn create_device(
     State(state): State<Arc<AppState>>,
+    WorkspaceId(ws_id): WorkspaceId,
     Json(req): Json<CreateDeviceRequest>,
 ) -> impl IntoResponse {
     let id = Uuid::new_v4();
     let port = req.port.unwrap_or(4370);
 
     match sqlx::query(
-        "INSERT INTO devices (id, agent_id, name, ip, port) VALUES ($1, $2, $3, $4, $5)",
+        "INSERT INTO devices (id, agent_id, name, ip, port, workspace_id) VALUES ($1, $2, $3, $4, $5, $6)",
     )
     .bind(id)
     .bind(&req.agent_id)
     .bind(&req.name)
     .bind(&req.ip)
     .bind(port)
+    .bind(ws_id)
     .execute(&state.db)
     .await
     {
@@ -278,11 +310,13 @@ pub async fn create_device(
 pub async fn update_device(
     Path(id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
+    WorkspaceId(ws_id): WorkspaceId,
     Json(req): Json<UpdateDeviceRequest>,
 ) -> impl IntoResponse {
-    // Get agent_id first for notification
-    let current_device = match sqlx::query_as::<_, Device>("SELECT * FROM devices WHERE id = $1")
+    // Get current device, restricted to workspace
+    let current_device = match sqlx::query_as::<_, Device>("SELECT * FROM devices WHERE id = $1 AND workspace_id = $2")
         .bind(id)
+        .bind(ws_id)
         .fetch_one(&state.db)
         .await
     {
@@ -296,13 +330,14 @@ pub async fn update_device(
     let is_enabled = req.is_enabled.unwrap_or(current_device.is_enabled);
 
     match sqlx::query(
-        "UPDATE devices SET name = $1, ip = $2, port = $3, is_enabled = $4 WHERE id = $5",
+        "UPDATE devices SET name = $1, ip = $2, port = $3, is_enabled = $4 WHERE id = $5 AND workspace_id = $6",
     )
     .bind(name)
     .bind(ip)
     .bind(port)
     .bind(is_enabled)
     .bind(id)
+    .bind(ws_id)
     .execute(&state.db)
     .await
     {
@@ -317,25 +352,29 @@ pub async fn update_device(
 pub async fn delete_device(
     Path(id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
+    WorkspaceId(ws_id): WorkspaceId,
 ) -> impl IntoResponse {
-    // Get agent_id first for notification
-    let agent_id: Option<String> = sqlx::query_scalar("SELECT agent_id FROM devices WHERE id = $1")
+    // Get agent_id first for notification, restricted to workspace
+    let agent_id: Option<String> = sqlx::query_scalar("SELECT agent_id FROM devices WHERE id = $1 AND workspace_id = $2")
         .bind(id)
+        .bind(ws_id)
         .fetch_optional(&state.db)
         .await
         .unwrap_or(None);
 
-    match sqlx::query("DELETE FROM devices WHERE id = $1")
+    match sqlx::query("DELETE FROM devices WHERE id = $1 AND workspace_id = $2")
         .bind(id)
+        .bind(ws_id)
         .execute(&state.db)
         .await
     {
-        Ok(_) => {
+        Ok(res) if res.rows_affected() > 0 => {
             if let Some(aid) = agent_id {
                 let _ = notify_agent_config_update(&state, &aid).await;
             }
             StatusCode::NO_CONTENT.into_response()
         }
+        Ok(_) => StatusCode::NOT_FOUND.into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
@@ -349,18 +388,20 @@ pub struct GetAgentsQueryParams {
 
 pub async fn get_authorized_agents(
     State(state): State<Arc<AppState>>,
+    WorkspaceId(ws_id): WorkspaceId,
     Query(params): Query<GetAgentsQueryParams>,
 ) -> impl IntoResponse {
     let include_inactive = params.include_inactive.unwrap_or(false);
 
     let query = if include_inactive {
-        "SELECT * FROM authorized_agents ORDER BY created_at DESC".to_string()
+        "SELECT * FROM authorized_agents WHERE workspace_id = $1 ORDER BY created_at DESC".to_string()
     } else {
-        "SELECT * FROM authorized_agents WHERE is_active = TRUE ORDER BY created_at DESC"
+        "SELECT * FROM authorized_agents WHERE workspace_id = $1 AND is_active = TRUE ORDER BY created_at DESC"
             .to_string()
     };
 
     match sqlx::query_as::<_, crate::models::AuthorizedAgent>(&query)
+        .bind(ws_id)
         .fetch_all(&state.db)
         .await
     {
@@ -371,12 +412,14 @@ pub async fn get_authorized_agents(
 
 pub async fn create_authorized_agent(
     State(state): State<Arc<AppState>>,
+    WorkspaceId(ws_id): WorkspaceId,
     Json(req): Json<crate::models::CreateAuthorizedAgentRequest>,
 ) -> impl IntoResponse {
-    match sqlx::query("INSERT INTO authorized_agents (id, name, token) VALUES ($1, $2, $3)")
+    match sqlx::query("INSERT INTO authorized_agents (id, name, token, workspace_id) VALUES ($1, $2, $3, $4)")
         .bind(&req.id)
         .bind(&req.name)
         .bind(&req.token)
+        .bind(ws_id)
         .execute(&state.db)
         .await
     {
@@ -392,11 +435,13 @@ pub async fn create_authorized_agent(
 pub async fn update_agent_trust(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
+    WorkspaceId(ws_id): WorkspaceId,
     Json(req): Json<crate::models::TrustAgentRequest>,
 ) -> impl IntoResponse {
-    match sqlx::query("UPDATE authorized_agents SET is_trusted = $1 WHERE id = $2")
+    match sqlx::query("UPDATE authorized_agents SET is_trusted = $1 WHERE id = $2 AND workspace_id = $3")
         .bind(req.is_trusted)
         .bind(&id)
+        .bind(ws_id)
         .execute(&state.db)
         .await
     {
@@ -415,9 +460,11 @@ pub async fn update_agent_trust(
 pub async fn get_authorized_agent_by_id(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
+    WorkspaceId(ws_id): WorkspaceId,
 ) -> impl IntoResponse {
-    match sqlx::query_as::<_, AuthorizedAgent>("SELECT * FROM authorized_agents WHERE id = $1")
+    match sqlx::query_as::<_, AuthorizedAgent>("SELECT * FROM authorized_agents WHERE id = $1 AND workspace_id = $2")
         .bind(id)
+        .bind(ws_id)
         .fetch_optional(&state.db)
         .await
     {
@@ -430,6 +477,7 @@ pub async fn get_authorized_agent_by_id(
 pub async fn update_authorized_agent(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
+    WorkspaceId(ws_id): WorkspaceId,
     Json(req): Json<UpdateAuthorizedAgentRequest>,
 ) -> impl IntoResponse {
     let mut query_builder: sqlx::query_builder::QueryBuilder<sqlx::Postgres> =
@@ -464,6 +512,8 @@ pub async fn update_authorized_agent(
 
     query_builder.push(" WHERE id = ");
     query_builder.push_bind(id.clone());
+    query_builder.push(" AND workspace_id = ");
+    query_builder.push_bind(ws_id);
     query_builder.push(" RETURNING *");
 
     match query_builder
@@ -494,11 +544,15 @@ pub async fn delete_authorized_agent(
     // This is a soft delete
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
+    WorkspaceId(ws_id): WorkspaceId,
 ) -> impl IntoResponse {
-    match sqlx::query("UPDATE authorized_agents SET is_active = FALSE WHERE id = $1")
-        .bind(&id)
-        .execute(&state.db)
-        .await
+    match sqlx::query(
+        "UPDATE authorized_agents SET is_active = FALSE WHERE id = $1 AND workspace_id = $2",
+    )
+    .bind(&id)
+    .bind(ws_id)
+    .execute(&state.db)
+    .await
     {
         Ok(res) if res.rows_affected() > 0 => {
             // Disconnect agent if it was active
@@ -506,6 +560,95 @@ pub async fn delete_authorized_agent(
             StatusCode::NO_CONTENT.into_response()
         }
         Ok(_) => StatusCode::NOT_FOUND.into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+// --- Workspace Management Handlers ---
+
+pub async fn get_workspaces(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    // For now, return all workspaces. In a real app, this would filter by user_id membership.
+    match sqlx::query_as::<_, Workspace>("SELECT * FROM workspaces ORDER BY created_at DESC")
+        .fetch_all(&state.db)
+        .await
+    {
+        Ok(workspaces) => Json(workspaces).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+pub async fn create_workspace(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<CreateWorkspaceRequest>,
+) -> impl IntoResponse {
+    match sqlx::query_as::<_, Workspace>("INSERT INTO workspaces (name) VALUES ($1) RETURNING *")
+        .bind(&req.name)
+        .fetch_one(&state.db)
+        .await
+    {
+        Ok(workspace) => (StatusCode::CREATED, Json(workspace)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+pub async fn get_workspace_members(
+    Path(ws_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    match sqlx::query_as::<_, crate::models::WorkspaceMember>(
+        "SELECT * FROM workspace_members WHERE workspace_id = $1",
+    )
+    .bind(ws_id)
+    .fetch_all(&state.db)
+    .await
+    {
+        Ok(members) => Json(members).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+pub async fn add_workspace_member(
+    Path(ws_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<crate::models::AddMemberRequest>,
+) -> impl IntoResponse {
+    // 1. Find user by email (or create if not exists - simplified)
+    let user_id: Uuid = match sqlx::query_scalar("SELECT id FROM users WHERE email = $1")
+        .bind(&req.email)
+        .fetch_optional(&state.db)
+        .await
+    {
+        Ok(Some(id)) => id,
+        Ok(None) => {
+            // Create a placeholder user
+            match sqlx::query_scalar(
+                "INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id",
+            )
+            .bind(&req.email)
+            .bind("placeholder")
+            .fetch_one(&state.db)
+            .await
+            {
+                Ok(id) => id,
+                Err(e) => {
+                    return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
+                }
+            }
+        }
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    };
+
+    // 2. Add to workspace
+    match sqlx::query(
+        "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+    )
+    .bind(ws_id)
+    .bind(user_id)
+    .bind(&req.role)
+    .execute(&state.db)
+    .await
+    {
+        Ok(_) => StatusCode::CREATED.into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }

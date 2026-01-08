@@ -32,6 +32,7 @@ pub struct AuthorizedAgent {
     pub last_ip: Option<String>,
     pub created_at: DateTime<Utc>,
     pub is_active: bool,
+    pub workspace_id: Uuid,
 }
 
 #[derive(Debug, Deserialize)]
@@ -46,6 +47,7 @@ pub struct CreateAuthorizedAgentRequest {
     pub id: String,
     pub name: String,
     pub token: String,
+    pub workspace_id: Option<Uuid>, // Optional during creation if we use a default or session-based ws
 }
 
 #[derive(Debug, Deserialize)]
@@ -63,6 +65,7 @@ pub struct Device {
     pub is_enabled: bool,
     pub last_status: String,
     pub created_at: DateTime<Utc>,
+    pub workspace_id: Uuid,
 }
 
 #[derive(Debug, Deserialize)]
@@ -71,6 +74,7 @@ pub struct CreateDeviceRequest {
     pub name: String,
     pub ip: String,
     pub port: Option<i32>,
+    pub workspace_id: Option<Uuid>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -79,4 +83,38 @@ pub struct UpdateDeviceRequest {
     pub ip: Option<String>,
     pub port: Option<i32>,
     pub is_enabled: Option<bool>,
+}
+
+// --- Workspace Management Models ---
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct Workspace {
+    pub id: Uuid,
+    pub name: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateWorkspaceRequest {
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct User {
+    pub id: Uuid,
+    pub email: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct WorkspaceMember {
+    pub workspace_id: Uuid,
+    pub user_id: Uuid,
+    pub role: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AddMemberRequest {
+    pub email: String,
+    pub role: String,
 }

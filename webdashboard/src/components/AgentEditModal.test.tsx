@@ -18,6 +18,7 @@ const mockAgent: api.AuthorizedAgent = {
   token: 'secret123',
   is_trusted: true,
   is_active: true,
+  workspace_id: 'ws-123',
   created_at: new Date().toISOString(),
 };
 
