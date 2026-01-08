@@ -50,11 +50,16 @@ describe("useAuthorizedAgents hook", () => {
       wrapper: createWrapper(),
     });
 
-    // Toggle includeInactive
-    const { setIncludeInactive } = result.current;
-    await waitFor(() => setIncludeInactive(true));
+    // 1. Initial call should be with false
+    await waitFor(() => expect(api.fetchAuthorizedAgents).toHaveBeenCalledWith(false));
 
-    expect(api.fetchAuthorizedAgents).toHaveBeenCalledWith(true);
+    // 2. Toggle includeInactive
+    result.current.setIncludeInactive(true);
+
+    // 3. Wait for the re-fetch with true
+    await waitFor(() => {
+      expect(api.fetchAuthorizedAgents).toHaveBeenCalledWith(true);
+    });
   });
 
   it("calls updateAuthorizedAgent when restoring an agent", async () => {
