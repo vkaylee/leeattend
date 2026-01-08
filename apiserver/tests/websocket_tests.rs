@@ -49,9 +49,16 @@ async fn spawn_app() -> (String, Uuid, Arc<AppState>) {
         .unwrap();
 
     let agent_manager = AgentManager::new();
-    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: db_pool.clone() });
-    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: db_pool.clone() });
-    let agent_service = Arc::new(apiserver::services::AgentService::new(agent_repo.clone(), agent_manager.clone()));
+    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository {
+        pool: db_pool.clone(),
+    });
+    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository {
+        pool: db_pool.clone(),
+    });
+    let agent_service = Arc::new(apiserver::services::AgentService::new(
+        agent_repo.clone(),
+        agent_manager.clone(),
+    ));
 
     let state = Arc::new(AppState {
         agent_manager,
@@ -60,7 +67,6 @@ async fn spawn_app() -> (String, Uuid, Arc<AppState>) {
         workspace_repo,
         agent_service,
     });
-
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await

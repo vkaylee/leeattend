@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { User as UserIcon, Mail, UserCircle, Save, Calendar } from 'lucide-react';
+import { User as UserIcon, Mail, UserCircle, Save, Calendar, Lock, ShieldCheck } from 'lucide-react';
 import { useProfile } from '@/hooks/use-profile';
+import { changePassword, clearAuthSession } from '@/lib/api';
+import { useNavigate } from 'react-router-dom';
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const { profile, isLoading, updateProfile, isUpdating } = useProfile();
   const [formData, setFormData] = useState({
     full_name: '',
@@ -128,7 +131,113 @@ export default function ProfilePage() {
             </form>
           </div>
         </div>
+
+        {/* Security Section */}
+        <div className="mt-8 bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">Bảo mật</h2>
+                <p className="text-sm text-slate-500">Thay đổi mật khẩu đăng nhập của bạn</p>
+              </div>
+            </div>
+
+            <ChangePasswordForm />
+          </div>
+        </div>
       </div>
     </div>
+  );
+}
+
+function ChangePasswordForm() {
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    old_password: '',
+    new_password: '',
+    confirm_password: ''
+  });
+
+  async function handlePasswordSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (formData.new_password !== formData.confirm_password) {
+      alert('Mật khẩu mới không khớp.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await changePassword({
+        old_password: formData.old_password,
+        new_password: formData.new_password
+      });
+      alert('Đổi mật khẩu thành công. Vui lòng đăng nhập lại.');
+      clearAuthSession();
+      navigate('/login');
+    } catch (e: any) {
+      alert(e.message || 'Lỗi khi đổi mật khẩu.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-md">
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Mật khẩu hiện tại</label>
+        <div className="relative">
+          <input 
+            type="password"
+            required
+            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500 outline-none transition-all pr-10"
+            value={formData.old_password}
+            onChange={e => setFormData({...formData, old_password: e.target.value})}
+          />
+          <Lock className="absolute right-3 top-3.5 w-4 h-4 text-slate-300" />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Mật khẩu mới</label>
+        <div className="relative">
+          <input 
+            type="password"
+            required
+            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500 outline-none transition-all pr-10"
+            value={formData.new_password}
+            onChange={e => setFormData({...formData, new_password: e.target.value})}
+          />
+          <Lock className="absolute right-3 top-3.5 w-4 h-4 text-slate-300" />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Xác nhận mật khẩu mới</label>
+        <div className="relative">
+          <input 
+            type="password"
+            required
+            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500 outline-none transition-all pr-10"
+            value={formData.confirm_password}
+            onChange={e => setFormData({...formData, confirm_password: e.target.value})}
+          />
+          <Lock className="absolute right-3 top-3.5 w-4 h-4 text-slate-300" />
+        </div>
+      </div>
+
+      <div className="pt-2">
+        <button 
+          type="submit"
+          disabled={isSubmitting}
+          className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center gap-2 disabled:opacity-50"
+        >
+          {isSubmitting ? 'Đang xử lý...' : 'Cập nhật mật khẩu'}
+        </button>
+      </div>
+    </form>
   );
 }

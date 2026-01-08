@@ -24,23 +24,29 @@ leeattend/
 └── plans/             # Feature implementation plans
 ```
 
-## 🛠 Key Components
+### 🛠 Core Components
 
-### 1. API Server (Rust)
-- **Handlers**: Chứa logic xử lý API endpoints.
-- **Services**: Chứa logic nghiệp vụ chính (Domain Logic).
-- **Repositories**: Trừu tượng hóa truy cập Database (SQLx).
-- **Agent Manager**: Quản lý kết nối WebSocket và điều phối lệnh tới Agents.
+1.  **Central API Server (Rust/Axum)**:
+    - Auth: JWT-based authentication & RBAC.
+    - Workspace: Organizational isolation.
+    - Agent Manager: WebSocket handler for remote agents.
+    - Discovery: Dynamic port selection (3000+).
+2.  **Web Dashboard (React/Vite)**:
+    - Modern UI with Tailwind CSS & Lucide icons.
+    - Onboarding & Workspace management flows.
+    - Real-time agent status via WebSocket proxy.
+    - Discovery: Auto-proxy configuration based on `.api_port`.
+3.  **Local Agent (Python/PySide6)**:
+    - Multi-threaded worker for ZK fingerprint devices.
+    - WebSocket tunnel to Central Server.
+    - Memory-safe event queue & auto-retry logic.
 
-### 2. Web Dashboard (React)
-- **React Hooks**: Quản lý Server State (fetching/caching) qua React Query.
-- **Workspace Switcher**: Chuyển đổi ngữ cảnh tổ chức.
-- **Role Management**: Quản lý quyền hạn thành viên (Temporal RBAC).
-- **Agent/Device Management**: CRUD giao diện cho hạ tầng phần cứng.
-
-### 3. Agent (Python)
-- **Device Manager**: Giao tiếp trực tiếp với máy chấm công ZKTeco.
-- **Sync Worker**: Đảm bảo dữ liệu được đẩy lên Central Server an toàn.
+### 🚦 Current Status
+- [x] JWT Authentication & Security (Change Password).
+- [x] Workspace & Member management (RBAC).
+- [x] Real-time Agent/Device monitoring.
+- [x] Dynamic Dev Environment Setup.
+- [ ] Production Build & Deployment scripts (NSSM/Service).
 
 ### 🛠️ Debugging & Automation Tools
 

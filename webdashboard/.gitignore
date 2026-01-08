@@ -23,6 +23,7 @@ yarn-error.log*
 # env files
 .env*.local
 .env
+.web_port
 
 # tauri
 src-tauri/target

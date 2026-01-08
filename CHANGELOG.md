@@ -3,21 +3,25 @@
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
 ## [Unreleased]
+
 ### Added
-- **Repository Pattern & DI (Rust)**: Tái cấu trúc `AgentService` sang mô hình instance-based với Dependency Injection. Toàn bộ logic DB được tách biệt qua các Repositories (`AgentRepository`, `WorkspaceRepository`) giúp code sạch hơn và dễ dàng Mock khi viết unit test.
-- **SQLx Repositories**: Triển khai cụ thể `SqlxAgentRepository` và `SqlxWorkspaceRepository` sử dụng SQLx, tối ưu hóa hiệu suất truy vấn và quản lý connection pool tập trung.
-- **Server State Management (React Query)**: Tích hợp `@tanstack/react-query` vào Web Dashboard. Toàn bộ logic fetching, caching và mutation được chuyển sang hệ thống Custom Hooks (`useAuthorizedAgents`, `useDevices`, `useProfile`, `useWorkspaceMembers`).
-- **Domain Hooks**: Xây dựng bộ thư viện hooks chuyên biệt cho từng domain, giúp giảm 50% code boilerplate tại các trang Dashboard, Agents, Devices và Profile.
-- **Test Coverage Boost**: Nâng tỷ lệ test coverage lên trên 80% cho các thành phần quan trọng của Frontend (Hooks, Guards).
-- **Workspace Integration Tests**: Bổ sung bộ test suite toàn diện cho quản lý Workspace và thành viên trên Backend.
-- **Auto-refetching**: Các trang Dashboard và Devices giờ đây tự động cập nhật trạng thái online/offline của Agent mỗi 30 giây mà không cần reload trang.
+- **Authentication System**: Full JWT flow (Register, Login, Refresh Token, Change Password).
+- **Workspace Management**: Create organizations, invite members, and manage roles.
+- **RBAC Support**: Basic role-based access control (Owner, Admin, Member) and custom roles.
+- **Dynamic Port Selection**: Backend and Frontend now automatically find available ports (3000-3100 for API, 5173-5273 for Web) to avoid `EADDRINUSE` errors.
+- **Port Discovery**: Automated `.api_port` and `.web_port` files for tool integration (Playwright, CLI).
+- **Onboarding Flow**: New user experience for creating their first workspace.
+- **Profile Page**: User details management and security settings.
 
 ### Changed
-- **Webdashboard Architecture**: Di chuyển toàn bộ Webdashboard từ Next.js (App Router) sang **Vite + React SPA**. Loại bỏ hoàn toàn sự phụ thuộc vào Next.js runtime, giúp giảm dung lượng bundle và tăng tốc độ phát triển.
-- **Routing Engine**: Chuyển sang sử dụng `react-router-dom` (v7) thay cho Next.js File-system Routing.
-- **Styling**: Nâng cấp lên **Tailwind CSS v4** và chuẩn hóa font chữ Inter qua `@fontsource/inter`.
-- **API Integration**: Cập nhật cách truy cập biến môi trường sang style của Vite (`import.meta.env.VITE_`).
-- **Database Schema**: Cập nhật bảng `authorized_agents` và `devices` để hỗ trợ `workspace_id`. Thêm các bảng `workspaces`, `users` và `workspace_members`.
+- Refactored Frontend `LoginPage` to use actual backend authentication.
+- Updated Playwright configuration to dynamically detect target ports.
+- Enhanced `AuthGuard` and `WorkspaceGuard` for more robust navigation.
+
+### Fixed
+- Fixed port collision issues in development environments.
+- Corrected API path prefixing in testing environments.
+
 
 ## [3.3.0] - 2026-01-07
 ### Improved

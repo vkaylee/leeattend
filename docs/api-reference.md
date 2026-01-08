@@ -3,16 +3,34 @@
 ## 🚀 API Server (Central - Rust)
 Base URL: `http://localhost:3000`
 
-### 0. Authentication & Context (New)
+### 0. Authentication & Context (Updated)
 
-Trong môi trường hiện tại, hệ thống sử dụng các header sau để xác định danh tính và phạm vi dữ liệu:
-- `X-User-Id`: UUID của người dùng (Global Identity).
-- `X-Workspace-Id`: UUID của workspace hiện tại.
+Hệ thống sử dụng JWT (JSON Web Token) để xác thực người dùng.
 
-Mọi yêu cầu truy cập tài nguyên (Agents, Devices, Members) đều được kiểm tra:
-1. Người dùng có tồn tại không?
-2. Người dùng có là thành viên của Workspace không?
-3. Người dùng có đủ quyền (Role) để thực hiện thao tác không?
+- **Access Token**: Gửi trong header `Authorization: Bearer <token>`. Hết hạn sau 1 giờ.
+- **Refresh Token**: Dùng để lấy Access Token mới. Hết hạn sau 7 ngày.
+- **X-Workspace-Id**: Header bắt buộc cho các yêu cầu liên quan đến tài nguyên cụ thể của tổ chức.
+
+#### POST /auth/register
+Đăng ký tài khoản người dùng mới.
+- **Request**: `{ "email": "...", "password": "...", "full_name": "..." }`
+- **Response (200)**: `{ "access_token": "...", "refresh_token": "...", "user_id": "..." }`
+
+#### POST /auth/login
+Đăng nhập để lấy token.
+- **Request**: `{ "email": "...", "password": "..." }`
+- **Response (200)**: `{ "access_token": "...", "refresh_token": "...", "user_id": "..." }`
+
+#### POST /auth/refresh
+Làm mới Access Token.
+- **Request**: `{ "refresh_token": "..." }`
+- **Response (200)**: `{ "access_token": "...", "refresh_token": "..." }`
+
+#### POST /auth/change-password
+Đổi mật khẩu người dùng hiện tại.
+- **Headers**: `Authorization: Bearer <token>`
+- **Request**: `{ "old_password": "...", "new_password": "..." }`
+- **Response (200 OK)**: "Password changed successfully"
 
 ---
 

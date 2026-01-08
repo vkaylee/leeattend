@@ -16,15 +16,15 @@ use uuid::Uuid;
 
 use crate::agent_manager::AgentCommand;
 use crate::models::{
-    AddMemberRequest, AssignRoleRequest, AuthResponse, AuthorizedAgent,
+    AddMemberRequest, AssignRoleRequest, AuthResponse, AuthorizedAgent, ChangePasswordRequest,
     CreateAuthorizedAgentRequest, CreateDeviceRequest, CreateWorkspaceRequest, Device,
-    GenericResponse, LoginRequest, MemberExtraRole, RefreshRequest, UpdateAuthorizedAgentRequest,
-    UpdateDeviceRequest, User, Workspace, RegisterRequest,
+    GenericResponse, LoginRequest, MemberExtraRole, RefreshRequest, RegisterRequest,
+    UpdateAuthorizedAgentRequest, UpdateDeviceRequest, UpdateUserRequest, User, Workspace,
 };
-use chrono::Utc;
 use crate::services::auth_service::AuthService;
 use crate::services::WorkspaceService;
 use crate::{AppState, UserId};
+use chrono::Utc;
 
 // --- Extractors ---
 
@@ -100,9 +100,9 @@ where
             ))?;
 
         // 2. Fetch Active Extra Roles
-        // Note: For complex queries with conditions like expires_at > NOW(), 
+        // Note: For complex queries with conditions like expires_at > NOW(),
         // we should add a specific method to repository trait or keep it simple if it's very specific.
-        // Let's assume find_extra_roles returns all, and we filter here, 
+        // Let's assume find_extra_roles returns all, and we filter here,
         // OR better, add a specific method to WorkspaceRepository for active roles.
         let all_extra_roles = app_state
             .workspace_repo
@@ -191,10 +191,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                 if let (Some(id), Some(token)) =
                                     (v["agent_id"].as_str(), v["token"].as_str())
                                 {
-                                    match state_clone
-                                        .agent_service
-                                        .authorize_agent(id, token)
-                                        .await
+                                    match state_clone.agent_service.authorize_agent(id, token).await
                                     {
                                         Ok(Some(_agent)) => {
                                             agent_id = id.to_string();
@@ -681,8 +678,12 @@ pub async fn get_member_roles(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> impl IntoResponse {
-    match WorkspaceService::get_member_roles(state.workspace_repo.as_ref(), ctx.workspace_id, user_id)
-        .await
+    match WorkspaceService::get_member_roles(
+        state.workspace_repo.as_ref(),
+        ctx.workspace_id,
+        user_id,
+    )
+    .await
     {
         Ok((primary, extra)) => Json(serde_json::json!({
             "primary": primary,
@@ -796,59 +797,81 @@ pub async fn update_user_profile(
 pub async fn get_dev_super_user(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     use serde_json::json;
     tracing::info!("Dev fast login requested");
-    
+
     // 1. Thử lấy user admin mặc định (từ seed)
-    let user_id: Uuid = match sqlx::query_scalar::<_, Uuid>("SELECT id FROM users WHERE email = 'admin@leeattend.com' LIMIT 1")
-        .fetch_one(&state.db)
-        .await {
-            Ok(id) => id,
-            Err(_) => {
-                // Nếu không thấy admin@, lấy đại bất kỳ user nào
-                match sqlx::query_scalar::<_, Uuid>("SELECT id FROM users LIMIT 1")
-                    .fetch_one(&state.db)
-                    .await {
-                        Ok(id) => id,
-                        Err(e) => {
-                            tracing::error!("Dev login failed: No users found in DB: {}", e);
-                            return (StatusCode::NOT_FOUND, "No users found in database. Run migrations or seed your DB.").into_response();
-                        }
-                    }
+    let user_id: Uuid = match sqlx::query_scalar::<_, Uuid>(
+        "SELECT id FROM users WHERE email = 'admin@leeattend.com' LIMIT 1",
+    )
+    .fetch_one(&state.db)
+    .await
+    {
+        Ok(id) => id,
+        Err(_) => {
+            // Nếu không thấy admin@, lấy đại bất kỳ user nào
+            match sqlx::query_scalar::<_, Uuid>("SELECT id FROM users LIMIT 1")
+                .fetch_one(&state.db)
+                .await
+            {
+                Ok(id) => id,
+                Err(e) => {
+                    tracing::error!("Dev login failed: No users found in DB: {}", e);
+                    return (
+                        StatusCode::NOT_FOUND,
+                        "No users found in database. Run migrations or seed your DB.",
+                    )
+                        .into_response();
+                }
             }
-        };
+        }
+    };
 
     // 2. Lấy workspace đầu tiên mà user này là thành viên
     let workspace_id: Uuid = match sqlx::query_scalar::<_, Uuid>(
-        "SELECT workspace_id FROM workspace_members WHERE user_id = $1 LIMIT 1"
+        "SELECT workspace_id FROM workspace_members WHERE user_id = $1 LIMIT 1",
     )
     .bind(user_id)
     .fetch_one(&state.db)
-    .await {
+    .await
+    {
         Ok(id) => id,
         Err(_) => {
             // Nếu user đầu tiên không có workspace, thử tìm bất kỳ workspace nào
-            match sqlx::query_scalar::<_, Uuid>("SELECT workspace_id FROM workspace_members LIMIT 1")
-                .fetch_one(&state.db)
-                .await {
-                    Ok(ws_id) => ws_id,
-                    Err(e) => {
-                        tracing::error!("Dev login failed: No workspace memberships found: {}", e);
-                        return (StatusCode::NOT_FOUND, "No workspace memberships found. Please invite user to a workspace.").into_response();
-                    }
+            match sqlx::query_scalar::<_, Uuid>(
+                "SELECT workspace_id FROM workspace_members LIMIT 1",
+            )
+            .fetch_one(&state.db)
+            .await
+            {
+                Ok(ws_id) => ws_id,
+                Err(e) => {
+                    tracing::error!("Dev login failed: No workspace memberships found: {}", e);
+                    return (
+                        StatusCode::NOT_FOUND,
+                        "No workspace memberships found. Please invite user to a workspace.",
+                    )
+                        .into_response();
                 }
-        },
+            }
+        }
     };
 
-    tracing::info!("Dev login successful: user={}, workspace={}", user_id, workspace_id);
+    tracing::info!(
+        "Dev login successful: user={}, workspace={}",
+        user_id,
+        workspace_id
+    );
 
     // Sinh JWT cho dev mode
-    let access_token = AuthService::generate_token(user_id, &state.jwt_secret, 60 * 24 * 7).unwrap_or_default();
+    let access_token =
+        AuthService::generate_token(user_id, &state.jwt_secret, 60 * 24 * 7).unwrap_or_default();
 
     Json(json!({
         "user_id": user_id,
         "workspace_id": workspace_id,
         "access_token": access_token,
         "refresh_token": "dev_refresh_token"
-    })).into_response()
+    }))
+    .into_response()
 }
 
 // --- Auth Handlers ---
@@ -858,14 +881,15 @@ pub async fn register(
     Json(req): Json<RegisterRequest>,
 ) -> impl IntoResponse {
     // 1. Check if email exists
-    let exists: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)")
-        .bind(&req.email)
-        .fetch_one(&state.db)
-        .await
-    {
-        Ok(e) => e,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    };
+    let exists: bool =
+        match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)")
+            .bind(&req.email)
+            .fetch_one(&state.db)
+            .await
+        {
+            Ok(e) => e,
+            Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        };
 
     if exists {
         return (StatusCode::CONFLICT, "Email already exists").into_response();
@@ -972,6 +996,63 @@ pub async fn refresh_token(
     }
 }
 
+pub async fn change_password(
+    State(state): State<Arc<AppState>>,
+    UserId(user_id): UserId,
+    Json(req): Json<ChangePasswordRequest>,
+) -> impl IntoResponse {
+    // 1. Lấy password_hash hiện tại
+    let current_hash: String =
+        match sqlx::query_scalar("SELECT password_hash FROM users WHERE id = $1")
+            .bind(user_id)
+            .fetch_one(&state.db)
+            .await
+        {
+            Ok(Some(h)) => h,
+            Ok(None) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "User has no password set",
+                )
+                    .into_response()
+            }
+            Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        };
+
+    // 2. Xác thực mật khẩu cũ
+    if !AuthService::verify_password(&req.old_password, &current_hash) {
+        return (StatusCode::UNAUTHORIZED, "Mật khẩu cũ không chính xác").into_response();
+    }
+
+    // 3. Hash mật khẩu mới
+    let new_hash = match AuthService::hash_password(&req.new_password) {
+        Ok(h) => h,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    };
+
+    // 4. Cập nhật DB
+    if let Err(e) = sqlx::query("UPDATE users SET password_hash = $1 WHERE id = $2")
+        .bind(new_hash)
+        .bind(user_id)
+        .execute(&state.db)
+        .await
+    {
+        return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+    }
+
+    // 5. Thu hồi tất cả session (Bắt buộc login lại)
+    let _ = sqlx::query("DELETE FROM sessions WHERE user_id = $1")
+        .bind(user_id)
+        .execute(&state.db)
+        .await;
+
+    (
+        StatusCode::OK,
+        "Mật khẩu đã được thay đổi. Vui lòng đăng nhập lại.",
+    )
+        .into_response()
+}
+
 pub async fn logout(
     State(state): State<Arc<AppState>>,
     Json(req): Json<RefreshRequest>,
@@ -979,5 +1060,46 @@ pub async fn logout(
     match AuthService::revoke_session(&state.db, &req.refresh_token).await {
         Ok(_) => StatusCode::OK.into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    }
+}
+
+pub async fn get_me(
+    State(state): State<Arc<AppState>>,
+    UserId(user_id): UserId,
+) -> impl IntoResponse {
+    match sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
+        .bind(user_id)
+        .fetch_one(&state.db)
+        .await
+    {
+        Ok(user) => Json(user).into_response(),
+        Err(e) => (StatusCode::NOT_FOUND, e.to_string()).into_response(),
+    }
+}
+
+pub async fn update_me(
+    State(state): State<Arc<AppState>>,
+    UserId(user_id): UserId,
+    Json(req): Json<UpdateUserRequest>,
+) -> impl IntoResponse {
+    if let Err(e) = sqlx::query(
+        "UPDATE users SET full_name = COALESCE($1, full_name), avatar_url = COALESCE($2, avatar_url), bio = COALESCE($3, bio) WHERE id = $4"
+    )
+    .bind(req.full_name)
+    .bind(req.avatar_url)
+    .bind(req.bio)
+    .bind(user_id)
+    .execute(&state.db)
+    .await {
+        return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+    }
+
+    match sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
+        .bind(user_id)
+        .fetch_one(&state.db)
+        .await
+    {
+        Ok(user) => Json(user).into_response(),
+        Err(e) => (StatusCode::NOT_FOUND, e.to_string()).into_response(),
     }
 }

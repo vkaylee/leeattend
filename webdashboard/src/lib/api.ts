@@ -53,6 +53,17 @@ export interface Workspace {
   created_at: string;
 }
 
+export interface UpdateUserRequest {
+  full_name?: string;
+  avatar_url?: string;
+  bio?: string;
+}
+
+export interface ChangePasswordRequest {
+  old_password: string;
+  new_password: string;
+}
+
 export interface WorkspaceMember {
   workspace_id: string;
   user_id: string;
@@ -242,6 +253,18 @@ export async function updateMe(data: Partial<User>): Promise<User> {
   });
   if (!response.ok) throw new Error('Failed to update profile');
   return response.json();
+}
+
+export async function changePassword(data: ChangePasswordRequest): Promise<string> {
+  const response = await apiFetch(`${API_BASE_URL}/auth/change-password`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || 'Failed to change password');
+  }
+  return response.text();
 }
 
 export async function fetchUsers(): Promise<User[]> {

@@ -1,8 +1,8 @@
-use uuid::Uuid;
-use crate::models::AuthorizedAgent;
 use crate::agent_manager::{AgentCommand, AgentManager};
+use crate::models::AuthorizedAgent;
 use crate::repositories::AgentRepository;
 use std::sync::Arc;
+use uuid::Uuid;
 
 pub struct AgentService {
     repo: Arc<dyn AgentRepository>,
@@ -42,7 +42,11 @@ impl AgentService {
             .map_err(|e| e.to_string())
     }
 
-    pub async fn authorize_agent(&self, id: &str, token: &str) -> Result<Option<AuthorizedAgent>, String> {
+    pub async fn authorize_agent(
+        &self,
+        id: &str,
+        token: &str,
+    ) -> Result<Option<AuthorizedAgent>, String> {
         let agent = self.repo.find_by_id(id).await?;
 
         if let Some(ref a) = agent {
@@ -117,7 +121,9 @@ mod tests {
         let manager = AgentManager::new();
         let service = AgentService::new(repo, manager);
 
-        let res = service.authorize_agent("trusted_agent", "valid_token").await;
+        let res = service
+            .authorize_agent("trusted_agent", "valid_token")
+            .await;
         assert!(res.is_ok());
         assert!(res.unwrap().is_some());
     }
@@ -128,7 +134,9 @@ mod tests {
         let manager = AgentManager::new();
         let service = AgentService::new(repo, manager);
 
-        let res = service.authorize_agent("trusted_agent", "wrong_token").await;
+        let res = service
+            .authorize_agent("trusted_agent", "wrong_token")
+            .await;
         assert!(res.is_err());
         assert_eq!(res.err().unwrap(), "INVALID_TOKEN");
     }
@@ -139,7 +147,9 @@ mod tests {
         let manager = AgentManager::new();
         let service = AgentService::new(repo, manager);
 
-        let res = service.authorize_agent("untrusted_agent", "valid_token").await;
+        let res = service
+            .authorize_agent("untrusted_agent", "valid_token")
+            .await;
         assert!(res.is_err());
         assert_eq!(res.err().unwrap(), "AGENT_NOT_TRUSTED");
     }

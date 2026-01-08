@@ -7,12 +7,12 @@ test.describe('Members UI', () => {
     // If we rely on real backend, we need to ensure we are logged in.
     // Since we are running against real dev server, we can use the UI login flow.
 
-    await page.goto('http://localhost:5173/login');
+    await page.goto('/login');
     
     // Check if we are already logged in (redirected to /)
-    if (page.url() !== 'http://localhost:5173/') {
+    if (page.url().endsWith('/login')) {
         await page.click('button:has-text("Đăng nhập nhanh")');
-        await page.waitForURL('http://localhost:5173/');
+        await expect(page).toHaveURL('/');
     }
 
     // 2. Navigate to Members Page

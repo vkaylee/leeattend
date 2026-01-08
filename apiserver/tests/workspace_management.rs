@@ -24,7 +24,11 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
     let factory = TestFactory::new(db_pool.clone());
     factory.cleanup().await;
 
-    let user_id = factory.user().with_email("ws_test@example.com").create().await;
+    let user_id = factory
+        .user()
+        .with_email("ws_test@example.com")
+        .create()
+        .await;
     let workspace_id = factory
         .workspace()
         .with_name("Base Workspace")
@@ -32,9 +36,16 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
         .await;
 
     let agent_manager = AgentManager::new();
-    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: db_pool.clone() });
-    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: db_pool.clone() });
-    let agent_service = Arc::new(apiserver::services::AgentService::new(agent_repo.clone(), agent_manager.clone()));
+    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository {
+        pool: db_pool.clone(),
+    });
+    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository {
+        pool: db_pool.clone(),
+    });
+    let agent_service = Arc::new(apiserver::services::AgentService::new(
+        agent_repo.clone(),
+        agent_manager.clone(),
+    ));
 
     let state = Arc::new(AppState {
         agent_manager,
@@ -92,7 +103,9 @@ async fn test_workspace_creation_and_membership() {
 
     assert_eq!(response.status(), StatusCode::OK);
     let members: Vec<serde_json::Value> = response.json().await.unwrap();
-    assert!(members.iter().any(|m| m["user_id"] == user_id.to_string() && m["role"] == "owner"));
+    assert!(members
+        .iter()
+        .any(|m| m["user_id"] == user_id.to_string() && m["role"] == "owner"));
 }
 
 #[tokio::test]

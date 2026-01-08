@@ -111,27 +111,27 @@ pub struct User {
     pub password_hash: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RegisterRequest {
     pub email: String,
     pub password: String,
     pub full_name: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AuthResponse {
     pub access_token: String,
     pub refresh_token: String,
     pub user: User,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RefreshRequest {
     pub refresh_token: String,
 }
@@ -141,6 +141,12 @@ pub struct UpdateUserRequest {
     pub full_name: Option<String>,
     pub avatar_url: Option<String>,
     pub bio: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ChangePasswordRequest {
+    pub old_password: String,
+    pub new_password: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]

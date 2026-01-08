@@ -3,11 +3,11 @@ import { test, expect } from '@playwright/test';
 test.describe('Registration Flow', () => {
   test('should register a new user and login', async ({ page }) => {
     // 1. Go to Login
-    await page.goto('http://localhost:5173/login');
+    await page.goto('/login');
     
     // 2. Click Sign up
     await page.click('a[href="/register"]');
-    await expect(page).toHaveURL('http://localhost:5173/register');
+    await expect(page).toHaveURL('/register');
     await expect(page.locator('h2')).toContainText('Create Account');
 
     // 3. Fill Form

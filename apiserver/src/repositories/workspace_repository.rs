@@ -6,7 +6,8 @@ use uuid::Uuid;
 #[async_trait]
 pub trait WorkspaceRepository: Send + Sync {
     async fn create_workspace(&self, name: &str) -> Result<Workspace, String>;
-    async fn add_member(&self, workspace_id: Uuid, user_id: Uuid, role: &str) -> Result<(), String>;
+    async fn add_member(&self, workspace_id: Uuid, user_id: Uuid, role: &str)
+        -> Result<(), String>;
     async fn find_primary_role(
         &self,
         workspace_id: Uuid,
@@ -40,7 +41,12 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         Ok(ws)
     }
 
-    async fn add_member(&self, workspace_id: Uuid, user_id: Uuid, role: &str) -> Result<(), String> {
+    async fn add_member(
+        &self,
+        workspace_id: Uuid,
+        user_id: Uuid,
+        role: &str,
+    ) -> Result<(), String> {
         sqlx::query(
             "INSERT INTO workspace_members (workspace_id, user_id, role, created_at, updated_at) 
              VALUES ($1, $2, $3, NOW(), NOW())",

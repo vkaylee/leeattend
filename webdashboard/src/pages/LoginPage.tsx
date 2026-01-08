@@ -4,13 +4,45 @@ import { fetchDevSuperUser, setCurrentUserId, setCurrentWorkspaceId, getCurrentU
 import { useState } from 'react';
 
 export default function LoginPage() {
-  const userId = getCurrentUserId();
-  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect if already logged in
   if (userId) {
     return <Navigate to="/" replace />;
   }
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAccessToken(data.access_token);
+        setRefreshToken(data.refresh_token);
+        setCurrentUserId(data.user_id);
+        // We don't have a default workspace here, the user will be redirected to home 
+        // and if they don't have a workspace, the App.tsx should handle it.
+        navigate('/', { replace: true });
+        window.location.reload();
+      } else {
+        const msg = await response.text();
+        setError(msg || 'Email hoặc mật khẩu không đúng');
+      }
+    } catch (error) {
+      setError('Lỗi kết nối server');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleFastLogin = async () => {
     try {
@@ -63,7 +95,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <form className="mt-8 space-y-6" action="#" method="POST">
+          <form className="mt-8 space-y-6" onSubmit={handleLogin}>
             <div className="rounded-md shadow-sm -space-y-px">
               <div>
                 <label htmlFor="email-address" className="sr-only">Email address</label>
@@ -73,6 +105,8 @@ export default function LoginPage() {
                   type="email"
                   autoComplete="email"
                   required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                   placeholder="Email address"
                 />
@@ -85,6 +119,8 @@ export default function LoginPage() {
                   type="password"
                   autoComplete="current-password"
                   required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                   placeholder="Password"
                 />
@@ -94,9 +130,10 @@ export default function LoginPage() {
             <div>
               <button
                 type="submit"
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+                disabled={isSubmitting}
+                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:opacity-50"
               >
-                Đăng nhập (Coming Soon)
+                {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
               </button>
             </div>
 

@@ -1,6 +1,5 @@
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
 use sqlx::postgres::PgPoolOptions;
-use std::net::SocketAddr;
 use std::sync::Arc;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -35,9 +34,14 @@ async fn main() {
     // Initialize AppState
     let agent_manager = AgentManager::new();
     let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: pool.clone() });
-    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
-    let agent_service = Arc::new(apiserver::services::AgentService::new(agent_repo.clone(), agent_manager.clone()));
-    let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "dev_secret_key_leeattend_2026".to_string());
+    let workspace_repo =
+        Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+    let agent_service = Arc::new(apiserver::services::AgentService::new(
+        agent_repo.clone(),
+        agent_manager.clone(),
+    ));
+    let jwt_secret =
+        std::env::var("JWT_SECRET").unwrap_or_else(|_| "dev_secret_key_leeattend_2026".to_string());
 
     let state = Arc::new(AppState {
         agent_manager,
@@ -53,17 +57,34 @@ async fn main() {
 
     // Read host and port from environment variables
     let host = std::env::var("API_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
-    let port = std::env::var("API_PORT")
+    let preferred_port = std::env::var("API_PORT")
         .unwrap_or_else(|_| "3000".to_string())
         .parse::<u16>()
         .unwrap_or(3000);
 
-    let addr_str = format!("{}:{}", host, port);
-    let addr: SocketAddr = addr_str.parse().expect("Invalid address format");
-    tracing::info!("listening on {}", addr);
+    // Try to bind to the preferred port, or find another one if it's busy
+    let listener = {
+        let mut listener = None;
+        let max_port = preferred_port + 100; // Try up to 100 next ports
+        
+        for port in preferred_port..max_port {
+            let addr_str = format!("{}:{}", host, port);
+            match tokio::net::TcpListener::bind(&addr_str).await {
+                Ok(l) => {
+                    listener = Some(l);
+                    break;
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
+                    tracing::warn!("Port {} is already in use, trying next one...", port);
+                    continue;
+                }
+                Err(e) => panic!("Failed to bind to {}: {}", addr_str, e),
+            }
+        }
+        
+        listener.expect("Could not find an available port in the range 3000-3100. Throwing exception.")
+    };
 
-    // Start the server with graceful shutdown
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     let actual_addr = listener.local_addr().unwrap();
     tracing::info!("Actual listening on {}", actual_addr);
 

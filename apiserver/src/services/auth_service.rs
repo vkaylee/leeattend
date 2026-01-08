@@ -16,7 +16,11 @@ pub struct Claims {
 pub struct AuthService;
 
 impl AuthService {
-    pub fn generate_token(user_id: Uuid, secret: &str, duration_mins: i64) -> Result<String, String> {
+    pub fn generate_token(
+        user_id: Uuid,
+        secret: &str,
+        duration_mins: i64,
+    ) -> Result<String, String> {
         let expiration = Utc::now()
             .checked_add_signed(Duration::minutes(duration_mins))
             .expect("valid timestamp")
@@ -62,7 +66,11 @@ impl AuthService {
         Ok(token)
     }
 
-    pub async fn refresh_session(db: &PgPool, refresh_token: &str, secret: &str) -> Result<AuthResponse, String> {
+    pub async fn refresh_session(
+        db: &PgPool,
+        refresh_token: &str,
+        secret: &str,
+    ) -> Result<AuthResponse, String> {
         let session: (Uuid, Uuid) = sqlx::query_as("SELECT id, user_id FROM sessions WHERE token = $1 AND expires_at > NOW() AND revoked_at IS NULL")
             .bind(refresh_token)
             .fetch_one(db)
@@ -76,7 +84,7 @@ impl AuthService {
             .map_err(|e| e.to_string())?;
 
         let access_token = Self::generate_token(user.id, secret, 60)?; // 1 hour access
-        
+
         // Rotate refresh token
         let new_refresh_token = Uuid::new_v4().to_string();
         sqlx::query("UPDATE sessions SET token = $1 WHERE id = $2")

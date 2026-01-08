@@ -27,6 +27,8 @@ pub struct AppState {
 }
 
 mod ax_auth {
+    use crate::services::auth_service::AuthService;
+    use crate::AppState;
     use axum::{
         async_trait,
         extract::{FromRef, FromRequestParts},
@@ -34,8 +36,6 @@ mod ax_auth {
     };
     use std::sync::Arc;
     use uuid::Uuid;
-    use crate::AppState;
-    use crate::services::auth_service::AuthService;
 
     pub struct UserId(pub Uuid);
 
@@ -54,10 +54,15 @@ mod ax_auth {
                     if auth_str.starts_with("Bearer ") {
                         let token = &auth_str[7..];
                         let app_state = Arc::<AppState>::from_ref(state);
-                        
+
                         match AuthService::verify_token(token, &app_state.jwt_secret) {
                             Ok(user_id) => return Ok(UserId(user_id)),
-                            Err(_) => return Err((StatusCode::UNAUTHORIZED, "Invalid or expired token".to_string())),
+                            Err(_) => {
+                                return Err((
+                                    StatusCode::UNAUTHORIZED,
+                                    "Invalid or expired token".to_string(),
+                                ))
+                            }
                         }
                     }
                 }
@@ -66,14 +71,19 @@ mod ax_auth {
             // 2. Fallback to X-User-Id in development (debug assertions)
             #[cfg(debug_assertions)]
             {
-                if let Some(user_id_str) = parts.headers.get("X-User-Id").and_then(|h| h.to_str().ok()) {
+                if let Some(user_id_str) =
+                    parts.headers.get("X-User-Id").and_then(|h| h.to_str().ok())
+                {
                     if let Ok(user_id) = Uuid::parse_str(user_id_str) {
                         return Ok(UserId(user_id));
                     }
                 }
             }
 
-            Err((StatusCode::UNAUTHORIZED, "Authentication required".to_string()))
+            Err((
+                StatusCode::UNAUTHORIZED,
+                "Authentication required".to_string(),
+            ))
         }
     }
 }
@@ -139,10 +149,8 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route("/agents", get(handlers::get_agents))
         .route("/agent/:agent_id/command", post(handlers::send_command))
         // Profile
-        .route(
-            "/me",
-            get(handlers::get_user_profile).patch(handlers::update_user_profile),
-        )
+        .route("/me", get(handlers::get_me).patch(handlers::update_me))
+        .route("/auth/change-password", post(handlers::change_password))
         .route("/users", get(handlers::get_users))
         // Device Management
         .route(
