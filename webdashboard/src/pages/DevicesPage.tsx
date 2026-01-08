@@ -9,10 +9,22 @@ import {
   ShieldCheck,
   ShieldAlert,
   ArrowLeft,
+  MoreVertical,
+  Settings,
+  RefreshCw,
+  Edit2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useDevices } from "@/hooks/use-devices";
 import { useAgentsStatus } from "@/hooks/use-agents";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function DevicesPage() {
   const {
@@ -233,12 +245,37 @@ export default function DevicesPage() {
                         </div>
                       )}
                     </div>
-                    <button
-                      onClick={() => handleDelete(device.id)}
-                      className="text-slate-300 hover:text-rose-500 transition-colors p-2"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-xl transition-all outline-none">
+                          <MoreVertical className="w-5 h-5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
+                        <DropdownMenuItem className="gap-2">
+                          <Edit2 className="w-4 h-4 text-slate-400" />
+                          Chỉnh sửa
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="gap-2">
+                          <RefreshCw className="w-4 h-4 text-slate-400" />
+                          Đồng bộ thời gian
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="gap-2">
+                          <Settings className="w-4 h-4 text-slate-400" />
+                          Cấu hình nâng cao
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onSelect={() => handleDelete(device.id)}
+                          className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 gap-2 font-bold"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Xóa thiết bị
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </div>
