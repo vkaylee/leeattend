@@ -191,21 +191,25 @@ impl AgentBuilder {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_id(mut self, id: &str) -> Self {
         self.id = id.to_string();
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_token(mut self, token: &str) -> Self {
         self.token = token.to_string();
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_workspace(mut self, ws_id: Uuid) -> Self {
         self.workspace_id = Some(ws_id);
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_trust(mut self, trusted: bool) -> Self {
         self.is_trusted = trusted;
         self

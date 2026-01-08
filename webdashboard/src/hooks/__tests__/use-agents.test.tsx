@@ -1,26 +1,23 @@
-import { describe, it, expect, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useAuthorizedAgents } from "../use-agents";
-import * as api from "@/lib/api";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import React from "react";
+import * as api from "@/lib/api";
 
-// Mock the API
-vi.mock("@/lib/api", () => ({
-  fetchAuthorizedAgents: vi.fn(),
-  createAuthorizedAgent: vi.fn(),
-  updateAuthorizedAgent: vi.fn(),
-  deleteAuthorizedAgent: vi.fn(),
-  getCurrentUserId: vi.fn().mockReturnValue("user-123"),
-  getCurrentWorkspaceId: vi.fn().mockReturnValue("ws-123"),
-}));
+// Mock the API module
+vi.mock("@/lib/api", async () => {
+  const actual = await vi.importActual("@/lib/api");
+  return {
+    ...actual,
+    fetchAuthorizedAgents: vi.fn(),
+    updateAuthorizedAgent: vi.fn(),
+  };
+});
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
-      queries: {
-        retry: false,
-      },
+      queries: { retry: false },
     },
   });
   return ({ children }: { children: React.ReactNode }) => (
@@ -28,31 +25,50 @@ const createWrapper = () => {
   );
 };
 
-describe("useAuthorizedAgents", () => {
-  it("fetches agents successfully", async () => {
-    const mockAgents = [{ id: "a-1", name: "Agent 1", is_trusted: true }];
-    vi.mocked(api.fetchAuthorizedAgents).mockResolvedValue(mockAgents as any);
+describe("useAuthorizedAgents hook", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("fetches only active agents by default", async () => {
+    const mockAgents = [{ id: "A1", is_active: true }];
+    (api.fetchAuthorizedAgents as any).mockResolvedValue(mockAgents);
 
     const { result } = renderHook(() => useAuthorizedAgents(), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(api.fetchAuthorizedAgents).toHaveBeenCalledWith(false);
     expect(result.current.agents).toEqual(mockAgents);
   });
 
-  it("updates an agent successfully", async () => {
-    const updatedAgent = { id: "a-1", name: "Updated Name" };
-    vi.mocked(api.updateAuthorizedAgent).mockResolvedValue(updatedAgent as any);
+  it("fetches all agents when includeInactive is true", async () => {
+    (api.fetchAuthorizedAgents as any).mockResolvedValue([]);
 
     const { result } = renderHook(() => useAuthorizedAgents(), {
       wrapper: createWrapper(),
     });
 
-    await result.current.updateAgent({
-      id: "a-1",
-      agent: { name: "Updated Name" },
+    // Toggle includeInactive
+    const { setIncludeInactive } = result.current;
+    await waitFor(() => setIncludeInactive(true));
+
+    expect(api.fetchAuthorizedAgents).toHaveBeenCalledWith(true);
+  });
+
+  it("calls updateAuthorizedAgent when restoring an agent", async () => {
+    const { result } = renderHook(() => useAuthorizedAgents(), {
+      wrapper: createWrapper(),
     });
-    expect(api.updateAuthorizedAgent).toHaveBeenCalled();
+
+    await result.current.updateAgent({
+      id: "A1",
+      agent: { is_active: true },
+    });
+
+    expect(api.updateAuthorizedAgent).toHaveBeenCalledWith("A1", {
+      is_active: true,
+    });
   });
 });

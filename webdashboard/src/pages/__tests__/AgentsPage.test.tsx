@@ -44,6 +44,8 @@ describe("AgentsPage Smoke Test", () => {
     expect(screen.getByText("Quản lý Agent")).toBeDefined();
     // Kiểm tra nút thêm agent tồn tại
     expect(screen.getByText("Khai báo Agent")).toBeDefined();
+    // Kiểm tra nút Hiện lưu trữ tồn tại
+    expect(screen.getByText("Hiện lưu trữ")).toBeDefined();
   });
 
   it("shows empty state when no agents are present", () => {
