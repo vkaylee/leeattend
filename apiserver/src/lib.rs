@@ -1,6 +1,7 @@
 pub mod agent_manager;
 pub mod handlers;
 pub mod models;
+pub mod services;
 
 use axum::{
     routing::{delete, get, post, put},

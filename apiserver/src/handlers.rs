@@ -20,6 +20,7 @@ use crate::models::{
     CreateDeviceRequest, CreateWorkspaceRequest, Device, GenericResponse, MemberExtraRole,
     UpdateAuthorizedAgentRequest, UpdateDeviceRequest, Workspace,
 };
+use crate::services::{AgentService, WorkspaceService};
 use crate::AppState;
 
 // --- Extractors ---
@@ -206,55 +207,28 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                 if let (Some(id), Some(token)) =
                                     (v["agent_id"].as_str(), v["token"].as_str())
                                 {
-                                    let auth_result =
-                                        sqlx::query_as::<_, crate::models::AuthorizedAgent>(
-                                            "SELECT * FROM authorized_agents WHERE id = $1",
-                                        )
-                                        .bind(id)
-                                        .fetch_optional(&state_clone.db)
-                                        .await;
-
-                                    match auth_result {
-                                        Ok(Some(agent)) => {
-                                            if agent.token != token {
-                                                let _ = tx.send(Message::Text(
-                                                    serde_json::json!({
-                                                        "type": "error",
-                                                        "code": "INVALID_TOKEN",
-                                                        "message": "Token không chính xác."
-                                                    })
-                                                    .to_string(),
-                                                ));
-                                                break;
-                                            }
-
-                                            if !agent.is_trusted {
-                                                let _ = tx.send(Message::Text(
-                                                    serde_json::json!({
-                                                        "type": "error",
-                                                        "code": "AGENT_NOT_TRUSTED",
-                                                        "message": "Agent chưa được phê duyệt."
-                                                    })
-                                                    .to_string(),
-                                                ));
-                                                break;
-                                            }
-
+                                    match AgentService::authorize_agent(&state_clone.db, id, token)
+                                        .await
+                                    {
+                                        Ok(Some(_agent)) => {
                                             agent_id = id.to_string();
                                             state_clone
                                                 .agent_manager
                                                 .add_agent(agent_id.clone(), tx.clone())
                                                 .await;
 
-                                            let _ = sqlx::query("UPDATE authorized_agents SET last_ip = $1 WHERE id = $2")
-                                                .bind("websocket_conn")
-                                                .bind(&agent_id)
-                                                .execute(&state_clone.db)
-                                                .await;
+                                            let _ = AgentService::update_last_ip(
+                                                &state_clone.db,
+                                                &agent_id,
+                                                "websocket_conn",
+                                            )
+                                            .await;
 
-                                            let _ =
-                                                notify_agent_config_update(&state_clone, &agent_id)
-                                                    .await;
+                                            let _ = AgentService::notify_config_update(
+                                                &state_clone,
+                                                &agent_id,
+                                            )
+                                            .await;
                                         }
                                         Ok(None) => {
                                             let _ = tx.send(Message::Text(
@@ -267,7 +241,22 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                             ));
                                             break;
                                         }
-                                        Err(_) => break,
+                                        Err(code) => {
+                                            let message = match code.as_str() {
+                                                "INVALID_TOKEN" => "Token không chính xác.",
+                                                "AGENT_NOT_TRUSTED" => "Agent chưa được phê duyệt.",
+                                                _ => "Lỗi xác thực.",
+                                            };
+                                            let _ = tx.send(Message::Text(
+                                                serde_json::json!({
+                                                    "type": "error",
+                                                    "code": code,
+                                                    "message": message
+                                                })
+                                                .to_string(),
+                                            ));
+                                            break;
+                                        }
                                     }
                                 }
                             }
@@ -355,7 +344,7 @@ pub async fn create_device(
     .await
     {
         Ok(_) => {
-            let _ = notify_agent_config_update(&state, &req.agent_id).await;
+            let _ = AgentService::notify_config_update(&state, &req.agent_id).await;
             (StatusCode::CREATED, Json(serde_json::json!({ "id": id }))).into_response()
         }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
@@ -398,7 +387,7 @@ pub async fn update_device(
     .await
     {
         Ok(_) => {
-            let _ = notify_agent_config_update(&state, &current_device.agent_id).await;
+            let _ = AgentService::notify_config_update(&state, &current_device.agent_id).await;
             StatusCode::OK.into_response()
         }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
@@ -426,7 +415,7 @@ pub async fn delete_device(
     {
         Ok(res) if res.rows_affected() > 0 => {
             if let Some(aid) = agent_id {
-                let _ = notify_agent_config_update(&state, &aid).await;
+                let _ = AgentService::notify_config_update(&state, &aid).await;
             }
             StatusCode::NO_CONTENT.into_response()
         }
@@ -646,39 +635,10 @@ pub async fn create_workspace(
     UserId(user_id): UserId,
     Json(req): Json<CreateWorkspaceRequest>,
 ) -> impl IntoResponse {
-    let mut tx = match state.db.begin().await {
-        Ok(t) => t,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    };
-
-    let workspace: Workspace = match sqlx::query_as::<_, Workspace>(
-        "INSERT INTO workspaces (name) VALUES ($1) RETURNING *",
-    )
-    .bind(&req.name)
-    .fetch_one(&mut *tx)
-    .await
-    {
-        Ok(ws) => ws,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    };
-
-    if let Err(e) = sqlx::query(
-        "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3)",
-    )
-    .bind(workspace.id)
-    .bind(user_id)
-    .bind("owner")
-    .execute(&mut *tx)
-    .await
-    {
-        return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+    match WorkspaceService::create_workspace(&state.db, &req.name, user_id).await {
+        Ok(workspace) => (StatusCode::CREATED, Json(workspace)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
     }
-
-    if let Err(e) = tx.commit().await {
-        return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
-    }
-
-    (StatusCode::CREATED, Json(workspace)).into_response()
 }
 
 pub async fn get_workspace_members(
@@ -740,38 +700,15 @@ pub async fn get_member_roles(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> impl IntoResponse {
-    // 1. Get Primary Role
-    let primary_role: String = match sqlx::query_scalar(
-        "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2",
-    )
-    .bind(ctx.workspace_id)
-    .bind(user_id)
-    .fetch_optional(&state.db)
-    .await
-    {
-        Ok(Some(r)) => r,
-        Ok(None) => return StatusCode::NOT_FOUND.into_response(),
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    };
-
-    // 2. Get Extra Roles
-    let extra_roles: Vec<MemberExtraRole> = match sqlx::query_as::<_, MemberExtraRole>(
-        "SELECT * FROM member_extra_roles WHERE workspace_id = $1 AND user_id = $2",
-    )
-    .bind(ctx.workspace_id)
-    .bind(user_id)
-    .fetch_all(&state.db)
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    };
-
-    Json(serde_json::json!({
-        "primary": primary_role,
-        "extra": extra_roles
-    }))
-    .into_response()
+    match WorkspaceService::get_member_roles(&state.db, ctx.workspace_id, user_id).await {
+        Ok((primary, extra)) => Json(serde_json::json!({
+            "primary": primary,
+            "extra": extra
+        }))
+        .into_response(),
+        Err(e) if e == "NOT_FOUND" => StatusCode::NOT_FOUND.into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    }
 }
 
 pub async fn assign_extra_role(
@@ -863,39 +800,4 @@ pub async fn update_user_profile(
         Ok(user) => Json(user).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
-}
-
-async fn notify_agent_config_update(state: &AppState, agent_id: &str) -> Result<(), String> {
-    let devices = sqlx::query_as::<_, Device>(
-        "SELECT * FROM devices WHERE agent_id = $1 AND is_enabled = true",
-    )
-    .bind(agent_id)
-    .fetch_all(&state.db)
-    .await
-    .map_err(|e| e.to_string())?;
-
-    let config_msg = serde_json::json!({
-        "type": "config_update",
-        "devices": devices.into_iter().map(|d| {
-            serde_json::json!({
-                "device_id": d.id.to_string(),
-                "ip": d.ip,
-                "port": d.port
-            })
-        }).collect::<Vec<_>>()
-    });
-
-    let command = AgentCommand {
-        id: Uuid::new_v4().to_string(),
-        r#type: "config_push".to_string(),
-        method: "update_config".to_string(),
-        device_id: None,
-        data: Some(config_msg),
-    };
-
-    state
-        .agent_manager
-        .send_command(agent_id, command)
-        .await
-        .map_err(|e| e.to_string())
 }
