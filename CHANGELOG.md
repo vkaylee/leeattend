@@ -4,22 +4,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ## [Unreleased]
 ### Added
-- **Global Identity & User Profiles**: Triển khai định danh người dùng toàn cầu. Mỗi người dùng có thể sở hữu hồ sơ cá nhân (Họ tên, Ảnh đại diện, Bio) dùng chung cho tất cả các Workspace.
-- **Secure RBAC (Role-Based Access Control)**: Thắt chặt bảo mật API bằng Extractor `MemberContext`. Mọi yêu cầu truy cập tài nguyên giờ đây đều phải xác thực cả danh tính người dùng (`X-User-Id`) và tư cách thành viên trong Workspace (`X-Workspace-Id`).
-- **Profile Management UI**: Bổ sung trang quản lý Hồ sơ cá nhân trên Web Dashboard, cho phép người dùng tự cập nhật thông tin định danh.
-- **Temporal RBAC (Multi-Role)**: Cho phép gán nhiều Role phụ có thời hạn (Secondary Roles with Expiration) cho thành viên trong Workspace.
-- **Test Factory Utilities**: Triển khai hệ thống `TestFactory` (Rust) và `Functional Factories` (TS) giúp giảm 70% code boilerplate trong integration tests.
-- **Secure Invitations**: Nâng cấp logic mời thành viên, yêu cầu quyền Admin/Owner và kiểm tra tồn tại của User Global trước khi thêm vào Workspace.
-- **Auto-Login Dev Mode**: Tự động nhận diện và thiết lập người dùng đầu tiên làm tài khoản hoạt động trong môi trường phát triển, giúp trải nghiệm dev mượt mà hơn.
-- **Linter Strict Mode (Rust)**: Cấu hình `warnings = "deny"` đảm bảo chất lượng code cao nhất, không chấp nhận code có warning khi build.
-- **Workspace Management (Multi-Tenancy)**: Triển khai cơ chế đa người dùng (Multi-tenancy) cho phép phân tách dữ liệu hoàn toàn giữa các tổ chức khác nhau (Workspaces).
-- **Workspace Isolation**: Tất cả API hiện yêu cầu header `X-Workspace-Id`. Dữ liệu về Agent và Thiết bị được lọc tự động theo Workspace của người dùng.
-- **Member Management**: Hỗ trợ mời thành viên, quản lý danh sách thành viên và phân quyền (Owner, Admin, Member) trong từng Workspace.
-- **Agent Lifecycle Management**: Bổ sung tính năng Chỉnh sửa (Edit) và Xóa mềm (Soft Delete) cho Agent.
-- **Agent Edit Modal**: Giao diện Modal chuyên nghiệp trên Dashboard để cập nhật thông tin Agent mà không cần rời trang.
-- **Dashboard Standalone Server**: Đóng gói Web Dashboard thành 1 file thực thi (`.exe`) duy nhất bằng Rust. Tích hợp sẵn Web Server gọn nhẹ, không cần cài đặt Node.js hay cấu hình IIS. Hỗ trợ tham số `--port` và `--no-open`.
-- **Dashboard Windows Service**: Scripts `install_service.bat` và `uninstall_service.bat` để quản lý Web Dashboard dưới dạng Windows Service, đảm bảo chạy ổn định 24/7.
-- **Frontend Testing Suite**: Tích hợp **Vitest** và **React Testing Library** vào Webdashboard, thiết lập hạ tầng kiểm thử tự động cho các component React.
+- **Repository Pattern & DI (Rust)**: Tái cấu trúc `AgentService` sang mô hình instance-based với Dependency Injection. Toàn bộ logic DB được tách biệt qua các Repositories (`AgentRepository`, `WorkspaceRepository`) giúp code sạch hơn và dễ dàng Mock khi viết unit test.
+- **SQLx Repositories**: Triển khai cụ thể `SqlxAgentRepository` và `SqlxWorkspaceRepository` sử dụng SQLx, tối ưu hóa hiệu suất truy vấn và quản lý connection pool tập trung.
+- **Server State Management (React Query)**: Tích hợp `@tanstack/react-query` vào Web Dashboard. Toàn bộ logic fetching, caching và mutation được chuyển sang hệ thống Custom Hooks (`useAuthorizedAgents`, `useDevices`, `useProfile`, `useWorkspaceMembers`).
+- **Domain Hooks**: Xây dựng bộ thư viện hooks chuyên biệt cho từng domain, giúp giảm 50% code boilerplate tại các trang Dashboard, Agents, Devices và Profile.
+- **Auto-refetching**: Các trang Dashboard và Devices giờ đây tự động cập nhật trạng thái online/offline của Agent mỗi 30 giây mà không cần reload trang.
 
 ### Changed
 - **Webdashboard Architecture**: Di chuyển toàn bộ Webdashboard từ Next.js (App Router) sang **Vite + React SPA**. Loại bỏ hoàn toàn sự phụ thuộc vào Next.js runtime, giúp giảm dung lượng bundle và tăng tốc độ phát triển.

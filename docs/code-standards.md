@@ -7,18 +7,19 @@
 - **Method Size (Rule of 30)**: Một hàm không nên dài quá 30 dòng code. Nếu dài hơn, hãy cân nhắc tách nhỏ ra các private methods hoặc helper functions.
 - **Single Responsibility (SRP)**: Một hàm chỉ làm một việc duy nhất. Tên hàm phải phản ánh đúng hành động (ví dụ: `validate_agent_token` thay vì `check_agent`).
 
-### 2. Architecture Layers (Handler-Service-Model)
-Để tránh phình to code, chúng ta tuân thủ mô hình phân lớp:
-- **Handlers (API Layer)**: Chỉ làm nhiệm vụ trích xuất tham số, gọi Service và trả về Response. Tuyệt đối không viết logic nghiệp vụ phức tạp hoặc tính toán DB trực tiếp tại đây.
-- **Services (Logic Layer)**: Chứa logic nghiệp vụ có thể tái sử dụng. Các hàm Service nhận input là dữ liệu thô và trả về kết quả logic.
-- **Extractors (Auth/Context)**: Sử dụng Axum Extractors (như `MemberContext`) để tách biệt logic kiểm tra quyền và danh tính ra khỏi luồng chính.
+### 2. Architecture Layers (Handler-Service-Repository)
+Để đảm bảo tính linh hoạt và dễ kiểm thử (Mockable), dự án tuân thủ mô hình 3 lớp:
+- **Handlers (API Layer)**: Chỉ trích xuất tham số từ Request, gọi Service và trả về Response.
+- **Services (Domain Layer)**: Chứa logic nghiệp vụ. Services nhận các Repositories thông qua Dependency Injection (DI) để tương tác với dữ liệu.
+- **Repositories (Data Layer)**: Định nghĩa các Trait (sử dụng `#[async_trait]`) để trừu tượng hóa việc truy vấn dữ liệu (SQLx, In-memory, etc.).
 
-### 3. Testing
-- **Test Factory Pattern**: Sử dụng `TestFactory` trong `tests/common/factory.rs` để tạo dữ liệu mẫu. 
-- **Fluent API**: Builder pattern được khuyến khích để tạo data test sạch sẽ:
-  ```rust
-  let user = factory.user().with_email("test@example.com").create().await;
-  ```
+### 3. Dependency Injection
+Sử dụng `Arc<dyn RepositoryTrait>` để inject vào Services. Khởi tạo toàn bộ dependencies tại `main.rs` và đưa vào `AppState`.
+
+### 4. Testing
+- **Unit Testing**: Viết unit test cho Services bằng cách sử dụng Mock Repositories.
+- **Test Factory Pattern**: Sử dụng `TestFactory` trong `tests/common/factory.rs` để tạo dữ liệu mẫu cho Integration tests. 
+- **Fluent API**: Builder pattern được khuyến khích để tạo data test sạch sẽ.
 - **Cleanup**: Sử dụng `factory.cleanup().await` ở đầu mỗi hàm `spawn_app` hoặc setup test.
 
 ---
@@ -27,7 +28,8 @@
 
 ### 1. Development
 - **Vite**: Sử dụng Vite làm build tool.
-- **Logic Separation**: Tách logic xử lý data và gọi API ra khỏi Component bằng **Custom Hooks**. Component chỉ nên chịu trách nhiệm hiển thị (UI) và nhận sự kiện từ người dùng.
+- **Server State (React Query)**: Sử dụng `@tanstack/react-query` để quản lý Server State. Toàn bộ logic fetching, caching và mutation phải nằm trong **Domain-specific Custom Hooks** (ví dụ: `useAgents`, `useDevices`).
+- **Component Design**: Component chỉ nên chịu trách nhiệm hiển thị (UI) và nhận sự kiện từ người dùng. Tránh sử dụng `useEffect` và `useState` thủ công để fetch dữ liệu.
 - **Tailwind CSS 4**: Sử dụng các tiện ích của Tailwind 4 để styling.
 - **Lucide React**: Thư viện icon chuẩn.
 
