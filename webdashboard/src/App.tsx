@@ -17,6 +17,8 @@ import {
   CalendarDays,
   FileBarChart,
   UserRound,
+  Banknote,
+  CalendarRange,
 } from "lucide-react"; // Added new icons
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import DashboardPage from "./pages/DashboardPage";
@@ -32,6 +34,8 @@ import EmployeesPage from "./pages/EmployeesPage"; // New pages
 import TimeTrackingPage from "./pages/TimeTrackingPage";
 import LeaveRequestsPage from "./pages/LeaveRequestsPage";
 import ReportsPage from "./pages/ReportsPage";
+import PayrollPage from "./pages/PayrollPage";
+import ShiftsPage from "./pages/ShiftsPage";
 import WorkspaceSwitcher from "./components/WorkspaceSwitcher";
 import AuthGuard from "./components/AuthGuard";
 import WorkspaceGuard from "./components/WorkspaceGuard";
@@ -122,6 +126,24 @@ function Layout() {
           </Link>
 
           <div className="pt-4 pb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Lương & Ca làm
+          </div>
+          <Link
+            to="/shifts"
+            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
+          >
+            <CalendarRange className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-semibold">Ca làm việc</span>
+          </Link>
+          <Link
+            to="/payroll"
+            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
+          >
+            <Banknote className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-semibold">Tính lương</span>
+          </Link>
+
+          <div className="pt-4 pb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
             Hệ thống
           </div>
           <Link
@@ -197,6 +219,8 @@ function App() {
                 <Route path="/time-tracking" element={<TimeTrackingPage />} />
                 <Route path="/leave-requests" element={<LeaveRequestsPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/shifts" element={<ShiftsPage />} />
+                <Route path="/payroll" element={<PayrollPage />} />
                 <Route
                   path="/workspace/settings"
                   element={<WorkspaceSettingsPage />} 

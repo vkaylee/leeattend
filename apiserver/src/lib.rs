@@ -248,6 +248,28 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/reports/attendance",
             get(handlers::get_attendance_report),
         )
+        // Payroll
+        .route(
+            "/workspaces/:ws_id/employees/:id/salary",
+            get(handlers::get_salary_settings).put(handlers::update_salary_settings),
+        )
+        .route(
+            "/workspaces/:ws_id/employees/:id/payslips",
+            get(handlers::get_employee_payslips),
+        )
+        .route(
+            "/workspaces/:ws_id/employees/:id/calculate-payroll",
+            post(handlers::calculate_payroll),
+        )
+        // Shifts
+        .route(
+            "/workspaces/:ws_id/shifts",
+            get(handlers::get_shifts).post(handlers::create_shift),
+        )
+        .route(
+            "/workspaces/:ws_id/shifts/assign",
+            post(handlers::assign_shift),
+        )
         .layer(cors)
         .with_state(state)
 }

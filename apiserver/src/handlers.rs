@@ -1381,12 +1381,213 @@ pub async fn get_workspace_leave_requests(
 // --- Basic Reporting Handlers ---
 
 pub async fn get_attendance_report(
+
     State(state): State<Arc<AppState>>,
+
     MemberContext { workspace_id, .. }: MemberContext,
+
     Query(query): Query<HistoryQuery>,
+
 ) -> impl IntoResponse {
+
     match crate::services::report_service::ReportService::get_workspace_attendance_summary(&state.db, workspace_id, query.start, query.end).await {
+
         Ok(summary) => Json(summary).into_response(),
+
         Err(status) => status.into_response(),
+
     }
+
+}
+
+
+
+// --- Payroll Handlers ---
+
+
+
+pub async fn get_salary_settings(
+
+    Path(employee_id): Path<Uuid>,
+
+    State(state): State<Arc<AppState>>,
+
+    MemberContext { workspace_id: _, .. }: MemberContext,
+
+) -> impl IntoResponse {
+
+    match crate::repositories::payroll_repository::get_salary_settings(&state.db, employee_id).await {
+
+        Ok(Some(settings)) => Json(settings).into_response(),
+
+        Ok(None) => StatusCode::NOT_FOUND.into_response(),
+
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+
+    }
+
+}
+
+
+
+pub async fn update_salary_settings(
+
+    Path(employee_id): Path<Uuid>,
+
+    State(state): State<Arc<AppState>>,
+
+    MemberContext { workspace_id: _, .. }: MemberContext,
+
+    Json(req): Json<crate::models::UpdateSalarySettingsRequest>,
+
+) -> impl IntoResponse {
+
+    match crate::repositories::payroll_repository::update_salary_settings(&state.db, employee_id, req.base_salary, req.salary_type, req.currency).await {
+
+        Ok(settings) => Json(settings).into_response(),
+
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+
+    }
+
+}
+
+
+
+#[derive(Debug, Deserialize)]
+
+pub struct PayrollQuery {
+
+    pub year: i32,
+
+    pub month: u32,
+
+}
+
+
+
+pub async fn calculate_payroll(
+
+    Path(employee_id): Path<Uuid>,
+
+    State(state): State<Arc<AppState>>,
+
+    MemberContext { workspace_id, .. }: MemberContext,
+
+    Query(query): Query<PayrollQuery>,
+
+) -> impl IntoResponse {
+
+    match crate::services::payroll_service::PayrollService::calculate_monthly_payslip(&state.db, employee_id, workspace_id, query.year, query.month).await {
+
+        Ok(payslip) => Json(payslip).into_response(),
+
+        Err(status) => status.into_response(),
+
+    }
+
+}
+
+
+
+pub async fn get_employee_payslips(
+
+    Path(employee_id): Path<Uuid>,
+
+    State(state): State<Arc<AppState>>,
+
+    MemberContext { workspace_id: _, .. }: MemberContext,
+
+) -> impl IntoResponse {
+
+    match crate::repositories::payroll_repository::get_payslips_by_employee(&state.db, employee_id).await {
+
+        Ok(payslips) => Json(payslips).into_response(),
+
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+
+    }
+
+}
+
+
+
+// --- Shift Handlers ---
+
+
+
+pub async fn get_shifts(
+
+    State(state): State<Arc<AppState>>,
+
+    MemberContext { workspace_id, .. }: MemberContext,
+
+) -> impl IntoResponse {
+
+    match crate::services::shift_service::ShiftService::get_workspace_shifts(&state.db, workspace_id).await {
+
+        Ok(shifts) => Json(shifts).into_response(),
+
+        Err(status) => status.into_response(),
+
+    }
+
+}
+
+
+
+pub async fn create_shift(
+
+    State(state): State<Arc<AppState>>,
+
+    MemberContext { workspace_id, .. }: MemberContext,
+
+    Json(req): Json<crate::models::CreateShiftRequest>,
+
+) -> impl IntoResponse {
+
+    match crate::services::shift_service::ShiftService::create_shift(&state.db, workspace_id, req.name, req.start_time, req.end_time, req.break_duration_minutes).await {
+
+        Ok(shift) => (StatusCode::CREATED, Json(shift)).into_response(),
+
+        Err(status) => status.into_response(),
+
+    }
+
+}
+
+
+
+#[derive(Debug, Deserialize)]
+
+pub struct AssignShiftRequest {
+
+    pub employee_id: Uuid,
+
+    pub shift_id: Uuid,
+
+    pub effective_date: chrono::NaiveDate,
+
+}
+
+
+
+pub async fn assign_shift(
+
+    State(state): State<Arc<AppState>>,
+
+    MemberContext { workspace_id: _, .. }: MemberContext,
+
+    Json(req): Json<AssignShiftRequest>,
+
+) -> impl IntoResponse {
+
+    match crate::services::shift_service::ShiftService::assign_shift(&state.db, req.employee_id, req.shift_id, req.effective_date).await {
+
+        Ok(_) => StatusCode::OK.into_response(),
+
+        Err(status) => status.into_response(),
+
+    }
+
 }

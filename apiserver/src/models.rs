@@ -304,10 +304,126 @@ pub struct ApproveLeaveRequest {
 
 // --- Basic Reporting Models ---
 
+
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
+
 pub struct AttendanceSummary {
+
     pub employee_id: Uuid,
+
     pub employee_name: String,
+
     pub total_hours: f64,
+
     pub total_leave_days: i64,
+
+}
+
+
+
+// --- Payroll and Shift Models ---
+
+
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+
+pub struct Shift {
+
+    pub id: Uuid,
+
+    pub workspace_id: Uuid,
+
+    pub name: String,
+
+    pub start_time: chrono::NaiveTime,
+
+    pub end_time: chrono::NaiveTime,
+
+    pub break_duration_minutes: i32,
+
+    pub created_at: DateTime<Utc>,
+
+    pub updated_at: DateTime<Utc>,
+
+}
+
+
+
+#[derive(Debug, Deserialize)]
+
+pub struct CreateShiftRequest {
+
+    pub name: String,
+
+    pub start_time: chrono::NaiveTime,
+
+    pub end_time: chrono::NaiveTime,
+
+    pub break_duration_minutes: i32,
+
+}
+
+
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+
+pub struct SalarySettings {
+
+    pub employee_id: Uuid,
+
+    pub base_salary: rust_decimal::Decimal,
+
+    pub salary_type: String,
+
+    pub currency: String,
+
+    pub created_at: DateTime<Utc>,
+
+    pub updated_at: DateTime<Utc>,
+
+}
+
+
+
+#[derive(Debug, Deserialize)]
+
+pub struct UpdateSalarySettingsRequest {
+
+    pub base_salary: rust_decimal::Decimal,
+
+    pub salary_type: String,
+
+    pub currency: String,
+
+}
+
+
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+
+pub struct Payslip {
+
+    pub id: Uuid,
+
+    pub employee_id: Uuid,
+
+    pub period_start: NaiveDate,
+
+    pub period_end: NaiveDate,
+
+    pub base_pay_amount: rust_decimal::Decimal,
+
+    pub overtime_pay_amount: rust_decimal::Decimal,
+
+    pub deductions_amount: rust_decimal::Decimal,
+
+    pub net_pay_amount: rust_decimal::Decimal,
+
+    pub status: String,
+
+    pub created_at: DateTime<Utc>,
+
+    pub updated_at: DateTime<Utc>,
+
 }

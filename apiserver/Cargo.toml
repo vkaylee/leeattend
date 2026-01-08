@@ -17,17 +17,18 @@ chrono = { version = "0.4.42", features = ["serde"] }
 sqlx = { version = "0.8", default-features = false, features = [
     "runtime-tokio-rustls",
     "postgres",
-    "sqlite",
     "uuid",
     "chrono",
     "macros",
-    "migrate"
+    "migrate",
+    "rust_decimal"
 ] }
 tower-http = { version = "0.6.8", features = ["cors"] }
 async-trait = "0.1.89"
 jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
 bcrypt = "0.17.1"
 json-patch = "0.3.0"
+rust_decimal = { version = "1.39.0", features = ["serde"] }
 
 [lints.rust]
 warnings = "deny"

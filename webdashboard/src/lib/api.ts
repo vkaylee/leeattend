@@ -129,6 +129,42 @@ export interface AttendanceSummary {
   total_leave_days: number;
 }
 
+// --- Payroll and Shift Models ---
+
+export interface Shift {
+  id: string;
+  workspace_id: string;
+  name: string;
+  start_time: string;
+  end_time: string;
+  break_duration_minutes: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SalarySettings {
+  employee_id: string;
+  base_salary: string;
+  salary_type: "hourly" | "monthly";
+  currency: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Payslip {
+  id: string;
+  employee_id: string;
+  period_start: string;
+  period_end: string;
+  base_pay_amount: string;
+  overtime_pay_amount: string;
+  deductions_amount: string;
+  net_pay_amount: string;
+  status: "draft" | "published" | "paid";
+  created_at: string;
+  updated_at: string;
+}
+
 // --- Auth Management ---
 
 export function getAccessToken(): string | null {
@@ -634,12 +670,159 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
 }
 
 export async function fetchDevSuperUser(): Promise<{
+
   user_id: string;
+
   workspace_id: string;
+
   access_token?: string;
+
   refresh_token?: string;
+
 }> {
+
   const response = await fetch(`${API_BASE_URL}/dev/super-user`);
+
   if (!response.ok) throw new Error("Failed to fetch dev super user");
+
   return response.json();
+
+}
+
+
+
+// --- Payroll API ---
+
+
+
+export async function fetchSalarySettings(wsId: string, employeeId: string): Promise<SalarySettings> {
+
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/salary`);
+
+  if (!response.ok) throw new Error("Failed to fetch salary settings");
+
+  return response.json();
+
+}
+
+
+
+export async function updateSalarySettings(
+
+  wsId: string, 
+
+  employeeId: string, 
+
+  data: Partial<SalarySettings>
+
+): Promise<SalarySettings> {
+
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/salary`, {
+
+    method: "PUT",
+
+    body: JSON.stringify(data),
+
+  });
+
+  if (!response.ok) throw new Error("Failed to update salary settings");
+
+  return response.json();
+
+}
+
+
+
+export async function calculatePayroll(
+
+  wsId: string,
+
+  employeeId: string,
+
+  year: number,
+
+  month: number,
+
+): Promise<Payslip> {
+
+  const response = await apiFetch(
+
+    `${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/calculate-payroll?year=${year}&month=${month}`,
+
+    { method: "POST" }
+
+  );
+
+  if (!response.ok) throw new Error("Failed to calculate payroll");
+
+  return response.json();
+
+}
+
+
+
+export async function fetchEmployeePayslips(wsId: string, employeeId: string): Promise<Payslip[]> {
+
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/payslips`);
+
+  if (!response.ok) throw new Error("Failed to fetch payslips");
+
+  return response.json();
+
+}
+
+
+
+// --- Shift API ---
+
+
+
+export async function fetchShifts(wsId: string): Promise<Shift[]> {
+
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/shifts`);
+
+  if (!response.ok) throw new Error("Failed to fetch shifts");
+
+  return response.json();
+
+}
+
+
+
+export async function createShift(wsId: string, data: Partial<Shift>): Promise<Shift> {
+
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/shifts`, {
+
+    method: "POST",
+
+    body: JSON.stringify(data),
+
+  });
+
+  if (!response.ok) throw new Error("Failed to create shift");
+
+  return response.json();
+
+}
+
+
+
+export async function assignShift(
+
+  wsId: string,
+
+  data: { employee_id: string; shift_id: string; effective_date: string }
+
+): Promise<void> {
+
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/shifts/assign`, {
+
+    method: "POST",
+
+    body: JSON.stringify(data),
+
+  });
+
+  if (!response.ok) throw new Error("Failed to assign shift");
+
 }

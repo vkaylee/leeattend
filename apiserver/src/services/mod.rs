@@ -5,6 +5,8 @@ pub mod employee_service;
 pub mod time_tracking_service;
 pub mod leave_service;
 pub mod report_service;
+pub mod payroll_service;
+pub mod shift_service;
 
 pub use agent_service::AgentService;
 pub use workspace_service::WorkspaceService;
