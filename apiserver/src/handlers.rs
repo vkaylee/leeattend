@@ -19,12 +19,14 @@ use crate::models::{
     AddMemberRequest, AssignRoleRequest, AuthResponse, AuthorizedAgent, ChangePasswordRequest,
     CreateAuthorizedAgentRequest, CreateDeviceRequest, CreateWorkspaceRequest, Device,
     GenericResponse, LoginRequest, MemberExtraRole, RefreshRequest, RegisterRequest,
-    UpdateAuthorizedAgentRequest, UpdateDeviceRequest, UpdateUserRequest, User, Workspace,
+    UpdateAuthorizedAgentRequest, UpdateDeviceRequest, User, UserResponse, // Removed UpdateUserRequest
+    Workspace,
 };
+use crate::repositories::user_repository;
 use crate::services::auth_service::AuthService;
 use crate::services::WorkspaceService;
 use crate::{AppState, UserId};
-use chrono::Utc;
+use chrono::{Utc, DateTime}; // Added DateTime
 
 // --- Extractors ---
 
@@ -100,10 +102,6 @@ where
             ))?;
 
         // 2. Fetch Active Extra Roles
-        // Note: For complex queries with conditions like expires_at > NOW(),
-        // we should add a specific method to repository trait or keep it simple if it's very specific.
-        // Let's assume find_extra_roles returns all, and we filter here,
-        // OR better, add a specific method to WorkspaceRepository for active roles.
         let all_extra_roles = app_state
             .workspace_repo
             .find_extra_roles(workspace_id, user_id)
@@ -830,20 +828,26 @@ pub async fn get_user_profile(
     UserId(user_id): UserId,
 ) -> impl IntoResponse {
     tracing::debug!("Fetching profile for user: {}", user_id);
-    match sqlx::query_as::<_, crate::models::User>("SELECT * FROM users WHERE id = $1")
-        .bind(user_id)
-        .fetch_optional(&state.db)
+    match user_repository::get_user_by_id(&state.db, user_id)
         .await
+        .map_err(|e| {
+            tracing::error!("Database error fetching user {}: {}", user_id, e);
+            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+        })
     {
-        Ok(Some(user)) => Json(user).into_response(),
+        Ok(Some(user)) => Json(UserResponse {
+            id: user.id,
+            email: user.email,
+            full_name: user.full_name,
+            avatar_url: user.avatar_url,
+            bio: user.bio,
+        })
+        .into_response(),
         Ok(None) => {
             tracing::warn!("User {} not found in database", user_id);
-            StatusCode::NOT_FOUND.into_response()
+            (StatusCode::NOT_FOUND, "User not found".to_string()).into_response()
         }
-        Err(e) => {
-            tracing::error!("Database error fetching user {}: {}", user_id, e);
-            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
-        }
+        Err(e) => e.into_response(),
     }
 }
 
@@ -872,7 +876,14 @@ pub async fn update_user_profile(
     .fetch_one(&state.db)
     .await
     {
-        Ok(user) => Json(user).into_response(),
+        Ok(user) => Json(UserResponse {
+            id: user.id,
+            email: user.email,
+            full_name: user.full_name,
+            avatar_url: user.avatar_url,
+            bio: user.bio,
+        })
+        .into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
@@ -965,17 +976,15 @@ pub async fn register(
     Json(req): Json<RegisterRequest>,
 ) -> impl IntoResponse {
     // 1. Check if email exists
-    let exists: bool =
-        match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)")
-            .bind(&req.email)
-            .fetch_one(&state.db)
-            .await
-        {
-            Ok(e) => e,
-            Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-        };
+    let existing_user = match user_repository::get_user_by_email(&state.db, &req.email).await {
+        Ok(u) => u,
+        Err(e) => {
+            eprintln!("Error checking existing user: {:?}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+        }
+    };
 
-    if exists {
+    if existing_user.is_some() {
         return (StatusCode::CONFLICT, "Email already exists").into_response();
     }
 
@@ -995,21 +1004,21 @@ pub async fn register(
         full_name: Some(req.full_name.clone()),
         avatar_url: None,
         bio: None,
-        password_hash: Some(password_hash.clone()),
+        password_hash, // Used the hashed password
     };
 
-    if let Err(e) = sqlx::query(
-        "INSERT INTO users (id, email, password_hash, full_name, created_at) VALUES ($1, $2, $3, $4, $5)"
-    )
-    .bind(user.id)
-    .bind(&user.email)
-    .bind(&password_hash)
-    .bind(&user.full_name)
-    .bind(user.created_at)
-    .execute(&state.db)
-    .await {
+    if let Err(e) = user_repository::create_user(&state.db, &user).await {
         return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
     }
+
+    // Convert to UserResponse for the client
+    let user_response = UserResponse {
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name,
+        avatar_url: user.avatar_url,
+        bio: user.bio,
+    };
 
     // 4. Generate Tokens
     let access_token = match AuthService::generate_token(user.id, &state.jwt_secret, 60) {
@@ -1025,7 +1034,7 @@ pub async fn register(
     Json(AuthResponse {
         access_token,
         refresh_token,
-        user,
+        user: user_response,
     })
     .into_response()
 }
@@ -1034,23 +1043,27 @@ pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(req): Json<LoginRequest>,
 ) -> impl IntoResponse {
-    let user = match sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
-        .bind(&req.email)
-        .fetch_optional(&state.db)
-        .await
-    {
+    let user = match user_repository::get_user_by_email(&state.db, &req.email).await {
         Ok(Some(u)) => u,
-        _ => return (StatusCode::UNAUTHORIZED, "Invalid email or password").into_response(),
+        Ok(None) => return (StatusCode::UNAUTHORIZED, "Invalid email or password").into_response(),
+        Err(e) => {
+            eprintln!("Error fetching user: {:?}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+        }
     };
 
-    let password_hash = match user.password_hash.as_ref() {
-        Some(h) => h,
-        None => return (StatusCode::UNAUTHORIZED, "User has no password set").into_response(),
-    };
-
-    if !AuthService::verify_password(&req.password, password_hash) {
+    if !AuthService::verify_password(&req.password, &user.password_hash) {
         return (StatusCode::UNAUTHORIZED, "Invalid email or password").into_response();
     }
+
+    // Convert to UserResponse for the client
+    let user_response = UserResponse {
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name,
+        avatar_url: user.avatar_url,
+        bio: user.bio,
+    };
 
     let access_token = match AuthService::generate_token(user.id, &state.jwt_secret, 60) {
         Ok(t) => t,
@@ -1065,7 +1078,7 @@ pub async fn login(
     Json(AuthResponse {
         access_token,
         refresh_token,
-        user,
+        user: user_response,
     })
     .into_response()
 }
@@ -1085,36 +1098,28 @@ pub async fn change_password(
     UserId(user_id): UserId,
     Json(req): Json<ChangePasswordRequest>,
 ) -> impl IntoResponse {
-    // 1. Lấy password_hash hiện tại
-    let current_hash: String =
-        match sqlx::query_scalar("SELECT password_hash FROM users WHERE id = $1")
-            .bind(user_id)
-            .fetch_one(&state.db)
-            .await
-        {
-            Ok(Some(h)) => h,
-            Ok(None) => {
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "User has no password set",
-                )
-                    .into_response()
-            }
-            Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-        };
+    // 1. Get current user to verify old password
+    let user = match user_repository::get_user_by_id(&state.db, user_id).await {
+        Ok(Some(u)) => u,
+        Ok(None) => return (StatusCode::NOT_FOUND, "User not found").into_response(),
+        Err(e) => {
+            eprintln!("Error fetching user for password change: {:?}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+        }
+    };
 
-    // 2. Xác thực mật khẩu cũ
-    if !AuthService::verify_password(&req.old_password, &current_hash) {
+    // 2. Verify old password
+    if !AuthService::verify_password(&req.old_password, &user.password_hash) {
         return (StatusCode::UNAUTHORIZED, "Mật khẩu cũ không chính xác").into_response();
     }
 
-    // 3. Hash mật khẩu mới
+    // 3. Hash new password
     let new_hash = match AuthService::hash_password(&req.new_password) {
         Ok(h) => h,
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
     };
 
-    // 4. Cập nhật DB
+    // 4. Update DB
     if let Err(e) = sqlx::query("UPDATE users SET password_hash = $1 WHERE id = $2")
         .bind(new_hash)
         .bind(user_id)
@@ -1124,11 +1129,8 @@ pub async fn change_password(
         return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
     }
 
-    // 5. Thu hồi tất cả session (Bắt buộc login lại)
-    let _ = sqlx::query("DELETE FROM sessions WHERE user_id = $1")
-        .bind(user_id)
-        .execute(&state.db)
-        .await;
+    // 5. Revoke all sessions (Force re-login)
+    let _ = AuthService::revoke_all_sessions_for_user(&state.db, user_id).await;
 
     (
         StatusCode::OK,
@@ -1151,39 +1153,240 @@ pub async fn get_me(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
 ) -> impl IntoResponse {
-    match sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
-        .bind(user_id)
-        .fetch_one(&state.db)
-        .await
-    {
-        Ok(user) => Json(user).into_response(),
-        Err(e) => (StatusCode::NOT_FOUND, e.to_string()).into_response(),
+    tracing::debug!("Fetching profile for user: {}", user_id);
+    match user_repository::get_user_by_id(&state.db, user_id).await {
+        Ok(Some(user)) => Json(UserResponse {
+            id: user.id,
+            email: user.email,
+            full_name: user.full_name,
+            avatar_url: user.avatar_url,
+            bio: user.bio,
+        })
+        .into_response(),
+        Ok(None) => {
+            tracing::warn!("User {} not found in database", user_id);
+            (StatusCode::NOT_FOUND, "User not found".to_string()).into_response()
+        }
+        Err(e) => {
+            tracing::error!("Database error fetching user {}: {}", user_id, e);
+            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
+        }
     }
 }
 
 pub async fn update_me(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
-    Json(req): Json<UpdateUserRequest>,
+    Json(req): Json<crate::models::UpdateUserRequest>,
 ) -> impl IntoResponse {
-    if let Err(e) = sqlx::query(
-        "UPDATE users SET full_name = COALESCE($1, full_name), avatar_url = COALESCE($2, avatar_url), bio = COALESCE($3, bio) WHERE id = $4"
+    match sqlx::query_as::<_, crate::models::User>(
+        "UPDATE users SET full_name = COALESCE($1, full_name), avatar_url = COALESCE($2, avatar_url), bio = COALESCE($3, bio) WHERE id = $4 RETURNING *"
     )
     .bind(req.full_name)
     .bind(req.avatar_url)
     .bind(req.bio)
     .bind(user_id)
-    .execute(&state.db)
-    .await {
-        return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
-    }
-
-    match sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
-        .bind(user_id)
-        .fetch_one(&state.db)
-        .await
+    .fetch_one(&state.db)
+    .await
     {
-        Ok(user) => Json(user).into_response(),
-        Err(e) => (StatusCode::NOT_FOUND, e.to_string()).into_response(),
+        Ok(user) => Json(UserResponse {
+            id: user.id,
+            email: user.email,
+            full_name: user.full_name,
+            avatar_url: user.avatar_url,
+            bio: user.bio,
+        })
+        .into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+// --- Employee Management Handlers ---
+
+pub async fn get_employees(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> impl IntoResponse {
+    match crate::services::employee_service::EmployeeService::get_all_employees(&state.db, workspace_id).await {
+        Ok(employees) => Json(employees).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn get_employee(
+    Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> impl IntoResponse {
+    match crate::services::employee_service::EmployeeService::get_employee_by_id(&state.db, id, workspace_id).await {
+        Ok(employee) => Json(employee).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn create_employee(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Json(req): Json<crate::models::CreateEmployeeRequest>,
+) -> impl IntoResponse {
+    match crate::services::employee_service::EmployeeService::create_employee(&state.db, workspace_id, req).await {
+        Ok(employee) => (StatusCode::CREATED, Json(employee)).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn update_employee(
+    Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Json(req): Json<crate::models::UpdateEmployeeRequest>,
+) -> impl IntoResponse {
+    match crate::services::employee_service::EmployeeService::update_employee(&state.db, id, workspace_id, req).await {
+        Ok(employee) => Json(employee).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn delete_employee(
+    Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> impl IntoResponse {
+    match crate::services::employee_service::EmployeeService::delete_employee(&state.db, id, workspace_id).await {
+        Ok(_) => StatusCode::NO_CONTENT.into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+// --- Time Tracking Handlers ---
+
+pub async fn punch_in(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Json(req): Json<crate::models::PunchInRequest>,
+) -> impl IntoResponse {
+    match crate::services::time_tracking_service::TimeTrackingService::punch_in(&state.db, workspace_id, req).await {
+        Ok(entry) => (StatusCode::CREATED, Json(entry)).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn punch_out(
+    Path(employee_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Json(req): Json<crate::models::PunchOutRequest>,
+) -> impl IntoResponse {
+    match crate::services::time_tracking_service::TimeTrackingService::punch_out(&state.db, workspace_id, employee_id, req).await {
+        Ok(entry) => Json(entry).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct HistoryQuery {
+    pub start: DateTime<Utc>,
+    pub end: DateTime<Utc>,
+}
+
+pub async fn get_time_history(
+    Path(employee_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Query(query): Query<HistoryQuery>,
+) -> impl IntoResponse {
+    match crate::services::time_tracking_service::TimeTrackingService::get_employee_history(&state.db, workspace_id, employee_id, query.start, query.end).await {
+        Ok(entries) => Json(entries).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn update_time_entry(
+    Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Json(req): Json<crate::models::UpdateTimeEntryRequest>,
+) -> impl IntoResponse {
+    match crate::services::time_tracking_service::TimeTrackingService::update_time_entry(&state.db, workspace_id, id, req).await {
+        Ok(entry) => Json(entry).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn delete_time_entry(
+    Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> impl IntoResponse {
+    match crate::services::time_tracking_service::TimeTrackingService::delete_time_entry(&state.db, workspace_id, id).await {
+        Ok(_) => StatusCode::NO_CONTENT.into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+// --- Leave Management Handlers ---
+
+pub async fn submit_leave_request(
+    State(state): State<Arc<AppState>>,
+    UserId(user_id): UserId,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Json(req): Json<crate::models::SubmitLeaveRequest>,
+) -> impl IntoResponse {
+    match crate::services::leave_service::LeaveService::submit_leave_request(&state.db, workspace_id, user_id, req).await {
+        Ok(request) => (StatusCode::CREATED, Json(request)).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn approve_leave_request(
+    Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    UserId(user_id): UserId,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Json(req): Json<crate::models::ApproveLeaveRequest>,
+) -> impl IntoResponse {
+    match crate::services::leave_service::LeaveService::approve_leave_request(&state.db, workspace_id, user_id, id, req).await {
+        Ok(_) => StatusCode::OK.into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn get_my_leave_requests(
+    Path(employee_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> impl IntoResponse {
+    match crate::services::leave_service::LeaveService::get_employee_leave_requests(&state.db, workspace_id, employee_id).await {
+        Ok(requests) => Json(requests).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LeaveStatusQuery {
+    pub status: Option<String>,
+}
+
+pub async fn get_workspace_leave_requests(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Query(query): Query<LeaveStatusQuery>,
+) -> impl IntoResponse {
+    match crate::services::leave_service::LeaveService::get_workspace_leave_requests(&state.db, workspace_id, query.status).await {
+        Ok(requests) => Json(requests).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+// --- Basic Reporting Handlers ---
+
+pub async fn get_attendance_report(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Query(query): Query<HistoryQuery>,
+) -> impl IntoResponse {
+    match crate::services::report_service::ReportService::get_workspace_attendance_summary(&state.db, workspace_id, query.start, query.end).await {
+        Ok(summary) => Json(summary).into_response(),
+        Err(status) => status.into_response(),
     }
 }

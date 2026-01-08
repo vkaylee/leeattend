@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Utc, NaiveDate};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -49,7 +49,7 @@ pub struct CreateAuthorizedAgentRequest {
     pub id: String,
     pub name: String,
     pub token: String,
-    pub workspace_id: Option<Uuid>, // Optional during creation if we use a default or session-based ws
+    pub workspace_id: Option<Uuid>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -105,12 +105,12 @@ pub struct CreateWorkspaceRequest {
 pub struct User {
     pub id: Uuid,
     pub email: String,
+    #[serde(skip_serializing)]
+    pub password_hash: String,
     pub created_at: DateTime<Utc>,
     pub full_name: Option<String>,
     pub avatar_url: Option<String>,
     pub bio: Option<String>,
-    #[serde(skip_serializing)]
-    pub password_hash: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -126,11 +126,20 @@ pub struct RegisterRequest {
     pub full_name: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UserResponse {
+    pub id: Uuid,
+    pub email: String,
+    pub full_name: Option<String>,
+    pub avatar_url: Option<String>,
+    pub bio: Option<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AuthResponse {
     pub access_token: String,
     pub refresh_token: String,
-    pub user: User,
+    pub user: UserResponse,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -188,4 +197,117 @@ pub struct WorkspaceMemberDetail {
     pub email: String,
     pub full_name: Option<String>,
     pub avatar_url: Option<String>,
+}
+
+// --- Employee Management Models ---
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct Employee {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub user_id: Option<Uuid>,
+    pub first_name: String,
+    pub last_name: String,
+    pub employee_id_number: String,
+    pub hire_date: NaiveDate,
+    pub termination_date: Option<NaiveDate>,
+    pub is_active: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateEmployeeRequest {
+    pub user_id: Option<Uuid>,
+    pub first_name: String,
+    pub last_name: String,
+    pub employee_id_number: String,
+    pub hire_date: NaiveDate,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateEmployeeRequest {
+    pub user_id: Option<Uuid>,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub employee_id_number: Option<String>,
+    pub hire_date: Option<NaiveDate>,
+    pub termination_date: Option<NaiveDate>,
+    pub is_active: Option<bool>,
+}
+
+// --- Time Tracking Models ---
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct TimeEntry {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub punch_in_time: DateTime<Utc>,
+    pub punch_out_time: Option<DateTime<Utc>>,
+    pub duration_minutes: Option<i32>,
+    pub entry_type: String,
+    pub note: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PunchInRequest {
+    pub employee_id: Uuid,
+    pub entry_type: Option<String>,
+    pub note: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PunchOutRequest {
+    pub note: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateTimeEntryRequest {
+    pub punch_in_time: Option<DateTime<Utc>>,
+    pub punch_out_time: Option<DateTime<Utc>>,
+    pub entry_type: Option<String>,
+    pub note: Option<String>,
+}
+
+// --- Leave Management Models ---
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct LeaveRequest {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub leave_type: String,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub reason: Option<String>,
+    pub status: String,
+    pub requested_by_user_id: Option<Uuid>,
+    pub approved_by_user_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SubmitLeaveRequest {
+    pub employee_id: Uuid,
+    pub leave_type: String,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ApproveLeaveRequest {
+    pub status: String,
+}
+
+// --- Basic Reporting Models ---
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AttendanceSummary {
+    pub employee_id: Uuid,
+    pub employee_name: String,
+    pub total_hours: f64,
+    pub total_leave_days: i64,
 }

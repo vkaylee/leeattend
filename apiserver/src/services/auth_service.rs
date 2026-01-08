@@ -1,4 +1,4 @@
-use crate::models::{AuthResponse, User};
+use crate::models::{AuthResponse, User, UserResponse};
 use bcrypt::{hash, verify, DEFAULT_COST};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
@@ -77,7 +77,7 @@ impl AuthService {
             .await
             .map_err(|_| "Invalid or expired refresh token".to_string())?;
 
-        let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
+        let user = sqlx::query_as::<_, User>("SELECT id, email, password_hash, created_at, full_name, avatar_url, bio FROM users WHERE id = $1")
             .bind(session.1)
             .fetch_one(db)
             .await
@@ -97,13 +97,28 @@ impl AuthService {
         Ok(AuthResponse {
             access_token,
             refresh_token: new_refresh_token,
-            user,
+            user: UserResponse {
+                id: user.id,
+                email: user.email,
+                full_name: user.full_name,
+                avatar_url: user.avatar_url,
+                bio: user.bio,
+            },
         })
     }
 
     pub async fn revoke_session(db: &PgPool, refresh_token: &str) -> Result<(), String> {
         sqlx::query("UPDATE sessions SET revoked_at = NOW() WHERE token = $1")
             .bind(refresh_token)
+            .execute(db)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    pub async fn revoke_all_sessions_for_user(db: &PgPool, user_id: Uuid) -> Result<(), String> {
+        sqlx::query("UPDATE sessions SET revoked_at = NOW() WHERE user_id = $1")
+            .bind(user_id)
             .execute(db)
             .await
             .map_err(|e| e.to_string())?;

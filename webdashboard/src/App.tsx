@@ -13,7 +13,11 @@ import {
   UserCheck,
   UserCircle,
   Users,
-} from "lucide-react";
+  Clock,
+  CalendarDays,
+  FileBarChart,
+  UserRound,
+} from "lucide-react"; // Added new icons
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import DashboardPage from "./pages/DashboardPage";
 import AgentsPage from "./pages/AgentsPage";
@@ -24,6 +28,10 @@ import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import OnboardingPage from "./pages/OnboardingPage";
+import EmployeesPage from "./pages/EmployeesPage"; // New pages
+import TimeTrackingPage from "./pages/TimeTrackingPage";
+import LeaveRequestsPage from "./pages/LeaveRequestsPage";
+import ReportsPage from "./pages/ReportsPage";
 import WorkspaceSwitcher from "./components/WorkspaceSwitcher";
 import AuthGuard from "./components/AuthGuard";
 import WorkspaceGuard from "./components/WorkspaceGuard";
@@ -61,7 +69,7 @@ function Layout() {
           <WorkspaceSwitcher />
         </div>
 
-        <nav className="flex-1 px-4 space-y-1">
+        <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
           <Link
             to="/"
             className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
@@ -69,6 +77,53 @@ function Layout() {
             <LayoutDashboard className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span className="font-semibold">Bảng điều khiển</span>
           </Link>
+          
+          <div className="pt-4 pb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Quản lý tổ chức
+          </div>
+          <Link
+            to="/members"
+            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
+          >
+            <Users className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-semibold">Thành viên</span>
+          </Link>
+          <Link
+            to="/employees"
+            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
+          >
+            <UserRound className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-semibold">Nhân viên</span>
+          </Link>
+
+          <div className="pt-4 pb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Chấm công & Nghỉ phép
+          </div>
+          <Link
+            to="/time-tracking"
+            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
+          >
+            <Clock className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-semibold">Chấm công</span>
+          </Link>
+          <Link
+            to="/leave-requests"
+            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
+          >
+            <CalendarDays className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-semibold">Nghỉ phép</span>
+          </Link>
+          <Link
+            to="/reports"
+            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
+          >
+            <FileBarChart className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-semibold">Báo cáo</span>
+          </Link>
+
+          <div className="pt-4 pb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Hệ thống
+          </div>
           <Link
             to="/agents"
             className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
@@ -84,56 +139,37 @@ function Layout() {
             <span className="font-semibold">Thiết bị</span>
           </Link>
           <Link
-            to="/members"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
-          >
-            <Users className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Thành viên</span>
-          </Link>
-          <Link
             to="/workspace/settings"
             className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
           >
             <Settings className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span className="font-semibold">Cài đặt</span>
           </Link>
+        </nav>
+
+        <div className="p-4 border-t border-slate-100">
           <Link
             to="/profile"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
+            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group mb-1"
           >
             <UserCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span className="font-semibold">Hồ sơ</span>
           </Link>
-          <Link
-            to="/logs"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
-          >
-            <History className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Nhật ký</span>
-          </Link>
-        </nav>
-
-        <div className="p-6 border-t border-slate-100 space-y-2">
-          <Link
-            to="/settings"
-            className="flex items-center gap-3 px-4 py-2 text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            <Settings className="w-5 h-5" />
-            <span className="text-sm font-medium">Cài đặt app</span>
-          </Link>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2 text-red-400 hover:text-red-600 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-2xl transition-all group"
           >
-            <LogOut className="w-5 h-5" />
-            <span className="text-sm font-medium">Đăng xuất</span>
+            <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-semibold">Đăng xuất</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
-        <Outlet />
+        <div className="p-8 max-w-7xl mx-auto">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
@@ -144,39 +180,28 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <Routes>
+          {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
+          {/* Protected routes */}
           <Route element={<AuthGuard />}>
             <Route path="/onboarding" element={<OnboardingPage />} />
-
             <Route element={<WorkspaceGuard />}>
-              <Route path="/" element={<Layout />}>
-                <Route index element={<DashboardPage />} />
-                <Route path="agents" element={<AgentsPage />} />
-                <Route path="devices" element={<DevicesPage />} />
-                <Route path="members" element={<MembersPage />} />
+              <Route element={<Layout />}>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/agents" element={<AgentsPage />} />
+                <Route path="/devices" element={<DevicesPage />} />
+                <Route path="/members" element={<MembersPage />} />
+                <Route path="/employees" element={<EmployeesPage />} />
+                <Route path="/time-tracking" element={<TimeTrackingPage />} />
+                <Route path="/leave-requests" element={<LeaveRequestsPage />} />
+                <Route path="/reports" element={<ReportsPage />} />
                 <Route
-                  path="workspace/settings"
-                  element={<WorkspaceSettingsPage />}
+                  path="/workspace/settings"
+                  element={<WorkspaceSettingsPage />} 
                 />
-                <Route path="profile" element={<ProfilePage />} />
-                <Route
-                  path="logs"
-                  element={
-                    <div className="p-8">
-                      Tính năng Nhật ký đang được phát triển.
-                    </div>
-                  }
-                />
-                <Route
-                  path="settings"
-                  element={
-                    <div className="p-8">
-                      Tính năng Cài đặt đang được phát triển.
-                    </div>
-                  }
-                />
+                <Route path="/profile" element={<ProfilePage />} />
               </Route>
             </Route>
           </Route>

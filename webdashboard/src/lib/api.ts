@@ -74,6 +74,61 @@ export interface WorkspaceMember {
   avatar_url?: string;
 }
 
+export interface AuthResponse {
+  access_token: string;
+  refresh_token: string;
+  user: User;
+}
+
+// --- Timekeeping Models ---
+
+export interface Employee {
+  id: string;
+  workspace_id: string;
+  user_id?: string;
+  first_name: string;
+  last_name: string;
+  employee_id_number: string;
+  hire_date: string;
+  termination_date?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TimeEntry {
+  id: string;
+  employee_id: string;
+  punch_in_time: string;
+  punch_out_time?: string;
+  duration_minutes?: number;
+  entry_type: string;
+  note?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeaveRequest {
+  id: string;
+  employee_id: string;
+  leave_type: string;
+  start_date: string;
+  end_date: string;
+  reason?: string;
+  status: string;
+  requested_by_user_id?: string;
+  approved_by_user_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AttendanceSummary {
+  employee_id: string;
+  employee_name: string;
+  total_hours: number;
+  total_leave_days: number;
+}
+
 // --- Auth Management ---
 
 export function getAccessToken(): string | null {
@@ -425,6 +480,138 @@ export async function revokeExtraRole(
     },
   );
   if (!response.ok) throw new Error("Failed to revoke role");
+}
+
+// --- Employee Management ---
+
+export async function fetchEmployees(wsId: string): Promise<Employee[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees`);
+  if (!response.ok) throw new Error("Failed to fetch employees");
+  return response.json();
+}
+
+export async function createEmployee(
+  wsId: string,
+  employee: Partial<Employee>,
+): Promise<Employee> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees`, {
+    method: "POST",
+    body: JSON.stringify(employee),
+  });
+  if (!response.ok) throw new Error("Failed to create employee");
+  return response.json();
+}
+
+export async function updateEmployee(
+  wsId: string,
+  id: string,
+  employee: Partial<Employee>,
+): Promise<Employee> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(employee),
+  });
+  if (!response.ok) throw new Error("Failed to update employee");
+  return response.json();
+}
+
+export async function deleteEmployee(wsId: string, id: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to delete employee");
+}
+
+// --- Time Tracking ---
+
+export async function punchIn(
+  wsId: string,
+  data: { employee_id: string; entry_type?: string; note?: string },
+): Promise<TimeEntry> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/time/punch-in`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to punch in");
+  return response.json();
+}
+
+export async function punchOut(
+  wsId: string,
+  employeeId: string,
+  data: { note?: string },
+): Promise<TimeEntry> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/time/punch-out/${employeeId}`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to punch out");
+  return response.json();
+}
+
+export async function fetchTimeHistory(
+  wsId: string,
+  employeeId: string,
+  start: string,
+  end: string,
+): Promise<TimeEntry[]> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/time/history/${employeeId}?start=${start}&end=${end}`,
+  );
+  if (!response.ok) throw new Error("Failed to fetch time history");
+  return response.json();
+}
+
+// --- Leave Management ---
+
+export async function submitLeaveRequest(
+  wsId: string,
+  data: { employee_id: string; leave_type: string; start_date: string; end_date: string; reason?: string },
+): Promise<LeaveRequest> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/submit`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to submit leave request");
+  return response.json();
+}
+
+export async function fetchWorkspaceLeaveRequests(
+  wsId: string,
+  status?: string,
+): Promise<LeaveRequest[]> {
+  const url = status
+    ? `${API_BASE_URL}/workspaces/${wsId}/leave/requests?status=${status}`
+    : `${API_BASE_URL}/workspaces/${wsId}/leave/requests`;
+  const response = await apiFetch(url);
+  if (!response.ok) throw new Error("Failed to fetch leave requests");
+  return response.json();
+}
+
+export async function approveLeaveRequest(
+  wsId: string,
+  id: string,
+  status: string,
+): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/requests/${id}/approve`, {
+    method: "POST",
+    body: JSON.stringify({ status }),
+  });
+  if (!response.ok) throw new Error("Failed to approve leave request");
+}
+
+// --- Reporting ---
+
+export async function fetchAttendanceReport(
+  wsId: string,
+  start: string,
+  end: string,
+): Promise<AttendanceSummary[]> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/reports/attendance?start=${start}&end=${end}`,
+  );
+  if (!response.ok) throw new Error("Failed to fetch attendance report");
+  return response.json();
 }
 
 export interface RegisterRequest {

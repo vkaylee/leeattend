@@ -198,6 +198,56 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/members/:user_id/roles/:role_id",
             delete(handlers::revoke_extra_role),
         )
+        // Employee Management
+        .route(
+            "/workspaces/:ws_id/employees",
+            get(handlers::get_employees).post(handlers::create_employee),
+        )
+        .route(
+            "/workspaces/:ws_id/employees/:id",
+            get(handlers::get_employee)
+                .put(handlers::update_employee)
+                .delete(handlers::delete_employee),
+        )
+        // Time Tracking
+        .route(
+            "/workspaces/:ws_id/time/punch-in",
+            post(handlers::punch_in),
+        )
+        .route(
+            "/workspaces/:ws_id/time/punch-out/:employee_id",
+            post(handlers::punch_out),
+        )
+        .route(
+            "/workspaces/:ws_id/time/history/:employee_id",
+            get(handlers::get_time_history),
+        )
+        .route(
+            "/workspaces/:ws_id/time/entries/:id",
+            put(handlers::update_time_entry).delete(handlers::delete_time_entry),
+        )
+        // Leave Management
+        .route(
+            "/workspaces/:ws_id/leave/submit",
+            post(handlers::submit_leave_request),
+        )
+        .route(
+            "/workspaces/:ws_id/leave/requests",
+            get(handlers::get_workspace_leave_requests),
+        )
+        .route(
+            "/workspaces/:ws_id/leave/requests/:id/approve",
+            post(handlers::approve_leave_request),
+        )
+        .route(
+            "/workspaces/:ws_id/leave/employee/:employee_id",
+            get(handlers::get_my_leave_requests),
+        )
+        // Reporting
+        .route(
+            "/workspaces/:ws_id/reports/attendance",
+            get(handlers::get_attendance_report),
+        )
         .layer(cors)
         .with_state(state)
 }
