@@ -92,8 +92,18 @@ Hệ thống hỗ trợ phân tách dữ liệu hoàn toàn giữa các tổ ch�
 
 ## 🛠️ AI Debugging Workflow
 
+
+
 Khi gặp lỗi giao diện, AI Agent nên thực hiện các bước sau:
-1.  Khởi chạy Backend trong background: `cd apiserver && cargo run`.
-2.  Khởi chạy Frontend: `cd webdashboard && npm run dev`.
-3.  Chạy Playwright Debug: `npx playwright test tests/debug-ui.spec.ts`.
-4.  Phân tích log bắt đầu bằng `[BROWSER]` để tìm nguyên nhân gốc rễ.
+
+1.  **Gắn cờ:** Luôn thêm `AI_MANAGED=true` vào trước lệnh khởi chạy để dễ dàng quản lý.
+
+2.  Khởi chạy Backend: `AI_MANAGED=true (cd apiserver && cargo run) &`.
+
+3.  Khởi chạy Frontend: `AI_MANAGED=true (cd webdashboard && npm run dev) &`.
+
+4.  Chạy Playwright Debug: `npx playwright test tests/debug-ui.spec.ts`.
+
+5.  **Dọn dẹp:** Sử dụng `pkill -f "AI_MANAGED=true"` để tắt chính xác các server do AI tạo ra, tránh giết nhầm server của người dùng.
+
+

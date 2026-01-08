@@ -29,14 +29,23 @@ leeattend/
 
 If you need to verify UI changes or fix loading issues:
 
-1.  **Ensure Backend is running**: `cd apiserver && cargo run`
-2.  **Ensure Frontend is running**: `cd webdashboard && npm run dev`
+1.  **Ensure Backend is running**: 
+    ```bash
+    AI_MANAGED=true (cd apiserver && cargo run) > /tmp/backend.log 2>&1 &
+    ```
+2.  **Ensure Frontend is running**: 
+    ```bash
+    AI_MANAGED=true (cd webdashboard && npm run dev) > /tmp/frontend.log 2>&1 &
+    ```
 3.  **Run Automated Debug**:
     ```bash
     cd webdashboard
     npx playwright test tests/debug-ui.spec.ts --reporter=line
     ```
-4.  **Analyze**: Look for `[BROWSER]` logs in the output to see what's happening inside the browser.
+4.  **🚨 IMPORTANT: Cleanup**: After testing, kill ONLY the AI-managed processes:
+    ```bash
+    pkill -f "AI_MANAGED=true" || true
+    ```
 
 
 ## 📖 Documentation
