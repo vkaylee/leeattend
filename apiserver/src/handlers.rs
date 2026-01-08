@@ -19,8 +19,9 @@ use crate::models::{
     AddMemberRequest, AssignRoleRequest, AuthResponse, AuthorizedAgent,
     CreateAuthorizedAgentRequest, CreateDeviceRequest, CreateWorkspaceRequest, Device,
     GenericResponse, LoginRequest, MemberExtraRole, RefreshRequest, UpdateAuthorizedAgentRequest,
-    UpdateDeviceRequest, User, Workspace,
+    UpdateDeviceRequest, User, Workspace, RegisterRequest,
 };
+use chrono::Utc;
 use crate::services::auth_service::AuthService;
 use crate::services::WorkspaceService;
 use crate::{AppState, UserId};
@@ -851,6 +852,75 @@ pub async fn get_dev_super_user(State(state): State<Arc<AppState>>) -> impl Into
 }
 
 // --- Auth Handlers ---
+
+pub async fn register(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<RegisterRequest>,
+) -> impl IntoResponse {
+    // 1. Check if email exists
+    let exists: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)")
+        .bind(&req.email)
+        .fetch_one(&state.db)
+        .await
+    {
+        Ok(e) => e,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    };
+
+    if exists {
+        return (StatusCode::CONFLICT, "Email already exists").into_response();
+    }
+
+    // 2. Hash password
+    let password_hash = match AuthService::hash_password(&req.password) {
+        Ok(h) => h,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    };
+
+    // 3. Create User
+    let user_id = Uuid::new_v4();
+    let created_at = Utc::now();
+    let user = User {
+        id: user_id,
+        email: req.email.clone(),
+        created_at,
+        full_name: Some(req.full_name.clone()),
+        avatar_url: None,
+        bio: None,
+        password_hash: Some(password_hash.clone()),
+    };
+
+    if let Err(e) = sqlx::query(
+        "INSERT INTO users (id, email, password_hash, full_name, created_at) VALUES ($1, $2, $3, $4, $5)"
+    )
+    .bind(user.id)
+    .bind(&user.email)
+    .bind(&password_hash)
+    .bind(&user.full_name)
+    .bind(user.created_at)
+    .execute(&state.db)
+    .await {
+        return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+    }
+
+    // 4. Generate Tokens
+    let access_token = match AuthService::generate_token(user.id, &state.jwt_secret, 60) {
+        Ok(t) => t,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    };
+
+    let refresh_token = match AuthService::create_session(&state.db, user.id).await {
+        Ok(t) => t,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    };
+
+    Json(AuthResponse {
+        access_token,
+        refresh_token,
+        user,
+    })
+    .into_response()
+}
 
 pub async fn login(
     State(state): State<Arc<AppState>>,

@@ -317,6 +317,25 @@ export async function revokeExtraRole(wsId: string, userId: string, roleId: stri
   if (!response.ok) throw new Error('Failed to revoke role');
 }
 
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  full_name: string;
+}
+
+export async function register(data: RegisterRequest): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || 'Registration failed');
+  }
+  return response.json();
+}
+
 export async function fetchDevSuperUser(): Promise<{ user_id: string; workspace_id: string; access_token?: string; refresh_token?: string }> {
   const response = await fetch(`${API_BASE_URL}/dev/super-user`);
   if (!response.ok) throw new Error('Failed to fetch dev super user');

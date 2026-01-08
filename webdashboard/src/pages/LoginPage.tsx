@@ -1,4 +1,4 @@
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { useProfile } from '@/hooks/use-profile';
 import { fetchDevSuperUser, setCurrentUserId, setCurrentWorkspaceId, getCurrentUserId, setAccessToken, setRefreshToken } from '@/lib/api';
 import { useState } from 'react';
@@ -98,6 +98,13 @@ export default function LoginPage() {
               >
                 Đăng nhập (Coming Soon)
               </button>
+            </div>
+
+            <div className="text-center text-sm">
+              <span className="text-gray-500">Don't have an account? </span>
+              <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
+                Sign up
+              </Link>
             </div>
           </form>
         </div>

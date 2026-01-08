@@ -8,6 +8,7 @@ import MembersPage from './pages/MembersPage';
 import WorkspaceSettingsPage from './pages/WorkspaceSettingsPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import OnboardingPage from './pages/OnboardingPage';
 import WorkspaceSwitcher from './components/WorkspaceSwitcher';
 import AuthGuard from './components/AuthGuard';
@@ -106,6 +107,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           
           <Route element={<AuthGuard />}>
             <Route path="/onboarding" element={<OnboardingPage />} />

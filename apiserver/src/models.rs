@@ -117,6 +117,13 @@ pub struct LoginRequest {
     pub password: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct RegisterRequest {
+    pub email: String,
+    pub password: String,
+    pub full_name: String,
+}
+
 #[derive(Debug, Serialize)]
 pub struct AuthResponse {
     pub access_token: String,
