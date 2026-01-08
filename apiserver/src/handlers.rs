@@ -181,10 +181,17 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                         devices_json.clone(),
                                     ))
                                     .unwrap_or_default();
-                                state_clone
+                                let _ = state_clone
                                     .agent_manager
                                     .update_status(id.to_string(), devices)
                                     .await;
+                            }
+                        } else if v["type"] == "heartbeat" {
+                            if let Some(id) = v["agent_id"].as_str() {
+                                // Ensure agent updates only their own timestamp
+                                if id == agent_id {
+                                    let _ = state_clone.agent_service.update_last_seen(id).await;
+                                }
                             }
                         } else if v["type"] == "handshake" || !agent_id.is_empty() {
                             if agent_id.is_empty() {
@@ -409,16 +416,6 @@ pub async fn delete_device(
 #[derive(Debug, Deserialize)]
 pub struct GetAgentsQueryParams {
     pub include_inactive: Option<bool>,
-}
-
-pub async fn agent_heartbeat(
-    crate::AgentId(agent_id): crate::AgentId,
-    State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
-    match state.agent_service.update_last_seen(&agent_id).await {
-        Ok(_) => StatusCode::OK.into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
-    }
 }
 
 pub async fn get_authorized_agents(

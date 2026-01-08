@@ -1,12 +1,13 @@
 mod common;
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
 use common::factory::TestFactory;
-use reqwest::StatusCode;
 use serial_test::serial;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use uuid::Uuid;
 use chrono::{Utc, Duration};
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+use futures_util::{SinkExt, StreamExt};
 
 async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
     dotenvy::dotenv().ok();
@@ -25,10 +26,10 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
     let factory = TestFactory::new(db_pool.clone());
     factory.cleanup().await;
 
-    let user_id = factory.user().with_email("hb_test@example.com").create().await;
+    let user_id = factory.user().with_email("hb_ws_test@example.com").create().await;
     let workspace_id = factory
         .workspace()
-        .with_name("HB Workspace")
+        .with_name("HB WS Workspace")
         .create_with_owner(user_id)
         .await;
 
@@ -50,13 +51,13 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
         agent_repo,
         workspace_repo,
         agent_service,
-        jwt_secret: "hb_secret".to_string(),
+        jwt_secret: "hb_ws_secret".to_string(),
     });
 
     let app = create_app(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
-    let url = format!("http://{}", addr);
+    let url = format!("ws://{}/ws", addr);
 
     tokio::spawn(async move {
         axum::serve(listener, app).await.unwrap();
@@ -67,14 +68,13 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
 
 #[tokio::test]
 #[serial]
-async fn test_agent_heartbeat_success() {
+async fn test_agent_heartbeat_via_websocket() {
     let (url, _, workspace_id, factory) = spawn_app().await;
-    let client = reqwest::Client::new();
 
-    let agent_id = "HB_AGENT_01".to_string();
-    let token = "hb_token_123".to_string();
+    let agent_id = "HB_WS_AGENT_01".to_string();
+    let token = "hb_ws_token_123".to_string();
 
-    // 1. Khai báo agent
+    // 1. Khai báo agent và phê duyệt
     factory.agent()
         .with_id(&agent_id)
         .with_token(&token)
@@ -83,18 +83,38 @@ async fn test_agent_heartbeat_success() {
         .create()
         .await;
 
-    // 2. Gửi heartbeat
-    let response = client
-        .post(format!("{}/agents/heartbeat", url))
-        .header("X-Agent-Id", &agent_id)
-        .header("X-Agent-Token", &token)
-        .send()
-        .await
-        .expect("Failed to send request");
+    // 2. Kết nối WebSocket
+    let (mut ws_stream, _) = connect_async(&url).await.expect("Failed to connect");
 
-    assert_eq!(response.status(), StatusCode::OK);
+    // 3. Thực hiện Handshake
+    let handshake = serde_json::json!({
+        "type": "handshake",
+        "agent_id": agent_id,
+        "token": token,
+        "timestamp": Utc::now().to_rfc3339()
+    });
+    ws_stream.send(Message::Text(handshake.to_string().into())).await.unwrap();
 
-    // 3. Kiểm tra DB xem last_seen_at có được cập nhật không
+    // Chờ config push để chắc chắn handshake xong
+    if let Some(Ok(Message::Text(text))) = ws_stream.next().await {
+        let v: serde_json::Value = serde_json::from_str(&text).unwrap();
+        assert_eq!(v["type"], "config_push");
+    } else {
+        panic!("Did not receive config_push after handshake");
+    }
+
+    // 4. Gửi Heartbeat message
+    let heartbeat = serde_json::json!({
+        "type": "heartbeat",
+        "agent_id": agent_id,
+        "timestamp": Utc::now().to_rfc3339()
+    });
+    ws_stream.send(Message::Text(heartbeat.to_string().into())).await.unwrap();
+
+    // Chờ một chút để server xử lý
+    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+
+    // 5. Kiểm tra DB xem last_seen_at có được cập nhật không
     let last_seen: chrono::DateTime<Utc> = sqlx::query_scalar("SELECT last_seen_at FROM authorized_agents WHERE id = $1")
         .bind(&agent_id)
         .fetch_one(&factory.pool)
@@ -104,26 +124,7 @@ async fn test_agent_heartbeat_success() {
     let now = Utc::now();
     let diff = if now > last_seen { now - last_seen } else { last_seen - now };
     
-    println!("Now: {}, Last Seen: {}, Diff: {}ms", now, last_seen, diff.num_milliseconds());
+    assert!(diff < Duration::seconds(10));
     
-    // Nới lỏng kiểm tra vì có thể có lệch múi giờ giữa client test và DB
-    assert!(diff < Duration::seconds(60));
-}
-
-#[tokio::test]
-#[serial]
-async fn test_agent_heartbeat_unauthorized() {
-    let (url, _, _, _) = spawn_app().await;
-    let client = reqwest::Client::new();
-
-    // Gửi với token sai
-    let response = client
-        .post(format!("{}/agents/heartbeat", url))
-        .header("X-Agent-Id", "UNKNOWN")
-        .header("X-Agent-Token", "WRONG")
-        .send()
-        .await
-        .expect("Failed to send request");
-
-    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    let _ = ws_stream.close(None).await;
 }

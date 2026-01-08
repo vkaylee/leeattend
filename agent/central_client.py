@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import random
-import httpx
 import websockets
 from datetime import datetime
 from dotenv import load_dotenv
@@ -15,7 +14,6 @@ logger = logging.getLogger("zkteco-central")
 class CentralClient:
     def __init__(self, agent_id=None, token=None, url=None):
         self.url = url or os.getenv("CENTRAL_SERVER_URL")
-        self.http_url = self.url.replace("ws://", "http://").replace("wss://", "https://").replace("/ws", "") if self.url else None
         self.token = token or os.getenv("AGENT_TOKEN")
         self.agent_id = agent_id or os.getenv("AGENT_ID")
         self.send_queue = asyncio.Queue(maxsize=1000)
@@ -285,32 +283,23 @@ class CentralClient:
             logger.error(f"Failed to save local config: {e}")
 
     async def _heartbeat(self, websocket):
-        """Duy trì kết nối WebSocket và cập nhật trạng thái Online qua HTTP"""
-        heartbeat_url = f"{self.http_url}/api/agents/heartbeat"
-        headers = {
-            "X-Agent-Id": self.agent_id,
-            "X-Agent-Token": self.token
-        }
-        
-        async with httpx.AsyncClient() as client:
-            while not self._stop_event.is_set():
-                try:
-                    # 1. WebSocket Ping (Duy trì socket)
-                    await websocket.ping()
-                    
-                    # 2. HTTP Heartbeat (Cập nhật DB)
-                    if self.http_url:
-                        try:
-                            resp = await client.post(heartbeat_url, headers=headers, timeout=5.0)
-                            if resp.status_code != 200:
-                                logger.warning(f"HTTP Heartbeat failed with status {resp.status_code}")
-                        except Exception as e:
-                            logger.warning(f"HTTP Heartbeat request failed: {e}")
-                            
-                    await asyncio.sleep(30)
-                except Exception as e:
-                    logger.warning(f"Heartbeat loop error: {e}")
-                    raise
+        """Duy trì kết nối WebSocket và cập nhật trạng thái Online qua WS Message"""
+        while not self._stop_event.is_set():
+            try:
+                # 1. Gửi tin nhắn Heartbeat (Cập nhật DB tại Server)
+                await websocket.send(json.dumps({
+                    "type": "heartbeat",
+                    "agent_id": self.agent_id,
+                    "timestamp": datetime.now().isoformat()
+                }))
+                
+                # 2. WebSocket Ping (Duy trì socket tầng thấp)
+                await websocket.ping()
+                
+                await asyncio.sleep(30)
+            except Exception as e:
+                logger.warning(f"Heartbeat failed: {e}")
+                raise
 
     def stop(self):
         """Dừng kết nối Central Server"""

@@ -46,7 +46,8 @@ impl AgentRepository for SqlxAgentRepository {
     }
 
     async fn update_last_seen(&self, id: &str) -> Result<(), String> {
-        sqlx::query("UPDATE authorized_agents SET last_seen_at = CURRENT_TIMESTAMP WHERE id = $1")
+        sqlx::query("UPDATE authorized_agents SET last_seen_at = $1 WHERE id = $2")
+            .bind(chrono::Utc::now())
             .bind(id)
             .execute(&self.pool)
             .await

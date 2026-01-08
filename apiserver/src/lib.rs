@@ -39,8 +39,6 @@ mod ax_auth {
 
     pub struct UserId(pub Uuid);
 
-    pub struct AgentId(pub String);
-
     #[async_trait]
     impl<S> FromRequestParts<S> for UserId
     where
@@ -88,46 +86,9 @@ mod ax_auth {
             ))
         }
     }
-
-    #[async_trait]
-    impl<S> FromRequestParts<S> for AgentId
-    where
-        S: Send + Sync,
-        Arc<AppState>: FromRef<S>,
-    {
-        type Rejection = (StatusCode, String);
-
-        async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-            let agent_id = parts
-                .headers
-                .get("X-Agent-Id")
-                .and_then(|h| h.to_str().ok())
-                .ok_or((StatusCode::UNAUTHORIZED, "Missing X-Agent-Id".to_string()))?;
-
-            let agent_token = parts
-                .headers
-                .get("X-Agent-Token")
-                .and_then(|h| h.to_str().ok())
-                .ok_or((StatusCode::UNAUTHORIZED, "Missing X-Agent-Token".to_string()))?;
-
-            let app_state = Arc::<AppState>::from_ref(state);
-
-            match app_state
-                .agent_service
-                .authorize_agent(agent_id, agent_token)
-                .await
-            {
-                Ok(Some(_)) => Ok(AgentId(agent_id.to_string())),
-                _ => Err((
-                    StatusCode::UNAUTHORIZED,
-                    "Invalid Agent credentials".to_string(),
-                )),
-            }
-        }
-    }
 }
 
-pub use ax_auth::{AgentId, UserId};
+pub use ax_auth::UserId;
 
 pub fn create_app(state: Arc<AppState>) -> Router {
     // Cấu hình CORS
@@ -187,7 +148,6 @@ pub fn create_app(state: Arc<AppState>) -> Router {
     router
         .route("/ws", get(handlers::ws_handler))
         .route("/agents", get(handlers::get_agents))
-        .route("/agents/heartbeat", post(handlers::agent_heartbeat))
         .route("/agent/:agent_id/command", post(handlers::send_command))
         // Profile
         .route("/me", get(handlers::get_me).patch(handlers::update_me))
