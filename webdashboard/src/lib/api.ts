@@ -33,6 +33,7 @@ export interface AuthorizedAgent {
   token: string;
   is_trusted: boolean;
   last_ip?: string;
+  last_seen_at: string;
   created_at: string;
   is_active: boolean;
   workspace_id: string;

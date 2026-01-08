@@ -31,6 +31,7 @@ pub struct AuthorizedAgent {
     pub is_trusted: bool,
     pub last_ip: Option<String>,
     pub created_at: DateTime<Utc>,
+    pub last_seen_at: DateTime<Utc>,
     pub is_active: bool,
     pub workspace_id: Uuid,
 }

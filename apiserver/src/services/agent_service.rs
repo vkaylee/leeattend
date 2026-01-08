@@ -64,6 +64,10 @@ impl AgentService {
     pub async fn update_last_ip(&self, id: &str, ip: &str) -> Result<(), String> {
         self.repo.update_last_ip(id, ip).await
     }
+
+    pub async fn update_last_seen(&self, id: &str) -> Result<(), String> {
+        self.repo.update_last_seen(id).await
+    }
 }
 
 #[cfg(test)]
@@ -87,6 +91,7 @@ mod tests {
                     is_trusted: true,
                     last_ip: None,
                     created_at: chrono::Utc::now(),
+                    last_seen_at: chrono::Utc::now(),
                     is_active: true,
                     workspace_id: Uuid::new_v4(),
                 }))
@@ -98,6 +103,7 @@ mod tests {
                     is_trusted: false,
                     last_ip: None,
                     created_at: chrono::Utc::now(),
+                    last_seen_at: chrono::Utc::now(),
                     is_active: true,
                     workspace_id: Uuid::new_v4(),
                 }))
@@ -107,6 +113,10 @@ mod tests {
         }
 
         async fn update_last_ip(&self, _id: &str, _ip: &str) -> Result<(), String> {
+            Ok(())
+        }
+
+        async fn update_last_seen(&self, _id: &str) -> Result<(), String> {
             Ok(())
         }
 

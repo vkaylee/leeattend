@@ -6,6 +6,7 @@ use sqlx::PgPool;
 pub trait AgentRepository: Send + Sync {
     async fn find_by_id(&self, id: &str) -> Result<Option<AuthorizedAgent>, String>;
     async fn update_last_ip(&self, id: &str, ip: &str) -> Result<(), String>;
+    async fn update_last_seen(&self, id: &str) -> Result<(), String>;
     async fn find_devices_by_agent_id(&self, agent_id: &str) -> Result<Vec<Device>, String>;
 }
 
@@ -36,6 +37,16 @@ impl AgentRepository for SqlxAgentRepository {
     async fn update_last_ip(&self, id: &str, ip: &str) -> Result<(), String> {
         sqlx::query("UPDATE authorized_agents SET last_ip = $1 WHERE id = $2")
             .bind(ip)
+            .bind(id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        Ok(())
+    }
+
+    async fn update_last_seen(&self, id: &str) -> Result<(), String> {
+        sqlx::query("UPDATE authorized_agents SET last_seen_at = CURRENT_TIMESTAMP WHERE id = $1")
             .bind(id)
             .execute(&self.pool)
             .await

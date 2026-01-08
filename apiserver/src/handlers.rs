@@ -411,6 +411,16 @@ pub struct GetAgentsQueryParams {
     pub include_inactive: Option<bool>,
 }
 
+pub async fn agent_heartbeat(
+    crate::AgentId(agent_id): crate::AgentId,
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    match state.agent_service.update_last_seen(&agent_id).await {
+        Ok(_) => StatusCode::OK.into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    }
+}
+
 pub async fn get_authorized_agents(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,

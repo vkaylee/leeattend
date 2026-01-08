@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AuthorizedAgent } from "@/lib/api";
 import {
   Plus,
@@ -11,13 +11,29 @@ import {
   RefreshCcw,
   Edit2,
   Trash2,
+  Activity,
 } from "lucide-react";
-import AgentEditModal from "@/components/AgentEditModal";
-import { useAuthorizedAgents } from "@/hooks/use-agents";
 
 export default function AgentsPage() {
+  // ... (keep existing state)
+  
+  const isOnline = (lastSeenAt: string) => {
+    if (!lastSeenAt) return false;
+    const lastSeen = new Date(lastSeenAt).getTime();
+    const now = new Date().getTime();
+    return now - lastSeen < 90000; // 90 seconds threshold
+  };
+
+  // Add a local timer to refresh the UI every 15s to update online status
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   const {
     agents,
+// ...
     isLoading,
     isFetching,
     refetch,
@@ -236,17 +252,31 @@ export default function AgentsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-5">
-                    {agent.is_trusted ? (
-                      <span className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs bg-emerald-50 px-3 py-1 rounded-full w-fit">
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                        Đã duyệt
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1.5 text-amber-600 font-bold text-xs bg-amber-50 px-3 py-1 rounded-full w-fit">
-                        <ShieldAlert className="w-3.5 h-3.5" />
-                        Chờ duyệt
-                      </span>
-                    )}
+                    <div className="flex flex-col gap-2">
+                      {isOnline(agent.last_seen_at) ? (
+                        <span className="flex items-center gap-1.5 text-blue-600 font-bold text-[10px] bg-blue-50 px-3 py-1 rounded-full w-fit uppercase tracking-wider animate-pulse">
+                          <Activity className="w-3 h-3" />
+                          Online
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1.5 text-slate-400 font-bold text-[10px] bg-slate-100 px-3 py-1 rounded-full w-fit uppercase tracking-wider">
+                          <Activity className="w-3 h-3" />
+                          Offline
+                        </span>
+                      )}
+
+                      {agent.is_trusted ? (
+                        <span className="flex items-center gap-1.5 text-emerald-600 font-bold text-[10px] bg-emerald-50 px-3 py-1 rounded-full w-fit uppercase tracking-wider">
+                          <ShieldCheck className="w-3 h-3" />
+                          Trusted
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1.5 text-amber-600 font-bold text-[10px] bg-amber-50 px-3 py-1 rounded-full w-fit uppercase tracking-wider">
+                          <ShieldAlert className="w-3 h-3" />
+                          Pending
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-5 text-right">
                     <div className="flex items-center justify-end gap-2">
