@@ -109,28 +109,32 @@ where
         let app_state = Arc::<AppState>::from_ref(state);
 
         // 1. Fetch Primary Role
-        let primary_role: String = sqlx::query_scalar(
-            "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2",
-        )
-        .bind(workspace_id)
-        .bind(user_id)
-        .fetch_optional(&app_state.db)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((
-            StatusCode::FORBIDDEN,
-            "Not a member of this workspace".to_string(),
-        ))?;
+        let primary_role = app_state
+            .workspace_repo
+            .find_primary_role(workspace_id, user_id)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?
+            .ok_or((
+                StatusCode::FORBIDDEN,
+                "Not a member of this workspace".to_string(),
+            ))?;
 
         // 2. Fetch Active Extra Roles
-        let mut roles: Vec<String> = sqlx::query_scalar(
-            "SELECT role FROM member_extra_roles WHERE workspace_id = $1 AND user_id = $2 AND expires_at > NOW()",
-        )
-        .bind(workspace_id)
-        .bind(user_id)
-        .fetch_all(&app_state.db)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        // Note: For complex queries with conditions like expires_at > NOW(), 
+        // we should add a specific method to repository trait or keep it simple if it's very specific.
+        // Let's assume find_extra_roles returns all, and we filter here, 
+        // OR better, add a specific method to WorkspaceRepository for active roles.
+        let all_extra_roles = app_state
+            .workspace_repo
+            .find_extra_roles(workspace_id, user_id)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+        let mut roles: Vec<String> = all_extra_roles
+            .into_iter()
+            .filter(|r| r.expires_at > chrono::Utc::now())
+            .map(|r| r.role)
+            .collect();
 
         roles.push(primary_role);
 
@@ -207,8 +211,12 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                 if let (Some(id), Some(token)) =
                                     (v["agent_id"].as_str(), v["token"].as_str())
                                 {
-                                    match AgentService::authorize_agent(&state_clone.db, id, token)
-                                        .await
+                                    match AgentService::authorize_agent(
+                                        state_clone.agent_repo.as_ref(),
+                                        id,
+                                        token,
+                                    )
+                                    .await
                                     {
                                         Ok(Some(_agent)) => {
                                             agent_id = id.to_string();
@@ -218,7 +226,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                                 .await;
 
                                             let _ = AgentService::update_last_ip(
-                                                &state_clone.db,
+                                                state_clone.agent_repo.as_ref(),
                                                 &agent_id,
                                                 "websocket_conn",
                                             )
@@ -700,7 +708,9 @@ pub async fn get_member_roles(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> impl IntoResponse {
-    match WorkspaceService::get_member_roles(&state.db, ctx.workspace_id, user_id).await {
+    match WorkspaceService::get_member_roles(state.workspace_repo.as_ref(), ctx.workspace_id, user_id)
+        .await
+    {
         Ok((primary, extra)) => Json(serde_json::json!({
             "primary": primary,
             "extra": extra

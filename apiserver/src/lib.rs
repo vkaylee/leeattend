@@ -1,6 +1,7 @@
 pub mod agent_manager;
 pub mod handlers;
 pub mod models;
+pub mod repositories;
 pub mod services;
 
 use axum::{
@@ -9,6 +10,7 @@ use axum::{
 };
 
 use crate::agent_manager::AgentManager;
+use crate::repositories::{AgentRepository, WorkspaceRepository};
 use axum::http::{HeaderValue, Method};
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -17,6 +19,8 @@ use tower_http::cors::{Any, CorsLayer};
 pub struct AppState {
     pub agent_manager: AgentManager,
     pub db: PgPool,
+    pub agent_repo: Arc<dyn AgentRepository>,
+    pub workspace_repo: Arc<dyn WorkspaceRepository>,
 }
 
 pub fn create_app(state: Arc<AppState>) -> Router {

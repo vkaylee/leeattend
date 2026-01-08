@@ -48,10 +48,16 @@ async fn spawn_app() -> (String, Uuid, Arc<AppState>) {
         .await
         .unwrap();
 
+    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: db_pool.clone() });
+    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: db_pool.clone() });
+
     let state = Arc::new(AppState {
         agent_manager: AgentManager::new(),
         db: db_pool,
+        agent_repo,
+        workspace_repo,
     });
+
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await

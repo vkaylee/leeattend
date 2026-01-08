@@ -33,9 +33,14 @@ async fn main() {
         .expect("Failed to run migrations");
 
     // Khởi tạo AppState bên ngoài để có thể truy cập sau khi server tắt
+    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: pool.clone() });
+    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+
     let state = Arc::new(AppState {
         agent_manager: AgentManager::new(),
         db: pool,
+        agent_repo,
+        workspace_repo,
     });
 
     // Build our application

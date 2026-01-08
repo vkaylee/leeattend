@@ -23,6 +23,7 @@ sqlx = { version = "0.8", default-features = false, features = [
     "migrate"
 ] }
 tower-http = { version = "0.6.8", features = ["cors"] }
+async-trait = "0.1.89"
 
 [lints.rust]
 warnings = "deny"

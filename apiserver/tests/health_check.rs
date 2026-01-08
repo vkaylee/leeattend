@@ -12,9 +12,14 @@ async fn spawn_app() -> String {
         .await
         .expect("Failed to connect to Postgres");
 
+    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: pool.clone() });
+    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+
     let state = Arc::new(AppState {
         agent_manager: AgentManager::new(),
         db: pool,
+        agent_repo,
+        workspace_repo,
     });
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")

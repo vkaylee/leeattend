@@ -1,11 +1,14 @@
-use sqlx::PgPool;
 use uuid::Uuid;
-use crate::models::Workspace;
-use crate::models::MemberExtraRole;
+use crate::models::{Workspace, MemberExtraRole};
+use crate::repositories::WorkspaceRepository;
+use sqlx::PgPool;
 
 pub struct WorkspaceService;
 
 impl WorkspaceService {
+    // Note: create_workspace still needs PgPool for transaction across multiple repo-like steps 
+    // or we need to add transaction support to repo trait. 
+    // For now, let's keep it simple or implement the TX inside repo if it's one atomic operation.
     pub async fn create_workspace(db: &PgPool, name: &str, owner_id: Uuid) -> Result<Workspace, String> {
         let mut tx = db.begin().await.map_err(|e| e.to_string())?;
 
@@ -32,25 +35,11 @@ impl WorkspaceService {
         Ok(workspace)
     }
 
-    pub async fn get_member_roles(db: &PgPool, workspace_id: Uuid, user_id: Uuid) -> Result<(String, Vec<MemberExtraRole>), String> {
-        let primary_role: String = sqlx::query_scalar(
-            "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2",
-        )
-        .bind(workspace_id)
-        .bind(user_id)
-        .fetch_optional(db)
-        .await
-        .map_err(|e| e.to_string())?
-        .ok_or("NOT_FOUND".to_string())?;
+    pub async fn get_member_roles(repo: &dyn WorkspaceRepository, workspace_id: Uuid, user_id: Uuid) -> Result<(String, Vec<MemberExtraRole>), String> {
+        let primary_role = repo.find_primary_role(workspace_id, user_id).await?
+            .ok_or("NOT_FOUND".to_string())?;
 
-        let extra_roles = sqlx::query_as::<_, MemberExtraRole>(
-            "SELECT * FROM member_extra_roles WHERE workspace_id = $1 AND user_id = $2",
-        )
-        .bind(workspace_id)
-        .bind(user_id)
-        .fetch_all(db)
-        .await
-        .map_err(|e| e.to_string())?;
+        let extra_roles = repo.find_extra_roles(workspace_id, user_id).await?;
 
         Ok((primary_role, extra_roles))
     }
