@@ -3,7 +3,7 @@ pub mod handlers;
 pub mod models;
 
 use axum::{
-    routing::{get, post, put},
+    routing::{get, post, put, delete},
     Router,
 };
 
@@ -90,6 +90,14 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(
             "/workspaces/:ws_id/members",
             get(handlers::get_workspace_members).post(handlers::add_workspace_member),
+        )
+        .route(
+            "/workspaces/:ws_id/members/:user_id/roles",
+            get(handlers::get_member_roles).post(handlers::assign_extra_role),
+        )
+        .route(
+            "/workspaces/:ws_id/members/:user_id/roles/:role_id",
+            delete(handlers::revoke_extra_role),
         )
         .layer(cors)
         .with_state(state)

@@ -228,3 +228,41 @@ export async function addWorkspaceMember(wsId: string, email: string, role: stri
   });
   if (!response.ok) throw new Error('Failed to add member');
 }
+
+export interface MemberRolesResponse {
+  primary: string;
+  extra: MemberExtraRole[];
+}
+
+export interface MemberExtraRole {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  role: string;
+  assigned_at: string;
+  expires_at: string;
+}
+
+export async function fetchMemberRoles(wsId: string, userId: string): Promise<MemberRolesResponse> {
+  const response = await fetch(`${API_BASE_URL}/workspaces/${wsId}/members/${userId}/roles`, { headers: getHeaders() });
+  if (!response.ok) throw new Error('Failed to fetch member roles');
+  return response.json();
+}
+
+export async function assignExtraRole(wsId: string, userId: string, role: string, expiresAt: string): Promise<MemberExtraRole> {
+  const response = await fetch(`${API_BASE_URL}/workspaces/${wsId}/members/${userId}/roles`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ role, expires_at: expiresAt }),
+  });
+  if (!response.ok) throw new Error('Failed to assign role');
+  return response.json();
+}
+
+export async function revokeExtraRole(wsId: string, userId: string, roleId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/workspaces/${wsId}/members/${userId}/roles/${roleId}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to revoke role');
+}

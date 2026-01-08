@@ -16,12 +16,14 @@ use uuid::Uuid;
 
 use crate::agent_manager::AgentCommand;
 use crate::models::{
-    AuthorizedAgent, CreateDeviceRequest, CreateWorkspaceRequest, Device, GenericResponse,
+    AddMemberRequest, AssignRoleRequest, AuthorizedAgent, CreateAuthorizedAgentRequest,
+    CreateDeviceRequest, CreateWorkspaceRequest, Device, GenericResponse, MemberExtraRole,
     UpdateAuthorizedAgentRequest, UpdateDeviceRequest, Workspace,
 };
 use crate::AppState;
 
-// Extractor to get workspace ID from header
+// --- Extractors ---
+
 pub struct WorkspaceId(pub Uuid);
 
 #[async_trait]
@@ -36,20 +38,59 @@ where
             .headers
             .get("X-Workspace-Id")
             .and_then(|h| h.to_str().ok())
-            .ok_or((StatusCode::BAD_REQUEST, "Missing X-Workspace-Id header".to_string()))?;
+            .ok_or((
+                StatusCode::BAD_REQUEST,
+                "Missing X-Workspace-Id header".to_string(),
+            ))?;
 
-        let workspace_id = Uuid::parse_str(workspace_id_str)
-            .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid X-Workspace-Id format".to_string()))?;
+        let workspace_id = Uuid::parse_str(workspace_id_str).map_err(|_| {
+            (
+                StatusCode::BAD_REQUEST,
+                "Invalid X-Workspace-Id format".to_string(),
+            )
+        })?;
 
         Ok(WorkspaceId(workspace_id))
     }
 }
 
-// Security context containing User and their role in the current workspace
+pub struct UserId(pub Uuid);
+
+#[async_trait]
+impl<S> FromRequestParts<S> for UserId
+where
+    S: Send + Sync,
+{
+    type Rejection = (StatusCode, String);
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let user_id_str = parts
+            .headers
+            .get("X-User-Id")
+            .and_then(|h| h.to_str().ok())
+            .ok_or((StatusCode::UNAUTHORIZED, "Missing X-User-Id".to_string()))?;
+
+        let user_id = Uuid::parse_str(user_id_str)
+            .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid X-User-Id".to_string()))?;
+
+        Ok(UserId(user_id))
+    }
+}
+
 pub struct MemberContext {
     pub user_id: Uuid,
     pub workspace_id: Uuid,
-    pub role: String,
+    pub roles: Vec<String>,
+}
+
+impl MemberContext {
+    pub fn has_role(&self, role: &str) -> bool {
+        self.roles.iter().any(|r| r == role)
+    }
+
+    pub fn is_admin_or_owner(&self) -> bool {
+        self.has_role("admin") || self.has_role("owner")
+    }
 }
 
 #[async_trait]
@@ -61,111 +102,46 @@ where
     type Rejection = (StatusCode, String);
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        // 1. Get User ID from header (Simulating Auth)
-        let user_id_str = parts
-            .headers
-            .get("X-User-Id")
-            .and_then(|h| h.to_str().ok())
-            .ok_or((StatusCode::UNAUTHORIZED, "Missing X-User-Id header".to_string()))?;
+        let UserId(user_id) = UserId::from_request_parts(parts, state).await?;
+        let WorkspaceId(workspace_id) = WorkspaceId::from_request_parts(parts, state).await?;
 
-        let user_id = Uuid::parse_str(user_id_str)
-            .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid X-User-Id format".to_string()))?;
-
-        // 2. Get Workspace ID from header
-        let workspace_id_str = parts
-            .headers
-            .get("X-Workspace-Id")
-            .and_then(|h| h.to_str().ok())
-            .ok_or((StatusCode::BAD_REQUEST, "Missing X-Workspace-Id header".to_string()))?;
-
-        let workspace_id = Uuid::parse_str(workspace_id_str)
-            .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid X-Workspace-Id format".to_string()))?;
-
-        // 3. Verify Membership and get Role
         let app_state = Arc::<AppState>::from_ref(state);
 
-        let member = sqlx::query_as::<_, crate::models::WorkspaceMember>(
-            "SELECT * FROM workspace_members WHERE workspace_id = $1 AND user_id = $2",
+        // 1. Fetch Primary Role
+        let primary_role: String = sqlx::query_scalar(
+            "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2",
         )
         .bind(workspace_id)
         .bind(user_id)
         .fetch_optional(&app_state.db)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((StatusCode::FORBIDDEN, "Not a member of this workspace".to_string()))?;
+        .ok_or((
+            StatusCode::FORBIDDEN,
+            "Not a member of this workspace".to_string(),
+        ))?;
+
+        // 2. Fetch Active Extra Roles
+        let mut roles: Vec<String> = sqlx::query_scalar(
+            "SELECT role FROM member_extra_roles WHERE workspace_id = $1 AND user_id = $2 AND expires_at > NOW()",
+        )
+        .bind(workspace_id)
+        .bind(user_id)
+        .fetch_all(&app_state.db)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        roles.push(primary_role);
 
         Ok(MemberContext {
             user_id,
             workspace_id,
-            role: member.role,
+            roles,
         })
     }
 }
 
-pub struct UserId(pub Uuid);
-#[async_trait]
-impl<S> FromRequestParts<S> for UserId
-where
-    S: Send + Sync,
-{
-    type Rejection = (StatusCode, String);
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let user_id_str = parts.headers.get("X-User-Id").and_then(|h| h.to_str().ok())
-            .ok_or((StatusCode::UNAUTHORIZED, "Missing X-User-Id".to_string()))?;
-        let user_id = Uuid::parse_str(user_id_str).map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid X-User-Id".to_string()))?;
-        Ok(UserId(user_id))
-    }
-}
-
-#[derive(Debug, Deserialize)]
-pub struct GetAgentsQueryParams {
-    pub include_inactive: Option<bool>,
-}
-
-pub async fn get_user_profile(
-    State(state): State<Arc<AppState>>,
-    UserId(user_id): UserId,
-) -> impl IntoResponse {
-    match sqlx::query_as::<_, crate::models::User>("SELECT * FROM users WHERE id = $1")
-        .bind(user_id)
-        .fetch_optional(&state.db)
-        .await
-    {
-        Ok(Some(user)) => Json(user).into_response(),
-        Ok(None) => StatusCode::NOT_FOUND.into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
-}
-
-pub async fn get_users(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    match sqlx::query_as::<_, crate::models::User>("SELECT * FROM users ORDER BY created_at DESC")
-        .fetch_all(&state.db)
-        .await
-    {
-        Ok(users) => Json(users).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
-}
-
-pub async fn update_user_profile(
-    State(state): State<Arc<AppState>>,
-    UserId(user_id): UserId,
-    Json(req): Json<crate::models::UpdateUserRequest>,
-) -> impl IntoResponse {
-    match sqlx::query_as::<_, crate::models::User>(
-        "UPDATE users SET full_name = COALESCE($1, full_name), avatar_url = COALESCE($2, avatar_url), bio = COALESCE($3, bio) WHERE id = $4 RETURNING *"
-    )
-    .bind(req.full_name)
-    .bind(req.avatar_url)
-    .bind(req.bio)
-    .bind(user_id)
-    .fetch_one(&state.db)
-    .await
-    {
-        Ok(user) => Json(user).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
-}
+// --- Basic Handlers ---
 
 pub async fn health_check() -> impl IntoResponse {
     let response = GenericResponse {
@@ -185,7 +161,6 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
     let (mut sender, mut receiver) = socket.split();
     let (tx, mut rx) = mpsc::unbounded_channel::<Message>();
 
-    // Task to send messages from our internal channel to the websocket
     let mut send_task = tokio::spawn(async move {
         while let Some(message) = rx.recv().await {
             if sender.send(message).await.is_err() {
@@ -195,22 +170,14 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
     });
 
     let mut agent_id = String::new();
-
-    // Task to receive messages from the websocket
     let state_clone = state.clone();
+
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(message)) = receiver.next().await {
             match message {
                 Message::Text(text) => {
                     if let Ok(v) = serde_json::from_str::<serde_json::Value>(&text) {
-                        // Handle handshake or messages
                         if v["type"] == "attendance" {
-                            tracing::info!(
-                                "Received attendance log from {}: {:?}",
-                                v["agent_id"],
-                                v["data"]
-                            );
-                            // Send ACK back to agent
                             if let Some(msg_id) = v["msg_id"].as_str() {
                                 let ack = serde_json::json!({
                                     "type": "ack",
@@ -233,14 +200,12 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                     .agent_manager
                                     .update_status(id.to_string(), devices)
                                     .await;
-                                tracing::debug!("Updated status for agent {}", id);
                             }
                         } else if v["type"] == "handshake" || !agent_id.is_empty() {
                             if agent_id.is_empty() {
                                 if let (Some(id), Some(token)) =
                                     (v["agent_id"].as_str(), v["token"].as_str())
                                 {
-                                    // 1. Kiểm tra Agent trong Database
                                     let auth_result =
                                         sqlx::query_as::<_, crate::models::AuthorizedAgent>(
                                             "SELECT * FROM authorized_agents WHERE id = $1",
@@ -251,9 +216,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
 
                                     match auth_result {
                                         Ok(Some(agent)) => {
-                                            // Kiểm tra Token và Trạng thái Trust
                                             if agent.token != token {
-                                                tracing::warn!("Unauthorized access attempt for agent {}: Invalid Token", id);
                                                 let _ = tx.send(Message::Text(
                                                     serde_json::json!({
                                                         "type": "error",
@@ -266,75 +229,39 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                             }
 
                                             if !agent.is_trusted {
-                                                tracing::warn!(
-                                                    "Connection blocked for agent {}: Not Trusted",
-                                                    id
-                                                );
                                                 let _ = tx.send(Message::Text(serde_json::json!({
                                                     "type": "error",
                                                     "code": "AGENT_NOT_TRUSTED",
-                                                    "message": "Agent chưa được phê duyệt bởi quản trị viên."
+                                                    "message": "Agent chưa được phê duyệt."
                                                 }).to_string()));
                                                 break;
                                             }
 
-                                            // 2. Check duplicate connection
-                                            let is_duplicate = {
-                                                let active_agents =
-                                                    state_clone.agent_manager.agents.read().await;
-                                                active_agents.contains_key(id)
-                                            };
-
-                                            if is_duplicate {
-                                                tracing::warn!("Rejecting duplicate connection attempt for agent {}", id);
-                                                let _ = tx.send(Message::Text(serde_json::json!({
-                                                    "type": "error",
-                                                    "code": "DUPLICATE_ID",
-                                                    "message": format!("Agent ID {} đã có kết nối hoạt động.", id)
-                                                }).to_string()));
-                                                break;
-                                            }
-
-                                            // 3. Chấp nhận kết nối
                                             agent_id = id.to_string();
                                             state_clone
                                                 .agent_manager
                                                 .add_agent(agent_id.clone(), tx.clone())
                                                 .await;
-                                            tracing::info!(
-                                                "Agent {} verified and connected",
-                                                agent_id
-                                            );
 
-                                            // Cập nhật IP cuối của Agent
                                             let _ = sqlx::query("UPDATE authorized_agents SET last_ip = $1 WHERE id = $2")
-                                                .bind("websocket_conn") // Có thể lấy IP thật từ socket nếu cần
+                                                .bind("websocket_conn")
                                                 .bind(&agent_id)
                                                 .execute(&state_clone.db)
                                                 .await;
 
-                                            // Gửi cấu hình ban đầu
                                             let _ =
                                                 notify_agent_config_update(&state_clone, &agent_id)
                                                     .await;
                                         }
                                         Ok(None) => {
-                                            tracing::warn!("Unauthorized connection attempt: Agent ID {} not found in whitelist", id);
                                             let _ = tx.send(Message::Text(serde_json::json!({
                                                 "type": "error",
                                                 "code": "UNAUTHORIZED_AGENT",
-                                                "message": "Agent ID không nằm trong danh sách được phép."
+                                                "message": "Agent ID không hợp lệ."
                                             }).to_string()));
                                             break;
                                         }
-                                        Err(e) => {
-                                            tracing::error!(
-                                                "Database error during handshake for agent {}: {}",
-                                                id,
-                                                e
-                                            );
-                                            break;
-                                        }
+                                        Err(_) => break,
                                     }
                                 }
                             }
@@ -347,7 +274,6 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
         }
         if !agent_id.is_empty() {
             state_clone.agent_manager.remove_agent(&agent_id).await;
-            tracing::info!("Agent {} disconnected", agent_id);
         }
     });
 
@@ -436,7 +362,6 @@ pub async fn update_device(
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<UpdateDeviceRequest>,
 ) -> impl IntoResponse {
-    // Get current device, restricted to workspace
     let current_device = match sqlx::query_as::<_, Device>(
         "SELECT * FROM devices WHERE id = $1 AND workspace_id = $2",
     )
@@ -479,7 +404,6 @@ pub async fn delete_device(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> impl IntoResponse {
-    // Get agent_id first for notification, restricted to workspace
     let agent_id: Option<String> = sqlx::query_scalar(
         "SELECT agent_id FROM devices WHERE id = $1 AND workspace_id = $2",
     )
@@ -504,6 +428,13 @@ pub async fn delete_device(
         Ok(_) => StatusCode::NOT_FOUND.into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
+}
+
+// --- Authorized Agents Handlers ---
+
+#[derive(Debug, Deserialize)]
+pub struct GetAgentsQueryParams {
+    pub include_inactive: Option<bool>,
 }
 
 pub async fn get_authorized_agents(
@@ -533,7 +464,7 @@ pub async fn get_authorized_agents(
 pub async fn create_authorized_agent(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
-    Json(req): Json<crate::models::CreateAuthorizedAgentRequest>,
+    Json(req): Json<CreateAuthorizedAgentRequest>,
 ) -> impl IntoResponse {
     match sqlx::query(
         "INSERT INTO authorized_agents (id, name, token, workspace_id) VALUES ($1, $2, $3, $4)",
@@ -570,7 +501,6 @@ pub async fn update_agent_trust(
     .await
     {
         Ok(res) if res.rows_affected() > 0 => {
-            // Nếu revoke trust, ngắt kết nối websocket hiện tại
             if !req.is_trusted {
                 state.agent_manager.remove_agent(&id).await;
             }
@@ -648,7 +578,6 @@ pub async fn update_authorized_agent(
         .await
     {
         Ok(Some(agent)) => {
-            // If is_trusted was changed to false or is_active to false, disconnect agent
             if (req.is_trusted == Some(false) || req.is_active == Some(false))
                 && state
                     .agent_manager
@@ -667,7 +596,6 @@ pub async fn update_authorized_agent(
 }
 
 pub async fn delete_authorized_agent(
-    // This is a soft delete
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
@@ -681,7 +609,6 @@ pub async fn delete_authorized_agent(
     .await
     {
         Ok(res) if res.rows_affected() > 0 => {
-            // Disconnect agent if it was active
             state.agent_manager.remove_agent(&id).await;
             StatusCode::NO_CONTENT.into_response()
         }
@@ -766,15 +693,13 @@ pub async fn get_workspace_members(
 
 pub async fn add_workspace_member(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, role, .. }: MemberContext,
-    Json(req): Json<crate::models::AddMemberRequest>,
+    ctx: MemberContext,
+    Json(req): Json<AddMemberRequest>,
 ) -> impl IntoResponse {
-    // 1. Authorization: Only Admin or Owner can invite
-    if role != "admin" && role != "owner" {
+    if !ctx.is_admin_or_owner() {
         return (StatusCode::FORBIDDEN, "Only admins can invite members").into_response();
     }
 
-    // 2. Find user by email
     let user_id: Uuid = match sqlx::query_scalar("SELECT id FROM users WHERE email = $1")
         .bind(&req.email)
         .fetch_optional(&state.db)
@@ -791,7 +716,7 @@ pub async fn add_workspace_member(
     match sqlx::query(
         "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
     )
-    .bind(workspace_id)
+    .bind(ctx.workspace_id)
     .bind(user_id)
     .bind(&req.role)
     .execute(&state.db)
@@ -802,8 +727,139 @@ pub async fn add_workspace_member(
     }
 }
 
+// --- Temporal Roles Handlers ---
+
+pub async fn get_member_roles(
+    Path((_ws_id, user_id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+) -> impl IntoResponse {
+    // 1. Get Primary Role
+    let primary_role: String = match sqlx::query_scalar(
+        "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2",
+    )
+    .bind(ctx.workspace_id)
+    .bind(user_id)
+    .fetch_optional(&state.db)
+    .await
+    {
+        Ok(Some(r)) => r,
+        Ok(None) => return StatusCode::NOT_FOUND.into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    };
+
+    // 2. Get Extra Roles
+    let extra_roles: Vec<MemberExtraRole> = match sqlx::query_as::<_, MemberExtraRole>(
+        "SELECT * FROM member_extra_roles WHERE workspace_id = $1 AND user_id = $2",
+    )
+    .bind(ctx.workspace_id)
+    .bind(user_id)
+    .fetch_all(&state.db)
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    };
+
+    Json(serde_json::json!({
+        "primary": primary_role,
+        "extra": extra_roles
+    }))
+    .into_response()
+}
+
+pub async fn assign_extra_role(
+    Path((_ws_id, user_id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Json(req): Json<AssignRoleRequest>,
+) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return (StatusCode::FORBIDDEN, "Only admins can assign roles").into_response();
+    }
+
+    match sqlx::query_as::<_, MemberExtraRole>(
+        "INSERT INTO member_extra_roles (workspace_id, user_id, role, expires_at) VALUES ($1, $2, $3, $4) RETURNING *"
+    )
+    .bind(ctx.workspace_id)
+    .bind(user_id)
+    .bind(&req.role)
+    .bind(req.expires_at)
+    .fetch_one(&state.db)
+    .await
+    {
+        Ok(extra_role) => (StatusCode::CREATED, Json(extra_role)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+pub async fn revoke_extra_role(
+    Path((_ws_id, _user_id, role_id)): Path<(Uuid, Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return (StatusCode::FORBIDDEN, "Only admins can revoke roles").into_response();
+    }
+
+    match sqlx::query("DELETE FROM member_extra_roles WHERE id = $1 AND workspace_id = $2")
+        .bind(role_id)
+        .bind(ctx.workspace_id)
+        .execute(&state.db)
+        .await
+    {
+        Ok(res) if res.rows_affected() > 0 => StatusCode::NO_CONTENT.into_response(),
+        Ok(_) => StatusCode::NOT_FOUND.into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+pub async fn get_user_profile(
+    State(state): State<Arc<AppState>>,
+    UserId(user_id): UserId,
+) -> impl IntoResponse {
+    match sqlx::query_as::<_, crate::models::User>("SELECT * FROM users WHERE id = $1")
+        .bind(user_id)
+        .fetch_optional(&state.db)
+        .await
+    {
+        Ok(Some(user)) => Json(user).into_response(),
+        Ok(None) => StatusCode::NOT_FOUND.into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+pub async fn get_users(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    match sqlx::query_as::<_, crate::models::User>("SELECT * FROM users ORDER BY created_at DESC")
+        .fetch_all(&state.db)
+        .await
+    {
+        Ok(users) => Json(users).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+pub async fn update_user_profile(
+    State(state): State<Arc<AppState>>,
+    UserId(user_id): UserId,
+    Json(req): Json<crate::models::UpdateUserRequest>,
+) -> impl IntoResponse {
+    match sqlx::query_as::<_, crate::models::User>(
+        "UPDATE users SET full_name = COALESCE($1, full_name), avatar_url = COALESCE($2, avatar_url), bio = COALESCE($3, bio) WHERE id = $4 RETURNING *"
+    )
+    .bind(req.full_name)
+    .bind(req.avatar_url)
+    .bind(req.bio)
+    .bind(user_id)
+    .fetch_one(&state.db)
+    .await
+    {
+        Ok(user) => Json(user).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
 async fn notify_agent_config_update(state: &AppState, agent_id: &str) -> Result<(), String> {
-    // Fetch all enabled devices for this agent
     let devices = sqlx::query_as::<_, Device>(
         "SELECT * FROM devices WHERE agent_id = $1 AND is_enabled = true",
     )
@@ -816,7 +872,7 @@ async fn notify_agent_config_update(state: &AppState, agent_id: &str) -> Result<
         "type": "config_update",
         "devices": devices.into_iter().map(|d| {
             serde_json::json!({
-                "device_id": d.id.to_string(), // Dùng UUID làm device_id
+                "device_id": d.id.to_string(),
                 "ip": d.ip,
                 "port": d.port
             })

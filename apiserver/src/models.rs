@@ -128,3 +128,19 @@ pub struct AddMemberRequest {
     pub email: String,
     pub role: String,
 }
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct MemberExtraRole {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub user_id: Uuid,
+    pub role: String,
+    pub assigned_at: DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AssignRoleRequest {
+    pub role: String,
+    pub expires_at: DateTime<Utc>,
+}

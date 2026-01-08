@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Users, UserPlus, Shield, Mail, Trash2 } from 'lucide-react';
+import { Users, UserPlus, Shield, Mail, Trash2, Settings2 } from 'lucide-react';
 import { WorkspaceMember, fetchWorkspaceMembers, addWorkspaceMember, getCurrentWorkspaceId } from '@/lib/api';
+import RoleManagementModal from '@/components/RoleManagementModal';
 
 export default function WorkspaceSettingsPage() {
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newMemberRole, setNewMemberRole] = useState<'admin' | 'member'>('member');
+  
+  // State for role management
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   
   const workspaceId = getCurrentWorkspaceId();
 
@@ -115,11 +120,24 @@ export default function WorkspaceSettingsPage() {
                     </div>
                   </div>
                   
-                  {member.role !== 'owner' && (
-                    <button className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
-                      <Trash2 className="w-5 h-5" />
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => {
+                        setSelectedUserId(member.user_id);
+                        setIsRoleModalOpen(true);
+                      }}
+                      className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                      title="Quản lý quyền"
+                    >
+                      <Settings2 className="w-5 h-5" />
                     </button>
-                  )}
+                    
+                    {member.role !== 'owner' && (
+                      <button className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
               
@@ -132,6 +150,12 @@ export default function WorkspaceSettingsPage() {
           </div>
         </div>
       </div>
+
+      <RoleManagementModal 
+        userId={selectedUserId}
+        isOpen={isRoleModalOpen}
+        onClose={() => setIsRoleModalOpen(false)}
+      />
     </div>
   );
 }
