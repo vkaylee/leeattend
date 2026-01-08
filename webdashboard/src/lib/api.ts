@@ -57,6 +57,9 @@ export interface WorkspaceMember {
   workspace_id: string;
   user_id: string;
   role: 'owner' | 'admin' | 'member';
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
 }
 
 // --- Auth Management ---

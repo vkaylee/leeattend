@@ -1,9 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Link, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Cpu, History, Settings, UserCheck, UserCircle } from 'lucide-react';
+import { LayoutDashboard, Cpu, History, Settings, UserCheck, UserCircle, Users } from 'lucide-react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import DashboardPage from './pages/DashboardPage';
 import AgentsPage from './pages/AgentsPage';
 import DevicesPage from './pages/DevicesPage';
+import MembersPage from './pages/MembersPage';
 import WorkspaceSettingsPage from './pages/WorkspaceSettingsPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
@@ -58,6 +59,10 @@ function Layout() {
             <Cpu className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span className="font-semibold">Thiết bị</span>
           </Link>
+          <Link to="/members" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group">
+            <Users className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-semibold">Thành viên</span>
+          </Link>
           <Link to="/workspace/settings" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group">
             <Settings className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span className="font-semibold">Cài đặt</span>
@@ -110,6 +115,7 @@ function App() {
                 <Route index element={<DashboardPage />} />
                 <Route path="agents" element={<AgentsPage />} />
                 <Route path="devices" element={<DevicesPage />} />
+                <Route path="members" element={<MembersPage />} />
                 <Route path="workspace/settings" element={<WorkspaceSettingsPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="logs" element={<div className="p-8">Tính năng Nhật ký đang được phát triển.</div>} />

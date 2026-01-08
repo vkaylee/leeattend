@@ -164,3 +164,13 @@ pub struct AssignRoleRequest {
     pub role: String,
     pub expires_at: DateTime<Utc>,
 }
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct WorkspaceMemberDetail {
+    pub workspace_id: Uuid,
+    pub user_id: Uuid,
+    pub role: String,
+    pub email: String,
+    pub full_name: Option<String>,
+    pub avatar_url: Option<String>,
+}

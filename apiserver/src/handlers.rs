@@ -622,8 +622,11 @@ pub async fn get_workspace_members(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> impl IntoResponse {
-    match sqlx::query_as::<_, crate::models::WorkspaceMember>(
-        "SELECT * FROM workspace_members WHERE workspace_id = $1",
+    match sqlx::query_as::<_, crate::models::WorkspaceMemberDetail>(
+        "SELECT wm.workspace_id, wm.user_id, wm.role, u.email, u.full_name, u.avatar_url 
+         FROM workspace_members wm
+         JOIN users u ON wm.user_id = u.id
+         WHERE wm.workspace_id = $1",
     )
     .bind(workspace_id)
     .fetch_all(&state.db)
