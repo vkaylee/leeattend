@@ -1,4 +1,4 @@
-import { User, Workspace, AuthorizedAgent, WorkspaceMember } from '@/lib/api';
+import { User, Workspace, AuthorizedAgent, WorkspaceMember } from "@/lib/api";
 
 export const userFactory = (overrides: Partial<User> = {}): User => {
   const id = crypto.randomUUID();
@@ -13,7 +13,9 @@ export const userFactory = (overrides: Partial<User> = {}): User => {
   };
 };
 
-export const workspaceFactory = (overrides: Partial<Workspace> = {}): Workspace => {
+export const workspaceFactory = (
+  overrides: Partial<Workspace> = {},
+): Workspace => {
   const id = crypto.randomUUID();
   return {
     id,
@@ -23,25 +25,29 @@ export const workspaceFactory = (overrides: Partial<Workspace> = {}): Workspace 
   };
 };
 
-export const agentFactory = (overrides: Partial<AuthorizedAgent> = {}): AuthorizedAgent => {
+export const agentFactory = (
+  overrides: Partial<AuthorizedAgent> = {},
+): AuthorizedAgent => {
   return {
     id: `AGENT_${Math.floor(Math.random() * 1000)}`,
-    name: 'Test Agent',
-    token: 'secret_token',
+    name: "Test Agent",
+    token: "secret_token",
     is_trusted: true,
     is_active: true,
-    last_ip: '127.0.0.1',
+    last_ip: "127.0.0.1",
     created_at: new Date().toISOString(),
     workspace_id: crypto.randomUUID(),
     ...overrides,
   };
 };
 
-export const memberFactory = (overrides: Partial<WorkspaceMember> = {}): WorkspaceMember => {
+export const memberFactory = (
+  overrides: Partial<WorkspaceMember> = {},
+): WorkspaceMember => {
   return {
     workspace_id: crypto.randomUUID(),
     user_id: crypto.randomUUID(),
-    role: 'member',
+    role: "member",
     ...overrides,
   };
 };

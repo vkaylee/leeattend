@@ -10,7 +10,7 @@ pub trait AgentRepository: Send + Sync {
 }
 
 pub struct SqlxAgentRepository {
-    pool: PgPool,
+    pub pool: PgPool,
 }
 
 impl SqlxAgentRepository {

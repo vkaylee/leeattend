@@ -1,6 +1,13 @@
-import { useState } from 'react';
-import { useNavigate, Navigate, Link } from 'react-router-dom';
-import { register, setAccessToken, setRefreshToken, setCurrentUserId, getCurrentUserId, AuthResponse } from '@/lib/api';
+import { useState } from "react";
+import { useNavigate, Navigate, Link } from "react-router-dom";
+import {
+  register,
+  setAccessToken,
+  setRefreshToken,
+  setCurrentUserId,
+  getCurrentUserId,
+  AuthResponse,
+} from "@/lib/api";
 
 export default function RegisterPage() {
   const userId = getCurrentUserId();
@@ -8,10 +15,10 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
-    full_name: '',
-    password: '',
-    confirm_password: '',
+    email: "",
+    full_name: "",
+    password: "",
+    confirm_password: "",
   });
 
   // Redirect if already logged in
@@ -24,12 +31,12 @@ export default function RegisterPage() {
     setError(null);
 
     if (formData.password !== formData.confirm_password) {
-      setError('Passwords do not match');
+      setError("Passwords do not match");
       return;
     }
 
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError("Password must be at least 6 characters");
       return;
     }
 
@@ -45,19 +52,19 @@ export default function RegisterPage() {
       setCurrentUserId(response.user.id);
       setAccessToken(response.access_token);
       setRefreshToken(response.refresh_token);
-      
+
       // Redirect to onboarding or home
-      window.location.href = '/onboarding'; 
+      window.location.href = "/onboarding";
     } catch (err: any) {
-      console.error('Registration failed', err);
-      setError(err.message || 'Registration failed. Please try again.');
+      console.error("Registration failed", err);
+      setError(err.message || "Registration failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   return (
@@ -81,7 +88,12 @@ export default function RegisterPage() {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <label htmlFor="full_name" className="block text-sm font-medium text-gray-700">Full Name</label>
+              <label
+                htmlFor="full_name"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Full Name
+              </label>
               <input
                 id="full_name"
                 name="full_name"
@@ -92,9 +104,14 @@ export default function RegisterPage() {
                 onChange={handleChange}
               />
             </div>
-            
+
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Email address
+              </label>
               <input
                 id="email"
                 name="email"
@@ -108,7 +125,12 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Password
+              </label>
               <input
                 id="password"
                 name="password"
@@ -122,7 +144,12 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="confirm_password" className="block text-sm font-medium text-gray-700">Confirm Password</label>
+              <label
+                htmlFor="confirm_password"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Confirm Password
+              </label>
               <input
                 id="confirm_password"
                 name="confirm_password"
@@ -142,13 +169,16 @@ export default function RegisterPage() {
               disabled={isLoading}
               className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:opacity-50"
             >
-              {isLoading ? 'Creating account...' : 'Sign Up'}
+              {isLoading ? "Creating account..." : "Sign Up"}
             </button>
           </div>
 
           <div className="text-center text-sm">
             <span className="text-gray-500">Already have an account? </span>
-            <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <Link
+              to="/login"
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
               Sign in
             </Link>
           </div>

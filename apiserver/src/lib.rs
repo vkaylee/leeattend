@@ -5,7 +5,7 @@ pub mod repositories;
 pub mod services;
 
 use axum::{
-    routing::{delete, get, post, put},
+    routing::{delete, get, patch, post, put},
     Router,
 };
 
@@ -184,6 +184,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(
             "/workspaces/:ws_id/members",
             get(handlers::get_workspace_members).post(handlers::add_workspace_member),
+        )
+        .route(
+            "/workspaces/:ws_id/members/:user_id",
+            patch(handlers::update_workspace_member_role).delete(handlers::remove_workspace_member),
         )
         .route(
             "/workspaces/:ws_id/members/:user_id/roles",

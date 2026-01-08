@@ -1,13 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  fetchDevices, 
-  createDevice, 
-  deleteDevice,
-  Device 
-} from '@/lib/api';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchDevices, createDevice, deleteDevice, Device } from "@/lib/api";
 
 export const devicesKeys = {
-  all: ['devices'] as const,
+  all: ["devices"] as const,
 };
 
 export function useDevices() {
@@ -37,7 +32,7 @@ export function useDevices() {
     isLoading: devicesQuery.isLoading,
     error: devicesQuery.error,
     refetch: devicesQuery.refetch,
-    
+
     createDevice: createMutation.mutateAsync,
     deleteDevice: deleteMutation.mutateAsync,
 

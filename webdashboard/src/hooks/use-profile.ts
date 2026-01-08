@@ -1,8 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchMe, updateMe, setCurrentUserId, User } from '@/lib/api';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchMe, updateMe, setCurrentUserId, User } from "@/lib/api";
 
 export const profileKeys = {
-  me: ['profile-me'] as const,
+  me: ["profile-me"] as const,
 };
 
 export function useProfile() {
@@ -31,7 +31,7 @@ export function useProfile() {
     isError: profileQuery.isError,
     error: profileQuery.error,
     refetch: profileQuery.refetch,
-    
+
     updateProfile: updateMutation.mutateAsync,
     isUpdating: updateMutation.isPending,
   };

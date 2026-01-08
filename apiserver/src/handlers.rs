@@ -671,6 +671,67 @@ pub async fn add_workspace_member(
     }
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateMemberRoleRequest {
+    pub role: String,
+}
+
+pub async fn update_workspace_member_role(
+    Path((_ws_id, user_id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Json(req): Json<UpdateMemberRoleRequest>,
+) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return (
+            StatusCode::FORBIDDEN,
+            "Only admins can change roles".to_string(),
+        )
+            .into_response();
+    }
+
+    match state
+        .workspace_repo
+        .update_member_role(ctx.workspace_id, user_id, &req.role)
+        .await
+    {
+        Ok(_) => StatusCode::OK.into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    }
+}
+
+pub async fn remove_workspace_member(
+    Path((_ws_id, user_id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return (
+            StatusCode::FORBIDDEN,
+            "Only admins can remove members".to_string(),
+        )
+            .into_response();
+    }
+
+    // Don't allow removing yourself (prevent lockout if only one admin, though owner should probably remain)
+    if user_id == ctx.user_id {
+        return (
+            StatusCode::BAD_REQUEST,
+            "You cannot remove yourself from the workspace".to_string(),
+        )
+            .into_response();
+    }
+
+    match state
+        .workspace_repo
+        .remove_member(ctx.workspace_id, user_id)
+        .await
+    {
+        Ok(_) => StatusCode::NO_CONTENT.into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    }
+}
+
 // --- Temporal Roles Handlers ---
 
 pub async fn get_member_roles(
@@ -703,6 +764,14 @@ pub async fn assign_extra_role(
 ) -> impl IntoResponse {
     if !ctx.is_admin_or_owner() {
         return (StatusCode::FORBIDDEN, "Only admins can assign roles").into_response();
+    }
+
+    if req.expires_at <= chrono::Utc::now() {
+        return (
+            StatusCode::BAD_REQUEST,
+            "Expiration time must be in the future".to_string(),
+        )
+            .into_response();
     }
 
     match sqlx::query_as::<_, MemberExtraRole>(

@@ -1,7 +1,7 @@
 use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
+use apiserver::models::{AuthResponse, ChangePasswordRequest, LoginRequest, RegisterRequest};
 use apiserver::AppState;
-use apiserver::models::{RegisterRequest, LoginRequest, ChangePasswordRequest, AuthResponse};
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 
@@ -14,9 +14,19 @@ async fn spawn_app() -> (String, sqlx::PgPool) {
         .expect("Failed to connect to Postgres");
 
     // Cleanup before test
-    sqlx::query("DELETE FROM sessions").execute(&pool).await.unwrap();
-    sqlx::query("DELETE FROM workspace_members").execute(&pool).await.unwrap();
-    sqlx::query("DELETE FROM users WHERE email = $1").bind("test_change@example.com").execute(&pool).await.unwrap();
+    sqlx::query("DELETE FROM sessions")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM workspace_members")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM users WHERE email = $1")
+        .bind("test_change@example.com")
+        .execute(&pool)
+        .await
+        .unwrap();
 
     let agent_manager = AgentManager::new();
     let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: pool.clone() });
@@ -60,9 +70,12 @@ async fn test_change_password_flow() {
         password: "old_password_123".to_string(),
         full_name: "Test User".to_string(),
     };
-    let res = client.post(&format!("{}/auth/register", address))
+    let res = client
+        .post(&format!("{}/auth/register", address))
         .json(&reg_req)
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     assert_eq!(res.status(), 200);
 
     // 2. Login
@@ -70,9 +83,12 @@ async fn test_change_password_flow() {
         email: "test_change@example.com".to_string(),
         password: "old_password_123".to_string(),
     };
-    let res = client.post(&format!("{}/auth/login", address))
+    let res = client
+        .post(&format!("{}/auth/login", address))
         .json(&login_req)
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     assert_eq!(res.status(), 200);
     let auth_res: AuthResponse = res.json().await.unwrap();
     let token = auth_res.access_token;
@@ -82,10 +98,13 @@ async fn test_change_password_flow() {
         old_password: "old_password_123".to_string(),
         new_password: "new_password_456".to_string(),
     };
-    let res = client.post(&format!("{}/auth/change-password", address))
+    let res = client
+        .post(&format!("{}/auth/change-password", address))
         .header("Authorization", format!("Bearer {}", token))
         .json(&change_req)
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     assert_eq!(res.status(), 200);
 
     // 4. Try login with OLD password (should fail)
@@ -93,9 +112,12 @@ async fn test_change_password_flow() {
         email: "test_change@example.com".to_string(),
         password: "old_password_123".to_string(),
     };
-    let res = client.post(&format!("{}/auth/login", address))
+    let res = client
+        .post(&format!("{}/auth/login", address))
         .json(&login_req_old)
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     assert_eq!(res.status(), 401);
 
     // 5. Try login with NEW password (should succeed)
@@ -103,8 +125,11 @@ async fn test_change_password_flow() {
         email: "test_change@example.com".to_string(),
         password: "new_password_456".to_string(),
     };
-    let res = client.post(&format!("{}/auth/login", address))
+    let res = client
+        .post(&format!("{}/auth/login", address))
         .json(&login_req_new)
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     assert_eq!(res.status(), 200);
 }

@@ -86,6 +86,7 @@ async fn spawn_app() -> (String, Uuid, Uuid) {
         agent_repo,
         workspace_repo,
         agent_service,
+        jwt_secret: "test_secret".to_string(),
     });
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")

@@ -66,7 +66,7 @@ async fn main() {
     let listener = {
         let mut listener = None;
         let max_port = preferred_port + 100; // Try up to 100 next ports
-        
+
         for port in preferred_port..max_port {
             let addr_str = format!("{}:{}", host, port);
             match tokio::net::TcpListener::bind(&addr_str).await {
@@ -81,8 +81,9 @@ async fn main() {
                 Err(e) => panic!("Failed to bind to {}: {}", addr_str, e),
             }
         }
-        
-        listener.expect("Could not find an available port in the range 3000-3100. Throwing exception.")
+
+        listener
+            .expect("Could not find an available port in the range 3000-3100. Throwing exception.")
     };
 
     let actual_addr = listener.local_addr().unwrap();

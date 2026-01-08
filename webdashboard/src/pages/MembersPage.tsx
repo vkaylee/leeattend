@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Users, UserPlus } from 'lucide-react';
-import MemberTable from '@/components/members/MemberTable';
-import InviteMemberDialog from '@/components/members/InviteMemberDialog';
+import { useState } from "react";
+import { Users, UserPlus } from "lucide-react";
+import MemberTable from "@/components/members/MemberTable";
+import InviteMemberDialog from "@/components/members/InviteMemberDialog";
 
 export default function MembersPage() {
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -14,10 +14,12 @@ export default function MembersPage() {
             <Users className="w-8 h-8 text-indigo-600" />
             Members & Roles
           </h1>
-          <p className="text-slate-500 mt-1">Manage workspace access and permissions</p>
+          <p className="text-slate-500 mt-1">
+            Manage workspace access and permissions
+          </p>
         </div>
-        
-        <button 
+
+        <button
           onClick={() => setIsInviteOpen(true)}
           className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
         >
@@ -28,9 +30,9 @@ export default function MembersPage() {
 
       <MemberTable />
 
-      <InviteMemberDialog 
-        isOpen={isInviteOpen} 
-        onClose={() => setIsInviteOpen(false)} 
+      <InviteMemberDialog
+        isOpen={isInviteOpen}
+        onClose={() => setIsInviteOpen(false)}
       />
     </div>
   );

@@ -1,24 +1,32 @@
-import { useState, useEffect } from 'react';
-import { User as UserIcon, Mail, UserCircle, Save, Calendar, Lock, ShieldCheck } from 'lucide-react';
-import { useProfile } from '@/hooks/use-profile';
-import { changePassword, clearAuthSession } from '@/lib/api';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import {
+  User as UserIcon,
+  Mail,
+  UserCircle,
+  Save,
+  Calendar,
+  Lock,
+  ShieldCheck,
+} from "lucide-react";
+import { useProfile } from "@/hooks/use-profile";
+import { changePassword, clearAuthSession } from "@/lib/api";
+import { useNavigate } from "react-router-dom";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { profile, isLoading, updateProfile, isUpdating } = useProfile();
   const [formData, setFormData] = useState({
-    full_name: '',
-    avatar_url: '',
-    bio: ''
+    full_name: "",
+    avatar_url: "",
+    bio: "",
   });
 
   useEffect(() => {
     if (profile) {
       setFormData({
-        full_name: profile.full_name || '',
-        avatar_url: profile.avatar_url || '',
-        bio: profile.bio || ''
+        full_name: profile.full_name || "",
+        avatar_url: profile.avatar_url || "",
+        bio: profile.bio || "",
       });
     }
   }, [profile]);
@@ -27,22 +35,28 @@ export default function ProfilePage() {
     e.preventDefault();
     try {
       await updateProfile(formData);
-      alert('Đã cập nhật thông tin cá nhân.');
+      alert("Đã cập nhật thông tin cá nhân.");
     } catch (e) {
-      alert('Lỗi khi cập nhật profile.');
+      alert("Lỗi khi cập nhật profile.");
     }
   }
 
   if (isLoading) {
-    return <div className="p-8 text-center text-slate-500">Đang tải hồ sơ...</div>;
+    return (
+      <div className="p-8 text-center text-slate-500">Đang tải hồ sơ...</div>
+    );
   }
 
   return (
     <div className="p-8">
       <div className="max-w-2xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Hồ sơ cá nhân</h1>
-          <p className="text-slate-500 mt-1">Quản lý thông tin định danh toàn cầu của bạn</p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+            Hồ sơ cá nhân
+          </h1>
+          <p className="text-slate-500 mt-1">
+            Quản lý thông tin định danh toàn cầu của bạn
+          </p>
         </div>
 
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
@@ -50,9 +64,9 @@ export default function ProfilePage() {
           <div className="px-8 pb-8">
             <div className="relative -mt-12 mb-6">
               {formData.avatar_url ? (
-                <img 
-                  src={formData.avatar_url} 
-                  alt="Avatar" 
+                <img
+                  src={formData.avatar_url}
+                  alt="Avatar"
                   className="w-24 h-24 rounded-2xl border-4 border-white shadow-lg object-cover"
                 />
               ) : (
@@ -65,67 +79,87 @@ export default function ProfilePage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Email (Cố định)</label>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                    Email (Cố định)
+                  </label>
                   <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-500">
                     <Mail className="w-4 h-4" />
-                    <span className="text-sm font-medium">{profile?.email}</span>
+                    <span className="text-sm font-medium">
+                      {profile?.email}
+                    </span>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Ngày tham gia</label>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                    Ngày tham gia
+                  </label>
                   <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-500">
                     <Calendar className="w-4 h-4" />
                     <span className="text-sm font-medium">
-                      {new Date(profile?.created_at).toLocaleDateString('vi-VN')}
+                      {new Date(profile?.created_at).toLocaleDateString(
+                        "vi-VN",
+                      )}
                     </span>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Họ và tên</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                  Họ và tên
+                </label>
                 <div className="relative">
-                  <input 
+                  <input
                     placeholder="Ví dụ: Nguyễn Văn A"
                     className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all pr-10"
                     value={formData.full_name}
-                    onChange={e => setFormData({...formData, full_name: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, full_name: e.target.value })
+                    }
                   />
                   <UserIcon className="absolute right-3 top-3.5 w-4 h-4 text-slate-300" />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">URL Ảnh đại diện</label>
-                <input 
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                  URL Ảnh đại diện
+                </label>
+                <input
                   placeholder="https://example.com/avatar.jpg"
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                   value={formData.avatar_url}
-                  onChange={e => setFormData({...formData, avatar_url: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, avatar_url: e.target.value })
+                  }
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Tiểu sử</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                  Tiểu sử
+                </label>
                 <div className="relative">
-                  <textarea 
+                  <textarea
                     rows={3}
                     placeholder="Một chút về bản thân bạn..."
                     className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                     value={formData.bio}
-                    onChange={e => setFormData({...formData, bio: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, bio: e.target.value })
+                    }
                   />
                 </div>
               </div>
 
               <div className="pt-4 border-t border-slate-50 flex justify-end">
-                <button 
+                <button
                   type="submit"
                   disabled={isUpdating}
                   className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center gap-2 disabled:opacity-50"
                 >
                   <Save className="w-5 h-5" />
-                  {isUpdating ? 'Đang lưu...' : 'Lưu hồ sơ'}
+                  {isUpdating ? "Đang lưu..." : "Lưu hồ sơ"}
                 </button>
               </div>
             </form>
@@ -141,7 +175,9 @@ export default function ProfilePage() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Bảo mật</h2>
-                <p className="text-sm text-slate-500">Thay đổi mật khẩu đăng nhập của bạn</p>
+                <p className="text-sm text-slate-500">
+                  Thay đổi mật khẩu đăng nhập của bạn
+                </p>
               </div>
             </div>
 
@@ -157,15 +193,15 @@ function ChangePasswordForm() {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    old_password: '',
-    new_password: '',
-    confirm_password: ''
+    old_password: "",
+    new_password: "",
+    confirm_password: "",
   });
 
   async function handlePasswordSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (formData.new_password !== formData.confirm_password) {
-      alert('Mật khẩu mới không khớp.');
+      alert("Mật khẩu mới không khớp.");
       return;
     }
 
@@ -173,13 +209,13 @@ function ChangePasswordForm() {
     try {
       await changePassword({
         old_password: formData.old_password,
-        new_password: formData.new_password
+        new_password: formData.new_password,
       });
-      alert('Đổi mật khẩu thành công. Vui lòng đăng nhập lại.');
+      alert("Đổi mật khẩu thành công. Vui lòng đăng nhập lại.");
       clearAuthSession();
-      navigate('/login');
+      navigate("/login");
     } catch (e: any) {
-      alert(e.message || 'Lỗi khi đổi mật khẩu.');
+      alert(e.message || "Lỗi khi đổi mật khẩu.");
     } finally {
       setIsSubmitting(false);
     }
@@ -188,54 +224,66 @@ function ChangePasswordForm() {
   return (
     <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-md">
       <div className="space-y-2">
-        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Mật khẩu hiện tại</label>
+        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+          Mật khẩu hiện tại
+        </label>
         <div className="relative">
-          <input 
+          <input
             type="password"
             required
             className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500 outline-none transition-all pr-10"
             value={formData.old_password}
-            onChange={e => setFormData({...formData, old_password: e.target.value})}
+            onChange={(e) =>
+              setFormData({ ...formData, old_password: e.target.value })
+            }
           />
           <Lock className="absolute right-3 top-3.5 w-4 h-4 text-slate-300" />
         </div>
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Mật khẩu mới</label>
+        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+          Mật khẩu mới
+        </label>
         <div className="relative">
-          <input 
+          <input
             type="password"
             required
             className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500 outline-none transition-all pr-10"
             value={formData.new_password}
-            onChange={e => setFormData({...formData, new_password: e.target.value})}
+            onChange={(e) =>
+              setFormData({ ...formData, new_password: e.target.value })
+            }
           />
           <Lock className="absolute right-3 top-3.5 w-4 h-4 text-slate-300" />
         </div>
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Xác nhận mật khẩu mới</label>
+        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+          Xác nhận mật khẩu mới
+        </label>
         <div className="relative">
-          <input 
+          <input
             type="password"
             required
             className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500 outline-none transition-all pr-10"
             value={formData.confirm_password}
-            onChange={e => setFormData({...formData, confirm_password: e.target.value})}
+            onChange={(e) =>
+              setFormData({ ...formData, confirm_password: e.target.value })
+            }
           />
           <Lock className="absolute right-3 top-3.5 w-4 h-4 text-slate-300" />
         </div>
       </div>
 
       <div className="pt-2">
-        <button 
+        <button
           type="submit"
           disabled={isSubmitting}
           className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center gap-2 disabled:opacity-50"
         >
-          {isSubmitting ? 'Đang xử lý...' : 'Cập nhật mật khẩu'}
+          {isSubmitting ? "Đang xử lý..." : "Cập nhật mật khẩu"}
         </button>
       </div>
     </form>

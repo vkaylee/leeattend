@@ -1,11 +1,18 @@
-import { useNavigate, Navigate, Link } from 'react-router-dom';
-import { useProfile } from '@/hooks/use-profile';
-import { fetchDevSuperUser, setCurrentUserId, setCurrentWorkspaceId, getCurrentUserId, setAccessToken, setRefreshToken } from '@/lib/api';
-import { useState } from 'react';
+import { useNavigate, Navigate, Link } from "react-router-dom";
+import { useProfile } from "@/hooks/use-profile";
+import {
+  fetchDevSuperUser,
+  setCurrentUserId,
+  setCurrentWorkspaceId,
+  getCurrentUserId,
+  setAccessToken,
+  setRefreshToken,
+} from "@/lib/api";
+import { useState } from "react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect if already logged in
@@ -18,9 +25,9 @@ export default function LoginPage() {
     setIsSubmitting(true);
     setError(null);
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
@@ -29,16 +36,16 @@ export default function LoginPage() {
         setAccessToken(data.access_token);
         setRefreshToken(data.refresh_token);
         setCurrentUserId(data.user_id);
-        // We don't have a default workspace here, the user will be redirected to home 
+        // We don't have a default workspace here, the user will be redirected to home
         // and if they don't have a workspace, the App.tsx should handle it.
-        navigate('/', { replace: true });
+        navigate("/", { replace: true });
         window.location.reload();
       } else {
         const msg = await response.text();
-        setError(msg || 'Email hoặc mật khẩu không đúng');
+        setError(msg || "Email hoặc mật khẩu không đúng");
       }
     } catch (error) {
-      setError('Lỗi kết nối server');
+      setError("Lỗi kết nối server");
     } finally {
       setIsSubmitting(false);
     }
@@ -46,15 +53,16 @@ export default function LoginPage() {
 
   const handleFastLogin = async () => {
     try {
-      const { user_id, workspace_id, access_token, refresh_token } = await fetchDevSuperUser();
+      const { user_id, workspace_id, access_token, refresh_token } =
+        await fetchDevSuperUser();
       setCurrentUserId(user_id);
       setCurrentWorkspaceId(workspace_id);
       if (access_token) setAccessToken(access_token);
       if (refresh_token) setRefreshToken(refresh_token);
       window.location.reload();
     } catch (error) {
-      console.error('Login failed', error);
-      setError('Đăng nhập thất bại. Vui lòng thử lại.');
+      console.error("Login failed", error);
+      setError("Đăng nhập thất bại. Vui lòng thử lại.");
     }
   };
 
@@ -62,9 +70,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            LeeAttend
-          </h2>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">LeeAttend</h2>
           <p className="mt-2 text-sm text-gray-600">
             Hệ thống quản lý chấm công & thiết bị
           </p>
@@ -83,7 +89,7 @@ export default function LoginPage() {
           >
             ⚡ Đăng nhập nhanh (Dev Mode)
           </button>
-          
+
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300" />
@@ -98,7 +104,9 @@ export default function LoginPage() {
           <form className="mt-8 space-y-6" onSubmit={handleLogin}>
             <div className="rounded-md shadow-sm -space-y-px">
               <div>
-                <label htmlFor="email-address" className="sr-only">Email address</label>
+                <label htmlFor="email-address" className="sr-only">
+                  Email address
+                </label>
                 <input
                   id="email-address"
                   name="email"
@@ -112,7 +120,9 @@ export default function LoginPage() {
                 />
               </div>
               <div>
-                <label htmlFor="password" className="sr-only">Password</label>
+                <label htmlFor="password" className="sr-only">
+                  Password
+                </label>
                 <input
                   id="password"
                   name="password"
@@ -133,13 +143,16 @@ export default function LoginPage() {
                 disabled={isSubmitting}
                 className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:opacity-50"
               >
-                {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
               </button>
             </div>
 
             <div className="text-center text-sm">
               <span className="text-gray-500">Don't have an account? </span>
-              <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
+              <Link
+                to="/register"
+                className="font-medium text-indigo-600 hover:text-indigo-500"
+              >
                 Sign up
               </Link>
             </div>

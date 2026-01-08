@@ -1,17 +1,17 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  fetchAuthorizedAgents, 
-  createAuthorizedAgent, 
-  updateAgentTrust, 
-  deleteAuthorizedAgent, 
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  fetchAuthorizedAgents,
+  createAuthorizedAgent,
+  updateAgentTrust,
+  deleteAuthorizedAgent,
   updateAuthorizedAgent,
   fetchAgents,
-  AuthorizedAgent 
-} from '@/lib/api';
+  AuthorizedAgent,
+} from "@/lib/api";
 
 export const agentsKeys = {
-  authorized: ['authorized-agents'] as const,
-  status: ['agents-status'] as const,
+  authorized: ["authorized-agents"] as const,
+  status: ["agents-status"] as const,
 };
 
 export function useAuthorizedAgents() {
@@ -30,7 +30,7 @@ export function useAuthorizedAgents() {
   });
 
   const updateTrustMutation = useMutation({
-    mutationFn: ({ id, is_trusted }: { id: string; is_trusted: boolean }) => 
+    mutationFn: ({ id, is_trusted }: { id: string; is_trusted: boolean }) =>
       updateAgentTrust(id, is_trusted),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: agentsKeys.authorized });
@@ -45,8 +45,13 @@ export function useAuthorizedAgents() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, agent }: { id: string; agent: Partial<AuthorizedAgent> }) => 
-      updateAuthorizedAgent(id, agent),
+    mutationFn: ({
+      id,
+      agent,
+    }: {
+      id: string;
+      agent: Partial<AuthorizedAgent>;
+    }) => updateAuthorizedAgent(id, agent),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: agentsKeys.authorized });
     },
@@ -58,7 +63,7 @@ export function useAuthorizedAgents() {
     isFetching: agentsQuery.isFetching,
     error: agentsQuery.error,
     refetch: agentsQuery.refetch,
-    
+
     createAgent: createMutation.mutateAsync,
     updateTrust: updateTrustMutation.mutateAsync,
     deleteAgent: deleteMutation.mutateAsync,

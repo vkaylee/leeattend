@@ -17,10 +17,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": [
-    "vite-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx"
-  ],
+  "include": ["vite-env.d.ts", "**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules"]
 }

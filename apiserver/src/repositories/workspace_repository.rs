@@ -8,6 +8,13 @@ pub trait WorkspaceRepository: Send + Sync {
     async fn create_workspace(&self, name: &str) -> Result<Workspace, String>;
     async fn add_member(&self, workspace_id: Uuid, user_id: Uuid, role: &str)
         -> Result<(), String>;
+    async fn update_member_role(
+        &self,
+        workspace_id: Uuid,
+        user_id: Uuid,
+        role: &str,
+    ) -> Result<(), String>;
+    async fn remove_member(&self, workspace_id: Uuid, user_id: Uuid) -> Result<(), String>;
     async fn find_primary_role(
         &self,
         workspace_id: Uuid,
@@ -57,6 +64,36 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         .execute(&self.pool)
         .await
         .map_err(|e| e.to_string())?;
+
+        Ok(())
+    }
+
+    async fn update_member_role(
+        &self,
+        workspace_id: Uuid,
+        user_id: Uuid,
+        role: &str,
+    ) -> Result<(), String> {
+        sqlx::query(
+            "UPDATE workspace_members SET role = $1, updated_at = NOW() WHERE workspace_id = $2 AND user_id = $3",
+        )
+        .bind(role)
+        .bind(workspace_id)
+        .bind(user_id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        Ok(())
+    }
+
+    async fn remove_member(&self, workspace_id: Uuid, user_id: Uuid) -> Result<(), String> {
+        sqlx::query("DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = $2")
+            .bind(workspace_id)
+            .bind(user_id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| e.to_string())?;
 
         Ok(())
     }

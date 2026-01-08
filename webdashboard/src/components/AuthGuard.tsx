@@ -1,24 +1,29 @@
-import React, { useEffect } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { getCurrentUserId, clearAuthSession } from '@/lib/api';
-import { useProfile } from '@/hooks/use-profile';
+import React, { useEffect } from "react";
+import { Navigate, Outlet } from "react-router-dom";
+import { getCurrentUserId, clearAuthSession } from "@/lib/api";
+import { useProfile } from "@/hooks/use-profile";
 
 /**
  * AuthGuard: Bảo vệ các routes yêu cầu đăng nhập.
- * Nếu chưa có userId hoặc userId không hợp lệ (không tồn tại trong DB), 
+ * Nếu chưa có userId hoặc userId không hợp lệ (không tồn tại trong DB),
  * chuyển hướng về /login.
  */
 export default function AuthGuard() {
   const userId = getCurrentUserId();
   const { user, isLoading, isError } = useProfile();
 
-  console.log('[AuthGuard] State:', { userId, hasUser: !!user, isLoading, isError });
+  console.log("[AuthGuard] State:", {
+    userId,
+    hasUser: !!user,
+    isLoading,
+    isError,
+  });
 
   useEffect(() => {
     if (isError) {
-      console.log('[AuthGuard] Error detected, redirecting to login...');
+      console.log("[AuthGuard] Error detected, redirecting to login...");
       clearAuthSession();
-      window.location.href = '/login';
+      window.location.href = "/login";
     }
   }, [isError]);
 
@@ -39,7 +44,9 @@ export default function AuthGuard() {
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <p className="text-slate-400 text-sm animate-pulse">
-            {isError ? 'Phiên làm việc hết hạn, đang chuyển hướng...' : 'Không tìm thấy thông tin người dùng...'}
+            {isError
+              ? "Phiên làm việc hết hạn, đang chuyển hướng..."
+              : "Không tìm thấy thông tin người dùng..."}
           </p>
         </div>
       </div>
