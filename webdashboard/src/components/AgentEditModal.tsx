@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Key, UserCheck, ShieldCheck, ShieldAlert, Power } from 'lucide-react';
-import { AuthorizedAgent, updateAuthorizedAgent } from '@/lib/api';
+import { AuthorizedAgent } from '@/lib/api';
+import { useAuthorizedAgents } from '@/hooks/use-agents';
 
 interface AgentEditModalProps {
   agent: AuthorizedAgent | null;
@@ -10,11 +11,11 @@ interface AgentEditModalProps {
 }
 
 export default function AgentEditModal({ agent, isOpen, onClose, onSave }: AgentEditModalProps) {
+  const { updateAgent, isUpdating } = useAuthorizedAgents();
   const [name, setName] = useState('');
   const [token, setToken] = useState('');
   const [isTrusted, setIsTrusted] = useState(false);
   const [isActive, setIsActive] = useState(true);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (agent) {
@@ -29,20 +30,21 @@ export default function AgentEditModal({ agent, isOpen, onClose, onSave }: Agent
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     try {
-      const updated = await updateAuthorizedAgent(agent!.id, {
-        name,
-        token,
-        is_trusted: isTrusted,
-        is_active: isActive
+      const updated = await updateAgent({
+        id: agent!.id, 
+        agent: {
+          name,
+          token,
+          is_trusted: isTrusted,
+          is_active: isActive
+        }
       });
-      onSave(updated);
+      // @ts-ignore - The mutation return might not be the full agent depending on API but useAuthorizedAgents refetches
+      onSave(updated || agent);
       onClose();
     } catch (e) {
       alert('Lỗi khi cập nhật Agent.');
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -136,11 +138,11 @@ export default function AgentEditModal({ agent, isOpen, onClose, onSave }: Agent
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={isUpdating}
               className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <Save className="w-5 h-5" />
-              {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
+              {isUpdating ? 'Đang lưu...' : 'Lưu thay đổi'}
             </button>
           </div>
         </form>

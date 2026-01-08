@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Users, UserPlus, Shield, Mail, Trash2, Settings2 } from 'lucide-react';
-import { WorkspaceMember, fetchWorkspaceMembers, addWorkspaceMember, getCurrentWorkspaceId } from '@/lib/api';
+import { useWorkspaceMembers } from '@/hooks/use-workspace';
 import RoleManagementModal from '@/components/RoleManagementModal';
 
 export default function WorkspaceSettingsPage() {
-  const [members, setMembers] = useState<WorkspaceMember[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { members, isLoading, addMember, isAdding } = useWorkspaceMembers();
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newMemberRole, setNewMemberRole] = useState<'admin' | 'member'>('member');
   
@@ -13,34 +12,11 @@ export default function WorkspaceSettingsPage() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   
-  const workspaceId = getCurrentWorkspaceId();
-
-  useEffect(() => {
-    if (workspaceId) {
-      loadMembers();
-    }
-  }, [workspaceId]);
-
-  async function loadMembers() {
-    setLoading(true);
-    try {
-      const data = await fetchWorkspaceMembers(workspaceId!);
-      setMembers(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
-    if (!workspaceId) return;
-    
     try {
-      await addWorkspaceMember(workspaceId, newMemberEmail, newMemberRole);
+      await addMember({ email: newMemberEmail, role: newMemberRole });
       setNewMemberEmail('');
-      loadMembers();
     } catch (e) {
       alert('Lỗi khi mời thành viên.');
     }
@@ -88,8 +64,12 @@ export default function WorkspaceSettingsPage() {
                 </select>
               </div>
               <div className="flex items-end">
-                <button type="submit" className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 h-[50px]">
-                  Mời
+                <button 
+                  type="submit" 
+                  disabled={isAdding}
+                  className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 h-[50px] disabled:opacity-50"
+                >
+                  {isAdding ? 'Đang mời...' : 'Mời'}
                 </button>
               </div>
             </form>
@@ -108,40 +88,44 @@ export default function WorkspaceSettingsPage() {
             </div>
             
             <div className="divide-y divide-slate-50">
-              {members.map((member) => (
-                <div key={member.user_id} className="p-6 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-slate-100 w-10 h-10 rounded-full flex items-center justify-center text-slate-500 font-bold">
-                      {member.role === 'admin' || member.role === 'owner' ? <Shield className="w-5 h-5 text-blue-600" /> : <Users className="w-5 h-5" />}
+              {isLoading ? (
+                <div className="p-12 text-center text-slate-400">Đang tải...</div>
+              ) : (
+                members.map((member) => (
+                  <div key={member.user_id} className="p-6 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-slate-100 w-10 h-10 rounded-full flex items-center justify-center text-slate-500 font-bold">
+                        {member.role === 'admin' || member.role === 'owner' ? <Shield className="w-5 h-5 text-blue-600" /> : <Users className="w-5 h-5" />}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900">{member.user_id}</p> {/* In real app show email */}
+                        <p className="text-xs font-black uppercase tracking-widest text-slate-400">{member.role}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-slate-900">{member.user_id}</p> {/* In real app show email */}
-                      <p className="text-xs font-black uppercase tracking-widest text-slate-400">{member.role}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => {
-                        setSelectedUserId(member.user_id);
-                        setIsRoleModalOpen(true);
-                      }}
-                      className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                      title="Quản lý quyền"
-                    >
-                      <Settings2 className="w-5 h-5" />
-                    </button>
                     
-                    {member.role !== 'owner' && (
-                      <button className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
-                        <Trash2 className="w-5 h-5" />
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => {
+                          setSelectedUserId(member.user_id);
+                          setIsRoleModalOpen(true);
+                        }}
+                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                        title="Quản lý quyền"
+                      >
+                        <Settings2 className="w-5 h-5" />
                       </button>
-                    )}
+                      
+                      {member.role !== 'owner' && (
+                        <button className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
               
-              {members.length === 0 && !loading && (
+              {members.length === 0 && !isLoading && (
                 <div className="py-12 text-center text-slate-400">
                   <p>Không có thành viên nào.</p>
                 </div>

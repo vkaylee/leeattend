@@ -1,11 +1,20 @@
-import { useState, useEffect } from 'react';
-import { fetchAuthorizedAgents, createAuthorizedAgent, updateAgentTrust, deleteAuthorizedAgent, AuthorizedAgent } from '@/lib/api';
+import { useState } from 'react';
+import { AuthorizedAgent } from '@/lib/api';
 import { Plus, ShieldCheck, ShieldAlert, ShieldX, Key, UserCheck, Globe, RefreshCcw, Edit2, Trash2 } from 'lucide-react';
 import AgentEditModal from '@/components/AgentEditModal';
+import { useAuthorizedAgents } from '@/hooks/use-agents';
 
 export default function AgentsPage() {
-  const [agents, setAgents] = useState<AuthorizedAgent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { 
+    agents, 
+    isLoading, 
+    isFetching,
+    refetch,
+    createAgent, 
+    updateTrust, 
+    deleteAgent 
+  } = useAuthorizedAgents();
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAgent, setNewAgent] = useState({ id: '', name: '', token: '' });
 
@@ -13,29 +22,12 @@ export default function AgentsPage() {
   const [editingAgent, setEditingAgent] = useState<AuthorizedAgent | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData() {
-    setLoading(true);
-    try {
-      const data = await fetchAuthorizedAgents();
-      setAgents(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await createAuthorizedAgent(newAgent);
+      await createAgent(newAgent);
       setShowAddForm(false);
       setNewAgent({ id: '', name: '', token: '' });
-      loadData();
     } catch (e) {
       alert('Lỗi khi thêm Agent. ID có thể đã tồn tại.');
     }
@@ -46,8 +38,7 @@ export default function AgentsPage() {
     if (!confirm(`Bạn có chắc chắn muốn ${action} cho Agent ${agent.id}?`)) return;
     
     try {
-      await updateAgentTrust(agent.id, !agent.is_trusted);
-      loadData();
+      await updateTrust({ id: agent.id, is_trusted: !agent.is_trusted });
     } catch (e) {
       alert('Lỗi khi cập nhật trạng thái.');
     }
@@ -57,8 +48,7 @@ export default function AgentsPage() {
     if (!confirm(`Bạn có chắc chắn muốn xóa Agent ${agent.name} (${agent.id})? \nThao tác này sẽ ngắt kết nối và ẩn Agent khỏi hệ thống.`)) return;
     
     try {
-      await deleteAuthorizedAgent(agent.id);
-      loadData();
+      await deleteAgent(agent.id);
     } catch (e) {
       alert('Lỗi khi xóa Agent.');
     }
@@ -70,12 +60,11 @@ export default function AgentsPage() {
   }
 
   function handleSave(updated: AuthorizedAgent) {
-    setAgents(agents.map(a => a.id === updated.id ? updated : a));
-    // If it was deactivated, we might want to reload to hide it
-    if (!updated.is_active) {
-      loadData();
-    }
+    // React Query will handle re-fetching if needed through invalidateQueries in the modal or if we pass updateAgent here
+    setEditingAgent(updated);
   }
+
+  const loading = isLoading || isFetching;
 
   return (
     <div className="p-8">
@@ -87,7 +76,7 @@ export default function AgentsPage() {
           </div>
           <div className="flex gap-3">
             <button 
-              onClick={loadData}
+              onClick={() => refetch()}
               className="bg-white p-2.5 rounded-2xl border border-slate-200 hover:bg-slate-50 transition-colors text-slate-600"
             >
               <RefreshCcw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />

@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
-import { fetchDevices, createDevice, deleteDevice, Device, fetchAgents, AgentStatus } from '@/lib/api';
+import { useState } from 'react';
 import { Plus, Trash2, Server, Cpu, Globe, Hash, ShieldCheck, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useDevices } from '@/hooks/use-devices';
+import { useAgentsStatus } from '@/hooks/use-agents';
 
 export default function DevicesPage() {
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [agents, setAgents] = useState<AgentStatus[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { devices, isLoading: devicesLoading, createDevice, deleteDevice } = useDevices();
+  const { agents, isLoading: agentsLoading } = useAgentsStatus();
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [newDevice, setNewDevice] = useState({
     name: '',
@@ -15,29 +16,12 @@ export default function DevicesPage() {
     port: 4370
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData() {
-    try {
-      const [d, a] = await Promise.all([fetchDevices(), fetchAgents()]);
-      setDevices(d);
-      setAgents(a);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     try {
       await createDevice(newDevice);
       setShowAddForm(false);
       setNewDevice({ name: '', agent_id: '', ip: '', port: 4370 });
-      loadData();
     } catch (e) {
       alert('Lỗi khi thêm thiết bị');
     }
@@ -47,11 +31,12 @@ export default function DevicesPage() {
     if (!confirm('Bạn có chắc chắn muốn xóa thiết bị này?')) return;
     try {
       await deleteDevice(id);
-      loadData();
     } catch (e) {
       alert('Lỗi khi xóa thiết bị');
     }
   }
+
+  const loading = devicesLoading || agentsLoading;
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">

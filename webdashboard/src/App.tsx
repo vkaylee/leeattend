@@ -1,11 +1,21 @@
 import { BrowserRouter as Router, Routes, Route, Link, Outlet } from 'react-router-dom';
 import { LayoutDashboard, Cpu, History, Settings, UserCheck, UserCircle } from 'lucide-react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import DashboardPage from './pages/DashboardPage';
 import AgentsPage from './pages/AgentsPage';
 import DevicesPage from './pages/DevicesPage';
 import WorkspaceSettingsPage from './pages/WorkspaceSettingsPage';
 import ProfilePage from './pages/ProfilePage';
 import WorkspaceSwitcher from './components/WorkspaceSwitcher';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    },
+  },
+});
 
 function Layout() {
   return (
@@ -68,20 +78,22 @@ function Layout() {
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="agents" element={<AgentsPage />} />
-          <Route path="devices" element={<DevicesPage />} />
-          <Route path="workspace/settings" element={<WorkspaceSettingsPage />} />
-          <Route path="profile" element={<ProfilePage />} />
-          {/* Fallback for routes not yet implemented */}
-          <Route path="logs" element={<div className="p-8">Tính năng Nhật ký đang được phát triển.</div>} />
-          <Route path="settings" element={<div className="p-8">Tính năng Cài đặt đang được phát triển.</div>} />
-        </Route>
-      </Routes>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<DashboardPage />} />
+            <Route path="agents" element={<AgentsPage />} />
+            <Route path="devices" element={<DevicesPage />} />
+            <Route path="workspace/settings" element={<WorkspaceSettingsPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+            {/* Fallback for routes not yet implemented */}
+            <Route path="logs" element={<div className="p-8">Tính năng Nhật ký đang được phát triển.</div>} />
+            <Route path="settings" element={<div className="p-8">Tính năng Cài đặt đang được phát triển.</div>} />
+          </Route>
+        </Routes>
+      </Router>
+    </QueryClientProvider>
   );
 }
 

@@ -1,28 +1,14 @@
-import { fetchAgents, fetchDevices, AgentStatus, Device } from '@/lib/api';
-import { Users, Monitor, ShieldCheck, ShieldAlert, Activity, Cpu } from 'lucide-react';
+import { Monitor, ShieldCheck, ShieldAlert, Activity, Cpu, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useAgentsStatus } from '@/hooks/use-agents';
+import { useDevices } from '@/hooks/use-devices';
 
 export default function DashboardPage() {
-  const [agents, setAgents] = useState<AgentStatus[]>([]);
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { agents, isLoading: agentsLoading, error: agentsError } = useAgentsStatus();
+  const { devices, isLoading: devicesLoading, error: devicesError } = useDevices();
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [agentsData, devicesData] = await Promise.all([fetchAgents(), fetchDevices()]);
-        setAgents(agentsData);
-        setDevices(devicesData);
-      } catch (e) {
-        setError("Không thể kết nối tới API Server. Hãy đảm bảo apiserver đang chạy tại cổng 3000.");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadData();
-  }, []);
+  const isLoading = agentsLoading || devicesLoading;
+  const error = agentsError || devicesError;
 
   const onlineAgents = agents.filter(a => a.is_online).length;
   const activeDevices = devices.filter(d => d.is_enabled).length;
@@ -73,7 +59,7 @@ export default function DashboardPage() {
         {error && (
           <div className="bg-rose-50 border border-rose-100 p-6 rounded-3xl flex items-center gap-4 text-rose-700 mb-10">
             <ShieldAlert className="w-6 h-6" />
-            <p className="font-bold">{error}</p>
+            <p className="font-bold">Không thể kết nối tới API Server. Hãy đảm bảo apiserver đang chạy.</p>
           </div>
         )}
 

@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import { User, Mail, UserCircle, Save, Calendar, Info } from 'lucide-react';
-import { fetchMe, updateMe, setCurrentUserId } from '@/lib/api';
+import { User as UserIcon, Mail, UserCircle, Save, Calendar } from 'lucide-react';
+import { useProfile } from '@/hooks/use-profile';
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { profile, isLoading, updateProfile, isUpdating } = useProfile();
   const [formData, setFormData] = useState({
     full_name: '',
     avatar_url: '',
@@ -13,43 +11,26 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    loadProfile();
-  }, []);
-
-  async function loadProfile() {
-    setLoading(true);
-    try {
-      const data = await fetchMe();
-      setProfile(data);
+    if (profile) {
       setFormData({
-        full_name: data.full_name || '',
-        avatar_url: data.avatar_url || '',
-        bio: data.bio || ''
+        full_name: profile.full_name || '',
+        avatar_url: profile.avatar_url || '',
+        bio: profile.bio || ''
       });
-      // Sync local storage user ID for dev mode
-      setCurrentUserId(data.id);
-    } catch (e) {
-      console.error('Failed to load profile', e);
-    } finally {
-      setLoading(false);
     }
-  }
+  }, [profile]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
     try {
-      const updated = await updateMe(formData);
-      setProfile(updated);
+      await updateProfile(formData);
       alert('Đã cập nhật thông tin cá nhân.');
     } catch (e) {
       alert('Lỗi khi cập nhật profile.');
-    } finally {
-      setSaving(false);
     }
   }
 
-  if (loading) {
+  if (isLoading) {
     return <div className="p-8 text-center text-slate-500">Đang tải hồ sơ...</div>;
   }
 
@@ -107,7 +88,7 @@ export default function ProfilePage() {
                     value={formData.full_name}
                     onChange={e => setFormData({...formData, full_name: e.target.value})}
                   />
-                  <User className="absolute right-3 top-3.5 w-4 h-4 text-slate-300" />
+                  <UserIcon className="absolute right-3 top-3.5 w-4 h-4 text-slate-300" />
                 </div>
               </div>
 
@@ -137,11 +118,11 @@ export default function ProfilePage() {
               <div className="pt-4 border-t border-slate-50 flex justify-end">
                 <button 
                   type="submit"
-                  disabled={saving}
+                  disabled={isUpdating}
                   className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center gap-2 disabled:opacity-50"
                 >
                   <Save className="w-5 h-5" />
-                  {saving ? 'Đang lưu...' : 'Lưu hồ sơ'}
+                  {isUpdating ? 'Đang lưu...' : 'Lưu hồ sơ'}
                 </button>
               </div>
             </form>
