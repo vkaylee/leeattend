@@ -5,6 +5,18 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Payroll & Shift Infrastructure**: Implemented a comprehensive backend system for salary configuration and automated payslip generation.
+- **Dynamic Shift Scheduling**: Added support for defining workspace-wide shifts (Start/End times, break duration) and assigning them to employees.
+- **Precise Financial Calculations**: Integrated `rust_decimal` for high-precision payroll calculations, preventing floating-point errors.
+- **Monthly Payroll Automation**: Created `PayrollService` to calculate net pay based on worked hours, leave days, and configured salary rates (hourly/monthly).
+- **Payroll UI Foundation**: Integrated navigation links for "Payroll" and "Shifts" into the dashboard sidebar and registered new frontend routes.
+- **Extended API Client**: Updated the frontend `api.ts` with comprehensive interfaces and functions for interacting with salary, payslip, and shift endpoints.
+
+### Changed
+- **Database Schema Expansion**: Added `salary_settings`, `shifts`, `employee_shifts`, and `payslips` tables via SQLX migrations.
+- **Enhanced Repository Pattern**: Added `PayrollRepository` and `ShiftRepository` for structured database access.
+
+### Added
 - **Robust WebSocket Client**: Implemented a state-of-the-art connection manager in Rust with **Exponential Backoff** and **Smart Heartbeat** (30s interval).
 - **Stability Logic**: Added a stability detection window (10s) and message-based reset to prevent rapid reconnection loops.
 - **Unit Tested Reliability**: Integrated comprehensive tests for `RetryManager` covering initial failures, premature drops, and stability resets.

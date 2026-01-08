@@ -189,6 +189,143 @@ Phê duyệt (Trust) hoặc Thu hồi quyền của một Agent. Khi thu hồi, 
 
 ---
 
+### 5. Employee Management
+
+Quản lý hồ sơ nhân viên trong tổ chức.
+
+#### GET /workspaces/:ws_id/employees
+Lấy danh sách tất cả nhân viên.
+- **Response (200)**: `Array<Employee>`
+
+#### POST /workspaces/:ws_id/employees
+Tạo hồ sơ nhân viên mới.
+- **Request**: 
+  ```json
+  {
+    "user_id": "optional-uuid",
+    "first_name": "Nguyen",
+    "last_name": "Van A",
+    "employee_id_number": "EMP001",
+    "hire_date": "2026-01-01"
+  }
+  ```
+- **Response (201)**: `Employee` object
+
+#### PUT /workspaces/:ws_id/employees/:id
+Cập nhật thông tin nhân viên (họ tên, ngày vào làm, trạng thái nghỉ việc).
+- **Response (200 OK)**
+
+---
+
+### 6. Time Tracking
+
+Theo dõi dữ liệu chấm công thực tế.
+
+#### POST /workspaces/:ws_id/time/punch-in
+Ghi nhận giờ vào làm.
+- **Request**: `{ "employee_id": "...", "entry_type": "work|break", "note": "..." }`
+- **Response (201)**: `TimeEntry` object
+
+#### POST /workspaces/:ws_id/time/punch-out/:employee_id
+Ghi nhận giờ ra về cho lần punch-in gần nhất chưa đóng.
+- **Request**: `{ "note": "..." }`
+- **Response (200 OK)**
+
+#### GET /workspaces/:ws_id/time/history/:employee_id
+Lấy lịch sử chấm công trong khoảng thời gian.
+- **Query Params**: `?start=ISO-8601&end=ISO-8601`
+- **Response (200)**: `Array<TimeEntry>`
+
+---
+
+### 7. Leave Management
+
+Quản lý đơn xin nghỉ phép.
+
+#### POST /workspaces/:ws_id/leave/submit
+Gửi đơn xin nghỉ phép.
+- **Request**:
+  ```json
+  {
+    "employee_id": "...",
+    "leave_type": "vacation|sick|personal",
+    "start_date": "2026-02-01",
+    "end_date": "2026-02-03",
+    "reason": "..."
+  }
+  ```
+- **Response (201)**: `LeaveRequest` object
+
+#### GET /workspaces/:ws_id/leave/requests
+Lấy danh sách đơn nghỉ phép trong workspace.
+- **Query Params**: `?status=pending|approved|rejected`
+- **Response (200)**: `Array<LeaveRequest>`
+
+#### POST /workspaces/:ws_id/leave/requests/:id/approve
+Phê duyệt hoặc từ chối đơn nghỉ phép.
+- **Request**: `{ "status": "approved|rejected" }`
+- **Response (200 OK)**
+
+---
+
+### 8. Payroll & Shifts (New)
+
+Quản lý lương, ca làm việc và phiếu lương hàng tháng.
+
+#### GET /workspaces/:ws_id/shifts
+Lấy danh sách các ca làm việc đã định nghĩa.
+- **Response (200)**: `Array<Shift>`
+
+#### POST /workspaces/:ws_id/shifts
+Tạo ca làm việc mới.
+- **Request**:
+  ```json
+  {
+    "name": "Ca Hành Chính",
+    "start_time": "08:00:00",
+    "end_time": "17:00:00",
+    "break_duration_minutes": 60
+  }
+  ```
+- **Response (201)**: `Shift` object
+
+#### POST /workspaces/:ws_id/shifts/assign
+Gán ca làm việc cho nhân viên.
+- **Request**:
+  ```json
+  {
+    "employee_id": "...",
+    "shift_id": "...",
+    "effective_date": "2026-02-01"
+  }
+  ```
+
+#### GET /workspaces/:ws_id/employees/:id/salary
+Lấy cấu hình lương của nhân viên.
+- **Response (200)**: `SalarySettings`
+
+#### PUT /workspaces/:ws_id/employees/:id/salary
+Cập nhật cấu hình lương (định mức lương, loại lương giờ/tháng).
+- **Request**:
+  ```json
+  {
+    "base_salary": "15000000.00",
+    "salary_type": "monthly",
+    "currency": "VND"
+  }
+  ```
+
+#### POST /workspaces/:ws_id/employees/:id/calculate-payroll
+Yêu cầu hệ thống tính toán lương cho một tháng cụ thể.
+- **Query Params**: `?year=2026&month=1`
+- **Response (200)**: `Payslip` object
+
+#### GET /workspaces/:ws_id/employees/:id/payslips
+Lấy danh sách lịch sử phiếu lương của nhân viên.
+- **Response (200)**: `Array<Payslip>`
+
+---
+
 ### WebSocket Giao thức (Agent <-> Server)
 
 Agent gửi dữ liệu chấm công thô và trạng thái sức khỏe lên Server qua một kết nối duy nhất.
