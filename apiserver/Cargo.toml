@@ -24,6 +24,9 @@ sqlx = { version = "0.8", default-features = false, features = [
 ] }
 tower-http = { version = "0.6.8", features = ["cors"] }
 async-trait = "0.1.89"
+jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
+bcrypt = "0.17.1"
+json-patch = "0.3.0"
 
 [lints.rust]
 warnings = "deny"

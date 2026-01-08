@@ -23,7 +23,62 @@ pub struct AppState {
     pub agent_repo: Arc<dyn AgentRepository>,
     pub workspace_repo: Arc<dyn WorkspaceRepository>,
     pub agent_service: Arc<AgentService>,
+    pub jwt_secret: String,
 }
+
+mod ax_auth {
+    use axum::{
+        async_trait,
+        extract::{FromRef, FromRequestParts},
+        http::{request::Parts, StatusCode},
+    };
+    use std::sync::Arc;
+    use uuid::Uuid;
+    use crate::AppState;
+    use crate::services::auth_service::AuthService;
+
+    pub struct UserId(pub Uuid);
+
+    #[async_trait]
+    impl<S> FromRequestParts<S> for UserId
+    where
+        S: Send + Sync,
+        Arc<AppState>: FromRef<S>,
+    {
+        type Rejection = (StatusCode, String);
+
+        async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+            // 1. Check for JWT in Authorization header
+            if let Some(auth_header) = parts.headers.get("Authorization") {
+                if let Ok(auth_str) = auth_header.to_str() {
+                    if auth_str.starts_with("Bearer ") {
+                        let token = &auth_str[7..];
+                        let app_state = Arc::<AppState>::from_ref(state);
+                        
+                        match AuthService::verify_token(token, &app_state.jwt_secret) {
+                            Ok(user_id) => return Ok(UserId(user_id)),
+                            Err(_) => return Err((StatusCode::UNAUTHORIZED, "Invalid or expired token".to_string())),
+                        }
+                    }
+                }
+            }
+
+            // 2. Fallback to X-User-Id in development (debug assertions)
+            #[cfg(debug_assertions)]
+            {
+                if let Some(user_id_str) = parts.headers.get("X-User-Id").and_then(|h| h.to_str().ok()) {
+                    if let Ok(user_id) = Uuid::parse_str(user_id_str) {
+                        return Ok(UserId(user_id));
+                    }
+                }
+            }
+
+            Err((StatusCode::UNAUTHORIZED, "Authentication required".to_string()))
+        }
+    }
+}
+
+pub use ax_auth::UserId;
 
 pub fn create_app(state: Arc<AppState>) -> Router {
     // Cấu hình CORS
@@ -70,7 +125,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
     };
 
     let mut router = Router::new()
-        .route("/health", get(handlers::health_check));
+        .route("/health", get(handlers::health_check))
+        .route("/auth/login", post(handlers::login))
+        .route("/auth/refresh", post(handlers::refresh_token))
+        .route("/auth/logout", post(handlers::logout));
 
     #[cfg(debug_assertions)]
     {

@@ -32,11 +32,12 @@ async fn main() {
         .await
         .expect("Failed to run migrations");
 
-    // Khởi tạo AppState bên ngoài để có thể truy cập sau khi server tắt
+    // Initialize AppState
     let agent_manager = AgentManager::new();
     let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: pool.clone() });
     let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
     let agent_service = Arc::new(apiserver::services::AgentService::new(agent_repo.clone(), agent_manager.clone()));
+    let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "dev_secret_key_leeattend_2026".to_string());
 
     let state = Arc::new(AppState {
         agent_manager,
@@ -44,6 +45,7 @@ async fn main() {
         agent_repo,
         workspace_repo,
         agent_service,
+        jwt_secret,
     });
 
     // Build our application

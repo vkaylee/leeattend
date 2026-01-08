@@ -16,12 +16,14 @@ use uuid::Uuid;
 
 use crate::agent_manager::AgentCommand;
 use crate::models::{
-    AddMemberRequest, AssignRoleRequest, AuthorizedAgent, CreateAuthorizedAgentRequest,
-    CreateDeviceRequest, CreateWorkspaceRequest, Device, GenericResponse, MemberExtraRole,
-    UpdateAuthorizedAgentRequest, UpdateDeviceRequest, Workspace,
+    AddMemberRequest, AssignRoleRequest, AuthResponse, AuthorizedAgent,
+    CreateAuthorizedAgentRequest, CreateDeviceRequest, CreateWorkspaceRequest, Device,
+    GenericResponse, LoginRequest, MemberExtraRole, RefreshRequest, UpdateAuthorizedAgentRequest,
+    UpdateDeviceRequest, User, Workspace,
 };
+use crate::services::auth_service::AuthService;
 use crate::services::WorkspaceService;
-use crate::AppState;
+use crate::{AppState, UserId};
 
 // --- Extractors ---
 
@@ -52,29 +54,6 @@ where
         })?;
 
         Ok(WorkspaceId(workspace_id))
-    }
-}
-
-pub struct UserId(pub Uuid);
-
-#[async_trait]
-impl<S> FromRequestParts<S> for UserId
-where
-    S: Send + Sync,
-{
-    type Rejection = (StatusCode, String);
-
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let user_id_str = parts
-            .headers
-            .get("X-User-Id")
-            .and_then(|h| h.to_str().ok())
-            .ok_or((StatusCode::UNAUTHORIZED, "Missing X-User-Id".to_string()))?;
-
-        let user_id = Uuid::parse_str(user_id_str)
-            .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid X-User-Id".to_string()))?;
-
-        Ok(UserId(user_id))
     }
 }
 
@@ -856,8 +835,76 @@ pub async fn get_dev_super_user(State(state): State<Arc<AppState>>) -> impl Into
     };
 
     tracing::info!("Dev login successful: user={}, workspace={}", user_id, workspace_id);
+
+    // Sinh JWT cho dev mode
+    let access_token = AuthService::generate_token(user_id, &state.jwt_secret, 60 * 24 * 7).unwrap_or_default();
+
     Json(json!({
         "user_id": user_id,
-        "workspace_id": workspace_id
+        "workspace_id": workspace_id,
+        "access_token": access_token,
+        "refresh_token": "dev_refresh_token"
     })).into_response()
+}
+
+// --- Auth Handlers ---
+
+pub async fn login(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<LoginRequest>,
+) -> impl IntoResponse {
+    let user = match sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
+        .bind(&req.email)
+        .fetch_optional(&state.db)
+        .await
+    {
+        Ok(Some(u)) => u,
+        _ => return (StatusCode::UNAUTHORIZED, "Invalid email or password").into_response(),
+    };
+
+    let password_hash = match user.password_hash.as_ref() {
+        Some(h) => h,
+        None => return (StatusCode::UNAUTHORIZED, "User has no password set").into_response(),
+    };
+
+    if !AuthService::verify_password(&req.password, password_hash) {
+        return (StatusCode::UNAUTHORIZED, "Invalid email or password").into_response();
+    }
+
+    let access_token = match AuthService::generate_token(user.id, &state.jwt_secret, 60) {
+        Ok(t) => t,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    };
+
+    let refresh_token = match AuthService::create_session(&state.db, user.id).await {
+        Ok(t) => t,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    };
+
+    Json(AuthResponse {
+        access_token,
+        refresh_token,
+        user,
+    })
+    .into_response()
+}
+
+pub async fn refresh_token(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<RefreshRequest>,
+) -> impl IntoResponse {
+    match AuthService::refresh_session(&state.db, &req.refresh_token, &state.jwt_secret).await {
+        Ok(res) => Json(res).into_response(),
+        Err(e) => (StatusCode::UNAUTHORIZED, e).into_response(),
+    }
+}
+
+pub async fn logout(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<RefreshRequest>,
+) -> impl IntoResponse {
+    match AuthService::revoke_session(&state.db, &req.refresh_token).await {
+        Ok(_) => StatusCode::OK.into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    }
 }

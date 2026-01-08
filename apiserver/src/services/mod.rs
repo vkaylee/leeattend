@@ -1,4 +1,5 @@
 pub mod agent_service;
+pub mod auth_service;
 pub mod workspace_service;
 
 pub use agent_service::AgentService;

@@ -1,10 +1,11 @@
-import React from 'react';
-import { Cpu } from 'lucide-react';
-import { fetchDevSuperUser, setCurrentUserId, setCurrentWorkspaceId, getCurrentUserId } from '@/lib/api';
-import { Navigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { useProfile } from '@/hooks/use-profile';
+import { fetchDevSuperUser, setCurrentUserId, setCurrentWorkspaceId, getCurrentUserId, setAccessToken, setRefreshToken } from '@/lib/api';
+import { useState } from 'react';
 
 export default function LoginPage() {
   const userId = getCurrentUserId();
+  const [error, setError] = useState<string | null>(null);
 
   // Redirect if already logged in
   if (userId) {
@@ -13,71 +14,94 @@ export default function LoginPage() {
 
   const handleFastLogin = async () => {
     try {
-      const { user_id, workspace_id } = await fetchDevSuperUser();
+      const { user_id, workspace_id, access_token, refresh_token } = await fetchDevSuperUser();
       setCurrentUserId(user_id);
       setCurrentWorkspaceId(workspace_id);
+      if (access_token) setAccessToken(access_token);
+      if (refresh_token) setRefreshToken(refresh_token);
       window.location.reload();
     } catch (error) {
-      console.error('Fast login failed:', error);
-      alert('Fast login failed. Make sure backend is running in debug mode and DB is seeded.');
+      console.error('Login failed', error);
+      setError('Đăng nhập thất bại. Vui lòng thử lại.');
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-slate-200 border border-slate-100 p-8">
-        <div className="flex flex-col items-center gap-4 mb-8">
-          <div className="bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-200">
-            <Cpu className="text-white w-8 h-8" />
-          </div>
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-slate-900">LeeAttend</h1>
-            <p className="text-slate-500 font-medium">Hệ thống quản lý máy chấm công</p>
-          </div>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
+        <div className="text-center">
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+            LeeAttend
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Hệ thống quản lý chấm công & thiết bị
+          </p>
         </div>
 
-        <div className="space-y-4">
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-            <p className="text-sm text-slate-600 text-center mb-4">
-              Dự án đang trong giai đoạn phát triển. Sử dụng nút đăng nhập nhanh bên dưới để bắt đầu.
-            </p>
-            <button
-              onClick={handleFastLogin}
-              className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-100"
-            >
-              ⚡ Đăng nhập nhanh (Dev Mode)
-            </button>
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded text-sm text-center">
+            {error}
+          </div>
+        )}
+
+        <div className="mt-8 space-y-6">
+          <button
+            onClick={handleFastLogin}
+            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+          >
+            ⚡ Đăng nhập nhanh (Dev Mode)
+          </button>
+          
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">
+                Hoặc đăng nhập bằng Email
+              </span>
+            </div>
           </div>
 
-          <div className="text-center">
-            <span className="text-xs text-slate-400 font-medium uppercase tracking-widest">Hoặc</span>
-          </div>
+          <form className="mt-8 space-y-6" action="#" method="POST">
+            <div className="rounded-md shadow-sm -space-y-px">
+              <div>
+                <label htmlFor="email-address" className="sr-only">Email address</label>
+                <input
+                  id="email-address"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  placeholder="Email address"
+                />
+              </div>
+              <div>
+                <label htmlFor="password" className="sr-only">Password</label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  placeholder="Password"
+                />
+              </div>
+            </div>
 
-          <div className="space-y-3">
-            <input 
-              type="text" 
-              placeholder="User ID (UUID)"
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const val = (e.target as HTMLInputElement).value;
-                  if (val) {
-                    setCurrentUserId(val);
-                    window.location.reload();
-                  }
-                }
-              }}
-            />
-            <p className="text-[10px] text-slate-400 text-center px-4">
-              Nhập User ID thủ công nếu bạn muốn đăng nhập vào một tài khoản cụ thể.
-            </p>
-          </div>
+            <div>
+              <button
+                type="submit"
+                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+              >
+                Đăng nhập (Coming Soon)
+              </button>
+            </div>
+          </form>
         </div>
       </div>
-      
-      <p className="mt-8 text-slate-400 text-sm font-medium">
-        &copy; 2026 LeeAttend Team. All rights reserved.
-      </p>
     </div>
   );
 }

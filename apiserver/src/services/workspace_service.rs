@@ -10,6 +10,17 @@ impl WorkspaceService {
     // or we need to add transaction support to repo trait. 
     // For now, let's keep it simple or implement the TX inside repo if it's one atomic operation.
     pub async fn create_workspace(db: &PgPool, name: &str, owner_id: Uuid) -> Result<Workspace, String> {
+        // Kiểm tra user có tồn tại không trước khi bắt đầu transaction
+        let user_exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)")
+            .bind(owner_id)
+            .fetch_one(db)
+            .await
+            .map_err(|e| e.to_string())?;
+        
+        if !user_exists {
+            return Err(format!("User with ID {} does not exist", owner_id));
+        }
+
         let mut tx = db.begin().await.map_err(|e| e.to_string())?;
 
         let workspace: Workspace = sqlx::query_as::<_, Workspace>(

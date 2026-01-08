@@ -107,6 +107,26 @@ pub struct User {
     pub full_name: Option<String>,
     pub avatar_url: Option<String>,
     pub bio: Option<String>,
+    #[serde(skip_serializing)]
+    pub password_hash: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LoginRequest {
+    pub email: String,
+    pub password: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AuthResponse {
+    pub access_token: String,
+    pub refresh_token: String,
+    pub user: User,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RefreshRequest {
+    pub refresh_token: String,
 }
 
 #[derive(Debug, Deserialize)]

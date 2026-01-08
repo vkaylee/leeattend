@@ -1,7 +1,3 @@
-/**
- * Lấy địa chỉ API Base từ biến môi trường.
- * Mặc định là http://localhost:3000 nếu không được cấu hình.
- */
 const API_BASE_URL = '/api';
 const WS_BASE_URL = `ws://${window.location.host}/ws`;
 
@@ -63,7 +59,24 @@ export interface WorkspaceMember {
   role: 'owner' | 'admin' | 'member';
 }
 
-// Utility to get active workspace and user ID
+// --- Auth Management ---
+
+export function getAccessToken(): string | null {
+  return localStorage.getItem('access_token');
+}
+
+export function setAccessToken(token: string) {
+  localStorage.setItem('access_token', token);
+}
+
+export function getRefreshToken(): string | null {
+  return localStorage.getItem('refresh_token');
+}
+
+export function setRefreshToken(token: string) {
+  localStorage.setItem('refresh_token', token);
+}
+
 export function getCurrentWorkspaceId(): string | null {
   return localStorage.getItem('active_workspace_id');
 }
@@ -83,6 +96,8 @@ export const setCurrentUserId = (id: string) => {
 export const clearAuthSession = () => {
   localStorage.removeItem('active_user_id');
   localStorage.removeItem('active_workspace_id');
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
 };
 
 function getHeaders() {
@@ -93,29 +108,70 @@ function getHeaders() {
   if (wsId) {
     headers['X-Workspace-Id'] = wsId;
   }
-  const userId = getCurrentUserId();
-  if (userId) {
-    headers['X-User-Id'] = userId;
+  const token = getAccessToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  } else {
+    // Fallback for dev mode
+    const userId = getCurrentUserId();
+    if (userId) headers['X-User-Id'] = userId;
   }
   return headers;
 }
 
+/**
+ * Wrapper for fetch to handle 401 and refresh token
+ */
+async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const headers = { ...getHeaders(), ...options.headers };
+  const response = await fetch(url, { ...options, headers });
+
+  if (response.status === 401 && getRefreshToken()) {
+    console.warn('Access token expired, attempting refresh...');
+    try {
+      const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: getRefreshToken() }),
+      });
+
+      if (refreshRes.ok) {
+        const data = await refreshRes.json();
+        setAccessToken(data.access_token);
+        setRefreshToken(data.refresh_token);
+        
+        // Retry original request with new token
+        const retryHeaders = { ...getHeaders(), ...options.headers };
+        return fetch(url, { ...options, headers: retryHeaders });
+      } else {
+        console.error('Refresh token invalid, logging out');
+        clearAuthSession();
+        window.location.href = '/login';
+      }
+    } catch (e) {
+      clearAuthSession();
+      window.location.href = '/login';
+    }
+  }
+
+  return response;
+}
+
 export async function fetchAgents(): Promise<AgentStatus[]> {
-  const response = await fetch(`${API_BASE_URL}/agents`, { headers: getHeaders() });
+  const response = await apiFetch(`${API_BASE_URL}/agents`);
   if (!response.ok) throw new Error('Failed to fetch agents');
   return response.json();
 }
 
 export async function fetchDevices(): Promise<Device[]> {
-  const response = await fetch(`${API_BASE_URL}/devices`, { headers: getHeaders() });
+  const response = await apiFetch(`${API_BASE_URL}/devices`);
   if (!response.ok) throw new Error('Failed to fetch devices');
   return response.json();
 }
 
 export async function createDevice(device: Partial<Device>): Promise<{ id: string }> {
-  const response = await fetch(`${API_BASE_URL}/devices`, {
+  const response = await apiFetch(`${API_BASE_URL}/devices`, {
     method: 'POST',
-    headers: getHeaders(),
     body: JSON.stringify(device),
   });
   if (!response.ok) throw new Error('Failed to create device');
@@ -123,23 +179,21 @@ export async function createDevice(device: Partial<Device>): Promise<{ id: strin
 }
 
 export async function deleteDevice(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/devices/${id}`, {
+  const response = await apiFetch(`${API_BASE_URL}/devices/${id}`, {
     method: 'DELETE',
-    headers: getHeaders(),
   });
   if (!response.ok) throw new Error('Failed to delete device');
 }
 
 export async function fetchAuthorizedAgents(): Promise<AuthorizedAgent[]> {
-  const response = await fetch(`${API_BASE_URL}/authorized-agents`, { headers: getHeaders() });
+  const response = await apiFetch(`${API_BASE_URL}/authorized-agents`);
   if (!response.ok) throw new Error('Failed to fetch authorized agents');
   return response.json();
 }
 
 export async function createAuthorizedAgent(agent: Partial<AuthorizedAgent>): Promise<{ id: string }> {
-  const response = await fetch(`${API_BASE_URL}/authorized-agents`, {
+  const response = await apiFetch(`${API_BASE_URL}/authorized-agents`, {
     method: 'POST',
-    headers: getHeaders(),
     body: JSON.stringify(agent),
   });
   if (!response.ok) throw new Error('Failed to create authorized agent');
@@ -147,18 +201,16 @@ export async function createAuthorizedAgent(agent: Partial<AuthorizedAgent>): Pr
 }
 
 export async function updateAgentTrust(id: string, is_trusted: boolean): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/authorized-agents/${id}/trust`, {
+  const response = await apiFetch(`${API_BASE_URL}/authorized-agents/${id}/trust`, {
     method: 'PUT',
-    headers: getHeaders(),
     body: JSON.stringify({ is_trusted }),
   });
   if (!response.ok) throw new Error('Failed to update agent trust');
 }
 
 export async function updateAuthorizedAgent(id: string, agent: Partial<AuthorizedAgent>): Promise<AuthorizedAgent> {
-  const response = await fetch(`${API_BASE_URL}/authorized-agents/${id}`, {
+  const response = await apiFetch(`${API_BASE_URL}/authorized-agents/${id}`, {
     method: 'PATCH',
-    headers: getHeaders(),
     body: JSON.stringify(agent),
   });
   if (!response.ok) throw new Error('Failed to update authorized agent');
@@ -166,9 +218,8 @@ export async function updateAuthorizedAgent(id: string, agent: Partial<Authorize
 }
 
 export async function deleteAuthorizedAgent(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/authorized-agents/${id}`, {
+  const response = await apiFetch(`${API_BASE_URL}/authorized-agents/${id}`, {
     method: 'DELETE',
-    headers: getHeaders(),
   });
   if (!response.ok) throw new Error('Failed to delete authorized agent');
 }
@@ -176,15 +227,14 @@ export async function deleteAuthorizedAgent(id: string): Promise<void> {
 // --- User Profile ---
 
 export async function fetchMe(): Promise<User> {
-  const response = await fetch(`${API_BASE_URL}/me`, { headers: getHeaders() });
+  const response = await apiFetch(`${API_BASE_URL}/me`);
   if (!response.ok) throw new Error('Failed to fetch profile');
   return response.json();
 }
 
 export async function updateMe(data: Partial<User>): Promise<User> {
-  const response = await fetch(`${API_BASE_URL}/me`, {
+  const response = await apiFetch(`${API_BASE_URL}/me`, {
     method: 'PATCH',
-    headers: getHeaders(),
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error('Failed to update profile');
@@ -192,7 +242,7 @@ export async function updateMe(data: Partial<User>): Promise<User> {
 }
 
 export async function fetchUsers(): Promise<User[]> {
-  const response = await fetch(`${API_BASE_URL}/users`, { headers: getHeaders() });
+  const response = await apiFetch(`${API_BASE_URL}/users`);
   if (!response.ok) throw new Error('Failed to fetch users');
   return response.json();
 }
@@ -200,15 +250,14 @@ export async function fetchUsers(): Promise<User[]> {
 // --- Workspace Management ---
 
 export async function fetchWorkspaces(): Promise<Workspace[]> {
-  const response = await fetch(`${API_BASE_URL}/workspaces`, { headers: getHeaders() });
+  const response = await apiFetch(`${API_BASE_URL}/workspaces`);
   if (!response.ok) throw new Error('Failed to fetch workspaces');
   return response.json();
 }
 
 export async function createWorkspace(name: string): Promise<Workspace> {
-  const response = await fetch(`${API_BASE_URL}/workspaces`, {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces`, {
     method: 'POST',
-    headers: getHeaders(),
     body: JSON.stringify({ name }),
   });
   if (!response.ok) throw new Error('Failed to create workspace');
@@ -216,15 +265,14 @@ export async function createWorkspace(name: string): Promise<Workspace> {
 }
 
 export async function fetchWorkspaceMembers(wsId: string): Promise<WorkspaceMember[]> {
-  const response = await fetch(`${API_BASE_URL}/workspaces/${wsId}/members`, { headers: getHeaders() });
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/members`);
   if (!response.ok) throw new Error('Failed to fetch members');
   return response.json();
 }
 
 export async function addWorkspaceMember(wsId: string, email: string, role: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/workspaces/${wsId}/members`, {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/members`, {
     method: 'POST',
-    headers: getHeaders(),
     body: JSON.stringify({ email, role }),
   });
   if (!response.ok) throw new Error('Failed to add member');
@@ -245,15 +293,14 @@ export interface MemberExtraRole {
 }
 
 export async function fetchMemberRoles(wsId: string, userId: string): Promise<MemberRolesResponse> {
-  const response = await fetch(`${API_BASE_URL}/workspaces/${wsId}/members/${userId}/roles`, { headers: getHeaders() });
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/members/${userId}/roles`);
   if (!response.ok) throw new Error('Failed to fetch member roles');
   return response.json();
 }
 
 export async function assignExtraRole(wsId: string, userId: string, role: string, expiresAt: string): Promise<MemberExtraRole> {
-  const response = await fetch(`${API_BASE_URL}/workspaces/${wsId}/members/${userId}/roles`, {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/members/${userId}/roles`, {
     method: 'POST',
-    headers: getHeaders(),
     body: JSON.stringify({ role, expires_at: expiresAt }),
   });
   if (!response.ok) throw new Error('Failed to assign role');
@@ -261,14 +308,13 @@ export async function assignExtraRole(wsId: string, userId: string, role: string
 }
 
 export async function revokeExtraRole(wsId: string, userId: string, roleId: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/workspaces/${wsId}/members/${userId}/roles/${roleId}`, {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/members/${userId}/roles/${roleId}`, {
     method: 'DELETE',
-    headers: getHeaders(),
   });
   if (!response.ok) throw new Error('Failed to revoke role');
 }
 
-export async function fetchDevSuperUser(): Promise<{ user_id: string; workspace_id: string }> {
+export async function fetchDevSuperUser(): Promise<{ user_id: string; workspace_id: string; access_token?: string; refresh_token?: string }> {
   const response = await fetch(`${API_BASE_URL}/dev/super-user`);
   if (!response.ok) throw new Error('Failed to fetch dev super user');
   return response.json();

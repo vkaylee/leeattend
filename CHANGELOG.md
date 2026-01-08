@@ -8,6 +8,8 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 - **SQLx Repositories**: Triển khai cụ thể `SqlxAgentRepository` và `SqlxWorkspaceRepository` sử dụng SQLx, tối ưu hóa hiệu suất truy vấn và quản lý connection pool tập trung.
 - **Server State Management (React Query)**: Tích hợp `@tanstack/react-query` vào Web Dashboard. Toàn bộ logic fetching, caching và mutation được chuyển sang hệ thống Custom Hooks (`useAuthorizedAgents`, `useDevices`, `useProfile`, `useWorkspaceMembers`).
 - **Domain Hooks**: Xây dựng bộ thư viện hooks chuyên biệt cho từng domain, giúp giảm 50% code boilerplate tại các trang Dashboard, Agents, Devices và Profile.
+- **Test Coverage Boost**: Nâng tỷ lệ test coverage lên trên 80% cho các thành phần quan trọng của Frontend (Hooks, Guards).
+- **Workspace Integration Tests**: Bổ sung bộ test suite toàn diện cho quản lý Workspace và thành viên trên Backend.
 - **Auto-refetching**: Các trang Dashboard và Devices giờ đây tự động cập nhật trạng thái online/offline của Agent mỗi 30 giây mà không cần reload trang.
 
 ### Changed

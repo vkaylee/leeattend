@@ -6,7 +6,14 @@ import AgentsPage from './pages/AgentsPage';
 import DevicesPage from './pages/DevicesPage';
 import WorkspaceSettingsPage from './pages/WorkspaceSettingsPage';
 import ProfilePage from './pages/ProfilePage';
+import LoginPage from './pages/LoginPage';
+import OnboardingPage from './pages/OnboardingPage';
 import WorkspaceSwitcher from './components/WorkspaceSwitcher';
+import AuthGuard from './components/AuthGuard';
+import WorkspaceGuard from './components/WorkspaceGuard';
+import { LogOut } from 'lucide-react';
+
+console.log('🚀 [LeeAttend] Bundle initialized at:', new Date().toISOString());
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,6 +25,11 @@ const queryClient = new QueryClient({
 });
 
 function Layout() {
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.href = '/login';
+  };
+
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900 font-inter">
       {/* Sidebar */}
@@ -60,11 +72,18 @@ function Layout() {
           </Link>
         </nav>
 
-        <div className="p-6 border-t border-slate-100">
+        <div className="p-6 border-t border-slate-100 space-y-2">
           <Link to="/settings" className="flex items-center gap-3 px-4 py-2 text-slate-400 hover:text-slate-600 transition-colors">
             <Settings className="w-5 h-5" />
-            <span className="text-sm font-medium">Cài đặt</span>
+            <span className="text-sm font-medium">Cài đặt app</span>
           </Link>
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-2 text-red-400 hover:text-red-600 transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="text-sm font-medium">Đăng xuất</span>
+          </button>
         </div>
       </aside>
 
@@ -81,15 +100,22 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<DashboardPage />} />
-            <Route path="agents" element={<AgentsPage />} />
-            <Route path="devices" element={<DevicesPage />} />
-            <Route path="workspace/settings" element={<WorkspaceSettingsPage />} />
-            <Route path="profile" element={<ProfilePage />} />
-            {/* Fallback for routes not yet implemented */}
-            <Route path="logs" element={<div className="p-8">Tính năng Nhật ký đang được phát triển.</div>} />
-            <Route path="settings" element={<div className="p-8">Tính năng Cài đặt đang được phát triển.</div>} />
+          <Route path="/login" element={<LoginPage />} />
+          
+          <Route element={<AuthGuard />}>
+            <Route path="/onboarding" element={<OnboardingPage />} />
+            
+            <Route element={<WorkspaceGuard />}>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<DashboardPage />} />
+                <Route path="agents" element={<AgentsPage />} />
+                <Route path="devices" element={<DevicesPage />} />
+                <Route path="workspace/settings" element={<WorkspaceSettingsPage />} />
+                <Route path="profile" element={<ProfilePage />} />
+                <Route path="logs" element={<div className="p-8">Tính năng Nhật ký đang được phát triển.</div>} />
+                <Route path="settings" element={<div className="p-8">Tính năng Cài đặt đang được phát triển.</div>} />
+              </Route>
+            </Route>
           </Route>
         </Routes>
       </Router>
