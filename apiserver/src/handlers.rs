@@ -530,6 +530,14 @@ pub async fn update_authorized_agent(
         query_builder.push_bind(name);
         has_fields_to_update = true;
     }
+    if let Some(token) = req.token {
+        if has_fields_to_update {
+            query_builder.push(", ");
+        }
+        query_builder.push("token = ");
+        query_builder.push_bind(token);
+        has_fields_to_update = true;
+    }
     if let Some(is_trusted) = req.is_trusted {
         if has_fields_to_update {
             query_builder.push(", ");

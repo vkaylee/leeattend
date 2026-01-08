@@ -39,6 +39,7 @@ pub struct AuthorizedAgent {
 #[derive(Debug, Deserialize)]
 pub struct UpdateAuthorizedAgentRequest {
     pub name: Option<String>,
+    pub token: Option<String>,
     pub is_trusted: Option<bool>,
     pub is_active: Option<bool>,
 }

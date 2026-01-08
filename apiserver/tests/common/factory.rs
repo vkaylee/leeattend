@@ -19,6 +19,7 @@ impl TestFactory {
         WorkspaceBuilder::new(self.pool.clone())
     }
 
+    #[allow(dead_code)]
     pub fn agent(&self) -> AgentBuilder {
         AgentBuilder::new(self.pool.clone())
     }
@@ -107,6 +108,7 @@ impl WorkspaceBuilder {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_name(mut self, name: &str) -> Self {
         self.name = name.to_string();
         self
@@ -169,6 +171,7 @@ impl TestFactory {
     }
 }
 
+#[allow(dead_code)]
 pub struct AgentBuilder {
     pool: PgPool,
     id: String,
@@ -178,6 +181,7 @@ pub struct AgentBuilder {
     is_trusted: bool,
 }
 
+#[allow(dead_code)]
 impl AgentBuilder {
     pub fn new(pool: PgPool) -> Self {
         let id = Uuid::new_v4().to_string();
