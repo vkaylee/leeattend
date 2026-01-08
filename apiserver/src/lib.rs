@@ -55,6 +55,9 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route("/ws", get(handlers::ws_handler))
         .route("/agents", get(handlers::get_agents))
         .route("/agent/:agent_id/command", post(handlers::send_command))
+        // Profile
+        .route("/me", get(handlers::get_user_profile).patch(handlers::update_user_profile))
+        .route("/users", get(handlers::get_users))
         // Device Management
         .route(
             "/devices",

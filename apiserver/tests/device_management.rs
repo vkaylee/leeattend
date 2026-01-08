@@ -6,7 +6,7 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use uuid::Uuid;
 
-async fn spawn_app() -> (String, Uuid) {
+async fn spawn_app() -> (String, Uuid, Uuid) {
     dotenvy::dotenv().ok();
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let db_pool = PgPoolOptions::new()
@@ -25,12 +25,30 @@ async fn spawn_app() -> (String, Uuid) {
     sqlx::query("DELETE FROM workspace_members").execute(&db_pool).await.unwrap();
     sqlx::query("DELETE FROM devices").execute(&db_pool).await.unwrap();
     sqlx::query("DELETE FROM authorized_agents").execute(&db_pool).await.unwrap();
+    sqlx::query("DELETE FROM users").execute(&db_pool).await.unwrap();
     sqlx::query("DELETE FROM workspaces").execute(&db_pool).await.unwrap();
+
+    // Create a test user
+    let user_id = sqlx::query_scalar("INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id")
+        .bind("device-test@example.com")
+        .bind("hash")
+        .fetch_one(&db_pool)
+        .await
+        .unwrap();
 
     // Create a test workspace
     let workspace_id = sqlx::query_scalar("INSERT INTO workspaces (name) VALUES ($1) RETURNING id")
-        .bind("Test Workspace")
+        .bind("Device Test Workspace")
         .fetch_one(&db_pool)
+        .await
+        .unwrap();
+
+    // Add user to workspace as owner
+    sqlx::query("INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3)")
+        .bind(workspace_id)
+        .bind(user_id)
+        .bind("owner")
+        .execute(&db_pool)
         .await
         .unwrap();
 
@@ -49,14 +67,16 @@ async fn spawn_app() -> (String, Uuid) {
         axum::serve(listener, app).await.unwrap();
     });
 
-    (format!("http://127.0.0.1:{}", port), workspace_id)
+    (format!("http://127.0.0.1:{}", port), workspace_id, user_id)
 }
 
 #[tokio::test]
 #[serial]
 async fn test_create_and_get_device() {
-    let (address, workspace_id) = spawn_app().await;
+    let (address, workspace_id, user_id) = spawn_app().await;
     let client = reqwest::Client::new();
+    let ws_header = ("X-Workspace-Id", workspace_id.to_string());
+    let user_header = ("X-User-Id", user_id.to_string());
 
     let body = serde_json::json!({
         "agent_id": "TEST_AGENT",
@@ -67,7 +87,8 @@ async fn test_create_and_get_device() {
 
     let response = client
         .post(&format!("{}/devices", address))
-        .header("X-Workspace-Id", workspace_id.to_string())
+        .header(ws_header.0, ws_header.1.clone())
+        .header(user_header.0, user_header.1.clone())
         .json(&body)
         .send()
         .await
@@ -80,7 +101,8 @@ async fn test_create_and_get_device() {
 
     let response = client
         .get(&format!("{}/devices", address))
-        .header("X-Workspace-Id", workspace_id.to_string())
+        .header(ws_header.0, ws_header.1.clone())
+        .header(user_header.0, user_header.1.clone())
         .send()
         .await
         .expect("Failed to execute request.");
@@ -93,12 +115,15 @@ async fn test_create_and_get_device() {
 #[tokio::test]
 #[serial]
 async fn test_delete_device() {
-    let (address, workspace_id) = spawn_app().await;
+    let (address, workspace_id, user_id) = spawn_app().await;
     let client = reqwest::Client::new();
+    let ws_header = ("X-Workspace-Id", workspace_id.to_string());
+    let user_header = ("X-User-Id", user_id.to_string());
 
     let response = client
         .post(&format!("{}/devices", address))
-        .header("X-Workspace-Id", workspace_id.to_string())
+        .header(ws_header.0, ws_header.1.clone())
+        .header(user_header.0, user_header.1.clone())
         .json(&serde_json::json!({
             "agent_id": "TEST_AGENT",
             "name": "To Delete",
@@ -113,7 +138,8 @@ async fn test_delete_device() {
 
     let response = client
         .delete(&format!("{}/devices/{}", address, id))
-        .header("X-Workspace-Id", workspace_id.to_string())
+        .header(ws_header.0, ws_header.1.clone())
+        .header(user_header.0, user_header.1.clone())
         .send()
         .await
         .unwrap();
@@ -122,7 +148,8 @@ async fn test_delete_device() {
 
     let response = client
         .get(&format!("{}/devices", address))
-        .header("X-Workspace-Id", workspace_id.to_string())
+        .header(ws_header.0, ws_header.1.clone())
+        .header(user_header.0, user_header.1.clone())
         .send()
         .await
         .unwrap();

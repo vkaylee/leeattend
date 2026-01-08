@@ -104,6 +104,16 @@ pub struct User {
     pub id: Uuid,
     pub email: String,
     pub created_at: DateTime<Utc>,
+    pub full_name: Option<String>,
+    pub avatar_url: Option<String>,
+    pub bio: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateUserRequest {
+    pub full_name: Option<String>,
+    pub avatar_url: Option<String>,
+    pub bio: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]

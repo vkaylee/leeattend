@@ -46,6 +46,15 @@ export interface AuthorizedAgent {
   workspace_id: string;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  created_at: string;
+  full_name?: string;
+  avatar_url?: string;
+  bio?: string;
+}
+
 export interface Workspace {
   id: string;
   name: string;
@@ -58,13 +67,21 @@ export interface WorkspaceMember {
   role: 'owner' | 'admin' | 'member';
 }
 
-// Utility to get active workspace ID
+// Utility to get active workspace and user ID
 export function getCurrentWorkspaceId(): string | null {
   return localStorage.getItem('active_workspace_id');
 }
 
 export function setCurrentWorkspaceId(id: string) {
   localStorage.setItem('active_workspace_id', id);
+}
+
+export function getCurrentUserId(): string | null {
+  return localStorage.getItem('active_user_id');
+}
+
+export function setCurrentUserId(id: string) {
+  localStorage.setItem('active_user_id', id);
 }
 
 function getHeaders() {
@@ -74,6 +91,10 @@ function getHeaders() {
   const wsId = getCurrentWorkspaceId();
   if (wsId) {
     headers['X-Workspace-Id'] = wsId;
+  }
+  const userId = getCurrentUserId();
+  if (userId) {
+    headers['X-User-Id'] = userId;
   }
   return headers;
 }
@@ -149,6 +170,30 @@ export async function deleteAuthorizedAgent(id: string): Promise<void> {
     headers: getHeaders(),
   });
   if (!response.ok) throw new Error('Failed to delete authorized agent');
+}
+
+// --- User Profile ---
+
+export async function fetchMe(): Promise<User> {
+  const response = await fetch(`${API_BASE_URL}/me`, { headers: getHeaders() });
+  if (!response.ok) throw new Error('Failed to fetch profile');
+  return response.json();
+}
+
+export async function updateMe(data: Partial<User>): Promise<User> {
+  const response = await fetch(`${API_BASE_URL}/me`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Failed to update profile');
+  return response.json();
+}
+
+export async function fetchUsers(): Promise<User[]> {
+  const response = await fetch(`${API_BASE_URL}/users`, { headers: getHeaders() });
+  if (!response.ok) throw new Error('Failed to fetch users');
+  return response.json();
 }
 
 // --- Workspace Management ---

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, Briefcase, Plus, Check } from 'lucide-react';
-import { Workspace, fetchWorkspaces, getCurrentWorkspaceId, setCurrentWorkspaceId } from '@/lib/api';
+import { Workspace, fetchWorkspaces, getCurrentWorkspaceId, setCurrentWorkspaceId, fetchUsers, getCurrentUserId, setCurrentUserId } from '@/lib/api';
 
 export default function WorkspaceSwitcher() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -8,11 +8,22 @@ export default function WorkspaceSwitcher() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    loadWorkspaces();
+    initialize();
   }, []);
 
-  async function loadWorkspaces() {
+  async function initialize() {
     try {
+      // 1. Dev Mode: Ensure we have a user
+      let userId = getCurrentUserId();
+      if (!userId) {
+        const users = await fetchUsers();
+        if (users.length > 0) {
+          setCurrentUserId(users[0].id);
+          userId = users[0].id;
+        }
+      }
+
+      // 2. Load Workspaces
       const data = await fetchWorkspaces();
       setWorkspaces(data);
       
@@ -24,7 +35,7 @@ export default function WorkspaceSwitcher() {
         if (!currentId) setCurrentWorkspaceId(current.id);
       }
     } catch (e) {
-      console.error('Failed to load workspaces', e);
+      console.error('Failed to initialize workspace context', e);
     }
   }
 

@@ -1,9 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Link, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Cpu, History, Settings, UserCheck } from 'lucide-react';
+import { LayoutDashboard, Cpu, History, Settings, UserCheck, UserCircle } from 'lucide-react';
 import DashboardPage from './pages/DashboardPage';
 import AgentsPage from './pages/AgentsPage';
 import DevicesPage from './pages/DevicesPage';
 import WorkspaceSettingsPage from './pages/WorkspaceSettingsPage';
+import ProfilePage from './pages/ProfilePage';
 import WorkspaceSwitcher from './components/WorkspaceSwitcher';
 
 function Layout() {
@@ -39,6 +40,10 @@ function Layout() {
             <Settings className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span className="font-semibold">Cài đặt</span>
           </Link>
+          <Link to="/profile" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group">
+            <UserCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-semibold">Hồ sơ</span>
+          </Link>
           <Link to="/logs" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group">
             <History className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span className="font-semibold">Nhật ký</span>
@@ -70,6 +75,7 @@ function App() {
           <Route path="agents" element={<AgentsPage />} />
           <Route path="devices" element={<DevicesPage />} />
           <Route path="workspace/settings" element={<WorkspaceSettingsPage />} />
+          <Route path="profile" element={<ProfilePage />} />
           {/* Fallback for routes not yet implemented */}
           <Route path="logs" element={<div className="p-8">Tính năng Nhật ký đang được phát triển.</div>} />
           <Route path="settings" element={<div className="p-8">Tính năng Cài đặt đang được phát triển.</div>} />
