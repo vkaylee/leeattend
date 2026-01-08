@@ -3,16 +3,38 @@
 ## 🚀 API Server (Central - Rust)
 Base URL: `http://localhost:3000`
 
+### 1. Workspace Management (New)
+
+Tất cả các endpoint quản lý tài nguyên (Agents, Devices) đều yêu cầu header `X-Workspace-Id` để đảm bảo cách ly dữ liệu giữa các tổ chức.
+
+#### GET /workspaces
+Lấy danh sách các workspace mà người dùng hiện tại là thành viên.
+- **Response (200)**: `Array<Workspace>`
+
+#### POST /workspaces
+Tạo một workspace mới.
+- **Request**: `{ "name": "Tên Công Ty" }`
+- **Response (201)**: `Workspace` object
+
+#### GET /workspaces/:id/members
+Lấy danh sách thành viên của workspace.
+- **Response (200)**: `Array<WorkspaceMember>`
+
+#### POST /workspaces/:id/members
+Mời hoặc thêm thành viên vào workspace.
+- **Request**: `{ "email": "user@example.com", "role": "admin|member" }`
+- **Response (201)**: Created
+
 ### 2. Device Management (CRUD)
 
-Các endpoint dành cho Web Dashboard để quản lý danh sách máy chấm công.
+Các endpoint dành cho Web Dashboard để quản lý danh sách máy chấm công. **Yêu cầu header `X-Workspace-Id`**.
 
 #### GET /devices
-Lấy danh sách tất cả các thiết bị.
+Lấy danh sách tất cả các thiết bị trong workspace hiện tại.
 - **Response (200)**: `Array<Device>`
 
 #### POST /devices
-Thêm thiết bị mới. Server sẽ tự động sinh UUID v4 và gửi cấu hình mới cho Agent qua WebSocket.
+Thêm thiết bị mới vào workspace. Server sẽ tự động sinh UUID v4 và gửi cấu hình mới cho Agent qua WebSocket.
 - **Request**:
   ```json
   {
@@ -24,20 +46,25 @@ Thêm thiết bị mới. Server sẽ tự động sinh UUID v4 và gửi cấu 
   ```
 - **Response (201)**: `{ "id": "uuid-v4" }`
 
+#### PATCH /devices/:id (New)
+Cập nhật thông tin thiết bị (tên, IP, port, trạng thái enabled).
+- **Response (200 OK)**
+
 #### DELETE /devices/:id
-Xóa thiết bị. Agent sẽ ngay lập tức ngừng giám sát thiết bị này.
+Xóa thiết bị khỏi workspace. Agent sẽ ngay lập tức ngừng giám sát thiết bị này.
 - **Response (204)**: No Content
 
-### 3. Agent Trust Management
+### 3. Agent Management
 
-Các endpoint dành cho Web Dashboard để kiểm soát quyền truy cập của Agent.
+Các endpoint dành cho Web Dashboard để kiểm soát quyền truy cập của Agent. **Yêu cầu header `X-Workspace-Id`**.
 
 #### GET /authorized-agents
-Lấy danh sách tất cả các Agent đã từng khai báo trong hệ thống.
+Lấy danh sách Agent thuộc workspace hiện tại.
+- **Query Params**: `?include_inactive=true` (mặc định chỉ lấy agent đang active)
 - **Response (200)**: `Array<AuthorizedAgent>`
 
 #### POST /authorized-agents
-Khai báo một Agent mới vào hệ thống.
+Khai báo một Agent mới vào workspace.
 - **Request**:
   ```json
   {
@@ -47,6 +74,14 @@ Khai báo một Agent mới vào hệ thống.
   }
   ```
 - **Response (201)**: `{ "id": "AGENT_01" }`
+
+#### PATCH /authorized-agents/:id (New)
+Cập nhật thông tin Agent (tên, token, trạng thái active/trusted).
+- **Response (200 OK)**
+
+#### DELETE /authorized-agents/:id (Soft Delete)
+Đánh dấu Agent là không hoạt động (`is_active = false`). Agent sẽ bị ngắt kết nối WebSocket và ẩn khỏi danh sách mặc định.
+- **Response (204)**: No Content
 
 #### PUT /authorized-agents/:id/trust
 Phê duyệt (Trust) hoặc Thu hồi quyền của một Agent. Khi thu hồi, kết nối WebSocket hiện tại sẽ bị ngắt.

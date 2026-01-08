@@ -3,15 +3,22 @@
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
 ## [Unreleased]
+### Added
+- **Workspace Management (Multi-Tenancy)**: Triển khai cơ chế đa người dùng (Multi-tenancy) cho phép phân tách dữ liệu hoàn toàn giữa các tổ chức khác nhau (Workspaces).
+- **Workspace Isolation**: Tất cả API hiện yêu cầu header `X-Workspace-Id`. Dữ liệu về Agent và Thiết bị được lọc tự động theo Workspace của người dùng.
+- **Member Management**: Hỗ trợ mời thành viên, quản lý danh sách thành viên và phân quyền (Owner, Admin, Member) trong từng Workspace.
+- **Agent Lifecycle Management**: Bổ sung tính năng Chỉnh sửa (Edit) và Xóa mềm (Soft Delete) cho Agent.
+- **Agent Edit Modal**: Giao diện Modal chuyên nghiệp trên Dashboard để cập nhật thông tin Agent mà không cần rời trang.
+- **Dashboard Standalone Server**: Đóng gói Web Dashboard thành 1 file thực thi (`.exe`) duy nhất bằng Rust. Tích hợp sẵn Web Server gọn nhẹ, không cần cài đặt Node.js hay cấu hình IIS. Hỗ trợ tham số `--port` và `--no-open`.
+- **Dashboard Windows Service**: Scripts `install_service.bat` và `uninstall_service.bat` để quản lý Web Dashboard dưới dạng Windows Service, đảm bảo chạy ổn định 24/7.
+- **Frontend Testing Suite**: Tích hợp **Vitest** và **React Testing Library** vào Webdashboard, thiết lập hạ tầng kiểm thử tự động cho các component React.
+
 ### Changed
 - **Webdashboard Architecture**: Di chuyển toàn bộ Webdashboard từ Next.js (App Router) sang **Vite + React SPA**. Loại bỏ hoàn toàn sự phụ thuộc vào Next.js runtime, giúp giảm dung lượng bundle và tăng tốc độ phát triển.
 - **Routing Engine**: Chuyển sang sử dụng `react-router-dom` (v7) thay cho Next.js File-system Routing.
 - **Styling**: Nâng cấp lên **Tailwind CSS v4** và chuẩn hóa font chữ Inter qua `@fontsource/inter`.
 - **API Integration**: Cập nhật cách truy cập biến môi trường sang style của Vite (`import.meta.env.VITE_`).
-
-### Added
-- **Dashboard Standalone Server**: Đóng gói Web Dashboard thành 1 file thực thi (`.exe`) duy nhất bằng Rust. Tích hợp sẵn Web Server gọn nhẹ, không cần cài đặt Node.js hay cấu hình IIS. Hỗ trợ tham số `--port` và `--no-open`.
-- **Dashboard Windows Service**: Scripts `install_service.bat` và `uninstall_service.bat` để quản lý Web Dashboard dưới dạng Windows Service, đảm bảo chạy ổn định 24/7.
+- **Database Schema**: Cập nhật bảng `authorized_agents` và `devices` để hỗ trợ `workspace_id`. Thêm các bảng `workspaces`, `users` và `workspace_members`.
 
 ## [3.3.0] - 2026-01-07
 ### Improved

@@ -41,6 +41,13 @@ Agent được thiết kế để chạy ổn định 24/7 trên phần cứng g
   - Logs > 20000: 300s
 - **Rolling Deduplication**: Bộ nhớ đệm chống trùng lặp sử dụng cấu trúc `deque` + `set` với cửa sổ trượt cố định (20,000 items), đảm bảo bộ nhớ không tăng theo thời gian.
 
+### 7. Multi-Tenancy (Workspaces)
+Hệ thống hỗ trợ phân tách dữ liệu hoàn toàn giữa các tổ chức thông qua mô hình Workspace:
+- **Isolation**: Mọi tài nguyên (Agent, Thiết bị, Log) đều gắn liền với một `workspace_id`. Một Workspace đại diện cho một khách hàng hoặc một thực thể kinh doanh độc lập.
+- **Context Isolation**: API Server thực thi kiểm tra quyền truy cập thông qua header `X-Workspace-Id`. Người dùng chỉ có thể tương tác với tài nguyên thuộc các Workspace mà họ là thành viên.
+- **RBAC**: Phân quyền trong Workspace (Owner, Admin, Member) kiểm soát khả năng mời thành viên hoặc cấu hình thiết bị.
+- **Handshake Verification**: Khi Agent kết nối WebSocket, Server tự động xác định Workspace tương ứng từ `agent_id` và thực thi cách ly luồng dữ liệu ngay tại tầng kết nối.
+
 ## Infrastructure Diagram
 ```ascii
 [ Web Dashboard ] <--- REST API ---> [ API Server ] <--- WebSocket (Outbound Only) ---> [ Agent ] <---> [ ZKTeco Devices ]
