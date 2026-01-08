@@ -1,8 +1,6 @@
-"use client";
-
 import { fetchAgents, fetchDevices, AgentStatus, Device } from '@/lib/api';
 import { Users, Monitor, ShieldCheck, ShieldAlert, Activity, Cpu } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 
 export default function DashboardPage() {
@@ -125,13 +123,13 @@ export default function DashboardPage() {
           <section>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-slate-800">Cấu hình nhanh</h2>
-              <Link href="/devices" className="text-sm font-bold text-blue-600 hover:underline">Tất cả →</Link>
+              <Link to="/devices" className="text-sm font-bold text-blue-600 hover:underline">Tất cả →</Link>
             </div>
             <div className="bg-slate-900 rounded-3xl p-8 text-white relative overflow-hidden shadow-2xl shadow-blue-200">
               <div className="relative z-10">
                 <h3 className="text-2xl font-bold mb-2">Quản lý Thiết bị</h3>
                 <p className="text-slate-400 mb-6 text-sm leading-relaxed">Thêm hoặc xóa máy chấm công tại các chi nhánh. Hệ thống sẽ tự động đồng bộ cấu hình tới các Agent ngay lập tức.</p>
-                <Link href="/devices" className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-2xl font-bold transition-colors inline-block">
+                <Link to="/devices" className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-2xl font-bold transition-colors inline-block">
                   Mở trình quản lý
                 </Link>
               </div>

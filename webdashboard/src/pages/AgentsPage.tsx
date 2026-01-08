@@ -1,8 +1,6 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { fetchAuthorizedAgents, createAuthorizedAgent, updateAgentTrust, AuthorizedAgent } from '@/lib/api';
-import { Plus, ShieldCheck, ShieldAlert, ShieldX, Key, UserCheck, Globe, Calendar, RefreshCcw } from 'lucide-react';
+import { Plus, ShieldCheck, ShieldAlert, ShieldX, Key, UserCheck, Globe, RefreshCcw } from 'lucide-react';
 
 export default function AgentsPage() {
   const [agents, setAgents] = useState<AuthorizedAgent[]>([]);

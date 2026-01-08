@@ -2,7 +2,7 @@
  * Lấy địa chỉ API Base từ biến môi trường.
  * Mặc định là http://localhost:3000 nếu không được cấu hình.
  */
-export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000').replace(/\/$/, '');
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
 
 /**
  * Tự động tạo URL WebSocket dựa trên API_BASE_URL

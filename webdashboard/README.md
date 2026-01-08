@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LeeAttend Web Dashboard
 
-## Getting Started
+Bảng điều khiển quản lý tập trung cho hệ thống LeeAttend, được xây dựng bằng React + Vite + Tailwind CSS và tích hợp với Tauri để đóng gói ứng dụng desktop.
 
-First, run the development server:
+## Công nghệ sử dụng
+
+- **React 19**: Thư viện UI chính.
+- **Vite**: Công cụ build và dev server cực nhanh.
+- **React Router 7**: Quản lý điều hướng trong ứng dụng SPA.
+- **Tailwind CSS 4**: Framework CSS utility-first.
+- **Lucide React**: Bộ icon đẹp mắt.
+- **TanStack Query**: Quản lý state server và caching.
+- **Tauri**: Đóng gói ứng dụng desktop bằng Rust.
+
+## Hướng dẫn phát triển
+
+### 1. Cài đặt
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Cấu hình
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Sao chép file `.env.example` thành `.env.local` và điều chỉnh `VITE_API_URL` trỏ tới địa chỉ của API Server (mặc định là `http://localhost:3000`).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Chạy môi trường phát triển
 
-## Learn More
+```bash
+# Chạy web dashboard trong trình duyệt (mặc định port 1420)
+npm run dev
 
-To learn more about Next.js, take a look at the following resources:
+# Chạy ứng dụng Desktop (Tauri)
+npm run tauri dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 4. Xây dựng ứng dụng
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# Build web tĩnh
+npm run build
 
-## Deploy on Vercel
+# Build ứng dụng Desktop (Tauri)
+npm run tauri build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Cấu trúc thư mục
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/app.tsx`: Cấu hình Router và Layout chính.
+- `src/pages/`: Các trang (Dashboard, Agents, Devices, v.v.).
+- `src/components/`: Các component dùng chung.
+- `src/lib/api.ts`: Các hàm gọi API tới apiserver.
+- `src-tauri/`: Mã nguồn Rust cho ứng dụng Desktop.

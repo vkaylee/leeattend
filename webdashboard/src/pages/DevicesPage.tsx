@@ -1,9 +1,7 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { fetchDevices, createDevice, deleteDevice, Device, fetchAgents, AgentStatus } from '@/lib/api';
 import { Plus, Trash2, Server, Cpu, Globe, Hash, ShieldCheck, ShieldAlert, ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 
 export default function DevicesPage() {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -60,7 +58,7 @@ export default function DevicesPage() {
       <div className="max-w-6xl mx-auto">
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="bg-white p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors">
+            <Link to="/" className="bg-white p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors">
               <ArrowLeft className="w-5 h-5 text-slate-600" />
             </Link>
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Quản lý thiết bị</h1>
