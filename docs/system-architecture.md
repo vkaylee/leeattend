@@ -43,9 +43,13 @@ Agent được thiết kế để chạy ổn định 24/7 trên phần cứng g
 
 ### 7. Multi-Tenancy (Workspaces)
 Hệ thống hỗ trợ phân tách dữ liệu hoàn toàn giữa các tổ chức thông qua mô hình Workspace:
-- **Isolation**: Mọi tài nguyên (Agent, Thiết bị, Log) đều gắn liền với một `workspace_id`. Một Workspace đại diện cho một khách hàng hoặc một thực thể kinh doanh độc lập.
-- **Context Isolation**: API Server thực thi kiểm tra quyền truy cập thông qua header `X-Workspace-Id`. Người dùng chỉ có thể tương tác với tài nguyên thuộc các Workspace mà họ là thành viên.
-- **RBAC**: Phân quyền trong Workspace (Owner, Admin, Member) kiểm soát khả năng mời thành viên hoặc cấu hình thiết bị.
+- **Global Identity**: Người dùng có một tài khoản duy nhất trên toàn hệ thống (Global User), cho phép họ tham gia vào nhiều Workspace khác nhau mà không cần tạo nhiều tài khoản.
+- **Isolation**: Mọi tài nguyên nghiệp vụ (Agent, Thiết bị, Log) đều gắn liền với một `workspace_id`. Một Workspace đại diện cho một tổ chức hoặc khách hàng độc lập.
+- **MemberContext Isolation**: API Server thực thi kiểm tra bảo mật thông qua cặp header `X-User-Id` và `X-Workspace-Id`. Extractor `MemberContext` sẽ xác thực tính hợp lệ của người dùng trong workspace trước khi cho phép truy cập tài nguyên.
+- **RBAC (Role-Based Access Control)**: Phân quyền chi tiết trong từng Workspace (Owner, Admin, Member):
+  - `Owner`: Quyền cao nhất, được phép xóa workspace.
+  - `Admin`: Được phép quản lý thành viên (invite/remove) và cấu hình thiết bị/agent.
+  - `Member`: Quyền xem dữ liệu và tương tác cơ bản.
 - **Handshake Verification**: Khi Agent kết nối WebSocket, Server tự động xác định Workspace tương ứng từ `agent_id` và thực thi cách ly luồng dữ liệu ngay tại tầng kết nối.
 
 ## Infrastructure Diagram

@@ -3,64 +3,92 @@
 ## 🚀 API Server (Central - Rust)
 Base URL: `http://localhost:3000`
 
-### 1. Workspace Management (New)
+### 0. Authentication & Context (New)
 
-Tất cả các endpoint quản lý tài nguyên (Agents, Devices) đều yêu cầu header `X-Workspace-Id` để đảm bảo cách ly dữ liệu giữa các tổ chức.
+Trong môi trường hiện tại, hệ thống sử dụng các header sau để xác định danh tính và phạm vi dữ liệu:
+- `X-User-Id`: UUID của người dùng (Global Identity).
+- `X-Workspace-Id`: UUID của workspace hiện tại.
+
+Mọi yêu cầu truy cập tài nguyên (Agents, Devices, Members) đều được kiểm tra:
+1. Người dùng có tồn tại không?
+2. Người dùng có là thành viên của Workspace không?
+3. Người dùng có đủ quyền (Role) để thực hiện thao tác không?
+
+---
+
+### 1. User Profile (New)
+
+Quản lý thông tin định danh toàn cầu.
+
+#### GET /me
+Lấy thông tin hồ sơ của người dùng hiện tại.
+- **Headers**: `X-User-Id`
+- **Response (200)**: `User` object (`id`, `email`, `full_name`, `avatar_url`, `bio`, `created_at`)
+
+#### PATCH /me
+Cập nhật thông tin hồ sơ.
+- **Headers**: `X-User-Id`
+- **Request**: `{ "full_name": "...", "avatar_url": "...", "bio": "..." }`
+- **Response (200 OK)**
+
+#### GET /users (Dev Only)
+Lấy danh sách tất cả người dùng trong hệ thống (phục vụ giả lập login).
+- **Response (200)**: `Array<User>`
+
+---
+
+### 2. Workspace Management
+
+Tất cả các endpoint quản lý tài nguyên (Agents, Devices) đều yêu cầu header `X-Workspace-Id` và `X-User-Id`.
 
 #### GET /workspaces
 Lấy danh sách các workspace mà người dùng hiện tại là thành viên.
+- **Headers**: `X-User-Id`
 - **Response (200)**: `Array<Workspace>`
 
 #### POST /workspaces
-Tạo một workspace mới.
+Tạo một workspace mới. Người tạo sẽ tự động trở thành `owner`.
+- **Headers**: `X-User-Id`
 - **Request**: `{ "name": "Tên Công Ty" }`
 - **Response (201)**: `Workspace` object
 
 #### GET /workspaces/:id/members
-Lấy danh sách thành viên của workspace.
+Lấy danh sách thành viên của workspace. Yêu cầu người dùng là thành viên.
+- **Headers**: `X-User-Id`, `X-Workspace-Id`
 - **Response (200)**: `Array<WorkspaceMember>`
 
 #### POST /workspaces/:id/members
-Mời hoặc thêm thành viên vào workspace.
+Mời thành viên vào workspace. 
+- **Quyền hạn**: Chỉ `owner` hoặc `admin` mới có thể mời.
+- **Headers**: `X-User-Id`, `X-Workspace-Id`
 - **Request**: `{ "email": "user@example.com", "role": "admin|member" }`
 - **Response (201)**: Created
+- **Errors**: `404 User Not Found` (Người dùng phải có tài khoản global trước), `403 Forbidden` (Không đủ quyền).
 
-### 2. Device Management (CRUD)
+---
 
-Các endpoint dành cho Web Dashboard để quản lý danh sách máy chấm công. **Yêu cầu header `X-Workspace-Id`**.
+### 3. Device Management (CRUD)
+
+**Yêu cầu headers: `X-User-Id`, `X-Workspace-Id`**.
 
 #### GET /devices
 Lấy danh sách tất cả các thiết bị trong workspace hiện tại.
 - **Response (200)**: `Array<Device>`
 
 #### POST /devices
-Thêm thiết bị mới vào workspace. Server sẽ tự động sinh UUID v4 và gửi cấu hình mới cho Agent qua WebSocket.
-- **Request**:
-  ```json
-  {
-    "agent_id": "AGENT_01",
-    "name": "Máy Cổng Chính",
-    "ip": "192.168.1.100",
-    "port": 4370
-  }
-  ```
+Thêm thiết bị mới vào workspace.
+- **Request**: `{ "agent_id": "...", "name": "...", "ip": "...", "port": 4370 }`
 - **Response (201)**: `{ "id": "uuid-v4" }`
 
-#### PATCH /devices/:id (New)
-Cập nhật thông tin thiết bị (tên, IP, port, trạng thái enabled).
-- **Response (200 OK)**
+---
 
-#### DELETE /devices/:id
-Xóa thiết bị khỏi workspace. Agent sẽ ngay lập tức ngừng giám sát thiết bị này.
-- **Response (204)**: No Content
+### 4. Agent Management
 
-### 3. Agent Management
-
-Các endpoint dành cho Web Dashboard để kiểm soát quyền truy cập của Agent. **Yêu cầu header `X-Workspace-Id`**.
+**Yêu cầu headers: `X-User-Id`, `X-Workspace-Id`**.
 
 #### GET /authorized-agents
 Lấy danh sách Agent thuộc workspace hiện tại.
-- **Query Params**: `?include_inactive=true` (mặc định chỉ lấy agent đang active)
+- **Query Params**: `?include_inactive=true`
 - **Response (200)**: `Array<AuthorizedAgent>`
 
 #### POST /authorized-agents

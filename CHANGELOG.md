@@ -4,6 +4,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ## [Unreleased]
 ### Added
+- **Global Identity & User Profiles**: Triển khai định danh người dùng toàn cầu. Mỗi người dùng có thể sở hữu hồ sơ cá nhân (Họ tên, Ảnh đại diện, Bio) dùng chung cho tất cả các Workspace.
+- **Secure RBAC (Role-Based Access Control)**: Thắt chặt bảo mật API bằng Extractor `MemberContext`. Mọi yêu cầu truy cập tài nguyên giờ đây đều phải xác thực cả danh tính người dùng (`X-User-Id`) và tư cách thành viên trong Workspace (`X-Workspace-Id`).
+- **Profile Management UI**: Bổ sung trang quản lý Hồ sơ cá nhân trên Web Dashboard, cho phép người dùng tự cập nhật thông tin định danh.
+- **Secure Invitations**: Nâng cấp logic mời thành viên, yêu cầu quyền Admin/Owner và kiểm tra tồn tại của User Global trước khi thêm vào Workspace.
+- **Auto-Login Dev Mode**: Tự động nhận diện và thiết lập người dùng đầu tiên làm tài khoản hoạt động trong môi trường phát triển, giúp trải nghiệm dev mượt mà hơn.
 - **Workspace Management (Multi-Tenancy)**: Triển khai cơ chế đa người dùng (Multi-tenancy) cho phép phân tách dữ liệu hoàn toàn giữa các tổ chức khác nhau (Workspaces).
 - **Workspace Isolation**: Tất cả API hiện yêu cầu header `X-Workspace-Id`. Dữ liệu về Agent và Thiết bị được lọc tự động theo Workspace của người dùng.
 - **Member Management**: Hỗ trợ mời thành viên, quản lý danh sách thành viên và phân quyền (Owner, Admin, Member) trong từng Workspace.
