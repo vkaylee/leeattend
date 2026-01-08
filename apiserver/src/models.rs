@@ -302,6 +302,37 @@ pub struct ApproveLeaveRequest {
     pub status: String,
 }
 
+// --- Attendance Adjustment Models ---
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct AttendanceAdjustmentRequest {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub time_entry_id: Option<Uuid>,
+    pub requested_punch_in_time: DateTime<Utc>,
+    pub requested_punch_out_time: Option<DateTime<Utc>>,
+    pub reason: Option<String>,
+    pub status: String,
+    pub requested_by_user_id: Option<Uuid>,
+    pub approved_by_user_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SubmitAttendanceAdjustmentRequest {
+    pub employee_id: Uuid,
+    pub time_entry_id: Option<Uuid>,
+    pub requested_punch_in_time: DateTime<Utc>,
+    pub requested_punch_out_time: Option<DateTime<Utc>>,
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ApproveAttendanceAdjustmentRequest {
+    pub status: String, // 'approved' or 'rejected'
+}
+
 // --- Basic Reporting Models ---
 
 

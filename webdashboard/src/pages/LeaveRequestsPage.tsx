@@ -40,7 +40,7 @@ export default function LeaveRequestsPage() {
 
   const approveMutation = useMutation({
     mutationFn: (data: { id: string; status: string }) => 
-      approveLeaveRequest(wsId!, data.id, data.status),
+      approveLeaveRequest(wsId!, data.id, { status: data.status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leave-requests", wsId] });
     },

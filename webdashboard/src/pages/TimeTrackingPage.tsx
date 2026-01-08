@@ -7,6 +7,7 @@ import {
   punchOut, 
   fetchTimeHistory, 
   getCurrentWorkspaceId,
+  submitAttendanceAdjustment,
   Employee,
   TimeEntry
 } from "../lib/api";
@@ -15,6 +16,14 @@ export default function TimeTrackingPage() {
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
+  const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
+  const [adjustmentData, setAdjustmentData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    punchIn: "08:00",
+    punchOut: "17:00",
+    reason: "",
+    timeEntryId: undefined as string | undefined
+  });
 
   const { data: employees = [] } = useQuery({
     queryKey: ["employees", wsId],
@@ -49,6 +58,28 @@ export default function TimeTrackingPage() {
       queryClient.invalidateQueries({ queryKey: ["time-history", wsId, selectedEmployeeId] });
     },
   });
+
+  const adjustMutation = useMutation({
+    mutationFn: (data: any) => submitAttendanceAdjustment(wsId!, data),
+    onSuccess: () => {
+      setIsAdjustmentModalOpen(false);
+      alert("Yêu cầu đã được gửi!");
+    }
+  });
+
+  const handleAdjustSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const punchInTime = new Date(`${adjustmentData.date}T${adjustmentData.punchIn}:00Z`).toISOString();
+    const punchOutTime = new Date(`${adjustmentData.date}T${adjustmentData.punchOut}:00Z`).toISOString();
+    
+    adjustMutation.mutate({
+      employee_id: selectedEmployeeId,
+      time_entry_id: adjustmentData.timeEntryId,
+      requested_punch_in_time: punchInTime,
+      requested_punch_out_time: punchOutTime,
+      reason: adjustmentData.reason
+    });
+  };
 
   if (!wsId) return <div className="p-8 text-center">Vui lòng chọn Workspace</div>;
 
@@ -108,13 +139,25 @@ export default function TimeTrackingPage() {
                 Bắt đầu ca (Punch In)
               </button>
             )}
+
+            <button 
+              onClick={() => {
+                setAdjustmentData({ ...adjustmentData, timeEntryId: undefined });
+                setIsAdjustmentModalOpen(true);
+              }}
+              className="text-blue-600 text-sm font-medium hover:underline"
+            >
+              Quên chấm công? Gửi xác nhận
+            </button>
           </div>
 
           {/* History */}
           <div className="md:col-span-2 bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm flex flex-col">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
-              <History className="w-5 h-5 text-slate-400" />
-              <h3 className="font-bold">Lịch sử gần đây (7 ngày)</h3>
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <History className="w-5 h-5 text-slate-400" />
+                <h3 className="font-bold">Lịch sử gần đây (7 ngày)</h3>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto max-h-[400px]">
               <table className="w-full text-left">
@@ -123,7 +166,7 @@ export default function TimeTrackingPage() {
                     <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase">Ngày</th>
                     <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase">Vào</th>
                     <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase">Ra</th>
-                    <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase text-right">Tổng (phút)</th>
+                    <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase text-right">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -140,12 +183,97 @@ export default function TimeTrackingPage() {
                           <span className="text-orange-500 font-medium">Đang làm...</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-sm font-mono text-right text-slate-900">{entry.duration_minutes ?? '-'}</td>
+                      <td className="px-6 py-4 text-sm text-right">
+                        <button 
+                          onClick={() => {
+                            setAdjustmentData({
+                              date: new Date(entry.punch_in_time).toISOString().split('T')[0],
+                              punchIn: new Date(entry.punch_in_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+                              punchOut: entry.punch_out_time ? new Date(entry.punch_out_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : "17:00",
+                              reason: "",
+                              timeEntryId: entry.id
+                            });
+                            setIsAdjustmentModalOpen(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          Sửa
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Adjustment Modal */}
+      {isAdjustmentModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+            <h2 className="text-xl font-bold mb-6">Yêu cầu xác nhận công</h2>
+            <form onSubmit={handleAdjustSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Ngày</label>
+                <input 
+                  type="date" 
+                  value={adjustmentData.date}
+                  onChange={e => setAdjustmentData({...adjustmentData, date: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-xl" 
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Giờ vào</label>
+                  <input 
+                    type="time" 
+                    value={adjustmentData.punchIn}
+                    onChange={e => setAdjustmentData({...adjustmentData, punchIn: e.target.value})}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-xl" 
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Giờ ra</label>
+                  <input 
+                    type="time" 
+                    value={adjustmentData.punchOut}
+                    onChange={e => setAdjustmentData({...adjustmentData, punchOut: e.target.value})}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-xl" 
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Lý do</label>
+                <textarea 
+                  value={adjustmentData.reason}
+                  onChange={e => setAdjustmentData({...adjustmentData, reason: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-xl min-h-[100px]" 
+                  placeholder="VD: Quên mang thẻ, hệ thống lỗi..."
+                  required
+                ></textarea>
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setIsAdjustmentModalOpen(false)}
+                  className="flex-1 px-4 py-3 border border-slate-200 rounded-2xl font-bold hover:bg-slate-50 transition-all"
+                >
+                  Hủy
+                </button>
+                <button 
+                  type="submit"
+                  disabled={adjustMutation.isPending}
+                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all"
+                >
+                  Gửi yêu cầu
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -4,6 +4,7 @@ pub mod user_repository;
 pub mod employee_repository;
 pub mod time_entry_repository;
 pub mod leave_request_repository;
+pub mod attendance_adjustment_repository;
 pub mod payroll_repository;
 pub mod department_repository;
 pub mod roster_repository;

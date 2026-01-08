@@ -5,16 +5,22 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
-- **Departmental Hierarchy**: Introduced `departments` table and management UI, allowing organization of employees into functional units with designated managers.
-- **Salary History Tracking**: Migrated from static salary settings to a time-series `salary_history` model, enabling accurate payroll auditing for past periods when pay rates change.
-- **Dynamic Shift Rostering (Scheduling)**: Implemented a calendar-based rostering system (`shift_rosters`) for date-specific shift assignments, supporting complex schedules and rotating shifts.
-- **Master-Detail Employee UI**: Upgraded the employee management dashboard with a slide-in detail panel, providing a 360-degree view of employee profiles, salary history, and department transfers.
-- **Department Transfer Workflow**: Added logic to track employee movement between departments with effective dates and historical notes.
-- **Shift Assignment Priority**: Refactored `PayrollService` to determine work schedules using a 3-tier priority logic: **Roster** (Daily) > **Employee Default** > **Department Default**.
+- **Attendance Adjustment Workflow**: Introduced a formal process for handling forgotten punches. Employees can now submit adjustment requests (Attendance Confirmation Sheets) for past dates.
+- **Automated Time Entry Updates**: Approved adjustment requests automatically create or update the corresponding official `time_entries` records, ensuring accurate payroll data.
+- **Manager Approval Dashboard**: A dedicated UI for administrators to review, approve, or reject attendance adjustment requests with historical context and reasons.
+- **Backend Adjustment Service**: New business logic layer to handle the complex state transitions between requests and official attendance records.
+- **Database Schema Expansion**: Added `attendance_adjustment_requests` table to track the full lifecycle of adjustment claims.
 
 ### Changed
-- **Database Schema Upgrade**: Successfully migrated `salary_settings` data to the new `salary_history` table without data loss.
-- **Repository Expansion**: Registered `DepartmentRepository` and `RosterRepository` in the backend orchestrator.
+- **Sidecar Navigation Update**: Added "Xác nhận công" link to the main dashboard sidebar for quick access to the adjustment module.
+- **API Client Expansion**: Updated TypeScript API client with types and methods for attendance adjustments.
+- **Time Tracking UI Enhancement**: Integrated "Forget to punch?" link and manual edit buttons directly into the employee's time history view.
+
+### Fixed
+- **Type Compatibility**: Resolved a TypeScript mismatch in `LeaveRequestsPage` and `api.ts` regarding approval payload structures.
+- **Backend Cleanup**: Fixed an unused variable warning in `handlers.rs` for the attendance adjustment endpoints.
+
+## [Unreleased] (Previous)
 
 ### Added
 - **Robust WebSocket Client**: Implemented a state-of-the-art connection manager in Rust with **Exponential Backoff** and **Smart Heartbeat** (30s interval).

@@ -235,19 +235,12 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/leave/requests",
             get(handlers::get_workspace_leave_requests),
         )
-        .route(
-            "/workspaces/:ws_id/leave/requests/:id/approve",
-            post(handlers::approve_leave_request),
-        )
-        .route(
-            "/workspaces/:ws_id/leave/employee/:employee_id",
-            get(handlers::get_my_leave_requests),
-        )
-        // Reporting
-        .route(
-            "/workspaces/:ws_id/reports/attendance",
-            get(handlers::get_attendance_report),
-        )
+                .route("/workspaces/:ws_id/leave/requests/:id/approve", post(handlers::approve_leave_request))
+                .route("/employees/:id/leave/requests", get(handlers::get_my_leave_requests))
+                .route("/workspaces/:ws_id/attendance/adjustments", post(handlers::submit_attendance_adjustment).get(handlers::get_workspace_attendance_adjustments))
+                .route("/workspaces/:ws_id/attendance/adjustments/:id/approve", post(handlers::approve_attendance_adjustment))
+                .route("/employees/:id/attendance/adjustments", get(handlers::get_my_attendance_adjustments))
+                .route("/workspaces/:ws_id/reports/attendance", get(handlers::get_attendance_report))
         // Payroll
         .route(
             "/workspaces/:ws_id/employees/:id/salary",

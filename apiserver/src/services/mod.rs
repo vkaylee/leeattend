@@ -4,6 +4,7 @@ pub mod workspace_service;
 pub mod employee_service;
 pub mod time_tracking_service;
 pub mod leave_service;
+pub mod attendance_adjustment_service;
 pub mod report_service;
 pub mod payroll_service;
 pub mod shift_service;

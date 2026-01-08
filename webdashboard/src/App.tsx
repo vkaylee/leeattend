@@ -55,6 +55,8 @@ const queryClient = new QueryClient({
   },
 });
 
+import AttendanceAdjustmentsPage from "./pages/AttendanceAdjustmentsPage";
+
 function Layout() {
   const handleLogout = () => {
     localStorage.clear();
@@ -126,6 +128,13 @@ function Layout() {
           >
             <CalendarDays className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span className="font-semibold">Nghỉ phép</span>
+          </Link>
+          <Link
+            to="/attendance-adjustments"
+            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
+          >
+            <History className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-semibold">Xác nhận công</span>
           </Link>
           <Link
             to="/reports"
@@ -236,6 +245,7 @@ function App() {
                 <Route path="/departments" element={<DepartmentsPage />} />
                 <Route path="/time-tracking" element={<TimeTrackingPage />} />
                 <Route path="/leave-requests" element={<LeaveRequestsPage />} />
+                <Route path="/attendance-adjustments" element={<AttendanceAdjustmentsPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/shifts" element={<ShiftsPage />} />
                 <Route path="/rosters" element={<RosterPage />} />

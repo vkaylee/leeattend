@@ -268,7 +268,42 @@ Phê duyệt hoặc từ chối đơn nghỉ phép.
 
 ---
 
-### 8. Payroll & Shifts (New)
+### 8. Attendance Adjustments (New)
+
+Quy trình xử lý các trường hợp quên chấm công hoặc cần điều chỉnh dữ liệu chấm công quá khứ.
+
+#### POST /workspaces/:ws_id/attendance/adjustments
+Gửi yêu cầu xác nhận/điều chỉnh công mới.
+- **Request**:
+  ```json
+  {
+    "employee_id": "...",
+    "time_entry_id": "optional-uuid-if-editing",
+    "requested_punch_in_time": "2026-01-08T08:00:00Z",
+    "requested_punch_out_time": "2026-01-08T17:00:00Z",
+    "reason": "Quên mang thẻ"
+  }
+  ```
+- **Response (201)**: `AttendanceAdjustmentRequest` object
+
+#### GET /workspaces/:ws_id/attendance/adjustments
+Lấy danh sách các yêu cầu điều chỉnh trong workspace.
+- **Query Params**: `?status=pending|approved|rejected`
+- **Response (200)**: `Array<AttendanceAdjustmentRequest>`
+
+#### POST /workspaces/:ws_id/attendance/adjustments/:id/approve
+Phê duyệt hoặc từ chối yêu cầu điều chỉnh công. 
+- **Lưu ý**: Nếu `status` là `approved`, hệ thống sẽ tự động cập nhật hoặc tạo mới bản ghi trong bảng chấm công chính thức.
+- **Request**: `{ "status": "approved|rejected" }`
+- **Response (200 OK)**
+
+#### GET /employees/:id/attendance/adjustments
+Lấy danh sách các yêu cầu điều chỉnh của một nhân viên cụ thể.
+- **Response (200)**: `Array<AttendanceAdjustmentRequest>`
+
+---
+
+### 9. Payroll & Shifts (New)
 
 Quản lý lương, ca làm việc và phiếu lương hàng tháng.
 

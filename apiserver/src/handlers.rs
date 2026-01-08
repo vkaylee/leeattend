@@ -1378,6 +1378,55 @@ pub async fn get_workspace_leave_requests(
     }
 }
 
+// --- Attendance Adjustment Handlers ---
+
+pub async fn submit_attendance_adjustment(
+    State(state): State<Arc<AppState>>,
+    UserId(user_id): UserId,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Json(req): Json<crate::models::SubmitAttendanceAdjustmentRequest>,
+) -> impl IntoResponse {
+    match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::submit_request(&state.db, workspace_id, user_id, req).await {
+        Ok(request) => (StatusCode::CREATED, Json(request)).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn approve_attendance_adjustment(
+    Path(id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    UserId(user_id): UserId,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Json(req): Json<crate::models::ApproveAttendanceAdjustmentRequest>,
+) -> impl IntoResponse {
+    match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::approve_request(&state.db, workspace_id, user_id, id, req).await {
+        Ok(_) => StatusCode::OK.into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn get_my_attendance_adjustments(
+    Path(employee_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    MemberContext { .. }: MemberContext,
+) -> impl IntoResponse {
+    match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::get_employee_requests(&state.db, employee_id).await {
+        Ok(requests) => Json(requests).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn get_workspace_attendance_adjustments(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Query(query): Query<LeaveStatusQuery>, // Reusing LeaveStatusQuery as it also has status
+) -> impl IntoResponse {
+    match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::get_workspace_requests(&state.db, workspace_id, query.status).await {
+        Ok(requests) => Json(requests).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
 // --- Basic Reporting Handlers ---
 
 pub async fn get_attendance_report(

@@ -133,6 +133,20 @@ export interface LeaveRequest {
   updated_at: string;
 }
 
+export interface AttendanceAdjustmentRequest {
+  id: string;
+  employee_id: string;
+  time_entry_id?: string;
+  requested_punch_in_time: string;
+  requested_punch_out_time?: string;
+  reason?: string;
+  status: string;
+  requested_by_user_id?: string;
+  approved_by_user_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AttendanceSummary {
   employee_id: string;
   employee_name: string;
@@ -671,17 +685,69 @@ export async function fetchWorkspaceLeaveRequests(
 
 export async function approveLeaveRequest(
   wsId: string,
-  id: string,
-  status: string,
+  requestId: string,
+  data: { status: string }
 ): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/requests/${id}/approve`, {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/requests/${requestId}/approve`, {
     method: "POST",
-    body: JSON.stringify({ status }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to approve leave request");
 }
 
-// --- Reporting ---
+// Attendance Adjustments
+export async function submitAttendanceAdjustment(
+  wsId: string,
+  data: {
+    employee_id: string;
+    time_entry_id?: string;
+    requested_punch_in_time: string;
+    requested_punch_out_time?: string;
+    reason?: string;
+  }
+): Promise<AttendanceAdjustmentRequest> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/adjustments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to submit attendance adjustment");
+  return response.json();
+}
+
+export async function fetchWorkspaceAttendanceAdjustments(
+  wsId: string,
+  status?: string
+): Promise<AttendanceAdjustmentRequest[]> {
+  const url = status 
+    ? `${API_BASE_URL}/workspaces/${wsId}/attendance/adjustments?status=${status}`
+    : `${API_BASE_URL}/workspaces/${wsId}/attendance/adjustments`;
+  const response = await apiFetch(url);
+  if (!response.ok) throw new Error("Failed to fetch attendance adjustments");
+  return response.json();
+}
+
+export async function fetchMyAttendanceAdjustments(
+  employeeId: string
+): Promise<AttendanceAdjustmentRequest[]> {
+  const response = await apiFetch(`${API_BASE_URL}/employees/${employeeId}/attendance/adjustments`);
+  if (!response.ok) throw new Error("Failed to fetch my attendance adjustments");
+  return response.json();
+}
+
+export async function approveAttendanceAdjustment(
+  wsId: string,
+  requestId: string,
+  data: { status: string }
+): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/adjustments/${requestId}/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to approve attendance adjustment");
+}
 
 export async function fetchAttendanceReport(
   wsId: string,
