@@ -37,12 +37,13 @@ Sử dụng `Arc<dyn RepositoryTrait>` để inject vào Services. Khởi tạo 
 - **Tailwind CSS 4**: Sử dụng các tiện ích của Tailwind 4 để styling.
 - **Lucide React**: Thư viện icon chuẩn.
 
-### 2. Testing
-- **Vitest**: Framework testing chính.
-- **Functional Factories**: Sử dụng các factory function trong `src/test/factories.ts` để sinh dữ liệu mẫu cho component tests.
-  ```typescript
-  const agent = agentFactory({ is_trusted: false });
-  ```
+### 3. UI/UX Conventions
+- **No Browser Dialogs**: Tuyệt đối **KHÔNG** sử dụng `window.alert()`, `window.confirm()` hoặc `window.prompt()` cho các thông báo hành động thông thường.
+- **Global Toast**: Sử dụng custom hook `useToast()` để hiển thị thông báo.
+  - `toast.success()`: Khi hành động thành công (Lưu, Cập nhật).
+  - `toast.error()`: Khi có lỗi API hoặc lỗi logic nghiêm trọng.
+  - `toast.warning()`: Khi người dùng nhập thiếu dữ liệu.
+- **Transitions**: Sử dụng Tailwind `animate-in` cho tất cả các Modals và Toast items để tạo cảm giác mượt mà.
 
 ---
 

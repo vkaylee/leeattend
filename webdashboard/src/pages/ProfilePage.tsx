@@ -11,9 +11,11 @@ import {
 import { useProfile } from "@/hooks/use-profile";
 import { changePassword, clearAuthSession } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../components/Toast";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const { profile, isLoading, updateProfile, isUpdating } = useProfile();
   const [formData, setFormData] = useState({
     full_name: "",
@@ -35,20 +37,20 @@ export default function ProfilePage() {
     e.preventDefault();
     try {
       await updateProfile(formData);
-      alert("Đã cập nhật thông tin cá nhân.");
+      toast.success("Thông tin hồ sơ cá nhân đã được lưu.");
     } catch (e) {
-      alert("Lỗi khi cập nhật profile.");
+      toast.error("Không thể cập nhật thông tin. Vui lòng thử lại sau.");
     }
   }
 
   if (isLoading) {
     return (
-      <div className="p-8 text-center text-slate-500">Đang tải hồ sơ...</div>
+      <div className="p-8 text-center text-slate-500 font-bold">Đang tải hồ sơ...</div>
     );
   }
 
   return (
-    <div className="p-8">
+    <div className="p-8 animate-in fade-in duration-500">
       <div className="max-w-2xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
@@ -96,9 +98,7 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-500">
                     <Calendar className="w-4 h-4" />
                     <span className="text-sm font-medium">
-                      {new Date(profile?.created_at).toLocaleDateString(
-                        "vi-VN",
-                      )}
+                      {profile ? new Date(profile.created_at).toLocaleDateString("vi-VN") : '---'}
                     </span>
                   </div>
                 </div>
@@ -191,6 +191,7 @@ export default function ProfilePage() {
 
 function ChangePasswordForm() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     old_password: "",
@@ -201,7 +202,7 @@ function ChangePasswordForm() {
   async function handlePasswordSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (formData.new_password !== formData.confirm_password) {
-      alert("Mật khẩu mới không khớp.");
+      toast.warning("Xác nhận mật khẩu mới không khớp.");
       return;
     }
 
@@ -211,11 +212,13 @@ function ChangePasswordForm() {
         old_password: formData.old_password,
         new_password: formData.new_password,
       });
-      alert("Đổi mật khẩu thành công. Vui lòng đăng nhập lại.");
-      clearAuthSession();
-      navigate("/login");
+      toast.success("Mật khẩu đã được thay đổi. Vui lòng đăng nhập lại.");
+      setTimeout(() => {
+        clearAuthSession();
+        navigate("/login");
+      }, 2000);
     } catch (e: any) {
-      alert(e.message || "Lỗi khi đổi mật khẩu.");
+      toast.error(e.message || "Lỗi khi đổi mật khẩu.");
     } finally {
       setIsSubmitting(false);
     }

@@ -313,30 +313,34 @@ Lấy danh sách các ca làm việc đã định nghĩa.
 - **Response (200)**: `Array<Shift>`
 
 #### POST /workspaces/:ws_id/shifts
-Tạo ca làm việc mới.
-- **Request**:
-  ```json
-  {
-    "name": "Ca Hành Chính",
-    "start_time": "08:00:00",
-    "end_time": "17:00:00",
-    "break_duration_minutes": 60,
-    "break_is_overtime": false,
-    "early_punch_in_grace_period_minutes": 30
-  }
-  ```
-- **Response (201)**: `Shift` object
+
+Tạo mới một loại ca làm việc.
+
+**Body:**
+```json
+{
+  "name": "Ca sáng",
+  "start_time": "08:00:00",
+  "end_time": "17:00:00",
+  "break_duration_minutes": 60,
+  "break_is_overtime": false,
+  "early_punch_in_grace_period_minutes": 15
+}
+```
 
 #### POST /workspaces/:ws_id/shifts/assign
-Gán ca làm việc cho nhân viên.
-- **Request**:
-  ```json
-  {
-    "employee_id": "...",
-    "shift_id": "...",
-    "effective_date": "2026-02-01"
-  }
-  ```
+
+Gán ca làm việc cho nhân viên. Hỗ trợ ghi đè theo thời gian (Temporal Overriding).
+
+**Body:**
+```json
+{
+  "employee_id": "uuid",
+  "shift_id": "uuid",
+  "start_date": "2026-01-01",
+  "end_date": "2026-01-10" // null nếu áp dụng vĩnh viễn
+}
+```
 
 #### GET /workspaces/:ws_id/employees/:id/salary
 Lấy lịch sử lương của nhân viên (từ mới đến cũ).

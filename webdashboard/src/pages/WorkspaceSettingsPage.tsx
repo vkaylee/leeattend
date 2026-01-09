@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Users, UserPlus, Shield, Mail, Trash2, Settings2 } from "lucide-react";
 import { useWorkspaceMembers } from "@/hooks/use-workspace";
 import RoleManagementModal from "@/components/RoleManagementModal";
+import { useToast } from "../components/Toast";
 
 export default function WorkspaceSettingsPage() {
   const { members, isLoading, addMember, isAdding } = useWorkspaceMembers();
+  const toast = useToast();
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [newMemberRole, setNewMemberRole] = useState<"admin" | "member">(
     "member",
@@ -18,14 +20,15 @@ export default function WorkspaceSettingsPage() {
     e.preventDefault();
     try {
       await addMember({ email: newMemberEmail, role: newMemberRole });
+      toast.success(`Đã gửi lời mời tới ${newMemberEmail} tham gia Workspace.`);
       setNewMemberEmail("");
     } catch (e) {
-      alert("Lỗi khi mời thành viên.");
+      toast.error("Lỗi khi mời thành viên. Người dùng có thể chưa đăng ký tài khoản LeeAttend.");
     }
   }
 
   return (
-    <div className="p-8">
+    <div className="p-8 animate-in fade-in duration-500">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
@@ -65,12 +68,12 @@ export default function WorkspaceSettingsPage() {
                   Vai trò
                 </label>
                 <select
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none font-bold text-slate-700"
                   value={newMemberRole}
                   onChange={(e) => setNewMemberRole(e.target.value as any)}
                 >
-                  <option value="member">Member</option>
-                  <option value="admin">Admin</option>
+                  <option value="member">Thành viên</option>
+                  <option value="admin">Quản trị viên</option>
                 </select>
               </div>
               <div className="flex items-end">
@@ -79,7 +82,7 @@ export default function WorkspaceSettingsPage() {
                   disabled={isAdding}
                   className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 h-[50px] disabled:opacity-50"
                 >
-                  {isAdding ? "Đang mời..." : "Mời"}
+                  {isAdding ? "Đang mời..." : "Gửi lời mời"}
                 </button>
               </div>
             </form>
@@ -92,55 +95,54 @@ export default function WorkspaceSettingsPage() {
                 <Users className="w-5 h-5 text-slate-400" />
                 Danh sách thành viên
               </h2>
-              <span className="text-xs font-bold bg-slate-100 text-slate-500 px-3 py-1 rounded-full">
-                {members.length} Người
+              <span className="text-xs font-black uppercase tracking-widest bg-slate-100 text-slate-500 px-3 py-1 rounded-full">
+                {members.length} NGƯỜI
               </span>
             </div>
 
             <div className="divide-y divide-slate-50">
               {isLoading ? (
-                <div className="p-12 text-center text-slate-400">
-                  Đang tải...
+                <div className="p-12 text-center text-slate-400 font-medium italic">
+                  Đang tải danh sách thành viên...
                 </div>
               ) : (
                 members.map((member) => (
                   <div
                     key={member.user_id}
-                    className="p-6 flex items-center justify-between hover:bg-slate-50/50 transition-colors"
+                    className="p-6 flex items-center justify-between hover:bg-slate-50/50 transition-colors group"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="bg-slate-100 w-10 h-10 rounded-full flex items-center justify-center text-slate-500 font-bold">
-                        {member.role === "admin" || member.role === "owner" ? (
-                          <Shield className="w-5 h-5 text-blue-600" />
-                        ) : (
-                          <Users className="w-5 h-5" />
-                        )}
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold shadow-sm transition-all ${
+                        member.role === 'owner' ? 'bg-indigo-600 text-white shadow-indigo-100' : 
+                        member.role === 'admin' ? 'bg-blue-600 text-white shadow-blue-100' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {member.full_name ? member.full_name[0] : <Users className="w-5 h-5" />}
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900">
-                          {member.user_id}
-                        </p>{" "}
-                        {/* In real app show email */}
-                        <p className="text-xs font-black uppercase tracking-widest text-slate-400">
-                          {member.role}
+                        <p className="font-bold text-slate-900 flex items-center gap-2">
+                          {member.full_name || member.email}
+                          {member.role === "owner" && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter border border-indigo-100">Sáng lập</span>}
+                        </p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          {member.role === 'admin' ? 'Quản trị viên' : member.role === 'owner' ? 'Chủ sở hữu' : 'Thành viên'}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => {
                           setSelectedUserId(member.user_id);
                           setIsRoleModalOpen(true);
                         }}
-                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                        className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                         title="Quản lý quyền"
                       >
                         <Settings2 className="w-5 h-5" />
                       </button>
 
                       {member.role !== "owner" && (
-                        <button className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
+                        <button className="p-2.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
                           <Trash2 className="w-5 h-5" />
                         </button>
                       )}
@@ -150,8 +152,8 @@ export default function WorkspaceSettingsPage() {
               )}
 
               {members.length === 0 && !isLoading && (
-                <div className="py-12 text-center text-slate-400">
-                  <p>Không có thành viên nào.</p>
+                <div className="py-20 text-center text-slate-400">
+                  <p className="font-medium italic">Không có thành viên nào.</p>
                 </div>
               )}
             </div>

@@ -25,8 +25,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useToast } from "../components/Toast";
 
 export default function DevicesPage() {
+  const toast = useToast();
   const {
     devices,
     isLoading: devicesLoading,
@@ -47,10 +49,11 @@ export default function DevicesPage() {
     e.preventDefault();
     try {
       await createDevice(newDevice);
+      toast.success(`Đã thêm thiết bị "${newDevice.name}" thành công.`);
       setShowAddForm(false);
       setNewDevice({ name: "", agent_id: "", ip: "", port: 4370 });
     } catch (e) {
-      alert("Lỗi khi thêm thiết bị");
+      toast.error("Lỗi khi thêm thiết bị. Vui lòng kiểm tra lại địa chỉ IP.");
     }
   }
 
@@ -58,15 +61,16 @@ export default function DevicesPage() {
     if (!confirm("Bạn có chắc chắn muốn xóa thiết bị này?")) return;
     try {
       await deleteDevice(id);
+      toast.success("Đã xóa thiết bị khỏi hệ thống.");
     } catch (e) {
-      alert("Lỗi khi xóa thiết bị");
+      toast.error("Lỗi khi xóa thiết bị.");
     }
   }
 
   const loading = devicesLoading || agentsLoading;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <div className="min-h-screen bg-slate-50 p-8 animate-in fade-in duration-500">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">

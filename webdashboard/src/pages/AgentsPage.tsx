@@ -19,10 +19,10 @@ import {
 } from "lucide-react";
 import AgentEditModal from "@/components/AgentEditModal";
 import { useAuthorizedAgents } from "@/hooks/use-agents";
+import { useToast } from "../components/Toast";
 
 export default function AgentsPage() {
-  // ... (keep existing state)
-  
+  const toast = useToast();
   // Add a local timer to refresh the UI every 15s to update online status
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -32,7 +32,6 @@ export default function AgentsPage() {
 
   const {
     agents,
-// ...
     isLoading,
     isFetching,
     refetch,
@@ -56,8 +55,9 @@ export default function AgentsPage() {
   async function handleRestore(agent: AuthorizedAgent) {
     try {
       await updateAgent({ id: agent.id, agent: { is_active: true } });
+      toast.success(`Đã khôi phục Agent ${agent.name}`);
     } catch (e) {
-      alert("Lỗi khi khôi phục Agent.");
+      toast.error("Lỗi khi khôi phục Agent.");
     }
   }
 
@@ -65,10 +65,11 @@ export default function AgentsPage() {
     e.preventDefault();
     try {
       await createAgent(newAgent);
+      toast.success("Đã khai báo Agent mới thành công.");
       setShowAddForm(false);
       setNewAgent({ id: "", name: "", token: "" });
     } catch (e) {
-      alert("Lỗi khi thêm Agent. ID có thể đã tồn tại.");
+      toast.error("Lỗi khi thêm Agent. ID có thể đã tồn tại.", "Lỗi hệ thống");
     }
   }
 
@@ -79,8 +80,9 @@ export default function AgentsPage() {
 
     try {
       await updateTrust({ id: agent.id, is_trusted: !agent.is_trusted });
+      toast.success(`Đã ${action} thành công cho Agent.`);
     } catch (e) {
-      alert("Lỗi khi cập nhật trạng thái.");
+      toast.error("Lỗi khi cập nhật trạng thái.");
     }
   }
 
@@ -94,8 +96,9 @@ export default function AgentsPage() {
 
     try {
       await deleteAgent(agent.id);
+      toast.success(`Đã xóa Agent ${agent.name}.`);
     } catch (e) {
-      alert("Lỗi khi xóa Agent.");
+      toast.error("Lỗi khi xóa Agent.");
     }
   }
 
@@ -105,7 +108,6 @@ export default function AgentsPage() {
   }
 
   function handleSave(updated: AuthorizedAgent) {
-    // React Query will handle re-fetching if needed through invalidateQueries in the modal or if we pass updateAgent here
     setEditingAgent(updated);
   }
 
@@ -126,8 +128,7 @@ export default function AgentsPage() {
           <div className="flex gap-3">
             <button
               onClick={() => setIncludeInactive(!includeInactive)}
-              className={`px-4 py-2.5 rounded-2xl border font-bold flex items-center gap-2 transition-all ${
-                includeInactive
+              className={`px-4 py-2.5 rounded-2xl border font-bold flex items-center gap-2 transition-all ${includeInactive
                   ? "bg-slate-100 border-slate-300 text-slate-900 shadow-inner"
                   : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
@@ -252,15 +253,12 @@ export default function AgentsPage() {
               {agents.map((agent) => (
                 <tr
                   key={agent.id}
-                  className={`hover:bg-slate-50/50 transition-colors group ${
-                    !agent.is_active ? "opacity-60 bg-slate-50/30" : ""
-                  }`}
+                  className={`hover:bg-slate-50/50 transition-colors group ${!agent.is_active ? "opacity-60 bg-slate-50/30" : ""}`}
                 >
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`p-2 rounded-xl transition-all ${
-                          agent.is_active
+                        className={`p-2 rounded-xl transition-all ${agent.is_active
                             ? "bg-slate-100 text-slate-500 group-hover:bg-white group-hover:shadow-sm"
                             : "bg-slate-200 text-slate-400"
                         }`}
@@ -269,9 +267,7 @@ export default function AgentsPage() {
                       </div>
                       <div>
                         <p
-                          className={`font-bold ${
-                            agent.is_active ? "text-slate-900" : "text-slate-500"
-                          }`}
+                          className={`font-bold ${agent.is_active ? "text-slate-900" : "text-slate-500"}`}
                         >
                           {agent.name}
                           {!agent.is_active && (
@@ -339,8 +335,7 @@ export default function AgentsPage() {
 
                           <button
                             onClick={() => handleToggleTrust(agent)}
-                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
-                              agent.is_trusted
+                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${agent.is_trusted
                                 ? "text-rose-600 hover:bg-rose-50 border-rose-100"
                                 : "bg-blue-600 text-white hover:bg-blue-700 border-transparent shadow-md shadow-blue-100"
                             }`}

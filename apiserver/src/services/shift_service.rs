@@ -46,9 +46,10 @@ impl ShiftService {
         pool: &PgPool,
         employee_id: Uuid,
         shift_id: Uuid,
-        effective_date: NaiveDate,
+        start_date: NaiveDate,
+        end_date: Option<NaiveDate>,
     ) -> Result<(), StatusCode> {
-        shift_repository::assign_employee_shift(pool, employee_id, shift_id, effective_date)
+        shift_repository::assign_employee_shift(pool, employee_id, shift_id, start_date, end_date)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }

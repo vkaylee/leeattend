@@ -1707,7 +1707,7 @@ pub async fn get_employee_department_history(
 
 pub async fn get_shifts(
     State(state): State<Arc<AppState>>,
-
+    Path(_ws_id): Path<Uuid>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> impl IntoResponse {
     match crate::services::shift_service::ShiftService::get_workspace_shifts(
@@ -1717,14 +1717,14 @@ pub async fn get_shifts(
     .await
     {
         Ok(shifts) => Json(shifts).into_response(),
-
         Err(status) => status.into_response(),
     }
 }
 
 pub async fn create_shift(
     State(state): State<Arc<AppState>>,
-    Path(workspace_id): Path<Uuid>,
+    Path(_ws_id): Path<Uuid>,
+    MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<CreateShiftRequest>,
 ) -> Result<impl IntoResponse, StatusCode> {
     match crate::services::shift_service::ShiftService::create_shift(
@@ -1744,35 +1744,22 @@ pub async fn create_shift(
     }
 }
 
-#[derive(Debug, Deserialize)]
-
-pub struct AssignShiftRequest {
-    pub employee_id: Uuid,
-
-    pub shift_id: Uuid,
-
-    pub effective_date: chrono::NaiveDate,
-}
-
 pub async fn assign_shift(
     State(state): State<Arc<AppState>>,
-
-    MemberContext {
-        workspace_id: _, ..
-    }: MemberContext,
-
-    Json(req): Json<AssignShiftRequest>,
+    Path(_ws_id): Path<Uuid>,
+    MemberContext { .. }: MemberContext,
+    Json(req): Json<crate::models::AssignShiftRequest>,
 ) -> impl IntoResponse {
     match crate::services::shift_service::ShiftService::assign_shift(
         &state.db,
         req.employee_id,
         req.shift_id,
-        req.effective_date,
+        req.start_date,
+        req.end_date,
     )
     .await
     {
         Ok(_) => StatusCode::OK.into_response(),
-
         Err(status) => status.into_response(),
     }
 }

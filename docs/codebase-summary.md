@@ -36,12 +36,14 @@ leeattend/
     - Workspace: Organizational isolation.
     - Agent Manager: WebSocket handler for remote agents.
     - Discovery: Dynamic port selection (3000+).
+    - **Temporal Engine**: Logic gán ca (`employee_shifts`) dựa trên thời gian. Hỗ trợ ghi đè ca tạm thời lên ca vĩnh viễn và tự động fallback.
     - **Heartbeat Engine**: Time-based tracking of edge agent connectivity.
     - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections.
     - **Overtime Engine**: Priority-based calculation logic supporting worked-through breaks and daily OT thresholds.
 2.  **Web Dashboard (React/Vite)**:
     - Modern UI with Tailwind CSS & Lucide icons.
     - **Common UI Library**: Standardized components (DropdownMenu, etc.) based on Radix UI.
+    - **Global Toast System**: Non-blocking notification engine for consistent UX.
     - Onboarding & Workspace management flows.
     - Real-time agent status via **Heartbeat Badges**.
     - Discovery: Auto-proxy configuration based on `.api_port`.

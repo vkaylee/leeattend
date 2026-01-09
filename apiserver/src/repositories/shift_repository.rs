@@ -48,15 +48,16 @@ pub async fn assign_employee_shift(
     pool: &PgPool,
     employee_id: Uuid,
     shift_id: Uuid,
-    effective_date: NaiveDate,
+    start_date: NaiveDate,
+    end_date: Option<NaiveDate>,
 ) -> Result<(), sqlx::Error> {
     query!(
-        "INSERT INTO employee_shifts (employee_id, shift_id, effective_date)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (employee_id, shift_id, effective_date) DO NOTHING",
+        "INSERT INTO employee_shifts (employee_id, shift_id, start_date, end_date)
+         VALUES ($1, $2, $3, $4)",
         employee_id,
         shift_id,
-        effective_date
+        start_date,
+        end_date
     )
     .execute(pool)
     .await?;
@@ -73,8 +74,10 @@ pub async fn get_employee_active_shift(
         r#"SELECT s.id, s.workspace_id, s.name, s.start_time, s.end_time, s.break_duration_minutes, s.break_is_overtime, s.early_punch_in_grace_period_minutes, s.created_at as "created_at!", s.updated_at as "updated_at!"
          FROM shifts s
          JOIN employee_shifts es ON s.id = es.shift_id
-         WHERE es.employee_id = $1 AND es.effective_date <= $2
-         ORDER BY es.effective_date DESC
+         WHERE es.employee_id = $1 
+           AND es.start_date <= $2 
+           AND (es.end_date IS NULL OR es.end_date >= $2)
+         ORDER BY es.created_at DESC
          LIMIT 1"#,
         employee_id,
         date
@@ -82,3 +85,4 @@ pub async fn get_employee_active_shift(
     .fetch_optional(pool)
     .await
 }
+

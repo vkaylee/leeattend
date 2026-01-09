@@ -851,7 +851,7 @@ export async function createShift(wsId: string, data: Partial<Shift>): Promise<S
 
 export async function assignShift(
   wsId: string,
-  data: { employee_id: string; shift_id: string; effective_date: string }
+  data: { employee_id: string; shift_id: string; start_date: string; end_date?: string | null }
 ): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/shifts/assign`, {
     method: "POST",

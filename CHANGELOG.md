@@ -2,7 +2,23 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
-## [Unreleased]
+## [Unreleased] - 2026-01-09
+
+### Added
+- **Global Toast System**: Hệ thống thông báo (success, error, warning, info) tùy chỉnh, thay thế hoàn toàn `alert()` của trình duyệt.
+- **Temporal Shift System**: Cơ chế ghi đè ca làm việc theo thời gian (Temporal Overriding).
+- **Shift Directory UI**: Giao diện quản lý danh mục ca và gán lịch trực cho nhân viên.
+- **Integration Tests**: Kiểm thử tự động cho logic ghi đè ca và API management.
+
+### Changed
+- **UI Experience**: Toàn bộ các thông báo hành động (Lưu, Xóa, Lỗi) trên dashboard đã được chuyển sang dạng Toast không chặn luồng (non-blocking).
+- **Shift Routes**: Chuyển các route `/shifts` sang `/workspaces/:ws_id/shifts` để đồng bộ cấu trúc API.
+
+### Fixed
+- Lỗi không thể tạo ca mới do thiếu trường `early_punch_in_grace_period_minutes` trong request từ Frontend.
+- Lỗi sai URL API khi khai báo ca từ UI.
+
+## [0.1.0] - 2026-01-08
 
 ### Added
 - **Early Clock-in Grace Period**: Implemented a configurable grace period for shifts (e.g., 30 mins). Punch-ins within this window are treated as being exactly on time, while punch-ins before the window count as overtime for the entire duration.

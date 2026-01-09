@@ -354,6 +354,25 @@ pub struct AttendanceSummary {
 // --- Payroll and Shift Models ---
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct EmployeeShift {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub shift_id: Uuid,
+    pub start_date: NaiveDate,
+    pub end_date: Option<NaiveDate>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AssignShiftRequest {
+    pub employee_id: Uuid,
+    pub shift_id: Uuid,
+    pub start_date: NaiveDate,
+    pub end_date: Option<NaiveDate>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct Shift {
     pub id: Uuid,
     pub workspace_id: Uuid,
