@@ -265,6 +265,12 @@ impl ShiftBuilder {
     }
 
     #[allow(dead_code)]
+    pub fn with_name(mut self, name: &str) -> Self {
+        self.name = name.to_string();
+        self
+    }
+
+    #[allow(dead_code)]
     pub fn with_times(mut self, start: chrono::NaiveTime, end: chrono::NaiveTime) -> Self {
         self.start_time = start;
         self.end_time = end;
@@ -455,6 +461,7 @@ impl AgentBuilder {
 }
 
 impl TestFactory {
+    #[allow(dead_code)]
     pub async fn cleanup(&self) {
         tokio::time::timeout(std::time::Duration::from_secs(10), async {
             sqlx::query("DELETE FROM time_entries CASCADE")

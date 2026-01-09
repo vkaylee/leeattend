@@ -205,6 +205,20 @@ pub async fn update_assignments_to_new_version_tx(
 ) -> Result<(), sqlx::Error> {
     let yesterday = effective_date.pred_opt().unwrap_or(effective_date);
 
+    // 1. Create new assignments based on existing active ones
+    sqlx::query!(
+        "INSERT INTO employee_shifts (employee_id, shift_id, start_date, end_date)
+         SELECT employee_id, $2, $3, end_date 
+         FROM employee_shifts 
+         WHERE shift_id = $1 AND (end_date IS NULL OR end_date >= $3)",
+        old_shift_id,
+        new_shift_id,
+        effective_date
+    )
+    .execute(&mut **tx)
+    .await?;
+
+    // 2. Close old assignments
     sqlx::query!(
         "UPDATE employee_shifts 
          SET end_date = $2, updated_at = CURRENT_TIMESTAMP 
@@ -212,19 +226,6 @@ pub async fn update_assignments_to_new_version_tx(
         old_shift_id,
         yesterday,
         effective_date
-    )
-    .execute(&mut **tx)
-    .await?;
-
-    sqlx::query!(
-        "INSERT INTO employee_shifts (employee_id, shift_id, start_date, end_date)
-         SELECT employee_id, $2, $3, end_date 
-         FROM employee_shifts 
-         WHERE shift_id = $1 AND end_date = $4",
-        old_shift_id,
-        new_shift_id,
-        effective_date,
-        yesterday
     )
     .execute(&mut **tx)
     .await?;
