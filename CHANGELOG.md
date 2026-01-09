@@ -5,9 +5,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Debug Login**: Implemented "Debug Login" button on the login page for rapid development onboarding (available only in debug mode).
+- **Regression Testing**: Added a comprehensive Playwright test suite for the Login flow and Dashboard stability.
 - **Leave Balance Management**: System now tracks employee leave entitlements and balances directly in the database.
 - **Leave Balance API**: New endpoint `GET /api/workspaces/:ws_id/employees/:id/leave/balances` to fetch leave quota details.
-- **Robust Port Cleanup**: Enhanced `PortFileGuard` ensures the `.api_port` file is reliably deleted even during server crashes or panics.
+- **Robust Port File Guard**: Enhanced `PortFileGuard` ensures the `.api_port` file is reliably deleted even during server crashes or panics.
 
 ### Changed
 - **Test Infrastructure**: Updated all integration tests to correctly use the `/api` prefix for endpoints.
@@ -15,11 +17,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 - **Unit Tests**: Enabled payroll unit tests by ensuring correct environment variable loading.
 
 ### Fixed
-- **Migration Checksums**: Resolved checksum mismatches for recent migrations to ensure smooth deployment.
-- **404 in Tests**: Fixed widespread test failures caused by incorrect URL pathing.
+- **Fix:** Resolved "Schedules" SQL error by updating `roster_repository.rs` to select `workspace_id` explicitly.
+- **Fix:** Enforced unique constraint on Fixed Shift Assignments `(employee_id, start_date)` to prevent ambiguous schedules.
+- **Test:** Added integration tests for Fixed Shift Assignment uniqueness.
 
-
-## [0.1.0] - 2026-01-08
+## [Unreleased] - 2026-01-09
 
 ### Added
 - **Early Clock-in Grace Period**: Implemented a configurable grace period for shifts (e.g., 30 mins). Punch-ins within this window are treated as being exactly on time, while punch-ins before the window count as overtime for the entire duration.

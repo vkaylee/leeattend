@@ -49,8 +49,13 @@ impl ShiftService {
         start_date: NaiveDate,
         end_date: Option<NaiveDate>,
     ) -> Result<(), StatusCode> {
-        shift_repository::assign_employee_shift(pool, employee_id, shift_id, start_date, end_date)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+        match shift_repository::assign_employee_shift(pool, employee_id, shift_id, start_date, end_date)
+            .await {
+                Ok(_) => Ok(()),
+                Err(sqlx::Error::Database(e)) if e.constraint() == Some("uq_employee_shift_start") => {
+                    Err(StatusCode::CONFLICT)
+                },
+                Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+            }
     }
 }

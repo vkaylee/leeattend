@@ -361,4 +361,45 @@ mod tests {
         assert!(history.iter().any(|h| h.assignment_type == "fixed"));
         assert!(history.iter().any(|h| h.assignment_type == "roster"));
     }
+
+    #[tokio::test]
+    async fn test_get_workspace_schedules_join() {
+        dotenvy::dotenv().ok();
+        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let pool = PgPool::connect(&database_url).await.unwrap();
+
+        // Setup test data
+        let ws_id: Uuid = sqlx::query_scalar("INSERT INTO workspaces (name) VALUES ('Join Test') RETURNING id").fetch_one(&pool).await.unwrap();
+        let user_id: Uuid = sqlx::query_scalar("INSERT INTO users (email, full_name, password_hash) VALUES ($1, 'Join Test User', 'hash') RETURNING id")
+            .bind(format!("join_test_{}@test.com", Uuid::new_v4()))
+            .fetch_one(&pool).await.unwrap();
+        let emp_id: Uuid = sqlx::query_scalar("INSERT INTO employees (workspace_id, user_id, first_name, last_name, employee_id_number, hire_date) VALUES ($1, $2, 'Join', 'Employee', $3, '2020-01-01') RETURNING id")
+            .bind(ws_id).bind(user_id).bind(format!("EMP_JOIN_{}", Uuid::new_v4())).fetch_one(&pool).await.unwrap();
+
+        let shift_id: Uuid = sqlx::query_scalar("INSERT INTO shifts (workspace_id, name, start_time, end_time) VALUES ($1, 'Join Shift', '09:00:00', '18:00:00') RETURNING id").bind(ws_id).fetch_one(&pool).await.unwrap();
+        
+        let date = NaiveDate::from_ymd_opt(2026, 1, 25).unwrap();
+
+        // Insert a roster entry to verify the JOIN works
+        sqlx::query("INSERT INTO shift_rosters (id, employee_id, shift_id, date) VALUES ($1, $2, $3, $4)")
+            .bind(Uuid::new_v4())
+            .bind(emp_id)
+            .bind(shift_id)
+            .bind(date)
+            .execute(&pool)
+            .await.unwrap();
+
+        // Call the function that had the error
+        let schedules = get_workspace_schedules(&pool, ws_id, date, date).await.expect("Should not fail with column error");
+
+        assert_eq!(schedules.len(), 1);
+        let emp_sched = &schedules[0];
+        assert_eq!(emp_sched.employee_id, emp_id);
+        assert_eq!(emp_sched.schedules.len(), 1);
+        
+        let daily = &emp_sched.schedules[0];
+        assert_eq!(daily.date, date);
+        assert_eq!(daily.shift_id, Some(shift_id));
+        assert_eq!(daily.source, "roster");
+    }
 }

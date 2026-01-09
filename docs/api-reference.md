@@ -19,7 +19,12 @@ Hệ thống sử dụng JWT (JSON Web Token) để xác thực người dùng.
 #### POST /auth/login
 Đăng nhập để lấy token.
 - **Request**: `{ "email": "...", "password": "..." }`
-- **Response (200)**: `{ "access_token": "...", "refresh_token": "...", "user_id": "..." }`
+- **Response (200)**: `{ "access_token": "...", "refresh_token": "...", "user": { ... } }`
+
+#### GET /dev/super-user (Debug Mode Only)
+Tự động đăng nhập với tư cách Superuser (admin@leeattend.com).
+- **Mục đích**: Phục vụ phát triển nhanh (Onboarding) và Testing.
+- **Response (200)**: `{ "access_token": "...", "workspace_id": "...", "user_id": "..." }`
 
 #### POST /auth/refresh
 Làm mới Access Token.
