@@ -193,6 +193,15 @@ export default function ReportsPage() {
                       {row.scheduled_start ? (
                         <div className="flex flex-col">
                           <span className="font-semibold text-slate-700">{row.scheduled_start.substring(0, 5)} - {row.scheduled_end?.substring(0, 5)}</span>
+                          {row.break_duration_minutes !== null && (
+                            <span className="text-[10px] text-slate-400">
+                              {row.break_start ? (
+                                `Nghỉ: ${row.break_start.substring(0, 5)} - ${row.break_end?.substring(0, 5)}`
+                              ) : (
+                                `Nghỉ: ${row.break_duration_minutes}m`
+                              )}
+                            </span>
+                          )}
                         </div>
                       ) : <span className="text-slate-400">Không có ca</span>}
                     </td>

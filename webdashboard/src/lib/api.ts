@@ -188,6 +188,10 @@ export interface DailyAttendanceReport {
   employee_name: string;
   scheduled_start: string | null;
   scheduled_end: string | null;
+  break_duration_minutes: number | null;
+  break_start: string | null;
+  break_end: string | null;
+  is_break_auto_deduct: boolean | null;
   actual_punch_in: string | null;
   actual_punch_out: string | null;
   total_minutes: number;
