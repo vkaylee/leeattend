@@ -86,14 +86,12 @@ describe("WorkspaceSettingsPage", () => {
     // Wait for data to load and select to be available
     const unitSelect = (await screen.findByTestId("work-unit-select")) as HTMLSelectElement;
     await act(async () => {
-      unitSelect.value = "30"; // Explicitly set the value
-      fireEvent.change(unitSelect);
+      await userEvent.selectOptions(unitSelect, "30");
     });
 
     const policySelect = (screen.getByTestId("rounding-policy-select")) as HTMLSelectElement;
     await act(async () => {
-      policySelect.value = "floor"; // Explicitly set the value
-      fireEvent.change(policySelect);
+      await userEvent.selectOptions(policySelect, "floor");
     });
 
     const saveButton = screen.getByText("Lưu cấu hình");

@@ -58,13 +58,10 @@ export default function WorkspaceSettingsPage() {
     }
   }
 
-  function handleSaveConfig(
-    workUnitValue: number,
-    roundingPolicyValue: string,
-  ) {
+  function handleSaveConfig() {
     updateWsMutation.mutate({
-      work_unit_minutes: workUnitValue,
-      rounding_policy: roundingPolicyValue,
+      work_unit_minutes: workUnit,
+      rounding_policy: roundingPolicy,
     });
   }
 
@@ -89,7 +86,7 @@ export default function WorkspaceSettingsPage() {
                 Cấu hình tính công
               </h2>
               <button
-                onClick={() => handleSaveConfig(workUnit, roundingPolicy)}
+                onClick={handleSaveConfig}
                 disabled={updateWsMutation.isPending || isLoadingWs}
                 className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50 text-sm"
               >
