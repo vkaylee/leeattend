@@ -4,53 +4,20 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ## [Unreleased]
 
-
-
 ### Added
-
-- **Integrated Shift & Roster System**: Unified Weekly Roster and Shift Assignments into a single interface.
-
-- **Effective Schedule API**: New endpoint to calculate employee schedules using priority logic (Roster > Fixed > Dept).
-
-- **Assignment History**: Tracking and displaying a log of all shift changes (flexible and fixed).
-
-- **UI Source Indicators**: Visual badges in Weekly Roster to distinguish between "Flexible", "Fixed", and "Department" schedules.
-
-- **Library**: Added `date-fns` for robust date handling in frontend.
-
-
+- **Leave Balance Management**: System now tracks employee leave entitlements and balances directly in the database.
+- **Leave Balance API**: New endpoint `GET /api/workspaces/:ws_id/employees/:id/leave/balances` to fetch leave quota details.
+- **Robust Port Cleanup**: Enhanced `PortFileGuard` ensures the `.api_port` file is reliably deleted even during server crashes or panics.
 
 ### Changed
-
-- **Shift Priority Logic**: Guaranteed that Weekly Roster entries (including Day Off) override all other assignments.
-
-- **Sidebar Simplification**: Merged "Rosters" into "Shifts" menu.
-
-
+- **Test Infrastructure**: Updated all integration tests to correctly use the `/api` prefix for endpoints.
+- **Shift Assignment**: Corrected `TestFactory` to align with `employee_shifts` schema (using `start_date` instead of `effective_date`).
+- **Unit Tests**: Enabled payroll unit tests by ensuring correct environment variable loading.
 
 ### Fixed
+- **Migration Checksums**: Resolved checksum mismatches for recent migrations to ensure smooth deployment.
+- **404 in Tests**: Fixed widespread test failures caused by incorrect URL pathing.
 
-- **Database Bug**: Fixed incorrect column usage (`effective_date` -> `start_date`) in `employee_shifts` repository.
-
-- **API Consistency**: Fixed State type mismatches and redundant router definitions in backend.
-
-- **Unit Tests**: Added comprehensive test coverage for shift priority and history logic.
-
- - 2026-01-09
-
-### Added
-- **Global Toast System**: Hệ thống thông báo (success, error, warning, info) tùy chỉnh, thay thế hoàn toàn `alert()` của trình duyệt.
-- **Temporal Shift System**: Cơ chế ghi đè ca làm việc theo thời gian (Temporal Overriding).
-- **Shift Directory UI**: Giao diện quản lý danh mục ca và gán lịch trực cho nhân viên.
-- **Integration Tests**: Kiểm thử tự động cho logic ghi đè ca và API management.
-
-### Changed
-- **UI Experience**: Toàn bộ các thông báo hành động (Lưu, Xóa, Lỗi) trên dashboard đã được chuyển sang dạng Toast không chặn luồng (non-blocking).
-- **Shift Routes**: Chuyển các route `/shifts` sang `/workspaces/:ws_id/shifts` để đồng bộ cấu trúc API.
-
-### Fixed
-- Lỗi không thể tạo ca mới do thiếu trường `early_punch_in_grace_period_minutes` trong request từ Frontend.
-- Lỗi sai URL API khi khai báo ca từ UI.
 
 ## [0.1.0] - 2026-01-08
 

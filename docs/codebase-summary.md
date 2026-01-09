@@ -40,6 +40,8 @@ leeattend/
     - **Heartbeat Engine**: Time-based tracking of edge agent connectivity.
     - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections.
     - **Overtime Engine**: Priority-based calculation logic supporting worked-through breaks and daily OT thresholds.
+    - **Leave Management**: Tracking of annual leave entitlements, carry-over balances, and usage history.
+    - **Resilience**: **PortFileGuard** ensures robust resource cleanup (port files) even during unexpected shutdowns or panics.
 2.  **Web Dashboard (React/Vite)**:
     - Modern UI with Tailwind CSS & Lucide icons.
     - **Common UI Library**: Standardized components (DropdownMenu, etc.) based on Radix UI.

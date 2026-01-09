@@ -266,6 +266,23 @@ Phê duyệt hoặc từ chối đơn nghỉ phép.
 - **Request**: `{ "status": "approved|rejected" }`
 - **Response (200 OK)**
 
+#### GET /workspaces/:ws_id/employees/:id/leave/balances
+Lấy thông tin hạn mức và số dư phép năm của nhân viên.
+- **Response (200)**: 
+  ```json
+  [
+    {
+      "id": "uuid",
+      "leave_type": "annual",
+      "year": 2026,
+      "entitlement": 12,
+      "taken": 2.5,
+      "remaining": 9.5,
+      "carried_over": 0
+    }
+  ]
+  ```
+
 ---
 
 ### 8. Attendance Adjustments (New)
