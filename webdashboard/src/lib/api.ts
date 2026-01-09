@@ -133,6 +133,14 @@ export interface LeaveRequest {
   updated_at: string;
 }
 
+export interface EmployeeLeaveBalance {
+  leave_type: string;
+  entitlement: number;
+  carried_over: number;
+  used: number;
+  remaining: number;
+}
+
 export interface AttendanceAdjustmentRequest {
   id: string;
   employee_id: string;
@@ -686,15 +694,24 @@ export async function fetchWorkspaceLeaveRequests(
 export async function approveLeaveRequest(
   wsId: string,
   requestId: string,
-  data: { status: string }
+  data: { status: string },
 ): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/requests/${requestId}/approve`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to approve leave request");
 }
+
+export async function fetchEmployeeLeaveBalances(
+  wsId: string,
+  employeeId: string,
+): Promise<EmployeeLeaveBalance[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/leave/balances`);
+  if (!response.ok) throw new Error("Failed to fetch leave balances");
+  return response.json();
+}
+
 
 // Attendance Adjustments
 export async function submitAttendanceAdjustment(

@@ -238,6 +238,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             post(handlers::approve_leave_request),
         )
         .route(
+            "/workspaces/:ws_id/employees/:id/leave/balances",
+            get(handlers::get_employee_leave_balances),
+        )
+        .route(
             "/employees/:id/leave/requests",
             get(handlers::get_my_leave_requests),
         )

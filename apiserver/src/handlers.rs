@@ -7,7 +7,7 @@ use axum::{
     http::{request::Parts, StatusCode},
     response::{IntoResponse, Json},
 };
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use futures_util::{sink::SinkExt, stream::StreamExt};
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -1439,23 +1439,34 @@ pub async fn approve_leave_request(
 }
 
 pub async fn get_my_leave_requests(
-    Path(employee_id): Path<Uuid>,
+    Path(id): Path<Uuid>,
+    Extension(_user): Extension<crate::models::User>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
-) -> impl IntoResponse {
+) -> Result<Json<Vec<crate::models::LeaveRequest>>, StatusCode> {
     match crate::services::leave_service::LeaveService::get_employee_leave_requests(
         &state.db,
-        workspace_id,
-        employee_id,
+        Uuid::nil(),
+        id,
     )
     .await
     {
-        Ok(requests) => Json(requests).into_response(),
-        Err(status) => status.into_response(),
+        Ok(requests) => Ok(Json(requests)),
+        Err(status) => Err(status),
     }
 }
 
-#[derive(Debug, Deserialize)]
+pub async fn get_employee_leave_balances(
+    Path((ws_id, emp_id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<Vec<crate::models::EmployeeLeaveBalance>>, StatusCode> {
+    let year = Utc::now().year();
+    match crate::services::leave_service::LeaveService::get_employee_balances(&state.db, ws_id, emp_id, year).await {
+        Ok(balances) => Ok(Json(balances)),
+        Err(status) => Err(status),
+    }
+}
+
+#[derive(Deserialize)]
 pub struct LeaveStatusQuery {
     pub status: Option<String>,
 }

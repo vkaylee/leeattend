@@ -46,7 +46,6 @@ async fn setup_employee_with_salary(
 }
 
 #[tokio::test]
-#[ignore = "Needs database running and migrations applied"]
 async fn test_early_punch_in_grace_period() {
     let pool = setup_test_db().await;
     let factory = TestFactory::new(pool.clone());

@@ -3,13 +3,32 @@ use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::{ApproveLeaveRequest, LeaveRequest, SubmitLeaveRequest};
+use crate::repositories::roster_repository;
+use crate::models::{ApproveLeaveRequest, LeaveRequest, SubmitLeaveRequest, EmployeeLeaveBalance, ShiftRoster};
 use crate::repositories::employee_repository;
 use crate::repositories::leave_request_repository;
+use crate::repositories::leave_balance_repository;
 
 pub struct LeaveService;
 
 impl LeaveService {
+    pub async fn get_employee_balances(
+        pool: &PgPool,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        year: i32,
+    ) -> Result<Vec<EmployeeLeaveBalance>, StatusCode> {
+        // Verify employee belongs to workspace
+        let _ = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        leave_balance_repository::get_employee_balances(pool, employee_id, year)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
     pub async fn submit_leave_request(
         pool: &PgPool,
         workspace_id: Uuid,
@@ -69,6 +88,33 @@ impl LeaveService {
         )
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        // If approved, update roster
+        if req.status == "approved" {
+            let mut current_date = request.start_date;
+            while current_date <= request.end_date {
+                let roster = ShiftRoster {
+                    id: Uuid::new_v4(),
+                    employee_id: request.employee_id,
+                    shift_id: None,
+                    date: current_date,
+                    status: "on_leave".to_string(),
+                    notes: Some(format!("Nghỉ phép: {}", request.leave_type)),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                };
+                
+                let _ = roster_repository::upsert_roster(pool, &roster)
+                    .await
+                    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                
+                if let Some(next_date) = current_date.succ_opt() {
+                    current_date = next_date;
+                } else {
+                    break;
+                }
+            }
+        }
 
         Ok(())
     }

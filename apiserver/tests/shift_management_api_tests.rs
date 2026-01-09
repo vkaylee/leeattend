@@ -65,7 +65,7 @@ async fn test_create_shift_api_flow() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/workspaces/{}/shifts", workspace_id))
+                .uri(format!("/api/workspaces/{}/shifts", workspace_id))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", workspace_id.to_string())
                 .header("X-User-Id", user_id.to_string()) // Dev mode auth
@@ -82,7 +82,7 @@ async fn test_create_shift_api_flow() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(format!("/workspaces/{}/shifts", workspace_id))
+                .uri(format!("/api/workspaces/{}/shifts", workspace_id))
                 .header("X-Workspace-Id", workspace_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(Body::empty())

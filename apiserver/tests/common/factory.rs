@@ -304,16 +304,16 @@ impl ShiftBuilder {
     pub async fn assign_to_employee(
         self,
         employee_id: Uuid,
-        effective_date: chrono::NaiveDate,
+        start_date: chrono::NaiveDate,
     ) -> Uuid {
         let pool = self.pool.clone();
         let shift_id = self.create().await;
         sqlx::query(
-            "INSERT INTO employee_shifts (employee_id, shift_id, effective_date) VALUES ($1, $2, $3)",
+            "INSERT INTO employee_shifts (employee_id, shift_id, start_date) VALUES ($1, $2, $3)",
         )
         .bind(employee_id)
         .bind(shift_id)
-        .bind(effective_date)
+        .bind(start_date)
         .execute(&pool)
         .await
         .unwrap();

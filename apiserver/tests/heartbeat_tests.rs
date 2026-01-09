@@ -61,7 +61,7 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
     let app = create_app(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
-    let url = format!("ws://{}/ws", addr);
+    let url = format!("ws://{}/api/ws", addr);
 
     tokio::spawn(async move {
         axum::serve(listener, app).await.unwrap();

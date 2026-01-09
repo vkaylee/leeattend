@@ -6,9 +6,11 @@ import {
   submitLeaveRequest, 
   fetchWorkspaceLeaveRequests, 
   approveLeaveRequest,
+  fetchEmployeeLeaveBalances,
   getCurrentWorkspaceId,
   Employee,
-  LeaveRequest
+  LeaveRequest,
+  EmployeeLeaveBalance
 } from "../lib/api";
 
 export default function LeaveRequestsPage() {
@@ -16,11 +18,18 @@ export default function LeaveRequestsPage() {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("pending");
+  const [selectedEmpId, setSelectedEmpId] = useState<string>("");
 
   const { data: employees = [] } = useQuery({
     queryKey: ["employees", wsId],
     queryFn: () => fetchEmployees(wsId!),
     enabled: !!wsId,
+  });
+
+  const { data: balances = [], isLoading: balancesLoading } = useQuery({
+    queryKey: ["leave-balances", wsId, selectedEmpId],
+    queryFn: () => fetchEmployeeLeaveBalances(wsId!, selectedEmpId),
+    enabled: !!wsId && !!selectedEmpId,
   });
 
   const { data: requests = [], isLoading } = useQuery({
@@ -173,11 +182,33 @@ export default function LeaveRequestsPage() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="space-y-1">
                 <label className="text-sm font-semibold text-slate-700">Nhân viên</label>
-                <select name="employee_id" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                <select 
+                  name="employee_id" 
+                  required 
+                  value={selectedEmpId}
+                  onChange={(e) => setSelectedEmpId(e.target.value)}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                >
                   <option value="">-- Chọn nhân viên --</option>
                   {employees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
                 </select>
               </div>
+
+              {selectedEmpId && balances.length > 0 && (
+                <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50 grid grid-cols-2 gap-3">
+                  {balances.map(b => (
+                    <div key={b.leave_type} className="space-y-0.5">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-blue-600/60">
+                        {b.leave_type === 'vacation' ? 'Phép năm' : b.leave_type === 'sick' ? 'Nghỉ ốm' : b.leave_type}
+                      </p>
+                      <p className="text-sm font-bold text-slate-700">
+                        Còn <span className="text-blue-600 text-lg">{b.remaining}</span> / {b.entitlement + b.carried_over} ngày
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="space-y-1">
                 <label className="text-sm font-semibold text-slate-700">Loại nghỉ</label>
                 <select name="leave_type" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none">

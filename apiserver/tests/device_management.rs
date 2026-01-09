@@ -92,7 +92,7 @@ async fn test_create_and_get_device() {
     });
 
     let response = client
-        .post(&format!("{}/devices", address))
+        .post(&format!("{}/api/devices", address))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .json(&body)
@@ -106,7 +106,7 @@ async fn test_create_and_get_device() {
     assert!(Uuid::parse_str(device_id).is_ok());
 
     let response = client
-        .get(&format!("{}/devices", address))
+        .get(&format!("{}/api/devices", address))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .send()
@@ -127,7 +127,7 @@ async fn test_delete_device() {
     let user_header = ("X-User-Id", user_id.to_string());
 
     let response = client
-        .post(&format!("{}/devices", address))
+        .post(&format!("{}/api/devices", address))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .json(&serde_json::json!({
@@ -143,7 +143,7 @@ async fn test_delete_device() {
     let id = json["id"].as_str().unwrap();
 
     let response = client
-        .delete(&format!("{}/devices/{}", address, id))
+        .delete(&format!("{}/api/devices/{}", address, id))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .send()
@@ -153,7 +153,7 @@ async fn test_delete_device() {
     assert_eq!(response.status().as_u16(), 204);
 
     let response = client
-        .get(&format!("{}/devices", address))
+        .get(&format!("{}/api/devices", address))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .send()

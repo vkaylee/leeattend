@@ -304,6 +304,33 @@ pub struct ApproveLeaveRequest {
     pub status: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct LeaveBalance {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub leave_type: String,
+    pub year: i32,
+    pub entitlement: i32,
+    pub carried_over: i32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EmployeeLeaveBalance {
+    pub leave_type: String,
+    pub entitlement: i32,
+    pub carried_over: i32,
+    pub used: i32,
+    pub remaining: i32,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateLeaveBalanceRequest {
+    pub entitlement: Option<i32>,
+    pub carried_over: Option<i32>,
+}
+
 // --- Attendance Adjustment Models ---
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]

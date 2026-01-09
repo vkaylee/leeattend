@@ -305,6 +305,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_effective_shift_priority() {
+        dotenvy::dotenv().ok();
         // This test requires a running database, which spawn_app provides in integration tests.
         // For unit tests in repository, we assume the DB is available via DATABASE_URL.
         let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");

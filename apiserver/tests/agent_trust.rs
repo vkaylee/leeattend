@@ -119,7 +119,7 @@ async fn test_authorized_agent_lifecycle() {
     });
 
     let response = client
-        .post(&format!("{}/authorized-agents", address))
+        .post(&format!("{}/api/authorized-agents", address))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .json(&body)
@@ -131,7 +131,7 @@ async fn test_authorized_agent_lifecycle() {
 
     // 2. Kiểm tra danh sách (phải có agent vừa tạo và is_trusted = false)
     let response = client
-        .get(&format!("{}/authorized-agents", address))
+        .get(&format!("{}/api/authorized-agents", address))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .send()
@@ -147,7 +147,7 @@ async fn test_authorized_agent_lifecycle() {
 
     // 3. Phê duyệt Agent (Trust)
     let response = client
-        .put(&format!("{}/authorized-agents/{}/trust", address, agent_id))
+        .put(&format!("{}/api/authorized-agents/{}/trust", address, agent_id))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .json(&serde_json::json!({ "is_trusted": true }))
@@ -159,7 +159,7 @@ async fn test_authorized_agent_lifecycle() {
 
     // 4. Kiểm tra lại trạng thái
     let response = client
-        .get(&format!("{}/authorized-agents", address))
+        .get(&format!("{}/api/authorized-agents", address))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .send()
