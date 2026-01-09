@@ -3,6 +3,20 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+struct PortFileGuard;
+
+impl Drop for PortFileGuard {
+    fn drop(&mut self) {
+        if let Err(e) = std::fs::remove_file(".api_port") {
+            if e.kind() != std::io::ErrorKind::NotFound {
+                eprintln!("Failed to remove .api_port file on shutdown: {}", e);
+            }
+        } else {
+            eprintln!(".api_port file cleaned up successfully.");
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() {
     // Load environment variables from .env file
@@ -109,13 +123,12 @@ async fn main() {
         tracing::info!("Saved actual port to .api_port: {}", actual_addr.port());
     }
 
+    let _guard = PortFileGuard;
+
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();
-
-    // Cleanup port file on exit
-    let _ = std::fs::remove_file(".api_port");
 
     // Sau khi server ngừng nhận request, thực hiện thông báo cho Agent và đóng tài nguyên
     state.agent_manager.shutdown().await;
