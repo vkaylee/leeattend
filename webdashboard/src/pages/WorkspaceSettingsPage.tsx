@@ -58,10 +58,13 @@ export default function WorkspaceSettingsPage() {
     }
   }
 
-  function handleSaveConfig() {
+  function handleSaveConfig(
+    workUnitValue: number,
+    roundingPolicyValue: string,
+  ) {
     updateWsMutation.mutate({
-      work_unit_minutes: workUnit,
-      rounding_policy: roundingPolicy,
+      work_unit_minutes: workUnitValue,
+      rounding_policy: roundingPolicyValue,
     });
   }
 
@@ -86,7 +89,7 @@ export default function WorkspaceSettingsPage() {
                 Cấu hình tính công
               </h2>
               <button
-                onClick={handleSaveConfig}
+                onClick={() => handleSaveConfig(workUnit, roundingPolicy)}
                 disabled={updateWsMutation.isPending || isLoadingWs}
                 className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50 text-sm"
               >
@@ -101,14 +104,18 @@ export default function WorkspaceSettingsPage() {
                   Đơn vị tính công (Phút)
                 </label>
                 <select
+                  data-testid="work-unit-select"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none font-bold text-slate-700"
                   value={workUnit}
-                  onChange={(e) => setWorkUnit(parseInt(e.target.value))}
+                  onChange={(e) => {
+                    const newValue = parseInt(e.target.value, 10);
+                    setWorkUnit(newValue);
+                  }}
                 >
-                  <option value={1}>1 phút (Mặc định)</option>
-                  <option value={15}>15 phút (0.25h)</option>
-                  <option value={30}>30 phút (0.5h)</option>
-                  <option value={60}>60 phút (1h)</option>
+                  <option value="1">1 phút (Mặc định)</option>
+                  <option value="15">15 phút (0.25h)</option>
+                  <option value="30">30 phút (0.5h)</option>
+                  <option value="60">60 phút (1h)</option>
                 </select>
                 <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
                   Hệ thống sẽ gom các phút làm việc thành từng khối (block) này.
@@ -120,9 +127,13 @@ export default function WorkspaceSettingsPage() {
                   Quy tắc làm tròn
                 </label>
                 <select
+                  data-testid="rounding-policy-select"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none font-bold text-slate-700"
                   value={roundingPolicy}
-                  onChange={(e) => setRoundingPolicy(e.target.value)}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    setRoundingPolicy(newValue);
+                  }}
                 >
                   <option value="none">Không làm tròn</option>
                   <option value="floor">Làm tròn xuống (Floor)</option>
