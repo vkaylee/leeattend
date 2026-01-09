@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc, NaiveDate};
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -339,12 +339,9 @@ pub struct ApproveAttendanceAdjustmentRequest {
 
 // --- Basic Reporting Models ---
 
-
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 
 pub struct AttendanceSummary {
-
     pub employee_id: Uuid,
 
     pub employee_name: String,
@@ -352,10 +349,7 @@ pub struct AttendanceSummary {
     pub total_hours: f64,
 
     pub total_leave_days: i64,
-
 }
-
-
 
 // --- Payroll and Shift Models ---
 
@@ -368,6 +362,7 @@ pub struct Shift {
     pub end_time: chrono::NaiveTime,
     pub break_duration_minutes: i32,
     pub break_is_overtime: bool,
+    pub early_punch_in_grace_period_minutes: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -379,6 +374,7 @@ pub struct CreateShiftRequest {
     pub end_time: chrono::NaiveTime,
     pub break_duration_minutes: i32,
     pub break_is_overtime: bool,
+    pub early_punch_in_grace_period_minutes: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]

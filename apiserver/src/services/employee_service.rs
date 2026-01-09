@@ -1,9 +1,9 @@
+use axum::http::StatusCode;
+use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
-use chrono::Utc;
-use axum::http::StatusCode;
 
-use crate::models::{Employee, CreateEmployeeRequest, UpdateEmployeeRequest};
+use crate::models::{CreateEmployeeRequest, Employee, UpdateEmployeeRequest};
 use crate::repositories::employee_repository;
 use crate::repositories::user_repository;
 

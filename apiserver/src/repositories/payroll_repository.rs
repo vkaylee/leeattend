@@ -1,11 +1,15 @@
-use sqlx::{PgPool, query_as};
-use uuid::Uuid;
-use chrono::{Utc, NaiveDate};
+use chrono::{NaiveDate, Utc};
 use rust_decimal::Decimal;
+use sqlx::{query_as, PgPool};
+use uuid::Uuid;
 
-use crate::models::{SalaryHistory, Payslip};
+use crate::models::{Payslip, SalaryHistory};
 
-pub async fn get_latest_salary(pool: &PgPool, employee_id: Uuid, reference_date: NaiveDate) -> Result<Option<SalaryHistory>, sqlx::Error> {
+pub async fn get_latest_salary(
+    pool: &PgPool,
+    employee_id: Uuid,
+    reference_date: NaiveDate,
+) -> Result<Option<SalaryHistory>, sqlx::Error> {
     query_as!(
         SalaryHistory,
         r#"SELECT id, employee_id, base_salary, salary_type, currency, effective_date, created_at as "created_at!", updated_at as "updated_at!" 
@@ -20,7 +24,10 @@ pub async fn get_latest_salary(pool: &PgPool, employee_id: Uuid, reference_date:
     .await
 }
 
-pub async fn get_salary_history(pool: &PgPool, employee_id: Uuid) -> Result<Vec<SalaryHistory>, sqlx::Error> {
+pub async fn get_salary_history(
+    pool: &PgPool,
+    employee_id: Uuid,
+) -> Result<Vec<SalaryHistory>, sqlx::Error> {
     query_as!(
         SalaryHistory,
         r#"SELECT id, employee_id, base_salary, salary_type, currency, effective_date, created_at as "created_at!", updated_at as "updated_at!" 
@@ -33,7 +40,14 @@ pub async fn get_salary_history(pool: &PgPool, employee_id: Uuid) -> Result<Vec<
     .await
 }
 
-pub async fn add_salary_history(pool: &PgPool, employee_id: Uuid, base_salary: Decimal, salary_type: String, currency: String, effective_date: NaiveDate) -> Result<SalaryHistory, sqlx::Error> {
+pub async fn add_salary_history(
+    pool: &PgPool,
+    employee_id: Uuid,
+    base_salary: Decimal,
+    salary_type: String,
+    currency: String,
+    effective_date: NaiveDate,
+) -> Result<SalaryHistory, sqlx::Error> {
     query_as!(
         SalaryHistory,
         r#"INSERT INTO salary_history (employee_id, base_salary, salary_type, currency, effective_date, updated_at)
@@ -70,7 +84,10 @@ pub async fn create_payslip(pool: &PgPool, payslip: &Payslip) -> Result<Payslip,
     .await
 }
 
-pub async fn get_payslips_by_employee(pool: &PgPool, employee_id: Uuid) -> Result<Vec<Payslip>, sqlx::Error> {
+pub async fn get_payslips_by_employee(
+    pool: &PgPool,
+    employee_id: Uuid,
+) -> Result<Vec<Payslip>, sqlx::Error> {
     query_as!(
         Payslip,
         r#"SELECT id, employee_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, status, created_at as "created_at!", updated_at as "updated_at!" FROM payslips WHERE employee_id = $1 ORDER BY period_start DESC"#,

@@ -1,7 +1,7 @@
+use crate::models::ShiftRoster;
+use chrono::NaiveDate;
 use sqlx::PgPool;
 use uuid::Uuid;
-use chrono::NaiveDate;
-use crate::models::ShiftRoster;
 
 pub async fn get_employee_rosters(
     pool: &PgPool,
@@ -33,7 +33,7 @@ pub async fn upsert_roster(
             notes = EXCLUDED.notes,
             updated_at = CURRENT_TIMESTAMP
         RETURNING *
-        "#
+        "#,
     )
     .bind(roster.id)
     .bind(roster.employee_id)
@@ -52,7 +52,7 @@ pub async fn get_effective_shift(
 ) -> Result<Option<Uuid>, sqlx::Error> {
     // Priority 1: Shift Roster
     let roster_shift = sqlx::query_scalar::<_, Option<Uuid>>(
-        "SELECT shift_id FROM shift_rosters WHERE employee_id = $1 AND date = $2"
+        "SELECT shift_id FROM shift_rosters WHERE employee_id = $1 AND date = $2",
     )
     .bind(employee_id)
     .bind(date)
@@ -84,7 +84,7 @@ pub async fn get_effective_shift(
         JOIN employee_department_history edh ON edh.department_id = dds.department_id
         WHERE edh.employee_id = $1 AND edh.effective_date <= $2
         ORDER BY edh.effective_date DESC LIMIT 1
-        "#
+        "#,
     )
     .bind(employee_id)
     .bind(date)

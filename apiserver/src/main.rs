@@ -31,6 +31,14 @@ async fn main() {
         .await
         .expect("Failed to run migrations");
 
+    // Seed dev data if in debug mode
+    #[cfg(debug_assertions)]
+    {
+        apiserver::dev_initialization::ensure_dev_data(&pool)
+            .await
+            .expect("Failed to seed dev data");
+    }
+
     // Initialize AppState
     let agent_manager = AgentManager::new();
     let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: pool.clone() });

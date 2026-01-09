@@ -1,10 +1,16 @@
-use sqlx::{PgPool, query_as};
-use uuid::Uuid;
 use chrono::NaiveDate;
+use sqlx::{query_as, PgPool};
+use uuid::Uuid;
 
 use crate::models::{Department, EmployeeDepartmentHistory};
 
-pub async fn create_department(pool: &PgPool, workspace_id: Uuid, name: String, description: Option<String>, manager_id: Option<Uuid>) -> Result<Department, sqlx::Error> {
+pub async fn create_department(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    name: String,
+    description: Option<String>,
+    manager_id: Option<Uuid>,
+) -> Result<Department, sqlx::Error> {
     query_as!(
         Department,
         r#"INSERT INTO departments (workspace_id, name, description, manager_id)
@@ -19,7 +25,10 @@ pub async fn create_department(pool: &PgPool, workspace_id: Uuid, name: String, 
     .await
 }
 
-pub async fn get_departments(pool: &PgPool, workspace_id: Uuid) -> Result<Vec<Department>, sqlx::Error> {
+pub async fn get_departments(
+    pool: &PgPool,
+    workspace_id: Uuid,
+) -> Result<Vec<Department>, sqlx::Error> {
     query_as!(
         Department,
         r#"SELECT id, workspace_id, name, description, manager_id, created_at as "created_at!", updated_at as "updated_at!" 
@@ -30,7 +39,13 @@ pub async fn get_departments(pool: &PgPool, workspace_id: Uuid) -> Result<Vec<De
     .await
 }
 
-pub async fn transfer_employee(pool: &PgPool, employee_id: Uuid, department_id: Uuid, effective_date: NaiveDate, notes: Option<String>) -> Result<EmployeeDepartmentHistory, sqlx::Error> {
+pub async fn transfer_employee(
+    pool: &PgPool,
+    employee_id: Uuid,
+    department_id: Uuid,
+    effective_date: NaiveDate,
+    notes: Option<String>,
+) -> Result<EmployeeDepartmentHistory, sqlx::Error> {
     query_as!(
         EmployeeDepartmentHistory,
         r#"INSERT INTO employee_department_history (employee_id, department_id, effective_date, notes)
@@ -45,7 +60,10 @@ pub async fn transfer_employee(pool: &PgPool, employee_id: Uuid, department_id: 
     .await
 }
 
-pub async fn get_employee_department_history(pool: &PgPool, employee_id: Uuid) -> Result<Vec<EmployeeDepartmentHistory>, sqlx::Error> {
+pub async fn get_employee_department_history(
+    pool: &PgPool,
+    employee_id: Uuid,
+) -> Result<Vec<EmployeeDepartmentHistory>, sqlx::Error> {
     query_as!(
         EmployeeDepartmentHistory,
         r#"SELECT id, employee_id, department_id, effective_date, notes, created_at as "created_at!" 
@@ -56,7 +74,10 @@ pub async fn get_employee_department_history(pool: &PgPool, employee_id: Uuid) -
     .await
 }
 
-pub async fn get_current_department(pool: &PgPool, employee_id: Uuid) -> Result<Option<EmployeeDepartmentHistory>, sqlx::Error> {
+pub async fn get_current_department(
+    pool: &PgPool,
+    employee_id: Uuid,
+) -> Result<Option<EmployeeDepartmentHistory>, sqlx::Error> {
     query_as!(
         EmployeeDepartmentHistory,
         r#"SELECT id, employee_id, department_id, effective_date, notes, created_at as "created_at!" 

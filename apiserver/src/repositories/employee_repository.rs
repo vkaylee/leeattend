@@ -1,6 +1,6 @@
-use sqlx::{PgPool, query, query_as};
+use chrono::{NaiveDate, Utc};
+use sqlx::{query, query_as, PgPool};
 use uuid::Uuid;
-use chrono::{Utc, NaiveDate};
 
 use crate::models::Employee;
 
@@ -23,7 +23,11 @@ pub async fn create_employee(pool: &PgPool, employee: &Employee) -> Result<(), s
     Ok(())
 }
 
-pub async fn get_employee_by_id(pool: &PgPool, id: Uuid, workspace_id: Uuid) -> Result<Option<Employee>, sqlx::Error> {
+pub async fn get_employee_by_id(
+    pool: &PgPool,
+    id: Uuid,
+    workspace_id: Uuid,
+) -> Result<Option<Employee>, sqlx::Error> {
     query_as!(
         Employee,
         "SELECT id, workspace_id, user_id, first_name, last_name, employee_id_number, hire_date, termination_date, is_active, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM employees WHERE id = $1 AND workspace_id = $2",
@@ -34,7 +38,10 @@ pub async fn get_employee_by_id(pool: &PgPool, id: Uuid, workspace_id: Uuid) -> 
     .await
 }
 
-pub async fn get_all_employees(pool: &PgPool, workspace_id: Uuid) -> Result<Vec<Employee>, sqlx::Error> {
+pub async fn get_all_employees(
+    pool: &PgPool,
+    workspace_id: Uuid,
+) -> Result<Vec<Employee>, sqlx::Error> {
     query_as!(
         Employee,
         "SELECT id, workspace_id, user_id, first_name, last_name, employee_id_number, hire_date, termination_date, is_active, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM employees WHERE workspace_id = $1 ORDER BY last_name, first_name",
@@ -44,7 +51,18 @@ pub async fn get_all_employees(pool: &PgPool, workspace_id: Uuid) -> Result<Vec<
     .await
 }
 
-pub async fn update_employee(pool: &PgPool, id: Uuid, workspace_id: Uuid, user_id: Option<Uuid>, first_name: Option<String>, last_name: Option<String>, employee_id_number: Option<String>, hire_date: Option<NaiveDate>, termination_date: Option<NaiveDate>, is_active: Option<bool>) -> Result<Option<Employee>, sqlx::Error> {
+pub async fn update_employee(
+    pool: &PgPool,
+    id: Uuid,
+    workspace_id: Uuid,
+    user_id: Option<Uuid>,
+    first_name: Option<String>,
+    last_name: Option<String>,
+    employee_id_number: Option<String>,
+    hire_date: Option<NaiveDate>,
+    termination_date: Option<NaiveDate>,
+    is_active: Option<bool>,
+) -> Result<Option<Employee>, sqlx::Error> {
     let updated_employee = query_as!(
         Employee,
         "UPDATE employees SET
@@ -75,7 +93,11 @@ pub async fn update_employee(pool: &PgPool, id: Uuid, workspace_id: Uuid, user_i
     Ok(updated_employee)
 }
 
-pub async fn delete_employee(pool: &PgPool, id: Uuid, workspace_id: Uuid) -> Result<u64, sqlx::Error> {
+pub async fn delete_employee(
+    pool: &PgPool,
+    id: Uuid,
+    workspace_id: Uuid,
+) -> Result<u64, sqlx::Error> {
     let result = query!(
         "DELETE FROM employees WHERE id = $1 AND workspace_id = $2",
         id,

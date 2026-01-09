@@ -5,16 +5,21 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
-- **Dynamic Break-to-Overtime Logic**: Implemented a flexible system to handle cases where employees work through their lunch breaks. This can now be tracked per-entry rather than being a fixed shift setting.
-- **Smart Overtime Calculation**: Refactored `PayrollService` to automatically detect 'worked-through breaks' and categorize those minutes as overtime (typically at a 1.5x rate).
-- **Employee Self-Declaration**: Added an "is_break_overtime" toggle to the Attendance Adjustment modal, allowing employees to claim overtime for days they missed their break.
-- **Manager Visibility**: Enhanced the approval dashboard with prominent "LÀM THÔNG TRƯA" badges for clear identification of extra-pay requests.
+- **Early Clock-in Grace Period**: Implemented a configurable grace period for shifts (e.g., 30 mins). Punch-ins within this window are treated as being exactly on time, while punch-ins before the window count as overtime for the entire duration.
+- **Automatic Dev Data Seeding**: Added `dev_initialization` module to automatically upsert a default admin user and workspace upon server startup in debug mode.
+- **Enhanced Test Builders**: Extended `TestFactory` with builders for `Employee`, `Shift`, and `TimeEntry` to support complex integration testing scenarios.
 
 ### Changed
-- **Database Schema**: Added `is_break_overtime` column to `time_entries` and `attendance_adjustment_requests`.
-- **Shift Integration**: Payroll calculation now cross-references `time_entries` with active `shifts` to precisely determine work vs. break vs. overtime boundaries.
+- **Shift Configuration**: Added `early_punch_in_grace_period_minutes` to `shifts` table and API models.
+- **Agent Database Reliability**: Refactored `agent-main` to use standard `sqlx` query methods instead of macros, eliminating compile-time database dependencies and improving build reliability.
+
+### Fixed
+- **Agent Build Issues**: Resolved `openssl-sys` compilation errors by documenting `libssl-dev` requirement.
+- **Integration Test Pathing**: Corrected Python `venv` path in `agent-main` integration tests.
+- **Test Linter Warnings**: Cleared `dead_code` warnings in the test suite by properly annotating unused builder methods.
 
 ### Added (Previous)
+- **Dynamic Break-to-Overtime Logic**: Implemented a flexible system to handle cases where employees work through their lunch breaks. This can now be tracked per-entry rather than being a fixed shift setting.
 - **Attendance Adjustment Workflow**: Introduced a formal process for handling forgotten punches. Employees can now submit adjustment requests (Attendance Confirmation Sheets) for past dates.
 - **Automated Time Entry Updates**: Approved adjustment requests automatically create or update the corresponding official `time_entries` records, ensuring accurate payroll data.
 - **Manager Approval Dashboard**: A dedicated UI for administrators to review, approve, or reject attendance adjustment requests with historical context and reasons.

@@ -2,31 +2,31 @@ use axum::{
     async_trait,
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
-        FromRef, FromRequestParts, Path, Query, State, Extension,
+        Extension, FromRef, FromRequestParts, Path, Query, State,
     },
     http::{request::Parts, StatusCode},
     response::{IntoResponse, Json},
 };
+use chrono::{DateTime, NaiveDate, Utc};
 use futures_util::{sink::SinkExt, stream::StreamExt};
 use serde::Deserialize;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use uuid::Uuid;
-use chrono::{Utc, DateTime, NaiveDate};
 
 use crate::agent_manager::AgentCommand;
-use crate::{AppState, UserId};
 use crate::models::{
-    AddMemberRequest, ApproveAttendanceAdjustmentRequest, AssignRoleRequest,
-    CreateDeviceRequest, CreateShiftRequest, CreateWorkspaceRequest, Device,
-    GenericResponse, LoginRequest, MemberExtraRole, PunchInRequest,
-    RegisterRequest, TimeEntry, UpdateAuthorizedAgentRequest, UpdateDeviceRequest,
-    User, UserResponse, AuthResponse, RefreshRequest, ChangePasswordRequest,
-    Workspace, AuthorizedAgent, CreateAuthorizedAgentRequest, CreateAttendanceAdjustmentRequest
+    AddMemberRequest, ApproveAttendanceAdjustmentRequest, AssignRoleRequest, AuthResponse,
+    AuthorizedAgent, ChangePasswordRequest, CreateAttendanceAdjustmentRequest,
+    CreateAuthorizedAgentRequest, CreateDeviceRequest, CreateShiftRequest, CreateWorkspaceRequest,
+    Device, GenericResponse, LoginRequest, MemberExtraRole, PunchInRequest, RefreshRequest,
+    RegisterRequest, TimeEntry, UpdateAuthorizedAgentRequest, UpdateDeviceRequest, User,
+    UserResponse, Workspace,
 };
 use crate::repositories::user_repository;
 use crate::services::auth_service::AuthService;
 use crate::services::WorkspaceService;
+use crate::{AppState, UserId};
 
 // --- Extractors ---
 
@@ -833,8 +833,7 @@ pub async fn get_user_profile(
         .map_err(|e| {
             tracing::error!("Database error fetching user {}: {}", user_id, e);
             (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
-        })
-    {
+        }) {
         Ok(Some(user)) => Json(UserResponse {
             id: user.id,
             email: user.email,
@@ -1207,7 +1206,12 @@ pub async fn get_employees(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> impl IntoResponse {
-    match crate::services::employee_service::EmployeeService::get_all_employees(&state.db, workspace_id).await {
+    match crate::services::employee_service::EmployeeService::get_all_employees(
+        &state.db,
+        workspace_id,
+    )
+    .await
+    {
         Ok(employees) => Json(employees).into_response(),
         Err(status) => status.into_response(),
     }
@@ -1218,7 +1222,13 @@ pub async fn get_employee(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> impl IntoResponse {
-    match crate::services::employee_service::EmployeeService::get_employee_by_id(&state.db, id, workspace_id).await {
+    match crate::services::employee_service::EmployeeService::get_employee_by_id(
+        &state.db,
+        id,
+        workspace_id,
+    )
+    .await
+    {
         Ok(employee) => Json(employee).into_response(),
         Err(status) => status.into_response(),
     }
@@ -1229,7 +1239,13 @@ pub async fn create_employee(
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<crate::models::CreateEmployeeRequest>,
 ) -> impl IntoResponse {
-    match crate::services::employee_service::EmployeeService::create_employee(&state.db, workspace_id, req).await {
+    match crate::services::employee_service::EmployeeService::create_employee(
+        &state.db,
+        workspace_id,
+        req,
+    )
+    .await
+    {
         Ok(employee) => (StatusCode::CREATED, Json(employee)).into_response(),
         Err(status) => status.into_response(),
     }
@@ -1241,7 +1257,14 @@ pub async fn update_employee(
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<crate::models::UpdateEmployeeRequest>,
 ) -> impl IntoResponse {
-    match crate::services::employee_service::EmployeeService::update_employee(&state.db, id, workspace_id, req).await {
+    match crate::services::employee_service::EmployeeService::update_employee(
+        &state.db,
+        id,
+        workspace_id,
+        req,
+    )
+    .await
+    {
         Ok(employee) => Json(employee).into_response(),
         Err(status) => status.into_response(),
     }
@@ -1252,7 +1275,13 @@ pub async fn delete_employee(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> impl IntoResponse {
-    match crate::services::employee_service::EmployeeService::delete_employee(&state.db, id, workspace_id).await {
+    match crate::services::employee_service::EmployeeService::delete_employee(
+        &state.db,
+        id,
+        workspace_id,
+    )
+    .await
+    {
         Ok(_) => StatusCode::NO_CONTENT.into_response(),
         Err(status) => status.into_response(),
     }
@@ -1290,7 +1319,14 @@ pub async fn punch_out(
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<crate::models::PunchOutRequest>,
 ) -> impl IntoResponse {
-    match crate::services::time_tracking_service::TimeTrackingService::punch_out(&state.db, workspace_id, employee_id, req).await {
+    match crate::services::time_tracking_service::TimeTrackingService::punch_out(
+        &state.db,
+        workspace_id,
+        employee_id,
+        req,
+    )
+    .await
+    {
         Ok(entry) => Json(entry).into_response(),
         Err(status) => status.into_response(),
     }
@@ -1308,7 +1344,15 @@ pub async fn get_time_history(
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<HistoryQuery>,
 ) -> impl IntoResponse {
-    match crate::services::time_tracking_service::TimeTrackingService::get_employee_history(&state.db, workspace_id, employee_id, query.start, query.end).await {
+    match crate::services::time_tracking_service::TimeTrackingService::get_employee_history(
+        &state.db,
+        workspace_id,
+        employee_id,
+        query.start,
+        query.end,
+    )
+    .await
+    {
         Ok(entries) => Json(entries).into_response(),
         Err(status) => status.into_response(),
     }
@@ -1320,7 +1364,14 @@ pub async fn update_time_entry(
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<crate::models::UpdateTimeEntryRequest>,
 ) -> impl IntoResponse {
-    match crate::services::time_tracking_service::TimeTrackingService::update_time_entry(&state.db, workspace_id, id, req).await {
+    match crate::services::time_tracking_service::TimeTrackingService::update_time_entry(
+        &state.db,
+        workspace_id,
+        id,
+        req,
+    )
+    .await
+    {
         Ok(entry) => Json(entry).into_response(),
         Err(status) => status.into_response(),
     }
@@ -1331,7 +1382,13 @@ pub async fn delete_time_entry(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> impl IntoResponse {
-    match crate::services::time_tracking_service::TimeTrackingService::delete_time_entry(&state.db, workspace_id, id).await {
+    match crate::services::time_tracking_service::TimeTrackingService::delete_time_entry(
+        &state.db,
+        workspace_id,
+        id,
+    )
+    .await
+    {
         Ok(_) => StatusCode::NO_CONTENT.into_response(),
         Err(status) => status.into_response(),
     }
@@ -1345,7 +1402,14 @@ pub async fn submit_leave_request(
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<crate::models::SubmitLeaveRequest>,
 ) -> impl IntoResponse {
-    match crate::services::leave_service::LeaveService::submit_leave_request(&state.db, workspace_id, user_id, req).await {
+    match crate::services::leave_service::LeaveService::submit_leave_request(
+        &state.db,
+        workspace_id,
+        user_id,
+        req,
+    )
+    .await
+    {
         Ok(request) => (StatusCode::CREATED, Json(request)).into_response(),
         Err(status) => status.into_response(),
     }
@@ -1358,7 +1422,15 @@ pub async fn approve_leave_request(
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<crate::models::ApproveLeaveRequest>,
 ) -> impl IntoResponse {
-    match crate::services::leave_service::LeaveService::approve_leave_request(&state.db, workspace_id, user_id, id, req).await {
+    match crate::services::leave_service::LeaveService::approve_leave_request(
+        &state.db,
+        workspace_id,
+        user_id,
+        id,
+        req,
+    )
+    .await
+    {
         Ok(_) => StatusCode::OK.into_response(),
         Err(status) => status.into_response(),
     }
@@ -1369,7 +1441,13 @@ pub async fn get_my_leave_requests(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> impl IntoResponse {
-    match crate::services::leave_service::LeaveService::get_employee_leave_requests(&state.db, workspace_id, employee_id).await {
+    match crate::services::leave_service::LeaveService::get_employee_leave_requests(
+        &state.db,
+        workspace_id,
+        employee_id,
+    )
+    .await
+    {
         Ok(requests) => Json(requests).into_response(),
         Err(status) => status.into_response(),
     }
@@ -1385,7 +1463,13 @@ pub async fn get_workspace_leave_requests(
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<LeaveStatusQuery>,
 ) -> impl IntoResponse {
-    match crate::services::leave_service::LeaveService::get_workspace_leave_requests(&state.db, workspace_id, query.status).await {
+    match crate::services::leave_service::LeaveService::get_workspace_leave_requests(
+        &state.db,
+        workspace_id,
+        query.status,
+    )
+    .await
+    {
         Ok(requests) => Json(requests).into_response(),
         Err(status) => status.into_response(),
     }
@@ -1457,26 +1541,25 @@ pub async fn get_workspace_attendance_adjustments(
 // --- Basic Reporting Handlers ---
 
 pub async fn get_attendance_report(
-
     State(state): State<Arc<AppState>>,
 
     MemberContext { workspace_id, .. }: MemberContext,
 
     Query(query): Query<HistoryQuery>,
-
 ) -> impl IntoResponse {
-
-    match crate::services::report_service::ReportService::get_workspace_attendance_summary(&state.db, workspace_id, query.start, query.end).await {
-
+    match crate::services::report_service::ReportService::get_workspace_attendance_summary(
+        &state.db,
+        workspace_id,
+        query.start,
+        query.end,
+    )
+    .await
+    {
         Ok(summary) => Json(summary).into_response(),
 
         Err(status) => status.into_response(),
-
     }
-
 }
-
-
 
 // --- Payroll Handlers ---
 
@@ -1485,7 +1568,8 @@ pub async fn get_salary_history(
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
 ) -> impl IntoResponse {
-    match crate::repositories::payroll_repository::get_salary_history(&state.db, employee_id).await {
+    match crate::repositories::payroll_repository::get_salary_history(&state.db, employee_id).await
+    {
         Ok(history) => Json(history).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
@@ -1543,7 +1627,9 @@ pub async fn get_employee_payslips(
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
 ) -> impl IntoResponse {
-    match crate::repositories::payroll_repository::get_payslips_by_employee(&state.db, employee_id).await {
+    match crate::repositories::payroll_repository::get_payslips_by_employee(&state.db, employee_id)
+        .await
+    {
         Ok(payslips) => Json(payslips).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
@@ -1555,7 +1641,8 @@ pub async fn get_departments(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> impl IntoResponse {
-    match crate::repositories::department_repository::get_departments(&state.db, workspace_id).await {
+    match crate::repositories::department_repository::get_departments(&state.db, workspace_id).await
+    {
         Ok(departments) => Json(departments).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
@@ -1605,167 +1692,150 @@ pub async fn get_employee_department_history(
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
 ) -> impl IntoResponse {
-    match crate::repositories::department_repository::get_employee_department_history(&state.db, employee_id).await {
+    match crate::repositories::department_repository::get_employee_department_history(
+        &state.db,
+        employee_id,
+    )
+    .await
+    {
         Ok(history) => Json(history).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
 
-
-
 // --- Shift Handlers ---
 
-
-
 pub async fn get_shifts(
-
     State(state): State<Arc<AppState>>,
 
     MemberContext { workspace_id, .. }: MemberContext,
-
 ) -> impl IntoResponse {
-
-    match crate::services::shift_service::ShiftService::get_workspace_shifts(&state.db, workspace_id).await {
-
+    match crate::services::shift_service::ShiftService::get_workspace_shifts(
+        &state.db,
+        workspace_id,
+    )
+    .await
+    {
         Ok(shifts) => Json(shifts).into_response(),
 
         Err(status) => status.into_response(),
-
     }
-
 }
-
-
 
 pub async fn create_shift(
     State(state): State<Arc<AppState>>,
     Path(workspace_id): Path<Uuid>,
     Json(req): Json<CreateShiftRequest>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    match crate::services::shift_service::ShiftService::create_shift(&state.db, workspace_id, req.name, req.start_time, req.end_time, req.break_duration_minutes, req.break_is_overtime).await {
+    match crate::services::shift_service::ShiftService::create_shift(
+        &state.db,
+        workspace_id,
+        req.name,
+        req.start_time,
+        req.end_time,
+        req.break_duration_minutes,
+        req.break_is_overtime,
+        req.early_punch_in_grace_period_minutes,
+    )
+    .await
+    {
         Ok(shift) => Ok((StatusCode::CREATED, Json(shift))),
         Err(e) => Err(e),
     }
 }
 
-
-
 #[derive(Debug, Deserialize)]
 
 pub struct AssignShiftRequest {
-
     pub employee_id: Uuid,
 
     pub shift_id: Uuid,
 
     pub effective_date: chrono::NaiveDate,
-
 }
 
-
-
 pub async fn assign_shift(
-
     State(state): State<Arc<AppState>>,
 
-    MemberContext { workspace_id: _, .. }: MemberContext,
+    MemberContext {
+        workspace_id: _, ..
+    }: MemberContext,
 
     Json(req): Json<AssignShiftRequest>,
-
 ) -> impl IntoResponse {
+    match crate::services::shift_service::ShiftService::assign_shift(
+        &state.db,
+        req.employee_id,
+        req.shift_id,
+        req.effective_date,
+    )
+    .await
+    {
+        Ok(_) => StatusCode::OK.into_response(),
 
-        match crate::services::shift_service::ShiftService::assign_shift(&state.db, req.employee_id, req.shift_id, req.effective_date).await {
-
-            Ok(_) => StatusCode::OK.into_response(),
-
-            Err(status) => status.into_response(),
-
-        }
-
+        Err(status) => status.into_response(),
     }
+}
 
-    
+// --- Roster Handlers ---
 
-    // --- Roster Handlers ---
+pub async fn get_employee_rosters(
+    State(state): State<Arc<AppState>>,
 
-    
+    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
 
-    pub async fn get_employee_rosters(
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<Vec<crate::models::ShiftRoster>>, StatusCode> {
+    let start_date = params
+        .get("start_date")
+        .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
+        .unwrap_or_else(|| chrono::Utc::now().date_naive());
 
-        State(state): State<Arc<AppState>>,
+    let end_date = params
+        .get("end_date")
+        .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
+        .unwrap_or_else(|| start_date + chrono::Duration::days(30));
 
-        Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    let rosters = crate::repositories::roster_repository::get_employee_rosters(
+        &state.db,
+        employee_id,
+        start_date,
+        end_date,
+    )
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        Query(params): Query<std::collections::HashMap<String, String>>,
+    Ok(Json(rosters))
+}
 
-    ) -> Result<Json<Vec<crate::models::ShiftRoster>>, StatusCode> {
+pub async fn upsert_roster(
+    State(state): State<Arc<AppState>>,
 
-        let start_date = params.get("start_date")
+    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
 
-            .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
+    Json(req): Json<crate::models::CreateRosterRequest>,
+) -> Result<Json<crate::models::ShiftRoster>, StatusCode> {
+    let roster = crate::models::ShiftRoster {
+        id: Uuid::new_v4(),
 
-            .unwrap_or_else(|| chrono::Utc::now().date_naive());
+        employee_id,
 
-        let end_date = params.get("end_date")
+        shift_id: req.shift_id,
 
-            .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
+        date: req.date,
 
-            .unwrap_or_else(|| start_date + chrono::Duration::days(30));
+        status: "confirmed".to_string(),
 
-    
+        notes: req.notes,
 
-        let rosters = crate::repositories::roster_repository::get_employee_rosters(&state.db, employee_id, start_date, end_date)
+        created_at: chrono::Utc::now(),
 
-            .await
+        updated_at: chrono::Utc::now(),
+    };
 
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let saved = crate::repositories::roster_repository::upsert_roster(&state.db, &roster)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        Ok(Json(rosters))
-
-    }
-
-    
-
-    pub async fn upsert_roster(
-
-        State(state): State<Arc<AppState>>,
-
-        Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
-
-        Json(req): Json<crate::models::CreateRosterRequest>,
-
-    ) -> Result<Json<crate::models::ShiftRoster>, StatusCode> {
-
-        let roster = crate::models::ShiftRoster {
-
-            id: Uuid::new_v4(),
-
-            employee_id,
-
-            shift_id: req.shift_id,
-
-            date: req.date,
-
-            status: "confirmed".to_string(),
-
-            notes: req.notes,
-
-            created_at: chrono::Utc::now(),
-
-            updated_at: chrono::Utc::now(),
-
-        };
-
-    
-
-        let saved = crate::repositories::roster_repository::upsert_roster(&state.db, &roster)
-
-            .await
-
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-        Ok(Json(saved))
-
-    }
-
-    
+    Ok(Json(saved))
+}

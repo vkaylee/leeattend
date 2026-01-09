@@ -20,13 +20,24 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
     let factory = TestFactory::new(db_pool.clone());
     factory.cleanup().await;
 
-    let user_id = factory.user().with_email("token_test@example.com").create().await;
+    let user_id = factory
+        .user()
+        .with_email("token_test@example.com")
+        .create()
+        .await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
 
     let agent_manager = AgentManager::new();
-    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: db_pool.clone() });
-    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: db_pool.clone() });
-    let agent_service = Arc::new(apiserver::services::AgentService::new(agent_repo.clone(), agent_manager.clone()));
+    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository {
+        pool: db_pool.clone(),
+    });
+    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository {
+        pool: db_pool.clone(),
+    });
+    let agent_service = Arc::new(apiserver::services::AgentService::new(
+        agent_repo.clone(),
+        agent_manager.clone(),
+    ));
 
     let state = Arc::new(AppState {
         agent_manager,
@@ -96,7 +107,7 @@ async fn test_agent_token_update() {
         .send()
         .await
         .unwrap();
-    
+
     let fetched_agent: serde_json::Value = response.json().await.unwrap();
     assert_eq!(fetched_agent["token"], new_token);
 }

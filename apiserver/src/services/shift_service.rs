@@ -1,10 +1,10 @@
+use axum::http::StatusCode;
+use chrono::{NaiveDate, NaiveTime};
 use sqlx::PgPool;
 use uuid::Uuid;
-use chrono::{NaiveTime, NaiveDate};
-use axum::http::StatusCode;
 
-use crate::repositories::shift_repository;
 use crate::models::Shift;
+use crate::repositories::shift_repository;
 
 pub struct ShiftService;
 
@@ -17,10 +17,20 @@ impl ShiftService {
         end_time: NaiveTime,
         break_duration_minutes: i32,
         break_is_overtime: bool,
+        early_punch_in_grace_period_minutes: i32,
     ) -> Result<Shift, StatusCode> {
-        shift_repository::create_shift(pool, workspace_id, name, start_time, end_time, break_duration_minutes, break_is_overtime)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+        shift_repository::create_shift(
+            pool,
+            workspace_id,
+            name,
+            start_time,
+            end_time,
+            break_duration_minutes,
+            break_is_overtime,
+            early_punch_in_grace_period_minutes,
+        )
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
 
     pub async fn get_workspace_shifts(

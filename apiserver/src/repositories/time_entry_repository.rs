@@ -1,6 +1,6 @@
-use sqlx::{PgPool, query, query_as};
-use uuid::Uuid;
 use chrono::{DateTime, Utc};
+use sqlx::{query, query_as, PgPool};
+use uuid::Uuid;
 
 use crate::models::TimeEntry;
 
@@ -23,7 +23,10 @@ pub async fn create_time_entry(pool: &PgPool, entry: &TimeEntry) -> Result<(), s
     Ok(())
 }
 
-pub async fn get_time_entry_by_id(pool: &PgPool, id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error> {
+pub async fn get_time_entry_by_id(
+    pool: &PgPool,
+    id: Uuid,
+) -> Result<Option<TimeEntry>, sqlx::Error> {
     query_as!(
         TimeEntry,
         "SELECT id, employee_id, punch_in_time as \"punch_in_time!\", punch_out_time, duration_minutes, is_break_overtime, entry_type, note, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM time_entries WHERE id = $1",
@@ -33,7 +36,10 @@ pub async fn get_time_entry_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Time
     .await
 }
 
-pub async fn get_latest_active_entry(pool: &PgPool, employee_id: Uuid) -> Result<Option<TimeEntry>, sqlx::Error> {
+pub async fn get_latest_active_entry(
+    pool: &PgPool,
+    employee_id: Uuid,
+) -> Result<Option<TimeEntry>, sqlx::Error> {
     query_as!(
         TimeEntry,
         "SELECT id, employee_id, punch_in_time as \"punch_in_time!\", punch_out_time, duration_minutes, is_break_overtime, entry_type, note, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM time_entries WHERE employee_id = $1 AND punch_out_time IS NULL ORDER BY punch_in_time DESC LIMIT 1",
@@ -68,7 +74,12 @@ pub async fn update_time_entry(pool: &PgPool, entry: &TimeEntry) -> Result<(), s
     Ok(())
 }
 
-pub async fn get_employee_time_entries(pool: &PgPool, employee_id: Uuid, start_date: DateTime<Utc>, end_date: DateTime<Utc>) -> Result<Vec<TimeEntry>, sqlx::Error> {
+pub async fn get_employee_time_entries(
+    pool: &PgPool,
+    employee_id: Uuid,
+    start_date: DateTime<Utc>,
+    end_date: DateTime<Utc>,
+) -> Result<Vec<TimeEntry>, sqlx::Error> {
     query_as!(
         TimeEntry,
         "SELECT id, employee_id, punch_in_time as \"punch_in_time!\", punch_out_time, duration_minutes, is_break_overtime, entry_type, note, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM time_entries WHERE employee_id = $1 AND punch_in_time >= $2 AND punch_in_time <= $3 ORDER BY punch_in_time DESC",

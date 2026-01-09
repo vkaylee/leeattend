@@ -15,7 +15,8 @@ leeattend/
 │   │   ├── handlers.rs # API endpoints
 │   │   ├── services/  # Business logic (PayrollService, etc.)
 │   │   ├── repositories/ # Database access (Dept, Roster, Payroll)
-│   │   └── models.rs  # Domain models (Employee, Shift, Roster)
+│   │   ├── models.rs  # Domain models (Employee, Shift, Roster)
+│   │   └── dev_initialization.rs # Automatic seeding for debug mode
 │   └── tests/         # Integration tests with TestFactory
 ├── webdashboard/      # React (Vite) Admin UI
 │   ├── src/
@@ -55,7 +56,7 @@ leeattend/
 - [x] Time-series Salary History & Departments management.
 - [x] Shift Rostering System (Weekly calendar & Priority logic).
 - [x] Attendance Adjustment Workflow (Manual confirmation requests).
-- [x] Dynamic Break-to-Overtime calculation.
+- [x] **Payroll Engine**: Advanced logic for worked-through breaks and configurable early clock-in grace periods.
 - [x] Accurate Real-time Status (Heartbeat).
 - [ ] Automated Deployment scripts (NSSM/Service for production).
 

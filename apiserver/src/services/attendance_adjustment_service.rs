@@ -1,10 +1,10 @@
+use axum::http::StatusCode;
+use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
-use chrono::Utc;
-use axum::http::StatusCode;
 
-use crate::repositories::{attendance_adjustment_repository, time_entry_repository};
 use crate::models::{AttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest, TimeEntry};
+use crate::repositories::{attendance_adjustment_repository, time_entry_repository};
 
 pub struct AttendanceAdjustmentService;
 
@@ -49,9 +49,14 @@ impl AttendanceAdjustmentService {
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
-        attendance_adjustment_repository::update_adjustment_status(pool, request_id, &status, Some(approver_id))
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        attendance_adjustment_repository::update_adjustment_status(
+            pool,
+            request_id,
+            &status,
+            Some(approver_id),
+        )
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         if status == "approved" {
             // Update or create time entry
@@ -64,7 +69,7 @@ impl AttendanceAdjustmentService {
                 entry.punch_in_time = request.requested_punch_in_time;
                 entry.punch_out_time = request.requested_punch_out_time;
                 entry.is_break_overtime = request.is_break_overtime;
-                
+
                 if let Some(punch_out) = entry.punch_out_time {
                     let duration = punch_out.signed_duration_since(entry.punch_in_time);
                     entry.duration_minutes = Some(duration.num_minutes() as i32);
@@ -108,9 +113,13 @@ impl AttendanceAdjustmentService {
         workspace_id: Uuid,
         status: Option<String>,
     ) -> Result<Vec<AttendanceAdjustmentRequest>, StatusCode> {
-        attendance_adjustment_repository::get_workspace_adjustment_requests(pool, workspace_id, status)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+        attendance_adjustment_repository::get_workspace_adjustment_requests(
+            pool,
+            workspace_id,
+            status,
+        )
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
 
     pub async fn get_employee_requests(

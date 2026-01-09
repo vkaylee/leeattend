@@ -36,44 +36,41 @@ impl Database {
         status: Option<i32>,
         punch: Option<i32>,
     ) -> Result<i64, Error> {
-        let id = sqlx::query!(
+        let res = sqlx::query(
             r#"
             INSERT INTO zkt_raw_attendance (device_id, user_id, timestamp, status, punch)
             VALUES (?, ?, ?, ?, ?)
-            RETURNING id
             "#,
-            device_id,
-            user_id,
-            timestamp,
-            status,
-            punch
         )
-        .fetch_one(&self.pool)
-        .await?
-        .id;
+        .bind(device_id)
+        .bind(user_id)
+        .bind(timestamp)
+        .bind(status)
+        .bind(punch)
+        .execute(&self.pool)
+        .await?;
 
-        Ok(id)
+        Ok(res.last_insert_rowid())
     }
 
     pub async fn get_unsynced_logs(&self, limit: i64) -> Result<Vec<RawAttendanceLog>, Error> {
-        sqlx::query_as!(
-            RawAttendanceLog,
+        sqlx::query_as::<_, RawAttendanceLog>(
             r#"
             SELECT 
-                id as "id!", 
-                device_id as "device_id!", 
-                user_id as "user_id!", 
-                timestamp as "timestamp!", 
+                id, 
+                device_id, 
+                user_id, 
+                timestamp, 
                 status, 
                 punch, 
-                is_synced as "is_synced!", 
+                is_synced, 
                 created_at
             FROM zkt_raw_attendance
             WHERE is_synced = 0
             LIMIT ?
             "#,
-            limit
         )
+        .bind(limit)
         .fetch_all(&self.pool)
         .await
     }
@@ -89,10 +86,10 @@ impl Database {
         let mut tx = self.pool.begin().await?;
         
         for id in ids {
-            sqlx::query!(
+            sqlx::query(
                 "UPDATE zkt_raw_attendance SET is_synced = 1 WHERE id = ?",
-                id
             )
+            .bind(id)
             .execute(&mut *tx)
             .await?;
         }
@@ -102,7 +99,7 @@ impl Database {
     }
 
     pub async fn upsert_device(&self, id: &str, name: Option<&str>, ip: &str, port: i32) -> Result<(), Error> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO devices (id, name, ip, port, last_seen, is_active)
             VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, 1)
@@ -113,19 +110,18 @@ impl Database {
                 last_seen = CURRENT_TIMESTAMP,
                 is_active = 1
             "#,
-            id,
-            name,
-            ip,
-            port
         )
+        .bind(id)
+        .bind(name)
+        .bind(ip)
+        .bind(port)
         .execute(&self.pool)
         .await?;
         Ok(())
     }
 
     pub async fn get_active_devices(&self) -> Result<Vec<DeviceConfig>, Error> {
-        sqlx::query_as!(
-            DeviceConfig,
+        sqlx::query_as::<_, DeviceConfig>(
             r#"
             SELECT id, name, ip, port, last_seen, is_active
             FROM devices

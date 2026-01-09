@@ -1,6 +1,6 @@
-use sqlx::{PgPool, query, query_as};
-use uuid::Uuid;
 use crate::models::User;
+use sqlx::{query, query_as, PgPool};
+use uuid::Uuid;
 
 pub async fn create_user(pool: &PgPool, user: &User) -> Result<(), sqlx::Error> {
     query!(

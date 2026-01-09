@@ -1,11 +1,11 @@
+use axum::http::StatusCode;
+use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
-use chrono::Utc;
-use axum::http::StatusCode;
 
-use crate::models::{LeaveRequest, SubmitLeaveRequest, ApproveLeaveRequest};
-use crate::repositories::leave_request_repository;
+use crate::models::{ApproveLeaveRequest, LeaveRequest, SubmitLeaveRequest};
 use crate::repositories::employee_repository;
+use crate::repositories::leave_request_repository;
 
 pub struct LeaveService;
 
@@ -61,9 +61,14 @@ impl LeaveService {
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::FORBIDDEN)?;
 
-        leave_request_repository::update_leave_request_status(pool, request_id, &req.status, Some(user_id))
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        leave_request_repository::update_leave_request_status(
+            pool,
+            request_id,
+            &req.status,
+            Some(user_id),
+        )
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         Ok(())
     }

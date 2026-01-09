@@ -1,7 +1,7 @@
+use axum::http::StatusCode;
+use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
-use axum::http::StatusCode;
 
 use crate::models::AttendanceSummary;
 
@@ -46,11 +46,14 @@ impl ReportService {
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-        Ok(summaries.into_iter().map(|row| AttendanceSummary {
-            employee_id: row.employee_id,
-            employee_name: row.employee_name.unwrap_or_default(),
-            total_hours: row.total_hours.unwrap_or(0.0),
-            total_leave_days: row.total_leave_days.unwrap_or(0),
-        }).collect())
+        Ok(summaries
+            .into_iter()
+            .map(|row| AttendanceSummary {
+                employee_id: row.employee_id,
+                employee_name: row.employee_name.unwrap_or_default(),
+                total_hours: row.total_hours.unwrap_or(0.0),
+                total_leave_days: row.total_leave_days.unwrap_or(0),
+            })
+            .collect())
     }
 }

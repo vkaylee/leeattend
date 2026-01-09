@@ -1,11 +1,11 @@
+use axum::http::StatusCode;
+use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
-use chrono::{Utc, DateTime};
-use axum::http::StatusCode;
 
-use crate::models::{TimeEntry, PunchInRequest, PunchOutRequest, UpdateTimeEntryRequest};
-use crate::repositories::time_entry_repository;
+use crate::models::{PunchInRequest, PunchOutRequest, TimeEntry, UpdateTimeEntryRequest};
 use crate::repositories::employee_repository;
+use crate::repositories::time_entry_repository;
 
 pub struct TimeTrackingService;
 
@@ -26,8 +26,11 @@ impl TimeTrackingService {
         }
 
         // Check if already punched in
-        if let Some(_) = time_entry_repository::get_latest_active_entry(pool, req.employee_id).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)? {
-             return Err(StatusCode::CONFLICT); // Already punched in
+        if let Some(_) = time_entry_repository::get_latest_active_entry(pool, req.employee_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        {
+            return Err(StatusCode::CONFLICT); // Already punched in
         }
 
         let entry = TimeEntry {
@@ -72,11 +75,15 @@ impl TimeTrackingService {
 
         let punch_out_time = Utc::now();
         let duration = punch_out_time.signed_duration_since(entry.punch_in_time);
-        
+
         entry.punch_out_time = Some(punch_out_time);
         entry.duration_minutes = Some(duration.num_minutes() as i32);
         if let Some(note) = req.note {
-            entry.note = Some(format!("{}\n{}", entry.note.unwrap_or_default(), note).trim().to_string());
+            entry.note = Some(
+                format!("{}\n{}", entry.note.unwrap_or_default(), note)
+                    .trim()
+                    .to_string(),
+            );
         }
         entry.updated_at = Utc::now();
 
@@ -97,7 +104,7 @@ impl TimeTrackingService {
         start_date: DateTime<Utc>,
         end_date: DateTime<Utc>,
     ) -> Result<Vec<TimeEntry>, StatusCode> {
-         // Verify employee belongs to workspace
+        // Verify employee belongs to workspace
         let _ = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -125,10 +132,18 @@ impl TimeTrackingService {
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::FORBIDDEN)?;
 
-        if let Some(t) = req.punch_in_time { entry.punch_in_time = t; }
-        if let Some(t) = req.punch_out_time { entry.punch_out_time = Some(t); }
-        if let Some(et) = req.entry_type { entry.entry_type = et; }
-        if let Some(n) = req.note { entry.note = Some(n); }
+        if let Some(t) = req.punch_in_time {
+            entry.punch_in_time = t;
+        }
+        if let Some(t) = req.punch_out_time {
+            entry.punch_out_time = Some(t);
+        }
+        if let Some(et) = req.entry_type {
+            entry.entry_type = et;
+        }
+        if let Some(n) = req.note {
+            entry.note = Some(n);
+        }
 
         if let Some(po) = entry.punch_out_time {
             let duration = po.signed_duration_since(entry.punch_in_time);

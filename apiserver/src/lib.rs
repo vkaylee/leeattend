@@ -3,6 +3,7 @@ pub mod handlers;
 pub mod models;
 pub mod repositories;
 pub mod services;
+pub mod dev_initialization;
 
 use axum::{
     routing::{delete, get, patch, post, put},
@@ -210,10 +211,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
                 .delete(handlers::delete_employee),
         )
         // Time Tracking
-        .route(
-            "/workspaces/:ws_id/time/punch-in",
-            post(handlers::punch_in),
-        )
+        .route("/workspaces/:ws_id/time/punch-in", post(handlers::punch_in))
         .route(
             "/workspaces/:ws_id/time/punch-out/:employee_id",
             post(handlers::punch_out),
@@ -235,12 +233,31 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/leave/requests",
             get(handlers::get_workspace_leave_requests),
         )
-                .route("/workspaces/:ws_id/leave/requests/:id/approve", post(handlers::approve_leave_request))
-                .route("/employees/:id/leave/requests", get(handlers::get_my_leave_requests))
-                .route("/workspaces/:ws_id/attendance/adjustments", post(handlers::submit_attendance_adjustment).get(handlers::get_workspace_attendance_adjustments))
-                .route("/workspaces/:ws_id/attendance/adjustments/:id/approve", post(handlers::approve_attendance_adjustment))
-                .route("/employees/:id/attendance/adjustments", get(handlers::get_my_attendance_adjustments))
-                .route("/workspaces/:ws_id/reports/attendance", get(handlers::get_attendance_report))
+        .route(
+            "/workspaces/:ws_id/leave/requests/:id/approve",
+            post(handlers::approve_leave_request),
+        )
+        .route(
+            "/employees/:id/leave/requests",
+            get(handlers::get_my_leave_requests),
+        )
+        .route(
+            "/workspaces/:ws_id/attendance/adjustments",
+            post(handlers::submit_attendance_adjustment)
+                .get(handlers::get_workspace_attendance_adjustments),
+        )
+        .route(
+            "/workspaces/:ws_id/attendance/adjustments/:id/approve",
+            post(handlers::approve_attendance_adjustment),
+        )
+        .route(
+            "/employees/:id/attendance/adjustments",
+            get(handlers::get_my_attendance_adjustments),
+        )
+        .route(
+            "/workspaces/:ws_id/reports/attendance",
+            get(handlers::get_attendance_report),
+        )
         // Payroll
         .route(
             "/workspaces/:ws_id/employees/:id/salary",
@@ -264,10 +281,16 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(handlers::get_employee_department_history).post(handlers::transfer_employee),
         )
         // Shifts
-                .route("/shifts", get(handlers::get_shifts).post(handlers::create_shift))
-                .route("/shifts/assign", post(handlers::assign_shift))
-                // Rosters
-                .route("/employees/:id/rosters", get(handlers::get_employee_rosters).post(handlers::upsert_roster))
+        .route(
+            "/shifts",
+            get(handlers::get_shifts).post(handlers::create_shift),
+        )
+        .route("/shifts/assign", post(handlers::assign_shift))
+        // Rosters
+        .route(
+            "/employees/:id/rosters",
+            get(handlers::get_employee_rosters).post(handlers::upsert_roster),
+        )
         .layer(cors)
         .with_state(state)
 }

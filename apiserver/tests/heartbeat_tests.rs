@@ -1,13 +1,13 @@
 mod common;
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
+use chrono::{Duration, Utc};
 use common::factory::TestFactory;
+use futures_util::{SinkExt, StreamExt};
 use serial_test::serial;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
-use uuid::Uuid;
-use chrono::{Utc, Duration};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
-use futures_util::{SinkExt, StreamExt};
+use uuid::Uuid;
 
 async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
     dotenvy::dotenv().ok();
@@ -26,7 +26,11 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
     let factory = TestFactory::new(db_pool.clone());
     factory.cleanup().await;
 
-    let user_id = factory.user().with_email("hb_ws_test@example.com").create().await;
+    let user_id = factory
+        .user()
+        .with_email("hb_ws_test@example.com")
+        .create()
+        .await;
     let workspace_id = factory
         .workspace()
         .with_name("HB WS Workspace")
@@ -75,7 +79,8 @@ async fn test_agent_heartbeat_via_websocket() {
     let token = "hb_ws_token_123".to_string();
 
     // 1. Khai báo agent và phê duyệt
-    factory.agent()
+    factory
+        .agent()
         .with_id(&agent_id)
         .with_token(&token)
         .with_workspace(workspace_id)
@@ -93,7 +98,10 @@ async fn test_agent_heartbeat_via_websocket() {
         "token": token,
         "timestamp": Utc::now().to_rfc3339()
     });
-    ws_stream.send(Message::Text(handshake.to_string().into())).await.unwrap();
+    ws_stream
+        .send(Message::Text(handshake.to_string().into()))
+        .await
+        .unwrap();
 
     // Chờ config push để chắc chắn handshake xong
     if let Some(Ok(Message::Text(text))) = ws_stream.next().await {
@@ -109,22 +117,30 @@ async fn test_agent_heartbeat_via_websocket() {
         "agent_id": agent_id,
         "timestamp": Utc::now().to_rfc3339()
     });
-    ws_stream.send(Message::Text(heartbeat.to_string().into())).await.unwrap();
+    ws_stream
+        .send(Message::Text(heartbeat.to_string().into()))
+        .await
+        .unwrap();
 
     // Chờ một chút để server xử lý
     tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
 
     // 5. Kiểm tra DB xem last_seen_at có được cập nhật không
-    let last_seen: chrono::DateTime<Utc> = sqlx::query_scalar("SELECT last_seen_at FROM authorized_agents WHERE id = $1")
-        .bind(&agent_id)
-        .fetch_one(&factory.pool)
-        .await
-        .unwrap();
+    let last_seen: chrono::DateTime<Utc> =
+        sqlx::query_scalar("SELECT last_seen_at FROM authorized_agents WHERE id = $1")
+            .bind(&agent_id)
+            .fetch_one(&factory.pool)
+            .await
+            .unwrap();
 
     let now = Utc::now();
-    let diff = if now > last_seen { now - last_seen } else { last_seen - now };
-    
+    let diff = if now > last_seen {
+        now - last_seen
+    } else {
+        last_seen - now
+    };
+
     assert!(diff < Duration::seconds(10));
-    
+
     let _ = ws_stream.close(None).await;
 }

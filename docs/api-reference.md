@@ -321,7 +321,8 @@ Tạo ca làm việc mới.
     "start_time": "08:00:00",
     "end_time": "17:00:00",
     "break_duration_minutes": 60,
-    "break_is_overtime": false
+    "break_is_overtime": false,
+    "early_punch_in_grace_period_minutes": 30
   }
   ```
 - **Response (201)**: `Shift` object

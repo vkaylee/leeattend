@@ -24,7 +24,11 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
     let factory = TestFactory::new(db_pool.clone());
     factory.cleanup().await;
 
-    let user_id = factory.user().with_email("archive_test@example.com").create().await;
+    let user_id = factory
+        .user()
+        .with_email("archive_test@example.com")
+        .create()
+        .await;
     let workspace_id = factory
         .workspace()
         .with_name("Archive Workspace")
@@ -71,7 +75,8 @@ async fn test_agent_archive_and_restore() {
     let client = reqwest::Client::new();
 
     let agent_id = "AGENT_ARCHIVE_01";
-    factory.agent()
+    factory
+        .agent()
         .with_id(agent_id)
         .with_workspace(workspace_id)
         .create()
@@ -100,7 +105,10 @@ async fn test_agent_archive_and_restore() {
 
     // 3. List agents with include_inactive=true
     let response = client
-        .get(&format!("{}/authorized-agents?include_inactive=true", address))
+        .get(&format!(
+            "{}/authorized-agents?include_inactive=true",
+            address
+        ))
         .header("X-Workspace-Id", workspace_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .send()
