@@ -20,7 +20,7 @@ import {
   Banknote,
   CalendarRange,
   Building2,
-} from "lucide-react"; // Added new icons
+} from "lucide-react"; 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import DashboardPage from "./pages/DashboardPage";
 import AgentsPage from "./pages/AgentsPage";
@@ -31,14 +31,13 @@ import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import OnboardingPage from "./pages/OnboardingPage";
-import EmployeesPage from "./pages/EmployeesPage"; // New pages
+import EmployeesPage from "./pages/EmployeesPage"; 
 import DepartmentsPage from "./pages/DepartmentsPage";
 import TimeTrackingPage from "./pages/TimeTrackingPage";
 import LeaveRequestsPage from "./pages/LeaveRequestsPage";
 import ReportsPage from "./pages/ReportsPage";
 import PayrollPage from "./pages/PayrollPage";
 import ShiftsPage from "./pages/ShiftsPage";
-import RosterPage from "./pages/RosterPage";
 import WorkspaceSwitcher from "./components/WorkspaceSwitcher";
 import AuthGuard from "./components/AuthGuard";
 import WorkspaceGuard from "./components/WorkspaceGuard";
@@ -72,7 +71,7 @@ function Layout() {
             <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-200">
               <Cpu className="text-white w-6 h-6" />
             </div>
-            <span className="font-bold text-xl tracking-tight">LeeAttend</span>
+            <span className="font-bold text-xl tracking-tight text-slate-900">LeeAttend</span>
           </div>
 
           <WorkspaceSwitcher />
@@ -87,7 +86,7 @@ function Layout() {
             <span className="font-semibold">Bảng điều khiển</span>
           </Link>
           
-          <div className="pt-4 pb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+          <div className="pt-4 pb-2 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
             Quản lý tổ chức
           </div>
           <Link
@@ -112,7 +111,7 @@ function Layout() {
             <span className="font-semibold">Phòng ban</span>
           </Link>
 
-          <div className="pt-4 pb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+          <div className="pt-4 pb-2 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
             Chấm công & Nghỉ phép
           </div>
           <Link
@@ -144,7 +143,7 @@ function Layout() {
             <span className="font-semibold">Báo cáo</span>
           </Link>
 
-          <div className="pt-4 pb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+          <div className="pt-4 pb-2 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
             Lương & Ca làm
           </div>
           <Link
@@ -152,14 +151,7 @@ function Layout() {
             className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
           >
             <CalendarRange className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Ca làm việc</span>
-          </Link>
-          <Link
-            to="/rosters"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
-          >
-            <CalendarDays className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Phân ca</span>
+            <span className="font-semibold">Lịch trình & Ca</span>
           </Link>
           <Link
             to="/payroll"
@@ -169,7 +161,7 @@ function Layout() {
             <span className="font-semibold">Tính lương</span>
           </Link>
 
-          <div className="pt-4 pb-2 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+          <div className="pt-4 pb-2 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
             Hệ thống
           </div>
           <Link
@@ -215,7 +207,7 @@ function Layout() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
-        <div className="p-8 max-w-7xl mx-auto">
+        <div className="p-8 max-w-7xl mx-auto animate-in fade-in duration-700">
           <Outlet />
         </div>
       </main>
@@ -248,7 +240,6 @@ function App() {
                 <Route path="/attendance-adjustments" element={<AttendanceAdjustmentsPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/shifts" element={<ShiftsPage />} />
-                <Route path="/rosters" element={<RosterPage />} />
                 <Route path="/payroll" element={<PayrollPage />} />
                 <Route
                   path="/workspace/settings"
