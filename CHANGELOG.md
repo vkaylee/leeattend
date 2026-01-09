@@ -2,7 +2,41 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
-## [Unreleased] - 2026-01-09
+## [Unreleased]
+
+
+
+### Added
+
+- **Integrated Shift & Roster System**: Unified Weekly Roster and Shift Assignments into a single interface.
+
+- **Effective Schedule API**: New endpoint to calculate employee schedules using priority logic (Roster > Fixed > Dept).
+
+- **Assignment History**: Tracking and displaying a log of all shift changes (flexible and fixed).
+
+- **UI Source Indicators**: Visual badges in Weekly Roster to distinguish between "Flexible", "Fixed", and "Department" schedules.
+
+- **Library**: Added `date-fns` for robust date handling in frontend.
+
+
+
+### Changed
+
+- **Shift Priority Logic**: Guaranteed that Weekly Roster entries (including Day Off) override all other assignments.
+
+- **Sidebar Simplification**: Merged "Rosters" into "Shifts" menu.
+
+
+
+### Fixed
+
+- **Database Bug**: Fixed incorrect column usage (`effective_date` -> `start_date`) in `employee_shifts` repository.
+
+- **API Consistency**: Fixed State type mismatches and redundant router definitions in backend.
+
+- **Unit Tests**: Added comprehensive test coverage for shift priority and history logic.
+
+ - 2026-01-09
 
 ### Added
 - **Global Toast System**: Hệ thống thông báo (success, error, warning, info) tùy chỉnh, thay thế hoàn toàn `alert()` của trình duyệt.

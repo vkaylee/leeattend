@@ -37,7 +37,19 @@ Sử dụng `Arc<dyn RepositoryTrait>` để inject vào Services. Khởi tạo 
 - **Tailwind CSS 4**: Sử dụng các tiện ích của Tailwind 4 để styling.
 - **Lucide React**: Thư viện icon chuẩn.
 
-### 3. UI/UX Conventions
+### 📅 Logic Lịch trình & Ca làm việc
+
+Khi tính toán ca làm việc hiệu lực của nhân viên tại một thời điểm, **PHẢI** tuân thủ thứ tự ưu tiên sau:
+
+1.  **Mức 1: Lịch trực tuần (Weekly Roster)** - `shift_rosters`. Bản ghi gán cho một ngày cụ thể. Nếu gán là NULL, nghĩa là nhân viên ĐƯỢC NGHỈ (Day Off) bất chấp các mức dưới.
+2.  **Mức 2: Gán cố định (Fixed Assignment)** - `employee_shifts`. Lấy bản ghi có ngày hiệu lực (`start_date`) thỏa mãn và có thời điểm tạo (`created_at`) mới nhất (Temporal Overriding).
+3.  **Mức 3: Ca mặc định phòng ban (Department Default)** - `department_default_shifts`. Lấy ca mặc định của phòng ban nhân viên đang thuộc về tại thời điểm đó.
+
+**Lưu ý**: Tuyệt đối không tính toán logic này ở Frontend. Luôn sử dụng API `/api/workspaces/:id/schedules` để lấy kết quả đã tính toán từ Backend.
+
+---
+
+### 🎨 Frontend: Thông báo (Toasts)
 - **No Browser Dialogs**: Tuyệt đối **KHÔNG** sử dụng `window.alert()`, `window.confirm()` hoặc `window.prompt()` cho các thông báo hành động thông thường.
 - **Global Toast**: Sử dụng custom hook `useToast()` để hiển thị thông báo.
   - `toast.success()`: Khi hành động thành công (Lưu, Cập nhật).

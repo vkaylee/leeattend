@@ -388,6 +388,47 @@ Lấy lịch biểu (ca làm việc thực tế) của nhân viên trong một k
 - **Query Params**: `?start_date=2026-01-01&end_date=2026-01-07`
 - **Response (200)**: `Array<ShiftRoster>`
 
+#### GET /api/workspaces/:id/schedules
+Tính toán lịch biểu hiệu lực (Effective Schedule) cho tất cả nhân viên trong workspace dựa trên thứ tự ưu tiên (Lịch tuần > Lịch cố định > Lịch phòng ban).
+- **Query Params**: `?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
+- **Response (200)**: 
+  ```json
+  [
+    {
+      "employee_id": "uuid",
+      "first_name": "...",
+      "last_name": "...",
+      "schedules": [
+        {
+          "date": "2026-01-10",
+          "shift_id": "uuid-or-null",
+          "source": "roster|fixed|department|none",
+          "shift_name": "Morning Shift",
+          "start_time": "08:00:00",
+          "end_time": "17:00:00"
+        }
+      ]
+    }
+  ]
+  ```
+
+#### GET /api/workspaces/:id/assignment-history
+Lấy lịch sử tất cả các thay đổi về gán ca (cả cố định và linh hoạt) của workspace.
+- **Response (200)**: 
+  ```json
+  [
+    {
+      "id": "uuid",
+      "employee_id": "uuid",
+      "employee_name": "...",
+      "assignment_type": "roster|fixed",
+      "shift_name": "Night Shift",
+      "date_range": "2026-01-10",
+      "created_at": "2026-01-09T10:00:00Z"
+    }
+  ]
+  ```
+
 #### POST /workspaces/:ws_id/employees/:id/rosters
 Cập nhật hoặc gán ca làm việc cho một ngày cụ thể (Upsert).
 - **Request**:
