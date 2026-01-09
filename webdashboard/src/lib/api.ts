@@ -898,12 +898,52 @@ export async function fetchEmployeeDepartmentHistory(wsId: string, employeeId: s
 
 // --- Roster API ---
 
-export async function fetchEmployeeRosters(
+export interface EffectiveSchedule {
+  date: string;
+  shift_id: string | null;
+  source: "roster" | "fixed" | "department" | "none";
+  shift_name: string | null;
+  start_time: string | null;
+  end_time: string | null;
+}
+
+export interface EmployeeSchedule {
+  employee_id: string;
+  first_name: string;
+  last_name: string;
+  schedules: EffectiveSchedule[];
+}
+
+export interface AssignmentHistory {
+  id: string;
+  employee_id: string;
+  employee_name: string;
+  assignment_type: string;
+  shift_name: string | null;
+  date_range: string;
+  created_at: string;
+}
+
+export const fetchWorkspaceSchedules = async (wsId: string, startDate: string, endDate: string): Promise<EmployeeSchedule[]> => {
+  const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/schedules?${params}`);
+  if (!response.ok) throw new Error("Failed to fetch schedules");
+  return response.json();
+};
+
+export const fetchAssignmentHistory = async (wsId: string): Promise<AssignmentHistory[]> => {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/assignment-history`);
+  if (!response.ok) throw new Error("Failed to fetch assignment history");
+  return response.json();
+};
+
+export const fetchEmployeeRosters = async (
+
   wsId: string, 
   employeeId: string, 
   startDate?: string, 
   endDate?: string
-): Promise<ShiftRoster[]> {
+): Promise<ShiftRoster[]> => {
   let url = `${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/rosters`;
   const params = new URLSearchParams();
   if (startDate) params.append("start_date", startDate);

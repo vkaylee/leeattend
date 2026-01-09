@@ -1,7 +1,202 @@
-use crate::models::ShiftRoster;
-use chrono::NaiveDate;
+use crate::models::{ShiftRoster, EmployeeSchedule, EffectiveSchedule};
+use chrono::{NaiveDate, Datelike};
 use sqlx::PgPool;
 use uuid::Uuid;
+use std::collections::HashMap;
+
+// ... (existing imports)
+
+pub async fn get_workspace_schedules(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+) -> Result<Vec<EmployeeSchedule>, sqlx::Error> {
+    // 1. Fetch Employees
+    let employees = sqlx::query!(
+        "SELECT id, first_name, last_name FROM employees WHERE workspace_id = $1 AND is_active = true",
+        workspace_id
+    )
+    .fetch_all(pool)
+    .await?;
+
+    // 2. Fetch all shifts (for details)
+    let shifts_map: HashMap<Uuid, (String, chrono::NaiveTime, chrono::NaiveTime)> = sqlx::query!(
+        "SELECT id, name, start_time, end_time FROM shifts WHERE workspace_id = $1",
+        workspace_id
+    )
+    .fetch_all(pool)
+    .await?
+    .into_iter()
+    .map(|s| (s.id, (s.name, s.start_time, s.end_time)))
+    .collect();
+
+    // 3. Fetch Rosters in range
+    let rosters = sqlx::query_as::<_, ShiftRoster>(
+        "SELECT * FROM shift_rosters WHERE workspace_id = $1 AND date >= $2 AND date <= $3",
+    )
+    .bind(workspace_id)
+    .bind(start_date)
+    .bind(end_date)
+    .fetch_all(pool)
+    .await?;
+
+    // Group rosters by (employee_id, date)
+    let mut roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = HashMap::new();
+    for r in rosters {
+        roster_map.insert((r.employee_id, r.date), r.shift_id);
+    }
+
+    // 4. Fetch Fixed Assignments (overlapping)
+    // We fetch all assignments that *start* before end_date and *end* after start_date (or are null)
+    let fixed_assignments = sqlx::query!(
+        r#"
+        SELECT employee_id, shift_id, start_date, end_date, created_at
+        FROM employee_shifts
+        WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)
+          AND start_date <= $2
+          AND (end_date IS NULL OR end_date >= $3)
+        ORDER BY created_at DESC
+        "#,
+        workspace_id,
+        end_date,
+        start_date
+    )
+    .fetch_all(pool)
+    .await?;
+
+    // 5. Fetch Department Defaults & History
+    // (Simplification: For now, we assume if Dept Default exists, we fetch it. 
+    // Implementing full Dept History temporal logic in bulk is complex, 
+    // we can do a simplified version or iterate.)
+    
+    // Let's iterate employees to build result
+    let mut result = Vec::new();
+
+    for emp in employees {
+        let mut daily_schedules = Vec::new();
+        let mut curr_date = start_date;
+
+        while curr_date <= end_date {
+            let mut effective_shift_id = None;
+            let mut source = "none".to_string();
+
+            // P1: Roster
+            if let Some(shift_opt) = roster_map.get(&(emp.id, curr_date)) {
+                effective_shift_id = *shift_opt; // Can be None (Day Off)
+                source = "roster".to_string();
+            } else {
+                // P2: Fixed (Find latest created valid assignment)
+                // Since we sorted by created_at DESC in SQL, the first match is the effective one
+                let fixed = fixed_assignments.iter().find(|a| {
+                    a.employee_id == emp.id &&
+                    a.start_date <= curr_date &&
+                    (a.end_date.is_none() || a.end_date.unwrap() >= curr_date)
+                });
+
+                if let Some(f) = fixed {
+                    effective_shift_id = Some(f.shift_id);
+                    source = "fixed".to_string();
+                } else {
+                    // P3: Dept Default (Fallback - simplified query per day/employee if needed, 
+                    // or just leave as 'none' if we want to save optimization effort for now.
+                    // Given the requirement is "display fixed + roster", Dept is less critical for this specific view 
+                    // but ideally should be there. Let's call the single helper if needed, 
+                    // OR just skip for bulk performance now and add later.)
+                    
+                    // For massive performance, we should preload Dept data. 
+                    // For now, let's leave Dept fallback as a TODO or do a quick check if we want perfection.
+                    // The user specifically asked for "Fixed + Roster".
+                    source = "none".to_string();
+                }
+            }
+
+            let mut sched = EffectiveSchedule {
+                date: curr_date,
+                shift_id: effective_shift_id,
+                source,
+                shift_name: None,
+                start_time: None,
+                end_time: None,
+            };
+
+            if let Some(sid) = effective_shift_id {
+                if let Some((name, start, end)) = shifts_map.get(&sid) {
+                    sched.shift_name = Some(name.clone());
+                    sched.start_time = Some(*start);
+                    sched.end_time = Some(*end);
+                }
+            }
+
+            daily_schedules.push(sched);
+            curr_date = curr_date.succ_opt().unwrap();
+        }
+
+        result.push(EmployeeSchedule {
+            employee_id: emp.id,
+            first_name: emp.first_name,
+            last_name: emp.last_name,
+            schedules: daily_schedules,
+        });
+    }
+
+    Ok(result)
+}
+
+pub async fn get_assignment_history(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    limit: i64,
+) -> Result<Vec<crate::models::AssignmentHistory>, sqlx::Error> {
+    sqlx::query_as::<_, crate::models::AssignmentHistory>(
+        r#"
+        SELECT 
+            id,
+            employee_id,
+            (SELECT first_name || ' ' || last_name FROM employees WHERE id = history.employee_id) as employee_name,
+            assignment_type,
+            shift_name,
+            date_range,
+            created_at
+        FROM (
+            -- Fixed Assignments
+            SELECT 
+                es.id,
+                es.employee_id,
+                'fixed' as assignment_type,
+                s.name as shift_name,
+                TO_CHAR(es.start_date, 'YYYY-MM-DD') || 
+                CASE WHEN es.end_date IS NULL THEN ' -> ∞' ELSE ' -> ' || TO_CHAR(es.end_date, 'YYYY-MM-DD') END as date_range,
+                es.created_at
+            FROM employee_shifts es
+            JOIN shifts s ON es.shift_id = s.id
+            JOIN employees e ON es.employee_id = e.id
+            WHERE e.workspace_id = $1
+
+            UNION ALL
+
+            -- Roster Assignments
+            SELECT 
+                sr.id,
+                sr.employee_id,
+                'roster' as assignment_type,
+                CASE WHEN sr.shift_id IS NULL THEN 'OFF' ELSE s.name END as shift_name,
+                TO_CHAR(sr.date, 'YYYY-MM-DD') as date_range,
+                sr.created_at
+            FROM shift_rosters sr
+            LEFT JOIN shifts s ON sr.shift_id = s.id
+            JOIN employees e ON sr.employee_id = e.id
+            WHERE e.workspace_id = $1
+        ) as history
+        ORDER BY created_at DESC
+        LIMIT $2
+        "#
+    )
+    .bind(workspace_id)
+    .bind(limit)
+    .fetch_all(pool)
+    .await
+}
 
 pub async fn get_employee_rosters(
     pool: &PgPool,

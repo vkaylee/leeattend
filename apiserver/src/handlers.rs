@@ -1766,6 +1766,52 @@ pub async fn assign_shift(
 
 // --- Roster Handlers ---
 
+pub async fn get_workspace_schedules(
+    State(state): State<AppState>,
+    Path(workspace_id): Path<Uuid>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Json<Vec<crate::models::EmployeeSchedule>>, StatusCode> {
+    let start_date = params.get("start_date")
+        .and_then(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
+        .ok_or(StatusCode::BAD_REQUEST)?;
+    
+    let end_date = params.get("end_date")
+        .and_then(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
+        .ok_or(StatusCode::BAD_REQUEST)?;
+
+    let schedules = crate::repositories::roster_repository::get_workspace_schedules(
+        &state.db,
+        workspace_id,
+        start_date,
+        end_date
+    )
+    .await
+    .map_err(|e| {
+        error!("Failed to get workspace schedules: {:?}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(Json(schedules))
+}
+
+pub async fn get_assignment_history(
+    State(state): State<AppState>,
+    Path(workspace_id): Path<Uuid>,
+) -> Result<Json<Vec<crate::models::AssignmentHistory>>, StatusCode> {
+    let history = crate::repositories::roster_repository::get_assignment_history(
+        &state.db,
+        workspace_id,
+        50 // Limit to last 50 entries
+    )
+    .await
+    .map_err(|e| {
+        error!("Failed to get assignment history: {:?}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(Json(history))
+}
+
 pub async fn get_employee_rosters(
     State(state): State<Arc<AppState>>,
 

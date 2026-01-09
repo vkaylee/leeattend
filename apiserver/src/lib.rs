@@ -286,11 +286,23 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(handlers::get_shifts).post(handlers::create_shift),
         )
         .route("/workspaces/:ws_id/shifts/assign", post(handlers::assign_shift))
-        // Rosters
+    // Rosters
+    let roster_routes = Router::new()
+        .route(
+            "/workspaces/:id/schedules",
+            get(handlers::get_workspace_schedules),
+        )
+        .route(
+            "/workspaces/:id/assignment-history",
+            get(handlers::get_assignment_history),
+        )
         .route(
             "/employees/:id/rosters",
             get(handlers::get_employee_rosters).post(handlers::upsert_roster),
-        )
+        );
+
+    let app = Router::new()
+
         .layer(cors)
         .with_state(state)
 }

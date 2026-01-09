@@ -487,3 +487,34 @@ pub struct TransferEmployeeRequest {
     pub effective_date: NaiveDate,
     pub notes: Option<String>,
 }
+
+// --- Schedule & Roster Models ---
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EffectiveSchedule {
+    pub date: NaiveDate,
+    pub shift_id: Option<Uuid>, // None means Day Off
+    pub source: String,         // "roster", "fixed", "department", "none"
+    pub shift_name: Option<String>,
+    pub start_time: Option<chrono::NaiveTime>,
+    pub end_time: Option<chrono::NaiveTime>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EmployeeSchedule {
+    pub employee_id: Uuid,
+    pub first_name: String,
+    pub last_name: String,
+    pub schedules: Vec<EffectiveSchedule>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+pub struct AssignmentHistory {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub employee_name: String,
+    pub assignment_type: String, // "roster", "fixed"
+    pub shift_name: Option<String>,
+    pub date_range: String,      // "2023-01-01" or "2023-01-01 -> 2023-02-01"
+    pub created_at: DateTime<Utc>,
+}

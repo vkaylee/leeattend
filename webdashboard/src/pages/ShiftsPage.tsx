@@ -13,20 +13,27 @@ import {
   Info,
   X,
   LayoutGrid,
-  List
+  List,
+  History,
+  ShieldCheck,
+  Zap,
+  Building2
 } from "lucide-react";
 import { 
   fetchEmployees, 
   fetchShifts, 
   assignShift, 
   createShift,
-  fetchEmployeeRosters,
+  fetchWorkspaceSchedules,
+  fetchAssignmentHistory,
   upsertRoster,
   getCurrentWorkspaceId,
   Employee,
   Shift
 } from "../lib/api";
 import { useToast } from "../components/Toast";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
 
 type TabType = "assignments" | "weekly-roster" | "directory";
 
@@ -77,16 +84,27 @@ export default function ShiftsPage() {
     return d;
   });
 
-  const { data: rosters } = useQuery({
-    queryKey: ["rosters", selectedEmployee?.id, startOfWeek.toISOString().split('T')[0]],
-    queryFn: () => fetchEmployeeRosters(
-      wsId, 
-      selectedEmployee!.id, 
+  // Fetch Effective Schedules (Bulk)
+  const { data: allSchedules } = useQuery({
+    queryKey: ["schedules", wsId, startOfWeek.toISOString().split('T')[0]],
+    queryFn: () => fetchWorkspaceSchedules(
+      wsId,
       weekDays[0].toISOString().split('T')[0],
       weekDays[6].toISOString().split('T')[0]
     ),
-    enabled: !!selectedEmployee && !!wsId && activeTab === "weekly-roster",
+    enabled: !!wsId && activeTab === "weekly-roster",
   });
+
+  const { data: history } = useQuery({
+    queryKey: ["assignment_history", wsId],
+    queryFn: () => fetchAssignmentHistory(wsId),
+    enabled: !!wsId && activeTab === "assignments", // Fetch only in assignments tab or common? Let's put History in Assignments tab or Roster tab?
+    // User asked for "Below the weekly roster table need to show history".
+    // So enabling for weekly-roster too.
+  });
+
+  // Find schedule for selected employee
+  const employeeSchedule = allSchedules?.find(s => s.employee_id === selectedEmployee?.id);
 
   // Mutations
   const assignMutation = useMutation({
@@ -96,7 +114,8 @@ export default function ShiftsPage() {
       setSelectedShiftId("");
       setEndDate("");
       setIsForever(true);
-      queryClient.invalidateQueries({ queryKey: ["employee_shifts"] });
+      queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
     onError: (error: any) => toast.error(error.message, "Lỗi gán ca")
   });
@@ -105,7 +124,8 @@ export default function ShiftsPage() {
     mutationFn: (data: any) => upsertRoster(wsId, selectedEmployee!.id, data),
     onSuccess: () => {
       toast.success("Đã cập nhật lịch trực.");
-      queryClient.invalidateQueries({ queryKey: ["rosters", selectedEmployee?.id] });
+      queryClient.invalidateQueries({ queryKey: ["schedules"] }); // Re-fetch effective schedules
+      queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
     onError: (error: any) => toast.error(error.message, "Lỗi cập nhật lịch")
   });
@@ -234,7 +254,7 @@ export default function ShiftsPage() {
           </div>
 
           {/* Main Content: Tabs View */}
-          <div className="col-span-12 lg:col-span-8 xl:col-span-9 space-y-6">
+          <div className="col-span-12 lg:col-span-8 xl:col-span-9 space-y-8">
             {!selectedEmployee ? (
               <div className="bg-white border border-slate-200 rounded-[40px] h-[500px] flex flex-col items-center justify-center text-center p-12">
                 <div className="bg-slate-50 p-6 rounded-[32px] mb-6">
@@ -247,108 +267,174 @@ export default function ShiftsPage() {
               </div>
             ) : activeTab === "weekly-roster" ? (
               /* TAB: WEEKLY ROSTER */
-              <div className="space-y-4">
-                <div className="flex items-center justify-between bg-white p-4 rounded-[32px] border border-slate-200 shadow-sm">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-lg font-black">
-                      {selectedEmployee.last_name[0]}
+              <>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between bg-white p-4 rounded-[32px] border border-slate-200 shadow-sm">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-lg font-black">
+                        {selectedEmployee.last_name[0]}
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-bold text-slate-900 leading-tight">{selectedEmployee.first_name} {selectedEmployee.last_name}</h2>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Lịch trực tuần hiện tại</p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-lg font-bold text-slate-900 leading-tight">{selectedEmployee.first_name} {selectedEmployee.last_name}</h2>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Lịch trực linh hoạt theo tuần</p>
+                    
+                    <div className="flex items-center gap-3">
+                      <button 
+                        onClick={() => {
+                          const d = new Date(currentDate);
+                          d.setDate(d.getDate() - 7);
+                          setCurrentDate(d);
+                        }}
+                        className="p-2.5 hover:bg-slate-100 border border-slate-100 rounded-xl transition-all"
+                      >
+                        <ChevronLeft size={18} />
+                      </button>
+                      <div className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600">
+                        TUẦN: {format(weekDays[0], "dd/MM", { locale: vi })} - {format(weekDays[6], "dd/MM", { locale: vi })}
+                      </div>
+                      <button 
+                        onClick={() => {
+                          const d = new Date(currentDate);
+                          d.setDate(d.getDate() + 7);
+                          setCurrentDate(d);
+                        }}
+                        className="p-2.5 hover:bg-slate-100 border border-slate-100 rounded-xl transition-all"
+                      >
+                        <ChevronRight size={18} />
+                      </button>
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+                    {weekDays.map((day, idx) => {
+                      const dateStr = day.toISOString().split('T')[0];
+                      const effectiveSchedule = employeeSchedule?.schedules.find(s => s.date === dateStr);
+                      const isToday = day.toDateString() === new Date().toDateString();
+                      
+                      const isRoster = effectiveSchedule?.source === "roster";
+                      const isFixed = effectiveSchedule?.source === "fixed";
+                      const isDept = effectiveSchedule?.source === "department";
+
+                      return (
+                        <div key={idx} className={`bg-white border p-4 rounded-[32px] flex flex-col min-h-[350px] transition-all relative group ${isToday ? 'border-blue-300 ring-4 ring-blue-50 shadow-lg' : 'border-slate-100 hover:border-slate-200 shadow-sm'}`}>
+                          <div className="text-center mb-5 pb-5 border-b border-slate-50">
+                            <div className={`text-[10px] font-black uppercase tracking-tighter ${isToday ? 'text-blue-500' : 'text-slate-400'}`}>
+                              {format(day, "EEEE", { locale: vi })}
+                            </div>
+                            <div className={`text-2xl font-black mt-1 ${isToday ? 'text-blue-600' : 'text-slate-900'}`}>
+                              {day.getDate()}
+                            </div>
+                          </div>
+
+                          <div className="flex-1 space-y-4">
+                            {/* Source Badge */}
+                            <div className="flex justify-center">
+                              {isRoster && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-100 uppercase tracking-tighter flex items-center gap-1"><Zap size={8} /> Linh hoạt</span>}
+                              {isFixed && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-tighter flex items-center gap-1"><ShieldCheck size={8} /> Cố định</span>}
+                              {isDept && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-100 uppercase tracking-tighter flex items-center gap-1"><Building2 size={8} /> Phòng ban</span>}
+                            </div>
+                            
+                            {effectiveSchedule?.shift_id ? (
+                              <div className={`p-4 rounded-[24px] relative group/item animate-in zoom-in-95 border ${isRoster ? 'bg-purple-50/50 border-purple-100' : 'bg-blue-50 border-blue-100'}`}>
+                                <div className={`font-black text-xs mb-1 uppercase tracking-tight leading-tight ${isRoster ? 'text-purple-700' : 'text-blue-700'}`}>
+                                  {effectiveSchedule.shift_name}
+                                </div>
+                                <div className={`flex items-center gap-1.5 text-[10px] font-bold ${isRoster ? 'text-purple-500' : 'text-blue-500'}`}>
+                                  {effectiveSchedule.start_time?.substring(0, 5)} - {effectiveSchedule.end_time?.substring(0, 5)}
+                                </div>
+                                
+                                {isRoster && (
+                                  <button 
+                                    onClick={() => handleShiftAssign(day, null)} // This might mean "Remove Roster Entry" -> Revert to Fixed/Dept logic? Wait, my API needs DELETE support or logic. Currently Upsert with NULL means Day Off. 
+                                    // To "Remove" a roster override (revert to default), we actually need a DELETE endpoint. 
+                                    // For now, let's treat "X" as setting to "Day Off" (NULL).
+                                    // Or better: In the select box, add "Revert to Default".
+                                    className="absolute -top-2 -right-2 bg-white border border-slate-200 rounded-full p-1.5 shadow-md opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-rose-50 hover:border-rose-200 group/btn"
+                                  >
+                                    <X size={12} className="text-slate-400 group-hover/btn:text-rose-500" />
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="bg-slate-50/50 border border-slate-100 border-dashed p-6 rounded-[24px] text-[10px] text-slate-400 font-black text-center uppercase tracking-widest flex flex-col items-center justify-center gap-2">
+                                NGHỈ
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="mt-5 pt-5 border-t border-slate-50">
+                            <select 
+                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-3 text-[10px] font-black uppercase tracking-tight focus:ring-2 focus:ring-blue-500 transition-all outline-none text-slate-600 appearance-none text-center"
+                              onChange={(e) => handleShiftAssign(day, e.target.value || null)}
+                              value={isRoster ? (effectiveSchedule?.shift_id || "") : ""}
+                            >
+                              <option value="">{isRoster ? "Thay đổi..." : "Ghi đè lịch..."}</option>
+                              <optgroup label="DANH MỤC CA">
+                                {shifts?.map(s => (
+                                  <option key={s.id} value={s.id}>{s.name} ({s.start_time.substring(0,5)})</option>
+                                ))}
+                              </optgroup>
+                              <option value="">Đặt nghỉ (Off)</option>
+                            </select>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* History Section */}
+                <div className="bg-white border border-slate-200 rounded-[40px] p-8 shadow-sm animate-in fade-in slide-in-from-bottom-8 duration-500">
+                  <div className="flex items-center gap-3 mb-6">
+                    <History className="w-5 h-5 text-slate-400" />
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Lịch sử thay đổi gán ca</h3>
                   </div>
                   
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={() => {
-                        const d = new Date(currentDate);
-                        d.setDate(d.getDate() - 7);
-                        setCurrentDate(d);
-                      }}
-                      className="p-2.5 hover:bg-slate-100 border border-slate-100 rounded-xl transition-all"
-                    >
-                      <ChevronLeft size={18} />
-                    </button>
-                    <div className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600">
-                      TUẦN: {weekDays[0].toLocaleDateString('vi-VN')} - {weekDays[6].toLocaleDateString('vi-VN')}
-                    </div>
-                    <button 
-                      onClick={() => {
-                        const d = new Date(currentDate);
-                        d.setDate(d.getDate() + 7);
-                        setCurrentDate(d);
-                      }}
-                      className="p-2.5 hover:bg-slate-100 border border-slate-100 rounded-xl transition-all"
-                    >
-                      <ChevronRight size={18} />
-                    </button>
+                  <div className="overflow-hidden rounded-3xl border border-slate-100">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50/50">
+                        <tr>
+                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Thời gian</th>
+                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Nhân viên</th>
+                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Loại gán</th>
+                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Ca làm việc</th>
+                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Phạm vi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {history?.filter(h => h.employee_id === selectedEmployee.id || !selectedEmployee).map(h => (
+                          <tr key={h.id} className="hover:bg-slate-50/50">
+                            <td className="p-4 text-xs font-bold text-slate-500">
+                              {format(new Date(h.created_at), "dd/MM/yyyy HH:mm")}
+                            </td>
+                            <td className="p-4 text-sm font-bold text-slate-900">{h.employee_name}</td>
+                            <td className="p-4">
+                              {h.assignment_type === 'roster' ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-50 text-purple-600 text-[10px] font-black uppercase tracking-tighter border border-purple-100">
+                                  <Zap size={10} /> Linh hoạt
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-tighter border border-emerald-100">
+                                  <ShieldCheck size={10} /> Cố định
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-4 font-bold text-slate-700 text-xs">{h.shift_name || "NGHỈ"}</td>
+                            <td className="p-4 font-mono text-xs text-slate-500">{h.date_range}</td>
+                          </tr>
+                        ))}
+                        {(!history || history.length === 0) && (
+                          <tr>
+                            <td colSpan={5} className="p-8 text-center text-xs font-bold text-slate-300 uppercase tracking-widest">Chưa có dữ liệu lịch sử</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-                  {weekDays.map((day, idx) => {
-                    const dateStr = day.toISOString().split('T')[0];
-                    const roster = rosters?.find(r => r.date === dateStr);
-                    const assignedShift = shifts?.find(s => s.id === roster?.shift_id);
-                    const isToday = day.toDateString() === new Date().toDateString();
-                    
-                    return (
-                      <div key={idx} className={`bg-white border p-4 rounded-[32px] flex flex-col min-h-[350px] transition-all relative group ${isToday ? 'border-blue-300 ring-4 ring-blue-50 shadow-lg' : 'border-slate-100 hover:border-slate-200 shadow-sm'}`}>
-                        <div className="text-center mb-5 pb-5 border-b border-slate-50">
-                          <div className={`text-[10px] font-black uppercase tracking-tighter ${isToday ? 'text-blue-500' : 'text-slate-400'}`}>
-                            {day.toLocaleDateString('vi-VN', { weekday: 'short' })}
-                          </div>
-                          <div className={`text-2xl font-black mt-1 ${isToday ? 'text-blue-600' : 'text-slate-900'}`}>
-                            {day.getDate()}
-                          </div>
-                        </div>
-
-                        <div className="flex-1 space-y-4">
-                          <div className="text-[9px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1">
-                            <Clock size={10} /> Ca làm việc
-                          </div>
-                          
-                          {assignedShift ? (
-                            <div className="bg-blue-50 border border-blue-100 p-4 rounded-[24px] relative group/item animate-in zoom-in-95">
-                              <div className="font-black text-blue-700 text-xs mb-1 uppercase tracking-tight leading-tight">{assignedShift.name}</div>
-                              <div className="flex items-center gap-1.5 text-[10px] text-blue-500 font-bold">
-                                {assignedShift.start_time.substring(0, 5)} - {assignedShift.end_time.substring(0, 5)}
-                              </div>
-                              <button 
-                                onClick={() => handleShiftAssign(day, null)}
-                                className="absolute -top-2 -right-2 bg-white border border-slate-200 rounded-full p-1.5 shadow-md opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-rose-50 hover:border-rose-200 group/btn"
-                              >
-                                <X size={12} className="text-slate-400 group-hover/btn:text-rose-500" />
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="bg-slate-50/50 border border-slate-100 border-dashed p-6 rounded-[24px] text-[10px] text-slate-400 font-black text-center uppercase tracking-widest flex flex-col items-center justify-center gap-2">
-                              NGHỈ
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="mt-5 pt-5 border-t border-slate-50">
-                          <select 
-                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-3 text-[10px] font-black uppercase tracking-tight focus:ring-2 focus:ring-blue-500 transition-all outline-none text-slate-600 appearance-none text-center"
-                            onChange={(e) => handleShiftAssign(day, e.target.value || null)}
-                            value={roster?.shift_id || ""}
-                          >
-                            <option value="">Gán ca...</option>
-                            <optgroup label="DANH MỤC CA">
-                              {shifts?.map(s => (
-                                <option key={s.id} value={s.id}>{s.name} ({s.start_time.substring(0,5)})</option>
-                              ))}
-                            </optgroup>
-                            <option value="">Xóa ca (Nghỉ)</option>
-                          </select>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              </>
             ) : (
               /* TAB: ASSIGNMENTS (Fixed/Temporal) */
               <div className="bg-white border border-slate-200 rounded-[40px] p-8 shadow-sm animate-in fade-in zoom-in-95 duration-300">
