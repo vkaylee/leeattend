@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import AgentsPage from "../AgentsPage";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ToastProvider } from "../../components/Toast";
 
 // Mock the hook
 vi.mock("@/hooks/use-agents", () => ({
@@ -34,9 +35,11 @@ describe("AgentsPage Smoke Test", () => {
   it("renders without crashing", () => {
     render(
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AgentsPage />
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            <AgentsPage />
+          </BrowserRouter>
+        </ToastProvider>
       </QueryClientProvider>
     );
 
@@ -51,9 +54,11 @@ describe("AgentsPage Smoke Test", () => {
   it("shows empty state when no agents are present", () => {
     render(
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AgentsPage />
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            <AgentsPage />
+          </BrowserRouter>
+        </ToastProvider>
       </QueryClientProvider>
     );
 

@@ -12,7 +12,9 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 - **Flexible Payroll Logic**: 
     - Refactored `PayrollService` to group entries by local date (ICT/UTC+7).
     - Prioritizes explicit break punches over auto-deduction logic when calculating daily work hours.
+    - **Configurable Work Units**: Added support for 15m, 30m, and 60m work blocks with customizable rounding policies (`Floor`, `Ceil`, `Round`).
 - **Shift Versioning (Backend)**: Automatically tracks changes to shift configurations using `version_id` to ensure historical payroll calculations remain accurate.
+- **Workspace Settings UI**: Integrated configuration panel for payroll rounding and unit settings.
 
 ### Changed
 - **Payroll Service**: Switched from UTC-based grouping to Local-date grouping for better compliance with business workday definitions.

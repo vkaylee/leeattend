@@ -13,7 +13,10 @@ async fn setup_test_db() -> PgPool {
         .expect("Failed to connect to Postgres")
 }
 
+use serial_test::serial;
+
 #[tokio::test]
+#[serial]
 async fn test_temporal_shift_overriding_logic() {
     let pool = setup_test_db().await;
     let factory = TestFactory::new(pool.clone());

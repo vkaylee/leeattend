@@ -60,47 +60,49 @@ Lấy danh sách tất cả người dùng trong hệ thống (phục vụ giả
 
 ---
 
-### 2. Workspace Management
+### 1. Workspaces
 
-Tất cả các endpoint quản lý tài nguyên (Agents, Devices) đều yêu cầu header `X-Workspace-Id` và `X-User-Id`.
+Quản lý không gian làm việc và cấu hình hệ thống.
+
+#### Workspace Model
+```json
+{
+  "id": "uuid",
+  "name": "string",
+  "work_unit_minutes": 30, // 1, 15, 30, 60
+  "rounding_policy": "floor", // none, floor, ceil, round
+  "created_at": "datetime"
+}
+```
 
 #### GET /workspaces
-Lấy danh sách các workspace mà người dùng hiện tại là thành viên.
-- **Headers**: `X-User-Id`
+Lấy danh sách các workspace mà người dùng là thành viên.
 - **Response (200)**: `Array<Workspace>`
 
+#### GET /workspaces/:ws_id
+Lấy thông tin chi tiết của một workspace cụ thể.
+- **Response (200)**: `Workspace`
+
 #### POST /workspaces
-Tạo một workspace mới. Người tạo sẽ tự động trở thành `owner`.
-- **Headers**: `X-User-Id`
-- **Request**: `{ "name": "Tên Công Ty" }`
-- **Response (201)**: `Workspace` object
+Tạo mới một workspace (Người tạo sẽ trở thành `owner`).
+- **Request**: `{ "name": "..." }`
+- **Response (201)**: `Workspace`
 
-#### GET /workspaces/:id/members
-Lấy danh sách thành viên của workspace. Yêu cầu người dùng là thành viên.
-- **Headers**: `X-User-Id`, `X-Workspace-Id`
-- **Response (200)**: `Array<WorkspaceMember>`
-
-#### POST /workspaces/:id/members
-Mời thành viên vào workspace. 
-- **Quyền hạn**: Chỉ `owner` hoặc `admin` mới có thể mời.
-- **Headers**: `X-User-Id`, `X-Workspace-Id`
-- **Request**: `{ "email": "user@example.com", "role": "admin|member" }`
-- **Response (201)**: Created
-
-#### PATCH /workspaces/:id/members/:user_id
-Cập nhật vai trò (Primary Role) của thành viên.
-- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
-- **Request**: `{ "role": "admin|member" }`
-- **Response (200 OK)**
-
-#### DELETE /workspaces/:id/members/:user_id
-Xóa thành viên khỏi workspace.
-- **Quyền hạn**: Chỉ `owner` hoặc `admin`. Không thể tự xóa chính mình.
-- **Response (204)**: No Content
+#### PATCH /workspaces/:ws_id
+Cập nhật thông tin hoặc cấu hình tính công của workspace.
+- **Request**: 
+  ```json
+  { 
+    "name": "Tên mới", 
+    "work_unit_minutes": 30, 
+    "rounding_policy": "floor" 
+  }
+  ```
+- **Response (200)**: `Workspace` (updated)
 
 ---
 
-### 3. Member Roles (Temporal RBAC) (New)
+### 2. Workspace Members
 
 Hệ thống cho phép gán thêm các Role phụ có thời hạn cho thành viên.
 

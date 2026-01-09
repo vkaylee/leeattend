@@ -52,6 +52,16 @@ Hệ thống hỗ trợ phân tách dữ liệu hoàn toàn giữa các tổ ch�
   - `Member`: Quyền xem dữ liệu và tương tác cơ bản.
 - **Handshake Verification**: Khi Agent kết nối WebSocket, Server tự động xác định Workspace tương ứng từ `agent_id` và thực thi cách ly luồng dữ liệu ngay tại tầng kết nối.
 
+### 8. Payroll Engine & Rounding Logic
+Hệ thống tính toán lương và công (Payroll Engine) được thiết kế theo mô hình **Configurable Business Rules**:
+- **Daily Unit Aggregation**: Thay vì tính toán trực tiếp từ tổng phút làm việc trong tháng, hệ thống gom dữ liệu (work/break) theo từng ngày (Local Date ICT). 
+- **Rounding Helper**: Áp dụng quy tắc làm tròn (`RoundingPolicy`) trên từng đơn vị thời gian cấu hình (`work_unit_minutes`):
+  - `None`: Giữ nguyên số phút thực tế.
+  - `Floor`: Chỉ tính các block thời gian đã hoàn thành (ví dụ: làm 55p với block 30p -> tính 30p).
+  - `Ceil`: Làm tròn lên block tiếp theo nếu có phát sinh (ví dụ: làm 10p với block 30p -> tính 30p).
+  - `Round`: Làm tròn tới block gần nhất.
+- **Historical Integrity (Shift Versioning)**: Mọi thay đổi về cấu hình ca làm việc (Shift) đều tạo ra một bản ghi mới với `version_id`. Khi tính lương cho quá khứ, hệ thống sử dụng phiên bản Shift có hiệu lực tại thời điểm đó, đảm bảo kết quả không thay đổi khi Admin cập nhật quy định mới.
+
 ## Infrastructure Diagram
 ```ascii
 [ Web Dashboard ] <--- REST API ---> [ API Server ] <--- WebSocket (Outbound Only) ---> [ Agent (Rust) ] <--- JSON-RPC (TCP) ---> [ ZK Worker (Python) ] <---> [ ZKTeco Devices ]
