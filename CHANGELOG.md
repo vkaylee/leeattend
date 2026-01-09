@@ -5,21 +5,18 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
-- **Debug Login**: Implemented "Debug Login" button on the login page for rapid development onboarding (available only in debug mode).
-- **Regression Testing**: Added a comprehensive Playwright test suite for the Login flow and Dashboard stability.
-- **Leave Balance Management**: System now tracks employee leave entitlements and balances directly in the database.
-- **Leave Balance API**: New endpoint `GET /api/workspaces/:ws_id/employees/:id/leave/balances` to fetch leave quota details.
-- **Robust Port File Guard**: Enhanced `PortFileGuard` ensures the `.api_port` file is reliably deleted even during server crashes or panics.
+- **Fixed Break Support**: Shifts can now be configured with specific `break_start` and `break_end` times (Fixed Breaks) in addition to duration-based breaks (Flexible Breaks).
+- **Auto-deduct Logic**: Added `is_break_auto_deduct` flag to control automatic break time subtraction.
+- **Frontend UI Improvements**: 
+    - Toggle between Fixed/Flexible break modes.
+    - Restricted time inputs to HH:mm format (removing seconds).
+    - Integrated break windows into Shift Directory and Weekly Roster views.
+- **Integration Tests**: Added tests for Shift break configurations in `apiserver/tests/shift_break_config_tests.rs`.
 
 ### Changed
-- **Test Infrastructure**: Updated all integration tests to correctly use the `/api` prefix for endpoints.
-- **Shift Assignment**: Corrected `TestFactory` to align with `employee_shifts` schema (using `start_date` instead of `effective_date`).
-- **Unit Tests**: Enabled payroll unit tests by ensuring correct environment variable loading.
+- Refactored `Shift` and `EffectiveSchedule` models to support hybrid break configurations.
+- Updated `ShiftRepository` and `RosterRepository` to handle new database fields.
 
-### Fixed
-- **Fix:** Resolved "Schedules" SQL error by updating `roster_repository.rs` to select `workspace_id` explicitly.
-- **Fix:** Enforced unique constraint on Fixed Shift Assignments `(employee_id, start_date)` to prevent ambiguous schedules.
-- **Test:** Added integration tests for Fixed Shift Assignment uniqueness.
 
 ## [Unreleased] - 2026-01-09
 

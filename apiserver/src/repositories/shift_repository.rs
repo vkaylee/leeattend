@@ -11,19 +11,25 @@ pub async fn create_shift(
     start_time: NaiveTime,
     end_time: NaiveTime,
     break_duration_minutes: i32,
+    break_start: Option<NaiveTime>,
+    break_end: Option<NaiveTime>,
+    is_break_auto_deduct: bool,
     break_is_overtime: bool,
     early_punch_in_grace_period_minutes: i32,
 ) -> Result<Shift, sqlx::Error> {
     query_as!(
         Shift,
-        r#"INSERT INTO shifts (workspace_id, name, start_time, end_time, break_duration_minutes, break_is_overtime, early_punch_in_grace_period_minutes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         RETURNING id, workspace_id, name, start_time, end_time, break_duration_minutes, break_is_overtime, early_punch_in_grace_period_minutes, created_at as "created_at!", updated_at as "updated_at!""#,
+        r#"INSERT INTO shifts (workspace_id, name, start_time, end_time, break_duration_minutes, break_start, break_end, is_break_auto_deduct, break_is_overtime, early_punch_in_grace_period_minutes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         RETURNING id, workspace_id, name, start_time, end_time, break_duration_minutes, break_start, break_end, is_break_auto_deduct, break_is_overtime, early_punch_in_grace_period_minutes, created_at as "created_at!", updated_at as "updated_at!""#,
         workspace_id,
         name,
         start_time,
         end_time,
         break_duration_minutes,
+        break_start,
+        break_end,
+        is_break_auto_deduct,
         break_is_overtime,
         early_punch_in_grace_period_minutes
     )
@@ -37,7 +43,7 @@ pub async fn get_workspace_shifts(
 ) -> Result<Vec<Shift>, sqlx::Error> {
     query_as!(
         Shift,
-        r#"SELECT id, workspace_id, name, start_time, end_time, break_duration_minutes, break_is_overtime, early_punch_in_grace_period_minutes, created_at as "created_at!", updated_at as "updated_at!" FROM shifts WHERE workspace_id = $1 ORDER BY name"#,
+        r#"SELECT id, workspace_id, name, start_time, end_time, break_duration_minutes, break_start, break_end, is_break_auto_deduct, break_is_overtime, early_punch_in_grace_period_minutes, created_at as "created_at!", updated_at as "updated_at!" FROM shifts WHERE workspace_id = $1 ORDER BY name"#,
         workspace_id
     )
     .fetch_all(pool)
@@ -71,7 +77,7 @@ pub async fn get_employee_active_shift(
 ) -> Result<Option<Shift>, sqlx::Error> {
     query_as!(
         Shift,
-        r#"SELECT s.id, s.workspace_id, s.name, s.start_time, s.end_time, s.break_duration_minutes, s.break_is_overtime, s.early_punch_in_grace_period_minutes, s.created_at as "created_at!", s.updated_at as "updated_at!"
+        r#"SELECT s.id, s.workspace_id, s.name, s.start_time, s.end_time, s.break_duration_minutes, s.break_start, s.break_end, s.is_break_auto_deduct, s.break_is_overtime, s.early_punch_in_grace_period_minutes, s.created_at as "created_at!", s.updated_at as "updated_at!"
          FROM shifts s
          JOIN employee_shifts es ON s.id = es.shift_id
          WHERE es.employee_id = $1 

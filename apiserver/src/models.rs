@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -407,6 +407,9 @@ pub struct Shift {
     pub start_time: chrono::NaiveTime,
     pub end_time: chrono::NaiveTime,
     pub break_duration_minutes: i32,
+    pub break_start: Option<chrono::NaiveTime>,
+    pub break_end: Option<chrono::NaiveTime>,
+    pub is_break_auto_deduct: bool,
     pub break_is_overtime: bool,
     pub early_punch_in_grace_period_minutes: i32,
     pub created_at: DateTime<Utc>,
@@ -419,8 +422,18 @@ pub struct CreateShiftRequest {
     pub start_time: chrono::NaiveTime,
     pub end_time: chrono::NaiveTime,
     pub break_duration_minutes: i32,
+    #[serde(default)]
+    pub break_start: Option<chrono::NaiveTime>,
+    #[serde(default)]
+    pub break_end: Option<chrono::NaiveTime>,
+    #[serde(default = "default_true")]
+    pub is_break_auto_deduct: bool,
     pub break_is_overtime: bool,
     pub early_punch_in_grace_period_minutes: i32,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
@@ -525,6 +538,10 @@ pub struct EffectiveSchedule {
     pub shift_name: Option<String>,
     pub start_time: Option<chrono::NaiveTime>,
     pub end_time: Option<chrono::NaiveTime>,
+    pub break_duration_minutes: Option<i32>,
+    pub break_start: Option<NaiveTime>,
+    pub break_end: Option<NaiveTime>,
+    pub is_break_auto_deduct: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

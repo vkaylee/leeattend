@@ -21,14 +21,14 @@ pub async fn get_workspace_schedules(
     .await?;
 
     // 2. Fetch all shifts (for details)
-    let shifts_map: HashMap<Uuid, (String, chrono::NaiveTime, chrono::NaiveTime)> = sqlx::query!(
-        "SELECT id, name, start_time, end_time FROM shifts WHERE workspace_id = $1",
+    let shifts_map: HashMap<Uuid, (String, chrono::NaiveTime, chrono::NaiveTime, i32, Option<chrono::NaiveTime>, Option<chrono::NaiveTime>, bool)> = sqlx::query!(
+        "SELECT id, name, start_time, end_time, break_duration_minutes, break_start, break_end, is_break_auto_deduct FROM shifts WHERE workspace_id = $1",
         workspace_id
     )
     .fetch_all(pool)
     .await?
     .into_iter()
-    .map(|s| (s.id, (s.name, s.start_time, s.end_time)))
+    .map(|s| (s.id, (s.name, s.start_time, s.end_time, s.break_duration_minutes, s.break_start, s.break_end, s.is_break_auto_deduct)))
     .collect();
 
     // 3. Fetch Rosters in range
@@ -125,13 +125,21 @@ pub async fn get_workspace_schedules(
                 shift_name: None,
                 start_time: None,
                 end_time: None,
+                break_duration_minutes: None,
+                break_start: None,
+                break_end: None,
+                is_break_auto_deduct: None,
             };
 
             if let Some(sid) = effective_shift_id {
-                if let Some((name, start, end)) = shifts_map.get(&sid) {
+                if let Some((name, start, end, duration, b_start, b_end, auto_deduct)) = shifts_map.get(&sid) {
                     sched.shift_name = Some(name.clone());
                     sched.start_time = Some(*start);
                     sched.end_time = Some(*end);
+                    sched.break_duration_minutes = Some(*duration);
+                    sched.break_start = *b_start;
+                    sched.break_end = *b_end;
+                    sched.is_break_auto_deduct = Some(*auto_deduct);
                 }
             }
 

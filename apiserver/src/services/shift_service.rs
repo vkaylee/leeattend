@@ -16,6 +16,9 @@ impl ShiftService {
         start_time: NaiveTime,
         end_time: NaiveTime,
         break_duration_minutes: i32,
+        break_start: Option<NaiveTime>,
+        break_end: Option<NaiveTime>,
+        is_break_auto_deduct: bool,
         break_is_overtime: bool,
         early_punch_in_grace_period_minutes: i32,
     ) -> Result<Shift, StatusCode> {
@@ -26,6 +29,9 @@ impl ShiftService {
             start_time,
             end_time,
             break_duration_minutes,
+            break_start,
+            break_end,
+            is_break_auto_deduct,
             break_is_overtime,
             early_punch_in_grace_period_minutes,
         )

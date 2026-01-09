@@ -336,50 +336,46 @@ Lấy danh sách các ca làm việc đã định nghĩa.
 
 #### POST /workspaces/:ws_id/shifts
 
-Tạo mới một loại ca làm việc.
+Tạo mới một loại ca làm việc. Hệ thống hỗ trợ 2 loại nghỉ trưa: **Cố định** (Fixed) và **Linh hoạt** (Flexible).
 
 **Body:**
 ```json
 {
-  "name": "Ca sáng",
+  "name": "Ca hành chính",
   "start_time": "08:00:00",
   "end_time": "17:00:00",
   "break_duration_minutes": 60,
+  "break_start": "12:00:00", // Bắt buộc nếu là ca cố định, null nếu linh hoạt
+  "break_end": "13:00:00",   // Bắt buộc nếu là ca cố định, null nếu linh hoạt
+  "is_break_auto_deduct": true, // Tự động trừ giờ nghỉ khi tính công
   "break_is_overtime": false,
   "early_punch_in_grace_period_minutes": 15
 }
 ```
 
-#### POST /workspaces/:ws_id/shifts/assign
-
-Gán ca làm việc cho nhân viên. Hỗ trợ ghi đè theo thời gian (Temporal Overriding).
-
-**Body:**
-```json
-{
-  "employee_id": "uuid",
-  "shift_id": "uuid",
-  "start_date": "2026-01-01",
-  "end_date": "2026-01-10" // null nếu áp dụng vĩnh viễn
-}
-```
-
-#### GET /workspaces/:ws_id/employees/:id/salary
-Lấy lịch sử lương của nhân viên (từ mới đến cũ).
-- **Response (200)**: `Array<SalaryHistory>`
-
-#### POST /workspaces/:ws_id/employees/:id/salary
-Cập nhật mức lương mới. Hệ thống sẽ lưu vết lịch sử thay vì ghi đè.
-- **Request**:
+#### GET /api/workspaces/:id/schedules
+Tính toán lịch biểu hiệu lực (Effective Schedule) cho tất cả nhân viên.
+- **Query Params**: `?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
+- **Response (200)**: 
   ```json
-  {
-    "base_salary": "15000000.00",
-    "salary_type": "monthly",
-    "currency": "VND",
-    "effective_date": "2026-02-01"
-  }
+  [
+    {
+      "employee_id": "uuid",
+      "schedules": [
+        {
+          "date": "2026-01-10",
+          "shift_name": "Ca hành chính",
+          "start_time": "08:00:00",
+          "end_time": "17:00:00",
+          "break_start": "12:00:00", // Trả về nếu có cấu hình
+          "break_end": "13:00:00",   // Trả về nếu có cấu hình
+          "break_duration_minutes": 60,
+          "is_break_auto_deduct": true
+        }
+      ]
+    }
+  ]
   ```
-- **Response (201)**: `SalaryHistory` object
 
 ---
 

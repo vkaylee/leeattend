@@ -61,6 +61,10 @@ export default function ShiftsPage() {
   const [newShiftStart, setNewShiftStart] = useState("08:00");
   const [newShiftEnd, setNewShiftEnd] = useState("17:00");
   const [newShiftBreak, setNewShiftBreak] = useState(60);
+  const [newBreakStart, setNewBreakStart] = useState("");
+  const [newBreakEnd, setNewBreakEnd] = useState("");
+  const [isFixedBreak, setIsFixedBreak] = useState(false);
+  const [isAutoDeduct, setIsAutoDeduct] = useState(true);
 
   // Queries
   const { data: employees } = useQuery({
@@ -139,6 +143,10 @@ export default function ShiftsPage() {
       setNewShiftStart("08:00");
       setNewShiftEnd("17:00");
       setNewShiftBreak(60);
+      setNewBreakStart("");
+      setNewBreakEnd("");
+      setIsFixedBreak(false);
+      setIsAutoDeduct(true);
       queryClient.invalidateQueries({ queryKey: ["shifts", wsId] });
     },
     onError: (error: any) => toast.error(error.message, "Lỗi tạo ca")
@@ -172,11 +180,29 @@ export default function ShiftsPage() {
       toast.warning("Tên ca và thời gian làm việc không được để trống.");
       return;
     }
+
+    if (isFixedBreak && (!newBreakStart || !newBreakEnd)) {
+      toast.warning("Vui lòng nhập giờ bắt đầu và kết thúc nghỉ trưa.");
+      return;
+    }
+    
+    // Calculate duration if fixed break is selected
+    let duration = newShiftBreak;
+    if (isFixedBreak && newBreakStart && newBreakEnd) {
+      const start = new Date(`2000-01-01T${newBreakStart}`);
+      const end = new Date(`2000-01-01T${newBreakEnd}`);
+      const diff = (end.getTime() - start.getTime()) / (1000 * 60);
+      if (diff > 0) duration = diff;
+    }
+
     createShiftMutation.mutate({
       name: newShiftName,
       start_time: newShiftStart + ":00",
       end_time: newShiftEnd + ":00",
-      break_duration_minutes: newShiftBreak,
+      break_duration_minutes: duration,
+      break_start: (isFixedBreak && newBreakStart) ? newBreakStart + ":00" : undefined,
+      break_end: (isFixedBreak && newBreakEnd) ? newBreakEnd + ":00" : undefined,
+      is_break_auto_deduct: isAutoDeduct,
       break_is_overtime: false,
       early_punch_in_grace_period_minutes: 0,
     });
@@ -344,6 +370,17 @@ export default function ShiftsPage() {
                                 <div className={`flex items-center gap-1.5 text-[10px] font-bold ${isRoster ? 'text-purple-500' : 'text-blue-500'}`}>
                                   {effectiveSchedule.start_time?.substring(0, 5)} - {effectiveSchedule.end_time?.substring(0, 5)}
                                 </div>
+
+                                {effectiveSchedule.break_duration_minutes !== null && (
+                                  <div className="mt-2 pt-2 border-t border-black/5 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-tighter text-slate-400">
+                                    <Clock size={8} /> 
+                                    {effectiveSchedule.break_start ? (
+                                      <span>Nghỉ: {effectiveSchedule.break_start.substring(0, 5)} - {effectiveSchedule.break_end?.substring(0, 5)}</span>
+                                    ) : (
+                                      <span>Nghỉ: {effectiveSchedule.break_duration_minutes}m</span>
+                                    )}
+                                  </div>
+                                )}
                                 
                                 {isRoster && (
                                   <button 
@@ -461,8 +498,18 @@ export default function ShiftsPage() {
                           className={`p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group ${selectedShiftId === shift.id ? 'border-blue-600 bg-blue-50/50' : 'border-slate-100 hover:border-slate-200 bg-slate-50/30'}`}
                         >
                           <div className={`font-black text-sm uppercase tracking-tight ${selectedShiftId === shift.id ? 'text-blue-700' : 'text-slate-700'}`}>{shift.name}</div>
-                          <div className="text-[10px] text-slate-400 font-bold mt-1.5 flex items-center gap-1">
-                            <Clock size={10} /> {shift.start_time.substring(0, 5)} - {shift.end_time.substring(0, 5)}
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
+                            <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                              <Clock size={10} /> {shift.start_time.substring(0, 5)} - {shift.end_time.substring(0, 5)}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                              <Info size={10} /> 
+                              {shift.break_start ? (
+                                <span>{shift.break_start.substring(0, 5)}-{shift.break_end?.substring(0, 5)}</span>
+                              ) : (
+                                <span>Nghỉ {shift.break_duration_minutes}p</span>
+                              )}
+                            </div>
                           </div>
                           {selectedShiftId === shift.id && (
                             <div className="absolute top-4 right-4 w-3 h-3 bg-blue-600 rounded-full animate-pulse" />
@@ -554,10 +601,25 @@ export default function ShiftsPage() {
                     </div>
                   </td>
                   <td className="px-8 py-6">
-                    <div className="flex items-center gap-2 font-bold text-sm text-slate-600">
-                      <Clock className="w-4 h-4 text-slate-300" />
-                      {shift.break_duration_minutes} phút
-                    </div>
+                    {shift.break_start && shift.break_end ? (
+                      <div>
+                        <div className="flex items-center gap-2 font-bold text-sm text-slate-700">
+                          <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-mono">{shift.break_start.substring(0, 5)}</span>
+                          <span className="text-slate-300">-</span>
+                          <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-mono">{shift.break_end.substring(0, 5)}</span>
+                        </div>
+                        {shift.is_break_auto_deduct && (
+                          <div className="text-[9px] font-black text-blue-500 uppercase tracking-tight mt-1 flex items-center gap-1">
+                            <Zap size={8} /> Auto-deduct
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 font-bold text-sm text-slate-600">
+                        <Clock className="w-4 h-4 text-slate-300" />
+                        {shift.break_duration_minutes} phút
+                      </div>
+                    )}
                   </td>
                   <td className="px-8 py-6 text-right">
                     <button className="p-3 bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all border border-transparent hover:border-rose-100 opacity-0 group-hover:opacity-100">
@@ -612,7 +674,8 @@ export default function ShiftsPage() {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Giờ vào</label>
                   <input 
                     type="time" 
-                    value={newShiftStart}
+                    step="60"
+                    value={newShiftStart?.substring(0, 5)}
                     onChange={(e) => setNewShiftStart(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                   />
@@ -621,27 +684,91 @@ export default function ShiftsPage() {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Giờ ra</label>
                   <input 
                     type="time" 
-                    value={newShiftEnd}
+                    step="60"
+                    value={newShiftEnd?.substring(0, 5)}
                     onChange={(e) => setNewShiftEnd(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                   />
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex justify-between">
-                  <span>Giải lao</span>
-                  <span className="text-blue-600 font-black tracking-tighter">{newShiftBreak} PHÚT</span>
-                </label>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="120" 
-                  step="15"
-                  value={newShiftBreak}
-                  onChange={(e) => setNewShiftBreak(parseInt(e.target.value))}
-                  className="w-full h-2 bg-slate-100 rounded-full appearance-none cursor-pointer accent-blue-600 shadow-inner"
-                />
+              <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Clock size={12} /> Cấu hình nghỉ giải lao
+                  </label>
+                  <div className="flex items-center gap-2 bg-slate-200/50 p-1 rounded-xl">
+                    <button 
+                      onClick={() => setIsFixedBreak(false)}
+                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all ${!isFixedBreak ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                      Linh hoạt
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setIsFixedBreak(true);
+                        if (!newBreakStart) setNewBreakStart("12:00");
+                        if (!newBreakEnd) setNewBreakEnd("13:00");
+                      }}
+                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all ${isFixedBreak ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                      Cố định
+                    </button>
+                  </div>
+                </div>
+
+                {isFixedBreak ? (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Bắt đầu nghỉ</label>
+                        <input 
+                          type="time" 
+                          step="60"
+                          value={newBreakStart?.substring(0, 5)}
+                          onChange={(e) => setNewBreakStart(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Kết thúc nghỉ</label>
+                        <input 
+                          type="time" 
+                          step="60"
+                          value={newBreakEnd?.substring(0, 5)}
+                          onChange={(e) => setNewBreakEnd(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                        />
+                      </div>
+                    </div>
+                    
+                    <label className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100 cursor-pointer group hover:border-blue-200 transition-all">
+                      <input 
+                        type="checkbox" 
+                        checked={isAutoDeduct}
+                        onChange={(e) => setIsAutoDeduct(e.target.checked)}
+                        className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-xs font-bold text-slate-600 group-hover:text-blue-600 transition-colors">Tự động trừ giờ nghỉ (Auto-deduct)</span>
+                    </label>
+                  </div>
+                ) : (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                     <div className="flex justify-between items-center px-1">
+                        <span className="text-xs font-bold text-slate-700">Thời lượng nghỉ</span>
+                        <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-lg text-[10px] font-black">{newShiftBreak} phút</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="120" 
+                        step="15"
+                        value={newShiftBreak}
+                        onChange={(e) => setNewShiftBreak(parseInt(e.target.value))}
+                        className="w-full h-2 bg-slate-200 rounded-full appearance-none cursor-pointer accent-blue-600"
+                      />
+                  </div>
+                )}
               </div>
 
               <button

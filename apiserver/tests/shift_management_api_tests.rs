@@ -57,6 +57,9 @@ async fn test_create_shift_api_flow() {
         "start_time": "08:00:00",
         "end_time": "17:00:00",
         "break_duration_minutes": 60,
+        "break_start": "12:00:00",
+        "break_end": "13:00:00",
+        "is_break_auto_deduct": true,
         "break_is_overtime": false,
         "early_punch_in_grace_period_minutes": 15
     });
@@ -99,8 +102,10 @@ async fn test_create_shift_api_flow() {
     assert!(shifts.as_array().unwrap().len() > 0);
     
     // Tìm shift vừa tạo trong danh sách
-    let created_shift = shifts.as_array().unwrap().iter().find(|s| s["name"] == "Test Shift API");
-    assert!(created_shift.is_some());
+    let created_shift = shifts.as_array().unwrap().iter().find(|s| s["name"] == "Test Shift API").unwrap();
+    assert_eq!(created_shift["break_start"], "12:00:00");
+    assert_eq!(created_shift["break_end"], "13:00:00");
+    assert_eq!(created_shift["is_break_auto_deduct"], true);
 
     factory.cleanup().await;
 }

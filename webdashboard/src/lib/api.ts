@@ -171,6 +171,9 @@ export interface Shift {
   start_time: string;
   end_time: string;
   break_duration_minutes: number;
+  break_start?: string;
+  break_end?: string;
+  is_break_auto_deduct?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -922,6 +925,10 @@ export interface EffectiveSchedule {
   shift_name: string | null;
   start_time: string | null;
   end_time: string | null;
+  break_duration_minutes: number | null;
+  break_start: string | null;
+  break_end: string | null;
+  is_break_auto_deduct: boolean | null;
 }
 
 export interface EmployeeSchedule {
