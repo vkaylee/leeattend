@@ -73,7 +73,6 @@ export default defineConfig(async ({ mode }) => {
         "/api": {
           target: apiTarget,
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, ""),
         },
         "/ws": {
           target: wsTarget,

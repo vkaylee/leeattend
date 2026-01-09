@@ -10,7 +10,7 @@ pub async fn ensure_dev_data(pool: &PgPool) -> Result<(), sqlx::Error> {
 
     // 1. Upsert Admin User
     // Password is 'admin123' hashed with bcrypt
-    let password_hash = "$2b$12$R9h/lIPzBZB9u34rn8qSze1FFE6zS/vU.YQe8V9M.Yq6.X9fP8P3C";
+    let password_hash = bcrypt::hash("admin123", bcrypt::DEFAULT_COST).unwrap();
     
     sqlx::query(
         r#"
