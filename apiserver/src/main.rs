@@ -65,10 +65,13 @@ async fn main() {
 
     // Read host and port from environment variables
     let host = std::env::var("API_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
+    let host = host.trim().to_string();
     let preferred_port = std::env::var("API_PORT")
         .unwrap_or_else(|_| "3000".to_string())
         .parse::<u16>()
         .unwrap_or(3000);
+
+    tracing::debug!("Configured host: '{}', port: {}", host, preferred_port);
 
     // Try to bind to the preferred port, or find another one if it's busy
     // Dọn dẹp file cũ nếu có để tránh stale data
@@ -80,6 +83,7 @@ async fn main() {
 
         for port in preferred_port..max_port {
             let addr_str = format!("{}:{}", host, port);
+            tracing::info!("Attempting to bind to {}", addr_str);
             match tokio::net::TcpListener::bind(&addr_str).await {
                 Ok(l) => {
                     listener = Some(l);
