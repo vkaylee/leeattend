@@ -33,7 +33,14 @@ pub async fn get_workspace_schedules(
 
     // 3. Fetch Rosters in range
     let rosters = sqlx::query_as::<_, ShiftRoster>(
-        "SELECT * FROM shift_rosters WHERE workspace_id = $1 AND date >= $2 AND date <= $3",
+        r#"
+        SELECT sr.* 
+        FROM shift_rosters sr
+        JOIN employees e ON sr.employee_id = e.id
+        WHERE e.workspace_id = $1 
+          AND sr.date >= $2 
+          AND sr.date <= $3
+        "#
     )
     .bind(workspace_id)
     .bind(start_date)
