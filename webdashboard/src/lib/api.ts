@@ -162,6 +162,18 @@ export interface AttendanceSummary {
   total_leave_days: number;
 }
 
+export interface DailyAttendanceReport {
+  date: string;
+  employee_id: string;
+  employee_name: string;
+  scheduled_start: string | null;
+  scheduled_end: string | null;
+  actual_punch_in: string | null;
+  actual_punch_out: string | null;
+  total_minutes: number;
+  status: string;
+}
+
 // --- Payroll and Shift Models ---
 
 export interface Shift {
@@ -773,9 +785,10 @@ export async function fetchAttendanceReport(
   wsId: string,
   start: string,
   end: string,
-): Promise<AttendanceSummary[]> {
+  type: "summary" | "daily" = "summary",
+): Promise<any> {
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/reports/attendance?start=${start}&end=${end}`,
+    `${API_BASE_URL}/workspaces/${wsId}/reports/attendance?start_date=${start}&end_date=${end}&type=${type}`,
   );
   if (!response.ok) throw new Error("Failed to fetch attendance report");
   return response.json();

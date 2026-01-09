@@ -59,82 +59,113 @@ impl PayrollService {
             .unwrap();
 
         // 3. Get worked entries
-
         let time_entries =
             time_entry_repository::get_employee_time_entries(pool, employee_id, start_dt, end_dt)
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         let mut total_standard_minutes = 0;
-
         let mut total_overtime_minutes = 0;
 
+        // Group entries by local date to handle breaks within the same day
+        use std::collections::HashMap;
+        let mut daily_entries: HashMap<NaiveDate, Vec<crate::models::TimeEntry>> = HashMap::new();
         for entry in time_entries {
-            let entry_date = entry.punch_in_time.with_timezone(&Local).date_naive();
+            let local_date = entry.punch_in_time.with_timezone(&Local).date_naive();
+            daily_entries.entry(local_date).or_default().push(entry);
+        }
 
+        for (entry_date, entries) in daily_entries {
             let shift_id = roster_repository::get_effective_shift(pool, employee_id, entry_date)
                 .await
                 .unwrap_or(None);
 
-            let mut duration = entry.duration_minutes.unwrap_or(0);
+            let work_entries: Vec<_> = entries.iter().filter(|e| e.entry_type == "work" || e.entry_type == "").collect();
+            let break_entries: Vec<_> = entries.iter().filter(|e| e.entry_type == "break").collect();
 
-            if let Some(sid) = shift_id {
-                let shift = shift_repository::get_shift_by_id(pool, sid)
-                    .await
-                    .unwrap_or(None);
+            let actual_break_minutes: i32 = break_entries.iter().map(|e| {
+                e.duration_minutes.unwrap_or_else(|| {
+                    if let Some(out) = e.punch_out_time {
+                        out.signed_duration_since(e.punch_in_time).num_minutes() as i32
+                    } else {
+                        0
+                    }
+                })
+            }).sum();
 
-                if let Some(s) = shift {
-                    // Effective punch in logic (Grace Period)
-                    // We need to compare local times
-                    let local_punch_in = entry.punch_in_time.with_timezone(&Local);
-                    let shift_start_dt = Local.from_local_datetime(&entry_date.and_time(s.start_time)).single();
-                    
-                    let mut effective_punch_in = local_punch_in;
+            for entry in work_entries {
+                let mut duration = entry.duration_minutes.unwrap_or_else(|| {
+                    if let Some(out) = entry.punch_out_time {
+                        out.signed_duration_since(entry.punch_in_time).num_minutes() as i32
+                    } else {
+                        0
+                    }
+                });
 
-                    if let Some(shift_start) = shift_start_dt {
-                        if s.early_punch_in_grace_period_minutes > 0 {
-                            let grace_start = shift_start - chrono::Duration::minutes(s.early_punch_in_grace_period_minutes as i64);
-                            if local_punch_in >= grace_start && local_punch_in < shift_start {
-                                effective_punch_in = shift_start;
+                if let Some(sid) = shift_id {
+                    let shift = shift_repository::get_shift_by_id(pool, sid)
+                        .await
+                        .unwrap_or(None);
+
+                    if let Some(s) = shift {
+                        // Effective punch in logic (Grace Period)
+                        let local_punch_in = entry.punch_in_time.with_timezone(&Local);
+                        let shift_start_dt = Local.from_local_datetime(&entry_date.and_time(s.start_time)).single();
+                        
+                        let mut effective_punch_in = local_punch_in;
+
+                        if let Some(shift_start) = shift_start_dt {
+                            if s.early_punch_in_grace_period_minutes > 0 {
+                                let grace_start = shift_start - chrono::Duration::minutes(s.early_punch_in_grace_period_minutes as i64);
+                                if local_punch_in >= grace_start && local_punch_in < shift_start {
+                                    effective_punch_in = shift_start;
+                                }
                             }
                         }
-                    }
 
-                    // Recalculate duration if punch_in was adjusted
-                    if effective_punch_in != local_punch_in {
+                        // Recalculate duration if punch_in was adjusted (effective punch-in)
                         if let Some(punch_out_time) = entry.punch_out_time {
-                            let adjusted_duration = punch_out_time.with_timezone(&Local)
+                            let local_punch_out = punch_out_time.with_timezone(&Local);
+                            let adjusted_duration = local_punch_out
                                 .signed_duration_since(effective_punch_in)
                                 .num_minutes() as i32;
                             duration = i32::max(0, adjusted_duration);
                         }
-                    }
 
-                    // Standard work duration
-                    let shift_duration = (s.end_time - s.start_time).num_minutes() as i32;
-                    let work_hours_standard = shift_duration - s.break_duration_minutes;
+                        // Standard work duration
+                        let shift_duration = (s.end_time - s.start_time).num_minutes() as i32;
+                        let work_hours_standard = shift_duration - s.break_duration_minutes;
 
-                    // Break handling
-                    let mut worked_minutes = duration;
-                    if s.is_break_auto_deduct && !entry.is_break_overtime {
-                        worked_minutes = i32::max(0, duration - s.break_duration_minutes);
-                    }
+                        // Break handling logic
+                        // Rule: If actual break entries exist, use them. 
+                        // If not, fallback to auto-deduct if enabled.
+                        let break_to_deduct = if actual_break_minutes > 0 {
+                            actual_break_minutes
+                        } else if s.is_break_auto_deduct && !entry.is_break_overtime {
+                            s.break_duration_minutes
+                        } else {
+                            0
+                        };
 
-                    if worked_minutes > work_hours_standard {
-                        total_standard_minutes += work_hours_standard;
-                        total_overtime_minutes += worked_minutes - work_hours_standard;
+                        let worked_minutes = i32::max(0, duration - break_to_deduct);
+
+                        if worked_minutes > work_hours_standard {
+                            total_standard_minutes += work_hours_standard;
+                            total_overtime_minutes += worked_minutes - work_hours_standard;
+                        } else {
+                            total_standard_minutes += worked_minutes;
+                        }
                     } else {
-                        total_standard_minutes += worked_minutes;
+                        total_standard_minutes += duration;
                     }
                 } else {
                     total_standard_minutes += duration;
                 }
-            } else {
-                total_standard_minutes += duration;
             }
         }
 
         let worked_hours = total_standard_minutes as f64 / 60.0;
+
 
         let overtime_hours = total_overtime_minutes as f64 / 60.0;
 

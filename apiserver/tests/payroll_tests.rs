@@ -1,7 +1,7 @@
 mod common;
 
 use apiserver::services::payroll_service::PayrollService;
-use chrono::{Datelike, NaiveDate, NaiveTime, TimeZone, Utc};
+use chrono::{Datelike, NaiveDate, NaiveTime, TimeZone, Utc, Local};
 use common::factory::TestFactory;
 use rust_decimal::prelude::*;
 use sqlx::PgPool;
@@ -71,26 +71,14 @@ async fn test_early_punch_in_grace_period() {
         .assign_to_employee(employee_id, test_date)
         .await;
 
-    let punch_in_time_case1 = Utc
-        .with_ymd_and_hms(
-            test_date.year(),
-            test_date.month(),
-            test_date.day(),
-            8,
-            0,
-            0,
-        )
-        .unwrap();
-    let punch_out_time_case1 = Utc
-        .with_ymd_and_hms(
-            test_date.year(),
-            test_date.month(),
-            test_date.day(),
-            17,
-            0,
-            0,
-        )
-        .unwrap();
+    let punch_in_time_case1 = Local
+        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 8, 0, 0)
+        .unwrap()
+        .with_timezone(&Utc);
+    let punch_out_time_case1 = Local
+        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 17, 0, 0)
+        .unwrap()
+        .with_timezone(&Utc);
     factory
         .time_entry()
         .with_employee(employee_id)
@@ -127,26 +115,14 @@ async fn test_early_punch_in_grace_period() {
         .assign_to_employee(employee_id, test_date)
         .await;
 
-    let punch_in_time_case2 = Utc
-        .with_ymd_and_hms(
-            test_date.year(),
-            test_date.month(),
-            test_date.day(),
-            7,
-            45,
-            0,
-        )
-        .unwrap();
-    let punch_out_time_case2 = Utc
-        .with_ymd_and_hms(
-            test_date.year(),
-            test_date.month(),
-            test_date.day(),
-            17,
-            0,
-            0,
-        )
-        .unwrap();
+    let punch_in_time_case2 = Local
+        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 7, 45, 0)
+        .unwrap()
+        .with_timezone(&Utc);
+    let punch_out_time_case2 = Local
+        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 17, 0, 0)
+        .unwrap()
+        .with_timezone(&Utc);
     factory
         .time_entry()
         .with_employee(employee_id)
@@ -183,26 +159,14 @@ async fn test_early_punch_in_grace_period() {
         .assign_to_employee(employee_id, test_date)
         .await;
 
-    let punch_in_time_case3 = Utc
-        .with_ymd_and_hms(
-            test_date.year(),
-            test_date.month(),
-            test_date.day(),
-            7,
-            30,
-            0,
-        )
-        .unwrap();
-    let punch_out_time_case3 = Utc
-        .with_ymd_and_hms(
-            test_date.year(),
-            test_date.month(),
-            test_date.day(),
-            17,
-            0,
-            0,
-        )
-        .unwrap();
+    let punch_in_time_case3 = Local
+        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 7, 30, 0)
+        .unwrap()
+        .with_timezone(&Utc);
+    let punch_out_time_case3 = Local
+        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 17, 0, 0)
+        .unwrap()
+        .with_timezone(&Utc);
     factory
         .time_entry()
         .with_employee(employee_id)
@@ -239,26 +203,14 @@ async fn test_early_punch_in_grace_period() {
         .assign_to_employee(employee_id, test_date)
         .await;
 
-    let punch_in_time_case4 = Utc
-        .with_ymd_and_hms(
-            test_date.year(),
-            test_date.month(),
-            test_date.day(),
-            7,
-            0,
-            0,
-        )
-        .unwrap();
-    let punch_out_time_case4 = Utc
-        .with_ymd_and_hms(
-            test_date.year(),
-            test_date.month(),
-            test_date.day(),
-            17,
-            0,
-            0,
-        )
-        .unwrap();
+    let punch_in_time_case4 = Local
+        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 7, 0, 0)
+        .unwrap()
+        .with_timezone(&Utc);
+    let punch_out_time_case4 = Local
+        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 17, 0, 0)
+        .unwrap()
+        .with_timezone(&Utc);
     factory
         .time_entry()
         .with_employee(employee_id)
@@ -299,26 +251,14 @@ async fn test_early_punch_in_grace_period() {
         .assign_to_employee(employee_id, test_date)
         .await;
 
-    let punch_in_time_case5 = Utc
-        .with_ymd_and_hms(
-            test_date.year(),
-            test_date.month(),
-            test_date.day(),
-            8,
-            15,
-            0,
-        )
-        .unwrap();
-    let punch_out_time_case5 = Utc
-        .with_ymd_and_hms(
-            test_date.year(),
-            test_date.month(),
-            test_date.day(),
-            17,
-            0,
-            0,
-        )
-        .unwrap();
+    let punch_in_time_case5 = Local
+        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 8, 15, 0)
+        .unwrap()
+        .with_timezone(&Utc);
+    let punch_out_time_case5 = Local
+        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 17, 0, 0)
+        .unwrap()
+        .with_timezone(&Utc);
     factory
         .time_entry()
         .with_employee(employee_id)

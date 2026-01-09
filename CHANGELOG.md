@@ -5,18 +5,22 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
-- **Fixed Break Support**: Shifts can now be configured with specific `break_start` and `break_end` times (Fixed Breaks) in addition to duration-based breaks (Flexible Breaks).
-- **Auto-deduct Logic**: Added `is_break_auto_deduct` flag to control automatic break time subtraction.
-- **Frontend UI Improvements**: 
-    - Toggle between Fixed/Flexible break modes.
-    - Restricted time inputs to HH:mm format (removing seconds).
-    - Integrated break windows into Shift Directory and Weekly Roster views.
-- **Integration Tests**: Added tests for Shift break configurations in `apiserver/tests/shift_break_config_tests.rs`.
+- **Detailed Attendance Reporting**: The Reporting API and UI now support a "Daily" view, showing exact punch times, break durations, and status (Late/Present/Absent) per employee per day.
+- **Enhanced Time Tracking UI**: 
+    - Added explicit "Start Break" and "Return to Work" buttons.
+    - Real-time display of the current active work/break session duration.
+- **Flexible Payroll Logic**: 
+    - Refactored `PayrollService` to group entries by local date (ICT/UTC+7).
+    - Prioritizes explicit break punches over auto-deduction logic when calculating daily work hours.
+- **Shift Versioning (Backend)**: Automatically tracks changes to shift configurations using `version_id` to ensure historical payroll calculations remain accurate.
 
 ### Changed
-- Refactored `Shift` and `EffectiveSchedule` models to support hybrid break configurations.
-- Updated `ShiftRepository` and `RosterRepository` to handle new database fields.
+- **Payroll Service**: Switched from UTC-based grouping to Local-date grouping for better compliance with business workday definitions.
+- **Reporting UI**: Integrated a Tab-based interface to toggle between Monthly Summary and Daily Detail reports.
 
+### Fixed
+- **Timezone Offsets**: Resolved a bug where test data generated in UTC caused inconsistent daily rollups in the Payroll Engine.
+- **Unused Assignments**: Cleared compiler warnings in `PayrollService` to ensure clean build logs.
 
 ## [Unreleased] - 2026-01-09
 

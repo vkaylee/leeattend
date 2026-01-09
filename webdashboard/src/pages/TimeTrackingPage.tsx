@@ -47,22 +47,25 @@ export default function TimeTrackingPage() {
   });
 
   const activeEntry = history.find(entry => !entry.punch_out_time);
+  const isOnBreak = activeEntry?.entry_type === "break";
 
   const punchInMutation = useMutation({
-    mutationFn: (data: { employee_id: string; note?: string }) => punchIn(wsId!, data),
-    onSuccess: () => {
-      toast.success("Bắt đầu ca làm việc thành công.");
+    mutationFn: (data: { employee_id: string; entry_type?: string; note?: string }) => punchIn(wsId!, data),
+    onSuccess: (_, variables) => {
+      const type = variables.entry_type === "break" ? "Bắt đầu nghỉ" : "Bắt đầu ca làm việc";
+      toast.success(`${type} thành công.`);
       queryClient.invalidateQueries({ queryKey: ["time-history", wsId, selectedEmployeeId] });
     },
     onError: () => {
-      toast.error("Không thể chấm công vào. Vui lòng thử lại.");
+      toast.error("Không thể chấm công. Vui lòng thử lại.");
     }
   });
 
   const punchOutMutation = useMutation({
     mutationFn: (data: { note?: string }) => punchOut(wsId!, selectedEmployeeId, data),
     onSuccess: () => {
-      toast.success("Đã kết thúc ca làm việc.");
+      const type = isOnBreak ? "Đã quay lại làm việc." : "Đã kết thúc ca làm việc.";
+      toast.success(type);
       queryClient.invalidateQueries({ queryKey: ["time-history", wsId, selectedEmployeeId] });
     },
     onError: () => {
@@ -123,31 +126,57 @@ export default function TimeTrackingPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Punch Card */}
           <div className="md:col-span-1 bg-white border border-slate-200 rounded-3xl p-8 shadow-sm flex flex-col items-center justify-center text-center space-y-6">
-            <div className={`p-4 rounded-full transition-colors duration-500 ${activeEntry ? 'bg-orange-100 text-orange-600 animate-pulse' : 'bg-green-100 text-green-600'}`}>
+            <div className={`p-4 rounded-full transition-colors duration-500 ${activeEntry ? (isOnBreak ? 'bg-amber-100 text-amber-600 animate-pulse' : 'bg-orange-100 text-orange-600 animate-pulse') : 'bg-green-100 text-green-600'}`}>
               <Clock className="w-12 h-12" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-slate-900">{selectedEmployee.first_name} {selectedEmployee.last_name}</h2>
-              <p className="text-slate-500 text-sm font-medium">{activeEntry ? 'Đang trong ca làm việc' : 'Sẵn sàng chấm công'}</p>
+              <p className="text-slate-500 text-sm font-medium">
+                {activeEntry ? (isOnBreak ? 'Đang trong giờ nghỉ' : 'Đang trong ca làm việc') : 'Sẵn sàng chấm công'}
+              </p>
             </div>
 
             {activeEntry ? (
               <div className="w-full space-y-4">
                 <div className="text-sm bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                  <div className="text-slate-400 font-black uppercase text-[10px] tracking-widest mb-1">Bắt đầu lúc</div>
+                  <div className="text-slate-400 font-black uppercase text-[10px] tracking-widest mb-1">
+                    {isOnBreak ? 'Bắt đầu nghỉ lúc' : 'Bắt đầu ca lúc'}
+                  </div>
                   <div className="font-black text-2xl text-slate-800">{new Date(activeEntry.punch_in_time).toLocaleTimeString('vi-VN')}</div>
                 </div>
-                <button 
-                  onClick={() => punchOutMutation.mutate({})}
-                  disabled={punchOutMutation.isPending}
-                  className="w-full bg-red-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-red-700 transition-all shadow-lg shadow-red-100 disabled:opacity-50"
-                >
-                  Kết thúc ca (Punch Out)
-                </button>
+                
+                <div className="grid grid-cols-1 gap-3">
+                  {isOnBreak ? (
+                    <button 
+                      onClick={() => punchOutMutation.mutate({})}
+                      disabled={punchOutMutation.isPending}
+                      className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50"
+                    >
+                      Quay lại làm việc
+                    </button>
+                  ) : (
+                    <>
+                      <button 
+                        onClick={() => punchInMutation.mutate({ employee_id: selectedEmployeeId, entry_type: "break" })}
+                        disabled={punchInMutation.isPending}
+                        className="w-full bg-amber-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-amber-600 transition-all shadow-lg shadow-amber-100 disabled:opacity-50"
+                      >
+                        Bắt đầu nghỉ (Break)
+                      </button>
+                      <button 
+                        onClick={() => punchOutMutation.mutate({})}
+                        disabled={punchOutMutation.isPending}
+                        className="w-full bg-red-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-red-700 transition-all shadow-lg shadow-red-100 disabled:opacity-50"
+                      >
+                        Kết thúc ca (Punch Out)
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             ) : (
               <button 
-                onClick={() => punchInMutation.mutate({ employee_id: selectedEmployeeId })}
+                onClick={() => punchInMutation.mutate({ employee_id: selectedEmployeeId, entry_type: "work" })}
                 disabled={punchInMutation.isPending}
                 className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
               >
@@ -186,16 +215,23 @@ export default function TimeTrackingPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {isLoadingHistory ? (
-                    <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400 italic font-medium">Đang tải lịch sử...</td></tr>
+                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400 italic font-medium">Đang tải lịch sử...</td></tr>
                   ) : history.length === 0 ? (
-                    <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400 italic font-medium">Chưa có dữ liệu chấm công.</td></tr>
+                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400 italic font-medium">Chưa có dữ liệu chấm công.</td></tr>
                   ) : history.map(entry => (
                     <tr key={entry.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4 text-sm font-bold text-slate-700">{new Date(entry.punch_in_time).toLocaleDateString('vi-VN')}</td>
+                      <td className="px-6 py-4 text-sm font-bold text-slate-700">
+                        {new Date(entry.punch_in_time).toLocaleDateString('vi-VN')}
+                        <span className={`ml-2 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${entry.entry_type === 'break' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {entry.entry_type === 'break' ? 'Nghỉ' : 'Làm'}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 text-sm font-medium text-slate-600">{new Date(entry.punch_in_time).toLocaleTimeString('vi-VN')}</td>
                       <td className="px-6 py-4 text-sm font-medium text-slate-600">
                         {entry.punch_out_time ? new Date(entry.punch_out_time).toLocaleTimeString('vi-VN') : (
-                          <span className="text-orange-500 font-bold bg-orange-50 px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-widest">Đang làm</span>
+                          <span className={`${entry.entry_type === 'break' ? 'text-amber-500 bg-amber-50' : 'text-orange-500 bg-orange-50'} font-bold px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-widest`}>
+                            {entry.entry_type === 'break' ? 'Đang nghỉ' : 'Đang làm'}
+                          </span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-sm text-right">

@@ -227,12 +227,20 @@ Cập nhật thông tin nhân viên (họ tên, ngày vào làm, trạng thái n
 Theo dõi dữ liệu chấm công thực tế.
 
 #### POST /workspaces/:ws_id/time/punch-in
-Ghi nhận giờ vào làm.
-- **Request**: `{ "employee_id": "...", "entry_type": "work|break", "is_break_overtime": true/false, "note": "..." }`
+Ghi nhận giờ vào làm hoặc bắt đầu nghỉ giải lao.
+- **Request**: 
+  ```json
+  { 
+    "employee_id": "uuid", 
+    "entry_type": "work|break", 
+    "is_break_overtime": false, 
+    "note": "Ghi chú tùy chọn" 
+  }
+  ```
 - **Response (201)**: `TimeEntry` object
 
 #### POST /workspaces/:ws_id/time/punch-out/:employee_id
-Ghi nhận giờ ra về cho lần punch-in gần nhất chưa đóng.
+Ghi nhận giờ ra về hoặc kết thúc nghỉ giải lao cho lần punch-in gần nhất chưa đóng.
 - **Request**: `{ "note": "..." }`
 - **Response (200 OK)**
 
@@ -314,29 +322,18 @@ Lấy danh sách các yêu cầu điều chỉnh trong workspace.
 - **Query Params**: `?status=pending|approved|rejected`
 - **Response (200)**: `Array<AttendanceAdjustmentRequest>`
 
-#### POST /workspaces/:ws_id/attendance/adjustments/:id/approve
-Phê duyệt hoặc từ chối yêu cầu điều chỉnh công. 
-- **Lưu ý**: Nếu `status` là `approved`, hệ thống sẽ tự động cập nhật hoặc tạo mới bản ghi trong bảng chấm công chính thức.
-- **Request**: `{ "status": "approved|rejected" }`
-- **Response (200 OK)**
-
-#### GET /employees/:id/attendance/adjustments
-Lấy danh sách các yêu cầu điều chỉnh của một nhân viên cụ thể.
-- **Response (200)**: `Array<AttendanceAdjustmentRequest>`
-
 ---
 
 ### 9. Payroll & Shifts (New)
 
-Quản lý lương, ca làm việc và phiếu lương hàng tháng.
+Quản lý lương, ca làm việc và báo cáo công.
 
 #### GET /workspaces/:ws_id/shifts
-Lấy danh sách các ca làm việc đã định nghĩa.
+Lấy danh sách các ca làm việc đã định nghĩa (bao gồm cả các phiên bản cũ).
 - **Response (200)**: `Array<Shift>`
 
 #### POST /workspaces/:ws_id/shifts
-
-Tạo mới một loại ca làm việc. Hệ thống hỗ trợ 2 loại nghỉ trưa: **Cố định** (Fixed) và **Linh hoạt** (Flexible).
+Tạo mới hoặc cập nhật một loại ca làm việc. Nếu cập nhật, hệ thống sẽ tạo một version mới (`version_id`) để bảo toàn dữ liệu chấm công quá khứ.
 
 **Body:**
 ```json
@@ -345,41 +342,25 @@ Tạo mới một loại ca làm việc. Hệ thống hỗ trợ 2 loại nghỉ
   "start_time": "08:00:00",
   "end_time": "17:00:00",
   "break_duration_minutes": 60,
-  "break_start": "12:00:00", // Bắt buộc nếu là ca cố định, null nếu linh hoạt
-  "break_end": "13:00:00",   // Bắt buộc nếu là ca cố định, null nếu linh hoạt
-  "is_break_auto_deduct": true, // Tự động trừ giờ nghỉ khi tính công
-  "break_is_overtime": false,
+  "break_start": "12:00:00",
+  "break_end": "13:00:00",
+  "is_break_auto_deduct": true,
   "early_punch_in_grace_period_minutes": 15
 }
 ```
 
-#### GET /api/workspaces/:id/schedules
-Tính toán lịch biểu hiệu lực (Effective Schedule) cho tất cả nhân viên.
-- **Query Params**: `?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
-- **Response (200)**: 
-  ```json
-  [
-    {
-      "employee_id": "uuid",
-      "schedules": [
-        {
-          "date": "2026-01-10",
-          "shift_name": "Ca hành chính",
-          "start_time": "08:00:00",
-          "end_time": "17:00:00",
-          "break_start": "12:00:00", // Trả về nếu có cấu hình
-          "break_end": "13:00:00",   // Trả về nếu có cấu hình
-          "break_duration_minutes": 60,
-          "is_break_auto_deduct": true
-        }
-      ]
-    }
-  ]
-  ```
+#### GET /workspaces/:ws_id/reports/attendance
+Xuất báo cáo chấm công của workspace.
+- **Query Params**: 
+    - `start_date`: YYYY-MM-DD
+    - `end_date`: YYYY-MM-DD
+    - `type`: `summary` (mặc định) hoặc `daily`
+- **Response (type=summary)**: Báo cáo tổng hợp số giờ, số ngày công theo từng nhân viên.
+- **Response (type=daily)**: Báo cáo chi tiết từng lượt quẹt thẻ (Work/Break) theo ngày của từng nhân viên.
 
 ---
 
-### 9. Departments & Rostering (New)
+### 10. Departments & Rostering (New)
 
 Quản lý cơ cấu tổ chức và lịch trình làm việc linh hoạt.
 

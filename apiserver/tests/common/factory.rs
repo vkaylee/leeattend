@@ -375,6 +375,12 @@ impl TimeEntryBuilder {
         self
     }
 
+    #[allow(dead_code)]
+    pub fn with_entry_type(mut self, entry_type: &str) -> Self {
+        self.entry_type = entry_type.to_string();
+        self
+    }
+
     pub async fn create(self) -> Uuid {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
             sqlx::query_scalar(
