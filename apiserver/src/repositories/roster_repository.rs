@@ -1,5 +1,5 @@
 use crate::models::{ShiftRoster, EmployeeSchedule, EffectiveSchedule};
-use chrono::{NaiveDate, Datelike};
+use chrono::NaiveDate;
 use sqlx::PgPool;
 use uuid::Uuid;
 use std::collections::HashMap;
@@ -79,7 +79,7 @@ pub async fn get_workspace_schedules(
 
         while curr_date <= end_date {
             let mut effective_shift_id = None;
-            let mut source = "none".to_string();
+            let source: String;
 
             // P1: Roster
             if let Some(shift_opt) = roster_map.get(&(emp.id, curr_date)) {
@@ -346,5 +346,11 @@ mod tests {
         sqlx::query("UPDATE shift_rosters SET shift_id = NULL WHERE employee_id = $1 AND date = $2").bind(emp_id).bind(date).execute(&pool).await.unwrap();
         let res = get_effective_shift(&pool, emp_id, date).await.unwrap();
         assert_eq!(res, None);
+
+        // 5. Test History
+        let history = get_assignment_history(&pool, ws_id, 10).await.unwrap();
+        assert!(history.len() >= 2);
+        assert!(history.iter().any(|h| h.assignment_type == "fixed"));
+        assert!(history.iter().any(|h| h.assignment_type == "roster"));
     }
 }

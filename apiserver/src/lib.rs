@@ -146,7 +146,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         router = router.route("/dev/super-user", get(handlers::get_dev_super_user));
     }
 
-    router
+    router = router
         .route("/ws", get(handlers::ws_handler))
         .route("/agents", get(handlers::get_agents))
         .route("/agent/:agent_id/command", post(handlers::send_command))
@@ -285,7 +285,8 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/shifts",
             get(handlers::get_shifts).post(handlers::create_shift),
         )
-        .route("/workspaces/:ws_id/shifts/assign", post(handlers::assign_shift))
+        .route("/workspaces/:ws_id/shifts/assign", post(handlers::assign_shift));
+
     // Rosters
     let roster_routes = Router::new()
         .route(
@@ -301,8 +302,9 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(handlers::get_employee_rosters).post(handlers::upsert_roster),
         );
 
-    let app = Router::new()
-
+    Router::new()
+        .nest("/api", router)
+        .nest("/api", roster_routes)
         .layer(cors)
         .with_state(state)
 }

@@ -10,8 +10,10 @@ use axum::{
 use chrono::{DateTime, NaiveDate, Utc};
 use futures_util::{sink::SinkExt, stream::StreamExt};
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::mpsc;
+use tracing::error;
 use uuid::Uuid;
 
 use crate::agent_manager::AgentCommand;
@@ -1767,7 +1769,7 @@ pub async fn assign_shift(
 // --- Roster Handlers ---
 
 pub async fn get_workspace_schedules(
-    State(state): State<AppState>,
+    State(state): State<Arc<AppState>>,
     Path(workspace_id): Path<Uuid>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<Vec<crate::models::EmployeeSchedule>>, StatusCode> {
@@ -1795,7 +1797,7 @@ pub async fn get_workspace_schedules(
 }
 
 pub async fn get_assignment_history(
-    State(state): State<AppState>,
+    State(state): State<Arc<AppState>>,
     Path(workspace_id): Path<Uuid>,
 ) -> Result<Json<Vec<crate::models::AssignmentHistory>>, StatusCode> {
     let history = crate::repositories::roster_repository::get_assignment_history(
