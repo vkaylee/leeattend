@@ -1,12 +1,12 @@
 use axum::http::StatusCode;
-use chrono::{NaiveDate, TimeZone, Utc};
+use chrono::{NaiveDate, TimeZone, Utc, Local};
 use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::Decimal;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::repositories::{
-    employee_repository, payroll_repository, shift_repository, time_entry_repository,
+    employee_repository, payroll_repository, shift_repository, time_entry_repository, roster_repository
 };
 
 use crate::models::Payslip;
@@ -70,94 +70,66 @@ impl PayrollService {
         let mut total_overtime_minutes = 0;
 
         for entry in time_entries {
-            let entry_date = entry.punch_in_time.with_timezone(&Utc).date_naive();
+            let entry_date = entry.punch_in_time.with_timezone(&Local).date_naive();
 
-            let shift = shift_repository::get_employee_active_shift(pool, employee_id, entry_date)
+            let shift_id = roster_repository::get_effective_shift(pool, employee_id, entry_date)
                 .await
                 .unwrap_or(None);
 
             let mut duration = entry.duration_minutes.unwrap_or(0);
 
-            if let Some(s) = shift {
-                let shift_start_datetime = Utc
-                    .from_local_datetime(&entry_date.and_time(s.start_time))
-                    .single()
-                    .unwrap();
+            if let Some(sid) = shift_id {
+                let shift = shift_repository::get_shift_by_id(pool, sid)
+                    .await
+                    .unwrap_or(None);
 
-                let effective_punch_in_time = if s.early_punch_in_grace_period_minutes > 0 {
-                    let grace_period_start_datetime = shift_start_datetime
-                        - chrono::Duration::minutes(s.early_punch_in_grace_period_minutes as i64);
+                if let Some(s) = shift {
+                    // Effective punch in logic (Grace Period)
+                    // We need to compare local times
+                    let local_punch_in = entry.punch_in_time.with_timezone(&Local);
+                    let shift_start_dt = Local.from_local_datetime(&entry_date.and_time(s.start_time)).single();
+                    
+                    let mut effective_punch_in = local_punch_in;
 
-                    if entry.punch_in_time < grace_period_start_datetime {
-                        // Punched in before the grace period, count actual time
-
-                        entry.punch_in_time
-                    } else if entry.punch_in_time < shift_start_datetime {
-                        // Punched in within grace period but before shift start, effective punch-in is shift start
-
-                        shift_start_datetime
-                    } else {
-                        // Punched in at or after shift start
-
-                        entry.punch_in_time
+                    if let Some(shift_start) = shift_start_dt {
+                        if s.early_punch_in_grace_period_minutes > 0 {
+                            let grace_start = shift_start - chrono::Duration::minutes(s.early_punch_in_grace_period_minutes as i64);
+                            if local_punch_in >= grace_start && local_punch_in < shift_start {
+                                effective_punch_in = shift_start;
+                            }
+                        }
                     }
-                } else {
-                    entry.punch_in_time
-                };
 
-                // Recalculate duration based on effective_punch_in_time
-
-                if let Some(punch_out_time) = entry.punch_out_time {
-                    let adjusted_duration = punch_out_time
-                        .signed_duration_since(effective_punch_in_time)
-                        .num_minutes() as i32;
-
-                    duration = i32::max(0, adjusted_duration); // Ensure duration is not negative
-                } else {
-                    // If no punch_out_time, duration is 0 for calculation purposes
-
-                    duration = 0;
-                }
-
-                // Calculate standard work duration (e.g. 8 hours)
-
-                let shift_duration = (s.end_time - s.start_time).num_minutes() as i32;
-
-                let work_hours_standard = shift_duration - s.break_duration_minutes;
-
-                if entry.is_break_overtime {
-                    // Employee worked through break
-
-                    // Standard pay is for normal hours, break is extra overtime
-
-                    total_standard_minutes +=
-                        i32::min(duration - s.break_duration_minutes, work_hours_standard);
-
-                    total_overtime_minutes += s.break_duration_minutes;
-
-                    // Any extra time beyond shift is also overtime
-
-                    let extra = duration - shift_duration;
-
-                    if extra > 0 {
-                        total_overtime_minutes += extra;
+                    // Recalculate duration if punch_in was adjusted
+                    if effective_punch_in != local_punch_in {
+                        if let Some(punch_out_time) = entry.punch_out_time {
+                            let adjusted_duration = punch_out_time.with_timezone(&Local)
+                                .signed_duration_since(effective_punch_in)
+                                .num_minutes() as i32;
+                            duration = i32::max(0, adjusted_duration);
+                        }
                     }
-                } else {
-                    // Normal case: subtract break from total duration
 
-                    let net_duration = duration - s.break_duration_minutes;
+                    // Standard work duration
+                    let shift_duration = (s.end_time - s.start_time).num_minutes() as i32;
+                    let work_hours_standard = shift_duration - s.break_duration_minutes;
 
-                    if net_duration > work_hours_standard {
+                    // Break handling
+                    let mut worked_minutes = duration;
+                    if s.is_break_auto_deduct && !entry.is_break_overtime {
+                        worked_minutes = i32::max(0, duration - s.break_duration_minutes);
+                    }
+
+                    if worked_minutes > work_hours_standard {
                         total_standard_minutes += work_hours_standard;
-
-                        total_overtime_minutes += net_duration - work_hours_standard;
+                        total_overtime_minutes += worked_minutes - work_hours_standard;
                     } else {
-                        total_standard_minutes += i32::max(0, net_duration);
+                        total_standard_minutes += worked_minutes;
                     }
+                } else {
+                    total_standard_minutes += duration;
                 }
             } else {
-                // No shift assigned, count all as standard for now (or handle differently)
-
                 total_standard_minutes += duration;
             }
         }

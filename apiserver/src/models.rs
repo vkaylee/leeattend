@@ -242,6 +242,7 @@ pub struct UpdateEmployeeRequest {
 pub struct TimeEntry {
     pub id: Uuid,
     pub employee_id: Uuid,
+    pub shift_id: Option<Uuid>,
     pub punch_in_time: DateTime<Utc>,
     pub punch_out_time: Option<DateTime<Utc>>,
     pub duration_minutes: Option<i32>,
@@ -376,6 +377,19 @@ pub struct AttendanceSummary {
     pub total_hours: f64,
 
     pub total_leave_days: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DailyAttendanceReport {
+    pub date: NaiveDate,
+    pub employee_id: Uuid,
+    pub employee_name: String,
+    pub scheduled_start: Option<NaiveTime>,
+    pub scheduled_end: Option<NaiveTime>,
+    pub actual_punch_in: Option<DateTime<Utc>>,
+    pub actual_punch_out: Option<DateTime<Utc>>,
+    pub total_minutes: i32,
+    pub status: String,
 }
 
 // --- Payroll and Shift Models ---

@@ -137,7 +137,6 @@ async fn test_shift_versioning_update() {
     // C. Verify Assignments
     // Old assignment should end on effective_date - 1 day
     let old_assignment = sqlx::query!(
-    let old_assignment = sqlx::query!(
         "SELECT end_date FROM employee_shifts WHERE shift_id = $1 AND employee_id = $2",
         shift_id,
         employee_id

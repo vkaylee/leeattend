@@ -6,9 +6,10 @@ use crate::models::TimeEntry;
 
 pub async fn create_time_entry(pool: &PgPool, entry: &TimeEntry) -> Result<(), sqlx::Error> {
     query!(
-        "INSERT INTO time_entries (id, employee_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+        "INSERT INTO time_entries (id, employee_id, shift_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
         entry.id,
         entry.employee_id,
+        entry.shift_id,
         entry.punch_in_time,
         entry.punch_out_time,
         entry.duration_minutes,
@@ -29,7 +30,7 @@ pub async fn get_time_entry_by_id(
 ) -> Result<Option<TimeEntry>, sqlx::Error> {
     query_as!(
         TimeEntry,
-        "SELECT id, employee_id, punch_in_time as \"punch_in_time!\", punch_out_time, duration_minutes, is_break_overtime, entry_type, note, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM time_entries WHERE id = $1",
+        r#"SELECT id, employee_id, shift_id, punch_in_time as "punch_in_time!", punch_out_time, duration_minutes, is_break_overtime, entry_type, note, created_at as "created_at!", updated_at as "updated_at!" FROM time_entries WHERE id = $1"#,
         id
     )
     .fetch_optional(pool)
@@ -42,7 +43,7 @@ pub async fn get_latest_active_entry(
 ) -> Result<Option<TimeEntry>, sqlx::Error> {
     query_as!(
         TimeEntry,
-        "SELECT id, employee_id, punch_in_time as \"punch_in_time!\", punch_out_time, duration_minutes, is_break_overtime, entry_type, note, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM time_entries WHERE employee_id = $1 AND punch_out_time IS NULL ORDER BY punch_in_time DESC LIMIT 1",
+        r#"SELECT id, employee_id, shift_id, punch_in_time as "punch_in_time!", punch_out_time, duration_minutes, is_break_overtime, entry_type, note, created_at as "created_at!", updated_at as "updated_at!" FROM time_entries WHERE employee_id = $1 AND punch_out_time IS NULL ORDER BY punch_in_time DESC LIMIT 1"#,
         employee_id
     )
     .fetch_optional(pool)
@@ -52,14 +53,16 @@ pub async fn get_latest_active_entry(
 pub async fn update_time_entry(pool: &PgPool, entry: &TimeEntry) -> Result<(), sqlx::Error> {
     query!(
         "UPDATE time_entries SET
-            punch_in_time = $1,
-            punch_out_time = $2,
-            duration_minutes = $3,
-            is_break_overtime = $4,
-            entry_type = $5,
-            note = $6,
-            updated_at = $7
-        WHERE id = $8",
+            shift_id = $1,
+            punch_in_time = $2,
+            punch_out_time = $3,
+            duration_minutes = $4,
+            is_break_overtime = $5,
+            entry_type = $6,
+            note = $7,
+            updated_at = $8
+        WHERE id = $9",
+        entry.shift_id,
         entry.punch_in_time,
         entry.punch_out_time,
         entry.duration_minutes,
@@ -82,7 +85,7 @@ pub async fn get_employee_time_entries(
 ) -> Result<Vec<TimeEntry>, sqlx::Error> {
     query_as!(
         TimeEntry,
-        "SELECT id, employee_id, punch_in_time as \"punch_in_time!\", punch_out_time, duration_minutes, is_break_overtime, entry_type, note, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM time_entries WHERE employee_id = $1 AND punch_in_time >= $2 AND punch_in_time <= $3 ORDER BY punch_in_time DESC",
+        r#"SELECT id, employee_id, shift_id, punch_in_time as "punch_in_time!", punch_out_time, duration_minutes, is_break_overtime, entry_type, note, created_at as "created_at!", updated_at as "updated_at!" FROM time_entries WHERE employee_id = $1 AND punch_in_time >= $2 AND punch_in_time <= $3 ORDER BY punch_in_time DESC"#,
         employee_id,
         start_date,
         end_date

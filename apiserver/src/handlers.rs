@@ -1286,31 +1286,25 @@ pub async fn delete_employee(
 
 pub async fn punch_in(
     State(state): State<Arc<AppState>>,
-    Path(_workspace_id): Path<Uuid>,
+    Path(workspace_id): Path<Uuid>,
+    MemberContext { .. }: MemberContext,
     Json(req): Json<PunchInRequest>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let entry = TimeEntry {
-        id: Uuid::new_v4(),
-        employee_id: req.employee_id,
-        punch_in_time: Utc::now(),
-        punch_out_time: None,
-        duration_minutes: None,
-        is_break_overtime: req.is_break_overtime.unwrap_or(false),
-        entry_type: req.entry_type.unwrap_or_else(|| "work".to_string()),
-        note: req.note,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-    };
-
-    match crate::repositories::time_entry_repository::create_time_entry(&state.db, &entry).await {
-        Ok(_) => Ok((StatusCode::CREATED, Json(entry))),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    match crate::services::time_tracking_service::TimeTrackingService::punch_in(
+        &state.db,
+        workspace_id,
+        req,
+    )
+    .await
+    {
+        Ok(entry) => Ok((StatusCode::CREATED, Json(entry))),
+        Err(status) => Err(status),
     }
 }
 
 pub async fn punch_out(
-    Path(employee_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
+    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<crate::models::PunchOutRequest>,
 ) -> impl IntoResponse {
@@ -1548,22 +1542,48 @@ pub async fn get_workspace_attendance_adjustments(
 
 pub async fn get_attendance_report(
     State(state): State<Arc<AppState>>,
+    Path(workspace_id): Path<Uuid>,
+    MemberContext { .. }: MemberContext,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let start_date_str = params.get("start_date").ok_or(StatusCode::BAD_REQUEST)?;
+    let end_date_str = params.get("end_date").ok_or(StatusCode::BAD_REQUEST)?;
+    let report_type = params.get("type").map(|s| s.as_str()).unwrap_or("summary");
 
-    MemberContext { workspace_id, .. }: MemberContext,
+    if report_type == "daily" {
+        let start_date = NaiveDate::parse_from_str(start_date_str, "%Y-%m-%d").map_err(|_| StatusCode::BAD_REQUEST)?;
+        let end_date = NaiveDate::parse_from_str(end_date_str, "%Y-%m-%d").map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    Query(query): Query<HistoryQuery>,
-) -> impl IntoResponse {
-    match crate::services::report_service::ReportService::get_workspace_attendance_summary(
-        &state.db,
-        workspace_id,
-        query.start,
-        query.end,
-    )
-    .await
-    {
-        Ok(summary) => Json(summary).into_response(),
+        match crate::services::ReportService::get_daily_attendance_report(
+            &state.db,
+            workspace_id,
+            start_date,
+            end_date,
+        )
+        .await
+        {
+            Ok(report) => Ok(Json(report).into_response()),
+            Err(e) => Err(e),
+        }
+    } else {
+        let start_date = DateTime::parse_from_rfc3339(&format!("{}T00:00:00Z", start_date_str))
+            .map_err(|_| StatusCode::BAD_REQUEST)?
+            .with_timezone(&Utc);
+        let end_date = DateTime::parse_from_rfc3339(&format!("{}T23:59:59Z", end_date_str))
+            .map_err(|_| StatusCode::BAD_REQUEST)?
+            .with_timezone(&Utc);
 
-        Err(status) => status.into_response(),
+        match crate::services::ReportService::get_workspace_attendance_summary(
+            &state.db,
+            workspace_id,
+            start_date,
+            end_date,
+        )
+        .await
+        {
+            Ok(summary) => Ok(Json(summary).into_response()),
+            Err(e) => Err(e),
+        }
     }
 }
 

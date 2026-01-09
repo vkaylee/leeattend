@@ -1,11 +1,13 @@
 use axum::http::StatusCode;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Utc, Local};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::models::{PunchInRequest, PunchOutRequest, TimeEntry, UpdateTimeEntryRequest};
 use crate::repositories::employee_repository;
 use crate::repositories::time_entry_repository;
+use crate::repositories::roster_repository;
+use crate::repositories::shift_repository;
 
 pub struct TimeTrackingService;
 
@@ -33,17 +35,51 @@ impl TimeTrackingService {
             return Err(StatusCode::CONFLICT); // Already punched in
         }
 
+        let now = Utc::now();
+        let local_now = now.with_timezone(&Local);
+        let today = local_now.date_naive();
+
+        // 1. Identify effective shift
+        let shift_id = roster_repository::get_effective_shift(pool, req.employee_id, today)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        let mut final_is_break_overtime = req.is_break_overtime.unwrap_or(false);
+
+        if let Some(sid) = shift_id {
+            let shift = shift_repository::get_shift_by_id(pool, sid)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+                .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+
+            let entry_type = req.entry_type.clone().unwrap_or_else(|| "work".to_string());
+            if entry_type == "work" {
+                let start_time = shift.start_time;
+                let grace_minutes = shift.early_punch_in_grace_period_minutes as u32;
+                
+                let shift_start = today.and_time(start_time);
+                let earliest_punch = shift_start - chrono::Duration::minutes(grace_minutes as i64);
+
+                if local_now.naive_local() < earliest_punch {
+                    return Err(StatusCode::BAD_REQUEST);
+                }
+            } else if entry_type == "break" && req.is_break_overtime.is_none() {
+                final_is_break_overtime = shift.break_is_overtime;
+            }
+        }
+
         let entry = TimeEntry {
             id: Uuid::new_v4(),
             employee_id: req.employee_id,
-            punch_in_time: Utc::now(),
+            shift_id,
+            punch_in_time: now,
             punch_out_time: None,
             duration_minutes: None,
-            is_break_overtime: req.is_break_overtime.unwrap_or(false),
+            is_break_overtime: final_is_break_overtime,
             entry_type: req.entry_type.unwrap_or_else(|| "work".to_string()),
             note: req.note,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: now,
+            updated_at: now,
         };
 
         time_entry_repository::create_time_entry(pool, &entry)

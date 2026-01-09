@@ -89,6 +89,7 @@ impl AttendanceAdjustmentService {
                 let entry = TimeEntry {
                     id: Uuid::new_v4(),
                     employee_id: request.employee_id,
+                    shift_id: None,
                     punch_in_time: request.requested_punch_in_time,
                     punch_out_time: request.requested_punch_out_time,
                     duration_minutes,
