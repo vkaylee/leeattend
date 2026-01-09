@@ -597,30 +597,73 @@ pub async fn delete_authorized_agent(
 
 // --- Workspace Management Handlers ---
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateWorkspaceRequest {
+    pub name: Option<String>,
+    pub work_unit_minutes: Option<i32>,
+    pub rounding_policy: Option<String>,
+}
+
 pub async fn get_workspaces(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
-) -> impl IntoResponse {
-    match sqlx::query_as::<_, Workspace>(
-        "SELECT w.* FROM workspaces w JOIN workspace_members wm ON w.id = wm.workspace_id WHERE wm.user_id = $1 ORDER BY w.created_at DESC"
+) -> Result<Json<Vec<Workspace>>, (StatusCode, String)> {
+    let workspaces = sqlx::query_as::<_, Workspace>(
+        "SELECT w.* FROM workspaces w 
+         JOIN workspace_members wm ON w.id = wm.workspace_id 
+         WHERE wm.user_id = $1",
     )
     .bind(user_id)
     .fetch_all(&state.db)
     .await
-    {
-        Ok(workspaces) => Json(workspaces).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(workspaces))
+}
+
+pub async fn get_workspace_by_id(
+    State(state): State<Arc<AppState>>,
+    Path(ws_id): Path<Uuid>,
+    UserId(_user_id): UserId,
+) -> Result<Json<Workspace>, (StatusCode, String)> {
+    let workspace = state
+        .workspace_repo
+        .get_workspace_by_id(ws_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?
+        .ok_or((StatusCode::NOT_FOUND, "Workspace not found".to_string()))?;
+
+    Ok(Json(workspace))
 }
 
 pub async fn create_workspace(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
     Json(req): Json<CreateWorkspaceRequest>,
-) -> impl IntoResponse {
+) -> Result<Json<Workspace>, (StatusCode, String)> {
     match WorkspaceService::create_workspace(&state.db, &req.name, user_id).await {
-        Ok(workspace) => (StatusCode::CREATED, Json(workspace)).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+        Ok(ws) => Ok(Json(ws)),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e)),
+    }
+}
+
+pub async fn update_workspace(
+    State(state): State<Arc<AppState>>,
+    Path(ws_id): Path<Uuid>,
+    UserId(_user_id): UserId,
+    Json(req): Json<UpdateWorkspaceRequest>,
+) -> Result<Json<Workspace>, (StatusCode, String)> {
+    match WorkspaceService::update_workspace(
+        &state.db,
+        ws_id,
+        req.name,
+        req.work_unit_minutes,
+        req.rounding_policy,
+    )
+    .await
+    {
+        Ok(ws) => Ok(Json(ws)),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e)),
     }
 }
 

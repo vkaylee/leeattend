@@ -1,16 +1,47 @@
-import { useState } from "react";
-import { Users, UserPlus, Shield, Mail, Trash2, Settings2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Users, UserPlus, Shield, Mail, Trash2, Settings2, Calculator, Save } from "lucide-react";
 import { useWorkspaceMembers } from "@/hooks/use-workspace";
 import RoleManagementModal from "@/components/RoleManagementModal";
 import { useToast } from "../components/Toast";
+import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId } from "../lib/api";
 
 export default function WorkspaceSettingsPage() {
+  const wsId = getCurrentWorkspaceId();
+  const queryClient = useQueryClient();
   const { members, isLoading, addMember, isAdding } = useWorkspaceMembers();
   const toast = useToast();
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [newMemberRole, setNewMemberRole] = useState<"admin" | "member">(
     "member",
   );
+
+  const { data: workspace, isLoading: isLoadingWs } = useQuery({
+    queryKey: ["workspace", wsId],
+    queryFn: () => fetchWorkspace(wsId!),
+    enabled: !!wsId,
+  });
+
+  const [workUnit, setWorkUnit] = useState(1);
+  const [roundingPolicy, setRoundingPolicy] = useState("none");
+
+  useEffect(() => {
+    if (workspace) {
+      setWorkUnit(workspace.work_unit_minutes);
+      setRoundingPolicy(workspace.rounding_policy);
+    }
+  }, [workspace]);
+
+  const updateWsMutation = useMutation({
+    mutationFn: (data: any) => updateWorkspace(wsId!, data),
+    onSuccess: () => {
+      toast.success("Cập nhật cấu hình thành công.");
+      queryClient.invalidateQueries({ queryKey: ["workspace", wsId] });
+    },
+    onError: () => {
+      toast.error("Không thể cập nhật cấu hình.");
+    }
+  });
 
   // State for role management
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -27,6 +58,13 @@ export default function WorkspaceSettingsPage() {
     }
   }
 
+  function handleSaveConfig() {
+    updateWsMutation.mutate({
+      work_unit_minutes: workUnit,
+      rounding_policy: roundingPolicy,
+    });
+  }
+
   return (
     <div className="p-8 animate-in fade-in duration-500">
       <div className="max-w-4xl mx-auto">
@@ -35,11 +73,69 @@ export default function WorkspaceSettingsPage() {
             Cài đặt Workspace
           </h1>
           <p className="text-slate-500 mt-1">
-            Quản lý thành viên và quyền truy cập
+            Quản lý thành viên và cấu hình tính toán
           </p>
         </div>
 
         <div className="grid grid-cols-1 gap-8">
+          {/* Payroll Config Section */}
+          <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800">
+                <Calculator className="w-5 h-5 text-indigo-500" />
+                Cấu hình tính công
+              </h2>
+              <button
+                onClick={handleSaveConfig}
+                disabled={updateWsMutation.isPending || isLoadingWs}
+                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50 text-sm"
+              >
+                <Save className="w-4 h-4" />
+                Lưu cấu hình
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                  Đơn vị tính công (Phút)
+                </label>
+                <select
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none font-bold text-slate-700"
+                  value={workUnit}
+                  onChange={(e) => setWorkUnit(parseInt(e.target.value))}
+                >
+                  <option value={1}>1 phút (Mặc định)</option>
+                  <option value={15}>15 phút (0.25h)</option>
+                  <option value={30}>30 phút (0.5h)</option>
+                  <option value={60}>60 phút (1h)</option>
+                </select>
+                <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
+                  Hệ thống sẽ gom các phút làm việc thành từng khối (block) này.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                  Quy tắc làm tròn
+                </label>
+                <select
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none font-bold text-slate-700"
+                  value={roundingPolicy}
+                  onChange={(e) => setRoundingPolicy(e.target.value)}
+                >
+                  <option value="none">Không làm tròn</option>
+                  <option value="floor">Làm tròn xuống (Floor)</option>
+                  <option value="ceil">Làm tròn lên (Ceil)</option>
+                  <option value="round">Làm tròn gần nhất (Round)</option>
+                </select>
+                <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
+                  Cách xử lý khi tổng giờ làm trong ngày không chia hết cho đơn vị tính.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Invite Section */}
           <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-800">

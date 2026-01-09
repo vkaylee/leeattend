@@ -64,4 +64,46 @@ impl WorkspaceService {
 
         Ok((primary_role, extra_roles))
     }
+
+    pub async fn update_workspace(
+        db: &PgPool,
+        ws_id: Uuid,
+        name: Option<String>,
+        work_unit_minutes: Option<i32>,
+        rounding_policy: Option<String>,
+    ) -> Result<Workspace, String> {
+        let mut query = String::from("UPDATE workspaces SET updated_at = NOW()");
+        let mut arg_idx = 1;
+
+        if name.is_some() {
+            query.push_str(&format!(", name = ${}", arg_idx));
+            arg_idx += 1;
+        }
+        if work_unit_minutes.is_some() {
+            query.push_str(&format!(", work_unit_minutes = ${}", arg_idx));
+            arg_idx += 1;
+        }
+        if rounding_policy.is_some() {
+            query.push_str(&format!(", rounding_policy = ${}", arg_idx));
+            arg_idx += 1;
+        }
+
+        query.push_str(&format!(" WHERE id = ${} RETURNING *", arg_idx));
+
+        let mut q = sqlx::query_as::<_, Workspace>(&query);
+
+        if let Some(n) = name {
+            q = q.bind(n);
+        }
+        if let Some(w) = work_unit_minutes {
+            q = q.bind(w);
+        }
+        if let Some(r) = rounding_policy {
+            q = q.bind(r);
+        }
+        q = q.bind(ws_id);
+
+        let ws = q.fetch_one(db).await.map_err(|e| e.to_string())?;
+        Ok(ws)
+    }
 }

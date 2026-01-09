@@ -184,6 +184,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(handlers::get_workspaces).post(handlers::create_workspace),
         )
         .route(
+            "/workspaces/:ws_id",
+            get(handlers::get_workspace_by_id).patch(handlers::update_workspace),
+        )
+        .route(
             "/workspaces/:ws_id/members",
             get(handlers::get_workspace_members).post(handlers::add_workspace_member),
         )

@@ -6,6 +6,7 @@ use uuid::Uuid;
 #[async_trait]
 pub trait WorkspaceRepository: Send + Sync {
     async fn create_workspace(&self, name: &str) -> Result<Workspace, String>;
+    async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, String>;
     async fn add_member(&self, workspace_id: Uuid, user_id: Uuid, role: &str)
         -> Result<(), String>;
     async fn update_member_role(
@@ -42,6 +43,18 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         .bind(Uuid::new_v4())
         .bind(name)
         .fetch_one(&self.pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        Ok(ws)
+    }
+
+    async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, String> {
+        let ws = sqlx::query_as::<_, Workspace>(
+            "SELECT * FROM workspaces WHERE id = $1",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
         .await
         .map_err(|e| e.to_string())?;
 

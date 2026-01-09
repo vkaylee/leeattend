@@ -6,7 +6,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::repositories::{
-    employee_repository, payroll_repository, shift_repository, time_entry_repository, roster_repository
+    employee_repository, payroll_repository, shift_repository, time_entry_repository, roster_repository, workspace_repository::{WorkspaceRepository, SqlxWorkspaceRepository}
 };
 
 use crate::models::Payslip;
@@ -14,6 +14,22 @@ use crate::models::Payslip;
 pub struct PayrollService;
 
 impl PayrollService {
+    fn apply_rounding(minutes: i32, unit: i32, policy: &str) -> i32 {
+        if unit <= 1 || policy == "none" {
+            return minutes;
+        }
+
+        let unit = unit as f64;
+        let mins = minutes as f64;
+
+        match policy {
+            "floor" => (mins / unit).floor() as i32 * unit as i32,
+            "ceil" => (mins / unit).ceil() as i32 * unit as i32,
+            "round" => (mins / unit).round() as i32 * unit as i32,
+            _ => minutes,
+        }
+    }
+
     pub async fn calculate_monthly_payslip(
         pool: &PgPool,
 
@@ -64,6 +80,13 @@ impl PayrollService {
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+        // 0. Get workspace settings for rounding
+        let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
+        let workspace = workspace_repo.get_workspace_by_id(workspace_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
         let mut total_standard_minutes = 0;
         let mut total_overtime_minutes = 0;
 
@@ -92,6 +115,9 @@ impl PayrollService {
                     }
                 })
             }).sum();
+
+            let mut day_standard = 0;
+            let mut day_overtime = 0;
 
             for entry in work_entries {
                 let mut duration = entry.duration_minutes.unwrap_or_else(|| {
@@ -150,18 +176,22 @@ impl PayrollService {
                         let worked_minutes = i32::max(0, duration - break_to_deduct);
 
                         if worked_minutes > work_hours_standard {
-                            total_standard_minutes += work_hours_standard;
-                            total_overtime_minutes += worked_minutes - work_hours_standard;
+                            day_standard += work_hours_standard;
+                            day_overtime += worked_minutes - work_hours_standard;
                         } else {
-                            total_standard_minutes += worked_minutes;
+                            day_standard += worked_minutes;
                         }
                     } else {
-                        total_standard_minutes += duration;
+                        day_standard += duration;
                     }
                 } else {
-                    total_standard_minutes += duration;
+                    day_standard += duration;
                 }
             }
+
+            // Apply rounding to daily totals
+            total_standard_minutes += Self::apply_rounding(day_standard, workspace.work_unit_minutes, &workspace.rounding_policy);
+            total_overtime_minutes += Self::apply_rounding(day_overtime, workspace.work_unit_minutes, &workspace.rounding_policy);
         }
 
         let worked_hours = total_standard_minutes as f64 / 60.0;

@@ -62,7 +62,27 @@ export interface User {
 export interface Workspace {
   id: string;
   name: string;
+  work_unit_minutes: number;
+  rounding_policy: "none" | "floor" | "ceil" | "round";
   created_at: string;
+}
+
+export async function fetchWorkspace(wsId: string): Promise<Workspace> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}`);
+  if (!response.ok) throw new Error("Failed to fetch workspace");
+  return response.json();
+}
+
+export async function updateWorkspace(
+  wsId: string,
+  data: Partial<Workspace>,
+): Promise<Workspace> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to update workspace");
+  return response.json();
 }
 
 export interface UpdateUserRequest {

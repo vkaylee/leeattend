@@ -93,6 +93,8 @@ pub struct UpdateDeviceRequest {
 pub struct Workspace {
     pub id: Uuid,
     pub name: String,
+    pub work_unit_minutes: i32,
+    pub rounding_policy: String,
     pub created_at: DateTime<Utc>,
 }
 
