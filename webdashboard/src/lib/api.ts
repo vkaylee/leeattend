@@ -869,6 +869,19 @@ export async function createShift(wsId: string, data: Partial<Shift>): Promise<S
   return response.json();
 }
 
+export async function updateShift(
+  wsId: string, 
+  shiftId: string, 
+  data: Partial<Shift> & { is_correction?: boolean, effective_date?: string }
+): Promise<Shift> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/shifts/${shiftId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to update shift");
+  return response.json();
+}
+
 export async function assignShift(
   wsId: string,
   data: { employee_id: string; shift_id: string; start_date: string; end_date?: string | null }

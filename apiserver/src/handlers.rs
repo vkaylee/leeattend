@@ -17,14 +17,7 @@ use tracing::error;
 use uuid::Uuid;
 
 use crate::agent_manager::AgentCommand;
-use crate::models::{
-    AddMemberRequest, ApproveAttendanceAdjustmentRequest, AssignRoleRequest, AuthResponse,
-    AuthorizedAgent, ChangePasswordRequest, CreateAttendanceAdjustmentRequest,
-    CreateAuthorizedAgentRequest, CreateDeviceRequest, CreateShiftRequest, CreateWorkspaceRequest,
-    Device, GenericResponse, LoginRequest, MemberExtraRole, PunchInRequest, RefreshRequest,
-    RegisterRequest, TimeEntry, UpdateAuthorizedAgentRequest, UpdateDeviceRequest, User,
-    UserResponse, Workspace,
-};
+use crate::models::*;
 use crate::repositories::user_repository;
 use crate::services::auth_service::AuthService;
 use crate::services::WorkspaceService;
@@ -1759,6 +1752,25 @@ pub async fn create_shift(
         Err(e) => Err(e),
     }
 }
+
+pub async fn update_shift(
+    State(state): State<Arc<AppState>>,
+    Path((_ws_id, shift_id)): Path<(Uuid, Uuid)>,
+    MemberContext { .. }: MemberContext,
+    Json(req): Json<UpdateShiftRequest>,
+) -> Result<impl IntoResponse, StatusCode> {
+    match crate::services::shift_service::ShiftService::update_shift(
+        &state.db,
+        shift_id,
+        req,
+    )
+    .await
+    {
+        Ok(shift) => Ok(Json(shift)),
+        Err(status) => Err(status),
+    }
+}
+
 
 pub async fn assign_shift(
     State(state): State<Arc<AppState>>,

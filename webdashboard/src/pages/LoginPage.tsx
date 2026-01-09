@@ -36,7 +36,7 @@ export default function LoginPage() {
         const data = await response.json();
         setAccessToken(data.access_token);
         setRefreshToken(data.refresh_token);
-        setCurrentUserId(data.user_id);
+        setCurrentUserId(data.user.id);
         navigate("/", { replace: true });
         window.location.reload();
       } else {

@@ -412,6 +412,8 @@ pub struct Shift {
     pub is_break_auto_deduct: bool,
     pub break_is_overtime: bool,
     pub early_punch_in_grace_period_minutes: i32,
+    pub is_active: bool,
+    pub parent_shift_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -430,6 +432,25 @@ pub struct CreateShiftRequest {
     pub is_break_auto_deduct: bool,
     pub break_is_overtime: bool,
     pub early_punch_in_grace_period_minutes: i32,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateShiftRequest {
+    pub name: String,
+    pub start_time: chrono::NaiveTime,
+    pub end_time: chrono::NaiveTime,
+    pub break_duration_minutes: i32,
+    pub break_start: Option<chrono::NaiveTime>,
+    pub break_end: Option<chrono::NaiveTime>,
+    pub is_break_auto_deduct: bool,
+    pub break_is_overtime: bool,
+    pub early_punch_in_grace_period_minutes: i32,
+    /// If true, update the current record (Correction). 
+    /// If false (default), create a new version if time-related fields changed.
+    #[serde(default)]
+    pub is_correction: bool,
+    /// Effective date for the new version. If not provided, defaults to today.
+    pub effective_date: Option<NaiveDate>,
 }
 
 fn default_true() -> bool {

@@ -24,6 +24,7 @@ import {
   fetchShifts, 
   assignShift, 
   createShift,
+  updateShift,
   fetchWorkspaceSchedules,
   fetchAssignmentHistory,
   upsertRoster,
@@ -65,6 +66,11 @@ export default function ShiftsPage() {
   const [newBreakEnd, setNewBreakEnd] = useState("");
   const [isFixedBreak, setIsFixedBreak] = useState(false);
   const [isAutoDeduct, setIsAutoDeduct] = useState(true);
+
+  // Edit Shift State
+  const [editingShift, setEditingShift] = useState<Shift | null>(null);
+  const [isEditCorrection, setIsEditCorrection] = useState(false);
+  const [editEffectiveDate, setEditEffectiveDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Queries
   const { data: employees } = useQuery({
@@ -152,6 +158,18 @@ export default function ShiftsPage() {
     onError: (error: any) => toast.error(error.message, "Lỗi tạo ca")
   });
 
+  const updateShiftMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string, data: any }) => updateShift(wsId, id, data),
+    onSuccess: () => {
+      toast.success("Đã cập nhật cấu hình ca làm việc.");
+      setEditingShift(null);
+      queryClient.invalidateQueries({ queryKey: ["shifts", wsId] });
+      queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+    },
+    onError: (error: any) => toast.error(error.message, "Lỗi cập nhật ca")
+  });
+
   // Handlers
   const handleAssign = () => {
     if (!selectedEmployee || !selectedShiftId || !startDate) {
@@ -206,6 +224,40 @@ export default function ShiftsPage() {
       break_is_overtime: false,
       early_punch_in_grace_period_minutes: 0,
     });
+  };
+
+  const handleUpdateShift = () => {
+    if (!editingShift) return;
+
+    updateShiftMutation.mutate({
+      id: editingShift.id,
+      data: {
+        name: newShiftName,
+        start_time: newShiftStart.length === 5 ? newShiftStart + ":00" : newShiftStart,
+        end_time: newShiftEnd.length === 5 ? newShiftEnd + ":00" : newShiftEnd,
+        break_duration_minutes: newShiftBreak,
+        break_start: (isFixedBreak && newBreakStart) ? (newBreakStart.length === 5 ? newBreakStart + ":00" : newBreakStart) : null,
+        break_end: (isFixedBreak && newBreakEnd) ? (newBreakEnd.length === 5 ? newBreakEnd + ":00" : newBreakEnd) : null,
+        is_break_auto_deduct: isAutoDeduct,
+        break_is_overtime: false,
+        early_punch_in_grace_period_minutes: 0,
+        is_correction: isEditCorrection,
+        effective_date: isEditCorrection ? undefined : editEffectiveDate
+      }
+    });
+  };
+
+  const openEditModal = (shift: Shift) => {
+    setEditingShift(shift);
+    setNewShiftName(shift.name);
+    setNewShiftStart(shift.start_time.substring(0, 5));
+    setNewShiftEnd(shift.end_time.substring(0, 5));
+    setNewShiftBreak(shift.break_duration_minutes);
+    setNewBreakStart(shift.break_start?.substring(0, 5) || "");
+    setNewBreakEnd(shift.break_end?.substring(0, 5) || "");
+    setIsFixedBreak(!!shift.break_start);
+    setIsAutoDeduct(shift.is_break_auto_deduct ?? true);
+    setIsEditCorrection(false);
   };
 
   return (
@@ -622,9 +674,17 @@ export default function ShiftsPage() {
                     )}
                   </td>
                   <td className="px-8 py-6 text-right">
-                    <button className="p-3 bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all border border-transparent hover:border-rose-100 opacity-0 group-hover:opacity-100">
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => openEditModal(shift)}
+                        className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all border border-transparent hover:border-blue-100"
+                      >
+                        <Save className="w-5 h-5" />
+                      </button>
+                      <button className="p-3 bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all border border-transparent hover:border-rose-100">
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -778,6 +838,123 @@ export default function ShiftsPage() {
               >
                 <Save className="w-5 h-5" />
                 Lưu loại ca
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Shift */}
+      {editingShift && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-[44px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100">
+            <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight leading-tight">Chỉnh sửa: {editingShift.name}</h3>
+                <p className="text-[10px] text-slate-400 font-black mt-1 uppercase tracking-widest">CẬP NHẬT CẤU HÌNH HOẶC THAY ĐỔI GIỜ LÀM</p>
+              </div>
+              <button onClick={() => setEditingShift(null)} className="p-3 hover:bg-white border border-transparent hover:border-slate-100 rounded-2xl transition-all">
+                <X className="w-6 h-6 text-slate-300" />
+              </button>
+            </div>
+            
+            <div className="p-10 space-y-8 max-h-[70vh] overflow-y-auto">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tên loại ca</label>
+                <input 
+                  type="text" 
+                  value={newShiftName}
+                  onChange={(e) => setNewShiftName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Giờ vào</label>
+                  <input 
+                    type="time" 
+                    value={newShiftStart}
+                    onChange={(e) => setNewShiftStart(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Giờ ra</label>
+                  <input 
+                    type="time" 
+                    value={newShiftEnd}
+                    onChange={(e) => setNewShiftEnd(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-5">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Nghỉ giải lao</label>
+                  <div className="flex items-center gap-2 rounded-xl bg-slate-200/50 p-1">
+                    <button 
+                      onClick={() => setIsFixedBreak(false)}
+                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${!isFixedBreak ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}
+                    > Linh hoạt </button>
+                    <button 
+                      onClick={() => setIsFixedBreak(true)}
+                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${isFixedBreak ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}
+                    > Cố định </button>
+                  </div>
+                </div>
+                {isFixedBreak ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <input type="time" value={newBreakStart} onChange={(e) => setNewBreakStart(e.target.value)} className="bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm" />
+                    <input type="time" value={newBreakEnd} onChange={(e) => setNewBreakEnd(e.target.value)} className="bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm" />
+                  </div>
+                ) : (
+                  <input type="range" min="0" max="120" step="15" value={newShiftBreak} onChange={(e) => setNewShiftBreak(parseInt(e.target.value))} className="w-full h-2 bg-slate-200 rounded-full appearance-none cursor-pointer accent-blue-600" />
+                )}
+              </div>
+
+              {/* Versioning Logic */}
+              <div className="bg-blue-50 p-6 rounded-[32px] border border-blue-100 space-y-4">
+                <label className="group flex cursor-pointer items-start gap-3">
+                  <input 
+                    type="checkbox" 
+                    checked={isEditCorrection}
+                    onChange={(e) => setIsEditCorrection(e.target.checked)}
+                    className="mt-1 h-5 w-5 rounded-lg border-blue-200 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div className="flex-1">
+                    <span className="block text-xs font-black uppercase tracking-tight text-blue-900">Sửa lỗi nhập liệu (Correction)</span>
+                    <span className="mt-0.5 block text-[10px] font-bold leading-tight text-blue-500">
+                      Thông tin sẽ được ghi đè trực tiếp lên bản ghi hiện tại. <br/> 
+                      <span className="text-[9px] italic font-black text-rose-500 underline">Cảnh báo: Có thể làm thay đổi dữ liệu chấm công quá khứ.</span>
+                    </span>
+                  </div>
+                </label>
+
+                {!isEditCorrection && (
+                  <div className="animate-in slide-in-from-top-2 space-y-2 border-t border-blue-100 pt-2">
+                    <label className="ml-1 text-[10px] font-black uppercase tracking-widest text-blue-900">Ngày áp dụng thay đổi</label>
+                    <input 
+                      type="date" 
+                      value={editEffectiveDate}
+                      onChange={(e) => setEditEffectiveDate(e.target.value)}
+                      className="w-full rounded-2xl border border-blue-200 bg-white px-5 py-3 font-bold text-blue-700 outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="px-1 text-[9px] font-bold italic text-blue-400">
+                      Hệ thống sẽ tạo phiên bản mới và chuyển toàn bộ nhân viên sang ca này từ ngày đã chọn.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleUpdateShift}
+                disabled={updateShiftMutation.isPending}
+                className="active:scale-95 shadow-xl shadow-slate-200 w-full rounded-[28px] bg-slate-900 py-5 text-xs font-black uppercase tracking-widest text-white transition-all hover:bg-black flex items-center justify-center gap-3"
+              >
+                <Save className="h-5 w-5" />
+                Cập nhật cấu hình
               </button>
             </div>
           </div>

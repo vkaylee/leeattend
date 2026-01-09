@@ -289,6 +289,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/shifts",
             get(handlers::get_shifts).post(handlers::create_shift),
         )
+        .route(
+            "/workspaces/:ws_id/shifts/:shift_id",
+            put(handlers::update_shift),
+        )
         .route("/workspaces/:ws_id/shifts/assign", post(handlers::assign_shift));
 
     // Rosters
