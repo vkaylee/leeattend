@@ -1,9 +1,7 @@
 import { useNavigate, Navigate, Link } from "react-router-dom";
 import { useProfile } from "@/hooks/use-profile";
 import {
-  fetchDevSuperUser,
   setCurrentUserId,
-  setCurrentWorkspaceId,
   getCurrentUserId,
   setAccessToken,
   setRefreshToken,
@@ -24,15 +22,14 @@ export default function LoginPage() {
     return <Navigate to="/" replace />;
   }
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const performLogin = async (loginEmail: string, loginPass: string) => {
     setIsSubmitting(true);
     setError(null);
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: loginEmail, password: loginPass }),
       });
 
       if (response.ok) {
@@ -40,8 +37,6 @@ export default function LoginPage() {
         setAccessToken(data.access_token);
         setRefreshToken(data.refresh_token);
         setCurrentUserId(data.user_id);
-        // We don't have a default workspace here, the user will be redirected to home
-        // and if they don't have a workspace, the App.tsx should handle it.
         navigate("/", { replace: true });
         window.location.reload();
       } else {
@@ -55,19 +50,17 @@ export default function LoginPage() {
     }
   };
 
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await performLogin(email, password);
+  };
+
   const handleFastLogin = async () => {
-    try {
-      const { user_id, workspace_id, access_token, refresh_token } =
-        await fetchDevSuperUser();
-      setCurrentUserId(user_id);
-      setCurrentWorkspaceId(workspace_id);
-      if (access_token) setAccessToken(access_token);
-      if (refresh_token) setRefreshToken(refresh_token);
-      window.location.reload();
-    } catch (error) {
-      console.error("Login failed", error);
-      setError("Đăng nhập thất bại. Vui lòng thử lại.");
-    }
+    const devEmail = "admin@leeattend.com";
+    const devPass = "admin123";
+    setEmail(devEmail);
+    setPassword(devPass);
+    await performLogin(devEmail, devPass);
   };
 
   return (
