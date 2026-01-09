@@ -61,7 +61,7 @@ leeattend/
 - [x] Shift Rostering System (Weekly calendar & Priority logic).
 - [x] Attendance Adjustment Workflow (Manual confirmation requests).
 - [x] **Payroll Engine**: Advanced logic for worked-through breaks and configurable early clock-in grace periods.
-- [x] **Reporting Suite**: Attendance reports supporting both monthly summaries and detailed daily punch logs.
+- [x] **Reporting Suite**: Attendance reports supporting monthly summaries and detailed daily punch logs (including break times).
 - [x] **Shift Versioning**: Automated tracking of shift configuration changes to maintain historical record integrity.
 - [x] **Configurable Work Units**: Support for 15m/30m/60m rounding blocks with configurable policies (Floor/Ceil/Round).
 - [x] Accurate Real-time Status (Heartbeat).

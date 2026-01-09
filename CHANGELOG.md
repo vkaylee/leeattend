@@ -6,9 +6,12 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ### Added
 - **Detailed Attendance Reporting**: The Reporting API and UI now support a "Daily" view, showing exact punch times, break durations, and status (Late/Present/Absent) per employee per day.
+    - **New Detail**: Added `break_duration_minutes`, `break_start`, `break_end`, and `is_break_auto_deduct` to the daily report data.
+- **Enhanced Integration Testing**: Added `apiserver/tests/report_tests.rs` to verify attendance reporting logic, covering both explicit break times and auto-deduction scenarios.
 - **Enhanced Time Tracking UI**: 
     - Added explicit "Start Break" and "Return to Work" buttons.
     - Real-time display of the current active work/break session duration.
+    - Updated `ReportsPage.tsx` to display break time information in the shift details.
 - **Flexible Payroll Logic**: 
     - Refactored `PayrollService` to group entries by local date (ICT/UTC+7).
     - Prioritizes explicit break punches over auto-deduction logic when calculating daily work hours.
