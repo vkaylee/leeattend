@@ -8,7 +8,7 @@ const API_BASE_URL = isTauri || !window.location.host.includes("localhost")
   ? (BASE_URL_FROM_ENV || "http://localhost:3000") 
   : "/api";
 
-const WS_BASE_URL = BASE_URL_FROM_ENV
+export const WS_BASE_URL = BASE_URL_FROM_ENV
   ? `${BASE_URL_FROM_ENV.replace(/^http/, "ws")}/ws`
   : `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${isTauri ? "localhost:3000" : window.location.host}/ws`;
 
@@ -133,6 +133,7 @@ export interface TimeEntry {
   punch_in_time: string;
   punch_out_time?: string;
   duration_minutes?: number;
+  is_break_overtime: boolean;
   entry_type: string;
   note?: string;
   created_at: string;
@@ -167,6 +168,7 @@ export interface AttendanceAdjustmentRequest {
   time_entry_id?: string;
   requested_punch_in_time: string;
   requested_punch_out_time?: string;
+  is_break_overtime: boolean;
   reason?: string;
   status: string;
   requested_by_user_id?: string;

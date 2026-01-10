@@ -16,7 +16,7 @@ import { useToast } from "../components/Toast";
 export default function ProfilePage() {
   const navigate = useNavigate();
   const toast = useToast();
-  const { profile, isLoading, updateProfile, isUpdating } = useProfile();
+  const { user, isLoading, updateProfile, isUpdating } = useProfile();
   const [formData, setFormData] = useState({
     full_name: "",
     avatar_url: "",
@@ -24,14 +24,14 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    if (profile) {
+    if (user) {
       setFormData({
-        full_name: profile.full_name || "",
-        avatar_url: profile.avatar_url || "",
-        bio: profile.bio || "",
+        full_name: user.full_name || "",
+        avatar_url: user.avatar_url || "",
+        bio: user.bio || "",
       });
     }
-  }, [profile]);
+  }, [user]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -87,7 +87,7 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-500">
                     <Mail className="w-4 h-4" />
                     <span className="text-sm font-medium">
-                      {profile?.email}
+                      {user?.email}
                     </span>
                   </div>
                 </div>
@@ -98,7 +98,7 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-500">
                     <Calendar className="w-4 h-4" />
                     <span className="text-sm font-medium">
-                      {profile ? new Date(profile.created_at).toLocaleDateString("vi-VN") : '---'}
+                      {user ? new Date(user.created_at).toLocaleDateString("vi-VN") : '---'}
                     </span>
                   </div>
                 </div>

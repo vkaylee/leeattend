@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { SOCKET_URL } from "@/lib/api";
+import { WS_BASE_URL } from "@/lib/api";
 
 export function useWebSocket() {
   const [isConnected, setIsConnected] = useState(false);
@@ -9,7 +9,7 @@ export function useWebSocket() {
   const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const socket = new WebSocket(SOCKET_URL);
+    const socket = new WebSocket(WS_BASE_URL);
     socketRef.current = socket;
 
     socket.onopen = () => {
