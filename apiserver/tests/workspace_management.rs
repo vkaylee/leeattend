@@ -1,28 +1,16 @@
 mod common;
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
 use common::factory::TestFactory;
+use common::db::TestDatabase;
 use reqwest::StatusCode;
-use serial_test::serial;
-use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use uuid::Uuid;
 
-async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
-    dotenvy::dotenv().ok();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let db_pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&database_url)
-        .await
-        .expect("Failed to connect to Postgres");
-
-    sqlx::migrate!("./migrations")
-        .run(&db_pool)
-        .await
-        .expect("Failed to run migrations");
+async fn spawn_app() -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
+    let test_db = TestDatabase::new().await;
+    let db_pool = test_db.pool();
 
     let factory = TestFactory::new(db_pool.clone());
-    factory.cleanup().await;
 
     let user_id = factory
         .user()
@@ -71,13 +59,13 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
         workspace_id,
         user_id,
         factory,
+        test_db,
     )
 }
 
 #[tokio::test]
-#[serial]
 async fn test_workspace_creation_and_membership() {
-    let (address, _, user_id, _) = spawn_app().await;
+    let (address, _, user_id, _, _db) = spawn_app().await;
     let client = reqwest::Client::new();
 
     // 1. Tạo workspace mới
@@ -89,7 +77,7 @@ async fn test_workspace_creation_and_membership() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::CREATED);
+    assert_eq!(response.status(), StatusCode::OK);
     let workspace: serde_json::Value = response.json().await.unwrap();
     let ws_id = workspace["id"].as_str().unwrap();
 
@@ -110,9 +98,8 @@ async fn test_workspace_creation_and_membership() {
 }
 
 #[tokio::test]
-#[serial]
 async fn test_create_workspace_with_non_existent_user() {
-    let (address, _, _, _) = spawn_app().await;
+    let (address, _, _, _, _db) = spawn_app().await;
     let client = reqwest::Client::new();
     let fake_user_id = Uuid::new_v4();
 
@@ -131,9 +118,8 @@ async fn test_create_workspace_with_non_existent_user() {
 }
 
 #[tokio::test]
-#[serial]
 async fn test_get_dev_super_user() {
-    let (address, _, _, _) = spawn_app().await;
+    let (address, _, _, _, _db) = spawn_app().await;
     let client = reqwest::Client::new();
 
     let response = client

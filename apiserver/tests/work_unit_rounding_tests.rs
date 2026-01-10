@@ -3,16 +3,15 @@ mod common;
 use apiserver::services::payroll_service::PayrollService;
 use chrono::{NaiveDate, TimeZone, Local, Utc};
 use common::factory::TestFactory;
+use common::db::TestDatabase;
 use rust_decimal::prelude::*;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-async fn setup_test_db() -> PgPool {
-    dotenvy::dotenv().ok();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    PgPool::connect(&database_url)
-        .await
-        .expect("Failed to connect to Postgres")
+async fn setup_test_context() -> (TestDatabase, TestFactory) {
+    let db = TestDatabase::new().await;
+    let factory = TestFactory::new(db.pool());
+    (db, factory)
 }
 
 async fn setup_employee_with_salary(
@@ -57,8 +56,8 @@ async fn update_workspace_rounding(pool: &PgPool, ws_id: Uuid, unit: i32, policy
 
 #[tokio::test]
 async fn test_payroll_rounding_30m_floor() {
-    let pool = setup_test_db().await;
-    let factory = TestFactory::new(pool.clone());
+    let (db, factory) = setup_test_context().await;
+    let pool = db.pool();
     let test_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
 
     let (employee_id, workspace_id) = setup_employee_with_salary(&factory, &pool, test_date).await;
@@ -80,14 +79,12 @@ async fn test_payroll_rounding_30m_floor() {
     
     // 2.5 hours * 100 = 250.0
     assert_eq!(payslip.base_pay_amount.to_f64().unwrap(), 250.0);
-
-    factory.cleanup().await;
 }
 
 #[tokio::test]
 async fn test_payroll_rounding_30m_ceil() {
-    let pool = setup_test_db().await;
-    let factory = TestFactory::new(pool.clone());
+    let (db, factory) = setup_test_context().await;
+    let pool = db.pool();
     let test_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
 
     let (employee_id, workspace_id) = setup_employee_with_salary(&factory, &pool, test_date).await;
@@ -109,6 +106,4 @@ async fn test_payroll_rounding_30m_ceil() {
     
     // 0.5 hours * 100 = 50.0
     assert_eq!(payslip.base_pay_amount.to_f64().unwrap(), 50.0);
-
-    factory.cleanup().await;
 }

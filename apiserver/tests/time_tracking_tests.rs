@@ -9,7 +9,7 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use chrono::{NaiveTime, Local};
+use chrono::Local;
 use serde_json::json;
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -17,13 +17,12 @@ use tower::ServiceExt;
 
 mod common;
 use common::factory::TestFactory;
+use common::db::TestDatabase;
 
-async fn setup_test_db() -> PgPool {
-    dotenvy::dotenv().ok();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    PgPool::connect(&database_url)
-        .await
-        .expect("Failed to connect to Postgres")
+async fn setup_test_db() -> (TestDatabase, TestFactory) {
+    let test_db = TestDatabase::new().await;
+    let factory = TestFactory::new(test_db.pool());
+    (test_db, factory)
 }
 
 async fn setup_test_app(pool: PgPool) -> axum::Router {
@@ -49,33 +48,30 @@ async fn setup_test_app(pool: PgPool) -> axum::Router {
 
 #[tokio::test]
 async fn test_punch_in_grace_period_enforcement() {
-    let pool = setup_test_db().await;
-    let factory = TestFactory::new(pool.clone());
+    let (test_db, factory) = setup_test_db().await;
+    let pool = test_db.pool();
     let app = setup_test_app(pool.clone()).await;
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let employee_id = factory.employee().with_workspace(ws_id).with_user(user_id).create().await;
     
-    // Create a shift that starts in the future today
+    // Create a shift that starts in 30 minutes
     let now_local = Local::now();
-    // Use 23:59:59 to ensure it's in the future if possible, 
-    // or just now + 1 hour if it doesn't cross midnight.
-    let future_start = NaiveTime::from_hms_opt(23, 59, 59).unwrap();
-    
-    // If it's already past 23:59 (unlikely during test), this might fail, 
-    // but usually it's fine.
+    let now_time = now_local.time();
+    let start_offset = chrono::Duration::minutes(30);
+    let future_start = now_time + start_offset;
     
     let shift_id = factory.shift()
         .with_workspace(ws_id)
-        .with_times(future_start, NaiveTime::from_hms_opt(7, 0, 0).unwrap())
+        .with_times(future_start, future_start + chrono::Duration::hours(8))
         .with_grace_period(5) // 5 mins grace
         .assign_to_employee(employee_id, now_local.date_naive())
         .await;
 
     let token = AuthService::generate_token(user_id, "test_secret", 3600).unwrap();
 
-    // Try to punch in NOW (which is 2 hours before start) -> Should fail (400)
+    // Try to punch in NOW (which is 30 mins before start) -> Should fail (400) because 30 > 5
     let punch_payload = json!({
         "employee_id": employee_id,
         "entry_type": "work"
@@ -93,8 +89,8 @@ async fn test_punch_in_grace_period_enforcement() {
     let response = app.clone().oneshot(req).await.unwrap();
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
-    // Now update shift to have a large grace period that covers NOW
-    sqlx::query("UPDATE shifts SET early_punch_in_grace_period_minutes = 150 WHERE id = $1")
+    // Now update shift to have a large grace period (60 mins) that covers NOW (30 mins before)
+    sqlx::query("UPDATE shifts SET early_punch_in_grace_period_minutes = 60 WHERE id = $1")
         .bind(shift_id)
         .execute(&pool)
         .await

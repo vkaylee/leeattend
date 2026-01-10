@@ -1,16 +1,14 @@
 use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
 use apiserver::AppState;
-use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 
-async fn spawn_app() -> String {
-    dotenvy::dotenv().ok();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool = PgPoolOptions::new()
-        .connect(&database_url)
-        .await
-        .expect("Failed to connect to Postgres");
+mod common;
+use common::db::TestDatabase;
+
+async fn spawn_app() -> (String, TestDatabase) {
+    let test_db = TestDatabase::new().await;
+    let pool = test_db.pool();
 
     let agent_manager = AgentManager::new();
     let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: pool.clone() });
@@ -40,12 +38,12 @@ async fn spawn_app() -> String {
         axum::serve(listener, app).await.unwrap();
     });
 
-    format!("http://127.0.0.1:{}", port)
+    (format!("http://127.0.0.1:{}", port), test_db)
 }
 
 #[tokio::test]
 async fn health_check_works() {
-    let address = spawn_app().await;
+    let (address, _db) = spawn_app().await;
     let client = reqwest::Client::new();
 
     let response = client

@@ -7,14 +7,17 @@ pub struct TestFactory {
 }
 
 impl TestFactory {
+    #[allow(dead_code)]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
+    #[allow(dead_code)]
     pub fn user(&self) -> UserBuilder {
         UserBuilder::new(self.pool.clone())
     }
 
+    #[allow(dead_code)]
     pub fn workspace(&self) -> WorkspaceBuilder {
         WorkspaceBuilder::new(self.pool.clone())
     }
@@ -40,6 +43,7 @@ impl TestFactory {
     }
 }
 
+#[allow(dead_code)]
 pub struct UserBuilder {
     pool: PgPool,
     email: String,
@@ -48,6 +52,7 @@ pub struct UserBuilder {
 }
 
 impl UserBuilder {
+    #[allow(dead_code)]
     pub fn new(pool: PgPool) -> Self {
         let id = Uuid::new_v4().to_string();
         Self {
@@ -70,6 +75,7 @@ impl UserBuilder {
         self
     }
 
+    #[allow(dead_code)]
     pub async fn create(self) -> Uuid {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
             sqlx::query_scalar(
@@ -85,12 +91,14 @@ impl UserBuilder {
     }
 }
 
+#[allow(dead_code)]
 pub struct WorkspaceBuilder {
     pool: PgPool,
     name: String,
 }
 
 impl WorkspaceBuilder {
+    #[allow(dead_code)]
     pub fn new(pool: PgPool) -> Self {
         let id = Uuid::new_v4().to_string();
         Self {
@@ -105,6 +113,7 @@ impl WorkspaceBuilder {
         self
     }
 
+    #[allow(dead_code)]
     pub async fn create(self) -> Uuid {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
             sqlx::query_scalar("INSERT INTO workspaces (name) VALUES ($1) RETURNING id")
@@ -117,6 +126,7 @@ impl WorkspaceBuilder {
         .expect("Workspace creation timed out")
     }
 
+    #[allow(dead_code)]
     pub async fn create_with_owner(self, user_id: Uuid) -> Uuid {
         let pool = self.pool.clone();
         let ws_id = self.create().await;

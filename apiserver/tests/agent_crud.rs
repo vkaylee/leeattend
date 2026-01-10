@@ -1,29 +1,16 @@
 mod common;
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
 use common::factory::TestFactory;
+use common::db::TestDatabase;
 use reqwest::StatusCode;
-use serial_test::serial;
-use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use uuid::Uuid;
 
-async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
-    dotenvy::dotenv().ok();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let db_pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&database_url)
-        .await
-        .expect("Failed to connect to Postgres");
-
-    // Run migrations before testing
-    sqlx::migrate!("./migrations")
-        .run(&db_pool)
-        .await
-        .expect("Failed to run migrations");
+async fn spawn_app() -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
+    let test_db = TestDatabase::new().await;
+    let db_pool = test_db.pool();
 
     let factory = TestFactory::new(db_pool.clone());
-    factory.cleanup().await;
 
     // Create a test user and workspace using factory
     let user_id = factory.user().with_email("test@example.com").create().await;
@@ -69,13 +56,13 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
         workspace_id,
         user_id,
         factory,
+        test_db,
     )
 }
 
 #[tokio::test]
-#[serial]
 async fn test_agent_crud_operations() {
-    let (address, workspace_id, user_id, _) = spawn_app().await;
+    let (address, workspace_id, user_id, _, _db) = spawn_app().await;
     let client = reqwest::Client::new();
     let ws_header = ("X-Workspace-Id", workspace_id.to_string());
     let user_header = ("X-User-Id", user_id.to_string());
@@ -141,9 +128,8 @@ async fn test_agent_crud_operations() {
 }
 
 #[tokio::test]
-#[serial]
 async fn test_workspace_isolation() {
-    let (address, workspace_id_1, user_id, _) = spawn_app().await;
+    let (address, workspace_id_1, user_id, _, _db) = spawn_app().await;
     let client = reqwest::Client::new();
     let user_header = ("X-User-Id", user_id.to_string());
 
@@ -204,9 +190,8 @@ async fn test_workspace_isolation() {
 }
 
 #[tokio::test]
-#[serial]
 async fn test_rbac_member_cannot_invite() {
-    let (address, workspace_id, _owner_id, factory) = spawn_app().await;
+    let (address, workspace_id, _owner_id, factory, _db) = spawn_app().await;
     let client = reqwest::Client::new();
 
     // 1. Create a "Member" user using factory

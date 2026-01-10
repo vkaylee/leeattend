@@ -2,31 +2,14 @@ use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
 use apiserver::models::{AuthResponse, ChangePasswordRequest, LoginRequest, RegisterRequest};
 use apiserver::AppState;
-use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 
-async fn spawn_app() -> (String, sqlx::PgPool) {
-    dotenvy::dotenv().ok();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool = PgPoolOptions::new()
-        .connect(&database_url)
-        .await
-        .expect("Failed to connect to Postgres");
+mod common;
+use common::db::TestDatabase;
 
-    // Cleanup before test
-    sqlx::query("DELETE FROM sessions")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query("DELETE FROM workspace_members")
-        .execute(&pool)
-        .await
-        .unwrap();
-    sqlx::query("DELETE FROM users WHERE email = $1")
-        .bind("test_change@example.com")
-        .execute(&pool)
-        .await
-        .unwrap();
+async fn spawn_app() -> (String, TestDatabase) {
+    let test_db = TestDatabase::new().await;
+    let pool = test_db.pool();
 
     let agent_manager = AgentManager::new();
     let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: pool.clone() });
@@ -56,12 +39,12 @@ async fn spawn_app() -> (String, sqlx::PgPool) {
         axum::serve(listener, app).await.unwrap();
     });
 
-    (format!("http://127.0.0.1:{}", port), pool)
+    (format!("http://127.0.0.1:{}", port), test_db)
 }
 
 #[tokio::test]
 async fn test_change_password_flow() {
-    let (address, _pool) = spawn_app().await;
+    let (address, _test_db) = spawn_app().await;
     let client = reqwest::Client::new();
 
     // 1. Register

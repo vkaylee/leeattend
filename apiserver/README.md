@@ -65,3 +65,22 @@ The server will start at `http://127.0.0.1:3000`.
 - **Runtime**: [Tokio](https://tokio.rs/)
 - **Serialization**: [Serde](https://serde.rs/)
 - **Logging**: [Tracing](https://github.com/tokio-rs/tracing)
+
+## 🧪 Testing
+
+The project uses a **Dynamic Test Database** pattern for integration tests to ensure isolation and allow parallel execution.
+
+### Prerequisites
+- Postgres server running.
+- `DATABASE_URL_FOR_TEST_GENERATION` environment variable set in `.env.test` pointing to a user with `CREATEDB` permissions.
+
+### Running Tests
+```bash
+# Run all tests in parallel
+cargo test
+
+# Run a specific test suite
+cargo test --test health_check
+```
+
+Integration tests automatically create a fresh database, run migrations, and drop the database after completion.

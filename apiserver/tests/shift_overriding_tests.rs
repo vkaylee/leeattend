@@ -3,23 +3,18 @@ mod common;
 use apiserver::repositories::shift_repository;
 use chrono::{NaiveDate, NaiveTime};
 use common::factory::TestFactory;
-use sqlx::PgPool;
+use common::db::TestDatabase;
 
-async fn setup_test_db() -> PgPool {
-    dotenvy::dotenv().ok();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    PgPool::connect(&database_url)
-        .await
-        .expect("Failed to connect to Postgres")
+async fn setup_test_db() -> (TestDatabase, TestFactory) {
+    let test_db = TestDatabase::new().await;
+    let factory = TestFactory::new(test_db.pool());
+    (test_db, factory)
 }
 
-use serial_test::serial;
-
 #[tokio::test]
-#[serial]
 async fn test_temporal_shift_overriding_logic() {
-    let pool = setup_test_db().await;
-    let factory = TestFactory::new(pool.clone());
+    let (_test_db, factory) = setup_test_db().await;
+    let pool = factory.pool.clone();
 
     // 1. Setup Cơ bản: User, Workspace, Employee
     let user_id = factory.user().create().await;
@@ -51,13 +46,6 @@ async fn test_temporal_shift_overriding_logic() {
         )
         .create()
         .await;
-
-    // Clean up bất kỳ data cũ nào để test chính xác
-    sqlx::query("DELETE FROM employee_shifts WHERE employee_id = $1")
-        .bind(employee_id)
-        .execute(&pool)
-        .await
-        .unwrap();
 
     // 3. Gán ca MORNING vĩnh viễn từ ngày 2026-01-01
     shift_repository::assign_employee_shift(
@@ -139,21 +127,19 @@ async fn test_temporal_shift_overriding_logic() {
         &pool,
         employee_id,
         shift_morning_v2_id,
-        NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+        NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
         None,
     )
     .await
     .unwrap();
 
-    // Kiểm tra ngày 2026-01-25 -> Phải là MORNING V2
+    // Kiểm tra ngày 2026-02-25 -> Phải là MORNING V2
     let shift_v2 = shift_repository::get_employee_active_shift(
         &pool,
         employee_id,
-        NaiveDate::from_ymd_opt(2026, 1, 25).unwrap(),
+        NaiveDate::from_ymd_opt(2026, 2, 25).unwrap(),
     )
     .await
     .unwrap();
     assert_eq!(shift_v2.unwrap().id, shift_morning_v2_id);
-
-    factory.cleanup().await;
 }

@@ -16,15 +16,33 @@
 ### 3. Dependency Injection
 Sử dụng `Arc<dyn RepositoryTrait>` để inject vào Services. Khởi tạo toàn bộ dependencies tại `main.rs` và đưa vào `AppState`.
 
-### 4. Testing
-- **Unit Testing**: Viết unit test cho Services bằng cách sử dụng Mock Repositories.
-- **Test Factory Pattern**: Sử dụng `TestFactory` trong `tests/common/factory.rs` để tạo dữ liệu mẫu cho Integration tests. 
-- **Timeout Wrapping (Anti-Hanging)**: Tất cả các bài test bất đồng bộ hoặc thao tác khởi tạo dữ liệu (Factory) **PHẢI** được bọc trong một khối `timeout`. Điều này ngăn chặn việc bộ test suite bị treo vô hạn do deadlock hoặc network issues.
-  ```rust
-  tokio::time::timeout(Duration::from_secs(5), async { ... }).await.expect("Timed out");
-  ```
-- **Fluent API**: Builder pattern được khuyến khích để tạo data test sạch sẽ.
-- **Cleanup**: Sử dụng `factory.cleanup().await` ở đầu mỗi hàm `spawn_app` hoặc setup test.
+## Testing Standards
+
+### Integration Tests (Rust)
+
+We use a **Dynamic Test Database** pattern to ensure test isolation and allow parallel execution.
+
+1. **Isolation**: Every integration test file (or test case) MUST use `TestDatabase::new().await`. This creates a unique Postgres database for that specific session.
+2. **Migrations**: The helper automatically runs `sqlx::migrate!()`. No manual setup required.
+3. **Parallelism**: Do NOT use `#[serial]` unless absolutely necessary for non-database resources. Tests are safe to run in parallel.
+4. **Cleanup**: Databases are automatically dropped on `Drop` via a background thread.
+
+**Example Pattern:**
+```rust
+#[tokio::test]
+async fn my_feature_test() {
+    let test_db = TestDatabase::new().await;
+    let pool = test_db.pool();
+    let factory = TestFactory::new(pool.clone());
+    
+    // ... test logic ...
+}
+```
+
+### Mocking vs Fakes
+- Prefer **Fakes** (like `TestFactory` for DB data) over Mocks.
+- Use `ZKService_mock.py` for external hardware simulation.
+
 
 ---
 

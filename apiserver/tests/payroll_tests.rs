@@ -3,16 +3,15 @@ mod common;
 use apiserver::services::payroll_service::PayrollService;
 use chrono::{Datelike, NaiveDate, NaiveTime, TimeZone, Utc, Local};
 use common::factory::TestFactory;
+use common::db::TestDatabase;
 use rust_decimal::prelude::*;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-async fn setup_test_db() -> PgPool {
-    dotenvy::dotenv().ok();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    PgPool::connect(&database_url)
-        .await
-        .expect("Failed to connect to Postgres")
+async fn setup_test_db() -> (TestDatabase, TestFactory) {
+    let test_db = TestDatabase::new().await;
+    let factory = TestFactory::new(test_db.pool());
+    (test_db, factory)
 }
 
 async fn setup_employee_with_salary(
@@ -47,8 +46,8 @@ async fn setup_employee_with_salary(
 
 #[tokio::test]
 async fn test_early_punch_in_grace_period() {
-    let pool = setup_test_db().await;
-    let factory = TestFactory::new(pool.clone());
+    let (test_db, factory) = setup_test_db().await;
+    let pool = test_db.pool();
 
     let test_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
 

@@ -5,19 +5,15 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
-- **Detailed Attendance Reporting**: The Reporting API and UI now support a "Daily" view, showing exact punch times, break durations, and status (Late/Present/Absent) per employee per day.
-    - **New Detail**: Added `break_duration_minutes`, `break_start`, `break_end`, and `is_break_auto_deduct` to the daily report data.
-- **Enhanced Integration Testing**: Added `apiserver/tests/report_tests.rs` to verify attendance reporting logic, covering both explicit break times and auto-deduction scenarios.
-- **Enhanced Time Tracking UI**: 
-    - Added explicit "Start Break" and "Return to Work" buttons.
-    - Real-time display of the current active work/break session duration.
-    - Updated `ReportsPage.tsx` to display break time information in the shift details.
-- **Flexible Payroll Logic**: 
-    - Refactored `PayrollService` to group entries by local date (ICT/UTC+7).
-    - Prioritizes explicit break punches over auto-deduction logic when calculating daily work hours.
-    - **Configurable Work Units**: Added support for 15m, 30m, and 60m work blocks with customizable rounding policies (`Floor`, `Ceil`, `Round`).
-- **Shift Versioning (Backend)**: Automatically tracks changes to shift configurations using `version_id` to ensure historical payroll calculations remain accurate.
-- **Workspace Settings UI**: Integrated configuration panel for payroll rounding and unit settings.
+- **Testing Infrastructure:** Dynamic Test Database helper for Rust `apiserver`.
+- **Auto-Cleanup:** Background thread logic to drop test databases after execution.
+- **Test Factory:** Improved `TestFactory` with more builders for Payroll and Shifts.
+
+### Fixed
+- **Flaky Tests:** Resolved database contention issues in `shift_break_config_tests` and `work_unit_rounding_tests`.
+- **Test Isolation:** Integration tests now run in complete isolation from the main development database.
+- **Cleanup:** Fixed database "leak" where test databases were not being deleted.
+
 
 ### Changed
 - **Payroll Service**: Switched from UTC-based grouping to Local-date grouping for better compliance with business workday definitions.

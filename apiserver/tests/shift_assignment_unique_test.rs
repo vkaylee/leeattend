@@ -8,15 +8,14 @@ use std::sync::Arc;
 use apiserver::{create_app, AppState, agent_manager::AgentManager};
 use sqlx::PgPool;
 use crate::common::factory::TestFactory;
+use crate::common::db::TestDatabase;
 
 mod common;
 
-async fn setup_test_db() -> PgPool {
-    dotenvy::dotenv().ok();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    PgPool::connect(&database_url)
-        .await
-        .expect("Failed to connect to Postgres")
+async fn setup_test_db() -> (TestDatabase, TestFactory) {
+    let test_db = TestDatabase::new().await;
+    let factory = TestFactory::new(test_db.pool());
+    (test_db, factory)
 }
 
 async fn setup_test_app(pool: PgPool) -> axum::Router {
@@ -43,8 +42,8 @@ async fn setup_test_app(pool: PgPool) -> axum::Router {
 
 #[tokio::test]
 async fn test_unique_shift_assignment_constraint() {
-    let pool = setup_test_db().await;
-    let factory = TestFactory::new(pool.clone());
+    let (test_db, factory) = setup_test_db().await;
+    let pool = test_db.pool();
     let app = setup_test_app(pool.clone()).await;
 
     // 1. Setup
@@ -128,6 +127,4 @@ async fn test_unique_shift_assignment_constraint() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-
-    factory.cleanup().await;
 }
