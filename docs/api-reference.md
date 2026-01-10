@@ -206,6 +206,7 @@ Lấy danh sách tất cả nhân viên.
 
 #### POST /workspaces/:ws_id/employees
 Tạo hồ sơ nhân viên mới.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**: 
   ```json
   {
@@ -220,6 +221,7 @@ Tạo hồ sơ nhân viên mới.
 
 #### PUT /workspaces/:ws_id/employees/:id
 Cập nhật thông tin nhân viên (họ tên, ngày vào làm, trạng thái nghỉ việc).
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Response (200 OK)**
 
 ---
@@ -336,6 +338,7 @@ Lấy danh sách các ca làm việc đã định nghĩa (bao gồm cả các ph
 
 #### POST /workspaces/:ws_id/shifts
 Tạo mới hoặc cập nhật một loại ca làm việc. Nếu cập nhật, hệ thống sẽ tạo một version mới (`version_id`) để bảo toàn dữ liệu chấm công quá khứ.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 
 **Body:**
 ```json
@@ -373,11 +376,13 @@ Lấy danh sách các phòng ban.
 
 #### POST /workspaces/:ws_id/departments
 Tạo phòng ban mới.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**: `{ "name": "IT", "description": "...", "manager_id": "uuid" }`
 - **Response (201)**: `Department` object
 
 #### POST /workspaces/:ws_id/employees/:id/departments
 Điều chuyển phòng ban cho nhân viên.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**: `{ "department_id": "...", "effective_date": "...", "notes": "..." }`
 - **Response (201)**: `EmployeeDepartmentHistory` object
 

@@ -69,6 +69,7 @@ async fn test_bulk_upsert_roster_api() {
                 .method("POST")
                 .uri(format!("/api/workspaces/{}/employees/{}/rosters/bulk", workspace_id, employee_id))
                 .header("Content-Type", "application/json")
+                .header("X-Workspace-Id", workspace_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::from(serde_json::to_string(&req).unwrap()))
                 .unwrap(),
@@ -131,6 +132,7 @@ async fn test_delete_roster_reverts_to_default() {
             axum::http::Request::builder()
                 .method("DELETE")
                 .uri(format!("/api/workspaces/{}/employees/{}/rosters/{}", workspace_id, employee_id, date))
+                .header("X-Workspace-Id", workspace_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),

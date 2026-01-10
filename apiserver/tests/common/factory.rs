@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Utc, Datelike};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -40,6 +40,16 @@ impl TestFactory {
     #[allow(dead_code)]
     pub fn time_entry(&self) -> TimeEntryBuilder {
         TimeEntryBuilder::new(self.pool.clone())
+    }
+
+    #[allow(dead_code)]
+    pub fn leave_request(&self) -> LeaveRequestBuilder {
+        LeaveRequestBuilder::new(self.pool.clone())
+    }
+
+    #[allow(dead_code)]
+    pub fn leave_balance(&self) -> LeaveBalanceBuilder {
+        LeaveBalanceBuilder::new(self.pool.clone())
     }
 }
 
@@ -512,6 +522,14 @@ impl TestFactory {
                 .execute(&self.pool)
                 .await
                 .unwrap();
+            sqlx::query("DELETE FROM leave_requests CASCADE")
+                .execute(&self.pool)
+                .await
+                .unwrap();
+            sqlx::query("DELETE FROM leave_balances CASCADE")
+                .execute(&self.pool)
+                .await
+                .unwrap();
             sqlx::query("DELETE FROM users CASCADE")
                 .execute(&self.pool)
                 .await
@@ -523,5 +541,115 @@ impl TestFactory {
         })
         .await
         .expect("Cleanup timed out");
+    }
+}
+
+// --- Leave Request Builder ---
+#[allow(dead_code)]
+pub struct LeaveRequestBuilder {
+    pool: PgPool,
+    employee_id: Option<Uuid>,
+    leave_type: String,
+    start_date: chrono::NaiveDate,
+    end_date: chrono::NaiveDate,
+    status: String,
+}
+
+#[allow(dead_code)]
+impl LeaveRequestBuilder {
+    pub fn new(pool: PgPool) -> Self {
+        Self {
+            pool,
+            employee_id: None,
+            leave_type: "annual".to_string(),
+            start_date: chrono::Utc::now().date_naive(),
+            end_date: chrono::Utc::now().date_naive(),
+            status: "pending".to_string(),
+        }
+    }
+
+    pub fn with_employee(mut self, employee_id: Uuid) -> Self {
+        self.employee_id = Some(employee_id);
+        self
+    }
+
+    pub fn with_dates(mut self, start: chrono::NaiveDate, end: chrono::NaiveDate) -> Self {
+        self.start_date = start;
+        self.end_date = end;
+        self
+    }
+
+    pub fn with_status(mut self, status: &str) -> Self {
+        self.status = status.to_string();
+        self
+    }
+
+    pub async fn create(self) -> Uuid {
+        let id = Uuid::new_v4();
+        sqlx::query(
+            "INSERT INTO leave_requests (id, employee_id, leave_type, start_date, end_date, status) VALUES ($1, $2, $3, $4, $5, $6)",
+        )
+        .bind(id)
+        .bind(self.employee_id.expect("Employee ID is required for LeaveRequest"))
+        .bind(self.leave_type)
+        .bind(self.start_date)
+        .bind(self.end_date)
+        .bind(self.status)
+        .execute(&self.pool)
+        .await
+        .unwrap();
+        id
+    }
+}
+
+// --- Leave Balance Builder ---
+#[allow(dead_code)]
+pub struct LeaveBalanceBuilder {
+    pool: PgPool,
+    employee_id: Option<Uuid>,
+    leave_type: String,
+    year: i32,
+    entitlement: i32,
+    carried_over: i32,
+}
+
+#[allow(dead_code)]
+impl LeaveBalanceBuilder {
+    pub fn new(pool: PgPool) -> Self {
+        Self {
+            pool,
+            employee_id: None,
+            leave_type: "annual".to_string(),
+            year: chrono::Utc::now().date_naive().year(),
+            entitlement: 12,
+            carried_over: 0,
+        }
+    }
+
+    pub fn with_employee(mut self, employee_id: Uuid) -> Self {
+        self.employee_id = Some(employee_id);
+        self
+    }
+
+    pub fn with_entitlement(mut self, entitlement: i32) -> Self {
+        self.entitlement = entitlement;
+        self
+    }
+
+    pub async fn create(self) -> Uuid {
+        let id = Uuid::new_v4();
+        sqlx::query(
+            "INSERT INTO leave_balances (id, employee_id, leave_type, year, entitlement, carried_over) VALUES ($1, $2, $3, $4, $5, $6)",
+        )
+        .bind(id)
+        .bind(self.employee_id.expect("Employee ID is required for LeaveBalance"))
+        .bind(self.leave_type)
+        .bind(self.year)
+        .bind(self.entitlement)
+        .bind(self.carried_over)
+        .execute(&self.pool)
+        .await
+        .unwrap();
+        id
     }
 }

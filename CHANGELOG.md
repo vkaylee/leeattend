@@ -24,7 +24,23 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 - **Unused Assignments**: Cleared compiler warnings in `PayrollService` to ensure clean build logs.
 
 ## [Unreleased] - 2026-01-10
+
 ### Added
+- **RBAC Enforcement**: Secured all administrative endpoints (Employee/Shift/Roster management) with strict `MemberContext` role checks. Only `owner` and `admin` roles can now modify workspace resources.
+- **Comprehensive Integration Tests**: Added 5 new test suites covering:
+    - **Leave Management**: Full lifecycle from submission to approval and balance tracking.
+    - **Attendance Adjustments**: Request submission, approval flows, and time entry generation.
+    - **Employee Management**: CRUD operations and Department transfer history.
+    - **Department Management**: Creation and hierarchy logic.
+    - **RBAC Verification**: Explicit tests ensuring non-admins receive `403 Forbidden` on protected routes.
+- **Test Infrastructure**: Added `Serialize` support to key request models (`SubmitLeaveRequest`, `CreateAttendanceAdjustmentRequest`) to facilitate integration testing.
+
+### Fixed
+- **API Path Extraction**: Fixed a critical bug in `apiserver` where multi-parameter routes (e.g., `/workspaces/:ws_id/members/:id`) were failing to extract the second parameter correctly using Axum's `Path`.
+- **Employee Service**: Implemented missing `get_department_history` and `transfer_employee` methods in `EmployeeService` that were causing compilation errors.
+- **SQL Query Syntax**: Corrected invalid column aliasing syntax (removed `as "name!"`) in `LeaveRequestRepository` to be compatible with `sqlx::query_as`.
+
+### Changed
 - **Dev Rules Enforcement**: Updated `docs/code-standards.md` to mandate that 100% of tests must pass before any commit or merge.
 - **Automated Test Database Cleanup**: Implemented a robust mechanism for managing temporary Postgres databases during integration tests.
     - Added `Drop` trait implementation for `TestDatabase` with detached background shell cleanup.

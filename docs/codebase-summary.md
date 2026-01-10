@@ -57,7 +57,9 @@ leeattend/
 ### 🚦 Current Status
 - [x] JWT Authentication & Security (Change Password).
 - [x] Workspace & Member management (RBAC).
-- [x] Time-series Salary History & Departments management.
+- [x] **Full Employee Lifecycle**: CRUD operations, Department transfers with historical tracking (`employee_department_history`).
+- [x] **Department Management**: Creation and hierarchical structure foundation.
+- [x] Time-series Salary History.
 - **Shift Rostering System (Weekly calendar & Priority logic)**:
     - **Selection-First UX**: Người dùng chọn một hoặc nhiều ngày trên lịch để kích hoạt thanh công cụ (Bulk Action Bar), sau đó mới chọn ca làm việc để áp dụng. Không sử dụng các nút hành động trực tiếp trên từng thẻ ngày để giảm nhiễu giao diện.
     - **Visual Indicators**: Hệ thống sử dụng màu sắc và biểu tượng (Zap cho linh hoạt, Shield cho cố định) để phân biệt nguồn gốc của lịch làm việc.
@@ -67,13 +69,15 @@ leeattend/
 - [x] **Shift Versioning**: Automated tracking of shift configuration changes to maintain historical record integrity.
 - [x] **Configurable Work Units**: Support for 15m/30m/60m rounding blocks with configurable policies (Floor/Ceil/Round).
 - [x] Accurate Real-time Status (Heartbeat).
+- [x] **RBAC Audit**: Full security audit of all administrative endpoints; strict enforcement of `MemberContext` roles (Owner/Admin).
+- [x] **Leave Management**: Comprehensive tracking of leave requests, approvals, and annual balances.
 - [ ] Overnight Shift Support (Handling punches spanning two calendar days).
 - [ ] Automated Deployment scripts (NSSM/Service for production).
 
 ### 🛠️ Debugging & Automation Tools
 
 - **Test Factories (Rust & Python):** 
-    - `TestFactory` (Rust): Cung cấp Fluent API để tạo Users, Workspaces, Agents với cơ chế **Self-Timeout (5s)** tích hợp sẵn.
+    - `TestFactory` (Rust): Cung cấp Fluent API để tạo Users, Workspaces, Agents với cơ chế **Self-Timeout (5s)** tích hợp sẵn. Extended with builders for `Leaves`, `Adjustments`, `Employees`, and `Departments`.
     - `AsyncTestFactory` (Python): Hỗ trợ bẻ gãy vòng lặp vô hạn và dọn dẹp task bất đồng bộ an toàn.
 - **Debug Login:** 
     - Backend: Endpoint `/api/dev/super-user` (debug mode only) tự động sinh token cho admin mặc định.
@@ -87,6 +91,11 @@ leeattend/
 
 ### Testing Infrastructure
 - **Mandatory Quality Gate**: Bắt buộc 100% các bài test (Unit, Integration, Frontend) phải PASS trước khi merge.
+- **Coverage Goal**: Achieved >80% coverage for core business logic including:
+    - **Leave Lifecycle**: Submission -> Approval -> Balance Deductions.
+    - **Attendance Adjustment**: Request -> Approval -> Time Entry Upsert.
+    - **RBAC**: Negative testing for unauthorized access on protected routes.
+    - **Employee/Dept**: Full CRUD and history tracking.
 - **Automated DB Cleanup**: The `apiserver` uses a specialized `TestDatabase` helper that:
     - Creates a unique database for each test session.
     - Automatically runs migrations.

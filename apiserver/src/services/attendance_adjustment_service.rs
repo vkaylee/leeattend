@@ -32,7 +32,10 @@ impl AttendanceAdjustmentService {
 
         attendance_adjustment_repository::create_request(pool, &adjustment)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(|e| {
+                eprintln!("SUBMIT_ADJUSTMENT_ERROR: {:?}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
 
         Ok(adjustment)
     }

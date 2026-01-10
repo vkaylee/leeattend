@@ -293,7 +293,7 @@ pub struct LeaveRequest {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SubmitLeaveRequest {
     pub employee_id: Uuid,
     pub leave_type: String,
@@ -302,7 +302,7 @@ pub struct SubmitLeaveRequest {
     pub reason: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ApproveLeaveRequest {
     pub status: String,
 }
@@ -352,7 +352,7 @@ pub struct AttendanceAdjustmentRequest {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CreateAttendanceAdjustmentRequest {
     pub employee_id: Uuid,
     pub time_entry_id: Option<Uuid>,
@@ -362,9 +362,9 @@ pub struct CreateAttendanceAdjustmentRequest {
     pub reason: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ApproveAttendanceAdjustmentRequest {
-    pub status: String, // 'approved' or 'rejected'
+    pub status: String,
 }
 
 // --- Basic Reporting Models ---

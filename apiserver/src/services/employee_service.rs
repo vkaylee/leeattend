@@ -131,4 +131,43 @@ impl EmployeeService {
             Ok(())
         }
     }
+
+    pub async fn get_department_history(
+        pool: &PgPool,
+        employee_id: Uuid,
+        workspace_id: Uuid,
+    ) -> Result<Vec<crate::models::EmployeeDepartmentHistory>, StatusCode> {
+        // Verify employee belongs to workspace
+        let _ = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        crate::repositories::department_repository::get_employee_department_history(pool, employee_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
+    pub async fn transfer_employee(
+        pool: &PgPool,
+        employee_id: Uuid,
+        workspace_id: Uuid,
+        req: crate::models::TransferEmployeeRequest,
+    ) -> Result<crate::models::EmployeeDepartmentHistory, StatusCode> {
+        // Verify employee belongs to workspace
+        let _ = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        crate::repositories::department_repository::transfer_employee(
+            pool,
+            employee_id,
+            req.department_id,
+            req.effective_date,
+            req.notes,
+        )
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
 }

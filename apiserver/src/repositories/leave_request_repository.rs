@@ -77,7 +77,7 @@ pub async fn get_workspace_leave_requests(
     status: Option<String>,
 ) -> Result<Vec<LeaveRequest>, sqlx::Error> {
     let mut query_builder: sqlx::QueryBuilder<sqlx::Postgres> = sqlx::QueryBuilder::new(
-        "SELECT lr.id, lr.employee_id, lr.leave_type, lr.start_date, lr.end_date, lr.reason, lr.status, lr.requested_by_user_id, lr.approved_by_user_id, lr.created_at as \"created_at!\", lr.updated_at as \"updated_at!\" FROM leave_requests lr JOIN employees e ON lr.employee_id = e.id WHERE e.workspace_id = "
+        "SELECT lr.id, lr.employee_id, lr.leave_type, lr.start_date, lr.end_date, lr.reason, lr.status, lr.requested_by_user_id, lr.approved_by_user_id, lr.created_at, lr.updated_at FROM leave_requests lr JOIN employees e ON lr.employee_id = e.id WHERE e.workspace_id = "
     );
     query_builder.push_bind(workspace_id);
 
