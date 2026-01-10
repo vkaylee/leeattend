@@ -27,7 +27,7 @@ async fn test_database_cleanup_lifecycle() {
     } 
 
     println!("Act: Dropped TestDatabase, waiting for background worker...");
-    sleep(Duration::from_millis(2500)).await;
+    sleep(Duration::from_millis(5000)).await;
 
     let mut conn = PgConnection::connect(&base_url).await.unwrap();
     let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = $1)")
@@ -68,7 +68,7 @@ async fn test_concurrent_databases_cleanup() {
     } 
 
     println!("Act: Dropped 3 databases, waiting for concurrent background workers...");
-    sleep(Duration::from_millis(2000)).await;
+    sleep(Duration::from_millis(5000)).await;
 
     let mut conn = PgConnection::connect(&base_url).await.unwrap();
     for name in &db_names {

@@ -102,9 +102,9 @@ impl TestDatabase {
         let kill_sql = format!("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{}' AND pid <> pg_backend_pid();", db_name);
         let drop_sql = format!("DROP DATABASE \"{}\";", db_name);
         
-        // Để debug, bạn có thể thay > /dev/null thành >> /tmp/cleanup.log
+        // Dùng psql trực tiếp, gộp lệnh và đảm bảo thoát các kết nối khác
         let full_cmd = format!(
-            "sleep 0.5; psql -X \"{}\" -c \"{}\" > /dev/null 2>&1; psql -X \"{}\" -c \"{}\" > /dev/null 2>&1",
+            "psql -X \"{}\" -c \"{}\" > /dev/null 2>&1 && psql -X \"{}\" -c \"{}\" > /dev/null 2>&1",
             base_admin_url, kill_sql, base_admin_url, drop_sql
         );
 

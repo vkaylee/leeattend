@@ -8,7 +8,7 @@ use std::sync::Arc;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use uuid::Uuid;
 
-async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
+async fn spawn_app() -> (String, Uuid, Uuid, TestFactory, common::db::TestDatabase) {
     let test_db = common::db::TestDatabase::new().await;
     let pool = test_db.pool();
 
@@ -55,13 +55,13 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
         axum::serve(listener, app).await.unwrap();
     });
 
-    (url, user_id, workspace_id, factory)
+    (url, user_id, workspace_id, factory, test_db)
 }
 
 #[tokio::test]
 #[serial]
 async fn test_agent_heartbeat_via_websocket() {
-    let (url, _, workspace_id, factory) = spawn_app().await;
+    let (url, _, workspace_id, factory, _tdb) = spawn_app().await;
 
     let agent_id = "HB_WS_AGENT_01".to_string();
     let token = "hb_ws_token_123".to_string();
