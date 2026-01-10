@@ -115,9 +115,7 @@ export default function ShiftsPage() {
   const { data: history } = useQuery({
     queryKey: ["assignment_history", wsId],
     queryFn: () => fetchAssignmentHistory(wsId),
-    enabled: !!wsId && activeTab === "assignments", // Fetch only in assignments tab or common? Let's put History in Assignments tab or Roster tab?
-    // User asked for "Below the weekly roster table need to show history".
-    // So enabling for weekly-roster too.
+    enabled: !!wsId && (activeTab === "assignments" || activeTab === "weekly-roster"),
   });
 
   // Find schedule for selected employee
