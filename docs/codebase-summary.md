@@ -41,6 +41,7 @@ leeattend/
     - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections.
     - **Overtime Engine**: Priority-based calculation logic supporting worked-through breaks and daily OT thresholds.
     - **Leave Management**: Tracking of annual leave entitlements, carry-over balances, and usage history.
+    - **Dynamic Accrual Engine**: Automated leave balance calculation based on configurable rules (Monthly/Quarterly/Yearly) and Seniority Bonuses.
     - **Resilience**: **PortFileGuard** ensures robust resource cleanup (port files) even during unexpected shutdowns or panics.
 2.  **Web Dashboard (React/Vite)**:
     - Modern UI with Tailwind CSS & Lucide icons.
@@ -71,13 +72,14 @@ leeattend/
 - [x] Accurate Real-time Status (Heartbeat).
 - [x] **RBAC Audit**: Full security audit of all administrative endpoints; strict enforcement of `MemberContext` roles (Owner/Admin).
 - [x] **Leave Management**: Comprehensive tracking of leave requests, approvals, and annual balances.
+- [x] **Dynamic Leave Policies**: Configurable accrual rules (Monthly, Quarterly) with temporal assignment (Effective Date) and seniority bonuses.
 - [ ] Overnight Shift Support (Handling punches spanning two calendar days).
 - [ ] Automated Deployment scripts (NSSM/Service for production).
 
 ### 🛠️ Debugging & Automation Tools
 
 - **Test Factories (Rust & Python):** 
-    - `TestFactory` (Rust): Cung cấp Fluent API để tạo Users, Workspaces, Agents với cơ chế **Self-Timeout (5s)** tích hợp sẵn. Extended with builders for `Leaves`, `Adjustments`, `Employees`, and `Departments`.
+    - `TestFactory` (Rust): Cung cấp Fluent API để tạo Users, Workspaces, Agents với cơ chế **Self-Timeout (5s)** tích hợp sẵn. Extended with builders for `Leaves`, `Adjustments`, `Employees`, `Departments`, and `Policies`.
     - `AsyncTestFactory` (Python): Hỗ trợ bẻ gãy vòng lặp vô hạn và dọn dẹp task bất đồng bộ an toàn.
 - **Debug Login:** 
     - Backend: Endpoint `/api/dev/super-user` (debug mode only) tự động sinh token cho admin mặc định.
@@ -96,6 +98,7 @@ leeattend/
     - **Attendance Adjustment**: Request -> Approval -> Time Entry Upsert.
     - **RBAC**: Negative testing for unauthorized access on protected routes.
     - **Employee/Dept**: Full CRUD and history tracking.
+    - **Leave Accrual**: Scenarios for monthly, quarterly, seniority-based accrual with policy switching.
 - **Automated DB Cleanup**: The `apiserver` uses a specialized `TestDatabase` helper that:
     - Creates a unique database for each test session.
     - Automatically runs migrations.
@@ -104,4 +107,3 @@ leeattend/
 - **Integration Tests**: Comprehensive test suite ensuring 100% reliability of the cleanup logic (`tests/db_trap_test.rs`)
 
 ## External Integrations
-
