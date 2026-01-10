@@ -5,6 +5,15 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Dynamic Leave Accrual Policies**: Implemented flexible leave accrual rules (Monthly, Quarterly, Yearly) with temporal assignment capabilities.
+    - Added `leave_policy_definitions` table to store parametric rules (JSON).
+    - Added `leave_policy_assignments` table to manage policy application over time (Effective Dating).
+    - Added `leave_accrual_logs` to audit all system-generated leave additions.
+    - Implemented `LeaveAccrualService` in Rust with support for seniority bonuses and pro-rating logic.
+    - Added new API endpoints:
+        - `POST /workspaces/:ws_id/leave/policies`: Create new policy definitions.
+        - `POST /workspaces/:ws_id/leave/policies/assign`: Assign policies to employees/departments.
+        - `POST /workspaces/:ws_id/leave/accrual/run`: Manually trigger accrual calculation (for Cron/Debug).
 - **Testing Infrastructure:** Dynamic Test Database helper for Rust `apiserver`.
 - **Auto-Cleanup:** Background thread logic to drop test databases after execution.
 - **Test Factory:** Improved `TestFactory` with more builders for Payroll and Shifts.
