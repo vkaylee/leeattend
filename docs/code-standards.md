@@ -40,6 +40,13 @@ Sử dụng `Arc<dyn RepositoryTrait>` để inject vào Services. Khởi tạo 
 
 ## Testing Standards
 
+### 🚀 Mandatory Passing Tests
+- **Zero Tolerance**: Tất cả các bài kiểm tra (Unit tests, Integration tests, Frontend tests) **BẮT BUỘC** phải vượt qua (PASS) trước khi thực hiện bất kỳ lệnh commit hoặc merge nào. Code có test thất bại sẽ không được chấp nhận.
+- **Verification**: Trước khi đẩy code lên, nhà phát triển phải chạy các lệnh kiểm tra tương ứng cho từng module:
+  - **Backend (Rust)**: `cargo test` (hoặc `cargo nextest run` nếu có cài đặt).
+  - **Frontend (React)**: `npm test` (chạy `vitest run`).
+  - **Worker (Python)**: `source venv/bin/activate && pytest` (Bắt buộc chạy trong venv).
+
 ### Integration Tests (Rust)
 
 We use a **Dynamic Test Database** pattern to ensure test isolation and allow parallel execution.

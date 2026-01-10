@@ -25,11 +25,19 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ## [Unreleased] - 2026-01-10
 ### Added
+- **Dev Rules Enforcement**: Updated `docs/code-standards.md` to mandate that 100% of tests must pass before any commit or merge.
 - **Automated Test Database Cleanup**: Implemented a robust mechanism for managing temporary Postgres databases during integration tests.
     - Added `Drop` trait implementation for `TestDatabase` with detached background shell cleanup.
     - Added `SIGINT`/`SIGTERM` signal traps to prevent database leaks on interrupted test runs.
     - Added `tests/db_trap_test.rs` to verify the reliability of the cleanup infrastructure.
     - Added session termination logic to ensure successful `DROP DATABASE` even with active connections.
+- **Database Safety Guard**: Added a strict check in `apiserver` test suite to prevent accidental connection to production-named databases during testing.
+
+### Fixed
+- **Frontend Runtime Error**: Resolved "deleteRoster is not defined" error in `ShiftsPage.tsx` caused by missing import.
+- **Frontend Test Suite**: Fixed broken imports (`userEvent`, `fireEvent`, `waitFor`) in `WorkspaceSettingsPage.test.tsx`.
+- **Backend Test Isolation**: Refactored multiple integration tests (`agent_token_update_test.rs`, `heartbeat_tests.rs`, `shift_versioning_tests.rs`) to use isolated `TestDatabase`.
+- **Test Configuration**: Corrected `apiserver/.env.test` to ensure test environment uses the intended local test database.
 
 ## [0.1.0] - 2026-01-09
 

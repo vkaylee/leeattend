@@ -3,22 +3,16 @@ use apiserver::{agent_manager::AgentManager, create_app, AppState};
 use common::factory::TestFactory;
 use reqwest::StatusCode;
 use serial_test::serial;
-use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use uuid::Uuid;
 
 async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
-    dotenvy::dotenv().ok();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let db_pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&database_url)
-        .await
-        .expect("Failed to connect to Postgres");
+    let test_db = common::db::TestDatabase::new().await;
+    let db_pool = test_db.pool();
 
-    sqlx::migrate!("./migrations").run(&db_pool).await.unwrap();
     let factory = TestFactory::new(db_pool.clone());
-    factory.cleanup().await;
+    // factory.cleanup().await; // TestDatabase is already empty, no need to cleanup manually and risk main DB
+
 
     let user_id = factory
         .user()

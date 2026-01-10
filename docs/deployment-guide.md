@@ -197,6 +197,32 @@ Hệ thống hỗ trợ tự động tìm port khả dụng để tránh xung đ
 **Lưu ý cho CI/CD & Testing**:
 Khi chạy các bộ test automation (như Playwright), hãy đảm bảo cả Backend và Frontend đã khởi động xong để các file `.api_port` và `.web_port` được tạo ra. Playwright được cấu hình để tự động đọc các file này.
 
+## 🧪 4. Môi trường Kiểm thử (Testing Environment)
+
+Để đảm bảo chất lượng code, LeeAttend áp dụng quy trình kiểm thử nghiêm ngặt.
+
+### 🚀 Nguyên tắc Vàng
+- **Mandatory Passing**: 100% các bài test (Rust, Python, React) **BẮT BUỘC** phải PASS trước khi commit.
+- **Isolation**: Kiểm thử tích hợp (Integration tests) chạy trên một database hoàn toàn biệt lập, không được phép chạm vào database development (`leeattzkt`).
+
+### ⚙️ Cấu hình Test (apiserver/.env.test)
+Trong môi trường phát triển, bạn cần cấu hình file `.env.test` để trỏ tới một PostgreSQL server dùng riêng cho việc tạo database tạm:
+
+```env
+# URL gốc để tạo các database test ngẫu nhiên (Yêu cầu quyền CREATEDB)
+DATABASE_URL_FOR_TEST_GENERATION=postgres://user:pass@localhost:5434/postgres
+
+# Safety net: Chốt chặn an toàn cho các công cụ mặc định
+DATABASE_URL=postgres://user:pass@localhost:5434/postgres
+```
+
+### 🛠 Lệnh chạy kiểm thử
+- **Backend**: `cd apiserver && cargo test`
+- **Frontend**: `cd webdashboard && npm test`
+- **Worker**: `cd agent-zk-worker && source venv/bin/activate && pytest` (Bắt buộc qua venv)
+
+---
+
 ## 🔑 Security Considerations
 
 ## 🛡 Xử lý sự cố (Troubleshooting)

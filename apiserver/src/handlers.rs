@@ -1983,10 +1983,7 @@ pub async fn delete_roster(
     State(state): State<Arc<AppState>>,
     Path((_ws_id, employee_id, date)): Path<(Uuid, Uuid, NaiveDate)>,
 ) -> Result<StatusCode, StatusCode> {
-    sqlx::query("DELETE FROM shift_rosters WHERE employee_id = $1 AND date = $2")
-        .bind(employee_id)
-        .bind(date)
-        .execute(&state.db)
+    crate::repositories::roster_repository::delete_roster(&state.db, employee_id, date)
         .await
         .map_err(|e| {
             error!("Failed to delete roster: {:?}", e);

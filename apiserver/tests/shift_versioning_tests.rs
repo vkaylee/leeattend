@@ -19,12 +19,9 @@ use tower::ServiceExt;
 mod common;
 use common::factory::TestFactory;
 
-async fn setup_test_db() -> PgPool {
-    dotenvy::dotenv().ok();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    PgPool::connect(&database_url)
-        .await
-        .expect("Failed to connect to Postgres")
+async fn setup_test_db() -> (PgPool, common::db::TestDatabase) {
+    let test_db = common::db::TestDatabase::new().await;
+    (test_db.pool(), test_db)
 }
 
 async fn setup_test_app(pool: PgPool) -> axum::Router {
@@ -50,7 +47,7 @@ async fn setup_test_app(pool: PgPool) -> axum::Router {
 
 #[tokio::test]
 async fn test_shift_versioning_update() {
-    let pool = setup_test_db().await;
+    let (pool, _tdb) = setup_test_db().await;
     let factory = TestFactory::new(pool.clone());
     let app = setup_test_app(pool.clone()).await;
 
@@ -166,7 +163,7 @@ async fn test_shift_versioning_update() {
 
 #[tokio::test]
 async fn test_shift_correction_update() {
-    let pool = setup_test_db().await;
+    let (pool, _tdb) = setup_test_db().await;
     let factory = TestFactory::new(pool.clone());
     let app = setup_test_app(pool.clone()).await;
 

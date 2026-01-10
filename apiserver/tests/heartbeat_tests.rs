@@ -4,27 +4,15 @@ use chrono::{Duration, Utc};
 use common::factory::TestFactory;
 use futures_util::{SinkExt, StreamExt};
 use serial_test::serial;
-use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use uuid::Uuid;
 
 async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
-    dotenvy::dotenv().ok();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let db_pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&database_url)
-        .await
-        .expect("Failed to connect to Postgres");
+    let test_db = common::db::TestDatabase::new().await;
+    let pool = test_db.pool();
 
-    sqlx::migrate!("./migrations")
-        .run(&db_pool)
-        .await
-        .expect("Failed to run migrations");
-
-    let factory = TestFactory::new(db_pool.clone());
-    factory.cleanup().await;
+    let factory = TestFactory::new(pool.clone());
 
     let user_id = factory
         .user()
@@ -39,10 +27,10 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
 
     let agent_manager = AgentManager::new();
     let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository {
-        pool: db_pool.clone(),
+        pool: pool.clone(),
     });
     let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository {
-        pool: db_pool.clone(),
+        pool: pool.clone(),
     });
     let agent_service = Arc::new(apiserver::services::AgentService::new(
         agent_repo.clone(),
@@ -51,7 +39,7 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
 
     let state = Arc::new(AppState {
         agent_manager,
-        db: db_pool,
+        db: pool,
         agent_repo,
         workspace_repo,
         agent_service,

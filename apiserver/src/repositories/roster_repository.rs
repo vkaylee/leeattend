@@ -336,6 +336,20 @@ pub async fn get_effective_shift(
     Ok(dept_shift)
 }
 
+pub async fn delete_roster(
+    pool: &PgPool,
+    employee_id: Uuid,
+    date: NaiveDate,
+) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM shift_rosters WHERE employee_id = $1 AND date = $2")
+        .bind(employee_id)
+        .bind(date)
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

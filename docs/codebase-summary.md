@@ -86,6 +86,7 @@ leeattend/
 
 
 ### Testing Infrastructure
+- **Mandatory Quality Gate**: Bắt buộc 100% các bài test (Unit, Integration, Frontend) phải PASS trước khi merge.
 - **Automated DB Cleanup**: The `apiserver` uses a specialized `TestDatabase` helper that:
     - Creates a unique database for each test session.
     - Automatically runs migrations.

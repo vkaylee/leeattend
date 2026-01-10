@@ -1055,6 +1055,11 @@ export async function bulkUpsertRoster(wsId: string, employeeId: string, items: 
   if (!response.ok) throw new Error("Failed to bulk upsert roster");
 }
 
+/**
+ * Deletes a roster entry for a specific employee and date.
+ * This effectively reverts the schedule for that day to the next priority level 
+ * (Fixed Assignment or Department Default).
+ */
 export async function deleteRoster(wsId: string, employeeId: string, date: string): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/rosters/${date}`, {
     method: "DELETE",

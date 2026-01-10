@@ -25,6 +25,10 @@ impl TestDatabase {
             .or_else(|_| std::env::var("DATABASE_URL"))
             .expect("DATABASE_URL_FOR_TEST_GENERATION or DATABASE_URL must be set");
         
+        if base_url.contains("leeattzkt") {
+            panic!("SAFETY TRIGGERED: Tests are attempting to run against the production database (leeattzkt)! Check your .env vs .env.test configuration.");
+        }
+        
         let mut url_parts: Vec<&str> = base_url.split('/').collect();
         let _database_name = url_parts.pop().unwrap_or("postgres");
         let base_connection_string = url_parts.join("/");
