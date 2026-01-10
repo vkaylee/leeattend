@@ -58,7 +58,9 @@ leeattend/
 - [x] JWT Authentication & Security (Change Password).
 - [x] Workspace & Member management (RBAC).
 - [x] Time-series Salary History & Departments management.
-- [x] Shift Rostering System (Weekly calendar & Priority logic).
+- **Shift Rostering System (Weekly calendar & Priority logic)**:
+    - **Selection-First UX**: Người dùng chọn một hoặc nhiều ngày trên lịch để kích hoạt thanh công cụ (Bulk Action Bar), sau đó mới chọn ca làm việc để áp dụng. Không sử dụng các nút hành động trực tiếp trên từng thẻ ngày để giảm nhiễu giao diện.
+    - **Visual Indicators**: Hệ thống sử dụng màu sắc và biểu tượng (Zap cho linh hoạt, Shield cho cố định) để phân biệt nguồn gốc của lịch làm việc.
 - [x] Attendance Adjustment Workflow (Manual confirmation requests).
 - [x] **Payroll Engine**: Advanced logic for worked-through breaks and configurable early clock-in grace periods.
 - [x] **Reporting Suite**: Attendance reports supporting monthly summaries and detailed daily punch logs (including break times).

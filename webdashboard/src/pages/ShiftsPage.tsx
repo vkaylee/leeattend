@@ -28,12 +28,13 @@ import {
   fetchWorkspaceSchedules,
   fetchAssignmentHistory,
   upsertRoster,
+  bulkUpsertRoster,
   getCurrentWorkspaceId,
   Employee,
   Shift
 } from "../lib/api";
 import { useToast } from "../components/Toast";
-import { format } from "date-fns";
+import { format, addDays, startOfWeek as startOfWeekFn } from "date-fns";
 import { vi } from "date-fns/locale";
 
 type TabType = "assignments" | "weekly-roster" | "directory";
@@ -46,6 +47,11 @@ export default function ShiftsPage() {
   
   // Selection states
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  
+  // Shift Picker Modal State
+  const [isShiftPickerOpen, setIsShiftPickerOpen] = useState(false);
+  const [targetDates, setTargetDates] = useState<string[]>([]);
   
   // Weekly Roster Navigation
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -140,6 +146,27 @@ export default function ShiftsPage() {
     onError: (error: any) => toast.error(error.message, "Lỗi cập nhật lịch")
   });
 
+  const bulkRosterMutation = useMutation({
+    mutationFn: (items: any[]) => bulkUpsertRoster(wsId, selectedEmployee!.id, items),
+    onSuccess: () => {
+      toast.success("Đã cập nhật lịch trực hàng loạt.");
+      setSelectedDays([]);
+      queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+    },
+    onError: (error: any) => toast.error(error.message, "Lỗi cập nhật hàng loạt")
+  });
+
+  const deleteRosterMutation = useMutation({
+    mutationFn: (date: string) => deleteRoster(wsId, selectedEmployee!.id, date),
+    onSuccess: () => {
+      toast.success("Đã gỡ bỏ ghi đè, quay về lịch mặc định.");
+      queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+    },
+    onError: (error: any) => toast.error(error.message, "Lỗi khi gỡ bỏ lịch")
+  });
+
   const createShiftMutation = useMutation({
     mutationFn: (data: any) => createShift(wsId, data),
     onSuccess: () => {
@@ -191,6 +218,58 @@ export default function ShiftsPage() {
       date: date.toISOString().split('T')[0],
       shift_id: shiftId,
     });
+  };
+
+  const handleBulkAssign = (shiftId: string | null) => {
+    if (!selectedEmployee || selectedDays.length === 0) return;
+    
+    const items = selectedDays.map(date => ({
+      date,
+      shift_id: shiftId,
+    }));
+    
+    bulkRosterMutation.mutate(items);
+  };
+
+  const handleAssignAllWeek = (shiftId: string | null) => {
+    if (!selectedEmployee) return;
+    
+    const items = weekDays.map(day => ({
+      date: day.toISOString().split('T')[0],
+      shift_id: shiftId,
+    }));
+    
+    bulkRosterMutation.mutate(items);
+  };
+
+  const handleCopyPreviousWeek = async () => {
+    if (!selectedEmployee || !allSchedules) return;
+    
+    const prevWeekStart = addDays(startOfWeek, -7);
+    const prevWeekEnd = addDays(startOfWeek, -1);
+    
+    try {
+      const prevSchedules = await fetchWorkspaceSchedules(
+        wsId, 
+        prevWeekStart.toISOString().split('T')[0], 
+        prevWeekEnd.toISOString().split('T')[0]
+      );
+      
+      const empPrev = prevSchedules.find(s => s.employee_id === selectedEmployee.id);
+      if (!empPrev) {
+        toast.warning("Không tìm thấy dữ liệu tuần trước.");
+        return;
+      }
+
+      const items = empPrev.schedules.map((s, idx) => ({
+        date: weekDays[idx].toISOString().split('T')[0],
+        shift_id: s.shift_id,
+      }));
+
+      bulkRosterMutation.mutate(items);
+    } catch (e: any) {
+      toast.error(e.message, "Lỗi sao chép");
+    }
   };
 
   const handleCreateShift = () => {
@@ -359,11 +438,34 @@ export default function ShiftsPage() {
                     </div>
                     
                     <div className="flex items-center gap-3">
+                      <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                        <select 
+                          className="bg-transparent border-none text-[10px] font-black uppercase tracking-tight px-3 py-1 outline-none text-slate-600 appearance-none"
+                          onChange={(e) => {
+                            if (e.target.value === "copy-prev") {
+                              handleCopyPreviousWeek();
+                            } else if (e.target.value === "clear-week") {
+                              handleAssignAllWeek(null);
+                            } else if (e.target.value === "assign-all") {
+                              setTargetDates(weekDays.map(d => d.toISOString().split('T')[0]));
+                              setIsShiftPickerOpen(true);
+                            }
+                            e.target.value = "";
+                          }}
+                        >
+                          <option value="">Thao tác nhanh...</option>
+                          <option value="copy-prev">Sao chép tuần trước</option>
+                          <option value="assign-all">Gán ca cả tuần này</option>
+                          <option value="clear-week">Xóa lịch tuần này</option>
+                        </select>
+                      </div>
+
                       <button 
                         onClick={() => {
                           const d = new Date(currentDate);
                           d.setDate(d.getDate() - 7);
                           setCurrentDate(d);
+                          setSelectedDays([]);
                         }}
                         className="p-2.5 hover:bg-slate-100 border border-slate-100 rounded-xl transition-all"
                       >
@@ -377,6 +479,7 @@ export default function ShiftsPage() {
                           const d = new Date(currentDate);
                           d.setDate(d.getDate() + 7);
                           setCurrentDate(d);
+                          setSelectedDays([]);
                         }}
                         className="p-2.5 hover:bg-slate-100 border border-slate-100 rounded-xl transition-all"
                       >
@@ -385,9 +488,31 @@ export default function ShiftsPage() {
                     </div>
                   </div>
 
+                  {selectedDays.length > 0 && (
+                    <div className="bg-blue-600 text-white p-4 rounded-[24px] flex items-center justify-between shadow-lg shadow-blue-100 animate-in slide-in-from-top-4">
+                      <div className="flex items-center gap-4">
+                        <span className="text-xs font-black uppercase tracking-widest">Đã chọn {selectedDays.length} ngày</span>
+                        <div className="h-4 w-px bg-white/20" />
+                        <button 
+                          onClick={() => {
+                            setTargetDates(selectedDays);
+                            setIsShiftPickerOpen(true);
+                          }}
+                          className="bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition-all flex items-center gap-2"
+                        >
+                          <Plus size={14} /> Gán ca cho mục đã chọn
+                        </button>
+                      </div>
+                      <button onClick={() => setSelectedDays([])} className="hover:bg-white/10 p-2 rounded-xl transition-all">
+                        <X size={18} />
+                      </button>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
                     {weekDays.map((day, idx) => {
                       const dateStr = day.toISOString().split('T')[0];
+                      const isSelected = selectedDays.includes(dateStr);
                       const effectiveSchedule = employeeSchedule?.schedules.find(s => s.date === dateStr);
                       const isToday = day.toDateString() === new Date().toDateString();
                       
@@ -396,8 +521,23 @@ export default function ShiftsPage() {
                       const isDept = effectiveSchedule?.source === "department";
 
                       return (
-                        <div key={idx} className={`bg-white border p-4 rounded-[32px] flex flex-col min-h-[350px] transition-all relative group ${isToday ? 'border-blue-300 ring-4 ring-blue-50 shadow-lg' : 'border-slate-100 hover:border-slate-200 shadow-sm'}`}>
-                          <div className="text-center mb-5 pb-5 border-b border-slate-50">
+                        <div 
+                          key={idx} 
+                          onClick={() => {
+                            if (selectedDays.includes(dateStr)) {
+                              setSelectedDays(selectedDays.filter(d => d !== dateStr));
+                            } else {
+                              setSelectedDays([...selectedDays, dateStr]);
+                            }
+                          }}
+                          className={`bg-white border p-4 rounded-[32px] flex flex-col min-h-[350px] transition-all relative group cursor-pointer ${isSelected ? 'border-blue-500 ring-4 ring-blue-50 shadow-md' : isToday ? 'border-blue-300 ring-4 ring-blue-50 shadow-lg' : 'border-slate-100 hover:border-slate-200 shadow-sm'}`}
+                        >
+                          <div className="text-center mb-5 pb-5 border-b border-slate-50 relative">
+                            {isSelected && (
+                              <div className="absolute -top-1 -right-1 bg-blue-600 text-white rounded-full p-1 shadow-sm">
+                                <ShieldCheck size={12} />
+                              </div>
+                            )}
                             <div className={`text-[10px] font-black uppercase tracking-tighter ${isToday ? 'text-blue-500' : 'text-slate-400'}`}>
                               {format(day, "EEEE", { locale: vi })}
                             </div>
@@ -436,10 +576,10 @@ export default function ShiftsPage() {
                                 
                                 {isRoster && (
                                   <button 
-                                    onClick={() => handleShiftAssign(day, null)} // This might mean "Remove Roster Entry" -> Revert to Fixed/Dept logic? Wait, my API needs DELETE support or logic. Currently Upsert with NULL means Day Off. 
-                                    // To "Remove" a roster override (revert to default), we actually need a DELETE endpoint. 
-                                    // For now, let's treat "X" as setting to "Day Off" (NULL).
-                                    // Or better: In the select box, add "Revert to Default".
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteRosterMutation.mutate(dateStr);
+                                    }}
                                     className="absolute -top-2 -right-2 bg-white border border-slate-200 rounded-full p-1.5 shadow-md opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-rose-50 hover:border-rose-200 group/btn"
                                   >
                                     <X size={12} className="text-slate-400 group-hover/btn:text-rose-500" />
@@ -451,22 +591,6 @@ export default function ShiftsPage() {
                                 NGHỈ
                               </div>
                             )}
-                          </div>
-
-                          <div className="mt-5 pt-5 border-t border-slate-50">
-                            <select 
-                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-3 text-[10px] font-black uppercase tracking-tight focus:ring-2 focus:ring-blue-500 transition-all outline-none text-slate-600 appearance-none text-center"
-                              onChange={(e) => handleShiftAssign(day, e.target.value || null)}
-                              value={isRoster ? (effectiveSchedule?.shift_id || "") : ""}
-                            >
-                              <option value="">{isRoster ? "Thay đổi..." : "Ghi đè lịch..."}</option>
-                              <optgroup label="DANH MỤC CA">
-                                {shifts?.map(s => (
-                                  <option key={s.id} value={s.id}>{s.name} ({s.start_time.substring(0,5)})</option>
-                                ))}
-                              </optgroup>
-                              <option value="">Đặt nghỉ (Off)</option>
-                            </select>
                           </div>
                         </div>
                       );
@@ -956,6 +1080,72 @@ export default function ShiftsPage() {
                 <Save className="h-5 w-5" />
                 Cập nhật cấu hình
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Shift Picker */}
+      {isShiftPickerOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-[44px] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100">
+            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+              <div>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Chọn ca làm việc</h3>
+                <p className="text-[10px] text-slate-400 font-black mt-1 uppercase tracking-widest">
+                  Gán cho {targetDates.length === 1 ? `ngày ${format(new Date(targetDates[0]), "dd/MM")}` : `${targetDates.length} ngày đã chọn`}
+                </p>
+              </div>
+              <button onClick={() => setIsShiftPickerOpen(false)} className="p-3 hover:bg-white border border-transparent hover:border-slate-100 rounded-2xl transition-all">
+                <X className="w-6 h-6 text-slate-300" />
+              </button>
+            </div>
+            
+            <div className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                {/* Day Off Option */}
+                <button
+                  onClick={() => {
+                    const items = targetDates.map(date => ({ date, shift_id: null }));
+                    bulkRosterMutation.mutate(items);
+                    setIsShiftPickerOpen(false);
+                  }}
+                  className="p-5 rounded-[28px] border-2 border-slate-100 hover:border-rose-200 hover:bg-rose-50/30 text-left transition-all group flex flex-col items-center justify-center gap-2 border-dashed"
+                >
+                  <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-rose-100 group-hover:text-rose-500 transition-colors">
+                    <X size={20} />
+                  </div>
+                  <div className="font-black text-xs uppercase tracking-widest text-slate-400 group-hover:text-rose-600">Đặt nghỉ (OFF)</div>
+                </button>
+
+                {/* Shift Options */}
+                {shifts?.map(shift => (
+                  <button
+                    key={shift.id}
+                    onClick={() => {
+                      const items = targetDates.map(date => ({ date, shift_id: shift.id }));
+                      bulkRosterMutation.mutate(items);
+                      setIsShiftPickerOpen(false);
+                    }}
+                    className="p-5 rounded-[28px] border-2 border-slate-100 hover:border-blue-600 hover:bg-blue-50/50 text-left transition-all relative overflow-hidden group"
+                  >
+                    <div className="font-black text-sm uppercase tracking-tight text-slate-700 group-hover:text-blue-700">{shift.name}</div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
+                      <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1 group-hover:text-blue-500">
+                        <Clock size={10} /> {shift.start_time.substring(0, 5)} - {shift.end_time.substring(0, 5)}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1 group-hover:text-blue-500">
+                        <Info size={10} /> 
+                        {shift.break_start ? (
+                          <span>{shift.break_start.substring(0, 5)}-{shift.break_end?.substring(0, 5)}</span>
+                        ) : (
+                          <span>Nghỉ {shift.break_duration_minutes}p</span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

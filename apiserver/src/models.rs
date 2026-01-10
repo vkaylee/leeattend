@@ -546,6 +546,18 @@ pub struct CreateRosterRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct RosterItem {
+    pub date: NaiveDate,
+    pub shift_id: Option<Uuid>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BulkRosterRequest {
+    pub items: Vec<RosterItem>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct CreateDepartmentRequest {
     pub name: String,
     pub description: Option<String>,

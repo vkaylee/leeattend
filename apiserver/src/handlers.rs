@@ -1963,3 +1963,35 @@ pub async fn upsert_roster(
 
     Ok(Json(saved))
 }
+
+pub async fn bulk_upsert_roster(
+    State(state): State<Arc<AppState>>,
+    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    Json(req): Json<crate::models::BulkRosterRequest>,
+) -> Result<StatusCode, StatusCode> {
+    crate::repositories::roster_repository::bulk_upsert_roster(&state.db, employee_id, req.items)
+        .await
+        .map_err(|e| {
+            error!("Failed to bulk upsert roster: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(StatusCode::OK)
+}
+
+pub async fn delete_roster(
+    State(state): State<Arc<AppState>>,
+    Path((_ws_id, employee_id, date)): Path<(Uuid, Uuid, NaiveDate)>,
+) -> Result<StatusCode, StatusCode> {
+    sqlx::query("DELETE FROM shift_rosters WHERE employee_id = $1 AND date = $2")
+        .bind(employee_id)
+        .bind(date)
+        .execute(&state.db)
+        .await
+        .map_err(|e| {
+            error!("Failed to delete roster: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(StatusCode::NO_CONTENT)
+}

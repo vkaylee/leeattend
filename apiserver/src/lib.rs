@@ -310,8 +310,16 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(handlers::get_assignment_history),
         )
         .route(
-            "/employees/:id/rosters",
+            "/workspaces/:ws_id/employees/:id/rosters",
             get(handlers::get_employee_rosters).post(handlers::upsert_roster),
+        )
+        .route(
+            "/workspaces/:ws_id/employees/:id/rosters/bulk",
+            post(handlers::bulk_upsert_roster),
+        )
+        .route(
+            "/workspaces/:ws_id/employees/:id/rosters/:date",
+            delete(handlers::delete_roster),
         );
 
     Router::new()

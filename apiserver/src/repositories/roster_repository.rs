@@ -234,16 +234,11 @@ pub async fn upsert_roster(
     roster: &ShiftRoster,
 ) -> Result<ShiftRoster, sqlx::Error> {
     sqlx::query_as::<_, ShiftRoster>(
-        r#"
-        INSERT INTO shift_rosters (id, employee_id, shift_id, date, status, notes)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        ON CONFLICT (employee_id, date) DO UPDATE SET
-            shift_id = EXCLUDED.shift_id,
-            status = EXCLUDED.status,
-            notes = EXCLUDED.notes,
-            updated_at = CURRENT_TIMESTAMP
-        RETURNING *
-        "#,
+        "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status, notes)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (employee_id, date) 
+         DO UPDATE SET shift_id = EXCLUDED.shift_id, status = EXCLUDED.status, notes = EXCLUDED.notes, updated_at = NOW()
+         RETURNING *",
     )
     .bind(roster.id)
     .bind(roster.employee_id)
@@ -253,6 +248,34 @@ pub async fn upsert_roster(
     .bind(roster.notes.clone())
     .fetch_one(pool)
     .await
+}
+
+pub async fn bulk_upsert_roster(
+    pool: &sqlx::PgPool,
+    employee_id: Uuid,
+    items: Vec<crate::models::RosterItem>,
+) -> Result<(), sqlx::Error> {
+    let mut tx = pool.begin().await?;
+
+    for item in items {
+        sqlx::query(
+            "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status, notes)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             ON CONFLICT (employee_id, date) 
+             DO UPDATE SET shift_id = EXCLUDED.shift_id, status = EXCLUDED.status, notes = EXCLUDED.notes, updated_at = NOW()",
+        )
+        .bind(Uuid::new_v4())
+        .bind(employee_id)
+        .bind(item.shift_id)
+        .bind(item.date)
+        .bind("confirmed")
+        .bind(item.notes)
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    tx.commit().await?;
+    Ok(())
 }
 
 pub async fn get_effective_shift(

@@ -1030,10 +1030,34 @@ export const fetchEmployeeRosters = async (
 }
 
 export async function upsertRoster(wsId: string, employeeId: string, data: any): Promise<ShiftRoster> {
+
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/rosters`, {
+
     method: "POST",
+
     body: JSON.stringify(data),
+
   });
+
   if (!response.ok) throw new Error("Failed to upsert roster");
+
   return response.json();
+
+}
+
+
+
+export async function bulkUpsertRoster(wsId: string, employeeId: string, items: any[]): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/rosters/bulk`, {
+    method: "POST",
+    body: JSON.stringify({ items }),
+  });
+  if (!response.ok) throw new Error("Failed to bulk upsert roster");
+}
+
+export async function deleteRoster(wsId: string, employeeId: string, date: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/rosters/${date}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to delete roster");
 }
