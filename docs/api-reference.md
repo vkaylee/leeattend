@@ -302,7 +302,58 @@ Lấy thông tin hạn mức và số dư phép năm của nhân viên.
 
 ---
 
-### 8. Attendance Adjustments (New)
+### 8. Dynamic Leave Policies (New)
+
+Quản lý cấu hình cộng phép động (Dynamic Accrual) và phân bổ chính sách theo thời gian.
+
+#### POST /workspaces/:ws_id/leave/policies
+Tạo một định nghĩa chính sách mới (Rule Definition).
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**:
+  ```json
+  {
+    "name": "Standard Monthly",
+    "description": "Cộng 1 ngày/tháng",
+    "rule_config": {
+      "frequency": "monthly", // monthly, quarterly, yearly
+      "accrual_amount": 1.0,
+      "accrual_timing": "start_of_period", // start_of_period, end_of_period
+      "seniority_bonus": [
+        { "min_years": 5, "extra_days": 1.0 }
+      ]
+    }
+  }
+  ```
+- **Response (201)**: `LeavePolicyDefinition` object
+
+#### GET /workspaces/:ws_id/leave/policies
+Lấy danh sách các định nghĩa chính sách đã tạo.
+- **Response (200)**: `Array<LeavePolicyDefinition>`
+
+#### POST /workspaces/:ws_id/leave/policies/assign
+Gán chính sách cho đối tượng (Global, Dept, Employee) trong khoảng thời gian cụ thể (Temporal Assignment).
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**:
+  ```json
+  {
+    "assignee_type": "employee", // workspace, department, employee
+    "assignee_id": "uuid-or-null",
+    "policy_id": "uuid",
+    "effective_from": "2026-01-01",
+    "effective_to": "2026-12-31" // Optional, null = forever
+  }
+  ```
+- **Response (201)**: `LeavePolicyAssignment` object
+
+#### POST /workspaces/:ws_id/leave/accrual/run (System/Cron)
+Kích hoạt thủ công quá trình tính toán cộng phép cho một ngày cụ thể (thường dùng cho Cron Job hoặc Debug).
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**: `{ "date": "2026-02-01" }`
+- **Response (200)**: Danh sách các bản ghi `LeaveAccrualLog` vừa được tạo.
+
+---
+
+### 9. Attendance Adjustments (New)
 
 Quy trình xử lý các trường hợp quên chấm công hoặc cần điều chỉnh dữ liệu chấm công quá khứ.
 
@@ -328,7 +379,7 @@ Lấy danh sách các yêu cầu điều chỉnh trong workspace.
 
 ---
 
-### 9. Payroll & Shifts (New)
+### 10. Payroll & Shifts (New)
 
 Quản lý lương, ca làm việc và báo cáo công.
 
@@ -366,7 +417,7 @@ Xuất báo cáo chấm công của workspace.
 
 ---
 
-### 10. Departments & Rostering (New)
+### 11. Departments & Rostering (New)
 
 Quản lý cơ cấu tổ chức và lịch trình làm việc linh hoạt.
 
@@ -630,4 +681,3 @@ Dù không có HTTP server, Agent vẫn in thông tin hoạt động ra Console:
 [18:05:00] [OFFICE_01] ⚠️ WARN : Lỗi kết nối máy chấm công (ZKError). Thử lại sau 15.0s.
 [18:10:00] [OFFICE_01] ℹ️ INFO : Kết nối máy chấm công đã được phục hồi.
 ```
-
