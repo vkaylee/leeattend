@@ -81,5 +81,15 @@ leeattend/
     - `debug-ui.spec.ts`: Script dùng để kiểm tra luồng Auth, Loading loop và lấy logs từ trình duyệt.
 - **Port Discovery:**
     - `apiserver/.api_port`: File tạm chứa port hiện tại của backend.
-- **Frontend Coverage:** Core hooks (`use-profile`, `use-workspace`) đạt >80% test coverage qua Vitest.
+
+
+### Testing Infrastructure
+- **Automated DB Cleanup**: The `apiserver` uses a specialized `TestDatabase` helper that:
+    - Creates a unique database for each test session.
+    - Automatically runs migrations.
+    - Uses a **Detached Background Cleanup** mechanism (via `Drop` trait) to physically remove the database from Postgres after use.
+    - Includes a **Signal Trap** (SIGINT/SIGTERM) to ensure orphan databases are cleaned up even if tests are interrupted.
+- **Integration Tests**: Comprehensive test suite ensuring 100% reliability of the cleanup logic (`tests/db_trap_test.rs`)
+
+## External Integrations
 

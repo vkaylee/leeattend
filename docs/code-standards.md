@@ -16,6 +16,28 @@
 ### 3. Dependency Injection
 Sử dụng `Arc<dyn RepositoryTrait>` để inject vào Services. Khởi tạo toàn bộ dependencies tại `main.rs` và đưa vào `AppState`.
 
+## 🐍 Python (Worker Agents)
+
+### 1. Environment Management
+- **Venv Required**: Luôn sử dụng môi trường ảo (`venv`) để phát triển và chạy test. Thư mục chuẩn là `venv/` bên trong module.
+- **Dependencies**: Quản lý qua `requirements.txt`.
+- **Formatting**: Sử dụng `black` hoặc `ruff` để format code.
+
+### 2. Testing
+- **Pytest**: Sử dụng `pytest` kết hợp với `pytest-asyncio` cho các task bất đồng bộ.
+- **Execution**: Luôn chạy test thông qua môi trường ảo: `source venv/bin/activate && pytest`.
+
+## 🐍 Python (Worker Agents)
+
+### 1. Environment Management (Linux Priority)
+- **Linux Venv**: Bắt buộc sử dụng `python3 -m venv venv`. Kích hoạt bằng `source venv/bin/activate`.
+- **Windows Note**: Tránh dùng chung thư mục `venv` giữa Linux và Windows do sự khác biệt về cấu trúc script (`bin/` vs `Scripts/`) và đường dẫn thư viện.
+- **Dependencies**: Luôn cập nhật `requirements.txt` sau khi cài package mới.
+
+### 2. Testing & Execution
+- **Pytest**: Chạy test trong môi trường đã kích hoạt: `pytest -v`.
+- **Hardware Access**: Trên Linux, cần kiểm tra quyền truy cập cổng Serial/USB (thường thuộc group `dialout`).
+
 ## Testing Standards
 
 ### Integration Tests (Rust)
@@ -25,7 +47,9 @@ We use a **Dynamic Test Database** pattern to ensure test isolation and allow pa
 1. **Isolation**: Every integration test file (or test case) MUST use `TestDatabase::new().await`. This creates a unique Postgres database for that specific session.
 2. **Migrations**: The helper automatically runs `sqlx::migrate!()`. No manual setup required.
 3. **Parallelism**: Do NOT use `#[serial]` unless absolutely necessary for non-database resources. Tests are safe to run in parallel.
-4. **Cleanup**: Databases are automatically dropped on `Drop` via a background thread.
+4. **Cleanup**: Databases are automatically dropped on `Drop` via a detached background shell process. This allows the test to finish immediately while the database is cleaned up shortly after.
+5. **Signal Safety**: A global **Signal Trap** (SIGINT/SIGTERM) is initialized on the first `TestDatabase` creation. If the test process is interrupted (e.g., Ctrl+C), it will attempt to clean up all currently active test databases.
+6. **Robustness**: The cleanup logic terminates active database backends before dropping to prevent "database is being accessed by other users" errors.
 
 **Example Pattern:**
 ```rust

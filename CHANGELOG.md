@@ -23,7 +23,15 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 - **Timezone Offsets**: Resolved a bug where test data generated in UTC caused inconsistent daily rollups in the Payroll Engine.
 - **Unused Assignments**: Cleared compiler warnings in `PayrollService` to ensure clean build logs.
 
-## [Unreleased] - 2026-01-09
+## [Unreleased] - 2026-01-10
+### Added
+- **Automated Test Database Cleanup**: Implemented a robust mechanism for managing temporary Postgres databases during integration tests.
+    - Added `Drop` trait implementation for `TestDatabase` with detached background shell cleanup.
+    - Added `SIGINT`/`SIGTERM` signal traps to prevent database leaks on interrupted test runs.
+    - Added `tests/db_trap_test.rs` to verify the reliability of the cleanup infrastructure.
+    - Added session termination logic to ensure successful `DROP DATABASE` even with active connections.
+
+## [0.1.0] - 2026-01-09
 
 ### Added
 - **Early Clock-in Grace Period**: Implemented a configurable grace period for shifts (e.g., 30 mins). Punch-ins within this window are treated as being exactly on time, while punch-ins before the window count as overtime for the entire duration.

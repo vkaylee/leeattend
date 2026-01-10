@@ -9,7 +9,8 @@ async fn test_full_process_handshake() {
     timeout(Duration::from_secs(20), async {
         // 1. Khởi động Python Worker (dùng venv)
         let mut child = Command::new("../agent-zk-worker/venv/bin/python3")
-            .arg("../agent-zk-worker/zk_worker.py")
+            .arg("zk_worker.py")
+            .current_dir("../agent-zk-worker")
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
