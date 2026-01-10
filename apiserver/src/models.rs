@@ -615,3 +615,82 @@ pub struct AssignmentHistory {
     pub date_range: String,      // "2023-01-01" or "2023-01-01 -> 2023-02-01"
     pub created_at: DateTime<Utc>,
 }
+
+// --- Dynamic Leave Policy Models ---
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum AccrualFrequency {
+    Monthly,
+    Quarterly,
+    Yearly,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SeniorityBonus {
+    pub min_years: i32,
+    pub extra_days: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LeavePolicyConfig {
+    pub frequency: AccrualFrequency,
+    pub accrual_amount: f64,
+    pub accrual_timing: String, // "start_of_period" or "end_of_period"
+    #[serde(default)]
+    pub seniority_bonus: Vec<SeniorityBonus>,
+    pub max_balance: Option<f64>,
+    pub reset_month: Option<i32>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct LeavePolicyDefinition {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub rule_config: sqlx::types::Json<LeavePolicyConfig>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct LeavePolicyAssignment {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub assignee_type: String,
+    pub assignee_id: Option<Uuid>,
+    pub policy_id: Uuid,
+    pub effective_from: NaiveDate,
+    pub effective_to: Option<NaiveDate>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct LeaveAccrualLog {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub employee_id: Uuid,
+    pub policy_assignment_id: Option<Uuid>,
+    pub accrual_date: NaiveDate,
+    pub amount: rust_decimal::Decimal,
+    pub leave_type: String,
+    pub notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateLeavePolicyRequest {
+    pub name: String,
+    pub description: Option<String>,
+    pub rule_config: LeavePolicyConfig,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AssignLeavePolicyRequest {
+    pub assignee_type: String,
+    pub assignee_id: Option<Uuid>,
+    pub policy_id: Uuid,
+    pub effective_from: NaiveDate,
+    pub effective_to: Option<NaiveDate>,
+}

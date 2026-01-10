@@ -19,7 +19,9 @@ use uuid::Uuid;
 use crate::agent_manager::AgentCommand;
 use crate::models::*;
 use crate::repositories::user_repository;
+use crate::repositories::leave_policy_repository;
 use crate::services::auth_service::AuthService;
+use crate::services::leave_accrual_service::LeaveAccrualService;
 use crate::services::WorkspaceService;
 use crate::{AppState, UserId};
 
@@ -2025,4 +2027,91 @@ pub async fn delete_roster(
         })?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+// --- Leave Policy Handlers ---
+
+pub async fn create_leave_policy(
+    State(state): State<Arc<AppState>>,
+    Path(workspace_id): Path<Uuid>,
+    ctx: MemberContext,
+    Json(req): Json<CreateLeavePolicyRequest>,
+) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return (StatusCode::FORBIDDEN, "Only admins can manage policies").into_response();
+    }
+
+    match leave_policy_repository::create_policy_definition(
+        &state.db,
+        workspace_id,
+        &req.name,
+        req.description.as_deref(),
+        req.rule_config,
+    )
+    .await
+    {
+        Ok(policy) => (StatusCode::CREATED, Json(policy)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+pub async fn get_leave_policies(
+    State(state): State<Arc<AppState>>,
+    Path(workspace_id): Path<Uuid>,
+    _ctx: MemberContext,
+) -> impl IntoResponse {
+    match leave_policy_repository::get_policy_definitions(&state.db, workspace_id).await {
+        Ok(policies) => Json(policies).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+pub async fn assign_leave_policy(
+    State(state): State<Arc<AppState>>,
+    Path(workspace_id): Path<Uuid>,
+    ctx: MemberContext,
+    Json(req): Json<AssignLeavePolicyRequest>,
+) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return (StatusCode::FORBIDDEN, "Only admins can assign policies").into_response();
+    }
+
+    let assignment = LeavePolicyAssignment {
+        id: Uuid::new_v4(),
+        workspace_id,
+        assignee_type: req.assignee_type,
+        assignee_id: req.assignee_id,
+        policy_id: req.policy_id,
+        effective_from: req.effective_from,
+        effective_to: req.effective_to,
+        created_at: chrono::Utc::now(),
+    };
+
+    match leave_policy_repository::create_policy_assignment(&state.db, &assignment).await {
+        Ok(saved) => (StatusCode::CREATED, Json(saved)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+// Debug endpoint to trigger accrual manually
+pub async fn trigger_accrual_run(
+    State(state): State<Arc<AppState>>,
+    Path(workspace_id): Path<Uuid>,
+    ctx: MemberContext,
+    Json(payload): Json<serde_json::Value>,
+) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return (StatusCode::FORBIDDEN, "Only admins can trigger accrual").into_response();
+    }
+
+    let date_str = payload["date"].as_str().unwrap_or_default();
+    let date = match NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
+        Ok(d) => d,
+        Err(_) => return (StatusCode::BAD_REQUEST, "Invalid date format YYYY-MM-DD").into_response(),
+    };
+
+    match LeaveAccrualService::process_workspace_accruals(&state.db, workspace_id, date).await {
+        Ok(logs) => (StatusCode::OK, Json(logs)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
 }

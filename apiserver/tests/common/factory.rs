@@ -51,6 +51,11 @@ impl TestFactory {
     pub fn leave_balance(&self) -> LeaveBalanceBuilder {
         LeaveBalanceBuilder::new(self.pool.clone())
     }
+
+    #[allow(dead_code)]
+    pub fn leave_policy(&self) -> LeavePolicyBuilder {
+        LeavePolicyBuilder::new(self.pool.clone())
+    }
 }
 
 #[allow(dead_code)]
@@ -228,6 +233,12 @@ impl EmployeeBuilder {
     #[allow(dead_code)]
     pub fn with_employee_id_number(mut self, id_num: &str) -> Self {
         self.employee_id_number = id_num.to_string();
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn with_hire_date(mut self, date: chrono::NaiveDate) -> Self {
+        self.hire_date = date;
         self
     }
 
@@ -522,6 +533,18 @@ impl TestFactory {
                 .execute(&self.pool)
                 .await
                 .unwrap();
+            sqlx::query("DELETE FROM leave_accrual_logs CASCADE")
+                .execute(&self.pool)
+                .await
+                .unwrap();
+            sqlx::query("DELETE FROM leave_policy_assignments CASCADE")
+                .execute(&self.pool)
+                .await
+                .unwrap();
+            sqlx::query("DELETE FROM leave_policy_definitions CASCADE")
+                .execute(&self.pool)
+                .await
+                .unwrap();
             sqlx::query("DELETE FROM leave_requests CASCADE")
                 .execute(&self.pool)
                 .await
@@ -619,7 +642,7 @@ impl LeaveBalanceBuilder {
         Self {
             pool,
             employee_id: None,
-            leave_type: "annual".to_string(),
+            leave_type: "vacation".to_string(),
             year: chrono::Utc::now().date_naive().year(),
             entitlement: 12,
             carried_over: 0,
@@ -651,5 +674,82 @@ impl LeaveBalanceBuilder {
         .await
         .unwrap();
         id
+    }
+}
+
+// --- Leave Policy Builder ---
+#[allow(dead_code)]
+pub struct LeavePolicyBuilder {
+    pool: PgPool,
+    workspace_id: Option<Uuid>,
+    name: String,
+    rule_config: serde_json::Value,
+}
+
+#[allow(dead_code)]
+impl LeavePolicyBuilder {
+    pub fn new(pool: PgPool) -> Self {
+        Self {
+            pool,
+            workspace_id: None,
+            name: "Test Policy".to_string(),
+            rule_config: serde_json::json!({
+                "frequency": "monthly",
+                "accrual_amount": 1.0,
+                "accrual_timing": "start_of_period"
+            }),
+        }
+    }
+
+    pub fn with_workspace(mut self, ws_id: Uuid) -> Self {
+        self.workspace_id = Some(ws_id);
+        self
+    }
+
+    pub fn with_name(mut self, name: &str) -> Self {
+        self.name = name.to_string();
+        self
+    }
+
+    pub fn with_config(mut self, config: serde_json::Value) -> Self {
+        self.rule_config = config;
+        self
+    }
+
+    pub async fn create(self) -> Uuid {
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            sqlx::query_scalar(
+                "INSERT INTO leave_policy_definitions (workspace_id, name, rule_config) VALUES ($1, $2, $3) RETURNING id",
+            )
+            .bind(self.workspace_id.expect("Workspace ID required"))
+            .bind(self.name)
+            .bind(self.rule_config)
+            .fetch_one(&self.pool)
+            .await
+            .unwrap()
+        }).await.expect("Policy creation timed out")
+    }
+
+    pub async fn assign_to(
+        &self, 
+        workspace_id: Uuid, 
+        policy_id: Uuid, 
+        assignee_type: &str, 
+        assignee_id: Option<Uuid>, 
+        from: chrono::NaiveDate,
+        to: Option<chrono::NaiveDate>
+    ) -> Uuid {
+        sqlx::query_scalar(
+            "INSERT INTO leave_policy_assignments (workspace_id, policy_id, assignee_type, assignee_id, effective_from, effective_to) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+        )
+        .bind(workspace_id)
+        .bind(policy_id)
+        .bind(assignee_type)
+        .bind(assignee_id)
+        .bind(from)
+        .bind(to)
+        .fetch_one(&self.pool)
+        .await
+        .unwrap()
     }
 }

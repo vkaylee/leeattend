@@ -108,3 +108,17 @@ pub async fn delete_employee(
 
     Ok(result.rows_affected())
 }
+
+pub async fn get_active_employees(
+    pool: &PgPool,
+    workspace_id: Uuid,
+) -> Result<Vec<Employee>, sqlx::Error> {
+    query_as!(
+        Employee,
+        "SELECT id, workspace_id, user_id, first_name, last_name, employee_id_number, hire_date, termination_date, is_active, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM employees WHERE workspace_id = $1 AND is_active = true ORDER BY last_name, first_name",
+        workspace_id
+    )
+    .fetch_all(pool)
+    .await
+}
+
