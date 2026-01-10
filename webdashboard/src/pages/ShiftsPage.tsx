@@ -115,7 +115,7 @@ export default function ShiftsPage() {
   const { data: history } = useQuery({
     queryKey: ["assignment_history", wsId],
     queryFn: () => fetchAssignmentHistory(wsId),
-    enabled: !!wsId && (activeTab === "assignments" || activeTab === "weekly-roster"),
+    enabled: !!wsId,
   });
 
   // Find schedule for selected employee
