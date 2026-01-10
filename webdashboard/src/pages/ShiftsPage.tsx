@@ -29,6 +29,7 @@ import {
   fetchAssignmentHistory,
   upsertRoster,
   bulkUpsertRoster,
+  deleteRoster,
   getCurrentWorkspaceId,
   Employee,
   Shift
