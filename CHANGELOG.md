@@ -5,6 +5,10 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Time Rounding Rules**: Implemented configurable rounding policies (`Floor`, `Ceil`, `Round`) and work units (e.g., 15m, 30m blocks) for payroll calculation.
+    - Added `work_unit_minutes` and `rounding_policy` columns to `workspaces`.
+    - Integrated rounding logic into `PayrollService`.
+    - Added UI controls in `WorkspaceSettingsPage`.
 - **Dynamic Leave Accrual Policies**: Implemented flexible leave accrual rules (Monthly, Quarterly, Yearly) with temporal assignment capabilities.
     - Added `leave_policy_definitions` table to store parametric rules (JSON).
     - Added `leave_policy_assignments` table to manage policy application over time (Effective Dating).
@@ -19,18 +23,20 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 - **Test Factory:** Improved `TestFactory` with more builders for Payroll and Shifts.
 
 ### Fixed
-- **Flaky Tests:** Resolved database contention issues in `shift_break_config_tests` and `work_unit_rounding_tests`.
-- **Test Isolation:** Integration tests now run in complete isolation from the main development database.
-- **Cleanup:** Fixed database "leak" where test databases were not being deleted.
-
+- **Leave Accrual Data Loss**: Fixed a critical bug where `process_workspace_accruals` would silently fail if the leave balance record for the new year did not exist. Replaced `UPDATE` with `INSERT ... ON CONFLICT DO UPDATE` (Upsert).
+- **Payroll Date Panic**: Replaced unsafe `.unwrap()` calls in `PayrollService` date logic with proper error handling to prevent server crashes on invalid inputs.
+- **Flaky Tests**: Resolved database contention issues in `shift_break_config_tests` and `work_unit_rounding_tests`.
+- **Test Isolation**: Integration tests now run in complete isolation from the main development database.
+- **Cleanup**: Fixed database "leak" where test databases were not being deleted.
 
 ### Changed
+- **Agent Architecture**: Major refactor of `agent-zk-worker`.
+    - Consolidated `ZKService` and `ZKWorker` logic into a cleaner structure.
+    - Removed dead code (`models.py`, `device_manager.py`) and legacy tests.
+    - `main.py` is now a minimal entry point importing from `zk_worker.py`.
+- **Frontend Type Safety**: Updated `WorkspaceSettingsPage` to use strict TypeScript types (`Partial<Workspace>`) instead of `any` for mutations.
 - **Payroll Service**: Switched from UTC-based grouping to Local-date grouping for better compliance with business workday definitions.
 - **Reporting UI**: Integrated a Tab-based interface to toggle between Monthly Summary and Daily Detail reports.
-
-### Fixed
-- **Timezone Offsets**: Resolved a bug where test data generated in UTC caused inconsistent daily rollups in the Payroll Engine.
-- **Unused Assignments**: Cleared compiler warnings in `PayrollService` to ensure clean build logs.
 
 ## [Unreleased] - 2026-01-10
 

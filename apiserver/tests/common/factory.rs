@@ -414,14 +414,19 @@ impl TimeEntryBuilder {
 
     pub async fn create(self) -> Uuid {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            let duration_minutes = self.punch_out_time.map(|po| {
+                po.signed_duration_since(self.punch_in_time).num_minutes() as i32
+            });
+
             sqlx::query_scalar(
-                "INSERT INTO time_entries (employee_id, punch_in_time, punch_out_time, is_break_overtime, entry_type) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+                "INSERT INTO time_entries (employee_id, punch_in_time, punch_out_time, is_break_overtime, entry_type, duration_minutes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
             )
             .bind(self.employee_id.expect("Employee ID is required for TimeEntry"))
             .bind(self.punch_in_time)
             .bind(self.punch_out_time)
             .bind(self.is_break_overtime)
             .bind(self.entry_type)
+            .bind(duration_minutes)
             .fetch_one(&self.pool)
             .await
             .unwrap()

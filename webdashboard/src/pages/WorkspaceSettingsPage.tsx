@@ -4,7 +4,7 @@ import { Users, UserPlus, Shield, Mail, Trash2, Settings2, Calculator, Save } fr
 import { useWorkspaceMembers } from "@/hooks/use-workspace";
 import RoleManagementModal from "@/components/RoleManagementModal";
 import { useToast } from "../components/Toast";
-import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId } from "../lib/api";
+import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace } from "../lib/api";
 
 export default function WorkspaceSettingsPage() {
   const wsId = getCurrentWorkspaceId();
@@ -33,7 +33,7 @@ export default function WorkspaceSettingsPage() {
   }, [workspace]);
 
   const updateWsMutation = useMutation({
-    mutationFn: (data: any) => updateWorkspace(wsId!, data),
+    mutationFn: (data: Partial<Workspace>) => updateWorkspace(wsId!, data),
     onSuccess: () => {
       toast.success("Cập nhật cấu hình thành công.");
       queryClient.invalidateQueries({ queryKey: ["workspace", wsId] });

@@ -72,20 +72,30 @@ impl WorkspaceService {
         work_unit_minutes: Option<i32>,
         rounding_policy: Option<String>,
     ) -> Result<Workspace, String> {
-        let mut query = String::from("UPDATE workspaces SET updated_at = NOW()");
+        let mut query = String::from("UPDATE workspaces SET ");
+        let mut has_fields = false;
         let mut arg_idx = 1;
 
-        if name.is_some() {
-            query.push_str(&format!(", name = ${}", arg_idx));
+        if let Some(_) = name {
+            query.push_str(&format!("name = ${}", arg_idx));
             arg_idx += 1;
+            has_fields = true;
         }
-        if work_unit_minutes.is_some() {
-            query.push_str(&format!(", work_unit_minutes = ${}", arg_idx));
+        if let Some(_) = work_unit_minutes {
+            if has_fields { query.push_str(", "); }
+            query.push_str(&format!("work_unit_minutes = ${}", arg_idx));
             arg_idx += 1;
+            has_fields = true;
         }
-        if rounding_policy.is_some() {
-            query.push_str(&format!(", rounding_policy = ${}", arg_idx));
+        if let Some(_) = rounding_policy {
+            if has_fields { query.push_str(", "); }
+            query.push_str(&format!("rounding_policy = ${}", arg_idx));
             arg_idx += 1;
+            has_fields = true;
+        }
+
+        if !has_fields {
+            return Err("No fields to update".to_string());
         }
 
         query.push_str(&format!(" WHERE id = ${} RETURNING *", arg_idx));

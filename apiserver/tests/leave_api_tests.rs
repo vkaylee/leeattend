@@ -145,6 +145,113 @@ async fn test_leave_request_lifecycle() {
 }
 
 #[tokio::test]
+async fn test_reject_leave_request() {
+    let (_test_db, factory, app) = setup_app().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
+
+    let submit_req = SubmitLeaveRequest {
+        employee_id: emp_id,
+        leave_type: "annual".to_string(),
+        start_date: Utc::now().date_naive(),
+        end_date: Utc::now().date_naive(),
+        reason: Some("Reject me".to_string()),
+    };
+
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!("/api/workspaces/{}/leave/submit", ws_id))
+                .header("Content-Type", "application/json")
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(serde_json::to_string(&submit_req).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let leave_req: LeaveRequest = serde_json::from_slice(&axum::body::to_bytes(response.into_body(), 10000).await.unwrap()).unwrap();
+
+    // Reject
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!("/api/workspaces/{}/leave/requests/{}/approve", ws_id, leave_req.id))
+                .header("Content-Type", "application/json")
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(serde_json::to_string(&serde_json::json!({ "status": "rejected" })).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Verify rejected in DB
+    let fetched = apiserver::repositories::leave_request_repository::get_leave_request_by_id(&factory.pool, leave_req.id).await.unwrap().unwrap();
+    assert_eq!(fetched.status, "rejected");
+}
+
+#[tokio::test]
+async fn test_submit_leave_request_non_existent_employee() {
+    let (_test_db, factory, app) = setup_app().await;
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    let submit_req = serde_json::json!({
+        "employee_id": uuid::Uuid::new_v4(),
+        "leave_type": "annual",
+        "start_date": "2026-01-01",
+        "end_date": "2026-01-01"
+    });
+
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!("/api/workspaces/{}/leave/submit", ws_id))
+                .header("Content-Type", "application/json")
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(submit_req.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn test_approve_non_existent_leave_request() {
+    let (_test_db, factory, app) = setup_app().await;
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!("/api/workspaces/{}/leave/requests/{}/approve", ws_id, uuid::Uuid::new_v4()))
+                .header("Content-Type", "application/json")
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from("{\"status\":\"approved\"}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+
+
+#[tokio::test]
 async fn test_leave_balances() {
     let (_test_db, factory, app) = setup_app().await;
 

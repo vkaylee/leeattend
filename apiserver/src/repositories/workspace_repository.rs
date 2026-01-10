@@ -36,9 +36,9 @@ pub struct SqlxWorkspaceRepository {
 impl WorkspaceRepository for SqlxWorkspaceRepository {
     async fn create_workspace(&self, name: &str) -> Result<Workspace, String> {
         let ws = sqlx::query_as::<_, Workspace>(
-            "INSERT INTO workspaces (id, name, created_at, updated_at) 
-             VALUES ($1, $2, NOW(), NOW()) 
-             RETURNING *",
+            "INSERT INTO workspaces (id, name, created_at) 
+             VALUES ($1, $2, NOW()) 
+             RETURNING id, name, work_unit_minutes, rounding_policy, created_at",
         )
         .bind(Uuid::new_v4())
         .bind(name)
@@ -68,8 +68,8 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         role: &str,
     ) -> Result<(), String> {
         sqlx::query(
-            "INSERT INTO workspace_members (workspace_id, user_id, role, created_at, updated_at) 
-             VALUES ($1, $2, $3, NOW(), NOW())",
+            "INSERT INTO workspace_members (workspace_id, user_id, role) 
+             VALUES ($1, $2, $3)",
         )
         .bind(workspace_id)
         .bind(user_id)
@@ -88,7 +88,7 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         role: &str,
     ) -> Result<(), String> {
         sqlx::query(
-            "UPDATE workspace_members SET role = $1, updated_at = NOW() WHERE workspace_id = $2 AND user_id = $3",
+            "UPDATE workspace_members SET role = $1 WHERE workspace_id = $2 AND user_id = $3",
         )
         .bind(role)
         .bind(workspace_id)

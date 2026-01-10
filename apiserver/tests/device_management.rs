@@ -162,3 +162,75 @@ async fn test_delete_device() {
     let devices: Vec<serde_json::Value> = response.json().await.unwrap();
     assert_eq!(devices.len(), 0);
 }
+
+#[tokio::test]
+#[serial]
+async fn test_update_device() {
+    let (address, workspace_id, user_id, _) = spawn_app().await;
+    let client = reqwest::Client::new();
+    let ws_header = ("X-Workspace-Id", workspace_id.to_string());
+    let user_header = ("X-User-Id", user_id.to_string());
+
+    let res = client
+        .post(&format!("{}/api/devices", address))
+        .header(ws_header.0, ws_header.1.clone())
+        .header(user_header.0, user_header.1.clone())
+        .json(&serde_json::json!({
+            "agent_id": "TEST_AGENT",
+            "name": "Old Name",
+            "ip": "1.1.1.1"
+        }))
+        .send()
+        .await
+        .unwrap();
+    let id = res.json::<serde_json::Value>().await.unwrap()["id"].as_str().unwrap().to_string();
+
+    let update_body = serde_json::json!({
+        "name": "New Name",
+        "is_enabled": false
+    });
+
+    let response = client
+        .put(&format!("{}/api/devices/{}", address, id))
+        .header(ws_header.0, ws_header.1.clone())
+        .header(user_header.0, user_header.1.clone())
+        .json(&update_body)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status().as_u16(), 200);
+
+    // Verify updated
+    let response = client
+        .get(&format!("{}/api/devices", address))
+        .header(ws_header.0, ws_header.1.clone())
+        .header(user_header.0, user_header.1.clone())
+        .send()
+        .await
+        .unwrap();
+    let devices: Vec<serde_json::Value> = response.json().await.unwrap();
+    assert_eq!(devices[0]["name"], "New Name");
+    assert_eq!(devices[0]["is_enabled"], false);
+}
+
+#[tokio::test]
+#[serial]
+async fn test_delete_device_not_found() {
+    let (address, workspace_id, user_id, _) = spawn_app().await;
+    let client = reqwest::Client::new();
+    let ws_header = ("X-Workspace-Id", workspace_id.to_string());
+    let user_header = ("X-User-Id", user_id.to_string());
+
+    let response = client
+        .delete(&format!("{}/api/devices/{}", address, Uuid::new_v4()))
+        .header(ws_header.0, ws_header.1.clone())
+        .header(user_header.0, user_header.1.clone())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status().as_u16(), 404);
+}
+
+

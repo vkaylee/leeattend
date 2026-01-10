@@ -148,3 +148,158 @@ async fn test_employee_crud_lifecycle() {
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
+
+#[tokio::test]
+async fn test_create_employee_invalid_user() {
+    let (_test_db, factory, app) = setup_app().await;
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    let employee_req = serde_json::json!({
+        "user_id": uuid::Uuid::new_v4(), // Non-existent user
+        "first_name": "John",
+        "last_name": "Doe",
+        "employee_id_number": "EMP002",
+        "hire_date": "2026-01-01"
+    });
+
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!("/api/workspaces/{}/employees", ws_id))
+                .header("Content-Type", "application/json")
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(serde_json::to_string(&employee_req).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn test_get_employees_list() {
+    let (_test_db, factory, app) = setup_app().await;
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    factory.employee().with_workspace(ws_id).create().await;
+
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!("/api/workspaces/{}/employees", ws_id))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_update_employee_complex() {
+    let (_test_db, factory, app) = setup_app().await;
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
+
+    let update_req = serde_json::json!({
+        "termination_date": "2026-12-31",
+        "is_active": false
+    });
+
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("PUT")
+                .uri(format!("/api/workspaces/{}/employees/{}", ws_id, emp_id))
+                .header("Content-Type", "application/json")
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(serde_json::to_string(&update_req).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_delete_non_existent_employee() {
+    let (_test_db, factory, app) = setup_app().await;
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("DELETE")
+                .uri(format!("/api/workspaces/{}/employees/{}", ws_id, uuid::Uuid::new_v4()))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn test_employee_dept_history_not_found() {
+    let (_test_db, factory, app) = setup_app().await;
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!("/api/workspaces/{}/employees/{}/departments", ws_id, uuid::Uuid::new_v4()))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn test_transfer_non_existent_employee() {
+    let (_test_db, factory, app) = setup_app().await;
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    let transfer_req = serde_json::json!({
+        "department_id": uuid::Uuid::new_v4(),
+        "effective_date": "2026-01-01"
+    });
+
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!("/api/workspaces/{}/employees/{}/departments", ws_id, uuid::Uuid::new_v4()))
+                .header("Content-Type", "application/json")
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(transfer_req.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}

@@ -8,7 +8,8 @@ leeattend/
 │   ├── src/           # Rust Logic (Management, WS, SQLite)
 │   └── Cargo.toml     # Rust dependencies
 ├── agent-zk-worker/   # Python Sidecar (Hardware integration)
-│   └── zk_worker.py   # JSON-RPC Server for ZK devices
+│   ├── zk_worker.py   # JSON-RPC Server & ZK Logic
+│   └── main.py        # Entry Point
 ├── apiserver/         # Rust (Axum) Central Server
 │   ├── migrations/    # SQLx migrations
 │   ├── src/           # API Logic

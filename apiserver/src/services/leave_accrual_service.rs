@@ -141,13 +141,15 @@ impl LeaveAccrualService {
                         .await?;
                         
                         if let Some(l) = log {
-                            // Update Balance
-                            // Note: We need to handle year. Accrual date year.
+                            // Update Balance with UPSERT
                             sqlx::query!(
                                 r#"
-                                UPDATE leave_balances 
-                                SET accrued_amount = accrued_amount + $3, updated_at = NOW()
-                                WHERE employee_id = $1 AND leave_type = 'vacation' AND year = $2
+                                INSERT INTO leave_balances (employee_id, year, leave_type, entitlement, accrued_amount, carried_over)
+                                VALUES ($1, $2, 'vacation', 0, $3, 0)
+                                ON CONFLICT (employee_id, leave_type, year)
+                                DO UPDATE SET 
+                                    accrued_amount = leave_balances.accrued_amount + EXCLUDED.accrued_amount,
+                                    updated_at = NOW()
                                 "#,
                                 emp.id,
                                 date.year(),
@@ -164,5 +166,66 @@ impl LeaveAccrualService {
         }
         
         Ok(logs)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::{AccrualFrequency, LeavePolicyConfig, SeniorityBonus};
+
+    #[test]
+    fn test_calculate_accrual_amount() {
+        let config = LeavePolicyConfig {
+            frequency: AccrualFrequency::Monthly,
+            accrual_amount: 1.0,
+            accrual_timing: "start_of_period".to_string(),
+            seniority_bonus: vec![
+                SeniorityBonus { min_years: 1, extra_days: 0.5 },
+                SeniorityBonus { min_years: 5, extra_days: 1.0 },
+            ],
+            max_balance: None,
+            reset_month: None,
+        };
+
+        let hire_date = NaiveDate::from_ymd_opt(2020, 1, 1).unwrap();
+        
+        // 0 years service
+        assert_eq!(LeaveAccrualService::calculate_accrual_amount(&config, hire_date, NaiveDate::from_ymd_opt(2020, 6, 1).unwrap()), 1.0);
+        
+        // 1 year service
+        assert_eq!(LeaveAccrualService::calculate_accrual_amount(&config, hire_date, NaiveDate::from_ymd_opt(2021, 1, 1).unwrap()), 1.5);
+        
+        // 5 years service
+        assert_eq!(LeaveAccrualService::calculate_accrual_amount(&config, hire_date, NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()), 2.5);
+    }
+
+    #[test]
+    fn test_should_run_accrual() {
+        let monthly = AccrualFrequency::Monthly;
+        let quarterly = AccrualFrequency::Quarterly;
+        let yearly = AccrualFrequency::Yearly;
+
+        // Monthly start
+        assert!(LeaveAccrualService::should_run_accrual(&monthly, "start_of_period", NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()));
+        assert!(!LeaveAccrualService::should_run_accrual(&monthly, "start_of_period", NaiveDate::from_ymd_opt(2026, 1, 15).unwrap()));
+
+        // Monthly end
+        assert!(LeaveAccrualService::should_run_accrual(&monthly, "end_of_period", NaiveDate::from_ymd_opt(2026, 1, 31).unwrap()));
+        assert!(!LeaveAccrualService::should_run_accrual(&monthly, "end_of_period", NaiveDate::from_ymd_opt(2026, 1, 15).unwrap()));
+
+        // Quarterly start
+        assert!(LeaveAccrualService::should_run_accrual(&quarterly, "start_of_period", NaiveDate::from_ymd_opt(2026, 4, 1).unwrap()));
+        assert!(!LeaveAccrualService::should_run_accrual(&quarterly, "start_of_period", NaiveDate::from_ymd_opt(2026, 5, 1).unwrap()));
+
+        // Quarterly end
+        assert!(LeaveAccrualService::should_run_accrual(&quarterly, "end_of_period", NaiveDate::from_ymd_opt(2026, 3, 31).unwrap()));
+        assert!(!LeaveAccrualService::should_run_accrual(&quarterly, "end_of_period", NaiveDate::from_ymd_opt(2026, 4, 30).unwrap()));
+
+        // Yearly start
+        assert!(LeaveAccrualService::should_run_accrual(&yearly, "start_of_period", NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()));
+        
+        // Yearly end
+        assert!(LeaveAccrualService::should_run_accrual(&yearly, "end_of_period", NaiveDate::from_ymd_opt(2026, 12, 31).unwrap()));
     }
 }

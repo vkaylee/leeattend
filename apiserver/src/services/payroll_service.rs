@@ -48,14 +48,16 @@ impl PayrollService {
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
-        let end_date = if month == 12 {
+        let next_month_date = if month == 12 {
             NaiveDate::from_ymd_opt(year + 1, 1, 1)
         } else {
             NaiveDate::from_ymd_opt(year, month + 1, 1)
         }
-        .unwrap()
-        .pred_opt()
-        .unwrap();
+        .ok_or(StatusCode::BAD_REQUEST)?;
+
+        let end_date = next_month_date
+            .pred_opt()
+            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
         let settings = payroll_repository::get_latest_salary(pool, employee_id, end_date)
             .await
@@ -255,5 +257,48 @@ impl PayrollService {
         payroll_repository::create_payslip(pool, &payslip)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_apply_rounding_none() {
+        assert_eq!(PayrollService::apply_rounding(17, 15, "none"), 17);
+        assert_eq!(PayrollService::apply_rounding(17, 1, "floor"), 17); // unit 1 should be no-op effectively or exact minutes
+    }
+
+    #[test]
+    fn test_apply_rounding_floor() {
+        // 17 mins, 15 unit -> 15
+        assert_eq!(PayrollService::apply_rounding(17, 15, "floor"), 15);
+        // 29 mins, 15 unit -> 15
+        assert_eq!(PayrollService::apply_rounding(29, 15, "floor"), 15);
+        // 30 mins, 15 unit -> 30
+        assert_eq!(PayrollService::apply_rounding(30, 15, "floor"), 30);
+    }
+
+    #[test]
+    fn test_apply_rounding_ceil() {
+        // 16 mins, 15 unit -> 30
+        assert_eq!(PayrollService::apply_rounding(16, 15, "ceil"), 30);
+        // 15 mins, 15 unit -> 15
+        assert_eq!(PayrollService::apply_rounding(15, 15, "ceil"), 15);
+        // 1 min, 15 unit -> 15
+        assert_eq!(PayrollService::apply_rounding(1, 15, "ceil"), 15);
+    }
+
+    #[test]
+    fn test_apply_rounding_round() {
+        // 22 mins (7 past 15), 15 unit -> 15 (less than half way?)
+        // 15/2 = 7.5.
+        // 15 + 7 = 22. 22/15 = 1.466 -> round to 1 -> 15.
+        assert_eq!(PayrollService::apply_rounding(22, 15, "round"), 15);
+        
+        // 23 mins (8 past 15), 15 unit -> 30
+        // 15 + 8 = 23. 23/15 = 1.533 -> round to 2 -> 30.
+        assert_eq!(PayrollService::apply_rounding(23, 15, "round"), 30);
     }
 }

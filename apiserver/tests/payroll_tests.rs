@@ -1,6 +1,7 @@
 mod common;
 
 use apiserver::services::payroll_service::PayrollService;
+use axum::http::StatusCode;
 use chrono::{Datelike, NaiveDate, NaiveTime, TimeZone, Utc, Local};
 use common::factory::TestFactory;
 use common::db::TestDatabase;
@@ -43,6 +44,89 @@ async fn setup_employee_with_salary(
 
     (employee_id, workspace_id, base_salary)
 }
+
+async fn setup_employee_with_monthly_salary(
+    factory: &TestFactory,
+    pool: &PgPool,
+    test_date: NaiveDate,
+) -> (Uuid, Uuid, Decimal) {
+    let user_id = factory.user().create().await;
+    let workspace_id = factory.workspace().create_with_owner(user_id).await;
+    let employee_id = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .with_user(user_id)
+        .create()
+        .await;
+
+    let base_salary = Decimal::from_f64(3000.0).unwrap();
+    sqlx::query(
+        "INSERT INTO salary_history (employee_id, base_salary, salary_type, currency, effective_date) VALUES ($1, $2, $3, $4, $5)",
+    )
+    .bind(employee_id)
+    .bind(base_salary)
+    .bind("monthly")
+    .bind("USD")
+    .bind(test_date)
+    .execute(pool)
+    .await
+    .unwrap();
+
+    (employee_id, workspace_id, base_salary)
+}
+
+#[tokio::test]
+async fn test_calculate_payroll_monthly() {
+    let (test_db, factory) = setup_test_db().await;
+    let pool = test_db.pool();
+    let test_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
+
+    let (employee_id, workspace_id, base_salary) = setup_employee_with_monthly_salary(&factory, &pool, test_date).await;
+
+    let payslip = PayrollService::calculate_monthly_payslip(
+        &pool, employee_id, workspace_id, 2026, 1
+    ).await.unwrap();
+
+    assert_eq!(payslip.base_pay_amount, base_salary);
+}
+
+#[tokio::test]
+async fn test_calculate_payroll_monthly_with_overtime() {
+    let (test_db, factory) = setup_test_db().await;
+    let pool = test_db.pool();
+    let test_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
+
+    let (employee_id, workspace_id, base_salary) = setup_employee_with_monthly_salary(&factory, &pool, test_date).await;
+
+    // Create a shift: 8 hours work (09:00 - 17:00)
+    let _shift_id = factory.shift()
+        .with_workspace(workspace_id)
+        .with_times(NaiveTime::from_hms_opt(9, 0, 0).unwrap(), NaiveTime::from_hms_opt(17, 0, 0).unwrap())
+        .with_break_duration(0)
+        .assign_to_employee(employee_id, test_date)
+        .await;
+
+    // Work 10 hours (09:00 - 19:00) -> 2 hours overtime
+    let punch_in = Local.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap().with_timezone(&Utc);
+    let punch_out = Local.with_ymd_and_hms(2026, 1, 15, 19, 0, 0).unwrap().with_timezone(&Utc);
+    factory.time_entry()
+        .with_employee(employee_id)
+        .with_punch_in(punch_in)
+        .with_punch_out(punch_out)
+        .create().await;
+
+    let payslip = PayrollService::calculate_monthly_payslip(
+        &pool, employee_id, workspace_id, 2026, 1
+    ).await.unwrap();
+
+    assert_eq!(payslip.base_pay_amount, base_salary);
+    // 2 hours overtime. Hourly rate = base / 176. OT = 2 * (base/176) * 1.5 = 3 * base / 176
+    let expected_ot = ((base_salary / Decimal::from(176)) * Decimal::from_f64(2.0 * 1.5).unwrap())
+        .round_dp(2);
+    assert_eq!(payslip.overtime_pay_amount, expected_ot);
+}
+
+
 
 #[tokio::test]
 async fn test_early_punch_in_grace_period() {
@@ -282,4 +366,20 @@ async fn test_early_punch_in_grace_period() {
     );
 
     factory.cleanup().await;
+}
+
+#[tokio::test]
+async fn test_calculate_payroll_no_salary() {
+    let (test_db, factory) = setup_test_db().await;
+    let pool = test_db.pool();
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
+
+    let result = PayrollService::calculate_monthly_payslip(
+        &pool, emp_id, ws_id, 2026, 1
+    ).await;
+
+    assert_eq!(result.unwrap_err(), StatusCode::BAD_REQUEST);
 }

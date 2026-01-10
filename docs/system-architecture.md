@@ -81,6 +81,7 @@ Hệ thống sử dụng mô hình **Sidecar Architecture** để tối ưu hóa
 
 ### 1.2. Python ZK Worker (Stateless Thin Driver)
 - **Responsibility**: Đóng vai trò là một driver phần cứng thuần túy, cung cấp API JSON-RPC để giao tiếp với thiết bị ZKTeco thông qua thư viện `pyzk2`.
+- **Simplified Architecture**: Đã được refactor để loại bỏ hoàn toàn các phụ thuộc không cần thiết (`models`, `device_manager`). Chỉ giữ lại `ZKWorker` (RPC Server) và `ZKService` (ZK Protocol wrapper).
 - **Stateless**: Worker này không còn quản lý Database, không có logic đồng bộ Cloud và không lưu trữ trạng thái. Mọi dữ liệu thu thập được sẽ được trả về ngay lập tức cho Rust Agent.
 - **Communication**: Kết nối với Rust Agent qua giao thức **JSON-RPC 2.0** chạy trên Localhost TCP (Port 5000).
 - **Isolation**: Đảm bảo lỗi từ driver phần cứng không ảnh hưởng đến logic nghiệp vụ chính của Agent.

@@ -36,7 +36,7 @@ pub struct AuthorizedAgent {
     pub workspace_id: Uuid,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UpdateAuthorizedAgentRequest {
     pub name: Option<String>,
     pub token: Option<String>,
@@ -44,7 +44,7 @@ pub struct UpdateAuthorizedAgentRequest {
     pub is_active: Option<bool>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CreateAuthorizedAgentRequest {
     pub id: String,
     pub name: String,
@@ -52,7 +52,7 @@ pub struct CreateAuthorizedAgentRequest {
     pub workspace_id: Option<Uuid>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TrustAgentRequest {
     pub is_trusted: bool,
 }
@@ -98,7 +98,7 @@ pub struct Workspace {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CreateWorkspaceRequest {
     pub name: String,
 }
@@ -115,13 +115,13 @@ pub struct User {
     pub bio: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RegisterRequest {
     pub email: String,
     pub password: String,
@@ -137,26 +137,26 @@ pub struct UserResponse {
     pub bio: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AuthResponse {
     pub access_token: String,
     pub refresh_token: String,
     pub user: UserResponse,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RefreshRequest {
     pub refresh_token: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UpdateUserRequest {
     pub full_name: Option<String>,
     pub avatar_url: Option<String>,
     pub bio: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ChangePasswordRequest {
     pub old_password: String,
     pub new_password: String,
@@ -169,7 +169,7 @@ pub struct WorkspaceMember {
     pub role: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AddMemberRequest {
     pub email: String,
     pub role: String,
@@ -185,7 +185,7 @@ pub struct MemberExtraRole {
     pub expires_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AssignRoleRequest {
     pub role: String,
     pub expires_at: DateTime<Utc>,
@@ -218,7 +218,7 @@ pub struct Employee {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CreateEmployeeRequest {
     pub user_id: Option<Uuid>,
     pub first_name: String,
@@ -227,7 +227,7 @@ pub struct CreateEmployeeRequest {
     pub hire_date: NaiveDate,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UpdateEmployeeRequest {
     pub user_id: Option<Uuid>,
     pub first_name: Option<String>,
@@ -255,7 +255,7 @@ pub struct TimeEntry {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PunchInRequest {
     pub employee_id: Uuid,
     pub entry_type: Option<String>,
@@ -263,12 +263,12 @@ pub struct PunchInRequest {
     pub note: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PunchOutRequest {
     pub note: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UpdateTimeEntryRequest {
     pub punch_in_time: Option<DateTime<Utc>>,
     pub punch_out_time: Option<DateTime<Utc>>,
@@ -679,14 +679,14 @@ pub struct LeaveAccrualLog {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CreateLeavePolicyRequest {
     pub name: String,
     pub description: Option<String>,
     pub rule_config: LeavePolicyConfig,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AssignLeavePolicyRequest {
     pub assignee_type: String,
     pub assignee_id: Option<Uuid>,

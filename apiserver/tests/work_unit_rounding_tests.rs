@@ -107,3 +107,30 @@ async fn test_payroll_rounding_30m_ceil() {
     // 0.5 hours * 100 = 50.0
     assert_eq!(payslip.base_pay_amount.to_f64().unwrap(), 50.0);
 }
+
+#[tokio::test]
+async fn test_payroll_rounding_30m_round() {
+    let (db, factory) = setup_test_context().await;
+    let pool = db.pool();
+    let test_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
+
+    let (employee_id, workspace_id) = setup_employee_with_salary(&factory, &pool, test_date).await;
+    
+    // Set rounding: 30m, round
+    update_workspace_rounding(&pool, workspace_id, 30, "round").await;
+
+    // Work: 08:00 - 08:45 (45 mins)
+    // Rounding 30m Round: 45 / 30 = 1.5 -> Round(1.5) = 2 units -> 60 mins (1.0 hour)
+    let punch_in = Local.with_ymd_and_hms(2026, 1, 15, 8, 0, 0).unwrap().with_timezone(&Utc);
+    let punch_out = Local.with_ymd_and_hms(2026, 1, 15, 8, 45, 0).unwrap().with_timezone(&Utc);
+    factory.time_entry()
+        .with_employee(employee_id)
+        .with_punch_in(punch_in)
+        .with_punch_out(punch_out)
+        .create().await;
+
+    let payslip = PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1).await.unwrap();
+    
+    // 1.0 hour * 100 = 100.0
+    assert_eq!(payslip.base_pay_amount.to_f64().unwrap(), 100.0);
+}

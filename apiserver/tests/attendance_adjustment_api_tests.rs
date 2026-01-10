@@ -9,6 +9,7 @@ use apiserver::AppState;
 use apiserver::agent_manager::AgentManager;
 use std::sync::Arc;
 use tower::ServiceExt;
+use uuid::Uuid;
 
 async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
     let _ = tracing_subscriber::fmt()
@@ -146,4 +147,171 @@ async fn test_attendance_adjustment_lifecycle() {
     let history: Vec<TimeEntry> = serde_json::from_slice(&body).unwrap();
     assert!(!history.is_empty());
     assert_eq!(history[0].entry_type, "work");
+}
+
+#[tokio::test]
+async fn test_attendance_adjustment_with_existing_entry() {
+    let (_test_db, factory, app) = setup_app().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
+
+    // 1. Create an entry
+    let entry_id = factory.time_entry().with_employee(emp_id).create().await;
+
+    // 2. Submit adjustment for this entry
+    let submit_req = CreateAttendanceAdjustmentRequest {
+        employee_id: emp_id,
+        time_entry_id: Some(entry_id),
+        requested_punch_in_time: Utc::now() - Duration::hours(2),
+        requested_punch_out_time: Some(Utc::now() - Duration::hours(1)),
+        is_break_overtime: true,
+        reason: Some("Correction".to_string()),
+    };
+
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!("/api/workspaces/{}/attendance/adjustments", ws_id))
+                .header("Content-Type", "application/json")
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(serde_json::to_string(&submit_req).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let adjustment: AttendanceAdjustmentRequest = serde_json::from_slice(&axum::body::to_bytes(response.into_body(), 10000).await.unwrap()).unwrap();
+
+    // 3. Approve
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!("/api/workspaces/{}/attendance/adjustments/{}/approve", ws_id, adjustment.id))
+                .header("Content-Type", "application/json")
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(serde_json::to_string(&serde_json::json!({ "status": "approved" })).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // 4. Verify entry updated
+    let entry = apiserver::repositories::time_entry_repository::get_time_entry_by_id(&factory.pool, entry_id).await.unwrap().unwrap();
+    assert_eq!(entry.is_break_overtime, true);
+    assert_eq!(entry.duration_minutes, Some(60));
+}
+
+#[tokio::test]
+async fn test_get_workspace_adjustments_filter() {
+    let (_test_db, factory, app) = setup_app().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
+
+    // Create one pending and one approved (manually in DB for speed)
+    sqlx::query("INSERT INTO attendance_adjustment_requests (id, employee_id, requested_punch_in_time, status, created_at, updated_at) VALUES ($1, $2, NOW(), 'pending', NOW(), NOW())")
+        .bind(Uuid::new_v4()).bind(emp_id).execute(&factory.pool).await.unwrap();
+    sqlx::query("INSERT INTO attendance_adjustment_requests (id, employee_id, requested_punch_in_time, status, created_at, updated_at) VALUES ($1, $2, NOW(), 'rejected', NOW(), NOW())")
+        .bind(Uuid::new_v4()).bind(emp_id).execute(&factory.pool).await.unwrap();
+
+    // List pending only
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!("/api/workspaces/{}/attendance/adjustments?status=pending", ws_id))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let adjustments: Vec<AttendanceAdjustmentRequest> = serde_json::from_slice(&axum::body::to_bytes(response.into_body(), 10000).await.unwrap()).unwrap();
+    assert_eq!(adjustments.len(), 1);
+    assert_eq!(adjustments[0].status, "pending");
+}
+
+#[tokio::test]
+async fn test_reject_attendance_adjustment() {
+    let (_test_db, factory, app) = setup_app().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let emp_id = factory.employee().with_workspace(ws_id).create().await;
+
+    let submit_req = CreateAttendanceAdjustmentRequest {
+        employee_id: emp_id,
+        time_entry_id: None,
+        requested_punch_in_time: Utc::now(),
+        requested_punch_out_time: None,
+        is_break_overtime: false,
+        reason: Some("Reject me".to_string()),
+    };
+
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!("/api/workspaces/{}/attendance/adjustments", ws_id))
+                .header("Content-Type", "application/json")
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(serde_json::to_string(&submit_req).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let adjustment: AttendanceAdjustmentRequest = serde_json::from_slice(&axum::body::to_bytes(response.into_body(), 10000).await.unwrap()).unwrap();
+
+    // Reject
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!("/api/workspaces/{}/attendance/adjustments/{}/approve", ws_id, adjustment.id))
+                .header("Content-Type", "application/json")
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(serde_json::to_string(&serde_json::json!({ "status": "rejected" })).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Verify rejected in DB
+    let fetched = apiserver::repositories::attendance_adjustment_repository::get_request_by_id(&factory.pool, adjustment.id).await.unwrap().unwrap();
+    assert_eq!(fetched.status, "rejected");
+}
+
+#[tokio::test]
+async fn test_approve_non_existent_adjustment() {
+    let (_test_db, factory, app) = setup_app().await;
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!("/api/workspaces/{}/attendance/adjustments/{}/approve", ws_id, Uuid::new_v4()))
+                .header("Content-Type", "application/json")
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(serde_json::to_string(&serde_json::json!({ "status": "approved" })).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }

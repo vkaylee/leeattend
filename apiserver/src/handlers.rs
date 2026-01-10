@@ -1463,20 +1463,23 @@ pub async fn approve_leave_request(
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<crate::models::ApproveLeaveRequest>,
 ) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return Err(StatusCode::FORBIDDEN);
+    }
     match crate::services::leave_service::LeaveService::approve_leave_request(
         &state.db,
-        workspace_id,
+        ctx.workspace_id,
         user_id,
         id,
         req,
     )
     .await
     {
-        Ok(_) => StatusCode::OK.into_response(),
-        Err(status) => status.into_response(),
+        Ok(_) => Ok(StatusCode::OK.into_response()),
+        Err(status) => Err(status),
     }
 }
 
@@ -1556,19 +1559,22 @@ pub async fn approve_attendance_adjustment(
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<crate::models::ApproveAttendanceAdjustmentRequest>,
 ) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return Err(StatusCode::FORBIDDEN);
+    }
     match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::approve_request(
         &state.db,
-        workspace_id,
+        ctx.workspace_id,
         user_id,
         id,
         req.status,
     )
     .await
     {
-        Ok(_) => Ok(StatusCode::OK),
+        Ok(_) => Ok(StatusCode::OK.into_response()),
         Err(e) => Err(e),
     }
 }
@@ -1651,7 +1657,7 @@ pub async fn get_attendance_report(
 // --- Payroll Handlers ---
 
 pub async fn get_salary_history(
-    Path(employee_id): Path<Uuid>,
+    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
 ) -> impl IntoResponse {
@@ -1663,7 +1669,7 @@ pub async fn get_salary_history(
 }
 
 pub async fn add_salary_history(
-    Path(employee_id): Path<Uuid>,
+    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
     Json(req): Json<crate::models::CreateSalaryHistoryRequest>,
@@ -1690,7 +1696,7 @@ pub struct PayrollQuery {
 }
 
 pub async fn calculate_payroll(
-    Path(employee_id): Path<Uuid>,
+    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<PayrollQuery>,
@@ -1710,7 +1716,7 @@ pub async fn calculate_payroll(
 }
 
 pub async fn get_employee_payslips(
-    Path(employee_id): Path<Uuid>,
+    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
 ) -> impl IntoResponse {
@@ -1737,12 +1743,15 @@ pub async fn get_departments(
 
 pub async fn create_department(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<crate::models::CreateDepartmentRequest>,
 ) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return (StatusCode::FORBIDDEN, "Only admins can manage departments").into_response();
+    }
     match crate::repositories::department_repository::create_department(
         &state.db,
-        workspace_id,
+        ctx.workspace_id,
         req.name,
         req.description,
         req.manager_id,

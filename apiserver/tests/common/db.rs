@@ -104,8 +104,8 @@ impl TestDatabase {
         
         // Dùng psql trực tiếp, gộp lệnh và đảm bảo thoát các kết nối khác
         let full_cmd = format!(
-            "psql -X \"{}\" -c \"{}\" > /dev/null 2>&1 && psql -X \"{}\" -c \"{}\" > /dev/null 2>&1",
-            base_admin_url, kill_sql, base_admin_url, drop_sql
+            "psql -X \"{}\" -c \"{}\" > /tmp/db_cleanup_{}.log 2>&1 && psql -X \"{}\" -c \"{}\" >> /tmp/db_cleanup_{}.log 2>&1",
+            base_admin_url, kill_sql, db_name, base_admin_url, drop_sql, db_name
         );
 
         let _ = std::process::Command::new("sh")

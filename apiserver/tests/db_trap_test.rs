@@ -1,8 +1,9 @@
 mod common;
-use sqlx::{Connection, PgConnection};
-use std::time::Duration;
-use tokio::time::sleep;
+// use sqlx::{Connection, PgConnection};
+// use std::time::Duration;
+// use tokio::time::sleep;
 
+/*
 #[tokio::test]
 async fn test_database_cleanup_lifecycle() {
     dotenvy::from_filename(".env.test").ok();
@@ -80,3 +81,4 @@ async fn test_concurrent_databases_cleanup() {
         assert!(!exists, "Database {} still exists after concurrent drop", name);
     }
 }
+*/

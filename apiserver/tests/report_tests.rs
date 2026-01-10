@@ -8,6 +8,7 @@ use chrono::{Duration, NaiveTime, Utc};
 use common::factory::TestFactory;
 use common::db::TestDatabase;
 use std::sync::Arc;
+use uuid::Uuid;
 
 async fn spawn_app() -> (String, TestDatabase) {
     let test_db = TestDatabase::new().await;
@@ -240,4 +241,67 @@ async fn test_get_daily_attendance_report_no_break_auto_deduct() {
     assert_eq!(entry.is_break_auto_deduct, Some(true));
 
     factory.cleanup().await;
+}
+
+#[tokio::test]
+async fn test_get_workspace_attendance_summary() {
+    let (address, test_db) = spawn_app().await;
+    let pool = test_db.pool();
+    let factory = TestFactory::new(pool.clone());
+    let client = reqwest::Client::new();
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let employee_id = factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_user(user_id)
+        .create()
+        .await;
+
+    // Create a time entry
+    factory.time_entry()
+        .with_employee(employee_id)
+        .with_punch_in(Utc::now() - Duration::hours(8))
+        .with_punch_out(Utc::now())
+        .create()
+        .await;
+
+    // Create an approved leave request
+    let start_date = Utc::now().date_naive();
+    let end_date = start_date;
+    sqlx::query!(
+        "INSERT INTO leave_requests (id, employee_id, leave_type, start_date, end_date, status) VALUES ($1, $2, $3, $4, $5, $6)",
+        Uuid::new_v4(),
+        employee_id,
+        "vacation",
+        start_date,
+        end_date,
+        "approved"
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let start_date_str = (Utc::now() - Duration::days(1)).date_naive().to_string();
+    let end_date_str = (Utc::now() + Duration::days(1)).date_naive().to_string();
+
+    // Act
+    let res = client
+        .get(&format!(
+            "{}/api/workspaces/{}/reports/attendance?start_date={}&end_date={}&type=summary",
+            address, ws_id, start_date_str, end_date_str
+        ))
+        .header("X-Workspace-Id", ws_id.to_string())
+        .header("X-User-Id", user_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    // Assert
+    assert_eq!(res.status(), 200);
+    let summary: Vec<apiserver::models::AttendanceSummary> = res.json().await.unwrap();
+    assert_eq!(summary.len(), 1);
+    assert!(summary[0].total_hours >= 8.0);
+    assert_eq!(summary[0].total_leave_days, 1);
 }
