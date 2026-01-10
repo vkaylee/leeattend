@@ -5,6 +5,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Shift Roster Bulk Actions**: Enhanced the Shift Rostering system with powerful bulk operations.
+    - **Bulk Assignment**: UI toolbar to assign a shift to multiple selected days or the entire week at once.
+    - **Copy Previous Week**: One-click action to duplicate the previous week's schedule to the current week.
+    - **Selection-First UX**: Interactive calendar grid allowing multi-selection of days for batch processing.
+    - **Backend Optimization**: Implemented `BulkRosterRequest` and transactional `bulk_upsert_roster` to handle batched updates efficiently.
 - **Time Rounding Rules**: Implemented configurable rounding policies (`Floor`, `Ceil`, `Round`) and work units (e.g., 15m, 30m blocks) for payroll calculation.
     - Added `work_unit_minutes` and `rounding_policy` columns to `workspaces`.
     - Integrated rounding logic into `PayrollService`.
