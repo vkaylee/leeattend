@@ -545,14 +545,14 @@ pub struct CreateRosterRequest {
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct RosterItem {
     pub date: NaiveDate,
     pub shift_id: Option<Uuid>,
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct BulkRosterRequest {
     pub items: Vec<RosterItem>,
 }
