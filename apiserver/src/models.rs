@@ -583,6 +583,20 @@ pub struct TransferEmployeeRequest {
 
 // --- Schedule & Roster Models ---
 
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct AttendanceImportJob {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub user_id: Uuid,
+    pub status: String,
+    pub total_rows: i32,
+    pub processed_rows: i32,
+    pub file_path: Option<String>,
+    pub error_log: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EffectiveSchedule {
     pub date: NaiveDate,

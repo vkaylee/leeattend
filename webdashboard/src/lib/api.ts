@@ -341,6 +341,11 @@ async function apiFetch(
   options: RequestInit = {},
 ): Promise<Response> {
   const headers = { ...getHeaders(), ...options.headers };
+  
+  if (options.body instanceof FormData) {
+    delete (headers as any)["Content-Type"];
+  }
+
   const response = await fetch(url, { ...options, headers });
 
   if (response.status === 401 && getRefreshToken()) {
@@ -771,6 +776,50 @@ export async function submitAttendanceAdjustment(
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to submit attendance adjustment");
+  return response.json();
+}
+
+export interface AttendanceImportJob {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  status: "processing" | "completed" | "failed";
+  total_rows: number;
+  processed_rows: number;
+  error_log?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function uploadAttendanceExcel(
+  wsId: string,
+  file: File
+): Promise<{ job_id: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/upload`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!response.ok) throw new Error("Failed to upload attendance excel");
+  return response.json();
+}
+
+export async function fetchLatestImportJob(
+  wsId: string
+): Promise<AttendanceImportJob | null> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/import-jobs/latest`);
+  if (!response.ok) throw new Error("Failed to fetch latest import job");
+  return response.json();
+}
+
+export async function fetchImportJobStatus(
+  wsId: string,
+  jobId: string
+): Promise<AttendanceImportJob> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/import-jobs/${jobId}`);
+  if (!response.ok) throw new Error("Failed to fetch import job status");
   return response.json();
 }
 

@@ -23,6 +23,21 @@ pub async fn create_employee(pool: &PgPool, employee: &Employee) -> Result<(), s
     Ok(())
 }
 
+pub async fn get_employee_by_id_number(
+    pool: &PgPool,
+    id_number: &str,
+    workspace_id: Uuid,
+) -> Result<Option<Employee>, sqlx::Error> {
+    query_as!(
+        Employee,
+        "SELECT id, workspace_id, user_id, first_name, last_name, employee_id_number, hire_date, termination_date, is_active, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM employees WHERE employee_id_number = $1 AND workspace_id = $2",
+        id_number,
+        workspace_id
+    )
+    .fetch_optional(pool)
+    .await
+}
+
 pub async fn get_employee_by_id(
     pool: &PgPool,
     id: Uuid,

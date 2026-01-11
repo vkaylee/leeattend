@@ -2,7 +2,7 @@ use axum::{
     async_trait,
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
-        FromRef, FromRequestParts, Path, Query, State,
+        FromRef, FromRequestParts, Multipart, Path, Query, State,
     },
     http::{request::Parts, StatusCode},
     response::{IntoResponse, Json},
@@ -1534,6 +1534,78 @@ pub async fn get_workspace_leave_requests(
 }
 
 // --- Attendance Adjustment Handlers ---
+
+pub async fn upload_attendance_excel(
+    State(state): State<Arc<AppState>>,
+    UserId(user_id): UserId,
+    MemberContext { workspace_id, .. }: MemberContext,
+    mut multipart: Multipart,
+) -> Result<impl IntoResponse, StatusCode> {
+    let mut file_bytes = Vec::new();
+    let mut extension = "xlsx".to_string();
+
+    while let Some(field) = multipart.next_field().await.map_err(|e| {
+        error!("MULTIPART_FIELD_ERROR: {:?}", e);
+        StatusCode::BAD_REQUEST
+    })? {
+        if let Some(name) = field.name() {
+            if name == "file" {
+                if let Some(filename) = field.file_name() {
+                    if filename.ends_with(".csv") {
+                        extension = "csv".to_string();
+                    }
+                }
+                file_bytes = field.bytes().await.map_err(|e| {
+                    error!("MULTIPART_BYTES_ERROR: {:?}", e);
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?.to_vec();
+                break;
+            }
+        }
+    }
+
+    if file_bytes.is_empty() {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    // Save to disk
+    let storage_dir = "./storage/imports";
+    tokio::fs::create_dir_all(storage_dir).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let filename = format!("{}_{}.{}", workspace_id, Uuid::new_v4(), extension);
+    let file_path = format!("{}/{}", storage_dir, filename);
+    tokio::fs::write(&file_path, file_bytes).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let job_id = crate::services::attendance_adjustment_service::AttendanceAdjustmentService::batch_import_from_file(
+        state.db.clone(),
+        workspace_id,
+        user_id,
+        file_path,
+    )
+    .await?;
+
+    Ok(Json(serde_json::json!({ "job_id": job_id })))
+}
+
+pub async fn get_latest_import_job(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> Result<impl IntoResponse, StatusCode> {
+    match crate::repositories::import_job_repository::get_latest_job(&state.db, workspace_id).await {
+        Ok(job) => Ok(Json(job)),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+pub async fn get_import_job_status(
+    State(state): State<Arc<AppState>>,
+    Path(job_id): Path<Uuid>,
+) -> Result<impl IntoResponse, StatusCode> {
+    match crate::repositories::import_job_repository::get_job_by_id(&state.db, job_id).await {
+        Ok(Some(job)) => Ok(Json(job)),
+        Ok(None) => Err(StatusCode::NOT_FOUND),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
 
 pub async fn submit_attendance_adjustment(
     State(state): State<Arc<AppState>>,

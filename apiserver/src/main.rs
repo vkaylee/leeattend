@@ -45,6 +45,9 @@ async fn main() {
         .await
         .expect("Failed to run migrations");
 
+    // Resume any pending attendance import jobs
+    apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::resume_all_pending_jobs(pool.clone()).await;
+
     // Seed dev data if in debug mode
     #[cfg(debug_assertions)]
     {

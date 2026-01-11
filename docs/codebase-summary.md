@@ -39,7 +39,8 @@ leeattend/
     - Discovery: Dynamic port selection (3000+).
     - **Temporal Engine**: Logic gán ca (`employee_shifts`) dựa trên thời gian. Hỗ trợ ghi đè ca tạm thời lên ca vĩnh viễn và tự động fallback.
     - **Heartbeat Engine**: Time-based tracking of edge agent connectivity.
-    - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections.
+- **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections. Supports **Robust Asynchronous Batch Import** (Excel/CSV) with auto-recovery and real-time progress tracking.
+L43: - **Time Tracking**: Core logic for punch in/out, shift calculation, and payroll-ready duration processing.
     - **Overtime Engine**: Priority-based calculation logic supporting worked-through breaks and daily OT thresholds.
     - **Leave Management**: Tracking of annual leave entitlements, carry-over balances, and usage history.
     - **Dynamic Accrual Engine**: Automated leave balance calculation based on configurable rules (Monthly/Quarterly/Yearly) and Seniority Bonuses.

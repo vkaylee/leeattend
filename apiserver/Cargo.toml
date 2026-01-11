@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = { version = "0.7", features = ["ws"] }
+axum = { version = "0.7", features = ["macros", "multipart", "ws"] }
 tokio = { version = "1.36", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -29,6 +29,8 @@ jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
 bcrypt = "0.17.1"
 json-patch = "0.3.0"
 rust_decimal = { version = "1.39.0", features = ["serde"] }
+calamine = { version = "0.32.0", features = ["dates"] }
+csv = "1.4.0"
 
 [lints.rust]
 warnings = "deny"

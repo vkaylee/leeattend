@@ -5,6 +5,16 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Robust Async Attendance Import**: Re-engineered the import system to handle large files in background tasks without blocking the API.
+- **Auto-Recovery Mechanism**: System now automatically resumes interrupted import jobs on server startup, ensuring 100% data reliability.
+- **Import Job Tracking**: New `attendance_import_jobs` table to track progress (processed vs total rows) and persistent file storage.
+- **Real-time Progress UI**: Added a dynamic progress banner with polling to `AttendanceAdjustmentsPage`.
+- **CSV & Excel Support**: Dual support for `.xlsx` and `.csv` files with automatic format detection.
+- **Flexible Data Mapping**: Specifically designed for `empNo`, `empName`, `empDt` column format.
+
+### Changed
+- **API Architecture**: Uploads now return a `job_id` immediately; results are polled asynchronously.
+- **Storage Strategy**: Uploaded files are temporarily stored on disk at `./storage/imports/` and cleaned up after processing.
 - **Shift Roster Bulk Actions**: Enhanced the Shift Rostering system with powerful bulk operations.
     - **Bulk Assignment**: UI toolbar to assign a shift to multiple selected days or the entire week at once.
     - **Copy Previous Week**: One-click action to duplicate the previous week's schedule to the current week.

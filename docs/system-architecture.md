@@ -60,8 +60,14 @@ Hệ thống tính toán lương và công (Payroll Engine) được thiết k�
   - `Floor`: Chỉ tính các block thời gian đã hoàn thành (ví dụ: làm 55p với block 30p -> tính 30p).
   - `Ceil`: Làm tròn lên block tiếp theo nếu có phát sinh (ví dụ: làm 10p với block 30p -> tính 30p).
   - `Round`: Làm tròn tới block gần nhất.
-- **Historical Integrity (Shift Versioning)**: Mọi thay đổi về cấu hình ca làm việc (Shift) đều tạo ra một bản ghi mới với `version_id`. Khi tính lương cho quá khứ, hệ thống sử dụng phiên bản Shift có hiệu lực tại thời điểm đó, đảm bảo kết quả không thay đổi khi Admin cập nhật quy định mới.
+  - **Historical Integrity (Shift Versioning)**: Mọi thay đổi về cấu hình ca làm việc (Shift) đều tạo ra một bản ghi mới với `version_id`. Khi tính lương cho quá khứ, hệ thống sử dụng phiên bản Shift có hiệu lực tại thời điểm đó, đảm bảo kết quả không thay đổi khi Admin cập nhật quy định mới.
 
+### 9. Robust Background Task Engine
+Hệ thống tích hợp một công cụ xử lý tác vụ ngầm bền bỉ (Persistent Background Tasks) cho các thao tác tiêu tốn tài nguyên như Import dữ liệu hàng loạt:
+- **Async Execution**: Sử dụng `tokio::spawn` để thực thi tác vụ mà không gây nghẽn luồng xử lý API chính.
+- **Task Persistence**: Trạng thái tác vụ (đã xử lý bao nhiêu dòng, tổng số dòng, lỗi) được lưu liên tục vào bảng `attendance_import_jobs`.
+- **Fault Tolerance (Auto-Recovery)**: Khi API Server khởi động lại, dịch vụ `AttendanceAdjustmentService` sẽ quét các Job đang ở trạng thái `processing`. Hệ thống tự động đọc lại file tạm từ đĩa và tiếp tục xử lý từ vị trí dòng cuối cùng thành công, đảm bảo không mất mát dữ liệu và không trùng lặp.
+- **Safe Resource Cleanup**: File tải lên được lưu tạm thời tại `./storage/imports/` và được đảm bảo xóa sạch sau khi Job hoàn thành hoặc thất bại hoàn toàn.
 ## Infrastructure Diagram
 ```ascii
 [ Web Dashboard ] <--- REST API ---> [ API Server ] <--- WebSocket (Outbound Only) ---> [ Agent (Rust) ] <--- JSON-RPC (TCP) ---> [ ZK Worker (Python) ] <---> [ ZKTeco Devices ]

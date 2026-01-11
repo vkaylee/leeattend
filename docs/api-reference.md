@@ -358,6 +358,57 @@ Kích hoạt thủ công quá trình tính toán cộng phép cho một ngày c�
 Quy trình xử lý các trường hợp quên chấm công hoặc cần điều chỉnh dữ liệu chấm công quá khứ.
 
 #### POST /workspaces/:ws_id/attendance/adjustments
+... (existing content) ...
+
+#### POST /workspaces/:ws_id/attendance/upload
+
+Upload an Excel (.xlsx) or CSV file. Returns a Job ID for async tracking.
+
+### Response (200 OK)
+```json
+{
+  "job_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+---
+
+#### GET /workspaces/:ws_id/attendance/import-jobs/latest
+
+Fetch the most recent import job for the current workspace. Useful for restoring UI state on page refresh.
+
+### Response (200 OK)
+```json
+{
+  "id": "uuid",
+  "status": "processing",
+  "total_rows": 150,
+  "processed_rows": 45,
+  "error_log": null,
+  "created_at": "timestamp"
+}
+```
+
+---
+
+#### GET /workspaces/:ws_id/attendance/import-jobs/:id
+
+Fetch the status of a specific import job.
+
+### Response (200 OK)
+```json
+{
+  "id": "uuid",
+  "status": "completed",
+  "total_rows": 150,
+  "processed_rows": 150,
+  "error_log": "Optional multiline errors..."
+}
+```
+
+---
+
+#### GET /workspaces/:ws_id/reports/attendance
 Gửi yêu cầu xác nhận/điều chỉnh công mới.
 - **Request**:
   ```json
