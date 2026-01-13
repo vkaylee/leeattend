@@ -11,6 +11,10 @@ Hệ thống sử dụng JWT (JSON Web Token) để xác thực người dùng.
 - **Refresh Token**: Dùng để lấy Access Token mới. Hết hạn sau 7 ngày.
 - **X-Workspace-Id**: Header bắt buộc cho các yêu cầu liên quan đến tài nguyên cụ thể của tổ chức.
 
+#### 🌐 API URL Resolution Strategy (Client-side)
+Đối với các ứng dụng Web (đặc biệt trong môi trường Development với Vite), client sẽ ưu tiên gọi API thông qua đường dẫn tương đối `/api`. Vite sẽ tự động proxy các request này đến backend server đang chạy trên một port ngẫu nhiên.
+- `VITE_API_URL` trong `.env` chỉ được sử dụng cho các môi trường yêu cầu URL tuyệt đối (ví dụ: Tauri, hoặc Production khi API đặt ở một domain khác và không có proxy). Trong môi trường phát triển web tiêu chuẩn, việc set `VITE_API_URL` sẽ khiến client bỏ qua proxy và gọi thẳng vào địa chỉ hardcode, gây ra lỗi `ERR_CONNECTION_REFUSED`.
+
 #### POST /auth/register
 Đăng ký tài khoản người dùng mới.
 - **Request**: `{ "email": "...", "password": "...", "full_name": "..." }`
@@ -72,6 +76,7 @@ Quản lý không gian làm việc và cấu hình hệ thống.
   "work_unit_minutes": 30, // 1, 15, 30, 60
   "rounding_policy": "floor", // none, floor, ceil, round
   "date_format": "DD/MM/YYYY", // DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD
+  "time_format": "24h", // 24h, 12h
   "created_at": "datetime"
 }
 ```
@@ -97,7 +102,8 @@ Cập nhật thông tin hoặc cấu hình hệ thống của workspace.
     "name": "Tên mới", 
     "work_unit_minutes": 30, 
     "rounding_policy": "floor",
-    "date_format": "MM/DD/YYYY"
+    "date_format": "MM/DD/YYYY",
+    "time_format": "12h"
   }
   ```
 - **Response (200)**: `Workspace` (updated)

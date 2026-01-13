@@ -41,7 +41,7 @@ leeattend/
     - **Heartbeat Engine**: Time-based tracking of edge agent connectivity.
 - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections. Supports **Robust Asynchronous Batch Import** (Excel/CSV) with auto-recovery and real-time progress tracking.
     - **Multi-format Support**: Integrated support for `.xlsx`, `.xls` (legacy), and `.csv` files.
-    - **Workspace Locale Sensitivity**: Configurable `date_format` per workspace to resolve `DD/MM` vs `MM/DD` ambiguity during imports.
+    - **Workspace Locale Sensitivity**: Configurable `date_format` and `time_format` (12h/24h) per workspace to resolve regional ambiguities and respect user preferences across the dashboard.
 - **Time Tracking**: Core logic for punch in/out, shift calculation, and payroll-ready duration processing.
     - **Overtime Engine**: Priority-based calculation logic supporting worked-through breaks and daily OT thresholds.
     - **Leave Management**: Tracking of annual leave entitlements, carry-over balances, and usage history.
@@ -49,13 +49,14 @@ leeattend/
     - **Resilience**: **PortFileGuard** ensures robust resource cleanup (port files) even during unexpected shutdowns or panics.
 2.  **Web Dashboard (React/Vite)**:
     - Modern UI with Tailwind CSS & Lucide icons.
+    - **Robust API URL Resolution**: Frontend client (`api.ts`) intelligently determines API base URL, prioritizing relative `/api` paths for web development environments (to leverage Vite's dynamic proxy) and `VITE_API_URL` for production or Tauri builds.
     - **Common UI Library**: Standardized components (DropdownMenu, etc.) based on Radix UI.
     - **Global Toast System**: Non-blocking notification engine for consistent UX.
     - Onboarding & Workspace management flows.
     - Real-time agent status via **Heartbeat Badges**.
     - Discovery: Auto-proxy configuration based on `.api_port`.
 3.  **Hybrid Edge Agent (Rust & Python)**:
-    - **Rust Orchestrator (`agent-main`)**: Trái tim của hệ thống. Quản lý SQLite (`attendance.db`), logic đồng bộ dữ liệu (ACK protocol), WebSocket bền bỉ (Exponential Backoff), và điều phối lệnh tới driver.
+    - **Rust Orchestrator (`agent-main`)**: Trái tim của hệ thống. Quản lý SQLite (`attendance.db`), logic đồng bộ dữ liệu (ACK protocol), WebSocket bền bỉ (Exponential Backoff), và điều phối lệnh tới driver. **Fix**: Added `Clone` derive for `AttendanceData` model to prevent compilation errors.
     - **Python Sidecar (`agent-zk-worker`)**: Một "Thin Driver" siêu nhẹ. Chỉ cung cấp giao thức JSON-RPC để Rust điều khiển thiết bị ZKTeco. Đã được loại bỏ hoàn toàn các logic dư thừa (DB, Cloud logic).
     - **Protocol**: JSON-RPC over TCP (Localhost:5000) giúp tách biệt lỗi phần cứng khỏi logic nghiệp vụ.
 
@@ -73,6 +74,7 @@ leeattend/
 - [x] **Reporting Suite**: Attendance reports supporting monthly summaries and detailed daily punch logs (including break times).
 - [x] **Shift Versioning**: Automated tracking of shift configuration changes to maintain historical record integrity.
 - [x] **Configurable Work Units**: Support for 15m/30m/60m rounding blocks with configurable policies (Floor/Ceil/Round).
+- [x] **Workspace Personalization**: Per-workspace preference for `date_format` and `time_format` (12h vs 24h) with consistent UI application.
 - [x] Accurate Real-time Status (Heartbeat).
 - [x] **RBAC Audit**: Full security audit of all administrative endpoints; strict enforcement of `MemberContext` roles (Owner/Admin).
 - [x] **Leave Management**: Comprehensive tracking of leave requests, approvals, and annual balances.

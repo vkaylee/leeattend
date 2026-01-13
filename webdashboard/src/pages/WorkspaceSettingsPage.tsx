@@ -25,12 +25,14 @@ export default function WorkspaceSettingsPage() {
   const [workUnit, setWorkUnit] = useState(1);
   const [roundingPolicy, setRoundingPolicy] = useState("none");
   const [dateFormat, setDateFormat] = useState("DD/MM/YYYY");
+  const [timeFormat, setTimeFormat] = useState("24h");
 
   useEffect(() => {
     if (workspace) {
       setWorkUnit(workspace.work_unit_minutes);
       setRoundingPolicy(workspace.rounding_policy);
       setDateFormat(workspace.date_format);
+      setTimeFormat(workspace.time_format);
     }
   }, [workspace]);
 
@@ -65,6 +67,7 @@ export default function WorkspaceSettingsPage() {
       work_unit_minutes: workUnit,
       rounding_policy: roundingPolicy,
       date_format: dateFormat,
+      time_format: timeFormat,
     });
   }
 
@@ -163,6 +166,24 @@ export default function WorkspaceSettingsPage() {
                   Dùng để ưu tiên xử lý khi file Excel/CSV không rõ ràng (ví dụ 01/02).
                 </p>
               </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                  Định dạng giờ ưu tiên
+                </label>
+                <select
+                  data-testid="time-format-select"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none font-bold text-slate-700"
+                  value={timeFormat}
+                  onChange={(e) => setTimeFormat(e.target.value)}
+                >
+                  <option value="24h">24 Giờ (Ví dụ: 14:30)</option>
+                  <option value="12h">12 Giờ (Ví dụ: 02:30 PM)</option>
+                </select>
+                <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
+                  Cách hiển thị thời gian trên toàn hệ thống.
+                </p>
+              </div>
             </div>
           </div>
 
@@ -190,10 +211,14 @@ export default function WorkspaceSettingsPage() {
                 </div>
               </div>
               <div className="w-40 space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                <label
+                  htmlFor="new-member-role"
+                  className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1"
+                >
                   Vai trò
                 </label>
                 <select
+                  id="new-member-role"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none font-bold text-slate-700"
                   value={newMemberRole}
                   onChange={(e) => setNewMemberRole(e.target.value as any)}

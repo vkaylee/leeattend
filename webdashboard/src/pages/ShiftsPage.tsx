@@ -25,6 +25,7 @@ import {
   assignShift, 
   createShift,
   updateShift,
+  fetchWorkspace,
   fetchWorkspaceSchedules,
   fetchAssignmentHistory,
   upsertRoster,
@@ -35,6 +36,7 @@ import {
   Shift
 } from "../lib/api";
 import { useToast } from "../components/Toast";
+import { formatTime, formatDateTime } from "../lib/utils";
 import { format, addDays, startOfWeek as startOfWeekFn } from "date-fns";
 import { vi } from "date-fns/locale";
 
@@ -89,6 +91,12 @@ export default function ShiftsPage() {
   const { data: shifts } = useQuery({
     queryKey: ["shifts", wsId],
     queryFn: () => fetchShifts(wsId),
+    enabled: !!wsId,
+  });
+
+  const { data: workspace } = useQuery({
+    queryKey: ["workspace", wsId],
+    queryFn: () => fetchWorkspace(wsId),
     enabled: !!wsId,
   });
 
@@ -559,7 +567,7 @@ export default function ShiftsPage() {
                                   {effectiveSchedule.shift_name}
                                 </div>
                                 <div className={`flex items-center gap-1.5 text-[10px] font-bold ${isRoster ? 'text-purple-500' : 'text-blue-500'}`}>
-                                  {effectiveSchedule.start_time?.substring(0, 5)} - {effectiveSchedule.end_time?.substring(0, 5)}
+                                  {formatTime(effectiveSchedule.start_time, workspace?.time_format)} - {formatTime(effectiveSchedule.end_time, workspace?.time_format)}
                                 </div>
 
                                 {effectiveSchedule.break_duration_minutes !== null && (
@@ -619,7 +627,7 @@ export default function ShiftsPage() {
                         {history?.filter(h => h.employee_id === selectedEmployee.id || !selectedEmployee).map(h => (
                           <tr key={h.id} className="hover:bg-slate-50/50">
                             <td className="p-4 text-xs font-bold text-slate-500">
-                              {format(new Date(h.created_at), "dd/MM/yyyy HH:mm")}
+                              {formatDateTime(h.created_at, workspace?.time_format)}
                             </td>
                             <td className="p-4 text-sm font-bold text-slate-900">{h.employee_name}</td>
                             <td className="p-4">
@@ -675,7 +683,7 @@ export default function ShiftsPage() {
                           <div className={`font-black text-sm uppercase tracking-tight ${selectedShiftId === shift.id ? 'text-blue-700' : 'text-slate-700'}`}>{shift.name}</div>
                           <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
                             <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
-                              <Clock size={10} /> {shift.start_time.substring(0, 5)} - {shift.end_time.substring(0, 5)}
+                              <Clock size={10} /> {formatTime(shift.start_time, workspace?.time_format)} - {formatTime(shift.end_time, workspace?.time_format)}
                             </div>
                             <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
                               <Info size={10} /> 
@@ -767,11 +775,11 @@ export default function ShiftsPage() {
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-3">
                       <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-xl font-mono font-black text-sm border border-blue-100">
-                        {shift.start_time.substring(0, 5)}
+                        {formatTime(shift.start_time, workspace?.time_format)}
                       </div>
                       <ChevronRight className="w-4 h-4 text-slate-200" />
                       <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-xl font-mono font-black text-sm border border-blue-100">
-                        {shift.end_time.substring(0, 5)}
+                        {formatTime(shift.end_time, workspace?.time_format)}
                       </div>
                     </div>
                   </td>
@@ -854,20 +862,28 @@ export default function ShiftsPage() {
 
               <div className="grid grid-cols-2 gap-5">
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Giờ vào</label>
+                  <div className="flex justify-between items-center ml-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Giờ vào</label>
+                    <span className="text-[9px] font-black text-blue-500 uppercase">{formatTime(newShiftStart, workspace?.time_format)}</span>
+                  </div>
                   <input 
                     type="time" 
                     step="60"
+                    lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
                     value={newShiftStart?.substring(0, 5)}
                     onChange={(e) => setNewShiftStart(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                   />
                 </div>
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Giờ ra</label>
+                  <div className="flex justify-between items-center ml-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Giờ ra</label>
+                    <span className="text-[9px] font-black text-blue-500 uppercase">{formatTime(newShiftEnd, workspace?.time_format)}</span>
+                  </div>
                   <input 
                     type="time" 
                     step="60"
+                    lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
                     value={newShiftEnd?.substring(0, 5)}
                     onChange={(e) => setNewShiftEnd(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
@@ -904,20 +920,28 @@ export default function ShiftsPage() {
                   <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Bắt đầu nghỉ</label>
+                        <div className="flex justify-between items-center ml-1">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bắt đầu nghỉ</label>
+                          <span className="text-[8px] font-black text-indigo-500 uppercase">{formatTime(newBreakStart, workspace?.time_format)}</span>
+                        </div>
                         <input 
                           type="time" 
                           step="60"
+                          lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
                           value={newBreakStart?.substring(0, 5)}
                           onChange={(e) => setNewBreakStart(e.target.value)}
                           className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Kết thúc nghỉ</label>
+                        <div className="flex justify-between items-center ml-1">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Kết thúc nghỉ</label>
+                          <span className="text-[8px] font-black text-indigo-500 uppercase">{formatTime(newBreakEnd, workspace?.time_format)}</span>
+                        </div>
                         <input 
                           type="time" 
                           step="60"
+                          lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
                           value={newBreakEnd?.substring(0, 5)}
                           onChange={(e) => setNewBreakEnd(e.target.value)}
                           className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
@@ -994,18 +1018,28 @@ export default function ShiftsPage() {
 
               <div className="grid grid-cols-2 gap-5">
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Giờ vào</label>
+                  <div className="flex justify-between items-center ml-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Giờ vào</label>
+                    <span className="text-[9px] font-black text-blue-500 uppercase">{formatTime(newShiftStart, workspace?.time_format)}</span>
+                  </div>
                   <input 
                     type="time" 
+                    step="60"
+                    lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
                     value={newShiftStart}
                     onChange={(e) => setNewShiftStart(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                   />
                 </div>
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Giờ ra</label>
+                  <div className="flex justify-between items-center ml-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Giờ ra</label>
+                    <span className="text-[9px] font-black text-blue-500 uppercase">{formatTime(newShiftEnd, workspace?.time_format)}</span>
+                  </div>
                   <input 
                     type="time" 
+                    step="60"
+                    lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
                     value={newShiftEnd}
                     onChange={(e) => setNewShiftEnd(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
@@ -1029,8 +1063,20 @@ export default function ShiftsPage() {
                 </div>
                 {isFixedBreak ? (
                   <div className="grid grid-cols-2 gap-4">
-                    <input type="time" value={newBreakStart} onChange={(e) => setNewBreakStart(e.target.value)} className="bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm" />
-                    <input type="time" value={newBreakEnd} onChange={(e) => setNewBreakEnd(e.target.value)} className="bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm" />
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center px-1">
+                        <span className="text-[8px] font-black text-slate-400 uppercase">Bắt đầu</span>
+                        <span className="text-[8px] font-black text-blue-500 uppercase">{formatTime(newBreakStart, workspace?.time_format)}</span>
+                      </div>
+                      <input type="time" step="60" lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"} value={newBreakStart} onChange={(e) => setNewBreakStart(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center px-1">
+                        <span className="text-[8px] font-black text-slate-400 uppercase">Kết thúc</span>
+                        <span className="text-[8px] font-black text-blue-500 uppercase">{formatTime(newBreakEnd, workspace?.time_format)}</span>
+                      </div>
+                      <input type="time" step="60" lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"} value={newBreakEnd} onChange={(e) => setNewBreakEnd(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm" />
+                    </div>
                   </div>
                 ) : (
                   <input type="range" min="0" max="120" step="15" value={newShiftBreak} onChange={(e) => setNewShiftBreak(parseInt(e.target.value))} className="w-full h-2 bg-slate-200 rounded-full appearance-none cursor-pointer accent-blue-600" />
@@ -1131,7 +1177,7 @@ export default function ShiftsPage() {
                     <div className="font-black text-sm uppercase tracking-tight text-slate-700 group-hover:text-blue-700">{shift.name}</div>
                     <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
                       <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1 group-hover:text-blue-500">
-                        <Clock size={10} /> {shift.start_time.substring(0, 5)} - {shift.end_time.substring(0, 5)}
+                        <Clock size={10} /> {formatTime(shift.start_time, workspace?.time_format)} - {formatTime(shift.end_time, workspace?.time_format)}
                       </div>
                       <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1 group-hover:text-blue-500">
                         <Info size={10} /> 

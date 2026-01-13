@@ -8,10 +8,12 @@ import {
   fetchTimeHistory, 
   getCurrentWorkspaceId,
   submitAttendanceAdjustment,
+  fetchWorkspace,
   Employee,
   TimeEntry
 } from "../lib/api";
 import { useToast } from "../components/Toast";
+import { formatTime } from "../lib/utils";
 
 export default function TimeTrackingPage() {
   const wsId = getCurrentWorkspaceId();
@@ -31,6 +33,12 @@ export default function TimeTrackingPage() {
   const { data: employees = [] } = useQuery({
     queryKey: ["employees", wsId],
     queryFn: () => fetchEmployees(wsId!),
+    enabled: !!wsId,
+  });
+
+  const { data: workspace } = useQuery({
+    queryKey: ["workspace", wsId],
+    queryFn: () => fetchWorkspace(wsId!),
     enabled: !!wsId,
   });
 
@@ -142,7 +150,7 @@ export default function TimeTrackingPage() {
                   <div className="text-slate-400 font-black uppercase text-[10px] tracking-widest mb-1">
                     {isOnBreak ? 'Bắt đầu nghỉ lúc' : 'Bắt đầu ca lúc'}
                   </div>
-                  <div className="font-black text-2xl text-slate-800">{new Date(activeEntry.punch_in_time).toLocaleTimeString('vi-VN')}</div>
+                  <div className="font-black text-2xl text-slate-800">{formatTime(new Date(activeEntry.punch_in_time).toLocaleTimeString('vi-VN'), workspace?.time_format)}</div>
                 </div>
                 
                 <div className="grid grid-cols-1 gap-3">
@@ -226,9 +234,9 @@ export default function TimeTrackingPage() {
                           {entry.entry_type === 'break' ? 'Nghỉ' : 'Làm'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-slate-600">{new Date(entry.punch_in_time).toLocaleTimeString('vi-VN')}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-slate-600">{formatTime(new Date(entry.punch_in_time).toLocaleTimeString('vi-VN'), workspace?.time_format)}</td>
                       <td className="px-6 py-4 text-sm font-medium text-slate-600">
-                        {entry.punch_out_time ? new Date(entry.punch_out_time).toLocaleTimeString('vi-VN') : (
+                        {entry.punch_out_time ? formatTime(new Date(entry.punch_out_time).toLocaleTimeString('vi-VN'), workspace?.time_format) : (
                           <span className={`${entry.entry_type === 'break' ? 'text-amber-500 bg-amber-50' : 'text-orange-500 bg-orange-50'} font-bold px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-widest`}>
                             {entry.entry_type === 'break' ? 'Đang nghỉ' : 'Đang làm'}
                           </span>
@@ -239,8 +247,8 @@ export default function TimeTrackingPage() {
                           onClick={() => {
                             setAdjustmentData({
                               date: new Date(entry.punch_in_time).toISOString().split('T')[0],
-                              punchIn: new Date(entry.punch_in_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-                              punchOut: entry.punch_out_time ? new Date(entry.punch_out_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : "17:00",
+                              punchIn: new Date(entry.punch_in_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+                              punchOut: entry.punch_out_time ? new Date(entry.punch_out_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false }) : "17:00",
                               reason: "",
                               isBreakOvertime: entry.is_break_overtime,
                               timeEntryId: entry.id
@@ -281,9 +289,14 @@ export default function TimeTrackingPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Giờ vào</label>
+                  <div className="flex justify-between items-center px-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Giờ vào</label>
+                    <span className="text-[9px] font-black text-blue-500 uppercase">{formatTime(adjustmentData.punchIn, workspace?.time_format)}</span>
+                  </div>
                   <input 
                     type="time" 
+                    step="60"
+                    lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
                     value={adjustmentData.punchIn}
                     onChange={e => setAdjustmentData({...adjustmentData, punchIn: e.target.value})}
                     className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
@@ -291,9 +304,14 @@ export default function TimeTrackingPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Giờ ra</label>
+                  <div className="flex justify-between items-center px-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Giờ ra</label>
+                    <span className="text-[9px] font-black text-blue-500 uppercase">{formatTime(adjustmentData.punchOut, workspace?.time_format)}</span>
+                  </div>
                   <input 
                     type="time" 
+                    step="60"
+                    lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
                     value={adjustmentData.punchOut}
                     onChange={e => setAdjustmentData({...adjustmentData, punchOut: e.target.value})}
                     className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all" 

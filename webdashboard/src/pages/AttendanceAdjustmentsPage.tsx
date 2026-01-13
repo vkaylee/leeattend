@@ -2,20 +2,25 @@ import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, XCircle, Clock, User, MessageSquare, Upload, FileDown } from "lucide-react";
 import { 
-  fetchWorkspaceAttendanceAdjustments, 
-  approveAttendanceAdjustment, 
-  getCurrentWorkspaceId,
+  fetchWorkspace,
   AttendanceAdjustmentRequest,
   fetchEmployees,
   uploadAttendanceExcel,
   fetchLatestImportJob,
   AttendanceImportJob
 } from "../lib/api";
+import { formatTime } from "../lib/utils";
 
 export default function AttendanceAdjustmentsPage() {
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const { data: workspace } = useQuery({
+    queryKey: ["workspace", wsId],
+    queryFn: () => fetchWorkspace(wsId!),
+    enabled: !!wsId,
+  });
 
   // Poll for latest import job status
   const { data: latestJob } = useQuery({
@@ -231,8 +236,8 @@ export default function AttendanceAdjustmentsPage() {
                     </div>
                     <div className="text-xs text-slate-500 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {new Date(req.requested_punch_in_time).toLocaleTimeString('vi-VN')} - 
-                      {req.requested_punch_out_time ? new Date(req.requested_punch_out_time).toLocaleTimeString('vi-VN') : "?"}
+                      {formatTime(new Date(req.requested_punch_in_time).toLocaleTimeString('vi-VN'), workspace?.time_format)} - 
+                      {req.requested_punch_out_time ? formatTime(new Date(req.requested_punch_out_time).toLocaleTimeString('vi-VN'), workspace?.time_format) : "?"}
                     </div>
                     {req.is_break_overtime && (
                       <div className="mt-1">

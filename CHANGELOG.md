@@ -5,16 +5,26 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
-- **Configurable Vite Host**: Added `VITE_DEV_SERVER_HOST` environment variable support to `webdashboard/vite.config.ts`, allowing the development server to listen on a specific host (defaults to `127.0.0.1`).
-- **Legacy Excel (.xls) Support**: Added support for importing attendance data from older Excel files using `calamine::Xls`.
-- **Workspace Date Format Configuration**: Introduced workspace-level date format settings (`DD/MM/YYYY`, `MM/DD/YYYY`, `YYYY-MM-DD`) to resolve ambiguity during imports.
-- **Robust DateTime Parsing**: Implemented a multi-format parser that automatically detects and handles various date-time strings, including US formats with AM/PM and seconds (e.g., `11/24/2025 7:12:46 AM`).
-- **Flexible Excel Reading**: Enhanced the importer to handle different cell types (String, DateTime, Float/Serial) correctly.
+- **Workspace Time Format Settings**: Introduced a global setting to toggle between 24-hour (e.g., 14:30) and 12-hour (e.g., 02:30 PM) time display across the entire platform.
+    - **Dynamic Formatting**: Implemented `formatTime` and `formatDateTime` utility helpers in the frontend to respect workspace preferences.
+    - **Browser Locale Hinting**: Leveraged the `lang` attribute (`vi-VN` for 24h, `en-US` for 12h) on HTML5 time inputs to guide browser-native pickers toward the correct display format.
+    - **Visual Previews**: Added high-contrast time previews above inputs in management modals (Shifts, Adjustments) for unambiguous confirmation.
+- **Backend Test Suite for Workspaces**: Added `apiserver/tests/workspace_time_format_tests.rs` to verify persistence and retrieval of the new formatting settings.
+- **Frontend Unit Tests**: Created `webdashboard/src/lib/utils.test.ts` covering edge cases for time formatting, including invalid strings and localized patterns.
 
 ### Fixed
-- **API Routing Consolidation**: Fixed a critical routing bug by moving all attendance-related endpoints under the `/workspaces/:ws_id` prefix, ensuring consistent security and parameter extraction.
-- **Import Job Conflict**: Resolved an issue where the `/latest` endpoint was being shadowed by the generic `/:id` endpoint in the backend router.
-- **Frontend Syntax & Logic**: Fixed a syntax error in `AttendanceAdjustmentsPage.tsx` and corrected a function name mismatch (`handleFileChange`) that was preventing builds.
+- **Shift Input Display Inconsistency**: Resolved an issue where time inputs in the "Edit Shift" modal were defaulting to 12h even when 24h was configured in the workspace.
+- **Localized Time Tracking**: Updated `TimeTrackingPage` to fetch workspace configuration and dynamically format all punch-in/out displays and history tables.
+
+### Changed
+- **Unified 24h Fallback**: Standardized on `vi-VN` as the primary language hint for 24h time formatting to ensure cross-browser consistency (replacing `en-GB`).
+- **Workspace Model Expansion**: Added `time_format` column to the `workspaces` table and updated all associated API models and database repositories.
+
+## [Unreleased] (Previous)
+
+### Changed
+- **Playwright Test Suite Updates**: Updated various Playwright E2E tests (`attendance-logs.spec.ts`, `change-password.spec.ts`, `debug-ui.spec.ts`) for localization consistency, correct input selectors, and accurate API endpoint expectations.
+- **Configurable Vite Host**: Added `VITE_DEV_SERVER_HOST` environment variable support to `webdashboard/vite.config.ts`, allowing the development server to listen on a specific host (defaults to `127.0.0.1`).
 
 ### Added (Previous)
 - **Parallel E2E Test Orchestration**: Implemented a robust mechanism to run multiple Playwright workers in parallel with complete environment isolation.

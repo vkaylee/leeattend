@@ -4,9 +4,15 @@ const BASE_URL_FROM_ENV = import.meta.env.VITE_API_URL?.replace(/\/$/, "");
 
 // Nếu đang chạy web dev (có proxy) thì dùng "/api", nếu build tauri thì dùng URL tuyệt đối.
 const isTauri = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__;
-const API_BASE_URL = isTauri || !window.location.host.includes("localhost") 
-  ? (BASE_URL_FROM_ENV || "http://localhost:3000") 
-  : "/api";
+
+// LOGIC CẢI TIẾN:
+// 1. Web Dev: Luôn dùng "/api" để tận dụng Vite Proxy (nơi đã xử lý dynamic port từ .api_port).
+//    Tránh lấy trực tiếp BASE_URL_FROM_ENV vì nó thường hardcode port 3000 gây lỗi.
+// 2. Tauri: Cần URL tuyệt đối, ưu tiên ENV -> mặc định localhost:3000.
+// 3. Web Prod: Dùng ENV (nếu API khác domain) hoặc fallback về "/api".
+const API_BASE_URL = isTauri 
+  ? (BASE_URL_FROM_ENV || "http://localhost:3000")
+  : (import.meta.env.DEV ? "/api" : (BASE_URL_FROM_ENV || "/api"));
 
 export const WS_BASE_URL = BASE_URL_FROM_ENV
   ? `${BASE_URL_FROM_ENV.replace(/^http/, "ws")}/ws`
@@ -63,27 +69,10 @@ export interface Workspace {
   id: string;
   name: string;
   work_unit_minutes: number;
-  rounding_policy: "none" | "floor" | "ceil" | "round";
+  rounding_policy: string;
   date_format: string;
+  time_format: string;
   created_at: string;
-}
-
-export async function fetchWorkspace(wsId: string): Promise<Workspace> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}`);
-  if (!response.ok) throw new Error("Failed to fetch workspace");
-  return response.json();
-}
-
-export async function updateWorkspace(
-  wsId: string,
-  data: Partial<Workspace>,
-): Promise<Workspace> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}`, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Failed to update workspace");
-  return response.json();
 }
 
 export interface UpdateUserRequest {
@@ -380,9 +369,71 @@ async function apiFetch(
   return response;
 }
 
+// --- Health ---
+export async function fetchHealth(): Promise<{ status: string }> {
+  const response = await apiFetch(`${API_BASE_URL}/health`);
+  return response.json();
+}
+
+// --- Auth ---
+export async function login(username: string, password: string): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: username, password }),
+  });
+  if (!response.ok) throw new Error("Login failed");
+  const data = await response.json();
+  setAccessToken(data.access_token);
+  setRefreshToken(data.refresh_token);
+  setCurrentUserId(data.user.id);
+  return data;
+}
+
+export async function logout(): Promise<void> {
+  await apiFetch(`${API_BASE_URL}/auth/logout`, { method: "POST" });
+  clearAuthSession();
+}
+
+export async function register(data: RegisterRequest): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || "Registration failed");
+  }
+  return response.json();
+}
+
+export async function changePassword(
+  data: ChangePasswordRequest,
+): Promise<string> {
+  const response = await apiFetch(`${API_BASE_URL}/auth/change-password`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || "Failed to change password");
+  }
+  return response.text();
+}
+
+// --- Agents & Devices ---
 export async function fetchAgents(): Promise<AgentStatus[]> {
   const response = await apiFetch(`${API_BASE_URL}/agents`);
   if (!response.ok) throw new Error("Failed to fetch agents");
+  return response.json();
+}
+
+export async function sendAgentCommand(agentId: string, command: any): Promise<any> {
+  const response = await apiFetch(`${API_BASE_URL}/agent/${agentId}/command`, {
+    method: "POST",
+    body: JSON.stringify(command),
+  });
   return response.json();
 }
 
@@ -403,6 +454,18 @@ export async function createDevice(
   return response.json();
 }
 
+export async function updateDevice(
+  id: string,
+  device: Partial<Device>,
+): Promise<Device> {
+  const response = await apiFetch(`${API_BASE_URL}/devices/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(device),
+  });
+  if (!response.ok) throw new Error("Failed to update device");
+  return response.json();
+}
+
 export async function deleteDevice(id: string): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/devices/${id}`, {
     method: "DELETE",
@@ -418,6 +481,12 @@ export async function fetchAuthorizedAgents(
     : `${API_BASE_URL}/authorized-agents`;
   const response = await apiFetch(url);
   if (!response.ok) throw new Error("Failed to fetch authorized agents");
+  return response.json();
+}
+
+export async function fetchAuthorizedAgentById(id: string): Promise<AuthorizedAgent> {
+  const response = await apiFetch(`${API_BASE_URL}/authorized-agents/${id}`);
+  if (!response.ok) throw new Error("Failed to fetch authorized agent");
   return response.json();
 }
 
@@ -465,8 +534,7 @@ export async function deleteAuthorizedAgent(id: string): Promise<void> {
   if (!response.ok) throw new Error("Failed to delete authorized agent");
 }
 
-// --- User Profile ---
-
+// --- User Profile & Users ---
 export async function fetchMe(): Promise<User> {
   const response = await apiFetch(`${API_BASE_URL}/me`);
   if (!response.ok) throw new Error("Failed to fetch profile");
@@ -482,20 +550,6 @@ export async function updateMe(data: Partial<User>): Promise<User> {
   return response.json();
 }
 
-export async function changePassword(
-  data: ChangePasswordRequest,
-): Promise<string> {
-  const response = await apiFetch(`${API_BASE_URL}/auth/change-password`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Failed to change password");
-  }
-  return response.text();
-}
-
 export async function fetchUsers(): Promise<User[]> {
   const response = await apiFetch(`${API_BASE_URL}/users`);
   if (!response.ok) throw new Error("Failed to fetch users");
@@ -503,19 +557,36 @@ export async function fetchUsers(): Promise<User[]> {
 }
 
 // --- Workspace Management ---
-
 export async function fetchWorkspaces(): Promise<Workspace[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces`);
   if (!response.ok) throw new Error("Failed to fetch workspaces");
   return response.json();
 }
 
-export async function createWorkspace(name: string): Promise<Workspace> {
+export async function createWorkspace(data: { name: string }): Promise<Workspace> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces`, {
     method: "POST",
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to create workspace");
+  return response.json();
+}
+
+export async function fetchWorkspace(wsId: string): Promise<Workspace> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}`);
+  if (!response.ok) throw new Error("Failed to fetch workspace");
+  return response.json();
+}
+
+export async function updateWorkspace(
+  wsId: string,
+  data: Partial<Workspace>,
+): Promise<Workspace> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to update workspace");
   return response.json();
 }
 
@@ -633,10 +704,15 @@ export async function revokeExtraRole(
 }
 
 // --- Employee Management ---
-
 export async function fetchEmployees(wsId: string): Promise<Employee[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees`);
   if (!response.ok) throw new Error("Failed to fetch employees");
+  return response.json();
+}
+
+export async function fetchEmployee(wsId: string, id: string): Promise<Employee> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}`);
+  if (!response.ok) throw new Error("Failed to fetch employee");
   return response.json();
 }
 
@@ -673,7 +749,6 @@ export async function deleteEmployee(wsId: string, id: string): Promise<void> {
 }
 
 // --- Time Tracking ---
-
 export async function punchIn(
   wsId: string,
   data: { employee_id: string; entry_type?: string; note?: string },
@@ -712,8 +787,27 @@ export async function fetchTimeHistory(
   return response.json();
 }
 
-// --- Leave Management ---
+export async function updateTimeEntry(
+  wsId: string,
+  id: string,
+  data: Partial<TimeEntry>,
+): Promise<TimeEntry> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/time/entries/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to update time entry");
+  return response.json();
+}
 
+export async function deleteTimeEntry(wsId: string, id: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/time/entries/${id}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to delete time entry");
+}
+
+// --- Leave Management ---
 export async function submitLeaveRequest(
   wsId: string,
   data: { employee_id: string; leave_type: string; start_date: string; end_date: string; reason?: string },
@@ -738,6 +832,14 @@ export async function fetchWorkspaceLeaveRequests(
   return response.json();
 }
 
+export async function fetchMyLeaveRequests(
+  employeeId: string
+): Promise<LeaveRequest[]> {
+  const response = await apiFetch(`${API_BASE_URL}/employees/${employeeId}/leave/requests`);
+  if (!response.ok) throw new Error("Failed to fetch my leave requests");
+  return response.json();
+}
+
 export async function approveLeaveRequest(
   wsId: string,
   requestId: string,
@@ -759,8 +861,59 @@ export async function fetchEmployeeLeaveBalances(
   return response.json();
 }
 
+// --- Leave Policies ---
+export interface LeavePolicy {
+  id: string;
+  workspace_id: string;
+  name: string;
+  leave_type: string;
+  annual_entitlement: number;
+  accrual_strategy: "monthly" | "lump_sum";
+  carry_over_limit: number;
+  created_at: string;
+}
 
-// Attendance Adjustments
+export async function fetchLeavePolicies(wsId: string): Promise<LeavePolicy[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/policies`);
+  if (!response.ok) throw new Error("Failed to fetch leave policies");
+  return response.json();
+}
+
+export async function createLeavePolicy(
+  wsId: string,
+  data: Partial<LeavePolicy>
+): Promise<LeavePolicy> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/policies`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to create leave policy");
+  return response.json();
+}
+
+export async function assignLeavePolicy(
+  wsId: string,
+  data: { employee_id: string; leave_policy_id: string; effective_date: string }
+): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/policies/assign`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to assign leave policy");
+}
+
+export async function triggerAccrualRun(
+  wsId: string,
+  data: { date: string }
+): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/accrual/run`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to trigger accrual run");
+}
+
+// --- Attendance Adjustments ---
 export async function submitAttendanceAdjustment(
   wsId: string,
   data: {
@@ -773,7 +926,6 @@ export async function submitAttendanceAdjustment(
 ): Promise<AttendanceAdjustmentRequest> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/adjustments`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to submit attendance adjustment");
@@ -851,10 +1003,33 @@ export async function approveAttendanceAdjustment(
 ): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/adjustments/${requestId}/approve`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to approve attendance adjustment");
+}
+
+export async function fetchAttendanceLogs(params: {
+  employee_id?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{ data: TimeEntry[]; total: number; page: number; limit: number }> {
+  const searchParams = new URLSearchParams();
+  if (params.employee_id) searchParams.append("employee_id", params.employee_id);
+  if (params.from) searchParams.append("from", params.from);
+  if (params.to) searchParams.append("to", params.to);
+  if (params.page) searchParams.append("page", params.page.toString());
+  if (params.limit) searchParams.append("limit", params.limit.toString());
+  
+  const wsId = getCurrentWorkspaceId();
+  const url = wsId 
+    ? `${API_BASE_URL}/workspaces/${wsId}/attendance/logs?${searchParams.toString()}`
+    : `${API_BASE_URL}/attendance/logs?${searchParams.toString()}`;
+
+  const response = await apiFetch(url);
+  if (!response.ok) throw new Error("Failed to fetch attendance logs");
+  return response.json();
 }
 
 export async function fetchAttendanceReport(
@@ -870,38 +1045,7 @@ export async function fetchAttendanceReport(
   return response.json();
 }
 
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  full_name: string;
-}
-
-export async function register(data: RegisterRequest): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Registration failed");
-  }
-  return response.json();
-}
-
-export async function fetchDevSuperUser(): Promise<{
-  user_id: string;
-  workspace_id: string;
-  access_token?: string;
-  refresh_token?: string;
-}> {
-  const response = await fetch(`${API_BASE_URL}/dev/super-user`);
-  if (!response.ok) throw new Error("Failed to fetch dev super user");
-  return response.json();
-}
-
 // --- Payroll API ---
-
 export async function fetchSalaryHistory(wsId: string, employeeId: string): Promise<SalaryHistory[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/salary`);
   if (!response.ok) throw new Error("Failed to fetch salary history");
@@ -942,7 +1086,6 @@ export async function fetchEmployeePayslips(wsId: string, employeeId: string): P
 }
 
 // --- Shift API ---
-
 export async function fetchShifts(wsId: string): Promise<Shift[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/shifts`);
   if (!response.ok) throw new Error("Failed to fetch shifts");
@@ -983,7 +1126,6 @@ export async function assignShift(
 }
 
 // --- Department API ---
-
 export async function fetchDepartments(wsId: string): Promise<Department[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/departments`);
   if (!response.ok) throw new Error("Failed to fetch departments");
@@ -1019,7 +1161,6 @@ export async function fetchEmployeeDepartmentHistory(wsId: string, employeeId: s
 }
 
 // --- Roster API ---
-
 export interface EffectiveSchedule {
   date: string;
   shift_id: string | null;
@@ -1064,7 +1205,6 @@ export const fetchAssignmentHistory = async (wsId: string): Promise<AssignmentHi
 };
 
 export const fetchEmployeeRosters = async (
-
   wsId: string, 
   employeeId: string, 
   startDate?: string, 
@@ -1082,22 +1222,13 @@ export const fetchEmployeeRosters = async (
 }
 
 export async function upsertRoster(wsId: string, employeeId: string, data: any): Promise<ShiftRoster> {
-
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/rosters`, {
-
     method: "POST",
-
     body: JSON.stringify(data),
-
   });
-
   if (!response.ok) throw new Error("Failed to upsert roster");
-
   return response.json();
-
 }
-
-
 
 export async function bulkUpsertRoster(wsId: string, employeeId: string, items: any[]): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/rosters/bulk`, {
@@ -1107,11 +1238,6 @@ export async function bulkUpsertRoster(wsId: string, employeeId: string, items: 
   if (!response.ok) throw new Error("Failed to bulk upsert roster");
 }
 
-/**
- * Deletes a roster entry for a specific employee and date.
- * This effectively reverts the schedule for that day to the next priority level 
- * (Fixed Assignment or Department Default).
- */
 export async function deleteRoster(wsId: string, employeeId: string, date: string): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/rosters/${date}`, {
     method: "DELETE",
@@ -1119,26 +1245,13 @@ export async function deleteRoster(wsId: string, employeeId: string, date: strin
   if (!response.ok) throw new Error("Failed to delete roster");
 }
 
-export async function fetchAttendanceLogs(params: {
-  employee_id?: string;
-  from?: string;
-  to?: string;
-  page?: number;
-  limit?: number;
-}): Promise<{ data: TimeEntry[]; total: number; page: number; limit: number }> {
-  const searchParams = new URLSearchParams();
-  if (params.employee_id) searchParams.append("employee_id", params.employee_id);
-  if (params.from) searchParams.append("from", params.from);
-  if (params.to) searchParams.append("to", params.to);
-  if (params.page) searchParams.append("page", params.page.toString());
-  if (params.limit) searchParams.append("limit", params.limit.toString());
-  
-  const wsId = getCurrentWorkspaceId();
-  const url = wsId 
-    ? `${API_BASE_URL}/workspaces/${wsId}/attendance/logs?${searchParams.toString()}`
-    : `${API_BASE_URL}/attendance/logs?${searchParams.toString()}`;
-
-  const response = await apiFetch(url);
-  if (!response.ok) throw new Error("Failed to fetch attendance logs");
+export async function fetchDevSuperUser(): Promise<{
+  user_id: string;
+  workspace_id: string;
+  access_token?: string;
+  refresh_token?: string;
+}> {
+  const response = await fetch(`${API_BASE_URL}/dev/super-user`);
+  if (!response.ok) throw new Error("Failed to fetch dev super user");
   return response.json();
 }
