@@ -139,3 +139,57 @@ async fn test_accrual_scenarios() {
     
     assert_eq!(logs_may.len(), 0);
 }
+
+#[tokio::test]
+async fn test_accrual_creates_balance_if_missing() {
+    let test_db = TestDatabase::new().await;
+    let pool = test_db.pool();
+    let factory = common::factory::TestFactory::new(pool.clone());
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    
+    // Employee hired in 2027
+    let emp = factory.employee()
+        .with_workspace(ws_id)
+        .with_hire_date(NaiveDate::from_ymd_opt(2027, 1, 1).unwrap())
+        .create().await;
+
+    // NO leave_balance created for 2027 yet
+
+    let policy_monthly = factory.leave_policy()
+        .with_workspace(ws_id)
+        .with_name("Monthly 1.0")
+        .with_config(serde_json::json!({
+            "frequency": "monthly",
+            "accrual_amount": 1.0,
+            "accrual_timing": "start_of_period"
+        }))
+        .create().await;
+
+    factory.leave_policy().assign_to(
+        ws_id, 
+        policy_monthly, 
+        "employee", 
+        Some(emp), 
+        NaiveDate::from_ymd_opt(2027, 1, 1).unwrap(),
+        None
+    ).await;
+
+    // Run Accrual for Jan 1, 2027
+    let logs = LeaveAccrualService::process_workspace_accruals(
+        &pool, ws_id, NaiveDate::from_ymd_opt(2027, 1, 1).unwrap()
+    ).await.unwrap();
+    
+    assert_eq!(logs.len(), 1);
+
+    // Verify Balance was CREATED for 2027
+    let balance = sqlx::query!(
+        "SELECT accrued_amount, year FROM leave_balances WHERE employee_id = $1 AND year = 2027",
+        emp
+    )
+    .fetch_one(&pool).await.expect("Balance should have been created");
+    
+    assert_eq!(balance.accrued_amount.to_string(), "1.00");
+    assert_eq!(balance.year, 2027);
+}
