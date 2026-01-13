@@ -54,7 +54,7 @@ export default defineConfig(async ({ mode }) => {
   // Dùng port động nếu đang chạy test (có VITE_WEB_PORT_FILE)
   const workerIndex = parseInt(process.env.VITE_BACKEND_PORT_FILE?.split('_').pop() || "0", 10);
   const isTest = !!process.env.VITE_WEB_PORT_FILE;
-  const startPort = isTest ? (5173 + (workerIndex * 10)) : 5173;
+  const startPort = isTest ? (5173 + (workerIndex * 50)) : 5173;
   const port = await findAvailablePort(startPort);
 
   return {
