@@ -6,9 +6,10 @@ use tracing::{error, info};
 use std::io::Cursor;
 use calamine::{Reader, Xlsx, Xls, Data, DataType};
 
-use crate::models::{AttendanceImportJob, TimeEntry, CreateAttendanceAdjustmentRequest};
-use crate::repositories::{import_job_repository, employee_repository, time_entry_repository};
+use crate::models::{AttendanceImportJob, CreateAttendanceAdjustmentRequest, RawAttendanceLog};
+use crate::repositories::{import_job_repository, employee_repository, raw_attendance_log_repository};
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
+use crate::services::pairing_service::PairingService;
 
 pub struct AttendanceImportService;
 
@@ -82,6 +83,7 @@ impl AttendanceImportService {
         };
 
         let date_format = workspace.date_format;
+        let time_format = workspace.time_format;
 
         let file_path = match &job.file_path {
             Some(p) => p,
@@ -106,12 +108,12 @@ impl AttendanceImportService {
         if let Ok(mut reader) = Xlsx::new(Cursor::new(&file_bytes)) {
             if let Some(Ok(range)) = reader.worksheet_range_at(0) {
                 is_excel = true;
-                Self::process_excel_range(&pool, job_id, &job, range, &mut processed_rows, &mut total_rows, &mut errors, Some(&date_format)).await;
+                Self::process_excel_range(&pool, job_id, &job, range, &mut processed_rows, &mut total_rows, &mut errors, Some(&date_format), Some(&time_format)).await;
             }
         } else if let Ok(mut reader) = Xls::new(Cursor::new(&file_bytes)) {
             if let Some(Ok(range)) = reader.worksheet_range_at(0) {
                 is_excel = true;
-                Self::process_excel_range(&pool, job_id, &job, range, &mut processed_rows, &mut total_rows, &mut errors, Some(&date_format)).await;
+                Self::process_excel_range(&pool, job_id, &job, range, &mut processed_rows, &mut total_rows, &mut errors, Some(&date_format), Some(&time_format)).await;
             }
         }
 
@@ -123,16 +125,20 @@ impl AttendanceImportService {
             let _ = sqlx::query("UPDATE attendance_import_jobs SET total_rows = $1 WHERE id = $2")
                 .bind(total_rows).bind(job_id).execute(&pool).await;
 
-            for record in records.into_iter().skip(processed_rows as usize) {
+            for (idx, record) in records.into_iter().skip(processed_rows as usize).enumerate() {
+                let current_line = (processed_rows as usize) + idx + 2; // +1 for skip, +1 for 1-based indexing
                 let emp_id_number = record.get(0).unwrap_or("").to_string();
                 let emp_dt_str = record.get(2).unwrap_or("");
 
-                if emp_id_number.is_empty() || emp_dt_str.is_empty() { continue; }
+                if emp_id_number.is_empty() || emp_dt_str.is_empty() { 
+                    errors.push(format!("Dòng {}: Thiếu mã nhân viên hoặc thời gian", current_line));
+                    continue; 
+                }
 
-                let punch_time = match AttendanceAdjustmentService::parse_datetime(emp_dt_str, Some(&date_format)) {
-                    Some(dt) => dt,
-                    None => {
-                        errors.push(format!("NV {}: Sai định dạng ngày giờ ({})", emp_id_number, emp_dt_str));
+                let punch_time = match AttendanceAdjustmentService::parse_datetime(emp_dt_str, Some(&date_format), Some(&time_format)) {
+                    Ok(dt) => dt,
+                    Err(e) => {
+                        errors.push(format!("Dòng {} (NV {}): {} [Dữ liệu gốc: '{}']", current_line, emp_id_number, e, emp_dt_str));
                         continue;
                     }
                 };
@@ -166,7 +172,8 @@ impl AttendanceImportService {
         processed_rows: &mut i32,
         total_rows: &mut i32,
         errors: &mut Vec<String>,
-        preferred_format: Option<&str>,
+        preferred_date: Option<&str>,
+        preferred_time: Option<&str>,
     ) {
         *total_rows = (range.rows().count() as i32 - 1).max(0);
         let _ = sqlx::query("UPDATE attendance_import_jobs SET total_rows = $1 WHERE id = $2")
@@ -175,27 +182,41 @@ impl AttendanceImportService {
             .execute(pool)
             .await;
 
-        for row in range.rows().skip(1 + *processed_rows as usize) {
+        for (idx, row) in range.rows().skip(1 + *processed_rows as usize).enumerate() {
+            let current_line = (*processed_rows as usize) + idx + 2; // +1 for skip header, +1 for 1-based indexing
             let emp_id_number = match row.get(0) {
                 Some(Data::String(s)) => s.clone(),
                 Some(Data::Float(f)) => f.to_string(),
                 _ => {
-                    errors.push("Dòng thiếu mã nhân viên".to_string());
+                    errors.push(format!("Dòng {}: Thiếu mã nhân viên", current_line));
                     continue;
                 }
             };
             let punch_time = match row.get(2) {
-                Some(Data::String(s)) => AttendanceAdjustmentService::parse_datetime(s, preferred_format),
-                Some(cell_data) => cell_data.as_datetime(),
-                _ => None,
+                Some(Data::String(s)) => match AttendanceAdjustmentService::parse_datetime(s, preferred_date, preferred_time) {
+                    Ok(dt) => Some(dt),
+                    Err(e) => {
+                        errors.push(format!("Dòng {} (NV {}): {} [Dữ liệu gốc: '{}']", current_line, emp_id_number, e, s));
+                        None
+                    }
+                },
+                Some(cell_data) => {
+                    if let Some(dt) = cell_data.as_datetime() {
+                        Some(dt)
+                    } else {
+                        errors.push(format!("Dòng {} (NV {}): Không phải định dạng ngày giờ hợp lệ [Dữ liệu gốc: '{}']", current_line, emp_id_number, cell_data));
+                        None
+                    }
+                },
+                _ => {
+                    errors.push(format!("Dòng {} (NV {}): Thiếu dữ liệu thời gian", current_line, emp_id_number));
+                    None
+                }
             };
 
             let punch_time = match punch_time {
                 Some(dt) => dt,
-                None => {
-                    errors.push(format!("NV {}: Thiếu hoặc sai định dạng ngày giờ", emp_id_number));
-                    continue;
-                }
+                None => continue,
             };
 
             match Self::process_import_row(pool, job, &emp_id_number, punch_time).await {
@@ -227,27 +248,33 @@ impl AttendanceImportService {
         let punch_time_utc = DateTime::<Utc>::from_naive_utc_and_offset(punch_time, Utc);
 
         if job.target_type == "log" {
-            // Direct insertion into time_entries
-            let entry = TimeEntry {
+            // 1. Save to Raw Attendance Logs
+            let raw_log = RawAttendanceLog {
                 id: Uuid::new_v4(),
+                workspace_id: job.workspace_id,
                 employee_id: employee.id,
-                shift_id: None,
-                punch_in_time: punch_time_utc,
-                punch_out_time: None,
-                duration_minutes: None,
-                is_break_overtime: false,
-                entry_type: "work".to_string(),
-                note: Some("Imported directly to logs".to_string()),
+                punch_time: punch_time_utc,
+                source: "import".to_string(),
+                device_id: None,
+                raw_data: None, // Could store the row data here if needed
                 created_at: Utc::now(),
-                updated_at: Utc::now(),
             };
 
-            time_entry_repository::create_time_entry(pool, &entry)
+            raw_attendance_log_repository::create_raw_log(pool, &raw_log)
                 .await
                 .map_err(|e| {
-                    error!("CREATE_TIME_ENTRY_ERROR: {:?}", e);
+                    error!("CREATE_RAW_LOG_ERROR: {:?}", e);
                     StatusCode::INTERNAL_SERVER_ERROR
                 })?;
+
+            // 2. Trigger Pairing Logic
+            if let Err(e) = PairingService::process_new_raw_log(pool, &raw_log).await {
+                error!("PAIRING_ERROR for log {}: {:?}", raw_log.id, e);
+                // We don't necessarily fail the whole row if pairing fails, 
+                // as the raw log is already saved. But for now return error.
+                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            }
+
             Ok(1)
         } else {
             // Original adjustment flow

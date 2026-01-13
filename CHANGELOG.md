@@ -5,20 +5,24 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
-- **Workspace Time Format Settings**: Introduced a global setting to toggle between 24-hour (e.g., 14:30) and 12-hour (e.g., 02:30 PM) time display across the entire platform.
-    - **Dynamic Formatting**: Implemented `formatTime` and `formatDateTime` utility helpers in the frontend to respect workspace preferences.
-    - **Browser Locale Hinting**: Leveraged the `lang` attribute (`vi-VN` for 24h, `en-US` for 12h) on HTML5 time inputs to guide browser-native pickers toward the correct display format.
-    - **Visual Previews**: Added high-contrast time previews above inputs in management modals (Shifts, Adjustments) for unambiguous confirmation.
-- **Backend Test Suite for Workspaces**: Added `apiserver/tests/workspace_time_format_tests.rs` to verify persistence and retrieval of the new formatting settings.
-- **Frontend Unit Tests**: Created `webdashboard/src/lib/utils.test.ts` covering edge cases for time formatting, including invalid strings and localized patterns.
+- **Raw Attendance Logs System**: Introduced a separate persistence layer for original punch events to ensure data integrity and auditability.
+    - **New Database Schema**: Created `raw_attendance_logs` table to store un-modified data from hardware devices and file imports.
+    - **Pairing Engine**: Implemented `PairingService` in the backend to automatically group flat punch events into logical attendance sessions (Time Entries).
+    - **Deduplication Logic**: Automatic filtering of rapid consecutive punches (within a 2-minute window) to prevent noise in sessions.
+    - **Auto-Session Matching**: Smart matching logic that pairs a new punch with an open session within a 14-hour window, or starts a new session otherwise.
+- **Strict Import Validation**: Enhanced the attendance import process to enforce workspace settings strictly.
+    - **Date/Time Preference Enforcement**: File parsing now strictly follows the configured `date_format` and `time_format`.
+    - **Instructional Error Messages**: Failed imports now provide actionable feedback, including the exact faulty data and the expected format.
+    - **Detailed Error Context**: Import error logs now include **Line Numbers** and **Raw faulty values** for both CSV and Excel files.
+- **Enhanced Integration Tests**: Added `apiserver/tests/raw_attendance_pairing_tests.rs` and `apiserver/tests/attendance_import_error_tests.rs` to verify pairing logic and error reporting accuracy.
 
 ### Fixed
-- **Shift Input Display Inconsistency**: Resolved an issue where time inputs in the "Edit Shift" modal were defaulting to 12h even when 24h was configured in the workspace.
-- **Localized Time Tracking**: Updated `TimeTrackingPage` to fetch workspace configuration and dynamically format all punch-in/out displays and history tables.
+- **DateTime Parsing Ambiguity**: Resolved issues where `DD/MM` and `MM/DD` formats were confused during import by prioritizing workspace settings.
+- **Missing API Handlers**: Fixed a regression where `get_my_attendance_adjustments` was calling a non-existent service method.
 
 ### Changed
-- **Unified 24h Fallback**: Standardized on `vi-VN` as the primary language hint for 24h time formatting to ensure cross-browser consistency (replacing `en-GB`).
-- **Workspace Model Expansion**: Added `time_format` column to the `workspaces` table and updated all associated API models and database repositories.
+- **Event-Centric UI**: Refactored the "Attendance Logs" page to display a flat list of raw quẹt thẻ (punch) events instead of sessions, providing a clear audit trail for administrators.
+- **Import API Alignment**: Updated `AttendanceImportService` to support dual target flows: `adjustment` (for requests) and `log` (for direct raw persistence).
 
 ## [Unreleased] (Previous)
 

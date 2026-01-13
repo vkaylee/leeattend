@@ -405,14 +405,31 @@ Lấy trạng thái chi tiết của một Job cụ thể.
 Xem nhật ký quẹt thẻ thô từ các thiết bị ngoại vi (Edge Agents).
 
 #### GET /workspaces/:ws_id/attendance/logs
-Lấy danh sách log quẹt thẻ đã được đồng bộ từ Agent.
+Lấy danh sách các phiên làm việc (sessions) đã được ghép cặp.
 - **Query Params**:
     - `employee_id`: uuid (lọc theo nhân viên)
     - `from`: ISO-8601 (từ ngày)
     - `to`: ISO-8601 (đến ngày)
     - `limit`: number (mặc định 20)
     - `page`: number (mặc định 1)
-- **Response (200)**: `Array<AttendanceLog>`
+- **Response (200)**: `Array<TimeEntry>`
+
+#### GET /workspaces/:ws_id/attendance/raw-logs (New)
+Lấy danh sách nhật ký quẹt thẻ thô (nguyên bản) từ thiết bị hoặc file import.
+- **Query Params**: Giống `/attendance/logs`.
+- **Response (200)**: `Array<RawAttendanceLog>`
+  ```json
+  [
+    {
+      "id": "uuid",
+      "employee_id": "uuid",
+      "punch_time": "2026-01-14T08:00:00Z",
+      "source": "device|import|manual",
+      "device_id": "string-or-null",
+      "created_at": "datetime"
+    }
+  ]
+  ```
 
 ---
 

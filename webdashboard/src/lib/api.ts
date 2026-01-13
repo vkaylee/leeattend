@@ -130,6 +130,17 @@ export interface TimeEntry {
   updated_at: string;
 }
 
+export interface RawAttendanceLog {
+  id: string;
+  workspace_id: string;
+  employee_id: string;
+  punch_time: string;
+  source: string;
+  device_id?: string;
+  raw_data?: any;
+  created_at: string;
+}
+
 export interface LeaveRequest {
   id: string;
   employee_id: string;
@@ -1041,6 +1052,30 @@ export async function fetchAttendanceLogs(params: {
 
   const response = await apiFetch(url);
   if (!response.ok) throw new Error("Failed to fetch attendance logs");
+  return response.json();
+}
+
+export async function fetchRawAttendanceLogs(params: {
+  employee_id?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{ data: RawAttendanceLog[]; total: number; page: number; limit: number }> {
+  const searchParams = new URLSearchParams();
+  if (params.employee_id) searchParams.append("employee_id", params.employee_id);
+  if (params.from) searchParams.append("from", params.from);
+  if (params.to) searchParams.append("to", params.to);
+  if (params.page) searchParams.append("page", params.page.toString());
+  if (params.limit) searchParams.append("limit", params.limit.toString());
+  
+  const wsId = getCurrentWorkspaceId();
+  if (!wsId) throw new Error("Workspace not selected");
+  
+  const url = `${API_BASE_URL}/workspaces/${wsId}/attendance/raw-logs?${searchParams.toString()}`;
+
+  const response = await apiFetch(url);
+  if (!response.ok) throw new Error("Failed to fetch raw attendance logs");
   return response.json();
 }
 

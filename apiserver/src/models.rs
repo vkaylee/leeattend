@@ -586,6 +586,18 @@ pub struct TransferEmployeeRequest {
 // --- Schedule & Roster Models ---
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct RawAttendanceLog {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub employee_id: Uuid,
+    pub punch_time: DateTime<Utc>,
+    pub source: String,
+    pub device_id: Option<String>,
+    pub raw_data: Option<serde_json::Value>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct AttendanceImportJob {
     pub id: Uuid,
     pub workspace_id: Uuid,

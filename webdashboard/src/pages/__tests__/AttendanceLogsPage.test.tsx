@@ -9,10 +9,9 @@ import * as api from "../../lib/api";
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
-  fetchAttendanceLogs: vi.fn(),
+  fetchRawAttendanceLogs: vi.fn(),
   fetchEmployees: vi.fn(),
-  updateTimeEntry: vi.fn(),
-  deleteTimeEntry: vi.fn(),
+  fetchWorkspace: vi.fn(),
   getCurrentWorkspaceId: vi.fn(() => "test-ws-id"),
 }));
 
@@ -29,23 +28,21 @@ describe("AttendanceLogsPage", () => {
         },
       },
     });
-    
-    // Mock window.confirm
-    vi.stubGlobal("confirm", vi.fn(() => true));
   });
 
-  it("renders attendance logs table", async () => {
+  it("renders raw attendance logs table", async () => {
     (api.fetchEmployees as any).mockResolvedValue([
-      { id: "emp-1", first_name: "John", last_name: "Doe" }
+      { id: "emp-1", first_name: "John", last_name: "Doe", employee_id_number: "EMP001" }
     ]);
-    (api.fetchAttendanceLogs as any).mockResolvedValue({
+    (api.fetchRawAttendanceLogs as any).mockResolvedValue({
       data: [
-        { id: "log-1", employee_id: "emp-1", punch_in_time: "2026-01-01T08:00:00Z", punch_out_time: "2026-01-01T17:00:00Z", entry_type: "work", duration_minutes: 540 }
+        { id: "log-1", employee_id: "emp-1", punch_time: "2026-01-01T08:00:00Z", source: "import", device_id: "Device-A" }
       ],
       total: 1,
       page: 1,
       limit: 20
     });
+    (api.fetchWorkspace as any).mockResolvedValue({ time_format: "24h" });
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -58,15 +55,18 @@ describe("AttendanceLogsPage", () => {
     );
 
     expect(await screen.findByText("John Doe")).toBeDefined();
-    expect(screen.getByText("9h 0m")).toBeDefined();
+    expect(screen.getByText("EMP001")).toBeDefined();
+    expect(screen.getByText("import")).toBeDefined();
+    expect(screen.getByText("Device-A")).toBeDefined();
   });
 
   it("handles filtering", async () => {
     const user = userEvent.setup();
     (api.fetchEmployees as any).mockResolvedValue([
-      { id: "emp-1", first_name: "John", last_name: "Doe" }
+      { id: "emp-1", first_name: "John", last_name: "Doe", employee_id_number: "EMP001" }
     ]);
-    (api.fetchAttendanceLogs as any).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
+    (api.fetchRawAttendanceLogs as any).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
+    (api.fetchWorkspace as any).mockResolvedValue({ time_format: "24h" });
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -93,86 +93,19 @@ describe("AttendanceLogsPage", () => {
     fireEvent.change(dateInput, { target: { value: "2026-01-01" } });
 
     await waitFor(() => {
-      expect(api.fetchAttendanceLogs).toHaveBeenCalledWith(expect.objectContaining({
+      expect(api.fetchRawAttendanceLogs).toHaveBeenCalledWith(expect.objectContaining({
         employee_id: "emp-1",
       }));
-    });
-  });
-
-  it("opens edit modal and updates log", async () => {
-    const user = userEvent.setup();
-    (api.fetchEmployees as any).mockResolvedValue([
-      { id: "emp-1", first_name: "John", last_name: "Doe" }
-    ]);
-    (api.fetchAttendanceLogs as any).mockResolvedValue({
-      data: [
-        { id: "log-1", employee_id: "emp-1", punch_in_time: "2026-01-01T08:00:00Z", punch_out_time: "2026-01-01T17:00:00Z", entry_type: "work", duration_minutes: 540 }
-      ],
-      total: 1, page: 1, limit: 20
-    });
-    (api.updateTimeEntry as any).mockResolvedValue({});
-
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <BrowserRouter>
-            <AttendanceLogsPage />
-          </BrowserRouter>
-        </ToastProvider>
-      </QueryClientProvider>
-    );
-
-    await screen.findByText("John Doe");
-
-    const editBtn = screen.getByTitle("Sửa bản ghi");
-    await user.click(editBtn);
-
-    expect(await screen.findByText("Sửa nhật ký chấm công")).toBeDefined();
-    
-    const saveBtn = screen.getByText("Lưu thay đổi");
-    await user.click(saveBtn);
-
-    await waitFor(() => {
-      expect(api.updateTimeEntry).toHaveBeenCalled();
-    });
-  });
-
-  it("handles log deletion", async () => {
-    const user = userEvent.setup();
-    (api.fetchEmployees as any).mockResolvedValue([{ id: "emp-1", first_name: "John", last_name: "Doe" }]);
-    (api.fetchAttendanceLogs as any).mockResolvedValue({
-      data: [{ id: "log-1", employee_id: "emp-1", punch_in_time: "2026-01-01T08:00:00Z", punch_out_time: "2026-01-01T17:00:00Z", entry_type: "work", duration_minutes: 540 }],
-      total: 1, page: 1, limit: 20
-    });
-    (api.deleteTimeEntry as any).mockResolvedValue({});
-
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <BrowserRouter>
-            <AttendanceLogsPage />
-          </BrowserRouter>
-        </ToastProvider>
-      </QueryClientProvider>
-    );
-
-    await screen.findByText("John Doe");
-
-    const deleteBtn = screen.getByTitle("Xóa bản ghi");
-    await user.click(deleteBtn);
-
-    expect(window.confirm).toHaveBeenCalled();
-    await waitFor(() => {
-      expect(api.deleteTimeEntry).toHaveBeenCalledWith("test-ws-id", "log-1");
     });
   });
 
   it("handles pagination", async () => {
     const user = userEvent.setup();
     (api.fetchEmployees as any).mockResolvedValue([]);
-    (api.fetchAttendanceLogs as any).mockResolvedValue({
+    (api.fetchRawAttendanceLogs as any).mockResolvedValue({
       data: [], total: 50, page: 1, limit: 20
     });
+    (api.fetchWorkspace as any).mockResolvedValue({ time_format: "24h" });
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -188,7 +121,7 @@ describe("AttendanceLogsPage", () => {
     await user.click(nextBtn);
 
     await waitFor(() => {
-      expect(api.fetchAttendanceLogs).toHaveBeenCalledWith(expect.objectContaining({
+      expect(api.fetchRawAttendanceLogs).toHaveBeenCalledWith(expect.objectContaining({
         page: 2
       }));
     });
@@ -197,7 +130,7 @@ describe("AttendanceLogsPage", () => {
     await user.click(prevBtn);
 
     await waitFor(() => {
-      expect(api.fetchAttendanceLogs).toHaveBeenCalledWith(expect.objectContaining({
+      expect(api.fetchRawAttendanceLogs).toHaveBeenCalledWith(expect.objectContaining({
         page: 1
       }));
     });

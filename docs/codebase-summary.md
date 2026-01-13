@@ -40,8 +40,10 @@ leeattend/
     - **Temporal Engine**: Logic gán ca (`employee_shifts`) dựa trên thời gian. Hỗ trợ ghi đè ca tạm thời lên ca vĩnh viễn và tự động fallback.
     - **Heartbeat Engine**: Time-based tracking of edge agent connectivity.
 - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections. Supports **Robust Asynchronous Batch Import** (Excel/CSV) with auto-recovery and real-time progress tracking.
-    - **Multi-format Support**: Integrated support for `.xlsx`, `.xls` (legacy), and `.csv` files.
-    - **Workspace Locale Sensitivity**: Configurable `date_format` and `time_format` (12h/24h) per workspace to resolve regional ambiguities and respect user preferences across the dashboard.
+- **Attendance Persistence Layer**: 
+    - **Raw Event Store**: Dedicated `raw_attendance_logs` table for immutable original punch data from hardware and imports.
+    - **Pairing Engine**: `PairingService` handles the automatic conversion of flat events into logical attendance sessions. Includes deduplication (2m window) and session matching (14h window).
+    - **Strict Validation**: High-fidelity file parsing that enforces workspace settings and provides line-by-line detailed error context.
 - **Time Tracking**: Core logic for punch in/out, shift calculation, and payroll-ready duration processing.
     - **Overtime Engine**: Priority-based calculation logic supporting worked-through breaks and daily OT thresholds.
     - **Leave Management**: Tracking of annual leave entitlements, carry-over balances, and usage history.
@@ -73,7 +75,8 @@ leeattend/
 - [x] **Payroll Engine**: Advanced logic for worked-through breaks and configurable early clock-in grace periods.
 - [x] **Reporting Suite**: Attendance reports supporting monthly summaries and detailed daily punch logs (including break times).
 - [x] **Shift Versioning**: Automated tracking of shift configuration changes to maintain historical record integrity.
-- [x] **Configurable Work Units**: Support for 15m/30m/60m rounding blocks with configurable policies (Floor/Ceil/Round).
+- [x] Configurable Work Units: Support for 15m/30m/60m rounding blocks with configurable policies (Floor/Ceil/Round).
+- [x] **Raw Attendance Audit**: Immutable event-centric storage with smart pairing logic.
 - [x] **Workspace Personalization**: Per-workspace preference for `date_format` and `time_format` (12h vs 24h) with consistent UI application.
 - [x] Accurate Real-time Status (Heartbeat).
 - [x] **RBAC Audit**: Full security audit of all administrative endpoints; strict enforcement of `MemberContext` roles (Owner/Admin).

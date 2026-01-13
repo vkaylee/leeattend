@@ -153,13 +153,17 @@ export default function AttendanceImportDialog({ isOpen, onClose, endpoint, titl
               </div>
 
               {jobStatus?.error_log && (
-                <div className="bg-rose-50 rounded-2xl p-4 border border-rose-100">
-                  <h4 className="text-sm font-bold text-rose-900 mb-2 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4" /> Chi tiết lỗi:
+                <div className="bg-rose-50 rounded-2xl p-5 border border-rose-100">
+                  <h4 className="text-sm font-bold text-rose-900 mb-3 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" /> Danh sách lỗi chi tiết:
                   </h4>
-                  <pre className="text-xs text-rose-700 whitespace-pre-wrap font-mono max-h-40 overflow-y-auto">
-                    {jobStatus.error_log}
-                  </pre>
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                    {jobStatus.error_log.split("\n").map((err, i) => (
+                      <div key={i} className="text-xs bg-white/50 p-2 rounded-lg border border-rose-100 text-rose-700 font-medium">
+                        {err}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

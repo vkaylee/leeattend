@@ -1729,19 +1729,219 @@ pub async fn get_attendance_logs(
 
 
 
-    Ok(Json(serde_json::json!({
+        Ok(Json(serde_json::json!({
 
-        "data": logs,
 
-        "total": total,
 
-        "page": page,
+            "data": logs,
 
-        "limit": limit,
 
-    })))
 
-}
+            "total": total,
+
+
+
+            "page": page,
+
+
+
+            "limit": limit,
+
+
+
+        })))
+
+
+
+    }
+
+
+
+    
+
+
+
+    pub async fn get_raw_attendance_logs(
+
+
+
+        State(state): State<Arc<AppState>>,
+
+
+
+        Path(_ws_id): Path<Uuid>,
+
+
+
+        MemberContext { workspace_id, .. }: MemberContext,
+
+
+
+        Query(query): Query<AttendanceLogQuery>,
+
+
+
+    ) -> Result<impl IntoResponse, StatusCode> {
+
+
+
+        let limit = query.limit.unwrap_or(20);
+
+
+
+        let page = query.page.unwrap_or(1);
+
+
+
+        let offset = (page - 1) * limit;
+
+
+
+    
+
+
+
+        let logs = crate::repositories::raw_attendance_log_repository::get_paginated_raw_logs(
+
+
+
+            &state.db,
+
+
+
+            workspace_id,
+
+
+
+            query.employee_id,
+
+
+
+            query.from,
+
+
+
+            query.to,
+
+
+
+            limit,
+
+
+
+            offset,
+
+
+
+        )
+
+
+
+        .await
+
+
+
+        .map_err(|e| {
+
+
+
+            error!("GET_RAW_LOGS_ERROR: {:?}", e);
+
+
+
+            StatusCode::INTERNAL_SERVER_ERROR
+
+
+
+        })?;
+
+
+
+    
+
+
+
+        let total = crate::repositories::raw_attendance_log_repository::count_raw_logs(
+
+
+
+            &state.db,
+
+
+
+            workspace_id,
+
+
+
+            query.employee_id,
+
+
+
+            query.from,
+
+
+
+            query.to,
+
+
+
+        )
+
+
+
+        .await
+
+
+
+        .map_err(|e| {
+
+
+
+            error!("COUNT_RAW_LOGS_ERROR: {:?}", e);
+
+
+
+            StatusCode::INTERNAL_SERVER_ERROR
+
+
+
+        })?;
+
+
+
+    
+
+
+
+        Ok(Json(serde_json::json!({
+
+
+
+            "data": logs,
+
+
+
+            "total": total,
+
+
+
+            "page": page,
+
+
+
+            "limit": limit,
+
+
+
+        })))
+
+
+
+    }
+
+
+
+    
 
 
 
@@ -1817,7 +2017,7 @@ pub async fn get_my_attendance_adjustments(
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
     println!("GET_MY_ADJUSTMENTS_REACHED: id={}, user_id={}", id, user_id);
-    match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::get_employee_requests(
+    match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::get_my_requests(
         &state.db, id,
     )
     .await {

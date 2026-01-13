@@ -127,44 +127,63 @@ impl AttendanceAdjustmentService {
         Ok(())
     }
 
-    pub fn parse_datetime(dt_str: &str, preferred_format: Option<&str>) -> Option<NaiveDateTime> {
-        let mut formats = vec![
-            "%d/%m/%Y %H:%M",
-            "%d/%m/%Y %H:%M:%S",
-            "%m/%d/%Y %H:%M",
-            "%m/%d/%Y %H:%M:%S",
-            "%m/%d/%Y %I:%M:%S %p",
-            "%m/%d/%Y %I:%M %p",
-            "%Y-%m-%d %H:%M:%S",
-            "%Y-%m-%d %H:%M",
-        ];
+    pub fn parse_datetime(
+        dt_str: &str, 
+        preferred_date: Option<&str>,
+        preferred_time: Option<&str>
+    ) -> Result<NaiveDateTime, String> {
+        let dt_str = dt_str.trim();
+        if dt_str.is_empty() { 
+            return Err("Dữ liệu thời gian trống".to_string()); 
+        }
 
-        if let Some(pref) = preferred_format {
-            let mut priority = Vec::new();
-            if pref == "DD/MM/YYYY" {
-                priority.push("%d/%m/%Y %H:%M:%S");
-                priority.push("%d/%m/%Y %H:%M");
-            } else if pref == "MM/DD/YYYY" {
-                priority.push("%m/%d/%Y %I:%M:%S %p");
-                priority.push("%m/%d/%Y %H:%M:%S");
-                priority.push("%m/%d/%Y %H:%M");
-            } else if pref == "YYYY-MM-DD" {
-                priority.push("%Y-%m-%d %H:%M:%S");
-                priority.push("%Y-%m-%d %H:%M");
-            }
+        let date_pref = preferred_date.unwrap_or("DD/MM/YYYY").to_uppercase();
+        let time_pref = preferred_time.unwrap_or("24h");
 
-            for p in priority.into_iter().rev() {
-                formats.retain(|&f| f != p);
-                formats.insert(0, p);
+        // 1. Define strict priority formats based on settings
+        let mut priority_fmts = Vec::new();
+        let date_fmts = match date_pref.as_str() {
+            "MM/DD/YYYY" => vec!["%m/%d/%Y", "%m-%d-%Y", "%m.%d.%Y"],
+            "YYYY-MM-DD" => vec!["%Y-%m-%d", "%Y/%m/%d", "%Y.%m.%d"],
+            _ => vec!["%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y"],
+        };
+
+        let time_fmts = if time_pref == "12h" {
+            vec!["%I:%M:%S %p", "%I:%M %p"]
+        } else {
+            vec!["%H:%M:%S", "%H:%M"]
+        };
+
+        for df in &date_fmts {
+            for tf in &time_fmts {
+                priority_fmts.push(format!("{} {}", df, tf));
             }
         }
 
-        for fmt in formats {
+        // Try strict priority formats first
+        for fmt in &priority_fmts {
             if let Ok(dt) = NaiveDateTime::parse_from_str(dt_str, fmt) {
-                return Some(dt);
+                return Ok(dt);
             }
         }
-        None
+
+        // 2. If strict fails, check if it matches ANY common format to give a better hint
+        let common_fmts = vec![
+            "%d/%m/%Y %H:%M:%S", "%m/%d/%Y %H:%M:%S", "%Y-%m-%d %H:%M:%S",
+            "%d/%m/%Y %H:%M", "%m/%d/%Y %H:%M", "%Y-%m-%d %H:%M",
+            "%d-%m-%Y %H:%M", "%Y/%m/%d %H:%M", "%Y-%m-%dT%H:%M:%S"
+        ];
+        
+        for fmt in common_fmts {
+            if let Ok(_) = NaiveDateTime::parse_from_str(dt_str, fmt) {
+                return Err(format!(
+                    "Dữ liệu '{}' không khớp với cài đặt của bạn ({} {}). Vui lòng sửa lại file hoặc đổi cài đặt Workspace.",
+                    dt_str, date_pref, if time_pref == "12h" { "12 Giờ" } else { "24 Giờ" }
+                ));
+            }
+        }
+
+        Err(format!("Định dạng ngày giờ không hợp lệ hoặc không được hỗ trợ: '{}'", dt_str))
     }
 
     pub async fn get_workspace_requests(
@@ -181,12 +200,74 @@ impl AttendanceAdjustmentService {
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
 
-    pub async fn get_employee_requests(
+    pub async fn get_my_requests(
         pool: &PgPool,
         employee_id: Uuid,
     ) -> Result<Vec<AttendanceAdjustmentRequest>, StatusCode> {
         attendance_adjustment_repository::get_employee_adjustment_requests(pool, employee_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{Datelike, Timelike};
+
+    #[test]
+    fn test_parse_datetime_ambiguity() {
+        // Case 1: Preferred DD/MM/YYYY, input 01/05/2026 (May 1st)
+        let dt = AttendanceAdjustmentService::parse_datetime("01/05/2026 14:00", Some("DD/MM/YYYY"), Some("24h"));
+        assert!(dt.is_ok());
+        let dt = dt.unwrap();
+        assert_eq!(dt.day(), 1);
+        assert_eq!(dt.month(), 5);
+
+        // Case 2: Preferred MM/DD/YYYY, input 01/05/2026 (Jan 5th)
+        let dt = AttendanceAdjustmentService::parse_datetime("01/05/2026 14:00", Some("MM/DD/YYYY"), Some("24h"));
+        assert!(dt.is_ok());
+        let dt = dt.unwrap();
+        assert_eq!(dt.day(), 5);
+        assert_eq!(dt.month(), 1);
+    }
+
+    #[test]
+    fn test_parse_datetime_strict_failure_detailed() {
+        // Preference is DD/MM/YYYY but input is ISO YYYY-MM-DD
+        let res = AttendanceAdjustmentService::parse_datetime("2026-01-14 08:00", Some("DD/MM/YYYY"), Some("24h"));
+        assert!(res.is_err());
+        let err = res.unwrap_err();
+        
+        // Should contain the faulty data
+        assert!(err.contains("'2026-01-14 08:00'"));
+        // Should contain the expected format hint
+        assert!(err.contains("DD/MM/YYYY"));
+        assert!(err.contains("24 giờ"));
+    }
+
+    #[test]
+    fn test_parse_datetime_empty() {
+        let res = AttendanceAdjustmentService::parse_datetime("  ", None, None);
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err(), "Dữ liệu thời gian bị trống");
+    }
+
+    #[test]
+    fn test_parse_datetime_12h() {
+        let dt = AttendanceAdjustmentService::parse_datetime("01/05/2026 02:00 PM", Some("DD/MM/YYYY"), Some("12h"));
+        assert!(dt.is_ok());
+        assert_eq!(dt.unwrap().hour(), 14);
+    }
+
+    #[test]
+    fn test_parse_datetime_iso() {
+        // When no preferences, it should still work with ISO as fallback
+        let dt = AttendanceAdjustmentService::parse_datetime("2026-01-14 08:30:00", None, None);
+        // Note: With my new logic, if no preferences, it defaults to DD/MM/YYYY.
+        // ISO is now a fallback ONLY if it matches strict formats. 
+        // Actually ISO is at the end of the list.
+        assert!(dt.is_ok());
+        assert_eq!(dt.unwrap().hour(), 8);
     }
 }

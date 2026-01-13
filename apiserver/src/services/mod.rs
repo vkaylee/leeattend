@@ -5,6 +5,7 @@ pub mod auth_service;
 pub mod employee_service;
 pub mod leave_accrual_service;
 pub mod leave_service;
+pub mod pairing_service;
 pub mod payroll_service;
 pub mod report_service;
 pub mod shift_service;
