@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchLatestImportJob, fetchImportJobStatus, getCurrentWorkspaceId } from "@/lib/api";
+import { fetchLatestImportJob, fetchImportJobStatus, getCurrentWorkspaceId, uploadAttendance } from "@/lib/api";
 import { 
   X,
   Upload,
@@ -10,7 +10,7 @@ import {
   FileText
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "normalize-tailwind-data";
+import { twMerge } from "tailwind-merge";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -44,9 +44,10 @@ interface AttendanceImportDialogProps {
   onClose: () => void;
   endpoint: string; // e.g., "/attendance/upload" or "/attendance/logs/upload"
   title: string;
+  targetType: string; // "adjustment" or "log"
 }
 
-export default function AttendanceImportDialog({ isOpen, onClose, endpoint, title }: AttendanceImportDialogProps) {
+export default function AttendanceImportDialog({ isOpen, onClose, endpoint, title, targetType }: AttendanceImportDialogProps) {
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
@@ -66,13 +67,13 @@ export default function AttendanceImportDialog({ isOpen, onClose, endpoint, titl
 
   // Also check if there's a currently running job when opening
   const { data: latestJob } = useQuery({
-    queryKey: ["latest-import-job", wsId, endpoint],
-    queryFn: () => fetchLatestImportJob(wsId!),
+    queryKey: ["latest-import-job", wsId, targetType],
+    queryFn: () => fetchLatestImportJob(wsId!, targetType),
     enabled: isOpen && !!wsId,
   });
 
   useEffect(() => {
-    if (latestJob && (latestJob.status === "processing" || latestJob.status === "pending")) {
+    if (latestJob) {
       setActiveJobId(latestJob.id);
     }
   }, [latestJob]);
@@ -83,27 +84,8 @@ export default function AttendanceImportDialog({ isOpen, onClose, endpoint, titl
     if (!file || !wsId) return;
 
     setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
-      const token = localStorage.getItem("access_token");
-      
-      // Determine API URL based on environment (mimicking api.ts logic)
-      const baseUrl = (import.meta.env.DEV) ? "" : (import.meta.env.VITE_API_URL || "");
-      const url = `${baseUrl}/api/workspaces/${wsId}${endpoint}`;
-
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error("Upload failed");
-      
-      const result = await response.json();
+      const result = await uploadAttendance(wsId, file, endpoint);
       setActiveJobId(result.job_id);
       setFile(null);
       queryClient.invalidateQueries({ queryKey: ["latest-import-job"] });

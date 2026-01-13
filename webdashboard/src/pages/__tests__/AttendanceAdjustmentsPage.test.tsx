@@ -11,8 +11,9 @@ vi.mock("../../lib/api", () => ({
   approveAttendanceAdjustment: vi.fn(),
   getCurrentWorkspaceId: vi.fn(),
   fetchEmployees: vi.fn(),
-  uploadAttendanceExcel: vi.fn(),
+  uploadAttendance: vi.fn(),
   fetchLatestImportJob: vi.fn(),
+  fetchImportJobStatus: vi.fn(),
 }));
 
 const queryClient = new QueryClient({
@@ -127,8 +128,15 @@ describe("AttendanceAdjustmentsPage", () => {
     });
   });
 
-  it("shows processing state for import job", async () => {
+  it("shows processing state for import job in dialog", async () => {
+    // Mock latest job to be processing so dialog shows up or has state
     (api.fetchLatestImportJob as any).mockResolvedValue({
+      id: "job-1",
+      status: "processing",
+      processed_rows: 50,
+      total_rows: 100
+    });
+    (api.fetchImportJobStatus as any).mockResolvedValue({
       id: "job-1",
       status: "processing",
       processed_rows: 50,
@@ -143,12 +151,23 @@ describe("AttendanceAdjustmentsPage", () => {
       </QueryClientProvider>
     );
 
-    expect(await screen.findByText("Đang xử lý file chấm công...")).toBeDefined();
-    expect(screen.getByText("Đã xử lý 50 / 100 dòng")).toBeDefined();
+    // Open dialog
+    const importBtn = screen.getByText("Nhập Excel");
+    fireEvent.click(importBtn);
+
+    expect(api.fetchLatestImportJob).toHaveBeenCalledWith("test-ws-id", "adjustment");
+    expect(await screen.findByText("Đang xử lý dữ liệu...")).toBeDefined();
+    expect(screen.getByText("50 / 100 dòng đã xử lý")).toBeDefined();
   });
 
-  it("shows completed state for import job", async () => {
+  it("shows completed state for import job in dialog", async () => {
     (api.fetchLatestImportJob as any).mockResolvedValue({
+      id: "job-1",
+      status: "completed",
+      processed_rows: 100,
+      total_rows: 100
+    });
+    (api.fetchImportJobStatus as any).mockResolvedValue({
       id: "job-1",
       status: "completed",
       processed_rows: 100,
@@ -163,14 +182,28 @@ describe("AttendanceAdjustmentsPage", () => {
       </QueryClientProvider>
     );
 
-    expect(await screen.findByText("File tải lên gần nhất đã hoàn tất (100 dòng).")).toBeDefined();
+    // Open dialog
+    const importBtn = screen.getByText("Nhập Excel");
+    fireEvent.click(importBtn);
+
+    expect(await screen.findByText("Hoàn thành!")).toBeDefined();
+    expect(screen.getByText("100 / 100 dòng đã xử lý")).toBeDefined();
   });
 
-  it("shows failed state for import job", async () => {
+  it("shows failed state for import job in dialog", async () => {
     (api.fetchLatestImportJob as any).mockResolvedValue({
       id: "job-1",
       status: "failed",
-      error_log: "Invalid column format\nSome details"
+      error_log: "Invalid column format",
+      processed_rows: 0,
+      total_rows: 100
+    });
+    (api.fetchImportJobStatus as any).mockResolvedValue({
+      id: "job-1",
+      status: "failed",
+      error_log: "Invalid column format",
+      processed_rows: 0,
+      total_rows: 100
     });
 
     render(
@@ -181,12 +214,16 @@ describe("AttendanceAdjustmentsPage", () => {
       </QueryClientProvider>
     );
 
-    expect(await screen.findByText("Lỗi xử lý file:")).toBeDefined();
+    // Open dialog
+    const importBtn = screen.getByText("Nhập Excel");
+    fireEvent.click(importBtn);
+
+    expect(await screen.findByText("Có lỗi xảy ra")).toBeDefined();
     expect(screen.getByText("Invalid column format")).toBeDefined();
   });
 
-  it("handles file upload", async () => {
-    (api.uploadAttendanceExcel as any).mockResolvedValue({});
+  it("handles file upload in dialog", async () => {
+    (api.uploadAttendance as any).mockResolvedValue({ job_id: "new-job" });
     
     render(
       <QueryClientProvider client={queryClient}>
@@ -196,13 +233,25 @@ describe("AttendanceAdjustmentsPage", () => {
       </QueryClientProvider>
     );
 
+    // Open dialog
+    const importBtn = screen.getByText("Nhập Excel");
+    fireEvent.click(importBtn);
+
     const file = new File(["dummy content"], "test.csv", { type: "text/csv" });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     
-    fireEvent.change(input, { target: { files: [file] } });
+    // Simulate file selection
+    Object.defineProperty(input, 'files', {
+        value: [file]
+    });
+    fireEvent.change(input);
+
+    // Click upload button
+    const uploadBtn = screen.getByText("Bắt đầu nhập dữ liệu");
+    fireEvent.click(uploadBtn);
 
     await waitFor(() => {
-      expect(api.uploadAttendanceExcel).toHaveBeenCalledWith("test-ws-id", file);
+      expect(api.uploadAttendance).toHaveBeenCalledWith("test-ws-id", file, "/attendance/upload");
     });
   });
 

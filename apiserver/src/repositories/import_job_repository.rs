@@ -61,13 +61,23 @@ pub async fn get_job_by_id(
 pub async fn get_latest_job(
     pool: &PgPool,
     workspace_id: Uuid,
+    target_type: Option<String>,
 ) -> Result<Option<AttendanceImportJob>, sqlx::Error> {
-    sqlx::query_as::<_, AttendanceImportJob>(
-        "SELECT id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, target_type, created_at, updated_at FROM attendance_import_jobs WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT 1"
-    )
-    .bind(workspace_id)
-    .fetch_optional(pool)
-    .await
+    let mut query = "SELECT id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, target_type, created_at, updated_at FROM attendance_import_jobs WHERE workspace_id = $1".to_string();
+    
+    if target_type.is_some() {
+        query.push_str(" AND target_type = $2");
+    }
+    
+    query.push_str(" ORDER BY created_at DESC LIMIT 1");
+
+    let mut q = sqlx::query_as::<_, AttendanceImportJob>(&query).bind(workspace_id);
+    
+    if let Some(tt) = target_type {
+        q = q.bind(tt);
+    }
+    
+    q.fetch_optional(pool).await
 }
 
 pub async fn get_pending_jobs(

@@ -406,6 +406,7 @@ export default function AttendanceLogsPage() {
         onClose={() => setIsImportDialogOpen(false)}
         title="Nhập nhật ký quẹt thẻ từ file"
         endpoint="/attendance/logs/upload"
+        targetType="log"
       />
     </div>
   );

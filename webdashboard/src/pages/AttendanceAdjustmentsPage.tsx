@@ -194,6 +194,7 @@ export default function AttendanceAdjustmentsPage() {
         onClose={() => setIsImportDialogOpen(false)}
         title="Nhập dữ liệu chấm công từ file"
         endpoint="/attendance/upload"
+        targetType="adjustment"
       />
     </div>
   );

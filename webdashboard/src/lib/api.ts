@@ -948,21 +948,33 @@ export async function uploadAttendanceExcel(
   wsId: string,
   file: File
 ): Promise<{ job_id: string }> {
+  return uploadAttendance(wsId, file, "/attendance/upload");
+}
+
+export async function uploadAttendance(
+  wsId: string,
+  file: File,
+  endpoint: string
+): Promise<{ job_id: string }> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/upload`, {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}${endpoint}`, {
     method: "POST",
     body: formData,
   });
-  if (!response.ok) throw new Error("Failed to upload attendance excel");
+  if (!response.ok) throw new Error("Failed to upload attendance");
   return response.json();
 }
 
 export async function fetchLatestImportJob(
-  wsId: string
+  wsId: string,
+  targetType?: string
 ): Promise<AttendanceImportJob | null> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/import-jobs/latest`);
+  const url = targetType 
+    ? `${API_BASE_URL}/workspaces/${wsId}/attendance/import-jobs/latest?target_type=${targetType}`
+    : `${API_BASE_URL}/workspaces/${wsId}/attendance/import-jobs/latest`;
+  const response = await apiFetch(url);
   if (!response.ok) throw new Error("Failed to fetch latest import job");
   return response.json();
 }

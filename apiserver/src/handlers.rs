@@ -1629,12 +1629,18 @@ pub async fn upload_attendance_logs(
     Ok(Json(serde_json::json!({ "job_id": job_id })))
 }
 
+#[derive(Deserialize)]
+pub struct ImportJobQuery {
+    pub target_type: Option<String>,
+}
+
 pub async fn get_latest_import_job(
     State(state): State<Arc<AppState>>,
     Path(_ws_id): Path<Uuid>,
     MemberContext { workspace_id, .. }: MemberContext,
+    Query(query): Query<ImportJobQuery>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    match crate::repositories::import_job_repository::get_latest_job(&state.db, workspace_id).await {
+    match crate::repositories::import_job_repository::get_latest_job(&state.db, workspace_id, query.target_type).await {
         Ok(job) => Ok(Json(job)),
         Err(e) => {
             error!("GET_LATEST_JOB_ERROR: {:?}", e);
