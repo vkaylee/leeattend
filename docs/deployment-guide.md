@@ -148,6 +148,7 @@ Giao diện quản trị tập trung, hiện có thể chạy dưới dạng ứ
    Tạo file `webdashboard/.env.local`:
    ```env
    VITE_API_URL=http://your-apiserver:3000
+   VITE_DEV_SERVER_HOST=0.0.0.0 # Tùy chọn: Để lắng nghe trên mọi interface
    ```
 
 ### 📦 Build ứng dụng Desktop (Tauri)

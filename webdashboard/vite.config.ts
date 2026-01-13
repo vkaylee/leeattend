@@ -81,6 +81,7 @@ export default defineConfig(async ({ mode }) => {
       },
     },
     server: {
+      host: env.VITE_DEV_SERVER_HOST || "127.0.0.1",
       port,
       strictPort: true,
       allowedHosts: ["leeattend.nport.link"],

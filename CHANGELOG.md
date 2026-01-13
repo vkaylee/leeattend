@@ -5,6 +5,7 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Configurable Vite Host**: Added `VITE_DEV_SERVER_HOST` environment variable support to `webdashboard/vite.config.ts`, allowing the development server to listen on a specific host (defaults to `127.0.0.1`).
 - **Legacy Excel (.xls) Support**: Added support for importing attendance data from older Excel files using `calamine::Xls`.
 - **Workspace Date Format Configuration**: Introduced workspace-level date format settings (`DD/MM/YYYY`, `MM/DD/YYYY`, `YYYY-MM-DD`) to resolve ambiguity during imports.
 - **Robust DateTime Parsing**: Implemented a multi-format parser that automatically detects and handles various date-time strings, including US formats with AM/PM and seconds (e.g., `11/24/2025 7:12:46 AM`).
