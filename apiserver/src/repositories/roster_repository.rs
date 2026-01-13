@@ -98,7 +98,7 @@ pub async fn get_workspace_schedules(
                 let fixed = fixed_assignments.iter().find(|a| {
                     a.employee_id == emp.id &&
                     a.start_date <= curr_date &&
-                    (a.end_date.is_none() || a.end_date.unwrap() >= curr_date)
+                    a.end_date.map_or(true, |ed| ed >= curr_date)
                 });
 
                 if let Some(f) = fixed {
@@ -144,7 +144,11 @@ pub async fn get_workspace_schedules(
             }
 
             daily_schedules.push(sched);
-            curr_date = curr_date.succ_opt().unwrap();
+            if let Some(next_date) = curr_date.succ_opt() {
+                curr_date = next_date;
+            } else {
+                break;
+            }
         }
 
         result.push(EmployeeSchedule {

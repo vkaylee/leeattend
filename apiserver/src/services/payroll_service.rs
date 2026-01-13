@@ -69,12 +69,22 @@ impl PayrollService {
         let start_date = NaiveDate::from_ymd_opt(year, month, 1).ok_or(StatusCode::BAD_REQUEST)?;
 
         let start_dt = Utc
-            .from_local_datetime(&start_date.and_hms_opt(0, 0, 0).unwrap())
-            .unwrap();
+            .from_local_datetime(
+                &start_date
+                    .and_hms_opt(0, 0, 0)
+                    .ok_or(StatusCode::BAD_REQUEST)?,
+            )
+            .single()
+            .ok_or(StatusCode::BAD_REQUEST)?;
 
         let end_dt = Utc
-            .from_local_datetime(&end_date.and_hms_opt(23, 59, 59).unwrap())
-            .unwrap();
+            .from_local_datetime(
+                &end_date
+                    .and_hms_opt(23, 59, 59)
+                    .ok_or(StatusCode::BAD_REQUEST)?,
+            )
+            .single()
+            .ok_or(StatusCode::BAD_REQUEST)?;
 
         // 3. Get worked entries
         let time_entries =

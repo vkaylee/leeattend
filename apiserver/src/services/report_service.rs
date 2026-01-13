@@ -22,8 +22,25 @@ impl ReportService {
 
         // 2. Get all time entries for the range
         // Convert NaiveDate to DateTime<Utc> for query
-        let start_dt = Local.from_local_datetime(&start_date.and_hms_opt(0, 0, 0).unwrap()).single().unwrap().with_timezone(&Utc);
-        let end_dt = Local.from_local_datetime(&end_date.and_hms_opt(23, 59, 59).unwrap()).single().unwrap().with_timezone(&Utc);
+        let start_dt = Local
+            .from_local_datetime(
+                &start_date
+                    .and_hms_opt(0, 0, 0)
+                    .ok_or(StatusCode::BAD_REQUEST)?,
+            )
+            .single()
+            .ok_or(StatusCode::BAD_REQUEST)?
+            .with_timezone(&Utc);
+
+        let end_dt = Local
+            .from_local_datetime(
+                &end_date
+                    .and_hms_opt(23, 59, 59)
+                    .ok_or(StatusCode::BAD_REQUEST)?,
+            )
+            .single()
+            .ok_or(StatusCode::BAD_REQUEST)?
+            .with_timezone(&Utc);
 
         let mut reports = Vec::new();
 
