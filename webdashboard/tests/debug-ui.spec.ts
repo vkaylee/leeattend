@@ -1,4 +1,5 @@
-import { test, expect } from "./worker-orchestrator";
+import { test } from "./worker-orchestrator";
+import { expect } from "@playwright/test";
 
 test("debug fast login button click", async ({ page, baseURL }) => {
   page.on("console", (msg) => console.log(`[BROWSER] ${msg.text()}`));

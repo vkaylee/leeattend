@@ -1,4 +1,5 @@
-import { test, expect } from "./worker-orchestrator";
+import { test } from "./worker-orchestrator";
+import { expect } from "@playwright/test";
 
 test.describe("Registration Flow", () => {
   test("should register a new user and login", async ({ page, baseURL }) => {

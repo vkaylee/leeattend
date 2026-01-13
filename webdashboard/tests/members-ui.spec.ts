@@ -1,4 +1,5 @@
-import { test, expect } from "./worker-orchestrator";
+import { test } from "./worker-orchestrator";
+import { expect } from "@playwright/test";
 
 test.describe("Members UI", () => {
   test("should navigate to members page and open invite dialog", async ({ page, baseURL }) => {
@@ -8,13 +9,14 @@ test.describe("Members UI", () => {
 
     // Check if we are already logged in (redirected to /)
     if (page.url().endsWith("/login")) {
-      await page.click('button:has-text("Đăng nhập nhanh")');
-      await expect(page).toHaveURL("/");
+        // Button text includes emoji in LoginPage.tsx
+        await page.click('button:has-text("Đăng nhập nhanh")');
+        await page.waitForURL("**/", { timeout: 30000 });
     }
 
     // 2. Navigate to Members Page
     await page.click('a[href="/members"]');
-    await expect(page).toHaveURL("http://localhost:5173/members");
+    await expect(page).toHaveURL(`${baseURL}/members`);
     await expect(page.locator("h1")).toContainText("Members & Roles");
 
     // 3. Open Invite Dialog

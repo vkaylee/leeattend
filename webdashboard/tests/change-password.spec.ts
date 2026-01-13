@@ -1,4 +1,5 @@
-import { test, expect } from "./worker-orchestrator";
+import { test } from "./worker-orchestrator";
+import { expect } from "@playwright/test";
 
 test.describe("Change Password Flow", () => {
   test("should change password successfully", async ({ page, baseURL }) => {

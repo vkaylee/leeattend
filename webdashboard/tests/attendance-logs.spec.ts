@@ -1,4 +1,5 @@
-import { test, expect } from "./worker-orchestrator";
+import { test } from "./worker-orchestrator";
+import { expect } from "@playwright/test";
 
 test.describe("Attendance Logs UI", () => {
   test("should navigate to attendance logs page and see the logs table", async ({ page, baseURL }) => {

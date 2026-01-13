@@ -1,14 +1,20 @@
-import { test as base } from '@playwright/test';
+import { test as base, expect } from '@playwright/test';
 import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 
-export const test = base.extend<{ workerInstance: void, workerWebUrl: string }>({
-  workerInstance: [async ({}, use, workerInfo) => {
+export { expect };
+
+export const test = base.extend<{ workerWebUrl: string }>({
+  // Override baseURL to use the dynamic one
+  baseURL: async ({ workerWebUrl }, use) => {
+    await use(workerWebUrl);
+  },
+
+  workerWebUrl: [async ({}, use, workerInfo) => {
     const workerIndex = workerInfo.workerIndex;
     const apiPortFile = `.api_port_${workerIndex}`;
     const webPortFile = `.web_port_${workerIndex}`;
-    const dbName = `leeattend_test_${workerIndex}`;
 
     console.log(`👷 Worker ${workerIndex}: Starting isolated environment...`);
 
@@ -18,9 +24,9 @@ export const test = base.extend<{ workerInstance: void, workerWebUrl: string }>(
       env: {
         ...process.env,
         PORT_FILE_NAME: apiPortFile,
-        // Use environment DATABASE_URL or fallback to the one found in .env
+        // Use environment DATABASE_URL or fallback
         DATABASE_URL: process.env.DATABASE_URL || 'postgres://leeatt:leeattp@192.168.2.5:5434/leeattzkt',
-        API_PORT: '0', // Let it find any port
+        API_PORT: '0', 
       },
       detached: true,
       stdio: 'pipe',
@@ -62,15 +68,12 @@ export const test = base.extend<{ workerInstance: void, workerWebUrl: string }>(
     await killProcess(backend);
     await killProcess(frontend);
     
+    // Safety delay to allow OS to release ports
+    await new Promise(r => setTimeout(r, 1000));
+
     if (fs.existsSync(apiPortPath)) fs.unlinkSync(apiPortPath);
     if (fs.existsSync(webPortPath)) fs.unlinkSync(webPortPath);
-  }, { scope: 'worker', auto: true }],
-
-  workerWebUrl: async ({ workerInstance }, use) => {
-    // This looks redundant but it's how we pass the value from workerInstance fixture to the test
-    // Actually, workerInstance is 'void' in 'base.extend', let's fix the type above.
-    await use(workerInstance as any);
-  }
+  }, { scope: 'test', auto: true }],
 });
 
 async function waitForFile(filePath: string, timeout = 60000): Promise<string> {
