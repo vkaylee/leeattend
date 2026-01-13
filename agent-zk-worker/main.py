@@ -1,6 +1,9 @@
 import asyncio
 from zk_worker import ZKWorker
 
-if __name__ == "__main__":
+async def start_worker():
     worker = ZKWorker()
-    asyncio.run(worker.run())
+    await worker.run()
+
+if __name__ == "__main__":
+    asyncio.run(start_worker())

@@ -297,6 +297,69 @@ mod tests {
         assert_eq!(calculate_backoff(6), Duration::from_secs(32)); // 2^5
         assert_eq!(calculate_backoff(7), Duration::from_secs(60)); // 2^6=64, cap 60
     }
+
+    #[tokio::test]
+    async fn test_push_log() {
+        let db_file = tempfile::NamedTempFile::new().unwrap();
+        let db_path = db_file.path().to_str().unwrap();
+        let db = Database::new(&format!("sqlite:{}", db_path)).await.unwrap();
+        
+        let (client, mut rx) = CentralClient::new("ws://localhost".into(), "agent-1".into(), "token-1".into(), db);
+        
+        let data = AttendanceData {
+            user_id: "1".into(),
+            timestamp: "2026-01-01T08:00:00Z".into(),
+            status: Some(1),
+            punch: Some(1),
+        };
+        
+        client.push_log("device-1".into(), data.clone()).await;
+        
+        let received = rx.recv().await.unwrap();
+        match received {
+            CentralMessage::Attendance { agent_id, device_id, data: d, .. } => {
+                assert_eq!(agent_id, "agent-1");
+                assert_eq!(device_id, "device-1");
+                assert_eq!(d.user_id, "1");
+            },
+            _ => panic!("Wrong message type"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_handle_incoming_text_config_push() {
+        let db_file = tempfile::NamedTempFile::new().unwrap();
+        let db_path = db_file.path().to_str().unwrap();
+        let db = Database::new(&format!("sqlite:{}", db_path)).await.unwrap();
+        
+        let config_push = serde_json::json!({
+            "type": "config_push",
+            "data": {
+                "devices": [
+                    { "id": "dev-1", "ip": "192.168.1.10" }
+                ]
+            }
+        });
+        
+        handle_incoming_text(&config_push.to_string(), &db).await;
+        
+        let active = db.get_active_devices().await.unwrap();
+        assert_eq!(active.len(), 1);
+        assert_eq!(active[0].id, "dev-1");
+        assert_eq!(active[0].ip, "192.168.1.10");
+    }
+
+    #[tokio::test]
+    async fn test_handle_incoming_text_ack_and_command() {
+        let db_file = tempfile::NamedTempFile::new().unwrap();
+        let db_path = db_file.path().to_str().unwrap();
+        let db = Database::new(&format!("sqlite:{}", db_path)).await.unwrap();
+        
+        // These just log for now, but we test they don't crash
+        handle_incoming_text("{\"type\":\"ack\", \"msg_id\":\"123\"}", &db).await;
+        handle_incoming_text("{\"type\":\"command\", \"id\":\"1\", \"method\":\"reboot\"}", &db).await;
+        handle_incoming_text("invalid json", &db).await;
+    }
 }
 
 async fn connect_central(

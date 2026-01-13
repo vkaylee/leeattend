@@ -63,7 +63,7 @@ pub enum CentralMessage {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AttendanceData {
     pub user_id: String,
     pub timestamp: String,
