@@ -268,14 +268,9 @@ pub fn create_app(state: Arc<AppState>) -> Router {
                         post(handlers::submit_attendance_adjustment)
                             .get(handlers::get_workspace_attendance_adjustments),
                     )
-                                .route(
-                                    "/workspaces/:ws_id/attendance/upload",
-                                    post(handlers::upload_attendance_excel),
-                                )
-                                .route(
-                                    "/workspaces/:ws_id/attendance/import-jobs/latest",
-                                    get(handlers::get_latest_import_job),
-                                )
+                .route("/attendance/upload", post(handlers::upload_attendance_excel))
+                .route("/attendance/logs", get(handlers::get_attendance_logs))
+                .route("/attendance/import-jobs/latest", get(handlers::get_latest_import_job))
                                 .route(
                                     "/workspaces/:ws_id/attendance/import-jobs/:id",
                                     get(handlers::get_import_job_status),

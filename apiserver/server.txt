@@ -1,0 +1,7 @@
+[2m2026-01-11T04:48:18.175915Z[0m [32m INFO[0m [2msqlx::postgres::notice[0m[2m:[0m relation "_sqlx_migrations" already exists, skipping
+[2m2026-01-11T04:48:18.414661Z[0m [32m INFO[0m [2mapiserver::dev_initialization[0m[2m:[0m Ensuring dev data exists...
+[2m2026-01-11T04:48:19.070692Z[0m [32m INFO[0m [2mapiserver::dev_initialization[0m[2m:[0m Dev data upserted successfully.
+[2m2026-01-11T04:48:19.076686Z[0m [34mDEBUG[0m [2mapiserver[0m[2m:[0m Configured host: '0.0.0.0', port: 3000
+[2m2026-01-11T04:48:19.076904Z[0m [32m INFO[0m [2mapiserver[0m[2m:[0m Attempting to bind to 0.0.0.0:3000
+[2m2026-01-11T04:48:19.079137Z[0m [32m INFO[0m [2mapiserver[0m[2m:[0m Actual listening on 0.0.0.0:3000
+[2m2026-01-11T04:48:19.079184Z[0m [32m INFO[0m [2mapiserver[0m[2m:[0m Saved actual port to .api_port: 3000

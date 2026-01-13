@@ -55,6 +55,8 @@ const queryClient = new QueryClient({
 });
 
 import AttendanceAdjustmentsPage from "./pages/AttendanceAdjustmentsPage";
+import AttendanceLogsPage from "./pages/AttendanceLogsPage";
+import { ListOrdered } from "lucide-react";
 
 function Layout() {
   const handleLogout = () => {
@@ -120,6 +122,13 @@ function Layout() {
           >
             <Clock className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span className="font-semibold">Chấm công</span>
+          </Link>
+          <Link
+            to="/attendance-logs"
+            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
+          >
+            <ListOrdered className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-semibold">Log chấm công</span>
           </Link>
           <Link
             to="/leave-requests"
@@ -236,6 +245,7 @@ function App() {
                 <Route path="/employees" element={<EmployeesPage />} />
                 <Route path="/departments" element={<DepartmentsPage />} />
                 <Route path="/time-tracking" element={<TimeTrackingPage />} />
+                <Route path="/attendance-logs" element={<AttendanceLogsPage />} />
                 <Route path="/leave-requests" element={<LeaveRequestsPage />} />
                 <Route path="/attendance-adjustments" element={<AttendanceAdjustmentsPage />} />
                 <Route path="/reports" element={<ReportsPage />} />

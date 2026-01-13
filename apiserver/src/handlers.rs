@@ -1596,16 +1596,130 @@ pub async fn get_latest_import_job(
     }
 }
 
-pub async fn get_import_job_status(
-    State(state): State<Arc<AppState>>,
-    Path(job_id): Path<Uuid>,
-) -> Result<impl IntoResponse, StatusCode> {
-    match crate::repositories::import_job_repository::get_job_by_id(&state.db, job_id).await {
-        Ok(Some(job)) => Ok(Json(job)),
-        Ok(None) => Err(StatusCode::NOT_FOUND),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
+#[derive(Deserialize)]
+pub struct AttendanceLogQuery {
+    pub employee_id: Option<Uuid>,
+    pub from: Option<DateTime<Utc>>,
+    pub to: Option<DateTime<Utc>>,
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
 }
+
+pub async fn get_attendance_logs(
+
+    State(state): State<Arc<AppState>>,
+
+    MemberContext { workspace_id, .. }: MemberContext,
+
+    Query(query): Query<AttendanceLogQuery>,
+
+) -> Result<impl IntoResponse, StatusCode> {
+
+    let limit = query.limit.unwrap_or(20);
+
+    let page = query.page.unwrap_or(1);
+
+    let offset = (page - 1) * limit;
+
+
+
+    let logs = crate::repositories::time_entry_repository::get_paginated_logs(
+
+        &state.db,
+
+        workspace_id,
+
+        query.employee_id,
+
+        query.from,
+
+        query.to,
+
+        limit,
+
+        offset,
+
+    )
+
+    .await
+
+    .map_err(|e| {
+
+        error!("GET_LOGS_ERROR: {:?}", e);
+
+        StatusCode::INTERNAL_SERVER_ERROR
+
+    })?;
+
+
+
+    let total = crate::repositories::time_entry_repository::count_logs(
+
+        &state.db,
+
+        workspace_id,
+
+        query.employee_id,
+
+        query.from,
+
+        query.to,
+
+    )
+
+    .await
+
+    .map_err(|e| {
+
+        error!("COUNT_LOGS_ERROR: {:?}", e);
+
+        StatusCode::INTERNAL_SERVER_ERROR
+
+    })?;
+
+
+
+    Ok(Json(serde_json::json!({
+
+        "data": logs,
+
+        "total": total,
+
+        "page": page,
+
+        "limit": limit,
+
+    })))
+
+}
+
+
+
+pub async fn get_import_job_status(
+
+    State(state): State<Arc<AppState>>,
+
+    MemberContext { .. }: MemberContext,
+
+    Path(job_id): Path<Uuid>,
+
+) -> Result<impl IntoResponse, StatusCode> {
+
+    let job = crate::repositories::import_job_repository::get_job_by_id(&state.db, job_id)
+
+        .await
+
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+
+
+    Ok(Json(job))
+
+}
+
+
 
 pub async fn submit_attendance_adjustment(
     State(state): State<Arc<AppState>>,

@@ -1,16 +1,17 @@
-import { test, expect } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './worker-orchestrator';
 
 test.describe('Debug Login Flow', () => {
-  test('should verify the Debug Login button text', async ({ page }) => {
-    await page.goto('/login');
+  test('should verify the Debug Login button text', async ({ page, workerWebUrl }) => {
+    await page.goto(`${workerWebUrl}/login`);
     const debugButton = page.locator('text=⚡ Đăng nhập nhanh (Dev Mode)');
     await expect(debugButton).toBeVisible();
     await expect(debugButton).toBeEnabled();
   });
 
-  test('should successfully login and redirect to dashboard when clicking Debug Login', async ({ page }) => {
+  test('should successfully login and redirect to dashboard when clicking Debug Login', async ({ page, workerWebUrl }) => {
     // 1. Navigate to login page
-    await page.goto('/login');
+    await page.goto(`${workerWebUrl}/login`);
 
     // 2. Setup listener for login API request to verify payload
     const loginRequestPromise = page.waitForRequest(request => 

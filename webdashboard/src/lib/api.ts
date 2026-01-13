@@ -1117,3 +1117,22 @@ export async function deleteRoster(wsId: string, employeeId: string, date: strin
   });
   if (!response.ok) throw new Error("Failed to delete roster");
 }
+
+export async function fetchAttendanceLogs(params: {
+  employee_id?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{ data: TimeEntry[]; total: number; page: number; limit: number }> {
+  const searchParams = new URLSearchParams();
+  if (params.employee_id) searchParams.append("employee_id", params.employee_id);
+  if (params.from) searchParams.append("from", params.from);
+  if (params.to) searchParams.append("to", params.to);
+  if (params.page) searchParams.append("page", params.page.toString());
+  if (params.limit) searchParams.append("limit", params.limit.toString());
+  
+  const response = await apiFetch(`${API_BASE_URL}/attendance/logs?${searchParams.toString()}`);
+  if (!response.ok) throw new Error("Failed to fetch attendance logs");
+  return response.json();
+}

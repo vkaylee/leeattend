@@ -3,16 +3,18 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-struct PortFileGuard;
+struct PortFileGuard {
+    filename: String,
+}
 
 impl Drop for PortFileGuard {
     fn drop(&mut self) {
-        if let Err(e) = std::fs::remove_file(".api_port") {
+        if let Err(e) = std::fs::remove_file(&self.filename) {
             if e.kind() != std::io::ErrorKind::NotFound {
-                eprintln!("Failed to remove .api_port file on shutdown: {}", e);
+                eprintln!("Failed to remove {} file on shutdown: {}", self.filename, e);
             }
         } else {
-            eprintln!(".api_port file cleaned up successfully.");
+            eprintln!("{} file cleaned up successfully.", self.filename);
         }
     }
 }
@@ -92,7 +94,8 @@ async fn main() {
 
     // Try to bind to the preferred port, or find another one if it's busy
     // Dọn dẹp file cũ nếu có để tránh stale data
-    let _ = std::fs::remove_file(".api_port");
+    let port_file_name = std::env::var("PORT_FILE_NAME").unwrap_or_else(|_| ".api_port".to_string());
+    let _ = std::fs::remove_file(&port_file_name);
 
     let listener = {
         let mut listener = None;
@@ -122,11 +125,17 @@ async fn main() {
     tracing::info!("Actual listening on {}", actual_addr);
 
     // Ghi port vào file để Frontend/AI có thể tự động khám phá
-    if let Ok(_) = std::fs::write(".api_port", actual_addr.port().to_string()) {
-        tracing::info!("Saved actual port to .api_port: {}", actual_addr.port());
+    if let Ok(_) = std::fs::write(&port_file_name, actual_addr.port().to_string()) {
+        tracing::info!(
+            "Saved actual port to {}: {}",
+            port_file_name,
+            actual_addr.port()
+        );
     }
 
-    let _guard = PortFileGuard;
+    let _guard = PortFileGuard {
+        filename: port_file_name,
+    };
 
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())

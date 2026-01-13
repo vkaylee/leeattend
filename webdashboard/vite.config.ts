@@ -32,35 +32,49 @@ export default defineConfig(async ({ mode }) => {
   const viteApiUrl = env.VITE_API_URL;
 
   // Tự động tìm port của API từ file Discovery nếu không có biến môi trường
-  let apiPort = "3000";
+  let apiPort = "";
   try {
-    const apiPortFile = path.resolve(__dirname, "../apiserver/.api_port");
+    const portFileName = process.env.VITE_BACKEND_PORT_FILE || ".api_port";
+    const apiPortFile = path.resolve(__dirname, `../apiserver/${portFileName}`);
     if (fs.existsSync(apiPortFile)) {
       apiPort = fs.readFileSync(apiPortFile, "utf8").trim();
-      console.log(`📡 Vite: Discovered API server on port ${apiPort}`);
+      console.log(`📡 Vite: Discovered API server on port ${apiPort} via ${portFileName}`);
     }
   } catch (e) {
-    console.warn("📡 Vite: Could not discover API port, using default 3000");
+    console.warn("📡 Vite: Could not discover API port");
   }
 
-  const apiTarget = viteApiUrl || `http://localhost:${apiPort}`;
+  // Ưu tiên discovery port nếu có, nếu không mới dùng env hoặc mặc định 3000
+  const apiTarget = apiPort ? `http://127.0.0.1:${apiPort}` : (viteApiUrl || `http://localhost:3000`);
   const wsTarget = apiTarget.replace(/^http/, "ws");
 
   console.log(`📡 Vite: Proxying /api to ${apiTarget}`);
   console.log(`📡 Vite: Proxying /ws to ${wsTarget}`);
 
-  const port = await findAvailablePort(5173);
-
-  // Ghi port vào file để Playwright/AI có thể tự động khám phá
-  try {
-    fs.writeFileSync(".web_port", port.toString());
-    console.log(`📡 Vite: Saved actual port to .web_port: ${port}`);
-  } catch (e) {
-    console.warn("📡 Vite: Could not save .web_port file");
-  }
+  // Dùng port động nếu đang chạy test (có VITE_WEB_PORT_FILE)
+  const workerIndex = parseInt(process.env.VITE_BACKEND_PORT_FILE?.split('_').pop() || "0", 10);
+  const isTest = !!process.env.VITE_WEB_PORT_FILE;
+  const startPort = isTest ? (5173 + (workerIndex * 10)) : 5173;
+  const port = await findAvailablePort(startPort);
 
   return {
-    plugins: [react()],
+    plugins: [
+      react(),
+      {
+        name: 'save-port-file',
+        configureServer(server) {
+          server.httpServer?.once('listening', () => {
+            const address = server.httpServer?.address();
+            if (address && typeof address === 'object') {
+              const actualPort = address.port;
+              const webPortFile = process.env.VITE_WEB_PORT_FILE || ".web_port";
+              fs.writeFileSync(webPortFile, actualPort.toString());
+              console.log(`📡 Vite: Saved actual assigned port to ${webPortFile}: ${actualPort}`);
+            }
+          });
+        }
+      }
+    ],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
@@ -69,10 +83,19 @@ export default defineConfig(async ({ mode }) => {
     server: {
       port,
       strictPort: true,
+      allowedHosts: ["leeattend.nport.link"],
       proxy: {
         "/api": {
           target: apiTarget,
           changeOrigin: true,
+          configure: (proxy, _options) => {
+            proxy.on('error', (err, _req, _res) => {
+              console.log('📡 Vite: Proxy error', err);
+            });
+            proxy.on('proxyReq', (_proxyReq, req, _res) => {
+              console.log(`📡 Vite: Proxying request ${req.method} ${req.url} -> ${apiTarget}${req.url}`);
+            });
+          },
         },
         "/ws": {
           target: wsTarget,

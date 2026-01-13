@@ -7,7 +7,8 @@ import path from "path";
  * Includes a retry logic to wait for the file if Vite is still starting.
  */
 function getWebPort() {
-  const portFile = path.resolve(__dirname, ".web_port");
+  const portFileName = process.env.PLAYWRIGHT_WEB_PORT_FILE || ".web_port";
+  const portFile = path.resolve(__dirname, portFileName);
   const maxAttempts = 20; // Thử trong 10 giây (20 * 500ms)
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -36,13 +37,14 @@ function getWebPort() {
   return "5173";
 }
 
-const WEB_PORT = getWebPort();
+const WEB_PORT = process.env.VITE_WEB_PORT || getWebPort();
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
   testDir: "./tests",
+  timeout: 120000,
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -52,23 +54,32 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: "html",
+  reporter: [
+    ['html', { open: 'never' }],
+    ['line']
+  ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
     use: {
       /* Base URL to use in actions like `await page.goto('/')`. */
-      baseURL: `http://127.0.0.1:${WEB_PORT}`,
+      baseURL: process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${WEB_PORT}`,
   
       /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
       trace: "on-first-retry",
     },
   
-    webServer: {
-      command: 'npm run dev',
-      url: `http://127.0.0.1:${WEB_PORT}`,
-      reuseExistingServer: !process.env.CI,
-      stdout: 'pipe',
-      stderr: 'pipe',
-    },
+    // webServer: [
+    //   {
+    //     command: `PORT_FILE_NAME=.api_port_${process.env.TEST_WORKER_INDEX || '0'} cargo run`,
+    //     cwd: '../apiserver',
+    //     port: 0, // dynamic
+    //     reuseExistingServer: !process.env.CI,
+    //   },
+    //   {
+    //     command: `VITE_BACKEND_PORT_FILE=.api_port_${process.env.TEST_WORKER_INDEX || '0'} VITE_WEB_PORT_FILE=.web_port_${process.env.TEST_WORKER_INDEX || '0'} npm run dev`,
+    //     port: 0, // dynamic
+    //     reuseExistingServer: !process.env.CI,
+    //   }
+    // ],
   
     projects: [
     {
