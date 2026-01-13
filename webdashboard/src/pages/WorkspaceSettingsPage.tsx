@@ -24,11 +24,13 @@ export default function WorkspaceSettingsPage() {
 
   const [workUnit, setWorkUnit] = useState(1);
   const [roundingPolicy, setRoundingPolicy] = useState("none");
+  const [dateFormat, setDateFormat] = useState("DD/MM/YYYY");
 
   useEffect(() => {
     if (workspace) {
       setWorkUnit(workspace.work_unit_minutes);
       setRoundingPolicy(workspace.rounding_policy);
+      setDateFormat(workspace.date_format);
     }
   }, [workspace]);
 
@@ -62,6 +64,7 @@ export default function WorkspaceSettingsPage() {
     updateWsMutation.mutate({
       work_unit_minutes: workUnit,
       rounding_policy: roundingPolicy,
+      date_format: dateFormat,
     });
   }
 
@@ -139,6 +142,25 @@ export default function WorkspaceSettingsPage() {
                 </select>
                 <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
                   Cách xử lý khi tổng giờ làm trong ngày không chia hết cho đơn vị tính.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                  Định dạng ngày tháng ưu tiên
+                </label>
+                <select
+                  data-testid="date-format-select"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none font-bold text-slate-700"
+                  value={dateFormat}
+                  onChange={(e) => setDateFormat(e.target.value)}
+                >
+                  <option value="DD/MM/YYYY">DD/MM/YYYY (Việt Nam)</option>
+                  <option value="MM/DD/YYYY">MM/DD/YYYY (Mỹ)</option>
+                  <option value="YYYY-MM-DD">YYYY-MM-DD (ISO)</option>
+                </select>
+                <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
+                  Dùng để ưu tiên xử lý khi file Excel/CSV không rõ ràng (ví dụ 01/02).
                 </p>
               </div>
             </div>

@@ -38,7 +38,7 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         let ws = sqlx::query_as::<_, Workspace>(
             "INSERT INTO workspaces (id, name, created_at) 
              VALUES ($1, $2, NOW()) 
-             RETURNING id, name, work_unit_minutes, rounding_policy, created_at",
+             RETURNING id, name, work_unit_minutes, rounding_policy, date_format, created_at",
         )
         .bind(Uuid::new_v4())
         .bind(name)

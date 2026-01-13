@@ -180,14 +180,14 @@ export default function AttendanceAdjustmentsPage() {
             <FileDown className="w-4 h-4" />
             Mẫu Excel
           </button>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileChange} 
-            accept=".csv,.xlsx" 
-            className="hidden" 
-          />
-          <button 
+                      <input
+                        type="file"
+                        accept=".csv,.xlsx,.xls"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        ref={fileInputRef}
+                      />
+                      <button 
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadMutation.isPending}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all font-semibold shadow-sm shadow-blue-200 text-sm disabled:opacity-50"

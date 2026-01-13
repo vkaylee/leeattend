@@ -604,6 +604,7 @@ pub struct UpdateWorkspaceRequest {
     pub name: Option<String>,
     pub work_unit_minutes: Option<i32>,
     pub rounding_policy: Option<String>,
+    pub date_format: Option<String>,
 }
 
 pub async fn get_workspaces(
@@ -655,18 +656,18 @@ pub async fn update_workspace(
     UserId(_user_id): UserId,
     Json(req): Json<UpdateWorkspaceRequest>,
 ) -> Result<Json<Workspace>, (StatusCode, String)> {
-    match WorkspaceService::update_workspace(
+    let ws = crate::services::workspace_service::WorkspaceService::update_workspace(
         &state.db,
         ws_id,
         req.name,
         req.work_unit_minutes,
         req.rounding_policy,
+        req.date_format,
     )
     .await
-    {
-        Ok(ws) => Ok(Json(ws)),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e)),
-    }
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    Ok(Json(ws))
 }
 
 pub async fn get_workspace_members(
@@ -1538,6 +1539,7 @@ pub async fn get_workspace_leave_requests(
 pub async fn upload_attendance_excel(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
+    Path(_ws_id): Path<Uuid>,
     MemberContext { workspace_id, .. }: MemberContext,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, StatusCode> {
@@ -1553,6 +1555,8 @@ pub async fn upload_attendance_excel(
                 if let Some(filename) = field.file_name() {
                     if filename.ends_with(".csv") {
                         extension = "csv".to_string();
+                    } else if filename.ends_with(".xls") {
+                        extension = "xls".to_string();
                     }
                 }
                 file_bytes = field.bytes().await.map_err(|e| {
@@ -1588,11 +1592,15 @@ pub async fn upload_attendance_excel(
 
 pub async fn get_latest_import_job(
     State(state): State<Arc<AppState>>,
+    Path(_ws_id): Path<Uuid>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> Result<impl IntoResponse, StatusCode> {
     match crate::repositories::import_job_repository::get_latest_job(&state.db, workspace_id).await {
         Ok(job) => Ok(Json(job)),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+        Err(e) => {
+            error!("GET_LATEST_JOB_ERROR: {:?}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -1606,13 +1614,10 @@ pub struct AttendanceLogQuery {
 }
 
 pub async fn get_attendance_logs(
-
     State(state): State<Arc<AppState>>,
-
+    Path(_ws_id): Path<Uuid>,
     MemberContext { workspace_id, .. }: MemberContext,
-
     Query(query): Query<AttendanceLogQuery>,
-
 ) -> Result<impl IntoResponse, StatusCode> {
 
     let limit = query.limit.unwrap_or(20);
@@ -1696,13 +1701,9 @@ pub async fn get_attendance_logs(
 
 
 pub async fn get_import_job_status(
-
     State(state): State<Arc<AppState>>,
-
     MemberContext { .. }: MemberContext,
-
-    Path(job_id): Path<Uuid>,
-
+    Path((_ws_id, job_id)): Path<(Uuid, Uuid)>,
 ) -> Result<impl IntoResponse, StatusCode> {
 
     let job = crate::repositories::import_job_repository::get_job_by_id(&state.db, job_id)

@@ -95,6 +95,7 @@ pub struct Workspace {
     pub name: String,
     pub work_unit_minutes: i32,
     pub rounding_policy: String,
+    pub date_format: String,
     pub created_at: DateTime<Utc>,
 }
 

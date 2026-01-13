@@ -64,6 +64,7 @@ export interface Workspace {
   name: string;
   work_unit_minutes: number;
   rounding_policy: "none" | "floor" | "ceil" | "round";
+  date_format: string;
   created_at: string;
 }
 
@@ -1132,7 +1133,12 @@ export async function fetchAttendanceLogs(params: {
   if (params.page) searchParams.append("page", params.page.toString());
   if (params.limit) searchParams.append("limit", params.limit.toString());
   
-  const response = await apiFetch(`${API_BASE_URL}/attendance/logs?${searchParams.toString()}`);
+  const wsId = getCurrentWorkspaceId();
+  const url = wsId 
+    ? `${API_BASE_URL}/workspaces/${wsId}/attendance/logs?${searchParams.toString()}`
+    : `${API_BASE_URL}/attendance/logs?${searchParams.toString()}`;
+
+  const response = await apiFetch(url);
   if (!response.ok) throw new Error("Failed to fetch attendance logs");
   return response.json();
 }

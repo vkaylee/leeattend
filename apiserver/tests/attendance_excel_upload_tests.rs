@@ -115,3 +115,55 @@ async fn test_import_recovery_on_startup() {
     ).await.unwrap();
     assert_eq!(entries.len(), 1);
 }
+
+#[tokio::test]
+async fn test_import_fallback_logic() {
+    let test_db = TestDatabase::new().await;
+    let pool = test_db.pool();
+    let factory = TestFactory::new(pool.clone());
+    let ws_id = factory.workspace().create().await;
+    let user_id = factory.user().create().await;
+    
+    // Create employee
+    let emp_id_number = "EMP-FALLBACK-001";
+    let emp_id = factory.employee()
+        .with_workspace(ws_id)
+        .with_employee_id_number(emp_id_number)
+        .create()
+        .await;
+
+    // Create a file that is actually CSV but could be named anything
+    // This will fail Xlsx::new and Xls::new, then fall back to CSV
+    let storage_dir = "./storage/test_imports";
+    fs::create_dir_all(storage_dir).await.unwrap();
+    let file_path = format!("{}/test_fallback.xls", storage_dir); // Named .xls but content is CSV
+    let csv_data = format!("empNo,empName,empDt\n{},Fallback User,11/01/2026 09:00", emp_id_number);
+    fs::write(&file_path, csv_data).await.unwrap();
+
+    let job_id = AttendanceAdjustmentService::batch_import_from_file(
+        pool.clone(),
+        ws_id,
+        user_id,
+        file_path.clone()
+    ).await.expect("Import failed");
+
+    let mut processed = false;
+    for _ in 0..20 {
+        sleep(Duration::from_millis(100)).await;
+        let job = apiserver::repositories::import_job_repository::get_job_by_id(&pool, job_id).await.unwrap().unwrap();
+        if job.status == "completed" {
+            processed = true;
+            break;
+        }
+    }
+    
+    assert!(processed, "Job did not complete via fallback");
+
+    let entries = apiserver::repositories::time_entry_repository::get_employee_time_entries(
+        &pool, 
+        emp_id, 
+        chrono::Utc::now() - chrono::Duration::days(30), 
+        chrono::Utc::now() + chrono::Duration::days(30)
+    ).await.unwrap();
+    assert_eq!(entries.len(), 1, "Should have created one time entry via CSV fallback");
+}

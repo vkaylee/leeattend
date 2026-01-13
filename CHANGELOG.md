@@ -5,6 +5,17 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Legacy Excel (.xls) Support**: Added support for importing attendance data from older Excel files using `calamine::Xls`.
+- **Workspace Date Format Configuration**: Introduced workspace-level date format settings (`DD/MM/YYYY`, `MM/DD/YYYY`, `YYYY-MM-DD`) to resolve ambiguity during imports.
+- **Robust DateTime Parsing**: Implemented a multi-format parser that automatically detects and handles various date-time strings, including US formats with AM/PM and seconds (e.g., `11/24/2025 7:12:46 AM`).
+- **Flexible Excel Reading**: Enhanced the importer to handle different cell types (String, DateTime, Float/Serial) correctly.
+
+### Fixed
+- **API Routing Consolidation**: Fixed a critical routing bug by moving all attendance-related endpoints under the `/workspaces/:ws_id` prefix, ensuring consistent security and parameter extraction.
+- **Import Job Conflict**: Resolved an issue where the `/latest` endpoint was being shadowed by the generic `/:id` endpoint in the backend router.
+- **Frontend Syntax & Logic**: Fixed a syntax error in `AttendanceAdjustmentsPage.tsx` and corrected a function name mismatch (`handleFileChange`) that was preventing builds.
+
+### Added (Previous)
 - **Parallel E2E Test Orchestration**: Implemented a robust mechanism to run multiple Playwright workers in parallel with complete environment isolation.
     - **Dynamic Port Discovery**: Backend and Frontend instances now use worker-specific port signal files (e.g., `.api_port_0`, `.web_port_1`).
     - **Port Isolation**: Increased port offset to 50 between workers to ensure zero resource contention during parallel execution.

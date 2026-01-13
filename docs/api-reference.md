@@ -71,6 +71,7 @@ Quản lý không gian làm việc và cấu hình hệ thống.
   "name": "string",
   "work_unit_minutes": 30, // 1, 15, 30, 60
   "rounding_policy": "floor", // none, floor, ceil, round
+  "date_format": "DD/MM/YYYY", // DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD
   "created_at": "datetime"
 }
 ```
@@ -89,13 +90,14 @@ Tạo mới một workspace (Người tạo sẽ trở thành `owner`).
 - **Response (201)**: `Workspace`
 
 #### PATCH /workspaces/:ws_id
-Cập nhật thông tin hoặc cấu hình tính công của workspace.
+Cập nhật thông tin hoặc cấu hình hệ thống của workspace.
 - **Request**: 
   ```json
   { 
     "name": "Tên mới", 
     "work_unit_minutes": 30, 
-    "rounding_policy": "floor" 
+    "rounding_policy": "floor",
+    "date_format": "MM/DD/YYYY"
   }
   ```
 - **Response (200)**: `Workspace` (updated)
@@ -377,15 +379,13 @@ Lấy danh sách các yêu cầu điều chỉnh trong workspace.
 - **Query Params**: `?status=pending|approved|rejected`
 - **Response (200)**: `Array<AttendanceAdjustmentRequest>`
 
-#### POST /attendance/upload
-**Headers**: `X-Workspace-Id`
-Upload file Excel (.xlsx) hoặc CSV. Trả về Job ID để theo dõi tiến độ bất đồng bộ.
+#### POST /workspaces/:ws_id/attendance/upload
+Upload file Excel (.xlsx, .xls) hoặc CSV. Trả về Job ID để theo dõi tiến độ bất đồng bộ.
 - **Request**: `multipart/form-data` (file)
 - **Response (200)**: `{ "job_id": "uuid" }`
 
-#### GET /attendance/import-jobs/latest
-**Headers**: `X-Workspace-Id`
-Lấy thông tin Job import gần nhất.
+#### GET /workspaces/:ws_id/attendance/import-jobs/latest
+Lấy thông tin Job import gần nhất của workspace.
 - **Response (200)**: `ImportJob` object
 
 #### GET /workspaces/:ws_id/attendance/import-jobs/:id
@@ -398,8 +398,7 @@ Lấy trạng thái chi tiết của một Job cụ thể.
 
 Xem nhật ký quẹt thẻ thô từ các thiết bị ngoại vi (Edge Agents).
 
-#### GET /attendance/logs
-**Headers**: `X-Workspace-Id`
+#### GET /workspaces/:ws_id/attendance/logs
 Lấy danh sách log quẹt thẻ đã được đồng bộ từ Agent.
 - **Query Params**:
     - `employee_id`: uuid (lọc theo nhân viên)
