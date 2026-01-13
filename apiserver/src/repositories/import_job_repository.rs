@@ -8,7 +8,7 @@ pub async fn create_job(
     job: &AttendanceImportJob,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        "INSERT INTO attendance_import_jobs (id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
+        "INSERT INTO attendance_import_jobs (id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, target_type, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
     )
     .bind(job.id)
     .bind(job.workspace_id)
@@ -18,6 +18,7 @@ pub async fn create_job(
     .bind(job.processed_rows)
     .bind(&job.file_path)
     .bind(&job.error_log)
+    .bind(&job.target_type)
     .bind(job.created_at)
     .bind(job.updated_at)
     .execute(pool)
@@ -50,7 +51,7 @@ pub async fn get_job_by_id(
     id: Uuid,
 ) -> Result<Option<AttendanceImportJob>, sqlx::Error> {
     sqlx::query_as::<_, AttendanceImportJob>(
-        "SELECT id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, created_at, updated_at FROM attendance_import_jobs WHERE id = $1"
+        "SELECT id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, target_type, created_at, updated_at FROM attendance_import_jobs WHERE id = $1"
     )
     .bind(id)
     .fetch_optional(pool)
@@ -62,7 +63,7 @@ pub async fn get_latest_job(
     workspace_id: Uuid,
 ) -> Result<Option<AttendanceImportJob>, sqlx::Error> {
     sqlx::query_as::<_, AttendanceImportJob>(
-        "SELECT id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, created_at, updated_at FROM attendance_import_jobs WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT 1"
+        "SELECT id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, target_type, created_at, updated_at FROM attendance_import_jobs WHERE workspace_id = $1 ORDER BY created_at DESC LIMIT 1"
     )
     .bind(workspace_id)
     .fetch_optional(pool)
@@ -73,7 +74,7 @@ pub async fn get_pending_jobs(
     pool: &PgPool,
 ) -> Result<Vec<AttendanceImportJob>, sqlx::Error> {
     sqlx::query_as::<_, AttendanceImportJob>(
-        "SELECT id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, created_at, updated_at FROM attendance_import_jobs WHERE status = 'processing'"
+        "SELECT id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, target_type, created_at, updated_at FROM attendance_import_jobs WHERE status = 'processing'"
     )
     .fetch_all(pool)
     .await

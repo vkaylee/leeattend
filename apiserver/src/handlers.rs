@@ -20,6 +20,7 @@ use crate::agent_manager::AgentCommand;
 use crate::models::*;
 use crate::repositories::user_repository;
 use crate::repositories::leave_policy_repository;
+use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::services::auth_service::AuthService;
 use crate::services::leave_accrual_service::LeaveAccrualService;
 use crate::services::WorkspaceService;
@@ -1540,54 +1541,90 @@ pub async fn get_workspace_leave_requests(
 
 pub async fn upload_attendance_excel(
     State(state): State<Arc<AppState>>,
-    UserId(user_id): UserId,
-    Path(_ws_id): Path<Uuid>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    Path(ws_id): Path<Uuid>,
+    MemberContext { user_id, .. }: MemberContext,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let mut file_bytes = Vec::new();
-    let mut extension = "xlsx".to_string();
+    // RBAC: Only Admin/Owner
+    let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository { pool: state.db.clone() }
+        .find_primary_role(ws_id, user_id)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::FORBIDDEN)?;
 
-    while let Some(field) = multipart.next_field().await.map_err(|e| {
-        error!("MULTIPART_FIELD_ERROR: {:?}", e);
-        StatusCode::BAD_REQUEST
-    })? {
-        if let Some(name) = field.name() {
-            if name == "file" {
-                if let Some(filename) = field.file_name() {
-                    if filename.ends_with(".csv") {
-                        extension = "csv".to_string();
-                    } else if filename.ends_with(".xls") {
-                        extension = "xls".to_string();
-                    }
-                }
-                file_bytes = field.bytes().await.map_err(|e| {
-                    error!("MULTIPART_BYTES_ERROR: {:?}", e);
-                    StatusCode::INTERNAL_SERVER_ERROR
-                })?.to_vec();
-                break;
-            }
+    if role != "admin" && role != "owner" {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    let mut file_path = None;
+    while let Some(field) = multipart.next_field().await.map_err(|_| StatusCode::BAD_REQUEST)? {
+        let name = field.name().unwrap_or("").to_string();
+        if name == "file" {
+            let file_name = field.file_name().unwrap_or("upload.xlsx").to_string();
+            let data = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+            
+            let dir = "storage/imports";
+            tokio::fs::create_dir_all(dir).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            let path = format!("{}/{}_{}", dir, Uuid::new_v4(), file_name);
+            tokio::fs::write(&path, data).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            file_path = Some(path);
         }
     }
 
-    if file_bytes.is_empty() {
-        return Err(StatusCode::BAD_REQUEST);
+    let path = file_path.ok_or(StatusCode::BAD_REQUEST)?;
+
+    let job_id = crate::services::attendance_import_service::AttendanceImportService::batch_import_from_file(
+        state.db.clone(),
+        ws_id,
+        user_id,
+        path,
+        "adjustment".to_string()
+    ).await?;
+
+    Ok(Json(serde_json::json!({ "job_id": job_id })))
+}
+
+pub async fn upload_attendance_logs(
+    State(state): State<Arc<AppState>>,
+    Path(ws_id): Path<Uuid>,
+    MemberContext { user_id, .. }: MemberContext,
+    mut multipart: Multipart,
+) -> Result<impl IntoResponse, StatusCode> {
+    // RBAC: Only Admin/Owner
+    let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository { pool: state.db.clone() }
+        .find_primary_role(ws_id, user_id)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::FORBIDDEN)?;
+
+    if role != "admin" && role != "owner" {
+        return Err(StatusCode::FORBIDDEN);
     }
 
-    // Save to disk
-    let storage_dir = "./storage/imports";
-    tokio::fs::create_dir_all(storage_dir).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let filename = format!("{}_{}.{}", workspace_id, Uuid::new_v4(), extension);
-    let file_path = format!("{}/{}", storage_dir, filename);
-    tokio::fs::write(&file_path, file_bytes).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut file_path = None;
+    while let Some(field) = multipart.next_field().await.map_err(|_| StatusCode::BAD_REQUEST)? {
+        let name = field.name().unwrap_or("").to_string();
+        if name == "file" {
+            let file_name = field.file_name().unwrap_or("upload.xlsx").to_string();
+            let data = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+            
+            let dir = "storage/imports";
+            tokio::fs::create_dir_all(dir).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            let path = format!("{}/{}_{}", dir, Uuid::new_v4(), file_name);
+            tokio::fs::write(&path, data).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            file_path = Some(path);
+        }
+    }
 
-    let job_id = crate::services::attendance_adjustment_service::AttendanceAdjustmentService::batch_import_from_file(
+    let path = file_path.ok_or(StatusCode::BAD_REQUEST)?;
+
+    let job_id = crate::services::attendance_import_service::AttendanceImportService::batch_import_from_file(
         state.db.clone(),
-        workspace_id,
+        ws_id,
         user_id,
-        file_path,
-    )
-    .await?;
+        path,
+        "log".to_string()
+    ).await?;
 
     Ok(Json(serde_json::json!({ "job_id": job_id })))
 }

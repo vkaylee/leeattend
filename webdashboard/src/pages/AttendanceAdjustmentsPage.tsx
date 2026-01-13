@@ -1,37 +1,25 @@
-import React from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle, XCircle, Clock, User, MessageSquare, Upload, FileDown } from "lucide-react";
+import { CheckCircle, XCircle, Clock, MessageSquare, Upload, FileDown } from "lucide-react";
 import { 
   fetchWorkspace,
-  AttendanceAdjustmentRequest,
   fetchEmployees,
-  uploadAttendanceExcel,
-  fetchLatestImportJob,
-  AttendanceImportJob
+  fetchWorkspaceAttendanceAdjustments,
+  approveAttendanceAdjustment,
+  getCurrentWorkspaceId
 } from "../lib/api";
 import { formatTime } from "../lib/utils";
+import AttendanceImportDialog from "@/components/AttendanceImportDialog";
 
 export default function AttendanceAdjustmentsPage() {
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
   const { data: workspace } = useQuery({
     queryKey: ["workspace", wsId],
     queryFn: () => fetchWorkspace(wsId!),
     enabled: !!wsId,
-  });
-
-  // Poll for latest import job status
-  const { data: latestJob } = useQuery({
-    queryKey: ["latest-import-job", wsId],
-    queryFn: () => fetchLatestImportJob(wsId!),
-    enabled: !!wsId,
-    refetchInterval: (query) => {
-      // Poll every 2 seconds if the job is still processing
-      const job = query.state.data as AttendanceImportJob | null;
-      return job && job.status === "processing" ? 2000 : false;
-    },
   });
 
   const { data: requests = [], isLoading } = useQuery({
@@ -60,28 +48,8 @@ export default function AttendanceAdjustmentsPage() {
     onSuccess: () => {
       // Invalidate latest job to start polling
       queryClient.invalidateQueries({ queryKey: ["latest-import-job", wsId] });
-      if (fileInputRef.current) fileInputRef.current.value = "";
     },
-    onError: (error: any) => {
-      alert("Lỗi khi tải file: " + error.message);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
   });
-
-  // When job finishes, refresh adjustment list
-  React.useEffect(() => {
-    if (latestJob && latestJob.status !== "processing") {
-      queryClient.invalidateQueries({ queryKey: ["attendance-adjustments", wsId] });
-      queryClient.invalidateQueries({ queryKey: ["time-history"] });
-    }
-  }, [latestJob?.status, wsId, queryClient]);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      uploadMutation.mutate(file);
-    }
-  };
 
   const downloadTemplate = () => {
     // Basic CSV template
@@ -116,62 +84,6 @@ export default function AttendanceAdjustmentsPage() {
 
   return (
     <div className="space-y-6">
-      {latestJob && latestJob.status === "processing" && (
-        <div className="bg-blue-50 border border-blue-100 rounded-3xl p-6 flex items-center justify-between animate-pulse">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center">
-              <Upload className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="font-bold text-blue-900">Đang xử lý file chấm công...</h3>
-              <p className="text-blue-700 text-sm">
-                Đã xử lý {latestJob.processed_rows} / {latestJob.total_rows} dòng
-              </p>
-            </div>
-          </div>
-          <div className="w-48 bg-blue-200 h-2 rounded-full overflow-hidden">
-            <div 
-              className="bg-blue-600 h-full transition-all duration-500" 
-              style={{ width: `${(latestJob.processed_rows / (latestJob.total_rows || 1)) * 100}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      {latestJob && latestJob.status === "completed" && (
-        <div className="bg-green-50 border border-green-100 rounded-3xl p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <CheckCircle className="w-5 h-5 text-green-600" />
-            <span className="text-green-800 text-sm font-medium">
-              File tải lên gần nhất đã hoàn tất ({latestJob.processed_rows} dòng).
-            </span>
-          </div>
-          <button 
-            onClick={() => queryClient.setQueryData(["latest-import-job", wsId], null)}
-            className="text-green-600 hover:text-green-800 text-xs font-bold"
-          >
-            Đóng
-          </button>
-        </div>
-      )}
-
-      {latestJob && latestJob.status === "failed" && (
-        <div className="bg-red-50 border border-red-100 rounded-3xl p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <XCircle className="w-5 h-5 text-red-600" />
-            <div className="text-red-800 text-sm">
-              <span className="font-bold">Lỗi xử lý file:</span> {latestJob.error_log?.split('\n')[0] || "Lỗi không xác định"}
-            </div>
-          </div>
-          <button 
-            onClick={() => queryClient.setQueryData(["latest-import-job", wsId], null)}
-            className="text-red-600 hover:text-red-800 text-xs font-bold"
-          >
-            Đóng
-          </button>
-        </div>
-      )}
-
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Xác nhận công</h1>
@@ -185,20 +97,12 @@ export default function AttendanceAdjustmentsPage() {
             <FileDown className="w-4 h-4" />
             Mẫu Excel
           </button>
-                      <input
-                        type="file"
-                        accept=".csv,.xlsx,.xls"
-                        onChange={handleFileChange}
-                        className="hidden"
-                        ref={fileInputRef}
-                      />
-                      <button 
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploadMutation.isPending}
+          <button 
+            onClick={() => setIsImportDialogOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all font-semibold shadow-sm shadow-blue-200 text-sm disabled:opacity-50"
           >
             <Upload className="w-4 h-4" />
-            {uploadMutation.isPending ? "Đang tải..." : "Nhập Excel"}
+            Nhập Excel
           </button>
         </div>
       </div>
@@ -284,6 +188,13 @@ export default function AttendanceAdjustmentsPage() {
           </table>
         </div>
       </div>
+
+      <AttendanceImportDialog 
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        title="Nhập dữ liệu chấm công từ file"
+        endpoint="/attendance/upload"
+      />
     </div>
   );
 }

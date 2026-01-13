@@ -12,11 +12,13 @@ import {
   Edit2,
   Trash2,
   X,
-  Save
+  Save,
+  Upload
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { useToast } from "@/components/Toast";
+import AttendanceImportDialog from "@/components/AttendanceImportDialog";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -71,6 +73,7 @@ export default function AttendanceLogsPage() {
   const [toDate, setToDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
 
   const [editingLog, setEditingLog] = useState<any>(null);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
   const { data: employees } = useQuery({
     queryKey: ["employees", wsId],
@@ -156,6 +159,9 @@ export default function AttendanceLogsPage() {
         <div className="flex items-center gap-3">
           <Button variant="outline" onClick={() => window.print()}>
             <Download className="mr-2 h-4 w-4" /> Xuất dữ liệu
+          </Button>
+          <Button onClick={() => setIsImportDialogOpen(true)} className="bg-emerald-600 hover:bg-emerald-700">
+            <Upload className="w-4 h-4 mr-2" /> Nhập file
           </Button>
         </div>
       </div>
@@ -394,6 +400,13 @@ export default function AttendanceLogsPage() {
           </div>
         </div>
       )}
+
+      <AttendanceImportDialog 
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        title="Nhập nhật ký quẹt thẻ từ file"
+        endpoint="/attendance/logs/upload"
+      />
     </div>
   );
 }

@@ -273,6 +273,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             post(handlers::upload_attendance_excel),
         )
         .route(
+            "/workspaces/:ws_id/attendance/logs/upload",
+            post(handlers::upload_attendance_logs),
+        )
+        .route(
             "/workspaces/:ws_id/attendance/logs",
             get(handlers::get_attendance_logs),
         )
