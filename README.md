@@ -46,7 +46,12 @@ If you need to verify UI changes or fix loading issues:
     cd webdashboard
     npx playwright test tests/debug-ui.spec.ts --reporter=line
     ```
-4.  **🚨 IMPORTANT: Cleanup**: After testing, kill ONLY the AI-managed processes:
+4.  **Parallel E2E Testing**: To run all tests in isolated parallel workers:
+    ```bash
+    cd webdashboard
+    npx playwright test --workers=2
+    ```
+5.  **🚨 IMPORTANT: Cleanup**: After testing, kill ONLY the AI-managed processes:
     ```bash
     pkill -f "AI_MANAGED=true" || true
     ```

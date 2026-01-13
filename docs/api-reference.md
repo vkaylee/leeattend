@@ -353,62 +353,11 @@ Kích hoạt thủ công quá trình tính toán cộng phép cho một ngày c�
 
 ---
 
-### 9. Attendance Adjustments (New)
+### 9. Attendance Adjustments & Bulk Import
 
-Quy trình xử lý các trường hợp quên chấm công hoặc cần điều chỉnh dữ liệu chấm công quá khứ.
+Quy trình xử lý các trường hợp quên chấm công hoặc cần điều chỉnh dữ liệu chấm công quá khứ, hỗ trợ nhập liệu hàng loạt từ file.
 
 #### POST /workspaces/:ws_id/attendance/adjustments
-... (existing content) ...
-
-#### POST /workspaces/:ws_id/attendance/upload
-
-Upload an Excel (.xlsx) or CSV file. Returns a Job ID for async tracking.
-
-### Response (200 OK)
-```json
-{
-  "job_id": "550e8400-e29b-41d4-a716-446655440000"
-}
-```
-
----
-
-#### GET /workspaces/:ws_id/attendance/import-jobs/latest
-
-Fetch the most recent import job for the current workspace. Useful for restoring UI state on page refresh.
-
-### Response (200 OK)
-```json
-{
-  "id": "uuid",
-  "status": "processing",
-  "total_rows": 150,
-  "processed_rows": 45,
-  "error_log": null,
-  "created_at": "timestamp"
-}
-```
-
----
-
-#### GET /workspaces/:ws_id/attendance/import-jobs/:id
-
-Fetch the status of a specific import job.
-
-### Response (200 OK)
-```json
-{
-  "id": "uuid",
-  "status": "completed",
-  "total_rows": 150,
-  "processed_rows": 150,
-  "error_log": "Optional multiline errors..."
-}
-```
-
----
-
-#### GET /workspaces/:ws_id/reports/attendance
 Gửi yêu cầu xác nhận/điều chỉnh công mới.
 - **Request**:
   ```json
@@ -428,9 +377,41 @@ Lấy danh sách các yêu cầu điều chỉnh trong workspace.
 - **Query Params**: `?status=pending|approved|rejected`
 - **Response (200)**: `Array<AttendanceAdjustmentRequest>`
 
+#### POST /attendance/upload
+**Headers**: `X-Workspace-Id`
+Upload file Excel (.xlsx) hoặc CSV. Trả về Job ID để theo dõi tiến độ bất đồng bộ.
+- **Request**: `multipart/form-data` (file)
+- **Response (200)**: `{ "job_id": "uuid" }`
+
+#### GET /attendance/import-jobs/latest
+**Headers**: `X-Workspace-Id`
+Lấy thông tin Job import gần nhất.
+- **Response (200)**: `ImportJob` object
+
+#### GET /workspaces/:ws_id/attendance/import-jobs/:id
+Lấy trạng thái chi tiết của một Job cụ thể.
+- **Response (200)**: `ImportJob` object
+
 ---
 
-### 10. Payroll & Shifts (New)
+### 10. Attendance Logs (New)
+
+Xem nhật ký quẹt thẻ thô từ các thiết bị ngoại vi (Edge Agents).
+
+#### GET /attendance/logs
+**Headers**: `X-Workspace-Id`
+Lấy danh sách log quẹt thẻ đã được đồng bộ từ Agent.
+- **Query Params**:
+    - `employee_id`: uuid (lọc theo nhân viên)
+    - `from`: ISO-8601 (từ ngày)
+    - `to`: ISO-8601 (đến ngày)
+    - `limit`: number (mặc định 20)
+    - `page`: number (mặc định 1)
+- **Response (200)**: `Array<AttendanceLog>`
+
+---
+
+### 11. Payroll & Shifts
 
 Quản lý lương, ca làm việc và báo cáo công.
 
@@ -468,7 +449,7 @@ Xuất báo cáo chấm công của workspace.
 
 ---
 
-### 11. Departments & Rostering (New)
+### 12. Departments & Rostering (New)
 
 Quản lý cơ cấu tổ chức và lịch trình làm việc linh hoạt.
 
