@@ -54,8 +54,8 @@ async fn test_batch_import_from_file_success() {
     let entries = apiserver::repositories::time_entry_repository::get_employee_time_entries(
         &pool, 
         emp_id, 
-        chrono::Utc::now() - chrono::Duration::days(1), 
-        chrono::Utc::now() + chrono::Duration::days(1)
+        chrono::Utc::now() - chrono::Duration::days(30), 
+        chrono::Utc::now() + chrono::Duration::days(30)
     ).await.unwrap();
     assert_eq!(entries.len(), 1);
 
@@ -107,6 +107,11 @@ async fn test_import_recovery_on_startup() {
     }
 
     assert!(recovered, "Interrupted job was not recovered");
-    let entries = apiserver::repositories::time_entry_repository::get_employee_time_entries(&pool, emp_id, chrono::Utc::now() - chrono::Duration::days(1), chrono::Utc::now() + chrono::Duration::days(1)).await.unwrap();
+    let entries = apiserver::repositories::time_entry_repository::get_employee_time_entries(
+        &pool, 
+        emp_id, 
+        chrono::Utc::now() - chrono::Duration::days(30), 
+        chrono::Utc::now() + chrono::Duration::days(30)
+    ).await.unwrap();
     assert_eq!(entries.len(), 1);
 }

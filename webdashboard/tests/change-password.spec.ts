@@ -1,15 +1,9 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./worker-orchestrator";
 
 test.describe("Change Password Flow", () => {
-  test.setTimeout(60000);
-
-  test("should change password successfully", async ({ page }) => {
-    page.on("dialog", (d) => {
-      console.log("Alert:", d.message());
-      d.accept();
-    });
-
-    await page.goto("/login");
+  test("should change password successfully", async ({ page, baseURL }) => {
+    // 1. Initial Login
+    await page.goto(`${baseURL}/login`);
     await page.fill(
       'input[placeholder="name@company.com"]',
       "admin@leeattend.com",

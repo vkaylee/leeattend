@@ -1,9 +1,9 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./worker-orchestrator";
 
 test.describe("Registration Flow", () => {
-  test("should register a new user and login", async ({ page }) => {
-    // 1. Go to Login
-    await page.goto("/login");
+  test("should register a new user and login", async ({ page, baseURL }) => {
+    // 1. Go to Login page
+    await page.goto(`${baseURL}/login`);
 
     // 2. Click Sign up
     await page.click('a[href="/register"]');

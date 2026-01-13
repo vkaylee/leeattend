@@ -1,15 +1,10 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./worker-orchestrator";
 
 test.describe("Attendance Logs UI", () => {
-  test("should navigate to attendance logs page and see the logs table", async ({
-    page,
-  }) => {
-    // Increase timeout for slow environments
-    test.setTimeout(120000);
-
+  test("should navigate to attendance logs page and see the logs table", async ({ page, baseURL }) => {
     // 1. Login
-    console.log("Navigating to /login...");
-    await page.goto("/login");
+    console.log(`Navigating to ${baseURL}/login...`);
+    await page.goto(`${baseURL}/login`);
     
     try {
       if (page.url().endsWith("/login")) {

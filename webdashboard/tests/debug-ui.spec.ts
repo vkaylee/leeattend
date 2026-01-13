@@ -1,12 +1,10 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./worker-orchestrator";
 
-test("debug fast login button click", async ({ page }) => {
-  page.on("console", (msg) =>
-    console.log(`[BROWSER][${msg.type()}] ${msg.text()}`),
-  );
+test("debug fast login button click", async ({ page, baseURL }) => {
+  page.on("console", (msg) => console.log(`[BROWSER] ${msg.text()}`));
   page.on("pageerror", (err) => console.log(`[BROWSER_ERROR] ${err.message}`));
 
-  await page.goto("http://localhost:5173/login");
+  await page.goto(`${baseURL}/login`);
 
   console.log("📍 Current page:", page.url());
   await page.screenshot({ path: "debug-before-click.png" });

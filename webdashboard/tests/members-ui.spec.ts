@@ -1,15 +1,10 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./worker-orchestrator";
 
 test.describe("Members UI", () => {
-  test("should navigate to members page and open invite dialog", async ({
-    page,
-  }) => {
-    // 1. Login (Mock or Real)
-    // We assume the dev environment allows fast login.
-    // If we rely on real backend, we need to ensure we are logged in.
+  test("should navigate to members page and open invite dialog", async ({ page, baseURL }) => {
     // Since we are running against real dev server, we can use the UI login flow.
 
-    await page.goto("/login");
+    await page.goto(`${baseURL}/login`);
 
     // Check if we are already logged in (redirected to /)
     if (page.url().endsWith("/login")) {
