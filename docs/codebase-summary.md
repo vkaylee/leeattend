@@ -95,12 +95,11 @@ L43: - **Time Tracking**: Core logic for punch in/out, shift calculation, and pa
 
 ### Testing Infrastructure
 - **Mandatory Quality Gate**: Bắt buộc 100% các bài test (Unit, Integration, Frontend) phải PASS trước khi merge.
-- **Coverage Goal**: Achieved >80% coverage for core business logic including:
-    - **Leave Lifecycle**: Submission -> Approval -> Balance Deductions.
-    - **Attendance Adjustment**: Request -> Approval -> Time Entry Upsert.
-    - **RBAC**: Negative testing for unauthorized access on protected routes.
-    - **Employee/Dept**: Full CRUD and history tracking.
-    - **Leave Accrual**: Scenarios for monthly, quarterly, seniority-based accrual with policy switching.
+- **Parallel E2E Orchestration**: Hệ thống hỗ trợ chạy E2E tests song song (multi-worker) với sự cô lập hoàn toàn.
+    - **Worker-Specific Environments**: Mỗi Playwright worker khởi tạo một cặp Backend-Frontend riêng biệt.
+    - **Dynamic Port Discovery**: Sử dụng các file tín hiệu port riêng cho từng worker (ví dụ: `.api_port_0`, `.api_port_1`) để tránh xung đột `ADDRINUSE`.
+    - **Port Range Isolation**: Tự động tính toán start port dựa trên `workerIndex` với bước nhảy (offset) là 50 port để đảm bảo an toàn tài nguyên networking.
+- **Coverage Goal**: Achieved >80% coverage for core business logic.
 - **Automated DB Cleanup**: The `apiserver` uses a specialized `TestDatabase` helper that:
     - Creates a unique database for each test session.
     - Automatically runs migrations.

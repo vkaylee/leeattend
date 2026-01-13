@@ -5,53 +5,25 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
-- **Robust Async Attendance Import**: Re-engineered the import system to handle large files in background tasks without blocking the API.
-- **Auto-Recovery Mechanism**: System now automatically resumes interrupted import jobs on server startup, ensuring 100% data reliability.
-- **Import Job Tracking**: New `attendance_import_jobs` table to track progress (processed vs total rows) and persistent file storage.
-- **Real-time Progress UI**: Added a dynamic progress banner with polling to `AttendanceAdjustmentsPage`.
-- **CSV & Excel Support**: Dual support for `.xlsx` and `.csv` files with automatic format detection.
-- **Flexible Data Mapping**: Specifically designed for `empNo`, `empName`, `empDt` column format.
-
-### Changed
-- **API Architecture**: Uploads now return a `job_id` immediately; results are polled asynchronously.
-- **Storage Strategy**: Uploaded files are temporarily stored on disk at `./storage/imports/` and cleaned up after processing.
-- **Shift Roster Bulk Actions**: Enhanced the Shift Rostering system with powerful bulk operations.
-    - **Bulk Assignment**: UI toolbar to assign a shift to multiple selected days or the entire week at once.
-    - **Copy Previous Week**: One-click action to duplicate the previous week's schedule to the current week.
-    - **Selection-First UX**: Interactive calendar grid allowing multi-selection of days for batch processing.
-    - **Backend Optimization**: Implemented `BulkRosterRequest` and transactional `bulk_upsert_roster` to handle batched updates efficiently.
-- **Time Rounding Rules**: Implemented configurable rounding policies (`Floor`, `Ceil`, `Round`) and work units (e.g., 15m, 30m blocks) for payroll calculation.
-    - Added `work_unit_minutes` and `rounding_policy` columns to `workspaces`.
-    - Integrated rounding logic into `PayrollService`.
-    - Added UI controls in `WorkspaceSettingsPage`.
-- **Dynamic Leave Accrual Policies**: Implemented flexible leave accrual rules (Monthly, Quarterly, Yearly) with temporal assignment capabilities.
-    - Added `leave_policy_definitions` table to store parametric rules (JSON).
-    - Added `leave_policy_assignments` table to manage policy application over time (Effective Dating).
-    - Added `leave_accrual_logs` to audit all system-generated leave additions.
-    - Implemented `LeaveAccrualService` in Rust with support for seniority bonuses and pro-rating logic.
-    - Added new API endpoints:
-        - `POST /workspaces/:ws_id/leave/policies`: Create new policy definitions.
-        - `POST /workspaces/:ws_id/leave/policies/assign`: Assign policies to employees/departments.
-        - `POST /workspaces/:ws_id/leave/accrual/run`: Manually trigger accrual calculation (for Cron/Debug).
-- **Testing Infrastructure:** Dynamic Test Database helper for Rust `apiserver`.
-- **Auto-Cleanup:** Background thread logic to drop test databases after execution.
-- **Test Factory:** Improved `TestFactory` with more builders for Payroll and Shifts.
+- **Parallel E2E Test Orchestration**: Implemented a robust mechanism to run multiple Playwright workers in parallel with complete environment isolation.
+    - **Dynamic Port Discovery**: Backend and Frontend instances now use worker-specific port signal files (e.g., `.api_port_0`, `.web_port_1`).
+    - **Port Isolation**: Increased port offset to 50 between workers to ensure zero resource contention during parallel execution.
+    - **Worker Fixtures**: Introduced `worker-orchestrator.ts` to manage the lifecycle of isolated backend/frontend pairs per Playwright worker.
+    - **Automatic Cleanup**: Enhanced orchestration logic to reliably kill child processes and delete port signal files after tests.
+- **Attendance Logs Management**: Added a dedicated page and API for viewing and filtering raw attendance logs.
+    - **Advanced Filtering**: Support for filtering by Employee, Device, and Date Range.
+    - **Real-time Synchronization**: Integrated with the Edge Agent heartbeat to show the latest sync status.
+- **Backend Hardening**: Significantly improved server resilience by replacing unsafe `unwrap()` calls with robust error handling across critical services.
+    - **Payroll Service**: Safe date/time conversions and error propagation.
+    - **Report Service**: Validated data processing for attendance summaries and daily reports.
+    - **Roster Repository**: Protected date iteration and optional field access.
 
 ### Fixed
 - **Leave Accrual Data Loss**: Fixed a critical bug where `process_workspace_accruals` would silently fail if the leave balance record for the new year did not exist. Replaced `UPDATE` with `INSERT ... ON CONFLICT DO UPDATE` (Upsert).
 - **Payroll Date Panic**: Replaced unsafe `.unwrap()` calls in `PayrollService` date logic with proper error handling to prevent server crashes on invalid inputs.
-- **Flaky Tests**: Resolved database contention issues in `shift_break_config_tests` and `work_unit_rounding_tests`.
-- **Test Isolation**: Integration tests now run in complete isolation from the main development database.
-- **Cleanup**: Fixed database "leak" where test databases were not being deleted.
+- **SQLx Compilation Errors**: Resolved missing imports and type annotation issues caused by previous refactoring.
+- **Vite Proxy Port Loss**: Fixed a logic error in `vite.config.ts` where the proxy target port was being omitted during dynamic discovery.
 
-### Changed
-- **Agent Architecture**: Major refactor of `agent-zk-worker`.
-    - Consolidated `ZKService` and `ZKWorker` logic into a cleaner structure.
-    - Removed dead code (`models.py`, `device_manager.py`) and legacy tests.
-    - `main.py` is now a minimal entry point importing from `zk_worker.py`.
-- **Frontend Type Safety**: Updated `WorkspaceSettingsPage` to use strict TypeScript types (`Partial<Workspace>`) instead of `any` for mutations.
-- **Payroll Service**: Switched from UTC-based grouping to Local-date grouping for better compliance with business workday definitions.
-- **Reporting UI**: Integrated a Tab-based interface to toggle between Monthly Summary and Daily Detail reports.
 
 ## [Unreleased] - 2026-01-10
 

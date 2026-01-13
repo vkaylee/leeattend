@@ -189,13 +189,14 @@ Giải pháp tối ưu để triển khai mà không cần Node.js runtime. Đó
 Hệ thống hỗ trợ tự động tìm port khả dụng để tránh xung đột:
 
 - **Backend (API)**: Mặc định port 3000. Nếu bị chiếm, sẽ thử trong khoảng 3000-3100.
-  - Port thực tế được ghi vào file `apiserver/.api_port`.
-- **Frontend (Web)**: Mặc định port 5173. Nếu bị chiếm, sẽ thử trong khoảng 5173-5273.
-  - Port thực tế được ghi vào file `webdashboard/.web_port`.
-  - Frontend tự động đọc `apiserver/.api_port` để cấu hình proxy `/api`.
+  - Port thực tế được ghi vào file cấu hình.
+  - **Biến môi trường `PORT_FILE_NAME`**: Cho phép đổi tên file tín hiệu port (mặc định là `.api_port`). Hữu ích khi chạy nhiều instance song song trên cùng một máy (ví dụ: `.api_port_worker_0`).
+- **Frontend (Web)**: Mặc định port 5173. Nếu bị chiếm, sẽ thử trong dải port rộng hơn.
+  - **Biến môi trường `VITE_BACKEND_PORT_FILE`**: Chỉ định file port của backend mà frontend cần đọc để cấu hình proxy.
+  - **Biến môi trường `VITE_WEB_PORT_FILE`**: Chỉ định file port của chính frontend instance đó.
 
-**Lưu ý cho CI/CD & Testing**:
-Khi chạy các bộ test automation (như Playwright), hãy đảm bảo cả Backend và Frontend đã khởi động xong để các file `.api_port` và `.web_port` được tạo ra. Playwright được cấu hình để tự động đọc các file này.
+**Lưu ý cho Parallel Testing**:
+Cơ chế này cho phép chạy song song hàng chục Playwright workers mà không lo xung đột networking, bằng cách cấp phát cho mỗi worker một suffix định danh file port riêng biệt.
 
 ## 🧪 4. Môi trường Kiểm thử (Testing Environment)
 
