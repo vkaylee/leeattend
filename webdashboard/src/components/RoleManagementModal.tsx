@@ -86,13 +86,17 @@ export default function RoleManagementModal({
             <>
               {/* Primary Role */}
               <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                <label
+                  htmlFor="primary-role-select"
+                  className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1"
+                >
                   Quyền chính (Vĩnh viễn)
                 </label>
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
                   <div className="flex items-center gap-3 flex-1">
                     <Shield className="w-5 h-5 text-blue-600" />
                     <select
+                      id="primary-role-select"
                       className="bg-transparent font-bold text-slate-700 capitalize outline-none cursor-pointer"
                       value={primaryRole}
                       onChange={(e) => handleUpdatePrimary(e.target.value)}
@@ -134,6 +138,7 @@ export default function RoleManagementModal({
                       </div>
                       <button
                         onClick={() => handleRevoke(role.id)}
+                        title="Gỡ bỏ"
                         className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -162,10 +167,14 @@ export default function RoleManagementModal({
               className="grid grid-cols-1 md:grid-cols-2 gap-4"
             >
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                <label
+                  htmlFor="extra-role-select"
+                  className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                >
                   Vai trò
                 </label>
                 <select
+                  id="extra-role-select"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none text-sm"
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value)}
@@ -175,11 +184,15 @@ export default function RoleManagementModal({
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                <label
+                  htmlFor="expires-at-input"
+                  className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                >
                   Ngày hết hạn
                 </label>
                 <div className="relative">
                   <input
+                    id="expires-at-input"
                     required
                     type="datetime-local"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"

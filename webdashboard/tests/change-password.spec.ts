@@ -6,19 +6,19 @@ test.describe("Change Password Flow", () => {
     // 1. Initial Login
     await page.goto(`${baseURL}/login`);
     await page.fill(
-      'input[placeholder="name@company.com"]',
+      'input[placeholder="Email address"]',
       "admin@leeattend.com",
     );
 
     let currentPwd = "admin123";
-    await page.fill('input[placeholder="••••••••"]', currentPwd);
+    await page.fill('input[placeholder="Password"]', currentPwd);
     await page.click('button[type="submit"]');
 
     await page.waitForTimeout(3000);
     if (page.url().includes("/login")) {
       console.log("admin123 failed, trying newadmin123");
       currentPwd = "newadmin123";
-      await page.fill('input[placeholder="••••••••"]', currentPwd);
+      await page.fill('input[placeholder="Password"]', currentPwd);
       await page.click('button[type="submit"]');
     }
 
@@ -42,10 +42,10 @@ test.describe("Change Password Flow", () => {
 
     // Thử login với mật khẩu mới
     await page.fill(
-      'input[placeholder="name@company.com"]',
+      'input[placeholder="Email address"]',
       "admin@leeattend.com",
     );
-    await page.fill('input[placeholder="••••••••"]', nextPwd);
+    await page.fill('input[placeholder="Password"]', nextPwd);
     await page.click('button[type="submit"]');
 
     await expect(page).toHaveURL("/", { timeout: 15000 });

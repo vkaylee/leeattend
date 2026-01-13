@@ -46,6 +46,7 @@ export const test = base.extend<{ workerWebUrl: string }>({
         ...process.env,
         VITE_BACKEND_PORT_FILE: apiPortFile,
         VITE_WEB_PORT_FILE: webPortFile,
+        VITE_DEV_SERVER_HOST: '127.0.0.1',
       },
       detached: true,
       stdio: 'pipe',

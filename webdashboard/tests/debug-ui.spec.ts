@@ -17,7 +17,7 @@ test("debug fast login button click", async ({ page, baseURL }) => {
 
     // Lắng nghe request gọi tới API
     const requestPromise = page.waitForRequest((request) =>
-      request.url().includes("/dev/super-user"),
+      request.url().includes("/api/auth/login"),
     );
 
     await loginBtn.click();
@@ -27,7 +27,7 @@ test("debug fast login button click", async ({ page, baseURL }) => {
       console.log("📡 API Request sent to:", request.url());
 
       const response = await page.waitForResponse((response) =>
-        response.url().includes("/dev/super-user"),
+        response.url().includes("/api/auth/login"),
       );
       console.log("📥 API Response status:", response.status());
       const body = await response.text();

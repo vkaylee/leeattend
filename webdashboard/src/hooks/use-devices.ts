@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchDevices, createDevice, deleteDevice, Device } from "@/lib/api";
+import { fetchDevices, createDevice, updateDevice, deleteDevice, Device } from "@/lib/api";
 
 export const devicesKeys = {
   all: ["devices"] as const,
@@ -20,6 +20,14 @@ export function useDevices() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Device> }) =>
+      updateDevice(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: devicesKeys.all });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: deleteDevice,
     onSuccess: () => {
@@ -34,9 +42,11 @@ export function useDevices() {
     refetch: devicesQuery.refetch,
 
     createDevice: createMutation.mutateAsync,
+    updateDevice: (id: string, data: Partial<Device>) => updateMutation.mutateAsync({ id, data }),
     deleteDevice: deleteMutation.mutateAsync,
 
     isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
   };
 }

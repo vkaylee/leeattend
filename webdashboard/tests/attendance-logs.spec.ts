@@ -39,13 +39,13 @@ test.describe("Attendance Logs UI", () => {
       console.log("Waiting for URL change...");
       await expect(page).toHaveURL(/.*attendance-logs/, { timeout: 30000 });
       
-      // The page title in H1 is "Attendance Logs" (from AttendanceLogsPage.tsx)
+      // The page title in H1 is "Nhật ký chấm công" (from AttendanceLogsPage.tsx)
       console.log("Checking page content...");
-      await expect(page.locator("h1")).toContainText("Attendance Logs", { timeout: 30000 });
+      await expect(page.locator("h1")).toContainText("Nhật ký chấm công", { timeout: 30000 });
 
       // 3. Check if table headers are present
-      await expect(page.locator("th:has-text('Date')")).toBeVisible();
-      await expect(page.locator("th:has-text('Employee')")).toBeVisible();
+      await expect(page.locator("th:has-text('Ngày')")).toBeVisible();
+      await expect(page.locator("th:has-text('Nhân viên')")).toBeVisible();
       
       console.log("Test passed!");
     } catch (e) {

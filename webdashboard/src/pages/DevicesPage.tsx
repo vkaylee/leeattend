@@ -13,6 +13,7 @@ import {
   Settings,
   RefreshCw,
   Edit2,
+  X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useDevices } from "@/hooks/use-devices";
@@ -33,11 +34,13 @@ export default function DevicesPage() {
     devices,
     isLoading: devicesLoading,
     createDevice,
+    updateDevice,
     deleteDevice,
   } = useDevices();
   const { agents, isLoading: agentsLoading } = useAgentsStatus();
 
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingDevice, setEditingDevice] = useState<any>(null);
   const [newDevice, setNewDevice] = useState({
     name: "",
     agent_id: "",
@@ -54,6 +57,23 @@ export default function DevicesPage() {
       setNewDevice({ name: "", agent_id: "", ip: "", port: 4370 });
     } catch (e) {
       toast.error("Lỗi khi thêm thiết bị. Vui lòng kiểm tra lại địa chỉ IP.");
+    }
+  }
+
+  async function handleUpdate(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      await updateDevice(editingDevice.id, {
+        name: editingDevice.name,
+        agent_id: editingDevice.agent_id,
+        ip: editingDevice.ip,
+        port: editingDevice.port,
+        is_enabled: editingDevice.is_enabled,
+      });
+      toast.success(`Đã cập nhật thiết bị "${editingDevice.name}" thành công.`);
+      setEditingDevice(null);
+    } catch (e) {
+      toast.error("Lỗi khi cập nhật thiết bị.");
     }
   }
 
@@ -179,6 +199,77 @@ export default function DevicesPage() {
           </div>
         )}
 
+        {editingDevice && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in duration-200">
+              <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+                <h2 className="text-2xl font-bold">Chỉnh sửa thiết bị</h2>
+                <button onClick={() => setEditingDevice(null)} className="p-2 hover:bg-white rounded-2xl transition-colors">
+                  <X className="w-6 h-6 text-slate-300" />
+                </button>
+              </div>
+              <form onSubmit={handleUpdate} className="p-8 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Tên thiết bị</label>
+                    <input
+                      required
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      value={editingDevice.name}
+                      onChange={(e) => setEditingDevice({ ...editingDevice, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Chọn Agent</label>
+                    <select
+                      required
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none"
+                      value={editingDevice.agent_id}
+                      onChange={(e) => setEditingDevice({ ...editingDevice, agent_id: e.target.value })}
+                    >
+                      {agents.map((a) => (
+                        <option key={a.agent_id} value={a.agent_id}>{a.agent_id}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Địa chỉ IP</label>
+                    <input
+                      required
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      value={editingDevice.ip}
+                      onChange={(e) => setEditingDevice({ ...editingDevice, ip: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Cổng (Port)</label>
+                    <input
+                      type="number"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      value={editingDevice.port}
+                      onChange={(e) => setEditingDevice({ ...editingDevice, port: parseInt(e.target.value) })}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="edit_enabled"
+                    checked={editingDevice.is_enabled}
+                    onChange={(e) => setEditingDevice({ ...editingDevice, is_enabled: e.target.checked })}
+                    className="w-5 h-5 rounded-lg text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="edit_enabled" className="text-sm font-bold text-slate-700">Đang kích hoạt</label>
+                </div>
+                <div className="pt-4 flex gap-4">
+                  <button type="button" onClick={() => setEditingDevice(null)} className="flex-1 px-6 py-4 border border-slate-200 rounded-2xl font-bold text-slate-600 hover:bg-slate-50">Hủy</button>
+                  <button type="submit" className="flex-1 px-6 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-100">Cập nhật thiết bị</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="py-20 text-center">
             <div className="animate-spin w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
@@ -258,7 +349,10 @@ export default function DevicesPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
-                        <DropdownMenuItem className="gap-2">
+                        <DropdownMenuItem 
+                          className="gap-2"
+                          onSelect={() => setEditingDevice(device)}
+                        >
                           <Edit2 className="w-4 h-4 text-slate-400" />
                           Chỉnh sửa
                         </DropdownMenuItem>
