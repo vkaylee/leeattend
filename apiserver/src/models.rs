@@ -603,6 +603,13 @@ pub struct CreateDepartmentRequest {
     pub manager_id: Option<Uuid>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateDepartmentRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub manager_id: Option<Uuid>,
+}
+
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct EmployeeDepartmentHistory {
     pub id: Uuid,

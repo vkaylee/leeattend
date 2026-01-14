@@ -25,6 +25,47 @@ pub async fn create_department(
     .await
 }
 
+pub async fn update_department(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    id: Uuid,
+    name: Option<String>,
+    description: Option<String>,
+    manager_id: Option<Uuid>,
+) -> Result<Department, sqlx::Error> {
+    query_as!(
+        Department,
+        r#"UPDATE departments 
+           SET name = COALESCE($3, name),
+               description = COALESCE($4, description),
+               manager_id = COALESCE($5, manager_id)
+           WHERE id = $1 AND workspace_id = $2
+           RETURNING id, workspace_id, name, description, manager_id, created_at as "created_at!", updated_at as "updated_at!""#,
+        id,
+        workspace_id,
+        name,
+        description,
+        manager_id
+    )
+    .fetch_one(pool)
+    .await
+}
+
+pub async fn delete_department(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "DELETE FROM departments WHERE id = $1 AND workspace_id = $2",
+        id,
+        workspace_id
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 pub async fn get_departments(
     pool: &PgPool,
     workspace_id: Uuid,

@@ -65,6 +65,10 @@ export default function PayrollPage() {
     onError: (e: any) => toast.error(e.message, "Lỗi tính lương")
   });
 
+  const handleCalculate = () => {
+    calcMutation.mutate({ year: calcYear, month: calcMonth });
+  };
+
   const filteredEmployees = employees.filter(emp => 
     `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.employee_id_number.toLowerCase().includes(searchTerm.toLowerCase())
@@ -263,7 +267,7 @@ export default function PayrollPage() {
               disabled={calcMutation.isPending}
               className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2"
             >
-              {calcMutation.isPending ? "Đang tính..." : "Bắt đầu tính"}
+              {calcMutation.isPending ? "Đang tính..." : "Bắt đầu tính lương"}
             </button>
           </div>
         </div>

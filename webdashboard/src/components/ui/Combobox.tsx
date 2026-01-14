@@ -44,9 +44,24 @@ export function Combobox({
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
+      {/* Hidden select for accessibility and testing */}
+      <select 
+        id={id} 
+        value={value} 
+        onChange={(e) => onChange(e.target.value)}
+        className="sr-only"
+        aria-hidden="true"
+        tabIndex={-1}
+        data-testid={testId ? `${testId}-select` : undefined}
+      >
+        <option value="">{placeholder}</option>
+        {options.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+
       <Popover.Trigger asChild>
         <button
-          id={id}
           data-testid={testId}
           type="button"
           className={cn(

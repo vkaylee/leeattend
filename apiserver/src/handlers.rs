@@ -2346,6 +2346,44 @@ pub async fn create_department(
     }
 }
 
+pub async fn update_department(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    Json(req): Json<crate::models::UpdateDepartmentRequest>,
+) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return (StatusCode::FORBIDDEN, "Only admins can manage departments").into_response();
+    }
+    match crate::repositories::department_repository::update_department(
+        &state.db,
+        ctx.workspace_id,
+        id,
+        req.name,
+        req.description,
+        req.manager_id,
+    )
+    .await
+    {
+        Ok(dept) => Json(dept).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+pub async fn delete_department(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return (StatusCode::FORBIDDEN, "Only admins can manage departments").into_response();
+    }
+    match crate::repositories::department_repository::delete_department(&state.db, ctx.workspace_id, id).await {
+        Ok(_) => StatusCode::NO_CONTENT.into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
 pub async fn get_employee_department_history(
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,

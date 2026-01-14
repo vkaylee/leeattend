@@ -1232,6 +1232,22 @@ export async function createDepartment(wsId: string, data: Partial<Department>):
   return response.json();
 }
 
+export async function updateDepartment(wsId: string, id: string, data: Partial<Department>): Promise<Department> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/departments/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to update department");
+  return response.json();
+}
+
+export async function deleteDepartment(wsId: string, id: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/departments/${id}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to delete department");
+}
+
 export async function transferEmployee(
   wsId: string,
   employeeId: string,

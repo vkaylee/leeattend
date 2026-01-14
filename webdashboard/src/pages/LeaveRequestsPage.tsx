@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, CheckCircle2, XCircle, Send, Plus, X, Settings2, PlayCircle, UserPlus } from "lucide-react";
+import { CalendarDays, Calendar, CheckCircle2, XCircle, Send, Plus, X, Settings2, PlayCircle, UserPlus, FileText, ShieldCheck, UserCircle } from "lucide-react";
 import { 
   fetchEmployees, 
   submitLeaveRequest, 
@@ -156,11 +156,11 @@ export default function LeaveRequestsPage() {
           <p className="text-slate-500 mt-1">Duyệt và quản lý thời gian nghỉ của nhân sự</p>
         </div>
         <button 
-          onClick={() => setIsSubmitModalOpen(true)}
+          onClick={() => setIsModalOpen(true)}
           className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 font-bold"
         >
           <Plus className="w-5 h-5" />
-          Tạo đơn mới
+          Tạo yêu cầu
         </button>
       </div>
 
@@ -179,33 +179,51 @@ export default function LeaveRequestsPage() {
       </div>
 
       {activeTab === "policies" ? (
-        <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Tên chính sách</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Loại nghỉ</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Định mức/năm</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Chiến lược</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Carry-over</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {policies.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500 italic">Chưa có chính sách nào.</td></tr>
-              ) : policies.map((policy) => (
-                <tr key={policy.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-slate-900">{policy.name}</td>
-                  <td className="px-6 py-4 capitalize text-slate-600">{policy.leave_type}</td>
-                  <td className="px-6 py-4 text-slate-600 font-bold">{policy.annual_entitlement} ngày</td>
-                  <td className="px-6 py-4 text-sm text-slate-600">
-                    {policy.accrual_strategy === 'monthly' ? 'Tích lũy hàng tháng' : 'Cấp một lần đầu năm'}
-                  </td>
-                  <td className="px-6 py-4 text-slate-600">{policy.carry_over_limit} ngày</td>
+        <div className="space-y-6">
+          <div className="flex justify-end gap-3">
+            <button 
+              onClick={() => setIsAssignModalOpen(true)}
+              className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:bg-slate-50 transition-all font-bold text-sm"
+            >
+              <UserPlus className="w-4 h-4" />
+              Gán chính sách
+            </button>
+            <button 
+              onClick={() => setIsPolicyModalOpen(true)}
+              className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-slate-800 transition-all font-bold text-sm shadow-lg shadow-slate-100"
+            >
+              <Plus className="w-4 h-4" />
+              Thêm chính sách
+            </button>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">Tên chính sách</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">Loại nghỉ</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">Định mức/năm</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">Chiến lược</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">Carry-over</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {policies.length === 0 ? (
+                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500 italic">Chưa có chính sách nào.</td></tr>
+                ) : policies.map((policy) => (
+                  <tr key={policy.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-slate-900">{policy.name}</td>
+                    <td className="px-6 py-4 capitalize text-slate-600">{policy.leave_type}</td>
+                    <td className="px-6 py-4 text-slate-600 font-bold">{policy.annual_entitlement} ngày</td>
+                    <td className="px-6 py-4 text-sm text-slate-600">
+                      {policy.accrual_strategy === 'monthly' ? 'Tích lũy hàng tháng' : 'Cấp một lần đầu năm'}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600">{policy.carry_over_limit} ngày</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
@@ -283,11 +301,13 @@ export default function LeaveRequestsPage() {
           <input type="hidden" name="employee_id" value={selectedEmpId} />
           <div className="space-y-2">
             <label 
+              htmlFor="leave-emp"
               className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"
             >
               Nhân viên
             </label>
             <Combobox
+              id="leave-emp"
               options={employees.map((e) => ({
                 value: e.id,
                 label: `${e.first_name} ${e.last_name}`,
@@ -323,11 +343,13 @@ export default function LeaveRequestsPage() {
           <div className="space-y-2">
             <input type="hidden" name="leave_type" value={leaveType} />
             <label 
+              htmlFor="leave-type"
               className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"
             >
               Loại nghỉ
             </label>
             <Combobox
+              id="leave-type"
               options={[
                 { value: "vacation", label: "Nghỉ phép năm", icon: <Calendar className="w-4 h-4" /> },
                 { value: "sick", label: "Nghỉ ốm", icon: <FileText className="w-4 h-4" /> },
@@ -340,17 +362,17 @@ export default function LeaveRequestsPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Từ ngày</label>
-              <input type="date" name="start_date" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
+              <label htmlFor="start-date" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Từ ngày</label>
+              <input id="start-date" type="date" name="start_date" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Đến ngày</label>
-              <input type="date" name="end_date" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
+              <label htmlFor="end-date" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Đến ngày</label>
+              <input id="end-date" type="date" name="end_date" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Lý do</label>
-            <textarea name="reason" rows={3} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium resize-none" placeholder="Nhập lý do nghỉ..."></textarea>
+            <label htmlFor="leave-reason" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Lý do</label>
+            <textarea id="leave-reason" name="reason" rows={3} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium resize-none" placeholder="Nhập lý do nghỉ..."></textarea>
           </div>
           <div className="pt-4 flex gap-3">
             <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Hủy</button>
@@ -369,12 +391,13 @@ export default function LeaveRequestsPage() {
       >
         <form onSubmit={handleCreatePolicy} className="p-2 space-y-6">
           <div className="space-y-1">
-            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Tên chính sách</label>
-            <input name="name" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" placeholder="VD: Phép năm tiêu chuẩn" />
+            <label htmlFor="policy-name" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Tên chính sách</label>
+            <input id="policy-name" name="name" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" placeholder="VD: Phép năm tiêu chuẩn" />
           </div>
           <div className="space-y-2">
-            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Loại nghỉ</label>
+            <label htmlFor="policy-type" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Loại nghỉ</label>
             <Combobox
+              id="policy-type"
               options={[
                 { value: "vacation", label: "Phép năm", icon: <Calendar className="w-4 h-4" /> },
                 { value: "sick", label: "Nghỉ ốm", icon: <FileText className="w-4 h-4" /> },
@@ -386,17 +409,18 @@ export default function LeaveRequestsPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Định mức/năm</label>
-              <input type="number" name="annual_entitlement" required defaultValue={12} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
+              <label htmlFor="annual-entitlement" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Định mức/năm</label>
+              <input id="annual-entitlement" type="number" name="annual_entitlement" required defaultValue={12} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Carry-over limit</label>
-              <input type="number" name="carry_over_limit" required defaultValue={5} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
+              <label htmlFor="carry-over" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Carry-over limit</label>
+              <input id="carry-over" type="number" name="carry_over_limit" required defaultValue={5} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Chiến lược tích lũy</label>
+            <label htmlFor="accrual-strategy" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Chiến lược tích lũy</label>
             <Combobox
+              id="accrual-strategy"
               options={[
                 { value: "monthly", label: "Tích lũy hàng tháng", description: "Cấp 1 ngày vào đầu mỗi tháng" },
                 { value: "lump_sum", label: "Cấp một lần", description: "Cấp toàn bộ định mức vào đầu năm" },
@@ -424,11 +448,13 @@ export default function LeaveRequestsPage() {
         <form onSubmit={handleAssignPolicy} className="p-2 space-y-6">
           <div className="space-y-2">
             <label 
+              htmlFor="assign-emp"
               className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1"
             >
               Nhân viên
             </label>
             <Combobox
+              id="assign-emp"
               options={employees.map(e => ({
                 value: e.id,
                 label: `${e.first_name} ${e.last_name}`,
@@ -442,11 +468,13 @@ export default function LeaveRequestsPage() {
           </div>
           <div className="space-y-2">
             <label 
+              htmlFor="assign-policy"
               className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1"
             >
               Chính sách
             </label>
             <Combobox
+              id="assign-policy"
               options={policies.map(p => ({
                 value: p.id,
                 label: p.name,
@@ -460,8 +488,8 @@ export default function LeaveRequestsPage() {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Ngày hiệu lực</label>
-            <input type="date" name="effective_date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
+            <label htmlFor="assign-date" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Ngày hiệu lực</label>
+            <input id="assign-date" type="date" name="effective_date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
           </div>
           <div className="pt-4 flex gap-3">
             <button type="button" onClick={() => setIsAssignModalOpen(false)} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors">Hủy</button>

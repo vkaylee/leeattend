@@ -333,6 +333,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(handlers::get_departments).post(handlers::create_department),
         )
         .route(
+            "/workspaces/:ws_id/departments/:id",
+            patch(handlers::update_department).delete(handlers::delete_department),
+        )
+        .route(
             "/workspaces/:ws_id/employees/:id/departments",
             get(handlers::get_employee_department_history).post(handlers::transfer_employee),
         )
