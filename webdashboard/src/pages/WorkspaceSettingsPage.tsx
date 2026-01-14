@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users, UserPlus, Shield, Mail, Trash2, Settings2, Calculator, Save } from "lucide-react";
 import { useWorkspaceMembers } from "@/hooks/use-workspace";
 import RoleManagementModal from "@/components/RoleManagementModal";
+import DebugWorkspaceTools from "@/components/DebugWorkspaceTools";
 import { useToast } from "../components/Toast";
 import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace } from "../lib/api";
 
@@ -310,6 +311,12 @@ export default function WorkspaceSettingsPage() {
             </div>
           </div>
         </div>
+
+        {import.meta.env.DEV && (
+          <div className="mt-8">
+            <DebugWorkspaceTools />
+          </div>
+        )}
       </div>
 
       <RoleManagementModal

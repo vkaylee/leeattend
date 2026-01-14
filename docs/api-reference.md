@@ -556,6 +556,31 @@ Cập nhật hoặc gán ca làm việc cho một ngày cụ thể (Upsert).
 
 ---
 
+---
+
+### 13. Debug & Development (Debug Mode Only)
+
+Các công cụ hỗ trợ phát triển nhanh và dọn dẹp dữ liệu thử nghiệm. Chỉ khả dụng khi server chạy ở chế độ Debug.
+
+#### POST /api/dev/workspaces/:ws_id/clear
+Dọn dẹp nhanh dữ liệu theo nhóm trong một workspace.
+- **Query Params**: `?group=attendance|schedules|leave|payroll|full_reset`
+- **Mục đích**: Reset dữ liệu để thử nghiệm lại các kịch bản import/tính toán mà không làm ảnh hưởng đến cấu hình chung của workspace.
+- **Các nhóm dữ liệu**:
+    - `attendance`: Xóa logs thô, time entries, yêu cầu điều chỉnh công và lịch sử import.
+    - `schedules`: Xóa lịch biểu (rosters) và gán ca linh hoạt.
+    - `leave`: Xóa đơn nghỉ phép, lịch sử cộng phép và số dư phép.
+    - `payroll`: Xóa phiếu lương (payslips) và lịch sử lương.
+    - `full_reset`: Xóa toàn bộ dữ liệu trên cộng với danh sách nhân viên, phòng ban, ca làm việc và chính sách phép. (Giữ lại thông tin Workspace và Members).
+- **Response (200 OK)**
+
+#### GET /dev/super-user
+Tự động đăng nhập với tư cách Superuser (admin@leeattend.com).
+- **Mục đích**: Phục vụ phát triển nhanh (Onboarding) và Testing.
+- **Response (200)**: `{ "access_token": "...", "workspace_id": "...", "user_id": "..." }`
+
+---
+
 ### WebSocket Giao thức (Agent <-> Server)
 
 Agent gửi dữ liệu chấm công thô và trạng thái sức khỏe lên Server qua một kết nối duy nhất.

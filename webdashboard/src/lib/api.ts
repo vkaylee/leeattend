@@ -1302,3 +1302,13 @@ export async function fetchDevSuperUser(): Promise<{
   if (!response.ok) throw new Error("Failed to fetch dev super user");
   return response.json();
 }
+
+export async function clearWorkspaceData(wsId: string, group: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/dev/workspaces/${wsId}/clear?group=${group}`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || "Failed to clear workspace data");
+  }
+}

@@ -145,6 +145,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
     #[cfg(debug_assertions)]
     {
         router = router.route("/dev/super-user", get(handlers::get_dev_super_user));
+        router = router.route("/dev/workspaces/:ws_id/clear", post(handlers::clear_workspace_data));
     }
 
     router = router

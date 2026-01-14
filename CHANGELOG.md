@@ -5,6 +5,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Debug Workspace Tools**: Introduced developer-only tools to quickly clear workspace-related data during development.
+    - **New Backend Endpoint**: `POST /api/dev/workspaces/:ws_id/clear` allows selective data deletion (Attendance, Schedules, Leave, Payroll, or Full Reset).
+    - **Debug UI Component**: Added a `DebugWorkspaceTools` section at the bottom of Workspace Settings (visible only in dev mode).
+    - **Safe Data Isolation**: All clearing operations are strictly scoped to the active `workspace_id`.
+    - **Automated Verification**: Added comprehensive integration tests for data clearing logic.
 - **Raw Attendance Logs System**: Introduced a separate persistence layer for original punch events to ensure data integrity and auditability.
     - **New Database Schema**: Created `raw_attendance_logs` table to store un-modified data from hardware devices and file imports.
     - **Pairing Engine**: Implemented `PairingService` in the backend to automatically group flat punch events into logical attendance sessions (Time Entries).
