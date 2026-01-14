@@ -106,6 +106,13 @@ Khi tính toán ca làm việc hiệu lực của nhân viên tại một thời
   - `toast.warning()`: Khi người dùng nhập thiếu dữ liệu.
 - **Transitions**: Sử dụng Tailwind `animate-in` cho tất cả các Modals và Toast items để tạo cảm giác mượt mà.
 
+### 🕒 Date & Time Display
+- **Standardized Formatter**: Tuyệt đối **KHÔNG** sử dụng `toLocaleDateString()`, `toLocaleTimeString()` hoặc các hàm format cứng của thư viện bên ngoài trực tiếp trong Component.
+- **Unified Hook**: Luôn sử dụng custom hook `useDateTimeFormatter()` để hiển thị thời gian. Hook này tự động lấy cấu hình `date_format` và `time_format` của Workspace hiện tại.
+  - `formatDate(date)`: Hiển thị ngày (ví dụ: 14/01/2026).
+  - `formatTime(date)`: Hiển thị giờ (ví dụ: 08:30 hoặc 08:30 AM).
+  - `formatDateTime(date)`: Hiển thị cả ngày và giờ.
+
 ---
 
 ## 🛡️ Security

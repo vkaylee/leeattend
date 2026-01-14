@@ -7,18 +7,34 @@ import {
   AttendanceSummary,
   DailyAttendanceReport
 } from "../lib/api";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 export default function ReportsPage() {
   const wsId = getCurrentWorkspaceId();
+  const { formatDate, formatTime } = useDateTimeFormatter();
   
-  // Default to current month
-  const now = new Date();
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+  // Helper to get month range
+  const getMonthRange = (offset: number = 0) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + offset);
+    const firstDay = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
+    return { start: firstDay, end: lastDay };
+  };
 
-  const [dateRange, setDateRange] = useState({ start: firstDay, end: lastDay });
+  const [filterMode, setFilterMode] = useState<"this_month" | "last_month" | "custom">("this_month");
+  const [dateRange, setDateRange] = useState(getMonthRange(0));
   const [searchTerm, setSearchTerm] = useState("");
   const [reportType, setReportType] = useState<"summary" | "daily">("summary");
+
+  const handleFilterModeChange = (mode: "this_month" | "last_month" | "custom") => {
+    setFilterMode(mode);
+    if (mode === "this_month") {
+      setDateRange(getMonthRange(0));
+    } else if (mode === "last_month") {
+      setDateRange(getMonthRange(-1));
+    }
+  };
 
   const { data: reportData = [], isLoading } = useQuery({
     queryKey: ["attendance-report", wsId, dateRange, reportType],
@@ -31,11 +47,6 @@ export default function ReportsPage() {
   ) : [];
 
   if (!wsId) return <div className="p-8 text-center">Vui lòng chọn Workspace</div>;
-
-  const formatTime = (isoString: string | null) => {
-    if (!isoString) return "-";
-    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
@@ -95,41 +106,75 @@ export default function ReportsPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
-        <div className="space-y-1">
-          <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-blue-600" /> Từ ngày
-          </label>
-          <input 
-            type="date" 
-            value={dateRange.start}
-            onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20"
-          />
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-2xl">
+            <button
+              onClick={() => handleFilterModeChange("this_month")}
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                filterMode === "this_month" ? "bg-white shadow-sm text-indigo-600" : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Tháng này
+            </button>
+            <button
+              onClick={() => handleFilterModeChange("last_month")}
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                filterMode === "last_month" ? "bg-white shadow-sm text-indigo-600" : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Tháng trước
+            </button>
+            <button
+              onClick={() => handleFilterModeChange("custom")}
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                filterMode === "custom" ? "bg-white shadow-sm text-indigo-600" : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Tùy chỉnh
+            </button>
+          </div>
+
+          <div className="flex-1 max-w-md relative">
+            <input 
+              type="text" 
+              placeholder="Tìm theo tên nhân viên..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium"
+            />
+            <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
+          </div>
         </div>
-        <div className="space-y-1">
-          <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-blue-600" /> Đến ngày
-          </label>
-          <input 
-            type="date" 
-            value={dateRange.end}
-            onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-            <Search className="w-4 h-4 text-blue-600" /> Tìm nhân viên
-          </label>
-          <input 
-            type="text" 
-            placeholder="Tên nhân viên..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20"
-          />
-        </div>
+
+        {filterMode === "custom" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2 duration-300">
+            <div className="space-y-1">
+              <label htmlFor="start-date" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                <Calendar className="w-3 h-3" /> Từ ngày
+              </label>
+              <input 
+                id="start-date"
+                type="date" 
+                value={dateRange.start}
+                onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono"
+              />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="end-date" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                <Calendar className="w-3 h-3" /> Đến ngày
+              </label>
+              <input 
+                id="end-date"
+                type="date" 
+                value={dateRange.end}
+                onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
@@ -186,7 +231,7 @@ export default function ReportsPage() {
                 ) : filteredData.map((row: DailyAttendanceReport, idx: number) => (
                   <tr key={`${row.employee_id}-${row.date}-${idx}`} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4 text-sm font-medium text-slate-600 whitespace-nowrap font-mono uppercase">
-                      {new Date(row.date).toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                      {formatDate(row.date)}
                     </td>
                     <td className="px-6 py-4 font-bold text-slate-900">{row.employee_name}</td>
                     <td className="px-6 py-4 text-sm text-slate-500 whitespace-nowrap">

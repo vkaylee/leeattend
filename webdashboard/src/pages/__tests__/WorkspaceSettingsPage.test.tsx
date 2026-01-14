@@ -18,6 +18,13 @@ vi.mock("../../lib/api", () => ({
 // Mock the hook
 vi.mock("@/hooks/use-workspace", () => ({
   useWorkspaceMembers: vi.fn(),
+  useWorkspace: vi.fn(() => ({
+    workspace: {
+      date_format: "DD/MM/YYYY",
+      time_format: "24h",
+    },
+    isLoading: false,
+  })),
   useMemberRoles: vi.fn(() => ({
     roles: { primary: "member", extra: [] },
     isLoading: false,

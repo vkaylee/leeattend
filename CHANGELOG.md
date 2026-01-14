@@ -5,6 +5,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Attendance Report Quick Month Filters**: Improved user experience by adding shortcut buttons for "This Month", "Last Month", and "Custom" date ranges.
+    - **One-Tap Filtering**: Quickly switch between current and previous month data.
+    - **Clean UI**: Date inputs are now hidden behind the "Custom" option to reduce visual clutter.
+    - **Default View**: Automatically selects the current month's range on page load.
+- **Attendance Logs Quick Month Filters**: Standardized quick action filtering for raw punch events, providing a consistent experience with the Reports module.
 - **Workspace Timezone Support**: Integrated comprehensive timezone management to ensure data accuracy across different regions.
     - **Database Schema**: Added `timezone` column to `workspaces` table (defaults to `Asia/Ho_Chi_Minh`).
     - **Timezone-Aware Imports**: Updated `AttendanceImportService` to use the workspace's configured timezone when converting "naive" local times from Excel/CSV files to UTC.

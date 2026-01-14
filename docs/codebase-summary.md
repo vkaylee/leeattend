@@ -39,10 +39,11 @@ leeattend/
     - Discovery: Dynamic port selection (3000+).
     - **Temporal Engine**: Logic gán ca (`employee_shifts`) dựa trên thời gian. Hỗ trợ ghi đè ca tạm thời lên ca vĩnh viễn và tự động fallback.
     - **Heartbeat Engine**: Time-based tracking of edge agent connectivity.
+    - **Timezone Engine**: Comprehensive timezone management per workspace. Correctly handles local-to-UTC conversion for external data imports (Excel/CSV) using the workspace's configured IANA timezone ID.
 - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections. Supports **Robust Asynchronous Batch Import** (Excel/CSV) with auto-recovery and real-time progress tracking.
 - **Attendance Persistence Layer**: 
     - **Raw Event Store**: Dedicated `raw_attendance_logs` table for immutable original punch data from hardware and imports.
-    - **Pairing Engine**: `PairingService` handles the automatic conversion of flat events into logical attendance sessions. Includes deduplication (2m window) and session matching (14h window).
+    - **Pairing Engine**: `PairingService` handles the automatic conversion of flat events into logical attendance sessions. Includes deduplication (1m window) and session matching (14h window).
     - **Strict Validation**: High-fidelity file parsing that enforces workspace settings and provides line-by-line detailed error context.
 - **Time Tracking**: Core logic for punch in/out, shift calculation, and payroll-ready duration processing.
     - **Overtime Engine**: Priority-based calculation logic supporting worked-through breaks and daily OT thresholds.
@@ -54,6 +55,8 @@ leeattend/
     - **Robust API URL Resolution**: Frontend client (`api.ts`) intelligently determines API base URL, prioritizing relative `/api` paths for web development environments (to leverage Vite's dynamic proxy) and `VITE_API_URL` for production or Tauri builds.
     - **Common UI Library**: Standardized components (DropdownMenu, etc.) based on Radix UI.
     - **Global Toast System**: Non-blocking notification engine for consistent UX.
+    - **Unified Date/Time Formatting**: Centralized formatting via `useDateTimeFormatter` hook, ensuring all displays respect per-workspace `date_format` and `time_format` preferences.
+    - **Quick Month Filters**: Optimized UX for report and log views with shortcut buttons for "This Month", "Last Month", and "Custom" date ranges.
     - Onboarding & Workspace management flows.
     - Real-time agent status via **Heartbeat Badges**.
     - Discovery: Auto-proxy configuration based on `.api_port`.
@@ -77,7 +80,7 @@ leeattend/
 - [x] **Shift Versioning**: Automated tracking of shift configuration changes to maintain historical record integrity.
 - [x] Configurable Work Units: Support for 15m/30m/60m rounding blocks with configurable policies (Floor/Ceil/Round).
 - [x] **Raw Attendance Audit**: Immutable event-centric storage with smart pairing logic.
-- [x] **Workspace Personalization**: Per-workspace preference for `date_format` and `time_format` (12h vs 24h) with consistent UI application.
+- [x] **Workspace Personalization**: Per-workspace preference for `date_format`, `time_format`, and `timezone` with consistent UI and processing application.
 - [x] Accurate Real-time Status (Heartbeat).
 - [x] **RBAC Audit**: Full security audit of all administrative endpoints; strict enforcement of `MemberContext` roles (Owner/Admin).
 - [x] **Leave Management**: Comprehensive tracking of leave requests, approvals, and annual balances.
@@ -93,6 +96,7 @@ leeattend/
 - **Debug Login:** 
     - Backend: Endpoint `/api/dev/super-user` (debug mode only) tự động sinh token cho admin mặc định.
     - Frontend: Nút "Debug Login" trên `LoginPage` giúp đăng nhập ngay lập tức không cần nhập mật khẩu.
+- **Debug Workspace Tools:** Developer-only section in Workspace Settings to quickly clear specific data groups (Attendance, Schedules, Leave, Payroll) or perform a full workspace reset.
 - **Playwright Tests (`webdashboard/tests/`):** 
     - `debug-login.spec.ts`: Kiểm tra luồng đăng nhập và tự động hóa việc vào dashboard.
     - `debug-ui.spec.ts`: Script dùng để kiểm tra luồng Auth, Loading loop và lấy logs từ trình duyệt.

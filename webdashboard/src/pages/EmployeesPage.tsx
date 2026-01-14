@@ -28,10 +28,12 @@ import {
   addSalaryHistory,
   transferEmployee
 } from "../lib/api";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 export default function EmployeesPage() {
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
+  const { formatDate } = useDateTimeFormatter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -211,7 +213,7 @@ export default function EmployeesPage() {
                   <td className="px-6 py-4 font-mono text-sm text-slate-500">{emp.employee_id_number}</td>
                   {!selectedEmployee && (
                     <>
-                      <td className="px-6 py-4 text-slate-600 text-sm">{new Date(emp.hire_date).toLocaleDateString('vi-VN')}</td>
+                      <td className="px-6 py-4 text-slate-600 text-sm">{formatDate(emp.hire_date)}</td>
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${emp.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
                           {emp.is_active ? 'Active' : 'Terminated'}
@@ -286,7 +288,7 @@ export default function EmployeesPage() {
                     <div className="font-bold text-slate-900">
                       {departments?.find(d => d.id === deptHistory[0].department_id)?.name}
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">Hiệu lực từ: {new Date(deptHistory[0].effective_date).toLocaleDateString('vi-VN')}</div>
+                    <div className="text-xs text-slate-500 mt-1">Hiệu lực từ: {formatDate(deptHistory[0].effective_date)}</div>
                   </div>
                 ) : (
                   <div className="text-sm text-slate-400 italic">Chưa được gán phòng ban</div>
@@ -321,7 +323,7 @@ export default function EmployeesPage() {
                         </div>
                         <div className="text-[10px] text-slate-500 mt-1 uppercase font-bold flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {new Date(sal.effective_date).toLocaleDateString('vi-VN')}
+                          {formatDate(sal.effective_date)}
                         </div>
                       </div>
                       {idx === 0 && <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[9px] font-bold rounded-full uppercase tracking-tighter">Current</span>}
@@ -346,7 +348,7 @@ export default function EmployeesPage() {
                 <div className="relative">
                   <div className="absolute -left-[1.35rem] top-1 w-3 h-3 rounded-full bg-blue-500 border-2 border-white shadow-sm ring-4 ring-blue-50"></div>
                   <div className="text-sm font-bold text-slate-800">Gia nhập công ty</div>
-                  <div className="text-xs text-slate-500">{new Date(selectedEmployee.hire_date).toLocaleDateString('vi-VN')}</div>
+                  <div className="text-xs text-slate-500">{formatDate(selectedEmployee.hire_date)}</div>
                 </div>
               </div>
             </section>

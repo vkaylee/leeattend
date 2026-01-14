@@ -25,11 +25,13 @@ import {
   Payslip
 } from "../lib/api";
 import { useToast } from "../components/Toast";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 export default function PayrollPage() {
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { formatDate } = useDateTimeFormatter();
   
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -184,7 +186,7 @@ export default function PayrollPage() {
                         <td className="px-8 py-6">
                           <div className="font-bold text-slate-900">Tháng {new Date(slip.period_start).getMonth() + 1}/{new Date(slip.period_start).getFullYear()}</div>
                           <div className="text-[10px] text-slate-400 font-bold mt-1">
-                            {new Date(slip.period_start).toLocaleDateString('vi-VN')} - {new Date(slip.period_end).toLocaleDateString('vi-VN')}
+                            {formatDate(slip.period_start)} - {formatDate(slip.period_end)}
                           </div>
                         </td>
                         <td className="px-8 py-6 text-right font-mono text-sm text-slate-600">

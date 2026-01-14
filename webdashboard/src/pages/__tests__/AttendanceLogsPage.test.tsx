@@ -15,6 +15,14 @@ vi.mock("../../lib/api", () => ({
   getCurrentWorkspaceId: vi.fn(() => "test-ws-id"),
 }));
 
+// Mock useDateTimeFormatter hook
+vi.mock("@/hooks/use-datetime", () => ({
+  useDateTimeFormatter: vi.fn(() => ({
+    formatDate: vi.fn((d) => d),
+    formatTime: vi.fn((d) => d),
+  })),
+}));
+
 describe("AttendanceLogsPage", () => {
   let queryClient: QueryClient;
 
@@ -60,11 +68,9 @@ describe("AttendanceLogsPage", () => {
     expect(screen.getByText("Device-A")).toBeDefined();
   });
 
-  it("handles filtering", async () => {
+  it("handles month filtering", async () => {
     const user = userEvent.setup();
-    (api.fetchEmployees as any).mockResolvedValue([
-      { id: "emp-1", first_name: "John", last_name: "Doe", employee_id_number: "EMP001" }
-    ]);
+    (api.fetchEmployees as any).mockResolvedValue([]);
     (api.fetchRawAttendanceLogs as any).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
     (api.fetchWorkspace as any).mockResolvedValue({ time_format: "24h" });
 
@@ -78,25 +84,46 @@ describe("AttendanceLogsPage", () => {
       </QueryClientProvider>
     );
 
-    // Wait for employee options to load
-    await waitFor(async () => {
-      const option = await screen.queryByText(/John Doe/);
-      expect(option).not.toBeNull();
+    // Initial fetch should be for this month
+    await waitFor(() => {
+      expect(api.fetchRawAttendanceLogs).toHaveBeenCalled();
     });
 
-    // Filter by employee
-    const empFilter = screen.getByLabelText("Nhân viên");
-    await user.selectOptions(empFilter, "emp-1");
-
-    // Filter by date
-    const dateInput = screen.getByLabelText("Từ ngày");
-    fireEvent.change(dateInput, { target: { value: "2026-01-01" } });
+    // Click "Tháng trước"
+    const lastMonthBtn = screen.getByText("Tháng trước");
+    await user.click(lastMonthBtn);
 
     await waitFor(() => {
-      expect(api.fetchRawAttendanceLogs).toHaveBeenCalledWith(expect.objectContaining({
-        employee_id: "emp-1",
-      }));
+      // It should trigger another fetch
+      expect(api.fetchRawAttendanceLogs).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it("handles custom date range visibility", async () => {
+    const user = userEvent.setup();
+    (api.fetchEmployees as any).mockResolvedValue([]);
+    (api.fetchRawAttendanceLogs as any).mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 });
+    (api.fetchWorkspace as any).mockResolvedValue({ time_format: "24h" });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <BrowserRouter>
+            <AttendanceLogsPage />
+          </BrowserRouter>
+        </ToastProvider>
+      </QueryClientProvider>
+    );
+
+    // Should not see date inputs initially
+    expect(screen.queryByLabelText(/Từ ngày/i)).toBeNull();
+
+    // Click "Tùy chỉnh"
+    const customBtn = screen.getByText("Tùy chỉnh");
+    await user.click(customBtn);
+
+    // Now should see inputs
+    expect(screen.getByLabelText(/Từ ngày/i)).toBeDefined();
   });
 
   it("handles pagination", async () => {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, Shield, Plus, Trash2, Clock } from "lucide-react";
 import { useMemberRoles } from "@/hooks/use-workspace";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 interface RoleManagementModalProps {
   userId: string | null;
@@ -13,6 +14,7 @@ export default function RoleManagementModal({
   isOpen,
   onClose,
 }: RoleManagementModalProps) {
+  const { formatDate, formatTime, formatDateTime } = useDateTimeFormatter();
   const { roles, isLoading, updatePrimaryRole, assignRole, revokeRole } =
     useMemberRoles(userId || "", undefined);
   const [newRole, setNewRole] = useState("member");
@@ -132,7 +134,7 @@ export default function RoleManagementModal({
                           <Clock className="w-3 h-3" />
                           <span>
                             Hết hạn:{" "}
-                            {new Date(role.expires_at).toLocaleString("vi-VN")}
+                            {formatDateTime(role.expires_at)}
                           </span>
                         </div>
                       </div>

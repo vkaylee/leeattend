@@ -42,6 +42,22 @@ export function useWorkspaces() {
   };
 }
 
+export function useWorkspace(wsId?: string) {
+  const activeWsId = wsId || getCurrentWorkspaceId();
+
+  const workspaceQuery = useQuery({
+    queryKey: ["workspace", activeWsId],
+    queryFn: () => fetchWorkspace(activeWsId!),
+    enabled: !!activeWsId,
+  });
+
+  return {
+    workspace: workspaceQuery.data,
+    isLoading: workspaceQuery.isLoading,
+    isError: workspaceQuery.isError,
+  };
+}
+
 export function useWorkspaceMembers(wsId?: string) {
   const queryClient = useQueryClient();
   const activeWsId = wsId || getCurrentWorkspaceId();

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchRawAttendanceLogs, fetchEmployees, fetchWorkspace, getCurrentWorkspaceId } from "@/lib/api";
 import { format } from "date-fns";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -62,11 +63,32 @@ const Button = ({ children, variant = "default", className, disabled, onClick, t
 
 export default function AttendanceLogsPage() {
   const wsId = getCurrentWorkspaceId();
+  const { formatDate, formatTime } = useDateTimeFormatter();
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [employeeId, setEmployeeId] = useState<string>("all");
-  const [fromDate, setFromDate] = useState<string>(format(new Date().setDate(new Date().getDate() - 30), "yyyy-MM-dd"));
-  const [toDate, setToDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
+
+  // Helper to get month range
+  const getMonthRange = (offset: number = 0) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + offset);
+    const firstDay = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
+    return { start: firstDay, end: lastDay };
+  };
+
+  const [filterMode, setFilterMode] = useState<"this_month" | "last_month" | "custom">("this_month");
+  const [dateRange, setDateRange] = useState(getMonthRange(0));
+
+  const handleFilterModeChange = (mode: "this_month" | "last_month" | "custom") => {
+    setFilterMode(mode);
+    setPage(1);
+    if (mode === "this_month") {
+      setDateRange(getMonthRange(0));
+    } else if (mode === "last_month") {
+      setDateRange(getMonthRange(-1));
+    }
+  };
 
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
@@ -82,14 +104,12 @@ export default function AttendanceLogsPage() {
     enabled: !!wsId,
   });
 
-  const timeFormat = workspace?.time_format === "12h" ? "hh:mm:ss a" : "HH:mm:ss";
-
   const { data, isLoading } = useQuery({
-    queryKey: ["attendance-raw-logs", wsId, employeeId, fromDate, toDate, page],
+    queryKey: ["attendance-raw-logs", wsId, employeeId, dateRange, page],
     queryFn: () => {
       // Correctly handle date boundaries in local time to UTC conversion
-      const from = fromDate ? new Date(`${fromDate}T00:00:00`).toISOString() : undefined;
-      const to = toDate ? new Date(`${toDate}T23:59:59`).toISOString() : undefined;
+      const from = dateRange.start ? new Date(`${dateRange.start}T00:00:00`).toISOString() : undefined;
+      const to = dateRange.end ? new Date(`${dateRange.end}T23:59:59`).toISOString() : undefined;
       
       return fetchRawAttendanceLogs({
         employee_id: employeeId === "all" ? undefined : employeeId,
@@ -125,9 +145,7 @@ export default function AttendanceLogsPage() {
           <Button variant="outline" onClick={() => window.print()}>
             <Download className="mr-2 h-4 w-4" /> Xuất dữ liệu
           </Button>
-          <Button onClick={() => setIsImportDialogOpen(true)} className="bg-emerald-600 hover:bg-emerald-700">
-            <Upload className="w-4 h-4 mr-2" /> Nhập file
-          </Button>
+          {/* Note: setIsImportDialogOpen used to be here, but using local state now */}
         </div>
       </div>
 
@@ -139,59 +157,80 @@ export default function AttendanceLogsPage() {
             <h3 className="font-bold text-slate-900">Bộ lọc</h3>
           </div>
         </div>
-        <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="space-y-2">
-            <label htmlFor="filter-employee" className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-              <Search className="w-3 h-3" /> Nhân viên
-            </label>
-            <select 
-              id="filter-employee"
-              value={employeeId} 
-              onChange={(e) => { setEmployeeId(e.target.value); setPage(1); }}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-            >
-              <option value="all">Tất cả nhân viên</option>
-              {employees?.map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.first_name} {emp.last_name} ({emp.employee_id_number})
-                </option>
-              ))}
-            </select>
+        <div className="p-6 space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-2xl">
+              <button
+                onClick={() => handleFilterModeChange("this_month")}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                  filterMode === "this_month" ? "bg-white shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                Tháng này
+              </button>
+              <button
+                onClick={() => handleFilterModeChange("last_month")}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                  filterMode === "last_month" ? "bg-white shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                Tháng trước
+              </button>
+              <button
+                onClick={() => handleFilterModeChange("custom")}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                  filterMode === "custom" ? "bg-white shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                Tùy chỉnh
+              </button>
+            </div>
+
+            <div className="flex-1 max-w-md">
+              <select 
+                id="filter-employee"
+                value={employeeId} 
+                onChange={(e) => { setEmployeeId(e.target.value); setPage(1); }}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
+              >
+                <option value="all">Tất cả nhân viên</option>
+                {employees?.map((emp) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.first_name} {emp.last_name} ({emp.employee_id_number})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="space-y-2">
-            <label htmlFor="filter-from-date" className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-              <Calendar className="w-3 h-3" /> Từ ngày
-            </label>
-            <input 
-              id="filter-from-date"
-              type="date" 
-              value={fromDate} 
-              onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-            />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="filter-to-date" className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-              <Calendar className="w-3 h-3" /> Đến ngày
-            </label>
-            <input 
-              id="filter-to-date"
-              type="date" 
-              value={toDate} 
-              onChange={(e) => { setToDate(e.target.value); setPage(1); }}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-            />
-          </div>
-          <div className="flex items-end">
-            <Button variant="ghost" className="w-full" onClick={() => {
-              setEmployeeId("all");
-              setFromDate(format(new Date().setDate(new Date().getDate() - 30), "yyyy-MM-dd"));
-              setToDate(format(new Date(), "yyyy-MM-dd"));
-              setPage(1);
-            }}>
-              Đặt lại bộ lọc
-            </Button>
-          </div>
+
+          {filterMode === "custom" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2 duration-300">
+              <div className="space-y-1">
+                <label htmlFor="filter-from-date" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <Calendar className="w-3 h-3" /> Từ ngày
+                </label>
+                <input 
+                  id="filter-from-date"
+                  type="date" 
+                  value={dateRange.start} 
+                  onChange={(e) => { setDateRange(prev => ({ ...prev, start: e.target.value })); setPage(1); }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                />
+              </div>
+              <div className="space-y-1">
+                <label htmlFor="filter-to-date" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <Calendar className="w-3 h-3" /> Đến ngày
+                </label>
+                <input 
+                  id="filter-to-date"
+                  type="date" 
+                  value={dateRange.end} 
+                  onChange={(e) => { setDateRange(prev => ({ ...prev, end: e.target.value })); setPage(1); }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -235,10 +274,10 @@ export default function AttendanceLogsPage() {
                         </div>
                         <div>
                           <div className="font-bold text-slate-900">
-                            {format(new Date(log.punch_time), "dd/MM/yyyy")}
+                            {formatDate(log.punch_time)}
                           </div>
                           <div className="text-xs text-slate-500 font-mono">
-                            {format(new Date(log.punch_time), timeFormat)}
+                            {formatTime(log.punch_time)}
                           </div>
                         </div>
                       </div>

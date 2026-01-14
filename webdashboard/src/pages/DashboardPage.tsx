@@ -9,8 +9,10 @@ import {
 import { Link } from "react-router-dom";
 import { useAgentsStatus } from "@/hooks/use-agents";
 import { useDevices } from "@/hooks/use-devices";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 export default function DashboardPage() {
+  const { formatTime } = useDateTimeFormatter();
   const {
     agents,
     isLoading: agentsLoading,
@@ -131,7 +133,7 @@ export default function DashboardPage() {
                           </h3>
                           <p className="text-xs text-slate-400 italic">
                             Last seen:{" "}
-                            {new Date(agent.last_seen).toLocaleTimeString()}
+                            {formatTime(agent.last_seen)}
                           </p>
                         </div>
                       </div>

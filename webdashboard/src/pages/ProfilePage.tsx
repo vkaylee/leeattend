@@ -9,14 +9,14 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useProfile } from "@/hooks/use-profile";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { changePassword, clearAuthSession } from "@/lib/api";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "../components/Toast";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const toast = useToast();
   const { user, isLoading, updateProfile, isUpdating } = useProfile();
+  const { formatDate } = useDateTimeFormatter();
   const [formData, setFormData] = useState({
     full_name: "",
     avatar_url: "",
@@ -98,7 +98,7 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-500">
                     <Calendar className="w-4 h-4" />
                     <span className="text-sm font-medium">
-                      {user ? new Date(user.created_at).toLocaleDateString("vi-VN") : '---'}
+                      {user ? formatDate(user.created_at) : '---'}
                     </span>
                   </div>
                 </div>

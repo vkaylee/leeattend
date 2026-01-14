@@ -8,12 +8,13 @@ import {
   approveAttendanceAdjustment,
   getCurrentWorkspaceId
 } from "../lib/api";
-import { formatTime } from "../lib/utils";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import AttendanceImportDialog from "@/components/AttendanceImportDialog";
 
 export default function AttendanceAdjustmentsPage() {
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
+  const { formatDate, formatTime } = useDateTimeFormatter();
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
   const { data: workspace } = useQuery({
@@ -136,12 +137,12 @@ export default function AttendanceAdjustmentsPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium">
-                      {new Date(req.requested_punch_in_time).toLocaleDateString('vi-VN')}
+                      {formatDate(req.requested_punch_in_time)}
                     </div>
                     <div className="text-xs text-slate-500 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {formatTime(new Date(req.requested_punch_in_time).toLocaleTimeString('vi-VN'), workspace?.time_format)} - 
-                      {req.requested_punch_out_time ? formatTime(new Date(req.requested_punch_out_time).toLocaleTimeString('vi-VN'), workspace?.time_format) : "?"}
+                      {formatTime(req.requested_punch_in_time)} - 
+                      {req.requested_punch_out_time ? formatTime(req.requested_punch_out_time) : "?"}
                     </div>
                     {req.is_break_overtime && (
                       <div className="mt-1">

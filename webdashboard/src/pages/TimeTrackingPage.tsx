@@ -13,12 +13,13 @@ import {
   TimeEntry
 } from "../lib/api";
 import { useToast } from "../components/Toast";
-import { formatTime } from "../lib/utils";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 export default function TimeTrackingPage() {
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { formatDate, formatTime } = useDateTimeFormatter();
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
   const [adjustmentData, setAdjustmentData] = useState({
@@ -150,7 +151,7 @@ export default function TimeTrackingPage() {
                   <div className="text-slate-400 font-black uppercase text-[10px] tracking-widest mb-1">
                     {isOnBreak ? 'Bắt đầu nghỉ lúc' : 'Bắt đầu ca lúc'}
                   </div>
-                  <div className="font-black text-2xl text-slate-800">{formatTime(new Date(activeEntry.punch_in_time).toLocaleTimeString('vi-VN'), workspace?.time_format)}</div>
+                  <div className="font-black text-2xl text-slate-800">{formatTime(activeEntry.punch_in_time)}</div>
                 </div>
                 
                 <div className="grid grid-cols-1 gap-3">
@@ -229,14 +230,14 @@ export default function TimeTrackingPage() {
                   ) : history.map(entry => (
                     <tr key={entry.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-6 py-4 text-sm font-bold text-slate-700">
-                        {new Date(entry.punch_in_time).toLocaleDateString('vi-VN')}
+                        {formatDate(entry.punch_in_time)}
                         <span className={`ml-2 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${entry.entry_type === 'break' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
                           {entry.entry_type === 'break' ? 'Nghỉ' : 'Làm'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-slate-600">{formatTime(new Date(entry.punch_in_time).toLocaleTimeString('vi-VN'), workspace?.time_format)}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-slate-600">{formatTime(entry.punch_in_time)}</td>
                       <td className="px-6 py-4 text-sm font-medium text-slate-600">
-                        {entry.punch_out_time ? formatTime(new Date(entry.punch_out_time).toLocaleTimeString('vi-VN'), workspace?.time_format) : (
+                        {entry.punch_out_time ? formatTime(entry.punch_out_time) : (
                           <span className={`${entry.entry_type === 'break' ? 'text-amber-500 bg-amber-50' : 'text-orange-500 bg-orange-50'} font-bold px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-widest`}>
                             {entry.entry_type === 'break' ? 'Đang nghỉ' : 'Đang làm'}
                           </span>
@@ -291,7 +292,7 @@ export default function TimeTrackingPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center px-1">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Giờ vào</label>
-                    <span className="text-[9px] font-black text-blue-500 uppercase">{formatTime(adjustmentData.punchIn, workspace?.time_format)}</span>
+                    <span className="text-[9px] font-black text-blue-500 uppercase">{formatTime(adjustmentData.punchIn)}</span>
                   </div>
                   <input 
                     type="time" 
@@ -306,7 +307,7 @@ export default function TimeTrackingPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center px-1">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Giờ ra</label>
-                    <span className="text-[9px] font-black text-blue-500 uppercase">{formatTime(adjustmentData.punchOut, workspace?.time_format)}</span>
+                    <span className="text-[9px] font-black text-blue-500 uppercase">{formatTime(adjustmentData.punchOut)}</span>
                   </div>
                   <input 
                     type="time" 

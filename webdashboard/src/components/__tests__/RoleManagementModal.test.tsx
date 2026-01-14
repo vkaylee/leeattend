@@ -7,6 +7,13 @@ import { useMemberRoles } from "@/hooks/use-workspace";
 // Mock the hook
 vi.mock("@/hooks/use-workspace", () => ({
   useMemberRoles: vi.fn(),
+  useWorkspace: vi.fn(() => ({
+    workspace: {
+      date_format: "DD/MM/YYYY",
+      time_format: "24h",
+    },
+    isLoading: false,
+  })),
 }));
 
 describe("RoleManagementModal", () => {

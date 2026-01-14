@@ -17,10 +17,12 @@ import {
   EmployeeLeaveBalance,
   LeavePolicy
 } from "../lib/api";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
 export default function LeaveRequestsPage() {
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
+  const { formatDate } = useDateTimeFormatter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -253,7 +255,7 @@ export default function LeaveRequestsPage() {
                     </td>
                     <td className="px-6 py-4 capitalize text-slate-600">{req.leave_type}</td>
                     <td className="px-6 py-4 text-sm text-slate-600">
-                      {new Date(req.start_date).toLocaleDateString('vi-VN')} - {new Date(req.end_date).toLocaleDateString('vi-VN')}
+                      {formatDate(req.start_date)} - {formatDate(req.end_date)}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-500 max-w-xs truncate">{req.reason || '-'}</td>
                     <td className="px-6 py-4">
