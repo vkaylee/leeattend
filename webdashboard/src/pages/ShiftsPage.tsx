@@ -36,8 +36,8 @@ import {
   Shift
 } from "../lib/api";
 import { useToast } from "../components/Toast";
-import { formatTime, formatDateTime } from "../lib/utils";
-import { format, addDays, startOfWeek as startOfWeekFn } from "date-fns";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { format, addDays } from "date-fns";
 import { vi } from "date-fns/locale";
 
 type TabType = "assignments" | "weekly-roster" | "directory";
@@ -46,6 +46,7 @@ export default function ShiftsPage() {
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { formatDate, formatTime, formatDateTime } = useDateTimeFormatter();
   const [activeTab, setActiveTab] = useState<TabType>("weekly-roster");
   
   // Selection states
@@ -479,7 +480,7 @@ export default function ShiftsPage() {
                         <ChevronLeft size={18} />
                       </button>
                       <div className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600">
-                        TUẦN: {format(weekDays[0], "dd/MM", { locale: vi })} - {format(weekDays[6], "dd/MM", { locale: vi })}
+                        TUẦN: {formatDate(weekDays[0])} - {formatDate(weekDays[6])}
                       </div>
                       <button 
                         onClick={() => {
@@ -1138,7 +1139,7 @@ export default function ShiftsPage() {
               <div>
                 <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Chọn ca làm việc</h3>
                 <p className="text-[10px] text-slate-400 font-black mt-1 uppercase tracking-widest">
-                  Gán cho {targetDates.length === 1 ? `ngày ${format(new Date(targetDates[0]), "dd/MM")}` : `${targetDates.length} ngày đã chọn`}
+                  Gán cho {targetDates.length === 1 ? `ngày ${formatDate(targetDates[0])}` : `${targetDates.length} ngày đã chọn`}
                 </p>
               </div>
               <button onClick={() => setIsShiftPickerOpen(false)} className="p-3 hover:bg-white border border-transparent hover:border-slate-100 rounded-2xl transition-all">

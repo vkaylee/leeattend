@@ -248,8 +248,8 @@ export default function TimeTrackingPage() {
                           onClick={() => {
                             setAdjustmentData({
                               date: new Date(entry.punch_in_time).toISOString().split('T')[0],
-                              punchIn: new Date(entry.punch_in_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false }),
-                              punchOut: entry.punch_out_time ? new Date(entry.punch_out_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false }) : "17:00",
+                              punchIn: formatTime(entry.punch_in_time),
+                              punchOut: entry.punch_out_time ? formatTime(entry.punch_out_time) : "17:00",
                               reason: "",
                               isBreakOvertime: entry.is_break_overtime,
                               timeEntryId: entry.id
