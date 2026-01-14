@@ -18,6 +18,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Personal Theme Override**: Users can select their own preferred color in the Profile page, stored in `localStorage` for immediate application across sessions.
     - **Reset to Default**: Option for users to quickly revert to the official Workspace branding.
     - **Cross-Tab Synchronization**: Theme changes sync instantly across all open browser tabs via the `storage` event listener.
+- **Portal-based Modal Infrastructure**: Revolutionized the dialog system to solve clipping and z-index issues.
+    - **Centralized `Modal` Component**: Created a reusable component leveraging `ReactDOM.createPortal` for top-level rendering.
+    - **Full-Screen Seamless Backdrop**: Upgraded all modal backdrops to a modern `backdrop-blur-md` with a soft `black/20` overlay, eliminating the "gray box" visual artifacts.
+    - **Universal Refactoring**: Applied the new Portal-based Modal to over 15 locations including Employee management, Department creation, Leave requests, and Payroll processing.
+    - **Scroll Lock**: Integrated automatic body scroll-locking when modals are active to prevent background movement.
 - **UI/UX Standards Documentation**: Formalized the project's design language in `docs/ui-ux-standards.md`.
 - **Enhanced Integration Testing**: Added Vitest suites for the `useTheme` hook and updated Rust tests to verify theme color persistence.
 

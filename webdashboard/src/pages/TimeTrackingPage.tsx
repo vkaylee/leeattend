@@ -15,7 +15,8 @@ import {
 import { useToast } from "../components/Toast";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Combobox } from "@/components/ui/Combobox";
-import { User } from "lucide-react";
+import { User, History, Plus } from "lucide-react";
+import Modal from "@/components/ui/Modal";
 
 export default function TimeTrackingPage() {
   const wsId = getCurrentWorkspaceId();
@@ -297,97 +298,79 @@ export default function TimeTrackingPage() {
 
 
       {/* Adjustment Modal */}
-      {isAdjustmentModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[40px] p-8 max-w-md w-full shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100">
-            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-1">Xác nhận công</h2>
-            <p className="text-xs font-bold text-slate-400 mb-8 uppercase tracking-widest">GỬI YÊU CẦU ĐIỀU CHỈNH GIỜ CÔNG</p>
-            
-            <form onSubmit={handleAdjustSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ngày làm việc</label>
-                <input 
-                  type="date" 
-                  value={adjustmentData.date}
-                  onChange={e => setAdjustmentData({...adjustmentData, date: e.target.value})}
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center px-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Giờ vào</label>
-                    <span className="text-[9px] font-black text-blue-500 uppercase">{formatTime(adjustmentData.punchIn)}</span>
-                  </div>
-                  <input 
-                    type="time" 
-                    step="60"
-                    lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
-                    value={adjustmentData.punchIn}
-                    onChange={e => setAdjustmentData({...adjustmentData, punchIn: e.target.value})}
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center px-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Giờ ra</label>
-                    <span className="text-[9px] font-black text-blue-500 uppercase">{formatTime(adjustmentData.punchOut)}</span>
-                  </div>
-                  <input 
-                    type="time" 
-                    step="60"
-                    lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
-                    value={adjustmentData.punchOut}
-                    onChange={e => setAdjustmentData({...adjustmentData, punchOut: e.target.value})}
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-                    required
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-2xl">
-                <input 
-                  type="checkbox" 
-                  id="isBreakOvertime"
-                  checked={adjustmentData.isBreakOvertime}
-                  onChange={e => setAdjustmentData({...adjustmentData, isBreakOvertime: e.target.checked})}
-                  className="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500 transition-all cursor-pointer"
-                />
-                <label htmlFor="isBreakOvertime" className="text-[11px] font-black text-blue-900 cursor-pointer uppercase tracking-tight">
-                  Làm việc thông trưa (Tăng ca nghỉ)
-                </label>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Lý do điều chỉnh</label>
-                <textarea 
-                  value={adjustmentData.reason}
-                  onChange={e => setAdjustmentData({...adjustmentData, reason: e.target.value})}
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-medium text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all min-h-[100px]" 
-                  placeholder="VD: Quên mang thẻ, máy chấm công lỗi..."
-                  required
-                ></textarea>
-              </div>
-              <div className="flex gap-4 pt-4">
-                <button 
-                  type="button"
-                  onClick={() => setIsAdjustmentModalOpen(false)}
-                  className="flex-1 px-4 py-4 border border-slate-200 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all"
-                >
-                  Hủy
-                </button>
-                <button 
-                  type="submit"
-                  disabled={adjustMutation.isPending}
-                  className="flex-1 px-4 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
-                >
-                  Gửi yêu cầu
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={isAdjustmentModalOpen}
+        onClose={() => setIsAdjustmentModalOpen(false)}
+        title={adjustmentData.timeEntryId ? "Chỉnh sửa công" : "Xác nhận công mới"}
+        subtitle="Điều chỉnh dữ liệu"
+        icon={<History className="w-6 h-6" />}
+      >
+        <form onSubmit={handleAdjustmentSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ngày làm việc</label>
+            <input 
+              type="date" 
+              required
+              className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold"
+              value={adjustmentData.date}
+              onChange={e => setAdjustmentData({...adjustmentData, date: e.target.value})}
+            />
           </div>
-        </div>
-      )}
+
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Giờ vào</label>
+              <input 
+                type="time" 
+                required
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold"
+                value={adjustmentData.punchIn}
+                onChange={e => setAdjustmentData({...adjustmentData, punchIn: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Giờ ra</label>
+              <input 
+                type="time" 
+                required
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold"
+                value={adjustmentData.punchOut}
+                onChange={e => setAdjustmentData({...adjustmentData, punchOut: e.target.value})}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 py-2">
+            <input 
+              type="checkbox" 
+              id="is_break_overtime"
+              className="w-6 h-6 text-primary-600 rounded-xl border-slate-200 focus:ring-primary-500 transition-all cursor-pointer"
+              checked={adjustmentData.isBreakOvertime}
+              onChange={e => setAdjustmentData({...adjustmentData, isBreakOvertime: e.target.checked})}
+            />
+            <label htmlFor="is_break_overtime" className="text-sm font-black text-slate-700 uppercase tracking-widest cursor-pointer">Làm thông trưa (OT)</label>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Lý do điều chỉnh</label>
+            <textarea 
+              required
+              placeholder="VD: Quên quẹt thẻ, đi công tác..."
+              className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-medium h-24 resize-none"
+              value={adjustmentData.reason}
+              onChange={e => setAdjustmentData({...adjustmentData, reason: e.target.value})}
+            />
+          </div>
+
+          <div className="pt-6 grid grid-cols-2 gap-5">
+            <button type="button" onClick={() => setIsAdjustmentModalOpen(false)} className="px-8 py-4 border border-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Hủy bỏ</button>
+            <button type="submit" disabled={adjustmentMutation.isPending} className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200">
+              {adjustmentMutation.isPending ? "Đang gửi..." : "Gửi yêu cầu"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
 
       {!selectedEmployeeId && (
         <div className="flex flex-col items-center justify-center py-32 text-slate-400 border-2 border-dashed border-slate-200 rounded-[40px] bg-slate-50/30">

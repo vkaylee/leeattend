@@ -63,26 +63,29 @@ export default function RoleManagementModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between p-6 border-b border-slate-50">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-50 p-2 rounded-xl text-blue-600">
-              <Shield className="w-5 h-5" />
+    <div className="modal-backdrop">
+      <div className="modal-content max-w-lg">
+        <div className="flex items-center justify-between p-8 border-b border-slate-50">
+          <div className="flex items-center gap-4">
+            <div className="bg-blue-50 p-3 rounded-2xl text-blue-600">
+              <UserCheck className="w-6 h-6" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900">
-              Quản lý quyền hạn
-            </h2>
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+                Quản lý quyền hạn
+              </h2>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Phân quyền nhân sự</p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+            className="p-2 hover:bg-slate-100 rounded-full transition-colors group"
           >
-            <X className="w-5 h-5 text-slate-400" />
+            <X className="w-5 h-5 text-slate-300 group-hover:text-slate-600" />
           </button>
         </div>
 
-        <div className="p-6 space-y-8">
+        <div className="p-8 space-y-8">
           {isLoading ? (
             <div className="py-12 text-center text-slate-400">Đang tải...</div>
           ) : (

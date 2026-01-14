@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "../components/Toast";
 import { Combobox } from "@/components/ui/Combobox";
+import Modal from "@/components/ui/Modal";
 
 export default function DevicesPage() {
   const toast = useToast();
@@ -197,78 +198,121 @@ export default function DevicesPage() {
           </div>
         )}
 
-        {editingDevice && (
-          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in duration-200">
-              <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-                <h2 className="text-2xl font-bold">Chỉnh sửa thiết bị</h2>
-                <button onClick={() => setEditingDevice(null)} className="p-2 hover:bg-white rounded-2xl transition-colors">
-                  <X className="w-6 h-6 text-slate-300" />
-                </button>
-              </div>
-              <form onSubmit={handleUpdate} className="p-8 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Tên thiết bị</label>
-                    <input
-                      required
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                      value={editingDevice.name}
-                      onChange={(e) => setEditingDevice({ ...editingDevice, name: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Chọn Agent</label>
-                    <Combobox
-                      options={agents.map((a) => ({
-                        value: a.agent_id,
-                        label: a.agent_id,
-                        description: `IP: ${a.last_ip || "N/A"}`,
-                        icon: <Server className="w-4 h-4" />
-                      }))}
-                      value={editingDevice.agent_id}
-                      onChange={(val) => setEditingDevice({ ...editingDevice, agent_id: val })}
-                      placeholder="Chọn một Agent..."
-                      className="bg-slate-50 border-slate-200"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Địa chỉ IP</label>
-                    <input
-                      required
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                      value={editingDevice.ip}
-                      onChange={(e) => setEditingDevice({ ...editingDevice, ip: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Cổng (Port)</label>
-                    <input
-                      type="number"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                      value={editingDevice.port}
-                      onChange={(e) => setEditingDevice({ ...editingDevice, port: parseInt(e.target.value) })}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="edit_enabled"
-                    checked={editingDevice.is_enabled}
-                    onChange={(e) => setEditingDevice({ ...editingDevice, is_enabled: e.target.checked })}
-                    className="w-5 h-5 rounded-lg text-blue-600 focus:ring-blue-500"
-                  />
-                  <label htmlFor="edit_enabled" className="text-sm font-bold text-slate-700">Đang kích hoạt</label>
-                </div>
-                <div className="pt-4 flex gap-4">
-                  <button type="button" onClick={() => setEditingDevice(null)} className="flex-1 px-6 py-4 border border-slate-200 rounded-2xl font-bold text-slate-600 hover:bg-slate-50">Hủy</button>
-                  <button type="submit" className="flex-1 px-6 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-100">Cập nhật thiết bị</button>
-                </div>
-              </form>
+      {/* Add/Edit Device Modal */}
+      <Modal
+        isOpen={showAddForm || !!editingDevice}
+        onClose={() => { setShowAddForm(false); setEditingDevice(null); }}
+        title={editingDevice ? "Sửa thiết bị" : "Thêm thiết bị mới"}
+        subtitle="Hạ tầng kết nối"
+        icon={<Cpu className="w-6 h-6" />}
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            editingDevice ? handleUpdate() : handleAdd();
+          }}
+          className="space-y-6"
+        >
+          <div className="space-y-2">
+            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+              Tên máy chấm công
+            </label>
+            <input
+              required
+              className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold"
+              placeholder="VD: Máy sảnh chính..."
+              value={editingDevice ? editingDevice.name : newDevice.name}
+              onChange={(e) =>
+                editingDevice
+                  ? setEditingDevice({ ...editingDevice, name: e.target.value })
+                  : setNewDevice({ ...newDevice, name: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+              Quản lý bởi Agent
+            </label>
+            <Combobox
+              options={agents.map((a) => ({
+                value: a.agent_id,
+                label: a.agent_id,
+                icon: <Server className="w-4 h-4" />,
+              }))}
+              value={editingDevice ? editingDevice.agent_id : newDevice.agent_id}
+              onChange={(val) =>
+                editingDevice
+                  ? setEditingDevice({ ...editingDevice, agent_id: val })
+                  : setNewDevice({ ...newDevice, agent_id: val })
+              }
+              placeholder="Chọn Agent..."
+              className="bg-slate-50 border-slate-100"
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-2 space-y-2">
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+                Địa chỉ IP (Local)
+              </label>
+              <input
+                required
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-mono font-bold"
+                placeholder="192.168.1.100"
+                value={editingDevice ? editingDevice.ip : newDevice.ip}
+                onChange={(e) =>
+                  editingDevice
+                    ? setEditingDevice({ ...editingDevice, ip: e.target.value })
+                    : setNewDevice({ ...newDevice, ip: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+                Port
+              </label>
+              <input
+                type="number"
+                required
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-mono font-bold"
+                value={editingDevice ? editingDevice.port : newDevice.port}
+                onChange={(e) =>
+                  editingDevice
+                    ? setEditingDevice({
+                        ...editingDevice,
+                        port: parseInt(e.target.value),
+                      })
+                    : setNewDevice({
+                        ...newDevice,
+                        port: parseInt(e.target.value),
+                      })
+                }
+              />
             </div>
           </div>
-        )}
+
+          <div className="pt-6 grid grid-cols-2 gap-5">
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddForm(false);
+                setEditingDevice(null);
+              }}
+              className="px-8 py-4 border border-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all"
+            >
+              Hủy bỏ
+            </button>
+            <button
+              type="submit"
+              className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+            >
+              {editingDevice ? "Cập nhật" : "Lưu thiết bị"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
 
         {loading ? (
           <div className="py-20 text-center">

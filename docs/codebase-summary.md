@@ -56,7 +56,8 @@ leeattend/
     - **Dynamic Themeing**: `useTheme` hook for on-the-fly calculation of color palettes from a single HEX code.
     - **Personalization**: User-level theme overrides stored in `localStorage` with cross-tab sync.
     - **Robust API URL Resolution**: Frontend client (`api.ts`) intelligently determines API base URL, prioritizing relative `/api` paths for web development environments (to leverage Vite's dynamic proxy) and `VITE_API_URL` for production or Tauri builds.
-    - **Common UI Library**: Standardized components (DropdownMenu, etc.) based on Radix UI.
+    - **Common UI Library**: Standardized components (Modal, Combobox, DropdownMenu, etc.) based on Radix UI and React Portals.
+    - **Portal-based Modals**: Centralized `Modal` component using `createPortal` to ensure dialogs are always rendered at the top level of the DOM, preventing clipping by parent containers and ensuring full-screen backdrops.
     - **Global Toast System**: Non-blocking notification engine for consistent UX.
     - **Unified Date/Time Formatting**: Centralized formatting via `useDateTimeFormatter` hook, ensuring all displays respect per-workspace `date_format` and `time_format` preferences.
     - **Quick Month Filters**: Optimized UX for report and log views with shortcut buttons for "This Month", "Last Month", and "Custom" date ranges.

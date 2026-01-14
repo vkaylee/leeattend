@@ -19,7 +19,7 @@ import {
 } from "../lib/api";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Combobox } from "@/components/ui/Combobox";
-import { User, FileText, Settings, ShieldCheck, Calendar } from "lucide-react";
+import Modal from "@/components/ui/Modal";
 
 export default function LeaveRequestsPage() {
   const wsId = getCurrentWorkspaceId();
@@ -152,46 +152,18 @@ export default function LeaveRequestsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Quản lý nghỉ phép</h1>
-          <p className="text-slate-500">Duyệt và theo dõi các yêu cầu nghỉ phép của nhân viên.</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Yêu cầu nghỉ phép</h1>
+          <p className="text-slate-500 mt-1">Duyệt và quản lý thời gian nghỉ của nhân sự</p>
         </div>
-        <div className="flex gap-2">
-          {activeTab === "policies" ? (
-            <>
-              <button 
-                onClick={() => accrualMutation.mutate(new Date().toISOString().split('T')[0])}
-                disabled={accrualMutation.isPending}
-                className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 disabled:opacity-50"
-              >
-                <PlayCircle className="w-5 h-5" />
-                <span className="font-semibold">Chạy tích lũy</span>
-              </button>
-              <button 
-                onClick={() => setIsAssignModalOpen(true)}
-                className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-xl hover:bg-slate-900 transition-colors shadow-lg shadow-slate-200"
-              >
-                <UserPlus className="w-5 h-5" />
-                <span className="font-semibold">Gán chính sách</span>
-              </button>
-              <button 
-                onClick={() => setIsPolicyModalOpen(true)}
-                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
-              >
-                <Plus className="w-5 h-5" />
-                <span className="font-semibold">Thêm chính sách</span>
-              </button>
-            </>
-          ) : (
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="font-semibold">Tạo yêu cầu</span>
-            </button>
-          )}
-        </div>
+        <button 
+          onClick={() => setIsSubmitModalOpen(true)}
+          className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 font-bold"
+        >
+          <Plus className="w-5 h-5" />
+          Tạo đơn mới
+        </button>
       </div>
+
 
       {/* Tabs */}
       <div className="flex gap-2 p-1 bg-slate-100 w-fit rounded-2xl">
@@ -300,222 +272,203 @@ export default function LeaveRequestsPage() {
 
       {/* Modals remain below */}
       {/* Submit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h2 className="text-xl font-bold">Gửi yêu cầu nghỉ phép</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white rounded-xl transition-colors">
-                <X className="w-5 h-5 text-slate-400" />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <input type="hidden" name="employee_id" value={selectedEmpId} />
-              <div className="space-y-2">
-                <label 
-                  htmlFor="leave-emp-select"
-                  className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"
-                >
-                  Nhân viên
-                </label>
-                <Combobox
-                  id="leave-emp-select"
-                  options={employees.map((e) => ({
-                    value: e.id,
-                    label: `${e.first_name} ${e.last_name}`,
-                    description: `Mã NV: ${e.employee_id_number}`,
-                    icon: (
-                      <div className="bg-violet-100 p-2 rounded-xl text-violet-600 shadow-inner">
-                        <User className="w-4 h-4" />
-                      </div>
-                    ),
-                  }))}
-                  value={selectedEmpId}
-                  onChange={setSelectedEmpId}
-                  placeholder="Chọn nhân viên..."
-                  className="bg-slate-50 border-slate-200"
-                />
-              </div>
-
-              {selectedEmpId && balances.length > 0 && (
-                <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50 grid grid-cols-2 gap-3">
-                  {balances.map(b => (
-                    <div key={b.leave_type} className="space-y-0.5">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-blue-600/60">
-                        {b.leave_type === 'vacation' ? 'Phép năm' : b.leave_type === 'sick' ? 'Nghỉ ốm' : b.leave_type}
-                      </p>
-                      <p className="text-sm font-bold text-slate-700">
-                        Còn <span className="text-blue-600 text-lg">{b.remaining}</span> / {b.entitlement + b.carried_over} ngày
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <input type="hidden" name="leave_type" value={leaveType} />
-                <label 
-                  htmlFor="leave-type-select"
-                  className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"
-                >
-                  Loại nghỉ
-                </label>
-                <Combobox
-                  id="leave-type-select"
-                  options={[
-                    { value: "vacation", label: "Nghỉ phép năm", icon: <Calendar className="w-4 h-4" /> },
-                    { value: "sick", label: "Nghỉ ốm", icon: <FileText className="w-4 h-4" /> },
-                    { value: "personal", label: "Việc riêng", icon: <Settings className="w-4 h-4" /> },
-                  ]}
-                  value={leaveType}
-                  onChange={setLeaveType}
-                  className="bg-slate-50 border-slate-200"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label htmlFor="leave-start-date" className="text-sm font-semibold text-slate-700">Từ ngày</label>
-                  <input id="leave-start-date" type="date" name="start_date" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none" />
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor="leave-end-date" className="text-sm font-semibold text-slate-700">Đến ngày</label>
-                  <input id="leave-end-date" type="date" name="end_date" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none" />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label htmlFor="leave-reason" className="text-sm font-semibold text-slate-700">Lý do</label>
-                <textarea id="leave-reason" name="reason" rows={3} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="Nhập lý do nghỉ..."></textarea>
-              </div>
-              <div className="pt-4 flex gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-xl font-semibold hover:bg-slate-50 transition-colors">Hủy</button>
-                <button type="submit" className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
-                  <Send className="w-4 h-4" />
-                  <span>Gửi yêu cầu</span>
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Gửi yêu cầu nghỉ phép"
+        subtitle="Quản lý vắng mặt"
+        icon={<CalendarDays className="w-6 h-6" />}
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <input type="hidden" name="employee_id" value={selectedEmpId} />
+          <div className="space-y-2">
+            <label 
+              className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"
+            >
+              Nhân viên
+            </label>
+            <Combobox
+              options={employees.map((e) => ({
+                value: e.id,
+                label: `${e.first_name} ${e.last_name}`,
+                description: `Mã NV: ${e.employee_id_number}`,
+                icon: (
+                  <div className="bg-violet-100 p-2 rounded-xl text-violet-600 shadow-inner">
+                    <UserCircle className="w-4 h-4" />
+                  </div>
+                ),
+              }))}
+              value={selectedEmpId}
+              onChange={setSelectedEmpId}
+              placeholder="Chọn nhân viên..."
+              className="bg-slate-50 border-slate-200"
+            />
           </div>
-        </div>
-      )}
+
+          {selectedEmpId && balances.length > 0 && (
+            <div className="bg-primary-50/50 p-4 rounded-2xl border border-primary-100/50 grid grid-cols-2 gap-3">
+              {balances.map(b => (
+                <div key={b.leave_type} className="space-y-0.5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary-600/60">
+                    {b.leave_type === 'vacation' ? 'Phép năm' : b.leave_type === 'sick' ? 'Nghỉ ốm' : b.leave_type}
+                  </p>
+                  <p className="text-sm font-bold text-slate-700">
+                    Còn <span className="text-primary-600 text-lg">{b.remaining}</span> / {b.entitlement + b.carried_over} ngày
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <input type="hidden" name="leave_type" value={leaveType} />
+            <label 
+              className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"
+            >
+              Loại nghỉ
+            </label>
+            <Combobox
+              options={[
+                { value: "vacation", label: "Nghỉ phép năm", icon: <Calendar className="w-4 h-4" /> },
+                { value: "sick", label: "Nghỉ ốm", icon: <FileText className="w-4 h-4" /> },
+                { value: "personal", label: "Việc riêng", icon: <CalendarDays className="w-4 h-4" /> },
+              ]}
+              value={leaveType}
+              onChange={setLeaveType}
+              className="bg-slate-50 border-slate-200"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Từ ngày</label>
+              <input type="date" name="start_date" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Đến ngày</label>
+              <input type="date" name="end_date" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Lý do</label>
+            <textarea name="reason" rows={3} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium resize-none" placeholder="Nhập lý do nghỉ..."></textarea>
+          </div>
+          <div className="pt-4 flex gap-3">
+            <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Hủy</button>
+            <button type="submit" className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200">Gửi yêu cầu</button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Policy Modal */}
-      {isPolicyModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h2 className="text-xl font-bold">Thêm chính sách nghỉ phép</h2>
-              <button onClick={() => setIsPolicyModalOpen(false)} className="p-2 hover:bg-white rounded-xl transition-colors"><X className="w-5 h-5 text-slate-400" /></button>
-            </div>
-            <form onSubmit={handleCreatePolicy} className="p-6 space-y-4">
-              <div className="space-y-1">
-                <label htmlFor="policy-name" className="text-sm font-semibold text-slate-700">Tên chính sách</label>
-                <input id="policy-name" name="name" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="VD: Phép năm tiêu chuẩn" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Loại nghỉ</label>
-                <Combobox
-                  options={[
-                    { value: "vacation", label: "Phép năm", icon: <Calendar className="w-4 h-4" /> },
-                    { value: "sick", label: "Nghỉ ốm", icon: <FileText className="w-4 h-4" /> },
-                  ]}
-                  value={policyType}
-                  onChange={setPolicyType}
-                  className="bg-slate-50 border-slate-200"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label htmlFor="policy-entitlement" className="text-sm font-semibold text-slate-700">Định mức/năm</label>
-                  <input id="policy-entitlement" type="number" name="annual_entitlement" required defaultValue={12} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none" />
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor="policy-carryover" className="text-sm font-semibold text-slate-700">Carry-over limit</label>
-                  <input id="policy-carryover" type="number" name="carry_over_limit" required defaultValue={5} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Chiến lược tích lũy</label>
-                <Combobox
-                  options={[
-                    { value: "monthly", label: "Tích lũy hàng tháng", description: "Cấp 1 ngày vào đầu mỗi tháng" },
-                    { value: "lump_sum", label: "Cấp một lần", description: "Cấp toàn bộ định mức vào đầu năm" },
-                  ]}
-                  value={accrualStrategy}
-                  onChange={setAccrualStrategy}
-                  className="bg-slate-50 border-slate-200"
-                />
-              </div>
-              <div className="pt-4 flex gap-3">
-                <button type="button" onClick={() => setIsPolicyModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-xl font-semibold hover:bg-slate-50 transition-colors">Hủy</button>
-                <button type="submit" className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors">Lưu chính sách</button>
-              </div>
-            </form>
+      <Modal
+        isOpen={isPolicyModalOpen}
+        onClose={() => setIsPolicyModalOpen(false)}
+        title="Chính sách nghỉ phép"
+        subtitle="Cấu hình định mức"
+        icon={<ShieldCheck className="w-6 h-6" />}
+      >
+        <form onSubmit={handleCreatePolicy} className="p-2 space-y-6">
+          <div className="space-y-1">
+            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Tên chính sách</label>
+            <input name="name" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" placeholder="VD: Phép năm tiêu chuẩn" />
           </div>
-        </div>
-      )}
+          <div className="space-y-2">
+            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Loại nghỉ</label>
+            <Combobox
+              options={[
+                { value: "vacation", label: "Phép năm", icon: <Calendar className="w-4 h-4" /> },
+                { value: "sick", label: "Nghỉ ốm", icon: <FileText className="w-4 h-4" /> },
+              ]}
+              value={policyType}
+              onChange={setPolicyType}
+              className="bg-slate-50 border-slate-200"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Định mức/năm</label>
+              <input type="number" name="annual_entitlement" required defaultValue={12} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Carry-over limit</label>
+              <input type="number" name="carry_over_limit" required defaultValue={5} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Chiến lược tích lũy</label>
+            <Combobox
+              options={[
+                { value: "monthly", label: "Tích lũy hàng tháng", description: "Cấp 1 ngày vào đầu mỗi tháng" },
+                { value: "lump_sum", label: "Cấp một lần", description: "Cấp toàn bộ định mức vào đầu năm" },
+              ]}
+              value={accrualStrategy}
+              onChange={setAccrualStrategy}
+              className="bg-slate-50 border-slate-200"
+            />
+          </div>
+          <div className="pt-4 flex gap-3">
+            <button type="button" onClick={() => setIsPolicyModalOpen(false)} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors">Hủy</button>
+            <button type="submit" className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200">Lưu chính sách</button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Assign Modal */}
-      {isAssignModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h2 className="text-xl font-bold">Gán chính sách cho nhân viên</h2>
-              <button onClick={() => setIsAssignModalOpen(false)} className="p-2 hover:bg-white rounded-xl transition-colors"><X className="w-5 h-5 text-slate-400" /></button>
-            </div>
-            <form onSubmit={handleAssignPolicy} className="p-6 space-y-4">
-              <div className="space-y-2">
-                <label 
-                  htmlFor="assign-emp"
-                  className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"
-                >
-                  Nhân viên
-                </label>
-                <Combobox
-                  id="assign-emp"
-                  options={employees.map(e => ({
-                    value: e.id,
-                    label: `${e.first_name} ${e.last_name}`,
-                    icon: <User className="w-4 h-4" />
-                  }))}
-                  value={assignEmpId}
-                  onChange={setAssignEmpId}
-                  placeholder="Chọn nhân viên..."
-                  className="bg-slate-50 border-slate-200"
-                />
-              </div>
-              <div className="space-y-2">
-                <label 
-                  htmlFor="assign-policy"
-                  className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"
-                >
-                  Chính sách
-                </label>
-                <Combobox
-                  id="assign-policy"
-                  options={policies.map(p => ({
-                    value: p.id,
-                    label: p.name,
-                    description: p.leave_type === 'vacation' ? 'Phép năm' : 'Nghỉ ốm',
-                    icon: <ShieldCheck className="w-4 h-4" />
-                  }))}
-                  value={assignPolicyId}
-                  onChange={setAssignPolicyId}
-                  placeholder="Chọn chính sách..."
-                  className="bg-slate-50 border-slate-200"
-                />
-              </div>
-              <div className="space-y-1">
-                <label htmlFor="assign-date" className="text-sm font-semibold text-slate-700">Ngày hiệu lực</label>
-                <input id="assign-date" type="date" name="effective_date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none" />
-              </div>
-              <div className="pt-4 flex gap-3">
-                <button type="button" onClick={() => setIsAssignModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-xl font-semibold hover:bg-slate-50 transition-colors">Hủy</button>
-                <button type="submit" className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors">Gán ngay</button>
-              </div>
-            </form>
+      <Modal
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        title="Gán chính sách"
+        subtitle="Phân bổ nhân sự"
+        icon={<UserCircle className="w-6 h-6" />}
+      >
+        <form onSubmit={handleAssignPolicy} className="p-2 space-y-6">
+          <div className="space-y-2">
+            <label 
+              className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1"
+            >
+              Nhân viên
+            </label>
+            <Combobox
+              options={employees.map(e => ({
+                value: e.id,
+                label: `${e.first_name} ${e.last_name}`,
+                icon: <UserCircle className="w-4 h-4" />
+              }))}
+              value={assignEmpId}
+              onChange={setAssignEmpId}
+              placeholder="Chọn nhân viên..."
+              className="bg-slate-50 border-slate-200"
+            />
           </div>
-        </div>
-      )}
+          <div className="space-y-2">
+            <label 
+              className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1"
+            >
+              Chính sách
+            </label>
+            <Combobox
+              options={policies.map(p => ({
+                value: p.id,
+                label: p.name,
+                description: p.leave_type === 'vacation' ? 'Phép năm' : 'Nghỉ ốm',
+                icon: <ShieldCheck className="w-4 h-4" />
+              }))}
+              value={assignPolicyId}
+              onChange={setAssignPolicyId}
+              placeholder="Chọn chính sách..."
+              className="bg-slate-50 border-slate-200"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Ngày hiệu lực</label>
+            <input type="date" name="effective_date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
+          </div>
+          <div className="pt-4 flex gap-3">
+            <button type="button" onClick={() => setIsAssignModalOpen(false)} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors">Hủy</button>
+            <button type="submit" className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200">Gán ngay</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

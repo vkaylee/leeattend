@@ -382,33 +382,8 @@ function Layout() {
         </div>
       </aside>
 
-      {/* Switcher Modal */}
-      {showSwitcher && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowSwitcher(false)} />
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 relative animate-enter">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-slate-900">Chuyển Workspace</h3>
-              <button onClick={() => setShowSwitcher(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
-                <X className="w-5 h-5 text-slate-400" />
-              </button>
-            </div>
-            <p className="text-sm text-slate-500 mb-8">Chọn văn phòng hoặc chi nhánh bạn muốn làm việc.</p>
-            <WorkspaceSwitcher />
-            <div className="mt-8 pt-6 border-t border-slate-50 flex justify-end">
-              <button 
-                onClick={() => setShowSwitcher(false)}
-                className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
-              >
-                Hủy bỏ
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden relative">
         <header className="h-16 border-b border-slate-100 bg-white/80 backdrop-blur-md flex items-center justify-between px-4 lg:px-8 gap-4 flex-shrink-0 z-30">
           <div className="flex items-center gap-4">
             <button 
@@ -448,12 +423,50 @@ function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 relative">
           <div className="max-w-7xl mx-auto animate-enter">
             <Outlet />
           </div>
         </main>
       </div>
+
+      {/* Switcher Modal - Moved to TOP LEVEL of the viewport */}
+      {showSwitcher && (
+        <div className="modal-backdrop">
+          <div className="modal-content">
+            <div className="flex items-center justify-between p-8 border-b border-slate-50">
+              <div className="flex items-center gap-4">
+                <div className="bg-violet-50 p-3 rounded-2xl text-violet-600">
+                  <Building2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 tracking-tight">Chuyển cơ sở</h2>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Văn phòng / Chi nhánh</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowSwitcher(false)} 
+                className="p-2 hover:bg-slate-100 rounded-xl transition-colors group"
+              >
+                <X className="w-5 h-5 text-slate-300 group-hover:text-slate-600" />
+              </button>
+            </div>
+            
+            <div className="p-8">
+              <p className="text-sm text-slate-500 mb-8 font-medium">Chọn văn phòng hoặc chi nhánh bạn muốn làm việc.</p>
+              <WorkspaceSwitcher />
+              <div className="mt-10 pt-6 border-t border-slate-50 flex justify-end">
+                <button 
+                  onClick={() => setShowSwitcher(false)}
+                  className="px-8 py-3 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-all"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

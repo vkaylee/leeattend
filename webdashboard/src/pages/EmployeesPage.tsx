@@ -32,6 +32,7 @@ import {
 } from "../lib/api";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Combobox } from "@/components/ui/Combobox";
+import Modal from "@/components/ui/Modal";
 
 export default function EmployeesPage() {
   const wsId = getCurrentWorkspaceId() || "";
@@ -434,201 +435,189 @@ export default function EmployeesPage() {
       )}
 
       {/* Main Employee Form Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[60] p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300 border border-white/20">
-            <div className="px-10 py-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">{editingEmployee ? 'Sửa hồ sơ' : 'Thêm nhân viên'}</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-3 hover:bg-white rounded-2xl transition-all shadow-sm">
-                <X className="w-7 h-7 text-slate-400" />
-              </button>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingEmployee ? 'Sửa hồ sơ' : 'Thêm nhân viên'}
+        subtitle="Hồ sơ nhân sự"
+        icon={<UserCircle className="w-6 h-6" />}
+        maxWidth="lg"
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Họ</label>
+              <input name="last_name" required defaultValue={editingEmployee?.last_name} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 outline-none transition-all font-bold" />
             </div>
-            <form onSubmit={handleSubmit} className="p-10 space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Họ</label>
-                  <input name="last_name" required defaultValue={editingEmployee?.last_name} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 outline-none transition-all font-bold" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Tên</label>
-                  <input name="first_name" required defaultValue={editingEmployee?.first_name} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 outline-none transition-all font-bold" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Mã nhân viên</label>
-                <input name="employee_id_number" required defaultValue={editingEmployee?.employee_id_number} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 outline-none transition-all font-mono font-bold" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Ngày vào làm</label>
-                <input type="date" name="hire_date" required defaultValue={editingEmployee?.hire_date} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 outline-none transition-all font-bold" />
-              </div>
-              <div className="flex items-center gap-4 py-2">
-                <input type="checkbox" name="is_active" id="is_active" defaultChecked={editingEmployee ? editingEmployee.is_active : true} className="w-6 h-6 text-violet-600 rounded-xl border-slate-200 focus:ring-violet-500 transition-all cursor-pointer" />
-                <label htmlFor="is_active" className="text-sm font-black text-slate-700 uppercase tracking-widest cursor-pointer">Đang hoạt động</label>
-              </div>
-              <div className="pt-6 grid grid-cols-2 gap-5">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-8 py-4 border border-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Hủy bỏ</button>
-                <button type="submit" className="px-8 py-4 bg-violet-600 text-white rounded-2xl font-black hover:bg-violet-700 transition-all shadow-xl shadow-violet-200 hover:scale-[1.02] active:scale-95">
-                  {editingEmployee ? 'Cập nhật' : 'Lưu hồ sơ'}
-                </button>
-              </div>
-            </form>
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Tên</label>
+              <input name="first_name" required defaultValue={editingEmployee?.first_name} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 outline-none transition-all font-bold" />
+            </div>
           </div>
-        </div>
-      )}
+          <div className="space-y-2">
+            <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Mã nhân viên</label>
+            <input name="employee_id_number" required defaultValue={editingEmployee?.employee_id_number} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 outline-none transition-all font-mono font-bold" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Ngày vào làm</label>
+            <input type="date" name="hire_date" required defaultValue={editingEmployee?.hire_date} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 outline-none transition-all font-bold" />
+          </div>
+          <div className="flex items-center gap-4 py-2">
+            <input type="checkbox" name="is_active" id="is_active" defaultChecked={editingEmployee ? editingEmployee.is_active : true} className="w-6 h-6 text-primary-600 rounded-xl border-slate-200 focus:ring-primary-500 transition-all cursor-pointer" />
+            <label htmlFor="is_active" className="text-sm font-black text-slate-700 uppercase tracking-widest cursor-pointer">Đang hoạt động</label>
+          </div>
+          <div className="pt-6 grid grid-cols-2 gap-5">
+            <button type="button" onClick={() => setIsModalOpen(false)} className="px-8 py-4 border border-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Hủy bỏ</button>
+            <button type="submit" className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 hover:scale-[1.02] active:scale-95">
+              {editingEmployee ? 'Cập nhật' : 'Lưu hồ sơ'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
 
       {/* Transfer Modal */}
-      {isTransferModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="p-8">
-              <h2 className="text-2xl font-bold text-slate-900 mb-6">Điều chuyển phòng ban</h2>
-              <form onSubmit={handleTransferSubmit} className="space-y-5">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phòng ban mới</label>
-                  <Combobox
-                    options={departments?.map(d => ({
-                      value: d.id,
-                      label: d.name,
-                      icon: <Building2 className="w-4 h-4" />
-                    })) || []}
-                    value={selectedDeptId}
-                    onChange={setSelectedDeptId}
-                    placeholder="Chọn phòng ban..."
-                    className="bg-slate-50 border-slate-200"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Ngày hiệu lực</label>
-                  <input type="date" name="effective_date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Ghi chú</label>
-                  <textarea name="notes" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none h-24 resize-none" />
-                </div>
-                <div className="grid grid-cols-2 gap-4 pt-4">
-                  <button type="button" onClick={() => setIsTransferModalOpen(false)} className="px-6 py-3 border border-slate-200 text-slate-600 font-bold rounded-2xl">Hủy</button>
-                  <button type="submit" className="px-6 py-3 bg-blue-600 text-white font-bold rounded-2xl shadow-lg shadow-blue-100 hover:bg-blue-700">Điều chuyển</button>
-                </div>
-              </form>
-            </div>
+      <Modal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        title="Điều chuyển phòng ban"
+        subtitle="Quản lý vị trí"
+        icon={<Building2 className="w-6 h-6" />}
+      >
+        <form onSubmit={handleTransferSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phòng ban mới</label>
+            <Combobox
+              options={departments?.map(d => ({
+                value: d.id,
+                label: d.name,
+                icon: <Building2 className="w-4 h-4" />
+              })) || []}
+              value={selectedDeptId}
+              onChange={setSelectedDeptId}
+              placeholder="Chọn phòng ban..."
+              className="bg-slate-50 border-slate-200"
+            />
           </div>
-        </div>
-      )}
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Ngày hiệu lực</label>
+            <input type="date" name="effective_date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Ghi chú</label>
+            <textarea name="notes" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none h-24 resize-none" />
+          </div>
+          <div className="grid grid-cols-2 gap-4 pt-4">
+            <button type="button" onClick={() => setIsTransferModalOpen(false)} className="px-6 py-3 border border-slate-200 text-slate-600 font-bold rounded-2xl">Hủy</button>
+            <button type="submit" className="px-6 py-3 bg-slate-900 text-white font-bold rounded-2xl shadow-lg shadow-slate-100 hover:bg-slate-800">Điều chuyển</button>
+          </div>
+        </form>
+      </Modal>
 
       {/* History Modal */}
-      {isHistoryModalOpen && selectedEmployee && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="p-8">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-slate-900">Chi tiết lịch sử công tác</h2>
-                <button onClick={() => setIsHistoryModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
-                  <X className="w-5 h-5 text-slate-400" />
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                {employmentHistory?.map((period) => (
-                  <div key={period.id} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-bold text-slate-900 flex items-center gap-2">
-                          {period.is_rehire ? "Giai đoạn tái tuyển dụng" : "Giai đoạn đầu tiên"}
-                          {!period.termination_date && (
-                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[9px] font-bold rounded-full uppercase">Đang làm việc</span>
-                          )}
-                        </div>
-                        <div className="text-sm text-slate-500 mt-1">
-                          Từ {formatDate(period.hire_date)} {period.termination_date ? `đến ${formatDate(period.termination_date)}` : "(Hiện tại)"}
-                        </div>
-                      </div>
-                    </div>
+      <Modal
+        isOpen={isHistoryModalOpen && !!selectedEmployee}
+        onClose={() => setIsHistoryModalOpen(false)}
+        title="Lịch sử công tác"
+        subtitle="Dữ liệu nhân sự"
+        icon={<History className="w-6 h-6" />}
+        maxWidth="lg"
+      >
+        <div className="space-y-4">
+          {employmentHistory?.map((period) => (
+            <div key={period.id} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="font-bold text-slate-900 flex items-center gap-2">
+                    {period.is_rehire ? "Giai đoạn tái tuyển dụng" : "Giai đoạn đầu tiên"}
+                    {!period.termination_date && (
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[9px] font-bold rounded-full uppercase">Đang làm việc</span>
+                    )}
                   </div>
-                ))}
-              </div>
-              
-              <div className="mt-8">
-                <button 
-                  onClick={() => setIsHistoryModalOpen(false)}
-                  className="w-full py-3 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all"
-                >
-                  Đóng
-                </button>
+                  <div className="text-sm text-slate-500 mt-1">
+                    Từ {formatDate(period.hire_date)} {period.termination_date ? `đến ${formatDate(period.termination_date)}` : "(Hiện tại)"}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          ))}
         </div>
-      )}
+        
+        <div className="mt-8">
+          <button 
+            onClick={() => setIsHistoryModalOpen(false)}
+            className="w-full py-3 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all"
+          >
+            Đóng
+          </button>
+        </div>
+      </Modal>
 
       {/* Rehire Modal */}
-      {isRehireModalOpen && selectedEmployee && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="p-8">
-              <h2 className="text-2xl font-bold text-slate-900 mb-2 text-center">Tái tuyển dụng</h2>
-              <p className="text-slate-500 text-center mb-6">Xác nhận ngày nhân viên bắt đầu giai đoạn làm việc mới</p>
-              
-              <form onSubmit={handleRehireSubmit} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Ngày vào làm lại</label>
-                  <input 
-                    type="date" 
-                    name="hire_date" 
-                    required 
-                    defaultValue={new Date().toISOString().split('T')[0]} 
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" 
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4 pt-4">
-                  <button type="button" onClick={() => setIsRehireModalOpen(false)} className="px-6 py-3 border border-slate-200 text-slate-600 font-bold rounded-2xl">Hủy</button>
-                  <button type="submit" disabled={rehireMutation.isPending} className="px-6 py-3 bg-blue-600 text-white font-bold rounded-2xl shadow-lg shadow-blue-100 hover:bg-blue-700 disabled:opacity-50">
-                    {rehireMutation.isPending ? "Đang xử lý..." : "Xác nhận"}
-                  </button>
-                </div>
-              </form>
-            </div>
+      <Modal
+        isOpen={isRehireModalOpen && !!selectedEmployee}
+        onClose={() => setIsRehireModalOpen(false)}
+        title="Tái tuyển dụng"
+        subtitle="Kích hoạt hồ sơ"
+        icon={<UserPlus className="w-6 h-6" />}
+      >
+        <p className="text-slate-500 mb-6 font-medium">Xác nhận ngày nhân viên bắt đầu giai đoạn làm việc mới</p>
+        
+        <form onSubmit={handleRehireSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Ngày vào làm lại</label>
+            <input 
+              type="date" 
+              name="hire_date" 
+              required 
+              defaultValue={new Date().toISOString().split('T')[0]} 
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" 
+            />
           </div>
-        </div>
-      )}
+          <div className="grid grid-cols-2 gap-4 pt-4">
+            <button type="button" onClick={() => setIsRehireModalOpen(false)} className="px-6 py-3 border border-slate-200 text-slate-600 font-bold rounded-2xl">Hủy</button>
+            <button type="submit" disabled={rehireMutation.isPending} className="px-6 py-3 bg-primary-600 text-white font-bold rounded-2xl shadow-lg shadow-primary-100 hover:bg-primary-700 disabled:opacity-50">
+              {rehireMutation.isPending ? "Đang xử lý..." : "Xác nhận"}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Salary Update Modal */}
-      {isSalaryModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="p-8">
-              <h2 className="text-2xl font-bold text-slate-900 mb-6">Cập nhật lương</h2>
-              <form onSubmit={handleSalarySubmit} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Lương cơ bản</label>
-                  <input type="number" name="base_salary" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Loại lương</label>
-                  <Combobox
-                    options={[
-                      { value: "monthly", label: "Lương tháng", icon: <Banknote className="w-4 h-4" /> },
-                      { value: "hourly", label: "Lương giờ", icon: <Clock className="w-4 h-4" /> },
-                    ]}
-                    value={salaryType}
-                    onChange={setSalaryType}
-                    className="bg-slate-50 border-slate-200"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Ngày hiệu lực</label>
-                  <input type="date" name="effective_date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" />
-                </div>
-                <div className="grid grid-cols-2 gap-4 pt-4">
-                  <button type="button" onClick={() => setIsSalaryModalOpen(false)} className="px-6 py-3 border border-slate-200 text-slate-600 font-bold rounded-2xl">Hủy</button>
-                  <button type="submit" className="px-6 py-3 bg-green-600 text-white font-bold rounded-2xl shadow-lg shadow-green-100 hover:bg-green-700">Cập nhật lương</button>
-                </div>
-              </form>
-            </div>
+      <Modal
+        isOpen={isSalaryModalOpen}
+        onClose={() => setIsSalaryModalOpen(false)}
+        title="Cập nhật lương"
+        subtitle="Quản lý đãi ngộ"
+        icon={<Banknote className="w-6 h-6" />}
+      >
+        <form onSubmit={handleSalarySubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Lương cơ bản</label>
+            <input type="number" name="base_salary" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" />
           </div>
-        </div>
-      )}
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Loại lương</label>
+            <Combobox
+              options={[
+                { value: "monthly", label: "Lương tháng", icon: <Banknote className="w-4 h-4" /> },
+                { value: "hourly", label: "Lương giờ", icon: <Clock className="w-4 h-4" /> },
+              ]}
+              value={salaryType}
+              onChange={setSalaryType}
+              className="bg-slate-50 border-slate-200"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Ngày hiệu lực</label>
+            <input type="date" name="effective_date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" />
+          </div>
+          <div className="grid grid-cols-2 gap-4 pt-4">
+            <button type="button" onClick={() => setIsSalaryModalOpen(false)} className="px-6 py-3 border border-slate-200 text-slate-600 font-bold rounded-2xl">Hủy</button>
+            <button type="submit" className="px-6 py-3 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 hover:bg-emerald-700">Cập nhật lương</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

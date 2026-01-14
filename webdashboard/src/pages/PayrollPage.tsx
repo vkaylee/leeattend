@@ -27,6 +27,7 @@ import {
 import { useToast } from "../components/Toast";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Combobox } from "@/components/ui/Combobox";
+import Modal from "@/components/ui/Modal";
 
 export default function PayrollPage() {
   const wsId = getCurrentWorkspaceId() || "";
@@ -225,79 +226,50 @@ export default function PayrollPage() {
         )}
       </div>
 
-      {/* Calculate Modal */}
-      {isCalcModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
-          <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200">
-            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Tính lương tháng</h2>
-              <button onClick={() => setIsCalcModalOpen(false)} className="p-2 hover:bg-white rounded-2xl transition-colors">
-                <X className="w-6 h-6 text-slate-300" />
-              </button>
+      {/* Calculate Payroll Modal */}
+      <Modal
+        isOpen={isCalcModalOpen && !!selectedEmployee}
+        onClose={() => setIsCalcModalOpen(false)}
+        title="Tính lương tháng"
+        subtitle="Xử lý dữ liệu"
+        icon={<Calculator className="w-6 h-6" />}
+      >
+        <div className="space-y-8">
+          <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 flex items-center gap-4">
+            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-400 shadow-sm border border-slate-100">
+              <UserCircle className="w-7 h-7" />
             </div>
-            <div className="p-8 space-y-6">
-              <div className="bg-blue-50/50 p-6 rounded-[32px] border border-blue-100 flex items-center gap-4">
-                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm">
-                  <UserCircle className="w-8 h-8 text-blue-600" />
-                </div>
-                <div>
-                  <div className="font-bold text-slate-900">{selectedEmployee?.first_name} {selectedEmployee?.last_name}</div>
-                  <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{selectedEmployee?.employee_id_number}</div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tháng</label>
-                  <Combobox
-                    options={Array.from({ length: 12 }, (_, i) => ({
-                      value: (i + 1).toString(),
-                      label: `Tháng ${i + 1}`,
-                      icon: <Calendar className="w-4 h-4" />
-                    }))}
-                    value={calcMonth.toString()}
-                    onChange={(val) => setCalcMonth(parseInt(val))}
-                    className="bg-slate-50 border-slate-200"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Năm</label>
-                  <Combobox
-                    options={[2025, 2026, 2027].map(y => ({
-                      value: y.toString(),
-                      label: y.toString(),
-                      icon: <History className="w-4 h-4" />
-                    }))}
-                    value={calcYear.toString()}
-                    onChange={(val) => setCalcYear(parseInt(val))}
-                    className="bg-slate-50 border-slate-200"
-                  />
-                </div>
-              </div>
-
-              <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                <p className="text-[10px] font-bold text-amber-700 leading-normal">
-                  Hệ thống sẽ dựa trên dữ liệu chấm công đã chốt và mức lương cơ bản hiệu lực trong tháng {calcMonth}/{calcYear} để tính toán.
-                </p>
-              </div>
-
-              <button
-                onClick={() => calcMutation.mutate({ year: calcYear, month: calcMonth })}
-                disabled={calcMutation.isPending}
-                className="w-full bg-blue-600 text-white font-black py-5 rounded-[28px] flex items-center justify-center gap-3 hover:bg-blue-700 transition-all active:scale-[0.98] shadow-xl shadow-blue-100 disabled:opacity-50 uppercase tracking-widest text-xs"
-              >
-                {calcMutation.isPending ? "Đang xử lý..." : (
-                  <>
-                    <Calculator className="w-5 h-5" />
-                    Bắt đầu tính lương
-                  </>
-                )}
-              </button>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Nhân viên</p>
+              <p className="text-lg font-black text-slate-900 tracking-tight">{selectedEmployee?.first_name} {selectedEmployee?.last_name}</p>
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Năm</label>
+              <input type="number" value={calcYear} onChange={e => setCalcYear(parseInt(e.target.value))} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tháng</label>
+              <input type="number" min="1" max="12" value={calcMonth} onChange={e => setCalcMonth(parseInt(e.target.value))} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold" />
+            </div>
+          </div>
+
+          <div className="pt-4 grid grid-cols-2 gap-5">
+            <button type="button" onClick={() => setIsCalcModalOpen(false)} className="px-8 py-4 border border-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Hủy bỏ</button>
+            <button 
+              onClick={handleCalculate}
+              disabled={calcMutation.isPending}
+              className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2"
+            >
+              {calcMutation.isPending ? "Đang tính..." : "Bắt đầu tính"}
+            </button>
+          </div>
         </div>
-      )}
+      </Modal>
+
+
     </div>
   );
 }

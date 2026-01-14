@@ -72,6 +72,13 @@ Sử dụng Tailwind Animate cho mọi thành phần mới xuất hiện:
 - Hỗ trợ trạng thái **Hover** trên từng dòng.
 - Header của bảng luôn viết hoa, font size nhỏ (`text-xs`) và đậm.
 
+### 5.3. Modals & Dialogs
+- **React Portals:** Phải sử dụng `createPortal` để render ra ngoài cấu trúc DOM của trang, đảm bảo không bị che khuất bởi Header/Sidebar hoặc bị giới hạn bởi `overflow` của thẻ cha.
+- **Backdrop:** Sử dụng lớp phủ đen trong suốt mỏng (`bg-black/20`) kết hợp làm mờ sâu (`backdrop-blur-md`) để tạo hiệu ứng tập trung.
+- **Z-Index:** Luôn duy trì `z-index` cực cao (`z-[9999]`) để đảm bảo phủ lên toàn bộ giao diện.
+- **Header:** Luôn có tiêu đề rõ ràng, icon đại diện và nút đóng (X) ở góc phải.
+- **Animation:** Sử dụng hiệu ứng `fade-in` cho nền và `zoom-in` hoặc `slide-in-from-bottom` cho nội dung Modal.
+
 ---
 
 ## 6. Cá nhân hóa (Personalization)
