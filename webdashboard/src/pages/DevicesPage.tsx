@@ -147,7 +147,7 @@ export default function DevicesPage() {
                   options={agents.map((a) => ({
                     value: a.agent_id,
                     label: a.agent_id,
-                    description: `IP: ${a.last_ip || "N/A"}`,
+                    description: `Last seen: ${new Date(a.last_seen).toLocaleTimeString()}`,
                     icon: <Server className="w-4 h-4" />
                   }))}
                   value={newDevice.agent_id}
@@ -208,8 +208,7 @@ export default function DevicesPage() {
       >
         <form
           onSubmit={(e) => {
-            e.preventDefault();
-            editingDevice ? handleUpdate() : handleAdd();
+            editingDevice ? handleUpdate(e) : handleAdd(e);
           }}
           className="space-y-6"
         >

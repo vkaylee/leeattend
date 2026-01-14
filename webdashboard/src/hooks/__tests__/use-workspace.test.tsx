@@ -38,19 +38,20 @@ const createWrapper = () => {
 
 describe("useWorkspaces", () => {
   it("fetches workspaces successfully", async () => {
-    const mockWorkspaces = [
-      { 
-        id: "ws-1", 
-        name: "WS 1", 
-        work_unit_minutes: 30, 
-        rounding_policy: "none", 
-        date_format: "DD/MM/YYYY", 
-        time_format: "24h", 
-        timezone: "Asia/Ho_Chi_Minh", 
-        created_at: "" 
-      }
-    ];
-    vi.mocked(api.fetchWorkspaces).mockResolvedValue(mockWorkspaces);
+      const mockWorkspaces = [
+        {
+          id: "ws-1",
+          name: "Workspace 1",
+          work_unit_minutes: 30,
+          rounding_policy: "none",
+          date_format: "DD/MM/YYYY",
+          time_format: "24h",
+          timezone: "Asia/Ho_Chi_Minh",
+          theme_primary_color: "#7c3aed",
+          created_at: new Date().toISOString()
+        },
+      ];
+        vi.mocked(api.fetchWorkspaces).mockResolvedValue(mockWorkspaces);
 
     const { result } = renderHook(() => useWorkspaces(), {
       wrapper: createWrapper(),
@@ -61,17 +62,17 @@ describe("useWorkspaces", () => {
   });
 
   it("creates a workspace and invalidates queries", async () => {
-    const newWs = { 
-      id: "ws-new", 
-      name: "New WS", 
-      work_unit_minutes: 30, 
-      rounding_policy: "none", 
-      date_format: "DD/MM/YYYY", 
-      time_format: "24h", 
-      timezone: "Asia/Ho_Chi_Minh", 
-      created_at: "" 
-    };
-    vi.mocked(api.createWorkspace).mockResolvedValue(newWs);
+        const newWs = { 
+          id: "ws-new", 
+          name: "New WS", 
+          work_unit_minutes: 30, 
+          rounding_policy: "none", 
+          date_format: "DD/MM/YYYY", 
+          time_format: "24h", 
+          timezone: "Asia/Ho_Chi_Minh", 
+          theme_primary_color: "#7c3aed",
+          created_at: new Date().toISOString() 
+        };    vi.mocked(api.createWorkspace).mockResolvedValue(newWs);
 
     const { result } = renderHook(() => useWorkspaces(), {
       wrapper: createWrapper(),

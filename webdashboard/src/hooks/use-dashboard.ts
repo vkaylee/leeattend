@@ -9,16 +9,16 @@ export interface WorkspaceStats {
 }
 
 export function useDashboardStats() {
-  const { currentWorkspace } = useWorkspace();
+  const { workspace } = useWorkspace();
 
   return useQuery<WorkspaceStats>({
-    queryKey: ["workspace-stats", currentWorkspace?.id],
+    queryKey: ["workspace-stats", workspace?.id],
     queryFn: async () => {
-      if (!currentWorkspace) throw new Error("No workspace selected");
+      if (!workspace) throw new Error("No workspace selected");
       
       const response = await fetch(`/api/dashboard/workspace-stats`, {
         headers: {
-          "X-Workspace-Id": currentWorkspace.id,
+          "X-Workspace-Id": workspace.id,
           "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
         },
       });
@@ -29,6 +29,6 @@ export function useDashboardStats() {
 
       return response.json();
     },
-    enabled: !!currentWorkspace,
+    enabled: !!workspace,
   });
 }

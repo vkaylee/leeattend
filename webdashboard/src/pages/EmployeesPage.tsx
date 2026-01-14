@@ -1,20 +1,23 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  Plus, 
-  Search, 
-  Edit2, 
-  Trash2, 
-  UserPlus, 
-  X, 
-  Building2, 
-  Banknote, 
-  ArrowRightLeft, 
-  History,
+import {
+  Trash2,
+  UserCircle,
+  Building2,
   Calendar,
+  Clock,
+  Briefcase,
+  Search,
+  Plus,
+  UserPlus,
   ChevronRight,
-  UserCircle
+  X,
+  Edit2,
+  ArrowRightLeft,
+  Banknote,
+  History as HistoryIcon,
 } from "lucide-react";
+
 import { 
   fetchEmployees, 
   createEmployee, 
@@ -399,7 +402,7 @@ export default function EmployeesPage() {
             <section className="space-y-6">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3 font-black text-slate-900 uppercase tracking-widest text-xs">
-                  <History className="w-5 h-5 text-slate-400" />
+                  <HistoryIcon className="w-5 h-5 text-slate-400" />
                   <span>Lịch sử công tác</span>
                 </div>
                 <button 
@@ -520,7 +523,7 @@ export default function EmployeesPage() {
         onClose={() => setIsHistoryModalOpen(false)}
         title="Lịch sử công tác"
         subtitle="Dữ liệu nhân sự"
-        icon={<History className="w-6 h-6" />}
+        icon={<HistoryIcon className="w-6 h-6" />}
         maxWidth="lg"
       >
         <div className="space-y-4">

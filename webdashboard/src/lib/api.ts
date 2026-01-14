@@ -118,6 +118,7 @@ export interface Employee {
   first_name: string;
   last_name: string;
   employee_id_number: string;
+  department_name?: string;
   hire_date: string;
   termination_date?: string;
   is_active: boolean;

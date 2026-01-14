@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Clock, ArrowRightLeft, History, AlertCircle } from "lucide-react";
+import { Clock, ArrowRightLeft, History, AlertCircle, User, Plus } from "lucide-react";
 import { 
   fetchEmployees, 
   punchIn, 
@@ -15,7 +15,6 @@ import {
 import { useToast } from "../components/Toast";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Combobox } from "@/components/ui/Combobox";
-import { User, History, Plus } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 
 export default function TimeTrackingPage() {
@@ -305,7 +304,7 @@ export default function TimeTrackingPage() {
         subtitle="Điều chỉnh dữ liệu"
         icon={<History className="w-6 h-6" />}
       >
-        <form onSubmit={handleAdjustmentSubmit} className="space-y-6">
+        <form onSubmit={handleAdjustSubmit} className="space-y-6">
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ngày làm việc</label>
             <input 
@@ -364,8 +363,8 @@ export default function TimeTrackingPage() {
 
           <div className="pt-6 grid grid-cols-2 gap-5">
             <button type="button" onClick={() => setIsAdjustmentModalOpen(false)} className="px-8 py-4 border border-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Hủy bỏ</button>
-            <button type="submit" disabled={adjustmentMutation.isPending} className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200">
-              {adjustmentMutation.isPending ? "Đang gửi..." : "Gửi yêu cầu"}
+            <button type="submit" disabled={adjustMutation.isPending} className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200">
+              {adjustMutation.isPending ? "Đang gửi..." : "Gửi yêu cầu"}
             </button>
           </div>
         </form>

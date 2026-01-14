@@ -20,7 +20,7 @@ describe('useTheme', () => {
     vi.clearAllMocks();
     // Default workspace mock
     vi.mocked(useWorkspaceHook.useWorkspace).mockReturnValue({
-      workspace: null,
+      workspace: undefined,
       isLoading: false,
       isError: false,
     });
