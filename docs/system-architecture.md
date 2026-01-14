@@ -28,6 +28,24 @@ Quy trình nhập dữ liệu từ file được thực thi với tiêu chuẩn 
 - **Workspace-Aware Parsing**: Engine phân tích ngày tháng nghiêm ngặt dựa trên cài đặt của từng Workspace (`DD/MM/YYYY`, `MM/DD/YYYY`, v.v.). Không tự động "đoán" định dạng để tránh sai lệch dữ liệu.
 - **Instructional Feedback**: Khi có dòng lỗi, hệ thống cung cấp thông báo chi tiết: **Số dòng**, **Mã nhân viên**, **Giá trị sai thực tế** và **Định dạng mong đợi** để người dùng sửa file nhanh nhất.
 
+### 11. Branding & Dynamic Themeing
+LeeAttend áp dụng cơ chế định danh thương hiệu linh hoạt (Dynamic Identity) để hỗ trợ cả SaaS đa khách hàng và cá nhân hóa trải nghiệm:
+
+#### 11.1. Workspace Branding
+- **Primary Color Persistence**: Mỗi Workspace có thể cấu hình một màu chủ đạo (`theme_primary_color`) duy nhất trong Database.
+- **Propagation**: Màu sắc này được API trả về trong object `Workspace` và được Frontend sử dụng làm gốc để tính toán toàn bộ bảng màu UI.
+
+#### 11.2. Frontend Shade Generation
+- **`useTheme` Hook**: Chịu trách nhiệm chuyển đổi một mã HEX duy nhất thành một bộ 11 sắc thái (50-950) dựa trên thuật toán điều chỉnh độ sáng (Brightness Adjustment). 
+- **CSS Variable Injection**: Các sắc thái màu được inject trực tiếp vào `:root` dưới dạng các biến CSS (`--primary-50`...). Tailwind CSS được cấu hình để sử dụng các biến này thay vì mã màu tĩnh.
+
+#### 11.3. User Personalization Override
+- **Hierarchical Priority**: 
+    1. **User Preference** (Lưu tại `localStorage`): Có độ ưu tiên cao nhất, cho phép cá nhân hóa theo thiết bị.
+    2. **Workspace Brand**: Màu chuẩn của tổ chức.
+    3. **System Default**: Màu Violet mặc định.
+- **Cross-Tab Sync**: Sử dụng sự kiện `storage` của trình duyệt để đảm bảo thay đổi màu sắc tại trang Profile được cập nhật tức thì trên tất cả các tab đang mở mà không cần tải lại trang.
+
 ## Infrastructure Diagram
 ```ascii
 [ Web Dashboard ] <--- REST API ---> [ API Server ] <--- WebSocket (Outbound Only) ---> [ Agent (Rust) ] <--- JSON-RPC (TCP) ---> [ ZK Worker (Python) ] <---> [ ZKTeco Devices ]

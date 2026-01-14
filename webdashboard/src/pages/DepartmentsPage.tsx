@@ -17,6 +17,8 @@ import {
   getCurrentWorkspaceId,
   fetchEmployees
 } from "../lib/api";
+import { Combobox } from "@/components/ui/Combobox";
+import { User } from "lucide-react";
 
 export default function DepartmentsPage() {
   const queryClient = useQueryClient();
@@ -176,18 +178,20 @@ export default function DepartmentsPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Trưởng phòng (Manager)</label>
-                  <select
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Trưởng phòng (Manager)</label>
+                  <Combobox
+                    options={employees?.map(emp => ({
+                      value: emp.id,
+                      label: `${emp.first_name} ${emp.last_name}`,
+                      description: `Mã NV: ${emp.employee_id_number}`,
+                      icon: <User className="w-4 h-4" />
+                    })) || []}
                     value={newDept.manager_id}
-                    onChange={(e) => setNewDept({ ...newDept, manager_id: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none"
-                  >
-                    <option value="">-- Chọn nhân viên --</option>
-                    {employees?.map(emp => (
-                      <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setNewDept({ ...newDept, manager_id: val })}
+                    placeholder="Chọn nhân viên..."
+                    className="bg-slate-50 border-slate-200"
+                  />
                 </div>
               </div>
 

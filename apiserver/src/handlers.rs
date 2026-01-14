@@ -131,6 +131,64 @@ pub async fn health_check() -> impl IntoResponse {
     Json(response)
 }
 
+pub async fn get_workspace_stats(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> impl IntoResponse {
+    // 1. Total Employees
+    let total_employees: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM employees WHERE workspace_id = $1 AND is_active = TRUE")
+        .bind(workspace_id)
+        .fetch_one(&state.db)
+        .await
+        .unwrap_or(0);
+
+    // 2. Present Today (Employees with at least one punch-in today)
+    let today = Utc::now().date_naive();
+    let present_today: i64 = sqlx::query_scalar(
+        "SELECT COUNT(DISTINCT employee_id) FROM time_entries 
+         WHERE punch_in_time >= $1 
+         AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $2)"
+    )
+    .bind(today.and_hms_opt(0, 0, 0).unwrap().and_local_timezone(Utc).unwrap())
+    .bind(workspace_id)
+    .fetch_one(&state.db)
+    .await
+    .unwrap_or(0);
+
+    // 3. Pending Leave Requests
+    let pending_leave: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM leave_requests 
+         WHERE status = 'pending' 
+         AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)"
+    )
+    .bind(workspace_id)
+    .fetch_one(&state.db)
+    .await
+    .unwrap_or(0);
+
+    // 4. Estimated Monthly Payroll (Sum of latest base salaries)
+    let payroll: rust_decimal::Decimal = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(s.base_salary), 0) FROM salary_history s
+         INNER JOIN (
+            SELECT employee_id, MAX(effective_date) as max_date 
+            FROM salary_history 
+            GROUP BY employee_id
+         ) latest ON s.employee_id = latest.employee_id AND s.effective_date = latest.max_date
+         WHERE s.employee_id IN (SELECT id FROM employees WHERE workspace_id = $1 AND is_active = TRUE)"
+    )
+    .bind(workspace_id)
+    .fetch_one(&state.db)
+    .await
+    .unwrap_or(rust_decimal::Decimal::ZERO);
+
+    Json(WorkspaceStats {
+        total_employees,
+        present_today,
+        pending_leave_requests: pending_leave,
+        estimated_monthly_payroll: payroll,
+    })
+}
+
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<AppState>>,
@@ -600,15 +658,7 @@ pub async fn delete_authorized_agent(
 
 // --- Workspace Management Handlers ---
 
-#[derive(Debug, Deserialize)]
-pub struct UpdateWorkspaceRequest {
-    pub name: Option<String>,
-    pub work_unit_minutes: Option<i32>,
-    pub rounding_policy: Option<String>,
-    pub date_format: Option<String>,
-    pub time_format: Option<String>,
-    pub timezone: Option<String>,
-}
+
 
 pub async fn get_workspaces(
     State(state): State<Arc<AppState>>,
@@ -668,6 +718,7 @@ pub async fn update_workspace(
         req.date_format,
         req.time_format,
         req.timezone,
+        req.theme_primary_color,
     )
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;

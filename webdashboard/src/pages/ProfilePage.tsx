@@ -9,9 +9,12 @@ import {
   Calendar,
   Lock,
   ShieldCheck,
+  Palette,
+  Undo2,
 } from "lucide-react";
 import { useProfile } from "@/hooks/use-profile";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useTheme } from "@/hooks/use-theme";
 import { changePassword, clearAuthSession } from "@/lib/api";
 
 export default function ProfilePage() {
@@ -19,6 +22,7 @@ export default function ProfilePage() {
   const toast = useToast();
   const { user, isLoading, updateProfile, isUpdating } = useProfile();
   const { formatDate } = useDateTimeFormatter();
+  const { primaryColor, isOverridden, setUserTheme } = useTheme();
   const [formData, setFormData] = useState({
     full_name: "",
     avatar_url: "",
@@ -165,6 +169,74 @@ export default function ProfilePage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+
+        {/* Personalization Section */}
+        <div className="mt-8 bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden p-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-pink-50 flex items-center justify-center text-pink-600">
+                <Palette className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">Giao diện cá nhân</h2>
+                <p className="text-sm text-slate-500">
+                  Tùy chỉnh màu sắc hiển thị riêng cho bạn
+                </p>
+              </div>
+            </div>
+
+            {isOverridden && (
+              <button 
+                onClick={() => setUserTheme(null)}
+                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-violet-600 transition-colors"
+              >
+                <Undo2 className="w-3 h-3" />
+                Dùng mặc định Workspace
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-3 items-center">
+              {[
+                { name: 'Violet', color: '#7c3aed' },
+                { name: 'Indigo', color: '#4f46e5' },
+                { name: 'Blue', color: '#2563eb' },
+                { name: 'Emerald', color: '#059669' },
+                { name: 'Amber', color: '#d97706' },
+                { name: 'Rose', color: '#e11d48' },
+                { name: 'Slate', color: '#475569' },
+                { name: 'Black', color: '#0f172a' },
+              ].map((preset) => (
+                <button
+                  key={preset.color}
+                  onClick={() => setUserTheme(preset.color)}
+                  className={`w-10 h-10 rounded-xl transition-all border-2 flex items-center justify-center ${
+                    primaryColor === preset.color ? 'border-slate-900 scale-110 shadow-lg' : 'border-transparent hover:scale-105'
+                  }`}
+                  style={{ backgroundColor: preset.color }}
+                  title={preset.name}
+                >
+                  {primaryColor === preset.color && <div className="w-2 h-2 bg-white rounded-full" />}
+                </button>
+              ))}
+              
+              <div className="h-8 w-[1px] bg-slate-100 mx-1" />
+              
+              <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-100">
+                <input 
+                  type="color" 
+                  value={primaryColor} 
+                  onChange={(e) => setUserTheme(e.target.value)}
+                  className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-none"
+                />
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-400 italic">
+              * Thay đổi này chỉ áp dụng cho riêng bạn trên trình duyệt này.
+            </p>
           </div>
         </div>
 

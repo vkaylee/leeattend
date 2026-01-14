@@ -2,10 +2,32 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
-## [Unreleased]
+## [Unreleased] - 2026-01-14
 
 ### Added
-- **Employment History System**: Normalized employee data by extracting work periods into a dedicated `employment_periods` table, enabling accurate seniority calculation and re-hire support.
+- **Premium UI & "Violet" Brand Identity**: Re-imagined the user interface with a modern, high-contrast, and focused aesthetic.
+    - **Zero-Distraction Header**: Clean, static breadcrumbs (`[Workspace] > [Page]`) to improve context without visual noise.
+    - **Single-Open Accordion Sidebar**: Reduced cognitive load by ensuring only one menu group is expanded at a time; system menus are collapsed by default.
+    - **Mobile-First Responsiveness**: Re-implemented the sidebar as a blurred-backdrop drawer for small screens, ensuring a native-app feel on mobile.
+    - **Polish & Motion**: Integrated `tailwindcss-animate` for smooth fade-ins and slide-ins across all page transitions.
+- **Dynamic Themeing System**: Implemented a workspace-wide branding engine.
+    - **Primary Color Branding**: Workspace owners can now set a custom primary color (HEX) that automatically propagates to all UI elements (buttons, active states, shadows).
+    - **Shade Generator**: Developed a `useTheme` hook that dynamically calculates 11 color shades (50-950) from a single HEX input using luminance adjustment.
+    - **Database Integration**: Added `theme_primary_color` to the `workspaces` table and relevant API endpoints.
+- **User Personalization (Theme Overrides)**: Empowered individual users to customize their own experience.
+    - **Personal Theme Override**: Users can select their own preferred color in the Profile page, stored in `localStorage` for immediate application across sessions.
+    - **Reset to Default**: Option for users to quickly revert to the official Workspace branding.
+    - **Cross-Tab Synchronization**: Theme changes sync instantly across all open browser tabs via the `storage` event listener.
+- **UI/UX Standards Documentation**: Formalized the project's design language in `docs/ui-ux-standards.md`.
+- **Enhanced Integration Testing**: Added Vitest suites for the `useTheme` hook and updated Rust tests to verify theme color persistence.
+
+### Fixed
+- **Sidebar Layout Regressions**: Fixed z-index and overflow issues on mobile browsers.
+- **API Model Redundancy**: Removed duplicate `UpdateWorkspaceRequest` struct in `handlers.rs` to use the centralized version in `models.rs`.
+- **Workspace Settings UI**: Improved the layout of the settings page with a dedicated "Interface Configuration" section.
+- **Breadcrumb Logic**: Standardized page title mapping for Vietnamese localization in the header.
+
+## [Unreleased] - 2026-01-14 (Previous)
     - **Historical Tracking**: Employees can now have multiple "hire" and "termination" events, preserved in an immutable history.
     - **Re-hire Support**: New workflow to re-activate previously terminated employees with a fresh hire date while preserving past data.
     - **Seniority Logic**: Updated leave accrual engine to correctly sum all historical work periods for seniority-based bonuses.

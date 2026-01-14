@@ -18,6 +18,8 @@ import {
   LeavePolicy
 } from "../lib/api";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { Combobox } from "@/components/ui/Combobox";
+import { User, FileText, Settings, ShieldCheck, Calendar } from "lucide-react";
 
 export default function LeaveRequestsPage() {
   const wsId = getCurrentWorkspaceId();
@@ -28,6 +30,11 @@ export default function LeaveRequestsPage() {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("pending");
   const [selectedEmpId, setSelectedEmpId] = useState<string>("");
+  const [leaveType, setLeaveType] = useState<string>("vacation");
+  const [policyType, setPolicyType] = useState<string>("vacation");
+  const [accrualStrategy, setAccrualStrategy] = useState<string>("monthly");
+  const [assignEmpId, setAssignEmpId] = useState<string>("");
+  const [assignPolicyId, setAssignPolicyId] = useState<string>("");
 
   const { data: employees = [] } = useQuery({
     queryKey: ["employees", wsId],
@@ -99,8 +106,8 @@ export default function LeaveRequestsPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const data = {
-      employee_id: formData.get("employee_id") as string,
-      leave_type: formData.get("leave_type") as string,
+      employee_id: selectedEmpId,
+      leave_type: leaveType,
       start_date: formData.get("start_date") as string,
       end_date: formData.get("end_date") as string,
       reason: formData.get("reason") as string,
@@ -113,9 +120,9 @@ export default function LeaveRequestsPage() {
     const formData = new FormData(e.currentTarget);
     policyMutation.mutate({
       name: formData.get("name") as string,
-      leave_type: formData.get("leave_type") as string,
+      leave_type: policyType as any,
       annual_entitlement: Number(formData.get("annual_entitlement")),
-      accrual_strategy: formData.get("accrual_strategy") as "monthly" | "lump_sum",
+      accrual_strategy: accrualStrategy as "monthly" | "lump_sum",
       carry_over_limit: Number(formData.get("carry_over_limit")),
     });
   };
@@ -124,8 +131,8 @@ export default function LeaveRequestsPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     assignMutation.mutate({
-      employee_id: formData.get("employee_id") as string,
-      leave_policy_id: formData.get("leave_policy_id") as string,
+      employee_id: assignEmpId,
+      leave_policy_id: assignPolicyId,
       effective_date: formData.get("effective_date") as string,
     });
   };
@@ -303,19 +310,31 @@ export default function LeaveRequestsPage() {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="space-y-1">
-                <label htmlFor="leave-emp-select" className="text-sm font-semibold text-slate-700">Nhân viên</label>
-                <select 
-                  id="leave-emp-select"
-                  name="employee_id" 
-                  required 
-                  value={selectedEmpId}
-                  onChange={(e) => setSelectedEmpId(e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+              <input type="hidden" name="employee_id" value={selectedEmpId} />
+              <div className="space-y-2">
+                <label 
+                  htmlFor="leave-emp-select"
+                  className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"
                 >
-                  <option value="">-- Chọn nhân viên --</option>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
-                </select>
+                  Nhân viên
+                </label>
+                <Combobox
+                  id="leave-emp-select"
+                  options={employees.map((e) => ({
+                    value: e.id,
+                    label: `${e.first_name} ${e.last_name}`,
+                    description: `Mã NV: ${e.employee_id_number}`,
+                    icon: (
+                      <div className="bg-violet-100 p-2 rounded-xl text-violet-600 shadow-inner">
+                        <User className="w-4 h-4" />
+                      </div>
+                    ),
+                  }))}
+                  value={selectedEmpId}
+                  onChange={setSelectedEmpId}
+                  placeholder="Chọn nhân viên..."
+                  className="bg-slate-50 border-slate-200"
+                />
               </div>
 
               {selectedEmpId && balances.length > 0 && (
@@ -333,13 +352,25 @@ export default function LeaveRequestsPage() {
                 </div>
               )}
 
-              <div className="space-y-1">
-                <label htmlFor="leave-type-select" className="text-sm font-semibold text-slate-700">Loại nghỉ</label>
-                <select id="leave-type-select" name="leave_type" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none">
-                  <option value="vacation">Nghỉ phép năm</option>
-                  <option value="sick">Nghỉ ốm</option>
-                  <option value="personal">Việc riêng</option>
-                </select>
+              <div className="space-y-2">
+                <input type="hidden" name="leave_type" value={leaveType} />
+                <label 
+                  htmlFor="leave-type-select"
+                  className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"
+                >
+                  Loại nghỉ
+                </label>
+                <Combobox
+                  id="leave-type-select"
+                  options={[
+                    { value: "vacation", label: "Nghỉ phép năm", icon: <Calendar className="w-4 h-4" /> },
+                    { value: "sick", label: "Nghỉ ốm", icon: <FileText className="w-4 h-4" /> },
+                    { value: "personal", label: "Việc riêng", icon: <Settings className="w-4 h-4" /> },
+                  ]}
+                  value={leaveType}
+                  onChange={setLeaveType}
+                  className="bg-slate-50 border-slate-200"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
@@ -380,12 +411,17 @@ export default function LeaveRequestsPage() {
                 <label htmlFor="policy-name" className="text-sm font-semibold text-slate-700">Tên chính sách</label>
                 <input id="policy-name" name="name" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="VD: Phép năm tiêu chuẩn" />
               </div>
-              <div className="space-y-1">
-                <label htmlFor="policy-type" className="text-sm font-semibold text-slate-700">Loại nghỉ</label>
-                <select id="policy-type" name="leave_type" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none">
-                  <option value="vacation">Phép năm</option>
-                  <option value="sick">Nghỉ ốm</option>
-                </select>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Loại nghỉ</label>
+                <Combobox
+                  options={[
+                    { value: "vacation", label: "Phép năm", icon: <Calendar className="w-4 h-4" /> },
+                    { value: "sick", label: "Nghỉ ốm", icon: <FileText className="w-4 h-4" /> },
+                  ]}
+                  value={policyType}
+                  onChange={setPolicyType}
+                  className="bg-slate-50 border-slate-200"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
@@ -397,12 +433,17 @@ export default function LeaveRequestsPage() {
                   <input id="policy-carryover" type="number" name="carry_over_limit" required defaultValue={5} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none" />
                 </div>
               </div>
-              <div className="space-y-1">
-                <label htmlFor="policy-strategy" className="text-sm font-semibold text-slate-700">Chiến lược tích lũy</label>
-                <select id="policy-strategy" name="accrual_strategy" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none">
-                  <option value="monthly">Tích lũy hàng tháng (1 ngày/tháng)</option>
-                  <option value="lump_sum">Cấp toàn bộ vào đầu năm</option>
-                </select>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Chiến lược tích lũy</label>
+                <Combobox
+                  options={[
+                    { value: "monthly", label: "Tích lũy hàng tháng", description: "Cấp 1 ngày vào đầu mỗi tháng" },
+                    { value: "lump_sum", label: "Cấp một lần", description: "Cấp toàn bộ định mức vào đầu năm" },
+                  ]}
+                  value={accrualStrategy}
+                  onChange={setAccrualStrategy}
+                  className="bg-slate-50 border-slate-200"
+                />
               </div>
               <div className="pt-4 flex gap-3">
                 <button type="button" onClick={() => setIsPolicyModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-xl font-semibold hover:bg-slate-50 transition-colors">Hủy</button>
@@ -422,19 +463,46 @@ export default function LeaveRequestsPage() {
               <button onClick={() => setIsAssignModalOpen(false)} className="p-2 hover:bg-white rounded-xl transition-colors"><X className="w-5 h-5 text-slate-400" /></button>
             </div>
             <form onSubmit={handleAssignPolicy} className="p-6 space-y-4">
-              <div className="space-y-1">
-                <label htmlFor="assign-emp" className="text-sm font-semibold text-slate-700">Nhân viên</label>
-                <select id="assign-emp" name="employee_id" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none">
-                  <option value="">-- Chọn nhân viên --</option>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
-                </select>
+              <div className="space-y-2">
+                <label 
+                  htmlFor="assign-emp"
+                  className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"
+                >
+                  Nhân viên
+                </label>
+                <Combobox
+                  id="assign-emp"
+                  options={employees.map(e => ({
+                    value: e.id,
+                    label: `${e.first_name} ${e.last_name}`,
+                    icon: <User className="w-4 h-4" />
+                  }))}
+                  value={assignEmpId}
+                  onChange={setAssignEmpId}
+                  placeholder="Chọn nhân viên..."
+                  className="bg-slate-50 border-slate-200"
+                />
               </div>
-              <div className="space-y-1">
-                <label htmlFor="assign-policy" className="text-sm font-semibold text-slate-700">Chính sách</label>
-                <select id="assign-policy" name="leave_policy_id" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none">
-                  <option value="">-- Chọn chính sách --</option>
-                  {policies.map(p => <option key={p.id} value={p.id}>{p.name} ({p.leave_type})</option>)}
-                </select>
+              <div className="space-y-2">
+                <label 
+                  htmlFor="assign-policy"
+                  className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"
+                >
+                  Chính sách
+                </label>
+                <Combobox
+                  id="assign-policy"
+                  options={policies.map(p => ({
+                    value: p.id,
+                    label: p.name,
+                    description: p.leave_type === 'vacation' ? 'Phép năm' : 'Nghỉ ốm',
+                    icon: <ShieldCheck className="w-4 h-4" />
+                  }))}
+                  value={assignPolicyId}
+                  onChange={setAssignPolicyId}
+                  placeholder="Chọn chính sách..."
+                  className="bg-slate-50 border-slate-200"
+                />
               </div>
               <div className="space-y-1">
                 <label htmlFor="assign-date" className="text-sm font-semibold text-slate-700">Ngày hiệu lực</label>

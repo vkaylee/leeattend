@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { X, Shield, Plus, Trash2, Clock } from "lucide-react";
+import { X, Shield, Plus, Trash2, Clock, UserCheck } from "lucide-react";
 import { useMemberRoles } from "@/hooks/use-workspace";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { Combobox } from "./ui/Combobox";
 
 interface RoleManagementModalProps {
   userId: string | null;
@@ -88,30 +89,23 @@ export default function RoleManagementModal({
             <>
               {/* Primary Role */}
               <div className="space-y-3">
-                <label
+                <label 
                   htmlFor="primary-role-select"
                   className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1"
                 >
                   Quyền chính (Vĩnh viễn)
                 </label>
-                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <div className="flex items-center gap-3 flex-1">
-                    <Shield className="w-5 h-5 text-blue-600" />
-                    <select
-                      id="primary-role-select"
-                      className="bg-transparent font-bold text-slate-700 capitalize outline-none cursor-pointer"
-                      value={primaryRole}
-                      onChange={(e) => handleUpdatePrimary(e.target.value)}
-                    >
-                      <option value="owner">Owner</option>
-                      <option value="admin">Admin</option>
-                      <option value="member">Member</option>
-                    </select>
-                  </div>
-                  <span className="text-[10px] font-bold bg-blue-100 text-blue-600 px-2 py-1 rounded-lg uppercase">
-                    Primary
-                  </span>
-                </div>
+                <Combobox
+                  id="primary-role-select"
+                  options={[
+                    { value: "owner", label: "Owner", description: "Sáng lập, toàn quyền cao nhất", icon: <Shield className="w-4 h-4 text-indigo-600" /> },
+                    { value: "admin", label: "Admin", description: "Quản trị viên hệ thống", icon: <Shield className="w-4 h-4 text-blue-600" /> },
+                    { value: "member", label: "Member", description: "Thành viên thông thường", icon: <Shield className="w-4 h-4 text-slate-400" /> },
+                  ]}
+                  value={primaryRole}
+                  onChange={handleUpdatePrimary}
+                  className="bg-slate-50 border-slate-100 h-14"
+                />
               </div>
 
               {/* Extra Roles */}
@@ -169,21 +163,22 @@ export default function RoleManagementModal({
               className="grid grid-cols-1 md:grid-cols-2 gap-4"
             >
               <div className="space-y-2">
-                <label
+                <label 
                   htmlFor="extra-role-select"
                   className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1"
                 >
                   Vai trò
                 </label>
-                <select
+                <Combobox
                   id="extra-role-select"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none text-sm"
+                  options={[
+                    { value: "member", label: "Member", icon: <Shield className="w-4 h-4" /> },
+                    { value: "admin", label: "Admin", icon: <Shield className="w-4 h-4 text-blue-600" /> },
+                  ]}
                   value={newRole}
-                  onChange={(e) => setNewRole(e.target.value)}
-                >
-                  <option value="member">Member</option>
-                  <option value="admin">Admin</option>
-                </select>
+                  onChange={setNewRole}
+                  className="bg-slate-50 border-slate-200"
+                />
               </div>
               <div className="space-y-2">
                 <label

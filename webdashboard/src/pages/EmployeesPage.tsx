@@ -31,6 +31,7 @@ import {
   rehireEmployee
 } from "../lib/api";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { Combobox } from "@/components/ui/Combobox";
 
 export default function EmployeesPage() {
   const wsId = getCurrentWorkspaceId() || "";
@@ -46,6 +47,10 @@ export default function EmployeesPage() {
   const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isRehireModalOpen, setIsRehireModalOpen] = useState(false);
+
+  // Combobox states
+  const [selectedDeptId, setSelectedDeptId] = useState<string>("");
+  const [salaryType, setSalaryType] = useState<string>("monthly");
 
   const { data: employees = [], isLoading } = useQuery({
     queryKey: ["employees", wsId],
@@ -148,7 +153,7 @@ export default function EmployeesPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     transferMutation.mutate({
-      department_id: formData.get("department_id"),
+      department_id: selectedDeptId,
       effective_date: formData.get("effective_date"),
       notes: formData.get("notes"),
     });
@@ -159,7 +164,7 @@ export default function EmployeesPage() {
     const formData = new FormData(e.currentTarget);
     salaryMutation.mutate({
       base_salary: formData.get("base_salary"),
-      salary_type: formData.get("salary_type"),
+      salary_type: salaryType,
       currency: "VND",
       effective_date: formData.get("effective_date"),
     });
@@ -176,81 +181,83 @@ export default function EmployeesPage() {
   if (!wsId) return <div className="p-8 text-center">Vui lòng chọn Workspace</div>;
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] gap-6 overflow-hidden">
+    <div className="flex h-[calc(100vh-10rem)] gap-8 overflow-hidden animate-enter">
       {/* Left List */}
-      <div className={`flex-1 flex flex-col gap-6 overflow-hidden transition-all ${selectedEmployee ? 'max-w-[60%]' : 'max-w-full'}`}>
+      <div className={`flex-1 flex flex-col gap-8 overflow-hidden transition-all duration-500 ${selectedEmployee ? 'max-w-[55%]' : 'max-w-full'}`}>
         <div className="flex justify-between items-center shrink-0">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Nhân viên</h1>
-            <p className="text-slate-500">Quản lý hồ sơ và lịch sử công tác</p>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Nhân viên</h1>
+            <p className="text-slate-500 mt-1">Quản lý hồ sơ và lịch sử công tác toàn hệ thống</p>
           </div>
           <button 
             onClick={() => { setEditingEmployee(null); setIsModalOpen(true); }}
-            className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95 font-semibold"
+            className="flex items-center gap-2 bg-violet-600 text-white px-6 py-3 rounded-2xl hover:bg-violet-700 hover:scale-105 transition-all shadow-xl shadow-violet-200 active:scale-95 font-bold"
           >
             <UserPlus className="w-5 h-5" />
             Thêm nhân viên
           </button>
         </div>
 
-        <div className="relative shrink-0">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+        <div className="relative shrink-0 group">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 group-focus-within:text-violet-500 transition-colors" />
           <input 
             type="text" 
             placeholder="Tìm kiếm theo tên hoặc mã nhân viên..."
-            className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+            className="w-full pl-14 pr-6 py-4 bg-white border border-slate-100 rounded-[1.5rem] shadow-sm focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 transition-all text-lg"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-3xl flex-1 overflow-auto shadow-sm">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50/50 sticky top-0 backdrop-blur-md border-b border-slate-200 z-10">
+        <div className="bg-white border border-slate-50 rounded-[2rem] flex-1 overflow-auto shadow-sm">
+          <table className="w-full text-left border-separate border-spacing-0">
+            <thead className="bg-slate-50/50 sticky top-0 backdrop-blur-md z-10">
               <tr>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Họ và tên</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Mã NV</th>
+                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">Họ và tên</th>
+                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">Mã NV</th>
                 {!selectedEmployee && (
                   <>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Ngày vào làm</th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Trạng thái</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">Ngày vào làm</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">Trạng thái</th>
                   </>
                 )}
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Thao tác</th>
+                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-50">
               {isLoading ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400">Đang tải dữ liệu...</td></tr>
+                <tr><td colSpan={5} className="px-8 py-20 text-center text-slate-400 font-medium">Đang tải dữ liệu...</td></tr>
               ) : filteredEmployees.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400">Không có dữ liệu hiển thị.</td></tr>
+                <tr><td colSpan={5} className="px-8 py-20 text-center text-slate-400 font-medium">Không có dữ liệu hiển thị.</td></tr>
               ) : filteredEmployees.map((emp) => (
                 <tr 
                   key={emp.id} 
                   onClick={() => setSelectedEmployee(emp)}
-                  className={`cursor-pointer transition-all group ${selectedEmployee?.id === emp.id ? 'bg-blue-50/50' : 'hover:bg-slate-50'}`}
+                  className={`cursor-pointer transition-all group ${selectedEmployee?.id === emp.id ? 'bg-violet-50/50' : 'hover:bg-slate-50/50'}`}
                 >
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
-                        <UserCircle className="w-6 h-6" />
+                  <td className="px-8 py-5">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-violet-100 group-hover:text-violet-600 transition-all duration-300">
+                        <UserCircle className="w-7 h-7" />
                       </div>
-                      <div className="font-bold text-slate-900">{emp.first_name} {emp.last_name}</div>
+                      <div className="font-bold text-slate-900 text-lg">{emp.first_name} {emp.last_name}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 font-mono text-sm text-slate-500">{emp.employee_id_number}</td>
+                  <td className="px-8 py-5 font-mono text-sm text-slate-500">{emp.employee_id_number}</td>
                   {!selectedEmployee && (
                     <>
-                      <td className="px-6 py-4 text-slate-600 text-sm">{formatDate(emp.hire_date)}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${emp.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+                      <td className="px-8 py-5 text-slate-600 text-sm font-medium">{formatDate(emp.hire_date)}</td>
+                      <td className="px-8 py-5">
+                        <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${emp.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
                           {emp.is_active ? 'Active' : 'Terminated'}
                         </span>
                       </td>
                     </>
                   )}
-                  <td className="px-6 py-4 text-right">
-                    <ChevronRight className={`w-5 h-5 text-slate-300 ml-auto transition-transform ${selectedEmployee?.id === emp.id ? 'translate-x-1 text-blue-500' : ''}`} />
+                  <td className="px-8 py-5 text-right">
+                    <div className="bg-slate-50 w-10 h-10 rounded-xl flex items-center justify-center ml-auto group-hover:bg-violet-100 transition-colors">
+                      <ChevronRight className={`w-5 h-5 text-slate-300 transition-transform ${selectedEmployee?.id === emp.id ? 'translate-x-1 text-violet-500' : 'group-hover:text-violet-400'}`} />
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -261,27 +268,27 @@ export default function EmployeesPage() {
 
       {/* Right Detail Panel */}
       {selectedEmployee && (
-        <div className="w-[40%] bg-white border border-slate-200 rounded-3xl flex flex-col shadow-xl overflow-hidden animate-in slide-in-from-right duration-300">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/30">
-            <div className="flex justify-between items-start mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-3xl flex items-center justify-center">
-                  <UserCircle className="w-10 h-10" />
+        <div className="w-[45%] bg-white border border-slate-50 rounded-[2.5rem] flex flex-col shadow-2xl shadow-slate-200/50 overflow-hidden animate-in slide-in-from-right duration-500">
+          <div className="p-8 border-b border-slate-50 bg-slate-50/30">
+            <div className="flex justify-between items-start mb-8">
+              <div className="flex items-center gap-5">
+                <div className="w-20 h-20 bg-violet-100 text-violet-600 rounded-[2rem] flex items-center justify-center shadow-inner">
+                  <UserCircle className="w-12 h-12" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-900">{selectedEmployee.first_name} {selectedEmployee.last_name}</h2>
-                  <p className="text-slate-500 font-mono text-sm">{selectedEmployee.employee_id_number}</p>
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">{selectedEmployee.first_name} {selectedEmployee.last_name}</h2>
+                  <p className="text-violet-500 font-mono text-sm font-bold mt-1 tracking-wider">{selectedEmployee.employee_id_number}</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedEmployee(null)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
-                <X className="w-5 h-5 text-slate-400" />
+              <button onClick={() => setSelectedEmployee(null)} className="p-3 hover:bg-white rounded-2xl transition-all shadow-sm active:scale-90">
+                <X className="w-6 h-6 text-slate-400" />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <button 
                 onClick={() => { setEditingEmployee(selectedEmployee); setIsModalOpen(true); }}
-                className="flex items-center justify-center gap-2 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 transition-all text-sm"
+                className="flex items-center justify-center gap-2 py-3.5 bg-white border border-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 hover:border-violet-200 transition-all text-sm shadow-sm"
               >
                 <Edit2 className="w-4 h-4" />
                 Sửa hồ sơ
@@ -294,7 +301,7 @@ export default function EmployeesPage() {
                       updateMutation.mutate({ id: selectedEmployee.id, employee: { is_active: false, termination_date: new Date().toISOString().split('T')[0] } });
                     }
                   }}
-                  className="flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 font-bold rounded-2xl hover:bg-red-100 transition-all text-sm"
+                  className="flex items-center justify-center gap-2 py-3.5 bg-rose-50 text-rose-600 font-bold rounded-2xl hover:bg-rose-100 transition-all text-sm"
                 >
                   <Trash2 className="w-4 h-4" />
                   Nghỉ việc
@@ -302,7 +309,7 @@ export default function EmployeesPage() {
               ) : (
                 <button 
                   onClick={() => setIsRehireModalOpen(true)}
-                  className="flex items-center justify-center gap-2 py-2.5 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all text-sm shadow-lg shadow-blue-100"
+                  className="flex items-center justify-center gap-2 py-3.5 bg-violet-600 text-white font-bold rounded-2xl hover:bg-violet-700 transition-all text-sm shadow-xl shadow-violet-200"
                 >
                   <UserPlus className="w-4 h-4" />
                   Vào làm lại
@@ -311,73 +318,76 @@ export default function EmployeesPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-8">
+          <div className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-hide">
             {/* Department History */}
-            <section className="space-y-4">
+            <section className="space-y-5">
               <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2 font-bold text-slate-900">
-                  <Building2 className="w-5 h-5 text-blue-500" />
+                <div className="flex items-center gap-3 font-black text-slate-900 uppercase tracking-widest text-xs">
+                  <Building2 className="w-5 h-5 text-violet-500" />
                   <span>Phòng ban hiện tại</span>
                 </div>
                 <button 
                   onClick={() => setIsTransferModalOpen(true)}
-                  className="text-sm font-bold text-blue-600 hover:underline flex items-center gap-1"
+                  className="text-xs font-bold text-violet-600 hover:underline flex items-center gap-1.5 bg-violet-50 px-3 py-1.5 rounded-xl transition-colors"
                 >
-                  <ArrowRightLeft className="w-4 h-4" />
+                  <ArrowRightLeft className="w-3.5 h-3.5" />
                   Điều chuyển
                 </button>
               </div>
               
-              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+              <div className="bg-slate-50/50 rounded-3xl p-6 border border-slate-50 group hover:border-violet-100 transition-all">
                 {deptHistory && deptHistory.length > 0 ? (
                   <div>
-                    <div className="font-bold text-slate-900">
+                    <div className="font-extrabold text-slate-900 text-xl tracking-tight">
                       {departments?.find(d => d.id === deptHistory[0].department_id)?.name}
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">Hiệu lực từ: {formatDate(deptHistory[0].effective_date)}</div>
+                    <div className="text-xs text-slate-400 mt-2 font-bold uppercase tracking-wider flex items-center gap-2">
+                       <Calendar className="w-3.5 h-3.5" />
+                       Hiệu lực: {formatDate(deptHistory[0].effective_date)}
+                    </div>
                   </div>
                 ) : (
-                  <div className="text-sm text-slate-400 italic">Chưa được gán phòng ban</div>
+                  <div className="text-sm text-slate-400 italic font-medium">Chưa được gán phòng ban</div>
                 )}
               </div>
             </section>
 
             {/* Salary History */}
-            <section className="space-y-4">
+            <section className="space-y-5">
               <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2 font-bold text-slate-900">
-                  <Banknote className="w-5 h-5 text-green-500" />
+                <div className="flex items-center gap-3 font-black text-slate-900 uppercase tracking-widest text-xs">
+                  <Banknote className="w-5 h-5 text-emerald-500" />
                   <span>Mức lương & Đãi ngộ</span>
                 </div>
                 <button 
                   onClick={() => setIsSalaryModalOpen(true)}
-                  className="text-sm font-bold text-blue-600 hover:underline flex items-center gap-1"
+                  className="text-xs font-bold text-violet-600 hover:underline flex items-center gap-1.5 bg-violet-50 px-3 py-1.5 rounded-xl transition-colors"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5" />
                   Cập nhật
                 </button>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {salaryHistory?.map((sal, idx) => (
-                  <div key={sal.id} className={`p-4 rounded-2xl border ${idx === 0 ? 'bg-green-50/30 border-green-100' : 'bg-white border-slate-100'}`}>
+                  <div key={sal.id} className={`p-6 rounded-3xl border transition-all ${idx === 0 ? 'bg-emerald-50/30 border-emerald-100 shadow-sm' : 'bg-white border-slate-50 hover:border-slate-200'}`}>
                     <div className="flex justify-between items-start">
                       <div>
-                        <div className="font-bold text-slate-900">
+                        <div className="font-black text-slate-900 text-xl tracking-tight">
                           {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: sal.currency }).format(parseFloat(sal.base_salary))}
-                          <span className="text-xs text-slate-400 font-normal ml-2">/ {sal.salary_type}</span>
+                          <span className="text-xs text-slate-400 font-bold ml-2 uppercase tracking-widest">/ {sal.salary_type}</span>
                         </div>
-                        <div className="text-[10px] text-slate-500 mt-1 uppercase font-bold flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
+                        <div className="text-[10px] text-slate-500 mt-2 uppercase font-black flex items-center gap-1.5 tracking-widest">
+                          <Calendar className="w-3.5 h-3.5" />
                           {formatDate(sal.effective_date)}
                         </div>
                       </div>
-                      {idx === 0 && <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[9px] font-bold rounded-full uppercase tracking-tighter">Current</span>}
+                      {idx === 0 && <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-[9px] font-black rounded-full uppercase tracking-widest shadow-sm">Current</span>}
                     </div>
                   </div>
                 ))}
                 {(!salaryHistory || salaryHistory.length === 0) && (
-                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-sm text-slate-400 italic text-center">
+                  <div className="bg-slate-50 rounded-3xl p-8 border border-slate-50 text-sm text-slate-400 italic font-medium text-center">
                     Chưa có lịch sử lương
                   </div>
                 )}
@@ -385,35 +395,35 @@ export default function EmployeesPage() {
             </section>
 
             {/* Timeline/Activity */}
-            <section className="space-y-4">
+            <section className="space-y-6">
               <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2 font-bold text-slate-900">
+                <div className="flex items-center gap-3 font-black text-slate-900 uppercase tracking-widest text-xs">
                   <History className="w-5 h-5 text-slate-400" />
                   <span>Lịch sử công tác</span>
                 </div>
                 <button 
                   onClick={() => setIsHistoryModalOpen(true)}
-                  className="text-xs font-bold text-blue-600 hover:underline"
+                  className="text-[10px] font-black text-slate-400 hover:text-violet-600 uppercase tracking-widest transition-colors"
                 >
-                  Xem chi tiết
+                  Xem chi tiết →
                 </button>
               </div>
-              <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
+              <div className="relative pl-8 space-y-8 before:absolute before:left-3 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
                 {employmentHistory?.map((period, idx) => (
                   <React.Fragment key={period.id}>
                     {period.termination_date && (
-                      <div className="relative">
-                        <div className="absolute -left-[1.35rem] top-1 w-3 h-3 rounded-full bg-red-500 border-2 border-white shadow-sm ring-4 ring-red-50"></div>
-                        <div className="text-sm font-bold text-slate-800">Nghỉ việc</div>
-                        <div className="text-xs text-slate-500">{formatDate(period.termination_date)}</div>
+                      <div className="relative animate-in fade-in slide-in-from-left duration-300">
+                        <div className="absolute -left-[1.65rem] top-1.5 w-4 h-4 rounded-full bg-rose-500 border-[3px] border-white shadow-md ring-4 ring-rose-50"></div>
+                        <div className="text-sm font-black text-slate-800 uppercase tracking-tight">Nghỉ việc</div>
+                        <div className="text-xs text-slate-500 mt-1 font-bold">{formatDate(period.termination_date)}</div>
                       </div>
                     )}
-                    <div className="relative">
-                      <div className={`absolute -left-[1.35rem] top-1 w-3 h-3 rounded-full border-2 border-white shadow-sm ring-4 ${idx === 0 && !period.termination_date ? 'bg-green-500 ring-green-50' : 'bg-blue-500 ring-blue-50'}`}></div>
-                      <div className="text-sm font-bold text-slate-800">
+                    <div className="relative animate-in fade-in slide-in-from-left duration-300">
+                      <div className={`absolute -left-[1.65rem] top-1.5 w-4 h-4 rounded-full border-[3px] border-white shadow-md ring-4 ${idx === 0 && !period.termination_date ? 'bg-emerald-500 ring-emerald-50' : 'bg-violet-500 ring-violet-50'}`}></div>
+                      <div className="text-sm font-black text-slate-800 uppercase tracking-tight">
                         {period.is_rehire ? "Quay lại làm việc" : "Gia nhập công ty"}
                       </div>
-                      <div className="text-xs text-slate-500">{formatDate(period.hire_date)}</div>
+                      <div className="text-xs text-slate-500 mt-1 font-bold">{formatDate(period.hire_date)}</div>
                     </div>
                   </React.Fragment>
                 ))}
@@ -425,40 +435,40 @@ export default function EmployeesPage() {
 
       {/* Main Employee Form Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
-              <h2 className="text-2xl font-bold text-slate-900">{editingEmployee ? 'Sửa hồ sơ' : 'Thêm nhân viên mới'}</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white rounded-2xl transition-colors">
-                <X className="w-6 h-6 text-slate-400" />
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[60] p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300 border border-white/20">
+            <div className="px-10 py-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight">{editingEmployee ? 'Sửa hồ sơ' : 'Thêm nhân viên'}</h2>
+              <button onClick={() => setIsModalOpen(false)} className="p-3 hover:bg-white rounded-2xl transition-all shadow-sm">
+                <X className="w-7 h-7 text-slate-400" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-8 space-y-5">
-              <div className="grid grid-cols-2 gap-5">
+            <form onSubmit={handleSubmit} className="p-10 space-y-6">
+              <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">Họ</label>
-                  <input name="last_name" required defaultValue={editingEmployee?.last_name} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Họ</label>
+                  <input name="last_name" required defaultValue={editingEmployee?.last_name} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 outline-none transition-all font-bold" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">Tên</label>
-                  <input name="first_name" required defaultValue={editingEmployee?.first_name} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Tên</label>
+                  <input name="first_name" required defaultValue={editingEmployee?.first_name} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 outline-none transition-all font-bold" />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">Mã nhân viên</label>
-                <input name="employee_id_number" required defaultValue={editingEmployee?.employee_id_number} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Mã nhân viên</label>
+                <input name="employee_id_number" required defaultValue={editingEmployee?.employee_id_number} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 outline-none transition-all font-mono font-bold" />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">Ngày vào làm</label>
-                <input type="date" name="hire_date" required defaultValue={editingEmployee?.hire_date} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Ngày vào làm</label>
+                <input type="date" name="hire_date" required defaultValue={editingEmployee?.hire_date} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 outline-none transition-all font-bold" />
               </div>
-              <div className="flex items-center gap-3 py-2">
-                <input type="checkbox" name="is_active" id="is_active" defaultChecked={editingEmployee ? editingEmployee.is_active : true} className="w-5 h-5 text-blue-600 rounded-lg border-slate-300 focus:ring-blue-500" />
-                <label htmlFor="is_active" className="text-sm font-bold text-slate-700">Đang hoạt động</label>
+              <div className="flex items-center gap-4 py-2">
+                <input type="checkbox" name="is_active" id="is_active" defaultChecked={editingEmployee ? editingEmployee.is_active : true} className="w-6 h-6 text-violet-600 rounded-xl border-slate-200 focus:ring-violet-500 transition-all cursor-pointer" />
+                <label htmlFor="is_active" className="text-sm font-black text-slate-700 uppercase tracking-widest cursor-pointer">Đang hoạt động</label>
               </div>
-              <div className="pt-4 grid grid-cols-2 gap-4">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-3 border border-slate-200 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all">Hủy</button>
-                <button type="submit" className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
+              <div className="pt-6 grid grid-cols-2 gap-5">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-8 py-4 border border-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Hủy bỏ</button>
+                <button type="submit" className="px-8 py-4 bg-violet-600 text-white rounded-2xl font-black hover:bg-violet-700 transition-all shadow-xl shadow-violet-200 hover:scale-[1.02] active:scale-95">
                   {editingEmployee ? 'Cập nhật' : 'Lưu hồ sơ'}
                 </button>
               </div>
@@ -467,6 +477,7 @@ export default function EmployeesPage() {
         </div>
       )}
 
+
       {/* Transfer Modal */}
       {isTransferModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
@@ -474,12 +485,19 @@ export default function EmployeesPage() {
             <div className="p-8">
               <h2 className="text-2xl font-bold text-slate-900 mb-6">Điều chuyển phòng ban</h2>
               <form onSubmit={handleTransferSubmit} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Phòng ban mới</label>
-                  <select name="department_id" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none appearance-none">
-                    <option value="">-- Chọn phòng ban --</option>
-                    {departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phòng ban mới</label>
+                  <Combobox
+                    options={departments?.map(d => ({
+                      value: d.id,
+                      label: d.name,
+                      icon: <Building2 className="w-4 h-4" />
+                    })) || []}
+                    value={selectedDeptId}
+                    onChange={setSelectedDeptId}
+                    placeholder="Chọn phòng ban..."
+                    className="bg-slate-50 border-slate-200"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Ngày hiệu lực</label>
@@ -505,7 +523,7 @@ export default function EmployeesPage() {
           <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="p-8">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-slate-900 text-center">Chi tiết lịch sử công tác</h2>
+                <h2 className="text-2xl font-bold text-slate-900">Chi tiết lịch sử công tác</h2>
                 <button onClick={() => setIsHistoryModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
                   <X className="w-5 h-5 text-slate-400" />
                 </button>
@@ -586,12 +604,17 @@ export default function EmployeesPage() {
                   <label className="block text-sm font-bold text-slate-700 mb-2">Lương cơ bản</label>
                   <input type="number" name="base_salary" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" />
                 </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Loại lương</label>
-                  <select name="salary_type" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none appearance-none">
-                    <option value="monthly">Lương tháng</option>
-                    <option value="hourly">Lương giờ</option>
-                  </select>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Loại lương</label>
+                  <Combobox
+                    options={[
+                      { value: "monthly", label: "Lương tháng", icon: <Banknote className="w-4 h-4" /> },
+                      { value: "hourly", label: "Lương giờ", icon: <Clock className="w-4 h-4" /> },
+                    ]}
+                    value={salaryType}
+                    onChange={setSalaryType}
+                    className="bg-slate-50 border-slate-200"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Ngày hiệu lực</label>

@@ -74,7 +74,7 @@ describe("AgentEditModal", () => {
       isFetching: false,
       error: null,
       refetch: vi.fn(),
-      updateAgent: vi.fn() as any,
+      updateAgent: updateAgentMock as any,
       isUpdating: false,
       deleteAgent: vi.fn() as any,
       isDeleting: false,

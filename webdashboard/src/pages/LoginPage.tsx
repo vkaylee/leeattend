@@ -64,46 +64,51 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
+    <div className="min-h-screen flex items-center justify-center bg-[#fcfcfd] p-4 relative overflow-hidden">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 -left-20 w-96 h-96 bg-violet-100/50 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 -right-20 w-96 h-96 bg-indigo-100/50 rounded-full blur-3xl" />
+      
+      <div className="max-w-md w-full space-y-10 p-12 bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 relative z-10 animate-enter border border-slate-50">
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">LeeAttend</h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Hệ thống quản lý chấm công & thiết bị
+          <div className="bg-violet-600 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-violet-200 rotate-3">
+             <span className="text-white text-3xl font-black">L</span>
+          </div>
+          <h2 className="text-4xl font-black text-slate-900 tracking-tight">LeeAttend</h2>
+          <p className="mt-3 text-slate-500 font-medium">
+            Hệ thống quản lý nhân sự 4.0
           </p>
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded text-sm text-center">
+          <div className="bg-rose-50 border border-rose-100 text-rose-600 p-4 rounded-2xl text-sm font-bold text-center animate-in fade-in slide-in-from-top-2">
             {error}
           </div>
         )}
 
-        <div className="mt-8 space-y-6">
+        <div className="space-y-8">
           <button
             onClick={handleFastLogin}
-            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+            className="group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-black rounded-2xl text-white bg-violet-600 hover:bg-violet-700 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-violet-200 uppercase tracking-widest"
           >
-            ⚡ Đăng nhập nhanh (Dev Mode)
+            ⚡ Đăng nhập nhanh
           </button>
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
+              <div className="w-full border-t border-slate-100" />
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">
-                Hoặc đăng nhập bằng Email
+            <div className="relative flex justify-center text-[10px]">
+              <span className="px-4 bg-white text-slate-400 font-black uppercase tracking-[0.2em]">
+                Hoặc sử dụng tài khoản
               </span>
             </div>
           </div>
 
-          <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-            <div className="rounded-md shadow-sm -space-y-px">
-              <div>
-                <label htmlFor="email-address" className="sr-only">
-                  Email address
-                </label>
+          <form className="space-y-6" onSubmit={handleLogin}>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Email</label>
                 <input
                   id="email-address"
                   name="email"
@@ -112,14 +117,12 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="Email address"
+                  className="block w-full px-5 py-4 bg-slate-50 border border-slate-100 text-slate-900 rounded-2xl focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 transition-all font-bold placeholder:text-slate-300"
+                  placeholder="admin@leeattend.com"
                 />
               </div>
-              <div>
-                <label htmlFor="password" className="sr-only">
-                  Password
-                </label>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Mật khẩu</label>
                 <input
                   id="password"
                   name="password"
@@ -128,29 +131,27 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="Password"
+                  className="block w-full px-5 py-4 bg-slate-50 border border-slate-100 text-slate-900 rounded-2xl focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 transition-all font-bold placeholder:text-slate-300"
+                  placeholder="••••••••"
                 />
               </div>
             </div>
 
-            <div>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:opacity-50"
-              >
-                {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full flex justify-center py-4 px-4 border border-slate-200 text-sm font-black rounded-2xl text-slate-700 bg-white hover:bg-slate-50 hover:border-violet-200 transition-all disabled:opacity-50 uppercase tracking-widest shadow-sm"
+            >
+              {isSubmitting ? "Đang xử lý..." : "Đăng nhập hệ thống"}
+            </button>
 
-            <div className="text-center text-sm">
-              <span className="text-gray-500">Don't have an account? </span>
+            <div className="text-center">
+              <span className="text-slate-400 text-sm font-medium">Chưa có tài khoản? </span>
               <Link
                 to="/register"
-                className="font-medium text-indigo-600 hover:text-indigo-500"
+                className="font-bold text-violet-600 hover:text-violet-700 hover:underline text-sm transition-colors"
               >
-                Sign up
+                Đăng ký ngay
               </Link>
             </div>
           </form>

@@ -7,28 +7,29 @@ export default function MembersPage() {
   const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-10 animate-enter">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <Users className="w-8 h-8 text-indigo-600" />
-            Members & Roles
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            Thành viên & Quyền hạn
           </h1>
-          <p className="text-slate-500 mt-1">
-            Manage workspace access and permissions
+          <p className="text-slate-500 mt-2 text-lg">
+            Quản lý quyền truy cập và phân vai trò trong hệ thống.
           </p>
         </div>
 
         <button
           onClick={() => setIsInviteOpen(true)}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
+          className="flex items-center gap-2 bg-violet-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-violet-700 hover:scale-105 transition-all shadow-xl shadow-violet-200 active:scale-95"
         >
           <UserPlus className="w-5 h-5" />
-          Invite Member
+          Mời thành viên
         </button>
       </div>
 
-      <MemberTable />
+      <div className="bg-white border border-slate-50 rounded-[2rem] shadow-sm overflow-hidden">
+        <MemberTable />
+      </div>
 
       <InviteMemberDialog
         isOpen={isInviteOpen}

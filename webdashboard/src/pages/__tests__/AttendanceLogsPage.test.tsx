@@ -62,7 +62,7 @@ describe("AttendanceLogsPage", () => {
       </QueryClientProvider>
     );
 
-    expect(await screen.findByText("John Doe")).toBeDefined();
+    expect((await screen.findAllByText("John Doe")).length).toBeGreaterThan(0);
     expect(screen.getByText("EMP001")).toBeDefined();
     expect(screen.getByText("import")).toBeDefined();
     expect(screen.getByText("Device-A")).toBeDefined();

@@ -137,6 +137,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
 
     let mut router = Router::new()
         .route("/health", get(handlers::health_check))
+        .route("/dashboard/workspace-stats", get(handlers::get_workspace_stats))
         .route("/auth/login", post(handlers::login))
         .route("/auth/register", post(handlers::register))
         .route("/auth/refresh", post(handlers::refresh_token))

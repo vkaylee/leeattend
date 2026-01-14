@@ -73,6 +73,7 @@ export interface Workspace {
   date_format: string;
   time_format: string;
   timezone: string;
+  theme_primary_color: string;
   created_at: string;
 }
 

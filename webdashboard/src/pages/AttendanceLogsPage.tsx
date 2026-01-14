@@ -13,11 +13,13 @@ import {
   Upload,
   Clock,
   HardDrive,
-  User
+  User,
+  Users
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import AttendanceImportDialog from "@/components/AttendanceImportDialog";
+import { Combobox } from "@/components/ui/Combobox";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -187,19 +189,21 @@ export default function AttendanceLogsPage() {
             </div>
 
             <div className="flex-1 max-w-md">
-              <select 
-                id="filter-employee"
-                value={employeeId} 
-                onChange={(e) => { setEmployeeId(e.target.value); setPage(1); }}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
-              >
-                <option value="all">Tất cả nhân viên</option>
-                {employees?.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.first_name} {emp.last_name} ({emp.employee_id_number})
-                  </option>
-                ))}
-              </select>
+              <Combobox
+                options={[
+                  { value: "all", label: "Tất cả nhân viên", icon: <Users className="w-4 h-4" /> },
+                  ...(employees?.map((emp) => ({
+                    value: emp.id,
+                    label: `${emp.first_name} ${emp.last_name}`,
+                    description: `Mã NV: ${emp.employee_id_number}`,
+                    icon: <User className="w-4 h-4" />
+                  })) || [])
+                ]}
+                value={employeeId}
+                onChange={(val) => { setEmployeeId(val); setPage(1); }}
+                placeholder="Tìm nhân viên..."
+                className="bg-slate-50 border-slate-200"
+              />
             </div>
           </div>
 

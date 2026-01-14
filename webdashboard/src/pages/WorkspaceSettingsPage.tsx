@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, UserPlus, Shield, Mail, Trash2, Settings2, Calculator, Save, Clock } from "lucide-react";
+import { Users, UserPlus, Shield, Mail, Trash2, Settings2, Calculator, Save, Clock, Palette } from "lucide-react";
 import { useWorkspaceMembers } from "@/hooks/use-workspace";
 import RoleManagementModal from "@/components/RoleManagementModal";
 import DebugWorkspaceTools from "@/components/DebugWorkspaceTools";
 import { useToast } from "../components/Toast";
 import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace } from "../lib/api";
+import { Combobox } from "@/components/ui/Combobox";
+import { Globe, Calendar, CheckCircle2, ShieldAlert } from "lucide-react";
 
 export default function WorkspaceSettingsPage() {
   const wsId = getCurrentWorkspaceId();
@@ -28,6 +30,7 @@ export default function WorkspaceSettingsPage() {
   const [dateFormat, setDateFormat] = useState("DD/MM/YYYY");
   const [timeFormat, setTimeFormat] = useState("24h");
   const [timezone, setTimezone] = useState("Asia/Ho_Chi_Minh");
+  const [themePrimaryColor, setThemePrimaryColor] = useState("#7c3aed");
 
   useEffect(() => {
     if (workspace) {
@@ -36,6 +39,7 @@ export default function WorkspaceSettingsPage() {
       setDateFormat(workspace.date_format);
       setTimeFormat(workspace.time_format);
       setTimezone(workspace.timezone || "Asia/Ho_Chi_Minh");
+      setThemePrimaryColor(workspace.theme_primary_color || "#7c3aed");
     }
   }, [workspace]);
 
@@ -72,6 +76,7 @@ export default function WorkspaceSettingsPage() {
       date_format: dateFormat,
       time_format: timeFormat,
       timezone: timezone,
+      theme_primary_color: themePrimaryColor,
     });
   }
 
@@ -107,104 +112,161 @@ export default function WorkspaceSettingsPage() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
                   Đơn vị tính công (Phút)
                 </label>
-                <select
+                <Combobox
                   data-testid="work-unit-select"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none font-bold text-slate-700"
-                  value={workUnit}
-                  onChange={(e) => {
-                    const newValue = parseInt(e.target.value, 10);
-                    setWorkUnit(newValue);
-                  }}
-                >
-                  <option value="1">1 phút (Mặc định)</option>
-                  <option value="15">15 phút (0.25h)</option>
-                  <option value="30">30 phút (0.5h)</option>
-                  <option value="60">60 phút (1h)</option>
-                </select>
+                  options={[
+                    { value: "1", label: "1 phút", description: "Mặc định, độ chính xác cao nhất" },
+                    { value: "15", label: "15 phút", description: "Khối 0.25 giờ" },
+                    { value: "30", label: "30 phút", description: "Khối 0.5 giờ" },
+                    { value: "60", label: "60 phút", description: "Khối 1 giờ" },
+                  ]}
+                  value={workUnit.toString()}
+                  onChange={(val) => setWorkUnit(parseInt(val))}
+                  className="bg-slate-50 border-slate-200"
+                />
                 <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
                   Hệ thống sẽ gom các phút làm việc thành từng khối (block) này.
                 </p>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
                   Quy tắc làm tròn
                 </label>
-                <select
+                <Combobox
                   data-testid="rounding-policy-select"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none font-bold text-slate-700"
+                  options={[
+                    { value: "none", label: "Không làm tròn", icon: <CheckCircle2 className="w-4 h-4" /> },
+                    { value: "floor", label: "Làm tròn xuống (Floor)", icon: <ShieldAlert className="w-4 h-4" /> },
+                    { value: "ceil", label: "Làm tròn lên (Ceil)", icon: <ShieldAlert className="w-4 h-4" /> },
+                    { value: "round", label: "Làm tròn gần nhất (Round)", icon: <ShieldAlert className="w-4 h-4" /> },
+                  ]}
                   value={roundingPolicy}
-                  onChange={(e) => {
-                    const newValue = e.target.value;
-                    setRoundingPolicy(newValue);
-                  }}
-                >
-                  <option value="none">Không làm tròn</option>
-                  <option value="floor">Làm tròn xuống (Floor)</option>
-                  <option value="ceil">Làm tròn lên (Ceil)</option>
-                  <option value="round">Làm tròn gần nhất (Round)</option>
-                </select>
+                  onChange={setRoundingPolicy}
+                  className="bg-slate-50 border-slate-200"
+                />
                 <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
                   Cách xử lý khi tổng giờ làm trong ngày không chia hết cho đơn vị tính.
                 </p>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
                   Định dạng ngày tháng ưu tiên
                 </label>
-                <select
+                <Combobox
                   data-testid="date-format-select"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none font-bold text-slate-700"
+                  options={[
+                    { value: "DD/MM/YYYY", label: "DD/MM/YYYY", description: "Kiểu Việt Nam (Ví dụ: 31/12/2025)", icon: <Calendar className="w-4 h-4" /> },
+                    { value: "MM/DD/YYYY", label: "MM/DD/YYYY", description: "Kiểu Mỹ (Ví dụ: 12/31/2025)", icon: <Calendar className="w-4 h-4" /> },
+                    { value: "YYYY-MM-DD", label: "YYYY-MM-DD", description: "Kiểu ISO (Ví dụ: 2025-12-31)", icon: <Calendar className="w-4 h-4" /> },
+                  ]}
                   value={dateFormat}
-                  onChange={(e) => setDateFormat(e.target.value)}
-                >
-                  <option value="DD/MM/YYYY">DD/MM/YYYY (Việt Nam)</option>
-                  <option value="MM/DD/YYYY">MM/DD/YYYY (Mỹ)</option>
-                  <option value="YYYY-MM-DD">YYYY-MM-DD (ISO)</option>
-                </select>
+                  onChange={setDateFormat}
+                  className="bg-slate-50 border-slate-200"
+                />
                 <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
                   Dùng để ưu tiên xử lý khi file Excel/CSV không rõ ràng (ví dụ 01/02).
                 </p>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
                   Định dạng giờ ưu tiên
                 </label>
-                <select
+                <Combobox
                   data-testid="time-format-select"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none font-bold text-slate-700"
+                  options={[
+                    { value: "24h", label: "24 Giờ", description: "Ví dụ: 14:30", icon: <Clock className="w-4 h-4" /> },
+                    { value: "12h", label: "12 Giờ", description: "Ví dụ: 02:30 PM", icon: <Clock className="w-4 h-4" /> },
+                  ]}
                   value={timeFormat}
-                  onChange={(e) => setTimeFormat(e.target.value)}
-                >
-                  <option value="24h">24 Giờ (Ví dụ: 14:30)</option>
-                  <option value="12h">12 Giờ (Ví dụ: 02:30 PM)</option>
-                </select>
+                  onChange={setTimeFormat}
+                  className="bg-slate-50 border-slate-200"
+                />
                 <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
                   Cách hiển thị thời gian trên toàn hệ thống.
                 </p>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
                   Múi giờ hệ thống
                 </label>
-                <select
+                <Combobox
                   data-testid="timezone-select"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none font-bold text-slate-700"
+                  options={[
+                    { value: "Asia/Ho_Chi_Minh", label: "Asia/Ho_Chi_Minh", description: "Việt Nam (UTC+7)", icon: <Globe className="w-4 h-4" /> },
+                    { value: "Asia/Bangkok", label: "Asia/Bangkok", description: "Thailand (UTC+7)", icon: <Globe className="w-4 h-4" /> },
+                    { value: "UTC", label: "Giờ quốc tế (UTC)", icon: <Globe className="w-4 h-4" /> },
+                  ]}
                   value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
-                >
-                  <option value="Asia/Ho_Chi_Minh">Asia/Ho_Chi_Minh (UTC+7)</option>
-                  <option value="Asia/Bangkok">Asia/Bangkok (UTC+7)</option>
-                  <option value="UTC">UTC</option>
-                </select>
+                  onChange={setTimezone}
+                  className="bg-slate-50 border-slate-200"
+                />
                 <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
                   Quyết định múi giờ khi import dữ liệu không có offset và hiển thị báo cáo.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Theme Config Section */}
+          <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-800">
+              <Palette className="w-5 h-5 text-pink-500" />
+              Cấu hình giao diện
+            </h2>
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+                  Màu chủ đạo (Primary Color)
+                </label>
+                <div className="flex flex-wrap gap-4 items-center">
+                  {[
+                    { name: 'Violet', color: '#7c3aed' },
+                    { name: 'Indigo', color: '#4f46e5' },
+                    { name: 'Blue', color: '#2563eb' },
+                    { name: 'Emerald', color: '#059669' },
+                    { name: 'Amber', color: '#d97706' },
+                    { name: 'Rose', color: '#e11d48' },
+                    { name: 'Slate', color: '#475569' },
+                  ].map((preset) => (
+                    <button
+                      key={preset.color}
+                      onClick={() => setThemePrimaryColor(preset.color)}
+                      className={`w-10 h-10 rounded-xl transition-all border-2 flex items-center justify-center ${
+                        themePrimaryColor === preset.color ? 'border-slate-900 scale-110 shadow-lg' : 'border-transparent hover:scale-105'
+                      }`}
+                      style={{ backgroundColor: preset.color }}
+                      title={preset.name}
+                    >
+                      {themePrimaryColor === preset.color && <div className="w-2 h-2 bg-white rounded-full shadow-sm" />}
+                    </button>
+                  ))}
+                  
+                  <div className="h-8 w-[1px] bg-slate-100 mx-2" />
+                  
+                  <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
+                    <input 
+                      type="color" 
+                      value={themePrimaryColor} 
+                      onChange={(e) => setThemePrimaryColor(e.target.value)}
+                      className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-none"
+                    />
+                    <input 
+                      type="text" 
+                      value={themePrimaryColor} 
+                      onChange={(e) => setThemePrimaryColor(e.target.value)}
+                      className="bg-transparent border-none text-xs font-mono font-bold text-slate-600 w-20 outline-none uppercase"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-400 italic mt-2 ml-1">
+                  Thay đổi màu sắc này sẽ áp dụng lên toàn bộ giao diện (Nút, Icons, Sidebar,...) dành cho tất cả thành viên.
                 </p>
               </div>
             </div>
@@ -233,22 +295,23 @@ export default function WorkspaceSettingsPage() {
                   <Mail className="absolute right-3 top-3.5 w-4 h-4 text-slate-300" />
                 </div>
               </div>
-              <div className="w-40 space-y-2">
+              <div className="w-56 space-y-2">
                 <label
                   htmlFor="new-member-role"
-                  className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1"
+                  className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1"
                 >
                   Vai trò
                 </label>
-                <select
+                <Combobox
                   id="new-member-role"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none font-bold text-slate-700"
+                  options={[
+                    { value: "member", label: "Thành viên", description: "Chỉ xem dữ liệu cá nhân" },
+                    { value: "admin", label: "Quản trị viên", description: "Toàn quyền quản lý hệ thống" },
+                  ]}
                   value={newMemberRole}
-                  onChange={(e) => setNewMemberRole(e.target.value as any)}
-                >
-                  <option value="member">Thành viên</option>
-                  <option value="admin">Quản trị viên</option>
-                </select>
+                  onChange={(val) => setNewMemberRole(val as any)}
+                  className="bg-slate-50 border-slate-200"
+                />
               </div>
               <div className="flex items-end">
                 <button

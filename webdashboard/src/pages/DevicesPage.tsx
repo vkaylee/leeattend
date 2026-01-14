@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "../components/Toast";
+import { Combobox } from "@/components/ui/Combobox";
 
 export default function DevicesPage() {
   const toast = useToast();
@@ -138,24 +139,21 @@ export default function DevicesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
                   Chọn Agent
                 </label>
-                <select
-                  required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none"
+                <Combobox
+                  options={agents.map((a) => ({
+                    value: a.agent_id,
+                    label: a.agent_id,
+                    description: `IP: ${a.last_ip || "N/A"}`,
+                    icon: <Server className="w-4 h-4" />
+                  }))}
                   value={newDevice.agent_id}
-                  onChange={(e) =>
-                    setNewDevice({ ...newDevice, agent_id: e.target.value })
-                  }
-                >
-                  <option value="">Chọn một Agent...</option>
-                  {agents.map((a) => (
-                    <option key={a.agent_id} value={a.agent_id}>
-                      {a.agent_id}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setNewDevice({ ...newDevice, agent_id: val })}
+                  placeholder="Chọn một Agent..."
+                  className="bg-slate-50 border-slate-200"
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
@@ -220,17 +218,19 @@ export default function DevicesPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Chọn Agent</label>
-                    <select
-                      required
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none"
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Chọn Agent</label>
+                    <Combobox
+                      options={agents.map((a) => ({
+                        value: a.agent_id,
+                        label: a.agent_id,
+                        description: `IP: ${a.last_ip || "N/A"}`,
+                        icon: <Server className="w-4 h-4" />
+                      }))}
                       value={editingDevice.agent_id}
-                      onChange={(e) => setEditingDevice({ ...editingDevice, agent_id: e.target.value })}
-                    >
-                      {agents.map((a) => (
-                        <option key={a.agent_id} value={a.agent_id}>{a.agent_id}</option>
-                      ))}
-                    </select>
+                      onChange={(val) => setEditingDevice({ ...editingDevice, agent_id: val })}
+                      placeholder="Chọn một Agent..."
+                      className="bg-slate-50 border-slate-200"
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Địa chỉ IP</label>

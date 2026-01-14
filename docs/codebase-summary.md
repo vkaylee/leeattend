@@ -36,7 +36,8 @@ leeattend/
     - Auth: JWT-based authentication & RBAC.
     - Workspace: Organizational isolation.
     - Agent Manager: WebSocket handler for remote agents.
-    - Discovery: Dynamic port selection (3000+).
+    - **Discovery**: Dynamic port selection (3000+).
+    - **Branding Engine**: Support for workspace-specific `theme_primary_color` with persistence and validation.
     - **Temporal Engine**: Logic gán ca (`employee_shifts`) dựa trên thời gian. Hỗ trợ ghi đè ca tạm thời lên ca vĩnh viễn và tự động fallback.
     - **Heartbeat Engine**: Time-based tracking of edge agent connectivity.
     - **Timezone Engine**: Comprehensive timezone management per workspace. Correctly handles local-to-UTC conversion for external data imports (Excel/CSV) using the workspace's configured IANA timezone ID.
@@ -51,7 +52,9 @@ leeattend/
     - **Dynamic Accrual Engine**: Automated leave balance calculation based on configurable rules (Monthly/Quarterly/Yearly) and Seniority Bonuses.
     - **Resilience**: **PortFileGuard** ensures robust resource cleanup (port files) even during unexpected shutdowns or panics.
 2.  **Web Dashboard (React/Vite)**:
-    - Modern UI with Tailwind CSS & Lucide icons.
+    - **Premium UI (Violet)**: Zero-distraction layout with a static breadcrumb header and a single-open accordion sidebar.
+    - **Dynamic Themeing**: `useTheme` hook for on-the-fly calculation of color palettes from a single HEX code.
+    - **Personalization**: User-level theme overrides stored in `localStorage` with cross-tab sync.
     - **Robust API URL Resolution**: Frontend client (`api.ts`) intelligently determines API base URL, prioritizing relative `/api` paths for web development environments (to leverage Vite's dynamic proxy) and `VITE_API_URL` for production or Tauri builds.
     - **Common UI Library**: Standardized components (DropdownMenu, etc.) based on Radix UI.
     - **Global Toast System**: Non-blocking notification engine for consistent UX.

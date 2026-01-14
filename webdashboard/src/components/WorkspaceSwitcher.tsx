@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, Briefcase, Plus, Check } from "lucide-react";
+import { Briefcase, Plus } from "lucide-react";
 import {
   Workspace,
   getCurrentWorkspaceId,
@@ -7,14 +7,7 @@ import {
 } from "@/lib/api";
 import CreateWorkspaceDialog from "./CreateWorkspaceDialog";
 import { useWorkspaces } from "@/hooks/use-workspace";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+import { Combobox } from "./ui/Combobox";
 
 export default function WorkspaceSwitcher() {
   const { workspaces, isLoading } = useWorkspaces();
@@ -36,71 +29,106 @@ export default function WorkspaceSwitcher() {
     }
   }, [workspaces, isLoading]);
 
-  function handleSwitch(ws: Workspace) {
-    setActiveWorkspace(ws);
-    setCurrentWorkspaceId(ws.id);
-    // Reload page to refresh all data with new workspace header
-    window.location.reload();
+  function handleSwitch(wsId: string) {
+    if (wsId === "ADD_NEW") {
+      setIsCreateOpen(true);
+      return;
+    }
+    const ws = workspaces.find(w => w.id === wsId);
+    if (ws) {
+      setActiveWorkspace(ws);
+      setCurrentWorkspaceId(ws.id);
+      // Reload page to refresh all data with new workspace header
+      window.location.reload();
+    }
   }
 
   if (isLoading && workspaces.length === 0) {
     return (
-      <div className="w-full h-12 bg-slate-50 animate-pulse rounded-2xl" />
+      <div className="w-full h-14 bg-slate-50 animate-pulse rounded-2xl" />
     );
   }
 
-  return (
-    <div className="relative">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-all group border border-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20">
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="bg-white p-1.5 rounded-lg shadow-sm">
-                <Briefcase className="w-4 h-4 text-blue-600" />
-              </div>
-              <span className="font-bold text-sm text-slate-700 truncate">
-                {activeWorkspace?.name || "Chọn Workspace"}
-              </span>
-            </div>
-            <ChevronDown className="w-4 h-4 text-slate-400 group-data-[state=open]:rotate-180 transition-transform" />
-          </button>
-        </DropdownMenuTrigger>
+    const options = [
 
-        <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
-          <DropdownMenuLabel>Workspaces của bạn</DropdownMenuLabel>
-          <div className="max-h-60 overflow-y-auto">
-            {workspaces.map((ws) => (
-              <DropdownMenuItem
-                key={ws.id}
-                onSelect={() => handleSwitch(ws)}
-                className="justify-between"
-              >
-                <span
-                  className={`font-semibold ${ws.id === activeWorkspace?.id ? "text-blue-600" : "text-slate-600"}`}
-                >
-                  {ws.name}
-                </span>
-                {ws.id === activeWorkspace?.id && (
-                  <Check className="w-4 h-4 text-blue-600" />
-                )}
-              </DropdownMenuItem>
-            ))}
+      ...workspaces.map((ws) => ({
+
+        value: ws.id,
+
+        label: ws.name,
+
+        icon: (
+
+          <div className="bg-violet-50 p-1.5 rounded-lg border border-violet-100">
+
+            <Briefcase className="w-3.5 h-3.5 text-violet-600" />
+
           </div>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onSelect={() => setIsCreateOpen(true)}
-            className="text-slate-500 focus:text-blue-600 focus:bg-blue-50 font-bold gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Thêm Workspace
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
 
-      <CreateWorkspaceDialog
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-      />
-    </div>
-  );
-}
+        ),
+
+        description: ws.id.substring(0, 8)
+
+      })),
+
+      {
+
+        value: "ADD_NEW",
+
+        label: "Tạo Workspace",
+
+        icon: (
+
+          <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+
+            <Plus className="w-3.5 h-3.5 text-slate-500" />
+
+          </div>
+
+        ),
+
+        description: "Thêm văn phòng/chi nhánh"
+
+      }
+
+    ];
+
+  
+
+    return (
+
+      <div className="relative">
+
+        <Combobox
+
+          options={options}
+
+          value={activeWorkspace?.id}
+
+          onChange={handleSwitch}
+
+          placeholder="Chọn Workspace"
+
+          searchPlaceholder="Tìm kiếm..."
+
+          className="h-10 bg-slate-50/50 border-slate-100 hover:bg-white hover:border-violet-200 transition-all rounded-xl text-sm font-semibold text-slate-700"
+
+        />
+
+  
+
+        <CreateWorkspaceDialog
+
+          isOpen={isCreateOpen}
+
+          onClose={() => setIsCreateOpen(false)}
+
+        />
+
+      </div>
+
+    );
+
+  }
+
+  

@@ -39,6 +39,8 @@ import { useToast } from "../components/Toast";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { format, addDays } from "date-fns";
 import { vi } from "date-fns/locale";
+import { Combobox } from "@/components/ui/Combobox";
+import { MousePointer2, Copy, Trash, Calendar as CalendarIcon } from "lucide-react";
 
 type TabType = "assignments" | "weekly-roster" | "directory";
 
@@ -446,26 +448,26 @@ export default function ShiftsPage() {
                     </div>
                     
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
-                        <select 
-                          className="bg-transparent border-none text-[10px] font-black uppercase tracking-tight px-3 py-1 outline-none text-slate-600 appearance-none"
-                          onChange={(e) => {
-                            if (e.target.value === "copy-prev") {
+                      <div className="w-56">
+                        <Combobox
+                          options={[
+                            { value: "copy-prev", label: "Sao chép tuần trước", icon: <Copy className="w-4 h-4" /> },
+                            { value: "assign-all", label: "Gán ca cả tuần này", icon: <CalendarIcon className="w-4 h-4" /> },
+                            { value: "clear-week", label: "Xóa lịch tuần này", icon: <Trash className="w-4 h-4" /> },
+                          ]}
+                          onChange={(val) => {
+                            if (val === "copy-prev") {
                               handleCopyPreviousWeek();
-                            } else if (e.target.value === "clear-week") {
+                            } else if (val === "clear-week") {
                               handleAssignAllWeek(null);
-                            } else if (e.target.value === "assign-all") {
+                            } else if (val === "assign-all") {
                               setTargetDates(weekDays.map(d => d.toISOString().split('T')[0]));
                               setIsShiftPickerOpen(true);
                             }
-                            e.target.value = "";
                           }}
-                        >
-                          <option value="">Thao tác nhanh...</option>
-                          <option value="copy-prev">Sao chép tuần trước</option>
-                          <option value="assign-all">Gán ca cả tuần này</option>
-                          <option value="clear-week">Xóa lịch tuần này</option>
-                        </select>
+                          placeholder="Thao tác nhanh..."
+                          className="h-10 bg-slate-100 border-slate-200 text-[10px] py-2 px-3 rounded-xl uppercase tracking-tighter"
+                        />
                       </div>
 
                       <button 

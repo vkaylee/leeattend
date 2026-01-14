@@ -78,6 +78,7 @@ Quản lý không gian làm việc và cấu hình hệ thống.
   "date_format": "DD/MM/YYYY", // DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD
   "time_format": "24h", // 24h, 12h
   "timezone": "Asia/Ho_Chi_Minh", // IANA Timezone ID
+  "theme_primary_color": "#7c3aed", // HEX color for UI branding
   "created_at": "datetime"
 }
 ```
@@ -105,7 +106,8 @@ Cập nhật thông tin hoặc cấu hình hệ thống của workspace.
     "rounding_policy": "floor",
     "date_format": "MM/DD/YYYY",
     "time_format": "12h",
-    "timezone": "Asia/Ho_Chi_Minh"
+    "timezone": "Asia/Ho_Chi_Minh",
+    "theme_primary_color": "#059669"
   }
   ```
 - **Response (200)**: `Workspace` (updated)

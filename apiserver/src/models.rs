@@ -3,6 +3,14 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct WorkspaceStats {
+    pub total_employees: i64,
+    pub present_today: i64,
+    pub pending_leave_requests: i64,
+    pub estimated_monthly_payroll: rust_decimal::Decimal,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GenericResponse {
     pub message: String,
 }
@@ -98,12 +106,24 @@ pub struct Workspace {
     pub date_format: String,
     pub time_format: String,
     pub timezone: String,
+    pub theme_primary_color: String,
     pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CreateWorkspaceRequest {
     pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UpdateWorkspaceRequest {
+    pub name: Option<String>,
+    pub work_unit_minutes: Option<i32>,
+    pub rounding_policy: Option<String>,
+    pub date_format: Option<String>,
+    pub time_format: Option<String>,
+    pub timezone: Option<String>,
+    pub theme_primary_color: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]

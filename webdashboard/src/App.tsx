@@ -1,9 +1,11 @@
+import { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Link,
   Outlet,
+  useLocation,
 } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -20,6 +22,13 @@ import {
   Banknote,
   CalendarRange,
   Building2,
+  Menu,
+  X,
+  LogOut,
+  ListOrdered,
+  ChevronDown,
+  ChevronRight,
+  ChevronRight as BreadcrumbSeparator,
 } from "lucide-react"; 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import DashboardPage from "./pages/DashboardPage";
@@ -41,7 +50,11 @@ import ShiftsPage from "./pages/ShiftsPage";
 import WorkspaceSwitcher from "./components/WorkspaceSwitcher";
 import AuthGuard from "./components/AuthGuard";
 import WorkspaceGuard from "./components/WorkspaceGuard";
-import { LogOut } from "lucide-react";
+import AttendanceAdjustmentsPage from "./pages/AttendanceAdjustmentsPage";
+import AttendanceLogsPage from "./pages/AttendanceLogsPage";
+import { useWorkspaces } from "./hooks/use-workspace";
+import { getCurrentWorkspaceId } from "./lib/api";
+import { useTheme } from "./hooks/use-theme";
 
 console.log("🚀 [LeeAttend] Bundle initialized at:", new Date().toISOString());
 
@@ -54,172 +67,393 @@ const queryClient = new QueryClient({
   },
 });
 
-import AttendanceAdjustmentsPage from "./pages/AttendanceAdjustmentsPage";
-import AttendanceLogsPage from "./pages/AttendanceLogsPage";
-import { ListOrdered } from "lucide-react";
-
 function Layout() {
+  useTheme();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showSwitcher, setShowSwitcher] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    org: false,
+    time: false,
+    payroll: false,
+    system: false,
+  });
+  
+  const { workspaces } = useWorkspaces();
+  const currentWsId = getCurrentWorkspaceId();
+  const currentWorkspace = workspaces.find(ws => ws.id === currentWsId);
+  
+  const location = useLocation();
+
+  const toggleSection = (section: string) => {
+    setOpenSections(prev => ({ 
+      org: false, 
+      time: false, 
+      payroll: false, 
+      system: false, 
+      [section]: !prev[section] 
+    }));
+  };
+
+  const getPageName = (path: string) => {
+    const map: Record<string, string> = {
+      "/": "Bảng điều khiển",
+      "/members": "Thành viên",
+      "/employees": "Nhân viên",
+      "/departments": "Phòng ban",
+      "/time-tracking": "Chấm công",
+      "/attendance-logs": "Nhật ký",
+      "/leave-requests": "Nghỉ phép",
+      "/attendance-adjustments": "Xác nhận công",
+      "/reports": "Báo cáo",
+      "/shifts": "Lịch trình & Ca",
+      "/payroll": "Tính lương",
+      "/agents": "Agents",
+      "/devices": "Thiết bị",
+      "/workspace/settings": "Cài đặt",
+      "/profile": "Hồ sơ",
+    };
+    return map[path] || path.split('/').pop()?.replace(/-/g, ' ') || "";
+  };
+
   const handleLogout = () => {
     localStorage.clear();
     window.location.href = "/login";
   };
 
-  return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900 font-inter">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col sticky top-0 h-screen">
-        <div className="p-6">
-          <div className="flex items-center gap-3 px-2 mb-8">
-            <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-200">
-              <Cpu className="text-white w-6 h-6" />
-            </div>
-            <span className="font-bold text-xl tracking-tight text-slate-900">LeeAttend</span>
-          </div>
+  // Auto-expand section if a child is active
+  useEffect(() => {
+    const path = location.pathname;
+    if (["/members", "/employees", "/departments"].includes(path)) setOpenSections(p => ({...p, org: true}));
+    if (["/time-tracking", "/attendance-logs", "/leave-requests", "/attendance-adjustments", "/reports"].includes(path)) setOpenSections(p => ({...p, time: true}));
+    if (["/shifts", "/payroll"].includes(path)) setOpenSections(p => ({...p, payroll: true}));
+    if (["/agents", "/devices", "/workspace/settings"].includes(path)) setOpenSections(p => ({...p, system: true}));
+  }, [location.pathname]);
 
-          <WorkspaceSwitcher />
+  // Close sidebar when route changes on mobile
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location]);
+
+  return (
+    <div className="flex min-h-screen bg-[#fcfcfd] text-slate-900 font-sans relative overflow-x-hidden">
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`
+        fixed inset-y-0 left-0 w-72 bg-white border-r border-slate-100 flex flex-col z-50 transition-transform duration-300 ease-in-out
+        lg:translate-x-0 lg:static lg:h-screen
+        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+      `}>
+        <div className="p-8 pb-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3 px-2">
+              <div className="bg-violet-600 p-2 rounded-xl shadow-lg shadow-violet-200 rotate-3">
+                <Cpu className="text-white w-5 h-5" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-bold text-lg tracking-tight text-slate-900 leading-none">LeeAttend</span>
+                <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em] mt-1">HRM System</span>
+              </div>
+            </div>
+            <button 
+              className="lg:hidden p-2 text-slate-400 hover:text-slate-600"
+              onClick={() => setIsSidebarOpen(false)}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-6 space-y-1 overflow-y-auto scrollbar-hide pb-10 scroll-smooth">
           <Link
             to="/"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
+            className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group relative ${
+              location.pathname === "/" 
+                ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" 
+                : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+            }`}
           >
             <LayoutDashboard className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Bảng điều khiển</span>
+            <span className="font-semibold text-sm">Bảng điều khiển</span>
           </Link>
           
-          <div className="pt-4 pb-2 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Quản lý tổ chức
+          {/* Section: Tổ chức */}
+          <div className="pt-4">
+            <button 
+              onClick={() => toggleSection('org')}
+              className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
+            >
+              <span>Tổ chức</span>
+              {openSections.org ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            </button>
+            <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.org ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}>
+              <Link
+                to="/members"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/members" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                }`}
+              >
+                <Users className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">Thành viên</span>
+              </Link>
+              <Link
+                to="/employees"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/employees" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                }`}
+              >
+                <UserRound className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">Nhân viên</span>
+              </Link>
+              <Link
+                to="/departments"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/departments" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                }`}
+              >
+                <Building2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">Phòng ban</span>
+              </Link>
+            </div>
           </div>
-          <Link
-            to="/members"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
-          >
-            <Users className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Thành viên</span>
-          </Link>
-          <Link
-            to="/employees"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
-          >
-            <UserRound className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Nhân viên</span>
-          </Link>
-          <Link
-            to="/departments"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
-          >
-            <Building2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Phòng ban</span>
-          </Link>
 
-          <div className="pt-4 pb-2 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Chấm công & Nghỉ phép
+          {/* Section: Thời gian & Nghỉ phép */}
+          <div className="pt-2">
+            <button 
+              onClick={() => toggleSection('time')}
+              className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
+            >
+              <span>Thời gian & Nghỉ phép</span>
+              {openSections.time ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            </button>
+            <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.time ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}>
+              <Link
+                to="/time-tracking"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/time-tracking" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                }`}
+              >
+                <Clock className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">Chấm công</span>
+              </Link>
+              <Link
+                to="/attendance-logs"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/attendance-logs" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                }`}
+              >
+                <ListOrdered className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">Nhật ký</span>
+              </Link>
+              <Link
+                to="/leave-requests"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/leave-requests" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                }`}
+              >
+                <CalendarDays className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">Nghỉ phép</span>
+              </Link>
+              <Link
+                to="/attendance-adjustments"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/attendance-adjustments" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                }`}
+              >
+                <History className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">Xác nhận công</span>
+              </Link>
+              <Link
+                to="/reports"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/reports" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                }`}
+              >
+                <FileBarChart className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">Báo cáo</span>
+              </Link>
+            </div>
           </div>
-          <Link
-            to="/time-tracking"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
-          >
-            <Clock className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Chấm công</span>
-          </Link>
-          <Link
-            to="/attendance-logs"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
-          >
-            <ListOrdered className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Log chấm công</span>
-          </Link>
-          <Link
-            to="/leave-requests"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
-          >
-            <CalendarDays className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Nghỉ phép</span>
-          </Link>
-          <Link
-            to="/attendance-adjustments"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
-          >
-            <History className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Xác nhận công</span>
-          </Link>
-          <Link
-            to="/reports"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
-          >
-            <FileBarChart className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Báo cáo</span>
-          </Link>
 
-          <div className="pt-4 pb-2 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Lương & Ca làm
+          {/* Section: Lương & Ca làm */}
+          <div className="pt-2">
+            <button 
+              onClick={() => toggleSection('payroll')}
+              className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
+            >
+              <span>Lương & Ca làm</span>
+              {openSections.payroll ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            </button>
+            <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.payroll ? "max-h-64 opacity-100" : "max-h-0 opacity-0"}`}>
+              <Link
+                to="/shifts"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/shifts" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                }`}
+              >
+                <CalendarRange className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">Lịch trình & Ca</span>
+              </Link>
+              <Link
+                to="/payroll"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/payroll" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                }`}
+              >
+                <Banknote className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">Tính lương</span>
+              </Link>
+            </div>
           </div>
-          <Link
-            to="/shifts"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
-          >
-            <CalendarRange className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Lịch trình & Ca</span>
-          </Link>
-          <Link
-            to="/payroll"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
-          >
-            <Banknote className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Tính lương</span>
-          </Link>
 
-          <div className="pt-4 pb-2 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Hệ thống
+          {/* Section: Hệ thống */}
+          <div className="pt-2">
+            <button 
+              onClick={() => toggleSection('system')}
+              className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
+            >
+              <span>Hệ thống</span>
+              {openSections.system ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            </button>
+            <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.system ? "max-h-64 opacity-100" : "max-h-0 opacity-0"}`}>
+              <Link
+                to="/agents"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/agents" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                }`}
+              >
+                <UserCheck className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">Agents</span>
+              </Link>
+              <Link
+                to="/devices"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/devices" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                }`}
+              >
+                <Cpu className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">Thiết bị</span>
+              </Link>
+              <Link
+                to="/workspace/settings"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/workspace/settings" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                }`}
+              >
+                <Settings className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">Cài đặt</span>
+              </Link>
+            </div>
           </div>
-          <Link
-            to="/agents"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
-          >
-            <UserCheck className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Quản lý Agent</span>
-          </Link>
-          <Link
-            to="/devices"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
-          >
-            <Cpu className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Thiết bị</span>
-          </Link>
-          <Link
-            to="/workspace/settings"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group"
-          >
-            <Settings className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Cài đặt</span>
-          </Link>
         </nav>
 
-        <div className="p-4 border-t border-slate-100">
+        <div className="p-6 border-t border-slate-50 space-y-1">
           <Link
             to="/profile"
-            className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-2xl transition-all group mb-1"
+            className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group ${
+              location.pathname === "/profile" 
+                ? "bg-violet-50 text-violet-600" 
+                : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+            }`}
           >
             <UserCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Hồ sơ</span>
+            <span className="font-semibold text-sm">Hồ sơ</span>
           </Link>
           <button
+            onClick={() => setShowSwitcher(true)}
+            className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-violet-50 hover:text-violet-600 rounded-2xl transition-all group font-semibold text-sm"
+          >
+            <Building2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span>Chuyển cơ sở</span>
+          </button>
+          <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-2xl transition-all group"
+            className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-2xl transition-all group font-semibold text-sm"
           >
             <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold">Đăng xuất</span>
+            <span>Đăng xuất</span>
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="p-8 max-w-7xl mx-auto animate-in fade-in duration-700">
-          <Outlet />
+      {/* Switcher Modal */}
+      {showSwitcher && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowSwitcher(false)} />
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 relative animate-enter">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-slate-900">Chuyển Workspace</h3>
+              <button onClick={() => setShowSwitcher(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+            <p className="text-sm text-slate-500 mb-8">Chọn văn phòng hoặc chi nhánh bạn muốn làm việc.</p>
+            <WorkspaceSwitcher />
+            <div className="mt-8 pt-6 border-t border-slate-50 flex justify-end">
+              <button 
+                onClick={() => setShowSwitcher(false)}
+                className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
+              >
+                Hủy bỏ
+              </button>
+            </div>
+          </div>
         </div>
-      </main>
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <header className="h-16 border-b border-slate-100 bg-white/80 backdrop-blur-md flex items-center justify-between px-4 lg:px-8 gap-4 flex-shrink-0 z-30">
+          <div className="flex items-center gap-4">
+            <button 
+              className="lg:hidden p-2 text-slate-500 hover:bg-slate-50 rounded-xl"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            
+            {/* Breadcrumbs */}
+            <nav className="flex items-center gap-2 text-sm font-medium">
+              <span className="hidden sm:inline text-slate-400 font-semibold">{currentWorkspace?.name || "Workspace"}</span>
+              <BreadcrumbSeparator className="w-3.5 h-3.5 text-slate-300" />
+              <span className="text-slate-900 font-bold whitespace-nowrap">
+                {getPageName(location.pathname)}
+              </span>
+            </nav>
+          </div>
+          
+          <div className="flex items-center gap-4 ml-auto">
+            <button className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-xl transition-all relative">
+              <div className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></div>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+            </button>
+
+            <div className="h-8 w-[1px] bg-slate-100 mx-1 hidden sm:block"></div>
+
+            <div className="flex items-center gap-3 pl-1 group cursor-pointer">
+              <div className="hidden sm:block text-right">
+                <p className="text-sm font-bold text-slate-900 leading-none group-hover:text-violet-600 transition-colors">Admin</p>
+                <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase tracking-wider">Workspace Owner</p>
+              </div>
+              <div className="w-9 h-9 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center font-bold text-sm shadow-sm border border-violet-200 group-hover:bg-violet-600 group-hover:text-white transition-all duration-300">
+                AD
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10">
+          <div className="max-w-7xl mx-auto animate-enter">
+            <Outlet />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

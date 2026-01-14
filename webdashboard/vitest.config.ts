@@ -12,7 +12,7 @@ export default defineConfig(async (env) => {
       test: {
         globals: true,
         environment: "jsdom",
-        setupFiles: ["./src/test/setup.ts"],
+        setupFiles: ["./src/test/setup.tsx"],
         exclude: ["**/node_modules/**", "**/dist/**", "**/tests/**"],
         coverage: {
           provider: "v8",

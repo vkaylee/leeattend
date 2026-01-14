@@ -62,64 +62,64 @@ export default function AgentEditModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between p-6 border-b border-slate-50">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-50 p-2 rounded-xl text-blue-600">
-              <UserCheck className="w-5 h-5" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden animate-in zoom-in-95 duration-300">
+        <div className="flex items-center justify-between p-8 border-b border-slate-50 bg-slate-50/50">
+          <div className="flex items-center gap-4">
+            <div className="bg-violet-100 p-3 rounded-2xl text-violet-600 shadow-inner">
+              <UserCheck className="w-6 h-6" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900">
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
               Chỉnh sửa Agent
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+            className="p-3 hover:bg-white rounded-2xl transition-all shadow-sm active:scale-90"
           >
-            <X className="w-5 h-5 text-slate-400" />
+            <X className="w-6 h-6 text-slate-400" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="p-10 space-y-8">
+          <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
                 Agent ID (Read-only)
               </label>
               <input
                 disabled
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-400 font-mono cursor-not-allowed"
+                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-slate-400 font-mono font-bold cursor-not-allowed"
                 value={agent.id}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-                Tên Chi nhánh/Vị trí
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
+                Tên Chi nhánh / Vị trí
               </label>
               <input
                 required
                 placeholder="Ví dụ: Văn phòng Hà Nội"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 outline-none transition-all font-bold text-slate-700"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
                 Secret Token
               </label>
               <div className="relative">
                 <input
                   required
                   placeholder="Mật mã kết nối"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all pr-10"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 outline-none transition-all pr-12 font-mono font-bold text-slate-700"
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
                 />
-                <Key className="absolute right-3 top-3.5 w-4 h-4 text-slate-300" />
+                <Key className="absolute right-4 top-4 w-5 h-5 text-slate-300" />
               </div>
             </div>
 
@@ -127,9 +127,9 @@ export default function AgentEditModal({
               <button
                 type="button"
                 onClick={() => setIsTrusted(!isTrusted)}
-                className={`flex items-center justify-center gap-2 p-3 rounded-2xl border transition-all font-bold text-sm ${
+                className={`flex items-center justify-center gap-2 py-4 rounded-2xl border transition-all font-black text-xs uppercase tracking-widest ${
                   isTrusted
-                    ? "bg-emerald-50 border-emerald-100 text-emerald-700"
+                    ? "bg-emerald-50 border-emerald-100 text-emerald-700 shadow-sm"
                     : "bg-slate-50 border-slate-100 text-slate-400"
                 }`}
               >
@@ -144,10 +144,10 @@ export default function AgentEditModal({
               <button
                 type="button"
                 onClick={() => setIsActive(!isActive)}
-                className={`flex items-center justify-center gap-2 p-3 rounded-2xl border transition-all font-bold text-sm ${
+                className={`flex items-center justify-center gap-2 py-4 rounded-2xl border transition-all font-black text-xs uppercase tracking-widest ${
                   isActive
-                    ? "bg-blue-50 border-blue-100 text-blue-700"
-                    : "bg-rose-50 border-rose-100 text-rose-700"
+                    ? "bg-violet-50 border-violet-100 text-violet-700 shadow-sm"
+                    : "bg-rose-50 border-rose-100 text-rose-700 shadow-sm"
                 }`}
               >
                 <Power className="w-4 h-4" />
@@ -156,18 +156,18 @@ export default function AgentEditModal({
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-4 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-3 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all border border-slate-100"
+              className="flex-1 px-8 py-4 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all border border-slate-100"
             >
-              Hủy
+              Hủy bỏ
             </button>
             <button
               type="submit"
               disabled={isUpdating}
-              className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="flex-1 bg-violet-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-violet-700 transition-all shadow-xl shadow-violet-200 flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.02] active:scale-95"
             >
               <Save className="w-5 h-5" />
               {isUpdating ? "Đang lưu..." : "Lưu thay đổi"}

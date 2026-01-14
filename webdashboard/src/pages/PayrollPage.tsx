@@ -26,6 +26,7 @@ import {
 } from "../lib/api";
 import { useToast } from "../components/Toast";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { Combobox } from "@/components/ui/Combobox";
 
 export default function PayrollPage() {
   const wsId = getCurrentWorkspaceId() || "";
@@ -248,27 +249,29 @@ export default function PayrollPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tháng</label>
-                  <select 
-                    value={calcMonth}
-                    onChange={(e) => setCalcMonth(parseInt(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
-                  >
-                    {Array.from({ length: 12 }, (_, i) => (
-                      <option key={i + 1} value={i + 1}>Tháng {i + 1}</option>
-                    ))}
-                  </select>
+                  <Combobox
+                    options={Array.from({ length: 12 }, (_, i) => ({
+                      value: (i + 1).toString(),
+                      label: `Tháng ${i + 1}`,
+                      icon: <Calendar className="w-4 h-4" />
+                    }))}
+                    value={calcMonth.toString()}
+                    onChange={(val) => setCalcMonth(parseInt(val))}
+                    className="bg-slate-50 border-slate-200"
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Năm</label>
-                  <select 
-                    value={calcYear}
-                    onChange={(e) => setCalcYear(parseInt(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
-                  >
-                    {[2025, 2026, 2027].map(y => (
-                      <option key={y} value={y}>{y}</option>
-                    ))}
-                  </select>
+                  <Combobox
+                    options={[2025, 2026, 2027].map(y => ({
+                      value: y.toString(),
+                      label: y.toString(),
+                      icon: <History className="w-4 h-4" />
+                    }))}
+                    value={calcYear.toString()}
+                    onChange={(val) => setCalcYear(parseInt(val))}
+                    className="bg-slate-50 border-slate-200"
+                  />
                 </div>
               </div>
 
