@@ -33,6 +33,7 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 - **Enhanced Integration Tests**: Added comprehensive suites for API filtering, pairing edge cases (Machine Gun Punch, Quick Lunch), and detailed import error reporting.
 
 ### Fixed
+- **Development Data Persistence**: Changed `dev_initialization` to use `ON CONFLICT DO NOTHING` instead of `DO UPDATE`, preventing the default admin password and workspace settings from being reset on every server restart.
 - **DateTime Parsing Ambiguity**: Resolved issues where `DD/MM` and `MM/DD` formats were confused during import by prioritizing workspace settings.
 - **Frontend Timezone Shift**: Fixed an issue where date filters were off by one day due to inconsistent UTC conversion in the dashboard.
 - **API Pagination Integrity**: Updated Raw Logs API to return the correct `total` count for accurate frontend pagination.

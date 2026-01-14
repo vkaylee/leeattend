@@ -16,10 +16,7 @@ pub async fn ensure_dev_data(pool: &PgPool) -> Result<(), sqlx::Error> {
         r#"
         INSERT INTO users (id, email, full_name, password_hash)
         VALUES ($1, $2, $3, $4)
-        ON CONFLICT (id) DO UPDATE 
-        SET email = EXCLUDED.email, 
-            full_name = EXCLUDED.full_name, 
-            password_hash = EXCLUDED.password_hash
+        ON CONFLICT (id) DO NOTHING
         "#,
     )
     .bind(admin_user_id)
@@ -34,7 +31,7 @@ pub async fn ensure_dev_data(pool: &PgPool) -> Result<(), sqlx::Error> {
         r#"
         INSERT INTO workspaces (id, name)
         VALUES ($1, $2)
-        ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name
+        ON CONFLICT (id) DO NOTHING
         "#,
     )
     .bind(workspace_id)
@@ -47,7 +44,7 @@ pub async fn ensure_dev_data(pool: &PgPool) -> Result<(), sqlx::Error> {
         r#"
         INSERT INTO workspace_members (workspace_id, user_id, role)
         VALUES ($1, $2, $3)
-        ON CONFLICT (workspace_id, user_id) DO UPDATE SET role = EXCLUDED.role
+        ON CONFLICT (workspace_id, user_id) DO NOTHING
         "#,
     )
     .bind(workspace_id)

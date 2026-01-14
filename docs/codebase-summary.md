@@ -96,6 +96,7 @@ leeattend/
 - **Debug Login:** 
     - Backend: Endpoint `/api/dev/super-user` (debug mode only) tự động sinh token cho admin mặc định.
     - Frontend: Nút "Debug Login" trên `LoginPage` giúp đăng nhập ngay lập tức không cần nhập mật khẩu.
+    - **Persistent Dev Data**: Seeding logic now uses `ON CONFLICT DO NOTHING`, ensuring that changes made to the default admin user or workspace (e.g., password updates) persist across server restarts.
 - **Debug Workspace Tools:** Developer-only section in Workspace Settings to quickly clear specific data groups (Attendance, Schedules, Leave, Payroll) or perform a full workspace reset.
 - **Playwright Tests (`webdashboard/tests/`):** 
     - `debug-login.spec.ts`: Kiểm tra luồng đăng nhập và tự động hóa việc vào dashboard.
