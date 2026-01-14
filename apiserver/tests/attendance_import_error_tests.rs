@@ -66,7 +66,7 @@ async fn test_import_csv_with_line_errors() {
     // Line 2: OK
     // Line 3: Error
     
-    assert!(errors.contains("không khớp với cài đặt"), "Should identify setting mismatch error");
+    assert!(errors.contains("sai định dạng"), "Should identify setting mismatch error");
     assert!(errors.contains("2026-01-14 09:00"), "Should show faulty data");
     assert!(errors.contains("Thiếu mã nhân viên hoặc thời gian"), "Should describe error for empty time");
 }

@@ -8,17 +8,19 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 - **Raw Attendance Logs System**: Introduced a separate persistence layer for original punch events to ensure data integrity and auditability.
     - **New Database Schema**: Created `raw_attendance_logs` table to store un-modified data from hardware devices and file imports.
     - **Pairing Engine**: Implemented `PairingService` in the backend to automatically group flat punch events into logical attendance sessions (Time Entries).
-    - **Deduplication Logic**: Automatic filtering of rapid consecutive punches (within a 2-minute window) to prevent noise in sessions.
-    - **Auto-Session Matching**: Smart matching logic that pairs a new punch with an open session within a 14-hour window, or starts a new session otherwise.
+    - **Optimized Deduplication**: Reduced noise filtering window to **1 minute** for better balance between usability and data integrity.
+    - **Self-Pairing Fix**: Resolved a critical logic error where a log could deduplicate itself during processing.
 - **Strict Import Validation**: Enhanced the attendance import process to enforce workspace settings strictly.
     - **Date/Time Preference Enforcement**: File parsing now strictly follows the configured `date_format` and `time_format`.
     - **Instructional Error Messages**: Failed imports now provide actionable feedback, including the exact faulty data and the expected format.
     - **Detailed Error Context**: Import error logs now include **Line Numbers** and **Raw faulty values** for both CSV and Excel files.
-- **Enhanced Integration Tests**: Added `apiserver/tests/raw_attendance_pairing_tests.rs` and `apiserver/tests/attendance_import_error_tests.rs` to verify pairing logic and error reporting accuracy.
+- **Enhanced Integration Tests**: Added comprehensive suites for API filtering, pairing edge cases (Machine Gun Punch, Quick Lunch), and detailed import error reporting.
 
 ### Fixed
 - **DateTime Parsing Ambiguity**: Resolved issues where `DD/MM` and `MM/DD` formats were confused during import by prioritizing workspace settings.
-- **Missing API Handlers**: Fixed a regression where `get_my_attendance_adjustments` was calling a non-existent service method.
+- **Frontend Timezone Shift**: Fixed an issue where date filters were off by one day due to inconsistent UTC conversion in the dashboard.
+- **API Pagination Integrity**: Updated Raw Logs API to return the correct `total` count for accurate frontend pagination.
+- **Mismatched API Response**: Standardized the Raw Logs endpoint to return an object structure instead of a raw array.
 
 ### Changed
 - **Event-Centric UI**: Refactored the "Attendance Logs" page to display a flat list of raw quẹt thẻ (punch) events instead of sessions, providing a clear audit trail for administrators.

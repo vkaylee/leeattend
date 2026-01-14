@@ -1,4 +1,4 @@
-use sqlx::{query, query_as, query_scalar, PgPool};
+use sqlx::{query, query_as, PgPool};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 use crate::models::RawAttendanceLog;
@@ -44,31 +44,30 @@ pub async fn get_paginated_raw_logs(
     p_limit: i64,
     p_offset: i64,
 ) -> Result<Vec<RawAttendanceLog>, sqlx::Error> {
-    let mut sql = "SELECT * FROM raw_attendance_logs WHERE workspace_id = $1".to_string();
-    let mut param_idx = 2;
+    let mut query_builder: sqlx::QueryBuilder<sqlx::Postgres> = sqlx::QueryBuilder::new("SELECT * FROM raw_attendance_logs WHERE workspace_id = ");
+    query_builder.push_bind(workspace_id);
 
-    if p_employee_id.is_some() {
-        sql.push_str(&format!(" AND employee_id = ${}", param_idx));
-        param_idx += 1;
-    }
-    if p_from.is_some() {
-        sql.push_str(&format!(" AND punch_time >= ${}", param_idx));
-        param_idx += 1;
-    }
-    if p_to.is_some() {
-        sql.push_str(&format!(" AND punch_time <= ${}", param_idx));
-        param_idx += 1;
+    if let Some(emp_id) = p_employee_id {
+        query_builder.push(" AND employee_id = ");
+        query_builder.push_bind(emp_id);
     }
 
-    sql.push_str(&format!(" ORDER BY punch_time DESC LIMIT ${} OFFSET ${}", param_idx, param_idx + 1));
+    if let Some(from) = p_from {
+        query_builder.push(" AND punch_time >= ");
+        query_builder.push_bind(from);
+    }
 
-    let mut query = query_as::<_, RawAttendanceLog>(&sql).bind(workspace_id);
-    
-    if let Some(id) = p_employee_id { query = query.bind(id); }
-    if let Some(f) = p_from { query = query.bind(f); }
-    if let Some(t) = p_to { query = query.bind(t); }
-    
-    query.bind(p_limit).bind(p_offset).fetch_all(pool).await
+    if let Some(to) = p_to {
+        query_builder.push(" AND punch_time <= ");
+        query_builder.push_bind(to);
+    }
+
+    query_builder.push(" ORDER BY punch_time DESC LIMIT ");
+    query_builder.push_bind(p_limit);
+    query_builder.push(" OFFSET ");
+    query_builder.push_bind(p_offset);
+
+    query_builder.build_query_as::<RawAttendanceLog>().fetch_all(pool).await
 }
 
 pub async fn count_raw_logs(
@@ -78,26 +77,23 @@ pub async fn count_raw_logs(
     p_from: Option<DateTime<Utc>>,
     p_to: Option<DateTime<Utc>>,
 ) -> Result<i64, sqlx::Error> {
-    let mut sql = "SELECT COUNT(*) FROM raw_attendance_logs WHERE workspace_id = $1".to_string();
-    let mut param_idx = 2;
+    let mut query_builder: sqlx::QueryBuilder<sqlx::Postgres> = sqlx::QueryBuilder::new("SELECT COUNT(*) FROM raw_attendance_logs WHERE workspace_id = ");
+    query_builder.push_bind(workspace_id);
 
-    if p_employee_id.is_some() {
-        sql.push_str(&format!(" AND employee_id = ${}", param_idx));
-        param_idx += 1;
-    }
-    if p_from.is_some() {
-        sql.push_str(&format!(" AND punch_time >= ${}", param_idx));
-        param_idx += 1;
-    }
-    if p_to.is_some() {
-        sql.push_str(&format!(" AND punch_time <= ${}", param_idx));
+    if let Some(emp_id) = p_employee_id {
+        query_builder.push(" AND employee_id = ");
+        query_builder.push_bind(emp_id);
     }
 
-    let mut query = query_scalar::<_, i64>(&sql).bind(workspace_id);
-    
-    if let Some(id) = p_employee_id { query = query.bind(id); }
-    if let Some(f) = p_from { query = query.bind(f); }
-    if let Some(t) = p_to { query = query.bind(t); }
-    
-    query.fetch_one(pool).await
+    if let Some(from) = p_from {
+        query_builder.push(" AND punch_time >= ");
+        query_builder.push_bind(from);
+    }
+
+    if let Some(to) = p_to {
+        query_builder.push(" AND punch_time <= ");
+        query_builder.push_bind(to);
+    }
+
+    query_builder.build_query_as::<(i64,)>().fetch_one(pool).await.map(|r| r.0)
 }

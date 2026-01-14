@@ -134,18 +134,18 @@ impl AttendanceAdjustmentService {
     ) -> Result<NaiveDateTime, String> {
         let dt_str = dt_str.trim();
         if dt_str.is_empty() { 
-            return Err("Dữ liệu thời gian trống".to_string()); 
+            return Err("Dữ liệu thời gian bị trống".to_string()); 
         }
 
         let date_pref = preferred_date.unwrap_or("DD/MM/YYYY").to_uppercase();
         let time_pref = preferred_time.unwrap_or("24h");
 
-        // 1. Define strict priority formats based on settings
+        // 1. Build strict priority list based on Workspace Settings
         let mut priority_fmts = Vec::new();
         let date_fmts = match date_pref.as_str() {
             "MM/DD/YYYY" => vec!["%m/%d/%Y", "%m-%d-%Y", "%m.%d.%Y"],
             "YYYY-MM-DD" => vec!["%Y-%m-%d", "%Y/%m/%d", "%Y.%m.%d"],
-            _ => vec!["%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y"],
+            _ => vec!["%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y"], // Default DD/MM/YYYY
         };
 
         let time_fmts = if time_pref == "12h" {
@@ -167,7 +167,15 @@ impl AttendanceAdjustmentService {
             }
         }
 
-        // 2. If strict fails, check if it matches ANY common format to give a better hint
+        // 2. Fallback for ISO 8601 (Machine format)
+        if let Ok(dt) = NaiveDateTime::parse_from_str(dt_str, "%Y-%m-%d %H:%M:%S") {
+            return Ok(dt);
+        }
+        if let Ok(dt) = NaiveDateTime::parse_from_str(dt_str, "%Y-%m-%dT%H:%M:%S") {
+            return Ok(dt);
+        }
+
+        // 3. If strict fails, check if it matches ANY common format to give a better hint
         let common_fmts = vec![
             "%d/%m/%Y %H:%M:%S", "%m/%d/%Y %H:%M:%S", "%Y-%m-%d %H:%M:%S",
             "%d/%m/%Y %H:%M", "%m/%d/%Y %H:%M", "%Y-%m-%d %H:%M",
@@ -177,13 +185,15 @@ impl AttendanceAdjustmentService {
         for fmt in common_fmts {
             if let Ok(_) = NaiveDateTime::parse_from_str(dt_str, fmt) {
                 return Err(format!(
-                    "Dữ liệu '{}' không khớp với cài đặt của bạn ({} {}). Vui lòng sửa lại file hoặc đổi cài đặt Workspace.",
-                    dt_str, date_pref, if time_pref == "12h" { "12 Giờ" } else { "24 Giờ" }
+                    "Giá trị '{}' sai định dạng. Cài đặt hiện tại yêu cầu: {} ({}).",
+                    dt_str, 
+                    date_pref, 
+                    if time_pref == "12h" { "12 giờ AM/PM" } else { "24 giờ" }
                 ));
             }
         }
 
-        Err(format!("Định dạng ngày giờ không hợp lệ hoặc không được hỗ trợ: '{}'", dt_str))
+        Err(format!("Không thể nhận diện ngày giờ: '{}'. Vui lòng kiểm tra lại file.", dt_str))
     }
 
     pub async fn get_workspace_requests(

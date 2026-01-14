@@ -86,19 +86,25 @@ export default function AttendanceLogsPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["attendance-raw-logs", wsId, employeeId, fromDate, toDate, page],
-    queryFn: () => fetchRawAttendanceLogs({
-      employee_id: employeeId === "all" ? undefined : employeeId,
-      from: fromDate ? new Date(fromDate).toISOString() : undefined,
-      to: toDate ? new Date(toDate + "T23:59:59").toISOString() : undefined,
-      page,
-      limit,
-    }),
+    queryFn: () => {
+      // Correctly handle date boundaries in local time to UTC conversion
+      const from = fromDate ? new Date(`${fromDate}T00:00:00`).toISOString() : undefined;
+      const to = toDate ? new Date(`${toDate}T23:59:59`).toISOString() : undefined;
+      
+      return fetchRawAttendanceLogs({
+        employee_id: employeeId === "all" ? undefined : employeeId,
+        from,
+        to,
+        page,
+        limit,
+      });
+    },
     enabled: !!wsId,
   });
 
   const getEmployeeName = (id: string) => {
     const emp = employees?.find(e => e.id === id);
-    return emp ? `${emp.first_name} ${emp.last_name}` : id;
+    return emp ? `${emp.first_name} ${emp.last_name}` : "Hệ thống";
   };
 
   const getEmployeeID = (id: string) => {
@@ -238,7 +244,7 @@ export default function AttendanceLogsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <Badge variant="outline">{getEmployeeID(log.employee_id)}</Badge>
+                      <Badge variant="outline">{getEmployeeID(log.employee_id) || "N/A"}</Badge>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">

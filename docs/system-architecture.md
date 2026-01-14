@@ -6,68 +6,28 @@
 - Agent chỉ đánh dấu log là `is_synced = 1` sau khi nhận được bản tin `type: "ack"` từ Server.
 - Nếu không nhận được ACK trong vòng 10 giây, Agent sẽ giữ log ở trạng thái chưa gửi và thử lại ở batch sau.
 
-### 2. Batch Sync Optimization
-- Agent gom tối đa 100 bản ghi vào một message WebSocket duy nhất.
-- Sử dụng `SYNC_INTERVAL=0.1s` để đẩy dữ liệu liên tục khi có backlog lớn, giúp giảm thiểu độ trễ.
+### 10. Attendance Pairing & Audit Engine
+Hệ thống xử lý dữ liệu quẹt thẻ (punch) theo mô hình **Event-Sourcing Audit Trail** để đảm bảo tính minh bạch và khả năng phục hồi dữ liệu:
 
-### 3. Config Push & Smart Rebuild
-- Khi Admin thay đổi thiết bị trên Web Dashboard, Server sẽ gửi message `config_push` tới Agent tương ứng.
-- **Delta Check**: Agent so sánh chữ ký (signature) của cấu hình mới và cũ. Chỉ thực hiện `stop` và `restart` các monitor nếu có sự khác biệt về IP, Port hoặc danh sách ID.
-- **Empty State**: Nếu danh sách thiết bị nhận được là rỗng (`[]`), Agent coi đây là lệnh dừng tất cả giám sát và xóa sạch bộ nhớ tạm.
-- **Persistence**: Mọi cấu hình nhận được đều được lưu vào `devices.json` để phục vụ chế độ Offline-first.
+#### 10.1. Raw Attendance Logs (Bất biến)
+- **Immutable Store**: Mọi lượt quẹt thẻ từ Agent (thiết bị ZKTeco) hoặc Import (file Excel/CSV) đều được lưu nguyên bản vào bảng `raw_attendance_logs`. 
+- **Auditability**: Dữ liệu này không bao giờ bị xóa hoặc sửa, cho phép người quản trị luôn có thể đối soát lại nguồn gốc của một session làm việc.
+- **Source Tracking**: Mỗi bản ghi lưu rõ nguồn (`device`, `import`, `manual`) và ID thiết bị tương ứng.
 
-### 4. Optimized Boot Sequence
-Quy trình khởi động của Agent:
-1. **Local Init**: Nạp cache log và cấu hình `devices.json`.
-2. **Immediate Monitor**: Bắt đầu giám sát các thiết bị local ngay lập tức (Downtime ~ 0).
-3. **Cloud Connect**: Kết nối WebSocket tới API Server.
-4. **Sync & Update**: Gửi trạng thái hiện tại và nhận cấu hình mới nhất (nếu có).
+#### 10.2. Pairing Engine (Logic ghép cặp)
+Dịch vụ `PairingService` thực hiện nhiệm vụ chuyển đổi luồng sự kiện phẳng (flat events) thành các phiên làm việc (sessions) có ý nghĩa:
+- **Deduplication (1-minute window)**: Tự động bỏ qua các lượt quẹt thẻ liên tiếp của cùng một nhân viên trong vòng 60 giây để chống nhiễu (ví dụ: nhân viên quẹt thẻ 2 lần do lo lắng máy chưa nhận).
+- **Auto-Session Matching**:
+    - Khi có log mới, Engine tìm kiếm phiên làm việc (Time Entry) gần nhất chưa đóng (`punch_out_time IS NULL`).
+    - **Session Recovery (14-hour window)**: Nếu log mới xảy ra trong vòng 14 giờ kể từ lúc bắt đầu phiên, nó sẽ được coi là giờ **Ra (Punch Out)** và đóng phiên đó lại.
+    - **New Session**: Nếu không tìm thấy phiên cũ hoặc khoảng cách quá 14 giờ, Engine tự động khởi tạo một phiên làm việc mới (giờ **Vào - Punch In**).
+- **Timezone Safety**: Mọi mốc thời gian được lưu trữ dưới dạng UTC và chỉ được chuyển đổi sang múi giờ địa phương (ICT) tại tầng hiển thị.
 
-### 5. Agent Trust & Whitelisting
-Hệ thống sử dụng cơ chế phê duyệt danh tính chủ động:
-1. **Registration**: Admin khai báo `agent_id` và `token` trên Dashboard.
-2. **Connection**: Agent kết nối WebSocket và gửi `token` trong bản tin Handshake.
-3. **Verification**: 
-   - Nếu Token sai -> Trả về `INVALID_TOKEN` -> Ngắt.
-   - Nếu chưa được phê duyệt (`is_trusted=false`) -> Trả về `AGENT_NOT_TRUSTED` -> Ngắt.
-4. **Active State**: Chỉ Agent đã được Trust mới nhận được Config Push và có quyền đẩy Attendance Logs.
+#### 10.3. Strict Import Validation
+Quy trình nhập dữ liệu từ file được thực thi với tiêu chuẩn cao nhất về độ chính xác:
+- **Workspace-Aware Parsing**: Engine phân tích ngày tháng nghiêm ngặt dựa trên cài đặt của từng Workspace (`DD/MM/YYYY`, `MM/DD/YYYY`, v.v.). Không tự động "đoán" định dạng để tránh sai lệch dữ liệu.
+- **Instructional Feedback**: Khi có dòng lỗi, hệ thống cung cấp thông báo chi tiết: **Số dòng**, **Mã nhân viên**, **Giá trị sai thực tế** và **Định dạng mong đợi** để người dùng sửa file nhanh nhất.
 
-### 6. Memory Safety & Resource Protection
-Agent được thiết kế để chạy ổn định 24/7 trên phần cứng giới hạn (Raspberry Pi/Mini PC):
-- **Bounded Queue**: Hàng đợi xử lý log được giới hạn (Max 1000 items). Khi hàng đợi đầy (do mất mạng hoặc DB chậm), quy trình đọc dữ liệu từ thiết bị sẽ tạm dừng (Backpressure), ngăn chặn tràn RAM.
-- **Smart Polling**: Tần suất đọc dữ liệu tự động điều chỉnh dựa trên tải:
-  - Default: 10s
-  - Logs > 5000: 60s
-  - Logs > 20000: 300s
-- **Rolling Deduplication**: Bộ nhớ đệm chống trùng lặp sử dụng cấu trúc `deque` + `set` với cửa sổ trượt cố định (20,000 items), đảm bảo bộ nhớ không tăng theo thời gian.
-
-### 7. Multi-Tenancy (Workspaces)
-Hệ thống hỗ trợ phân tách dữ liệu hoàn toàn giữa các tổ chức thông qua mô hình Workspace:
-- **Global Identity**: Người dùng có một tài khoản duy nhất trên toàn hệ thống (Global User), cho phép họ tham gia vào nhiều Workspace khác nhau mà không cần tạo nhiều tài khoản.
-- **Isolation**: Mọi tài nguyên nghiệp vụ (Agent, Thiết bị, Log) đều gắn liền với một `workspace_id`. Một Workspace đại diện cho một tổ chức hoặc khách hàng độc lập.
-- **MemberContext Isolation**: API Server thực thi kiểm tra bảo mật thông qua cặp header `X-User-Id` và `X-Workspace-Id`. Extractor `MemberContext` sẽ xác thực tính hợp lệ của người dùng trong workspace trước khi cho phép truy cập tài nguyên.
-- **RBAC (Role-Based Access Control)**: Phân quyền chi tiết trong từng Workspace (Owner, Admin, Member):
-  - `Owner`: Quyền cao nhất, được phép xóa workspace.
-  - `Admin`: Được phép quản lý thành viên (invite/remove) và cấu hình thiết bị/agent.
-  - `Member`: Quyền xem dữ liệu và tương tác cơ bản.
-- **Handshake Verification**: Khi Agent kết nối WebSocket, Server tự động xác định Workspace tương ứng từ `agent_id` và thực thi cách ly luồng dữ liệu ngay tại tầng kết nối.
-
-### 8. Payroll Engine & Rounding Logic
-Hệ thống tính toán lương và công (Payroll Engine) được thiết kế theo mô hình **Configurable Business Rules**:
-- **Daily Unit Aggregation**: Thay vì tính toán trực tiếp từ tổng phút làm việc trong tháng, hệ thống gom dữ liệu (work/break) theo từng ngày (Local Date ICT). 
-- **Rounding Helper**: Áp dụng quy tắc làm tròn (`RoundingPolicy`) trên từng đơn vị thời gian cấu hình (`work_unit_minutes`):
-  - `None`: Giữ nguyên số phút thực tế.
-  - `Floor`: Chỉ tính các block thời gian đã hoàn thành (ví dụ: làm 55p với block 30p -> tính 30p).
-  - `Ceil`: Làm tròn lên block tiếp theo nếu có phát sinh (ví dụ: làm 10p với block 30p -> tính 30p).
-  - `Round`: Làm tròn tới block gần nhất.
-  - **Historical Integrity (Shift Versioning)**: Mọi thay đổi về cấu hình ca làm việc (Shift) đều tạo ra một bản ghi mới với `version_id`. Khi tính lương cho quá khứ, hệ thống sử dụng phiên bản Shift có hiệu lực tại thời điểm đó, đảm bảo kết quả không thay đổi khi Admin cập nhật quy định mới.
-
-### 9. Robust Background Task Engine
-Hệ thống tích hợp một công cụ xử lý tác vụ ngầm bền bỉ (Persistent Background Tasks) cho các thao tác tiêu tốn tài nguyên như Import dữ liệu hàng loạt:
-- **Async Execution**: Sử dụng `tokio::spawn` để thực thi tác vụ mà không gây nghẽn luồng xử lý API chính.
-- **Task Persistence**: Trạng thái tác vụ (đã xử lý bao nhiêu dòng, tổng số dòng, lỗi) được lưu liên tục vào bảng `attendance_import_jobs`.
-- **Fault Tolerance (Auto-Recovery)**: Khi API Server khởi động lại, dịch vụ `AttendanceAdjustmentService` sẽ quét các Job đang ở trạng thái `processing`. Hệ thống tự động đọc lại file tạm từ đĩa và tiếp tục xử lý từ vị trí dòng cuối cùng thành công, đảm bảo không mất mát dữ liệu và không trùng lặp.
-- **Safe Resource Cleanup**: File tải lên được lưu tạm thời tại `./storage/imports/` và được đảm bảo xóa sạch sau khi Job hoàn thành hoặc thất bại hoàn toàn.
 ## Infrastructure Diagram
 ```ascii
 [ Web Dashboard ] <--- REST API ---> [ API Server ] <--- WebSocket (Outbound Only) ---> [ Agent (Rust) ] <--- JSON-RPC (TCP) ---> [ ZK Worker (Python) ] <---> [ ZKTeco Devices ]
