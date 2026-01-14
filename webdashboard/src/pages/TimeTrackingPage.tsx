@@ -120,7 +120,7 @@ export default function TimeTrackingPage() {
       </header>
 
       <div className="bg-white border border-slate-50 rounded-[2rem] p-8 shadow-sm group">
-        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 ml-1 group-focus-within:text-violet-500 transition-colors">
+        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 ml-1 group-focus-within:text-primary-500 transition-colors">
           Chọn nhân viên để chấm công
         </label>
         <div className="max-w-xl">
@@ -130,7 +130,7 @@ export default function TimeTrackingPage() {
               label: `${emp.first_name} ${emp.last_name}`,
               description: `Mã NV: ${emp.employee_id_number} • ${emp.department_name || "Chưa có phòng ban"}`,
               icon: (
-                <div className="bg-violet-100 p-2 rounded-xl text-violet-600 shadow-inner">
+                <div className="bg-primary-100 p-2 rounded-xl text-primary-600 shadow-inner">
                   <User className="w-4 h-4" />
                 </div>
               ),
@@ -139,7 +139,7 @@ export default function TimeTrackingPage() {
             onChange={setSelectedEmployeeId}
             placeholder="Tìm theo tên hoặc mã nhân viên..."
             searchPlaceholder="Gõ tên hoặc mã nhân viên..."
-            className="h-16 text-lg border-slate-100 bg-slate-50/50 hover:bg-white focus:ring-violet-500/10"
+            className="h-16 text-lg border-slate-100 bg-slate-50/50 hover:bg-white focus:ring-primary-500/10"
           />
         </div>
       </div>
@@ -152,7 +152,7 @@ export default function TimeTrackingPage() {
                <Clock className="w-32 h-32 -rotate-12" />
             </div>
 
-            <div className={`w-24 h-24 rounded-[2rem] flex items-center justify-center mb-8 transition-all duration-700 shadow-inner ${activeEntry ? (isOnBreak ? 'bg-amber-100 text-amber-600 animate-pulse' : 'bg-violet-100 text-violet-600 animate-pulse') : 'bg-emerald-100 text-emerald-600 shadow-emerald-100'}`}>
+            <div className={`w-24 h-24 rounded-[2rem] flex items-center justify-center mb-8 transition-all duration-700 shadow-inner ${activeEntry ? (isOnBreak ? 'bg-amber-100 text-amber-600 animate-pulse' : 'bg-primary-100 text-primary-600 animate-pulse') : 'bg-emerald-100 text-emerald-600 shadow-emerald-100'}`}>
               <Clock className="w-10 h-10" />
             </div>
             
@@ -208,7 +208,7 @@ export default function TimeTrackingPage() {
               <button 
                 onClick={() => punchInMutation.mutate({ employee_id: selectedEmployeeId, entry_type: "work" })}
                 disabled={punchInMutation.isPending}
-                className="w-full bg-violet-600 text-white py-6 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-sm hover:bg-violet-700 hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-violet-200 disabled:opacity-50 relative z-10"
+                className="w-full bg-primary-600 text-white py-6 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-sm hover:bg-primary-700 hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-primary-200 disabled:opacity-50 relative z-10"
               >
                 Bắt đầu làm việc
               </button>
@@ -219,7 +219,7 @@ export default function TimeTrackingPage() {
                 setAdjustmentData({ ...adjustmentData, timeEntryId: undefined });
                 setIsAdjustmentModalOpen(true);
               }}
-              className="mt-8 text-violet-600 text-[10px] font-black uppercase tracking-[0.2em] hover:text-violet-800 transition-colors py-2"
+              className="mt-8 text-primary-600 text-[10px] font-black uppercase tracking-[0.2em] hover:text-primary-800 transition-colors py-2"
             >
               Quên chấm công? Gửi xác nhận →
             </button>
@@ -229,7 +229,7 @@ export default function TimeTrackingPage() {
           <div className="lg:col-span-8 bg-white border border-slate-50 rounded-[2.5rem] overflow-hidden shadow-sm flex flex-col">
             <div className="px-10 py-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <History className="w-5 h-5 text-violet-500" />
+                <History className="w-5 h-5 text-primary-500" />
                 <h3 className="font-black text-slate-800 uppercase tracking-widest text-xs">Lịch sử gần đây (7 ngày)</h3>
               </div>
             </div>
@@ -253,7 +253,7 @@ export default function TimeTrackingPage() {
                       <td className="px-10 py-6">
                         <div className="flex items-center gap-3">
                            <span className="text-base font-extrabold text-slate-900">{formatDate(entry.punch_in_time)}</span>
-                           <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-sm ${entry.entry_type === 'break' ? 'bg-amber-100 text-amber-700' : 'bg-violet-100 text-violet-700'}`}>
+                           <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-sm ${entry.entry_type === 'break' ? 'bg-amber-100 text-amber-700' : 'bg-primary-100 text-primary-700'}`}>
                              {entry.entry_type === 'break' ? 'Nghỉ' : 'Làm'}
                            </span>
                         </div>
@@ -263,7 +263,7 @@ export default function TimeTrackingPage() {
                         {entry.punch_out_time ? (
                           <span className="font-bold text-slate-500">{formatTime(entry.punch_out_time)}</span>
                         ) : (
-                          <span className={`${entry.entry_type === 'break' ? 'text-amber-500 bg-amber-50' : 'text-violet-500 bg-violet-50'} font-black px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-widest animate-pulse`}>
+                          <span className={`${entry.entry_type === 'break' ? 'text-amber-500 bg-amber-50' : 'text-primary-500 bg-primary-50'} font-black px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-widest animate-pulse`}>
                             {entry.entry_type === 'break' ? 'Đang nghỉ' : 'Đang làm'}
                           </span>
                         )}
@@ -281,7 +281,7 @@ export default function TimeTrackingPage() {
                             });
                             setIsAdjustmentModalOpen(true);
                           }}
-                          className="text-violet-600 hover:bg-violet-50 px-4 py-2 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest active:scale-90"
+                          className="text-primary-600 hover:bg-primary-50 px-4 py-2 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest active:scale-90"
                         >
                           Hiệu chỉnh
                         </button>

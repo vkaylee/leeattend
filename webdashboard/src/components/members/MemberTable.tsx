@@ -64,7 +64,7 @@ export default function MemberTable() {
                 >
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
+                      <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-primary-600 font-bold">
                         {member.avatar_url ? (
                           <img
                             src={member.avatar_url}
@@ -113,7 +113,7 @@ export default function MemberTable() {
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => handleManageRoles(member.user_id)}
-                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                         title="Manage Roles"
                       >
                         <UserCog className="w-4 h-4" />

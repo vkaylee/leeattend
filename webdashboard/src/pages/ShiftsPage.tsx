@@ -362,26 +362,26 @@ export default function ShiftsPage() {
           <div className="bg-slate-100 p-1 rounded-2xl flex border border-slate-200 shadow-inner">
             <button 
               onClick={() => setActiveTab("weekly-roster")}
-              className={`px-4 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${activeTab === 'weekly-roster' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${activeTab === 'weekly-roster' ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               <LayoutGrid size={14} /> LỊCH TUẦN
             </button>
             <button 
               onClick={() => setActiveTab("assignments")}
-              className={`px-4 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${activeTab === 'assignments' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${activeTab === 'assignments' ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               <Calendar size={14} /> GÁN CỐ ĐỊNH
             </button>
             <button 
               onClick={() => setActiveTab("directory")}
-              className={`px-4 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${activeTab === 'directory' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${activeTab === 'directory' ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               <List size={14} /> DANH MỤC
             </button>
           </div>
           <button 
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-black px-6 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg shadow-blue-100 transition-all active:scale-95"
+            className="bg-primary-600 hover:bg-primary-700 text-white font-black px-6 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg shadow-primary-100 transition-all active:scale-95"
           >
             <Plus className="w-5 h-5" />
             <span className="text-xs uppercase tracking-widest">Tạo ca</span>
@@ -404,9 +404,9 @@ export default function ShiftsPage() {
                 <button
                   key={emp.id}
                   onClick={() => setSelectedEmployee(emp)}
-                  className={`w-full flex items-center gap-4 p-4 hover:bg-slate-50 transition-all text-left group ${selectedEmployee?.id === emp.id ? 'bg-blue-50/50' : ''}`}
+                  className={`w-full flex items-center gap-4 p-4 hover:bg-slate-50 transition-all text-left group ${selectedEmployee?.id === emp.id ? 'bg-primary-50/50' : ''}`}
                 >
-                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-base transition-transform group-active:scale-95 ${selectedEmployee?.id === emp.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-slate-100 text-slate-400'}`}>
+                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-base transition-transform group-active:scale-95 ${selectedEmployee?.id === emp.id ? 'bg-primary-600 text-white shadow-lg shadow-primary-100' : 'bg-slate-100 text-slate-400'}`}>
                     {emp.last_name[0]}
                   </div>
                   <div className="flex-1">
@@ -439,7 +439,7 @@ export default function ShiftsPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between bg-white p-4 rounded-[32px] border border-slate-200 shadow-sm">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-lg font-black">
+                      <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center text-white text-lg font-black">
                         {selectedEmployee.last_name[0]}
                       </div>
                       <div>
@@ -500,7 +500,7 @@ export default function ShiftsPage() {
                   </div>
 
                   {selectedDays.length > 0 && (
-                    <div className="bg-blue-600 text-white p-4 rounded-[24px] flex items-center justify-between shadow-lg shadow-blue-100 animate-in slide-in-from-top-4">
+                    <div className="bg-primary-600 text-white p-4 rounded-[24px] flex items-center justify-between shadow-lg shadow-primary-100 animate-in slide-in-from-top-4">
                       <div className="flex items-center gap-4">
                         <span className="text-xs font-black uppercase tracking-widest">Đã chọn {selectedDays.length} ngày</span>
                         <div className="h-4 w-px bg-white/20" />
@@ -545,14 +545,14 @@ export default function ShiftsPage() {
                         >
                           <div className="text-center mb-5 pb-5 border-b border-slate-50 relative">
                             {isSelected && (
-                              <div className="absolute -top-1 -right-1 bg-blue-600 text-white rounded-full p-1 shadow-sm">
+                              <div className="absolute -top-1 -right-1 bg-primary-600 text-white rounded-full p-1 shadow-sm">
                                 <ShieldCheck size={12} />
                               </div>
                             )}
                             <div className={`text-[10px] font-black uppercase tracking-tighter ${isToday ? 'text-blue-500' : 'text-slate-400'}`}>
                               {format(day, "EEEE", { locale: vi })}
                             </div>
-                            <div className={`text-2xl font-black mt-1 ${isToday ? 'text-blue-600' : 'text-slate-900'}`}>
+                            <div className={`text-2xl font-black mt-1 ${isToday ? 'text-primary-600' : 'text-slate-900'}`}>
                               {day.getDate()}
                             </div>
                           </div>
@@ -566,7 +566,7 @@ export default function ShiftsPage() {
                             </div>
                             
                             {effectiveSchedule?.shift_id ? (
-                              <div className={`p-4 rounded-[24px] relative group/item animate-in zoom-in-95 border ${isRoster ? 'bg-purple-50/50 border-purple-100' : 'bg-blue-50 border-blue-100'}`}>
+                              <div className={`p-4 rounded-[24px] relative group/item animate-in zoom-in-95 border ${isRoster ? 'bg-purple-50/50 border-purple-100' : 'bg-primary-50 border-blue-100'}`}>
                                 <div className={`font-black text-xs mb-1 uppercase tracking-tight leading-tight ${isRoster ? 'text-purple-700' : 'text-blue-700'}`}>
                                   {effectiveSchedule.shift_name}
                                 </div>
@@ -663,7 +663,7 @@ export default function ShiftsPage() {
               /* TAB: ASSIGNMENTS (Fixed/Temporal) */
               <div className="bg-white border border-slate-200 rounded-[40px] p-8 shadow-sm animate-in fade-in zoom-in-95 duration-300">
                 <div className="flex items-center gap-4 mb-10 pb-10 border-b border-slate-50">
-                  <div className="w-20 h-20 bg-blue-600 rounded-[28px] flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-blue-100">
+                  <div className="w-20 h-20 bg-primary-600 rounded-[28px] flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-primary-100">
                     {selectedEmployee.last_name[0]}
                   </div>
                   <div>
@@ -682,7 +682,7 @@ export default function ShiftsPage() {
                         <button
                           key={shift.id}
                           onClick={() => setSelectedShiftId(shift.id)}
-                          className={`p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group ${selectedShiftId === shift.id ? 'border-blue-600 bg-blue-50/50' : 'border-slate-100 hover:border-slate-200 bg-slate-50/30'}`}
+                          className={`p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group ${selectedShiftId === shift.id ? 'border-blue-600 bg-primary-50/50' : 'border-slate-100 hover:border-slate-200 bg-slate-50/30'}`}
                         >
                           <div className={`font-black text-sm uppercase tracking-tight ${selectedShiftId === shift.id ? 'text-blue-700' : 'text-slate-700'}`}>{shift.name}</div>
                           <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
@@ -699,7 +699,7 @@ export default function ShiftsPage() {
                             </div>
                           </div>
                           {selectedShiftId === shift.id && (
-                            <div className="absolute top-4 right-4 w-3 h-3 bg-blue-600 rounded-full animate-pulse" />
+                            <div className="absolute top-4 right-4 w-3 h-3 bg-primary-600 rounded-full animate-pulse" />
                           )}
                         </button>
                       ))}
@@ -715,7 +715,7 @@ export default function ShiftsPage() {
                         type="date" 
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                       />
                     </div>
 
@@ -726,7 +726,7 @@ export default function ShiftsPage() {
                         </label>
                         <button 
                           onClick={() => setIsForever(!isForever)}
-                          className={`text-[9px] font-black px-3 py-1 rounded-full border transition-all uppercase tracking-tighter ${isForever ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-100 text-slate-400 border-slate-200'}`}
+                          className={`text-[9px] font-black px-3 py-1 rounded-full border transition-all uppercase tracking-tighter ${isForever ? 'bg-primary-600 text-white border-blue-600' : 'bg-slate-100 text-slate-400 border-slate-200'}`}
                         >
                           {isForever ? "VÔ THỜI HẠN" : "CÓ THỜI HẠN"}
                         </button>
@@ -736,7 +736,7 @@ export default function ShiftsPage() {
                         disabled={isForever}
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className={`w-full border rounded-2xl px-5 py-4 font-bold transition-all outline-none ${isForever ? 'bg-slate-100 text-slate-300 border-slate-50' : 'bg-slate-50 text-slate-700 border-slate-200 focus:ring-2 focus:ring-blue-500'}`}
+                        className={`w-full border rounded-2xl px-5 py-4 font-bold transition-all outline-none ${isForever ? 'bg-slate-100 text-slate-300 border-slate-50' : 'bg-slate-50 text-slate-700 border-slate-200 focus:ring-2 focus:ring-primary-500'}`}
                       />
                     </div>
                   </div>
@@ -778,11 +778,11 @@ export default function ShiftsPage() {
                   </td>
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-3">
-                      <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-xl font-mono font-black text-sm border border-blue-100">
+                      <div className="bg-primary-50 text-blue-700 px-4 py-2 rounded-xl font-mono font-black text-sm border border-blue-100">
                         {formatTime(shift.start_time)}
                       </div>
                       <ChevronRight className="w-4 h-4 text-slate-200" />
-                      <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-xl font-mono font-black text-sm border border-blue-100">
+                      <div className="bg-primary-50 text-blue-700 px-4 py-2 rounded-xl font-mono font-black text-sm border border-blue-100">
                         {formatTime(shift.end_time)}
                       </div>
                     </div>
@@ -812,7 +812,7 @@ export default function ShiftsPage() {
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => openEditModal(shift)}
-                        className="p-3 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all border border-transparent hover:border-blue-100"
+                        className="p-3 bg-slate-50 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-2xl transition-all border border-transparent hover:border-blue-100"
                       >
                         <Save className="w-5 h-5" />
                       </button>
@@ -860,7 +860,7 @@ export default function ShiftsPage() {
                   placeholder="Hành chính, Ca sáng, Ca gãy..."
                   value={newShiftName}
                   onChange={(e) => setNewShiftName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-300"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all placeholder:text-slate-300"
                 />
               </div>
 
@@ -876,7 +876,7 @@ export default function ShiftsPage() {
                     lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
                     value={newShiftStart?.substring(0, 5)}
                     onChange={(e) => setNewShiftStart(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all"
                   />
                 </div>
                 <div className="space-y-3">
@@ -890,7 +890,7 @@ export default function ShiftsPage() {
                     lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
                     value={newShiftEnd?.substring(0, 5)}
                     onChange={(e) => setNewShiftEnd(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all"
                   />
                 </div>
               </div>
@@ -903,7 +903,7 @@ export default function ShiftsPage() {
                   <div className="flex items-center gap-2 bg-slate-200/50 p-1 rounded-xl">
                     <button 
                       onClick={() => setIsFixedBreak(false)}
-                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all ${!isFixedBreak ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all ${!isFixedBreak ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                     >
                       Linh hoạt
                     </button>
@@ -913,7 +913,7 @@ export default function ShiftsPage() {
                         if (!newBreakStart) setNewBreakStart("12:00");
                         if (!newBreakEnd) setNewBreakEnd("13:00");
                       }}
-                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all ${isFixedBreak ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all ${isFixedBreak ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                     >
                       Cố định
                     </button>
@@ -934,7 +934,7 @@ export default function ShiftsPage() {
                           lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
                           value={newBreakStart?.substring(0, 5)}
                           onChange={(e) => setNewBreakStart(e.target.value)}
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all"
                         />
                       </div>
                       <div className="space-y-2">
@@ -948,7 +948,7 @@ export default function ShiftsPage() {
                           lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
                           value={newBreakEnd?.substring(0, 5)}
                           onChange={(e) => setNewBreakEnd(e.target.value)}
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all"
                         />
                       </div>
                     </div>
@@ -958,9 +958,9 @@ export default function ShiftsPage() {
                         type="checkbox" 
                         checked={isAutoDeduct}
                         onChange={(e) => setIsAutoDeduct(e.target.checked)}
-                        className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500"
+                        className="w-4 h-4 rounded-md border-slate-300 text-primary-600 focus:ring-primary-500"
                       />
-                      <span className="text-xs font-bold text-slate-600 group-hover:text-blue-600 transition-colors">Tự động trừ giờ nghỉ (Auto-deduct)</span>
+                      <span className="text-xs font-bold text-slate-600 group-hover:text-primary-600 transition-colors">Tự động trừ giờ nghỉ (Auto-deduct)</span>
                     </label>
                   </div>
                 ) : (
@@ -985,7 +985,7 @@ export default function ShiftsPage() {
               <button
                 onClick={handleCreateShift}
                 disabled={createShiftMutation.isPending}
-                className="w-full bg-blue-600 text-white font-black py-5 rounded-[24px] flex items-center justify-center gap-3 hover:bg-blue-700 transition-all active:scale-95 shadow-xl shadow-blue-100 disabled:opacity-50 mt-4 uppercase tracking-widest text-xs"
+                className="w-full bg-primary-600 text-white font-black py-5 rounded-[24px] flex items-center justify-center gap-3 hover:bg-primary-700 transition-all active:scale-95 shadow-xl shadow-primary-100 disabled:opacity-50 mt-4 uppercase tracking-widest text-xs"
               >
                 <Save className="w-5 h-5" />
                 Lưu loại ca
@@ -1016,7 +1016,7 @@ export default function ShiftsPage() {
                   type="text" 
                   value={newShiftName}
                   onChange={(e) => setNewShiftName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all"
                 />
               </div>
 
@@ -1032,7 +1032,7 @@ export default function ShiftsPage() {
                     lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
                     value={newShiftStart}
                     onChange={(e) => setNewShiftStart(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all"
                   />
                 </div>
                 <div className="space-y-3">
@@ -1046,7 +1046,7 @@ export default function ShiftsPage() {
                     lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
                     value={newShiftEnd}
                     onChange={(e) => setNewShiftEnd(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all"
                   />
                 </div>
               </div>
@@ -1057,11 +1057,11 @@ export default function ShiftsPage() {
                   <div className="flex items-center gap-2 rounded-xl bg-slate-200/50 p-1">
                     <button 
                       onClick={() => setIsFixedBreak(false)}
-                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${!isFixedBreak ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}
+                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${!isFixedBreak ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-400'}`}
                     > Linh hoạt </button>
                     <button 
                       onClick={() => setIsFixedBreak(true)}
-                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${isFixedBreak ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}
+                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${isFixedBreak ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-400'}`}
                     > Cố định </button>
                   </div>
                 </div>
@@ -1088,13 +1088,13 @@ export default function ShiftsPage() {
               </div>
 
               {/* Versioning Logic */}
-              <div className="bg-blue-50 p-6 rounded-[32px] border border-blue-100 space-y-4">
+              <div className="bg-primary-50 p-6 rounded-[32px] border border-blue-100 space-y-4">
                 <label className="group flex cursor-pointer items-start gap-3">
                   <input 
                     type="checkbox" 
                     checked={isEditCorrection}
                     onChange={(e) => setIsEditCorrection(e.target.checked)}
-                    className="mt-1 h-5 w-5 rounded-lg border-blue-200 text-blue-600 focus:ring-blue-500"
+                    className="mt-1 h-5 w-5 rounded-lg border-blue-200 text-primary-600 focus:ring-primary-500"
                   />
                   <div className="flex-1">
                     <span className="block text-xs font-black uppercase tracking-tight text-blue-900">Sửa lỗi nhập liệu (Correction)</span>
@@ -1112,7 +1112,7 @@ export default function ShiftsPage() {
                       type="date" 
                       value={editEffectiveDate}
                       onChange={(e) => setEditEffectiveDate(e.target.value)}
-                      className="w-full rounded-2xl border border-blue-200 bg-white px-5 py-3 font-bold text-blue-700 outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full rounded-2xl border border-blue-200 bg-white px-5 py-3 font-bold text-blue-700 outline-none focus:ring-2 focus:ring-primary-500"
                     />
                     <p className="px-1 text-[9px] font-bold italic text-blue-400">
                       Hệ thống sẽ tạo phiên bản mới và chuyển toàn bộ nhân viên sang ca này từ ngày đã chọn.
@@ -1176,7 +1176,7 @@ export default function ShiftsPage() {
                       bulkRosterMutation.mutate(items);
                       setIsShiftPickerOpen(false);
                     }}
-                    className="p-5 rounded-[28px] border-2 border-slate-100 hover:border-blue-600 hover:bg-blue-50/50 text-left transition-all relative overflow-hidden group"
+                    className="p-5 rounded-[28px] border-2 border-slate-100 hover:border-blue-600 hover:bg-primary-50/50 text-left transition-all relative overflow-hidden group"
                   >
                     <div className="font-black text-sm uppercase tracking-tight text-slate-700 group-hover:text-blue-700">{shift.name}</div>
                     <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">

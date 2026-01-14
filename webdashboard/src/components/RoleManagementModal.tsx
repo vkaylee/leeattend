@@ -67,7 +67,7 @@ export default function RoleManagementModal({
       <div className="modal-content max-w-lg">
         <div className="flex items-center justify-between p-8 border-b border-slate-50">
           <div className="flex items-center gap-4">
-            <div className="bg-blue-50 p-3 rounded-2xl text-blue-600">
+            <div className="bg-primary-50 p-3 rounded-2xl text-primary-600">
               <UserCheck className="w-6 h-6" />
             </div>
             <div>
@@ -101,8 +101,8 @@ export default function RoleManagementModal({
                 <Combobox
                   id="primary-role-select"
                   options={[
-                    { value: "owner", label: "Owner", description: "Sáng lập, toàn quyền cao nhất", icon: <Shield className="w-4 h-4 text-indigo-600" /> },
-                    { value: "admin", label: "Admin", description: "Quản trị viên hệ thống", icon: <Shield className="w-4 h-4 text-blue-600" /> },
+                    { value: "owner", label: "Owner", description: "Sáng lập, toàn quyền cao nhất", icon: <Shield className="w-4 h-4 text-primary-600" /> },
+                    { value: "admin", label: "Admin", description: "Quản trị viên hệ thống", icon: <Shield className="w-4 h-4 text-primary-600" /> },
                     { value: "member", label: "Member", description: "Thành viên thông thường", icon: <Shield className="w-4 h-4 text-slate-400" /> },
                   ]}
                   value={primaryRole}
@@ -176,7 +176,7 @@ export default function RoleManagementModal({
                   id="extra-role-select"
                   options={[
                     { value: "member", label: "Member", icon: <Shield className="w-4 h-4" /> },
-                    { value: "admin", label: "Admin", icon: <Shield className="w-4 h-4 text-blue-600" /> },
+                    { value: "admin", label: "Admin", icon: <Shield className="w-4 h-4 text-primary-600" /> },
                   ]}
                   value={newRole}
                   onChange={setNewRole}
@@ -195,7 +195,7 @@ export default function RoleManagementModal({
                     id="expires-at-input"
                     required
                     type="datetime-local"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
                     value={expiresAt}
                     onChange={(e) => setExpiresAt(e.target.value)}
                   />

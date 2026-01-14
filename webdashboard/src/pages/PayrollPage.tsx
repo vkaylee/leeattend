@@ -90,7 +90,7 @@ export default function PayrollPage() {
           <input 
             type="text" 
             placeholder="Tìm nhân viên..."
-            className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+            className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-blue-500 transition-all"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -105,9 +105,9 @@ export default function PayrollPage() {
                 <button
                   key={emp.id}
                   onClick={() => setSelectedEmployee(emp)}
-                  className={`w-full flex items-center gap-4 p-4 hover:bg-slate-50 transition-all text-left group ${selectedEmployee?.id === emp.id ? 'bg-blue-50/50' : ''}`}
+                  className={`w-full flex items-center gap-4 p-4 hover:bg-slate-50 transition-all text-left group ${selectedEmployee?.id === emp.id ? 'bg-primary-50/50' : ''}`}
                 >
-                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-base transition-colors ${selectedEmployee?.id === emp.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-base transition-colors ${selectedEmployee?.id === emp.id ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
                     {emp.last_name[0]}
                   </div>
                   <div className="flex-1">
@@ -140,7 +140,7 @@ export default function PayrollPage() {
           <>
             <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-blue-600 rounded-[22px] flex items-center justify-center text-white text-xl font-black shadow-lg shadow-blue-100">
+                <div className="w-14 h-14 bg-primary-600 rounded-[22px] flex items-center justify-center text-white text-xl font-black shadow-lg shadow-primary-100">
                   {selectedEmployee.last_name[0]}
                 </div>
                 <div>
@@ -205,7 +205,7 @@ export default function PayrollPage() {
                           -{new Intl.NumberFormat('vi-VN').format(parseFloat(slip.deductions_amount))}
                         </td>
                         <td className="px-8 py-6 text-right">
-                          <div className="font-black text-blue-600 text-lg">
+                          <div className="font-black text-primary-600 text-lg">
                             {new Intl.NumberFormat('vi-VN').format(parseFloat(slip.net_pay_amount))}
                           </div>
                         </td>

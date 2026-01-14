@@ -42,7 +42,7 @@ const Badge = ({ children, variant = "default", className }: { children: React.R
 
 const Button = ({ children, variant = "default", className, disabled, onClick, type = "button" }: { children: React.ReactNode, variant?: string, className?: string, disabled?: boolean, onClick?: () => void, type?: "button" | "submit" }) => {
   const variants: Record<string, string> = {
-    default: "bg-blue-600 text-white hover:bg-blue-700 shadow-sm",
+    default: "bg-primary-600 text-white hover:bg-primary-700 shadow-sm",
     outline: "border border-slate-200 bg-white hover:bg-slate-50 text-slate-700",
     ghost: "hover:bg-slate-100 text-slate-600",
     destructive: "bg-rose-600 text-white hover:bg-rose-700 shadow-sm",
@@ -155,7 +155,7 @@ export default function AttendanceLogsPage() {
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center gap-2">
-            <Filter className="h-5 w-5 text-blue-600" />
+            <Filter className="h-5 w-5 text-primary-600" />
             <h3 className="font-bold text-slate-900">Bộ lọc</h3>
           </div>
         </div>
@@ -165,7 +165,7 @@ export default function AttendanceLogsPage() {
               <button
                 onClick={() => handleFilterModeChange("this_month")}
                 className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                  filterMode === "this_month" ? "bg-white shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-700"
+                  filterMode === "this_month" ? "bg-white shadow-sm text-primary-600" : "text-slate-500 hover:text-slate-700"
                 }`}
               >
                 Tháng này
@@ -173,7 +173,7 @@ export default function AttendanceLogsPage() {
               <button
                 onClick={() => handleFilterModeChange("last_month")}
                 className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                  filterMode === "last_month" ? "bg-white shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-700"
+                  filterMode === "last_month" ? "bg-white shadow-sm text-primary-600" : "text-slate-500 hover:text-slate-700"
                 }`}
               >
                 Tháng trước
@@ -181,7 +181,7 @@ export default function AttendanceLogsPage() {
               <button
                 onClick={() => handleFilterModeChange("custom")}
                 className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                  filterMode === "custom" ? "bg-white shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-700"
+                  filterMode === "custom" ? "bg-white shadow-sm text-primary-600" : "text-slate-500 hover:text-slate-700"
                 }`}
               >
                 Tùy chỉnh
@@ -218,7 +218,7 @@ export default function AttendanceLogsPage() {
                   type="date" 
                   value={dateRange.start} 
                   onChange={(e) => { setDateRange(prev => ({ ...prev, start: e.target.value })); setPage(1); }}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                 />
               </div>
               <div className="space-y-1">
@@ -230,7 +230,7 @@ export default function AttendanceLogsPage() {
                   type="date" 
                   value={dateRange.end} 
                   onChange={(e) => { setDateRange(prev => ({ ...prev, end: e.target.value })); setPage(1); }}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                 />
               </div>
             </div>
@@ -273,7 +273,7 @@ export default function AttendanceLogsPage() {
                   <tr key={log.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                        <div className="p-2 bg-primary-50 text-primary-600 rounded-lg">
                           <Clock className="w-4 h-4" />
                         </div>
                         <div>

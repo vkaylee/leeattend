@@ -50,7 +50,7 @@ export default function WorkspaceGuard() {
           <p className="text-red-500 font-bold mb-4">Lỗi kết nối hệ thống</p>
           <button
             onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold"
+            className="px-6 py-2 bg-primary-600 text-white rounded-xl font-bold"
           >
             Thử lại
           </button>

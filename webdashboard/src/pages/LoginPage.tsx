@@ -66,12 +66,12 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#fcfcfd] p-4 relative overflow-hidden">
       {/* Decorative Background Elements */}
-      <div className="absolute top-0 -left-20 w-96 h-96 bg-violet-100/50 rounded-full blur-3xl" />
+      <div className="absolute top-0 -left-20 w-96 h-96 bg-primary-100/50 rounded-full blur-3xl" />
       <div className="absolute bottom-0 -right-20 w-96 h-96 bg-indigo-100/50 rounded-full blur-3xl" />
       
       <div className="max-w-md w-full space-y-10 p-12 bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 relative z-10 animate-enter border border-slate-50">
         <div className="text-center">
-          <div className="bg-violet-600 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-violet-200 rotate-3">
+          <div className="bg-primary-600 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-primary-200 rotate-3">
              <span className="text-white text-3xl font-black">L</span>
           </div>
           <h2 className="text-4xl font-black text-slate-900 tracking-tight">LeeAttend</h2>
@@ -89,7 +89,7 @@ export default function LoginPage() {
         <div className="space-y-8">
           <button
             onClick={handleFastLogin}
-            className="group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-black rounded-2xl text-white bg-violet-600 hover:bg-violet-700 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-violet-200 uppercase tracking-widest"
+            className="group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-black rounded-2xl text-white bg-primary-600 hover:bg-primary-700 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary-200 uppercase tracking-widest"
           >
             ⚡ Đăng nhập nhanh
           </button>
@@ -117,7 +117,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full px-5 py-4 bg-slate-50 border border-slate-100 text-slate-900 rounded-2xl focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 transition-all font-bold placeholder:text-slate-300"
+                  className="block w-full px-5 py-4 bg-slate-50 border border-slate-100 text-slate-900 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all font-bold placeholder:text-slate-300"
                   placeholder="admin@leeattend.com"
                 />
               </div>
@@ -131,7 +131,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full px-5 py-4 bg-slate-50 border border-slate-100 text-slate-900 rounded-2xl focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 transition-all font-bold placeholder:text-slate-300"
+                  className="block w-full px-5 py-4 bg-slate-50 border border-slate-100 text-slate-900 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all font-bold placeholder:text-slate-300"
                   placeholder="••••••••"
                 />
               </div>
@@ -140,7 +140,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex justify-center py-4 px-4 border border-slate-200 text-sm font-black rounded-2xl text-slate-700 bg-white hover:bg-slate-50 hover:border-violet-200 transition-all disabled:opacity-50 uppercase tracking-widest shadow-sm"
+              className="w-full flex justify-center py-4 px-4 border border-slate-200 text-sm font-black rounded-2xl text-slate-700 bg-white hover:bg-slate-50 hover:border-primary-200 transition-all disabled:opacity-50 uppercase tracking-widest shadow-sm"
             >
               {isSubmitting ? "Đang xử lý..." : "Đăng nhập hệ thống"}
             </button>
@@ -149,7 +149,7 @@ export default function LoginPage() {
               <span className="text-slate-400 text-sm font-medium">Chưa có tài khoản? </span>
               <Link
                 to="/register"
-                className="font-bold text-violet-600 hover:text-violet-700 hover:underline text-sm transition-colors"
+                className="font-bold text-primary-600 hover:text-primary-700 hover:underline text-sm transition-colors"
               >
                 Đăng ký ngay
               </Link>

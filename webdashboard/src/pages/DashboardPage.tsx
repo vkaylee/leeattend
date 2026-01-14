@@ -68,7 +68,7 @@ export default function DashboardPage() {
             onClick={() => setActiveTab("hr")}
             className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
               activeTab === "hr"
-                ? "bg-white text-violet-600 shadow-premium-sm"
+                ? "bg-white text-primary-600 shadow-premium-sm"
                 : "text-slate-500 hover:text-slate-700"
             }`}
           >
@@ -78,7 +78,7 @@ export default function DashboardPage() {
             onClick={() => setActiveTab("system")}
             className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
               activeTab === "system"
-                ? "bg-white text-violet-600 shadow-premium-sm"
+                ? "bg-white text-primary-600 shadow-premium-sm"
                 : "text-slate-500 hover:text-slate-700"
             }`}
           >
@@ -92,7 +92,7 @@ export default function DashboardPage() {
           {/* HR Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-premium-sm hover:shadow-premium-lg transition-all group overflow-hidden relative">
-              <div className="bg-violet-50 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-violet-600 group-hover:scale-110 transition-transform relative z-10">
+              <div className="bg-primary-50 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-primary-600 group-hover:scale-110 transition-transform relative z-10">
                 <Users2 className="w-7 h-7" />
               </div>
               <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] relative z-10">
@@ -145,9 +145,9 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-             <div className="bg-slate-900 rounded-[3rem] p-12 text-white relative overflow-hidden group shadow-2xl shadow-violet-200">
+             <div className="bg-slate-900 rounded-[3rem] p-12 text-white relative overflow-hidden group shadow-2xl shadow-primary-200">
                 <div className="relative z-10 h-full flex flex-col">
-                  <span className="text-violet-400 text-xs font-black uppercase tracking-widest mb-4">Nhân sự</span>
+                  <span className="text-primary-400 text-xs font-black uppercase tracking-widest mb-4">Nhân sự</span>
                   <h3 className="text-4xl font-bold mb-6 tracking-tight leading-tight">Quản lý hồ sơ<br/>nhân viên tập trung</h3>
                   <p className="text-slate-400 mb-10 text-lg leading-relaxed max-w-sm">
                     Theo dõi hợp đồng, bảo hiểm, quá trình công tác và lương bổng của toàn bộ đội ngũ.
@@ -159,14 +159,14 @@ export default function DashboardPage() {
                     Mở danh sách nhân viên <ArrowRight className="w-5 h-5" />
                   </Link>
                 </div>
-                <Users2 className="absolute -right-16 -bottom-16 w-64 h-64 text-violet-500 opacity-10 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
+                <Users2 className="absolute -right-16 -bottom-16 w-64 h-64 text-primary-500 opacity-10 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
              </div>
 
-             <div className="bg-violet-600 rounded-[3rem] p-12 text-white relative overflow-hidden group shadow-2xl shadow-violet-400/20">
+             <div className="bg-primary-600 rounded-[3rem] p-12 text-white relative overflow-hidden group shadow-2xl shadow-primary-400/20">
                 <div className="relative z-10 h-full flex flex-col">
-                  <span className="text-violet-200 text-xs font-black uppercase tracking-widest mb-4">Công lương</span>
+                  <span className="text-primary-200 text-xs font-black uppercase tracking-widest mb-4">Công lương</span>
                   <h3 className="text-4xl font-bold mb-6 tracking-tight leading-tight">Bảng công &<br/>Tính lương tự động</h3>
-                  <p className="text-violet-100 mb-10 text-lg leading-relaxed max-w-sm">
+                  <p className="text-primary-100 mb-10 text-lg leading-relaxed max-w-sm">
                     Đồng bộ dữ liệu chấm công thời gian thực để tạo bảng lương chính xác chỉ trong vài giây.
                   </p>
                   <Link
@@ -185,7 +185,7 @@ export default function DashboardPage() {
           {/* System Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-white p-7 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-              <div className="bg-violet-50 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-violet-600 group-hover:scale-110 transition-transform">
+              <div className="bg-primary-50 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-primary-600 group-hover:scale-110 transition-transform">
                 <Users className="w-7 h-7" />
               </div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">
@@ -209,7 +209,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="bg-white p-7 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-              <div className="bg-violet-50 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-violet-600 group-hover:scale-110 transition-transform">
+              <div className="bg-primary-50 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-primary-600 group-hover:scale-110 transition-transform">
                 <Cpu className="w-7 h-7" />
               </div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">
@@ -238,7 +238,7 @@ export default function DashboardPage() {
             <section>
               <div className="flex justify-between items-center mb-6 px-2">
                 <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Edge Agents</h2>
-                <span className="text-[10px] font-black text-violet-600 bg-violet-100 px-3 py-1.5 rounded-xl uppercase tracking-widest">
+                <span className="text-[10px] font-black text-primary-600 bg-primary-100 px-3 py-1.5 rounded-xl uppercase tracking-widest">
                   Live Data
                 </span>
               </div>
@@ -249,7 +249,7 @@ export default function DashboardPage() {
                     className="bg-white p-6 rounded-3xl border border-slate-50 flex items-center justify-between hover:shadow-premium-lg transition-all duration-300 group"
                   >
                     <div className="flex items-center gap-5">
-                      <div className="bg-slate-50 p-4 rounded-2xl text-slate-400 group-hover:bg-violet-50 group-hover:text-violet-500 transition-colors">
+                      <div className="bg-slate-50 p-4 rounded-2xl text-slate-400 group-hover:bg-primary-50 group-hover:text-primary-500 transition-colors">
                         <Monitor className="w-7 h-7" />
                       </div>
                       <div>
@@ -287,7 +287,7 @@ export default function DashboardPage() {
                   Hành động nhanh
                 </h2>
               </div>
-              <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl shadow-violet-200 group">
+              <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl shadow-primary-200 group">
                 <div className="relative z-10">
                   <h3 className="text-3xl font-bold mb-4 tracking-tight">Quản lý Thiết bị</h3>
                   <p className="text-slate-400 mb-8 text-lg leading-relaxed max-w-md">
@@ -295,12 +295,12 @@ export default function DashboardPage() {
                   </p>
                   <Link
                     to="/devices"
-                    className="bg-violet-600 hover:bg-violet-500 text-white px-8 py-4 rounded-2xl font-bold transition-all inline-block hover:scale-105 active:scale-95 shadow-xl shadow-violet-900/20"
+                    className="bg-primary-600 hover:bg-primary-500 text-white px-8 py-4 rounded-2xl font-bold transition-all inline-block hover:scale-105 active:scale-95 shadow-xl shadow-primary-900/20"
                   >
                     Mở trình quản lý
                   </Link>
                 </div>
-                <Cpu className="absolute -right-12 -bottom-12 w-56 h-56 text-violet-400 opacity-10 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
+                <Cpu className="absolute -right-12 -bottom-12 w-56 h-56 text-primary-400 opacity-10 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
               </div>
             </section>
           </div>

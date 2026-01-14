@@ -66,7 +66,7 @@ export default function AgentEditModal({
       <div className="modal-content max-w-lg">
         <div className="flex items-center justify-between p-8 border-b border-slate-50">
           <div className="flex items-center gap-4">
-            <div className="bg-violet-50 p-3 rounded-2xl text-violet-600">
+            <div className="bg-primary-50 p-3 rounded-2xl text-primary-600">
               <UserCheck className="w-6 h-6" />
             </div>
             <div>
@@ -104,7 +104,7 @@ export default function AgentEditModal({
               <input
                 required
                 placeholder="Ví dụ: Văn phòng Hà Nội"
-                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 outline-none transition-all font-bold text-slate-700"
+                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 outline-none transition-all font-bold text-slate-700"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -118,7 +118,7 @@ export default function AgentEditModal({
                 <input
                   required
                   placeholder="Mật mã kết nối"
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 outline-none transition-all pr-12 font-mono font-bold text-slate-700"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 outline-none transition-all pr-12 font-mono font-bold text-slate-700"
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
                 />
@@ -149,7 +149,7 @@ export default function AgentEditModal({
                 onClick={() => setIsActive(!isActive)}
                 className={`flex items-center justify-center gap-2 py-4 rounded-2xl border transition-all font-black text-xs uppercase tracking-widest ${
                   isActive
-                    ? "bg-violet-50 border-violet-100 text-violet-700 shadow-sm"
+                    ? "bg-primary-50 border-primary-100 text-primary-700 shadow-sm"
                     : "bg-rose-50 border-rose-100 text-rose-700 shadow-sm"
                 }`}
               >
@@ -170,7 +170,7 @@ export default function AgentEditModal({
             <button
               type="submit"
               disabled={isUpdating}
-              className="flex-1 bg-violet-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-violet-700 transition-all shadow-xl shadow-violet-200 flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.02] active:scale-95"
+              className="flex-1 bg-primary-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-primary-700 transition-all shadow-xl shadow-primary-200 flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.02] active:scale-95"
             >
               <Save className="w-5 h-5" />
               {isUpdating ? "Đang lưu..." : "Lưu thay đổi"}

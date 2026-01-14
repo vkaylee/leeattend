@@ -8,12 +8,14 @@ import { useToast } from "../components/Toast";
 import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace } from "../lib/api";
 import { Combobox } from "@/components/ui/Combobox";
 import { Globe, Calendar, CheckCircle2, ShieldAlert } from "lucide-react";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function WorkspaceSettingsPage() {
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
   const { members, isLoading, addMember, isAdding } = useWorkspaceMembers();
   const toast = useToast();
+  const { setPreviewTheme } = useTheme();
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [newMemberRole, setNewMemberRole] = useState<"admin" | "member">(
     "member",
@@ -42,6 +44,12 @@ export default function WorkspaceSettingsPage() {
       setThemePrimaryColor(workspace.theme_primary_color || "#7c3aed");
     }
   }, [workspace]);
+
+  // Handle live preview
+  useEffect(() => {
+    setPreviewTheme(themePrimaryColor);
+    return () => setPreviewTheme(null);
+  }, [themePrimaryColor, setPreviewTheme]);
 
   const updateWsMutation = useMutation({
     mutationFn: (data: Partial<Workspace>) => updateWorkspace(wsId!, data),
@@ -97,13 +105,13 @@ export default function WorkspaceSettingsPage() {
           <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800">
-                <Calculator className="w-5 h-5 text-indigo-500" />
+                <Calculator className="w-5 h-5 text-primary-500" />
                 Cấu hình tính công
               </h2>
               <button
                 onClick={handleSaveConfig}
                 disabled={updateWsMutation.isPending || isLoadingWs}
-                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50 text-sm"
+                className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 disabled:opacity-50 text-sm"
               >
                 <Save className="w-4 h-4" />
                 Lưu cấu hình
@@ -288,7 +296,7 @@ export default function WorkspaceSettingsPage() {
                     required
                     type="email"
                     placeholder="dong-nghiep@congty.com"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all pr-10"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all pr-10"
                     value={newMemberEmail}
                     onChange={(e) => setNewMemberEmail(e.target.value)}
                   />
@@ -317,7 +325,7 @@ export default function WorkspaceSettingsPage() {
                 <button
                   type="submit"
                   disabled={isAdding}
-                  className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 h-[50px] disabled:opacity-50"
+                  className="bg-primary-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 h-[50px] disabled:opacity-50"
                 >
                   {isAdding ? "Đang mời..." : "Gửi lời mời"}
                 </button>
@@ -350,15 +358,15 @@ export default function WorkspaceSettingsPage() {
                   >
                     <div className="flex items-center gap-4">
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold shadow-sm transition-all ${
-                        member.role === 'owner' ? 'bg-indigo-600 text-white shadow-indigo-100' : 
-                        member.role === 'admin' ? 'bg-blue-600 text-white shadow-blue-100' : 'bg-slate-100 text-slate-500'
+                        member.role === 'owner' ? 'bg-primary-600 text-white shadow-primary-100' : 
+                        member.role === 'admin' ? 'bg-primary-600 text-white shadow-primary-100' : 'bg-slate-100 text-slate-500'
                       }`}>
                         {member.full_name ? member.full_name[0] : <Users className="w-5 h-5" />}
                       </div>
                       <div>
                         <p className="font-bold text-slate-900 flex items-center gap-2">
                           {member.full_name || member.email}
-                          {member.role === "owner" && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter border border-indigo-100">Sáng lập</span>}
+                          {member.role === "owner" && <span className="text-[10px] bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter border border-primary-100">Sáng lập</span>}
                         </p>
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                           {member.role === 'admin' ? 'Quản trị viên' : member.role === 'owner' ? 'Chủ sở hữu' : 'Thành viên'}
@@ -372,7 +380,7 @@ export default function WorkspaceSettingsPage() {
                           setSelectedUserId(member.user_id);
                           setIsRoleModalOpen(true);
                         }}
-                        className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                        className="p-2.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
                         title="Quản lý quyền"
                       >
                         <Settings2 className="w-5 h-5" />

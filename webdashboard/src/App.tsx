@@ -153,7 +153,7 @@ function Layout() {
         <div className="p-8 pb-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3 px-2">
-              <div className="bg-violet-600 p-2 rounded-xl shadow-lg shadow-violet-200 rotate-3">
+              <div className="bg-primary-600 p-2 rounded-xl shadow-lg shadow-primary-200 rotate-3">
                 <Cpu className="text-white w-5 h-5" />
               </div>
               <div className="flex flex-col">
@@ -175,8 +175,8 @@ function Layout() {
             to="/"
             className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group relative ${
               location.pathname === "/" 
-                ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" 
-                : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" 
+                : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
             }`}
           >
             <LayoutDashboard className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -196,7 +196,7 @@ function Layout() {
               <Link
                 to="/members"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/members" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                  location.pathname === "/members" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
               >
                 <Users className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -205,7 +205,7 @@ function Layout() {
               <Link
                 to="/employees"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/employees" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                  location.pathname === "/employees" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
               >
                 <UserRound className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -214,7 +214,7 @@ function Layout() {
               <Link
                 to="/departments"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/departments" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                  location.pathname === "/departments" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
               >
                 <Building2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -236,7 +236,7 @@ function Layout() {
               <Link
                 to="/time-tracking"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/time-tracking" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                  location.pathname === "/time-tracking" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
               >
                 <Clock className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -245,7 +245,7 @@ function Layout() {
               <Link
                 to="/attendance-logs"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/attendance-logs" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                  location.pathname === "/attendance-logs" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
               >
                 <ListOrdered className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -254,7 +254,7 @@ function Layout() {
               <Link
                 to="/leave-requests"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/leave-requests" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                  location.pathname === "/leave-requests" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
               >
                 <CalendarDays className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -263,7 +263,7 @@ function Layout() {
               <Link
                 to="/attendance-adjustments"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/attendance-adjustments" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                  location.pathname === "/attendance-adjustments" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
               >
                 <History className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -272,7 +272,7 @@ function Layout() {
               <Link
                 to="/reports"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/reports" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                  location.pathname === "/reports" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
               >
                 <FileBarChart className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -294,7 +294,7 @@ function Layout() {
               <Link
                 to="/shifts"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/shifts" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                  location.pathname === "/shifts" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
               >
                 <CalendarRange className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -303,7 +303,7 @@ function Layout() {
               <Link
                 to="/payroll"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/payroll" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                  location.pathname === "/payroll" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
               >
                 <Banknote className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -325,7 +325,7 @@ function Layout() {
               <Link
                 to="/agents"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/agents" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                  location.pathname === "/agents" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
               >
                 <UserCheck className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -334,7 +334,7 @@ function Layout() {
               <Link
                 to="/devices"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/devices" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                  location.pathname === "/devices" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
               >
                 <Cpu className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -343,7 +343,7 @@ function Layout() {
               <Link
                 to="/workspace/settings"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/workspace/settings" ? "bg-violet-50 text-violet-600 shadow-sm shadow-violet-100/50" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                  location.pathname === "/workspace/settings" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
               >
                 <Settings className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -358,8 +358,8 @@ function Layout() {
             to="/profile"
             className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group ${
               location.pathname === "/profile" 
-                ? "bg-violet-50 text-violet-600" 
-                : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                ? "bg-primary-50 text-primary-600" 
+                : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
             }`}
           >
             <UserCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -367,7 +367,7 @@ function Layout() {
           </Link>
           <button
             onClick={() => setShowSwitcher(true)}
-            className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-violet-50 hover:text-violet-600 rounded-2xl transition-all group font-semibold text-sm"
+            className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-primary-50 hover:text-primary-600 rounded-2xl transition-all group font-semibold text-sm"
           >
             <Building2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span>Chuyển cơ sở</span>
@@ -404,7 +404,7 @@ function Layout() {
           </div>
           
           <div className="flex items-center gap-4 ml-auto">
-            <button className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-xl transition-all relative">
+            <button className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all relative">
               <div className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></div>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
             </button>
@@ -413,10 +413,10 @@ function Layout() {
 
             <div className="flex items-center gap-3 pl-1 group cursor-pointer">
               <div className="hidden sm:block text-right">
-                <p className="text-sm font-bold text-slate-900 leading-none group-hover:text-violet-600 transition-colors">Admin</p>
+                <p className="text-sm font-bold text-slate-900 leading-none group-hover:text-primary-600 transition-colors">Admin</p>
                 <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase tracking-wider">Workspace Owner</p>
               </div>
-              <div className="w-9 h-9 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center font-bold text-sm shadow-sm border border-violet-200 group-hover:bg-violet-600 group-hover:text-white transition-all duration-300">
+              <div className="w-9 h-9 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center font-bold text-sm shadow-sm border border-primary-200 group-hover:bg-primary-600 group-hover:text-white transition-all duration-300">
                 AD
               </div>
             </div>
@@ -436,7 +436,7 @@ function Layout() {
           <div className="modal-content">
             <div className="flex items-center justify-between p-8 border-b border-slate-50">
               <div className="flex items-center gap-4">
-                <div className="bg-violet-50 p-3 rounded-2xl text-violet-600">
+                <div className="bg-primary-50 p-3 rounded-2xl text-primary-600">
                   <Building2 className="w-6 h-6" />
                 </div>
                 <div>

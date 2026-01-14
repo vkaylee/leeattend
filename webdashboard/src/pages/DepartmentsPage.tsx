@@ -101,7 +101,7 @@ export default function DepartmentsPage() {
             <div className="absolute top-0 right-0 p-6 flex gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
               <button 
                 onClick={() => { setEditingDept(dept); setIsModalOpen(true); }}
-                className="p-2.5 bg-slate-50 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-xl transition-all shadow-sm"
+                className="p-2.5 bg-slate-50 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all shadow-sm"
               >
                 <Edit2 className="w-4 h-4" />
               </button>
@@ -113,7 +113,7 @@ export default function DepartmentsPage() {
               </button>
             </div>
 
-            <div className="bg-violet-50 w-14 h-14 rounded-2xl flex items-center justify-center text-violet-600 mb-6 shadow-inner">
+            <div className="bg-primary-50 w-14 h-14 rounded-2xl flex items-center justify-center text-primary-600 mb-6 shadow-inner">
               <Building2 className="w-7 h-7" />
             </div>
             

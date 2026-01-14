@@ -49,7 +49,7 @@ describe("ReportsPage", () => {
     
     // Default should be "Tháng này"
     const thisMonthBtn = screen.getByText("Tháng này");
-    expect(thisMonthBtn.className).toContain("text-indigo-600");
+    expect(thisMonthBtn.className).toContain("text-primary-600");
   });
 
   it("changes date range when clicking 'Tháng trước'", async () => {
@@ -70,7 +70,7 @@ describe("ReportsPage", () => {
     await user.click(lastMonthBtn);
 
     // Verify button state
-    expect(lastMonthBtn.className).toContain("text-indigo-600");
+    expect(lastMonthBtn.className).toContain("text-primary-600");
 
     const now = new Date();
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);

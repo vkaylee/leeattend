@@ -63,7 +63,7 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
   const bgColors = {
     success: 'bg-emerald-50 border-emerald-100',
     error: 'bg-rose-50 border-rose-100',
-    info: 'bg-blue-50 border-blue-100',
+    info: 'bg-primary-50 border-blue-100',
     warning: 'bg-amber-50 border-amber-100',
   };
 

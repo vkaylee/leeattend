@@ -195,7 +195,7 @@ export default function EmployeesPage() {
           </div>
           <button 
             onClick={() => { setEditingEmployee(null); setIsModalOpen(true); }}
-            className="flex items-center gap-2 bg-violet-600 text-white px-6 py-3 rounded-2xl hover:bg-violet-700 hover:scale-105 transition-all shadow-xl shadow-violet-200 active:scale-95 font-bold"
+            className="flex items-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-2xl hover:bg-primary-700 hover:scale-105 transition-all shadow-xl shadow-primary-200 active:scale-95 font-bold"
           >
             <UserPlus className="w-5 h-5" />
             Thêm nhân viên
@@ -203,11 +203,11 @@ export default function EmployeesPage() {
         </div>
 
         <div className="relative shrink-0 group">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 group-focus-within:text-violet-500 transition-colors" />
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 group-focus-within:text-primary-500 transition-colors" />
           <input 
             type="text" 
             placeholder="Tìm kiếm theo tên hoặc mã nhân viên..."
-            className="w-full pl-14 pr-6 py-4 bg-white border border-slate-100 rounded-[1.5rem] shadow-sm focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-300 transition-all text-lg"
+            className="w-full pl-14 pr-6 py-4 bg-white border border-slate-100 rounded-[1.5rem] shadow-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all text-lg"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -237,11 +237,11 @@ export default function EmployeesPage() {
                 <tr 
                   key={emp.id} 
                   onClick={() => setSelectedEmployee(emp)}
-                  className={`cursor-pointer transition-all group ${selectedEmployee?.id === emp.id ? 'bg-violet-50/50' : 'hover:bg-slate-50/50'}`}
+                  className={`cursor-pointer transition-all group ${selectedEmployee?.id === emp.id ? 'bg-primary-50/50' : 'hover:bg-slate-50/50'}`}
                 >
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-violet-100 group-hover:text-violet-600 transition-all duration-300">
+                      <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-primary-100 group-hover:text-primary-600 transition-all duration-300">
                         <UserCircle className="w-7 h-7" />
                       </div>
                       <div className="font-bold text-slate-900 text-lg">{emp.first_name} {emp.last_name}</div>
@@ -259,8 +259,8 @@ export default function EmployeesPage() {
                     </>
                   )}
                   <td className="px-8 py-5 text-right">
-                    <div className="bg-slate-50 w-10 h-10 rounded-xl flex items-center justify-center ml-auto group-hover:bg-violet-100 transition-colors">
-                      <ChevronRight className={`w-5 h-5 text-slate-300 transition-transform ${selectedEmployee?.id === emp.id ? 'translate-x-1 text-violet-500' : 'group-hover:text-violet-400'}`} />
+                    <div className="bg-slate-50 w-10 h-10 rounded-xl flex items-center justify-center ml-auto group-hover:bg-primary-100 transition-colors">
+                      <ChevronRight className={`w-5 h-5 text-slate-300 transition-transform ${selectedEmployee?.id === emp.id ? 'translate-x-1 text-primary-500' : 'group-hover:text-primary-400'}`} />
                     </div>
                   </td>
                 </tr>
@@ -276,12 +276,12 @@ export default function EmployeesPage() {
           <div className="p-8 border-b border-slate-50 bg-slate-50/30">
             <div className="flex justify-between items-start mb-8">
               <div className="flex items-center gap-5">
-                <div className="w-20 h-20 bg-violet-100 text-violet-600 rounded-[2rem] flex items-center justify-center shadow-inner">
+                <div className="w-20 h-20 bg-primary-100 text-primary-600 rounded-[2rem] flex items-center justify-center shadow-inner">
                   <UserCircle className="w-12 h-12" />
                 </div>
                 <div>
                   <h2 className="text-3xl font-black text-slate-900 tracking-tight">{selectedEmployee.first_name} {selectedEmployee.last_name}</h2>
-                  <p className="text-violet-500 font-mono text-sm font-bold mt-1 tracking-wider">{selectedEmployee.employee_id_number}</p>
+                  <p className="text-primary-500 font-mono text-sm font-bold mt-1 tracking-wider">{selectedEmployee.employee_id_number}</p>
                 </div>
               </div>
               <button onClick={() => setSelectedEmployee(null)} className="p-3 hover:bg-white rounded-2xl transition-all shadow-sm active:scale-90">
@@ -292,7 +292,7 @@ export default function EmployeesPage() {
             <div className="grid grid-cols-2 gap-4">
               <button 
                 onClick={() => { setEditingEmployee(selectedEmployee); setIsModalOpen(true); }}
-                className="flex items-center justify-center gap-2 py-3.5 bg-white border border-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 hover:border-violet-200 transition-all text-sm shadow-sm"
+                className="flex items-center justify-center gap-2 py-3.5 bg-white border border-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 hover:border-primary-200 transition-all text-sm shadow-sm"
               >
                 <Edit2 className="w-4 h-4" />
                 Sửa hồ sơ
@@ -313,7 +313,7 @@ export default function EmployeesPage() {
               ) : (
                 <button 
                   onClick={() => setIsRehireModalOpen(true)}
-                  className="flex items-center justify-center gap-2 py-3.5 bg-violet-600 text-white font-bold rounded-2xl hover:bg-violet-700 transition-all text-sm shadow-xl shadow-violet-200"
+                  className="flex items-center justify-center gap-2 py-3.5 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all text-sm shadow-xl shadow-primary-200"
                 >
                   <UserPlus className="w-4 h-4" />
                   Vào làm lại
@@ -327,19 +327,19 @@ export default function EmployeesPage() {
             <section className="space-y-5">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3 font-black text-slate-900 uppercase tracking-widest text-xs">
-                  <Building2 className="w-5 h-5 text-violet-500" />
+                  <Building2 className="w-5 h-5 text-primary-500" />
                   <span>Phòng ban hiện tại</span>
                 </div>
                 <button 
                   onClick={() => setIsTransferModalOpen(true)}
-                  className="text-xs font-bold text-violet-600 hover:underline flex items-center gap-1.5 bg-violet-50 px-3 py-1.5 rounded-xl transition-colors"
+                  className="text-xs font-bold text-primary-600 hover:underline flex items-center gap-1.5 bg-primary-50 px-3 py-1.5 rounded-xl transition-colors"
                 >
                   <ArrowRightLeft className="w-3.5 h-3.5" />
                   Điều chuyển
                 </button>
               </div>
               
-              <div className="bg-slate-50/50 rounded-3xl p-6 border border-slate-50 group hover:border-violet-100 transition-all">
+              <div className="bg-slate-50/50 rounded-3xl p-6 border border-slate-50 group hover:border-primary-100 transition-all">
                 {deptHistory && deptHistory.length > 0 ? (
                   <div>
                     <div className="font-extrabold text-slate-900 text-xl tracking-tight">
@@ -365,7 +365,7 @@ export default function EmployeesPage() {
                 </div>
                 <button 
                   onClick={() => setIsSalaryModalOpen(true)}
-                  className="text-xs font-bold text-violet-600 hover:underline flex items-center gap-1.5 bg-violet-50 px-3 py-1.5 rounded-xl transition-colors"
+                  className="text-xs font-bold text-primary-600 hover:underline flex items-center gap-1.5 bg-primary-50 px-3 py-1.5 rounded-xl transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Cập nhật
@@ -407,7 +407,7 @@ export default function EmployeesPage() {
                 </div>
                 <button 
                   onClick={() => setIsHistoryModalOpen(true)}
-                  className="text-[10px] font-black text-slate-400 hover:text-violet-600 uppercase tracking-widest transition-colors"
+                  className="text-[10px] font-black text-slate-400 hover:text-primary-600 uppercase tracking-widest transition-colors"
                 >
                   Xem chi tiết →
                 </button>
@@ -423,7 +423,7 @@ export default function EmployeesPage() {
                       </div>
                     )}
                     <div className="relative animate-in fade-in slide-in-from-left duration-300">
-                      <div className={`absolute -left-[1.65rem] top-1.5 w-4 h-4 rounded-full border-[3px] border-white shadow-md ring-4 ${idx === 0 && !period.termination_date ? 'bg-emerald-500 ring-emerald-50' : 'bg-violet-500 ring-violet-50'}`}></div>
+                      <div className={`absolute -left-[1.65rem] top-1.5 w-4 h-4 rounded-full border-[3px] border-white shadow-md ring-4 ${idx === 0 && !period.termination_date ? 'bg-emerald-500 ring-emerald-50' : 'bg-primary-500 ring-primary-50'}`}></div>
                       <div className="text-sm font-black text-slate-800 uppercase tracking-tight">
                         {period.is_rehire ? "Quay lại làm việc" : "Gia nhập công ty"}
                       </div>

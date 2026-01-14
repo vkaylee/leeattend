@@ -178,7 +178,7 @@ export default function AgentsPage() {
                 <input
                   required
                   placeholder="Ví dụ: BRANCH_HN_01"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                   value={newAgent.id}
                   onChange={(e) =>
                     setNewAgent({ ...newAgent, id: e.target.value })
@@ -192,7 +192,7 @@ export default function AgentsPage() {
                 <input
                   required
                   placeholder="Ví dụ: Văn phòng Hà Nội"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                   value={newAgent.name}
                   onChange={(e) =>
                     setNewAgent({ ...newAgent, name: e.target.value })
@@ -208,7 +208,7 @@ export default function AgentsPage() {
                     <input
                       required
                       placeholder="Mật mã kết nối"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all pr-10"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all pr-10"
                       value={newAgent.token}
                       onChange={(e) =>
                         setNewAgent({ ...newAgent, token: e.target.value })
@@ -219,7 +219,7 @@ export default function AgentsPage() {
                 </div>
                 <button
                   type="submit"
-                  className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                  className="bg-primary-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100"
                 >
                   Lưu
                 </button>
@@ -297,7 +297,7 @@ export default function AgentsPage() {
                   <td className="px-6 py-5">
                     <div className="flex flex-col gap-2">
                       {isAgentOnline(agent.last_seen_at) ? (
-                        <span className="flex items-center gap-1.5 text-blue-600 font-bold text-[10px] bg-blue-50 px-3 py-1 rounded-full w-fit uppercase tracking-wider animate-pulse">
+                        <span className="flex items-center gap-1.5 text-primary-600 font-bold text-[10px] bg-primary-50 px-3 py-1 rounded-full w-fit uppercase tracking-wider animate-pulse">
                           <Activity className="w-3 h-3" />
                           Online
                         </span>
@@ -327,7 +327,7 @@ export default function AgentsPage() {
                         <>
                           <button
                             onClick={() => handleEdit(agent)}
-                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                            className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
                             title="Chỉnh sửa"
                           >
                             <Edit2 className="w-4 h-4" />
@@ -337,7 +337,7 @@ export default function AgentsPage() {
                             onClick={() => handleToggleTrust(agent)}
                             className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${agent.is_trusted
                                 ? "text-rose-600 hover:bg-rose-50 border-rose-100"
-                                : "bg-blue-600 text-white hover:bg-blue-700 border-transparent shadow-md shadow-blue-100"
+                                : "bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-md shadow-primary-100"
                             }`}
                           >
                             {agent.is_trusted ? "Revoke" : "Trust"}

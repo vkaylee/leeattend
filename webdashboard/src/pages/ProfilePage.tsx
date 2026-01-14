@@ -117,7 +117,7 @@ export default function ProfilePage() {
                 <div className="relative">
                   <input
                     placeholder="Ví dụ: Nguyễn Văn A"
-                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all pr-10"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all pr-10"
                     value={formData.full_name}
                     onChange={(e) =>
                       setFormData({ ...formData, full_name: e.target.value })
@@ -133,7 +133,7 @@ export default function ProfilePage() {
                 </label>
                 <input
                   placeholder="https://example.com/avatar.jpg"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                   value={formData.avatar_url}
                   onChange={(e) =>
                     setFormData({ ...formData, avatar_url: e.target.value })
@@ -149,7 +149,7 @@ export default function ProfilePage() {
                   <textarea
                     rows={3}
                     placeholder="Một chút về bản thân bạn..."
-                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                     value={formData.bio}
                     onChange={(e) =>
                       setFormData({ ...formData, bio: e.target.value })
@@ -162,7 +162,7 @@ export default function ProfilePage() {
                 <button
                   type="submit"
                   disabled={isUpdating}
-                  className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center gap-2 disabled:opacity-50"
+                  className="bg-primary-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 flex items-center gap-2 disabled:opacity-50"
                 >
                   <Save className="w-5 h-5" />
                   {isUpdating ? "Đang lưu..." : "Lưu hồ sơ"}
@@ -190,7 +190,7 @@ export default function ProfilePage() {
             {isOverridden && (
               <button 
                 onClick={() => setUserTheme(null)}
-                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-violet-600 transition-colors"
+                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-primary-600 transition-colors"
               >
                 <Undo2 className="w-3 h-3" />
                 Dùng mặc định Workspace

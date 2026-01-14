@@ -108,7 +108,7 @@ export default function DevicesPage() {
           </div>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="bg-blue-600 text-white px-6 py-2.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
+            className="bg-primary-600 text-white px-6 py-2.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-primary-700 transition-colors shadow-lg shadow-primary-200"
           >
             <Plus className="w-5 h-5" />
             Thêm thiết bị
@@ -132,7 +132,7 @@ export default function DevicesPage() {
                 <input
                   required
                   placeholder="Ví dụ: Máy cổng chính"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                   value={newDevice.name}
                   onChange={(e) =>
                     setNewDevice({ ...newDevice, name: e.target.value })
@@ -163,7 +163,7 @@ export default function DevicesPage() {
                 <input
                   required
                   placeholder="192.168.1.100"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                   value={newDevice.ip}
                   onChange={(e) =>
                     setNewDevice({ ...newDevice, ip: e.target.value })
@@ -177,7 +177,7 @@ export default function DevicesPage() {
                   </label>
                   <input
                     type="number"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                     value={newDevice.port}
                     onChange={(e) =>
                       setNewDevice({
@@ -324,7 +324,7 @@ export default function DevicesPage() {
                 key={device.id}
                 className="bg-white p-6 rounded-3xl border border-slate-100 flex items-center gap-6 hover:shadow-md transition-all group"
               >
-                <div className="bg-slate-50 p-4 rounded-2xl group-hover:bg-blue-50 transition-colors">
+                <div className="bg-slate-50 p-4 rounded-2xl group-hover:bg-primary-50 transition-colors">
                   <Cpu className="w-8 h-8 text-slate-400 group-hover:text-blue-500 transition-colors" />
                 </div>
 

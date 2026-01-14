@@ -27,7 +27,7 @@ export default function DebugWorkspaceTools() {
 
   const tools = [
     { id: "attendance", label: "Chấm công", icon: Clock, color: "text-amber-500", bg: "bg-amber-50" },
-    { id: "schedules", label: "Lịch trình", icon: Calendar, color: "text-blue-500", bg: "bg-blue-50" },
+    { id: "schedules", label: "Lịch trình", icon: Calendar, color: "text-blue-500", bg: "bg-primary-50" },
     { id: "leave", label: "Nghỉ phép", icon: FileText, color: "text-emerald-500", bg: "bg-emerald-50" },
     { id: "payroll", label: "Lương & Hợp đồng", icon: Banknote, color: "text-purple-500", bg: "bg-purple-50" },
     { id: "full_reset", label: "FULL RESET (Cẩn thận!)", icon: AlertTriangle, color: "text-rose-500", bg: "bg-rose-50" },

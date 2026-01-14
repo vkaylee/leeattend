@@ -112,7 +112,7 @@ export default function ReportsPage() {
             <button
               onClick={() => handleFilterModeChange("this_month")}
               className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                filterMode === "this_month" ? "bg-white shadow-sm text-indigo-600" : "text-slate-500 hover:text-slate-700"
+                filterMode === "this_month" ? "bg-white shadow-sm text-primary-600" : "text-slate-500 hover:text-slate-700"
               }`}
             >
               Tháng này
@@ -120,7 +120,7 @@ export default function ReportsPage() {
             <button
               onClick={() => handleFilterModeChange("last_month")}
               className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                filterMode === "last_month" ? "bg-white shadow-sm text-indigo-600" : "text-slate-500 hover:text-slate-700"
+                filterMode === "last_month" ? "bg-white shadow-sm text-primary-600" : "text-slate-500 hover:text-slate-700"
               }`}
             >
               Tháng trước
@@ -128,7 +128,7 @@ export default function ReportsPage() {
             <button
               onClick={() => handleFilterModeChange("custom")}
               className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                filterMode === "custom" ? "bg-white shadow-sm text-indigo-600" : "text-slate-500 hover:text-slate-700"
+                filterMode === "custom" ? "bg-white shadow-sm text-primary-600" : "text-slate-500 hover:text-slate-700"
               }`}
             >
               Tùy chỉnh
@@ -196,7 +196,7 @@ export default function ReportsPage() {
               ) : filteredData.map((row: AttendanceSummary) => (
                 <tr key={row.employee_id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4 font-medium text-slate-900">{row.employee_name}</td>
-                  <td className="px-6 py-4 text-right font-mono text-blue-600 font-bold">
+                  <td className="px-6 py-4 text-right font-mono text-primary-600 font-bold">
                     {row.total_hours.toFixed(1)}h
                   </td>
                   <td className="px-6 py-4 text-right font-mono text-orange-600 font-bold">
@@ -264,7 +264,7 @@ export default function ReportsPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right font-mono text-blue-600 font-black">
+                    <td className="px-6 py-4 text-right font-mono text-primary-600 font-black">
                       {(row.total_minutes / 60).toFixed(1)}h
                     </td>
                     <td className="px-6 py-4 text-center">

@@ -59,9 +59,9 @@ export default function WorkspaceSwitcher() {
 
         icon: (
 
-          <div className="bg-violet-50 p-1.5 rounded-lg border border-violet-100">
+          <div className="bg-primary-50 p-1.5 rounded-lg border border-primary-100">
 
-            <Briefcase className="w-3.5 h-3.5 text-violet-600" />
+            <Briefcase className="w-3.5 h-3.5 text-primary-600" />
 
           </div>
 
@@ -111,7 +111,7 @@ export default function WorkspaceSwitcher() {
 
           searchPlaceholder="Tìm kiếm..."
 
-          className="h-10 bg-slate-50/50 border-slate-100 hover:bg-white hover:border-violet-200 transition-all rounded-xl text-sm font-semibold text-slate-700"
+          className="h-10 bg-slate-50/50 border-slate-100 hover:bg-white hover:border-primary-200 transition-all rounded-xl text-sm font-semibold text-slate-700"
 
         />
 

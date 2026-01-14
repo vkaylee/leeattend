@@ -171,7 +171,7 @@ export default function LeaveRequestsPage() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${activeTab === tab ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${activeTab === tab ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
             {tab === 'pending' ? 'Chờ duyệt' : tab === 'approved' ? 'Đã duyệt' : tab === 'rejected' ? 'Từ chối' : tab === 'all' ? 'Tất cả' : 'Chính sách'}
           </button>
@@ -313,7 +313,7 @@ export default function LeaveRequestsPage() {
                 label: `${e.first_name} ${e.last_name}`,
                 description: `Mã NV: ${e.employee_id_number}`,
                 icon: (
-                  <div className="bg-violet-100 p-2 rounded-xl text-violet-600 shadow-inner">
+                  <div className="bg-primary-100 p-2 rounded-xl text-primary-600 shadow-inner">
                     <UserCircle className="w-4 h-4" />
                   </div>
                 ),

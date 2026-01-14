@@ -20,23 +20,32 @@ function adjustBrightness(hex: string, percent: number) {
 export function useTheme() {
   const { workspace } = useWorkspace();
   const [userColor, setUserColor] = useState<string | null>(localStorage.getItem('user_theme_primary_color'));
+  const [previewColor, setPreviewColor] = useState<string | null>(null);
 
   useEffect(() => {
     // Listen for storage changes (to sync across tabs or from Profile page)
     const handleStorage = () => {
       setUserColor(localStorage.getItem('user_theme_primary_color'));
     };
+
+    const handlePreview = (e: any) => {
+      setPreviewColor(e.detail);
+    };
+
     window.addEventListener('storage', handleStorage);
     // Custom event for same-tab updates
     window.addEventListener('theme-change', handleStorage);
+    // Live preview event
+    window.addEventListener('theme-preview' as any, handlePreview);
     
     return () => {
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('theme-change', handleStorage);
+      window.removeEventListener('theme-preview' as any, handlePreview);
     };
   }, []);
 
-  const primaryColor = userColor || workspace?.theme_primary_color || '#7c3aed';
+  const primaryColor = previewColor || userColor || workspace?.theme_primary_color || '#7c3aed';
 
   useEffect(() => {
     const root = document.documentElement;
@@ -73,6 +82,9 @@ export function useTheme() {
       }
       setUserColor(color);
       window.dispatchEvent(new Event('theme-change'));
+    },
+    setPreviewTheme: (color: string | null) => {
+      window.dispatchEvent(new CustomEvent('theme-preview', { detail: color }));
     }
   };
 }

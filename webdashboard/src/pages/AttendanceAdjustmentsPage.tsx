@@ -101,7 +101,7 @@ export default function AttendanceAdjustmentsPage() {
           </button>
           <button 
             onClick={() => setIsImportDialogOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all font-semibold shadow-sm shadow-blue-200 text-sm disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-2xl hover:bg-primary-700 transition-all font-semibold shadow-sm shadow-primary-200 text-sm disabled:opacity-50"
           >
             <Upload className="w-4 h-4" />
             Nhập Excel
@@ -130,7 +130,7 @@ export default function AttendanceAdjustmentsPage() {
                 <tr key={req.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-xs">
+                      <div className="w-8 h-8 bg-blue-100 text-primary-600 rounded-full flex items-center justify-center font-bold text-xs">
                         {getEmployeeName(req.employee_id).charAt(0)}
                       </div>
                       <div className="font-semibold text-sm">{getEmployeeName(req.employee_id)}</div>
@@ -147,7 +147,7 @@ export default function AttendanceAdjustmentsPage() {
                     </div>
                     {req.is_break_overtime && (
                       <div className="mt-1">
-                        <span className="px-2 py-0.5 bg-blue-600 text-white rounded-md text-[10px] font-bold uppercase tracking-wider">
+                        <span className="px-2 py-0.5 bg-primary-600 text-white rounded-md text-[10px] font-bold uppercase tracking-wider">
                           Làm thông trưa
                         </span>
                       </div>

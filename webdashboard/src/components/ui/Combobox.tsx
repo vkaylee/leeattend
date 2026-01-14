@@ -65,7 +65,7 @@ export function Combobox({
           data-testid={testId}
           type="button"
           className={cn(
-            "flex w-full items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition-all hover:border-violet-200 hover:bg-white focus:outline-none focus:ring-4 focus:ring-violet-500/10",
+            "flex w-full items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition-all hover:border-primary-200 hover:bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/10",
             className
           )}
         >
@@ -106,8 +106,8 @@ export function Combobox({
                       setOpen(false);
                     }}
                     className={cn(
-                      "relative flex cursor-pointer select-none items-center rounded-xl px-3 py-3 text-sm font-bold outline-none transition-all hover:bg-violet-50 hover:text-violet-600 data-[selected=true]:bg-violet-50 data-[selected=true]:text-violet-600",
-                      value === option.value && "bg-violet-50 text-violet-600"
+                      "relative flex cursor-pointer select-none items-center rounded-xl px-3 py-3 text-sm font-bold outline-none transition-all hover:bg-primary-50 hover:text-primary-600 data-[selected=true]:bg-primary-50 data-[selected=true]:text-primary-600",
+                      value === option.value && "bg-primary-50 text-primary-600"
                     )}
                   >
                     <div className="flex flex-1 items-center gap-3">
@@ -122,7 +122,7 @@ export function Combobox({
                       </div>
                     </div>
                     {value === option.value && (
-                      <Check className="ml-auto h-4 w-4 text-violet-600" />
+                      <Check className="ml-auto h-4 w-4 text-primary-600" />
                     )}
                   </Command.Item>
                 ))}
