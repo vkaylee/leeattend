@@ -517,6 +517,17 @@ Tạo phòng ban mới.
 - **Request**: `{ "name": "IT", "description": "...", "manager_id": "uuid" }`
 - **Response (201)**: `Department` object
 
+#### PATCH /workspaces/:ws_id/departments/:id
+Cập nhật thông tin phòng ban.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**: `{ "name": "...", "description": "...", "manager_id": "uuid" }`
+- **Response (200)**: `Department` object (updated)
+
+#### DELETE /workspaces/:ws_id/departments/:id
+Xóa phòng ban.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Response (204)**: No Content
+
 #### POST /workspaces/:ws_id/employees/:id/departments
 Điều chuyển phòng ban cho nhân viên.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.

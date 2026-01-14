@@ -5,6 +5,24 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased] - 2026-01-14
 
 ### Added
+- **Full Department Management (CRUD)**: Completed the organizational management module.
+    - **New Endpoints**: Added `PATCH` and `DELETE` for `/workspaces/:ws_id/departments/:id` with full RBAC enforcement.
+    - **Backend Repository**: Implemented `update_department` and `delete_department` using SQLX with `COALESCE` for partial updates.
+    - **Integration Tests**: Added a new test suite (`apiserver/tests/department_tests.rs`) covering the entire CRUD lifecycle and security boundaries.
+    - **Test Factory Extension**: Added `DepartmentBuilder` to `TestFactory` for streamlined test data generation.
+- **Enhanced UI Component Logic**:
+    - **Combobox Accessibility**: Added a hidden `<select>` element to the `Combobox` component to support screen readers and automated testing tools (allowing label-based discovery).
+    - **Interactive Modals**: Refactored `DepartmentsPage` to use the centralized `Modal` infrastructure with proper state management for Create vs. Edit flows.
+- **Frontend Quality Assurance**:
+    - **Unit Test Suite**: Created `DepartmentsPage.test.tsx` with 100% coverage for all interactive flows (Create, Update, Delete).
+    - **Build Hardening**: Fixed production build errors caused by missing API exports and undeclared React hooks.
+
+### Fixed
+- **API Client Mismatch**: Resolved a regression where `updateDepartment` was called by the UI but not exported from the central API library.
+- **Icon Rendering Inconsistency**: Fixed test failures caused by mismatched Lucide icon class names (`lucide-pen` vs `lucide-edit-2`).
+- **Missing Modal Imports**: Restored `useState` and `useEffect` imports in several page components to ensure stable production builds.
+
+### Changed
 - **Premium UI & "Violet" Brand Identity**: Re-imagined the user interface with a modern, high-contrast, and focused aesthetic.
     - **Zero-Distraction Header**: Clean, static breadcrumbs (`[Workspace] > [Page]`) to improve context without visual noise.
     - **Single-Open Accordion Sidebar**: Reduced cognitive load by ensuring only one menu group is expanded at a time; system menus are collapsed by default.

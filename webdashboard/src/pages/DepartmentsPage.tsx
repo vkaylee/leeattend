@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, Edit2, Trash2, Building2, UserCircle, Users, LayoutGrid } from "lucide-react";
 import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment, getCurrentWorkspaceId, fetchUsers } from "../lib/api";
@@ -145,8 +146,9 @@ export default function DepartmentsPage() {
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Tên phòng ban</label>
+            <label htmlFor="dept-name" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Tên phòng ban</label>
             <input 
+              id="dept-name"
               name="name" 
               required 
               defaultValue={editingDept?.name} 
@@ -156,8 +158,9 @@ export default function DepartmentsPage() {
           </div>
           
           <div className="space-y-2">
-            <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Mô tả</label>
+            <label htmlFor="dept-desc" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Mô tả</label>
             <textarea 
+              id="dept-desc"
               name="description" 
               defaultValue={editingDept?.description} 
               className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 outline-none transition-all font-medium h-24 resize-none" 
@@ -166,8 +169,9 @@ export default function DepartmentsPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Trưởng bộ phận</label>
+            <label htmlFor="dept-manager" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Trưởng bộ phận</label>
             <Combobox
+              id="dept-manager"
               options={users.map(u => ({
                 value: u.id,
                 label: u.full_name || u.email,

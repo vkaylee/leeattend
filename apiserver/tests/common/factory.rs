@@ -56,6 +56,11 @@ impl TestFactory {
     pub fn leave_policy(&self) -> LeavePolicyBuilder {
         LeavePolicyBuilder::new(self.pool.clone())
     }
+
+    #[allow(dead_code)]
+    pub fn department(&self) -> DepartmentBuilder {
+        DepartmentBuilder::new(self.pool.clone())
+    }
 }
 
 #[allow(dead_code)]
@@ -779,6 +784,53 @@ impl LeavePolicyBuilder {
         .bind(assignee_id)
         .bind(from)
         .bind(to)
+        .fetch_one(&self.pool)
+        .await
+        .unwrap()
+    }
+}
+
+// --- Department Builder ---
+#[allow(dead_code)]
+pub struct DepartmentBuilder {
+    pool: PgPool,
+    workspace_id: Option<Uuid>,
+    name: String,
+    description: Option<String>,
+    manager_id: Option<Uuid>,
+}
+
+#[allow(dead_code)]
+impl DepartmentBuilder {
+    pub fn new(pool: PgPool) -> Self {
+        let id = Uuid::new_v4().to_string();
+        Self {
+            pool,
+            workspace_id: None,
+            name: format!("Dept {}", &id[..8]),
+            description: None,
+            manager_id: None,
+        }
+    }
+
+    pub fn with_workspace(mut self, ws_id: Uuid) -> Self {
+        self.workspace_id = Some(ws_id);
+        self
+    }
+
+    pub fn with_name(mut self, name: &str) -> Self {
+        self.name = name.to_string();
+        self
+    }
+
+    pub async fn create(self) -> Uuid {
+        sqlx::query_scalar(
+            "INSERT INTO departments (workspace_id, name, description, manager_id) VALUES ($1, $2, $3, $4) RETURNING id",
+        )
+        .bind(self.workspace_id.expect("Workspace ID required"))
+        .bind(self.name)
+        .bind(self.description)
+        .bind(self.manager_id)
         .fetch_one(&self.pool)
         .await
         .unwrap()

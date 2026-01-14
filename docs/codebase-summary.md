@@ -73,7 +73,7 @@ leeattend/
 - [x] JWT Authentication & Security (Change Password).
 - [x] Workspace & Member management (RBAC).
 - [x] **Full Employee Lifecycle**: CRUD operations, Department transfers with historical tracking (`employee_department_history`), and **Employment History System** (Re-hire support via `employment_periods`).
-- [x] **Department Management**: Creation and hierarchical structure foundation.
+- [x] **Department Management**: Full CRUD operations with manager assignment and historical tracking.
 - [x] Time-series Salary History.
 - **Shift Rostering System (Weekly calendar & Priority logic)**:
     - **Selection-First UX**: Người dùng chọn một hoặc nhiều ngày trên lịch để kích hoạt thanh công cụ (Bulk Action Bar), sau đó mới chọn ca làm việc để áp dụng. Không sử dụng các nút hành động trực tiếp trên từng thẻ ngày để giảm nhiễu giao diện.
@@ -115,7 +115,7 @@ leeattend/
     - **Worker-Specific Environments**: Mỗi Playwright worker khởi tạo một cặp Backend-Frontend riêng biệt.
     - **Dynamic Port Discovery**: Sử dụng các file tín hiệu port riêng cho từng worker (ví dụ: `.api_port_0`, `.api_port_1`) để tránh xung đột `ADDRINUSE`.
     - **Port Range Isolation**: Tự động tính toán start port dựa trên `workerIndex` với bước nhảy (offset) là 50 port để đảm bảo an toàn tài nguyên networking.
-- **Coverage Goal**: Achieved >80% coverage for core business logic.
+- **Coverage Goal**: Achieved >83% coverage for core business logic.
 - **Automated DB Cleanup**: The `apiserver` uses a specialized `TestDatabase` helper that:
     - Creates a unique database for each test session.
     - Automatically runs migrations.
