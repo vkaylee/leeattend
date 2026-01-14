@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchWorkspaces,
+  fetchWorkspace,
   createWorkspace,
   fetchWorkspaceMembers,
   addWorkspaceMember,

@@ -6,7 +6,8 @@ import {
   fetchEmployees,
   fetchWorkspaceAttendanceAdjustments,
   approveAttendanceAdjustment,
-  getCurrentWorkspaceId
+  getCurrentWorkspaceId,
+  uploadAttendanceExcel
 } from "../lib/api";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import AttendanceImportDialog from "@/components/AttendanceImportDialog";

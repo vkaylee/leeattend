@@ -16,7 +16,7 @@ export default function OnboardingPage() {
 
     setIsSubmitting(true);
     try {
-      const ws = await createWorkspace(name);
+      const ws = await createWorkspace({ name });
       setCurrentWorkspaceId(ws.id);
       navigate("/", { replace: true });
     } catch (error) {

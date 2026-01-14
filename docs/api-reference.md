@@ -230,9 +230,37 @@ Tạo hồ sơ nhân viên mới.
 - **Response (201)**: `Employee` object
 
 #### PUT /workspaces/:ws_id/employees/:id
-Cập nhật thông tin nhân viên (họ tên, ngày vào làm, trạng thái nghỉ việc).
+Cập nhật thông tin nhân viên (họ tên, trạng thái nghỉ việc). Nếu cập nhật `termination_date`, phiên làm việc hiện tại sẽ được đóng lại.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Response (200 OK)**
+
+#### GET /workspaces/:ws_id/employees/:id/history (New)
+Lấy toàn bộ lịch sử các giai đoạn làm việc (Employment Periods) của nhân viên.
+- **Response (200)**: `Array<EmploymentPeriod>`
+  ```json
+  [
+    {
+      "id": "uuid",
+      "employee_id": "uuid",
+      "hire_date": "2024-01-01",
+      "termination_date": "2025-12-31",
+      "is_rehire": false,
+      "created_at": "datetime",
+      "updated_at": "datetime"
+    }
+  ]
+  ```
+
+#### POST /workspaces/:ws_id/employees/:id/rehire (New)
+Thực hiện tái tuyển dụng (re-hire) một nhân viên đã nghỉ việc. Sẽ tạo một `EmploymentPeriod` mới với cờ `is_rehire: true`.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**:
+  ```json
+  {
+    "hire_date": "2026-01-14"
+  }
+  ```
+- **Response (200)**: `Employee` object (updated)
 
 ---
 

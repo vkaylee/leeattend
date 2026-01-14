@@ -31,9 +31,19 @@ describe("AgentEditModal", () => {
     vi.mocked(agentsHook.useAuthorizedAgents).mockReturnValue({
       agents: [],
       isLoading: false,
+      isFetching: false,
+      error: null,
+      refetch: vi.fn(),
       updateAgent: vi.fn() as any,
       isUpdating: false,
       deleteAgent: vi.fn() as any,
+      isDeleting: false,
+      includeInactive: false,
+      setIncludeInactive: vi.fn(),
+      createAgent: vi.fn() as any,
+      isCreating: false,
+      updateTrust: vi.fn() as any,
+      isUpdatingTrust: false,
     });
 
     renderWithClient(
@@ -61,9 +71,19 @@ describe("AgentEditModal", () => {
     vi.mocked(agentsHook.useAuthorizedAgents).mockReturnValue({
       agents: [],
       isLoading: false,
-      updateAgent: updateAgentMock as any,
+      isFetching: false,
+      error: null,
+      refetch: vi.fn(),
+      updateAgent: vi.fn() as any,
       isUpdating: false,
       deleteAgent: vi.fn() as any,
+      isDeleting: false,
+      includeInactive: false,
+      setIncludeInactive: vi.fn(),
+      createAgent: vi.fn() as any,
+      isCreating: false,
+      updateTrust: vi.fn() as any,
+      isUpdatingTrust: false,
     });
 
     renderWithClient(
@@ -99,9 +119,19 @@ describe("AgentEditModal", () => {
     vi.mocked(agentsHook.useAuthorizedAgents).mockReturnValue({
       agents: [],
       isLoading: false,
+      isFetching: false,
+      error: null,
+      refetch: vi.fn(),
       updateAgent: vi.fn() as any,
       isUpdating: false,
       deleteAgent: vi.fn() as any,
+      isDeleting: false,
+      includeInactive: false,
+      setIncludeInactive: vi.fn(),
+      createAgent: vi.fn() as any,
+      isCreating: false,
+      updateTrust: vi.fn() as any,
+      isUpdatingTrust: false,
     });
 
     renderWithClient(

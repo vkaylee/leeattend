@@ -20,8 +20,11 @@ export const workspaceFactory = (
   return {
     id,
     name: `Workspace ${id.slice(0, 8)}`,
-    work_unit_minutes: 60,
-    rounding_policy: "none",
+    work_unit_minutes: 30, // Default value
+    rounding_policy: "none", // Default value
+    date_format: "DD/MM/YYYY", // Default value
+    time_format: "24h", // Default value
+    timezone: "Asia/Ho_Chi_Minh", // Default value
     created_at: new Date().toISOString(),
     ...overrides,
   };

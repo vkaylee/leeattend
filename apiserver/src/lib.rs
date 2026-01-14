@@ -216,6 +216,14 @@ pub fn create_app(state: Arc<AppState>) -> Router {
                 .put(handlers::update_employee)
                 .delete(handlers::delete_employee),
         )
+        .route(
+            "/workspaces/:ws_id/employees/:id/history",
+            get(handlers::get_employee_history),
+        )
+        .route(
+            "/workspaces/:ws_id/employees/:id/rehire",
+            post(handlers::rehire_employee),
+        )
         // Time Tracking
         .route("/workspaces/:ws_id/time/punch-in", post(handlers::punch_in))
         .route(

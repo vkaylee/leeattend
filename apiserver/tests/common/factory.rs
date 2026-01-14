@@ -253,18 +253,31 @@ impl EmployeeBuilder {
 
     pub async fn create(self) -> Uuid {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
-            sqlx::query_scalar(
-                "INSERT INTO employees (workspace_id, user_id, first_name, last_name, employee_id_number, hire_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+            let mut tx = self.pool.begin().await.unwrap();
+            
+            let id: Uuid = sqlx::query_scalar(
+                "INSERT INTO employees (workspace_id, user_id, first_name, last_name, employee_id_number) VALUES ($1, $2, $3, $4, $5) RETURNING id",
             )
             .bind(self.workspace_id.expect("Workspace ID is required for Employee"))
             .bind(self.user_id)
             .bind(self.first_name)
             .bind(self.last_name)
             .bind(self.employee_id_number)
-            .bind(self.hire_date)
-            .fetch_one(&self.pool)
+            .fetch_one(&mut *tx)
             .await
-            .unwrap()
+            .unwrap();
+
+            sqlx::query(
+                "INSERT INTO employment_periods (employee_id, hire_date) VALUES ($1, $2)",
+            )
+            .bind(id)
+            .bind(self.hire_date)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+
+            tx.commit().await.unwrap();
+            id
         }).await.expect("Employee creation timed out")
     }
 }
@@ -515,6 +528,10 @@ impl TestFactory {
     #[allow(dead_code)]
     pub async fn cleanup(&self) {
         tokio::time::timeout(std::time::Duration::from_secs(10), async {
+            sqlx::query("DELETE FROM employment_periods CASCADE")
+                .execute(&self.pool)
+                .await
+                .unwrap();
             sqlx::query("DELETE FROM time_entries CASCADE")
                 .execute(&self.pool)
                 .await

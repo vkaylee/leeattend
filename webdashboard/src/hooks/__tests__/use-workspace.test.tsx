@@ -38,7 +38,18 @@ const createWrapper = () => {
 
 describe("useWorkspaces", () => {
   it("fetches workspaces successfully", async () => {
-    const mockWorkspaces = [{ id: "ws-1", name: "WS 1", created_at: "" }];
+    const mockWorkspaces = [
+      { 
+        id: "ws-1", 
+        name: "WS 1", 
+        work_unit_minutes: 30, 
+        rounding_policy: "none", 
+        date_format: "DD/MM/YYYY", 
+        time_format: "24h", 
+        timezone: "Asia/Ho_Chi_Minh", 
+        created_at: "" 
+      }
+    ];
     vi.mocked(api.fetchWorkspaces).mockResolvedValue(mockWorkspaces);
 
     const { result } = renderHook(() => useWorkspaces(), {
@@ -50,14 +61,23 @@ describe("useWorkspaces", () => {
   });
 
   it("creates a workspace and invalidates queries", async () => {
-    const newWs = { id: "ws-new", name: "New WS", created_at: "" };
+    const newWs = { 
+      id: "ws-new", 
+      name: "New WS", 
+      work_unit_minutes: 30, 
+      rounding_policy: "none", 
+      date_format: "DD/MM/YYYY", 
+      time_format: "24h", 
+      timezone: "Asia/Ho_Chi_Minh", 
+      created_at: "" 
+    };
     vi.mocked(api.createWorkspace).mockResolvedValue(newWs);
 
     const { result } = renderHook(() => useWorkspaces(), {
       wrapper: createWrapper(),
     });
 
-    const created = await result.current.createWorkspace("New WS");
+    const created = await result.current.createWorkspace({ name: "New WS" });
     expect(created).toEqual(newWs);
     expect(api.createWorkspace).toHaveBeenCalled();
   });

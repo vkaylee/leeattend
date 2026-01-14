@@ -82,7 +82,7 @@ describe("LeaveRequestsPage", () => {
   it("handles submitting a new leave request", async () => {
     const user = userEvent.setup();
     (api.submitLeaveRequest as any).mockResolvedValue({});
-    (api.fetchEmployeeLeaveBalances as any).mockImplementation((wsId, empId) => {
+    (api.fetchEmployeeLeaveBalances as any).mockImplementation((wsId: string, empId: string) => {
       if (empId === "emp-1") {
         return Promise.resolve([
           { leave_type: "vacation", remaining: 10, entitlement: 12, carried_over: 2 }

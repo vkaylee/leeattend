@@ -1402,6 +1402,45 @@ pub async fn delete_employee(
     }
 }
 
+pub async fn get_employee_history(
+    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> impl IntoResponse {
+    match crate::services::employee_service::EmployeeService::get_employment_history(
+        &state.db,
+        id,
+        workspace_id,
+    )
+    .await
+    {
+        Ok(history) => Json(history).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn rehire_employee(
+    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Json(req): Json<crate::models::RehireEmployeeRequest>,
+) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return (StatusCode::FORBIDDEN, "Only admins can re-hire employees").into_response();
+    }
+    match crate::services::employee_service::EmployeeService::rehire_employee(
+        &state.db,
+        id,
+        ctx.workspace_id,
+        req,
+    )
+    .await
+    {
+        Ok(employee) => Json(employee).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
 // --- Time Tracking Handlers ---
 
 pub async fn punch_in(

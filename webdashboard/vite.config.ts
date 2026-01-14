@@ -1,8 +1,9 @@
 import path from "path";
 import react from "@vitejs/plugin-react";
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig, loadEnv, ConfigEnv } from "vite";
 import fs from "fs";
 import net from "node:net";
+import { IncomingMessage, ServerResponse } from "http"; // Correct types for proxy handlers
 
 async function findAvailablePort(
   startPort: number,
@@ -26,7 +27,8 @@ async function findAvailablePort(
   );
 }
 
-export default defineConfig(async ({ mode }) => {
+//@ts-ignore
+export default defineConfig(async ({ mode }: ConfigEnv) => {
   // Load env variables based on mode (development, production, etc.)
   const env = loadEnv(mode, process.cwd());
   const viteApiUrl = env.VITE_API_URL;
@@ -62,7 +64,7 @@ export default defineConfig(async ({ mode }) => {
       react(),
       {
         name: 'save-port-file',
-        configureServer(server) {
+        configureServer(server: any) { // Explicitly declare server type as any
           server.httpServer?.once('listening', () => {
             const address = server.httpServer?.address();
             if (address && typeof address === 'object') {
@@ -89,11 +91,11 @@ export default defineConfig(async ({ mode }) => {
         "/api": {
           target: apiTarget,
           changeOrigin: true,
-          configure: (proxy, _options) => {
-            proxy.on('error', (err, _req, _res) => {
+          configure: (proxy: any, _options: any) => {
+            proxy.on('error', (err: Error, _req: IncomingMessage, _res: ServerResponse) => {
               console.log('📡 Vite: Proxy error', err);
             });
-            proxy.on('proxyReq', (_proxyReq, req, _res) => {
+            proxy.on('proxyReq', (_proxyReq: IncomingMessage, req: IncomingMessage, _res: ServerResponse) => {
               console.log(`📡 Vite: Proxying request ${req.method} ${req.url} -> ${apiTarget}${req.url}`);
             });
           },
@@ -104,7 +106,6 @@ export default defineConfig(async ({ mode }) => {
         },
       },
     },
-    // @ts-ignore
     test: {
       globals: true,
       environment: "jsdom",

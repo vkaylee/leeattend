@@ -87,6 +87,12 @@ export interface ChangePasswordRequest {
   new_password: string;
 }
 
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  full_name: string;
+}
+
 export interface WorkspaceMember {
   workspace_id: string;
   user_id: string;
@@ -575,10 +581,11 @@ export async function fetchWorkspaces(): Promise<Workspace[]> {
   return response.json();
 }
 
-export async function createWorkspace(data: { name: string }): Promise<Workspace> {
+export async function createWorkspace(data: { name: string } | string): Promise<Workspace> {
+  const payload = typeof data === "string" ? { name: data } : data;
   const response = await apiFetch(`${API_BASE_URL}/workspaces`, {
     method: "POST",
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) throw new Error("Failed to create workspace");
   return response.json();
@@ -715,6 +722,16 @@ export async function revokeExtraRole(
   if (!response.ok) throw new Error("Failed to revoke role");
 }
 
+export interface EmploymentPeriod {
+  id: string;
+  employee_id: string;
+  hire_date: string;
+  termination_date?: string;
+  is_rehire: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // --- Employee Management ---
 export async function fetchEmployees(wsId: string): Promise<Employee[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees`);
@@ -725,6 +742,31 @@ export async function fetchEmployees(wsId: string): Promise<Employee[]> {
 export async function fetchEmployee(wsId: string, id: string): Promise<Employee> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}`);
   if (!response.ok) throw new Error("Failed to fetch employee");
+  return response.json();
+}
+
+export async function fetchEmploymentHistory(
+  wsId: string,
+  id: string
+): Promise<EmploymentPeriod[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}/history`);
+  if (!response.ok) throw new Error("Failed to fetch employment history");
+  return response.json();
+}
+
+export async function rehireEmployee(
+  wsId: string,
+  id: string,
+  data: { hire_date: string }
+): Promise<Employee> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}/rehire`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || "Failed to re-hire employee");
+  }
   return response.json();
 }
 
@@ -948,7 +990,7 @@ export interface AttendanceImportJob {
   id: string;
   workspace_id: string;
   user_id: string;
-  status: "processing" | "completed" | "failed";
+  status: "processing" | "completed" | "failed" | "pending";
   total_rows: number;
   processed_rows: number;
   error_log?: string;

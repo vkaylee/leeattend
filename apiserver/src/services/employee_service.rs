@@ -3,7 +3,7 @@ use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::{CreateEmployeeRequest, Employee, UpdateEmployeeRequest};
+use crate::models::{CreateEmployeeRequest, Employee, EmploymentPeriod, RehireEmployeeRequest, UpdateEmployeeRequest};
 use crate::repositories::employee_repository;
 use crate::repositories::user_repository;
 
@@ -40,14 +40,90 @@ impl EmployeeService {
             updated_at: Utc::now(),
         };
 
-        employee_repository::create_employee(pool, &employee)
+        let mut tx = pool.begin().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        employee_repository::create_employee_tx(&mut tx, &employee)
             .await
             .map_err(|e| {
                 eprintln!("Error creating employee: {:?}", e);
                 StatusCode::INTERNAL_SERVER_ERROR
             })?;
+        tx.commit().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         Ok(employee)
+    }
+
+    pub async fn rehire_employee(
+        pool: &PgPool,
+        employee_id: Uuid,
+        workspace_id: Uuid,
+        req: RehireEmployeeRequest,
+    ) -> Result<Employee, StatusCode> {
+        // Verify employee belongs to workspace and is currently inactive
+        let employee = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        if employee.is_active {
+            return Err(StatusCode::BAD_REQUEST); // Already active
+        }
+
+        // Check if new hire_date is after last termination_date
+        if let Some(term_date) = employee.termination_date {
+            if req.hire_date <= term_date {
+                return Err(StatusCode::BAD_REQUEST);
+            }
+        }
+
+        let tx = pool.begin().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        // Update employee to be active
+        employee_repository::update_employee(
+            pool,
+            employee_id,
+            workspace_id,
+            None, None, None, None, None, None, Some(true),
+        )
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        // Create new employment period
+        let period = EmploymentPeriod {
+            id: Uuid::new_v4(),
+            employee_id,
+            hire_date: req.hire_date,
+            termination_date: None,
+            is_rehire: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        employee_repository::create_employment_period(pool, &period)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        tx.commit().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)
+    }
+
+    pub async fn get_employment_history(
+        pool: &PgPool,
+        employee_id: Uuid,
+        workspace_id: Uuid,
+    ) -> Result<Vec<EmploymentPeriod>, StatusCode> {
+        // Verify employee belongs to workspace
+        let _ = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        employee_repository::get_employment_history(pool, employee_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
 
     pub async fn get_employee_by_id(

@@ -23,7 +23,7 @@ export default function CreateWorkspaceDialog({
     setIsSubmitting(true);
     setError(null);
     try {
-      await createWorkspace(name);
+      await createWorkspace({ name });
       setName("");
       onClose();
     } catch (e) {

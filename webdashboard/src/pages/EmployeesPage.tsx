@@ -26,7 +26,9 @@ import {
   fetchSalaryHistory,
   fetchEmployeeDepartmentHistory,
   addSalaryHistory,
-  transferEmployee
+  transferEmployee,
+  fetchEmploymentHistory,
+  rehireEmployee
 } from "../lib/api";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 
@@ -42,6 +44,8 @@ export default function EmployeesPage() {
   // States for sub-modals
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isRehireModalOpen, setIsRehireModalOpen] = useState(false);
 
   const { data: employees = [], isLoading } = useQuery({
     queryKey: ["employees", wsId],
@@ -64,6 +68,12 @@ export default function EmployeesPage() {
   const { data: deptHistory } = useQuery({
     queryKey: ["deptHistory", selectedEmployee?.id],
     queryFn: () => fetchEmployeeDepartmentHistory(wsId, selectedEmployee!.id),
+    enabled: !!selectedEmployee,
+  });
+
+  const { data: employmentHistory } = useQuery({
+    queryKey: ["employmentHistory", selectedEmployee?.id],
+    queryFn: () => fetchEmploymentHistory(wsId, selectedEmployee!.id),
     enabled: !!selectedEmployee,
   });
 
@@ -98,6 +108,16 @@ export default function EmployeesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["salaryHistory", selectedEmployee?.id] });
       setIsSalaryModalOpen(false);
+    },
+  });
+
+  const rehireMutation = useMutation({
+    mutationFn: (data: { hire_date: string }) => rehireEmployee(wsId, selectedEmployee!.id, data),
+    onSuccess: (updatedEmp) => {
+      queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
+      queryClient.invalidateQueries({ queryKey: ["employmentHistory", selectedEmployee?.id] });
+      setSelectedEmployee(updatedEmp);
+      setIsRehireModalOpen(false);
     },
   });
 
@@ -142,6 +162,14 @@ export default function EmployeesPage() {
       salary_type: formData.get("salary_type"),
       currency: "VND",
       effective_date: formData.get("effective_date"),
+    });
+  };
+
+  const handleRehireSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    rehireMutation.mutate({
+      hire_date: formData.get("hire_date") as string,
     });
   };
 
@@ -258,10 +286,28 @@ export default function EmployeesPage() {
                 <Edit2 className="w-4 h-4" />
                 Sửa hồ sơ
               </button>
-              <button className="flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 font-bold rounded-2xl hover:bg-red-100 transition-all text-sm">
-                <Trash2 className="w-4 h-4" />
-                Nghỉ việc
-              </button>
+              {selectedEmployee.is_active ? (
+                <button 
+                  onClick={() => {
+                    const confirmTerm = window.confirm("Bạn có chắc muốn cho nhân viên này nghỉ việc?");
+                    if (confirmTerm) {
+                      updateMutation.mutate({ id: selectedEmployee.id, employee: { is_active: false, termination_date: new Date().toISOString().split('T')[0] } });
+                    }
+                  }}
+                  className="flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 font-bold rounded-2xl hover:bg-red-100 transition-all text-sm"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Nghỉ việc
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setIsRehireModalOpen(true)}
+                  className="flex items-center justify-center gap-2 py-2.5 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all text-sm shadow-lg shadow-blue-100"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Vào làm lại
+                </button>
+              )}
             </div>
           </div>
 
@@ -340,16 +386,37 @@ export default function EmployeesPage() {
 
             {/* Timeline/Activity */}
             <section className="space-y-4">
-              <div className="flex items-center gap-2 font-bold text-slate-900">
-                <History className="w-5 h-5 text-slate-400" />
-                <span>Lịch sử công tác</span>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2 font-bold text-slate-900">
+                  <History className="w-5 h-5 text-slate-400" />
+                  <span>Lịch sử công tác</span>
+                </div>
+                <button 
+                  onClick={() => setIsHistoryModalOpen(true)}
+                  className="text-xs font-bold text-blue-600 hover:underline"
+                >
+                  Xem chi tiết
+                </button>
               </div>
               <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
-                <div className="relative">
-                  <div className="absolute -left-[1.35rem] top-1 w-3 h-3 rounded-full bg-blue-500 border-2 border-white shadow-sm ring-4 ring-blue-50"></div>
-                  <div className="text-sm font-bold text-slate-800">Gia nhập công ty</div>
-                  <div className="text-xs text-slate-500">{formatDate(selectedEmployee.hire_date)}</div>
-                </div>
+                {employmentHistory?.map((period, idx) => (
+                  <React.Fragment key={period.id}>
+                    {period.termination_date && (
+                      <div className="relative">
+                        <div className="absolute -left-[1.35rem] top-1 w-3 h-3 rounded-full bg-red-500 border-2 border-white shadow-sm ring-4 ring-red-50"></div>
+                        <div className="text-sm font-bold text-slate-800">Nghỉ việc</div>
+                        <div className="text-xs text-slate-500">{formatDate(period.termination_date)}</div>
+                      </div>
+                    )}
+                    <div className="relative">
+                      <div className={`absolute -left-[1.35rem] top-1 w-3 h-3 rounded-full border-2 border-white shadow-sm ring-4 ${idx === 0 && !period.termination_date ? 'bg-green-500 ring-green-50' : 'bg-blue-500 ring-blue-50'}`}></div>
+                      <div className="text-sm font-bold text-slate-800">
+                        {period.is_rehire ? "Quay lại làm việc" : "Gia nhập công ty"}
+                      </div>
+                      <div className="text-xs text-slate-500">{formatDate(period.hire_date)}</div>
+                    </div>
+                  </React.Fragment>
+                ))}
               </div>
             </section>
           </div>
@@ -425,6 +492,82 @@ export default function EmployeesPage() {
                 <div className="grid grid-cols-2 gap-4 pt-4">
                   <button type="button" onClick={() => setIsTransferModalOpen(false)} className="px-6 py-3 border border-slate-200 text-slate-600 font-bold rounded-2xl">Hủy</button>
                   <button type="submit" className="px-6 py-3 bg-blue-600 text-white font-bold rounded-2xl shadow-lg shadow-blue-100 hover:bg-blue-700">Điều chuyển</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* History Modal */}
+      {isHistoryModalOpen && selectedEmployee && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-8">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-slate-900 text-center">Chi tiết lịch sử công tác</h2>
+                <button onClick={() => setIsHistoryModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                {employmentHistory?.map((period) => (
+                  <div key={period.id} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-bold text-slate-900 flex items-center gap-2">
+                          {period.is_rehire ? "Giai đoạn tái tuyển dụng" : "Giai đoạn đầu tiên"}
+                          {!period.termination_date && (
+                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[9px] font-bold rounded-full uppercase">Đang làm việc</span>
+                          )}
+                        </div>
+                        <div className="text-sm text-slate-500 mt-1">
+                          Từ {formatDate(period.hire_date)} {period.termination_date ? `đến ${formatDate(period.termination_date)}` : "(Hiện tại)"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-8">
+                <button 
+                  onClick={() => setIsHistoryModalOpen(false)}
+                  className="w-full py-3 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rehire Modal */}
+      {isRehireModalOpen && selectedEmployee && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-8">
+              <h2 className="text-2xl font-bold text-slate-900 mb-2 text-center">Tái tuyển dụng</h2>
+              <p className="text-slate-500 text-center mb-6">Xác nhận ngày nhân viên bắt đầu giai đoạn làm việc mới</p>
+              
+              <form onSubmit={handleRehireSubmit} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Ngày vào làm lại</label>
+                  <input 
+                    type="date" 
+                    name="hire_date" 
+                    required 
+                    defaultValue={new Date().toISOString().split('T')[0]} 
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" 
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4 pt-4">
+                  <button type="button" onClick={() => setIsRehireModalOpen(false)} className="px-6 py-3 border border-slate-200 text-slate-600 font-bold rounded-2xl">Hủy</button>
+                  <button type="submit" disabled={rehireMutation.isPending} className="px-6 py-3 bg-blue-600 text-white font-bold rounded-2xl shadow-lg shadow-blue-100 hover:bg-blue-700 disabled:opacity-50">
+                    {rehireMutation.isPending ? "Đang xử lý..." : "Xác nhận"}
+                  </button>
                 </div>
               </form>
             </div>

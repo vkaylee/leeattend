@@ -5,6 +5,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Employment History System**: Normalized employee data by extracting work periods into a dedicated `employment_periods` table, enabling accurate seniority calculation and re-hire support.
+    - **Historical Tracking**: Employees can now have multiple "hire" and "termination" events, preserved in an immutable history.
+    - **Re-hire Support**: New workflow to re-activate previously terminated employees with a fresh hire date while preserving past data.
+    - **Seniority Logic**: Updated leave accrual engine to correctly sum all historical work periods for seniority-based bonuses.
+    - **New Endpoints**: Added `/history` and `/rehire` for granular employment lifecycle management.
 - **Attendance Report Quick Month Filters**: Improved user experience by adding shortcut buttons for "This Month", "Last Month", and "Custom" date ranges.
     - **One-Tap Filtering**: Quickly switch between current and previous month data.
     - **Clean UI**: Date inputs are now hidden behind the "Custom" option to reduce visual clutter.

@@ -68,7 +68,7 @@ leeattend/
 ### 🚦 Current Status
 - [x] JWT Authentication & Security (Change Password).
 - [x] Workspace & Member management (RBAC).
-- [x] **Full Employee Lifecycle**: CRUD operations, Department transfers with historical tracking (`employee_department_history`).
+- [x] **Full Employee Lifecycle**: CRUD operations, Department transfers with historical tracking (`employee_department_history`), and **Employment History System** (Re-hire support via `employment_periods`).
 - [x] **Department Management**: Creation and hierarchical structure foundation.
 - [x] Time-series Salary History.
 - **Shift Rostering System (Weekly calendar & Priority logic)**:

@@ -11,12 +11,10 @@ impl LeaveAccrualService {
     /// Pure function to calculate how much leave should be accrued for a given policy and employee state.
     pub fn calculate_accrual_amount(
         config: &LeavePolicyConfig,
-        hire_date: NaiveDate,
-        accrual_date: NaiveDate,
+        years_service: i32,
+        _accrual_date: NaiveDate,
     ) -> f64 {
         let mut amount = config.accrual_amount;
-        
-        let years_service = Self::years_between(hire_date, accrual_date);
         
         // Apply seniority bonuses (additive)
         // Assumption: extra_days is "Days added per accrual period"
@@ -29,16 +27,25 @@ impl LeaveAccrualService {
         amount
     }
 
-    /// Helper to calculate full years of service
-    fn years_between(start: NaiveDate, end: NaiveDate) -> i32 {
-        if end < start {
-            return 0;
+    /// Helper to calculate full years of service across multiple periods
+    pub fn calculate_total_seniority(
+        periods: &[crate::models::EmploymentPeriod],
+        as_of: NaiveDate,
+    ) -> i32 {
+        let mut total_days = 0;
+        for period in periods {
+            if period.hire_date > as_of {
+                continue;
+            }
+            let end_date = period.termination_date.unwrap_or(as_of);
+            let end_date = if end_date > as_of { as_of } else { end_date };
+            
+            if end_date >= period.hire_date {
+                total_days += (end_date - period.hire_date).num_days() + 1;
+            }
         }
-        let mut years = end.year() - start.year();
-        if end.month() < start.month() || (end.month() == start.month() && end.day() < start.day()) {
-            years -= 1;
-        }
-        years
+        
+        (total_days / 365) as i32
     }
     
     /// Determines if an accrual should run on this date based on frequency.
@@ -115,8 +122,12 @@ impl LeaveAccrualService {
                 
                 // 3. Check if accrual should run today
                 if Self::should_run_accrual(&config.frequency, &config.accrual_timing, date) {
-                    // 4. Calculate amount
-                    let amount = Self::calculate_accrual_amount(config, emp.hire_date, date);
+                    // 4. Calculate total seniority
+                    let periods = employee_repository::get_employment_history(pool, emp.id).await?;
+                    let years_service = Self::calculate_total_seniority(&periods, date);
+
+                    // 5. Calculate amount
+                    let amount = Self::calculate_accrual_amount(config, years_service, date);
                     
                     if amount > 0.0 {
                         use rust_decimal::prelude::FromPrimitive;
@@ -188,16 +199,14 @@ mod tests {
             reset_month: None,
         };
 
-        let hire_date = NaiveDate::from_ymd_opt(2020, 1, 1).unwrap();
-        
         // 0 years service
-        assert_eq!(LeaveAccrualService::calculate_accrual_amount(&config, hire_date, NaiveDate::from_ymd_opt(2020, 6, 1).unwrap()), 1.0);
+        assert_eq!(LeaveAccrualService::calculate_accrual_amount(&config, 0, NaiveDate::from_ymd_opt(2020, 6, 1).unwrap()), 1.0);
         
         // 1 year service
-        assert_eq!(LeaveAccrualService::calculate_accrual_amount(&config, hire_date, NaiveDate::from_ymd_opt(2021, 1, 1).unwrap()), 1.5);
+        assert_eq!(LeaveAccrualService::calculate_accrual_amount(&config, 1, NaiveDate::from_ymd_opt(2021, 1, 1).unwrap()), 1.5);
         
         // 5 years service
-        assert_eq!(LeaveAccrualService::calculate_accrual_amount(&config, hire_date, NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()), 2.5);
+        assert_eq!(LeaveAccrualService::calculate_accrual_amount(&config, 5, NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()), 2.5);
     }
 
     #[test]
