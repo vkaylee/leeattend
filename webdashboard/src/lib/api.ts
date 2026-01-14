@@ -72,6 +72,7 @@ export interface Workspace {
   rounding_policy: string;
   date_format: string;
   time_format: string;
+  timezone: string;
   created_at: string;
 }
 

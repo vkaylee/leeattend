@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, UserPlus, Shield, Mail, Trash2, Settings2, Calculator, Save } from "lucide-react";
+import { Users, UserPlus, Shield, Mail, Trash2, Settings2, Calculator, Save, Clock } from "lucide-react";
 import { useWorkspaceMembers } from "@/hooks/use-workspace";
 import RoleManagementModal from "@/components/RoleManagementModal";
 import DebugWorkspaceTools from "@/components/DebugWorkspaceTools";
@@ -27,6 +27,7 @@ export default function WorkspaceSettingsPage() {
   const [roundingPolicy, setRoundingPolicy] = useState("none");
   const [dateFormat, setDateFormat] = useState("DD/MM/YYYY");
   const [timeFormat, setTimeFormat] = useState("24h");
+  const [timezone, setTimezone] = useState("Asia/Ho_Chi_Minh");
 
   useEffect(() => {
     if (workspace) {
@@ -34,6 +35,7 @@ export default function WorkspaceSettingsPage() {
       setRoundingPolicy(workspace.rounding_policy);
       setDateFormat(workspace.date_format);
       setTimeFormat(workspace.time_format);
+      setTimezone(workspace.timezone || "Asia/Ho_Chi_Minh");
     }
   }, [workspace]);
 
@@ -69,6 +71,7 @@ export default function WorkspaceSettingsPage() {
       rounding_policy: roundingPolicy,
       date_format: dateFormat,
       time_format: timeFormat,
+      timezone: timezone,
     });
   }
 
@@ -183,6 +186,25 @@ export default function WorkspaceSettingsPage() {
                 </select>
                 <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
                   Cách hiển thị thời gian trên toàn hệ thống.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                  Múi giờ hệ thống
+                </label>
+                <select
+                  data-testid="timezone-select"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none font-bold text-slate-700"
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                >
+                  <option value="Asia/Ho_Chi_Minh">Asia/Ho_Chi_Minh (UTC+7)</option>
+                  <option value="Asia/Bangkok">Asia/Bangkok (UTC+7)</option>
+                  <option value="UTC">UTC</option>
+                </select>
+                <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
+                  Quyết định múi giờ khi import dữ liệu không có offset và hiển thị báo cáo.
                 </p>
               </div>
             </div>

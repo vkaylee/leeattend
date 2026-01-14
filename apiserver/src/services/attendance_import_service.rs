@@ -1,5 +1,6 @@
 use axum::http::StatusCode;
-use chrono::{Utc, NaiveDateTime, DateTime};
+use chrono::{Utc, NaiveDateTime, DateTime, TimeZone};
+use chrono_tz::Tz;
 use sqlx::PgPool;
 use uuid::Uuid;
 use tracing::{error, info};
@@ -84,6 +85,7 @@ impl AttendanceImportService {
 
         let date_format = workspace.date_format;
         let time_format = workspace.time_format;
+        let timezone = workspace.timezone;
 
         let file_path = match &job.file_path {
             Some(p) => p,
@@ -108,12 +110,12 @@ impl AttendanceImportService {
         if let Ok(mut reader) = Xlsx::new(Cursor::new(&file_bytes)) {
             if let Some(Ok(range)) = reader.worksheet_range_at(0) {
                 is_excel = true;
-                Self::process_excel_range(&pool, job_id, &job, range, &mut processed_rows, &mut total_rows, &mut errors, Some(&date_format), Some(&time_format)).await;
+                Self::process_excel_range(&pool, job_id, &job, range, &mut processed_rows, &mut total_rows, &mut errors, Some(&date_format), Some(&time_format), &timezone).await;
             }
         } else if let Ok(mut reader) = Xls::new(Cursor::new(&file_bytes)) {
             if let Some(Ok(range)) = reader.worksheet_range_at(0) {
                 is_excel = true;
-                Self::process_excel_range(&pool, job_id, &job, range, &mut processed_rows, &mut total_rows, &mut errors, Some(&date_format), Some(&time_format)).await;
+                Self::process_excel_range(&pool, job_id, &job, range, &mut processed_rows, &mut total_rows, &mut errors, Some(&date_format), Some(&time_format), &timezone).await;
             }
         }
 
@@ -143,7 +145,7 @@ impl AttendanceImportService {
                     }
                 };
 
-                match Self::process_import_row(&pool, &job, &emp_id_number, punch_time).await {
+                match Self::process_import_row(&pool, &job, &emp_id_number, punch_time, &timezone).await {
                     Ok(c) => {
                         processed_rows += c as i32;
                         if processed_rows % 10 == 0 {
@@ -174,6 +176,7 @@ impl AttendanceImportService {
         errors: &mut Vec<String>,
         preferred_date: Option<&str>,
         preferred_time: Option<&str>,
+        timezone: &str,
     ) {
         *total_rows = (range.rows().count() as i32 - 1).max(0);
         let _ = sqlx::query("UPDATE attendance_import_jobs SET total_rows = $1 WHERE id = $2")
@@ -219,7 +222,7 @@ impl AttendanceImportService {
                 None => continue,
             };
 
-            match Self::process_import_row(pool, job, &emp_id_number, punch_time).await {
+            match Self::process_import_row(pool, job, &emp_id_number, punch_time, timezone).await {
                 Ok(c) => {
                     *processed_rows += c as i32;
                     if *processed_rows % 10 == 0 {
@@ -236,6 +239,7 @@ impl AttendanceImportService {
         job: &AttendanceImportJob,
         emp_id_number: &str,
         punch_time: NaiveDateTime,
+        timezone: &str,
     ) -> Result<usize, StatusCode> {
         let employee = match employee_repository::get_employee_by_id_number(pool, emp_id_number, job.workspace_id).await {
             Ok(Some(emp)) => emp,
@@ -245,7 +249,18 @@ impl AttendanceImportService {
             }
         };
 
-        let punch_time_utc = DateTime::<Utc>::from_naive_utc_and_offset(punch_time, Utc);
+        // Convert NaiveDateTime (local time from file) to DateTime<Utc> using Workspace Timezone
+        let tz: Tz = timezone.parse().unwrap_or(chrono_tz::Asia::Ho_Chi_Minh);
+        
+        let punch_time_utc = match tz.from_local_datetime(&punch_time) {
+            chrono::LocalResult::Single(dt) => dt.with_timezone(&Utc),
+            chrono::LocalResult::Ambiguous(dt1, _) => dt1.with_timezone(&Utc), // Default to first if ambiguous
+            chrono::LocalResult::None => {
+                // If the time doesn't exist (e.g. during DST switch), fallback to simple UTC conversion 
+                // but this shouldn't happen in Asia/Ho_Chi_Minh
+                DateTime::<Utc>::from_naive_utc_and_offset(punch_time, Utc)
+            }
+        };
 
         if job.target_type == "log" {
             // 1. Save to Raw Attendance Logs

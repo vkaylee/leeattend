@@ -29,7 +29,8 @@ async fn test_update_workspace_time_format() {
         None,
         None,
         None,
-        Some("12h".to_string())
+        Some("12h".to_string()),
+        None
     ).await.expect("Failed to update workspace");
 
     assert_eq!(updated_ws.time_format, "12h");
@@ -50,7 +51,8 @@ async fn test_update_workspace_time_format() {
         None,
         None,
         None,
-        Some("24h".to_string())
+        Some("24h".to_string()),
+        None
     ).await.expect("Failed to update workspace");
 
     assert_eq!(updated_ws_24.time_format, "24h");

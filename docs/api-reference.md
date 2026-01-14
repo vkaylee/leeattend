@@ -77,6 +77,7 @@ Quản lý không gian làm việc và cấu hình hệ thống.
   "rounding_policy": "floor", // none, floor, ceil, round
   "date_format": "DD/MM/YYYY", // DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD
   "time_format": "24h", // 24h, 12h
+  "timezone": "Asia/Ho_Chi_Minh", // IANA Timezone ID
   "created_at": "datetime"
 }
 ```
@@ -103,7 +104,8 @@ Cập nhật thông tin hoặc cấu hình hệ thống của workspace.
     "work_unit_minutes": 30, 
     "rounding_policy": "floor",
     "date_format": "MM/DD/YYYY",
-    "time_format": "12h"
+    "time_format": "12h",
+    "timezone": "Asia/Ho_Chi_Minh"
   }
   ```
 - **Response (200)**: `Workspace` (updated)

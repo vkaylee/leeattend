@@ -5,6 +5,12 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Workspace Timezone Support**: Integrated comprehensive timezone management to ensure data accuracy across different regions.
+    - **Database Schema**: Added `timezone` column to `workspaces` table (defaults to `Asia/Ho_Chi_Minh`).
+    - **Timezone-Aware Imports**: Updated `AttendanceImportService` to use the workspace's configured timezone when converting "naive" local times from Excel/CSV files to UTC.
+    - **Workspace Settings UI**: Introduced a new "Múi giờ hệ thống" configuration dropdown in the Workspace Settings page.
+    - **Enhanced API**: Updated Workspace CRUD operations to support timezone selection.
+    - **Localized Testing**: Added integration tests to verify correct local-to-UTC conversion for multiple timezones during the import process.
 - **Debug Workspace Tools**: Introduced developer-only tools to quickly clear workspace-related data during development.
     - **New Backend Endpoint**: `POST /api/dev/workspaces/:ws_id/clear` allows selective data deletion (Attendance, Schedules, Leave, Payroll, or Full Reset).
     - **Debug UI Component**: Added a `DebugWorkspaceTools` section at the bottom of Workspace Settings (visible only in dev mode).

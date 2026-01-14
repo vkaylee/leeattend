@@ -73,6 +73,7 @@ impl WorkspaceService {
         rounding_policy: Option<String>,
         date_format: Option<String>,
         time_format: Option<String>,
+        timezone: Option<String>,
     ) -> Result<Workspace, String> {
         let mut query = String::from("UPDATE workspaces SET ");
         let mut has_fields = false;
@@ -107,6 +108,12 @@ impl WorkspaceService {
             arg_idx += 1;
             has_fields = true;
         }
+        if let Some(_) = timezone {
+            if has_fields { query.push_str(", "); }
+            query.push_str(&format!("timezone = ${}", arg_idx));
+            arg_idx += 1;
+            has_fields = true;
+        }
 
         if !has_fields {
             return Err("No fields to update".to_string());
@@ -130,6 +137,9 @@ impl WorkspaceService {
         }
         if let Some(t) = time_format {
             q = q.bind(t);
+        }
+        if let Some(tz) = timezone {
+            q = q.bind(tz);
         }
         q = q.bind(ws_id);
 

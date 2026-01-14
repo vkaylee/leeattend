@@ -110,6 +110,7 @@ impl UserBuilder {
 pub struct WorkspaceBuilder {
     pool: PgPool,
     name: String,
+    timezone: String,
 }
 
 impl WorkspaceBuilder {
@@ -119,6 +120,7 @@ impl WorkspaceBuilder {
         Self {
             pool,
             name: format!("Workspace {}", &id[..8]),
+            timezone: "Asia/Ho_Chi_Minh".to_string(),
         }
     }
 
@@ -129,10 +131,17 @@ impl WorkspaceBuilder {
     }
 
     #[allow(dead_code)]
+    pub fn with_timezone(mut self, tz: &str) -> Self {
+        self.timezone = tz.to_string();
+        self
+    }
+
+    #[allow(dead_code)]
     pub async fn create(self) -> Uuid {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
-            sqlx::query_scalar("INSERT INTO workspaces (name) VALUES ($1) RETURNING id")
+            sqlx::query_scalar("INSERT INTO workspaces (name, timezone) VALUES ($1, $2) RETURNING id")
                 .bind(self.name)
+                .bind(self.timezone)
                 .fetch_one(&self.pool)
                 .await
                 .unwrap()

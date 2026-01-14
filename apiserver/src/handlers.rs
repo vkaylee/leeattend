@@ -607,6 +607,7 @@ pub struct UpdateWorkspaceRequest {
     pub rounding_policy: Option<String>,
     pub date_format: Option<String>,
     pub time_format: Option<String>,
+    pub timezone: Option<String>,
 }
 
 pub async fn get_workspaces(
@@ -666,6 +667,7 @@ pub async fn update_workspace(
         req.rounding_policy,
         req.date_format,
         req.time_format,
+        req.timezone,
     )
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;

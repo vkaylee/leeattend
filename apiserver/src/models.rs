@@ -97,6 +97,7 @@ pub struct Workspace {
     pub rounding_policy: String,
     pub date_format: String,
     pub time_format: String,
+    pub timezone: String,
     pub created_at: DateTime<Utc>,
 }
 
