@@ -11,7 +11,7 @@ export const test = base.extend<{ workerWebUrl: string }>({
     await use(workerWebUrl);
   },
 
-  workerWebUrl: [async (_, use, workerInfo) => {
+  workerWebUrl: [async ({}, use, workerInfo) => {
     const workerIndex = workerInfo.workerIndex;
     const apiPortFile = `.api_port_${workerIndex}`;
     const webPortFile = `.web_port_${workerIndex}`;

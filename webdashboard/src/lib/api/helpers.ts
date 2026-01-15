@@ -71,9 +71,12 @@ export async function apiFetch(
     delete (headers as any)["Content-Type"];
   }
 
-  // Ensure url starts with / if not present
-  const path = url.startsWith("/") ? url : `/${url}`;
-  const fullUrl = `${API_BASE_URL}${path}`;
+  // If url already starts with http/https or the API_BASE_URL, don't prepend API_BASE_URL
+  let fullUrl = url;
+  if (!url.startsWith("http") && !url.startsWith(API_BASE_URL)) {
+    const path = url.startsWith("/") ? url : `/${url}`;
+    fullUrl = `${API_BASE_URL}${path}`;
+  }
 
   const response = await fetch(fullUrl, { ...options, headers });
   

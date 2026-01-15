@@ -29,6 +29,9 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Extended Log Lookahead**: Updated `PairingService` to search for punches in a 36-hour window to capture next-day checkouts.
     - **Timezone-Aware Linearization**: Integration between Workspace Timezone and pairing logic to ensure "Day 1" work is correctly attributed regardless of UTC wrap.
     - **Calculation Hardening**: Enhanced `AttendanceCalculator`, `PayrollService`, and `ReportService` to support overnight capacity and duration logic.
+- **Comprehensive Login Flow Coverage**: Added production-grade E2E tests for authentication.
+    - **Successful Login**: Verified standard form submission, i18n label compatibility, and correct redirection to the dashboard.
+    - **Error Handling**: Confirmed that invalid credentials trigger appropriate error messages without compromising security.
 - **📚 Documentation Audit & Update**:
     - **Codebase Summary**: Integrated i18n Engine and Full-stack multi-language support details.
     - **API Reference**: Updated User and Workspace models with `preferred_language` and `default_language` fields.
@@ -49,6 +52,8 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 - **Leave Data Integrity**: Added missing `accrued_amount` field to test factories and initializers to ensure consistent database states.
 - **Code Duplication**: Resolved a critical regression in `ShiftsPage.tsx` where modal code blocks were duplicated, causing parsing errors.
 - **Token Rotation Logic**: Hardened `apiFetch` to better handle 401 errors and secure token refreshing.
+- **API URL Resilience**: Fixed a bug in `apiFetch` that caused double-prefixing of URLs when absolute paths or pre-prefixed strings were provided.
+- **Test Orchestration Stability**: Resolved a destructuring error in the Playwright `worker-orchestrator.ts` that caused worker initialization failures during parallel testing.
 - **UI State Regressions**: Fixed `ReferenceError: t is not defined` in several entry-point components.
 
 ## [Unreleased] - 2026-01-14 (Previous)

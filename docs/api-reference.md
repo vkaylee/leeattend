@@ -14,6 +14,7 @@ Hệ thống sử dụng JWT (JSON Web Token) để xác thực người dùng.
 #### 🌐 API URL Resolution Strategy (Client-side)
 Đối với các ứng dụng Web (đặc biệt trong môi trường Development với Vite), client sẽ ưu tiên gọi API thông qua đường dẫn tương đối `/api`. Vite sẽ tự động proxy các request này đến backend server đang chạy trên một port ngẫu nhiên.
 - `VITE_API_URL` trong `.env` chỉ được sử dụng cho các môi trường yêu cầu URL tuyệt đối (ví dụ: Tauri, hoặc Production khi API đặt ở một domain khác và không có proxy). Trong môi trường phát triển web tiêu chuẩn, việc set `VITE_API_URL` sẽ khiến client bỏ qua proxy và gọi thẳng vào địa chỉ hardcode, gây ra lỗi `ERR_CONNECTION_REFUSED`.
+- **Resilient URL Construction**: Tiện ích `apiFetch` được thiết kế để tự động xử lý các định dạng path khác nhau, ngăn chặn lỗi "double-prefixing" khi truyền vào các path đã có sẵn tiền tố hoặc URL tuyệt đối.
 
 #### POST /auth/register
 Đăng ký tài khoản người dùng mới.

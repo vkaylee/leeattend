@@ -66,6 +66,7 @@ leeattend/
     - **Dynamic Themeing**: `useTheme` hook for on-the-fly calculation of color palettes from a single HEX code.
     - **Personalization**: User-level theme overrides stored in `localStorage` with cross-tab sync.
     - **Modular API Client**: Refactored monolithic `api.ts` into a structured `lib/api/` directory with domain-specific files (`auth.ts`, `workspaces.ts`, etc.) while maintaining a unified export via `index.ts`.
+    - **Resilient API Fetch**: Hardened the central `apiFetch` utility (`lib/api/helpers.ts`) to avoid common URL construction errors like double-prefixing, ensuring stable communication with the backend regardless of path formatting.
     - **Robust API URL Resolution**: Frontend client (`api/config.ts`) intelligently determines API base URL, prioritizing relative `/api` paths for web development environments (to leverage Vite's dynamic proxy) and `VITE_API_URL` for production or Tauri builds.
     - **Common UI Library**: Standardized components (Modal, Combobox, DropdownMenu, etc.) based on Radix UI and React Portals.
     - **Portal-based Modals**: Centralized `Modal` component using `createPortal` to ensure dialogs are always rendered at the top level of the DOM, preventing clipping by parent containers and ensuring full-screen backdrops.
@@ -129,6 +130,7 @@ leeattend/
     - **Worker-Specific Environments**: Mỗi Playwright worker khởi tạo một cặp Backend-Frontend riêng biệt.
     - **Dynamic Port Discovery**: Sử dụng các file tín hiệu port riêng cho từng worker (ví dụ: `.api_port_0`, `.api_port_1`) để tránh xung đột `ADDRINUSE`.
     - **Port Range Isolation**: Tự động tính toán start port dựa trên `workerIndex` với bước nhảy (offset) là 50 port để đảm bảo an toàn tài nguyên networking.
+- **Comprehensive Auth Testing**: Added production-ready E2E suites for standard login flows, ensuring correct i18n handling, credential validation, and redirection logic.
 - **Coverage Goal**: Achieved >83% coverage for core business logic.
 - **Automated DB Cleanup**: The `apiserver` uses a specialized `TestDatabase` helper that:
     - Creates a unique database for each test session.
