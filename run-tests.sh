@@ -5,12 +5,18 @@
 # Parallel Workers: 4
 # ==============================================================================
 
-set -uo pipefail
+set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="$PROJECT_ROOT/docker-compose.test.yml"
 LOG_DIR="$PROJECT_ROOT/.test_logs"
-NUM_WORKERS=4
+
+# Calculate workers: half of CPU cores (min 1)
+CPU_CORES=$(nproc)
+NUM_WORKERS=$(( CPU_CORES / 2 ))
+if [ $NUM_WORKERS -lt 1 ]; then NUM_WORKERS=1; fi
+
+echo -e "💻 System: $CPU_CORES cores detected. Using $NUM_WORKERS workers."
 
 # ANSI Color Codes
 GREEN='\033[0;32m'
@@ -65,9 +71,9 @@ run_parallel_ordered() {
     echo -e "\n${YELLOW}${BOLD}🚀 $phase_name (Parallel Execution)${NC}"
     
     for task in "$@"; do
-        local name=$(echo "$task" | cut -d'|' -f1)
-        local dir=$(echo "$task" | cut -d'|' -f2)
-        local cmd=$(echo "$task" | cut -d'|' -f3-)
+        local name=$(echo "$task" | cut -d'|' -f2)
+        local dir=$(echo "$task" | cut -d'|' -f3)
+        local cmd=$(echo "$task" | cut -d'|' -f4-)
         
         local log_file="$LOG_DIR/${phase_name// /_}_$name.log"
         echo -e "  [${BLUE}START${NC}] $name"
@@ -78,13 +84,13 @@ run_parallel_ordered() {
         names+=("$name")
     done
     
-    local failed=0
     for i in "${!pids[@]}"; do
         local pid="${pids[$i]}"
         local log="${logs[$i]}"
         local name="${names[$i]}"
 
         echo -e "\n${BOLD}--- Real-time Log for: $name ---${NC}"
+        # Stream log if process is still running
         if kill -0 "$pid" 2>/dev/null; then
              tail -n +1 -f "$log" --pid="$pid"
         else
@@ -93,16 +99,20 @@ run_parallel_ordered() {
         
         wait "$pid"
         local status=$?
-        show_log_sequential "${names[$i]}" "${logs[$i]}" $status
+        
+        show_log_sequential "$name" "$log" $status
+        
         if [ $status -ne 0 ]; then
-            failed=1
+            echo -e "\n${RED}❌ Task '$name' failed with status $status.${NC}"
+            echo -e "${YELLOW}Killing other tasks in this phase...${NC}"
+            # Kill all other processes in the same process group or just the captured pids
+            for p in "${pids[@]}"; do
+                kill "$p" 2>/dev/null || true
+            done
+            echo -e "${RED}Aborting pipeline.${NC}"
+            exit 1
         fi
     done
-    
-    if [ $failed -ne 0 ]; then
-        echo -e "\n${RED}❌ $phase_name failed. Aborting.${NC}"
-        exit 1
-    fi
     
     echo -e "\n${GREEN}✅ $phase_name Completed Successfully!${NC}"
 }
@@ -111,16 +121,16 @@ echo -e "${BLUE}${BOLD}🚀 LeeAttend Unified Test Runner${NC}"
 
 # --- PHASE 0: LINTING ---
 run_parallel_ordered "Phase 0 (Linting)" \
-    "apiserver-clippy|apiserver|cargo clippy -- -D warnings" \
-    "agent-main-clippy|agent-main|cargo clippy -- -D warnings" \
-    "webdashboard-lint|webdashboard|npm run lint"
+    "1|apiserver-clippy|apiserver|cargo clippy -- -D warnings" \
+    "2|agent-main-clippy|agent-main|cargo clippy -- -D warnings" \
+    "3|webdashboard-lint|webdashboard|npm run lint -- --max-warnings 0"
 
 # --- PHASE 1: UNIT TESTS ---
 run_parallel_ordered "Phase 1 (Unit Tests)" \
-    "apiserver|apiserver|cargo test --lib" \
-    "agent-main|agent-main|cargo test --lib" \
-    "agent-zk-worker|agent-zk-worker|venv/bin/pytest" \
-    "webdashboard|webdashboard|npm run test"
+    "1|apiserver|apiserver|cargo test --lib" \
+    "2|agent-main|agent-main|cargo test --lib" \
+    "3|agent-zk-worker|agent-zk-worker|venv/bin/pytest" \
+    "4|webdashboard|webdashboard|npm run test"
 
 # --- PHASE 2: DATABASE SETUP ---
 echo -e "\n${YELLOW}${BOLD}🗄️ Phase 2: Setting up Postgres Environment${NC}"
@@ -141,21 +151,22 @@ for i in $(seq 0 $((NUM_WORKERS-1))); do
 done
 
 echo -e "  Running migrations..."
-(cd apiserver && sqlx migrate run --database-url "postgres://test_user:test_password@localhost:5433/test_database") > "$LOG_DIR/mig_int.log" 2>&1
+(cd apiserver && sqlx migrate run --database-url "postgres://test_user:test_password@localhost:5433/test_database") > "$LOG_DIR/mig_int.log" 2>&1 || { echo -e "${RED}Migration failed for main test DB${NC}"; exit 1; }
+
 for i in $(seq 0 $((NUM_WORKERS-1))); do
-    (cd apiserver && sqlx migrate run --database-url "postgres://test_user:test_password@localhost:5433/test_database_e2e_$i") > "$LOG_DIR/mig_e2e_$i.log" 2>&1
+    (cd apiserver && sqlx migrate run --database-url "postgres://test_user:test_password@localhost:5433/test_database_e2e_$i") > "$LOG_DIR/mig_e2e_$i.log" 2>&1 || { echo -e "${RED}Migration failed for worker $i${NC}"; exit 1; }
     echo -e "    Migrations e2e_$i applied."
 done
 
 echo -e "  Pre-compiling backend for integration tests..."
-(cd apiserver && cargo build) > "$LOG_DIR/prebuild.log" 2>&1
+(cd apiserver && cargo build) > "$LOG_DIR/prebuild.log" 2>&1 || { echo -e "${RED}Backend build failed${NC}"; exit 1; }
 echo -e "  ${GREEN}Infrastructure ready.${NC}"
 
 # --- PHASE 3: INTEGRATION TESTS ---
 export DATABASE_URL="postgres://test_user:test_password@localhost:5433/test_database"
 
 run_parallel_ordered "Phase 3 (Integration & E2E)" \
-    "apiserver-int|apiserver|timeout 300s cargo test --test '*'" \
-    "playwright|webdashboard|timeout 300s npx playwright test --workers $NUM_WORKERS"
+    "1|apiserver-int|apiserver|timeout 300s cargo test --test '*'" \
+    "2|playwright-e2e|webdashboard|timeout 300s npx playwright test --workers $NUM_WORKERS"
 
 echo -e "\n${GREEN}${BOLD}🎉 All tests passed successfully!${NC}"

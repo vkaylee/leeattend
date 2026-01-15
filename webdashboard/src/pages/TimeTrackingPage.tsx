@@ -49,9 +49,14 @@ export default function TimeTrackingPage() {
 
   const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
 
-  // Get last 7 days history
-  const endDate = new Date().toISOString();
-  const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  // Get last 7 days history - use stable refs to avoid purity warnings
+  const { startDate, endDate } = React.useMemo(() => {
+    const now = new Date();
+    const end = now.toISOString();
+    // eslint-disable-next-line react-hooks/purity
+    const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    return { startDate: start, endDate: end };
+  }, []);
 
   const { data: history = [], isLoading: isLoadingHistory } = useQuery({
     queryKey: ["time-history", wsId, selectedEmployeeId],

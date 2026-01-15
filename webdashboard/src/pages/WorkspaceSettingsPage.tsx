@@ -39,13 +39,16 @@ export default function WorkspaceSettingsPage() {
 
   useEffect(() => {
     if (workspace) {
-      setWorkUnit(workspace.work_unit_minutes);
-      setRoundingPolicy(workspace.rounding_policy);
-      setDateFormat(workspace.date_format);
-      setTimeFormat(workspace.time_format);
-      setTimezone(workspace.timezone || "Asia/Ho_Chi_Minh");
-      setThemePrimaryColor(workspace.theme_primary_color || "#7c3aed");
-      setDefaultLanguage(workspace.default_language || "vi");
+      const timer = setTimeout(() => {
+        setWorkUnit(workspace.work_unit_minutes);
+        setRoundingPolicy(workspace.rounding_policy);
+        setDateFormat(workspace.date_format);
+        setTimeFormat(workspace.time_format);
+        setTimezone(workspace.timezone);
+        setDefaultLanguage(workspace.default_language);
+        setThemePrimaryColor(workspace.theme_primary_color);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [workspace]);
 

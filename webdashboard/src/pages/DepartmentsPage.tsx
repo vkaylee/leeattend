@@ -66,11 +66,14 @@ export default function DepartmentsPage() {
   };
 
   useEffect(() => {
-    if (editingDept) {
-      setSelectedManagerId(editingDept.manager_id || "");
-    } else {
-      setSelectedManagerId("");
-    }
+    const timer = setTimeout(() => {
+      if (editingDept) {
+        setSelectedManagerId(editingDept.manager_id || "");
+      } else {
+        setSelectedManagerId("");
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [editingDept]);
 
   if (!wsId) return <div className="p-8 text-center">{t("common.select_workspace")}</div>;

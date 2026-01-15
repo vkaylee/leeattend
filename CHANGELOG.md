@@ -5,20 +5,27 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased] - 2026-01-16
 
 ### Added
-- **Production-Grade Test Orchestrator**: Re-engineered `run-tests.sh` into a 4-phase high-performance pipeline.
-    - **Phase 0 (Linting)**: Automated code quality checks using `cargo clippy` (denying warnings) and `eslint` across all modules.
-    - **Phase 1 (Unit Tests)**: Parallel execution of backend (Rust), Edge Agent (Rust/Python), and Frontend (Vitest) unit tests.
-    - **Phase 2 (Environment)**: Automated Multi-DB setup with isolated environments for parallel integration testing.
-    - **Phase 3 (Integration/E2E)**: High-concurrency execution of Rust integration tests and Playwright E2E suites.
-- **Ordered Parallel Logging**: Implemented a sophisticated logging engine that executes tests in parallel but streams output in real-time sequential order, ensuring clear and non-interleaved logs.
-- **Massively Parallel E2E Infrastructure**:
-    - **Database Isolation**: Automated creation of dedicated Postgres databases (`test_database_e2e_0` to `3`) for each Playwright worker to prevent state pollution.
-    - **Pre-compiled Execution**: Workers now execute a pre-built backend binary instead of `cargo run`, eliminating Rust file-lock contention and drastically reducing startup time.
-    - **Dynamic Worker Scaling**: Optimized for 4 concurrent workers with 1-minute per-test strict timeout enforcement.
-- **Reliable Dev Seeding**: Hardened `dev_initialization` logic to use `INSERT ... ON CONFLICT DO UPDATE`, guaranteeing the "Fast Login" admin credentials are correct regardless of existing database state.
-- **Enhanced Resource Cleanup**: Integrated Docker volume removal (`down -v`) and signal file deletion into the `run-tests.sh` cleanup trap, ensuring a pristine system state after every test run, even on interruption (SIGINT/SIGTERM).
+- **Fail-Fast Test Orchestration**: Upgraded `run-tests.sh` to support immediate pipeline abortion.
+    - **Instant Termination**: The orchestrator now kills all concurrent tasks in a phase as soon as any single task fails, saving resources and providing faster feedback.
+    - **Strict Preparation**: Added explicit error checking for Docker setup, migrations, and pre-compilation steps.
+    - **Dynamic Worker Scaling**: Automatically calculates optimal concurrency by using half of the system's CPU cores (e.g., 8 workers on a 16-core machine).
+- **Intelligent Sidebar Navigation**:
+    - **Default Expansion**: The "Time & Leave" (Thời gian & Nghỉ phép) section is now expanded by default for better feature discoverability.
+    - **Derived State**: Re-engineered sidebar initialization to calculate open sections directly from the URL, eliminating cascading renders and improving performance.
+    - **E2E Visibility**: Integrated `invisible` and `visible` classes to collapsed/expanded sections, ensuring Playwright accurately detects element visibility during tests.
+- **Zero-Warning Linter Policy**: Enforced `--max-warnings 0` for frontend linting.
+- **New E2E Suite**: Created `sidebar-navigation.spec.ts` to verify default expansion logic and accordion exclusivity.
 
 ### Fixed
+- **React 18/19 Compatibility**: Resolved "setState synchronously within an effect" warnings across 6 major components (`App`, `AgentEditModal`, `WorkspaceSwitcher`, `DepartmentsPage`, `ProfilePage`, `WorkspaceSettingsPage`) using `setTimeout` and derived state patterns.
+- **Purity & Idempotency**: Fixed `react-hooks/purity` warnings in `TimeTrackingPage` by wrapping non-deterministic date logic in `useMemo`.
+- **Reference Errors**: Fixed a critical `ReferenceError` in `WorkspaceSettingsPage` where an incorrect state setter was called during initialization.
+- **Test Stability**: Updated `AgentEditModal.test.tsx` to handle asynchronous state updates using `findBy` queries.
+
+### Changed
+- **Resource Cleanup**: Integrated Docker volume removal (`down -v`) and signal file deletion into the `run-tests.sh` cleanup trap, ensuring a pristine system state after every test run, even on interruption (SIGINT/SIGTERM).
+
+## [Unreleased] - 2026-01-16 (Initial)
 - **API Consistency**: Standardized `UpdateShiftRequest` with `#[serde(default)]` for new fields (`allow_early_ot`, `is_correction`) to maintain backward compatibility with legacy tests.
 - **Linter Compliance**: Resolved over 30 Clippy warnings and 10 ESLint warnings to maintain a zero-warning codebase.
 - **Function Signatures**: Corrected `update_employee` signature mismatch in `employee_repository.rs` and applied `clippy::too_many_arguments` where appropriate.

@@ -27,7 +27,7 @@ const mockAgent = agentFactory({
 });
 
 describe("AgentEditModal", () => {
-  it("renders agent data when open", () => {
+  it("renders agent data when open", async () => {
     vi.mocked(agentsHook.useAuthorizedAgents).mockReturnValue({
       agents: [],
       isLoading: false,
@@ -56,7 +56,7 @@ describe("AgentEditModal", () => {
     );
 
     expect(screen.getByText("Chỉnh sửa Agent")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Test Agent")).toBeInTheDocument();
+    expect(await screen.findByDisplayValue("Test Agent")).toBeInTheDocument();
     expect(screen.getByDisplayValue("secret123")).toBeInTheDocument();
     expect(screen.getByDisplayValue("TEST_001")).toBeDisabled();
   });
@@ -95,7 +95,7 @@ describe("AgentEditModal", () => {
       />,
     );
 
-    const nameInput = screen.getByDisplayValue("Test Agent");
+    const nameInput = await screen.findByDisplayValue("Test Agent");
     fireEvent.change(nameInput, { target: { value: "New Name" } });
 
     const saveButton = screen.getByText("Lưu thay đổi");
@@ -115,7 +115,7 @@ describe("AgentEditModal", () => {
     });
   });
 
-  it("toggles trust and active states", () => {
+  it("toggles trust and active states", async () => {
     vi.mocked(agentsHook.useAuthorizedAgents).mockReturnValue({
       agents: [],
       isLoading: false,
@@ -143,7 +143,7 @@ describe("AgentEditModal", () => {
       />,
     );
 
-    const trustButton = screen.getByText("Đã duyệt");
+    const trustButton = await screen.findByText("Đã duyệt");
     const activeButton = screen.getByText("Hoạt động");
 
     fireEvent.click(trustButton);

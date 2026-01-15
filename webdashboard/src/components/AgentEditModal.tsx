@@ -34,10 +34,13 @@ export default function AgentEditModal({
 
   useEffect(() => {
     if (agent) {
-      setName(agent.name);
-      setToken(agent.token);
-      setIsTrusted(agent.is_trusted);
-      setIsActive(agent.is_active);
+      const timer = setTimeout(() => {
+        setName(agent.name);
+        setToken(agent.token);
+        setIsTrusted(agent.is_trusted);
+        setIsActive(agent.is_active);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [agent]);
 

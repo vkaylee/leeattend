@@ -35,12 +35,15 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      setFormData({
-        full_name: user.full_name || "",
-        avatar_url: user.avatar_url || "",
-        bio: user.bio || "",
-        preferred_language: user.preferred_language || "",
-      });
+      const timer = setTimeout(() => {
+        setFormData({
+          full_name: user.full_name || "",
+          avatar_url: user.avatar_url || "",
+          bio: user.bio || "",
+          preferred_language: user.preferred_language || "follow_workspace",
+        });
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [user]);
 

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { test as base, expect } from '@playwright/test';
 import { spawn, ChildProcess } from 'child_process';
 import path from 'path';

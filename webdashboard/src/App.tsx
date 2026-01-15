@@ -74,20 +74,27 @@ function Layout() {
   const { t } = useTranslation();
   useTheme();
   useI18nSync();
+  const location = useLocation();
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showSwitcher, setShowSwitcher] = useState(false);
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    org: false,
-    time: false,
-    payroll: false,
-    system: false,
-  });
+
+  // Derive initial open sections from current pathname to avoid cascading renders
+  const getInitialOpenSections = () => {
+    const path = location.pathname;
+    return {
+      org: ["/members", "/employees", "/departments"].includes(path),
+      time: ["/time-tracking", "/attendance-logs", "/leave-requests", "/attendance-adjustments", "/reports", "/leave-balances"].includes(path) || path === "/",
+      payroll: ["/shifts", "/payroll"].includes(path),
+      system: ["/agents", "/devices", "/workspace/settings"].includes(path),
+    };
+  };
+
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(getInitialOpenSections());
   
   const { workspaces } = useWorkspaces();
   const currentWsId = getCurrentWorkspaceId();
   const currentWorkspace = workspaces.find(ws => ws.id === currentWsId);
-  
-  const location = useLocation();
 
   const toggleSection = (section: string) => {
     setOpenSections(prev => ({ 
@@ -108,6 +115,7 @@ function Layout() {
       "/time-tracking": t("common.time_tracking"),
       "/attendance-logs": t("common.logs"),
       "/leave-requests": t("common.leave_requests"),
+      "/leave-balances": t("common.leave_balances"),
       "/attendance-adjustments": t("common.attendance_confirm"),
       "/reports": t("common.reports"),
       "/shifts": t("common.shifts"),
@@ -125,19 +133,30 @@ function Layout() {
     window.location.href = "/login";
   };
 
-  // Auto-expand section if a child is active
+  // Sync open sections when location changes (only if not already open)
   useEffect(() => {
     const path = location.pathname;
-    if (["/members", "/employees", "/departments"].includes(path)) setOpenSections(p => ({...p, org: true}));
-    if (["/time-tracking", "/attendance-logs", "/leave-requests", "/attendance-adjustments", "/reports"].includes(path)) setOpenSections(p => ({...p, time: true}));
-    if (["/shifts", "/payroll"].includes(path)) setOpenSections(p => ({...p, payroll: true}));
-    if (["/agents", "/devices", "/workspace/settings"].includes(path)) setOpenSections(p => ({...p, system: true}));
-  }, [location.pathname]);
+    const isOrg = ["/members", "/employees", "/departments"].includes(path);
+    const isTime = ["/time-tracking", "/attendance-logs", "/leave-requests", "/attendance-adjustments", "/reports", "/leave-balances"].includes(path);
+    const isPayroll = ["/shifts", "/payroll"].includes(path);
+    const isSystem = ["/agents", "/devices", "/workspace/settings"].includes(path);
 
-  // Close sidebar when route changes on mobile
-  useEffect(() => {
-    setIsSidebarOpen(false);
-  }, [location]);
+    // Use setTimeout to avoid synchronous setState during render warning
+    const timer = setTimeout(() => {
+      setOpenSections(prev => {
+        const next = { ...prev };
+        let changed = false;
+        if (isOrg && !prev.org) { next.org = true; changed = true; }
+        if (isTime && !prev.time) { next.time = true; changed = true; }
+        if (isPayroll && !prev.payroll) { next.payroll = true; changed = true; }
+        if (isSystem && !prev.system) { next.system = true; changed = true; }
+        return changed ? next : prev;
+      });
+      setIsSidebarOpen(false);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
 
   return (
     <div className="flex min-h-screen bg-[#fcfcfd] text-slate-900 font-sans relative overflow-x-hidden">
@@ -197,7 +216,7 @@ function Layout() {
               <span>{t("common.sections.organization")}</span>
               {openSections.org ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </button>
-            <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.org ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}>
+            <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.org ? "max-h-96 opacity-100" : "max-h-0 opacity-0 invisible"}`}>
               <Link
                 to="/members"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
@@ -237,7 +256,7 @@ function Layout() {
               <span>{t("common.sections.time_leave")}</span>
               {openSections.time ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </button>
-            <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.time ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}>
+            <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.time ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0 invisible"}`}>
               <Link
                 to="/time-tracking"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
@@ -304,7 +323,7 @@ function Layout() {
               <span>{t("common.sections.payroll_shifts")}</span>
               {openSections.payroll ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </button>
-            <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.payroll ? "max-h-64 opacity-100" : "max-h-0 opacity-0"}`}>
+            <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.payroll ? "max-h-64 opacity-100" : "max-h-0 opacity-0 invisible"}`}>
               <Link
                 to="/shifts"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
@@ -335,7 +354,7 @@ function Layout() {
               <span>{t("common.sections.system")}</span>
               {openSections.system ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </button>
-            <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.system ? "max-h-64 opacity-100" : "max-h-0 opacity-0"}`}>
+            <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.system ? "max-h-64 opacity-100" : "max-h-0 opacity-0 invisible"}`}>
               <Link
                 to="/agents"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${

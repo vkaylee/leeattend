@@ -132,24 +132,20 @@ leeattend/
 
 ### Testing Infrastructure
 - **Unified 4-Phase Pipeline (`run-tests.sh`)**: A high-performance test runner designed for extreme reliability and speed.
-    - **Phase 0 (Linting)**: Mandatory code quality check using `clippy` and `eslint`. Halts pipeline on any warnings.
-    - **Phase 1 (Parallel Unit)**: Simultaneously executes unit tests for all modules (`apiserver`, `agent-main`, `agent-zk-worker`, `webdashboard`).
-    - **Phase 2 (Orchestration)**: Provisions isolated databases for parallel E2E and pre-compiles the backend binary.
+    - **Phase 0 (Linting)**: Mandatory code quality check using `clippy` and `eslint`. Halts pipeline on any warnings (`--max-warnings 0`).
+    - **Phase 1 (Unit Tests)**: Simultaneously executes unit tests for all modules (`apiserver`, `agent-main`, `agent-zk-worker`, and `webdashboard`).
+    - **Phase 2 (Orchestration)**: Provisions isolated databases for parallel E2E and pre-compiles the backend binary. Strict error checking ensures the environment is perfect before testing starts.
     - **Phase 3 (Parallel Integration)**: Runs Rust integration tests and Playwright E2E concurrently.
+- **Fail-Fast Engine**: Orchestrator immediately terminates all sibling tasks in a phase if a single task fails, providing instantaneous feedback and saving system resources.
 - **Real-time Sequential Logging**: Sophisticated output engine that streams parallel logs in real-time sequential blocks (e.g., Worker 2's logs start exactly when Worker 1 finishes), providing "parallel speed with sequential clarity."
 - **Reliable Resource Cleanup**: Implemented a comprehensive `trap` mechanism in the orchestrator that automatically stops containers, drops Docker volumes (`-v`), and removes temporary signal files on `EXIT`, `INT`, or `TERM`.
 - **Massively Parallel E2E Isolation**:
-    - **Multi-DB Backend**: Automatically spawns dedicated databases (`test_database_e2e_0-3`) for each Playwright worker to eliminate state pollution and race conditions.
+    - **Multi-DB Backend**: Automatically spawns dedicated databases (`test_database_e2e_0-N`) for each Playwright worker to eliminate state pollution.
+    - **Dynamic Worker Scaling**: Automatically calculates optimal concurrency based on system CPU cores (Half of total cores, min 1).
     - **Pre-compiled Performance**: Workers execute the pre-built `apiserver` binary directly, avoiding `cargo run` compilation overhead and resolving Rust file-lock contention.
-    - **Scalability**: Optimized for 4 concurrent workers with strictly enforced 1-minute per-test timeouts.
+    - **Determinism**: Strictly enforced 1-minute per-test timeouts.
 - **Mandatory Quality Gate**: Bắt buộc 100% các bài test (Unit, Integration, Frontend) phải PASS trước khi merge.
 - **Comprehensive Auth Testing**: Added production-ready E2E suites for standard login flows, ensuring correct i18n handling, credential validation, and redirection logic.
-- **Coverage Goal**: Achieved >83% coverage for core business logic.
-- **Automated DB Cleanup**: The `apiserver` uses a specialized `TestDatabase` helper that:
-    - Creates a unique database for each test session.
-    - Automatically runs migrations.
-    - Uses a **Detached Background Cleanup** mechanism (via `Drop` trait) to physically remove the database from Postgres after use.
-    - Includes a **Signal Trap** (SIGINT/SIGTERM) to ensure orphan databases are cleaned up even if tests are interrupted.
-- **Integration Tests**: Comprehensive test suite ensuring 100% reliability of the cleanup logic (`tests/db_trap_test.rs`)
+- **UI Interaction Verification**: Dedicated suite for Sidebar navigation (`sidebar-navigation.spec.ts`) ensuring correct default expansion and accordion behavior.
 
 ## External Integrations

@@ -19,17 +19,18 @@ export default function WorkspaceSwitcher() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && workspaces.length > 0) {
-      const currentId = getCurrentWorkspaceId();
-      const current =
-        workspaces.find((ws) => ws.id === currentId) || workspaces[0];
+    if (workspaces.length > 0) {
+      const current = workspaces.find((ws) => ws.id === currentId) || workspaces[0];
 
       if (current) {
-        setActiveWorkspace(current);
-        if (!currentId) setCurrentWorkspaceId(current.id);
+        const timer = setTimeout(() => {
+          setActiveWorkspace(current);
+          if (!currentId) setCurrentWorkspaceId(current.id);
+        }, 0);
+        return () => clearTimeout(timer);
       }
     }
-  }, [workspaces, isLoading]);
+  }, [workspaces]);
 
   function handleSwitch(wsId: string) {
     if (wsId === "ADD_NEW") {
