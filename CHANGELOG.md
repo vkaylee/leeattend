@@ -30,6 +30,12 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **UI/UX Standards**: Added a dedicated section for Internationalization (i18n) philosophy and implementation rules.
     - **Docs Manager Agent**: Formalized documentation maintenance workflows and templates.
 
+### Refactor
+- **Monolith Decomposition**: Decomposed large files to improve maintainability and navigation.
+    - **Backend Handlers**: Split `apiserver/src/handlers.rs` (2.8k lines) into a domain-driven `handlers/` directory containing `auth.rs`, `agents.rs`, `attendance.rs`, `employees.rs`, `leaves.rs`, `payroll.rs`, `shifts.rs`, and `workspaces.rs`.
+    - **Frontend API**: Split `webdashboard/src/lib/api.ts` (1.4k lines) into a modular `lib/api/` directory with separate files for each domain (Auth, Agents, etc.) and a centralized `config.ts`.
+    - **UI Components**: Extracted `ShiftList` and `AssignmentHistory` components from `ShiftsPage.tsx` to reduce file size and improve readability.
+
 ### Fixed
 - **Backend Stability**: Fixed a mismatched closing brace in the WebSocket handler and type comparison errors in the test suite.
 - **Leave Data Integrity**: Added missing `accrued_amount` field to test factories and initializers to ensure consistent database states.

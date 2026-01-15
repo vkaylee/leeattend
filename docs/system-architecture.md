@@ -72,7 +72,14 @@ Hệ thống sử dụng mô hình **Sidecar Architecture** để tối ưu hóa
 ... (giữ nguyên) ...
 
 ## 2. API Server (Server Side)
-... (giữ nguyên) ...
+Core backend viết bằng **Rust** sử dụng framework **Axum**.
+- **Performance**: High-concurrency support with Tokio runtime.
+- **Safety**: Type-safe business logic to prevent common runtime errors (NullPointer, Data Race).
+- **Architecture**: Modular design with clean separation of concerns:
+  - `handlers/`: Domain-specific API endpoints (Auth, Agents, Attendance, etc.).
+  - `services/`: Pure business logic (Payroll, Pairing, Accrual).
+  - `repositories/`: Database abstraction layer via SQLx.
+  - `models/`: Type-safe domain entities.
 
 ## 3. Web Dashboard (Admin UI)
 Ứng dụng quản trị tập trung dành cho Admin.

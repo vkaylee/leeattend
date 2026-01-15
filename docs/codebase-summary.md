@@ -13,7 +13,7 @@ leeattend/
 ├── apiserver/         # Rust (Axum) Central Server
 │   ├── migrations/    # SQLx migrations
 │   ├── src/           # API Logic
-│   │   ├── handlers.rs # API endpoints
+│   │   ├── handlers/  # Domain-specific API Modules (Auth, Agents, Shifts...)
 │   │   ├── services/  # Business logic (PayrollService, etc.)
 │   │   ├── repositories/ # Database access (Dept, Roster, Payroll)
 │   │   ├── models.rs  # Domain models (Employee, Shift, Roster)
@@ -26,6 +26,7 @@ leeattend/
 │   │   ├── i18n/       # Internationalization (locales, config)
 │   │   ├── pages/      # Route pages
 │   │   ├── lib/        # API clients & Utils
+│   │   │   └── api/    # Modular API Client (Auth, Workspaces, etc.)
 │   │   └── test/       # Vitest setup & Factories
 ├── docs/              # System documentation
 └── plans/             # Feature implementation plans
@@ -34,6 +35,7 @@ leeattend/
 ### 🛠 Core Components
 
 1.  **Central API Server (Rust/Axum)**:
+    - **Modular Architecture**: Replaced monolithic handler file with domain-driven modules (`handlers/auth.rs`, `handlers/attendance.rs`, etc.) for better maintainability and separation of concerns.
     - Auth: JWT-based authentication & RBAC.
     - Workspace: Organizational isolation.
     - Agent Manager: WebSocket handler for remote agents.
@@ -63,7 +65,8 @@ leeattend/
     - **Premium UI (Violet)**: Zero-distraction layout with a static breadcrumb header and a single-open accordion sidebar.
     - **Dynamic Themeing**: `useTheme` hook for on-the-fly calculation of color palettes from a single HEX code.
     - **Personalization**: User-level theme overrides stored in `localStorage` with cross-tab sync.
-    - **Robust API URL Resolution**: Frontend client (`api.ts`) intelligently determines API base URL, prioritizing relative `/api` paths for web development environments (to leverage Vite's dynamic proxy) and `VITE_API_URL` for production or Tauri builds.
+    - **Modular API Client**: Refactored monolithic `api.ts` into a structured `lib/api/` directory with domain-specific files (`auth.ts`, `workspaces.ts`, etc.) while maintaining a unified export via `index.ts`.
+    - **Robust API URL Resolution**: Frontend client (`api/config.ts`) intelligently determines API base URL, prioritizing relative `/api` paths for web development environments (to leverage Vite's dynamic proxy) and `VITE_API_URL` for production or Tauri builds.
     - **Common UI Library**: Standardized components (Modal, Combobox, DropdownMenu, etc.) based on Radix UI and React Portals.
     - **Portal-based Modals**: Centralized `Modal` component using `createPortal` to ensure dialogs are always rendered at the top level of the DOM, preventing clipping by parent containers and ensuring full-screen backdrops.
     - **Global Toast System**: Non-blocking notification engine for consistent UX.
