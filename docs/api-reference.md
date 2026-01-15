@@ -50,12 +50,12 @@ Quản lý thông tin định danh toàn cầu.
 #### GET /me
 Lấy thông tin hồ sơ của người dùng hiện tại.
 - **Headers**: `X-User-Id`
-- **Response (200)**: `User` object (`id`, `email`, `full_name`, `avatar_url`, `bio`, `created_at`)
+- **Response (200)**: `User` object (`id`, `email`, `full_name`, `avatar_url`, `bio`, `preferred_language`, `created_at`)
 
 #### PATCH /me
 Cập nhật thông tin hồ sơ.
 - **Headers**: `X-User-Id`
-- **Request**: `{ "full_name": "...", "avatar_url": "...", "bio": "..." }`
+- **Request**: `{ "full_name": "...", "avatar_url": "...", "bio": "...", "preferred_language": "vi|en|zh" }`
 - **Response (200 OK)**
 
 #### GET /users (Dev Only)
@@ -78,6 +78,7 @@ Quản lý không gian làm việc và cấu hình hệ thống.
   "date_format": "DD/MM/YYYY", // DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD
   "time_format": "24h", // 24h, 12h
   "timezone": "Asia/Ho_Chi_Minh", // IANA Timezone ID
+  "default_language": "vi", // vi, en, zh
   "theme_primary_color": "#7c3aed", // HEX color for UI branding
   "created_at": "datetime"
 }
@@ -107,6 +108,7 @@ Cập nhật thông tin hoặc cấu hình hệ thống của workspace.
     "date_format": "MM/DD/YYYY",
     "time_format": "12h",
     "timezone": "Asia/Ho_Chi_Minh",
+    "default_language": "vi|en|zh",
     "theme_primary_color": "#059669"
   }
   ```

@@ -18,6 +18,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 - **Enhanced Time/Date Localization**:
     - **Dynamic Locales**: Integrated `date-fns` with dynamic locale loading based on the active user language.
     - **Format Consistency**: Standardized date and time display across different modules using the workspace's preference.
+- **📚 Documentation Audit & Update**:
+    - **Codebase Summary**: Integrated i18n Engine and Full-stack multi-language support details.
+    - **API Reference**: Updated User and Workspace models with `preferred_language` and `default_language` fields.
+    - **UI/UX Standards**: Added a dedicated section for Internationalization (i18n) philosophy and implementation rules.
+    - **Docs Manager Agent**: Formalized documentation maintenance workflows and templates.
 
 ### Fixed
 - **Code Duplication**: Resolved a critical regression in `ShiftsPage.tsx` where modal code blocks were duplicated, causing parsing errors.

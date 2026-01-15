@@ -86,3 +86,28 @@ Sử dụng Tailwind Animate cho mọi thành phần mới xuất hiện:
 Người dùng có quyền can thiệp vào giao diện mà không ảnh hưởng đến người khác.
 - Cho phép thay đổi màu sắc chủ đạo.
 - Tự động lưu và nhận diện màu sắc theo trình duyệt (`localStorage`) để đảm bảo tốc độ phản hồi ngay khi vừa tải trang.
+
+---
+
+## 7. Đa ngôn ngữ (Internationalization - i18n)
+
+Hệ thống hỗ trợ đa ngôn ngữ để phục vụ các doanh nghiệp đa quốc gia.
+
+### 7.1. Ngôn ngữ hỗ trợ
+- **Tiếng Việt (vi)**: Ngôn ngữ mặc định.
+- **Tiếng Anh (en)**: Ngôn ngữ quốc tế.
+- **Tiếng Trung (zh)**: Phục vụ các doanh nghiệp sản xuất.
+
+### 7.2. Đồng bộ hóa trạng thái
+- **Frontend-First**: Khi người dùng thay đổi ngôn ngữ trên giao diện, `i18next` sẽ cập nhật ngay lập tức mà không cần tải lại trang.
+- **Backend Sync**: Ngôn ngữ được chọn sẽ được tự động gửi lên server để lưu vào `preferred_language` của User.
+- **Fallback Logic**: 
+    1. Ưu tiên ngôn ngữ trong `localStorage`.
+    2. Nếu không có, sử dụng `preferred_language` từ Backend.
+    3. Nếu là khách (chưa login), sử dụng `default_language` của Workspace.
+    4. Cuối cùng, fallback về trình duyệt hoặc Tiếng Việt.
+
+### 7.3. Quy tắc dịch thuật
+- Sử dụng key-based translation (ví dụ: `common.save`, `errors.unauthorized`).
+- Tuyệt đối không hardcode chuỗi ký tự hiển thị trong component.
+- Đối với các thông báo lỗi từ Backend, Frontend sẽ dựa vào mã lỗi để hiển thị nội dung dịch tương ứng.

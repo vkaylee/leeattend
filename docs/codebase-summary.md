@@ -41,6 +41,7 @@ leeattend/
     - **Temporal Engine**: Logic gán ca (`employee_shifts`) dựa trên thời gian. Hỗ trợ ghi đè ca tạm thời lên ca vĩnh viễn và tự động fallback.
     - **Heartbeat Engine**: Time-based tracking of edge agent connectivity.
     - **Timezone Engine**: Comprehensive timezone management per workspace. Correctly handles local-to-UTC conversion for external data imports (Excel/CSV) using the workspace's configured IANA timezone ID.
+    - **Internationalization (i18n) Engine**: Persistent language preferences stored at both user and workspace levels. Backend automatically detects and synchronizes with frontend state via `preferred_language` and `default_language` fields.
 - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections. Supports **Robust Asynchronous Batch Import** (Excel/CSV) with auto-recovery and real-time progress tracking.
 - **Attendance Persistence Layer**: 
     - **Raw Event Store**: Dedicated `raw_attendance_logs` table for immutable original punch data from hardware and imports.
@@ -60,6 +61,7 @@ leeattend/
     - **Portal-based Modals**: Centralized `Modal` component using `createPortal` to ensure dialogs are always rendered at the top level of the DOM, preventing clipping by parent containers and ensuring full-screen backdrops.
     - **Global Toast System**: Non-blocking notification engine for consistent UX.
     - **Unified Date/Time Formatting**: Centralized formatting via `useDateTimeFormatter` hook, ensuring all displays respect per-workspace `date_format` and `time_format` preferences.
+    - **Full-stack Multi-language Support**: Comprehensive i18n implementation using `i18next` for Vietnamese, English, and Chinese. Features automatic synchronization between browser local state and backend user preferences.
     - **Quick Month Filters**: Optimized UX for report and log views with shortcut buttons for "This Month", "Last Month", and "Custom" date ranges.
     - Onboarding & Workspace management flows.
     - Real-time agent status via **Heartbeat Badges**.
@@ -85,6 +87,7 @@ leeattend/
 - [x] Configurable Work Units: Support for 15m/30m/60m rounding blocks with configurable policies (Floor/Ceil/Round).
 - [x] **Raw Attendance Audit**: Immutable event-centric storage with smart pairing logic.
 - [x] **Workspace Personalization**: Per-workspace preference for `date_format`, `time_format`, and `timezone` with consistent UI and processing application.
+- [x] **Full-stack Multi-language Support**: Native support for Vietnamese (vi), English (en), and Chinese (zh) with automatic backend sync.
 - [x] Accurate Real-time Status (Heartbeat).
 - [x] **RBAC Audit**: Full security audit of all administrative endpoints; strict enforcement of `MemberContext` roles (Owner/Admin).
 - [x] **Leave Management**: Comprehensive tracking of leave requests, approvals, and annual balances.
