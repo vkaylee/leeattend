@@ -72,7 +72,7 @@ async fn test_leave_history_and_adjustment() {
 
     // 3. Submit & Approve Leave Request (Usage -2 days)
     let submit_req = SubmitLeaveRequest {
-        employee_id: emp.id,
+        employee_id: emp_id,
         leave_type: "vacation".to_string(),
         start_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
         end_date: NaiveDate::from_ymd_opt(2026, 2, 2).unwrap(),
