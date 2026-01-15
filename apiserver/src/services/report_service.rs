@@ -1,5 +1,5 @@
 use axum::http::StatusCode;
-use chrono::{DateTime, Utc, NaiveDate, TimeZone};
+use chrono::{Utc, NaiveDate, TimeZone};
 use chrono_tz::Tz;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -146,9 +146,39 @@ impl ReportService {
     pub async fn get_workspace_attendance_summary(
         pool: &PgPool,
         workspace_id: Uuid,
-        start_date: DateTime<Utc>,
-        end_date: DateTime<Utc>,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
     ) -> Result<Vec<AttendanceSummary>, StatusCode> {
+        // 0. Get Workspace Settings for Timezone
+        let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
+        let workspace = workspace_repo.get_workspace_by_id(workspace_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
+
+        // 1. Convert NaiveDate to DateTime<Utc> using Workspace Timezone
+        let start_dt = tz
+            .from_local_datetime(
+                &start_date
+                    .and_hms_opt(0, 0, 0)
+                    .ok_or(StatusCode::BAD_REQUEST)?,
+            )
+            .single()
+            .ok_or(StatusCode::BAD_REQUEST)?
+            .with_timezone(&Utc);
+
+        let end_dt = tz
+            .from_local_datetime(
+                &end_date
+                    .and_hms_opt(23, 59, 59)
+                    .ok_or(StatusCode::BAD_REQUEST)?,
+            )
+            .single()
+            .ok_or(StatusCode::BAD_REQUEST)?
+            .with_timezone(&Utc);
+
         let summaries = sqlx::query!(
             r#"
             SELECT 
@@ -165,14 +195,16 @@ impl ReportService {
                 ), 0)::bigint as total_leave_days
             FROM employees e
             LEFT JOIN time_entries te ON e.id = te.employee_id 
-                AND te.punch_in_time >= $2 
-                AND te.punch_in_time <= $3
+                AND te.punch_in_time >= $4 
+                AND te.punch_in_time <= $5
             WHERE e.workspace_id = $1
             GROUP BY e.id, e.first_name, e.last_name
             "#,
             workspace_id,
             start_date,
-            end_date
+            end_date,
+            start_dt,
+            end_dt
         )
         .fetch_all(pool)
         .await

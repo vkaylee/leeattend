@@ -431,10 +431,10 @@ pub async fn get_attendance_report(
     let end_date_str = params.get("end_date").ok_or(StatusCode::BAD_REQUEST)?;
     let report_type = params.get("type").map(|s| s.as_str()).unwrap_or("summary");
 
-    if report_type == "daily" {
-        let start_date = NaiveDate::parse_from_str(start_date_str, "%Y-%m-%d").map_err(|_| StatusCode::BAD_REQUEST)?;
-        let end_date = NaiveDate::parse_from_str(end_date_str, "%Y-%m-%d").map_err(|_| StatusCode::BAD_REQUEST)?;
+    let start_date = NaiveDate::parse_from_str(start_date_str, "%Y-%m-%d").map_err(|_| StatusCode::BAD_REQUEST)?;
+    let end_date = NaiveDate::parse_from_str(end_date_str, "%Y-%m-%d").map_err(|_| StatusCode::BAD_REQUEST)?;
 
+    if report_type == "daily" {
         match crate::services::ReportService::get_daily_attendance_report(
             &state.db,
             workspace_id,
@@ -447,13 +447,6 @@ pub async fn get_attendance_report(
             Err(e) => Err(e),
         }
     } else {
-        let start_date = DateTime::parse_from_rfc3339(&format!("{}T00:00:00Z", start_date_str))
-            .map_err(|_| StatusCode::BAD_REQUEST)?
-            .with_timezone(&Utc);
-        let end_date = DateTime::parse_from_rfc3339(&format!("{}T23:59:59Z", end_date_str))
-            .map_err(|_| StatusCode::BAD_REQUEST)?
-            .with_timezone(&Utc);
-
         match crate::services::ReportService::get_workspace_attendance_summary(
             &state.db,
             workspace_id,

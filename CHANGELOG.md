@@ -36,6 +36,9 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Frontend API**: Split `webdashboard/src/lib/api.ts` (1.4k lines) into a modular `lib/api/` directory with separate files for each domain (Auth, Agents, etc.) and a centralized `config.ts`.
     - **UI Components**: Extracted `ShiftList` and `AssignmentHistory` components from `ShiftsPage.tsx` to reduce file size and improve readability.
 
+### Changed
+- **Timezone Logic Refactor**: Updated `TimeTrackingService` and `ReportService` to strictly use the workspace's configured timezone for all date calculations (Punch In validation, Daily Reports, Summary Reports), ensuring accuracy across different geographical locations.
+
 ### Fixed
 - **Backend Stability**: Fixed a mismatched closing brace in the WebSocket handler and type comparison errors in the test suite.
 - **Leave Data Integrity**: Added missing `accrued_amount` field to test factories and initializers to ensure consistent database states.

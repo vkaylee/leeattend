@@ -1,5 +1,6 @@
 use axum::http::StatusCode;
-use chrono::{DateTime, Utc, Local};
+use chrono::{DateTime, Utc};
+use chrono_tz::Tz;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -8,6 +9,7 @@ use crate::repositories::employee_repository;
 use crate::repositories::time_entry_repository;
 use crate::repositories::roster_repository;
 use crate::repositories::shift_repository;
+use crate::repositories::workspace_repository::{WorkspaceRepository, SqlxWorkspaceRepository};
 
 pub struct TimeTrackingService;
 
@@ -27,6 +29,15 @@ impl TimeTrackingService {
             return Err(StatusCode::FORBIDDEN);
         }
 
+        // Get Workspace Timezone
+        let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
+        let workspace = workspace_repo.get_workspace_by_id(workspace_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?; // Should allow not found? No, foreign key usually enforces it, but safe to error.
+
+        let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
+
         // Check if already punched in
         if let Some(_) = time_entry_repository::get_latest_active_entry(pool, req.employee_id)
             .await
@@ -36,7 +47,7 @@ impl TimeTrackingService {
         }
 
         let now = Utc::now();
-        let local_now = now.with_timezone(&Local);
+        let local_now = now.with_timezone(&tz);
         let today = local_now.date_naive();
 
         // 1. Identify effective shift
