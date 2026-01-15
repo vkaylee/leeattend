@@ -24,6 +24,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 - **Enhanced Time/Date Localization**:
     - **Dynamic Locales**: Integrated `date-fns` with dynamic locale loading based on the active user language.
     - **Format Consistency**: Standardized date and time display across different modules using the workspace's preference.
+- **Overnight Shift Support**: Complete infrastructure for handling shifts spanning midnight (e.g., 22:00 - 06:00).
+    - **Linearized Pairing Engine**: Refactored `pairing_algo.rs` to use minute-based linearization, allowing accurate pairing across date boundaries.
+    - **Extended Log Lookahead**: Updated `PairingService` to search for punches in a 36-hour window to capture next-day checkouts.
+    - **Timezone-Aware Linearization**: Integration between Workspace Timezone and pairing logic to ensure "Day 1" work is correctly attributed regardless of UTC wrap.
+    - **Calculation Hardening**: Enhanced `AttendanceCalculator`, `PayrollService`, and `ReportService` to support overnight capacity and duration logic.
 - **📚 Documentation Audit & Update**:
     - **Codebase Summary**: Integrated i18n Engine and Full-stack multi-language support details.
     - **API Reference**: Updated User and Workspace models with `preferred_language` and `default_language` fields.

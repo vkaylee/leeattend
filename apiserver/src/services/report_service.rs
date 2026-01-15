@@ -81,31 +81,40 @@ impl ReportService {
                         .map(|e| e.duration_minutes.unwrap_or(0))
                         .sum();
 
-                    let (std, ot) = AttendanceCalculator::calculate_daily_net_hours(
-                        punch_in,
-                        punch_out,
-                        daily.start_time.and_then(|t| tz.from_local_datetime(&date.and_time(t)).single()),
-                        daily.end_time.and_then(|t| tz.from_local_datetime(&date.and_time(t)).single()),
-                        daily.break_duration_minutes.unwrap_or(0),
-                        daily.early_punch_in_grace_period_minutes.unwrap_or(0),
-                        daily.is_break_auto_deduct.unwrap_or(false),
-                        false, 
-                        actual_break_minutes
-                    );
+                    let start_dt = daily.start_time.and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
+                    let end_dt = daily.end_time.and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
 
-                    let rounded_std = AttendanceCalculator::apply_rounding(
-                        std, 
-                        workspace.work_unit_minutes, 
-                        &workspace.rounding_policy
-                    );
-                    
-                    let rounded_ot = AttendanceCalculator::apply_rounding(
-                        ot, 
-                        workspace.work_unit_minutes, 
-                        &workspace.rounding_policy
-                    );
+                    if let (Some(start), Some(mut end)) = (start_dt, end_dt) {
+                        if daily.end_time < daily.start_time {
+                            end = end + chrono::Duration::days(1);
+                        }
 
-                    total_payable_minutes = rounded_std + rounded_ot;
+                        let (std, ot) = AttendanceCalculator::calculate_daily_net_hours(
+                            punch_in,
+                            punch_out,
+                            Some(start),
+                            Some(end),
+                            daily.break_duration_minutes.unwrap_or(0),
+                            daily.early_punch_in_grace_period_minutes.unwrap_or(0),
+                            daily.is_break_auto_deduct.unwrap_or(false),
+                            false, 
+                            actual_break_minutes
+                        );
+
+                        let rounded_std = AttendanceCalculator::apply_rounding(
+                            std, 
+                            workspace.work_unit_minutes, 
+                            &workspace.rounding_policy
+                        );
+                        
+                        let rounded_ot = AttendanceCalculator::apply_rounding(
+                            ot, 
+                            workspace.work_unit_minutes, 
+                            &workspace.rounding_policy
+                        );
+
+                        total_payable_minutes = rounded_std + rounded_ot;
+                    }
                 }
                 // -----------------------------
 

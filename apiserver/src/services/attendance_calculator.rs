@@ -103,7 +103,12 @@ impl AttendanceCalculator {
         let worked_minutes = i32::max(0, raw_duration - break_to_deduct);
 
         // E. Split Standard vs Overtime
-        if let (Some(start), Some(end)) = (shift_start_dt, shift_end_dt) {
+        if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
+            // Handle Overnight Shift linearization for capacity check
+            if end < start {
+                end = end + Duration::days(1);
+            }
+
             let shift_duration = end.signed_duration_since(start).num_minutes() as i32;
             let standard_work_capacity = shift_duration - scheduled_break_minutes; // Standard hours capacity
 

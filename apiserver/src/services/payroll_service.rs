@@ -126,19 +126,30 @@ impl PayrollService {
                             .unwrap_or(None);
 
                         if let Some(s) = shift {
-                            let (std, ot) = AttendanceCalculator::calculate_daily_net_hours(
-                                punch_in,
-                                punch_out,
-                                tz.from_local_datetime(&entry_date.and_time(s.start_time)).single(),
-                                tz.from_local_datetime(&entry_date.and_time(s.end_time)).single(),
-                                s.break_duration_minutes,
-                                s.early_punch_in_grace_period_minutes,
-                                s.is_break_auto_deduct,
-                                entry.is_break_overtime,
-                                actual_break_minutes
-                            );
-                            day_standard += std;
-                            day_overtime += ot;
+                            let start_dt = tz.from_local_datetime(&entry_date.and_time(s.start_time)).single();
+                            let end_dt = tz.from_local_datetime(&entry_date.and_time(s.end_time)).single();
+                            
+                            if let (Some(start), Some(mut end)) = (start_dt, end_dt) {
+                                if s.end_time < s.start_time {
+                                    end = end + chrono::Duration::days(1);
+                                }
+
+                                let (std, ot) = AttendanceCalculator::calculate_daily_net_hours(
+                                    punch_in,
+                                    punch_out,
+                                    Some(start),
+                                    Some(end),
+                                    s.break_duration_minutes,
+                                    s.early_punch_in_grace_period_minutes,
+                                    s.is_break_auto_deduct,
+                                    entry.is_break_overtime,
+                                    actual_break_minutes
+                                );
+                                day_standard += std;
+                                day_overtime += ot;
+                            } else {
+                                day_standard += (punch_out - punch_in).num_minutes() as i32;
+                            }
                         } else {
                             day_standard += (punch_out - punch_in).num_minutes() as i32;
                         }

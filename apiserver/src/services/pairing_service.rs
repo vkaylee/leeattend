@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 use uuid::Uuid;
-use chrono::{Utc, Duration, NaiveDate, TimeZone, NaiveTime, DateTime};
+use chrono::{Utc, Duration, NaiveDate, TimeZone, DateTime, Timelike};
 use tracing::info;
 use chrono_tz::Tz;
 
@@ -15,7 +15,7 @@ impl PairingService {
         pool: &PgPool,
         log: &RawAttendanceLog,
     ) -> Result<(), sqlx::Error> {
-        // 1. Deduplication (Same as before)
+        // 1. Deduplication (1 minute window)
         let start_window = log.punch_time - Duration::minutes(1);
         let end_window = log.punch_time + Duration::minutes(1);
 
@@ -45,8 +45,6 @@ impl PairingService {
         }
 
         // 2. Fetch Workspace Timezone
-        // We assume the log is already inserted by the handler/caller.
-        // We need workspace info.
         let workspace_info = sqlx::query!(
             "SELECT timezone FROM workspaces WHERE id = $1",
             log.workspace_id
@@ -76,8 +74,6 @@ impl PairingService {
         info!("Reprocessing attendance for emp {} on date {}", employee_id, date);
 
         // 1. Fetch effective schedule
-        // We need to construct PairingShiftConfig.
-        // We reuse roster_repository logic.
         let shift_id_opt = roster_repository::get_effective_shift(pool, employee_id, date).await?;
 
         let mut shift_config = None;
@@ -90,98 +86,98 @@ impl PairingService {
              .await?;
 
              if let Some(s) = shift {
+                 let start_m = s.start_time.hour() * 60 + s.start_time.minute();
+                 let mut end_m = s.end_time.hour() * 60 + s.end_time.minute();
+                 
+                 // Handle Overnight: if end < start, it's next day
+                 if s.end_time < s.start_time {
+                     end_m += 1440;
+                 }
+
+                 let mut bs_m = s.break_start.map(|t| t.hour() * 60 + t.minute());
+                 let mut be_m = s.break_end.map(|t| t.hour() * 60 + t.minute());
+
+                 // Handle break overnight transition if needed
+                 if let (Some(bs), Some(be)) = (bs_m, be_m) {
+                     if bs < start_m { bs_m = Some(bs + 1440); }
+                     if be < bs { be_m = Some(be + 1440); }
+                 }
+
                  shift_config = Some(PairingShiftConfig {
-                     start_time: s.start_time,
-                     end_time: s.end_time,
-                     break_start: s.break_start,
-                     break_end: s.break_end,
+                     start_minutes: start_m as i32,
+                     end_minutes: end_m as i32,
+                     break_start_minutes: bs_m.map(|m| m as i32),
+                     break_end_minutes: be_m.map(|m| m as i32),
                  });
              }
         }
 
-        // 2. Fetch all raw logs for that day (in Local Time perspective)
-        // To be safe, we query UTC range corresponding to that day in that TZ.
-        let start_of_day = tz.from_local_datetime(&date.and_hms_opt(0, 0, 0).unwrap()).unwrap().with_timezone(&Utc);
-        let end_of_day = tz.from_local_datetime(&date.and_hms_opt(23, 59, 59).unwrap()).unwrap().with_timezone(&Utc);
+        // 2. Fetch raw logs
+        // Search window: Date 00:00 to Date+1 12:00 (36 hours) to catch overnight checkouts
+        let start_of_day_local = tz.from_local_datetime(&date.and_hms_opt(0, 0, 0).unwrap()).unwrap();
+        let start_of_day_utc = start_of_day_local.with_timezone(&Utc);
+        let end_of_window_utc = start_of_day_utc + Duration::hours(36);
 
         let logs = sqlx::query!(
-            "SELECT punch_time FROM raw_attendance_logs WHERE employee_id = $1 AND punch_time >= $2 AND punch_time <= $3 ORDER BY punch_time ASC",
+            "SELECT punch_time FROM raw_attendance_logs WHERE employee_id = $1 AND punch_time >= $2 AND punch_time < $3 ORDER BY punch_time ASC",
             employee_id,
-            start_of_day,
-            end_of_day
+            start_of_day_utc,
+            end_of_window_utc
         )
         .fetch_all(pool)
         .await?;
 
-        if logs.is_empty() {
-            // Nothing to process, delete existing auto entries
-            Self::clear_auto_entries(pool, employee_id, start_of_day, end_of_day).await?;
-            return Ok(());
-        }
-
-        // --- FILTER LOGS ---
-        // Ignore punches that are too close to the previous one (within 1 minute)
-        let mut filtered_logs = Vec::new();
+        // 3. Filter and Linearize Logs
+        let mut filtered_log_minutes = Vec::new();
         if !logs.is_empty() {
-            let mut last_time = logs[0].punch_time;
-            filtered_logs.push(last_time);
+            let mut last_time: Option<DateTime<Utc>> = None;
             
-            for i in 1..logs.len() {
-                if logs[i].punch_time.signed_duration_since(last_time) > Duration::minutes(1) {
-                    last_time = logs[i].punch_time;
-                    filtered_logs.push(last_time);
+            for log in logs {
+                if let Some(lt) = last_time {
+                    if log.punch_time.signed_duration_since(lt) <= Duration::minutes(1) {
+                        continue;
+                    }
                 }
+                
+                // Linearize: minutes since start_of_day_local
+                let log_local = log.punch_time.with_timezone(&tz);
+                let duration_since_start = log_local.signed_duration_since(start_of_day_local);
+                filtered_log_minutes.push(duration_since_start.num_minutes() as i32);
+                
+                last_time = Some(log.punch_time);
             }
         }
 
-        let log_times: Vec<NaiveTime> = filtered_logs.iter()
-            .map(|t| t.with_timezone(&tz).time())
-            .collect();
-        // -------------------
+        if filtered_log_minutes.is_empty() {
+            Self::clear_auto_entries(pool, employee_id, start_of_day_utc, start_of_day_utc + Duration::hours(24)).await?;
+            return Ok(());
+        }
 
-        // 3. Run Algorithm
+        // 4. Run Algorithm
         let sessions = if let Some(config) = shift_config {
-            pairing_algo::pair_logs_min_cost(&log_times, &config)
+            pairing_algo::pair_logs_min_cost(&filtered_log_minutes, &config)
         } else {
-            // No shift (Day Off or Unassigned). Use simple pairing (Flip-Flop)
-            // Or treat as "Continuous" 00:00-23:59?
-            // Let's use simple chronological pairing.
-            Self::pair_chronological(&log_times)
+            Self::pair_chronological(&filtered_log_minutes)
         };
 
-        // 4. Update Database
-        // Start Transaction
+        // 5. Update Database
         let mut tx = pool.begin().await?;
 
-        // A. Delete existing entries (Caution: we might want to preserve manual notes, but for now we overwrite auto-generated ones)
-        // Ideally we should distinguish "Manual" vs "Auto".
-        // Assuming we overwrite all for that day.
+        // Delete existing auto entries for the standard 24h period of that date
         sqlx::query!(
-            "DELETE FROM time_entries WHERE employee_id = $1 AND punch_in_time >= $2 AND punch_in_time <= $3",
+            "DELETE FROM time_entries WHERE employee_id = $1 AND punch_in_time >= $2 AND punch_in_time < $3",
             employee_id,
-            start_of_day,
-            end_of_day
+            start_of_day_utc,
+            start_of_day_utc + Duration::hours(24)
         )
         .execute(&mut *tx)
         .await?;
 
-        // B. Insert new entries
         for session in sessions {
-            // Convert NaiveTime back to UTC DateTime for that specific date
-            // Handle day overflow? The algo doesn't output day overflow yet (all NaiveTime).
-            // We assume everything is on 'date'.
-            
-            let start_dt = tz.from_local_datetime(&date.and_time(session.start)).unwrap().with_timezone(&Utc);
-            
-            let end_dt = session.end.map(|t| {
-                 tz.from_local_datetime(&date.and_time(t)).unwrap().with_timezone(&Utc)
-            });
+            let start_dt = start_of_day_utc + Duration::minutes(session.start_minutes as i64);
+            let end_dt = session.end_minutes.map(|m| start_of_day_utc + Duration::minutes(m as i64));
 
-            let duration = if let Some(end) = end_dt {
-                Some((end - start_dt).num_minutes() as i32)
-            } else {
-                None
-            };
+            let duration = end_dt.map(|end| (end - start_dt).num_minutes() as i32);
 
             sqlx::query!(
                 r#"
@@ -203,13 +199,12 @@ impl PairingService {
         }
 
         tx.commit().await?;
-
         Ok(())
     }
 
     async fn clear_auto_entries(pool: &PgPool, employee_id: Uuid, start: DateTime<Utc>, end: DateTime<Utc>) -> Result<(), sqlx::Error> {
         sqlx::query!(
-            "DELETE FROM time_entries WHERE employee_id = $1 AND punch_in_time >= $2 AND punch_in_time <= $3",
+            "DELETE FROM time_entries WHERE employee_id = $1 AND punch_in_time >= $2 AND punch_in_time < $3",
             employee_id, start, end
         )
         .execute(pool)
@@ -217,24 +212,23 @@ impl PairingService {
         Ok(())
     }
 
-    fn pair_chronological(logs: &[NaiveTime]) -> Vec<pairing_algo::PairedSession> {
+    fn pair_chronological(logs: &[i32]) -> Vec<pairing_algo::PairedSession> {
         let mut sessions = Vec::new();
         let mut chunks = logs.chunks_exact(2);
         
         while let Some(chunk) = chunks.next() {
             sessions.push(pairing_algo::PairedSession {
-                start: chunk[0],
-                end: Some(chunk[1]),
+                start_minutes: chunk[0],
+                end_minutes: Some(chunk[1]),
                 entry_type: "work".to_string(),
                 note: Some("No Shift - Auto Paired".to_string()),
             });
         }
         
-        // Handle remainder
         if let Some(last) = chunks.remainder().first() {
              sessions.push(pairing_algo::PairedSession {
-                start: *last,
-                end: None,
+                start_minutes: *last,
+                end_minutes: None,
                 entry_type: "work".to_string(),
                 note: Some("No Shift - Missing Out".to_string()),
             });
