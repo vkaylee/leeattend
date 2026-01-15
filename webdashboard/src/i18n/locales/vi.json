@@ -40,6 +40,8 @@
     "employee": "Nhân viên",
     "all_employees": "Tất cả nhân viên",
     "year": "Năm",
+    "month": "Tháng",
+    "total": "Tổng số",
     "save": "Lưu",
     "info": "Thông báo",
     "warning": "Cảnh báo",
@@ -666,8 +668,10 @@
       "iso": "Kiểu ISO (Ví dụ: 2025-12-31)"
     },
     "time_format_options": {
-      "24h": "24 Giờ",
-      "12h": "12 Giờ"
+      "24h": "Định dạng 24 Giờ",
+      "12h": "Định dạng 12 Giờ",
+      "example_24h": "Ví dụ: 14:30",
+      "example_12h": "Ví dụ: 02:30 PM"
     },
     "timezone_options": {
       "vn": "Việt Nam (UTC+7)",

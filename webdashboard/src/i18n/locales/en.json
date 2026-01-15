@@ -20,6 +20,9 @@
     "admin": "Admin",
     "workspace_owner": "Workspace Owner",
     "office_branch": "Office / Branch",
+    "year": "Year",
+    "month": "Month",
+    "total": "Total",
     "select_workspace_desc": "Select the office or branch you want to work with.",
     "create_workspace": "Create Workspace",
     "add_office_branch": "Add office/branch",
@@ -662,7 +665,9 @@
     },
     "time_format_options": {
       "24h": "24 Hours",
-      "12h": "12 Hours"
+      "12h": "12 Hours",
+      "example_24h": "Example: 14:30",
+      "example_12h": "Example: 02:30 PM"
     },
     "timezone_options": {
       "vn": "Vietnam (UTC+7)",

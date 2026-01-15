@@ -185,8 +185,8 @@ export default function WorkspaceSettingsPage() {
                 <Combobox
                   data-testid="time-format-select"
                   options={[
-                    { value: "24h", label: t("workspace_settings.time_format_options.24h"), description: "Ví dụ: 14:30", icon: <Clock className="w-4 h-4" /> },
-                    { value: "12h", label: t("workspace_settings.time_format_options.12h"), description: "Ví dụ: 02:30 PM", icon: <Clock className="w-4 h-4" /> },
+                    { value: "24h", label: t("workspace_settings.time_format_options.24h"), description: t("workspace_settings.time_format_options.example_24h"), icon: <Clock className="w-4 h-4" /> },
+                    { value: "12h", label: t("workspace_settings.time_format_options.12h"), description: t("workspace_settings.time_format_options.example_12h"), icon: <Clock className="w-4 h-4" /> },
                   ]}
                   value={timeFormat}
                   onChange={setTimeFormat}

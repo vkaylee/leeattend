@@ -52,6 +52,8 @@
     "employee": "员工",
     "year": "年",
     "month": "月",
+    "total": "总计",
+    "save": "保存",
     "processing": "处理中...",
     "shift": "班次",
     "status": "状态",
@@ -677,7 +679,9 @@
     },
     "time_format_options": {
       "24h": "24 小时制",
-      "12h": "12 小时制"
+      "12h": "12 小时制",
+      "example_24h": "例如: 14:30",
+      "example_12h": "例如: 02:30 PM"
     },
     "timezone_options": {
       "vn": "越南 (UTC+7)",
