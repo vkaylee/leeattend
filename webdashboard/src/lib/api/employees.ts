@@ -1,0 +1,91 @@
+import { API_BASE_URL } from "./config";
+import { apiFetch } from "./helpers";
+import { Employee, EmploymentPeriod, EmployeeDepartmentHistory } from "./types";
+
+export async function fetchEmployees(wsId: string): Promise<Employee[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees`);
+  if (!response.ok) throw new Error("Failed to fetch employees");
+  return response.json();
+}
+
+export async function fetchEmployee(wsId: string, id: string): Promise<Employee> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}`);
+  if (!response.ok) throw new Error("Failed to fetch employee");
+  return response.json();
+}
+
+export async function fetchEmploymentHistory(
+  wsId: string,
+  id: string
+): Promise<EmploymentPeriod[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}/history`);
+  if (!response.ok) throw new Error("Failed to fetch employment history");
+  return response.json();
+}
+
+export async function rehireEmployee(
+  wsId: string,
+  id: string,
+  data: { hire_date: string }
+): Promise<Employee> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}/rehire`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || "Failed to re-hire employee");
+  }
+  return response.json();
+}
+
+export async function createEmployee(
+  wsId: string,
+  employee: Partial<Employee>,
+): Promise<Employee> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees`, {
+    method: "POST",
+    body: JSON.stringify(employee),
+  });
+  if (!response.ok) throw new Error("Failed to create employee");
+  return response.json();
+}
+
+export async function updateEmployee(
+  wsId: string,
+  id: string,
+  employee: Partial<Employee>,
+): Promise<Employee> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(employee),
+  });
+  if (!response.ok) throw new Error("Failed to update employee");
+  return response.json();
+}
+
+export async function deleteEmployee(wsId: string, id: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to delete employee");
+}
+
+export async function transferEmployee(
+  wsId: string,
+  employeeId: string,
+  data: { department_id: string; effective_date: string; notes?: string }
+): Promise<EmployeeDepartmentHistory> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/departments`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to transfer employee");
+  return response.json();
+}
+
+export async function fetchEmployeeDepartmentHistory(wsId: string, employeeId: string): Promise<EmployeeDepartmentHistory[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/departments`);
+  if (!response.ok) throw new Error("Failed to fetch dept history");
+  return response.json();
+}

@@ -1,0 +1,187 @@
+use axum::{
+    extract::{State, Path},
+    response::{IntoResponse, Json},
+    http::StatusCode,
+};
+use std::sync::Arc;
+use uuid::Uuid;
+
+use crate::AppState;
+use crate::handlers::common::MemberContext;
+use crate::models::{
+    Employee, CreateEmployeeRequest, UpdateEmployeeRequest, RehireEmployeeRequest,
+    EmployeeDepartmentHistory, TransferEmployeeRequest
+};
+use crate::services::employee_service::EmployeeService;
+
+// --- Employee Management Handlers ---
+
+pub async fn get_employees(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> impl IntoResponse {
+    match EmployeeService::get_all_employees(
+        &state.db,
+        workspace_id,
+    )
+    .await
+    {
+        Ok(employees) => Json(employees).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn get_employee(
+    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> Result<Json<Employee>, StatusCode> {
+    match EmployeeService::get_employee_by_id(
+        &state.db,
+        id,
+        workspace_id,
+    )
+    .await
+    {
+        Ok(employee) => Ok(Json(employee)),
+        Err(status) => Err(status),
+    }
+}
+
+pub async fn create_employee(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Json(req): Json<CreateEmployeeRequest>,
+) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return (StatusCode::FORBIDDEN, "Only admins can create employees").into_response();
+    }
+    match EmployeeService::create_employee(
+        &state.db,
+        ctx.workspace_id,
+        req,
+    )
+    .await
+    {
+        Ok(employee) => (StatusCode::CREATED, Json(employee)).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn update_employee(
+    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Json(req): Json<UpdateEmployeeRequest>,
+) -> Result<impl IntoResponse, StatusCode> {
+    if !ctx.is_admin_or_owner() {
+        return Ok((StatusCode::FORBIDDEN, "Only admins can update employees").into_response());
+    }
+    match EmployeeService::update_employee(
+        &state.db,
+        id,
+        ctx.workspace_id,
+        req,
+    )
+    .await
+    {
+        Ok(employee) => Ok(Json(employee).into_response()),
+        Err(status) => Err(status),
+    }
+}
+
+pub async fn delete_employee(
+    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+) -> Result<StatusCode, StatusCode> {
+    if !ctx.is_admin_or_owner() {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    let workspace_id = ctx.workspace_id;
+    match EmployeeService::delete_employee(
+        &state.db,
+        id,
+        workspace_id,
+    )
+    .await
+    {
+        Ok(_) => Ok(StatusCode::NO_CONTENT),
+        Err(status) => Err(status),
+    }
+}
+
+pub async fn get_employee_history(
+    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> impl IntoResponse {
+    match EmployeeService::get_employment_history(
+        &state.db,
+        id,
+        workspace_id,
+    )
+    .await
+    {
+        Ok(history) => Json(history).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn rehire_employee(
+    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Json(req): Json<RehireEmployeeRequest>,
+) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return (StatusCode::FORBIDDEN, "Only admins can re-hire employees").into_response();
+    }
+    match EmployeeService::rehire_employee(
+        &state.db,
+        id,
+        ctx.workspace_id,
+        req,
+    )
+    .await
+    {
+        Ok(employee) => Json(employee).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn get_employee_department_history(
+    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> Result<Json<Vec<EmployeeDepartmentHistory>>, StatusCode> {
+    match EmployeeService::get_department_history(
+        &state.db,
+        id,
+        workspace_id,
+    )
+    .await
+    {
+        Ok(history) => Ok(Json(history)),
+        Err(status) => Err(status),
+    }
+}
+
+pub async fn transfer_employee(
+    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Json(req): Json<TransferEmployeeRequest>,
+) -> Result<StatusCode, StatusCode> {
+    match EmployeeService::transfer_employee(
+        &state.db,
+        id,
+        workspace_id,
+        req,
+    )
+    .await
+    {
+        Ok(_) => Ok(StatusCode::OK),
+        Err(status) => Err(status),
+    }
+}

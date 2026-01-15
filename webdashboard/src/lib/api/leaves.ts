@@ -1,0 +1,125 @@
+import { API_BASE_URL } from "./config";
+import { apiFetch } from "./helpers";
+import { LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy } from "./types";
+
+export async function submitLeaveRequest(
+  wsId: string,
+  data: { employee_id: string; leave_type: string; start_date: string; end_date: string; reason?: string },
+): Promise<LeaveRequest> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/submit`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to submit leave request");
+  return response.json();
+}
+
+export async function fetchWorkspaceLeaveRequests(
+  wsId: string,
+  status?: string,
+): Promise<LeaveRequest[]> {
+  const url = status
+    ? `${API_BASE_URL}/workspaces/${wsId}/leave/requests?status=${status}`
+    : `${API_BASE_URL}/workspaces/${wsId}/leave/requests`;
+  const response = await apiFetch(url);
+  if (!response.ok) throw new Error("Failed to fetch leave requests");
+  return response.json();
+}
+
+export async function fetchMyLeaveRequests(
+  employeeId: string
+): Promise<LeaveRequest[]> {
+  const response = await apiFetch(`${API_BASE_URL}/employees/${employeeId}/leave/requests`);
+  if (!response.ok) throw new Error("Failed to fetch my leave requests");
+  return response.json();
+}
+
+export async function approveLeaveRequest(
+  wsId: string,
+  requestId: string,
+  data: { status: string },
+): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/requests/${requestId}/approve`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to approve leave request");
+}
+
+export async function fetchEmployeeLeaveBalances(
+  wsId: string,
+  employeeId: string,
+): Promise<EmployeeLeaveBalance[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/leave/balances`);
+  if (!response.ok) throw new Error("Failed to fetch leave balances");
+  return response.json();
+}
+
+export async function fetchWorkspaceLeaveBalances(
+  wsId: string,
+): Promise<WorkspaceLeaveBalance[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/balances`);
+  if (!response.ok) throw new Error("Failed to fetch workspace leave balances");
+  return response.json();
+}
+
+export async function fetchLeaveHistory(
+  wsId: string,
+  employeeId: string,
+): Promise<LeaveHistoryItem[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/leave/history`);
+  if (!response.ok) throw new Error("Failed to fetch leave history");
+  return response.json();
+}
+
+export async function adjustLeaveBalance(
+  wsId: string,
+  employeeId: string,
+  data: { leave_type: string; amount: number; reason: string; transaction_date: string }
+): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/leave/adjust`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to adjust leave balance");
+}
+
+export async function fetchLeavePolicies(wsId: string): Promise<LeavePolicy[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/policies`);
+  if (!response.ok) throw new Error("Failed to fetch leave policies");
+  return response.json();
+}
+
+export async function createLeavePolicy(
+  wsId: string,
+  data: Partial<LeavePolicy>
+): Promise<LeavePolicy> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/policies`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to create leave policy");
+  return response.json();
+}
+
+export async function assignLeavePolicy(
+  wsId: string,
+  data: { employee_id: string; leave_policy_id: string; effective_date: string }
+): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/policies/assign`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to assign leave policy");
+}
+
+export async function triggerAccrualRun(
+  wsId: string,
+  data: { date: string }
+): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/accrual/run`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to trigger accrual run");
+}

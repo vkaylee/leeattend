@@ -1,0 +1,364 @@
+export interface DeviceStatus {
+  device_id: string;
+  status: "online" | "offline";
+  last_sync?: string;
+  error?: string;
+}
+
+export interface AgentStatus {
+  agent_id: string;
+  last_seen: string;
+  is_online: boolean;
+  devices: DeviceStatus[];
+}
+
+export interface Device {
+  id: string;
+  agent_id: string;
+  name: string;
+  ip: string;
+  port: number;
+  is_enabled: boolean;
+  last_status: string;
+  created_at: string;
+  workspace_id: string;
+}
+
+export interface AuthorizedAgent {
+  id: string;
+  name: string;
+  token: string;
+  is_trusted: boolean;
+  last_ip?: string;
+  last_seen_at: string;
+  created_at: string;
+  is_active: boolean;
+  workspace_id: string;
+}
+
+export interface Workspace {
+  id: string;
+  name: string;
+  work_unit_minutes: number;
+  rounding_policy: string;
+  date_format: string;
+  time_format: string;
+  timezone: string;
+  theme_primary_color: string;
+  default_language: string;
+  created_at: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
+  bio?: string;
+  preferred_language?: string;
+}
+
+export interface UpdateUserRequest {
+  full_name?: string;
+  avatar_url?: string;
+  bio?: string;
+}
+
+export interface ChangePasswordRequest {
+  old_password: string;
+  new_password: string;
+}
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  full_name: string;
+}
+
+export interface WorkspaceMember {
+  workspace_id: string;
+  user_id: string;
+  role: "owner" | "admin" | "member";
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  refresh_token: string;
+  user: User;
+}
+
+// --- Timekeeping Models ---
+
+export interface Employee {
+  id: string;
+  workspace_id: string;
+  user_id?: string;
+  first_name: string;
+  last_name: string;
+  employee_id_number: string;
+  department_name?: string;
+  hire_date: string;
+  termination_date?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TimeEntry {
+  id: string;
+  employee_id: string;
+  punch_in_time: string;
+  punch_out_time?: string;
+  duration_minutes?: number;
+  is_break_overtime: boolean;
+  entry_type: string;
+  note?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RawAttendanceLog {
+  id: string;
+  workspace_id: string;
+  employee_id: string;
+  punch_time: string;
+  source: string;
+  device_id?: string;
+  raw_data?: any;
+  created_at: string;
+}
+
+export interface LeaveRequest {
+  id: string;
+  employee_id: string;
+  leave_type: string;
+  start_date: string;
+  end_date: string;
+  reason?: string;
+  status: string;
+  requested_by_user_id?: string;
+  approved_by_user_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmployeeLeaveBalance {
+  leave_type: string;
+  entitlement: number;
+  accrued_amount: number;
+  carried_over: number;
+  used: number;
+  remaining: number;
+}
+
+export interface WorkspaceLeaveBalance {
+  employee_id: string;
+  employee_name: string;
+  leave_type: string;
+  entitlement: number;
+  accrued_amount: number;
+  carried_over: number;
+  used: number;
+  remaining: number;
+}
+
+export interface AttendanceAdjustmentRequest {
+  id: string;
+  employee_id: string;
+  time_entry_id?: string;
+  requested_punch_in_time: string;
+  requested_punch_out_time?: string;
+  is_break_overtime: boolean;
+  reason?: string;
+  status: string;
+  requested_by_user_id?: string;
+  approved_by_user_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AttendanceSummary {
+  employee_id: string;
+  employee_name: string;
+  total_hours: number;
+  total_leave_days: number;
+}
+
+export interface DailyAttendanceReport {
+  date: string;
+  employee_id: string;
+  employee_name: string;
+  scheduled_start: string | null;
+  scheduled_end: string | null;
+  break_duration_minutes: number | null;
+  break_start: string | null;
+  break_end: string | null;
+  is_break_auto_deduct: boolean | null;
+  actual_punch_in: string | null;
+  actual_punch_out: string | null;
+  total_minutes: number;
+  status: string;
+}
+
+// --- Payroll and Shift Models ---
+
+export interface Shift {
+  id: string;
+  workspace_id: string;
+  name: string;
+  start_time: string;
+  end_time: string;
+  break_duration_minutes: number;
+  break_start?: string;
+  break_end?: string;
+  is_break_auto_deduct?: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SalaryHistory {
+  id: string;
+  employee_id: string;
+  base_salary: string;
+  salary_type: "hourly" | "monthly";
+  currency: string;
+  effective_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Payslip {
+  id: string;
+  employee_id: string;
+  period_start: string;
+  period_end: string;
+  base_pay_amount: string;
+  overtime_pay_amount: string;
+  deductions_amount: string;
+  net_pay_amount: string;
+  status: "draft" | "published" | "paid";
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Department Models ---
+
+export interface Department {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description?: string;
+  manager_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmployeeDepartmentHistory {
+  id: string;
+  employee_id: string;
+  department_id: string;
+  effective_date: string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface ShiftRoster {
+  id: string;
+  employee_id: string;
+  shift_id: string | null;
+  date: string;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AttendanceImportJob {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  status: "processing" | "completed" | "failed" | "pending";
+  total_rows: number;
+  processed_rows: number;
+  error_log?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MemberRolesResponse {
+  primary: string;
+  extra: MemberExtraRole[];
+}
+
+export interface MemberExtraRole {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  role: string;
+  assigned_at: string;
+  expires_at: string;
+}
+
+export interface EmploymentPeriod {
+  id: string;
+  employee_id: string;
+  hire_date: string;
+  termination_date?: string;
+  is_rehire: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeavePolicy {
+  id: string;
+  workspace_id: string;
+  name: string;
+  leave_type: string;
+  annual_entitlement: number;
+  accrual_strategy: "monthly" | "lump_sum";
+  carry_over_limit: number;
+  created_at: string;
+}
+
+export interface EffectiveSchedule {
+  date: string;
+  shift_id: string | null;
+  source: "roster" | "fixed" | "department" | "none";
+  shift_name: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  break_duration_minutes: number | null;
+  break_start: string | null;
+  break_end: string | null;
+  is_break_auto_deduct: boolean | null;
+}
+
+export interface EmployeeSchedule {
+  employee_id: string;
+  first_name: string;
+  last_name: string;
+  schedules: EffectiveSchedule[];
+}
+
+export interface AssignmentHistory {
+  id: string;
+  employee_id: string;
+  employee_name: string;
+  assignment_type: string;
+  shift_name: string | null;
+  date_range: string;
+  created_at: string;
+}
+
+export interface LeaveHistoryItem {
+  id: string;
+  date: string;
+  transaction_type: "accrual" | "usage" | "adjustment" | "carry_over";
+  amount: number;
+  reason?: string;
+  reference_id?: string;
+  created_at: string;
+}
