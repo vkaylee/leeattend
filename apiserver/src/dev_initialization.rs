@@ -16,7 +16,10 @@ pub async fn ensure_dev_data(pool: &PgPool) -> Result<(), sqlx::Error> {
         r#"
         INSERT INTO users (id, email, full_name, password_hash)
         VALUES ($1, $2, $3, $4)
-        ON CONFLICT (id) DO NOTHING
+        ON CONFLICT (id) DO UPDATE SET
+            email = EXCLUDED.email,
+            full_name = EXCLUDED.full_name,
+            password_hash = EXCLUDED.password_hash
         "#,
     )
     .bind(admin_user_id)

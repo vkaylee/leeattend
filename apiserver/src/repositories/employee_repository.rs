@@ -85,6 +85,7 @@ pub async fn get_all_employees(
         .await
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn update_employee(
     pool: &PgPool,
     id: Uuid,

@@ -183,7 +183,7 @@ impl AttendanceAdjustmentService {
         ];
         
         for fmt in common_fmts {
-            if let Ok(_) = NaiveDateTime::parse_from_str(dt_str, fmt) {
+            if NaiveDateTime::parse_from_str(dt_str, fmt).is_ok() {
                 return Err(format!(
                     "Giá trị '{}' sai định dạng. Cài đặt hiện tại yêu cầu: {} ({}).",
                     dt_str, 

@@ -2,6 +2,31 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
+## [Unreleased] - 2026-01-16
+
+### Added
+- **Production-Grade Test Orchestrator**: Re-engineered `run-tests.sh` into a 4-phase high-performance pipeline.
+    - **Phase 0 (Linting)**: Automated code quality checks using `cargo clippy` (denying warnings) and `eslint` across all modules.
+    - **Phase 1 (Unit Tests)**: Parallel execution of backend (Rust), Edge Agent (Rust/Python), and Frontend (Vitest) unit tests.
+    - **Phase 2 (Environment)**: Automated Multi-DB setup with isolated environments for parallel integration testing.
+    - **Phase 3 (Integration/E2E)**: High-concurrency execution of Rust integration tests and Playwright E2E suites.
+- **Ordered Parallel Logging**: Implemented a sophisticated logging engine that executes tests in parallel but streams output in real-time sequential order, ensuring clear and non-interleaved logs.
+- **Massively Parallel E2E Infrastructure**:
+    - **Database Isolation**: Automated creation of dedicated Postgres databases (`test_database_e2e_0` to `3`) for each Playwright worker to prevent state pollution.
+    - **Pre-compiled Execution**: Workers now execute a pre-built backend binary instead of `cargo run`, eliminating Rust file-lock contention and drastically reducing startup time.
+    - **Dynamic Worker Scaling**: Optimized for 4 concurrent workers with 1-minute per-test strict timeout enforcement.
+- **Reliable Dev Seeding**: Hardened `dev_initialization` logic to use `INSERT ... ON CONFLICT DO UPDATE`, guaranteeing the "Fast Login" admin credentials are correct regardless of existing database state.
+
+### Fixed
+- **API Consistency**: Standardized `UpdateShiftRequest` with `#[serde(default)]` for new fields (`allow_early_ot`, `is_correction`) to maintain backward compatibility with legacy tests.
+- **Linter Compliance**: Resolved over 30 Clippy warnings and 10 ESLint warnings to maintain a zero-warning codebase.
+- **Function Signatures**: Corrected `update_employee` signature mismatch in `employee_repository.rs` and applied `clippy::too_many_arguments` where appropriate.
+- **Frontend Dependencies**: Fixed missing imports for `changePassword` and `clearAuthSession` in `ProfilePage.tsx`.
+
+### Changed
+- **E2E Stability**: Increased Playwright suite-level timeout to 5 minutes while maintaining a 1-minute per-test limit to handle high-concurrency initialization overhead.
+- **UI Testing Resilience**: Standardized E2E selectors to use localized regex (e.g., `text=/Time|Thời gian/`) for improved reliability across language states.
+
 ## [Unreleased] - 2026-01-15
 
 ### Added

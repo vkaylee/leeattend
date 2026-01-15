@@ -11,12 +11,14 @@ pub struct AttendanceCalculator;
 
 impl AttendanceCalculator {
     /// Calculate standard and OT buckets based on shift boundaries and policy.
+    #[allow(clippy::too_many_arguments)]
     pub fn calculate_buckets<T: TimeZone>(
         punch_in: DateTime<T>,
         punch_out: DateTime<T>,
         shift_start_dt: Option<DateTime<T>>,
         shift_end_dt: Option<DateTime<T>>,
         scheduled_break_minutes: i32,
+        grace_period_minutes: i32,
         actual_break_minutes: i32,
         is_break_auto_deduct: bool,
         is_break_overtime: bool,
@@ -32,7 +34,22 @@ impl AttendanceCalculator {
             (Some(start), Some(mut end)) => {
                 // Handle Overnight Shift linearization
                 if end < start {
-                    end = end + Duration::days(1);
+                    end += Duration::days(1);
+                }
+
+                // Apply Grace Period to Shift Start for Early OT calculation
+                // If punch_in is within [start - grace, start], we treat it as 'start' for OT purposes.
+                // If punch_in is before 'start - grace', we count full OT from punch_in.
+                let mut effective_ot_start = start.clone();
+                if grace_period_minutes > 0 {
+                    let grace_threshold = start.clone() - Duration::minutes(grace_period_minutes as i64);
+                    if punch_in >= grace_threshold && punch_in < start {
+                        effective_ot_start = start.clone(); // Within grace, no OT
+                    } else if punch_in < grace_threshold {
+                        effective_ot_start = punch_in.clone(); // Before grace, full OT
+                    }
+                } else {
+                    effective_ot_start = punch_in.clone();
                 }
 
                 // 1. Standard Bucket: Intersection of [In, Out] and [Start, End]
@@ -56,8 +73,8 @@ impl AttendanceCalculator {
                 // 2. Early OT: Time before ShiftStart
                 if allow_early_ot && punch_in < start {
                     let early_out = DateTime::min(punch_out.clone(), start.clone());
-                    if early_out > punch_in {
-                        buckets.early_ot_minutes = early_out.signed_duration_since(punch_in.clone()).num_minutes() as i32;
+                    if early_out > effective_ot_start {
+                        buckets.early_ot_minutes = early_out.signed_duration_since(effective_ot_start).num_minutes() as i32;
                     }
                 }
 
@@ -96,6 +113,7 @@ impl AttendanceCalculator {
     }
 
     /// 3. Rounding Logic
+    ///
     /// For standard work hours, we typically use FLOOR rounding on the total duration.
     pub fn apply_rounding(minutes: i32, unit: i32, policy: &str) -> i32 {
         if unit <= 1 || policy == "none" {
@@ -113,14 +131,15 @@ impl AttendanceCalculator {
         }
     }
 
-    /// 4. Main Calculation (Orchestrator) - Legacy support or unified entry
+    /// High-level method to calculate daily standard and OT minutes in one go.
+    #[allow(clippy::too_many_arguments)]
     pub fn calculate_daily_net_hours<T: TimeZone>(
         punch_in: DateTime<T>,
         punch_out: DateTime<T>,
         shift_start_dt: Option<DateTime<T>>,
         shift_end_dt: Option<DateTime<T>>,
         scheduled_break_minutes: i32,
-        _grace_period_minutes: i32, // Grace period is now implicit in Bucket Clamping + Policy
+        grace_period_minutes: i32,
         is_break_auto_deduct: bool,
         is_break_overtime: bool,
         actual_break_minutes: i32,
@@ -134,6 +153,7 @@ impl AttendanceCalculator {
             shift_start_dt,
             shift_end_dt,
             scheduled_break_minutes,
+            grace_period_minutes,
             actual_break_minutes,
             is_break_auto_deduct,
             is_break_overtime,
@@ -169,21 +189,21 @@ mod tests {
         
         // Case 1: Early In (07:25), Out (17:00), No Early OT
         let b1 = AttendanceCalculator::calculate_buckets(
-            dt(7, 25), dt(17, 0), start, end, 60, 0, true, false, false
+            dt(7, 25), dt(17, 0), start, end, 60, 0, 0, true, false, false
         );
         assert_eq!(b1.standard_minutes, 510); // (17:00 - 07:30) - 60m = 8.5h = 510m
         assert_eq!(b1.early_ot_minutes, 0);
 
         // Case 2: Early In (07:25), Allow Early OT
         let b2 = AttendanceCalculator::calculate_buckets(
-            dt(7, 25), dt(17, 0), start, end, 60, 0, true, false, true
+            dt(7, 25), dt(17, 0), start, end, 60, 0, 0, true, false, true
         );
         assert_eq!(b2.standard_minutes, 510);
         assert_eq!(b2.early_ot_minutes, 5); // 07:25 to 07:30
 
         // Case 3: Late In (07:40), Unit 30, Policy Floor
         let b3 = AttendanceCalculator::calculate_buckets(
-            dt(7, 40), dt(17, 0), start, end, 60, 0, true, false, false
+            dt(7, 40), dt(17, 0), start, end, 60, 0, 0, true, false, false
         );
         // (17:00 - 07:40) = 9h20m = 560m. 
         // 560 - 60 (break) = 500m.
@@ -191,6 +211,19 @@ mod tests {
         
         let rounded = AttendanceCalculator::apply_rounding(b3.standard_minutes, 30, "floor");
         assert_eq!(rounded, 480); // 8 hours (loses 20 mins worked + 10 mins penalty = 30 mins)
+
+        // Case 4: Grace Period (30m). Start 07:30 -> Grace starts 07:00.
+        // Punch in 07:15 (within grace) -> No OT
+        let b4 = AttendanceCalculator::calculate_buckets(
+            dt(7, 15), dt(17, 0), start, end, 60, 30, 0, true, false, true
+        );
+        assert_eq!(b4.early_ot_minutes, 0);
+
+        // Case 5: Before Grace Period. Punch in 06:45 -> OT from 06:45 (45m)
+        let b5 = AttendanceCalculator::calculate_buckets(
+            dt(6, 45), dt(17, 0), start, end, 60, 30, 0, true, false, true
+        );
+        assert_eq!(b5.early_ot_minutes, 45);
     }
 
     #[test]
@@ -213,7 +246,7 @@ mod tests {
         ).single().unwrap();
 
         let b = AttendanceCalculator::calculate_buckets(
-            punch_in, punch_out, start, end, 0, 0, false, false, true
+            punch_in, punch_out, start, end, 0, 0, 0, false, false, true
         );
 
         assert_eq!(b.standard_minutes, 480);
@@ -244,7 +277,7 @@ mod tests {
 
         // Case 1: Entirely before shift (06:00 to 07:00)
         let b1 = AttendanceCalculator::calculate_buckets(
-            dt(6, 0), dt(7, 0), start, end, 0, 0, false, false, true
+            dt(6, 0), dt(7, 0), start, end, 0, 0, 0, false, false, true
         );
         assert_eq!(b1.standard_minutes, 0);
         assert_eq!(b1.early_ot_minutes, 60);
@@ -252,7 +285,7 @@ mod tests {
 
         // Case 2: Entirely after shift (18:00 to 19:00)
         let b2 = AttendanceCalculator::calculate_buckets(
-            dt(18, 0), dt(19, 0), start, end, 0, 0, false, false, true
+            dt(18, 0), dt(19, 0), start, end, 0, 0, 0, false, false, true
         );
         assert_eq!(b2.standard_minutes, 0);
         assert_eq!(b2.early_ot_minutes, 0);
@@ -319,14 +352,14 @@ mod tests {
 
         // Punch In exactly at Shift End (No standard time)
         let b1 = AttendanceCalculator::calculate_buckets(
-            dt(17, 0), dt(18, 0), start, end, 0, 0, false, false, true
+            dt(17, 0), dt(18, 0), start, end, 0, 0, 0, false, false, true
         );
         assert_eq!(b1.standard_minutes, 0);
         assert_eq!(b1.late_ot_minutes, 60);
 
         // Punch Out exactly at Shift Start (No standard time)
         let b2 = AttendanceCalculator::calculate_buckets(
-            dt(7, 0), dt(8, 0), start, end, 0, 0, false, false, true
+            dt(7, 0), dt(8, 0), start, end, 0, 0, 0, false, false, true
         );
         assert_eq!(b2.standard_minutes, 0);
         assert_eq!(b2.early_ot_minutes, 60);
@@ -339,7 +372,7 @@ mod tests {
 
         // Punch In == Punch Out
         let b = AttendanceCalculator::calculate_buckets(
-            dt(9, 0), dt(9, 0), start, end, 0, 0, false, false, true
+            dt(9, 0), dt(9, 0), start, end, 0, 0, 0, false, false, true
         );
         assert_eq!(b.standard_minutes, 0);
         assert_eq!(b.early_ot_minutes, 0);
@@ -350,7 +383,7 @@ mod tests {
     fn test_no_shift_logic() {
         // Without shift, everything is standard duration
         let b = AttendanceCalculator::calculate_buckets(
-            dt(9, 0), dt(11, 0), None, None, 0, 0, false, false, true
+            dt(9, 0), dt(11, 0), None, None, 0, 0, 0, false, false, true
         );
         assert_eq!(b.standard_minutes, 120);
         assert_eq!(b.early_ot_minutes, 0);
@@ -375,7 +408,7 @@ mod tests {
         ).single().unwrap();
 
         let b = AttendanceCalculator::calculate_buckets(
-            punch_in, punch_out, start, end, 0, 0, false, false, true
+            punch_in, punch_out, start, end, 0, 0, 0, false, false, true
         );
 
         // Standard: intersection of [01:00, 07:00] and [22:00 Jan 1, 06:00 Jan 2]

@@ -10,7 +10,7 @@ test("debug fast login button click", async ({ page, baseURL }) => {
   console.log("📍 Current page:", page.url());
   await page.screenshot({ path: "debug-before-click.png" });
 
-  const loginBtn = page.locator('button:has-text("Đăng nhập nhanh")');
+  const loginBtn = page.locator('button:has-text("⚡ Fast Login")');
 
   if (await loginBtn.isVisible()) {
     console.log("🖱️ Clicking Fast Login button...");

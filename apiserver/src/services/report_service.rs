@@ -86,7 +86,7 @@ impl ReportService {
 
                     if let (Some(start), Some(mut end)) = (start_dt, end_dt) {
                         if daily.end_time < daily.start_time {
-                            end = end + chrono::Duration::days(1);
+                            end += chrono::Duration::days(1);
                         }
 
                         let (std, ot) = AttendanceCalculator::calculate_daily_net_hours(

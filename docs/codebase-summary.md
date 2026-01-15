@@ -111,7 +111,7 @@ leeattend/
 - [x] **Leave Management**: Comprehensive tracking of leave requests, approvals, and annual balances.
 - [x] **Admin Leave Dashboard**: Workspace-wide overview of quotas and manual balance adjustments with audit trail.
 - [x] **Dynamic Leave Policies**: Configurable accrual rules (Monthly, Quarterly) with temporal assignment (Effective Date) and seniority bonuses.
-- [ ] Overnight Shift Support (Handling punches spanning two calendar days).
+- [x] **Overnight Shift Support**: Complete linearization engine for punches spanning multiple calendar days.
 - [ ] Automated Deployment scripts (NSSM/Service for production).
 
 ### 🛠️ Debugging & Automation Tools
@@ -122,7 +122,7 @@ leeattend/
 - **Debug Login:** 
     - Backend: Endpoint `/api/dev/super-user` (debug mode only) tự động sinh token cho admin mặc định.
     - Frontend: Nút "Debug Login" trên `LoginPage` giúp đăng nhập ngay lập tức không cần nhập mật khẩu.
-    - **Persistent Dev Data**: Seeding logic now uses `ON CONFLICT DO NOTHING`, ensuring that changes made to the default admin user or workspace (e.g., password updates) persist across server restarts.
+    - **Reliable Dev Seeding**: Seeding logic uses `INSERT ... ON CONFLICT DO UPDATE`, ensuring that "Fast Login" credentials and default workspace settings are always in a valid state for development.
 - **Debug Workspace Tools:** Developer-only section in Workspace Settings to quickly clear specific data groups (Attendance, Schedules, Leave, Payroll) or perform a full workspace reset.
 - **Playwright Tests (`webdashboard/tests/`):** 
     - `debug-login.spec.ts`: Kiểm tra luồng đăng nhập và tự động hóa việc vào dashboard.
@@ -131,16 +131,17 @@ leeattend/
     - `apiserver/.api_port`: File tạm chứa port hiện tại của backend.
 
 ### Testing Infrastructure
-- **Unified Orchestrator (`run-tests.sh`)**: A top-level script that coordinates the entire test suite.
-    - **Phase 1 (Parallel Unit)**: Simultaneously executes unit tests for `apiserver`, `agent-main`, `agent-zk-worker`, and `webdashboard` to maximize throughput.
-    - **Phase 2 (Env Setup)**: Automatically provisions a transient Postgres environment using Docker Compose.
-    - **Phase 3 (Parallel Integration)**: Runs heavy integration and Playwright E2E tests in parallel.
-    - **Sequential Traceability**: Captures parallel logs and displays them in sequential blocks for easy debugging of failures.
+- **Unified 4-Phase Pipeline (`run-tests.sh`)**: A high-performance test runner designed for extreme reliability and speed.
+    - **Phase 0 (Linting)**: Mandatory code quality check using `clippy` and `eslint`. Halts pipeline on any warnings.
+    - **Phase 1 (Parallel Unit)**: Simultaneously executes unit tests for all modules (`apiserver`, `agent-main`, `agent-zk-worker`, `webdashboard`).
+    - **Phase 2 (Orchestration)**: Provisions isolated databases for parallel E2E and pre-compiles the backend binary.
+    - **Phase 3 (Parallel Integration)**: Runs Rust integration tests and Playwright E2E concurrently.
+- **Real-time Sequential Logging**: Sophisticated output engine that streams parallel logs in real-time sequential blocks (e.g., Worker 2's logs start exactly when Worker 1 finishes), providing "parallel speed with sequential clarity."
+- **Massively Parallel E2E Isolation**:
+    - **Multi-DB Backend**: Automatically spawns dedicated databases (`test_database_e2e_0-3`) for each Playwright worker to eliminate state pollution and race conditions.
+    - **Pre-compiled Performance**: Workers execute the pre-built `apiserver` binary directly, avoiding `cargo run` compilation overhead and resolving Rust file-lock contention.
+    - **Scalability**: Optimized for 4 concurrent workers with strictly enforced 1-minute per-test timeouts.
 - **Mandatory Quality Gate**: Bắt buộc 100% các bài test (Unit, Integration, Frontend) phải PASS trước khi merge.
-- **Parallel E2E Orchestration**: Hệ thống hỗ trợ chạy E2E tests song song (multi-worker) với sự cô lập hoàn toàn.
-    - **Worker-Specific Environments**: Mỗi Playwright worker khởi tạo một cặp Backend-Frontend riêng biệt.
-    - **Dynamic Port Discovery**: Sử dụng các file tín hiệu port riêng cho từng worker (ví dụ: `.api_port_0`, `.api_port_1`) để tránh xung đột `ADDRINUSE`.
-    - **Port Range Isolation**: Tự động tính toán start port dựa trên `workerIndex` với bước nhảy (offset) là 50 port để đảm bảo an toàn tài nguyên networking.
 - **Comprehensive Auth Testing**: Added production-ready E2E suites for standard login flows, ensuring correct i18n handling, credential validation, and redirection logic.
 - **Coverage Goal**: Achieved >83% coverage for core business logic.
 - **Automated DB Cleanup**: The `apiserver` uses a specialized `TestDatabase` helper that:

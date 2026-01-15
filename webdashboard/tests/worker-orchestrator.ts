@@ -11,7 +11,7 @@ export const test = base.extend<{ workerWebUrl: string }>({
     await use(workerWebUrl);
   },
 
-  workerWebUrl: [async ({}, use, workerInfo) => {
+  workerWebUrl: [async ({}, use, workerInfo) => { // eslint-disable-line no-empty-pattern
     const workerIndex = workerInfo.workerIndex;
     const apiPortFile = `.api_port_${workerIndex}`;
     const webPortFile = `.web_port_${workerIndex}`;
@@ -19,13 +19,16 @@ export const test = base.extend<{ workerWebUrl: string }>({
     console.log(`👷 Worker ${workerIndex}: Starting isolated environment...`);
 
     // 1. Start Backend
-    const backend = spawn('cargo', ['run'], {
+    // Calculate isolated database URL for this worker
+    const isolatedDbUrl = `postgres://test_user:test_password@localhost:5433/test_database_e2e_${workerIndex}`;
+    const binaryPath = path.resolve(__dirname, '../../apiserver/target/debug/apiserver');
+    
+    const backend = spawn(binaryPath, [], {
       cwd: path.resolve(__dirname, '../../apiserver'),
       env: {
         ...process.env,
         PORT_FILE_NAME: apiPortFile,
-        // Use environment DATABASE_URL or fallback
-        DATABASE_URL: process.env.DATABASE_URL || 'postgres://leeatt:leeattp@192.168.2.5:5434/leeattzkt',
+        DATABASE_URL: isolatedDbUrl,
         API_PORT: '0', 
       },
       detached: true,

@@ -8,14 +8,11 @@ test.describe("Attendance Logs UI", () => {
     await page.goto(`${baseURL}/login`);
     
     try {
-      if (page.url().endsWith("/login")) {
-        console.log("On login page, performing fast login...");
-        // Button text includes emoji in LoginPage.tsx
-        await page.click('button:has-text("Đăng nhập nhanh")');
-        console.log("Waiting for URL change from /login...");
+    // If redirected to login, perform fast login
+    if (page.url().endsWith("/login")) {
+        await page.click('button:has-text("⚡ Fast Login")');
         await page.waitForURL("**/", { timeout: 30000 });
-        console.log("Login successful! Current URL:", page.url());
-      }
+    }
 
       console.log("Waiting for loading screen to disappear...");
       await expect(page.locator("text=Đang kiểm tra bảo mật...")).not.toBeVisible({ timeout: 60000 });
@@ -34,18 +31,21 @@ test.describe("Attendance Logs UI", () => {
         throw e;
       }
       console.log("Sidebar link found, clicking...");
+      // 2. Expand Sidebar Section if needed
+      // Look for "Time & Leave" or "Thời gian & Nghỉ phép"
+      const sectionHeader = page.locator('button:has-text("Time & Leave"), button:has-text("Thời gian & Nghỉ phép")');
+      await sectionHeader.click();
+
+      // 3. Navigate to Attendance Logs Page
       await page.click('a[href="/attendance-logs"]');
-      
-      console.log("Waiting for URL change...");
-      await expect(page).toHaveURL(/.*attendance-logs/, { timeout: 30000 });
-      
-      // The page title in H1 is "Nhật ký chấm công" (from AttendanceLogsPage.tsx)
+
+      // The page title in H1 is "Attendance Logs" or "Nhật ký quẹt thẻ"
       console.log("Checking page content...");
-      await expect(page.locator("h1")).toContainText("Nhật ký chấm công", { timeout: 30000 });
+      await expect(page.locator("h1")).toContainText(/Attendance Logs|Nhật ký quẹt thẻ/, { timeout: 30000 });
 
       // 3. Check if table headers are present
-      await expect(page.locator("th:has-text('Ngày')")).toBeVisible();
-      await expect(page.locator("th:has-text('Nhân viên')")).toBeVisible();
+      await expect(page.locator("th:has-text('Time'), th:has-text('Thời gian')")).toBeVisible();
+      await expect(page.locator("th:has-text('Employee'), th:has-text('Nhân viên')")).toBeVisible();
       
       console.log("Test passed!");
     } catch (e) {

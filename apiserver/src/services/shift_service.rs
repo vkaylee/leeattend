@@ -9,6 +9,7 @@ use crate::repositories::shift_repository;
 pub struct ShiftService;
 
 impl ShiftService {
+    #[allow(clippy::too_many_arguments)]
     pub async fn create_shift(
         pool: &PgPool,
         workspace_id: Uuid,

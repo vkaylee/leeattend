@@ -9,7 +9,7 @@ test.describe("Registration Flow", () => {
     // 2. Click Sign up
     await page.click('a[href="/register"]');
     await expect(page).toHaveURL("/register");
-    await expect(page.locator("h2")).toContainText("Create Account");
+    await expect(page.locator("h2")).toContainText("Create new account");
 
     // 3. Fill Form
     const uniqueEmail = `testuser_${Date.now()}@example.com`;

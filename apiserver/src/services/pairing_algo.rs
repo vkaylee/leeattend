@@ -151,15 +151,15 @@ fn match_recursive(
     if log_idx >= logs.len() {
         let mut cost = 0;
         let mut actions = Vec::new();
-        for i in slot_idx..slots.len() {
-            cost += if slots[i].mandatory { PENALTY_MANDATORY_SLOT } else { PENALTY_OPTIONAL_SLOT };
+        for slot in slots.iter().skip(slot_idx) {
+            cost += if slot.mandatory { PENALTY_MANDATORY_SLOT } else { PENALTY_OPTIONAL_SLOT };
             actions.push(MatchAction::SkipSlot);
         }
         return (cost, actions);
     }
 
     // A. MATCH
-    let diff = (logs[log_idx] - slots[slot_idx].target).abs() as u32;
+    let diff = (logs[log_idx] - slots[slot_idx].target).unsigned_abs();
     let (cost_a, mut acts_a) = match_recursive(logs, slots, log_idx + 1, slot_idx + 1);
     let total_cost_a = diff.saturating_add(cost_a);
 

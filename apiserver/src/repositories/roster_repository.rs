@@ -21,6 +21,7 @@ pub async fn get_workspace_schedules(
     .await?;
 
     // 2. Fetch all shifts (for details)
+    #[allow(clippy::type_complexity)]
     let shifts_map: HashMap<Uuid, (String, chrono::NaiveTime, chrono::NaiveTime, i32, Option<chrono::NaiveTime>, Option<chrono::NaiveTime>, bool, i32, bool)> = sqlx::query!(
         "SELECT id, name, start_time, end_time, break_duration_minutes, break_start, break_end, is_break_auto_deduct, early_punch_in_grace_period_minutes, allow_early_ot FROM shifts WHERE workspace_id = $1",
         workspace_id
@@ -98,7 +99,7 @@ pub async fn get_workspace_schedules(
                 let fixed = fixed_assignments.iter().find(|a| {
                     a.employee_id == emp.id &&
                     a.start_date <= curr_date &&
-                    a.end_date.map_or(true, |ed| ed >= curr_date)
+                    a.end_date.is_none_or(|ed| ed >= curr_date)
                 });
 
                 if let Some(f) = fixed {

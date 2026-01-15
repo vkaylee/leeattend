@@ -216,7 +216,7 @@ impl PairingService {
         let mut sessions = Vec::new();
         let mut chunks = logs.chunks_exact(2);
         
-        while let Some(chunk) = chunks.next() {
+        for chunk in chunks.by_ref() {
             sessions.push(pairing_algo::PairedSession {
                 start_minutes: chunk[0],
                 end_minutes: Some(chunk[1]),

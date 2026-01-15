@@ -39,9 +39,10 @@ impl TimeTrackingService {
         let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
 
         // Check if already punched in
-        if let Some(_) = time_entry_repository::get_latest_active_entry(pool, req.employee_id)
+        if time_entry_repository::get_latest_active_entry(pool, req.employee_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .is_some()
         {
             return Err(StatusCode::CONFLICT); // Already punched in
         }

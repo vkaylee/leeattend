@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use crate::models::Shift;
 
+#[allow(clippy::too_many_arguments)]
 pub async fn create_shift<'a, E>(
     executor: E,
     workspace_id: Uuid,
@@ -95,6 +96,7 @@ pub async fn get_workspace_shifts(
     .await
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn update_shift_direct(
     pool: &PgPool,
     id: Uuid,

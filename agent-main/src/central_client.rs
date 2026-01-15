@@ -177,12 +177,11 @@ impl CentralClient {
                             tokio::select! {
                                 // Outgoing messages from channel
                                 Some(out_msg) = rx.recv() => {
-                                    if let Ok(text) = serde_json::to_string(&out_msg) {
-                                        if let Err(e) = write.send(Message::Text(text.into())).await {
+                                    if let Ok(text) = serde_json::to_string(&out_msg)
+                                        && let Err(e) = write.send(Message::Text(text.into())).await {
                                             error!("Failed to send message: {}", e);
                                             break; // Connection probably dropped
                                         }
-                                    }
                                 }
                                 
                                 // Incoming messages from WebSocket

@@ -526,6 +526,7 @@ pub struct UpdateShiftRequest {
     pub is_break_auto_deduct: bool,
     pub break_is_overtime: bool,
     pub early_punch_in_grace_period_minutes: i32,
+    #[serde(default)]
     pub allow_early_ot: bool,
     /// If true, update the current record (Correction). 
     /// If false (default), create a new version if time-related fields changed.

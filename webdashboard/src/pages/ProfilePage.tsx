@@ -18,6 +18,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { useTranslation } from "react-i18next";
 import { Globe } from "lucide-react";
 import { Combobox } from "@/components/ui/Combobox";
+import { changePassword, clearAuthSession } from "@/lib/api";
 
 export default function ProfilePage() {
   const { t } = useTranslation();

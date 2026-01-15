@@ -526,7 +526,7 @@ Lấy danh sách các ca làm việc đã định nghĩa (bao gồm cả các ph
 - **Response (200)**: `Array<Shift>`
 
 #### POST /workspaces/:ws_id/shifts
-Tạo mới hoặc cập nhật một loại ca làm việc. Nếu cập nhật, hệ thống sẽ tạo một version mới (`version_id`) để bảo toàn dữ liệu chấm công quá khứ.
+Tạo mới hoặc cập nhật một loại ca làm việc. Nếu cập nhật, hệ thống sẽ tạo một version mới (`version_id`) để bảo toàn dữ liệu chấm công quá khứ trừ khi cờ `is_correction` được bật.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 
 **Body:**
@@ -540,9 +540,14 @@ Tạo mới hoặc cập nhật một loại ca làm việc. Nếu cập nhật,
   "break_end": "13:00:00",
   "is_break_auto_deduct": true,
   "early_punch_in_grace_period_minutes": 15,
-  "allow_early_ot": false
+  "allow_early_ot": false,
+  "is_correction": false,
+  "effective_date": "2026-01-16"
 }
 ```
+- `allow_early_ot`: Nếu `true`, thời gian vào ca sớm hơn `start_time` (sau khi trừ grace period) sẽ được tính là Overtime.
+- `is_correction`: (Chỉ dành cho update) Nếu `true`, ghi đè trực tiếp lên bản ghi hiện tại thay vì tạo version mới.
+- `effective_date`: (Chỉ dành cho update) Ngày bắt đầu hiệu lực của version mới. Mặc định là hôm nay.
 
 #### GET /workspaces/:ws_id/reports/attendance
 Xuất báo cáo chấm công của workspace.

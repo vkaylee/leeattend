@@ -166,6 +166,7 @@ impl AttendanceImportService {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn process_excel_range(
         pool: &PgPool,
         job_id: Uuid,
@@ -187,7 +188,7 @@ impl AttendanceImportService {
 
         for (idx, row) in range.rows().skip(1 + *processed_rows as usize).enumerate() {
             let current_line = (*processed_rows as usize) + idx + 2; // +1 for skip header, +1 for 1-based indexing
-            let emp_id_number = match row.get(0) {
+            let emp_id_number = match row.first() {
                 Some(Data::String(s)) => s.clone(),
                 Some(Data::Float(f)) => f.to_string(),
                 _ => {

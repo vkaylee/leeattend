@@ -17,6 +17,7 @@ test.describe('Login Success Flow', () => {
     await page.click('button[type="submit"]');
 
     // 4. Verify successful redirection to Home
+    await page.waitForURL(`${workerWebUrl}/`, { timeout: 15000 });
     // We expect the URL to be the root or contains /dashboard if it redirects there
     // LoginPage.tsx does navigate("/", { replace: true });
     await expect(page).toHaveURL(new RegExp(`${workerWebUrl}/?$`));

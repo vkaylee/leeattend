@@ -65,6 +65,7 @@ impl WorkspaceService {
         Ok((primary_role, extra_roles))
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn update_workspace(
         db: &PgPool,
         ws_id: Uuid,

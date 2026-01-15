@@ -283,6 +283,7 @@ async fn test_early_punch_in_grace_period() {
         .with_times(shift_start_time, shift_end_time)
         .with_break_duration(break_duration_minutes)
         .with_grace_period(grace_period_minutes)
+        .with_allow_early_ot(true)
         .assign_to_employee(employee_id, test_date)
         .await;
 

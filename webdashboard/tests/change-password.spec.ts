@@ -6,19 +6,19 @@ test.describe("Change Password Flow", () => {
     // 1. Initial Login
     await page.goto(`${baseURL}/login`);
     await page.fill(
-      'input[placeholder="Email address"]',
+      'input[name="email"]',
       "admin@leeattend.com",
     );
 
     let currentPwd = "admin123";
-    await page.fill('input[placeholder="Password"]', currentPwd);
+    await page.fill('input[name="password"]', currentPwd);
     await page.click('button[type="submit"]');
 
     await page.waitForTimeout(3000);
     if (page.url().includes("/login")) {
       console.log("admin123 failed, trying newadmin123");
       currentPwd = "newadmin123";
-      await page.fill('input[placeholder="Password"]', currentPwd);
+      await page.fill('input[name="password"]', currentPwd);
       await page.click('button[type="submit"]');
     }
 
@@ -35,17 +35,19 @@ test.describe("Change Password Flow", () => {
     await inputs.nth(1).fill(nextPwd);
     await inputs.nth(2).fill(nextPwd);
 
-    await page.click('button:has-text("Cập nhật mật khẩu")');
+    // Try both languages for the update button
+    const updateBtn = page.locator('button:has-text("Update Password"), button:has-text("Cập nhật mật khẩu")');
+    await updateBtn.click();
 
     // Đợi logout và redirect về login
     await expect(page).toHaveURL("/login", { timeout: 15000 });
 
     // Thử login với mật khẩu mới
     await page.fill(
-      'input[placeholder="Email address"]',
+      'input[name="email"]',
       "admin@leeattend.com",
     );
-    await page.fill('input[placeholder="Password"]', nextPwd);
+    await page.fill('input[name="password"]', nextPwd);
     await page.click('button[type="submit"]');
 
     await expect(page).toHaveURL("/", { timeout: 15000 });

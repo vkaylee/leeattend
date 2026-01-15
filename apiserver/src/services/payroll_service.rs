@@ -99,7 +99,7 @@ impl PayrollService {
                 .await
                 .unwrap_or(None);
 
-            let work_entries: Vec<_> = entries.iter().filter(|e| e.entry_type == "work" || e.entry_type == "").collect();
+            let work_entries: Vec<_> = entries.iter().filter(|e| e.entry_type == "work" || e.entry_type.is_empty()).collect();
             let break_entries: Vec<_> = entries.iter().filter(|e| e.entry_type == "break").collect();
 
             let actual_break_minutes: i32 = break_entries.iter().map(|e| {
@@ -131,7 +131,7 @@ impl PayrollService {
                             
                             if let (Some(start), Some(mut end)) = (start_dt, end_dt) {
                                 if s.end_time < s.start_time {
-                                    end = end + chrono::Duration::days(1);
+                                    end += chrono::Duration::days(1);
                                 }
 
                                 let (std, ot) = AttendanceCalculator::calculate_daily_net_hours(

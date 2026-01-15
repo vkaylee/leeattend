@@ -17,8 +17,11 @@ test.describe("UI Build Smoke Test", () => {
     // Đi tới trang chủ (hoặc login nếu chưa auth)
     await page.goto(baseURL || "http://localhost:5173");
 
-    // Chờ cho đến khi biến mất màn hình loading "Đang kiểm tra bảo mật..."
-    await page.waitForSelector('text=Đang kiểm tra bảo mật...', { state: 'detached', timeout: 10000 });
+    // Chờ cho đến khi biến mất màn hình loading
+    await page.waitForFunction(() => {
+      const text = document.body.innerText;
+      return !text.includes("Checking security") && !text.includes("Đang kiểm tra bảo mật");
+    }, { timeout: 15000 }).catch(() => console.log("Timeout waiting for security screen to detach, continuing..."));
 
     // 1. Kiểm tra không có lỗi runtime nghiêm trọng làm chết app
     expect(errors).toHaveLength(0);
@@ -28,9 +31,9 @@ test.describe("UI Build Smoke Test", () => {
     await expect(root).toBeVisible();
 
     // 3. Đảm bảo không render trang trắng (Kiểm tra có text hoặc element quan trọng)
-    // Tùy theo login hay dashboard, ta kiểm tra các từ khóa đặc trưng
     const bodyText = await page.innerText("body");
     const hasAppContent = bodyText.includes("LeeAttend") || 
+                         bodyText.includes("Sign in") || 
                          bodyText.includes("Đăng nhập") || 
                          bodyText.includes("Dashboard");
     

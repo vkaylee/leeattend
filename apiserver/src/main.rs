@@ -125,7 +125,7 @@ async fn main() {
     tracing::info!("Actual listening on {}", actual_addr);
 
     // Ghi port vào file để Frontend/AI có thể tự động khám phá
-    if let Ok(_) = std::fs::write(&port_file_name, actual_addr.port().to_string()) {
+    if std::fs::write(&port_file_name, actual_addr.port().to_string()).is_ok() {
         tracing::info!(
             "Saved actual port to {}: {}",
             port_file_name,

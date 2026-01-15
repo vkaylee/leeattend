@@ -42,14 +42,14 @@ Sử dụng `Arc<dyn RepositoryTrait>` để inject vào Services. Khởi tạo 
 
 ### 🚀 Mandatory Passing Tests
 - **Zero Tolerance**: Tất cả các bài kiểm tra (Unit tests, Integration tests, Frontend tests) **BẮT BUỘC** phải vượt qua (PASS) trước khi thực hiện bất kỳ lệnh commit hoặc merge nào. Code có test thất bại sẽ không được chấp nhận.
+- **Automated Linting (Phase 0)**: Hệ thống thực thi kiểm tra code quality tự động (Linting) ở bước đầu tiên của pipeline.
+    - **Rust**: `cargo clippy -- -D warnings` (Deny all warnings).
+    - **Frontend**: `npm run lint` (ESLint strict mode).
+    - Bất kỳ cảnh báo (warning) nào từ linter đều bị coi là lỗi và sẽ dừng pipeline ngay lập tức.
 - **Recommended Execution**: Sử dụng script hợp nhất để chạy toàn bộ suite một cách nhanh nhất (hỗ trợ thực thi song song và tự động setup môi trường):
   ```bash
   ./run-tests.sh
   ```
-- **Manual Verification**: Nếu muốn chạy riêng lẻ từng module:
-  - **Backend (Rust)**: `cargo test` (hoặc `cargo nextest run` nếu có cài đặt).
-  - **Frontend (React)**: `npm test` (chạy `vitest run`).
-  - **Worker (Python)**: `source venv/bin/activate && pytest` (Bắt buộc chạy trong venv).
 
 ### Integration Tests (Rust)
 
@@ -61,6 +61,15 @@ We use a **Dynamic Test Database** pattern to ensure test isolation and allow pa
 4. **Cleanup**: Databases are automatically dropped on `Drop` via a detached background shell process. This allows the test to finish immediately while the database is cleaned up shortly after.
 5. **Signal Safety**: A global **Signal Trap** (SIGINT/SIGTERM) is initialized on the first `TestDatabase` creation. If the test process is interrupted (e.g., Ctrl+C), it will attempt to clean up all currently active test databases.
 6. **Robustness**: The cleanup logic terminates active database backends before dropping to prevent "database is being accessed by other users" errors.
+
+### End-to-End Tests (Playwright)
+
+For E2E stability and performance, we adhere to the **Isolated Parallel Environment** standard:
+
+1. **Multi-DB Isolation**: Mỗi worker E2E chạy trên một database Postgres hoàn toàn độc lập (`test_database_e2e_N`) được setup tự động bởi `run-tests.sh`.
+2. **Pre-compiled Binary**: E2E workers thực thi file binary backend đã được build sẵn thay vì dùng `cargo run` để tránh xung đột file lock của Rust compiler.
+3. **Regex Locators**: Sử dụng Regex cho các text locator (ví dụ: `text=/Time|Thời gian/`) để đảm bảo test chạy đúng trên cả UI Tiếng Việt và Tiếng Anh.
+4. **Deterministic Timeouts**: Giới hạn timeout 1 phút cho mỗi test case và 5 phút cho toàn bộ suite để sớm phát hiện các trường hợp treo process.
 
 **Example Pattern:**
 ```rust
