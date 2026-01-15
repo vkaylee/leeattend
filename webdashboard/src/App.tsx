@@ -193,7 +193,7 @@ function Layout() {
               onClick={() => toggleSection('org')}
               className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
             >
-              <span>{t("sections.organization")}</span>
+              <span>{t("common.sections.organization")}</span>
               {openSections.org ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </button>
             <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.org ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}>
@@ -233,7 +233,7 @@ function Layout() {
               onClick={() => toggleSection('time')}
               className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
             >
-              <span>{t("sections.time_leave")}</span>
+              <span>{t("common.sections.time_leave")}</span>
               {openSections.time ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </button>
             <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.time ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}>
@@ -291,7 +291,7 @@ function Layout() {
               onClick={() => toggleSection('payroll')}
               className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
             >
-              <span>{t("sections.payroll_shifts")}</span>
+              <span>{t("common.sections.payroll_shifts")}</span>
               {openSections.payroll ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </button>
             <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.payroll ? "max-h-64 opacity-100" : "max-h-0 opacity-0"}`}>
@@ -322,7 +322,7 @@ function Layout() {
               onClick={() => toggleSection('system')}
               className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
             >
-              <span>{t("sections.system")}</span>
+              <span>{t("common.sections.system")}</span>
               {openSections.system ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </button>
             <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.system ? "max-h-64 opacity-100" : "max-h-0 opacity-0"}`}>
@@ -417,8 +417,8 @@ function Layout() {
 
             <div className="flex items-center gap-3 pl-1 group cursor-pointer">
               <div className="hidden sm:block text-right">
-                <p className="text-sm font-bold text-slate-900 leading-none group-hover:text-primary-600 transition-colors">Admin</p>
-                <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase tracking-wider">Workspace Owner</p>
+                <p className="text-sm font-bold text-slate-900 leading-none group-hover:text-primary-600 transition-colors">{t("common.admin")}</p>
+                <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase tracking-wider">{t("common.workspace_owner")}</p>
               </div>
               <div className="w-9 h-9 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center font-bold text-sm shadow-sm border border-primary-200 group-hover:bg-primary-600 group-hover:text-white transition-all duration-300">
                 AD

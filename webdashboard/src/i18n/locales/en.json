@@ -17,6 +17,8 @@
     "profile": "Profile",
     "logout": "Logout",
     "switch_workspace": "Switch Workspace",
+    "admin": "Admin",
+    "workspace_owner": "Workspace Owner",
     "office_branch": "Office / Branch",
     "select_workspace_desc": "Select the office or branch you want to work with.",
     "create_workspace": "Create Workspace",
