@@ -149,7 +149,9 @@ export default function AttendanceLogsPage() {
           <Button variant="outline" onClick={() => window.print()}>
             <Download className="mr-2 h-4 w-4" /> {t("attendance_logs.export_btn")}
           </Button>
-          {/* Note: setIsImportDialogOpen used to be here, but using local state now */}
+          <Button variant="default" onClick={() => setIsImportDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" /> {t("attendance_logs.import_btn")}
+          </Button>
         </div>
       </div>
 

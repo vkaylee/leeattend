@@ -289,21 +289,7 @@
     "title": "Attendance Logs",
     "subtitle": "Raw data from time clocks and other sources.",
     "export_btn": "Export Data",
-    "status": {
-      "recorded": "Recorded"
-    },
-    "messages": {
-      "loading": "Loading logs...",
-      "no_data": "No punch data found."
-    },
-    "modal": {
-      "import_title": "Import logs from file"
-    }
-  },
-  "attendance_logs": {
-    "title": "Attendance Logs",
-    "subtitle": "Raw data from time clocks and other sources.",
-    "export_btn": "Export Data",
+    "import_btn": "Import Logs",
     "status": {
       "recorded": "Recorded"
     },

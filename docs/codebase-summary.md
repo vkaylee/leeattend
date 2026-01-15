@@ -23,6 +23,7 @@ leeattend/
 │   ├── src/
 │   │   ├── components/ # UI Components (Modals, Switchers)
 │   │   ├── hooks/      # React Query hooks (Domain state)
+│   │   ├── i18n/       # Internationalization (locales, config)
 │   │   ├── pages/      # Route pages
 │   │   ├── lib/        # API clients & Utils
 │   │   └── test/       # Vitest setup & Factories
@@ -42,16 +43,17 @@ leeattend/
     - **Heartbeat Engine**: Time-based tracking of edge agent connectivity.
     - **Timezone Engine**: Comprehensive timezone management per workspace. Correctly handles local-to-UTC conversion for external data imports (Excel/CSV) using the workspace's configured IANA timezone ID.
     - **Internationalization (i18n) Engine**: Persistent language preferences stored at both user and workspace levels. Backend automatically detects and synchronizes with frontend state via `preferred_language` and `default_language` fields.
-- **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections. Supports **Robust Asynchronous Batch Import** (Excel/CSV) with auto-recovery and real-time progress tracking.
-- **Attendance Persistence Layer**: 
-    - **Raw Event Store**: Dedicated `raw_attendance_logs` table for immutable original punch data from hardware and imports.
-    - **Pairing Engine**: `PairingService` handles the automatic conversion of flat events into logical attendance sessions. Includes deduplication (1m window) and session matching (14h window).
-    - **Strict Validation**: High-fidelity file parsing that enforces workspace settings and provides line-by-line detailed error context.
-- **Time Tracking**: Core logic for punch in/out, shift calculation, and payroll-ready duration processing.
-    - **Overtime Engine**: Priority-based calculation logic supporting worked-through breaks and daily OT thresholds.
-    - **Leave Management**: Tracking of annual leave entitlements, carry-over balances, and usage history.
-    - **Dynamic Accrual Engine**: Automated leave balance calculation based on configurable rules (Monthly/Quarterly/Yearly) and Seniority Bonuses.
-    - **Resilience**: **PortFileGuard** ensures robust resource cleanup (port files) even during unexpected shutdowns or panics.
+    - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections. Supports **Robust Asynchronous Batch Import** (Excel/CSV) with auto-recovery and real-time progress tracking.
+    - **Attendance Persistence Layer**: 
+        - **Raw Event Store**: Dedicated `raw_attendance_logs` table for immutable original punch data from hardware and imports.
+        - **Pairing Engine**: `PairingService` handles the automatic conversion of flat events into logical attendance sessions. Includes deduplication (1m window) and session matching (14h window).
+        - **Strict Validation**: High-fidelity file parsing that enforces workspace settings and provides line-by-line detailed error context.
+    - **Time Tracking**: Core logic for punch in/out, shift calculation, and payroll-ready duration processing.
+        - **Overtime Engine**: Priority-based calculation logic supporting worked-through breaks and daily OT thresholds.
+        - **Leave Management**: Tracking of annual leave entitlements, carry-over balances, and usage history.
+        - **Dynamic Accrual Engine**: Automated leave balance calculation based on configurable rules (Monthly/Quarterly/Yearly) and Seniority Bonuses.
+        - **Resilience**: **PortFileGuard** ensures robust resource cleanup (port files) even during unexpected shutdowns or panics.
+
 2.  **Web Dashboard (React/Vite)**:
     - **Premium UI (Violet)**: Zero-distraction layout with a static breadcrumb header and a single-open accordion sidebar.
     - **Dynamic Themeing**: `useTheme` hook for on-the-fly calculation of color palettes from a single HEX code.
@@ -66,8 +68,9 @@ leeattend/
     - Onboarding & Workspace management flows.
     - Real-time agent status via **Heartbeat Badges**.
     - Discovery: Auto-proxy configuration based on `.api_port`.
+
 3.  **Hybrid Edge Agent (Rust & Python)**:
-    - **Rust Orchestrator (`agent-main`)**: Trái tim của hệ thống. Quản lý SQLite (`attendance.db`), logic đồng bộ dữ liệu (ACK protocol), WebSocket bền bỉ (Exponential Backoff), và điều phối lệnh tới driver. **Fix**: Added `Clone` derive for `AttendanceData` model to prevent compilation errors.
+    - **Rust Orchestrator (`agent-main`)**: Trái tim của hệ thống. Quản lý SQLite (`attendance.db`), logic đồng bộ dữ liệu (ACK protocol), WebSocket bền bỉ (Exponential Backoff), và điều phối lệnh tới driver.
     - **Python Sidecar (`agent-zk-worker`)**: Một "Thin Driver" siêu nhẹ. Chỉ cung cấp giao thức JSON-RPC để Rust điều khiển thiết bị ZKTeco. Đã được loại bỏ hoàn toàn các logic dư thừa (DB, Cloud logic).
     - **Protocol**: JSON-RPC over TCP (Localhost:5000) giúp tách biệt lỗi phần cứng khỏi logic nghiệp vụ.
 
@@ -77,7 +80,7 @@ leeattend/
 - [x] **Full Employee Lifecycle**: CRUD operations, Department transfers with historical tracking (`employee_department_history`), and **Employment History System** (Re-hire support via `employment_periods`).
 - [x] **Department Management**: Full CRUD operations with manager assignment and historical tracking.
 - [x] Time-series Salary History.
-- **Shift Rostering System (Weekly calendar & Priority logic)**:
+- [x] **Shift Rostering System (Weekly calendar & Priority logic)**:
     - **Selection-First UX**: Người dùng chọn một hoặc nhiều ngày trên lịch để kích hoạt thanh công cụ (Bulk Action Bar), sau đó mới chọn ca làm việc để áp dụng. Không sử dụng các nút hành động trực tiếp trên từng thẻ ngày để giảm nhiễu giao diện.
     - **Visual Indicators**: Hệ thống sử dụng màu sắc và biểu tượng (Zap cho linh hoạt, Shield cho cố định) để phân biệt nguồn gốc của lịch làm việc.
 - [x] Attendance Adjustment Workflow (Manual confirmation requests).
@@ -110,7 +113,6 @@ leeattend/
     - `debug-ui.spec.ts`: Script dùng để kiểm tra luồng Auth, Loading loop và lấy logs từ trình duyệt.
 - **Port Discovery:**
     - `apiserver/.api_port`: File tạm chứa port hiện tại của backend.
-
 
 ### Testing Infrastructure
 - **Mandatory Quality Gate**: Bắt buộc 100% các bài test (Unit, Integration, Frontend) phải PASS trước khi merge.

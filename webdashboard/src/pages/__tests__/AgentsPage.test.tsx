@@ -115,8 +115,8 @@ describe("AgentsPage", () => {
 
     expect(screen.getByText("Agent One")).toBeDefined();
     expect(screen.getByText("Agent Two")).toBeDefined();
-    expect(screen.getByText("Trusted")).toBeDefined();
-    expect(screen.getByText("Pending")).toBeDefined();
+    expect(screen.getByText("Đã duyệt")).toBeDefined();
+    expect(screen.getByText("Chờ duyệt")).toBeDefined();
     expect(screen.getByText("Online")).toBeDefined();
     expect(screen.getByText("Offline")).toBeDefined();
   });

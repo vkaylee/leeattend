@@ -52,7 +52,7 @@ describe("RoleManagementModal", () => {
       isLoading: true,
     });
     render(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
-    expect(screen.getByText("Đang tải...")).toBeDefined();
+    expect(screen.getByText("Đang tải dữ liệu...")).toBeDefined();
   });
 
   it("handles updating primary role", async () => {
@@ -72,7 +72,7 @@ describe("RoleManagementModal", () => {
     const user = userEvent.setup();
     render(<RoleManagementModal userId="user-1" isOpen={true} onClose={() => {}} />);
     
-    const roleSelect = screen.getByLabelText("Vai trò");
+    const roleSelect = screen.getByLabelText("Vai trò gán");
     await user.selectOptions(roleSelect, "admin");
 
     const dateInput = screen.getByLabelText("Ngày hết hạn");

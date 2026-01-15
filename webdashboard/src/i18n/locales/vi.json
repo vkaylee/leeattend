@@ -290,21 +290,7 @@
     "title": "Nhật ký quẹt thẻ",
     "subtitle": "Dữ liệu thô từ máy chấm công và các nguồn quẹt thẻ.",
     "export_btn": "Xuất dữ liệu",
-    "status": {
-      "recorded": "Đã ghi nhận"
-    },
-    "messages": {
-      "loading": "Đang tải nhật ký...",
-      "no_data": "Không tìm thấy dữ liệu quẹt thẻ nào."
-    },
-    "modal": {
-      "import_title": "Nhập nhật ký quẹt thẻ từ file"
-    }
-  },
-  "attendance_logs": {
-    "title": "Nhật ký quẹt thẻ",
-    "subtitle": "Dữ liệu thô từ máy chấm công và các nguồn quẹt thẻ.",
-    "export_btn": "Xuất dữ liệu",
+    "import_btn": "Nhập dữ liệu",
     "status": {
       "recorded": "Đã ghi nhận"
     },

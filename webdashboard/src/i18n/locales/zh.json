@@ -290,21 +290,7 @@
     "title": "打卡日志",
     "subtitle": "来自考勤机和其他来源的原始数据。",
     "export_btn": "导出数据",
-    "status": {
-      "recorded": "已记录"
-    },
-    "messages": {
-      "loading": "正在加载日志...",
-      "no_data": "未找到打卡数据。"
-    },
-    "modal": {
-      "import_title": "从文件导入日志"
-    }
-  },
-  "attendance_logs": {
-    "title": "打卡日志",
-    "subtitle": "来自考勤机和其他来源的原始数据。",
-    "export_btn": "导出数据",
+    "import_btn": "导入日志",
     "status": {
       "recorded": "已记录"
     },

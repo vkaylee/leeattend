@@ -1,28 +1,18 @@
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
+import viLocale from "../i18n/locales/vi.json";
+
+// Helper to resolve nested keys
+const resolveKey = (key: string, obj: any): string => {
+  const result = key.split('.').reduce((o, i) => o?.[i], obj);
+  if (!result) console.warn(`Missing key in test mock: ${key}`);
+  return result || key;
+};
 
 // Mock react-i18next
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => {
-      // Return Vietnamese strings for existing tests to pass
-      const translations: Record<string, string> = {
-        'workspace_settings.title': 'Cài đặt Workspace',
-        'workspace_settings.save_config': 'Lưu cấu hình',
-        'workspace_settings.invite_member': 'Gửi lời mời',
-        'workspace_settings.invite_email_placeholder': 'dong-nghiep@congty.com',
-        'workspace_settings.invite_role_label': 'Vai trò',
-        'workspace_settings.member_manage_roles': 'Quản lý quyền',
-        'role_management.title': 'Quản lý quyền hạn',
-        'common.one_minute': '1 phút',
-        'common.fifteen_minutes': '15 phút',
-        'common.thirty_minutes': '30 phút',
-        'common.sixty_minutes': '60 phút',
-        'Email': 'Email',
-        'Vai trò': 'Vai trò',
-      };
-      return translations[key] || key;
-    },
+    t: (key: string) => resolveKey(key, viLocale),
     i18n: {
       changeLanguage: () => Promise.resolve(),
       language: 'vi',
