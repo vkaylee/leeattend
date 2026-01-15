@@ -4,6 +4,7 @@
 
 ```
 leeattend/
+├── run-tests.sh       # Unified Test Orchestrator (Parallel + Docker)
 ├── agent-main/        # Rust Main Agent (Orchestrator)
 │   ├── src/           # Rust Logic (Management, WS, SQLite)
 │   └── Cargo.toml     # Rust dependencies
@@ -130,6 +131,11 @@ leeattend/
     - `apiserver/.api_port`: File tạm chứa port hiện tại của backend.
 
 ### Testing Infrastructure
+- **Unified Orchestrator (`run-tests.sh`)**: A top-level script that coordinates the entire test suite.
+    - **Phase 1 (Parallel Unit)**: Simultaneously executes unit tests for `apiserver`, `agent-main`, `agent-zk-worker`, and `webdashboard` to maximize throughput.
+    - **Phase 2 (Env Setup)**: Automatically provisions a transient Postgres environment using Docker Compose.
+    - **Phase 3 (Parallel Integration)**: Runs heavy integration and Playwright E2E tests in parallel.
+    - **Sequential Traceability**: Captures parallel logs and displays them in sequential blocks for easy debugging of failures.
 - **Mandatory Quality Gate**: Bắt buộc 100% các bài test (Unit, Integration, Frontend) phải PASS trước khi merge.
 - **Parallel E2E Orchestration**: Hệ thống hỗ trợ chạy E2E tests song song (multi-worker) với sự cô lập hoàn toàn.
     - **Worker-Specific Environments**: Mỗi Playwright worker khởi tạo một cặp Backend-Frontend riêng biệt.

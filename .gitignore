@@ -41,6 +41,10 @@ webdashboard/.env.local
 .api_port*
 .web_port*
 
+# Playwright
+webdashboard/test-results/
+webdashboard/playwright-report/
+
 # Binaries and Local Databases
 *.exe
 *.db

@@ -62,5 +62,11 @@ If you need to verify UI changes or fix loading issues:
 - [API Reference](docs/api-reference.md)
 - [Deployment Guide](docs/deployment-guide.md)
 
+## 🧪 Testing
+Run the unified test suite (Parallel Unit + Docker Integration):
+```bash
+./run-tests.sh
+```
+
 ## 📝 Changelog
 See [CHANGELOG.md](./CHANGELOG.md) for version history.
