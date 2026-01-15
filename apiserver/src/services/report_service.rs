@@ -5,6 +5,8 @@ use uuid::Uuid;
 
 use crate::models::{AttendanceSummary, DailyAttendanceReport};
 use crate::repositories::{roster_repository, time_entry_repository};
+use crate::repositories::workspace_repository::{WorkspaceRepository, SqlxWorkspaceRepository};
+use crate::services::AttendanceCalculator;
 
 pub struct ReportService;
 
@@ -15,6 +17,13 @@ impl ReportService {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<DailyAttendanceReport>, StatusCode> {
+        // 0. Get Workspace Settings for Rounding Logic
+        let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
+        let workspace = workspace_repo.get_workspace_by_id(workspace_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
         // 1. Get all schedules for the range
         let schedules = roster_repository::get_workspace_schedules(pool, workspace_id, start_date, end_date)
             .await
@@ -57,16 +66,66 @@ impl ReportService {
                     .filter(|e| e.punch_in_time.with_timezone(&Local).date_naive() == date)
                     .collect();
 
-                let actual_punch_in = day_entries.first().map(|e| e.punch_in_time);
-                let actual_punch_out = day_entries.last().and_then(|e| e.punch_out_time);
-                let total_minutes: i32 = day_entries.iter().map(|e| e.duration_minutes.unwrap_or(0)).sum();
+                let actual_punch_in = day_entries.first().map(|e| e.punch_in_time.with_timezone(&Local));
+                let actual_punch_out = day_entries.last().and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&Local)));
+                
+                // --- NEW CALCULATION LOGIC ---
+                let mut total_payable_minutes = 0;
+
+                // We need to calculate for *each* entry pair if there are multiple, 
+                // but usually for a daily report with one shift, we treat the span from First In to Last Out 
+                // as the "work day" if we want to apply daily Shift logic.
+                // However, AttendanceCalculator is designed for Daily Net Hours.
+                
+                if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
+                    // Calculate actual break taken between punches
+                    // This is complex if there are multiple punches (Split shift).
+                    // For simplicity and matching typical use case: 
+                    // Break = (Last Out - First In) - Sum(Work Durations)
+                    // OR specifically looking for entries marked as 'break'.
+                    // Current system seems to mark entries as 'work' or 'break'.
+                    
+                    let actual_break_minutes: i32 = day_entries.iter()
+                        .filter(|e| e.entry_type == "break")
+                        .map(|e| e.duration_minutes.unwrap_or(0))
+                        .sum();
+
+                    // If we treat the whole day as one session for calculation against the shift:
+                    let (std, ot) = AttendanceCalculator::calculate_daily_net_hours(
+                        punch_in,
+                        punch_out,
+                        daily.start_time.and_then(|t| Local.from_local_datetime(&date.and_time(t)).single()),
+                        daily.end_time.and_then(|t| Local.from_local_datetime(&date.and_time(t)).single()),
+                        daily.break_duration_minutes.unwrap_or(0),
+                        daily.early_punch_in_grace_period_minutes.unwrap_or(0),
+                        daily.is_break_auto_deduct.unwrap_or(false),
+                        false, // is_break_overtime - Assuming false for standard reports or need specific field
+                        actual_break_minutes
+                    );
+
+                    // Apply Workspace Rounding
+                    let rounded_std = AttendanceCalculator::apply_rounding(
+                        std, 
+                        workspace.work_unit_minutes, 
+                        &workspace.rounding_policy
+                    );
+                    
+                    let rounded_ot = AttendanceCalculator::apply_rounding(
+                        ot, 
+                        workspace.work_unit_minutes, 
+                        &workspace.rounding_policy
+                    );
+
+                    total_payable_minutes = rounded_std + rounded_ot;
+                }
+                // -----------------------------
 
                 let mut status = "absent".to_string();
                 if actual_punch_in.is_some() {
                     status = "present".to_string();
                     
                     if let (Some(punch_in), Some(sched_start)) = (actual_punch_in, daily.start_time) {
-                        if punch_in.with_timezone(&Local).time() > sched_start + chrono::Duration::minutes(5) {
+                        if punch_in.time() > sched_start + chrono::Duration::minutes(5) {
                             status = "late".to_string();
                         }
                     }
@@ -84,9 +143,9 @@ impl ReportService {
                     break_start: daily.break_start,
                     break_end: daily.break_end,
                     is_break_auto_deduct: daily.is_break_auto_deduct,
-                    actual_punch_in,
-                    actual_punch_out,
-                    total_minutes,
+                    actual_punch_in: actual_punch_in.map(|t| t.with_timezone(&Utc)), // Convert back to UTC for API
+                    actual_punch_out: actual_punch_out.map(|t| t.with_timezone(&Utc)),
+                    total_minutes: total_payable_minutes, // Now using calculated payable minutes
                     status,
                 });
             }

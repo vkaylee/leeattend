@@ -673,6 +673,7 @@ pub struct EffectiveSchedule {
     pub break_start: Option<NaiveTime>,
     pub break_end: Option<NaiveTime>,
     pub is_break_auto_deduct: Option<bool>,
+    pub early_punch_in_grace_period_minutes: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

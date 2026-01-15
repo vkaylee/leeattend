@@ -1,5 +1,6 @@
 pub mod agent_service;
 pub mod attendance_adjustment_service;
+pub mod attendance_calculator;
 pub mod attendance_import_service;
 pub mod auth_service;
 pub mod employee_service;
@@ -13,6 +14,7 @@ pub mod time_tracking_service;
 pub mod workspace_service;
 
 pub use agent_service::AgentService;
+pub use attendance_calculator::AttendanceCalculator;
 pub use employee_service::EmployeeService;
 pub use leave_service::LeaveService;
 pub use report_service::ReportService;
