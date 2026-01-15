@@ -100,6 +100,7 @@
       "en": "English",
       "zh": "Chinese"
     },
+    "primary_color": "Primary Color",
     "colors": {
       "violet": "Violet",
       "indigo": "Indigo",
@@ -109,7 +110,6 @@
       "rose": "Rose",
       "slate": "Slate"
     },
-    "pagination": {
     "pagination": {
       "showing": "Showing",
       "out_of": "out of",
