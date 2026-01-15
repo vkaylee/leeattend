@@ -501,7 +501,7 @@ Xuất báo cáo chấm công của workspace.
     - `type`: `summary` (mặc định) hoặc `daily`
 - **Response (type=summary)**: Báo cáo tổng hợp số giờ, số ngày công theo từng nhân viên.
 - **Response (type=daily)**: Báo cáo chi tiết từng lượt quẹt thẻ (Work/Break) theo ngày của từng nhân viên.
-    - **Fields**: `employee_id`, `employee_name`, `date`, `scheduled_start`, `scheduled_end`, `break_duration_minutes`, `break_start`, `break_end`, `is_break_auto_deduct`, `actual_punch_in`, `actual_punch_out`, `status`.
+    - **Fields**: `employee_id`, `employee_name`, `date`, `scheduled_start`, `scheduled_end`, `break_duration_minutes`, `break_start`, `break_end`, `is_break_auto_deduct`, `actual_punch_in`, `actual_punch_out`, `total_minutes` (Thời gian công thực tế sau khi trừ giờ nghỉ và làm tròn), `status`.
 
 ---
 

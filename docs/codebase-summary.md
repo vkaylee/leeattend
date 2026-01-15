@@ -46,9 +46,13 @@ leeattend/
     - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections. Supports **Robust Asynchronous Batch Import** (Excel/CSV) with auto-recovery and real-time progress tracking.
     - **Attendance Persistence Layer**: 
         - **Raw Event Store**: Dedicated `raw_attendance_logs` table for immutable original punch data from hardware and imports.
-        - **Pairing Engine**: `PairingService` handles the automatic conversion of flat events into logical attendance sessions. Includes deduplication (1m window) and session matching (14h window).
+        - **Pairing Engine**: `PairingService` handles the automatic conversion of flat events into logical attendance sessions. Uses a **Min-Cost Matching Algorithm** (`pairing_algo.rs`) to intelligently pair logs against Shift Patterns (Full Day, Half Day, Continuous), handling missing punches and noise gracefully.
         - **Strict Validation**: High-fidelity file parsing that enforces workspace settings and provides line-by-line detailed error context.
     - **Time Tracking**: Core logic for punch in/out, shift calculation, and payroll-ready duration processing.
+        - **Attendance Calculator**: Centralized Domain Service (`attendance_calculator.rs`) implementing pure business logic for:
+            - **Grace Period**: Logic "châm chước" đi trễ (ví dụ: cho phép trễ 15p).
+            - **Break Deduction**: Tự động trừ giờ nghỉ trưa hoặc trừ theo thực tế.
+            - **Rounding**: Làm tròn giờ công (Floor/Ceil/Round) theo Work Unit (15m/30m).
         - **Overtime Engine**: Priority-based calculation logic supporting worked-through breaks and daily OT thresholds.
         - **Leave Management**: Tracking of annual leave entitlements, carry-over balances, and usage history.
         - **Dynamic Accrual Engine**: Automated leave balance calculation based on configurable rules (Monthly/Quarterly/Yearly) and Seniority Bonuses.
@@ -85,7 +89,7 @@ leeattend/
     - **Visual Indicators**: Hệ thống sử dụng màu sắc và biểu tượng (Zap cho linh hoạt, Shield cho cố định) để phân biệt nguồn gốc của lịch làm việc.
 - [x] Attendance Adjustment Workflow (Manual confirmation requests).
 - [x] **Payroll Engine**: Advanced logic for worked-through breaks and configurable early clock-in grace periods.
-- [x] **Reporting Suite**: Attendance reports supporting monthly summaries and detailed daily punch logs (including break times).
+- [x] **Reporting Suite**: Attendance reports now use the **Attendance Calculator** to show accurate "Payable Minutes" (applying grace period, break deduction, and rounding) instead of just raw duration.
 - [x] **Shift Versioning**: Automated tracking of shift configuration changes to maintain historical record integrity.
 - [x] Configurable Work Units: Support for 15m/30m/60m rounding blocks with configurable policies (Floor/Ceil/Round).
 - [x] **Raw Attendance Audit**: Immutable event-centric storage with smart pairing logic.
