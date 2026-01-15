@@ -21,14 +21,14 @@ pub async fn get_workspace_schedules(
     .await?;
 
     // 2. Fetch all shifts (for details)
-    let shifts_map: HashMap<Uuid, (String, chrono::NaiveTime, chrono::NaiveTime, i32, Option<chrono::NaiveTime>, Option<chrono::NaiveTime>, bool, i32)> = sqlx::query!(
-        "SELECT id, name, start_time, end_time, break_duration_minutes, break_start, break_end, is_break_auto_deduct, early_punch_in_grace_period_minutes FROM shifts WHERE workspace_id = $1",
+    let shifts_map: HashMap<Uuid, (String, chrono::NaiveTime, chrono::NaiveTime, i32, Option<chrono::NaiveTime>, Option<chrono::NaiveTime>, bool, i32, bool)> = sqlx::query!(
+        "SELECT id, name, start_time, end_time, break_duration_minutes, break_start, break_end, is_break_auto_deduct, early_punch_in_grace_period_minutes, allow_early_ot FROM shifts WHERE workspace_id = $1",
         workspace_id
     )
     .fetch_all(pool)
     .await?
     .into_iter()
-    .map(|s| (s.id, (s.name, s.start_time, s.end_time, s.break_duration_minutes, s.break_start, s.break_end, s.is_break_auto_deduct, s.early_punch_in_grace_period_minutes)))
+    .map(|s| (s.id, (s.name, s.start_time, s.end_time, s.break_duration_minutes, s.break_start, s.break_end, s.is_break_auto_deduct, s.early_punch_in_grace_period_minutes, s.allow_early_ot)))
     .collect();
 
     // 3. Fetch Rosters in range
@@ -130,10 +130,11 @@ pub async fn get_workspace_schedules(
                 break_end: None,
                 is_break_auto_deduct: None,
                 early_punch_in_grace_period_minutes: None,
+                allow_early_ot: None,
             };
 
             if let Some(sid) = effective_shift_id {
-                if let Some((name, start, end, duration, b_start, b_end, auto_deduct, grace)) = shifts_map.get(&sid) {
+                if let Some((name, start, end, duration, b_start, b_end, auto_deduct, grace, allow_ot)) = shifts_map.get(&sid) {
                     sched.shift_name = Some(name.clone());
                     sched.start_time = Some(*start);
                     sched.end_time = Some(*end);
@@ -142,6 +143,7 @@ pub async fn get_workspace_schedules(
                     sched.break_end = *b_end;
                     sched.is_break_auto_deduct = Some(*auto_deduct);
                     sched.early_punch_in_grace_period_minutes = Some(*grace);
+                    sched.allow_early_ot = Some(*allow_ot);
                 }
             }
 

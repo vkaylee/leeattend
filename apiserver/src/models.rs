@@ -490,6 +490,7 @@ pub struct Shift {
     pub is_break_auto_deduct: bool,
     pub break_is_overtime: bool,
     pub early_punch_in_grace_period_minutes: i32,
+    pub allow_early_ot: bool,
     pub is_active: bool,
     pub parent_shift_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -510,6 +511,8 @@ pub struct CreateShiftRequest {
     pub is_break_auto_deduct: bool,
     pub break_is_overtime: bool,
     pub early_punch_in_grace_period_minutes: i32,
+    #[serde(default)]
+    pub allow_early_ot: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -523,6 +526,7 @@ pub struct UpdateShiftRequest {
     pub is_break_auto_deduct: bool,
     pub break_is_overtime: bool,
     pub early_punch_in_grace_period_minutes: i32,
+    pub allow_early_ot: bool,
     /// If true, update the current record (Correction). 
     /// If false (default), create a new version if time-related fields changed.
     #[serde(default)]
@@ -688,6 +692,7 @@ pub struct EffectiveSchedule {
     pub break_end: Option<NaiveTime>,
     pub is_break_auto_deduct: Option<bool>,
     pub early_punch_in_grace_period_minutes: Option<i32>,
+    pub allow_early_ot: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

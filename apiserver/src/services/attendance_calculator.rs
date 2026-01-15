@@ -1,34 +1,85 @@
 use chrono::{DateTime, Duration, TimeZone};
 
+#[derive(Debug, Default)]
+pub struct WorkBuckets {
+    pub standard_minutes: i32,
+    pub early_ot_minutes: i32,
+    pub late_ot_minutes: i32,
+}
+
 pub struct AttendanceCalculator;
 
 impl AttendanceCalculator {
-    /// 1. Grace Period Logic
-    /// Determines the effective punch-in time based on the shift schedule and grace period.
-    /// If the employee punches in within the grace window (e.g., 30 mins before start),
-    /// it counts as starting exactly at the shift start time.
-    pub fn calculate_effective_punch_in<T: TimeZone>(
-        actual_punch_in: DateTime<T>,
+    /// Calculate standard and OT buckets based on shift boundaries and policy.
+    pub fn calculate_buckets<T: TimeZone>(
+        punch_in: DateTime<T>,
+        punch_out: DateTime<T>,
         shift_start_dt: Option<DateTime<T>>,
-        grace_period_minutes: i32,
-    ) -> DateTime<T> {
-        if let Some(shift_start) = shift_start_dt {
-            if grace_period_minutes > 0 {
-                let grace_start = shift_start.clone() - Duration::minutes(grace_period_minutes as i64);
-                // If punch is between [Shift Start - Grace] and [Shift Start]
-                if actual_punch_in >= grace_start && actual_punch_in < shift_start {
-                    return shift_start;
+        shift_end_dt: Option<DateTime<T>>,
+        scheduled_break_minutes: i32,
+        actual_break_minutes: i32,
+        is_break_auto_deduct: bool,
+        is_break_overtime: bool,
+        allow_early_ot: bool,
+    ) -> WorkBuckets {
+        let mut buckets = WorkBuckets::default();
+
+        if punch_out <= punch_in {
+            return buckets;
+        }
+
+        match (shift_start_dt, shift_end_dt) {
+            (Some(start), Some(mut end)) => {
+                // Handle Overnight Shift linearization
+                if end < start {
+                    end = end + Duration::days(1);
+                }
+
+                // 1. Standard Bucket: Intersection of [In, Out] and [Start, End]
+                let standard_in = DateTime::max(punch_in.clone(), start.clone());
+                let standard_out = DateTime::min(punch_out.clone(), end.clone());
+
+                if standard_out > standard_in {
+                    let mut standard_raw = standard_out.signed_duration_since(standard_in).num_minutes() as i32;
+                    
+                    // Deduct break from standard time
+                    let break_to_deduct = Self::calculate_break_deduction(
+                        actual_break_minutes,
+                        scheduled_break_minutes,
+                        is_break_auto_deduct,
+                        is_break_overtime,
+                    );
+                    standard_raw = i32::max(0, standard_raw - break_to_deduct);
+                    buckets.standard_minutes = standard_raw;
+                }
+
+                // 2. Early OT: Time before ShiftStart
+                if allow_early_ot && punch_in < start {
+                    let early_out = DateTime::min(punch_out.clone(), start.clone());
+                    if early_out > punch_in {
+                        buckets.early_ot_minutes = early_out.signed_duration_since(punch_in.clone()).num_minutes() as i32;
+                    }
+                }
+
+                // 3. Late OT: Time after ShiftEnd
+                if punch_out > end {
+                    let late_in = DateTime::max(punch_in.clone(), end.clone());
+                    if punch_out > late_in {
+                        buckets.late_ot_minutes = punch_out.signed_duration_since(late_in).num_minutes() as i32;
+                    }
                 }
             }
+            _ => {
+                // No shift: everything is standard (or OT based on global policy, but here we keep it standard)
+                let raw_duration = punch_out.signed_duration_since(punch_in).num_minutes() as i32;
+                buckets.standard_minutes = i32::max(0, raw_duration);
+            }
         }
-        actual_punch_in
+
+        buckets
     }
 
     /// 2. Break Deduction Logic
-    /// Calculates how many minutes should be deducted for breaks.
-    /// - Priority 1: Actual break duration (if > 0)
-    /// - Priority 2: Auto-deduct (if enabled and not overtime-break)
-    /// - Priority 3: 0
     pub fn calculate_break_deduction(
         actual_break_minutes: i32,
         scheduled_break_minutes: i32,
@@ -45,7 +96,7 @@ impl AttendanceCalculator {
     }
 
     /// 3. Rounding Logic
-    /// Applies Floor, Ceil, or Round logic based on the work unit (e.g., 15 minutes).
+    /// For standard work hours, we typically use FLOOR rounding on the total duration.
     pub fn apply_rounding(minutes: i32, unit: i32, policy: &str) -> i32 {
         if unit <= 1 || policy == "none" {
             return minutes;
@@ -62,66 +113,40 @@ impl AttendanceCalculator {
         }
     }
 
-    /// 4. Main Calculation (Orchestrator)
-    /// Calculates the net standard hours and overtime minutes for a specific day.
-    /// 
-    /// Returns: (Standard Minutes, Overtime Minutes)
+    /// 4. Main Calculation (Orchestrator) - Legacy support or unified entry
     pub fn calculate_daily_net_hours<T: TimeZone>(
         punch_in: DateTime<T>,
         punch_out: DateTime<T>,
-        shift_start_dt: Option<DateTime<T>>, // Scheduled Start (Absolute time for that day)
-        shift_end_dt: Option<DateTime<T>>,   // Scheduled End (Absolute time for that day)
+        shift_start_dt: Option<DateTime<T>>,
+        shift_end_dt: Option<DateTime<T>>,
         scheduled_break_minutes: i32,
-        grace_period_minutes: i32,
+        _grace_period_minutes: i32, // Grace period is now implicit in Bucket Clamping + Policy
         is_break_auto_deduct: bool,
         is_break_overtime: bool,
         actual_break_minutes: i32,
+        allow_early_ot: bool,
+        work_unit: i32,
+        rounding_policy: &str,
     ) -> (i32, i32) {
-        // A. Determine Effective Punch In
-        let effective_punch_in = Self::calculate_effective_punch_in(
+        let buckets = Self::calculate_buckets(
             punch_in,
-            shift_start_dt.clone(),
-            grace_period_minutes
-        );
-
-        // B. Calculate Raw Duration (from Effective In to Out)
-        let raw_duration = punch_out
-            .signed_duration_since(effective_punch_in)
-            .num_minutes();
-        
-        let raw_duration = i32::max(0, raw_duration as i32);
-
-        // C. Calculate Break Deduction
-        let break_to_deduct = Self::calculate_break_deduction(
-            actual_break_minutes,
+            punch_out,
+            shift_start_dt,
+            shift_end_dt,
             scheduled_break_minutes,
+            actual_break_minutes,
             is_break_auto_deduct,
             is_break_overtime,
+            allow_early_ot,
         );
 
-        // D. Calculate Net Worked Minutes
-        let worked_minutes = i32::max(0, raw_duration - break_to_deduct);
-
-        // E. Split Standard vs Overtime
-        if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
-            // Handle Overnight Shift linearization for capacity check
-            if end < start {
-                end = end + Duration::days(1);
-            }
-
-            let shift_duration = end.signed_duration_since(start).num_minutes() as i32;
-            let standard_work_capacity = shift_duration - scheduled_break_minutes; // Standard hours capacity
-
-            if worked_minutes > standard_work_capacity {
-                let standard = standard_work_capacity;
-                let overtime = worked_minutes - standard_work_capacity;
-                return (standard, overtime);
-            }
-        }
-
-        // If no shift or under capacity, everything is standard (or based on policy, 
-        // usually if no shift, logic might vary, but here we assume standard).
-        (worked_minutes, 0)
+        // Apply rounding to standard time (Usually Floor)
+        let rounded_standard = Self::apply_rounding(buckets.standard_minutes, work_unit, rounding_policy);
+        
+        // Overtime is usually summed (Early + Late)
+        let total_ot = buckets.early_ot_minutes + buckets.late_ot_minutes;
+        
+        (rounded_standard, total_ot)
     }
 }
 
@@ -130,7 +155,6 @@ mod tests {
     use super::*;
     use chrono::{NaiveDate, NaiveTime, Utc};
 
-    // Helper to create UTC DateTime for testing
     fn dt(h: u32, m: u32) -> DateTime<Utc> {
         Utc.from_local_datetime(
             &NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
@@ -139,134 +163,245 @@ mod tests {
     }
 
     #[test]
-    fn test_grace_period_logic() {
-        let shift_start = Some(dt(8, 0)); // 08:00
-        let grace = 30; // 30 mins grace
-
-        // Case 1: Punch inside grace window (07:45) -> Should be 08:00
-        let p1 = dt(7, 45);
-        assert_eq!(
-            AttendanceCalculator::calculate_effective_punch_in(p1, shift_start, grace),
-            shift_start.unwrap()
+    fn test_clamping_and_buckets() {
+        let start = Some(dt(7, 30));
+        let end = Some(dt(17, 0));
+        
+        // Case 1: Early In (07:25), Out (17:00), No Early OT
+        let b1 = AttendanceCalculator::calculate_buckets(
+            dt(7, 25), dt(17, 0), start, end, 60, 0, true, false, false
         );
+        assert_eq!(b1.standard_minutes, 510); // (17:00 - 07:30) - 60m = 8.5h = 510m
+        assert_eq!(b1.early_ot_minutes, 0);
 
-        // Case 2: Punch before grace window (07:29) -> Should keep 07:29 (Early OT)
-        let p2 = dt(7, 29);
-        assert_eq!(
-            AttendanceCalculator::calculate_effective_punch_in(p2, shift_start, grace),
-            p2
+        // Case 2: Early In (07:25), Allow Early OT
+        let b2 = AttendanceCalculator::calculate_buckets(
+            dt(7, 25), dt(17, 0), start, end, 60, 0, true, false, true
         );
+        assert_eq!(b2.standard_minutes, 510);
+        assert_eq!(b2.early_ot_minutes, 5); // 07:25 to 07:30
 
-        // Case 3: Punch exactly at start (08:00) -> 08:00
-        let p3 = dt(8, 0);
-        assert_eq!(
-            AttendanceCalculator::calculate_effective_punch_in(p3, shift_start, grace),
-            p3
+        // Case 3: Late In (07:40), Unit 30, Policy Floor
+        let b3 = AttendanceCalculator::calculate_buckets(
+            dt(7, 40), dt(17, 0), start, end, 60, 0, true, false, false
         );
-
-        // Case 4: Punch Late (08:01) -> 08:01
-        let p4 = dt(8, 1);
-        assert_eq!(
-            AttendanceCalculator::calculate_effective_punch_in(p4, shift_start, grace),
-            p4
-        );
+        // (17:00 - 07:40) = 9h20m = 560m. 
+        // 560 - 60 (break) = 500m.
+        assert_eq!(b3.standard_minutes, 500);
+        
+        let rounded = AttendanceCalculator::apply_rounding(b3.standard_minutes, 30, "floor");
+        assert_eq!(rounded, 480); // 8 hours (loses 20 mins worked + 10 mins penalty = 30 mins)
     }
 
     #[test]
-    fn test_break_deduction() {
-        // Case 1: Actual break exists (Priority 1)
-        assert_eq!(
-            AttendanceCalculator::calculate_break_deduction(60, 30, true, false),
-            60
+    fn test_overnight_shift_edge_case() {
+        // Shift: 22:00 (Jan 1) to 06:00 (Jan 2) -> 8 hours
+        let start = Some(dt(22, 0));
+        let end = Some(dt(6, 0)); // Note: dt helper uses Jan 1. End is 06:00 Jan 1 in helper. 
+                                   // The calculator logic linearizes this by adding 1 day.
+
+        // Scenario: Punch In 21:50, Punch Out 06:10.
+        // Standard: [22:00, 06:00] -> 8 hours (480m)
+        // Early OT: 21:50 to 22:00 -> 10m
+        // Late OT: 06:00 to 06:10 -> 10m
+        
+        // We need a helper for Jan 2 to test accurately
+        let punch_in = dt(21, 50);
+        let punch_out = Utc.from_local_datetime(
+            &NaiveDate::from_ymd_opt(2026, 1, 2).unwrap()
+                .and_time(NaiveTime::from_hms_opt(6, 10, 0).unwrap())
+        ).single().unwrap();
+
+        let b = AttendanceCalculator::calculate_buckets(
+            punch_in, punch_out, start, end, 0, 0, false, false, true
         );
 
-        // Case 2: No actual break, Auto-deduct ON (Priority 2)
-        assert_eq!(
-            AttendanceCalculator::calculate_break_deduction(0, 45, true, false),
-            45
-        );
-
-        // Case 3: No actual break, Auto-deduct OFF
-        assert_eq!(
-            AttendanceCalculator::calculate_break_deduction(0, 45, false, false),
-            0
-        );
-
-        // Case 4: No actual break, Auto-deduct ON but Is Overtime Break (Should NOT deduct)
-        assert_eq!(
-            AttendanceCalculator::calculate_break_deduction(0, 45, true, true),
-            0
-        );
+        assert_eq!(b.standard_minutes, 480);
+        assert_eq!(b.early_ot_minutes, 10);
+        assert_eq!(b.late_ot_minutes, 10);
     }
 
     #[test]
-    fn test_rounding_logic() {
-        // Floor
-        assert_eq!(AttendanceCalculator::apply_rounding(29, 15, "floor"), 15);
-        // Ceil
-        assert_eq!(AttendanceCalculator::apply_rounding(16, 15, "ceil"), 30);
-        // Round
-        assert_eq!(AttendanceCalculator::apply_rounding(22, 15, "round"), 15); // < 7.5
-        assert_eq!(AttendanceCalculator::apply_rounding(23, 15, "round"), 30); // > 7.5
+    fn test_early_departure_rounding() {
+        // Shift 08:00 - 17:00. Unit 30, Policy Floor.
+        let start = Some(dt(8, 0));
+        let end = Some(dt(17, 0));
+
+        // Punch In 08:00, Punch Out 16:55 (Left 5 mins early)
+        // Standard: 08:00 to 16:55 = 8h55m = 535m
+        // Net: 535 - 60 = 475m
+        // Floor(475, 30) = 450m (7.5h) -> Lost 30 mins for leaving 5 mins early.
+        let (std, _) = AttendanceCalculator::calculate_daily_net_hours(
+            dt(8, 0), dt(16, 55), start, end, 60, 0, true, false, 0, false, 30, "floor"
+        );
+        assert_eq!(std, 450);
     }
 
     #[test]
-    fn test_full_calculation_scenario() {
-        let shift_start = Some(dt(8, 0));
-        let shift_end = Some(dt(17, 0)); // 9 hours total
-        let scheduled_break = 60; // 1 hour break -> 8 hours standard capacity
+    fn test_punch_entirely_outside_shift() {
+        let start = Some(dt(8, 0));
+        let end = Some(dt(17, 0));
 
-        // Scenario: Worked 08:00 to 18:00 (10 hours raw).
-        // Auto-deduct break (60 mins).
-        // Expect: 
-        // Raw Work: 10h (600m)
-        // Net Work: 600 - 60 = 540m (9h)
-        // Capacity: 8h (480m)
-        // Result: 480 Standard, 60 Overtime.
-
-        let (std, ot) = AttendanceCalculator::calculate_daily_net_hours(
-            dt(8, 0),
-            dt(18, 0),
-            shift_start,
-            shift_end,
-            scheduled_break,
-            0,    // No grace
-            true, // Auto deduct
-            false,
-            0     // No actual break
+        // Case 1: Entirely before shift (06:00 to 07:00)
+        let b1 = AttendanceCalculator::calculate_buckets(
+            dt(6, 0), dt(7, 0), start, end, 0, 0, false, false, true
         );
+        assert_eq!(b1.standard_minutes, 0);
+        assert_eq!(b1.early_ot_minutes, 60);
+        assert_eq!(b1.late_ot_minutes, 0);
 
-        assert_eq!(std, 480); // 8 hours
-        assert_eq!(ot, 60);   // 1 hour OT
+        // Case 2: Entirely after shift (18:00 to 19:00)
+        let b2 = AttendanceCalculator::calculate_buckets(
+            dt(18, 0), dt(19, 0), start, end, 0, 0, false, false, true
+        );
+        assert_eq!(b2.standard_minutes, 0);
+        assert_eq!(b2.early_ot_minutes, 0);
+        assert_eq!(b2.late_ot_minutes, 60);
     }
 
     #[test]
-    fn test_grace_period_calculation_scenario() {
-        let shift_start = Some(dt(8, 0));
-        let shift_end = Some(dt(17, 0));
-        let scheduled_break = 60; 
+    fn test_break_auto_deduct_safety() {
+        // Shift 08:00 - 17:00. Break 60m.
+        // Employee only worked 30 mins (08:00 to 08:30).
+        // Standard duration: 30m.
+        // Break to deduct: 60m.
+        // Net: max(0, 30 - 60) = 0.
+        let (std, _) = AttendanceCalculator::calculate_daily_net_hours(
+            dt(8, 0), dt(8, 30), Some(dt(8, 0)), Some(dt(17, 0)), 60, 0, true, false, 0, false, 1, "none"
+        );
+        assert_eq!(std, 0);
+    }
 
-        // Scenario: Punch In 07:45 (Grace 30m) -> Effective 08:00.
-        // Punch Out 17:00.
-        // Raw Duration: 08:00 to 17:00 = 9h (540m).
-        // Break: 60m.
-        // Net: 480m.
-        // Standard Cap: 480m.
-        // Result: 480 Std, 0 OT.
+    #[test]
+    fn test_rounding_policies() {
+        // Unit 30
+        assert_eq!(AttendanceCalculator::apply_rounding(29, 30, "floor"), 0);
+        assert_eq!(AttendanceCalculator::apply_rounding(31, 30, "floor"), 30);
+        
+        assert_eq!(AttendanceCalculator::apply_rounding(1, 30, "ceil"), 30);
+        assert_eq!(AttendanceCalculator::apply_rounding(30, 30, "ceil"), 30);
+        assert_eq!(AttendanceCalculator::apply_rounding(31, 30, "ceil"), 60);
 
-        let (std, ot) = AttendanceCalculator::calculate_daily_net_hours(
-            dt(7, 45),
-            dt(17, 0),
-            shift_start,
-            shift_end,
-            scheduled_break,
-            30,   // 30m Grace
-            true,
-            false,
-            0
+        assert_eq!(AttendanceCalculator::apply_rounding(14, 30, "round"), 0);
+        assert_eq!(AttendanceCalculator::apply_rounding(15, 30, "round"), 30); // Boundary
+        assert_eq!(AttendanceCalculator::apply_rounding(44, 30, "round"), 30);
+        assert_eq!(AttendanceCalculator::apply_rounding(45, 30, "round"), 60);
+
+        // Policy "none"
+        assert_eq!(AttendanceCalculator::apply_rounding(17, 30, "none"), 17);
+        // Unit <= 1
+        assert_eq!(AttendanceCalculator::apply_rounding(17, 1, "floor"), 17);
+    }
+
+    #[test]
+    fn test_break_priorities() {
+        // Case 1: Actual break > 0, overrides everything
+        let b1 = AttendanceCalculator::calculate_break_deduction(45, 60, true, false);
+        assert_eq!(b1, 45);
+
+        // Case 2: Actual break = 0, auto-deduct is true
+        let b2 = AttendanceCalculator::calculate_break_deduction(0, 60, true, false);
+        assert_eq!(b2, 60);
+
+        // Case 3: Actual break = 0, auto-deduct is true BUT is overtime break
+        let b3 = AttendanceCalculator::calculate_break_deduction(0, 60, true, true);
+        assert_eq!(b3, 0);
+
+        // Case 4: Actual break = 0, auto-deduct is false
+        let b4 = AttendanceCalculator::calculate_break_deduction(0, 60, false, false);
+        assert_eq!(b4, 0);
+    }
+
+    #[test]
+    fn test_boundary_punches() {
+        let start = Some(dt(8, 0));
+        let end = Some(dt(17, 0));
+
+        // Punch In exactly at Shift End (No standard time)
+        let b1 = AttendanceCalculator::calculate_buckets(
+            dt(17, 0), dt(18, 0), start, end, 0, 0, false, false, true
+        );
+        assert_eq!(b1.standard_minutes, 0);
+        assert_eq!(b1.late_ot_minutes, 60);
+
+        // Punch Out exactly at Shift Start (No standard time)
+        let b2 = AttendanceCalculator::calculate_buckets(
+            dt(7, 0), dt(8, 0), start, end, 0, 0, false, false, true
+        );
+        assert_eq!(b2.standard_minutes, 0);
+        assert_eq!(b2.early_ot_minutes, 60);
+    }
+
+    #[test]
+    fn test_zero_duration_work() {
+        let start = Some(dt(8, 0));
+        let end = Some(dt(17, 0));
+
+        // Punch In == Punch Out
+        let b = AttendanceCalculator::calculate_buckets(
+            dt(9, 0), dt(9, 0), start, end, 0, 0, false, false, true
+        );
+        assert_eq!(b.standard_minutes, 0);
+        assert_eq!(b.early_ot_minutes, 0);
+        assert_eq!(b.late_ot_minutes, 0);
+    }
+
+    #[test]
+    fn test_no_shift_logic() {
+        // Without shift, everything is standard duration
+        let b = AttendanceCalculator::calculate_buckets(
+            dt(9, 0), dt(11, 0), None, None, 0, 0, false, false, true
+        );
+        assert_eq!(b.standard_minutes, 120);
+        assert_eq!(b.early_ot_minutes, 0);
+        assert_eq!(b.late_ot_minutes, 0);
+    }
+
+    #[test]
+    fn test_overnight_shift_late_start_late_end() {
+        // Shift: 22:00 (Jan 1) to 06:00 (Jan 2)
+        let start = Some(dt(22, 0));
+        let end = Some(dt(6, 0));
+
+        // Employee arrives late on Jan 2: 01:00 to 07:00
+        let punch_in = Utc.from_local_datetime(
+            &NaiveDate::from_ymd_opt(2026, 1, 2).unwrap()
+                .and_time(NaiveTime::from_hms_opt(1, 0, 0).unwrap())
+        ).single().unwrap();
+        
+        let punch_out = Utc.from_local_datetime(
+            &NaiveDate::from_ymd_opt(2026, 1, 2).unwrap()
+                .and_time(NaiveTime::from_hms_opt(7, 0, 0).unwrap())
+        ).single().unwrap();
+
+        let b = AttendanceCalculator::calculate_buckets(
+            punch_in, punch_out, start, end, 0, 0, false, false, true
         );
 
-        assert_eq!(std, 480);
-        assert_eq!(ot, 0);
+        // Standard: intersection of [01:00, 07:00] and [22:00 Jan 1, 06:00 Jan 2]
+        // Standard In = max(01:00 Jan 2, 22:00 Jan 1) = 01:00 Jan 2
+        // Standard Out = min(07:00 Jan 2, 06:00 Jan 2) = 06:00 Jan 2
+        // Standard: 01:00 to 06:00 = 5 hours (300m)
+        assert_eq!(b.standard_minutes, 300);
+        
+        // Late OT: max(0, 07:00 - 06:00) = 60m
+        assert_eq!(b.late_ot_minutes, 60);
+        assert_eq!(b.early_ot_minutes, 0);
+    }
+
+    #[test]
+    fn test_rounding_late_entry() {
+        // Shift 08:00 - 17:00 (9h raw, 8h net if 60m break)
+        let start = Some(dt(8, 0));
+        let end = Some(dt(17, 0));
+
+        // Arrive 08:01 (Late 1 min)
+        // Duration: 08:01 to 17:00 = 8h59m = 539m
+        // Net: 539 - 60 = 479m
+        // Floor(479, 30) = 450m (7.5h) -> Lost 30 mins for being 1 min late.
+        let (std, _) = AttendanceCalculator::calculate_daily_net_hours(
+            dt(8, 1), dt(17, 0), start, end, 60, 0, true, false, 0, false, 30, "floor"
+        );
+        assert_eq!(std, 450);
     }
 }

@@ -143,7 +143,10 @@ impl PayrollService {
                                     s.early_punch_in_grace_period_minutes,
                                     s.is_break_auto_deduct,
                                     entry.is_break_overtime,
-                                    actual_break_minutes
+                                    actual_break_minutes,
+                                    s.allow_early_ot,
+                                    workspace.work_unit_minutes,
+                                    &workspace.rounding_policy
                                 );
                                 day_standard += std;
                                 day_overtime += ot;

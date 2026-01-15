@@ -16,6 +16,7 @@ pub async fn create_shift<'a, E>(
     is_break_auto_deduct: bool,
     break_is_overtime: bool,
     early_punch_in_grace_period_minutes: i32,
+    allow_early_ot: bool,
     is_active: bool,
     parent_shift_id: Option<Uuid>,
 ) -> Result<Shift, sqlx::Error> 
@@ -27,14 +28,14 @@ where E: Executor<'a, Database = Postgres>
             workspace_id, name, start_time, end_time, 
             break_duration_minutes, break_start, break_end, 
             is_break_auto_deduct, break_is_overtime, 
-            early_punch_in_grace_period_minutes, is_active, parent_shift_id
+            early_punch_in_grace_period_minutes, allow_early_ot, is_active, parent_shift_id
         )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
          RETURNING 
             id, workspace_id, name, start_time, end_time, 
             break_duration_minutes, break_start, break_end, 
             is_break_auto_deduct, break_is_overtime, 
-            early_punch_in_grace_period_minutes, is_active, parent_shift_id,
+            early_punch_in_grace_period_minutes, allow_early_ot, is_active, parent_shift_id,
             created_at as "created_at!", updated_at as "updated_at!""#,
         workspace_id,
         name,
@@ -46,6 +47,7 @@ where E: Executor<'a, Database = Postgres>
         is_break_auto_deduct,
         break_is_overtime,
         early_punch_in_grace_period_minutes,
+        allow_early_ot,
         is_active,
         parent_shift_id
     )
@@ -63,7 +65,7 @@ pub async fn get_shift_by_id(
             id, workspace_id, name, start_time, end_time, 
             break_duration_minutes, break_start, break_end, 
             is_break_auto_deduct, break_is_overtime, 
-            early_punch_in_grace_period_minutes, is_active, parent_shift_id,
+            early_punch_in_grace_period_minutes, allow_early_ot, is_active, parent_shift_id,
             created_at as "created_at!", updated_at as "updated_at!" 
          FROM shifts WHERE id = $1"#,
         id
@@ -82,7 +84,7 @@ pub async fn get_workspace_shifts(
             id, workspace_id, name, start_time, end_time, 
             break_duration_minutes, break_start, break_end, 
             is_break_auto_deduct, break_is_overtime, 
-            early_punch_in_grace_period_minutes, is_active, parent_shift_id,
+            early_punch_in_grace_period_minutes, allow_early_ot, is_active, parent_shift_id,
             created_at as "created_at!", updated_at as "updated_at!" 
          FROM shifts 
          WHERE workspace_id = $1 AND is_active = TRUE 
@@ -105,6 +107,7 @@ pub async fn update_shift_direct(
     is_break_auto_deduct: bool,
     break_is_overtime: bool,
     early_punch_in_grace_period_minutes: i32,
+    allow_early_ot: bool,
 ) -> Result<Shift, sqlx::Error> {
     query_as!(
         Shift,
@@ -112,13 +115,13 @@ pub async fn update_shift_direct(
          SET name = $2, start_time = $3, end_time = $4, 
              break_duration_minutes = $5, break_start = $6, break_end = $7, 
              is_break_auto_deduct = $8, break_is_overtime = $9, 
-             early_punch_in_grace_period_minutes = $10, updated_at = CURRENT_TIMESTAMP
+             early_punch_in_grace_period_minutes = $10, allow_early_ot = $11, updated_at = CURRENT_TIMESTAMP
          WHERE id = $1
          RETURNING 
             id, workspace_id, name, start_time, end_time, 
             break_duration_minutes, break_start, break_end, 
             is_break_auto_deduct, break_is_overtime, 
-            early_punch_in_grace_period_minutes, is_active, parent_shift_id,
+            early_punch_in_grace_period_minutes, allow_early_ot, is_active, parent_shift_id,
             created_at as "created_at!", updated_at as "updated_at!""#,
         id,
         name,
@@ -129,7 +132,8 @@ pub async fn update_shift_direct(
         break_end,
         is_break_auto_deduct,
         break_is_overtime,
-        early_punch_in_grace_period_minutes
+        early_punch_in_grace_period_minutes,
+        allow_early_ot
     )
     .fetch_one(pool)
     .await
@@ -181,7 +185,7 @@ pub async fn get_employee_active_shift(
             s.id, s.workspace_id, s.name, s.start_time, s.end_time, 
             s.break_duration_minutes, s.break_start, s.break_end, 
             s.is_break_auto_deduct, s.break_is_overtime, 
-            s.early_punch_in_grace_period_minutes, s.is_active, s.parent_shift_id,
+            s.early_punch_in_grace_period_minutes, s.allow_early_ot, s.is_active, s.parent_shift_id,
             s.created_at as "created_at!", s.updated_at as "updated_at!"
          FROM shifts s
          JOIN employee_shifts es ON s.id = es.shift_id

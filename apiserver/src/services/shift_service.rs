@@ -21,6 +21,7 @@ impl ShiftService {
         is_break_auto_deduct: bool,
         break_is_overtime: bool,
         early_punch_in_grace_period_minutes: i32,
+        allow_early_ot: bool,
     ) -> Result<Shift, StatusCode> {
         shift_repository::create_shift(
             pool,
@@ -34,6 +35,7 @@ impl ShiftService {
             is_break_auto_deduct,
             break_is_overtime,
             early_punch_in_grace_period_minutes,
+            allow_early_ot,
             true, // is_active
             None, // parent_shift_id
         )
@@ -64,7 +66,8 @@ impl ShiftService {
             || old_shift.end_time != req.end_time
             || old_shift.break_duration_minutes != req.break_duration_minutes
             || old_shift.break_start != req.break_start
-            || old_shift.break_end != req.break_end;
+            || old_shift.break_end != req.break_end
+            || old_shift.allow_early_ot != req.allow_early_ot;
 
         if req.is_correction || !has_time_changes {
             // Direct update
@@ -80,6 +83,7 @@ impl ShiftService {
                 req.is_break_auto_deduct,
                 req.break_is_overtime,
                 req.early_punch_in_grace_period_minutes,
+                req.allow_early_ot,
             )
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
@@ -107,6 +111,7 @@ impl ShiftService {
                 req.is_break_auto_deduct,
                 req.break_is_overtime,
                 req.early_punch_in_grace_period_minutes,
+                req.allow_early_ot,
                 true,
                 Some(shift_id),
             )

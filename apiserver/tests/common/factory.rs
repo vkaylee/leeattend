@@ -298,6 +298,7 @@ pub struct ShiftBuilder {
     break_duration_minutes: i32,
     break_is_overtime: bool,
     early_punch_in_grace_period_minutes: i32,
+    allow_early_ot: bool,
 }
 
 #[allow(dead_code)]
@@ -313,6 +314,7 @@ impl ShiftBuilder {
             break_duration_minutes: 60,
             break_is_overtime: false,
             early_punch_in_grace_period_minutes: 0,
+            allow_early_ot: false,
         }
     }
 
@@ -347,10 +349,16 @@ impl ShiftBuilder {
         self
     }
 
+    #[allow(dead_code)]
+    pub fn with_allow_early_ot(mut self, allow: bool) -> Self {
+        self.allow_early_ot = allow;
+        self
+    }
+
     pub async fn create(self) -> Uuid {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
             sqlx::query_scalar(
-                "INSERT INTO shifts (workspace_id, name, start_time, end_time, break_duration_minutes, break_is_overtime, early_punch_in_grace_period_minutes) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+                "INSERT INTO shifts (workspace_id, name, start_time, end_time, break_duration_minutes, break_is_overtime, early_punch_in_grace_period_minutes, allow_early_ot) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
             )
             .bind(self.workspace_id.expect("Workspace ID is required for Shift"))
             .bind(self.name)
@@ -359,6 +367,7 @@ impl ShiftBuilder {
             .bind(self.break_duration_minutes)
             .bind(self.break_is_overtime)
             .bind(self.early_punch_in_grace_period_minutes)
+            .bind(self.allow_early_ot)
             .fetch_one(&self.pool)
             .await
             .unwrap()

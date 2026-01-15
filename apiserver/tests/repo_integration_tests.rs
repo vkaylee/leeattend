@@ -54,7 +54,7 @@ async fn test_shift_repository_basic_ops_integrated() {
         &pool, ws_id, "Test Shift".to_string(),
         NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
         NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
-        60, None, None, true, false, 0, true, None
+        60, None, None, true, false, 0, false, true, None
     ).await.unwrap();
 
     // Get by ID

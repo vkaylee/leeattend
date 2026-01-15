@@ -57,6 +57,7 @@ pub async fn create_shift(
         req.is_break_auto_deduct,
         req.break_is_overtime,
         req.early_punch_in_grace_period_minutes,
+        req.allow_early_ot,
     )
     .await
     {

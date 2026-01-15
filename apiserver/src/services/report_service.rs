@@ -98,7 +98,10 @@ impl ReportService {
                             daily.early_punch_in_grace_period_minutes.unwrap_or(0),
                             daily.is_break_auto_deduct.unwrap_or(false),
                             false, 
-                            actual_break_minutes
+                            actual_break_minutes,
+                            daily.allow_early_ot.unwrap_or(false),
+                            workspace.work_unit_minutes,
+                            &workspace.rounding_policy
                         );
 
                         let rounded_std = AttendanceCalculator::apply_rounding(
