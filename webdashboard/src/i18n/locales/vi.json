@@ -111,6 +111,11 @@
     "payroll_and_contracts": "Lương & Hợp đồng",
     "deleting": "Đang xóa...",
     "source": "Nguồn",
+    "languages": {
+      "vi": "Tiếng Việt",
+      "en": "Tiếng Anh",
+      "zh": "Tiếng Trung"
+    },
     "pagination": {
       "showing": "Hiển thị",
       "out_of": "trên",
@@ -760,11 +765,11 @@
   },
   "members": {
     "title": "Thành viên & Quyền hạn",
-    "subtitle": "Quản lý quyền truy cập và phân vai trò trong hệ thống.",
+    "subtitle": "Quản lý truy cập và phân quyền trong hệ thống.",
     "roles": {
-      "admin": "Quản trị viên (Admin)",
-      "member": "Thành viên (Member)",
-      "owner": "Chủ sở hữu (Owner)",
+      "admin": "Quản trị viên",
+      "member": "Thành viên",
+      "owner": "Chủ sở hữu",
       "owner_desc": "Sáng lập, toàn quyền cao nhất",
       "admin_desc": "Quản trị viên hệ thống",
       "member_desc": "Thành viên thông thường",

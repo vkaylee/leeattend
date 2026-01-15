@@ -114,8 +114,8 @@
     "deleting": "正在删除...",
     "source": "来源",
     "languages": {
-      "vi": "越南语",
-      "en": "英语",
+      "vi": "Tiếng Việt",
+      "en": "English",
       "zh": "中文"
     },
     "colors": {
@@ -775,11 +775,11 @@
   },
   "members": {
     "title": "成员与权限",
-    "subtitle": "在系统中管理访问权限并分配角色。",
+    "subtitle": "管理系统内的访问权限并分配角色。",
     "roles": {
-      "admin": "管理员 (Admin)",
-      "member": "普通成员 (Member)",
-      "owner": "所有者 (Owner)",
+      "admin": "管理员",
+      "member": "成员",
+      "owner": "所有者",
       "owner_desc": "创始人，最高权限",
       "admin_desc": "系统管理员",
       "member_desc": "普通成员",

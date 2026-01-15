@@ -103,9 +103,9 @@ export default function RoleManagementModal({
                 <Combobox
                   id="primary-role-select"
                   options={[
-                    { value: "owner", label: "Owner", description: t("members.roles.owner_desc"), icon: <Shield className="w-4 h-4 text-primary-600" /> },
-                    { value: "admin", label: "Admin", description: t("members.roles.admin_desc"), icon: <Shield className="w-4 h-4 text-primary-600" /> },
-                    { value: "member", label: "Member", description: t("members.roles.member_desc"), icon: <Shield className="w-4 h-4 text-slate-400" /> },
+                    { value: "owner", label: t("members.roles.owner"), description: t("members.roles.owner_desc"), icon: <Shield className="w-4 h-4 text-primary-600" /> },
+                    { value: "admin", label: t("members.roles.admin"), description: t("members.roles.admin_desc"), icon: <Shield className="w-4 h-4 text-primary-600" /> },
+                    { value: "member", label: t("members.roles.member"), description: t("members.roles.member_desc"), icon: <Shield className="w-4 h-4 text-slate-400" /> },
                   ]}
                   value={primaryRole}
                   onChange={handleUpdatePrimary}
@@ -177,8 +177,8 @@ export default function RoleManagementModal({
                 <Combobox
                   id="extra-role-select"
                   options={[
-                    { value: "member", label: "Member", icon: <Shield className="w-4 h-4" /> },
-                    { value: "admin", label: "Admin", icon: <Shield className="w-4 h-4 text-primary-600" /> },
+                    { value: "member", label: t("members.roles.member"), icon: <Shield className="w-4 h-4" /> },
+                    { value: "admin", label: t("members.roles.admin"), icon: <Shield className="w-4 h-4 text-primary-600" /> },
                   ]}
                   value={newRole}
                   onChange={setNewRole}
