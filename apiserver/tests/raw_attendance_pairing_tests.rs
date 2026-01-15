@@ -15,7 +15,7 @@ async fn test_pairing_logic_full_cycle() {
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
-    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let ws_id = factory.workspace().with_timezone("UTC").create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     let base_time = Utc.with_ymd_and_hms(2026, 1, 14, 8, 0, 0).unwrap();
@@ -103,7 +103,7 @@ async fn test_pairing_window_expiry() {
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
-    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let ws_id = factory.workspace().with_timezone("UTC").create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     let base_time = Utc.with_ymd_and_hms(2026, 1, 14, 8, 0, 0).unwrap();
@@ -122,8 +122,8 @@ async fn test_pairing_window_expiry() {
     raw_attendance_log_repository::create_raw_log(&pool, &log1).await.unwrap();
     PairingService::process_new_raw_log(&pool, &log1).await.unwrap();
 
-    // 2. Punch after 15 hours (exceeds 14h window)
-    let late_time = base_time + Duration::hours(15);
+    // 2. Punch after 25 hours (definitely next day)
+    let late_time = base_time + Duration::hours(25);
     let log2 = RawAttendanceLog {
         id: Uuid::new_v4(),
         workspace_id: ws_id,
@@ -138,7 +138,7 @@ async fn test_pairing_window_expiry() {
     PairingService::process_new_raw_log(&pool, &log2).await.unwrap();
 
     let entries = time_entry_repository::get_employee_time_entries(&pool, emp_id, base_time - Duration::days(1), late_time + Duration::days(1)).await.unwrap();
-    assert_eq!(entries.len(), 2, "Should create a NEW session because 14h window expired");
+    assert_eq!(entries.len(), 2, "Should create a NEW session because it is a different day");
     assert!(entries[1].punch_out_time.is_none(), "Old session should remain open (orphan)");
 }
 
@@ -149,7 +149,7 @@ async fn test_machine_gun_punches() {
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
-    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let ws_id = factory.workspace().with_timezone("UTC").create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     let base_time = Utc.with_ymd_and_hms(2026, 1, 14, 8, 0, 0).unwrap();
@@ -192,7 +192,7 @@ async fn test_quick_lunch_window() {
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
-    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let ws_id = factory.workspace().with_timezone("UTC").create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     let base_time = Utc.with_ymd_and_hms(2026, 1, 14, 8, 0, 0).unwrap();

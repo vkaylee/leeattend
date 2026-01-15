@@ -1,4 +1,4 @@
-use chrono::{DateTime, Duration, Local};
+use chrono::{DateTime, Duration, TimeZone};
 
 pub struct AttendanceCalculator;
 
@@ -7,14 +7,14 @@ impl AttendanceCalculator {
     /// Determines the effective punch-in time based on the shift schedule and grace period.
     /// If the employee punches in within the grace window (e.g., 30 mins before start),
     /// it counts as starting exactly at the shift start time.
-    pub fn calculate_effective_punch_in(
-        actual_punch_in: DateTime<Local>,
-        shift_start_dt: Option<DateTime<Local>>,
+    pub fn calculate_effective_punch_in<T: TimeZone>(
+        actual_punch_in: DateTime<T>,
+        shift_start_dt: Option<DateTime<T>>,
         grace_period_minutes: i32,
-    ) -> DateTime<Local> {
+    ) -> DateTime<T> {
         if let Some(shift_start) = shift_start_dt {
             if grace_period_minutes > 0 {
-                let grace_start = shift_start - Duration::minutes(grace_period_minutes as i64);
+                let grace_start = shift_start.clone() - Duration::minutes(grace_period_minutes as i64);
                 // If punch is between [Shift Start - Grace] and [Shift Start]
                 if actual_punch_in >= grace_start && actual_punch_in < shift_start {
                     return shift_start;
@@ -66,11 +66,11 @@ impl AttendanceCalculator {
     /// Calculates the net standard hours and overtime minutes for a specific day.
     /// 
     /// Returns: (Standard Minutes, Overtime Minutes)
-    pub fn calculate_daily_net_hours(
-        punch_in: DateTime<Local>,
-        punch_out: DateTime<Local>,
-        shift_start_dt: Option<DateTime<Local>>, // Scheduled Start (Absolute time for that day)
-        shift_end_dt: Option<DateTime<Local>>,   // Scheduled End (Absolute time for that day)
+    pub fn calculate_daily_net_hours<T: TimeZone>(
+        punch_in: DateTime<T>,
+        punch_out: DateTime<T>,
+        shift_start_dt: Option<DateTime<T>>, // Scheduled Start (Absolute time for that day)
+        shift_end_dt: Option<DateTime<T>>,   // Scheduled End (Absolute time for that day)
         scheduled_break_minutes: i32,
         grace_period_minutes: i32,
         is_break_auto_deduct: bool,
@@ -80,7 +80,7 @@ impl AttendanceCalculator {
         // A. Determine Effective Punch In
         let effective_punch_in = Self::calculate_effective_punch_in(
             punch_in,
-            shift_start_dt,
+            shift_start_dt.clone(),
             grace_period_minutes
         );
 
@@ -123,11 +123,11 @@ impl AttendanceCalculator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{TimeZone, NaiveDate, NaiveTime};
+    use chrono::{NaiveDate, NaiveTime, Utc};
 
-    // Helper to create Local DateTime
-    fn dt(h: u32, m: u32) -> DateTime<Local> {
-        Local.from_local_datetime(
+    // Helper to create UTC DateTime for testing
+    fn dt(h: u32, m: u32) -> DateTime<Utc> {
+        Utc.from_local_datetime(
             &NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
                 .and_time(NaiveTime::from_hms_opt(h, m, 0).unwrap())
         ).single().unwrap()

@@ -1,5 +1,6 @@
 use axum::http::StatusCode;
-use chrono::{DateTime, Utc, NaiveDate, Local, TimeZone};
+use chrono::{DateTime, Utc, NaiveDate, TimeZone};
+use chrono_tz::Tz;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -17,12 +18,14 @@ impl ReportService {
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<Vec<DailyAttendanceReport>, StatusCode> {
-        // 0. Get Workspace Settings for Rounding Logic
+        // 0. Get Workspace Settings for Timezone & Rounding Logic
         let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
         let workspace = workspace_repo.get_workspace_by_id(workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
+
+        let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
 
         // 1. Get all schedules for the range
         let schedules = roster_repository::get_workspace_schedules(pool, workspace_id, start_date, end_date)
@@ -30,8 +33,8 @@ impl ReportService {
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         // 2. Get all time entries for the range
-        // Convert NaiveDate to DateTime<Utc> for query
-        let start_dt = Local
+        // Convert NaiveDate to DateTime<Utc> using Workspace Timezone
+        let start_dt = tz
             .from_local_datetime(
                 &start_date
                     .and_hms_opt(0, 0, 0)
@@ -41,7 +44,7 @@ impl ReportService {
             .ok_or(StatusCode::BAD_REQUEST)?
             .with_timezone(&Utc);
 
-        let end_dt = Local
+        let end_dt = tz
             .from_local_datetime(
                 &end_date
                     .and_hms_opt(23, 59, 59)
@@ -61,49 +64,35 @@ impl ReportService {
             for daily in emp_sched.schedules {
                 let date = daily.date;
                 
-                // Find entries for this day
+                // Find entries for this day in Workspace Local Time
                 let day_entries: Vec<_> = entries.iter()
-                    .filter(|e| e.punch_in_time.with_timezone(&Local).date_naive() == date)
+                    .filter(|e| e.punch_in_time.with_timezone(&tz).date_naive() == date)
                     .collect();
 
-                let actual_punch_in = day_entries.first().map(|e| e.punch_in_time.with_timezone(&Local));
-                let actual_punch_out = day_entries.last().and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&Local)));
+                let actual_punch_in = day_entries.first().map(|e| e.punch_in_time.with_timezone(&tz));
+                let actual_punch_out = day_entries.last().and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
                 
-                // --- NEW CALCULATION LOGIC ---
+                // --- CALCULATION LOGIC ---
                 let mut total_payable_minutes = 0;
 
-                // We need to calculate for *each* entry pair if there are multiple, 
-                // but usually for a daily report with one shift, we treat the span from First In to Last Out 
-                // as the "work day" if we want to apply daily Shift logic.
-                // However, AttendanceCalculator is designed for Daily Net Hours.
-                
                 if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
-                    // Calculate actual break taken between punches
-                    // This is complex if there are multiple punches (Split shift).
-                    // For simplicity and matching typical use case: 
-                    // Break = (Last Out - First In) - Sum(Work Durations)
-                    // OR specifically looking for entries marked as 'break'.
-                    // Current system seems to mark entries as 'work' or 'break'.
-                    
                     let actual_break_minutes: i32 = day_entries.iter()
                         .filter(|e| e.entry_type == "break")
                         .map(|e| e.duration_minutes.unwrap_or(0))
                         .sum();
 
-                    // If we treat the whole day as one session for calculation against the shift:
                     let (std, ot) = AttendanceCalculator::calculate_daily_net_hours(
                         punch_in,
                         punch_out,
-                        daily.start_time.and_then(|t| Local.from_local_datetime(&date.and_time(t)).single()),
-                        daily.end_time.and_then(|t| Local.from_local_datetime(&date.and_time(t)).single()),
+                        daily.start_time.and_then(|t| tz.from_local_datetime(&date.and_time(t)).single()),
+                        daily.end_time.and_then(|t| tz.from_local_datetime(&date.and_time(t)).single()),
                         daily.break_duration_minutes.unwrap_or(0),
                         daily.early_punch_in_grace_period_minutes.unwrap_or(0),
                         daily.is_break_auto_deduct.unwrap_or(false),
-                        false, // is_break_overtime - Assuming false for standard reports or need specific field
+                        false, 
                         actual_break_minutes
                     );
 
-                    // Apply Workspace Rounding
                     let rounded_std = AttendanceCalculator::apply_rounding(
                         std, 
                         workspace.work_unit_minutes, 
@@ -143,9 +132,9 @@ impl ReportService {
                     break_start: daily.break_start,
                     break_end: daily.break_end,
                     is_break_auto_deduct: daily.is_break_auto_deduct,
-                    actual_punch_in: actual_punch_in.map(|t| t.with_timezone(&Utc)), // Convert back to UTC for API
+                    actual_punch_in: actual_punch_in.map(|t| t.with_timezone(&Utc)), 
                     actual_punch_out: actual_punch_out.map(|t| t.with_timezone(&Utc)),
-                    total_minutes: total_payable_minutes, // Now using calculated payable minutes
+                    total_minutes: total_payable_minutes,
                     status,
                 });
             }

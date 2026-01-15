@@ -114,15 +114,30 @@ impl PairingService {
         .await?;
 
         if logs.is_empty() {
-            // Nothing to process, maybe delete existing auto entries?
-            // Yes, if no logs, no entries.
+            // Nothing to process, delete existing auto entries
             Self::clear_auto_entries(pool, employee_id, start_of_day, end_of_day).await?;
             return Ok(());
         }
 
-        let log_times: Vec<NaiveTime> = logs.iter()
-            .map(|l| l.punch_time.with_timezone(&tz).time())
+        // --- FILTER LOGS ---
+        // Ignore punches that are too close to the previous one (within 1 minute)
+        let mut filtered_logs = Vec::new();
+        if !logs.is_empty() {
+            let mut last_time = logs[0].punch_time;
+            filtered_logs.push(last_time);
+            
+            for i in 1..logs.len() {
+                if logs[i].punch_time.signed_duration_since(last_time) > Duration::minutes(1) {
+                    last_time = logs[i].punch_time;
+                    filtered_logs.push(last_time);
+                }
+            }
+        }
+
+        let log_times: Vec<NaiveTime> = filtered_logs.iter()
+            .map(|t| t.with_timezone(&tz).time())
             .collect();
+        // -------------------
 
         // 3. Run Algorithm
         let sessions = if let Some(config) = shift_config {
