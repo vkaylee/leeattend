@@ -16,6 +16,7 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Pre-compiled Execution**: Workers now execute a pre-built backend binary instead of `cargo run`, eliminating Rust file-lock contention and drastically reducing startup time.
     - **Dynamic Worker Scaling**: Optimized for 4 concurrent workers with 1-minute per-test strict timeout enforcement.
 - **Reliable Dev Seeding**: Hardened `dev_initialization` logic to use `INSERT ... ON CONFLICT DO UPDATE`, guaranteeing the "Fast Login" admin credentials are correct regardless of existing database state.
+- **Enhanced Resource Cleanup**: Integrated Docker volume removal (`down -v`) and signal file deletion into the `run-tests.sh` cleanup trap, ensuring a pristine system state after every test run, even on interruption (SIGINT/SIGTERM).
 
 ### Fixed
 - **API Consistency**: Standardized `UpdateShiftRequest` with `#[serde(default)]` for new fields (`allow_early_ot`, `is_correction`) to maintain backward compatibility with legacy tests.

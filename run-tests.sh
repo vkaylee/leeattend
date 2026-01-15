@@ -25,11 +25,16 @@ mkdir -p "$LOG_DIR"
 
 cleanup() {
     echo -e "\n${YELLOW}🧹 Cleaning up test environment...${NC}"
+    # Stop all containers and remove volumes (-v)
     docker-compose -f "$COMPOSE_FILE" down -v > /dev/null 2>&1
+    
+    # Remove any leftover signal files if necessary
+    rm -f apiserver/.api_port* webdashboard/.web_port*
+    
     echo -e "${GREEN}Done.${NC}"
 }
 
-trap cleanup EXIT
+trap cleanup EXIT INT TERM
 
 # Helper to print log sequentially
 show_log_sequential() {

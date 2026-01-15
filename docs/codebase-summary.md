@@ -137,6 +137,7 @@ leeattend/
     - **Phase 2 (Orchestration)**: Provisions isolated databases for parallel E2E and pre-compiles the backend binary.
     - **Phase 3 (Parallel Integration)**: Runs Rust integration tests and Playwright E2E concurrently.
 - **Real-time Sequential Logging**: Sophisticated output engine that streams parallel logs in real-time sequential blocks (e.g., Worker 2's logs start exactly when Worker 1 finishes), providing "parallel speed with sequential clarity."
+- **Reliable Resource Cleanup**: Implemented a comprehensive `trap` mechanism in the orchestrator that automatically stops containers, drops Docker volumes (`-v`), and removes temporary signal files on `EXIT`, `INT`, or `TERM`.
 - **Massively Parallel E2E Isolation**:
     - **Multi-DB Backend**: Automatically spawns dedicated databases (`test_database_e2e_0-3`) for each Playwright worker to eliminate state pollution and race conditions.
     - **Pre-compiled Performance**: Workers execute the pre-built `apiserver` binary directly, avoiding `cargo run` compilation overhead and resolving Rust file-lock contention.
