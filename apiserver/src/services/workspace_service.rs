@@ -81,48 +81,48 @@ impl WorkspaceService {
         let mut has_fields = false;
         let mut arg_idx = 1;
 
-        if let Some(_) = name {
+        if name.is_some() {
             query.push_str(&format!("name = ${}", arg_idx));
             arg_idx += 1;
             has_fields = true;
         }
-        if let Some(_) = work_unit_minutes {
+        if work_unit_minutes.is_some() {
             if has_fields { query.push_str(", "); }
             query.push_str(&format!("work_unit_minutes = ${}", arg_idx));
             arg_idx += 1;
             has_fields = true;
         }
-        if let Some(_) = rounding_policy {
+        if rounding_policy.is_some() {
             if has_fields { query.push_str(", "); }
             query.push_str(&format!("rounding_policy = ${}", arg_idx));
             arg_idx += 1;
             has_fields = true;
         }
-        if let Some(_) = date_format {
+        if date_format.is_some() {
             if has_fields { query.push_str(", "); }
             query.push_str(&format!("date_format = ${}", arg_idx));
             arg_idx += 1;
             has_fields = true;
         }
-        if let Some(_) = time_format {
+        if time_format.is_some() {
             if has_fields { query.push_str(", "); }
             query.push_str(&format!("time_format = ${}", arg_idx));
             arg_idx += 1;
             has_fields = true;
         }
-        if let Some(_) = timezone {
+        if timezone.is_some() {
             if has_fields { query.push_str(", "); }
             query.push_str(&format!("timezone = ${}", arg_idx));
             arg_idx += 1;
             has_fields = true;
         }
-        if let Some(_) = theme_primary_color {
+        if theme_primary_color.is_some() {
             if has_fields { query.push_str(", "); }
             query.push_str(&format!("theme_primary_color = ${}", arg_idx));
             arg_idx += 1;
             has_fields = true;
         }
-        if let Some(_) = default_language {
+        if default_language.is_some() {
             if has_fields { query.push_str(", "); }
             query.push_str(&format!("default_language = ${}", arg_idx));
             arg_idx += 1;

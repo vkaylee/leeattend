@@ -1,7 +1,7 @@
 use sqlx::{query, query_as, PgPool};
 use uuid::Uuid;
 use chrono::Datelike;
-use crate::models::{LeaveBalance, EmployeeLeaveBalance};
+use crate::models::{LeaveBalance, EmployeeLeaveBalance, WorkspaceLeaveBalance};
 
 pub async fn get_employee_balances(
     pool: &PgPool,
@@ -16,9 +16,10 @@ pub async fn get_employee_balances(
         EmployeeLeaveBalance,
         r#"
         SELECT 
-            lb.leave_type,
-            lb.entitlement,
-            lb.carried_over,
+            lb.leave_type as "leave_type!",
+            lb.entitlement as "entitlement!",
+            lb.accrued_amount::FLOAT8 as "accrued_amount!",
+            lb.carried_over as "carried_over!",
             COALESCE(
                 (
                     SELECT SUM(end_date - start_date + 1)
@@ -31,7 +32,7 @@ pub async fn get_employee_balances(
                 0
             )::INT as "used!",
             (
-                lb.entitlement + lb.carried_over - COALESCE(
+                lb.entitlement + lb.accrued_amount + lb.carried_over - COALESCE(
                     (
                         SELECT SUM(end_date - start_date + 1)
                         FROM leave_requests
@@ -42,11 +43,64 @@ pub async fn get_employee_balances(
                     ), 
                     0
                 )
-            )::INT as "remaining!"
+            )::FLOAT8 as "remaining!"
         FROM leave_balances lb
         WHERE lb.employee_id = $1 AND lb.year = $2
         "#,
         employee_id,
+        year
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(balances)
+}
+
+pub async fn get_workspace_balances(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    year: i32,
+) -> Result<Vec<WorkspaceLeaveBalance>, sqlx::Error> {
+    let balances = query_as!(
+        WorkspaceLeaveBalance,
+        r#"
+        SELECT 
+            e.id as "employee_id!",
+            (e.first_name || ' ' || e.last_name) as "employee_name!",
+            lb.leave_type as "leave_type!",
+            lb.entitlement as "entitlement!",
+            lb.accrued_amount::FLOAT8 as "accrued_amount!",
+            lb.carried_over as "carried_over!",
+            COALESCE(
+                (
+                    SELECT SUM(end_date - start_date + 1)
+                    FROM leave_requests
+                    WHERE employee_id = lb.employee_id 
+                    AND leave_type = lb.leave_type
+                    AND status = 'approved'
+                    AND EXTRACT(YEAR FROM start_date) = lb.year
+                ), 
+                0
+            )::INT as "used!",
+            (
+                lb.entitlement + lb.accrued_amount + lb.carried_over - COALESCE(
+                    (
+                        SELECT SUM(end_date - start_date + 1)
+                        FROM leave_requests
+                        WHERE employee_id = lb.employee_id 
+                        AND leave_type = lb.leave_type
+                        AND status = 'approved'
+                        AND EXTRACT(YEAR FROM start_date) = lb.year
+                    ), 
+                    0
+                )
+            )::FLOAT8 as "remaining!"
+        FROM employees e
+        JOIN leave_balances lb ON e.id = lb.employee_id
+        WHERE e.workspace_id = $1 AND lb.year = $2 AND e.is_active = TRUE
+        ORDER BY e.first_name, e.last_name, lb.leave_type
+        "#,
+        workspace_id,
         year
     )
     .fetch_all(pool)

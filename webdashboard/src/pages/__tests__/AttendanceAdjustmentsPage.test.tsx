@@ -46,7 +46,7 @@ describe("AttendanceAdjustmentsPage", () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByText("Vui lòng chọn Workspace")).toBeDefined();
+    expect(screen.getByText("Chọn Workspace")).toBeDefined();
   });
 
   it("renders list of adjustment requests", async () => {

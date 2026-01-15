@@ -283,7 +283,7 @@ async fn test_leave_balances() {
     let balances: Vec<EmployeeLeaveBalance> = serde_json::from_slice(&body).unwrap();
     assert!(!balances.is_empty());
     assert_eq!(balances[0].entitlement, 15);
-    assert_eq!(balances[0].remaining, 15);
+    assert_eq!(balances[0].remaining, 15.0);
 }
 
 #[tokio::test]

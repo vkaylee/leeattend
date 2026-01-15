@@ -5,6 +5,12 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased] - 2026-01-15
 
 ### Added
+- **Admin Leave Management (Balances & History)**: Comprehensive tools for HR administrators to manage employee leave.
+    - **Workspace Overview**: New page showing all employee balances in a unified table with visual usage indicators.
+    - **Accrual Tracking**: Updated the balance model to track `accrued_amount` separately from base entitlement.
+    - **Detailed Audit Trail**: Implemented a history view merging auto-accruals, leave usage, and manual adjustments.
+    - **Manual Adjustments**: Added ability for admins to manually add or deduct leave days with mandatory reason notes.
+    - **New Endpoints**: Added `GET /leave/balances` (workspace-wide), `GET /leave/history`, and `POST /leave/adjust`.
 - **Full-Stack Multi-Language Support (vi, en, zh)**: Comprehensive internationalization of the entire system.
     - **Backend Settings**: Added `preferred_language` to users and `default_language` to workspaces.
     - **Database Migration**: Created `20260115000000_add_language_settings.sql` to support new settings.
@@ -25,6 +31,8 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Docs Manager Agent**: Formalized documentation maintenance workflows and templates.
 
 ### Fixed
+- **Backend Stability**: Fixed a mismatched closing brace in the WebSocket handler and type comparison errors in the test suite.
+- **Leave Data Integrity**: Added missing `accrued_amount` field to test factories and initializers to ensure consistent database states.
 - **Code Duplication**: Resolved a critical regression in `ShiftsPage.tsx` where modal code blocks were duplicated, causing parsing errors.
 - **Token Rotation Logic**: Hardened `apiFetch` to better handle 401 errors and secure token refreshing.
 - **UI State Regressions**: Fixed `ReferenceError: t is not defined` in several entry-point components.

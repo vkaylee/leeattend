@@ -29,6 +29,12 @@ pub struct AgentManagerInner {
     pub agent_last_seen: RwLock<HashMap<String, DateTime<Utc>>>,
 }
 
+impl Default for AgentManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AgentManager {
     pub fn new() -> Self {
         Self {

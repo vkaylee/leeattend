@@ -104,6 +104,7 @@ async fn test_leave_balance_repo_upsert() {
         leave_type: "vacation".to_string(),
         year: 2026,
         entitlement: 15,
+        accrued_amount: rust_decimal::Decimal::ZERO,
         carried_over: 2,
         created_at: Utc::now(),
         updated_at: Utc::now(),

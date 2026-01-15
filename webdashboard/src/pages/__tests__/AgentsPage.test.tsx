@@ -115,10 +115,10 @@ describe("AgentsPage", () => {
 
     expect(screen.getByText("Agent One")).toBeDefined();
     expect(screen.getByText("Agent Two")).toBeDefined();
-    expect(screen.getByText("Đã duyệt")).toBeDefined();
-    expect(screen.getByText("Chờ duyệt")).toBeDefined();
-    expect(screen.getByText("Online")).toBeDefined();
-    expect(screen.getByText("Offline")).toBeDefined();
+    expect(screen.getByText(/đã duyệt/i)).toBeDefined();
+    expect(screen.getByText(/chờ duyệt/i)).toBeDefined();
+    expect(screen.getByText(/online/i)).toBeDefined();
+    expect(screen.getByText(/offline/i)).toBeDefined();
   });
 
   it("handles adding a new agent", async () => {
@@ -171,7 +171,7 @@ describe("AgentsPage", () => {
       </QueryClientProvider>
     );
 
-    fireEvent.click(screen.getByText("Trust"));
+    fireEvent.click(screen.getByText("Duyệt"));
 
     expect(window.confirm).toHaveBeenCalled();
     await waitFor(() => {

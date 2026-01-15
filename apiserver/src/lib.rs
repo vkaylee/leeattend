@@ -52,8 +52,7 @@ mod ax_auth {
             // 1. Check for JWT in Authorization header
             if let Some(auth_header) = parts.headers.get("Authorization") {
                 if let Ok(auth_str) = auth_header.to_str() {
-                    if auth_str.starts_with("Bearer ") {
-                        let token = &auth_str[7..];
+                    if let Some(token) = auth_str.strip_prefix("Bearer ") {
                         let app_state = Arc::<AppState>::from_ref(state);
 
                         match AuthService::verify_token(token, &app_state.jwt_secret) {
@@ -251,6 +250,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(
             "/workspaces/:ws_id/leave/requests/:id/approve",
             post(handlers::approve_leave_request),
+        )
+        .route(
+            "/workspaces/:ws_id/leave/balances",
+            get(handlers::get_workspace_leave_balances),
         )
         .route(
             "/workspaces/:ws_id/employees/:id/leave/balances",

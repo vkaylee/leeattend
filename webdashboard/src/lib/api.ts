@@ -168,6 +168,18 @@ export interface LeaveRequest {
 export interface EmployeeLeaveBalance {
   leave_type: string;
   entitlement: number;
+  accrued_amount: number;
+  carried_over: number;
+  used: number;
+  remaining: number;
+}
+
+export interface WorkspaceLeaveBalance {
+  employee_id: string;
+  employee_name: string;
+  leave_type: string;
+  entitlement: number;
+  accrued_amount: number;
   carried_over: number;
   used: number;
   remaining: number;
@@ -915,6 +927,14 @@ export async function fetchEmployeeLeaveBalances(
 ): Promise<EmployeeLeaveBalance[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/leave/balances`);
   if (!response.ok) throw new Error("Failed to fetch leave balances");
+  return response.json();
+}
+
+export async function fetchWorkspaceLeaveBalances(
+  wsId: string,
+): Promise<WorkspaceLeaveBalance[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/balances`);
+  if (!response.ok) throw new Error("Failed to fetch workspace leave balances");
   return response.json();
 }
 

@@ -325,22 +325,71 @@ Phê duyệt hoặc từ chối đơn nghỉ phép.
 - **Request**: `{ "status": "approved|rejected" }`
 - **Response (200 OK)**
 
-#### GET /workspaces/:ws_id/employees/:id/leave/balances
-Lấy thông tin hạn mức và số dư phép năm của nhân viên.
+#### GET /workspaces/:ws_id/leave/balances (New - Admin)
+Lấy bảng tổng hợp số dư phép của tất cả nhân viên trong workspace.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Response (200)**: 
   ```json
   [
     {
-      "id": "uuid",
-      "leave_type": "annual",
-      "year": 2026,
+      "employee_id": "uuid",
+      "employee_name": "Nguyen Van A",
+      "leave_type": "vacation",
       "entitlement": 12,
-      "taken": 2.5,
-      "remaining": 9.5,
-      "carried_over": 0
+      "accrued_amount": 3.0,
+      "carried_over": 0,
+      "used": 2,
+      "remaining": 13.0
     }
   ]
   ```
+
+#### GET /workspaces/:ws_id/employees/:id/leave/balances
+Lấy thông tin hạn mức và số dư phép của một nhân viên cụ thể.
+- **Response (200)**: 
+  ```json
+  [
+    {
+      "leave_type": "vacation",
+      "entitlement": 12,
+      "accrued_amount": 3.0,
+      "carried_over": 0,
+      "used": 2,
+      "remaining": 13.0
+    }
+  ]
+  ```
+
+#### GET /workspaces/:ws_id/employees/:id/leave/history (New)
+Lấy lịch sử chi tiết các biến động số dư (cộng phép định kỳ, sử dụng, điều chỉnh thủ công).
+- **Response (200)**: `Array<LeaveHistoryItem>`
+  ```json
+  [
+    {
+      "id": "uuid",
+      "date": "2026-01-01",
+      "transaction_type": "accrual|usage|adjustment|carry_over",
+      "amount": 1.0,
+      "reason": "...",
+      "reference_id": "optional-uuid",
+      "created_at": "datetime"
+    }
+  ]
+  ```
+
+#### POST /workspaces/:ws_id/employees/:id/leave/adjust (New)
+Thực hiện điều chỉnh số dư phép thủ công cho nhân viên.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**:
+  ```json
+  {
+    "leave_type": "vacation",
+    "amount": 1.5, // Dương để cộng, âm để trừ
+    "reason": "Thưởng thêm ngày phép dự án",
+    "transaction_date": "2026-01-15"
+  }
+  ```
+- **Response (200 OK)**
 
 ---
 

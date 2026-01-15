@@ -4,7 +4,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::repositories::roster_repository;
-use crate::models::{ApproveLeaveRequest, LeaveRequest, SubmitLeaveRequest, EmployeeLeaveBalance, ShiftRoster, LeaveHistoryItem, AdjustBalanceRequest};
+use crate::models::{ApproveLeaveRequest, LeaveRequest, SubmitLeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, ShiftRoster, LeaveHistoryItem, AdjustBalanceRequest};
 use crate::repositories::employee_repository;
 use crate::repositories::leave_request_repository;
 use crate::repositories::leave_balance_repository;
@@ -13,6 +13,16 @@ use rust_decimal::prelude::ToPrimitive;
 pub struct LeaveService;
 
 impl LeaveService {
+    pub async fn get_workspace_balances(
+        pool: &PgPool,
+        workspace_id: Uuid,
+        year: i32,
+    ) -> Result<Vec<WorkspaceLeaveBalance>, StatusCode> {
+        leave_balance_repository::get_workspace_balances(pool, workspace_id, year)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
     pub async fn get_employee_leave_history(
         pool: &PgPool,
         _workspace_id: Uuid,

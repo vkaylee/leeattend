@@ -358,6 +358,7 @@ pub struct LeaveBalance {
     pub leave_type: String,
     pub year: i32,
     pub entitlement: i32,
+    pub accrued_amount: rust_decimal::Decimal,
     pub carried_over: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -367,9 +368,22 @@ pub struct LeaveBalance {
 pub struct EmployeeLeaveBalance {
     pub leave_type: String,
     pub entitlement: i32,
+    pub accrued_amount: f64,
     pub carried_over: i32,
     pub used: i32,
-    pub remaining: i32,
+    pub remaining: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct WorkspaceLeaveBalance {
+    pub employee_id: Uuid,
+    pub employee_name: String,
+    pub leave_type: String,
+    pub entitlement: i32,
+    pub accrued_amount: f64,
+    pub carried_over: i32,
+    pub used: i32,
+    pub remaining: f64,
 }
 
 #[derive(Debug, Deserialize)]

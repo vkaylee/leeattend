@@ -247,11 +247,10 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                     let _ = state_clone.agent_service.update_last_seen(id).await;
                                 }
                             }
-                        } else if v["type"] == "handshake" || !agent_id.is_empty() {
-                            if agent_id.is_empty() {
-                                if let (Some(id), Some(token)) =
-                                    (v["agent_id"].as_str(), v["token"].as_str())
-                                {
+                        } else if (v["type"] == "handshake" || !agent_id.is_empty()) && agent_id.is_empty() {
+                            if let (Some(id), Some(token)) =
+                                (v["agent_id"].as_str(), v["token"].as_str())
+                            {
                                     match state_clone.agent_service.authorize_agent(id, token).await
                                     {
                                         Ok(Some(_agent)) => {
@@ -303,7 +302,6 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                             }
                         }
                     }
-                }
                 Message::Close(_) => break,
                 _ => (),
             }
@@ -1655,8 +1653,22 @@ pub async fn get_my_leave_requests(
     // Temporary hack: use a special internal method or just skip workspace check if we trust the employee_id
     crate::repositories::leave_request_repository::get_employee_leave_requests(&state.db, id)
         .await
-        .map(|requests| Json(requests))
+        .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+pub async fn get_workspace_leave_balances(
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+) -> Result<Json<Vec<crate::models::WorkspaceLeaveBalance>>, StatusCode> {
+    if !ctx.is_admin_or_owner() {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    let year = Utc::now().year();
+    match crate::services::leave_service::LeaveService::get_workspace_balances(&state.db, ctx.workspace_id, year).await {
+        Ok(balances) => Ok(Json(balances)),
+        Err(status) => Err(status),
+    }
 }
 
 pub async fn get_employee_leave_balances(
@@ -1677,12 +1689,15 @@ pub struct LeaveStatusQuery {
 
 pub async fn get_workspace_leave_requests(
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Query(query): Query<LeaveStatusQuery>,
 ) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return (StatusCode::FORBIDDEN, "Access denied").into_response();
+    }
     match crate::services::leave_service::LeaveService::get_workspace_leave_requests(
         &state.db,
-        workspace_id,
+        ctx.workspace_id,
         query.status,
     )
     .await

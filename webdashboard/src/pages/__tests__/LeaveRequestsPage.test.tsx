@@ -56,7 +56,7 @@ describe("LeaveRequestsPage", () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByText("Vui lòng chọn Workspace")).toBeDefined();
+    expect(screen.getByText("Chọn Workspace")).toBeDefined();
   });
 
   it("renders pending requests by default", async () => {
@@ -111,7 +111,7 @@ describe("LeaveRequestsPage", () => {
     expect(await screen.findByText(/Còn/)).toBeDefined();
     expect(screen.getByText("10")).toBeDefined();
 
-    await user.selectOptions(screen.getByLabelText("Loại nghỉ"), "vacation");
+    await user.selectOptions(screen.getByLabelText("Loại"), "vacation");
     
     // Fill dates
     const startDate = screen.getByLabelText("Từ ngày");
@@ -150,7 +150,7 @@ describe("LeaveRequestsPage", () => {
       </QueryClientProvider>
     );
 
-    const approveBtn = await screen.findByTitle("Duyệt");
+    const approveBtn = await screen.findByTitle("Phê duyệt");
     await user.click(approveBtn);
 
     await waitFor(() => {

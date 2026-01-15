@@ -55,6 +55,7 @@ leeattend/
             - **Rounding**: Làm tròn giờ công (Floor/Ceil/Round) theo Work Unit (15m/30m).
         - **Overtime Engine**: Priority-based calculation logic supporting worked-through breaks and daily OT thresholds.
         - **Leave Management**: Tracking of annual leave entitlements, carry-over balances, and usage history.
+        - **Admin Management & Auditing**: High-level workspace overview of all employee balances. Merged history stream of auto-accruals, usage, and manual corrections.
         - **Dynamic Accrual Engine**: Automated leave balance calculation based on configurable rules (Monthly/Quarterly/Yearly) and Seniority Bonuses.
         - **Resilience**: **PortFileGuard** ensures robust resource cleanup (port files) even during unexpected shutdowns or panics.
 
@@ -98,6 +99,7 @@ leeattend/
 - [x] Accurate Real-time Status (Heartbeat).
 - [x] **RBAC Audit**: Full security audit of all administrative endpoints; strict enforcement of `MemberContext` roles (Owner/Admin).
 - [x] **Leave Management**: Comprehensive tracking of leave requests, approvals, and annual balances.
+- [x] **Admin Leave Dashboard**: Workspace-wide overview of quotas and manual balance adjustments with audit trail.
 - [x] **Dynamic Leave Policies**: Configurable accrual rules (Monthly, Quarterly) with temporal assignment (Effective Date) and seniority bonuses.
 - [ ] Overnight Shift Support (Handling punches spanning two calendar days).
 - [ ] Automated Deployment scripts (NSSM/Service for production).

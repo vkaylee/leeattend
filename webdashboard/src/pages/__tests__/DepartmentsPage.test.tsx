@@ -50,7 +50,7 @@ describe("DepartmentsPage", () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByText("Vui lòng chọn Workspace")).toBeDefined();
+    expect(screen.getByText("Chọn Workspace")).toBeDefined();
   });
 
   it("renders departments list", async () => {
