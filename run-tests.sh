@@ -166,7 +166,7 @@ echo -e "  ${GREEN}Infrastructure ready.${NC}"
 export DATABASE_URL="postgres://test_user:test_password@localhost:5433/test_database"
 
 run_parallel_ordered "Phase 3 (Integration & E2E)" \
-    "1|apiserver-int|apiserver|timeout 300s cargo test --test '*'" \
+    "1|apiserver-int|apiserver|timeout 300s cargo test --test '*' -- --test-threads $NUM_WORKERS" \
     "2|playwright-e2e|webdashboard|timeout 300s npx playwright test --workers $NUM_WORKERS"
 
 echo -e "\n${GREEN}${BOLD}🎉 All tests passed successfully!${NC}"

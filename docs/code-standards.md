@@ -58,7 +58,8 @@ We use a **Dynamic Test Database** pattern to ensure test isolation and allow pa
 1. **Isolation**: Every integration test file (or test case) MUST use `TestDatabase::new().await`. This creates a unique Postgres database for that specific session.
 2. **Migrations**: The helper automatically runs `sqlx::migrate!()`. No manual setup required.
 3. **Parallelism**: Do NOT use `#[serial]` unless absolutely necessary for non-database resources. Tests are safe to run in parallel.
-4. **Cleanup**: Databases are automatically dropped on `Drop` via a detached background shell process. This allows the test to finish immediately while the database is cleaned up shortly after.
+4. **CPU Management**: To prevent system oversubscription during unified test runs, always limit test threads using `cargo test -- --test-threads $N` where $N$ matches the shared worker pool size.
+5. **Cleanup**: Databases are automatically dropped on `Drop` via a detached background shell process. This allows the test to finish immediately while the database is cleaned up shortly after.
 5. **Signal Safety**: A global **Signal Trap** (SIGINT/SIGTERM) is initialized on the first `TestDatabase` creation. If the test process is interrupted (e.g., Ctrl+C), it will attempt to clean up all currently active test databases.
 6. **Robustness**: The cleanup logic terminates active database backends before dropping to prevent "database is being accessed by other users" errors.
 

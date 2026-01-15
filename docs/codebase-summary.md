@@ -142,6 +142,7 @@ leeattend/
 - **Massively Parallel E2E Isolation**:
     - **Multi-DB Backend**: Automatically spawns dedicated databases (`test_database_e2e_0-N`) for each Playwright worker to eliminate state pollution.
     - **Dynamic Worker Scaling**: Automatically calculates optimal concurrency based on system CPU cores (Half of total cores, min 1).
+    - **Balanced Parallelism**: Synchronizes Playwright workers and Rust test threads (`--test-threads`) to prevent CPU oversubscription, achieving peak throughput without system lag.
     - **Pre-compiled Performance**: Workers execute the pre-built `apiserver` binary directly, avoiding `cargo run` compilation overhead and resolving Rust file-lock contention.
     - **Determinism**: Strictly enforced 1-minute per-test timeouts.
 - **Mandatory Quality Gate**: Bắt buộc 100% các bài test (Unit, Integration, Frontend) phải PASS trước khi merge.
