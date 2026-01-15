@@ -11,6 +11,15 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Detailed Audit Trail**: Implemented a history view merging auto-accruals, leave usage, and manual adjustments.
     - **Manual Adjustments**: Added ability for admins to manually add or deduct leave days with mandatory reason notes.
     - **New Endpoints**: Added `GET /leave/balances` (workspace-wide), `GET /leave/history`, and `POST /leave/adjust`.
+    - **Accurate Attendance Calculation Engine**: Re-engineered the time tracking logic using an Interval Intersection (Clamping) and Bucket strategy.
+        - **Standard Work Clamping**: Standard work time is strictly bounded by the shift's `start_time` and `end_time`, preventing early arrivals from artificially inflating standard hours.
+        - **Bucket Separation**: Logic now splits work duration into three distinct buckets: Standard, Early OT (before shift), and Late OT (after shift).
+        - **Floor Rounding Implementation**: Applied `Floor` rounding on the total duration of each bucket to enforce the "late 10m = lose 30m" policy for standard hours.
+        - **Negative Work Prevention**: Hardened break deduction logic to ensure net minutes never drop below zero.
+        - **Overnight Linearization**: Enhanced support for shifts spanning two calendar days with intelligent intersection logic.
+    - **Early OT Policy Control**:
+        - **New Field**: Added `allow_early_ot` to the `shifts` table and API models.
+        - **Policy Enforcement**: Administrators can now decide per-shift whether early arrivals should be discarded or counted as overtime.
 - **Full-Stack Multi-Language Support (vi, en, zh)**: Comprehensive internationalization of the entire system.
     - **Backend Settings**: Added `preferred_language` to users and `default_language` to workspaces.
     - **Database Migration**: Created `20260115000000_add_language_settings.sql` to support new settings.

@@ -539,7 +539,8 @@ Tạo mới hoặc cập nhật một loại ca làm việc. Nếu cập nhật,
   "break_start": "12:00:00",
   "break_end": "13:00:00",
   "is_break_auto_deduct": true,
-  "early_punch_in_grace_period_minutes": 15
+  "early_punch_in_grace_period_minutes": 15,
+  "allow_early_ot": false
 }
 ```
 
@@ -612,7 +613,8 @@ Tính toán lịch biểu hiệu lực (Effective Schedule) cho tất cả nhân
           "source": "roster|fixed|department|none",
           "shift_name": "Morning Shift",
           "start_time": "08:00:00",
-          "end_time": "17:00:00"
+          "end_time": "17:00:00",
+          "allow_early_ot": false
         }
       ]
     }

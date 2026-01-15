@@ -48,7 +48,12 @@ leeattend/
     - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections. Supports **Robust Asynchronous Batch Import** (Excel/CSV) with auto-recovery and real-time progress tracking.
     - **Attendance Persistence Layer**: 
         - **Raw Event Store**: Dedicated `raw_attendance_logs` table for immutable original punch data from hardware and imports.
-        - **Pairing Engine**: `PairingService` handles the automatic conversion of flat events into logical attendance sessions. Uses a **Min-Cost Matching Algorithm** (`pairing_algo.rs`) to intelligently pair logs against Shift Patterns (Full Day, Half Day, Continuous), handling missing punches and noise gracefully.
+        - **Pairing Engine**: `PairingService` handles the automatic conversion of flat events into logical attendance sessions.
+        - **Accurate Calculation Engine**: `AttendanceCalculator` implements a high-precision **Clamping + Bucket** strategy:
+            - **Standard Clamping**: Work is capped within `[ShiftStart, ShiftEnd]`. Early arrivals (e.g., 07:25 for 07:30) are correctly handled as `max(In, Start)`.
+            - **Bucket Logic**: Separation of Standard, Early OT, and Late OT time buckets.
+            - **Early OT Filter**: Policy-based filtering of early arrivals via `allow_early_ot` toggle.
+            - **Boundary Rounding**: Uses `Floor` rounding on total bucket duration to handle "late 1 min = lose 30 mins" policies.
         - **Strict Validation**: High-fidelity file parsing that enforces workspace settings and provides line-by-line detailed error context.
     - **Time Tracking**: Core logic for punch in/out, shift calculation, and payroll-ready duration processing.
         - **Attendance Calculator**: Centralized Domain Service (`attendance_calculator.rs`) implementing pure business logic for:
