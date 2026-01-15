@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   BrowserRouter as Router,
   Routes,
@@ -55,6 +56,7 @@ import AttendanceLogsPage from "./pages/AttendanceLogsPage";
 import { useWorkspaces } from "./hooks/use-workspace";
 import { getCurrentWorkspaceId } from "./lib/api";
 import { useTheme } from "./hooks/use-theme";
+import { useI18nSync } from "./hooks/use-i18n-sync";
 
 console.log("🚀 [LeeAttend] Bundle initialized at:", new Date().toISOString());
 
@@ -68,7 +70,9 @@ const queryClient = new QueryClient({
 });
 
 function Layout() {
+  const { t } = useTranslation();
   useTheme();
+  useI18nSync();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showSwitcher, setShowSwitcher] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -96,21 +100,21 @@ function Layout() {
 
   const getPageName = (path: string) => {
     const map: Record<string, string> = {
-      "/": "Bảng điều khiển",
-      "/members": "Thành viên",
-      "/employees": "Nhân viên",
-      "/departments": "Phòng ban",
-      "/time-tracking": "Chấm công",
-      "/attendance-logs": "Nhật ký",
-      "/leave-requests": "Nghỉ phép",
-      "/attendance-adjustments": "Xác nhận công",
-      "/reports": "Báo cáo",
-      "/shifts": "Lịch trình & Ca",
-      "/payroll": "Tính lương",
-      "/agents": "Agents",
-      "/devices": "Thiết bị",
-      "/workspace/settings": "Cài đặt",
-      "/profile": "Hồ sơ",
+      "/": t("common.dashboard"),
+      "/members": t("common.members"),
+      "/employees": t("common.employees"),
+      "/departments": t("common.departments"),
+      "/time-tracking": t("common.time_tracking"),
+      "/attendance-logs": t("common.logs"),
+      "/leave-requests": t("common.leave_requests"),
+      "/attendance-adjustments": t("common.attendance_confirm"),
+      "/reports": t("common.reports"),
+      "/shifts": t("common.shifts"),
+      "/payroll": t("common.payroll"),
+      "/agents": t("common.agents"),
+      "/devices": t("common.devices"),
+      "/workspace/settings": t("common.settings"),
+      "/profile": t("common.profile"),
     };
     return map[path] || path.split('/').pop()?.replace(/-/g, ' ') || "";
   };
@@ -180,7 +184,7 @@ function Layout() {
             }`}
           >
             <LayoutDashboard className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold text-sm">Bảng điều khiển</span>
+            <span className="font-semibold text-sm">{t("common.dashboard")}</span>
           </Link>
           
           {/* Section: Tổ chức */}
@@ -189,7 +193,7 @@ function Layout() {
               onClick={() => toggleSection('org')}
               className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
             >
-              <span>Tổ chức</span>
+              <span>{t("sections.organization")}</span>
               {openSections.org ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </button>
             <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.org ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}>
@@ -200,7 +204,7 @@ function Layout() {
                 }`}
               >
                 <Users className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">Thành viên</span>
+                <span className="font-semibold text-sm">{t("common.members")}</span>
               </Link>
               <Link
                 to="/employees"
@@ -209,7 +213,7 @@ function Layout() {
                 }`}
               >
                 <UserRound className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">Nhân viên</span>
+                <span className="font-semibold text-sm">{t("common.employees")}</span>
               </Link>
               <Link
                 to="/departments"
@@ -218,7 +222,7 @@ function Layout() {
                 }`}
               >
                 <Building2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">Phòng ban</span>
+                <span className="font-semibold text-sm">{t("common.departments")}</span>
               </Link>
             </div>
           </div>
@@ -229,7 +233,7 @@ function Layout() {
               onClick={() => toggleSection('time')}
               className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
             >
-              <span>Thời gian & Nghỉ phép</span>
+              <span>{t("sections.time_leave")}</span>
               {openSections.time ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </button>
             <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.time ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}>
@@ -240,7 +244,7 @@ function Layout() {
                 }`}
               >
                 <Clock className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">Chấm công</span>
+                <span className="font-semibold text-sm">{t("common.time_tracking")}</span>
               </Link>
               <Link
                 to="/attendance-logs"
@@ -249,7 +253,7 @@ function Layout() {
                 }`}
               >
                 <ListOrdered className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">Nhật ký</span>
+                <span className="font-semibold text-sm">{t("common.logs")}</span>
               </Link>
               <Link
                 to="/leave-requests"
@@ -258,7 +262,7 @@ function Layout() {
                 }`}
               >
                 <CalendarDays className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">Nghỉ phép</span>
+                <span className="font-semibold text-sm">{t("common.leave_requests")}</span>
               </Link>
               <Link
                 to="/attendance-adjustments"
@@ -267,7 +271,7 @@ function Layout() {
                 }`}
               >
                 <History className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">Xác nhận công</span>
+                <span className="font-semibold text-sm">{t("common.attendance_confirm")}</span>
               </Link>
               <Link
                 to="/reports"
@@ -276,7 +280,7 @@ function Layout() {
                 }`}
               >
                 <FileBarChart className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">Báo cáo</span>
+                <span className="font-semibold text-sm">{t("common.reports")}</span>
               </Link>
             </div>
           </div>
@@ -287,7 +291,7 @@ function Layout() {
               onClick={() => toggleSection('payroll')}
               className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
             >
-              <span>Lương & Ca làm</span>
+              <span>{t("sections.payroll_shifts")}</span>
               {openSections.payroll ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </button>
             <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.payroll ? "max-h-64 opacity-100" : "max-h-0 opacity-0"}`}>
@@ -298,7 +302,7 @@ function Layout() {
                 }`}
               >
                 <CalendarRange className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">Lịch trình & Ca</span>
+                <span className="font-semibold text-sm">{t("common.shifts")}</span>
               </Link>
               <Link
                 to="/payroll"
@@ -307,7 +311,7 @@ function Layout() {
                 }`}
               >
                 <Banknote className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">Tính lương</span>
+                <span className="font-semibold text-sm">{t("common.payroll")}</span>
               </Link>
             </div>
           </div>
@@ -318,7 +322,7 @@ function Layout() {
               onClick={() => toggleSection('system')}
               className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
             >
-              <span>Hệ thống</span>
+              <span>{t("sections.system")}</span>
               {openSections.system ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </button>
             <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.system ? "max-h-64 opacity-100" : "max-h-0 opacity-0"}`}>
@@ -329,7 +333,7 @@ function Layout() {
                 }`}
               >
                 <UserCheck className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">Agents</span>
+                <span className="font-semibold text-sm">{t("common.agents")}</span>
               </Link>
               <Link
                 to="/devices"
@@ -338,7 +342,7 @@ function Layout() {
                 }`}
               >
                 <Cpu className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">Thiết bị</span>
+                <span className="font-semibold text-sm">{t("common.devices")}</span>
               </Link>
               <Link
                 to="/workspace/settings"
@@ -347,7 +351,7 @@ function Layout() {
                 }`}
               >
                 <Settings className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">Cài đặt</span>
+                <span className="font-semibold text-sm">{t("common.settings")}</span>
               </Link>
             </div>
           </div>
@@ -363,21 +367,21 @@ function Layout() {
             }`}
           >
             <UserCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-semibold text-sm">Hồ sơ</span>
+            <span className="font-semibold text-sm">{t("common.profile")}</span>
           </Link>
           <button
             onClick={() => setShowSwitcher(true)}
             className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-primary-50 hover:text-primary-600 rounded-2xl transition-all group font-semibold text-sm"
           >
             <Building2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span>Chuyển cơ sở</span>
+            <span>{t("common.switch_workspace")}</span>
           </button>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-2xl transition-all group font-semibold text-sm"
           >
             <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span>Đăng xuất</span>
+            <span>{t("common.logout")}</span>
           </button>
         </div>
       </aside>
@@ -440,8 +444,8 @@ function Layout() {
                   <Building2 className="w-6 h-6" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900 tracking-tight">Chuyển cơ sở</h2>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Văn phòng / Chi nhánh</p>
+                  <h2 className="text-xl font-bold text-slate-900 tracking-tight">{t("common.switch_workspace")}</h2>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{t("common.office_branch")}</p>
                 </div>
               </div>
               <button 
@@ -453,14 +457,14 @@ function Layout() {
             </div>
             
             <div className="p-8">
-              <p className="text-sm text-slate-500 mb-8 font-medium">Chọn văn phòng hoặc chi nhánh bạn muốn làm việc.</p>
+              <p className="text-sm text-slate-500 mb-8 font-medium">{t("common.select_workspace_desc")}</p>
               <WorkspaceSwitcher />
               <div className="mt-10 pt-6 border-t border-slate-50 flex justify-end">
                 <button 
                   onClick={() => setShowSwitcher(false)}
                   className="px-8 py-3 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-all"
                 >
-                  Đóng
+                  {t("common.close")}
                 </button>
               </div>
             </div>

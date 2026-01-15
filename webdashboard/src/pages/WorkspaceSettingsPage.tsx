@@ -9,8 +9,10 @@ import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace } fro
 import { Combobox } from "@/components/ui/Combobox";
 import { Globe, Calendar, CheckCircle2, ShieldAlert } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
+import { useTranslation } from "react-i18next";
 
 export default function WorkspaceSettingsPage() {
+  const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
   const { members, isLoading, addMember, isAdding } = useWorkspaceMembers();
@@ -33,6 +35,7 @@ export default function WorkspaceSettingsPage() {
   const [timeFormat, setTimeFormat] = useState("24h");
   const [timezone, setTimezone] = useState("Asia/Ho_Chi_Minh");
   const [themePrimaryColor, setThemePrimaryColor] = useState("#7c3aed");
+  const [defaultLanguage, setDefaultLanguage] = useState("vi");
 
   useEffect(() => {
     if (workspace) {
@@ -42,6 +45,7 @@ export default function WorkspaceSettingsPage() {
       setTimeFormat(workspace.time_format);
       setTimezone(workspace.timezone || "Asia/Ho_Chi_Minh");
       setThemePrimaryColor(workspace.theme_primary_color || "#7c3aed");
+      setDefaultLanguage(workspace.default_language || "vi");
     }
   }, [workspace]);
 
@@ -54,11 +58,11 @@ export default function WorkspaceSettingsPage() {
   const updateWsMutation = useMutation({
     mutationFn: (data: Partial<Workspace>) => updateWorkspace(wsId!, data),
     onSuccess: () => {
-      toast.success("Cập nhật cấu hình thành công.");
+      toast.success(t("common.success"));
       queryClient.invalidateQueries({ queryKey: ["workspace", wsId] });
     },
     onError: () => {
-      toast.error("Không thể cập nhật cấu hình.");
+      toast.error(t("common.error"));
     }
   });
 
@@ -70,10 +74,10 @@ export default function WorkspaceSettingsPage() {
     e.preventDefault();
     try {
       await addMember({ email: newMemberEmail, role: newMemberRole });
-      toast.success(`Đã gửi lời mời tới ${newMemberEmail} tham gia Workspace.`);
+      toast.success(`${t("workspace_settings.invite_member")} ${newMemberEmail}`);
       setNewMemberEmail("");
     } catch (e) {
-      toast.error("Lỗi khi mời thành viên. Người dùng có thể chưa đăng ký tài khoản LeeAttend.");
+      toast.error(t("common.error"));
     }
   }
 
@@ -85,6 +89,7 @@ export default function WorkspaceSettingsPage() {
       time_format: timeFormat,
       timezone: timezone,
       theme_primary_color: themePrimaryColor,
+      default_language: defaultLanguage,
     });
   }
 
@@ -93,10 +98,10 @@ export default function WorkspaceSettingsPage() {
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-            Cài đặt Workspace
+            {t("workspace_settings.title")}
           </h1>
           <p className="text-slate-500 mt-1">
-            Quản lý thành viên và cấu hình tính toán
+            {t("workspace_settings.description")}
           </p>
         </div>
 
@@ -106,7 +111,7 @@ export default function WorkspaceSettingsPage() {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800">
                 <Calculator className="w-5 h-5 text-primary-500" />
-                Cấu hình tính công
+                {t("workspace_settings.payroll_config")}
               </h2>
               <button
                 onClick={handleSaveConfig}
@@ -114,110 +119,112 @@ export default function WorkspaceSettingsPage() {
                 className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 disabled:opacity-50 text-sm"
               >
                 <Save className="w-4 h-4" />
-                Lưu cấu hình
+                {t("workspace_settings.save_config")}
               </button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Đơn vị tính công (Phút)
+                  {t("workspace_settings.work_unit")}
                 </label>
                 <Combobox
                   data-testid="work-unit-select"
                   options={[
-                    { value: "1", label: "1 phút", description: "Mặc định, độ chính xác cao nhất" },
-                    { value: "15", label: "15 phút", description: "Khối 0.25 giờ" },
-                    { value: "30", label: "30 phút", description: "Khối 0.5 giờ" },
-                    { value: "60", label: "60 phút", description: "Khối 1 giờ" },
+                    { value: "1", label: t("workspace_settings.work_unit_options.1min"), description: t("workspace_settings.work_unit_options.1min_desc") },
+                    { value: "15", label: t("workspace_settings.work_unit_options.15min"), description: t("workspace_settings.work_unit_options.15min_desc") },
+                    { value: "30", label: t("workspace_settings.work_unit_options.30min"), description: t("workspace_settings.work_unit_options.30min_desc") },
+                    { value: "60", label: t("workspace_settings.work_unit_options.60min"), description: t("workspace_settings.work_unit_options.60min_desc") },
                   ]}
                   value={workUnit.toString()}
                   onChange={(val) => setWorkUnit(parseInt(val))}
                   className="bg-slate-50 border-slate-200"
                 />
-                <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
-                  Hệ thống sẽ gom các phút làm việc thành từng khối (block) này.
-                </p>
               </div>
 
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Quy tắc làm tròn
+                  {t("workspace_settings.rounding_policy")}
                 </label>
                 <Combobox
                   data-testid="rounding-policy-select"
                   options={[
-                    { value: "none", label: "Không làm tròn", icon: <CheckCircle2 className="w-4 h-4" /> },
-                    { value: "floor", label: "Làm tròn xuống (Floor)", icon: <ShieldAlert className="w-4 h-4" /> },
-                    { value: "ceil", label: "Làm tròn lên (Ceil)", icon: <ShieldAlert className="w-4 h-4" /> },
-                    { value: "round", label: "Làm tròn gần nhất (Round)", icon: <ShieldAlert className="w-4 h-4" /> },
+                    { value: "none", label: t("workspace_settings.rounding_options.none"), icon: <CheckCircle2 className="w-4 h-4" /> },
+                    { value: "floor", label: t("workspace_settings.rounding_options.floor"), icon: <ShieldAlert className="w-4 h-4" /> },
+                    { value: "ceil", label: t("workspace_settings.rounding_options.ceil"), icon: <ShieldAlert className="w-4 h-4" /> },
+                    { value: "round", label: t("workspace_settings.rounding_options.round"), icon: <ShieldAlert className="w-4 h-4" /> },
                   ]}
                   value={roundingPolicy}
                   onChange={setRoundingPolicy}
                   className="bg-slate-50 border-slate-200"
                 />
-                <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
-                  Cách xử lý khi tổng giờ làm trong ngày không chia hết cho đơn vị tính.
-                </p>
               </div>
 
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Định dạng ngày tháng ưu tiên
+                  {t("workspace_settings.date_format")}
                 </label>
                 <Combobox
                   data-testid="date-format-select"
                   options={[
-                    { value: "DD/MM/YYYY", label: "DD/MM/YYYY", description: "Kiểu Việt Nam (Ví dụ: 31/12/2025)", icon: <Calendar className="w-4 h-4" /> },
-                    { value: "MM/DD/YYYY", label: "MM/DD/YYYY", description: "Kiểu Mỹ (Ví dụ: 12/31/2025)", icon: <Calendar className="w-4 h-4" /> },
-                    { value: "YYYY-MM-DD", label: "YYYY-MM-DD", description: "Kiểu ISO (Ví dụ: 2025-12-31)", icon: <Calendar className="w-4 h-4" /> },
+                    { value: "DD/MM/YYYY", label: "DD/MM/YYYY", description: t("workspace_settings.date_format_options.vn"), icon: <Calendar className="w-4 h-4" /> },
+                    { value: "MM/DD/YYYY", label: "MM/DD/YYYY", description: t("workspace_settings.date_format_options.us"), icon: <Calendar className="w-4 h-4" /> },
+                    { value: "YYYY-MM-DD", label: "YYYY-MM-DD", description: t("workspace_settings.date_format_options.iso"), icon: <Calendar className="w-4 h-4" /> },
                   ]}
                   value={dateFormat}
                   onChange={setDateFormat}
                   className="bg-slate-50 border-slate-200"
                 />
-                <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
-                  Dùng để ưu tiên xử lý khi file Excel/CSV không rõ ràng (ví dụ 01/02).
-                </p>
               </div>
 
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Định dạng giờ ưu tiên
+                  {t("workspace_settings.time_format")}
                 </label>
                 <Combobox
                   data-testid="time-format-select"
                   options={[
-                    { value: "24h", label: "24 Giờ", description: "Ví dụ: 14:30", icon: <Clock className="w-4 h-4" /> },
-                    { value: "12h", label: "12 Giờ", description: "Ví dụ: 02:30 PM", icon: <Clock className="w-4 h-4" /> },
+                    { value: "24h", label: t("workspace_settings.time_format_options.24h"), description: "Ví dụ: 14:30", icon: <Clock className="w-4 h-4" /> },
+                    { value: "12h", label: t("workspace_settings.time_format_options.12h"), description: "Ví dụ: 02:30 PM", icon: <Clock className="w-4 h-4" /> },
                   ]}
                   value={timeFormat}
                   onChange={setTimeFormat}
                   className="bg-slate-50 border-slate-200"
                 />
-                <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
-                  Cách hiển thị thời gian trên toàn hệ thống.
-                </p>
               </div>
 
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Múi giờ hệ thống
+                  {t("workspace_settings.timezone")}
                 </label>
                 <Combobox
                   data-testid="timezone-select"
                   options={[
-                    { value: "Asia/Ho_Chi_Minh", label: "Asia/Ho_Chi_Minh", description: "Việt Nam (UTC+7)", icon: <Globe className="w-4 h-4" /> },
-                    { value: "Asia/Bangkok", label: "Asia/Bangkok", description: "Thailand (UTC+7)", icon: <Globe className="w-4 h-4" /> },
-                    { value: "UTC", label: "Giờ quốc tế (UTC)", icon: <Globe className="w-4 h-4" /> },
+                    { value: "Asia/Ho_Chi_Minh", label: "Asia/Ho_Chi_Minh", description: t("workspace_settings.timezone_options.vn"), icon: <Globe className="w-4 h-4" /> },
+                    { value: "Asia/Bangkok", label: "Asia/Bangkok", description: t("workspace_settings.timezone_options.th"), icon: <Globe className="w-4 h-4" /> },
+                    { value: "UTC", label: t("workspace_settings.timezone_options.utc"), icon: <Globe className="w-4 h-4" /> },
                   ]}
                   value={timezone}
                   onChange={setTimezone}
                   className="bg-slate-50 border-slate-200"
                 />
-                <p className="text-[10px] text-slate-400 italic mt-1 ml-1">
-                  Quyết định múi giờ khi import dữ liệu không có offset và hiển thị báo cáo.
-                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+                  {t("workspace_settings.default_language")}
+                </label>
+                <Combobox
+                  data-testid="language-select"
+                  options={[
+                    { value: "vi", label: t("common.languages.vi"), icon: <Globe className="w-4 h-4" /> },
+                    { value: "en", label: t("common.languages.en"), icon: <Globe className="w-4 h-4" /> },
+                    { value: "zh", label: t("common.languages.zh"), icon: <Globe className="w-4 h-4" /> },
+                  ]}
+                  value={defaultLanguage}
+                  onChange={setDefaultLanguage}
+                  className="bg-slate-50 border-slate-200"
+                />
               </div>
             </div>
           </div>
@@ -226,22 +233,22 @@ export default function WorkspaceSettingsPage() {
           <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-800">
               <Palette className="w-5 h-5 text-pink-500" />
-              Cấu hình giao diện
+              {t("workspace_settings.theme_config")}
             </h2>
             <div className="space-y-6">
               <div className="space-y-3">
                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Màu chủ đạo (Primary Color)
+                  {t("workspace_settings.primary_color")}
                 </label>
                 <div className="flex flex-wrap gap-4 items-center">
                   {[
-                    { name: 'Violet', color: '#7c3aed' },
-                    { name: 'Indigo', color: '#4f46e5' },
-                    { name: 'Blue', color: '#2563eb' },
-                    { name: 'Emerald', color: '#059669' },
-                    { name: 'Amber', color: '#d97706' },
-                    { name: 'Rose', color: '#e11d48' },
-                    { name: 'Slate', color: '#475569' },
+                    { name: t("common.colors.violet"), color: '#7c3aed' },
+                    { name: t("common.colors.indigo"), color: '#4f46e5' },
+                    { name: t("common.colors.blue"), color: '#2563eb' },
+                    { name: t("common.colors.emerald"), color: '#059669' },
+                    { name: t("common.colors.amber"), color: '#d97706' },
+                    { name: t("common.colors.rose"), color: '#e11d48' },
+                    { name: t("common.colors.slate"), color: '#475569' },
                   ].map((preset) => (
                     <button
                       key={preset.color}
@@ -273,9 +280,6 @@ export default function WorkspaceSettingsPage() {
                     />
                   </div>
                 </div>
-                <p className="text-[10px] text-slate-400 italic mt-2 ml-1">
-                  Thay đổi màu sắc này sẽ áp dụng lên toàn bộ giao diện (Nút, Icons, Sidebar,...) dành cho tất cả thành viên.
-                </p>
               </div>
             </div>
           </div>
@@ -284,12 +288,12 @@ export default function WorkspaceSettingsPage() {
           <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-800">
               <UserPlus className="w-5 h-5 text-blue-500" />
-              Mời thành viên
+              {t("workspace_settings.invite_member")}
             </h2>
             <form onSubmit={handleInvite} className="flex flex-wrap gap-4">
               <div className="flex-1 min-w-[240px] space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-                  Email
+                  {t("common.email")}
                 </label>
                 <div className="relative">
                   <input
@@ -308,13 +312,13 @@ export default function WorkspaceSettingsPage() {
                   htmlFor="new-member-role"
                   className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1"
                 >
-                  Vai trò
+                  {t("common.role")}
                 </label>
                 <Combobox
                   id="new-member-role"
                   options={[
-                    { value: "member", label: "Thành viên", description: "Chỉ xem dữ liệu cá nhân" },
-                    { value: "admin", label: "Quản trị viên", description: "Toàn quyền quản lý hệ thống" },
+                    { value: "member", label: t("members.roles.member"), description: t("members.roles.member_desc") },
+                    { value: "admin", label: t("members.roles.admin"), description: t("members.roles.admin_desc") },
                   ]}
                   value={newMemberRole}
                   onChange={(val) => setNewMemberRole(val as any)}
@@ -327,7 +331,7 @@ export default function WorkspaceSettingsPage() {
                   disabled={isAdding}
                   className="bg-primary-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 h-[50px] disabled:opacity-50"
                 >
-                  {isAdding ? "Đang mời..." : "Gửi lời mời"}
+                  {isAdding ? t("common.inviting") : t("workspace_settings.invite_member")}
                 </button>
               </div>
             </form>
@@ -338,17 +342,17 @@ export default function WorkspaceSettingsPage() {
             <div className="p-6 border-b border-slate-50 flex items-center justify-between">
               <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
                 <Users className="w-5 h-5 text-slate-400" />
-                Danh sách thành viên
+                {t("workspace_settings.members_list")}
               </h2>
               <span className="text-xs font-black uppercase tracking-widest bg-slate-100 text-slate-500 px-3 py-1 rounded-full">
-                {members.length} NGƯỜI
+                {members.length} {t("common.members").toUpperCase()}
               </span>
             </div>
 
             <div className="divide-y divide-slate-50">
               {isLoading ? (
                 <div className="p-12 text-center text-slate-400 font-medium italic">
-                  Đang tải danh sách thành viên...
+                  {t("common.loading")}
                 </div>
               ) : (
                 members.map((member) => (
@@ -366,10 +370,10 @@ export default function WorkspaceSettingsPage() {
                       <div>
                         <p className="font-bold text-slate-900 flex items-center gap-2">
                           {member.full_name || member.email}
-                          {member.role === "owner" && <span className="text-[10px] bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter border border-primary-100">Sáng lập</span>}
+                          {member.role === "owner" && <span className="text-[10px] bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter border border-primary-100">{t("workspace_settings.founder")}</span>}
                         </p>
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                          {member.role === 'admin' ? 'Quản trị viên' : member.role === 'owner' ? 'Chủ sở hữu' : 'Thành viên'}
+                          {member.role === 'admin' ? t("members.roles.admin") : member.role === 'owner' ? t("members.roles.owner") : t("members.roles.member")}
                         </p>
                       </div>
                     </div>
@@ -381,13 +385,13 @@ export default function WorkspaceSettingsPage() {
                           setIsRoleModalOpen(true);
                         }}
                         className="p-2.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
-                        title="Quản lý quyền"
+                        title={t("members.table.manage_roles")}
                       >
                         <Settings2 className="w-5 h-5" />
                       </button>
 
                       {member.role !== "owner" && (
-                        <button className="p-2.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
+                        <button className="p-2.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all" title={t("members.table.remove_member")}>
                           <Trash2 className="w-5 h-5" />
                         </button>
                       )}
@@ -398,7 +402,7 @@ export default function WorkspaceSettingsPage() {
 
               {members.length === 0 && !isLoading && (
                 <div className="py-20 text-center text-slate-400">
-                  <p className="font-medium italic">Không có thành viên nào.</p>
+                  <p className="font-medium italic">{t("members.table.messages.no_members")}</p>
                 </div>
               )}
             </div>

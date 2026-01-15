@@ -1,36 +1,38 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AlertTriangle, RefreshCcw, FileText, Calendar, Clock, Banknote } from "lucide-react";
 import { clearWorkspaceData, getCurrentWorkspaceId } from "../lib/api";
 import { useToast } from "./Toast";
 
 export default function DebugWorkspaceTools() {
+  const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
   const toast = useToast();
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleClear = async (group: string, label: string) => {
     if (!wsId) return;
-    if (!confirm(`Bạn có chắc chắn muốn xóa TOÀN BỘ dữ liệu [${label}] của Workspace này không? Thao tác này không thể hoàn tác.`)) {
+    if (!confirm(t("debug_tools.messages.confirm_clear", { label }))) {
       return;
     }
 
     setLoading(group);
     try {
       await clearWorkspaceData(wsId, group);
-      toast.success(`Đã xóa dữ liệu [${label}] thành công.`);
+      toast.success(t("debug_tools.messages.clear_success", { label }));
     } catch (e: any) {
-      toast.error(`Lỗi khi xóa dữ liệu: ${e.message}`);
+      toast.error(`${t("debug_tools.messages.clear_error")} ${e.message}`);
     } finally {
       setLoading(null);
     }
   };
 
   const tools = [
-    { id: "attendance", label: "Chấm công", icon: Clock, color: "text-amber-500", bg: "bg-amber-50" },
-    { id: "schedules", label: "Lịch trình", icon: Calendar, color: "text-blue-500", bg: "bg-primary-50" },
-    { id: "leave", label: "Nghỉ phép", icon: FileText, color: "text-emerald-500", bg: "bg-emerald-50" },
-    { id: "payroll", label: "Lương & Hợp đồng", icon: Banknote, color: "text-purple-500", bg: "bg-purple-50" },
-    { id: "full_reset", label: "FULL RESET (Cẩn thận!)", icon: AlertTriangle, color: "text-rose-500", bg: "bg-rose-50" },
+    { id: "attendance", label: t("common.attendance"), icon: Clock, color: "text-amber-500", bg: "bg-amber-50" },
+    { id: "schedules", label: t("common.schedule"), icon: Calendar, color: "text-blue-500", bg: "bg-primary-50" },
+    { id: "leave", label: t("common.leave"), icon: FileText, color: "text-emerald-500", bg: "bg-emerald-50" },
+    { id: "payroll", label: t("common.payroll_and_contracts"), icon: Banknote, color: "text-purple-500", bg: "bg-purple-50" },
+    { id: "full_reset", label: t("debug_tools.full_reset_label"), icon: AlertTriangle, color: "text-rose-500", bg: "bg-rose-50" },
   ];
 
   return (
@@ -38,11 +40,11 @@ export default function DebugWorkspaceTools() {
       <div className="mb-6">
         <h2 className="text-xl font-bold flex items-center gap-2 text-rose-600">
           <RefreshCcw className="w-5 h-5" />
-          Debug Tools (Chỉ dành cho Dev)
+          {t("debug_tools.title")}
         </h2>
         <p className="text-slate-500 text-sm mt-1">
-          Các công cụ dọn dẹp nhanh dữ liệu để hỗ trợ testing. 
-          <span className="font-bold text-rose-500 ml-1">Cảnh báo: Dữ liệu bị xóa sẽ không thể phục hồi!</span>
+          {t("debug_tools.subtitle")} 
+          <span className="font-bold text-rose-500 ml-1">{t("debug_tools.warning")}</span>
         </p>
       </div>
 
@@ -59,7 +61,7 @@ export default function DebugWorkspaceTools() {
             </div>
             <span className="font-bold text-slate-700">{tool.label}</span>
             <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mt-1">
-              {loading === tool.id ? "Đang xóa..." : "Click để dọn dẹp"}
+              {loading === tool.id ? t("common.deleting") : t("debug_tools.click_to_clear")}
             </span>
           </button>
         ))}

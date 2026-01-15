@@ -15,18 +15,21 @@ import {
 import { useProfile } from "@/hooks/use-profile";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useTheme } from "@/hooks/use-theme";
-import { changePassword, clearAuthSession } from "@/lib/api";
+import { useTranslation } from "react-i18next";
+import { Globe } from "lucide-react";
+import { Combobox } from "@/components/ui/Combobox";
 
 export default function ProfilePage() {
-  const navigate = useNavigate();
-  const toast = useToast();
+  const { t } = useTranslation();
   const { user, isLoading, updateProfile, isUpdating } = useProfile();
   const { formatDate } = useDateTimeFormatter();
   const { primaryColor, isOverridden, setUserTheme } = useTheme();
+
   const [formData, setFormData] = useState({
     full_name: "",
     avatar_url: "",
     bio: "",
+    preferred_language: "",
   });
 
   useEffect(() => {
@@ -35,6 +38,7 @@ export default function ProfilePage() {
         full_name: user.full_name || "",
         avatar_url: user.avatar_url || "",
         bio: user.bio || "",
+        preferred_language: user.preferred_language || "",
       });
     }
   }, [user]);
@@ -43,27 +47,28 @@ export default function ProfilePage() {
     e.preventDefault();
     try {
       await updateProfile(formData);
-      toast.success("Thông tin hồ sơ cá nhân đã được lưu.");
+      toast.success(t("common.success"));
     } catch (e) {
-      toast.error("Không thể cập nhật thông tin. Vui lòng thử lại sau.");
+      toast.error(t("common.error"));
     }
   }
 
-  if (isLoading) {
+  if (isLoading)
     return (
-      <div className="p-8 text-center text-slate-500 font-bold">Đang tải hồ sơ...</div>
+      <div className="p-8 text-center text-slate-500 font-bold">
+        {t("common.loading")}
+      </div>
     );
-  }
 
   return (
     <div className="p-8 animate-in fade-in duration-500">
       <div className="max-w-2xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-            Hồ sơ cá nhân
+            {t("common.profile")}
           </h1>
           <p className="text-slate-500 mt-1">
-            Quản lý thông tin định danh toàn cầu của bạn
+            {t("profile.subtitle")}
           </p>
         </div>
 
@@ -88,7 +93,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-                    Email (Cố định)
+                    {t("common.email")}
                   </label>
                   <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-500">
                     <Mail className="w-4 h-4" />
@@ -97,65 +102,66 @@ export default function ProfilePage() {
                     </span>
                   </div>
                 </div>
+
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-                    Ngày tham gia
+                    {t("profile.join_date")}
                   </label>
                   <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-500">
                     <Calendar className="w-4 h-4" />
                     <span className="text-sm font-medium">
-                      {user ? formatDate(user.created_at) : '---'}
+                      {formatDate(user?.created_at || "")}
                     </span>
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-                  Họ và tên
-                </label>
-                <div className="relative">
-                  <input
-                    placeholder="Ví dụ: Nguyễn Văn A"
-                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all pr-10"
-                    value={formData.full_name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, full_name: e.target.value })
-                    }
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                    {t("employees.table.name")}
+                  </label>
+                  <div className="relative">
+                    <input
+                      required
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all pr-10"
+                      value={formData.full_name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, full_name: e.target.value })
+                      }
+                    />
+                    <UserIcon className="absolute right-3 top-3.5 w-4 h-4 text-slate-300" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                    {t("profile.preferred_language")}
+                  </label>
+                  <Combobox
+                    options={[
+                      { value: "", label: t("profile.follow_workspace"), icon: <Globe className="w-4 h-4" /> },
+                      { value: "vi", label: t("common.languages.vi"), icon: <Globe className="w-4 h-4" /> },
+                      { value: "en", label: t("common.languages.en"), icon: <Globe className="w-4 h-4" /> },
+                      { value: "zh", label: t("common.languages.zh"), icon: <Globe className="w-4 h-4" /> },
+                    ]}
+                    value={formData.preferred_language}
+                    onChange={(val) => setFormData({ ...formData, preferred_language: val })}
+                    className="bg-white border-slate-200"
                   />
-                  <UserIcon className="absolute right-3 top-3.5 w-4 h-4 text-slate-300" />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-                  URL Ảnh đại diện
+                  {t("profile.bio")}
                 </label>
-                <input
-                  placeholder="https://example.com/avatar.jpg"
+                <textarea
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
-                  value={formData.avatar_url}
+                  rows={3}
+                  value={formData.bio}
                   onChange={(e) =>
-                    setFormData({ ...formData, avatar_url: e.target.value })
+                    setFormData({ ...formData, bio: e.target.value })
                   }
                 />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-                  Tiểu sử
-                </label>
-                <div className="relative">
-                  <textarea
-                    rows={3}
-                    placeholder="Một chút về bản thân bạn..."
-                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
-                    value={formData.bio}
-                    onChange={(e) =>
-                      setFormData({ ...formData, bio: e.target.value })
-                    }
-                  />
-                </div>
               </div>
 
               <div className="pt-4 border-t border-slate-50 flex justify-end">
@@ -165,7 +171,7 @@ export default function ProfilePage() {
                   className="bg-primary-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 flex items-center gap-2 disabled:opacity-50"
                 >
                   <Save className="w-5 h-5" />
-                  {isUpdating ? "Đang lưu..." : "Lưu hồ sơ"}
+                  {isUpdating ? t("common.loading") : t("common.save")}
                 </button>
               </div>
             </form>
@@ -180,9 +186,9 @@ export default function ProfilePage() {
                 <Palette className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Giao diện cá nhân</h2>
+                <h2 className="text-xl font-bold text-slate-900">{t("profile.personalization.title")}</h2>
                 <p className="text-sm text-slate-500">
-                  Tùy chỉnh màu sắc hiển thị riêng cho bạn
+                  {t("profile.personalization.subtitle")}
                 </p>
               </div>
             </div>
@@ -193,7 +199,7 @@ export default function ProfilePage() {
                 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-primary-600 transition-colors"
               >
                 <Undo2 className="w-3 h-3" />
-                Dùng mặc định Workspace
+                {t("profile.personalization.use_workspace_default")}
               </button>
             )}
           </div>
@@ -201,14 +207,14 @@ export default function ProfilePage() {
           <div className="space-y-4">
             <div className="flex flex-wrap gap-3 items-center">
               {[
-                { name: 'Violet', color: '#7c3aed' },
-                { name: 'Indigo', color: '#4f46e5' },
-                { name: 'Blue', color: '#2563eb' },
-                { name: 'Emerald', color: '#059669' },
-                { name: 'Amber', color: '#d97706' },
-                { name: 'Rose', color: '#e11d48' },
-                { name: 'Slate', color: '#475569' },
-                { name: 'Black', color: '#0f172a' },
+                { name: t("common.colors.violet"), color: '#7c3aed' },
+                { name: t("common.colors.indigo"), color: '#4f46e5' },
+                { name: t("common.colors.blue"), color: '#2563eb' },
+                { name: t("common.colors.emerald"), color: '#059669' },
+                { name: t("common.colors.amber"), color: '#d97706' },
+                { name: t("common.colors.rose"), color: '#e11d48' },
+                { name: t("common.colors.slate"), color: '#475569' },
+                { name: t("common.colors.black"), color: '#0f172a' },
               ].map((preset) => (
                 <button
                   key={preset.color}
@@ -235,7 +241,7 @@ export default function ProfilePage() {
               </div>
             </div>
             <p className="text-[10px] text-slate-400 italic">
-              * Thay đổi này chỉ áp dụng cho riêng bạn trên trình duyệt này.
+              {t("profile.personalization.note")}
             </p>
           </div>
         </div>
@@ -248,9 +254,9 @@ export default function ProfilePage() {
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Bảo mật</h2>
+                <h2 className="text-xl font-bold text-slate-900">{t("profile.security.title")}</h2>
                 <p className="text-sm text-slate-500">
-                  Thay đổi mật khẩu đăng nhập của bạn
+                  {t("profile.security.subtitle")}
                 </p>
               </div>
             </div>
@@ -264,6 +270,7 @@ export default function ProfilePage() {
 }
 
 function ChangePasswordForm() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const toast = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -276,7 +283,7 @@ function ChangePasswordForm() {
   async function handlePasswordSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (formData.new_password !== formData.confirm_password) {
-      toast.warning("Xác nhận mật khẩu mới không khớp.");
+      toast.warning(t("profile.security.messages.confirm_mismatch"));
       return;
     }
 
@@ -286,13 +293,13 @@ function ChangePasswordForm() {
         old_password: formData.old_password,
         new_password: formData.new_password,
       });
-      toast.success("Mật khẩu đã được thay đổi. Vui lòng đăng nhập lại.");
+      toast.success(t("profile.security.messages.password_changed"));
       setTimeout(() => {
         clearAuthSession();
         navigate("/login");
       }, 2000);
     } catch (e: any) {
-      toast.error(e.message || "Lỗi khi đổi mật khẩu.");
+      toast.error(e.message || t("profile.security.messages.change_error"));
     } finally {
       setIsSubmitting(false);
     }
@@ -302,7 +309,7 @@ function ChangePasswordForm() {
     <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-md">
       <div className="space-y-2">
         <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-          Mật khẩu hiện tại
+          {t("profile.security.current_password")}
         </label>
         <div className="relative">
           <input
@@ -320,7 +327,7 @@ function ChangePasswordForm() {
 
       <div className="space-y-2">
         <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-          Mật khẩu mới
+          {t("profile.security.new_password")}
         </label>
         <div className="relative">
           <input
@@ -338,7 +345,7 @@ function ChangePasswordForm() {
 
       <div className="space-y-2">
         <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-          Xác nhận mật khẩu mới
+          {t("profile.security.confirm_password")}
         </label>
         <div className="relative">
           <input
@@ -360,7 +367,7 @@ function ChangePasswordForm() {
           disabled={isSubmitting}
           className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center gap-2 disabled:opacity-50"
         >
-          {isSubmitting ? "Đang xử lý..." : "Cập nhật mật khẩu"}
+          {isSubmitting ? t("common.processing") : t("profile.security.submit_btn")}
         </button>
       </div>
     </form>

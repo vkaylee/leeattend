@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE employment_periods SET\n                    hire_date = COALESCE($2, hire_date),\n                    termination_date = COALESCE($3, termination_date),\n                    updated_at = $4\n                WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "22cb5e143fb6fae1689d9360e4ff7d3ebf321f5bf860059de91670c72e3145de"
+}

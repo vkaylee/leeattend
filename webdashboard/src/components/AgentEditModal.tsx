@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   X,
   Save,
@@ -24,6 +25,7 @@ export default function AgentEditModal({
   onClose,
   onSave,
 }: AgentEditModalProps) {
+  const { t } = useTranslation();
   const { updateAgent, isUpdating } = useAuthorizedAgents();
   const [name, setName] = useState("");
   const [token, setToken] = useState("");
@@ -53,11 +55,11 @@ export default function AgentEditModal({
           is_active: isActive,
         },
       });
-      // @ts-ignore - The mutation return might not be the full agent depending on API but useAuthorizedAgents refetches
+      // @ts-expect-error - The mutation return might not be the full agent depending on API but useAuthorizedAgents refetches
       onSave(updated || agent);
       onClose();
     } catch (e) {
-      alert("Lỗi khi cập nhật Agent.");
+      alert(t("agents.edit_modal.messages.update_error"));
     }
   }
 
@@ -71,9 +73,9 @@ export default function AgentEditModal({
             </div>
             <div>
               <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                Chỉnh sửa Agent
+                {t("agents.edit_modal.title")}
               </h2>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Quản lý kết nối</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{t("agents.edit_modal.subtitle")}</p>
             </div>
           </div>
           <button
@@ -88,7 +90,7 @@ export default function AgentEditModal({
           <div className="space-y-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
-                Agent ID (Read-only)
+                {t("agents.edit_modal.id_label")}
               </label>
               <input
                 disabled
@@ -99,11 +101,11 @@ export default function AgentEditModal({
 
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
-                Tên Chi nhánh / Vị trí
+                {t("agents.edit_modal.name_label")}
               </label>
               <input
                 required
-                placeholder="Ví dụ: Văn phòng Hà Nội"
+                placeholder={t("agents.edit_modal.name_placeholder")}
                 className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 outline-none transition-all font-bold text-slate-700"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -112,12 +114,12 @@ export default function AgentEditModal({
 
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
-                Secret Token
+                {t("agents.edit_modal.token_label")}
               </label>
               <div className="relative">
                 <input
                   required
-                  placeholder="Mật mã kết nối"
+                  placeholder={t("agents.edit_modal.token_placeholder")}
                   className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 outline-none transition-all pr-12 font-mono font-bold text-slate-700"
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
@@ -141,7 +143,7 @@ export default function AgentEditModal({
                 ) : (
                   <ShieldAlert className="w-4 h-4" />
                 )}
-                {isTrusted ? "Đã duyệt" : "Chờ duyệt"}
+                {isTrusted ? t("agents.status.trusted") : t("agents.status.pending")}
               </button>
 
               <button
@@ -154,7 +156,7 @@ export default function AgentEditModal({
                 }`}
               >
                 <Power className="w-4 h-4" />
-                {isActive ? "Hoạt động" : "Tạm dừng"}
+                {isActive ? t("common.status_active") : t("common.status_inactive")}
               </button>
             </div>
           </div>
@@ -165,15 +167,15 @@ export default function AgentEditModal({
               onClick={onClose}
               className="flex-1 px-8 py-4 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all border border-slate-100"
             >
-              Hủy bỏ
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
               disabled={isUpdating}
-              className="flex-1 bg-primary-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-primary-700 transition-all shadow-xl shadow-primary-200 flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.02] active:scale-95"
+              className="flex-1 bg-primary-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.02] active:scale-95"
             >
               <Save className="w-5 h-5" />
-              {isUpdating ? "Đang lưu..." : "Lưu thay đổi"}
+              {isUpdating ? t("common.saving") : t("common.save_changes")}
             </button>
           </div>
         </form>

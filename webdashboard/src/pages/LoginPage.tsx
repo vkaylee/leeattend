@@ -1,4 +1,5 @@
 import { useNavigate, Navigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useProfile } from "@/hooks/use-profile";
 import {
   setCurrentUserId,
@@ -9,6 +10,7 @@ import {
 import { useState } from "react";
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,10 +43,10 @@ export default function LoginPage() {
         window.location.reload();
       } else {
         const msg = await response.text();
-        setError(msg || "Email hoặc mật khẩu không đúng");
+        setError(msg || t("auth.login_error"));
       }
     } catch (error) {
-      setError("Lỗi kết nối server");
+      setError(t("auth.connection_error"));
     } finally {
       setIsSubmitting(false);
     }
@@ -76,7 +78,7 @@ export default function LoginPage() {
           </div>
           <h2 className="text-4xl font-black text-slate-900 tracking-tight">LeeAttend</h2>
           <p className="mt-3 text-slate-500 font-medium">
-            Hệ thống quản lý nhân sự 4.0
+            {t("auth.slogan")}
           </p>
         </div>
 
@@ -91,7 +93,7 @@ export default function LoginPage() {
             onClick={handleFastLogin}
             className="group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-black rounded-2xl text-white bg-primary-600 hover:bg-primary-700 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary-200 uppercase tracking-widest"
           >
-            ⚡ Đăng nhập nhanh
+            {t("auth.fast_login")}
           </button>
 
           <div className="relative">
@@ -100,7 +102,7 @@ export default function LoginPage() {
             </div>
             <div className="relative flex justify-center text-[10px]">
               <span className="px-4 bg-white text-slate-400 font-black uppercase tracking-[0.2em]">
-                Hoặc sử dụng tài khoản
+                {t("auth.or_use_account")}
               </span>
             </div>
           </div>
@@ -108,7 +110,7 @@ export default function LoginPage() {
           <form className="space-y-6" onSubmit={handleLogin}>
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Email</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{t("auth.email")}</label>
                 <input
                   id="email-address"
                   name="email"
@@ -122,7 +124,7 @@ export default function LoginPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Mật khẩu</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{t("auth.password")}</label>
                 <input
                   id="password"
                   name="password"
@@ -142,16 +144,16 @@ export default function LoginPage() {
               disabled={isSubmitting}
               className="w-full flex justify-center py-4 px-4 border border-slate-200 text-sm font-black rounded-2xl text-slate-700 bg-white hover:bg-slate-50 hover:border-primary-200 transition-all disabled:opacity-50 uppercase tracking-widest shadow-sm"
             >
-              {isSubmitting ? "Đang xử lý..." : "Đăng nhập hệ thống"}
+              {isSubmitting ? t("auth.processing") : t("auth.login_btn")}
             </button>
 
             <div className="text-center">
-              <span className="text-slate-400 text-sm font-medium">Chưa có tài khoản? </span>
+              <span className="text-slate-400 text-sm font-medium">{t("auth.no_account")} </span>
               <Link
                 to="/register"
                 className="font-bold text-primary-600 hover:text-primary-700 hover:underline text-sm transition-colors"
               >
-                Đăng ký ngay
+                {t("auth.register_now")}
               </Link>
             </div>
           </form>

@@ -75,6 +75,7 @@ impl WorkspaceService {
         time_format: Option<String>,
         timezone: Option<String>,
         theme_primary_color: Option<String>,
+        default_language: Option<String>,
     ) -> Result<Workspace, String> {
         let mut query = String::from("UPDATE workspaces SET ");
         let mut has_fields = false;
@@ -121,6 +122,12 @@ impl WorkspaceService {
             arg_idx += 1;
             has_fields = true;
         }
+        if let Some(_) = default_language {
+            if has_fields { query.push_str(", "); }
+            query.push_str(&format!("default_language = ${}", arg_idx));
+            arg_idx += 1;
+            has_fields = true;
+        }
 
         if !has_fields {
             return Err("No fields to update".to_string());
@@ -150,6 +157,9 @@ impl WorkspaceService {
         }
         if let Some(tpc) = theme_primary_color {
             q = q.bind(tpc);
+        }
+        if let Some(dl) = default_language {
+            q = q.bind(dl);
         }
         q = q.bind(ws_id);
 

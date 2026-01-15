@@ -77,7 +77,7 @@ impl AuthService {
             .await
             .map_err(|_| "Invalid or expired refresh token".to_string())?;
 
-        let user = sqlx::query_as::<_, User>("SELECT id, email, password_hash, created_at, full_name, avatar_url, bio FROM users WHERE id = $1")
+        let user = sqlx::query_as::<_, User>("SELECT id, email, password_hash, created_at, full_name, avatar_url, bio, preferred_language FROM users WHERE id = $1")
             .bind(session.1)
             .fetch_one(db)
             .await
@@ -103,6 +103,7 @@ impl AuthService {
                 full_name: user.full_name,
                 avatar_url: user.avatar_url,
                 bio: user.bio,
+                preferred_language: user.preferred_language,
             },
         })
     }

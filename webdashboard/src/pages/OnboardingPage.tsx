@@ -1,10 +1,12 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { LayoutDashboard, Plus } from "lucide-react";
 import { useWorkspaces } from "@/hooks/use-workspace";
 import { setCurrentWorkspaceId } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 
 export default function OnboardingPage() {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const { createWorkspace } = useWorkspaces();
   const navigate = useNavigate();
@@ -21,7 +23,7 @@ export default function OnboardingPage() {
       navigate("/", { replace: true });
     } catch (error) {
       console.error("Failed to create workspace:", error);
-      alert("Không thể tạo Workspace. Vui lòng thử lại.");
+      alert(t("onboarding.messages.create_error"));
     } finally {
       setIsSubmitting(false);
     }
@@ -36,10 +38,10 @@ export default function OnboardingPage() {
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-bold text-slate-900">
-              Chào mừng bạn!
+              {t("onboarding.welcome_title")}
             </h1>
             <p className="text-slate-500 font-medium">
-              Hãy tạo tổ chức (Workspace) đầu tiên của bạn
+              {t("onboarding.welcome_subtitle")}
             </p>
           </div>
         </div>
@@ -47,12 +49,12 @@ export default function OnboardingPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <label className="text-sm font-semibold text-slate-700 ml-1">
-              Tên tổ chức
+              {t("onboarding.org_name_label")}
             </label>
             <input
               autoFocus
               type="text"
-              placeholder="Ví dụ: Công ty ABC, LeeAttend Team..."
+              placeholder={t("onboarding.org_name_placeholder")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
@@ -66,19 +68,18 @@ export default function OnboardingPage() {
             className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {isSubmitting ? (
-              "Đang tạo..."
+              t("common.creating")
             ) : (
               <>
                 <Plus className="w-5 h-5" />
-                Bắt đầu ngay
+                {t("onboarding.start_now_btn")}
               </>
             )}
           </button>
         </form>
 
         <p className="mt-8 text-[10px] text-slate-400 text-center uppercase tracking-widest leading-relaxed">
-          Workspace là không gian làm việc riêng biệt giúp bạn quản lý thiết bị
-          và thành viên một cách tập trung.
+          {t("onboarding.workspace_desc")}
         </p>
       </div>
     </div>

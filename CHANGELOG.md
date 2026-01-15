@@ -2,7 +2,29 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
-## [Unreleased] - 2026-01-14
+## [Unreleased] - 2026-01-15
+
+### Added
+- **Full-Stack Multi-Language Support (vi, en, zh)**: Comprehensive internationalization of the entire system.
+    - **Backend Settings**: Added `preferred_language` to users and `default_language` to workspaces.
+    - **Database Migration**: Created `20260115000000_add_language_settings.sql` to support new settings.
+    - **Frontend Framework**: Implemented `i18next` with `localStorage` persistence and automatic server synchronization.
+    - **Localization Assets**: Added complete translation files for Vietnamese (`vi.json`), English (`en.json`), and Chinese (`zh.json`).
+    - **Auto-Sync Hook**: Developed `use-i18n-sync.ts` to coordinate language state between the UI, local storage, and backend.
+- **Global UI Internationalization**:
+    - **Major Pages**: Audited and refactored all core pages (Dashboard, Employees, Departments, Shifts, Payroll, Reports, Attendance Logs, Profile) to use dynamic `t()` calls.
+    - **Shared Components**: Updated `Modal`, `Combobox`, `Toast`, and `WorkspaceSwitcher` for full i18n compatibility.
+    - **Form Elements**: Internationalized all placeholders, labels, and validation messages.
+- **Enhanced Time/Date Localization**:
+    - **Dynamic Locales**: Integrated `date-fns` with dynamic locale loading based on the active user language.
+    - **Format Consistency**: Standardized date and time display across different modules using the workspace's preference.
+
+### Fixed
+- **Code Duplication**: Resolved a critical regression in `ShiftsPage.tsx` where modal code blocks were duplicated, causing parsing errors.
+- **Token Rotation Logic**: Hardened `apiFetch` to better handle 401 errors and secure token refreshing.
+- **UI State Regressions**: Fixed `ReferenceError: t is not defined` in several entry-point components.
+
+## [Unreleased] - 2026-01-14 (Previous)
 
 ### Added
 - **Full Department Management (CRUD)**: Completed the organizational management module.

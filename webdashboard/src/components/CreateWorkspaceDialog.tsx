@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Plus, LayoutDashboard, Loader2 } from "lucide-react";
 import { useWorkspaces } from "@/hooks/use-workspace";
 import Modal from "./ui/Modal";
@@ -12,6 +13,7 @@ export default function CreateWorkspaceDialog({
   isOpen,
   onClose,
 }: CreateWorkspaceDialogProps) {
+  const { t } = useTranslation();
   const { createWorkspace } = useWorkspaces();
   const [name, setName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,7 +30,7 @@ export default function CreateWorkspaceDialog({
       setName("");
       onClose();
     } catch (e) {
-      setError("Không thể tạo Workspace. Vui lòng thử lại.");
+      setError(t("common.create_workspace_error"));
     } finally {
       setIsSubmitting(false);
     }
@@ -38,8 +40,8 @@ export default function CreateWorkspaceDialog({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Tạo Workspace"
-      subtitle="Hệ thống LeeAttend"
+      title={t("common.create_workspace")}
+      subtitle={t("common.leeattend_system")}
       icon={<LayoutDashboard className="w-6 h-6" />}
     >
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -51,14 +53,14 @@ export default function CreateWorkspaceDialog({
 
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
-            Tên tổ chức / Dự án
+            {t("common.org_name_label")}
           </label>
           <input
             autoFocus
             type="text"
             required
             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
-            placeholder="Ví dụ: Công ty ABC, Team Freelance..."
+            placeholder={t("common.org_name_placeholder")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             disabled={isSubmitting}
@@ -76,7 +78,7 @@ export default function CreateWorkspaceDialog({
             ) : (
               <Plus className="w-4 h-4" />
             )}
-            Tạo Workspace
+            {t("common.create_workspace")}
           </button>
         </div>
       </form>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Monitor,
   ShieldCheck,
@@ -19,6 +20,7 @@ import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useDashboardStats } from "@/hooks/use-dashboard";
 
 export default function DashboardPage() {
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<"system" | "hr">("hr");
   const { formatTime } = useDateTimeFormatter();
   const {
@@ -44,9 +46,12 @@ export default function DashboardPage() {
   const activeDevices = devices.filter((d) => d.is_enabled).length;
 
   const formatCurrency = (value: string | number) => {
-    return new Intl.NumberFormat("vi-VN", {
+    const locale = i18n.language === "vi" ? "vi-VN" : i18n.language === "zh" ? "zh-CN" : "en-US";
+    const currency = i18n.language === "vi" ? "VND" : i18n.language === "zh" ? "CNY" : "USD";
+    
+    return new Intl.NumberFormat(locale, {
       style: "currency",
-      currency: "VND",
+      currency: currency,
     }).format(Number(value));
   };
 
@@ -55,10 +60,10 @@ export default function DashboardPage() {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-            Dashboard
+            {t("dashboard.title")}
           </h1>
           <p className="text-slate-500 mt-2 text-lg">
-            Chào mừng trở lại! Đây là tóm tắt hoạt động trong workspace của bạn.
+            {t("dashboard.welcome")}
           </p>
         </div>
 
@@ -72,7 +77,7 @@ export default function DashboardPage() {
                 : "text-slate-500 hover:text-slate-700"
             }`}
           >
-            Nhân sự & Công lương
+            {t("dashboard.tabs.hr")}
           </button>
           <button
             onClick={() => setActiveTab("system")}
@@ -82,7 +87,7 @@ export default function DashboardPage() {
                 : "text-slate-500 hover:text-slate-700"
             }`}
           >
-            Hệ thống kỹ thuật
+            {t("dashboard.tabs.system")}
           </button>
         </div>
       </header>
@@ -96,7 +101,7 @@ export default function DashboardPage() {
                 <Users2 className="w-7 h-7" />
               </div>
               <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] relative z-10">
-                Tổng nhân sự
+                {t("dashboard.hr.total_employees")}
               </p>
               <p className="text-4xl font-black text-slate-900 mt-2 relative z-10">
                 {isLoading ? "..." : hrStats?.total_employees || 0}
@@ -109,7 +114,7 @@ export default function DashboardPage() {
                 <UserCheck className="w-7 h-7" />
               </div>
               <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] relative z-10">
-                Đi làm hôm nay
+                {t("dashboard.hr.present_today")}
               </p>
               <p className="text-4xl font-black text-slate-900 mt-2 relative z-10">
                 {isLoading ? "..." : hrStats?.present_today || 0}
@@ -122,7 +127,7 @@ export default function DashboardPage() {
                 <CalendarClock className="w-7 h-7" />
               </div>
               <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] relative z-10">
-                Đơn chờ duyệt
+                {t("dashboard.hr.pending_requests")}
               </p>
               <p className="text-4xl font-black text-slate-900 mt-2 relative z-10">
                 {isLoading ? "..." : hrStats?.pending_leave_requests || 0}
@@ -135,7 +140,7 @@ export default function DashboardPage() {
                 <Banknote className="w-7 h-7" />
               </div>
               <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] relative z-10">
-                Quỹ lương ước tính
+                {t("dashboard.hr.estimated_payroll")}
               </p>
               <p className="text-2xl font-black text-slate-900 mt-2 relative z-10 truncate">
                 {isLoading ? "..." : formatCurrency(hrStats?.estimated_monthly_payroll || 0)}
@@ -147,16 +152,16 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
              <div className="bg-slate-900 rounded-[3rem] p-12 text-white relative overflow-hidden group shadow-2xl shadow-primary-200">
                 <div className="relative z-10 h-full flex flex-col">
-                  <span className="text-primary-400 text-xs font-black uppercase tracking-widest mb-4">Nhân sự</span>
-                  <h3 className="text-4xl font-bold mb-6 tracking-tight leading-tight">Quản lý hồ sơ<br/>nhân viên tập trung</h3>
+                  <span className="text-primary-400 text-xs font-black uppercase tracking-widest mb-4">{t("dashboard.hr.hr_management")}</span>
+                  <h3 className="text-4xl font-bold mb-6 tracking-tight leading-tight">{t("dashboard.hr.hr_management_title")}</h3>
                   <p className="text-slate-400 mb-10 text-lg leading-relaxed max-w-sm">
-                    Theo dõi hợp đồng, bảo hiểm, quá trình công tác và lương bổng của toàn bộ đội ngũ.
+                    {t("dashboard.hr.hr_management_desc")}
                   </p>
                   <Link
                     to="/employees"
                     className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-bold transition-all inline-flex items-center gap-3 w-fit hover:gap-5"
                   >
-                    Mở danh sách nhân viên <ArrowRight className="w-5 h-5" />
+                    {t("dashboard.hr.hr_management_btn")} <ArrowRight className="w-5 h-5" />
                   </Link>
                 </div>
                 <Users2 className="absolute -right-16 -bottom-16 w-64 h-64 text-primary-500 opacity-10 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
@@ -164,16 +169,16 @@ export default function DashboardPage() {
 
              <div className="bg-primary-600 rounded-[3rem] p-12 text-white relative overflow-hidden group shadow-2xl shadow-primary-400/20">
                 <div className="relative z-10 h-full flex flex-col">
-                  <span className="text-primary-200 text-xs font-black uppercase tracking-widest mb-4">Công lương</span>
-                  <h3 className="text-4xl font-bold mb-6 tracking-tight leading-tight">Bảng công &<br/>Tính lương tự động</h3>
+                  <span className="text-primary-200 text-xs font-black uppercase tracking-widest mb-4">{t("dashboard.hr.payroll")}</span>
+                  <h3 className="text-4xl font-bold mb-6 tracking-tight leading-tight">{t("dashboard.hr.payroll_title")}</h3>
                   <p className="text-primary-100 mb-10 text-lg leading-relaxed max-w-sm">
-                    Đồng bộ dữ liệu chấm công thời gian thực để tạo bảng lương chính xác chỉ trong vài giây.
+                    {t("dashboard.hr.payroll_desc")}
                   </p>
                   <Link
                     to="/time-tracking"
                     className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold transition-all inline-flex items-center gap-3 w-fit hover:gap-5 shadow-xl shadow-black/20"
                   >
-                    Xem bảng công <ArrowRight className="w-5 h-5" />
+                    {t("dashboard.hr.payroll_btn")} <ArrowRight className="w-5 h-5" />
                   </Link>
                 </div>
                 <Banknote className="absolute -right-16 -bottom-16 w-64 h-64 text-white opacity-10 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
@@ -189,7 +194,7 @@ export default function DashboardPage() {
                 <Users className="w-7 h-7" />
               </div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">
-                Tổng Agents
+                {t("dashboard.system.total_agents")}
               </p>
               <p className="text-4xl font-black text-slate-900 mt-2">
                 {isLoading ? "..." : agents.length}
@@ -201,7 +206,7 @@ export default function DashboardPage() {
                 <Activity className="w-7 h-7" />
               </div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">
-                Agents Online
+                {t("dashboard.system.online_agents")}
               </p>
               <p className="text-4xl font-black text-slate-900 mt-2">
                 {isLoading ? "..." : onlineAgents}
@@ -213,7 +218,7 @@ export default function DashboardPage() {
                 <Cpu className="w-7 h-7" />
               </div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">
-                Tổng thiết bị
+                {t("dashboard.system.total_devices")}
               </p>
               <p className="text-4xl font-black text-slate-900 mt-2">
                 {isLoading ? "..." : devices.length}
@@ -225,7 +230,7 @@ export default function DashboardPage() {
                 <ShieldCheck className="w-7 h-7" />
               </div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">
-                Thiết bị hoạt động
+                {t("dashboard.system.active_devices")}
               </p>
               <p className="text-4xl font-black text-slate-900 mt-2">
                 {isLoading ? "..." : activeDevices}
@@ -237,9 +242,9 @@ export default function DashboardPage() {
             {/* Recent Agents */}
             <section>
               <div className="flex justify-between items-center mb-6 px-2">
-                <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Edge Agents</h2>
+                <h2 className="text-2xl font-bold text-slate-800 tracking-tight">{t("dashboard.system.edge_agents")}</h2>
                 <span className="text-[10px] font-black text-primary-600 bg-primary-100 px-3 py-1.5 rounded-xl uppercase tracking-widest">
-                  Live Data
+                  {t("dashboard.system.live_data")}
                 </span>
               </div>
               <div className="space-y-4">
@@ -257,7 +262,7 @@ export default function DashboardPage() {
                           {agent.agent_id}
                         </h3>
                         <p className="text-sm text-slate-400 mt-0.5">
-                          Seen: {formatTime(agent.last_seen)}
+                          {t("dashboard.system.seen")}: {formatTime(agent.last_seen)}
                         </p>
                       </div>
                     </div>
@@ -268,13 +273,13 @@ export default function DashboardPage() {
                           : "bg-slate-100 text-slate-500"
                       }`}
                     >
-                      {agent.is_online ? "Connected" : "Disconnected"}
+                      {agent.is_online ? t("dashboard.system.connected") : t("dashboard.system.disconnected")}
                     </span>
                   </div>
                 ))}
                 {agents.length === 0 && !isLoading && (
                   <div className="bg-white p-16 text-center rounded-[2rem] border border-dashed border-slate-200 text-slate-400 font-medium">
-                    Chưa có Agent nào kết nối
+                    {t("dashboard.system.no_agents")}
                   </div>
                 )}
               </div>
@@ -284,20 +289,20 @@ export default function DashboardPage() {
             <section>
               <div className="flex justify-between items-center mb-6 px-2">
                 <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
-                  Hành động nhanh
+                  {t("dashboard.system.quick_actions")}
                 </h2>
               </div>
               <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl shadow-primary-200 group">
                 <div className="relative z-10">
-                  <h3 className="text-3xl font-bold mb-4 tracking-tight">Quản lý Thiết bị</h3>
+                  <h3 className="text-3xl font-bold mb-4 tracking-tight">{t("dashboard.system.device_management")}</h3>
                   <p className="text-slate-400 mb-8 text-lg leading-relaxed max-w-md">
-                    Thêm hoặc xóa máy chấm công tại các chi nhánh. Hệ thống tự động đồng bộ tức thì.
+                    {t("dashboard.system.device_management_desc")}
                   </p>
                   <Link
                     to="/devices"
                     className="bg-primary-600 hover:bg-primary-500 text-white px-8 py-4 rounded-2xl font-bold transition-all inline-block hover:scale-105 active:scale-95 shadow-xl shadow-primary-900/20"
                   >
-                    Mở trình quản lý
+                    {t("dashboard.system.device_management_btn")}
                   </Link>
                 </div>
                 <Cpu className="absolute -right-12 -bottom-12 w-56 h-56 text-primary-400 opacity-10 -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
@@ -311,8 +316,8 @@ export default function DashboardPage() {
         <div className="bg-rose-50 border border-rose-100 p-6 rounded-3xl flex items-center gap-4 text-rose-700 animate-in slide-in-from-top-4 duration-500">
           <ShieldAlert className="w-7 h-7 flex-shrink-0" />
           <div>
-            <p className="font-bold text-lg">Lỗi kết nối</p>
-            <p className="opacity-90">Không thể kết nối tới API Server hoặc dữ liệu không hợp lệ.</p>
+            <p className="font-bold text-lg">{t("dashboard.connection_error")}</p>
+            <p className="opacity-90">{t("dashboard.connection_error_desc")}</p>
           </div>
         </div>
       )}

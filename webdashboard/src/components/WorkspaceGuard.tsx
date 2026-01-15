@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Navigate, Outlet } from "react-router-dom";
 import { useWorkspaces } from "@/hooks/use-workspace";
 import { getCurrentWorkspaceId, setCurrentWorkspaceId } from "@/lib/api";
@@ -9,6 +10,7 @@ import { getCurrentWorkspaceId, setCurrentWorkspaceId } from "@/lib/api";
  * - Nếu có workspace nhưng chưa chọn workspace active: Tự động chọn cái đầu tiên.
  */
 export default function WorkspaceGuard() {
+  const { t } = useTranslation();
   const { workspaces, isLoading, isError } = useWorkspaces();
   const activeWsId = getCurrentWorkspaceId();
 
@@ -36,7 +38,7 @@ export default function WorkspaceGuard() {
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <p className="text-slate-400 text-sm">
-            Đang tải không gian làm việc...
+            {t("common.loading_workspace")}
           </p>
         </div>
       </div>
@@ -47,12 +49,12 @@ export default function WorkspaceGuard() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center p-8 bg-white rounded-3xl shadow-xl border border-slate-100 max-w-sm">
-          <p className="text-red-500 font-bold mb-4">Lỗi kết nối hệ thống</p>
+          <p className="text-red-500 font-bold mb-4">{t("common.system_connection_error")}</p>
           <button
             onClick={() => window.location.reload()}
             className="px-6 py-2 bg-primary-600 text-white rounded-xl font-bold"
           >
-            Thử lại
+            {t("common.retry")}
           </button>
         </div>
       </div>

@@ -4,6 +4,7 @@ import App from "./App";
 import { ToastProvider } from "./components/Toast";
 import "./index.css";
 import "@fontsource/inter";
+import "./i18n/config";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

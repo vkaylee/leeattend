@@ -1,0 +1,875 @@
+{
+  "common": {
+    "dashboard": "Dashboard",
+    "members": "Members",
+    "employees": "Employees",
+    "departments": "Departments",
+    "time_tracking": "Time Tracking",
+    "logs": "Logs",
+    "leave_requests": "Leave Requests",
+    "attendance_confirm": "Attendance Confirm",
+    "reports": "Reports",
+    "shifts": "Shifts & Rosters",
+    "payroll": "Payroll",
+    "agents": "Agents",
+    "devices": "Devices",
+    "settings": "Settings",
+    "profile": "Profile",
+    "logout": "Logout",
+    "switch_workspace": "Switch Workspace",
+    "office_branch": "Office / Branch",
+    "select_workspace_desc": "Select the office or branch you want to work with.",
+    "create_workspace": "Create Workspace",
+    "add_office_branch": "Add office/branch",
+    "select_workspace": "Select Workspace",
+    "search_placeholder": "Search...",
+    "close": "Close",
+    "save": "Save",
+    "info": "Info",
+    "warning": "Warning",
+    "remove": "Remove",
+    "combobox": {
+      "placeholder": "Select an item...",
+      "search": "Search...",
+      "no_results": "No results found."
+    },
+    "cancel": "Cancel",
+    "processing": "Processing...",
+    "shift": "Shift",
+    "status": "Status",
+    "date": "Date",
+    "notes": "Notes",
+    "reason": "Reason",
+    "approve": "Approve",
+    "reject": "Reject",
+    "days": "days",
+    "break": "Break",
+    "feature_coming_soon": "This feature is coming soon",
+    "people": "people",
+    "week": "Week",
+    "time": "Time",
+    "shift_name": "Shift Name",
+    "no_history": "No history records found",
+    "system": "System",
+    "type": "Type",
+    "all": "All",
+    "status_pending": "Pending",
+    "status_approved": "Approved",
+    "status_rejected": "Rejected",
+    "select_employee": "Select employee...",
+    "effective_from": "Effective from",
+    "indefinite": "Indefinite",
+    "definite": "Definite",
+    "minutes": "minutes",
+    "edit": "Edit",
+    "delete": "Delete",
+    "update": "Update",
+    "description": "Description",
+    "no_description": "No description provided.",
+    "start": "Start",
+    "end": "End",
+    "in": "In",
+    "out": "Out",
+    "adjust": "Adjust",
+    "work_day": "Work day",
+    "punch_in": "Punch in",
+    "punch_out": "Punch out",
+    "sending": "Sending...",
+    "saving": "Saving...",
+    "save_changes": "Save changes",
+    "user": "User",
+    "role": "Role",
+    "no_name": "No Name",
+    "status_active": "Active",
+    "status_inactive": "Inactive",
+    "system_error": "System Error",
+    "restore": "Restore",
+    "online": "Online",
+    "offline": "Offline",
+    "trust": "Trust",
+    "revoke": "Revoke",
+    "submit_request": "Submit request",
+    "attendance": "Attendance",
+    "schedule": "Schedule",
+    "leave": "Leave",
+    "payroll_and_contracts": "Payroll & Contracts",
+    "deleting": "Deleting...",
+    "source": "Source",
+    "languages": {
+      "vi": "Vietnamese",
+      "en": "English",
+      "zh": "Chinese"
+    },
+    "colors": {
+      "violet": "Violet",
+      "indigo": "Indigo",
+      "blue": "Blue",
+      "emerald": "Emerald",
+      "amber": "Amber",
+      "rose": "Rose",
+      "slate": "Slate"
+    },
+    "pagination": {
+    "pagination": {
+      "showing": "Showing",
+      "out_of": "out of",
+      "records": "records",
+      "page": "Page",
+      "prev": "Prev",
+      "next": "Next"
+    },
+    "filters": {
+      "title": "Filters",
+      "this_month": "This Month",
+      "last_month": "Last Month",
+      "custom": "Custom"
+    },
+    "sections": {
+      "organization": "Organization",
+      "time_leave": "Time & Leave",
+      "payroll_shifts": "Payroll & Shifts",
+      "system": "System"
+    }
+  },
+  "leave_requests": {
+    "title": "Leave Requests",
+    "subtitle": "Approve and manage employee time off",
+    "create_btn": "Create Request",
+    "remaining": "Remaining",
+    "tabs": {
+      "policies": "Policies"
+    },
+    "types": {
+      "vacation": "Vacation",
+      "sick": "Sick",
+      "vacation_full": "Annual Leave",
+      "sick_full": "Sick Leave",
+      "personal": "Personal Business"
+    },
+    "policy": {
+      "title": "Leave Policies",
+      "title_single": "Policy",
+      "subtitle": "Entitlement Configuration",
+      "assign_btn": "Assign Policy",
+      "add_btn": "Add Policy",
+      "assign_title": "Assign Policy",
+      "assign_subtitle": "Personnel Allocation",
+      "save_btn": "Save Policy",
+      "assign_now_btn": "Assign Now",
+      "name_placeholder": "e.g., Standard Annual Leave",
+      "select_placeholder": "Select policy...",
+      "table": {
+        "name": "Policy Name",
+        "type": "Leave Type",
+        "entitlement": "Entitlement/Year",
+        "strategy": "Strategy"
+      },
+      "strategies": {
+        "monthly": "Monthly Accrual",
+        "monthly_desc": "Grants 1 day at the start of each month",
+        "lump_sum": "Annual Lump Sum",
+        "lump_sum_desc": "Grants full entitlement at start of year"
+      },
+      "messages": {
+        "no_policies": "No policies found."
+      }
+    },
+    "modal": {
+      "submit_title": "Submit Leave Request",
+      "submit_subtitle": "Absence Management",
+      "reason_placeholder": "Enter reason for leave...",
+      "submit_btn": "Submit Request"
+    },
+    "messages": {
+      "accrual_success": "Accrual run completed successfully!",
+      "no_requests": "No requests found."
+    }
+  },
+  "departments": {
+    "title": "Departments",
+    "subtitle": "Manage organization structure and hierarchy",
+    "add_btn": "Add Department",
+    "manager_label": "Department Manager",
+    "not_assigned": "Not Assigned",
+    "messages": {
+      "no_departments": "No departments have been created yet.",
+      "confirm_delete": "Delete this department?"
+    },
+    "form": {
+      "name_label": "Department Name",
+      "name_placeholder": "e.g., Engineering, HR...",
+      "desc_placeholder": "Enter short description of department functions...",
+      "manager_placeholder": "Select a manager..."
+    },
+    "modal": {
+      "add_title": "Add Department",
+      "edit_title": "Edit Department",
+      "subtitle": "Organization Structure",
+      "submit_btn": "Create Department"
+    }
+  },
+  "attendance_confirm": {
+    "title": "Attendance Confirm",
+    "subtitle": "Approve adjustment/supplement requests from employees.",
+    "excel_template": "Excel Template",
+    "import_excel": "Import Excel",
+    "ot_label": "Overtime",
+    "status": {
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "pending": "Pending"
+    },
+    "table": {
+      "request_time": "Request (In - Out)"
+    },
+    "messages": {
+      "no_requests": "No requests found."
+    },
+    "modal": {
+      "import_title": "Import attendance data from file"
+    }
+  },
+  "onboarding": {
+    "welcome_title": "Welcome!",
+    "welcome_subtitle": "Let's create your first organization (Workspace)",
+    "org_name_label": "Organization Name",
+    "org_name_placeholder": "e.g., ABC Company, LeeAttend Team...",
+    "start_now_btn": "Start Now",
+    "workspace_desc": "Workspaces are separate environments that help you manage devices and members in one place.",
+    "messages": {
+      "create_error": "Could not create Workspace. Please try again."
+    }
+  },
+  "profile": {
+    "subtitle": "Manage your personal information and account settings",
+    "join_date": "Join Date",
+    "preferred_language": "Preferred Language",
+    "follow_workspace": "Follow Workspace",
+    "bio": "Bio",
+    "personalization": {
+      "title": "Personalization",
+      "subtitle": "Customize your personal interface color",
+      "use_workspace_default": "Use Workspace Default",
+      "note": "* This change only applies to you on this browser."
+    },
+    "security": {
+      "title": "Security",
+      "subtitle": "Change your account password",
+      "current_password": "Current Password",
+      "new_password": "New Password",
+      "confirm_password": "Confirm New Password",
+      "submit_btn": "Update Password",
+      "messages": {
+        "confirm_mismatch": "New password confirmation does not match.",
+        "password_changed": "Password has been changed. Please log in again.",
+        "change_error": "Error changing password."
+      }
+    }
+  },
+  "attendance_logs": {
+    "title": "Attendance Logs",
+    "subtitle": "Raw data from time clocks and other sources.",
+    "export_btn": "Export Data",
+    "status": {
+      "recorded": "Recorded"
+    },
+    "messages": {
+      "loading": "Loading logs...",
+      "no_data": "No punch data found."
+    },
+    "modal": {
+      "import_title": "Import logs from file"
+    }
+  },
+  "attendance_logs": {
+    "title": "Attendance Logs",
+    "subtitle": "Raw data from time clocks and other sources.",
+    "export_btn": "Export Data",
+    "status": {
+      "recorded": "Recorded"
+    },
+    "messages": {
+      "loading": "Loading logs...",
+      "no_data": "No punch data found."
+    },
+    "modal": {
+      "import_title": "Import logs from file"
+    }
+  },
+  "attendance_import": {
+    "subtitle": "Bulk Data Import",
+    "rows_processed": "rows processed",
+    "error_list_title": "Detailed Error List:",
+    "select_another_file": "Select another file",
+    "upload_prompt": "Click or drag & drop file here",
+    "upload_limit": "Excel or CSV (Max 10MB)",
+    "start_import": "Start Import",
+    "status": {
+      "processing": "Processing data...",
+      "completed": "Completed!",
+      "failed": "An error occurred",
+      "pending": "Pending...",
+      "uploading": "Uploading..."
+    },
+    "file_requirements": {
+      "title": "File Format Requirements:",
+      "col_a": "Column A: Employee ID",
+      "col_b": "Column B: Employee Name (Optional)",
+      "col_c": "Column C: Punch Time (DD/MM/YYYY HH:mm)",
+      "formats": "Supports .xlsx, .xls and .csv files"
+    },
+    "messages": {
+      "upload_error": "Error uploading file"
+    }
+  },
+  "agents": {
+    "title": "Agent Management",
+    "subtitle": "Approve and control Edge Agent connection points",
+    "status": {
+      "trusted": "Trusted",
+      "pending": "Pending",
+      "closed": "Closed"
+    },
+    "actions": {
+      "hide_inactive": "Hide closed agents",
+      "show_inactive": "Show closed agents",
+      "showing_archived": "Showing archived",
+      "show_archived": "Show archived",
+      "declare_agent": "Declare Agent"
+    },
+    "form": {
+      "new_title": "Declare New Agent",
+      "id_label": "Agent ID (Unique)",
+      "id_placeholder": "e.g., BRANCH_LDN_01",
+      "name_label": "Branch/Location Name",
+      "name_placeholder": "e.g., London Office",
+      "token_label": "Secret Token",
+      "token_placeholder": "Connection password"
+    },
+    "table": {
+      "identifier": "Identifier",
+      "token": "Token",
+      "last_ip": "Last IP"
+    },
+    "edit_modal": {
+      "title": "Edit Agent",
+      "subtitle": "Connection Management",
+      "id_label": "Agent ID (Read-only)",
+      "name_label": "Branch / Location Name",
+      "name_placeholder": "e.g., London Office",
+      "token_label": "Secret Token",
+      "token_placeholder": "Connection password",
+      "messages": {
+        "update_error": "Error updating agent."
+      }
+    },
+    "messages": {
+      "restore_success": "Restored Agent {{name}}",
+      "restore_error": "Error restoring agent.",
+      "add_success": "New agent declared successfully.",
+      "add_error": "Error adding agent. ID might already exist.",
+      "confirm_trust": "Are you sure you want to {{action}} for Agent {{id}}?",
+      "trust_success": "Successfully {{action}}ed agent.",
+      "update_status_error": "Error updating status.",
+      "confirm_delete": "Are you sure you want to delete Agent {{name}} ({{id}})? \nThis will disconnect and hide the Agent from the system.",
+      "delete_success": "Deleted Agent {{name}}.",
+      "delete_error": "Error deleting agent.",
+      "no_agents": "No agents have been declared."
+    }
+  },
+  "debug_tools": {
+    "title": "Debug Tools (Dev Only)",
+    "subtitle": "Quick data cleanup tools to support testing.",
+    "warning": "Warning: Deleted data cannot be recovered!",
+    "full_reset_label": "FULL RESET (Careful!)",
+    "click_to_clear": "Click to clear",
+    "messages": {
+      "confirm_clear": "Are you sure you want to delete ALL [{{label}}] data for this Workspace? This action cannot be undone.",
+      "clear_success": "Successfully deleted [{{label}}] data.",
+      "clear_error": "Error deleting data:"
+    }
+  },
+  "time_tracking": {
+    "title": "Time Tracking",
+    "subtitle": "Record employee working and break hours.",
+    "select_employee_label": "Select employee to track time",
+    "search_placeholder": "Search by name or employee ID...",
+    "type_search_placeholder": "Type name or employee ID...",
+    "forgot_punch": "Forgot to punch? Send request →",
+    "recent_history": "Recent History (7 days)",
+    "empty_state_desc": "Select personnel to start time tracking",
+    "status": {
+      "on_break": "On break",
+      "working": "Working",
+      "off_duty": "Off duty",
+      "break_start_at": "Break started at",
+      "shift_start_at": "Shift started at"
+    },
+    "actions": {
+      "return_to_work": "Return to Work",
+      "start_break": "Start Break",
+      "punch_out": "Punch Out",
+      "start_work": "Start Work"
+    },
+    "messages": {
+      "punch_in_break": "Start break",
+      "punch_in_work": "Start work shift",
+      "punch_success": "{{type}} successful.",
+      "punch_error": "Could not track time. Please try again.",
+      "punch_out_break": "Returned to work.",
+      "punch_out_work": "Finished work shift.",
+      "punch_out_error": "Could not punch out.",
+      "adjustment_success": "Attendance adjustment request sent to administrator.",
+      "adjustment_error": "Error sending request.",
+      "no_data": "No time tracking data found."
+    },
+    "modal": {
+      "edit_title": "Edit Time Entry",
+      "new_title": "New Time Request",
+      "subtitle": "Adjust Data",
+      "reason_label": "Adjustment Reason",
+      "reason_placeholder": "e.g., Forgot to punch, business trip..."
+    }
+  },
+  "shifts": {
+    "title": "Scheduling System",
+    "subtitle": "Manage flexible and fixed work shifts",
+    "create_btn": "Create Shift",
+    "current_week_roster": "Current Week Roster",
+    "days_selected": "{{count}} days selected",
+    "assign_selected_btn": "Assign shift to selected",
+    "off_day": "OFF",
+    "history_title": "Shift Assignment History",
+    "fixed_assignment_subtitle": "Assign fixed or long-term schedules",
+    "select_default_shift": "Select Default Work Shift",
+    "assign_btn": "Assign Shift",
+    "directory_title": "Shift Directory",
+    "auto_deduct": "Auto-deduct",
+    "set_off_day": "Set OFF",
+    "days_count": "{{count}} days selected",
+    "empty_state": {
+      "title": "Select personnel to continue",
+      "desc": "Please select an employee from the left list to start scheduling."
+    },
+    "tabs": {
+      "weekly_roster": "WEEKLY ROSTER",
+      "fixed_assignments": "FIXED ASSIGNMENTS",
+      "directory": "DIRECTORY"
+    },
+    "actions": {
+      "copy_previous": "Copy previous week",
+      "assign_all_week": "Assign all this week",
+      "clear_week": "Clear this week"
+    },
+    "types": {
+      "flexible": "Flexible",
+      "fixed": "Fixed"
+    },
+    "table": {
+      "assignment_type": "Type",
+      "range": "Range",
+      "shift_name": "Shift Name",
+      "time_range": "Time Range",
+      "break_time": "Break Time"
+    },
+    "modal": {
+      "setup_title": "Shift Setup",
+      "setup_subtitle": "DECLARE WORK SHIFT PARAMETERS",
+      "edit_subtitle": "UPDATE CONFIGURATION OR CHANGE HOURS",
+      "name_placeholder": "Office, Morning Shift, Split Shift...",
+      "start_time": "Start Time",
+      "end_time": "End Time",
+      "break_config": "Break Configuration",
+      "break_start": "Break Start",
+      "break_end": "Break End",
+      "auto_deduct_label": "Auto-deduct break time",
+      "break_duration": "Break Duration",
+      "save_shift_btn": "Save Shift",
+      "update_config_btn": "Update Configuration",
+      "break_label": "Break",
+      "correction_label": "Data Correction",
+      "correction_desc": "Information will directly overwrite current records.",
+      "correction_warning": "Warning: May change past attendance data.",
+      "effective_date_label": "Effective Date",
+      "effective_date_desc": "The system will create a new version and switch all employees to this shift from the selected date.",
+      "select_shift_title": "Select Work Shift",
+      "assign_to_days": "Assign to {{days}}"
+    },
+    "messages": {
+      "assign_success": "Shift assigned to employee successfully.",
+      "assign_error": "Assignment error",
+      "update_roster_success": "Roster updated successfully.",
+      "update_roster_error": "Update error",
+      "bulk_update_success": "Bulk roster update successful.",
+      "bulk_update_error": "Bulk update error",
+      "remove_override_success": "Override removed, reverted to default schedule.",
+      "remove_override_error": "Error removing override",
+      "create_shift_success": "Shift type \"{{name}}\" has been created.",
+      "create_shift_error": "Error creating shift",
+      "update_shift_success": "Shift configuration updated successfully.",
+      "update_shift_error": "Update error",
+      "validation_missing_fields": "Please select employee, shift, and start date.",
+      "no_previous_data": "Previous week's data not found.",
+      "copy_error": "Copy error",
+      "validation_shift_name_time": "Shift name and working hours cannot be empty.",
+      "validation_break_times": "Please enter break start and end times.",
+      "no_shifts": "No shift types found in the system."
+    }
+  },
+  "payroll": {
+    "title": "Payroll",
+    "subtitle": "Manage earnings and payslips",
+    "search_placeholder": "Search employees...",
+    "employee_profile": "Employee Payroll Profile",
+    "calculate_btn": "Calculate New Payroll",
+    "history_title": "Payslip History",
+    "empty_state": {
+      "title": "Select personnel to manage payroll",
+      "desc": "View payslip history or calculate new monthly payroll for employees."
+    },
+    "table": {
+      "period": "Pay Period",
+      "base_pay": "Base Salary",
+      "overtime": "Overtime",
+      "deductions": "Deductions",
+      "net_pay": "Net Pay",
+      "status": "Status",
+      "loading_payslips": "Loading payslips...",
+      "no_payslips": "No payslips found"
+    },
+    "status": {
+      "paid": "PAID",
+      "finalized": "FINALIZED"
+    },
+    "modal": {
+      "title": "Calculate Monthly Payroll",
+      "subtitle": "Data Processing",
+      "submit": "Start Calculation"
+    },
+    "messages": {
+      "calculate_success": "Payroll calculated successfully.",
+      "calculate_error": "Calculation error"
+    }
+  },
+  "reports": {
+    "title": "Attendance Reports",
+    "subtitle": "View and export employee attendance data.",
+    "export_excel": "Export Excel",
+    "search_placeholder": "Search by employee name...",
+    "no_shift": "No shift",
+    "tabs": {
+      "summary": "Monthly Summary",
+      "daily": "Daily Details"
+    },
+    "status": {
+      "present": "On time",
+      "late": "Late",
+      "absent": "Absent",
+      "off": "Off day"
+    },
+    "table": {
+      "total_hours": "Total Hours",
+      "leave_days": "Leave Days",
+      "hours": "Work Hours"
+    },
+    "quick_stats": {
+      "title": "Quick Stats",
+      "total_hours": "Total Hours"
+    },
+    "messages": {
+      "generating": "Generating report...",
+      "no_data": "No data found for this period."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back! Here's a summary of activity in your workspace.",
+    "tabs": {
+      "hr": "HR & Payroll",
+      "system": "System Status"
+    },
+    "hr": {
+      "total_employees": "Total Employees",
+      "present_today": "Present Today",
+      "pending_requests": "Pending Requests",
+      "estimated_payroll": "Estimated Payroll",
+      "hr_management": "Human Resources",
+      "hr_management_title": "Centralized Employee Management",
+      "hr_management_desc": "Track contracts, insurance, work history, and salaries for the entire team.",
+      "hr_management_btn": "Open employee list",
+      "payroll": "Timekeeping & Payroll",
+      "payroll_title": "Timesheets & Auto Payroll",
+      "payroll_desc": "Sync real-time attendance data to generate accurate payroll in seconds.",
+      "payroll_btn": "View timesheets"
+    },
+    "system": {
+      "total_agents": "Total Agents",
+      "online_agents": "Agents Online",
+      "total_devices": "Total Devices",
+      "active_devices": "Active Devices",
+      "edge_agents": "Edge Agents",
+      "live_data": "Live Data",
+      "seen": "Seen",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "no_agents": "No Agents connected yet",
+      "quick_actions": "Quick Actions",
+      "device_management": "Device Management",
+      "device_management_desc": "Add or remove time clocks at branches. The system syncs automatically.",
+      "device_management_btn": "Open manager"
+    },
+    "connection_error": "Connection Error",
+    "connection_error_desc": "Cannot connect to API Server or invalid data."
+  },
+  "workspace_settings": {
+    "title": "Workspace Settings",
+    "description": "Manage configuration, personnel, and workspace interface.",
+    "payroll_config": "Payroll Configuration",
+    "save_config": "Save Configuration",
+    "work_unit": "Work Unit",
+    "rounding_policy": "Rounding Policy",
+    "date_format": "Date Format",
+    "time_format": "Time Format",
+    "timezone": "System Timezone",
+    "default_language": "Default Language",
+    "theme_config": "Interface Configuration",
+    "primary_color": "Primary Color",
+    "invite_member": "Invite Member",
+    "members_list": "Members List",
+    "founder": "Founder",
+    "work_unit_options": {
+      "1min": "1 minute",
+      "1min_desc": "Default, highest precision",
+      "15min": "15 minutes",
+      "15min_desc": "0.25 hour blocks",
+      "30min": "30 minutes",
+      "30min_desc": "0.5 hour blocks",
+      "60min": "60 minutes",
+      "60min_desc": "1 hour blocks"
+    },
+    "rounding_options": {
+      "none": "No rounding",
+      "floor": "Rounding down (Floor)",
+      "ceil": "Rounding up (Ceil)",
+      "round": "Nearest rounding (Round)"
+    },
+    "date_format_options": {
+      "vn": "Vietnamese style (e.g., 31/12/2025)",
+      "us": "US style (e.g., 12/31/2025)",
+      "iso": "ISO style (e.g., 2025-12-31)"
+    },
+    "time_format_options": {
+      "24h": "24 Hours",
+      "12h": "12 Hours"
+    },
+    "timezone_options": {
+      "vn": "Vietnam (UTC+7)",
+      "th": "Thailand (UTC+7)",
+      "utc": "Universal Time (UTC)"
+    }
+  },
+  "employees": {
+    "title": "Employees",
+    "subtitle": "Manage records and work history system-wide",
+    "add_btn": "Add Employee",
+    "search_placeholder": "Search by name or employee ID...",
+    "table": {
+      "name": "Full Name",
+      "id": "Emp ID",
+      "hire_date": "Hire Date",
+      "status": "Status",
+      "actions": "Actions",
+      "loading": "Loading data...",
+      "no_data": "No data to display.",
+      "active": "Active",
+      "terminated": "Terminated"
+    },
+    "details": {
+      "edit_profile": "Edit Profile",
+      "terminate": "Terminate",
+      "rehire": "Rehire",
+      "terminate_confirm": "Are you sure you want to terminate this employee?",
+      "current_dept": "Current Department",
+      "transfer": "Transfer",
+      "not_assigned_dept": "Not assigned to a department",
+      "salary_benefits": "Salary & Benefits",
+      "update": "Update",
+      "current": "Current",
+      "no_salary_history": "No salary history",
+      "work_history": "Employment History",
+      "view_details": "View Details →",
+      "joined": "Joined the company",
+      "returned": "Returned to work"
+    },
+    "form": {
+      "add_title": "Add Employee",
+      "edit_title": "Edit Profile",
+      "subtitle": "HR Record",
+      "last_name": "Last Name",
+      "first_name": "First Name",
+      "employee_id": "Employee ID",
+      "hire_date": "Hire Date",
+      "is_active": "Is Active",
+      "cancel": "Cancel",
+      "save": "Save Profile",
+      "update": "Update"
+    },
+    "transfer": {
+      "title": "Department Transfer",
+      "subtitle": "Position Management",
+      "new_dept": "New Department",
+      "select_dept": "Select department...",
+      "effective_date": "Effective Date",
+      "notes": "Notes",
+      "cancel": "Cancel",
+      "submit": "Transfer"
+    },
+    "history": {
+      "title": "Employment History",
+      "subtitle": "HR Data",
+      "rehire_period": "Rehire Period",
+      "first_period": "First Period",
+      "currently_working": "Currently Working",
+      "period_range": "From {{start}} to {{end}}",
+      "present": "(Present)",
+      "close": "Close"
+    },
+    "rehire": {
+      "title": "Rehire",
+      "subtitle": "Activate Record",
+      "confirm_msg": "Confirm the date the employee starts their new work period",
+      "rehire_date": "Rehire Date",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "processing": "Processing..."
+    },
+    "salary": {
+      "title": "Update Salary",
+      "subtitle": "Compensation Management",
+      "base_salary": "Base Salary",
+      "type": "Salary Type",
+      "monthly": "Monthly",
+      "hourly": "Hourly",
+      "effective_date": "Effective Date",
+      "cancel": "Cancel",
+      "submit": "Update Salary"
+    },
+    "select_workspace": "Please select a Workspace"
+  },
+  "members": {
+    "title": "Members & Permissions",
+    "subtitle": "Manage access and assign roles within the system.",
+    "roles": {
+      "admin": "Admin",
+      "member": "Member",
+      "owner": "Owner",
+      "owner_desc": "Founder, highest permissions",
+      "admin_desc": "System administrator",
+      "member_desc": "Regular member",
+      "modal_title": "Role Management",
+      "modal_subtitle": "Personnel permissions",
+      "primary_role_label": "Primary Role (Permanent)",
+      "extra_roles_label": "Additional Roles (Temporary)",
+      "expires_at": "Expires at",
+      "no_extra_roles": "No additional roles assigned.",
+      "assign_new_title": "Assign New Role",
+      "expiry_date_label": "Expiry Date",
+      "assign_btn": "Assign Role",
+      "confirm_change_primary": "Are you sure you want to change the primary role to {{role}}?",
+      "confirm_revoke": "Are you sure you want to revoke this role?",
+      "messages": {
+        "update_primary_error": "Error updating primary role.",
+        "assign_error": "Error assigning role.",
+        "revoke_error": "Error revoking role."
+      }
+    },
+    "table": {
+      "confirm_remove": "Are you sure you want to remove this member?",
+      "manage_roles": "Manage Roles",
+      "remove_member": "Remove Member",
+      "messages": {
+        "remove_error": "Error removing member.",
+        "no_members": "No members found in this workspace."
+      }
+    },
+    "invite": {
+      "title": "Invite Member",
+      "subtitle": "Human Resources Management",
+      "email_label": "Email Address",
+      "role_label": "Assigned Role",
+      "submit_btn": "Send Invitation",
+      "error_message": "Could not invite member. Please check the email address."
+    }
+  },
+  "devices": {
+    "title": "Device Management",
+    "add_btn": "Add Device",
+    "toast": {
+      "add_success": "Device \"{{name}}\" added successfully.",
+      "add_error": "Error adding device. Please check the IP address.",
+      "update_success": "Device \"{{name}}\" updated successfully.",
+      "update_error": "Error updating device.",
+      "delete_confirm": "Are you sure you want to delete this device?",
+      "delete_success": "Device deleted from system.",
+      "delete_error": "Error deleting device."
+    },
+    "form": {
+      "infrastructure": "Connection Infrastructure",
+      "new_device": "New Device",
+      "edit_device": "Edit Device",
+      "name": "Device Name",
+      "name_placeholder": "e.g., Front Gate Machine",
+      "agent": "Select Agent",
+      "select_agent": "Select an Agent...",
+      "ip": "IP Address",
+      "port": "Port",
+      "save": "Save",
+      "clock_name": "Time Clock Name",
+      "clock_name_placeholder": "e.g., Main Hall Machine...",
+      "managed_by": "Managed by Agent",
+      "ip_local": "IP Address (Local)",
+      "cancel": "Cancel",
+      "save_device": "Save Device",
+      "update_device": "Update"
+    },
+    "table": {
+      "device": "Device",
+      "managed_by": "Managed by",
+      "connection": "Connection",
+      "active": "Active",
+      "disabled": "Disabled",
+      "actions": "Actions",
+      "edit": "Edit",
+      "sync_time": "Sync Time",
+      "advanced": "Advanced Settings",
+      "delete": "Delete Device",
+      "no_data": "No devices have been set up yet."
+    }
+  },
+  "auth": {
+    "slogan": "HR Management System 4.0",
+    "login_error": "Invalid email or password",
+    "connection_error": "Server connection error",
+    "fast_login": "⚡ Fast Login",
+    "or_use_account": "Or use your account",
+    "email": "Email",
+    "password": "Password",
+    "processing": "Processing...",
+    "login_btn": "Sign in",
+    "no_account": "Don't have an account?",
+    "register_now": "Register now",
+    "display_name": "Display Name",
+    "confirm_password": "Confirm Password",
+    "already_have_account": "Already have an account?",
+    "login": "Sign in",
+    "register_title": "Create new account",
+    "register_btn": "Register account",
+    "password_mismatch": "Passwords do not match",
+    "password_too_short": "Password must be at least 6 characters",
+    "registration_failed": "Registration failed. Please try again.",
+    "creating_account": "Creating account...",
+    "checking_security": "Checking security...",
+    "session_expired": "Session expired, redirecting...",
+    "user_not_found": "User not found..."
+  }
+}

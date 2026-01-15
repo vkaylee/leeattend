@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchRawAttendanceLogs, fetchEmployees, fetchWorkspace, getCurrentWorkspaceId } from "@/lib/api";
 import { format } from "date-fns";
@@ -64,6 +65,7 @@ const Button = ({ children, variant = "default", className, disabled, onClick, t
 };
 
 export default function AttendanceLogsPage() {
+  const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
   const { formatDate, formatTime } = useDateTimeFormatter();
   const [page, setPage] = useState(1);
@@ -126,7 +128,7 @@ export default function AttendanceLogsPage() {
 
   const getEmployeeName = (id: string) => {
     const emp = employees?.find(e => e.id === id);
-    return emp ? `${emp.first_name} ${emp.last_name}` : "Hệ thống";
+    return emp ? `${emp.first_name} ${emp.last_name}` : t("common.system");
   };
 
   const getEmployeeID = (id: string) => {
@@ -140,12 +142,12 @@ export default function AttendanceLogsPage() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Nhật ký quẹt thẻ</h1>
-          <p className="text-slate-500 mt-1">Dữ liệu thô từ máy chấm công và các nguồn quẹt thẻ.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">{t("attendance_logs.title")}</h1>
+          <p className="text-slate-500 mt-1">{t("attendance_logs.subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" onClick={() => window.print()}>
-            <Download className="mr-2 h-4 w-4" /> Xuất dữ liệu
+            <Download className="mr-2 h-4 w-4" /> {t("attendance_logs.export_btn")}
           </Button>
           {/* Note: setIsImportDialogOpen used to be here, but using local state now */}
         </div>
@@ -156,7 +158,7 @@ export default function AttendanceLogsPage() {
         <div className="p-6 border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center gap-2">
             <Filter className="h-5 w-5 text-primary-600" />
-            <h3 className="font-bold text-slate-900">Bộ lọc</h3>
+            <h3 className="font-bold text-slate-900">{t("common.filters.title")}</h3>
           </div>
         </div>
         <div className="p-6 space-y-6">
@@ -168,7 +170,7 @@ export default function AttendanceLogsPage() {
                   filterMode === "this_month" ? "bg-white shadow-sm text-primary-600" : "text-slate-500 hover:text-slate-700"
                 }`}
               >
-                Tháng này
+                {t("common.filters.this_month")}
               </button>
               <button
                 onClick={() => handleFilterModeChange("last_month")}
@@ -176,7 +178,7 @@ export default function AttendanceLogsPage() {
                   filterMode === "last_month" ? "bg-white shadow-sm text-primary-600" : "text-slate-500 hover:text-slate-700"
                 }`}
               >
-                Tháng trước
+                {t("common.filters.last_month")}
               </button>
               <button
                 onClick={() => handleFilterModeChange("custom")}
@@ -184,24 +186,24 @@ export default function AttendanceLogsPage() {
                   filterMode === "custom" ? "bg-white shadow-sm text-primary-600" : "text-slate-500 hover:text-slate-700"
                 }`}
               >
-                Tùy chỉnh
+                {t("common.filters.custom")}
               </button>
             </div>
 
             <div className="flex-1 max-w-md">
               <Combobox
                 options={[
-                  { value: "all", label: "Tất cả nhân viên", icon: <Users className="w-4 h-4" /> },
+                  { value: "all", label: t("common.all_employees"), icon: <Users className="w-4 h-4" /> },
                   ...(employees?.map((emp) => ({
                     value: emp.id,
                     label: `${emp.first_name} ${emp.last_name}`,
-                    description: `Mã NV: ${emp.employee_id_number}`,
+                    description: `${t("employees.table.id")}: ${emp.employee_id_number}`,
                     icon: <User className="w-4 h-4" />
                   })) || [])
                 ]}
                 value={employeeId}
                 onChange={(val) => { setEmployeeId(val); setPage(1); }}
-                placeholder="Tìm nhân viên..."
+                placeholder={t("common.search_placeholder")}
                 className="bg-slate-50 border-slate-200"
               />
             </div>
@@ -211,7 +213,7 @@ export default function AttendanceLogsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2 duration-300">
               <div className="space-y-1">
                 <label htmlFor="filter-from-date" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                  <Calendar className="w-3 h-3" /> Từ ngày
+                  <Calendar className="w-3 h-3" /> {t("common.from_date")}
                 </label>
                 <input 
                   id="filter-from-date"
@@ -223,7 +225,7 @@ export default function AttendanceLogsPage() {
               </div>
               <div className="space-y-1">
                 <label htmlFor="filter-to-date" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                  <Calendar className="w-3 h-3" /> Đến ngày
+                  <Calendar className="w-3 h-3" /> {t("common.to_date")}
                 </label>
                 <input 
                   id="filter-to-date"
@@ -244,12 +246,12 @@ export default function AttendanceLogsPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Thời gian</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Mã NV</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Nhân viên</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Nguồn</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Thiết bị</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Trạng thái</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">{t("common.time")}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">{t("employees.table.id")}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">{t("common.employee")}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">{t("common.source")}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">{t("common.device")}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">{t("common.status")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -258,14 +260,14 @@ export default function AttendanceLogsPage() {
                   <td colSpan={6} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                      <span className="text-slate-500 font-medium">Đang tải nhật ký...</span>
+                      <span className="text-slate-500 font-medium">{t("attendance_logs.messages.loading")}</span>
                     </div>
                   </td>
                 </tr>
               ) : data?.data.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-500 font-medium">
-                    Không tìm thấy dữ liệu quẹt thẻ nào.
+                    {t("attendance_logs.messages.no_data")}
                   </td>
                 </tr>
               ) : (
@@ -308,7 +310,7 @@ export default function AttendanceLogsPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <Badge variant="default" className="bg-emerald-50 text-emerald-700 border-emerald-100">
-                        Đã ghi nhận
+                        {t("attendance_logs.status.recorded")}
                       </Badge>
                     </td>
                   </tr>
@@ -321,7 +323,7 @@ export default function AttendanceLogsPage() {
         {/* Pagination */}
         <div className="p-6 bg-slate-50/50 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="text-sm text-slate-500 font-medium">
-            Hiển thị <span className="text-slate-900 font-bold">{data?.data.length || 0}</span> trên <span className="text-slate-900 font-bold">{data?.total || 0}</span> bản ghi
+            {t("common.pagination.showing")} <span className="text-slate-900 font-bold">{data?.data.length || 0}</span> {t("common.pagination.out_of")} <span className="text-slate-900 font-bold">{data?.total || 0}</span> {t("common.pagination.records")}
           </div>
           <div className="flex items-center gap-4">
             <Button 
@@ -329,17 +331,17 @@ export default function AttendanceLogsPage() {
               disabled={page === 1} 
               onClick={() => setPage(p => p - 1)}
             >
-              <ChevronLeft className="h-4 w-4 mr-2" /> Trước
+              <ChevronLeft className="h-4 w-4 mr-2" /> {t("common.pagination.prev")}
             </Button>
             <div className="text-sm font-bold text-slate-900">
-              Trang {page} / {totalPages || 1}
+              {t("common.pagination.page")} {page} / {totalPages || 1}
             </div>
             <Button 
               variant="outline" 
               disabled={page >= totalPages} 
               onClick={() => setPage(p => p + 1)}
             >
-              Sau <ChevronRight className="h-4 w-4 ml-2" />
+              {t("common.pagination.next")} <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
         </div>
@@ -348,7 +350,7 @@ export default function AttendanceLogsPage() {
       <AttendanceImportDialog 
         isOpen={isImportDialogOpen}
         onClose={() => setIsImportDialogOpen(false)}
-        title="Nhập nhật ký quẹt thẻ từ file"
+        title={t("attendance_logs.modal.import_title")}
         endpoint="/attendance/logs/upload"
         targetType="log"
       />

@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n            id, workspace_id, name, start_time, end_time, \n            break_duration_minutes, break_start, break_end, \n            is_break_auto_deduct, break_is_overtime, \n            early_punch_in_grace_period_minutes, is_active, parent_shift_id,\n            created_at as \"created_at!\", updated_at as \"updated_at!\" \n         FROM shifts WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "start_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 4,
+        "name": "end_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 5,
+        "name": "break_duration_minutes",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "break_start",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 7,
+        "name": "break_end",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_break_auto_deduct",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "break_is_overtime",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "early_punch_in_grace_period_minutes",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "parent_shift_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 13,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "f527bba7d35716f2a0b18e5528eec3479340ee2580250d76252bb22289a8b2fb"
+}

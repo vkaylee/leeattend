@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { AuthorizedAgent } from "@/lib/api";
 import { isAgentOnline } from "@/lib/utils";
 import {
@@ -22,6 +23,7 @@ import { useAuthorizedAgents } from "@/hooks/use-agents";
 import { useToast } from "../components/Toast";
 
 export default function AgentsPage() {
+  const { t } = useTranslation();
   const toast = useToast();
   // Add a local timer to refresh the UI every 15s to update online status
   const [, setTick] = useState(0);
@@ -55,9 +57,9 @@ export default function AgentsPage() {
   async function handleRestore(agent: AuthorizedAgent) {
     try {
       await updateAgent({ id: agent.id, agent: { is_active: true } });
-      toast.success(`Đã khôi phục Agent ${agent.name}`);
+      toast.success(t("agents.messages.restore_success", { name: agent.name }));
     } catch (e) {
-      toast.error("Lỗi khi khôi phục Agent.");
+      toast.error(t("agents.messages.restore_error"));
     }
   }
 
@@ -65,40 +67,40 @@ export default function AgentsPage() {
     e.preventDefault();
     try {
       await createAgent(newAgent);
-      toast.success("Đã khai báo Agent mới thành công.");
+      toast.success(t("agents.messages.add_success"));
       setShowAddForm(false);
       setNewAgent({ id: "", name: "", token: "" });
     } catch (e) {
-      toast.error("Lỗi khi thêm Agent. ID có thể đã tồn tại.", "Lỗi hệ thống");
+      toast.error(t("agents.messages.add_error"), t("common.system_error"));
     }
   }
 
   async function handleToggleTrust(agent: AuthorizedAgent) {
-    const action = agent.is_trusted ? "thu hồi quyền" : "phê duyệt";
-    if (!confirm(`Bạn có chắc chắn muốn ${action} cho Agent ${agent.id}?`))
+    const action = agent.is_trusted ? t("common.revoke") : t("common.approve");
+    if (!confirm(t("agents.messages.confirm_trust", { action, id: agent.id })))
       return;
 
     try {
       await updateTrust({ id: agent.id, is_trusted: !agent.is_trusted });
-      toast.success(`Đã ${action} thành công cho Agent.`);
+      toast.success(t("agents.messages.trust_success", { action }));
     } catch (e) {
-      toast.error("Lỗi khi cập nhật trạng thái.");
+      toast.error(t("agents.messages.update_status_error"));
     }
   }
 
   async function handleDelete(agent: AuthorizedAgent) {
     if (
       !confirm(
-        `Bạn có chắc chắn muốn xóa Agent ${agent.name} (${agent.id})? \nThao tác này sẽ ngắt kết nối và ẩn Agent khỏi hệ thống.`,
+        t("agents.messages.confirm_delete", { name: agent.name, id: agent.id }),
       )
     )
       return;
 
     try {
       await deleteAgent(agent.id);
-      toast.success(`Đã xóa Agent ${agent.name}.`);
+      toast.success(t("agents.messages.delete_success", { name: agent.name }));
     } catch (e) {
-      toast.error("Lỗi khi xóa Agent.");
+      toast.error(t("agents.messages.delete_error"));
     }
   }
 
@@ -119,10 +121,10 @@ export default function AgentsPage() {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-              Quản lý Agent
+              {t("agents.title")}
             </h1>
             <p className="text-slate-500 mt-1">
-              Phê duyệt và kiểm soát các điểm kết nối Edge Agent
+              {t("agents.subtitle")}
             </p>
           </div>
           <div className="flex gap-3">
@@ -133,7 +135,7 @@ export default function AgentsPage() {
                   : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
               title={
-                includeInactive ? "Ẩn Agent đã đóng" : "Hiện Agent đã đóng"
+                includeInactive ? t("agents.actions.hide_inactive") : t("agents.actions.show_inactive")
               }
             >
               {includeInactive ? (
@@ -141,7 +143,7 @@ export default function AgentsPage() {
               ) : (
                 <EyeOff className="w-5 h-5" />
               )}
-              {includeInactive ? "Đang hiện lưu trữ" : "Hiện lưu trữ"}
+              {includeInactive ? t("agents.actions.showing_archived") : t("agents.actions.show_archived")}
             </button>
             <button
               onClick={() => refetch()}
@@ -153,10 +155,10 @@ export default function AgentsPage() {
             </button>
             <button
               onClick={() => setShowAddForm(!showAddForm)}
-              className="bg-slate-900 text-white px-6 py-2.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+              className="bg-slate-900 text-white px-6 py-2.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-black transition-all shadow-lg shadow-slate-200"
             >
               <Plus className="w-5 h-5" />
-              Khai báo Agent
+              {t("agents.actions.declare_agent")}
             </button>
           </div>
         </div>
@@ -165,7 +167,7 @@ export default function AgentsPage() {
           <div className="mb-8 bg-white p-8 rounded-3xl border border-slate-100 shadow-xl animate-in fade-in slide-in-from-top-4 duration-300">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-800">
               <Plus className="w-5 h-5 text-blue-500" />
-              Khai báo Agent mới
+              {t("agents.form.new_title")}
             </h2>
             <form
               onSubmit={handleAdd}
@@ -173,11 +175,11 @@ export default function AgentsPage() {
             >
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-                  Agent ID (Duy nhất)
+                  {t("agents.form.id_label")}
                 </label>
                 <input
                   required
-                  placeholder="Ví dụ: BRANCH_HN_01"
+                  placeholder={t("agents.form.id_placeholder")}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                   value={newAgent.id}
                   onChange={(e) =>
@@ -187,11 +189,11 @@ export default function AgentsPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-                  Tên Chi nhánh/Vị trí
+                  {t("agents.form.name_label")}
                 </label>
                 <input
                   required
-                  placeholder="Ví dụ: Văn phòng Hà Nội"
+                  placeholder={t("agents.form.name_placeholder")}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                   value={newAgent.name}
                   onChange={(e) =>
@@ -202,12 +204,12 @@ export default function AgentsPage() {
               <div className="flex items-end gap-4">
                 <div className="space-y-2 flex-1">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-                    Secret Token
+                    {t("agents.form.token_label")}
                   </label>
                   <div className="relative">
                     <input
                       required
-                      placeholder="Mật mã kết nối"
+                      placeholder={t("agents.form.token_placeholder")}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all pr-10"
                       value={newAgent.token}
                       onChange={(e) =>
@@ -221,7 +223,7 @@ export default function AgentsPage() {
                   type="submit"
                   className="bg-primary-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100"
                 >
-                  Lưu
+                  {t("common.save")}
                 </button>
               </div>
             </form>
@@ -233,19 +235,19 @@ export default function AgentsPage() {
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  Định danh
+                  {t("agents.table.identifier")}
                 </th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  Token
+                  {t("agents.table.token")}
                 </th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  IP cuối
+                  {t("agents.table.last_ip")}
                 </th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  Trạng thái
+                  {t("common.status")}
                 </th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">
-                  Thao tác
+                  {t("common.actions")}
                 </th>
               </tr>
             </thead>
@@ -272,7 +274,7 @@ export default function AgentsPage() {
                           {agent.name}
                           {!agent.is_active && (
                             <span className="ml-2 text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded uppercase tracking-tighter">
-                              Đã đóng
+                              {t("agents.status.closed")}
                             </span>
                           )}
                         </p>
@@ -299,24 +301,24 @@ export default function AgentsPage() {
                       {isAgentOnline(agent.last_seen_at) ? (
                         <span className="flex items-center gap-1.5 text-primary-600 font-bold text-[10px] bg-primary-50 px-3 py-1 rounded-full w-fit uppercase tracking-wider animate-pulse">
                           <Activity className="w-3 h-3" />
-                          Online
+                          {t("common.online").toUpperCase()}
                         </span>
                       ) : (
                         <span className="flex items-center gap-1.5 text-slate-400 font-bold text-[10px] bg-slate-100 px-3 py-1 rounded-full w-fit uppercase tracking-wider">
                           <Activity className="w-3 h-3" />
-                          Offline
+                          {t("common.offline").toUpperCase()}
                         </span>
                       )}
 
                       {agent.is_trusted ? (
                         <span className="flex items-center gap-1.5 text-emerald-600 font-bold text-[10px] bg-emerald-50 px-3 py-1 rounded-full w-fit uppercase tracking-wider">
                           <ShieldCheck className="w-3 h-3" />
-                          Trusted
+                          {t("agents.status.trusted").toUpperCase()}
                         </span>
                       ) : (
                         <span className="flex items-center gap-1.5 text-amber-600 font-bold text-[10px] bg-amber-50 px-3 py-1 rounded-full w-fit uppercase tracking-wider">
                           <ShieldAlert className="w-3 h-3" />
-                          Pending
+                          {t("agents.status.pending").toUpperCase()}
                         </span>
                       )}
                     </div>
@@ -328,7 +330,7 @@ export default function AgentsPage() {
                           <button
                             onClick={() => handleEdit(agent)}
                             className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
-                            title="Chỉnh sửa"
+                            title={t("common.edit")}
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
@@ -340,13 +342,13 @@ export default function AgentsPage() {
                                 : "bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-md shadow-primary-100"
                             }`}
                           >
-                            {agent.is_trusted ? "Revoke" : "Trust"}
+                            {agent.is_trusted ? t("common.revoke") : t("common.trust")}
                           </button>
 
                           <button
                             onClick={() => handleDelete(agent)}
                             className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                            title="Xóa"
+                            title={t("common.delete")}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -357,7 +359,7 @@ export default function AgentsPage() {
                           className="flex items-center gap-1 px-4 py-2 bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100"
                         >
                           <RotateCcw className="w-3 h-3" />
-                          Khôi phục
+                          {t("common.restore")}
                         </button>
                       )}
                     </div>
@@ -370,7 +372,7 @@ export default function AgentsPage() {
           {agents.length === 0 && !loading && (
             <div className="py-20 text-center text-slate-400">
               <ShieldX className="w-12 h-12 mx-auto mb-4 text-slate-200" />
-              <p className="font-medium">Chưa có Agent nào được khai báo.</p>
+              <p className="font-medium">{t("agents.messages.no_agents")}</p>
             </div>
           )}
         </div>

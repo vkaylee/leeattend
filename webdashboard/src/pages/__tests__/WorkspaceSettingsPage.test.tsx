@@ -137,7 +137,7 @@ describe("WorkspaceSettingsPage", () => {
     const roleSelect = screen.getByLabelText("Vai trò");
     await user.selectOptions(roleSelect, "admin");
 
-    const inviteBtn = screen.getByText("Gửi lời mời");
+    const inviteBtn = screen.getByRole("button", { name: "Gửi lời mời" });
     await user.click(inviteBtn);
 
     await waitFor(() => {

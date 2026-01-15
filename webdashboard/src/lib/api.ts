@@ -56,15 +56,6 @@ export interface AuthorizedAgent {
   workspace_id: string;
 }
 
-export interface User {
-  id: string;
-  email: string;
-  created_at: string;
-  full_name?: string;
-  avatar_url?: string;
-  bio?: string;
-}
-
 export interface Workspace {
   id: string;
   name: string;
@@ -74,7 +65,17 @@ export interface Workspace {
   time_format: string;
   timezone: string;
   theme_primary_color: string;
+  default_language: string;
   created_at: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
+  bio?: string;
+  preferred_language?: string;
 }
 
 export interface UpdateUserRequest {

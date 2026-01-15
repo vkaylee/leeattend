@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   CalendarRange, 
@@ -38,14 +39,22 @@ import {
 import { useToast } from "../components/Toast";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { format, addDays } from "date-fns";
-import { vi } from "date-fns/locale";
+import { vi, enUS, zhCN } from "date-fns/locale";
 import { Combobox } from "@/components/ui/Combobox";
 import { MousePointer2, Copy, Trash, Calendar as CalendarIcon } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 
 type TabType = "assignments" | "weekly-roster" | "directory";
 
+const dateLocales: Record<string, any> = {
+  vi: vi,
+  en: enUS,
+  zh: zhCN,
+};
+
 export default function ShiftsPage() {
+  const { t, i18n } = useTranslation();
+  const currentLocale = dateLocales[i18n.language.substring(0, 2)] || enUS;
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -137,51 +146,51 @@ export default function ShiftsPage() {
   const assignMutation = useMutation({
     mutationFn: (data: any) => assignShift(wsId, data),
     onSuccess: () => {
-      toast.success("Đã gán ca làm việc cho nhân viên thành công.");
+      toast.success(t("shifts.messages.assign_success"));
       setSelectedShiftId("");
       setEndDate("");
       setIsForever(true);
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
-    onError: (error: any) => toast.error(error.message, "Lỗi gán ca")
+    onError: (error: any) => toast.error(error.message, t("shifts.messages.assign_error"))
   });
 
   const rosterMutation = useMutation({
     mutationFn: (data: any) => upsertRoster(wsId, selectedEmployee!.id, data),
     onSuccess: () => {
-      toast.success("Đã cập nhật lịch trực.");
+      toast.success(t("shifts.messages.update_roster_success"));
       queryClient.invalidateQueries({ queryKey: ["schedules"] }); // Re-fetch effective schedules
       queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
-    onError: (error: any) => toast.error(error.message, "Lỗi cập nhật lịch")
+    onError: (error: any) => toast.error(error.message, t("shifts.messages.update_roster_error"))
   });
 
   const bulkRosterMutation = useMutation({
     mutationFn: (items: any[]) => bulkUpsertRoster(wsId, selectedEmployee!.id, items),
     onSuccess: () => {
-      toast.success("Đã cập nhật lịch trực hàng loạt.");
+      toast.success(t("shifts.messages.bulk_update_success"));
       setSelectedDays([]);
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
-    onError: (error: any) => toast.error(error.message, "Lỗi cập nhật hàng loạt")
+    onError: (error: any) => toast.error(error.message, t("shifts.messages.bulk_update_error"))
   });
 
   const deleteRosterMutation = useMutation({
     mutationFn: (date: string) => deleteRoster(wsId, selectedEmployee!.id, date),
     onSuccess: () => {
-      toast.success("Đã gỡ bỏ ghi đè, quay về lịch mặc định.");
+      toast.success(t("shifts.messages.remove_override_success"));
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
-    onError: (error: any) => toast.error(error.message, "Lỗi khi gỡ bỏ lịch")
+    onError: (error: any) => toast.error(error.message, t("shifts.messages.remove_override_error"))
   });
 
   const createShiftMutation = useMutation({
     mutationFn: (data: any) => createShift(wsId, data),
     onSuccess: () => {
-      toast.success(`Loại ca "${newShiftName}" đã được khởi tạo.`);
+      toast.success(t("shifts.messages.create_shift_success", { name: newShiftName }));
       setIsCreateModalOpen(false);
       setNewShiftName("");
       setNewShiftStart("08:00");
@@ -193,25 +202,25 @@ export default function ShiftsPage() {
       setIsAutoDeduct(true);
       queryClient.invalidateQueries({ queryKey: ["shifts", wsId] });
     },
-    onError: (error: any) => toast.error(error.message, "Lỗi tạo ca")
+    onError: (error: any) => toast.error(error.message, t("shifts.messages.create_shift_error"))
   });
 
   const updateShiftMutation = useMutation({
     mutationFn: ({ id, data }: { id: string, data: any }) => updateShift(wsId, id, data),
     onSuccess: () => {
-      toast.success("Đã cập nhật cấu hình ca làm việc.");
+      toast.success(t("shifts.messages.update_shift_success"));
       setEditingShift(null);
       queryClient.invalidateQueries({ queryKey: ["shifts", wsId] });
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
-    onError: (error: any) => toast.error(error.message, "Lỗi cập nhật ca")
+    onError: (error: any) => toast.error(error.message, t("shifts.messages.update_shift_error"))
   });
 
   // Handlers
   const handleAssign = () => {
     if (!selectedEmployee || !selectedShiftId || !startDate) {
-      toast.warning("Vui lòng chọn đầy đủ nhân viên, ca làm và ngày bắt đầu.");
+      toast.warning(t("shifts.messages.validation_missing_fields"));
       return;
     }
     assignMutation.mutate({
@@ -268,7 +277,7 @@ export default function ShiftsPage() {
       
       const empPrev = prevSchedules.find(s => s.employee_id === selectedEmployee.id);
       if (!empPrev) {
-        toast.warning("Không tìm thấy dữ liệu tuần trước.");
+        toast.warning(t("shifts.messages.no_previous_data"));
         return;
       }
 
@@ -279,18 +288,18 @@ export default function ShiftsPage() {
 
       bulkRosterMutation.mutate(items);
     } catch (e: any) {
-      toast.error(e.message, "Lỗi sao chép");
+      toast.error(e.message, t("shifts.messages.copy_error"));
     }
   };
 
   const handleCreateShift = () => {
     if (!newShiftName || !newShiftStart || !newShiftEnd) {
-      toast.warning("Tên ca và thời gian làm việc không được để trống.");
+      toast.warning(t("shifts.messages.validation_shift_name_time"));
       return;
     }
 
     if (isFixedBreak && (!newBreakStart || !newBreakEnd)) {
-      toast.warning("Vui lòng nhập giờ bắt đầu và kết thúc nghỉ trưa.");
+      toast.warning(t("shifts.messages.validation_break_times"));
       return;
     }
     
@@ -355,8 +364,8 @@ export default function ShiftsPage() {
       {/* Header section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Hệ thống Lịch trình</h1>
-          <p className="text-slate-500 mt-1">Quản lý ca làm việc linh hoạt và cố định</p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{t("shifts.title")}</h1>
+          <p className="text-slate-500 mt-1">{t("shifts.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="bg-slate-100 p-1 rounded-2xl flex border border-slate-200 shadow-inner">
@@ -364,19 +373,19 @@ export default function ShiftsPage() {
               onClick={() => setActiveTab("weekly-roster")}
               className={`px-4 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${activeTab === 'weekly-roster' ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
-              <LayoutGrid size={14} /> LỊCH TUẦN
+              <LayoutGrid size={14} /> {t("shifts.tabs.weekly_roster")}
             </button>
             <button 
               onClick={() => setActiveTab("assignments")}
               className={`px-4 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${activeTab === 'assignments' ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
-              <Calendar size={14} /> GÁN CỐ ĐỊNH
+              <Calendar size={14} /> {t("shifts.tabs.fixed_assignments")}
             </button>
             <button 
               onClick={() => setActiveTab("directory")}
               className={`px-4 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${activeTab === 'directory' ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
-              <List size={14} /> DANH MỤC
+              <List size={14} /> {t("shifts.tabs.directory")}
             </button>
           </div>
           <button 
@@ -384,7 +393,7 @@ export default function ShiftsPage() {
             className="bg-primary-600 hover:bg-primary-700 text-white font-black px-6 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg shadow-primary-100 transition-all active:scale-95"
           >
             <Plus className="w-5 h-5" />
-            <span className="text-xs uppercase tracking-widest">Tạo ca</span>
+            <span className="text-xs uppercase tracking-widest">{t("shifts.create_btn")}</span>
           </button>
         </div>
       </div>
@@ -394,9 +403,9 @@ export default function ShiftsPage() {
           {/* Sidebar: Employee List */}
           <div className="col-span-12 lg:col-span-4 xl:col-span-3 bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm flex flex-col h-fit lg:max-h-[700px]">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <span className="font-black text-[10px] uppercase tracking-widest text-slate-400">Nhân sự</span>
+              <span className="font-black text-[10px] uppercase tracking-widest text-slate-400">{t("common.employees")}</span>
               <span className="bg-white px-2 py-1 rounded-lg text-[10px] font-black text-slate-400 border border-slate-200">
-                {employees?.length || 0} NGƯỜI
+                {employees?.length || 0} {t("common.people").toUpperCase()}
               </span>
             </div>
             <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
@@ -428,9 +437,9 @@ export default function ShiftsPage() {
                 <div className="bg-slate-50 p-6 rounded-[32px] mb-6">
                   <User className="w-12 h-12 text-slate-300" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900">Chọn nhân sự để tiếp tục</h3>
+                <h3 className="text-xl font-bold text-slate-900">{t("shifts.empty_state.title")}</h3>
                 <p className="text-slate-500 mt-2 max-w-xs mx-auto text-sm">
-                  Vui lòng chọn một nhân viên từ danh sách bên trái để bắt đầu sắp xếp lịch làm việc.
+                  {t("shifts.empty_state.desc")}
                 </p>
               </div>
             ) : activeTab === "weekly-roster" ? (
@@ -444,7 +453,7 @@ export default function ShiftsPage() {
                       </div>
                       <div>
                         <h2 className="text-lg font-bold text-slate-900 leading-tight">{selectedEmployee.first_name} {selectedEmployee.last_name}</h2>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Lịch trực tuần hiện tại</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t("shifts.current_week_roster")}</p>
                       </div>
                     </div>
                     
@@ -452,9 +461,9 @@ export default function ShiftsPage() {
                       <div className="w-56">
                         <Combobox
                           options={[
-                            { value: "copy-prev", label: "Sao chép tuần trước", icon: <Copy className="w-4 h-4" /> },
-                            { value: "assign-all", label: "Gán ca cả tuần này", icon: <CalendarIcon className="w-4 h-4" /> },
-                            { value: "clear-week", label: "Xóa lịch tuần này", icon: <Trash className="w-4 h-4" /> },
+                            { value: "copy-prev", label: t("shifts.actions.copy_previous"), icon: <Copy className="w-4 h-4" /> },
+                            { value: "assign-all", label: t("shifts.actions.assign_all_week"), icon: <CalendarIcon className="w-4 h-4" /> },
+                            { value: "clear-week", label: t("shifts.actions.clear_week"), icon: <Trash className="w-4 h-4" /> },
                           ]}
                           onChange={(val) => {
                             if (val === "copy-prev") {
@@ -466,7 +475,7 @@ export default function ShiftsPage() {
                               setIsShiftPickerOpen(true);
                             }
                           }}
-                          placeholder="Thao tác nhanh..."
+                          placeholder={t("common.quick_actions")}
                           className="h-10 bg-slate-100 border-slate-200 text-[10px] py-2 px-3 rounded-xl uppercase tracking-tighter"
                         />
                       </div>
@@ -483,7 +492,7 @@ export default function ShiftsPage() {
                         <ChevronLeft size={18} />
                       </button>
                       <div className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600">
-                        TUẦN: {formatDate(weekDays[0])} - {formatDate(weekDays[6])}
+                        {t("common.week").toUpperCase()}: {formatDate(weekDays[0])} - {formatDate(weekDays[6])}
                       </div>
                       <button 
                         onClick={() => {
@@ -502,7 +511,7 @@ export default function ShiftsPage() {
                   {selectedDays.length > 0 && (
                     <div className="bg-primary-600 text-white p-4 rounded-[24px] flex items-center justify-between shadow-lg shadow-primary-100 animate-in slide-in-from-top-4">
                       <div className="flex items-center gap-4">
-                        <span className="text-xs font-black uppercase tracking-widest">Đã chọn {selectedDays.length} ngày</span>
+                        <span className="text-xs font-black uppercase tracking-widest">{t("shifts.days_selected", { count: selectedDays.length })}</span>
                         <div className="h-4 w-px bg-white/20" />
                         <button 
                           onClick={() => {
@@ -511,7 +520,7 @@ export default function ShiftsPage() {
                           }}
                           className="bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition-all flex items-center gap-2"
                         >
-                          <Plus size={14} /> Gán ca cho mục đã chọn
+                          <Plus size={14} /> {t("shifts.assign_selected_btn")}
                         </button>
                       </div>
                       <button onClick={() => setSelectedDays([])} className="hover:bg-white/10 p-2 rounded-xl transition-all">
@@ -550,7 +559,7 @@ export default function ShiftsPage() {
                               </div>
                             )}
                             <div className={`text-[10px] font-black uppercase tracking-tighter ${isToday ? 'text-blue-500' : 'text-slate-400'}`}>
-                              {format(day, "EEEE", { locale: vi })}
+                              {format(day, "EEEE", { locale: currentLocale })}
                             </div>
                             <div className={`text-2xl font-black mt-1 ${isToday ? 'text-primary-600' : 'text-slate-900'}`}>
                               {day.getDate()}
@@ -560,9 +569,9 @@ export default function ShiftsPage() {
                           <div className="flex-1 space-y-4">
                             {/* Source Badge */}
                             <div className="flex justify-center">
-                              {isRoster && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-100 uppercase tracking-tighter flex items-center gap-1"><Zap size={8} /> Linh hoạt</span>}
-                              {isFixed && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-tighter flex items-center gap-1"><ShieldCheck size={8} /> Cố định</span>}
-                              {isDept && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-100 uppercase tracking-tighter flex items-center gap-1"><Building2 size={8} /> Phòng ban</span>}
+                              {isRoster && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-100 uppercase tracking-tighter flex items-center gap-1"><Zap size={8} /> {t("shifts.types.flexible")}</span>}
+                              {isFixed && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-tighter flex items-center gap-1"><ShieldCheck size={8} /> {t("shifts.types.fixed")}</span>}
+                              {isDept && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-100 uppercase tracking-tighter flex items-center gap-1"><Building2 size={8} /> {t("common.department")}</span>}
                             </div>
                             
                             {effectiveSchedule?.shift_id ? (
@@ -578,9 +587,9 @@ export default function ShiftsPage() {
                                   <div className="mt-2 pt-2 border-t border-black/5 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-tighter text-slate-400">
                                     <Clock size={8} /> 
                                     {effectiveSchedule.break_start ? (
-                                      <span>Nghỉ: {effectiveSchedule.break_start.substring(0, 5)} - {effectiveSchedule.break_end?.substring(0, 5)}</span>
+                                      <span>{t("common.break")}: {effectiveSchedule.break_start.substring(0, 5)} - {effectiveSchedule.break_end?.substring(0, 5)}</span>
                                     ) : (
-                                      <span>Nghỉ: {effectiveSchedule.break_duration_minutes}m</span>
+                                      <span>{t("common.break")}: {effectiveSchedule.break_duration_minutes}m</span>
                                     )}
                                   </div>
                                 )}
@@ -599,7 +608,7 @@ export default function ShiftsPage() {
                               </div>
                             ) : (
                               <div className="bg-slate-50/50 border border-slate-100 border-dashed p-6 rounded-[24px] text-[10px] text-slate-400 font-black text-center uppercase tracking-widest flex flex-col items-center justify-center gap-2">
-                                NGHỈ
+                                {t("shifts.off_day")}
                               </div>
                             )}
                           </div>
@@ -613,18 +622,18 @@ export default function ShiftsPage() {
                 <div className="bg-white border border-slate-200 rounded-[40px] p-8 shadow-sm animate-in fade-in slide-in-from-bottom-8 duration-500">
                   <div className="flex items-center gap-3 mb-6">
                     <History className="w-5 h-5 text-slate-400" />
-                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Lịch sử thay đổi gán ca</h3>
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">{t("shifts.history_title")}</h3>
                   </div>
                   
                   <div className="overflow-hidden rounded-3xl border border-slate-100">
                     <table className="w-full text-left">
                       <thead className="bg-slate-50/50">
                         <tr>
-                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Thời gian</th>
-                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Nhân viên</th>
-                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Loại gán</th>
-                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Ca làm việc</th>
-                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Phạm vi</th>
+                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.time")}</th>
+                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.employee")}</th>
+                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("shifts.table.assignment_type")}</th>
+                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.shift")}</th>
+                          <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("shifts.table.range")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
@@ -637,21 +646,21 @@ export default function ShiftsPage() {
                             <td className="p-4">
                               {h.assignment_type === 'roster' ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-50 text-purple-600 text-[10px] font-black uppercase tracking-tighter border border-purple-100">
-                                  <Zap size={10} /> Linh hoạt
+                                  <Zap size={10} /> {t("shifts.types.flexible")}
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-tighter border border-emerald-100">
-                                  <ShieldCheck size={10} /> Cố định
+                                  <ShieldCheck size={10} /> {t("shifts.types.fixed")}
                                 </span>
                               )}
                             </td>
-                            <td className="p-4 font-bold text-slate-700 text-xs">{h.shift_name || "NGHỈ"}</td>
+                            <td className="p-4 font-bold text-slate-700 text-xs">{h.shift_name || t("shifts.off_day")}</td>
                             <td className="p-4 font-mono text-xs text-slate-500">{h.date_range}</td>
                           </tr>
                         ))}
                         {(!history || history.length === 0) && (
                           <tr>
-                            <td colSpan={5} className="p-8 text-center text-xs font-bold text-slate-300 uppercase tracking-widest">Chưa có dữ liệu lịch sử</td>
+                            <td colSpan={5} className="p-8 text-center text-xs font-bold text-slate-300 uppercase tracking-widest">{t("common.no_history")}</td>
                           </tr>
                         )}
                       </tbody>
@@ -668,14 +677,14 @@ export default function ShiftsPage() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-slate-900">{selectedEmployee.first_name} {selectedEmployee.last_name}</h2>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">Gán lịch trình cố định hoặc dài hạn</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">{t("shifts.fixed_assignment_subtitle")}</p>
                   </div>
                 </div>
 
                 <div className="space-y-10">
                   <div className="space-y-4">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-1">
-                      <Clock size={12} /> Chọn Ca Làm Việc Mặc Định
+                      <Clock size={12} /> {t("shifts.select_default_shift")}
                     </label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {shifts?.map(shift => (
@@ -694,7 +703,7 @@ export default function ShiftsPage() {
                               {shift.break_start ? (
                                 <span>{shift.break_start.substring(0, 5)}-{shift.break_end?.substring(0, 5)}</span>
                               ) : (
-                                <span>Nghỉ {shift.break_duration_minutes}p</span>
+                                <span>{t("common.break")} {shift.break_duration_minutes}p</span>
                               )}
                             </div>
                           </div>
@@ -709,7 +718,7 @@ export default function ShiftsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-1">
-                        <Calendar size={12} /> Hiệu lực từ ngày
+                        <Calendar size={12} /> {t("common.effective_from")}
                       </label>
                       <input 
                         type="date" 
@@ -722,13 +731,13 @@ export default function ShiftsPage() {
                     <div className="space-y-3">
                       <div className="flex justify-between items-center px-1">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                          <Calendar size={12} /> Ngày Kết Thúc
+                          <Calendar size={12} /> {t("common.end_date")}
                         </label>
                         <button 
                           onClick={() => setIsForever(!isForever)}
                           className={`text-[9px] font-black px-3 py-1 rounded-full border transition-all uppercase tracking-tighter ${isForever ? 'bg-primary-600 text-white border-blue-600' : 'bg-slate-100 text-slate-400 border-slate-200'}`}
                         >
-                          {isForever ? "VÔ THỜI HẠN" : "CÓ THỜI HẠN"}
+                          {isForever ? t("common.indefinite").toUpperCase() : t("common.definite").toUpperCase()}
                         </button>
                       </div>
                       <input 
@@ -746,7 +755,7 @@ export default function ShiftsPage() {
                     disabled={assignMutation.isPending}
                     className="w-full bg-slate-900 text-white font-black py-5 rounded-[28px] flex items-center justify-center gap-3 hover:bg-black transition-all active:scale-[0.98] disabled:opacity-50 shadow-2xl shadow-slate-200 uppercase tracking-widest text-xs"
                   >
-                    <Save size={18} /> Gán ca làm việc
+                    <Save size={18} /> {t("shifts.assign_btn")}
                   </button>
                 </div>
               </div>
@@ -757,16 +766,16 @@ export default function ShiftsPage() {
         /* TAB: DIRECTORY */
         <div className="bg-white border border-slate-200 rounded-[40px] overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-            <h2 className="font-black text-[10px] text-slate-400 uppercase tracking-widest">Danh mục các loại ca</h2>
-            <span className="text-[10px] font-bold text-slate-400 italic">Tổng số: {shifts?.length || 0}</span>
+            <h2 className="font-black text-[10px] text-slate-400 uppercase tracking-widest">{t("shifts.directory_title")}</h2>
+            <span className="text-[10px] font-bold text-slate-400 italic">{t("common.total")}: {shifts?.length || 0}</span>
           </div>
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/20">
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Tên loại ca</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Khung giờ</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Nghỉ giữa ca</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Hành động</th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">{t("shifts.table.shift_name")}</th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">{t("shifts.table.time_range")}</th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">{t("shifts.table.break_time")}</th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">{t("common.actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -797,14 +806,14 @@ export default function ShiftsPage() {
                         </div>
                         {shift.is_break_auto_deduct && (
                           <div className="text-[9px] font-black text-blue-500 uppercase tracking-tight mt-1 flex items-center gap-1">
-                            <Zap size={8} /> Auto-deduct
+                            <Zap size={8} /> {t("shifts.auto_deduct")}
                           </div>
                         )}
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 font-bold text-sm text-slate-600">
                         <Clock className="w-4 h-4 text-slate-300" />
-                        {shift.break_duration_minutes} phút
+                        {shift.break_duration_minutes} {t("common.minutes")}
                       </div>
                     )}
                   </td>
@@ -829,375 +838,3 @@ export default function ShiftsPage() {
                     <div className="bg-slate-50 w-20 h-20 rounded-[32px] flex items-center justify-center mx-auto mb-6">
                       <Clock size={32} className="text-slate-200" />
                     </div>
-                    <p className="text-slate-300 font-black uppercase tracking-widest text-xs">Hệ thống chưa có loại ca nào.</p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Modal: Create Shift */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[44px] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100">
-            <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-              <div>
-                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight leading-tight">Thiết lập ca</h3>
-                <p className="text-[10px] text-slate-400 font-black mt-1 uppercase tracking-widest">KHAI BÁO THAM SỐ CA LÀM VIỆC</p>
-              </div>
-              <button onClick={() => setIsCreateModalOpen(false)} className="p-3 hover:bg-white border border-transparent hover:border-slate-100 rounded-2xl transition-all">
-                <X className="w-6 h-6 text-slate-300" />
-              </button>
-            </div>
-            
-            <div className="p-10 space-y-8">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tên loại ca</label>
-                <input 
-                  type="text" 
-                  placeholder="Hành chính, Ca sáng, Ca gãy..."
-                  value={newShiftName}
-                  onChange={(e) => setNewShiftName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all placeholder:text-slate-300"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-5">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center ml-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Giờ vào</label>
-                    <span className="text-[9px] font-black text-blue-500 uppercase">{formatTime(newShiftStart)}</span>
-                  </div>
-                  <input 
-                    type="time" 
-                    step="60"
-                    lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
-                    value={newShiftStart?.substring(0, 5)}
-                    onChange={(e) => setNewShiftStart(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-                  />
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center ml-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Giờ ra</label>
-                    <span className="text-[9px] font-black text-blue-500 uppercase">{formatTime(newShiftEnd)}</span>
-                  </div>
-                  <input 
-                    type="time" 
-                    step="60"
-                    lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
-                    value={newShiftEnd?.substring(0, 5)}
-                    onChange={(e) => setNewShiftEnd(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-5">
-                <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Clock size={12} /> Cấu hình nghỉ giải lao
-                  </label>
-                  <div className="flex items-center gap-2 bg-slate-200/50 p-1 rounded-xl">
-                    <button 
-                      onClick={() => setIsFixedBreak(false)}
-                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all ${!isFixedBreak ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                      Linh hoạt
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setIsFixedBreak(true);
-                        if (!newBreakStart) setNewBreakStart("12:00");
-                        if (!newBreakEnd) setNewBreakEnd("13:00");
-                      }}
-                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all ${isFixedBreak ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                      Cố định
-                    </button>
-                  </div>
-                </div>
-
-                {isFixedBreak ? (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center ml-1">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bắt đầu nghỉ</label>
-                          <span className="text-[8px] font-black text-indigo-500 uppercase">{formatTime(newBreakStart)}</span>
-                        </div>
-                        <input 
-                          type="time" 
-                          step="60"
-                          lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
-                          value={newBreakStart?.substring(0, 5)}
-                          onChange={(e) => setNewBreakStart(e.target.value)}
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center ml-1">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Kết thúc nghỉ</label>
-                          <span className="text-[8px] font-black text-indigo-500 uppercase">{formatTime(newBreakEnd)}</span>
-                        </div>
-                        <input 
-                          type="time" 
-                          step="60"
-                          lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
-                          value={newBreakEnd?.substring(0, 5)}
-                          onChange={(e) => setNewBreakEnd(e.target.value)}
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-                        />
-                      </div>
-                    </div>
-                    
-                    <label className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100 cursor-pointer group hover:border-blue-200 transition-all">
-                      <input 
-                        type="checkbox" 
-                        checked={isAutoDeduct}
-                        onChange={(e) => setIsAutoDeduct(e.target.checked)}
-                        className="w-4 h-4 rounded-md border-slate-300 text-primary-600 focus:ring-primary-500"
-                      />
-                      <span className="text-xs font-bold text-slate-600 group-hover:text-primary-600 transition-colors">Tự động trừ giờ nghỉ (Auto-deduct)</span>
-                    </label>
-                  </div>
-                ) : (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                     <div className="flex justify-between items-center px-1">
-                        <span className="text-xs font-bold text-slate-700">Thời lượng nghỉ</span>
-                        <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-lg text-[10px] font-black">{newShiftBreak} phút</span>
-                      </div>
-                      <input 
-                        type="range" 
-                        min="0" 
-                        max="120" 
-                        step="15"
-                        value={newShiftBreak}
-                        onChange={(e) => setNewShiftBreak(parseInt(e.target.value))}
-                        className="w-full h-2 bg-slate-200 rounded-full appearance-none cursor-pointer accent-blue-600"
-                      />
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={handleCreateShift}
-                disabled={createShiftMutation.isPending}
-                className="w-full bg-primary-600 text-white font-black py-5 rounded-[24px] flex items-center justify-center gap-3 hover:bg-primary-700 transition-all active:scale-95 shadow-xl shadow-primary-100 disabled:opacity-50 mt-4 uppercase tracking-widest text-xs"
-              >
-                <Save className="w-5 h-5" />
-                Lưu loại ca
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Edit Shift */}
-      {editingShift && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[44px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100">
-            <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-              <div>
-                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight leading-tight">Chỉnh sửa: {editingShift.name}</h3>
-                <p className="text-[10px] text-slate-400 font-black mt-1 uppercase tracking-widest">CẬP NHẬT CẤU HÌNH HOẶC THAY ĐỔI GIỜ LÀM</p>
-              </div>
-              <button onClick={() => setEditingShift(null)} className="p-3 hover:bg-white border border-transparent hover:border-slate-100 rounded-2xl transition-all">
-                <X className="w-6 h-6 text-slate-300" />
-              </button>
-            </div>
-            
-            <div className="p-10 space-y-8 max-h-[70vh] overflow-y-auto">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tên loại ca</label>
-                <input 
-                  type="text" 
-                  value={newShiftName}
-                  onChange={(e) => setNewShiftName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-5">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center ml-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Giờ vào</label>
-                    <span className="text-[9px] font-black text-blue-500 uppercase">{formatTime(newShiftStart)}</span>
-                  </div>
-                  <input 
-                    type="time" 
-                    step="60"
-                    lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
-                    value={newShiftStart}
-                    onChange={(e) => setNewShiftStart(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-                  />
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center ml-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Giờ ra</label>
-                    <span className="text-[9px] font-black text-blue-500 uppercase">{formatTime(newShiftEnd)}</span>
-                  </div>
-                  <input 
-                    type="time" 
-                    step="60"
-                    lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"}
-                    value={newShiftEnd}
-                    onChange={(e) => setNewShiftEnd(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-5">
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Nghỉ giải lao</label>
-                  <div className="flex items-center gap-2 rounded-xl bg-slate-200/50 p-1">
-                    <button 
-                      onClick={() => setIsFixedBreak(false)}
-                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${!isFixedBreak ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-400'}`}
-                    > Linh hoạt </button>
-                    <button 
-                      onClick={() => setIsFixedBreak(true)}
-                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${isFixedBreak ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-400'}`}
-                    > Cố định </button>
-                  </div>
-                </div>
-                {isFixedBreak ? (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-center px-1">
-                        <span className="text-[8px] font-black text-slate-400 uppercase">Bắt đầu</span>
-                        <span className="text-[8px] font-black text-blue-500 uppercase">{formatTime(newBreakStart)}</span>
-                      </div>
-                      <input type="time" step="60" lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"} value={newBreakStart} onChange={(e) => setNewBreakStart(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-center px-1">
-                        <span className="text-[8px] font-black text-slate-400 uppercase">Kết thúc</span>
-                        <span className="text-[8px] font-black text-blue-500 uppercase">{formatTime(newBreakEnd)}</span>
-                      </div>
-                      <input type="time" step="60" lang={workspace?.time_format === "12h" ? "en-US" : "vi-VN"} value={newBreakEnd} onChange={(e) => setNewBreakEnd(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-sm" />
-                    </div>
-                  </div>
-                ) : (
-                  <input type="range" min="0" max="120" step="15" value={newShiftBreak} onChange={(e) => setNewShiftBreak(parseInt(e.target.value))} className="w-full h-2 bg-slate-200 rounded-full appearance-none cursor-pointer accent-blue-600" />
-                )}
-              </div>
-
-              {/* Versioning Logic */}
-              <div className="bg-primary-50 p-6 rounded-[32px] border border-blue-100 space-y-4">
-                <label className="group flex cursor-pointer items-start gap-3">
-                  <input 
-                    type="checkbox" 
-                    checked={isEditCorrection}
-                    onChange={(e) => setIsEditCorrection(e.target.checked)}
-                    className="mt-1 h-5 w-5 rounded-lg border-blue-200 text-primary-600 focus:ring-primary-500"
-                  />
-                  <div className="flex-1">
-                    <span className="block text-xs font-black uppercase tracking-tight text-blue-900">Sửa lỗi nhập liệu (Correction)</span>
-                    <span className="mt-0.5 block text-[10px] font-bold leading-tight text-blue-500">
-                      Thông tin sẽ được ghi đè trực tiếp lên bản ghi hiện tại. <br/> 
-                      <span className="text-[9px] italic font-black text-rose-500 underline">Cảnh báo: Có thể làm thay đổi dữ liệu chấm công quá khứ.</span>
-                    </span>
-                  </div>
-                </label>
-
-                {!isEditCorrection && (
-                  <div className="animate-in slide-in-from-top-2 space-y-2 border-t border-blue-100 pt-2">
-                    <label className="ml-1 text-[10px] font-black uppercase tracking-widest text-blue-900">Ngày áp dụng thay đổi</label>
-                    <input 
-                      type="date" 
-                      value={editEffectiveDate}
-                      onChange={(e) => setEditEffectiveDate(e.target.value)}
-                      className="w-full rounded-2xl border border-blue-200 bg-white px-5 py-3 font-bold text-blue-700 outline-none focus:ring-2 focus:ring-primary-500"
-                    />
-                    <p className="px-1 text-[9px] font-bold italic text-blue-400">
-                      Hệ thống sẽ tạo phiên bản mới và chuyển toàn bộ nhân viên sang ca này từ ngày đã chọn.
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={handleUpdateShift}
-                disabled={updateShiftMutation.isPending}
-                className="active:scale-95 shadow-xl shadow-slate-200 w-full rounded-[28px] bg-slate-900 py-5 text-xs font-black uppercase tracking-widest text-white transition-all hover:bg-black flex items-center justify-center gap-3"
-              >
-                <Save className="h-5 w-5" />
-                Cập nhật cấu hình
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Shift Picker */}
-      {isShiftPickerOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[44px] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100">
-            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-              <div>
-                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Chọn ca làm việc</h3>
-                <p className="text-[10px] text-slate-400 font-black mt-1 uppercase tracking-widest">
-                  Gán cho {targetDates.length === 1 ? `ngày ${formatDate(targetDates[0])}` : `${targetDates.length} ngày đã chọn`}
-                </p>
-              </div>
-              <button onClick={() => setIsShiftPickerOpen(false)} className="p-3 hover:bg-white border border-transparent hover:border-slate-100 rounded-2xl transition-all">
-                <X className="w-6 h-6 text-slate-300" />
-              </button>
-            </div>
-            
-            <div className="p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
-                {/* Day Off Option */}
-                <button
-                  onClick={() => {
-                    const items = targetDates.map(date => ({ date, shift_id: null }));
-                    bulkRosterMutation.mutate(items);
-                    setIsShiftPickerOpen(false);
-                  }}
-                  className="p-5 rounded-[28px] border-2 border-slate-100 hover:border-rose-200 hover:bg-rose-50/30 text-left transition-all group flex flex-col items-center justify-center gap-2 border-dashed"
-                >
-                  <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-rose-100 group-hover:text-rose-500 transition-colors">
-                    <X size={20} />
-                  </div>
-                  <div className="font-black text-xs uppercase tracking-widest text-slate-400 group-hover:text-rose-600">Đặt nghỉ (OFF)</div>
-                </button>
-
-                {/* Shift Options */}
-                {shifts?.map(shift => (
-                  <button
-                    key={shift.id}
-                    onClick={() => {
-                      const items = targetDates.map(date => ({ date, shift_id: shift.id }));
-                      bulkRosterMutation.mutate(items);
-                      setIsShiftPickerOpen(false);
-                    }}
-                    className="p-5 rounded-[28px] border-2 border-slate-100 hover:border-blue-600 hover:bg-primary-50/50 text-left transition-all relative overflow-hidden group"
-                  >
-                    <div className="font-black text-sm uppercase tracking-tight text-slate-700 group-hover:text-blue-700">{shift.name}</div>
-                    <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
-                                          <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1 group-hover:text-blue-500">
-                                            <Clock size={10} /> {formatTime(shift.start_time)} - {formatTime(shift.end_time)}
-                                          </div>                      <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1 group-hover:text-blue-500">
-                        <Info size={10} /> 
-                        {shift.break_start ? (
-                          <span>{shift.break_start.substring(0, 5)}-{shift.break_end?.substring(0, 5)}</span>
-                        ) : (
-                          <span>Nghỉ {shift.break_duration_minutes}p</span>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}

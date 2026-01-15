@@ -1,0 +1,60 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT d.id, d.workspace_id, d.name, d.description, d.rule_config as \"rule_config: sqlx::types::Json<LeavePolicyConfig>\", d.created_at as \"created_at!\", d.updated_at as \"updated_at!\"\n        FROM leave_policy_assignments a\n        JOIN leave_policy_definitions d ON a.policy_id = d.id\n        WHERE a.workspace_id = $1\n          AND a.assignee_type = 'employee'\n          AND a.assignee_id = $2\n          AND a.effective_from <= $3\n          AND (a.effective_to IS NULL OR a.effective_to > $3)\n        LIMIT 1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "rule_config: sqlx::types::Json<LeavePolicyConfig>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "42a4c818f5497f586a4c28df08226ef73e357b0c4494dc9dd035289b5de7ebcc"
+}

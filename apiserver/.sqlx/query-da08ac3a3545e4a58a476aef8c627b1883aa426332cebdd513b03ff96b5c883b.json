@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, employee_id, base_salary, salary_type, currency, effective_date, created_at as \"created_at!\", updated_at as \"updated_at!\" \n           FROM salary_history \n           WHERE employee_id = $1 AND effective_date <= $2 \n           ORDER BY effective_date DESC, created_at DESC \n           LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "employee_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "base_salary",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "salary_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "currency",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "effective_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "da08ac3a3545e4a58a476aef8c627b1883aa426332cebdd513b03ff96b5c883b"
+}

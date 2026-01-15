@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, XCircle, Clock, MessageSquare, Upload, FileDown } from "lucide-react";
 import { 
@@ -13,6 +14,7 @@ import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import AttendanceImportDialog from "@/components/AttendanceImportDialog";
 
 export default function AttendanceAdjustmentsPage() {
+  const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
   const { formatDate, formatTime } = useDateTimeFormatter();
@@ -74,22 +76,22 @@ export default function AttendanceAdjustmentsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
-        return <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">Đã duyệt</span>;
+        return <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">{t("attendance_confirm.status.approved")}</span>;
       case "rejected":
-        return <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold">Từ chối</span>;
+        return <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold">{t("attendance_confirm.status.rejected")}</span>;
       default:
-        return <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">Chờ duyệt</span>;
+        return <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">{t("attendance_confirm.status.pending")}</span>;
     }
   };
 
-  if (!wsId) return <div className="p-8 text-center">Vui lòng chọn Workspace</div>;
+  if (!wsId) return <div className="p-8 text-center">{t("common.select_workspace")}</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Xác nhận công</h1>
-          <p className="text-slate-500">Phê duyệt các yêu cầu điều chỉnh/bổ sung công từ nhân viên.</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("attendance_confirm.title")}</h1>
+          <p className="text-slate-500">{t("attendance_confirm.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
           <button 
@@ -97,14 +99,14 @@ export default function AttendanceAdjustmentsPage() {
             className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 transition-all font-semibold text-sm"
           >
             <FileDown className="w-4 h-4" />
-            Mẫu Excel
+            {t("attendance_confirm.excel_template")}
           </button>
           <button 
             onClick={() => setIsImportDialogOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-2xl hover:bg-primary-700 transition-all font-semibold shadow-sm shadow-primary-200 text-sm disabled:opacity-50"
           >
             <Upload className="w-4 h-4" />
-            Nhập Excel
+            {t("attendance_confirm.import_excel")}
           </button>
         </div>
       </div>
@@ -114,18 +116,18 @@ export default function AttendanceAdjustmentsPage() {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Nhân viên</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Yêu cầu (Vào - Ra)</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Lý do</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Trạng thái</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Thao tác</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">{t("common.employee")}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">{t("attendance_confirm.table.request_time")}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">{t("common.reason")}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">{t("common.status")}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">{t("common.actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {isLoading ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">Đang tải...</td></tr>
+                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">{t("common.loading")}</td></tr>
               ) : requests.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">Chưa có yêu cầu nào.</td></tr>
+                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">{t("attendance_confirm.messages.no_requests")}</td></tr>
               ) : requests.map((req) => (
                 <tr key={req.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4">
@@ -148,7 +150,7 @@ export default function AttendanceAdjustmentsPage() {
                     {req.is_break_overtime && (
                       <div className="mt-1">
                         <span className="px-2 py-0.5 bg-primary-600 text-white rounded-md text-[10px] font-bold uppercase tracking-wider">
-                          Làm thông trưa
+                          {t("attendance_confirm.ot_label")}
                         </span>
                       </div>
                     )}
@@ -169,7 +171,7 @@ export default function AttendanceAdjustmentsPage() {
                           onClick={() => approveMutation.mutate({ id: req.id, status: "rejected" })}
                           disabled={approveMutation.isPending}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                          title="Từ chối"
+                          title={t("common.reject")}
                         >
                           <XCircle className="w-6 h-6" />
                         </button>
@@ -177,7 +179,7 @@ export default function AttendanceAdjustmentsPage() {
                           onClick={() => approveMutation.mutate({ id: req.id, status: "approved" })}
                           disabled={approveMutation.isPending}
                           className="p-2 text-green-600 hover:bg-green-50 rounded-xl transition-colors"
-                          title="Phê duyệt"
+                          title={t("common.approve")}
                         >
                           <CheckCircle className="w-6 h-6" />
                         </button>
@@ -194,7 +196,7 @@ export default function AttendanceAdjustmentsPage() {
       <AttendanceImportDialog 
         isOpen={isImportDialogOpen}
         onClose={() => setIsImportDialogOpen(false)}
-        title="Nhập dữ liệu chấm công từ file"
+        title={t("attendance_confirm.modal.import_title")}
         endpoint="/attendance/upload"
         targetType="adjustment"
       />

@@ -27,7 +27,7 @@ async function findAvailablePort(
   );
 }
 
-//@ts-ignore
+//@ts-expect-error - legacy next.js config override during transition to vite
 export default defineConfig(async ({ mode }: ConfigEnv) => {
   // Load env variables based on mode (development, production, etc.)
   const env = loadEnv(mode, process.cwd());

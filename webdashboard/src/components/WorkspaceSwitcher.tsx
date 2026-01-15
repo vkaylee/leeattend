@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Briefcase, Plus } from "lucide-react";
 import {
   Workspace,
@@ -10,6 +11,7 @@ import { useWorkspaces } from "@/hooks/use-workspace";
 import { Combobox } from "./ui/Combobox";
 
 export default function WorkspaceSwitcher() {
+  const { t } = useTranslation();
   const { workspaces, isLoading } = useWorkspaces();
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(
     null,
@@ -50,85 +52,45 @@ export default function WorkspaceSwitcher() {
   }
 
     const options = [
-
       ...workspaces.map((ws) => ({
-
         value: ws.id,
-
         label: ws.name,
-
         icon: (
-
           <div className="bg-primary-50 p-1.5 rounded-lg border border-primary-100">
-
             <Briefcase className="w-3.5 h-3.5 text-primary-600" />
-
           </div>
-
         ),
-
         description: ws.id.substring(0, 8)
-
       })),
-
       {
-
         value: "ADD_NEW",
-
-        label: "Tạo Workspace",
-
+        label: t("common.create_workspace"),
         icon: (
-
           <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100">
-
             <Plus className="w-3.5 h-3.5 text-slate-500" />
-
           </div>
-
         ),
-
-        description: "Thêm văn phòng/chi nhánh"
-
+        description: t("common.add_office_branch")
       }
-
     ];
 
-  
-
     return (
-
       <div className="relative">
-
         <Combobox
-
           options={options}
-
           value={activeWorkspace?.id}
-
           onChange={handleSwitch}
-
-          placeholder="Chọn Workspace"
-
-          searchPlaceholder="Tìm kiếm..."
-
+          placeholder={t("common.select_workspace")}
+          searchPlaceholder={t("common.search_placeholder")}
           className="h-10 bg-slate-50/50 border-slate-100 hover:bg-white hover:border-primary-200 transition-all rounded-xl text-sm font-semibold text-slate-700"
-
         />
-
-  
 
         <CreateWorkspaceDialog
-
           isOpen={isCreateOpen}
-
           onClose={() => setIsCreateOpen(false)}
-
         />
-
       </div>
-
     );
-
   }
 
   

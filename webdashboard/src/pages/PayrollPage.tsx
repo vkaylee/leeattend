@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Banknote, 
@@ -30,6 +31,7 @@ import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 
 export default function PayrollPage() {
+  const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -59,10 +61,10 @@ export default function PayrollPage() {
       calculatePayroll(wsId, selectedEmployee!.id, data.year, data.month),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payslips", selectedEmployee?.id] });
-      toast.success("Đã tính lương thành công.");
+      toast.success(t("payroll.messages.calculate_success"));
       setIsCalcModalOpen(false);
     },
-    onError: (e: any) => toast.error(e.message, "Lỗi tính lương")
+    onError: (e: any) => toast.error(e.message, t("payroll.messages.calculate_error"))
   });
 
   const handleCalculate = () => {
@@ -74,22 +76,22 @@ export default function PayrollPage() {
     emp.employee_id_number.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (!wsId) return <div className="p-8 text-center">Vui lòng chọn Workspace</div>;
+  if (!wsId) return <div className="p-8 text-center">{t("common.select_workspace")}</div>;
 
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-6 overflow-hidden animate-in fade-in duration-500">
       {/* Left Sidebar: Employee List */}
       <div className={`flex-1 flex flex-col gap-6 overflow-hidden transition-all ${selectedEmployee ? 'max-w-[350px]' : 'max-w-full'}`}>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Tính lương</h1>
-          <p className="text-slate-500">Quản lý thu nhập và phiếu lương</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">{t("payroll.title")}</h1>
+          <p className="text-slate-500">{t("payroll.subtitle")}</p>
         </div>
 
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
           <input 
             type="text" 
-            placeholder="Tìm nhân viên..."
+            placeholder={t("payroll.search_placeholder")}
             className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-blue-500 transition-all"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -98,7 +100,7 @@ export default function PayrollPage() {
 
         <div className="bg-white border border-slate-200 rounded-3xl flex-1 overflow-auto shadow-sm">
           {empsLoading ? (
-            <div className="p-8 text-center text-slate-400 italic">Đang tải...</div>
+            <div className="p-8 text-center text-slate-400 italic">{t("common.loading")}</div>
           ) : (
             <div className="divide-y divide-slate-50">
               {filteredEmployees.map(emp => (
@@ -131,9 +133,9 @@ export default function PayrollPage() {
             <div className="bg-slate-50 p-6 rounded-[32px] mb-6">
               <Banknote className="w-12 h-12 text-slate-300" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900">Chọn nhân sự để quản lý lương</h3>
+            <h3 className="text-xl font-bold text-slate-900">{t("payroll.empty_state.title")}</h3>
             <p className="text-slate-500 mt-2 max-w-xs mx-auto text-sm">
-              Xem lịch sử phiếu lương hoặc tính toán bảng lương tháng mới cho nhân viên.
+              {t("payroll.empty_state.desc")}
             </p>
           </div>
         ) : (
@@ -145,7 +147,7 @@ export default function PayrollPage() {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-slate-900">{selectedEmployee.first_name} {selectedEmployee.last_name}</h2>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Hồ sơ lương nhân sự</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t("payroll.employee_profile")}</p>
                 </div>
               </div>
               <button 
@@ -153,44 +155,44 @@ export default function PayrollPage() {
                 className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-black transition-all shadow-lg shadow-slate-200 active:scale-95"
               >
                 <Calculator className="w-5 h-5" />
-                Tính lương mới
+                {t("payroll.calculate_btn")}
               </button>
             </div>
 
             <div className="flex-1 bg-white border border-slate-200 rounded-[40px] overflow-hidden shadow-sm flex flex-col">
               <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
                 <History className="w-4 h-4 text-slate-400" />
-                <h3 className="font-black text-[10px] text-slate-400 uppercase tracking-widest">Lịch sử phiếu lương (Payslips)</h3>
+                <h3 className="font-black text-[10px] text-slate-400 uppercase tracking-widest">{t("payroll.history_title")}</h3>
               </div>
               
               <div className="flex-1 overflow-auto">
                 <table className="w-full text-left">
                   <thead className="bg-slate-50/30 sticky top-0 backdrop-blur-md border-b border-slate-100">
                     <tr>
-                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Kỳ lương</th>
-                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Lương cơ bản</th>
-                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Tăng ca</th>
-                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Khấu trừ</th>
-                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Thực nhận</th>
-                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Trạng thái</th>
+                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("payroll.table.period")}</th>
+                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.base_pay")}</th>
+                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.overtime")}</th>
+                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.deductions")}</th>
+                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.net_pay")}</th>
+                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t("payroll.table.status")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {payslipsLoading ? (
-                      <tr><td colSpan={6} className="px-8 py-12 text-center text-slate-400 italic">Đang tải phiếu lương...</td></tr>
+                      <tr><td colSpan={6} className="px-8 py-12 text-center text-slate-400 italic">{t("payroll.table.loading_payslips")}</td></tr>
                     ) : payslips.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="px-8 py-20 text-center">
                           <div className="bg-slate-50 w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <FileText className="text-slate-200 w-6 h-6" />
                           </div>
-                          <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">Chưa có phiếu lương nào</p>
+                          <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">{t("payroll.table.no_payslips")}</p>
                         </td>
                       </tr>
                     ) : payslips.map(slip => (
                       <tr key={slip.id} className="hover:bg-slate-50/50 transition-colors group">
                         <td className="px-8 py-6">
-                          <div className="font-bold text-slate-900">Tháng {new Date(slip.period_start).getMonth() + 1}/{new Date(slip.period_start).getFullYear()}</div>
+                          <div className="font-bold text-slate-900">{t("common.month")} {new Date(slip.period_start).getMonth() + 1}/{new Date(slip.period_start).getFullYear()}</div>
                           <div className="text-[10px] text-slate-400 font-bold mt-1">
                             {formatDate(slip.period_start)} - {formatDate(slip.period_end)}
                           </div>
@@ -212,11 +214,11 @@ export default function PayrollPage() {
                         <td className="px-8 py-6 text-center">
                           {slip.status === 'paid' ? (
                             <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-tighter">
-                              <CheckCircle2 size={10} /> ĐÃ CHI TRẢ
+                              <CheckCircle2 size={10} /> {t("payroll.status.paid")}
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-tighter">
-                              <AlertCircle size={10} /> ĐÃ CHỐT
+                              <AlertCircle size={10} /> {t("payroll.status.finalized")}
                             </span>
                           )}
                         </td>
@@ -234,8 +236,8 @@ export default function PayrollPage() {
       <Modal
         isOpen={isCalcModalOpen && !!selectedEmployee}
         onClose={() => setIsCalcModalOpen(false)}
-        title="Tính lương tháng"
-        subtitle="Xử lý dữ liệu"
+        title={t("payroll.modal.title")}
+        subtitle={t("payroll.modal.subtitle")}
         icon={<Calculator className="w-6 h-6" />}
       >
         <div className="space-y-8">
@@ -244,30 +246,30 @@ export default function PayrollPage() {
               <UserCircle className="w-7 h-7" />
             </div>
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Nhân viên</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t("common.employee")}</p>
               <p className="text-lg font-black text-slate-900 tracking-tight">{selectedEmployee?.first_name} {selectedEmployee?.last_name}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Năm</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.year")}</label>
               <input type="number" value={calcYear} onChange={e => setCalcYear(parseInt(e.target.value))} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold" />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tháng</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.month")}</label>
               <input type="number" min="1" max="12" value={calcMonth} onChange={e => setCalcMonth(parseInt(e.target.value))} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold" />
             </div>
           </div>
 
           <div className="pt-4 grid grid-cols-2 gap-5">
-            <button type="button" onClick={() => setIsCalcModalOpen(false)} className="px-8 py-4 border border-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Hủy bỏ</button>
+            <button type="button" onClick={() => setIsCalcModalOpen(false)} className="px-8 py-4 border border-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all">{t("common.cancel")}</button>
             <button 
               onClick={handleCalculate}
               disabled={calcMutation.isPending}
               className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2"
             >
-              {calcMutation.isPending ? "Đang tính..." : "Bắt đầu tính lương"}
+              {calcMutation.isPending ? t("common.processing") : t("payroll.modal.submit")}
             </button>
           </div>
         </div>

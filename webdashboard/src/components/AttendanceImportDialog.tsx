@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchLatestImportJob, fetchImportJobStatus, getCurrentWorkspaceId, uploadAttendance } from "@/lib/api";
 import { 
@@ -48,6 +49,7 @@ interface AttendanceImportDialogProps {
 }
 
 export default function AttendanceImportDialog({ isOpen, onClose, endpoint, title, targetType }: AttendanceImportDialogProps) {
+  const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
@@ -89,7 +91,7 @@ export default function AttendanceImportDialog({ isOpen, onClose, endpoint, titl
       queryClient.invalidateQueries({ queryKey: ["latest-import-job"] });
     } catch (error) {
       console.error("Upload error:", error);
-      alert("Lỗi khi tải file lên");
+      alert(t("attendance_import.messages.upload_error"));
     } finally {
       setUploading(false);
     }
@@ -102,7 +104,7 @@ export default function AttendanceImportDialog({ isOpen, onClose, endpoint, titl
       isOpen={isOpen}
       onClose={onClose}
       title={title}
-      subtitle="Nhập dữ liệu hàng loạt"
+      subtitle={t("attendance_import.subtitle")}
       icon={<Upload className="w-6 h-6" />}
       maxWidth="lg"
     >
@@ -121,12 +123,12 @@ export default function AttendanceImportDialog({ isOpen, onClose, endpoint, titl
               )}
               <div>
                 <h3 className="font-bold text-slate-900">
-                  {jobStatus?.status === "processing" ? "Đang xử lý dữ liệu..." : 
-                    jobStatus?.status === "completed" ? "Hoàn thành!" : 
-                    jobStatus?.status === "failed" ? "Có lỗi xảy ra" : "Đang chờ..."}
+                  {jobStatus?.status === "processing" ? t("attendance_import.status.processing") : 
+                    jobStatus?.status === "completed" ? t("attendance_import.status.completed") : 
+                    jobStatus?.status === "failed" ? t("attendance_import.status.failed") : t("attendance_import.status.pending")}
                 </h3>
                 <p className="text-sm text-slate-500">
-                  {jobStatus?.processed_rows} / {jobStatus?.total_rows} dòng đã xử lý
+                  {jobStatus?.processed_rows} / {jobStatus?.total_rows} {t("attendance_import.rows_processed")}
                 </p>
               </div>
             </div>
@@ -150,7 +152,7 @@ export default function AttendanceImportDialog({ isOpen, onClose, endpoint, titl
           {jobStatus?.error_log && (
             <div className="bg-rose-50 rounded-2xl p-5 border border-rose-100">
               <h4 className="text-sm font-bold text-rose-900 mb-3 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" /> Danh sách lỗi chi tiết:
+                <AlertCircle className="w-4 h-4" /> {t("attendance_import.error_list_title")}
               </h4>
               <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                 {jobStatus.error_log.split("\n").map((err, i) => (
@@ -165,7 +167,7 @@ export default function AttendanceImportDialog({ isOpen, onClose, endpoint, titl
           {isFinished && (
             <div className="pt-4 flex justify-end">
               <Button onClick={() => { setActiveJobId(null); queryClient.invalidateQueries(); }}>
-                Tiếp tục
+                {t("common.pagination.next")}
               </Button>
             </div>
           )}
@@ -175,12 +177,12 @@ export default function AttendanceImportDialog({ isOpen, onClose, endpoint, titl
           <div className="bg-primary-50 rounded-2xl p-4 border border-primary-100 flex gap-3">
             <AlertCircle className="w-5 h-5 text-primary-600 shrink-0" />
             <div className="text-sm text-primary-800">
-              <p className="font-bold mb-1">Yêu cầu định dạng file:</p>
+              <p className="font-bold mb-1">{t("attendance_import.file_requirements.title")}</p>
               <ul className="list-disc list-inside space-y-1 opacity-90">
-                <li>Cột A: Mã số nhân viên (Employee ID)</li>
-                <li>Cột B: Tên nhân viên (Không bắt buộc)</li>
-                <li>Cột C: Thời gian quẹt thẻ (DD/MM/YYYY HH:mm)</li>
-                <li>Hỗ trợ file .xlsx, .xls và .csv</li>
+                <li>{t("attendance_import.file_requirements.col_a")}</li>
+                <li>{t("attendance_import.file_requirements.col_b")}</li>
+                <li>{t("attendance_import.file_requirements.col_c")}</li>
+                <li>{t("attendance_import.file_requirements.formats")}</li>
               </ul>
             </div>
           </div>
@@ -211,7 +213,7 @@ export default function AttendanceImportDialog({ isOpen, onClose, endpoint, titl
                   onClick={(e) => { e.stopPropagation(); setFile(null); }}
                   className="mt-4 text-xs font-bold text-rose-600 hover:underline"
                 >
-                  Chọn file khác
+                  {t("attendance_import.select_another_file")}
                 </button>
               </>
             ) : (
@@ -219,8 +221,8 @@ export default function AttendanceImportDialog({ isOpen, onClose, endpoint, titl
                 <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
                   <Upload className="w-8 h-8 text-slate-400" />
                 </div>
-                <p className="font-bold text-slate-900 mb-1">Click hoặc kéo thả file vào đây</p>
-                <p className="text-sm text-slate-500">Excel hoặc CSV (Tối đa 10MB)</p>
+                <p className="font-bold text-slate-900 mb-1">{t("attendance_import.upload_prompt")}</p>
+                <p className="text-sm text-slate-500">{t("attendance_import.upload_limit")}</p>
               </>
             )}
           </div>
@@ -231,7 +233,7 @@ export default function AttendanceImportDialog({ isOpen, onClose, endpoint, titl
               className="flex-1"
               onClick={onClose}
             >
-              Hủy
+              {t("common.cancel")}
             </Button>
             <Button 
               className="flex-1"
@@ -241,10 +243,10 @@ export default function AttendanceImportDialog({ isOpen, onClose, endpoint, titl
               {uploading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Đang tải lên...
+                  {t("attendance_import.status.uploading")}
                 </>
               ) : (
-                "Bắt đầu nhập dữ liệu"
+                t("attendance_import.start_import")
               )}
             </Button>
           </div>

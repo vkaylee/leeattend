@@ -20,7 +20,10 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
+import { useTranslation } from 'react-i18next';
+
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const remove = useCallback((id: string) => {
@@ -35,10 +38,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setTimeout(() => remove(id), 5000);
   }, [remove]);
 
-  const success = (msg: string, title?: string) => show(msg, 'success', title || 'Thành công');
-  const error = (msg: string, title?: string) => show(msg, 'error', title || 'Lỗi');
-  const info = (msg: string, title?: string) => show(msg, 'info', title || 'Thông báo');
-  const warning = (msg: string, title?: string) => show(msg, 'warning', title || 'Cảnh báo');
+  const success = (msg: string, title?: string) => show(msg, 'success', title || t('common.success'));
+  const error = (msg: string, title?: string) => show(msg, 'error', title || t('common.error'));
+  const info = (msg: string, title?: string) => show(msg, 'info', title || t('common.info'));
+  const warning = (msg: string, title?: string) => show(msg, 'warning', title || t('common.warning'));
 
   return (
     <ToastContext.Provider value={{ show, success, error, info, warning }}>

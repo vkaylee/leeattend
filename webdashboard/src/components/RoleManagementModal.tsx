@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { X, Shield, Plus, Trash2, Clock, UserCheck } from "lucide-react";
 import { useMemberRoles } from "@/hooks/use-workspace";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
@@ -15,6 +16,7 @@ export default function RoleManagementModal({
   isOpen,
   onClose,
 }: RoleManagementModalProps) {
+  const { t } = useTranslation();
   const { formatDate, formatTime, formatDateTime } = useDateTimeFormatter();
   const { roles, isLoading, updatePrimaryRole, assignRole, revokeRole } =
     useMemberRoles(userId || "", undefined);
@@ -27,14 +29,14 @@ export default function RoleManagementModal({
   async function handleUpdatePrimary(role: string) {
     if (role === primaryRole) return;
     if (
-      !confirm(`Bạn có chắc muốn đổi quyền chính thành ${role.toUpperCase()}?`)
+      !confirm(t("members.roles.confirm_change_primary", { role: role.toUpperCase() }))
     )
       return;
 
     try {
       await updatePrimaryRole(role);
     } catch (e: any) {
-      alert(e.message || "Lỗi khi cập nhật quyền chính.");
+      alert(e.message || t("members.roles.messages.update_primary_error"));
     }
   }
 
@@ -47,16 +49,16 @@ export default function RoleManagementModal({
       await assignRole({ role: newRole, expiresAt: isoExpiresAt });
       setExpiresAt("");
     } catch (e) {
-      alert("Lỗi khi gán quyền.");
+      alert(t("members.roles.messages.assign_error"));
     }
   }
 
   async function handleRevoke(roleId: string) {
-    if (!confirm("Bạn có chắc chắn muốn thu hồi quyền này?")) return;
+    if (!confirm(t("members.roles.confirm_revoke"))) return;
     try {
       await revokeRole(roleId);
     } catch (e) {
-      alert("Lỗi khi thu hồi quyền.");
+      alert(t("members.roles.messages.revoke_error"));
     }
   }
 
@@ -72,9 +74,9 @@ export default function RoleManagementModal({
             </div>
             <div>
               <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                Quản lý quyền hạn
+                {t("members.roles.modal_title")}
               </h2>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Phân quyền nhân sự</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{t("members.roles.modal_subtitle")}</p>
             </div>
           </div>
           <button
@@ -87,7 +89,7 @@ export default function RoleManagementModal({
 
         <div className="p-8 space-y-8">
           {isLoading ? (
-            <div className="py-12 text-center text-slate-400">Đang tải...</div>
+            <div className="py-12 text-center text-slate-400">{t("common.loading")}</div>
           ) : (
             <>
               {/* Primary Role */}
@@ -96,14 +98,14 @@ export default function RoleManagementModal({
                   htmlFor="primary-role-select"
                   className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1"
                 >
-                  Quyền chính (Vĩnh viễn)
+                  {t("members.roles.primary_role_label")}
                 </label>
                 <Combobox
                   id="primary-role-select"
                   options={[
-                    { value: "owner", label: "Owner", description: "Sáng lập, toàn quyền cao nhất", icon: <Shield className="w-4 h-4 text-primary-600" /> },
-                    { value: "admin", label: "Admin", description: "Quản trị viên hệ thống", icon: <Shield className="w-4 h-4 text-primary-600" /> },
-                    { value: "member", label: "Member", description: "Thành viên thông thường", icon: <Shield className="w-4 h-4 text-slate-400" /> },
+                    { value: "owner", label: "Owner", description: t("members.roles.owner_desc"), icon: <Shield className="w-4 h-4 text-primary-600" /> },
+                    { value: "admin", label: "Admin", description: t("members.roles.admin_desc"), icon: <Shield className="w-4 h-4 text-primary-600" /> },
+                    { value: "member", label: "Member", description: t("members.roles.member_desc"), icon: <Shield className="w-4 h-4 text-slate-400" /> },
                   ]}
                   value={primaryRole}
                   onChange={handleUpdatePrimary}
@@ -114,7 +116,7 @@ export default function RoleManagementModal({
               {/* Extra Roles */}
               <div className="space-y-4">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
-                  Quyền bổ sung (Tạm thời)
+                  {t("members.roles.extra_roles_label")}
                 </label>
 
                 <div className="space-y-3">
@@ -130,14 +132,14 @@ export default function RoleManagementModal({
                         <div className="flex items-center gap-2 text-xs text-slate-400">
                           <Clock className="w-3 h-3" />
                           <span>
-                            Hết hạn:{" "}
+                            {t("members.roles.expires_at")}:{" "}
                             {formatDateTime(role.expires_at)}
                           </span>
                         </div>
                       </div>
                       <button
                         onClick={() => handleRevoke(role.id)}
-                        title="Gỡ bỏ"
+                        title={t("common.remove")}
                         className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -147,7 +149,7 @@ export default function RoleManagementModal({
 
                   {extraRoles.length === 0 && (
                     <div className="text-center py-4 border-2 border-dashed border-slate-100 rounded-2xl text-slate-400 text-sm">
-                      Chưa có quyền bổ sung nào.
+                      {t("members.roles.no_extra_roles")}
                     </div>
                   )}
                 </div>
@@ -159,7 +161,7 @@ export default function RoleManagementModal({
           <div className="pt-6 border-t border-slate-50">
             <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
               <Plus className="w-4 h-4 text-blue-500" />
-              Gán quyền mới
+              {t("members.roles.assign_new_title")}
             </h3>
             <form
               onSubmit={handleAssign}
@@ -170,7 +172,7 @@ export default function RoleManagementModal({
                   htmlFor="extra-role-select"
                   className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1"
                 >
-                  Vai trò
+                  {t("members.invite.role_label")}
                 </label>
                 <Combobox
                   id="extra-role-select"
@@ -188,7 +190,7 @@ export default function RoleManagementModal({
                   htmlFor="expires-at-input"
                   className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1"
                 >
-                  Ngày hết hạn
+                  {t("members.roles.expiry_date_label")}
                 </label>
                 <div className="relative">
                   <input
@@ -206,7 +208,7 @@ export default function RoleManagementModal({
                   type="submit"
                   className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 text-sm"
                 >
-                  Gán quyền
+                  {t("members.roles.assign_btn")}
                 </button>
               </div>
             </form>

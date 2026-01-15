@@ -1,0 +1,73 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                            INSERT INTO leave_accrual_logs (workspace_id, employee_id, policy_assignment_id, accrual_date, amount, leave_type)\n                            VALUES ($1, $2, NULL, $3, $4, 'vacation')\n                            ON CONFLICT (employee_id, leave_type, accrual_date) DO NOTHING\n                            RETURNING id, workspace_id, employee_id, policy_assignment_id, accrual_date, amount, leave_type, notes, created_at as \"created_at!\"\n                            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "employee_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "policy_assignment_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "accrual_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "leave_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Numeric"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "95fae114184c1bdae015884dec7e1b6ec8b849df0565e53b3868cf28ac4086fe"
+}

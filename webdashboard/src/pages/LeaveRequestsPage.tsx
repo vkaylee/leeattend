@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Calendar, CheckCircle2, XCircle, Send, Plus, X, Settings2, PlayCircle, UserPlus, FileText, ShieldCheck, UserCircle } from "lucide-react";
 import { 
@@ -22,6 +23,7 @@ import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 
 export default function LeaveRequestsPage() {
+  const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
   const { formatDate } = useDateTimeFormatter();
@@ -98,7 +100,7 @@ export default function LeaveRequestsPage() {
     mutationFn: (date: string) => triggerAccrualRun(wsId!, { date }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leave-balances", wsId] });
-      alert("Đã chạy tích lũy phép thành công!");
+      toast.success(t("leave_requests.messages.accrual_success"));
     },
   });
 
@@ -146,21 +148,21 @@ export default function LeaveRequestsPage() {
     }
   };
 
-  if (!wsId) return <div className="p-8 text-center">Vui lòng chọn Workspace</div>;
+  if (!wsId) return <div className="p-8 text-center">{t("common.select_workspace")}</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Yêu cầu nghỉ phép</h1>
-          <p className="text-slate-500 mt-1">Duyệt và quản lý thời gian nghỉ của nhân sự</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{t("leave_requests.title")}</h1>
+          <p className="text-slate-500 mt-1">{t("leave_requests.subtitle")}</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
           className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 font-bold"
         >
           <Plus className="w-5 h-5" />
-          Tạo yêu cầu
+          {t("leave_requests.create_btn")}
         </button>
       </div>
 
@@ -173,7 +175,10 @@ export default function LeaveRequestsPage() {
             onClick={() => setActiveTab(tab)}
             className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${activeTab === tab ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            {tab === 'pending' ? 'Chờ duyệt' : tab === 'approved' ? 'Đã duyệt' : tab === 'rejected' ? 'Từ chối' : tab === 'all' ? 'Tất cả' : 'Chính sách'}
+            {tab === 'pending' ? t("common.status_pending") : 
+             tab === 'approved' ? t("common.status_approved") : 
+             tab === 'rejected' ? t("common.status_rejected") : 
+             tab === 'all' ? t("common.all") : t("leave_requests.tabs.policies")}
           </button>
         ))}
       </div>
@@ -186,39 +191,39 @@ export default function LeaveRequestsPage() {
               className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:bg-slate-50 transition-all font-bold text-sm"
             >
               <UserPlus className="w-4 h-4" />
-              Gán chính sách
+              {t("leave_requests.policy.assign_btn")}
             </button>
             <button 
               onClick={() => setIsPolicyModalOpen(true)}
               className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-slate-800 transition-all font-bold text-sm shadow-lg shadow-slate-100"
             >
               <Plus className="w-4 h-4" />
-              Thêm chính sách
+              {t("leave_requests.policy.add_btn")}
             </button>
           </div>
           <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
             <table className="w-full text-left">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">Tên chính sách</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">Loại nghỉ</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">Định mức/năm</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">Chiến lược</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("leave_requests.policy.table.name")}</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("leave_requests.policy.table.type")}</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("leave_requests.policy.table.entitlement")}</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("leave_requests.policy.table.strategy")}</th>
                   <th className="px-6 py-4 text-sm font-semibold text-slate-600">Carry-over</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {policies.length === 0 ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500 italic">Chưa có chính sách nào.</td></tr>
+                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500 italic">{t("leave_requests.policy.messages.no_policies")}</td></tr>
                 ) : policies.map((policy) => (
                   <tr key={policy.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4 font-medium text-slate-900">{policy.name}</td>
                     <td className="px-6 py-4 capitalize text-slate-600">{policy.leave_type}</td>
-                    <td className="px-6 py-4 text-slate-600 font-bold">{policy.annual_entitlement} ngày</td>
+                    <td className="px-6 py-4 text-slate-600 font-bold">{policy.annual_entitlement} {t("common.days")}</td>
                     <td className="px-6 py-4 text-sm text-slate-600">
-                      {policy.accrual_strategy === 'monthly' ? 'Tích lũy hàng tháng' : 'Cấp một lần đầu năm'}
+                      {policy.accrual_strategy === 'monthly' ? t("leave_requests.policy.strategies.monthly") : t("leave_requests.policy.strategies.lump_sum")}
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{policy.carry_over_limit} ngày</td>
+                    <td className="px-6 py-4 text-slate-600">{policy.carry_over_limit} {t("common.days")}</td>
                   </tr>
                 ))}
               </tbody>
@@ -230,19 +235,19 @@ export default function LeaveRequestsPage() {
           <table className="w-full text-left">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Nhân viên</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Loại</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Thời gian</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Lý do</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">Trạng thái</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">Thao tác</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("common.employee")}</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("common.type")}</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("common.time")}</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("common.reason")}</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("common.status")}</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">{t("common.actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">Đang tải...</td></tr>
+                <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">{t("common.loading")}</td></tr>
               ) : requests.length === 0 ? (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500 italic">Không có yêu cầu nào.</td></tr>
+                <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500 italic">{t("leave_requests.messages.no_requests")}</td></tr>
               ) : requests.map((req) => {
                 const emp = employees.find(e => e.id === req.employee_id);
                 return (
@@ -257,7 +262,7 @@ export default function LeaveRequestsPage() {
                     <td className="px-6 py-4 text-sm text-slate-500 max-w-xs truncate">{req.reason || '-'}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-bold ${getStatusStyle(req.status)}`}>
-                        {req.status === 'pending' ? 'Chờ duyệt' : req.status === 'approved' ? 'Đã duyệt' : 'Từ chối'}
+                        {req.status === 'pending' ? t("common.status_pending") : req.status === 'approved' ? t("common.status_approved") : t("common.status_rejected")}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -266,14 +271,14 @@ export default function LeaveRequestsPage() {
                           <button 
                             onClick={() => approveMutation.mutate({ id: req.id, status: 'approved' })}
                             className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all"
-                            title="Duyệt"
+                            title={t("common.approve")}
                           >
                             <CheckCircle2 className="w-5 h-5" />
                           </button>
                           <button 
                             onClick={() => approveMutation.mutate({ id: req.id, status: 'rejected' })}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                            title="Từ chối"
+                            title={t("common.reject")}
                           >
                             <XCircle className="w-5 h-5" />
                           </button>
@@ -293,8 +298,8 @@ export default function LeaveRequestsPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Gửi yêu cầu nghỉ phép"
-        subtitle="Quản lý vắng mặt"
+        title={t("leave_requests.modal.submit_title")}
+        subtitle={t("leave_requests.modal.submit_subtitle")}
         icon={<CalendarDays className="w-6 h-6" />}
       >
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -304,14 +309,14 @@ export default function LeaveRequestsPage() {
               htmlFor="leave-emp"
               className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"
             >
-              Nhân viên
+              {t("common.employee")}
             </label>
             <Combobox
               id="leave-emp"
               options={employees.map((e) => ({
                 value: e.id,
                 label: `${e.first_name} ${e.last_name}`,
-                description: `Mã NV: ${e.employee_id_number}`,
+                description: `${t("employees.table.id")}: ${e.employee_id_number}`,
                 icon: (
                   <div className="bg-primary-100 p-2 rounded-xl text-primary-600 shadow-inner">
                     <UserCircle className="w-4 h-4" />
@@ -320,7 +325,7 @@ export default function LeaveRequestsPage() {
               }))}
               value={selectedEmpId}
               onChange={setSelectedEmpId}
-              placeholder="Chọn nhân viên..."
+              placeholder={t("common.select_employee")}
               className="bg-slate-50 border-slate-200"
             />
           </div>
@@ -330,10 +335,10 @@ export default function LeaveRequestsPage() {
               {balances.map(b => (
                 <div key={b.leave_type} className="space-y-0.5">
                   <p className="text-[10px] font-black uppercase tracking-widest text-primary-600/60">
-                    {b.leave_type === 'vacation' ? 'Phép năm' : b.leave_type === 'sick' ? 'Nghỉ ốm' : b.leave_type}
+                    {b.leave_type === 'vacation' ? t("leave_requests.types.vacation") : b.leave_type === 'sick' ? t("leave_requests.types.sick") : b.leave_type}
                   </p>
                   <p className="text-sm font-bold text-slate-700">
-                    Còn <span className="text-primary-600 text-lg">{b.remaining}</span> / {b.entitlement + b.carried_over} ngày
+                    {t("leave_requests.remaining")}: <span className="text-primary-600 text-lg">{b.remaining}</span> / {b.entitlement + b.carried_over} {t("common.days")}
                   </p>
                 </div>
               ))}
@@ -346,14 +351,14 @@ export default function LeaveRequestsPage() {
               htmlFor="leave-type"
               className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"
             >
-              Loại nghỉ
+              {t("common.type")}
             </label>
             <Combobox
               id="leave-type"
               options={[
-                { value: "vacation", label: "Nghỉ phép năm", icon: <Calendar className="w-4 h-4" /> },
-                { value: "sick", label: "Nghỉ ốm", icon: <FileText className="w-4 h-4" /> },
-                { value: "personal", label: "Việc riêng", icon: <CalendarDays className="w-4 h-4" /> },
+                { value: "vacation", label: t("leave_requests.types.vacation_full"), icon: <Calendar className="w-4 h-4" /> },
+                { value: "sick", label: t("leave_requests.types.sick_full"), icon: <FileText className="w-4 h-4" /> },
+                { value: "personal", label: t("leave_requests.types.personal"), icon: <CalendarDays className="w-4 h-4" /> },
               ]}
               value={leaveType}
               onChange={setLeaveType}
@@ -362,21 +367,21 @@ export default function LeaveRequestsPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label htmlFor="start-date" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Từ ngày</label>
+              <label htmlFor="start-date" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.from_date")}</label>
               <input id="start-date" type="date" name="start_date" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
             </div>
             <div className="space-y-1">
-              <label htmlFor="end-date" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Đến ngày</label>
+              <label htmlFor="end-date" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.to_date")}</label>
               <input id="end-date" type="date" name="end_date" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
             </div>
           </div>
           <div className="space-y-1">
-            <label htmlFor="leave-reason" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Lý do</label>
-            <textarea id="leave-reason" name="reason" rows={3} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium resize-none" placeholder="Nhập lý do nghỉ..."></textarea>
+            <label htmlFor="leave-reason" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.reason")}</label>
+            <textarea id="leave-reason" name="reason" rows={3} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium resize-none" placeholder={t("leave_requests.modal.reason_placeholder")}></textarea>
           </div>
           <div className="pt-4 flex gap-3">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Hủy</button>
-            <button type="submit" className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200">Gửi yêu cầu</button>
+            <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all">{t("common.cancel")}</button>
+            <button type="submit" className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200">{t("leave_requests.modal.submit_btn")}</button>
           </div>
         </form>
       </Modal>
@@ -385,22 +390,22 @@ export default function LeaveRequestsPage() {
       <Modal
         isOpen={isPolicyModalOpen}
         onClose={() => setIsPolicyModalOpen(false)}
-        title="Chính sách nghỉ phép"
-        subtitle="Cấu hình định mức"
+        title={t("leave_requests.policy.title")}
+        subtitle={t("leave_requests.policy.subtitle")}
         icon={<ShieldCheck className="w-6 h-6" />}
       >
         <form onSubmit={handleCreatePolicy} className="p-2 space-y-6">
           <div className="space-y-1">
-            <label htmlFor="policy-name" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Tên chính sách</label>
-            <input id="policy-name" name="name" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" placeholder="VD: Phép năm tiêu chuẩn" />
+            <label htmlFor="policy-name" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.table.name")}</label>
+            <input id="policy-name" name="name" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" placeholder={t("leave_requests.policy.name_placeholder")} />
           </div>
           <div className="space-y-2">
-            <label htmlFor="policy-type" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Loại nghỉ</label>
+            <label htmlFor="policy-type" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.table.type")}</label>
             <Combobox
               id="policy-type"
               options={[
-                { value: "vacation", label: "Phép năm", icon: <Calendar className="w-4 h-4" /> },
-                { value: "sick", label: "Nghỉ ốm", icon: <FileText className="w-4 h-4" /> },
+                { value: "vacation", label: t("leave_requests.types.vacation"), icon: <Calendar className="w-4 h-4" /> },
+                { value: "sick", label: t("leave_requests.types.sick"), icon: <FileText className="w-4 h-4" /> },
               ]}
               value={policyType}
               onChange={setPolicyType}
@@ -409,7 +414,7 @@ export default function LeaveRequestsPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label htmlFor="annual-entitlement" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Định mức/năm</label>
+              <label htmlFor="annual-entitlement" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.table.entitlement")}</label>
               <input id="annual-entitlement" type="number" name="annual_entitlement" required defaultValue={12} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
             </div>
             <div className="space-y-1">
@@ -418,12 +423,12 @@ export default function LeaveRequestsPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <label htmlFor="accrual-strategy" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Chiến lược tích lũy</label>
+            <label htmlFor="accrual-strategy" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.table.strategy")}</label>
             <Combobox
               id="accrual-strategy"
               options={[
-                { value: "monthly", label: "Tích lũy hàng tháng", description: "Cấp 1 ngày vào đầu mỗi tháng" },
-                { value: "lump_sum", label: "Cấp một lần", description: "Cấp toàn bộ định mức vào đầu năm" },
+                { value: "monthly", label: t("leave_requests.policy.strategies.monthly"), description: t("leave_requests.policy.strategies.monthly_desc") },
+                { value: "lump_sum", label: t("leave_requests.policy.strategies.lump_sum"), description: t("leave_requests.policy.strategies.lump_sum_desc") },
               ]}
               value={accrualStrategy}
               onChange={setAccrualStrategy}
@@ -431,8 +436,8 @@ export default function LeaveRequestsPage() {
             />
           </div>
           <div className="pt-4 flex gap-3">
-            <button type="button" onClick={() => setIsPolicyModalOpen(false)} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors">Hủy</button>
-            <button type="submit" className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200">Lưu chính sách</button>
+            <button type="button" onClick={() => setIsPolicyModalOpen(false)} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors">{t("common.cancel")}</button>
+            <button type="submit" className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200">{t("leave_requests.policy.save_btn")}</button>
           </div>
         </form>
       </Modal>
@@ -441,8 +446,8 @@ export default function LeaveRequestsPage() {
       <Modal
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}
-        title="Gán chính sách"
-        subtitle="Phân bổ nhân sự"
+        title={t("leave_requests.policy.assign_title")}
+        subtitle={t("leave_requests.policy.assign_subtitle")}
         icon={<UserCircle className="w-6 h-6" />}
       >
         <form onSubmit={handleAssignPolicy} className="p-2 space-y-6">
@@ -451,7 +456,7 @@ export default function LeaveRequestsPage() {
               htmlFor="assign-emp"
               className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1"
             >
-              Nhân viên
+              {t("common.employee")}
             </label>
             <Combobox
               id="assign-emp"
@@ -462,7 +467,7 @@ export default function LeaveRequestsPage() {
               }))}
               value={assignEmpId}
               onChange={setAssignEmpId}
-              placeholder="Chọn nhân viên..."
+              placeholder={t("common.select_employee")}
               className="bg-slate-50 border-slate-200"
             />
           </div>
@@ -471,29 +476,29 @@ export default function LeaveRequestsPage() {
               htmlFor="assign-policy"
               className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1"
             >
-              Chính sách
+              {t("leave_requests.policy.title_single")}
             </label>
             <Combobox
               id="assign-policy"
               options={policies.map(p => ({
                 value: p.id,
                 label: p.name,
-                description: p.leave_type === 'vacation' ? 'Phép năm' : 'Nghỉ ốm',
+                description: p.leave_type === 'vacation' ? t("leave_requests.types.vacation") : t("leave_requests.types.sick"),
                 icon: <ShieldCheck className="w-4 h-4" />
               }))}
               value={assignPolicyId}
               onChange={setAssignPolicyId}
-              placeholder="Chọn chính sách..."
+              placeholder={t("leave_requests.policy.select_placeholder")}
               className="bg-slate-50 border-slate-200"
             />
           </div>
           <div className="space-y-1">
-            <label htmlFor="assign-date" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Ngày hiệu lực</label>
+            <label htmlFor="assign-date" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.effective_from")}</label>
             <input id="assign-date" type="date" name="effective_date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
           </div>
           <div className="pt-4 flex gap-3">
-            <button type="button" onClick={() => setIsAssignModalOpen(false)} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors">Hủy</button>
-            <button type="submit" className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200">Gán ngay</button>
+            <button type="button" onClick={() => setIsAssignModalOpen(false)} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors">{t("common.cancel")}</button>
+            <button type="submit" className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200">{t("leave_requests.policy.assign_now_btn")}</button>
           </div>
         </form>
       </Modal>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Command } from "cmdk";
 import { Search, Check, ChevronDown } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
@@ -32,14 +33,21 @@ export function Combobox({
   options,
   value,
   onChange,
-  placeholder = "Chọn một mục...",
-  searchPlaceholder = "Tìm kiếm...",
-  emptyText = "Không tìm thấy kết quả.",
+  placeholder,
+  searchPlaceholder,
+  emptyText,
   className,
   id,
   "data-testid": testId,
 }: ComboboxProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  
+  // Use localized defaults if not provided
+  placeholder = placeholder || t("common.combobox.placeholder");
+  searchPlaceholder = searchPlaceholder || t("common.combobox.search");
+  emptyText = emptyText || t("common.combobox.no_results");
+
   const selectedOption = options.find((opt) => opt.value === value);
 
   return (

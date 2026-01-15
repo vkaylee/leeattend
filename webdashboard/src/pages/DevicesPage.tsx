@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Plus,
   Trash2,
@@ -31,6 +32,7 @@ import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 
 export default function DevicesPage() {
+  const { t } = useTranslation();
   const toast = useToast();
   const {
     devices,
@@ -54,11 +56,11 @@ export default function DevicesPage() {
     e.preventDefault();
     try {
       await createDevice(newDevice);
-      toast.success(`Đã thêm thiết bị "${newDevice.name}" thành công.`);
+      toast.success(t("devices.toast.add_success", { name: newDevice.name }));
       setShowAddForm(false);
       setNewDevice({ name: "", agent_id: "", ip: "", port: 4370 });
     } catch (e) {
-      toast.error("Lỗi khi thêm thiết bị. Vui lòng kiểm tra lại địa chỉ IP.");
+      toast.error(t("devices.toast.add_error"));
     }
   }
 
@@ -72,20 +74,20 @@ export default function DevicesPage() {
         port: editingDevice.port,
         is_enabled: editingDevice.is_enabled,
       });
-      toast.success(`Đã cập nhật thiết bị "${editingDevice.name}" thành công.`);
+      toast.success(t("devices.toast.update_success", { name: editingDevice.name }));
       setEditingDevice(null);
     } catch (e) {
-      toast.error("Lỗi khi cập nhật thiết bị.");
+      toast.error(t("devices.toast.update_error"));
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Bạn có chắc chắn muốn xóa thiết bị này?")) return;
+    if (!confirm(t("devices.toast.delete_confirm"))) return;
     try {
       await deleteDevice(id);
-      toast.success("Đã xóa thiết bị khỏi hệ thống.");
+      toast.success(t("devices.toast.delete_success"));
     } catch (e) {
-      toast.error("Lỗi khi xóa thiết bị.");
+      toast.error(t("devices.toast.delete_error"));
     }
   }
 
@@ -103,7 +105,7 @@ export default function DevicesPage() {
               <ArrowLeft className="w-5 h-5 text-slate-600" />
             </Link>
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-              Quản lý thiết bị
+              {t("devices.title")}
             </h1>
           </div>
           <button
@@ -111,115 +113,36 @@ export default function DevicesPage() {
             className="bg-primary-600 text-white px-6 py-2.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-primary-700 transition-colors shadow-lg shadow-primary-200"
           >
             <Plus className="w-5 h-5" />
-            Thêm thiết bị
+            {t("devices.add_btn")}
           </button>
         </div>
-
-        {showAddForm && (
-          <div className="mb-8 bg-white p-8 rounded-3xl border border-blue-100 shadow-xl shadow-blue-50 animate-in fade-in slide-in-from-top-4 duration-300">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-800">
-              <Plus className="w-5 h-5 text-blue-500" />
-              Thiết bị mới
-            </h2>
-            <form
-              onSubmit={handleAdd}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-            >
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-                  Tên thiết bị
-                </label>
-                <input
-                  required
-                  placeholder="Ví dụ: Máy cổng chính"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
-                  value={newDevice.name}
-                  onChange={(e) =>
-                    setNewDevice({ ...newDevice, name: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Chọn Agent
-                </label>
-                <Combobox
-                  options={agents.map((a) => ({
-                    value: a.agent_id,
-                    label: a.agent_id,
-                    description: `Last seen: ${new Date(a.last_seen).toLocaleTimeString()}`,
-                    icon: <Server className="w-4 h-4" />
-                  }))}
-                  value={newDevice.agent_id}
-                  onChange={(val) => setNewDevice({ ...newDevice, agent_id: val })}
-                  placeholder="Chọn một Agent..."
-                  className="bg-slate-50 border-slate-200"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-                  Địa chỉ IP
-                </label>
-                <input
-                  required
-                  placeholder="192.168.1.100"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
-                  value={newDevice.ip}
-                  onChange={(e) =>
-                    setNewDevice({ ...newDevice, ip: e.target.value })
-                  }
-                />
-              </div>
-              <div className="flex items-end gap-4">
-                <div className="space-y-2 flex-1">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-                    Cổng (Port)
-                  </label>
-                  <input
-                    type="number"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
-                    value={newDevice.port}
-                    onChange={(e) =>
-                      setNewDevice({
-                        ...newDevice,
-                        port: parseInt(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
-                >
-                  Lưu
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
 
       {/* Add/Edit Device Modal */}
       <Modal
         isOpen={showAddForm || !!editingDevice}
         onClose={() => { setShowAddForm(false); setEditingDevice(null); }}
-        title={editingDevice ? "Sửa thiết bị" : "Thêm thiết bị mới"}
-        subtitle="Hạ tầng kết nối"
+        title={editingDevice ? t("devices.form.edit_device") : t("devices.form.new_device")}
+        subtitle={t("devices.form.infrastructure")}
         icon={<Cpu className="w-6 h-6" />}
       >
         <form
           onSubmit={(e) => {
-            editingDevice ? handleUpdate(e) : handleAdd(e);
+            if (editingDevice) {
+              handleUpdate(e);
+            } else {
+              handleAdd(e);
+            }
           }}
           className="space-y-6"
         >
           <div className="space-y-2">
             <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-              Tên máy chấm công
+              {t("devices.form.clock_name")}
             </label>
             <input
               required
               className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold"
-              placeholder="VD: Máy sảnh chính..."
+              placeholder={t("devices.form.clock_name_placeholder")}
               value={editingDevice ? editingDevice.name : newDevice.name}
               onChange={(e) =>
                 editingDevice
@@ -231,7 +154,7 @@ export default function DevicesPage() {
 
           <div className="space-y-2">
             <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-              Quản lý bởi Agent
+              {t("devices.form.managed_by")}
             </label>
             <Combobox
               options={agents.map((a) => ({
@@ -245,7 +168,7 @@ export default function DevicesPage() {
                   ? setEditingDevice({ ...editingDevice, agent_id: val })
                   : setNewDevice({ ...newDevice, agent_id: val })
               }
-              placeholder="Chọn Agent..."
+              placeholder={t("devices.form.select_agent")}
               className="bg-slate-50 border-slate-100"
             />
           </div>
@@ -253,7 +176,7 @@ export default function DevicesPage() {
           <div className="grid grid-cols-3 gap-4">
             <div className="col-span-2 space-y-2">
               <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-                Địa chỉ IP (Local)
+                {t("devices.form.ip_local")}
               </label>
               <input
                 required
@@ -269,7 +192,7 @@ export default function DevicesPage() {
             </div>
             <div className="space-y-2">
               <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-                Port
+                {t("devices.form.port")}
               </label>
               <input
                 type="number"
@@ -300,13 +223,13 @@ export default function DevicesPage() {
               }}
               className="px-8 py-4 border border-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all"
             >
-              Hủy bỏ
+              {t("devices.form.cancel")}
             </button>
             <button
               type="submit"
               className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
             >
-              {editingDevice ? "Cập nhật" : "Lưu thiết bị"}
+              {editingDevice ? t("devices.form.update_device") : t("devices.form.save_device")}
             </button>
           </div>
         </form>
@@ -331,7 +254,7 @@ export default function DevicesPage() {
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">
-                      Thiết bị
+                      {t("devices.table.device")}
                     </p>
                     <h3 className="font-bold text-slate-800 text-lg">
                       {device.name}
@@ -343,7 +266,7 @@ export default function DevicesPage() {
 
                   <div>
                     <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">
-                      Phụ trách bởi
+                      {t("devices.table.managed_by")}
                     </p>
                     <div className="flex items-center gap-2">
                       <Server className="w-4 h-4 text-slate-400" />
@@ -355,7 +278,7 @@ export default function DevicesPage() {
 
                   <div>
                     <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">
-                      Kết nối
+                      {t("devices.table.connection")}
                     </p>
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1.5 text-slate-600 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
@@ -374,12 +297,12 @@ export default function DevicesPage() {
                       {device.is_enabled ? (
                         <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full text-xs font-bold">
                           <ShieldCheck className="w-3.5 h-3.5" />
-                          Hoạt động
+                          {t("devices.table.active")}
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5 text-slate-400 bg-slate-50 px-3 py-1 rounded-full text-xs font-bold">
                           <ShieldAlert className="w-3.5 h-3.5" />
-                          Đang tắt
+                          {t("devices.table.disabled")}
                         </div>
                       )}
                     </div>
@@ -391,21 +314,21 @@ export default function DevicesPage() {
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
+                        <DropdownMenuLabel>{t("devices.table.actions")}</DropdownMenuLabel>
                         <DropdownMenuItem 
                           className="gap-2"
                           onSelect={() => setEditingDevice(device)}
                         >
                           <Edit2 className="w-4 h-4 text-slate-400" />
-                          Chỉnh sửa
+                          {t("devices.table.edit")}
                         </DropdownMenuItem>
                         <DropdownMenuItem className="gap-2">
                           <RefreshCw className="w-4 h-4 text-slate-400" />
-                          Đồng bộ thời gian
+                          {t("devices.table.sync_time")}
                         </DropdownMenuItem>
                         <DropdownMenuItem className="gap-2">
                           <Settings className="w-4 h-4 text-slate-400" />
-                          Cấu hình nâng cao
+                          {t("devices.table.advanced")}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -413,7 +336,7 @@ export default function DevicesPage() {
                           className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 gap-2 font-bold"
                         >
                           <Trash2 className="w-4 h-4" />
-                          Xóa thiết bị
+                          {t("devices.table.delete")}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -426,7 +349,7 @@ export default function DevicesPage() {
               <div className="py-20 text-center bg-white rounded-3xl border border-dashed border-slate-200">
                 <Cpu className="w-12 h-12 text-slate-200 mx-auto mb-4" />
                 <p className="text-slate-400 font-medium">
-                  Chưa có thiết bị nào được thiết lập.
+                  {t("devices.table.no_data")}
                 </p>
               </div>
             )}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Mail, UserPlus, Loader2 } from "lucide-react";
 import { useWorkspaceMembers } from "@/hooks/use-workspace";
 import Modal from "../ui/Modal";
@@ -12,6 +13,7 @@ export default function InviteMemberDialog({
   isOpen,
   onClose,
 }: InviteMemberDialogProps) {
+  const { t } = useTranslation();
   const { addMember, isAdding } = useWorkspaceMembers();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("member");
@@ -28,7 +30,7 @@ export default function InviteMemberDialog({
       onClose();
     } catch (e) {
       console.error(e);
-      setError("Không thể mời thành viên. Vui lòng kiểm tra email.");
+      setError(t("members.invite.error_message"));
     }
   }
 
@@ -36,8 +38,8 @@ export default function InviteMemberDialog({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Mời thành viên"
-      subtitle="Quản lý nhân sự"
+      title={t("members.invite.title")}
+      subtitle={t("members.invite.subtitle")}
       icon={<UserPlus className="w-6 h-6" />}
     >
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -49,7 +51,7 @@ export default function InviteMemberDialog({
 
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
-            Địa chỉ Email
+            {t("members.invite.email_label")}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -68,15 +70,15 @@ export default function InviteMemberDialog({
 
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
-            Vai trò gán
+            {t("members.invite.role_label")}
           </label>
           <select
             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all appearance-none text-sm font-semibold"
             value={role}
             onChange={(e) => setRole(e.target.value)}
           >
-            <option value="member">Thành viên (Member)</option>
-            <option value="admin">Quản trị viên (Admin)</option>
+            <option value="member">{t("members.roles.member")}</option>
+            <option value="admin">{t("members.roles.admin")}</option>
           </select>
         </div>
 
@@ -91,7 +93,7 @@ export default function InviteMemberDialog({
             ) : (
               <UserPlus className="w-4 h-4" />
             )}
-            Gửi lời mời
+            {t("members.invite.submit_btn")}
           </button>
         </div>
       </form>

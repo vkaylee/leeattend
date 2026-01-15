@@ -719,6 +719,7 @@ pub async fn update_workspace(
         req.time_format,
         req.timezone,
         req.theme_primary_color,
+        req.default_language,
     )
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
@@ -925,25 +926,21 @@ pub async fn get_user_profile(
     UserId(user_id): UserId,
 ) -> impl IntoResponse {
     tracing::debug!("Fetching profile for user: {}", user_id);
-    match user_repository::get_user_by_id(&state.db, user_id)
-        .await
-        .map_err(|e| {
-            tracing::error!("Database error fetching user {}: {}", user_id, e);
-            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
-        }) {
-        Ok(Some(user)) => Json(UserResponse {
+    match user_repository::get_user_by_id(&state.db, user_id).await {
+        Ok(Some(user)) => Json(crate::models::UserResponse {
             id: user.id,
             email: user.email,
             full_name: user.full_name,
             avatar_url: user.avatar_url,
             bio: user.bio,
+            preferred_language: user.preferred_language,
         })
         .into_response(),
         Ok(None) => {
             tracing::warn!("User {} not found in database", user_id);
             (StatusCode::NOT_FOUND, "User not found".to_string()).into_response()
         }
-        Err(e) => e.into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
 
@@ -963,21 +960,23 @@ pub async fn update_user_profile(
     Json(req): Json<crate::models::UpdateUserRequest>,
 ) -> impl IntoResponse {
     match sqlx::query_as::<_, crate::models::User>(
-        "UPDATE users SET full_name = COALESCE($1, full_name), avatar_url = COALESCE($2, avatar_url), bio = COALESCE($3, bio) WHERE id = $4 RETURNING *"
+        "UPDATE users SET full_name = COALESCE($1, full_name), avatar_url = COALESCE($2, avatar_url), bio = COALESCE($3, bio), preferred_language = COALESCE($4, preferred_language) WHERE id = $5 RETURNING *"
     )
     .bind(req.full_name)
     .bind(req.avatar_url)
     .bind(req.bio)
+    .bind(req.preferred_language)
     .bind(user_id)
     .fetch_one(&state.db)
     .await
     {
-        Ok(user) => Json(UserResponse {
+        Ok(user) => Json(crate::models::UserResponse {
             id: user.id,
             email: user.email,
             full_name: user.full_name,
             avatar_url: user.avatar_url,
             bio: user.bio,
+            preferred_language: user.preferred_language,
         })
         .into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
@@ -1159,6 +1158,7 @@ pub async fn register(
         full_name: Some(req.full_name.clone()),
         avatar_url: None,
         bio: None,
+        preferred_language: None,
         password_hash, // Used the hashed password
     };
 
@@ -1167,12 +1167,13 @@ pub async fn register(
     }
 
     // Convert to UserResponse for the client
-    let user_response = UserResponse {
+    let user_response = crate::models::UserResponse {
         id: user.id,
         email: user.email,
         full_name: user.full_name,
         avatar_url: user.avatar_url,
         bio: user.bio,
+        preferred_language: user.preferred_language,
     };
 
     // 4. Generate Tokens
@@ -1212,12 +1213,13 @@ pub async fn login(
     }
 
     // Convert to UserResponse for the client
-    let user_response = UserResponse {
+    let user_response = crate::models::UserResponse {
         id: user.id,
         email: user.email,
         full_name: user.full_name,
         avatar_url: user.avatar_url,
         bio: user.bio,
+        preferred_language: user.preferred_language,
     };
 
     let access_token = match AuthService::generate_token(user.id, &state.jwt_secret, 60) {
@@ -1310,12 +1312,13 @@ pub async fn get_me(
 ) -> impl IntoResponse {
     tracing::debug!("Fetching profile for user: {}", user_id);
     match user_repository::get_user_by_id(&state.db, user_id).await {
-        Ok(Some(user)) => Json(UserResponse {
+        Ok(Some(user)) => Json(crate::models::UserResponse {
             id: user.id,
             email: user.email,
             full_name: user.full_name,
             avatar_url: user.avatar_url,
             bio: user.bio,
+            preferred_language: user.preferred_language,
         })
         .into_response(),
         Ok(None) => {
@@ -1344,12 +1347,13 @@ pub async fn update_me(
     .fetch_one(&state.db)
     .await
     {
-        Ok(user) => Json(UserResponse {
+        Ok(user) => Json(crate::models::UserResponse {
             id: user.id,
             email: user.email,
             full_name: user.full_name,
             avatar_url: user.avatar_url,
             bio: user.bio,
+            preferred_language: user.preferred_language,
         })
         .into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),

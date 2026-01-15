@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Users, UserPlus } from "lucide-react";
 import MemberTable from "@/components/members/MemberTable";
 import InviteMemberDialog from "@/components/members/InviteMemberDialog";
 
 export default function MembersPage() {
+  const { t } = useTranslation();
   const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   return (
@@ -11,10 +13,10 @@ export default function MembersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-            Thành viên & Quyền hạn
+            {t("members.title")}
           </h1>
           <p className="text-slate-500 mt-2 text-lg">
-            Quản lý quyền truy cập và phân vai trò trong hệ thống.
+            {t("members.subtitle")}
           </p>
         </div>
 
@@ -23,7 +25,7 @@ export default function MembersPage() {
           className="flex items-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-primary-700 hover:scale-105 transition-all shadow-xl shadow-primary-200 active:scale-95"
         >
           <UserPlus className="w-5 h-5" />
-          Mời thành viên
+          {t("members.invite.title")}
         </button>
       </div>
 

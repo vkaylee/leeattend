@@ -1,0 +1,875 @@
+{
+  "common": {
+    "dashboard": "Bảng điều khiển",
+    "members": "Thành viên",
+    "employees": "Nhân viên",
+    "departments": "Phòng ban",
+    "time_tracking": "Chấm công",
+    "logs": "Nhật ký",
+    "leave_requests": "Nghỉ phép",
+    "attendance_confirm": "Xác nhận công",
+    "reports": "Báo cáo",
+    "shifts": "Lịch trình & Ca",
+    "payroll": "Tính lương",
+    "agents": "Agents",
+    "devices": "Thiết bị",
+    "settings": "Cài đặt",
+    "profile": "Hồ sơ",
+    "switch_workspace": "Chuyển cơ sở",
+    "logout": "Đăng xuất",
+    "office_branch": "Văn phòng / Chi nhánh",
+    "select_workspace_desc": "Chọn văn phòng hoặc chi nhánh bạn muốn làm việc.",
+    "create_workspace": "Tạo Workspace",
+    "add_office_branch": "Thêm văn phòng/chi nhánh",
+    "select_workspace": "Chọn Workspace",
+    "search_placeholder": "Tìm kiếm...",
+    "close": "Đóng",
+    "loading": "Đang tải dữ liệu...",
+    "creating": "Đang tạo...",
+    "inviting": "Đang mời...",
+    "loading_workspace": "Đang tải không gian làm việc...",
+    "system_connection_error": "Lỗi kết nối hệ thống",
+    "retry": "Thử lại",
+    "add_office_branch": "Thêm văn phòng/chi nhánh",
+    "create_workspace_error": "Không thể tạo Workspace. Vui lòng thử lại.",
+    "leeattend_system": "Hệ thống LeeAttend",
+    "org_name_label": "Tên tổ chức / Dự án",
+    "org_name_placeholder": "Ví dụ: Công ty ABC, Team Freelance...",
+    "employee": "Nhân viên",
+    "all_employees": "Tất cả nhân viên",
+    "year": "Năm",
+    "save": "Lưu",
+    "info": "Thông báo",
+    "warning": "Cảnh báo",
+    "remove": "Gỡ bỏ",
+    "combobox": {
+      "placeholder": "Chọn một mục...",
+      "search": "Tìm kiếm...",
+      "no_results": "Không tìm thấy kết quả."
+    },
+    "cancel": "Hủy bỏ",
+    "processing": "Đang xử lý...",
+    "shift": "Ca làm việc",
+    "status": "Trạng thái",
+    "date": "Ngày",
+    "notes": "Ghi chú",
+    "reason": "Lý do",
+    "approve": "Phê duyệt",
+    "reject": "Từ chối",
+    "days": "ngày",
+    "break": "Nghỉ",
+    "feature_coming_soon": "Chức năng này sẽ sớm được ra mắt",
+    "people": "người",
+    "week": "Tuần",
+    "time": "Thời gian",
+    "shift_name": "Tên ca",
+    "no_history": "Chưa có dữ liệu lịch sử",
+    "system": "Hệ thống",
+    "type": "Loại",
+    "all": "Tất cả",
+    "status_pending": "Chờ duyệt",
+    "status_approved": "Đã duyệt",
+    "status_rejected": "Từ chối",
+    "select_employee": "Chọn nhân viên...",
+    "effective_from": "Ngày hiệu lực",
+    "indefinite": "Vô thời hạn",
+    "definite": "Có thời hạn",
+    "minutes": "phút",
+    "edit": "Chỉnh sửa",
+    "delete": "Xóa",
+    "update": "Cập nhật",
+    "description": "Mô tả",
+    "no_description": "Không có mô tả.",
+    "start": "Bắt đầu",
+    "end": "Kết thúc",
+    "in": "Vào",
+    "out": "Ra",
+    "adjust": "Hiệu chỉnh",
+    "work_day": "Ngày làm việc",
+    "punch_in": "Giờ vào",
+    "punch_out": "Giờ ra",
+    "sending": "Đang gửi...",
+    "saving": "Đang lưu...",
+    "save_changes": "Lưu thay đổi",
+    "user": "Người dùng",
+    "role": "Vai trò",
+    "no_name": "Không có tên",
+    "status_active": "Hoạt động",
+    "status_inactive": "Tạm dừng",
+    "system_error": "Lỗi hệ thống",
+    "restore": "Khôi phục",
+    "online": "Online",
+    "offline": "Offline",
+    "trust": "Duyệt",
+    "revoke": "Thu hồi",
+    "submit_request": "Gửi yêu cầu",
+    "attendance": "Chấm công",
+    "schedule": "Lịch trình",
+    "leave": "Nghỉ phép",
+    "payroll_and_contracts": "Lương & Hợp đồng",
+    "deleting": "Đang xóa...",
+    "source": "Nguồn",
+    "pagination": {
+      "showing": "Hiển thị",
+      "out_of": "trên",
+      "records": "bản ghi",
+      "page": "Trang",
+      "prev": "Trước",
+      "next": "Sau"
+    },
+    "filters": {
+      "title": "Bộ lọc",
+      "this_month": "Tháng này",
+      "last_month": "Tháng trước",
+      "custom": "Tùy chỉnh"
+    },
+    "sections": {
+      "organization": "Tổ chức",
+      "time_leave": "Thời gian & Nghỉ phép",
+      "payroll_shifts": "Lương & Ca làm",
+      "system": "Hệ thống"
+    }
+  },
+  "leave_requests": {
+    "title": "Yêu cầu nghỉ phép",
+    "subtitle": "Duyệt và quản lý thời gian nghỉ của nhân sự",
+    "create_btn": "Tạo yêu cầu",
+    "remaining": "Còn",
+    "tabs": {
+      "policies": "Chính sách"
+    },
+    "types": {
+      "vacation": "Phép năm",
+      "sick": "Nghỉ ốm",
+      "vacation_full": "Nghỉ phép năm",
+      "sick_full": "Nghỉ ốm",
+      "personal": "Việc riêng"
+    },
+    "policy": {
+      "title": "Chính sách nghỉ phép",
+      "title_single": "Chính sách",
+      "subtitle": "Cấu hình định mức",
+      "assign_btn": "Gán chính sách",
+      "add_btn": "Thêm chính sách",
+      "assign_title": "Gán chính sách",
+      "assign_subtitle": "Phân bổ nhân sự",
+      "save_btn": "Lưu chính sách",
+      "assign_now_btn": "Gán ngay",
+      "name_placeholder": "VD: Phép năm tiêu chuẩn",
+      "select_placeholder": "Chọn chính sách...",
+      "table": {
+        "name": "Tên chính sách",
+        "type": "Loại nghỉ",
+        "entitlement": "Định mức/năm",
+        "strategy": "Chiến lược"
+      },
+      "strategies": {
+        "monthly": "Tích lũy hàng tháng",
+        "monthly_desc": "Cấp 1 ngày vào đầu mỗi tháng",
+        "lump_sum": "Cấp một lần đầu năm",
+        "lump_sum_desc": "Cấp toàn bộ định mức vào đầu năm"
+      },
+      "messages": {
+        "no_policies": "Chưa có chính sách nào."
+      }
+    },
+    "modal": {
+      "submit_title": "Gửi yêu cầu nghỉ phép",
+      "submit_subtitle": "Quản lý vắng mặt",
+      "reason_placeholder": "Nhập lý do nghỉ...",
+      "submit_btn": "Gửi yêu cầu"
+    },
+    "messages": {
+      "accrual_success": "Đã chạy tích lũy phép thành công!",
+      "no_requests": "Không có yêu cầu nào."
+    }
+  },
+  "departments": {
+    "title": "Phòng ban",
+    "subtitle": "Quản lý cơ cấu tổ chức và sơ đồ quản lý",
+    "add_btn": "Thêm phòng ban",
+    "manager_label": "Trưởng bộ phận",
+    "not_assigned": "Chưa bổ nhiệm",
+    "messages": {
+      "no_departments": "Chưa có phòng ban nào được tạo.",
+      "confirm_delete": "Xóa phòng ban này?"
+    },
+    "form": {
+      "name_label": "Tên phòng ban",
+      "name_placeholder": "VD: Phòng Kỹ thuật, Nhân sự...",
+      "desc_placeholder": "Nhập mô tả ngắn về chức năng nhiệm vụ...",
+      "manager_placeholder": "Chọn người quản lý..."
+    },
+    "modal": {
+      "add_title": "Thêm phòng ban",
+      "edit_title": "Sửa phòng ban",
+      "subtitle": "Cơ cấu tổ chức",
+      "submit_btn": "Tạo phòng ban"
+    }
+  },
+  "attendance_confirm": {
+    "title": "Xác nhận công",
+    "subtitle": "Phê duyệt các yêu cầu điều chỉnh/bổ sung công từ nhân viên.",
+    "excel_template": "Mẫu Excel",
+    "import_excel": "Nhập Excel",
+    "ot_label": "Làm thông trưa",
+    "status": {
+      "approved": "Đã duyệt",
+      "rejected": "Từ chối",
+      "pending": "Chờ duyệt"
+    },
+    "table": {
+      "request_time": "Yêu cầu (Vào - Ra)"
+    },
+    "messages": {
+      "no_requests": "Chưa có yêu cầu nào."
+    },
+    "modal": {
+      "import_title": "Nhập dữ liệu chấm công từ file"
+    }
+  },
+  "onboarding": {
+    "welcome_title": "Chào mừng bạn!",
+    "welcome_subtitle": "Hãy tạo tổ chức (Workspace) đầu tiên của bạn",
+    "org_name_label": "Tên tổ chức",
+    "org_name_placeholder": "Ví dụ: Công ty ABC, LeeAttend Team...",
+    "start_now_btn": "Bắt đầu ngay",
+    "workspace_desc": "Workspace là không gian làm việc riêng biệt giúp bạn quản lý thiết bị và thành viên một cách tập trung.",
+    "messages": {
+      "create_error": "Không thể tạo Workspace. Vui lòng thử lại."
+    }
+  },
+  "profile": {
+    "subtitle": "Quản lý thông tin cá nhân và cài đặt tài khoản",
+    "join_date": "Ngày tham gia",
+    "preferred_language": "Ngôn ngữ ưu tiên",
+    "follow_workspace": "Theo Workspace",
+    "bio": "Tiểu sử (Bio)",
+    "personalization": {
+      "title": "Giao diện cá nhân",
+      "subtitle": "Tùy chỉnh màu sắc hiển thị riêng cho bạn",
+      "use_workspace_default": "Dùng mặc định Workspace",
+      "note": "* Thay đổi này chỉ áp dụng cho riêng bạn trên trình duyệt này."
+    },
+    "security": {
+      "title": "Bảo mật",
+      "subtitle": "Thay đổi mật khẩu đăng nhập của bạn",
+      "current_password": "Mật khẩu hiện tại",
+      "new_password": "Mật khẩu mới",
+      "confirm_password": "Xác nhận mật khẩu mới",
+      "submit_btn": "Cập nhật mật khẩu",
+      "messages": {
+        "confirm_mismatch": "Xác nhận mật khẩu mới không khớp.",
+        "password_changed": "Mật khẩu đã được thay đổi. Vui lòng đăng nhập lại.",
+        "change_error": "Lỗi khi đổi mật khẩu."
+      }
+    }
+  },
+  "attendance_logs": {
+    "title": "Nhật ký quẹt thẻ",
+    "subtitle": "Dữ liệu thô từ máy chấm công và các nguồn quẹt thẻ.",
+    "export_btn": "Xuất dữ liệu",
+    "status": {
+      "recorded": "Đã ghi nhận"
+    },
+    "messages": {
+      "loading": "Đang tải nhật ký...",
+      "no_data": "Không tìm thấy dữ liệu quẹt thẻ nào."
+    },
+    "modal": {
+      "import_title": "Nhập nhật ký quẹt thẻ từ file"
+    }
+  },
+  "attendance_logs": {
+    "title": "Nhật ký quẹt thẻ",
+    "subtitle": "Dữ liệu thô từ máy chấm công và các nguồn quẹt thẻ.",
+    "export_btn": "Xuất dữ liệu",
+    "status": {
+      "recorded": "Đã ghi nhận"
+    },
+    "messages": {
+      "loading": "Đang tải nhật ký...",
+      "no_data": "Không tìm thấy dữ liệu quẹt thẻ nào."
+    },
+    "modal": {
+      "import_title": "Nhập nhật ký quẹt thẻ từ file"
+    }
+  },
+  "attendance_import": {
+    "subtitle": "Nhập dữ liệu hàng loạt",
+    "rows_processed": "dòng đã xử lý",
+    "error_list_title": "Danh sách lỗi chi tiết:",
+    "select_another_file": "Chọn file khác",
+    "upload_prompt": "Click hoặc kéo thả file vào đây",
+    "upload_limit": "Excel hoặc CSV (Tối đa 10MB)",
+    "start_import": "Bắt đầu nhập dữ liệu",
+    "status": {
+      "processing": "Đang xử lý dữ liệu...",
+      "completed": "Hoàn thành!",
+      "failed": "Có lỗi xảy ra",
+      "pending": "Đang chờ...",
+      "uploading": "Đang tải lên..."
+    },
+    "file_requirements": {
+      "title": "Yêu cầu định dạng file:",
+      "col_a": "Cột A: Mã số nhân viên (Employee ID)",
+      "col_b": "Cột B: Tên nhân viên (Không bắt buộc)",
+      "col_c": "Cột C: Thời gian quẹt thẻ (DD/MM/YYYY HH:mm)",
+      "formats": "Hỗ trợ file .xlsx, .xls và .csv"
+    },
+    "messages": {
+      "upload_error": "Lỗi khi tải file lên"
+    }
+  },
+  "agents": {
+    "title": "Quản lý Agent",
+    "subtitle": "Phê duyệt và kiểm soát các điểm kết nối Edge Agent",
+    "status": {
+      "trusted": "Đã duyệt",
+      "pending": "Chờ duyệt",
+      "closed": "Đã đóng"
+    },
+    "actions": {
+      "hide_inactive": "Ẩn Agent đã đóng",
+      "show_inactive": "Hiện Agent đã đóng",
+      "showing_archived": "Đang hiện lưu trữ",
+      "show_archived": "Hiện lưu trữ",
+      "declare_agent": "Khai báo Agent"
+    },
+    "form": {
+      "new_title": "Khai báo Agent mới",
+      "id_label": "Agent ID (Duy nhất)",
+      "id_placeholder": "Ví dụ: BRANCH_HN_01",
+      "name_label": "Tên Chi nhánh/Vị trí",
+      "name_placeholder": "Ví dụ: Văn phòng Hà Nội",
+      "token_label": "Secret Token",
+      "token_placeholder": "Mật mã kết nối"
+    },
+    "table": {
+      "identifier": "Định danh",
+      "token": "Token",
+      "last_ip": "IP cuối"
+    },
+    "edit_modal": {
+      "title": "Chỉnh sửa Agent",
+      "subtitle": "Quản lý kết nối",
+      "id_label": "Agent ID (Read-only)",
+      "name_label": "Tên Chi nhánh / Vị trí",
+      "name_placeholder": "Ví dụ: Văn phòng Hà Nội",
+      "token_label": "Secret Token",
+      "token_placeholder": "Mật mã kết nối",
+      "messages": {
+        "update_error": "Lỗi khi cập nhật Agent."
+      }
+    },
+    "messages": {
+      "restore_success": "Đã khôi phục Agent {{name}}",
+      "restore_error": "Lỗi khi khôi phục Agent.",
+      "add_success": "Đã khai báo Agent mới thành công.",
+      "add_error": "Lỗi khi thêm Agent. ID có thể đã tồn tại.",
+      "confirm_trust": "Bạn có chắc chắn muốn {{action}} cho Agent {{id}}?",
+      "trust_success": "Đã {{action}} thành công cho Agent.",
+      "update_status_error": "Lỗi khi cập nhật trạng thái.",
+      "confirm_delete": "Bạn có chắc chắn muốn xóa Agent {{name}} ({{id}})? \nThao tác này sẽ ngắt kết nối và ẩn Agent khỏi hệ thống.",
+      "delete_success": "Đã xóa Agent {{name}}.",
+      "delete_error": "Lỗi khi xóa Agent.",
+      "no_agents": "Chưa có Agent nào được khai báo."
+    }
+  },
+  "debug_tools": {
+
+    "title": "Debug Tools (Chỉ dành cho Dev)",
+    "subtitle": "Các công cụ dọn dẹp nhanh dữ liệu để hỗ trợ testing.",
+    "warning": "Cảnh báo: Dữ liệu bị xóa sẽ không thể phục hồi!",
+    "full_reset_label": "FULL RESET (Cẩn thận!)",
+    "click_to_clear": "Click để dọn dẹp",
+    "messages": {
+      "confirm_clear": "Bạn có chắc chắn muốn xóa TOÀN BỘ dữ liệu [{{label}}] của Workspace này không? Thao tác này không thể hoàn tác.",
+      "clear_success": "Đã xóa dữ liệu [{{label}}] thành công.",
+      "clear_error": "Lỗi khi xóa dữ liệu:"
+    }
+  },
+  "time_tracking": {
+    "title": "Chấm công",
+    "subtitle": "Ghi nhận giờ làm việc và nghỉ ngơi của nhân sự.",
+    "select_employee_label": "Chọn nhân viên để chấm công",
+    "search_placeholder": "Tìm theo tên hoặc mã nhân viên...",
+    "type_search_placeholder": "Gõ tên hoặc mã nhân viên...",
+    "forgot_punch": "Quên chấm công? Gửi xác nhận →",
+    "recent_history": "Lịch sử gần đây (7 ngày)",
+    "empty_state_desc": "Chọn nhân sự để bắt đầu chấm công",
+    "status": {
+      "on_break": "Đang nghỉ giải lao",
+      "working": "Đang làm việc",
+      "off_duty": "Chưa vào ca",
+      "break_start_at": "Bắt đầu nghỉ lúc",
+      "shift_start_at": "Bắt đầu ca lúc"
+    },
+    "actions": {
+      "return_to_work": "Quay lại làm việc",
+      "start_break": "Bắt đầu nghỉ (Break)",
+      "punch_out": "Kết thúc ca (Punch Out)",
+      "start_work": "Bắt đầu làm việc"
+    },
+    "messages": {
+      "punch_in_break": "Bắt đầu nghỉ",
+      "punch_in_work": "Bắt đầu ca làm việc",
+      "punch_success": "{{type}} thành công.",
+      "punch_error": "Không thể chấm công. Vui lòng thử lại.",
+      "punch_out_break": "Đã quay lại làm việc.",
+      "punch_out_work": "Đã kết thúc ca làm việc.",
+      "punch_out_error": "Không thể chấm công ra.",
+      "adjustment_success": "Yêu cầu xác nhận công đã được gửi tới quản trị viên.",
+      "adjustment_error": "Lỗi khi gửi yêu cầu.",
+      "no_data": "Chưa có dữ liệu chấm công."
+    },
+    "modal": {
+      "edit_title": "Chỉnh sửa công",
+      "new_title": "Xác nhận công mới",
+      "subtitle": "Điều chỉnh dữ liệu",
+      "reason_label": "Lý do điều chỉnh",
+      "reason_placeholder": "VD: Quên quẹt thẻ, đi công tác..."
+    }
+  },
+  "shifts": {
+    "title": "Hệ thống Lịch trình",
+    "subtitle": "Quản lý ca làm việc linh hoạt và cố định",
+    "create_btn": "Tạo ca",
+    "current_week_roster": "Lịch trực tuần hiện tại",
+    "days_selected": "Đã chọn {{count}} ngày",
+    "assign_selected_btn": "Gán ca cho mục đã chọn",
+    "off_day": "NGHỈ",
+    "history_title": "Lịch sử thay đổi gán ca",
+    "fixed_assignment_subtitle": "Gán lịch trình cố định hoặc dài hạn",
+    "select_default_shift": "Chọn Ca Làm Việc Mặc Định",
+    "assign_btn": "Gán ca làm việc",
+    "directory_title": "Danh mục các loại ca",
+    "auto_deduct": "Auto-deduct",
+    "set_off_day": "Đặt nghỉ (OFF)",
+    "days_count": "{{count}} ngày đã chọn",
+    "empty_state": {
+      "title": "Chọn nhân sự để tiếp tục",
+      "desc": "Vui lòng chọn một nhân viên từ danh sách bên trái để bắt đầu sắp xếp lịch làm việc."
+    },
+    "tabs": {
+      "weekly_roster": "LỊCH TUẦN",
+      "fixed_assignments": "GÁN CỐ ĐỊNH",
+      "directory": "DANH MỤC"
+    },
+    "actions": {
+      "copy_previous": "Sao chép tuần trước",
+      "assign_all_week": "Gán ca cả tuần này",
+      "clear_week": "Xóa lịch tuần này"
+    },
+    "types": {
+      "flexible": "Linh hoạt",
+      "fixed": "Cố định"
+    },
+    "table": {
+      "assignment_type": "Loại gán",
+      "range": "Phạm vi",
+      "shift_name": "Tên loại ca",
+      "time_range": "Khung giờ",
+      "break_time": "Nghỉ giữa ca"
+    },
+    "modal": {
+      "setup_title": "Thiết lập ca",
+      "setup_subtitle": "KHAI BÁO THAM SỐ CA LÀM VIỆC",
+      "edit_subtitle": "CẬP NHẬT CẤU HÌNH HOẶC THAY ĐỔI GIỜ LÀM",
+      "name_placeholder": "Hành chính, Ca sáng, Ca gãy...",
+      "start_time": "Giờ vào",
+      "end_time": "Giờ ra",
+      "break_config": "Cấu hình nghỉ giải lao",
+      "break_start": "Bắt đầu nghỉ",
+      "break_end": "Kết thúc nghỉ",
+      "auto_deduct_label": "Tự động trừ giờ nghỉ (Auto-deduct)",
+      "break_duration": "Thời lượng nghỉ",
+      "save_shift_btn": "Lưu loại ca",
+      "update_config_btn": "Cập nhật cấu hình",
+      "break_label": "Nghỉ giải lao",
+      "correction_label": "Sửa lỗi nhập liệu (Correction)",
+      "correction_desc": "Thông tin sẽ được ghi đè trực tiếp lên bản ghi hiện tại.",
+      "correction_warning": "Cảnh báo: Có thể làm thay đổi dữ liệu chấm công quá khứ.",
+      "effective_date_label": "Ngày áp dụng thay đổi",
+      "effective_date_desc": "Hệ thống sẽ tạo phiên bản mới và chuyển toàn bộ nhân viên sang ca này từ ngày đã chọn.",
+      "select_shift_title": "Chọn ca làm việc",
+      "assign_to_days": "Gán cho {{days}}"
+    },
+    "messages": {
+      "assign_success": "Đã gán ca làm việc cho nhân viên thành công.",
+      "assign_error": "Lỗi gán ca",
+      "update_roster_success": "Đã cập nhật lịch trực.",
+      "update_roster_error": "Lỗi cập nhật lịch",
+      "bulk_update_success": "Đã cập nhật lịch trực hàng loạt.",
+      "bulk_update_error": "Lỗi cập nhật hàng loạt",
+      "remove_override_success": "Đã gỡ bỏ ghi đè, quay về lịch mặc định.",
+      "remove_override_error": "Lỗi khi gỡ bỏ lịch",
+      "create_shift_success": "Loại ca \"{{name}}\" đã được khởi tạo.",
+      "create_shift_error": "Lỗi tạo ca",
+      "update_shift_success": "Đã cập nhật cấu hình ca làm việc.",
+      "update_shift_error": "Lỗi cập nhật ca",
+      "validation_missing_fields": "Vui lòng chọn đầy đủ nhân viên, ca làm và ngày bắt đầu.",
+      "no_previous_data": "Không tìm thấy dữ liệu tuần trước.",
+      "copy_error": "Lỗi sao chép",
+      "validation_shift_name_time": "Tên ca và thời gian làm việc không được để trống.",
+      "validation_break_times": "Vui lòng nhập giờ bắt đầu và kết thúc nghỉ trưa.",
+      "no_shifts": "Hệ thống chưa có loại ca nào."
+    }
+  },
+  "payroll": {
+    "title": "Tính lương",
+    "subtitle": "Quản lý thu nhập và phiếu lương",
+    "search_placeholder": "Tìm nhân viên...",
+    "employee_profile": "Hồ sơ lương nhân sự",
+    "calculate_btn": "Tính lương mới",
+    "history_title": "Lịch sử phiếu lương (Payslips)",
+    "empty_state": {
+      "title": "Chọn nhân sự để quản lý lương",
+      "desc": "Xem lịch sử phiếu lương hoặc tính toán bảng lương tháng mới cho nhân viên."
+    },
+    "table": {
+      "period": "Kỳ lương",
+      "base_pay": "Lương cơ bản",
+      "overtime": "Tăng ca",
+      "deductions": "Khấu trừ",
+      "net_pay": "Thực nhận",
+      "status": "Trạng thái",
+      "loading_payslips": "Đang tải phiếu lương...",
+      "no_payslips": "Chưa có phiếu lương nào"
+    },
+    "status": {
+      "paid": "ĐÃ CHI TRẢ",
+      "finalized": "ĐÃ CHỐT"
+    },
+    "modal": {
+      "title": "Tính lương tháng",
+      "subtitle": "Xử lý dữ liệu",
+      "submit": "Bắt đầu tính lương"
+    },
+    "messages": {
+      "calculate_success": "Đã tính lương thành công.",
+      "calculate_error": "Lỗi tính lương"
+    }
+  },
+  "reports": {
+    "title": "Báo cáo chấm công",
+    "subtitle": "Xem và xuất báo cáo dữ liệu chấm công của nhân viên.",
+    "export_excel": "Xuất Excel",
+    "search_placeholder": "Tìm theo tên nhân viên...",
+    "no_shift": "Không có ca",
+    "tabs": {
+      "summary": "Tổng hợp tháng",
+      "daily": "Chi tiết hàng ngày"
+    },
+    "status": {
+      "present": "Đúng giờ",
+      "late": "Đi muộn",
+      "absent": "Vắng mặt",
+      "off": "Ngày nghỉ"
+    },
+    "table": {
+      "total_hours": "Tổng giờ làm",
+      "leave_days": "Số ngày nghỉ",
+      "hours": "Giờ làm"
+    },
+    "quick_stats": {
+      "title": "Thống kê nhanh",
+      "total_hours": "Tổng giờ"
+    },
+    "messages": {
+      "generating": "Đang tạo báo cáo...",
+      "no_data": "Không có dữ liệu trong khoảng thời gian này."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Chào mừng trở lại! Đây là tóm tắt hoạt động trong workspace của bạn.",
+    "tabs": {
+      "hr": "Nhân sự & Công lương",
+      "system": "Hệ thống kỹ thuật"
+    },
+    "hr": {
+      "total_employees": "Tổng nhân sự",
+      "present_today": "Đi làm hôm nay",
+      "pending_requests": "Đơn chờ duyệt",
+      "estimated_payroll": "Quỹ lương ước tính",
+      "hr_management": "Nhân sự",
+      "hr_management_title": "Quản lý hồ sơ nhân viên tập trung",
+      "hr_management_desc": "Theo dõi hợp đồng, bảo hiểm, quá trình công tác và lương bổng của toàn bộ đội ngũ.",
+      "hr_management_btn": "Mở danh sách nhân viên",
+      "payroll": "Công lương",
+      "payroll_title": "Bảng công & Tính lương tự động",
+      "payroll_desc": "Đồng bộ dữ liệu chấm công thời gian thực để tạo bảng lương chính xác chỉ trong vài giây.",
+      "payroll_btn": "Xem bảng công"
+    },
+    "system": {
+      "total_agents": "Tổng Agents",
+      "online_agents": "Agents Online",
+      "total_devices": "Tổng thiết bị",
+      "active_devices": "Thiết bị hoạt động",
+      "edge_agents": "Edge Agents",
+      "live_data": "Dữ liệu trực tiếp",
+      "seen": "Thấy",
+      "connected": "Đã kết nối",
+      "disconnected": "Mất kết nối",
+      "no_agents": "Chưa có Agent nào kết nối",
+      "quick_actions": "Hành động nhanh",
+      "device_management": "Quản lý Thiết bị",
+      "device_management_desc": "Thêm hoặc xóa máy chấm công tại các chi nhánh. Hệ thống tự động đồng bộ tức thì.",
+      "device_management_btn": "Mở trình quản lý"
+    },
+    "connection_error": "Lỗi kết nối",
+    "connection_error_desc": "Không thể kết nối tới API Server hoặc dữ liệu không hợp lệ."
+  },
+  "workspace_settings": {
+    "title": "Cài đặt Workspace",
+    "description": "Quản lý cấu hình, nhân sự và giao diện không gian làm việc.",
+    "payroll_config": "Cấu hình công lương",
+    "save_config": "Lưu cấu hình",
+    "work_unit": "Đơn vị tính công (Work Unit)",
+    "rounding_policy": "Quy tắc làm tròn",
+    "date_format": "Định dạng ngày",
+    "time_format": "Định dạng giờ",
+    "timezone": "Múi giờ hệ thống",
+    "default_language": "Ngôn ngữ mặc định",
+    "theme_config": "Cấu hình giao diện",
+    "primary_color": "Màu chủ đạo",
+    "invite_member": "Mời thành viên",
+    "members_list": "Danh sách thành viên",
+    "founder": "Sáng lập",
+    "work_unit_options": {
+      "1min": "1 phút",
+      "1min_desc": "Mặc định, độ chính xác cao nhất",
+      "15min": "15 phút",
+      "15min_desc": "Khối 0.25 giờ",
+      "30min": "30 phút",
+      "30min_desc": "Khối 0.5 giờ",
+      "60min": "60 phút",
+      "60min_desc": "Khối 1 giờ"
+    },
+    "rounding_options": {
+      "none": "Không làm tròn",
+      "floor": "Làm tròn xuống (Floor)",
+      "ceil": "Làm tròn lên (Ceil)",
+      "round": "Làm tròn gần nhất (Round)"
+    },
+    "date_format_options": {
+      "vn": "Kiểu Việt Nam (Ví dụ: 31/12/2025)",
+      "us": "Kiểu Mỹ (Ví dụ: 12/31/2025)",
+      "iso": "Kiểu ISO (Ví dụ: 2025-12-31)"
+    },
+    "time_format_options": {
+      "24h": "24 Giờ",
+      "12h": "12 Giờ"
+    },
+    "timezone_options": {
+      "vn": "Việt Nam (UTC+7)",
+      "th": "Thailand (UTC+7)",
+      "utc": "Giờ quốc tế (UTC)"
+    }
+  },
+  "employees": {
+    "title": "Nhân viên",
+    "subtitle": "Quản lý hồ sơ và lịch sử công tác toàn hệ thống",
+    "add_btn": "Thêm nhân viên",
+    "search_placeholder": "Tìm kiếm theo tên hoặc mã nhân viên...",
+    "table": {
+      "name": "Họ và tên",
+      "id": "Mã NV",
+      "hire_date": "Ngày vào làm",
+      "status": "Trạng thái",
+      "actions": "Thao tác",
+      "loading": "Đang tải dữ liệu...",
+      "no_data": "Không có dữ liệu hiển thị.",
+      "active": "Hoạt động",
+      "terminated": "Đã nghỉ việc"
+    },
+    "details": {
+      "edit_profile": "Sửa hồ sơ",
+      "terminate": "Nghỉ việc",
+      "rehire": "Vào làm lại",
+      "terminate_confirm": "Bạn có chắc muốn cho nhân viên này nghỉ việc?",
+      "current_dept": "Phòng ban hiện tại",
+      "transfer": "Điều chuyển",
+      "not_assigned_dept": "Chưa được gán phòng ban",
+      "salary_benefits": "Mức lương & Đãi ngộ",
+      "update": "Cập nhật",
+      "current": "Hiện tại",
+      "no_salary_history": "Chưa có lịch sử lương",
+      "work_history": "Lịch sử công tác",
+      "view_details": "Xem chi tiết →",
+      "joined": "Gia nhập công ty",
+      "returned": "Quay lại làm việc"
+    },
+    "form": {
+      "add_title": "Thêm nhân viên",
+      "edit_title": "Sửa hồ sơ",
+      "subtitle": "Hồ sơ nhân sự",
+      "last_name": "Họ",
+      "first_name": "Tên",
+      "employee_id": "Mã nhân viên",
+      "hire_date": "Ngày vào làm",
+      "is_active": "Đang hoạt động",
+      "cancel": "Hủy bỏ",
+      "save": "Lưu hồ sơ",
+      "update": "Cập nhật"
+    },
+    "transfer": {
+      "title": "Điều chuyển phòng ban",
+      "subtitle": "Quản lý vị trí",
+      "new_dept": "Phòng ban mới",
+      "select_dept": "Chọn phòng ban...",
+      "effective_date": "Ngày hiệu lực",
+      "notes": "Ghi chú",
+      "cancel": "Hủy",
+      "submit": "Điều chuyển"
+    },
+    "history": {
+      "title": "Lịch sử công tác",
+      "subtitle": "Dữ liệu nhân sự",
+      "rehire_period": "Giai đoạn tái tuyển dụng",
+      "first_period": "Giai đoạn đầu tiên",
+      "currently_working": "Đang làm việc",
+      "period_range": "Từ {{start}} đến {{end}}",
+      "present": "(Hiện tại)",
+      "close": "Đóng"
+    },
+    "rehire": {
+      "title": "Tái tuyển dụng",
+      "subtitle": "Kích hoạt hồ sơ",
+      "confirm_msg": "Xác nhận ngày nhân viên bắt đầu giai đoạn làm việc mới",
+      "rehire_date": "Ngày vào làm lại",
+      "cancel": "Hủy",
+      "confirm": "Xác nhận",
+      "processing": "Đang xử lý..."
+    },
+    "salary": {
+      "title": "Cập nhật lương",
+      "subtitle": "Quản lý đãi ngộ",
+      "base_salary": "Lương cơ bản",
+      "type": "Loại lương",
+      "monthly": "Lương tháng",
+      "hourly": "Lương giờ",
+      "effective_date": "Ngày hiệu lực",
+      "cancel": "Hủy",
+      "submit": "Cập nhật lương"
+    },
+    "select_workspace": "Vui lòng chọn Workspace"
+  },
+  "members": {
+    "title": "Thành viên & Quyền hạn",
+    "subtitle": "Quản lý quyền truy cập và phân vai trò trong hệ thống.",
+    "roles": {
+      "admin": "Quản trị viên (Admin)",
+      "member": "Thành viên (Member)",
+      "owner": "Chủ sở hữu (Owner)",
+      "owner_desc": "Sáng lập, toàn quyền cao nhất",
+      "admin_desc": "Quản trị viên hệ thống",
+      "member_desc": "Thành viên thông thường",
+      "modal_title": "Quản lý quyền hạn",
+      "modal_subtitle": "Phân quyền nhân sự",
+      "primary_role_label": "Quyền chính (Vĩnh viễn)",
+      "extra_roles_label": "Quyền bổ sung (Tạm thời)",
+      "expires_at": "Hết hạn",
+      "no_extra_roles": "Chưa có quyền bổ sung nào.",
+      "assign_new_title": "Gán quyền mới",
+      "expiry_date_label": "Ngày hết hạn",
+      "assign_btn": "Gán quyền",
+      "confirm_change_primary": "Bạn có chắc muốn đổi quyền chính thành {{role}}?",
+      "confirm_revoke": "Bạn có chắc chắn muốn thu hồi quyền này?",
+      "messages": {
+        "update_primary_error": "Lỗi khi cập nhật quyền chính.",
+        "assign_error": "Lỗi khi gán quyền.",
+        "revoke_error": "Lỗi khi thu hồi quyền."
+      }
+    },
+    "table": {
+      "confirm_remove": "Bạn có chắc chắn muốn xóa thành viên này?",
+      "manage_roles": "Quản lý quyền",
+      "remove_member": "Xóa thành viên",
+      "messages": {
+        "remove_error": "Lỗi khi xóa thành viên.",
+        "no_members": "Không tìm thấy thành viên nào trong workspace này."
+      }
+    },
+    "invite": {
+      "title": "Mời thành viên",
+      "subtitle": "Quản lý nhân sự",
+      "email_label": "Địa chỉ Email",
+      "role_label": "Vai trò gán",
+      "submit_btn": "Gửi lời mời",
+      "error_message": "Không thể mời thành viên. Vui lòng kiểm tra email."
+    }
+  },
+  "devices": {
+    "title": "Quản lý thiết bị",
+    "add_btn": "Thêm thiết bị",
+    "toast": {
+      "add_success": "Đã thêm thiết bị \"{{name}}\" thành công.",
+      "add_error": "Lỗi khi thêm thiết bị. Vui lòng kiểm tra lại địa chỉ IP.",
+      "update_success": "Đã cập nhật thiết bị \"{{name}}\" thành công.",
+      "update_error": "Lỗi khi cập nhật thiết bị.",
+      "delete_confirm": "Bạn có chắc chắn muốn xóa thiết bị này?",
+      "delete_success": "Đã xóa thiết bị khỏi hệ thống.",
+      "delete_error": "Lỗi khi xóa thiết bị."
+    },
+    "form": {
+      "infrastructure": "Hạ tầng kết nối",
+      "new_device": "Thiết bị mới",
+      "edit_device": "Sửa thiết bị",
+      "name": "Tên thiết bị",
+      "name_placeholder": "Ví dụ: Máy cổng chính",
+      "agent": "Chọn Agent",
+      "select_agent": "Chọn một Agent...",
+      "ip": "Địa chỉ IP",
+      "port": "Cổng (Port)",
+      "save": "Lưu",
+      "clock_name": "Tên máy chấm công",
+      "clock_name_placeholder": "VD: Máy sảnh chính...",
+      "managed_by": "Quản lý bởi Agent",
+      "ip_local": "Địa chỉ IP (Local)",
+      "cancel": "Hủy bỏ",
+      "save_device": "Lưu thiết bị",
+      "update_device": "Cập nhật"
+    },
+    "table": {
+      "device": "Thiết bị",
+      "managed_by": "Phụ trách bởi",
+      "connection": "Kết nối",
+      "active": "Hoạt động",
+      "disabled": "Đang tắt",
+      "actions": "Thao tác",
+      "edit": "Chỉnh sửa",
+      "sync_time": "Đồng bộ thời gian",
+      "advanced": "Cấu hình nâng cao",
+      "delete": "Xóa thiết bị",
+      "no_data": "Chưa có thiết bị nào được thiết lập."
+    }
+  },
+  "auth": {
+    "slogan": "Hệ thống quản lý nhân sự 4.0",
+    "login_error": "Email hoặc mật khẩu không đúng",
+    "connection_error": "Lỗi kết nối server",
+    "fast_login": "⚡ Đăng nhập nhanh",
+    "or_use_account": "Hoặc sử dụng tài khoản",
+    "email": "Email",
+    "password": "Mật khẩu",
+    "processing": "Đang xử lý...",
+    "login_btn": "Đăng nhập hệ thống",
+    "no_account": "Chưa có tài khoản?",
+    "register_now": "Đăng ký ngay",
+    "display_name": "Tên hiển thị",
+    "confirm_password": "Xác nhận mật khẩu",
+    "already_have_account": "Đã có tài khoản?",
+    "login": "Đăng nhập",
+    "register_title": "Tạo tài khoản mới",
+    "register_btn": "Đăng ký tài khoản",
+    "password_mismatch": "Mật khẩu không khớp",
+    "password_too_short": "Mật khẩu phải có ít nhất 6 ký tự",
+    "registration_failed": "Đăng ký thất bại. Vui lòng thử lại.",
+    "creating_account": "Đang tạo tài khoản...",
+    "checking_security": "Đang kiểm tra bảo mật...",
+    "session_expired": "Phiên làm việc hết hạn, đang chuyển hướng...",
+    "user_not_found": "Không tìm thấy thông tin người dùng..."
+  }
+}

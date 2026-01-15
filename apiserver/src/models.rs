@@ -107,6 +107,7 @@ pub struct Workspace {
     pub time_format: String,
     pub timezone: String,
     pub theme_primary_color: String,
+    pub default_language: String,
     pub created_at: DateTime<Utc>,
 }
 
@@ -124,6 +125,7 @@ pub struct UpdateWorkspaceRequest {
     pub time_format: Option<String>,
     pub timezone: Option<String>,
     pub theme_primary_color: Option<String>,
+    pub default_language: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
@@ -136,6 +138,7 @@ pub struct User {
     pub full_name: Option<String>,
     pub avatar_url: Option<String>,
     pub bio: Option<String>,
+    pub preferred_language: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -158,6 +161,7 @@ pub struct UserResponse {
     pub full_name: Option<String>,
     pub avatar_url: Option<String>,
     pub bio: Option<String>,
+    pub preferred_language: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -177,6 +181,7 @@ pub struct UpdateUserRequest {
     pub full_name: Option<String>,
     pub avatar_url: Option<String>,
     pub bio: Option<String>,
+    pub preferred_language: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

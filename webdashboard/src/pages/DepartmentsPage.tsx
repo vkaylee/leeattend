@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, Edit2, Trash2, Building2, UserCircle, Users, LayoutGrid } from "lucide-react";
 import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment, getCurrentWorkspaceId, fetchUsers } from "../lib/api";
@@ -6,6 +7,7 @@ import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 
 export default function DepartmentsPage() {
+  const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -71,30 +73,30 @@ export default function DepartmentsPage() {
     }
   }, [editingDept]);
 
-  if (!wsId) return <div className="p-8 text-center">Vui lòng chọn Workspace</div>;
+  if (!wsId) return <div className="p-8 text-center">{t("common.select_workspace")}</div>;
 
   return (
     <div className="p-8 space-y-8 animate-enter">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Phòng ban</h1>
-          <p className="text-slate-500 mt-1">Quản lý cơ cấu tổ chức và sơ đồ quản lý</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{t("departments.title")}</h1>
+          <p className="text-slate-500 mt-1">{t("departments.subtitle")}</p>
         </div>
         <button 
           onClick={() => { setEditingDept(null); setIsModalOpen(true); }}
           className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 font-bold"
         >
           <Plus className="w-5 h-5" />
-          Thêm phòng ban
+          {t("departments.add_btn")}
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoading ? (
-          <div className="col-span-full py-20 text-center text-slate-400 font-medium italic">Đang tải dữ liệu...</div>
+          <div className="col-span-full py-20 text-center text-slate-400 font-medium italic">{t("common.loading")}</div>
         ) : departments.length === 0 ? (
           <div className="col-span-full py-20 text-center text-slate-400 font-medium border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50/30">
-            Chưa có phòng ban nào được tạo.
+            {t("departments.messages.no_departments")}
           </div>
         ) : departments.map((dept) => (
           <div key={dept.id} className="bg-white border border-slate-50 p-8 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all group relative overflow-hidden">
@@ -102,12 +104,14 @@ export default function DepartmentsPage() {
               <button 
                 onClick={() => { setEditingDept(dept); setIsModalOpen(true); }}
                 className="p-2.5 bg-slate-50 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all shadow-sm"
+                title={t("common.edit")}
               >
                 <Edit2 className="w-4 h-4" />
               </button>
               <button 
-                onClick={() => { if(confirm("Xóa phòng ban này?")) deleteMutation.mutate(dept.id); }}
+                onClick={() => { if(confirm(t("departments.messages.confirm_delete"))) deleteMutation.mutate(dept.id); }}
                 className="p-2.5 bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all shadow-sm"
+                title={t("common.delete")}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -118,7 +122,7 @@ export default function DepartmentsPage() {
             </div>
             
             <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-2 uppercase">{dept.name}</h2>
-            <p className="text-slate-500 text-sm mb-8 line-clamp-2 min-h-[2.5rem] font-medium leading-relaxed">{dept.description || "Không có mô tả."}</p>
+            <p className="text-slate-500 text-sm mb-8 line-clamp-2 min-h-[2.5rem] font-medium leading-relaxed">{dept.description || t("common.no_description")}</p>
             
             <div className="pt-6 border-t border-slate-50 flex flex-col gap-4">
               <div className="flex items-center gap-3">
@@ -126,9 +130,9 @@ export default function DepartmentsPage() {
                   <UserCircle className="w-4 h-4" />
                 </div>
                 <div className="text-xs">
-                  <span className="block text-slate-400 font-bold uppercase tracking-widest text-[9px]">Trưởng bộ phận</span>
+                  <span className="block text-slate-400 font-bold uppercase tracking-widest text-[9px]">{t("departments.manager_label")}</span>
                   <span className="font-bold text-slate-700">
-                    {users.find(u => u.id === dept.manager_id)?.full_name || "Chưa bổ nhiệm"}
+                    {users.find(u => u.id === dept.manager_id)?.full_name || t("departments.not_assigned")}
                   </span>
                 </div>
               </div>
@@ -140,36 +144,36 @@ export default function DepartmentsPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingDept ? "Sửa phòng ban" : "Thêm phòng ban"}
-        subtitle="Cơ cấu tổ chức"
+        title={editingDept ? t("departments.modal.edit_title") : t("departments.modal.add_title")}
+        subtitle={t("departments.modal.subtitle")}
         icon={<LayoutGrid className="w-6 h-6" />}
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label htmlFor="dept-name" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Tên phòng ban</label>
+            <label htmlFor="dept-name" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">{t("departments.form.name_label")}</label>
             <input 
               id="dept-name"
               name="name" 
               required 
               defaultValue={editingDept?.name} 
               className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 outline-none transition-all font-bold" 
-              placeholder="VD: Phòng Kỹ thuật, Nhân sự..."
+              placeholder={t("departments.form.name_placeholder")}
             />
           </div>
           
           <div className="space-y-2">
-            <label htmlFor="dept-desc" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Mô tả</label>
+            <label htmlFor="dept-desc" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">{t("common.description")}</label>
             <textarea 
               id="dept-desc"
               name="description" 
               defaultValue={editingDept?.description} 
               className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 outline-none transition-all font-medium h-24 resize-none" 
-              placeholder="Nhập mô tả ngắn về chức năng nhiệm vụ..."
+              placeholder={t("departments.form.desc_placeholder")}
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="dept-manager" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Trưởng bộ phận</label>
+            <label htmlFor="dept-manager" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">{t("departments.manager_label")}</label>
             <Combobox
               id="dept-manager"
               options={users.map(u => ({
@@ -179,7 +183,7 @@ export default function DepartmentsPage() {
               }))}
               value={selectedManagerId}
               onChange={setSelectedManagerId}
-              placeholder="Chọn người quản lý..."
+              placeholder={t("departments.form.manager_placeholder")}
               className="bg-slate-50 border-slate-100"
             />
           </div>
@@ -190,13 +194,13 @@ export default function DepartmentsPage() {
               onClick={() => setIsModalOpen(false)} 
               className="px-8 py-4 border border-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all"
             >
-              Hủy bỏ
+              {t("common.cancel")}
             </button>
             <button 
               type="submit" 
               className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 hover:scale-[1.02] active:scale-95"
             >
-              {editingDept ? "Cập nhật" : "Tạo phòng ban"}
+              {editingDept ? t("common.update") : t("departments.modal.submit_btn")}
             </button>
           </div>
         </form>
