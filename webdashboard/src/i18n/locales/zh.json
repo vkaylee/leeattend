@@ -39,7 +39,6 @@
     "org_name_placeholder": "例如：ABC 公司，自由职业团队...",
     "success": "成功",
     "error": "错误",
-    "save": "保存",
     "info": "通知",
     "warning": "警告",
     "remove": "移除",
@@ -50,6 +49,7 @@
     },
     "cancel": "取消",
     "employee": "员工",
+    "all_employees": "所有员工",
     "year": "年",
     "month": "月",
     "total": "总计",
@@ -120,6 +120,7 @@
       "en": "English",
       "zh": "中文"
     },
+    "primary_color": "主题颜色",
     "colors": {
       "violet": "紫色",
       "indigo": "靛蓝色",

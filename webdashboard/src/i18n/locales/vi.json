@@ -34,6 +34,8 @@
     "retry": "Thử lại",
     "add_office_branch": "Thêm văn phòng/chi nhánh",
     "create_workspace_error": "Không thể tạo Workspace. Vui lòng thử lại.",
+    "success": "Thành công",
+    "error": "Lỗi",
     "leeattend_system": "Hệ thống LeeAttend",
     "org_name_label": "Tên tổ chức / Dự án",
     "org_name_placeholder": "Ví dụ: Công ty ABC, Team Freelance...",
@@ -117,6 +119,16 @@
       "vi": "Tiếng Việt",
       "en": "English",
       "zh": "中文"
+    },
+    "primary_color": "Màu chủ đạo",
+    "colors": {
+      "violet": "Tím",
+      "indigo": "Chàm",
+      "blue": "Xanh dương",
+      "emerald": "Ngọc lục bảo",
+      "amber": "Hổ phách",
+      "rose": "Hồng",
+      "slate": "Xám"
     },
     "pagination": {
       "showing": "Hiển thị",
