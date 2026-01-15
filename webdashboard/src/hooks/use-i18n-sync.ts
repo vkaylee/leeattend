@@ -12,14 +12,11 @@ export function useI18nSync() {
   const currentWorkspace = workspaces.find(ws => ws.id === currentWsId);
 
   useEffect(() => {
-    if (user?.preferred_language) {
-      if (i18n.language !== user.preferred_language) {
-        i18n.changeLanguage(user.preferred_language);
-      }
-    } else if (currentWorkspace?.default_language) {
-      if (i18n.language !== currentWorkspace.default_language) {
-        i18n.changeLanguage(currentWorkspace.default_language);
-      }
+    const langToSet = user?.preferred_language || currentWorkspace?.default_language;
+    
+    if (langToSet && i18n.language !== langToSet) {
+      i18n.changeLanguage(langToSet);
+      localStorage.setItem('i18nextLng', langToSet);
     }
   }, [user?.preferred_language, currentWorkspace?.default_language, i18n]);
 }

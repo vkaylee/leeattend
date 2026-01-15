@@ -20,8 +20,8 @@ export function useProfile() {
 
   const updateMutation = useMutation({
     mutationFn: updateMe,
-    onSuccess: (updatedData) => {
-      queryClient.setQueryData(profileKeys.me, updatedData);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: profileKeys.me });
     },
   });
 

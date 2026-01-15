@@ -60,6 +60,7 @@ export default function WorkspaceSettingsPage() {
     onSuccess: () => {
       toast.success(t("common.success"));
       queryClient.invalidateQueries({ queryKey: ["workspace", wsId] });
+      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
     },
     onError: () => {
       toast.error(t("common.error"));
