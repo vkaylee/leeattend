@@ -45,6 +45,7 @@ import EmployeesPage from "./pages/EmployeesPage";
 import DepartmentsPage from "./pages/DepartmentsPage";
 import TimeTrackingPage from "./pages/TimeTrackingPage";
 import LeaveRequestsPage from "./pages/LeaveRequestsPage";
+import LeaveBalancesPage from "./pages/LeaveBalancesPage";
 import ReportsPage from "./pages/ReportsPage";
 import PayrollPage from "./pages/PayrollPage";
 import ShiftsPage from "./pages/ShiftsPage";
@@ -263,6 +264,15 @@ function Layout() {
               >
                 <CalendarDays className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="font-semibold text-sm">{t("common.leave_requests")}</span>
+              </Link>
+              <Link
+                to="/leave-balances"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/leave-balances" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
+                }`}
+              >
+                <Banknote className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">{t("common.leave_balances")}</span>
               </Link>
               <Link
                 to="/attendance-adjustments"
@@ -498,6 +508,7 @@ function App() {
                 <Route path="/time-tracking" element={<TimeTrackingPage />} />
                 <Route path="/attendance-logs" element={<AttendanceLogsPage />} />
                 <Route path="/leave-requests" element={<LeaveRequestsPage />} />
+                <Route path="/leave-balances" element={<LeaveBalancesPage />} />
                 <Route path="/attendance-adjustments" element={<AttendanceAdjustmentsPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/shifts" element={<ShiftsPage />} />

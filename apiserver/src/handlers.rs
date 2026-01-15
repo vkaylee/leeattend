@@ -1692,6 +1692,46 @@ pub async fn get_workspace_leave_requests(
     }
 }
 
+pub async fn get_employee_leave_history(
+    Path((ws_id, emp_id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<Vec<crate::models::LeaveHistoryItem>>, StatusCode> {
+    let year = Utc::now().year();
+    match crate::services::leave_service::LeaveService::get_employee_leave_history(
+        &state.db,
+        ws_id,
+        emp_id,
+        year,
+    )
+    .await
+    {
+        Ok(history) => Ok(Json(history)),
+        Err(status) => Err(status),
+    }
+}
+
+pub async fn adjust_leave_balance(
+    Path((ws_id, emp_id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Json(req): Json<crate::models::AdjustBalanceRequest>,
+) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    match crate::services::leave_service::LeaveService::adjust_balance(
+        &state.db,
+        ws_id,
+        emp_id,
+        req,
+    )
+    .await
+    {
+        Ok(_) => StatusCode::OK.into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
 // --- Attendance Adjustment Handlers ---
 
 pub async fn upload_attendance_excel(

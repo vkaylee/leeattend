@@ -918,6 +918,37 @@ export async function fetchEmployeeLeaveBalances(
   return response.json();
 }
 
+export interface LeaveHistoryItem {
+  id: string;
+  date: string;
+  transaction_type: "accrual" | "usage" | "adjustment" | "carry_over";
+  amount: number;
+  reason?: string;
+  reference_id?: string;
+  created_at: string;
+}
+
+export async function fetchLeaveHistory(
+  wsId: string,
+  employeeId: string,
+): Promise<LeaveHistoryItem[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/leave/history`);
+  if (!response.ok) throw new Error("Failed to fetch leave history");
+  return response.json();
+}
+
+export async function adjustLeaveBalance(
+  wsId: string,
+  employeeId: string,
+  data: { leave_type: string; amount: number; reason: string; transaction_date: string }
+): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/leave/adjust`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to adjust leave balance");
+}
+
 // --- Leave Policies ---
 export interface LeavePolicy {
   id: string;

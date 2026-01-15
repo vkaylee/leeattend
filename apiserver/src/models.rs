@@ -773,3 +773,22 @@ pub struct AssignLeavePolicyRequest {
     pub effective_from: NaiveDate,
     pub effective_to: Option<NaiveDate>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+pub struct LeaveHistoryItem {
+    pub id: Uuid,
+    pub date: NaiveDate,
+    pub transaction_type: String, // "accrual", "usage", "adjustment", "carry_over"
+    pub amount: f64,
+    pub reason: Option<String>,
+    pub reference_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AdjustBalanceRequest {
+    pub leave_type: String,
+    pub amount: f64, // Positive to add, Negative to deduct
+    pub reason: String,
+    pub transaction_date: NaiveDate,
+}

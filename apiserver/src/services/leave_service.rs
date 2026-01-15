@@ -4,14 +4,108 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::repositories::roster_repository;
-use crate::models::{ApproveLeaveRequest, LeaveRequest, SubmitLeaveRequest, EmployeeLeaveBalance, ShiftRoster};
+use crate::models::{ApproveLeaveRequest, LeaveRequest, SubmitLeaveRequest, EmployeeLeaveBalance, ShiftRoster, LeaveHistoryItem, AdjustBalanceRequest};
 use crate::repositories::employee_repository;
 use crate::repositories::leave_request_repository;
 use crate::repositories::leave_balance_repository;
+use rust_decimal::prelude::ToPrimitive;
 
 pub struct LeaveService;
 
 impl LeaveService {
+    pub async fn get_employee_leave_history(
+        pool: &PgPool,
+        _workspace_id: Uuid,
+        employee_id: Uuid,
+        year: i32,
+    ) -> Result<Vec<LeaveHistoryItem>, StatusCode> {
+        // 1. Get Accruals & Adjustments
+        let logs = sqlx::query!(
+            r#"
+            SELECT id, accrual_date, amount, leave_type, notes, created_at, policy_assignment_id
+            FROM leave_accrual_logs
+            WHERE employee_id = $1 
+              AND EXTRACT(YEAR FROM accrual_date) = $2
+            "#,
+            employee_id,
+            year as f64
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        // 2. Get Usage (Approved Requests)
+        let requests = sqlx::query!(
+            r#"
+            SELECT id, start_date, end_date, leave_type, reason, created_at
+            FROM leave_requests
+            WHERE employee_id = $1 
+              AND status = 'approved'
+              AND EXTRACT(YEAR FROM start_date) = $2
+            "#,
+            employee_id,
+            year as f64
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        let mut history: Vec<LeaveHistoryItem> = Vec::new();
+
+        for log in logs {
+            let type_str = if log.policy_assignment_id.is_some() { "accrual" } else { "adjustment" };
+            history.push(LeaveHistoryItem {
+                id: log.id,
+                date: log.accrual_date,
+                transaction_type: type_str.to_string(),
+                amount: log.amount.to_f64().unwrap_or(0.0),
+                reason: log.notes,
+                reference_id: None,
+                created_at: log.created_at.unwrap_or_else(chrono::Utc::now),
+            });
+        }
+
+        for req in requests {
+            let days = (req.end_date - req.start_date).num_days() + 1;
+            history.push(LeaveHistoryItem {
+                id: Uuid::new_v4(), // Virtual ID for history view
+                date: req.start_date,
+                transaction_type: "usage".to_string(),
+                amount: -(days as f64),
+                reason: req.reason,
+                reference_id: Some(req.id),
+                created_at: req.created_at.unwrap_or_else(chrono::Utc::now),
+            });
+        }
+
+        // Sort by date desc
+        history.sort_by(|a, b| b.date.cmp(&a.date));
+
+        Ok(history)
+    }
+
+    pub async fn adjust_balance(
+        pool: &PgPool,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        req: AdjustBalanceRequest,
+    ) -> Result<(), StatusCode> {
+        let amount_dec = rust_decimal::Decimal::from_f64_retain(req.amount)
+            .ok_or(StatusCode::BAD_REQUEST)?;
+
+        leave_balance_repository::adjust_balance(
+            pool,
+            workspace_id,
+            employee_id,
+            &req.leave_type,
+            amount_dec,
+            req.transaction_date,
+            &req.reason
+        )
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
     pub async fn get_employee_balances(
         pool: &PgPool,
         workspace_id: Uuid,
