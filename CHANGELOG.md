@@ -5,6 +5,10 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased] - 2026-01-16
 
 ### Added
+- **Strict Import Validation (Integrity First)**: Enforced a "Validate First" policy for Attendance Imports.
+    - **Atomic Failure**: The entire import job now fails immediately if *any* Employee ID in the file does not exist in the database, preventing partial imports and "ghost" logs.
+    - **Actionable Feedback**: The error log explicitly lists the unknown Employee IDs (e.g., "Found 2 unknown employees: EMP01, EMP02"), allowing admins to quickly fix the data.
+    - **Refactored Import Service**: Rewrote `AttendanceImportService` to separate parsing, validation, and persistence phases.
 - **Employee Self-Service (ESS) Portal**: Launched the first phase of the personal portal for employees.
     - **Personal Profile**: View and edit basic information, including avatar support.
     - **Emergency Contacts**: Dedicated management for multiple emergency contact persons.

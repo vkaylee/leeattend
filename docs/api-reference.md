@@ -475,8 +475,13 @@ Lấy danh sách các yêu cầu điều chỉnh trong workspace.
 
 #### POST /workspaces/:ws_id/attendance/upload
 Upload file Excel (.xlsx, .xls) hoặc CSV. Trả về Job ID để theo dõi tiến độ bất đồng bộ.
+- **Strict Validation**: Import sẽ bị từ chối ngay lập tức nếu file chứa bất kỳ Mã nhân viên (Employee ID Number) nào không tồn tại trong hệ thống.
 - **Request**: `multipart/form-data` (file)
 - **Response (200)**: `{ "job_id": "uuid" }`
+- **Error Behavior**: Nếu Job failed do validation, `error_log` trong Job Status sẽ chứa danh sách các Employee ID bị thiếu:
+  ```text
+  Found 2 unknown employees: ID123, ID456
+  ```
 
 #### GET /workspaces/:ws_id/attendance/import-jobs/latest
 Lấy thông tin Job import gần nhất của workspace.
