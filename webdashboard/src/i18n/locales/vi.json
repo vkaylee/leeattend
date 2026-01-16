@@ -192,7 +192,11 @@
       },
       "strategies": {
         "monthly": "Tích lũy hàng tháng",
-        "monthly_desc": "Cấp 1 ngày vào đầu mỗi tháng",
+        "monthly_desc": "Cấp ngày vào đầu mỗi tháng",
+        "quarterly": "Tích lũy hàng quý",
+        "quarterly_desc": "Cấp ngày vào đầu mỗi quý",
+        "yearly": "Tích lũy hàng năm",
+        "yearly_desc": "Cấp toàn bộ định mức vào đầu năm",
         "lump_sum": "Cấp một lần đầu năm",
         "lump_sum_desc": "Cấp toàn bộ định mức vào đầu năm"
       },

@@ -170,7 +170,7 @@ describe("LeaveRequestsPage", () => {
   it("manages policies", async () => {
     const user = userEvent.setup();
     (api.fetchLeavePolicies as any).mockResolvedValue([
-      { id: "pol-1", name: "Standard Policy", leave_type: "vacation", annual_entitlement: 12, accrual_strategy: "monthly", carry_over_limit: 5 }
+      { id: "pol-1", name: "Standard Policy", leave_type: "vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period", carry_over_limit: 5 } }
     ]);
     (api.createLeavePolicy as any).mockResolvedValue({});
 
@@ -202,7 +202,7 @@ describe("LeaveRequestsPage", () => {
   it("edits an existing policy", async () => {
     const user = userEvent.setup();
     (api.fetchLeavePolicies as any).mockResolvedValue([
-      { id: "pol-1", name: "Old Policy", leave_type: "vacation", annual_entitlement: 12, accrual_strategy: "monthly", carry_over_limit: 5 }
+      { id: "pol-1", name: "Old Policy", leave_type: "vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period", carry_over_limit: 5 } }
     ]);
     (api.updateLeavePolicy as any).mockResolvedValue({});
 
@@ -219,13 +219,8 @@ describe("LeaveRequestsPage", () => {
     await user.click(screen.getByText("Chính sách"));
     expect(await screen.findByText("Old Policy")).toBeDefined();
 
-    // Click edit button (using its container or SVG if needed, but let's try finding by role/class if possible or just first button in actions)
-    // Based on implementation: <Edit2 className="w-4 h-4" />
-    const editBtns = await screen.findAllByRole("button");
-    // Find the button that has the edit icon or just use the index if we know it. 
-    // Better: find the one near "Old Policy"
     const row = screen.getByText("Old Policy").closest("tr");
-    const editBtn = row!.querySelector('button'); // First button in actions is Edit
+    const editBtn = row!.querySelector('button');
     await user.click(editBtn!);
 
     expect(await screen.findByText("Sửa chính sách")).toBeDefined();
@@ -242,7 +237,7 @@ describe("LeaveRequestsPage", () => {
   it("deletes a policy", async () => {
     const user = userEvent.setup();
     (api.fetchLeavePolicies as any).mockResolvedValue([
-      { id: "pol-1", name: "To Be Deleted", leave_type: "vacation", annual_entitlement: 12, accrual_strategy: "monthly", carry_over_limit: 5 }
+      { id: "pol-1", name: "To Be Deleted", leave_type: "vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period", carry_over_limit: 5 } }
     ]);
     (api.deleteLeavePolicy as any).mockResolvedValue({});
     vi.spyOn(window, 'confirm').mockReturnValue(true);
@@ -272,7 +267,9 @@ describe("LeaveRequestsPage", () => {
 
   it("handles policy assignment", async () => {
     const user = userEvent.setup();
-    (api.fetchLeavePolicies as any).mockResolvedValue([{ id: "pol-1", name: "Standard", leave_type: "vacation" }]);
+    (api.fetchLeavePolicies as any).mockResolvedValue([
+      { id: "pol-1", name: "Standard", leave_type: "vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period" } }
+    ]);
     (api.assignLeavePolicy as any).mockResolvedValue({});
 
     render(

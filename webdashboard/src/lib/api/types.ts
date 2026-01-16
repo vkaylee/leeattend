@@ -316,11 +316,19 @@ export interface LeavePolicy {
   id: string;
   workspace_id: string;
   name: string;
-  leave_type: string;
-  annual_entitlement: number;
-  accrual_strategy: "monthly" | "lump_sum";
-  carry_over_limit: number;
+  description?: string;
+  leave_type?: string;
+  rule_config: LeavePolicyConfig;
   created_at: string;
+  updated_at: string;
+}
+
+export interface LeavePolicyConfig {
+  frequency: "monthly" | "quarterly" | "yearly";
+  accrual_amount: number;
+  accrual_timing: "start_of_period" | "end_of_period";
+  carry_over_limit?: number;
+  max_balance?: number;
 }
 
 export interface EffectiveSchedule {

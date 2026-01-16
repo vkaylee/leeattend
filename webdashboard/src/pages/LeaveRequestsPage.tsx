@@ -70,6 +70,21 @@ export default function LeaveRequestsPage() {
     enabled: !!wsId && activeTab === "policies",
   });
 
+  const calculateAnnualEntitlement = (policy: LeavePolicy) => {
+    const config = policy.rule_config;
+    const amount = config.accrual_amount;
+    switch (config.frequency) {
+      case 'monthly': return amount * 12;
+      case 'quarterly': return amount * 4;
+      case 'yearly': return amount;
+      default: return amount;
+    }
+  };
+
+  const getAccrualStrategy = (policy: LeavePolicy) => {
+    return policy.rule_config.frequency;
+  };
+
   const submitMutation = useMutation({
     mutationFn: (data: { employee_id: string; leave_type: string; start_date: string; end_date: string; reason?: string }) => 
       submitLeaveRequest(wsId!, data),
@@ -141,12 +156,18 @@ export default function LeaveRequestsPage() {
   const handleCreatePolicy = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    
+    // Construct the rule_config object expected by the backend
+    const rule_config = {
+      frequency: accrualStrategy as any, // "monthly" | "quarterly" | "yearly"
+      accrual_amount: Number(formData.get("annual_entitlement")) / (accrualStrategy === "monthly" ? 12 : accrualStrategy === "quarterly" ? 4 : 1),
+      accrual_timing: "start_of_period",
+      carry_over_limit: Number(formData.get("carry_over_limit")),
+    };
+
     policyMutation.mutate({
       name: formData.get("name") as string,
-      leave_type: policyType as any,
-      annual_entitlement: Number(formData.get("annual_entitlement")),
-      accrual_strategy: accrualStrategy as "monthly" | "lump_sum",
-      carry_over_limit: Number(formData.get("carry_over_limit")),
+      rule_config: rule_config as any,
     });
   };
 
@@ -240,19 +261,19 @@ export default function LeaveRequestsPage() {
                 ) : policies.map((policy) => (
                   <tr key={policy.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4 font-medium text-slate-900">{policy.name}</td>
-                    <td className="px-6 py-4 capitalize text-slate-600">{policy.leave_type}</td>
-                    <td className="px-6 py-4 text-slate-600 font-bold">{policy.annual_entitlement} {t("common.days")}</td>
+                    <td className="px-6 py-4 capitalize text-slate-600">{policy.leave_type || 'vacation'}</td>
+                    <td className="px-6 py-4 text-slate-600 font-bold">{calculateAnnualEntitlement(policy)} {t("common.days")}</td>
                     <td className="px-6 py-4 text-sm text-slate-600">
-                      {policy.accrual_strategy === 'monthly' ? t("leave_requests.policy.strategies.monthly") : t("leave_requests.policy.strategies.lump_sum")}
+                      {t(`leave_requests.policy.strategies.${getAccrualStrategy(policy)}`)}
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{policy.carry_over_limit} {t("common.days")}</td>
+                    <td className="px-6 py-4 text-slate-600">{policy.rule_config.carry_over_limit || 0} {t("common.days")}</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button 
                           onClick={() => {
                             setEditingPolicy(policy);
-                            setPolicyType(policy.leave_type);
-                            setAccrualStrategy(policy.accrual_strategy);
+                            setPolicyType(policy.leave_type || 'vacation');
+                            setAccrualStrategy(getAccrualStrategy(policy));
                             setIsPolicyModalOpen(true);
                           }}
                           className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
@@ -465,11 +486,11 @@ export default function LeaveRequestsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label htmlFor="annual-entitlement" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.table.entitlement")}</label>
-              <input id="annual-entitlement" type="number" name="annual_entitlement" required defaultValue={editingPolicy?.annual_entitlement ?? 12} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
+              <input id="annual-entitlement" type="number" name="annual_entitlement" required defaultValue={editingPolicy ? calculateAnnualEntitlement(editingPolicy) : 12} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
             </div>
             <div className="space-y-1">
               <label htmlFor="carry-over" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Carry-over limit</label>
-              <input id="carry-over" type="number" name="carry_over_limit" required defaultValue={editingPolicy?.carry_over_limit ?? 5} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
+              <input id="carry-over" type="number" name="carry_over_limit" required defaultValue={editingPolicy?.rule_config.carry_over_limit ?? 5} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
             </div>
           </div>
           <div className="space-y-2">
@@ -478,7 +499,8 @@ export default function LeaveRequestsPage() {
               id="accrual-strategy"
               options={[
                 { value: "monthly", label: t("leave_requests.policy.strategies.monthly"), description: t("leave_requests.policy.strategies.monthly_desc") },
-                { value: "lump_sum", label: t("leave_requests.policy.strategies.lump_sum"), description: t("leave_requests.policy.strategies.lump_sum_desc") },
+                { value: "quarterly", label: t("leave_requests.policy.strategies.quarterly"), description: t("leave_requests.policy.strategies.quarterly_desc") },
+                { value: "yearly", label: t("leave_requests.policy.strategies.yearly"), description: t("leave_requests.policy.strategies.yearly_desc") },
               ]}
               value={accrualStrategy}
               onChange={setAccrualStrategy}

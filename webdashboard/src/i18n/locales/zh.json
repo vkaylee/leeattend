@@ -192,12 +192,21 @@
       },
       "strategies": {
         "monthly": "按月累积",
-        "monthly_desc": "每月初发放 1 天",
+        "monthly_desc": "每月初发放天数",
+        "quarterly": "按季度累积",
+        "quarterly_desc": "每季度初发放天数",
+        "yearly": "按年累积",
+        "yearly_desc": "年初发放全额配额",
         "lump_sum": "年度发放",
         "lump_sum_desc": "年初一次性发放全部配额"
       },
+      "edit_title": "编辑制度",
       "messages": {
-        "no_policies": "未找到休假制度。"
+        "no_policies": "未找到休假制度。",
+        "create_success": "成功创建休假制度！",
+        "update_success": "成功更新休假制度！",
+        "delete_success": "成功删除休假制度！",
+        "confirm_delete": "您确定要删除此休假制度吗？"
       }
     },
     "modal": {

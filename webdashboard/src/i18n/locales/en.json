@@ -191,7 +191,11 @@
       },
       "strategies": {
         "monthly": "Monthly Accrual",
-        "monthly_desc": "Grants 1 day at the start of each month",
+        "monthly_desc": "Grants days at the start of each month",
+        "quarterly": "Quarterly Accrual",
+        "quarterly_desc": "Grants days at the start of each quarter",
+        "yearly": "Yearly Accrual",
+        "yearly_desc": "Grants total entitlement at start of year",
         "lump_sum": "Annual Lump Sum",
         "lump_sum_desc": "Grants full entitlement at start of year"
       },
