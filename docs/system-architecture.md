@@ -22,7 +22,9 @@ Dịch vụ `PairingService` thực hiện nhiệm vụ chuyển đổi luồng 
     - **Pattern Matching (DP)**: Sử dụng quy hoạch động (Dynamic Programming) để khớp các logs với các mẫu ca làm việc (Shift Patterns) có sẵn. Tốt nhất cho môi trường văn phòng có ca cố định và cần theo dõi giờ nghỉ giữa ca.
     - **First & Last (Anchor)**: Thuật toán đơn giản chỉ lấy bản ghi đầu tiên (In) và cuối cùng (Out) trong ngày. Tốt nhất cho môi trường sản xuất (nhà máy) có lượng Overtime lớn và không cần theo dõi chi tiết giờ nghỉ.
     - **Sequential (Retail)**: Ghép cặp các bản ghi theo thứ tự thời gian (Log 1+2, 3+4...). Tốt nhất cho môi trường bán lẻ hoặc y tế nơi nhân viên làm ca gãy (split shifts) hoặc ra vào nhiều lần trong ngày.
+    - **State-based (FSM)**: Sử dụng máy trạng thái hữu hạn để xử lý logs dựa trên metadata `punch_type` từ thiết bị (Vào, Ra, Nghỉ...). Có độ chính xác cao nhất đối với các thiết bị phần cứng hỗ trợ phím chức năng.
     - **Chronological (Fallback)**: Tự động ghép cặp theo thứ tự thời gian khi không có lịch trình (shift) được gán.
+- **Metadata Awareness**: Engine hiện tại sử dụng cấu trúc `LogEvent` thay vì chỉ lưu mốc thời gian, cho phép các thuật toán truy cập vào trạng thái nguyên bản từ thiết bị để đưa ra quyết định ghép cặp chính xác hơn.
 - **Enhanced Reliability**: Thuật toán DP được cấu hình với độ trễ (penalty) lên tới 300 phút, đảm bảo không bỏ sót các trường hợp làm thêm giờ (overtime) muộn.
 - **Timezone Safety**: Mọi mốc thời gian được lưu trữ dưới dạng UTC và chỉ được chuyển đổi sang múi giờ địa phương (ICT) tại tầng hiển thị.
 

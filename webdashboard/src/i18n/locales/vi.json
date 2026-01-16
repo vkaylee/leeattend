@@ -763,7 +763,9 @@
       "anchor_first": "Đầu & Cuối (Anchor)",
       "anchor_first_desc": "Đơn giản nhất. Chỉ lấy bản ghi đầu tiên và cuối cùng trong ngày.",
       "sequential": "Nối tiếp (Retail)",
-      "sequential_desc": "Ghép cặp log 1+2, 3+4, v.v. Tốt nhất cho ca gãy và quẹt thẻ nhiều lần."
+      "sequential_desc": "Ghép cặp log 1+2, 3+4, v.v. Tốt nhất cho ca gãy và quẹt thẻ nhiều lần.",
+      "fsm": "Trạng thái (FSM)",
+      "fsm_desc": "Sử dụng trạng thái Vào/Ra trực tiếp từ thiết bị. Độ chính xác cao nhất cho phần cứng cao cấp."
     }
   },
   "employees": {

@@ -20,19 +20,27 @@ pub struct PairedSession {
     pub note: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct LogEvent {
+    pub minutes: i32,
+    pub punch_type: Option<i32>, // 0: Check-In, 1: Check-Out, 2: Break-In, 3: Break-Out, 4: Overtime-In, 5: Overtime-Out
+}
+
 pub trait PairingStrategy: Send + Sync {
-    fn pair(&self, logs: &[i32], config: Option<&PairingShiftConfig>) -> Vec<PairedSession>;
+    fn pair(&self, logs: &[LogEvent], config: Option<&PairingShiftConfig>) -> Vec<PairedSession>;
 }
 
 pub struct DpPatternStrategy;
 pub struct AnchorFirstStrategy;
 pub struct SequentialStrategy;
+pub struct FsmStrategy;
 
 /// Factory function to get the requested strategy
 pub fn get_strategy(algorithm: &str) -> Box<dyn PairingStrategy> {
     match algorithm {
         "anchor_first" => Box::new(AnchorFirstStrategy),
         "sequential" => Box::new(SequentialStrategy),
+        "fsm" => Box::new(FsmStrategy),
         _ => Box::new(DpPatternStrategy),
     }
 }
@@ -40,10 +48,12 @@ pub fn get_strategy(algorithm: &str) -> Box<dyn PairingStrategy> {
 // --- DpPatternStrategy Implementation ---
 
 impl PairingStrategy for DpPatternStrategy {
-    fn pair(&self, logs: &[i32], config: Option<&PairingShiftConfig>) -> Vec<PairedSession> {
+    fn pair(&self, logs: &[LogEvent], config: Option<&PairingShiftConfig>) -> Vec<PairedSession> {
         if logs.is_empty() {
             return vec![];
         }
+
+        let minutes: Vec<i32> = logs.iter().map(|l| l.minutes).collect();
 
         let Some(shift) = config else {
             // Fallback if no shift config provided for DP strategy
@@ -58,7 +68,7 @@ impl PairingStrategy for DpPatternStrategy {
         let mut best_sessions = Vec::new();
 
         for pattern in patterns {
-            let (score, sessions) = evaluate_pattern(logs, &pattern);
+            let (score, sessions) = evaluate_pattern(&minutes, &pattern);
             if score < best_score {
                 best_score = score;
                 best_sessions = sessions;
@@ -72,14 +82,14 @@ impl PairingStrategy for DpPatternStrategy {
 // --- AnchorFirstStrategy Implementation ---
 
 impl PairingStrategy for AnchorFirstStrategy {
-    fn pair(&self, logs: &[i32], _config: Option<&PairingShiftConfig>) -> Vec<PairedSession> {
+    fn pair(&self, logs: &[LogEvent], _config: Option<&PairingShiftConfig>) -> Vec<PairedSession> {
         if logs.is_empty() {
             return vec![];
         }
 
-        let start = logs[0];
+        let start = logs[0].minutes;
         let end = if logs.len() > 1 {
-            Some(logs[logs.len() - 1])
+            Some(logs[logs.len() - 1].minutes)
         } else {
             None
         };
@@ -96,14 +106,14 @@ impl PairingStrategy for AnchorFirstStrategy {
 // --- SequentialStrategy Implementation ---
 
 impl PairingStrategy for SequentialStrategy {
-    fn pair(&self, logs: &[i32], _config: Option<&PairingShiftConfig>) -> Vec<PairedSession> {
+    fn pair(&self, logs: &[LogEvent], _config: Option<&PairingShiftConfig>) -> Vec<PairedSession> {
         let mut sessions = Vec::new();
         let mut chunks = logs.chunks_exact(2);
         
         for chunk in chunks.by_ref() {
             sessions.push(PairedSession {
-                start_minutes: chunk[0],
-                end_minutes: Some(chunk[1]),
+                start_minutes: chunk[0].minutes,
+                end_minutes: Some(chunk[1].minutes),
                 entry_type: "work".to_string(),
                 note: None,
             });
@@ -111,13 +121,87 @@ impl PairingStrategy for SequentialStrategy {
         
         if let Some(last) = chunks.remainder().first() {
              sessions.push(PairedSession {
-                start_minutes: *last,
+                start_minutes: last.minutes,
                 end_minutes: None,
                 entry_type: "work".to_string(),
                 note: Some("Missing Punch Out".to_string()),
             });
         }
         
+        sessions
+    }
+}
+
+// --- FsmStrategy Implementation ---
+
+impl PairingStrategy for FsmStrategy {
+    fn pair(&self, logs: &[LogEvent], _config: Option<&PairingShiftConfig>) -> Vec<PairedSession> {
+        if logs.is_empty() {
+            return vec![];
+        }
+
+        let mut sessions = Vec::new();
+        let mut current_start: Option<i32> = None;
+
+        for event in logs {
+            match event.punch_type {
+                Some(0) | Some(2) | Some(4) => { // In types
+                    // If already have a start, close it as missing out
+                    if let Some(start) = current_start {
+                        sessions.push(PairedSession {
+                            start_minutes: start,
+                            end_minutes: None,
+                            entry_type: "work".to_string(),
+                            note: Some("Missing Punch Out".to_string()),
+                        });
+                    }
+                    current_start = Some(event.minutes);
+                }
+                Some(1) | Some(3) | Some(5) => { // Out types
+                    if let Some(start) = current_start {
+                        sessions.push(PairedSession {
+                            start_minutes: start,
+                            end_minutes: Some(event.minutes),
+                            entry_type: "work".to_string(),
+                            note: None,
+                        });
+                        current_start = None;
+                    } else {
+                        // Orphaned Out
+                        sessions.push(PairedSession {
+                            start_minutes: event.minutes,
+                            end_minutes: Some(event.minutes),
+                            entry_type: "work".to_string(),
+                            note: Some("Missing Punch In".to_string()),
+                        });
+                    }
+                }
+                _ => {
+                    // Fallback to toggle behavior if no metadata
+                    if let Some(start) = current_start {
+                        sessions.push(PairedSession {
+                            start_minutes: start,
+                            end_minutes: Some(event.minutes),
+                            entry_type: "work".to_string(),
+                            note: None,
+                        });
+                        current_start = None;
+                    } else {
+                        current_start = Some(event.minutes);
+                    }
+                }
+            }
+        }
+
+        if let Some(start) = current_start {
+            sessions.push(PairedSession {
+                start_minutes: start,
+                end_minutes: None,
+                entry_type: "work".to_string(),
+                note: Some("Missing Punch Out".to_string()),
+            });
+        }
+
         sessions
     }
 }
@@ -326,7 +410,12 @@ mod tests {
     fn test_dp_perfect_day() {
         let strategy = DpPatternStrategy;
         let shift = standard_shift();
-        let logs = vec![475, 725, 775, 1025]; 
+        let logs = vec![
+            LogEvent { minutes: 475, punch_type: None },
+            LogEvent { minutes: 725, punch_type: None },
+            LogEvent { minutes: 775, punch_type: None },
+            LogEvent { minutes: 1025, punch_type: None },
+        ]; 
         
         let sessions = strategy.pair(&logs, Some(&shift));
         
@@ -340,7 +429,12 @@ mod tests {
     #[test]
     fn test_anchor_perfect_day() {
         let strategy = AnchorFirstStrategy;
-        let logs = vec![475, 725, 775, 1025]; 
+        let logs = vec![
+            LogEvent { minutes: 475, punch_type: None },
+            LogEvent { minutes: 725, punch_type: None },
+            LogEvent { minutes: 775, punch_type: None },
+            LogEvent { minutes: 1025, punch_type: None },
+        ]; 
         
         let sessions = strategy.pair(&logs, None);
         

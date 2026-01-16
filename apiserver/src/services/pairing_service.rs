@@ -121,7 +121,7 @@ impl PairingService {
         let end_of_window_utc = start_of_day_utc + Duration::hours(36);
 
         let logs = sqlx::query!(
-            "SELECT punch_time FROM raw_attendance_logs WHERE employee_id = $1 AND punch_time >= $2 AND punch_time < $3 ORDER BY punch_time ASC",
+            "SELECT punch_time, (raw_data->'punch')::text as punch_str FROM raw_attendance_logs WHERE employee_id = $1 AND punch_time >= $2 AND punch_time < $3 ORDER BY punch_time ASC",
             employee_id,
             start_of_day_utc,
             end_of_window_utc
@@ -130,7 +130,7 @@ impl PairingService {
         .await?;
 
         // 3. Filter and Linearize Logs
-        let mut filtered_log_minutes = Vec::new();
+        let mut filtered_log_events = Vec::new();
         if !logs.is_empty() {
             let mut last_time: Option<DateTime<Utc>> = None;
             
@@ -144,23 +144,30 @@ impl PairingService {
                 // Linearize: minutes since start_of_day_local
                 let log_local = log.punch_time.with_timezone(&tz);
                 let duration_since_start = log_local.signed_duration_since(start_of_day_local);
-                filtered_log_minutes.push(duration_since_start.num_minutes() as i32);
+                
+                // Extract punch type from metadata if present
+                let punch_type = log.punch_str.and_then(|s| s.parse::<i32>().ok());
+
+                filtered_log_events.push(pairing_algo::LogEvent {
+                    minutes: duration_since_start.num_minutes() as i32,
+                    punch_type,
+                });
                 
                 last_time = Some(log.punch_time);
             }
         }
 
-        if filtered_log_minutes.is_empty() {
+        if filtered_log_events.is_empty() {
             Self::clear_auto_entries(pool, employee_id, start_of_day_utc, start_of_day_utc + Duration::hours(24)).await?;
             return Ok(());
         }
 
         // 4. Run Algorithm
         let sessions = if algorithm == "chronological" || (algorithm == "dp_pattern" && shift_config.is_none()) {
-             Self::pair_chronological(&filtered_log_minutes)
+             Self::pair_chronological_events(&filtered_log_events)
         } else {
             let strategy = pairing_algo::get_strategy(algorithm);
-            strategy.pair(&filtered_log_minutes, shift_config.as_ref())
+            strategy.pair(&filtered_log_events, shift_config.as_ref())
         };
 
         // 5. Update Database
@@ -215,28 +222,54 @@ impl PairingService {
         Ok(())
     }
 
-    fn pair_chronological(logs: &[i32]) -> Vec<pairing_algo::PairedSession> {
-        let mut sessions = Vec::new();
-        let mut chunks = logs.chunks_exact(2);
-        
-        for chunk in chunks.by_ref() {
-            sessions.push(pairing_algo::PairedSession {
-                start_minutes: chunk[0],
-                end_minutes: Some(chunk[1]),
-                entry_type: "work".to_string(),
-                note: Some("No Shift - Auto Paired".to_string()),
-            });
+        fn pair_chronological_events(logs: &[pairing_algo::LogEvent]) -> Vec<pairing_algo::PairedSession> {
+
+            let mut sessions = Vec::new();
+
+            let mut chunks = logs.chunks_exact(2);
+
+            
+
+            for chunk in chunks.by_ref() {
+
+                sessions.push(pairing_algo::PairedSession {
+
+                    start_minutes: chunk[0].minutes,
+
+                    end_minutes: Some(chunk[1].minutes),
+
+                    entry_type: "work".to_string(),
+
+                    note: Some("No Shift - Auto Paired".to_string()),
+
+                });
+
+            }
+
+            
+
+            if let Some(last) = chunks.remainder().first() {
+
+                 sessions.push(pairing_algo::PairedSession {
+
+                    start_minutes: last.minutes,
+
+                    end_minutes: None,
+
+                    entry_type: "work".to_string(),
+
+                    note: Some("No Shift - Missing Out".to_string()),
+
+                });
+
+            }
+
+            
+
+            sessions
+
         }
-        
-        if let Some(last) = chunks.remainder().first() {
-             sessions.push(pairing_algo::PairedSession {
-                start_minutes: *last,
-                end_minutes: None,
-                entry_type: "work".to_string(),
-                note: Some("No Shift - Missing Out".to_string()),
-            });
-        }
-        
-        sessions
+
     }
-}
+
+    

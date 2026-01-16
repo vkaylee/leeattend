@@ -762,7 +762,9 @@
       "anchor_first": "首尾配对 (Anchor)",
       "anchor_first_desc": "最简单。仅使用当天的第一个和最后一个记录。",
       "sequential": "顺序配对 (零售)",
-      "sequential_desc": "配对记录 1+2、3+4 等。最适合分段班次和高频打卡。"
+      "sequential_desc": "配对记录 1+2、3+4 等。最适合分段班次和高频打卡。",
+      "fsm": "基于状态 (FSM)",
+      "fsm_desc": "使用设备的显式进/出状态。高端硬件的最高精度。"
     }
   },
   "employees": {

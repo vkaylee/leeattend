@@ -761,7 +761,9 @@
       "anchor_first": "First & Last (Anchor)",
       "anchor_first_desc": "Simplest. Only uses the first and last logs of the day.",
       "sequential": "Sequential (Retail)",
-      "sequential_desc": "Pairs Log 1+2, 3+4, etc. Best for split shifts and high-frequency punching."
+      "sequential_desc": "Pairs Log 1+2, 3+4, etc. Best for split shifts and high-frequency punching.",
+      "fsm": "State-based (FSM)",
+      "fsm_desc": "Uses explicit In/Out status from devices. Highest precision for high-end hardware."
     }
   },
   "employees": {

@@ -244,6 +244,7 @@ export default function WorkspaceSettingsPage() {
                     { value: "dp_pattern", label: t("workspace_settings.algorithm_options.dp_pattern"), description: t("workspace_settings.algorithm_options.dp_pattern_desc"), icon: <Settings2 className="w-4 h-4" /> },
                     { value: "anchor_first", label: t("workspace_settings.algorithm_options.anchor_first"), description: t("workspace_settings.algorithm_options.anchor_first_desc"), icon: <Clock className="w-4 h-4" /> },
                     { value: "sequential", label: t("workspace_settings.algorithm_options.sequential"), description: t("workspace_settings.algorithm_options.sequential_desc"), icon: <Calculator className="w-4 h-4" /> },
+                    { value: "fsm", label: t("workspace_settings.algorithm_options.fsm"), description: t("workspace_settings.algorithm_options.fsm_desc"), icon: <Shield className="w-4 h-4" /> },
                   ]}
                   value={pairingAlgorithm}
                   onChange={setPairingAlgorithm}
