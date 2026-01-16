@@ -6,11 +6,19 @@ use uuid::Uuid;
 use tracing::{error, info};
 use std::io::Cursor;
 use calamine::{Reader, Xlsx, Xls, Data, DataType};
+use std::collections::HashSet;
 
 use crate::models::{AttendanceImportJob, CreateAttendanceAdjustmentRequest, RawAttendanceLog};
 use crate::repositories::{import_job_repository, employee_repository, raw_attendance_log_repository};
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::services::pairing_service::PairingService;
+
+struct PendingRow {
+    emp_id_number: String,
+    punch_time: DateTime<Utc>,
+    // line_number is useful for debugging but not strictly needed for processing if we validate upfront
+    line_number: usize,
+}
 
 pub struct AttendanceImportService;
 
@@ -101,63 +109,123 @@ impl AttendanceImportService {
             }
         };
 
-        let mut processed_rows = job.processed_rows;
-        let mut total_rows = job.total_rows;
+        let mut processed_rows = job.processed_rows; // This might be > 0 if resumed, but strictly validating means we might re-validate or fail. 
+        // For simplicity, if we are resuming, we assume validation passed previously? 
+        // Or better: just re-process from start if it's strict. But `processed_rows` implies we skip.
+        // Given strict validation requirement, if we resume, we probably should re-validate everything remaining?
+        // Let's assume for now we parse EVERYTHING to validate, but only insert what's needed?
+        // Actually, if `processed_rows > 0`, it means some were inserted. If we failed halfway, we might have partial data.
+        // But "Strict Validation" (Approach A) implies "Atomic Batch" conceptually (don't start if bad).
+        // So if we are resuming a CRASHED job, we should probably re-validate.
+        
         let mut errors = Vec::new();
+        let mut pending_rows: Vec<PendingRow> = Vec::new();
 
-        // Check if Excel
+        // 1. PARSE PHASE
         let mut is_excel = false;
         if let Ok(mut reader) = Xlsx::new(Cursor::new(&file_bytes)) {
             if let Some(Ok(range)) = reader.worksheet_range_at(0) {
                 is_excel = true;
-                Self::process_excel_range(&pool, job_id, &job, range, &mut processed_rows, &mut total_rows, &mut errors, Some(&date_format), Some(&time_format), &timezone).await;
+                Self::parse_excel_range(range, &mut pending_rows, &mut errors, Some(&date_format), Some(&time_format), &timezone);
             }
         } else if let Ok(mut reader) = Xls::new(Cursor::new(&file_bytes)) {
             if let Some(Ok(range)) = reader.worksheet_range_at(0) {
                 is_excel = true;
-                Self::process_excel_range(&pool, job_id, &job, range, &mut processed_rows, &mut total_rows, &mut errors, Some(&date_format), Some(&time_format), &timezone).await;
+                Self::parse_excel_range(range, &mut pending_rows, &mut errors, Some(&date_format), Some(&time_format), &timezone);
             }
         }
 
-        // Try CSV if not Excel
         if !is_excel {
             let mut reader = csv::ReaderBuilder::new().has_headers(true).from_reader(Cursor::new(&file_bytes));
             let records: Vec<_> = reader.records().flatten().collect();
-            total_rows = records.len() as i32;
-            let _ = sqlx::query("UPDATE attendance_import_jobs SET total_rows = $1 WHERE id = $2")
-                .bind(total_rows).bind(job_id).execute(&pool).await;
-
-            for (idx, record) in records.into_iter().skip(processed_rows as usize).enumerate() {
-                let current_line = (processed_rows as usize) + idx + 2; // +1 for skip, +1 for 1-based indexing
-                let emp_id_number = record.get(0).unwrap_or("").to_string();
-                let emp_dt_str = record.get(2).unwrap_or("");
+            // In CSV, first row is header, so rows are records.
+            // But parse_excel_range handles header skipping (row 0).
+            // For CSV, we iterate records which are already data rows.
+            for (idx, record) in records.into_iter().enumerate() {
+                let current_line = idx + 2; // +1 header, +1 for 1-based
+                let emp_id_number = record.get(0).unwrap_or("").trim().to_string();
+                let emp_dt_str = record.get(2).unwrap_or("").trim();
 
                 if emp_id_number.is_empty() || emp_dt_str.is_empty() { 
                     errors.push(format!("Dòng {}: Thiếu mã nhân viên hoặc thời gian", current_line));
                     continue; 
                 }
 
-                let punch_time = match AttendanceAdjustmentService::parse_datetime(emp_dt_str, &timezone, Some(&date_format), Some(&time_format)) {
-                    Ok(dt) => dt,
+                match AttendanceAdjustmentService::parse_datetime(emp_dt_str, &timezone, Some(&date_format), Some(&time_format)) {
+                    Ok(dt) => {
+                        pending_rows.push(PendingRow {
+                            emp_id_number,
+                            punch_time: dt,
+                            line_number: current_line,
+                        });
+                    },
                     Err(e) => {
                         errors.push(format!("Dòng {} (NV {}): {} [Dữ liệu gốc: '{}']", current_line, emp_id_number, e, emp_dt_str));
-                        continue;
                     }
                 };
+            }
+        }
 
-                match Self::process_import_row(&pool, &job, &emp_id_number, punch_time).await {
-                    Ok(c) => {
-                        processed_rows += c as i32;
-                        if processed_rows % 10 == 0 {
-                            let _ = import_job_repository::update_job_progress(&pool, job_id, processed_rows, "processing", None).await;
-                        }
-                    },
-                    Err(_) => errors.push(format!("NV {}: Lỗi hệ thống", emp_id_number)),
+        let total_rows = pending_rows.len() as i32 + errors.len() as i32;
+        
+        let _ = sqlx::query("UPDATE attendance_import_jobs SET total_rows = $1 WHERE id = $2")
+            .bind(total_rows).bind(job_id).execute(&pool).await;
+
+        if !errors.is_empty() {
+             let _ = import_job_repository::update_job_progress(&pool, job_id, 0, "failed", Some(errors.join("\n"))).await;
+             let _ = tokio::fs::remove_file(file_path).await;
+             return Err(());
+        }
+
+        // 2. VALIDATION PHASE (Strict)
+        let unique_emp_ids: HashSet<String> = pending_rows.iter().map(|r| r.emp_id_number.clone()).collect();
+        let unique_emp_ids_vec: Vec<String> = unique_emp_ids.iter().cloned().collect();
+
+        match employee_repository::get_existing_employee_ids_by_numbers(&pool, job.workspace_id, &unique_emp_ids_vec).await {
+            Ok(existing_ids) => {
+                let existing_set: HashSet<String> = existing_ids.into_iter().collect();
+                let missing_ids: Vec<String> = unique_emp_ids.difference(&existing_set).cloned().collect();
+                
+                if !missing_ids.is_empty() {
+                    let err_msg = format!("Found {} unknown employees: {}", missing_ids.len(), missing_ids.join(", "));
+                    let _ = import_job_repository::update_job_progress(&pool, job_id, 0, "failed", Some(err_msg)).await;
+                    let _ = tokio::fs::remove_file(file_path).await;
+                    return Err(());
+                }
+            },
+            Err(e) => {
+                error!("VALIDATION_ERROR: {:?}", e);
+                let _ = import_job_repository::update_job_progress(&pool, job_id, 0, "failed", Some("Database error during validation".to_string())).await;
+                return Err(());
+            }
+        }
+
+        // 3. PROCESSING PHASE
+        // If we are resuming, skip already processed rows? 
+        // With strict validation, we might just re-process everything that hasn't been saved?
+        // But if `processed_rows` > 0, it means we did some. 
+        // The loop below will try to process all pending_rows.
+        // We should skip the first `processed_rows` if the order is deterministic.
+        // Since `pending_rows` is built sequentially from file, it is deterministic.
+        
+        let rows_to_process = pending_rows.into_iter().skip(processed_rows as usize);
+
+        for row in rows_to_process {
+            match Self::process_import_row(&pool, &job, &row.emp_id_number, row.punch_time).await {
+                Ok(c) => {
+                    processed_rows += c as i32;
+                    if processed_rows % 10 == 0 {
+                        let _ = import_job_repository::update_job_progress(&pool, job_id, processed_rows, "processing", None).await;
+                    }
+                },
+                Err(_) => {
+                    // This should be rare if validation passed, maybe DB error
+                    errors.push(format!("NV {}: Lỗi hệ thống khi lưu (Dòng {})", row.emp_id_number, row.line_number));
                 }
             }
         }
 
-        let status = if errors.len() as i32 == total_rows && total_rows > 0 { "failed" } else { "completed" };
+        let status = if !errors.is_empty() { "failed" } else { "completed" };
         let error_log = if errors.is_empty() { None } else { Some(errors.join("\n")) };
         let _ = import_job_repository::update_job_progress(&pool, job_id, processed_rows, status, error_log).await;
         
@@ -166,38 +234,30 @@ impl AttendanceImportService {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
-    async fn process_excel_range(
-        pool: &PgPool,
-        job_id: Uuid,
-        job: &AttendanceImportJob,
+    fn parse_excel_range(
         range: calamine::Range<Data>,
-        processed_rows: &mut i32,
-        total_rows: &mut i32,
+        pending_rows: &mut Vec<PendingRow>,
         errors: &mut Vec<String>,
         preferred_date: Option<&str>,
         preferred_time: Option<&str>,
         timezone: &str,
     ) {
-        *total_rows = (range.rows().count() as i32 - 1).max(0);
-        let _ = sqlx::query("UPDATE attendance_import_jobs SET total_rows = $1 WHERE id = $2")
-            .bind(*total_rows)
-            .bind(job_id)
-            .execute(pool)
-            .await;
-
-        for (idx, row) in range.rows().skip(1 + *processed_rows as usize).enumerate() {
-            let current_line = (*processed_rows as usize) + idx + 2; // +1 for skip header, +1 for 1-based indexing
+        // Skip header row (index 0)
+        for (idx, row) in range.rows().skip(1).enumerate() {
+            let current_line = idx + 2; // +1 for skip, +1 for 1-based indexing
             let emp_id_number = match row.first() {
-                Some(Data::String(s)) => s.clone(),
+                Some(Data::String(s)) => s.trim().to_string(),
                 Some(Data::Float(f)) => f.to_string(),
+                Some(Data::Int(i)) => i.to_string(),
                 _ => {
                     errors.push(format!("Dòng {}: Thiếu mã nhân viên", current_line));
                     continue;
                 }
             };
+
+            // Column 2 (index 2) is usually Time/Date
             let punch_time = match row.get(2) {
-                Some(Data::String(s)) => match AttendanceAdjustmentService::parse_datetime(s, timezone, preferred_date, preferred_time) {
+                Some(Data::String(s)) => match AttendanceAdjustmentService::parse_datetime(s.trim(), timezone, preferred_date, preferred_time) {
                     Ok(dt) => Some(dt),
                     Err(e) => {
                         errors.push(format!("Dòng {} (NV {}): {} [Dữ liệu gốc: '{}']", current_line, emp_id_number, e, s));
@@ -206,7 +266,6 @@ impl AttendanceImportService {
                 },
                 Some(cell_data) => {
                     if let Some(naive) = cell_data.as_datetime() {
-                        // For Excel naive datetime, we assume it's in the workspace timezone
                         let tz: Tz = timezone.parse().unwrap_or(chrono_tz::Asia::Ho_Chi_Minh);
                         match tz.from_local_datetime(&naive) {
                             chrono::LocalResult::Single(dt) => Some(dt.with_timezone(&Utc)),
@@ -223,19 +282,12 @@ impl AttendanceImportService {
                 }
             };
 
-            let punch_time = match punch_time {
-                Some(dt) => dt,
-                None => continue,
-            };
-
-            match Self::process_import_row(pool, job, &emp_id_number, punch_time).await {
-                Ok(c) => {
-                    *processed_rows += c as i32;
-                    if *processed_rows % 10 == 0 {
-                        let _ = import_job_repository::update_job_progress(pool, job_id, *processed_rows, "processing", None).await;
-                    }
-                }
-                Err(_) => errors.push(format!("NV {}: Lỗi hệ thống", emp_id_number)),
+            if let Some(dt) = punch_time {
+                 pending_rows.push(PendingRow {
+                     emp_id_number,
+                     punch_time: dt,
+                     line_number: current_line,
+                 });
             }
         }
     }
@@ -246,9 +298,12 @@ impl AttendanceImportService {
         emp_id_number: &str,
         punch_time_utc: DateTime<Utc>,
     ) -> Result<usize, StatusCode> {
+        // We still fetch the employee here to get the UUID, or we could have cached it in validation map.
+        // Fetching again is safer/easier for now.
         let employee = match employee_repository::get_employee_by_id_number(pool, emp_id_number, job.workspace_id).await {
             Ok(Some(emp)) => emp,
             _ => {
+                // Should not happen due to validation
                 error!("EMPLOYEE_NOT_FOUND: {} in WS {}", emp_id_number, job.workspace_id);
                 return Ok(0);
             }
@@ -263,7 +318,7 @@ impl AttendanceImportService {
                 punch_time: punch_time_utc,
                 source: "import".to_string(),
                 device_id: None,
-                raw_data: None, // Could store the row data here if needed
+                raw_data: None, 
                 created_at: Utc::now(),
             };
 
@@ -277,14 +332,12 @@ impl AttendanceImportService {
             // 2. Trigger Pairing Logic
             if let Err(e) = PairingService::process_new_raw_log(pool, &raw_log).await {
                 error!("PAIRING_ERROR for log {}: {:?}", raw_log.id, e);
-                // We don't necessarily fail the whole row if pairing fails, 
-                // as the raw log is already saved. But for now return error.
+                // Return error to propagate
                 return Err(StatusCode::INTERNAL_SERVER_ERROR);
             }
 
             Ok(1)
         } else {
-            // Original adjustment flow
             let req = CreateAttendanceAdjustmentRequest {
                 employee_id: employee.id,
                 time_entry_id: None,

@@ -181,6 +181,25 @@ pub async fn get_active_employees(
         .await
 }
 
+pub async fn get_existing_employee_ids_by_numbers(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    id_numbers: &[String],
+) -> Result<Vec<String>, sqlx::Error> {
+    if id_numbers.is_empty() {
+        return Ok(Vec::new());
+    }
+    
+    let query = "SELECT employee_id_number FROM employees WHERE workspace_id = $1 AND employee_id_number = ANY($2)";
+    let result: Vec<String> = sqlx::query_scalar(query)
+        .bind(workspace_id)
+        .bind(id_numbers)
+        .fetch_all(pool)
+        .await?;
+
+    Ok(result)
+}
+
 pub async fn get_employment_history(
     pool: &PgPool,
     employee_id: Uuid,

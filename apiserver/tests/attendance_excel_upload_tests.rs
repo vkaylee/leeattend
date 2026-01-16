@@ -167,3 +167,47 @@ async fn test_import_fallback_logic() {
     ).await.unwrap();
     assert_eq!(entries.len(), 1, "Should have created one time entry via CSV fallback");
 }
+
+#[tokio::test]
+async fn test_import_strict_validation_failure() {
+    let test_db = TestDatabase::new().await;
+    let pool = test_db.pool();
+    let factory = TestFactory::new(pool.clone());
+    let ws_id = factory.workspace().create().await;
+    let user_id = factory.user().create().await;
+
+    // Create a temporary CSV file with UNKNOWN employee
+    let storage_dir = "./storage/test_imports";
+    fs::create_dir_all(storage_dir).await.unwrap();
+    let file_path = format!("{}/test_strict_fail.csv", storage_dir);
+    let csv_data = "empNo,empName,empDt\nUNKNOWN-001,Unknown,11/01/2026 08:30";
+    fs::write(&file_path, csv_data).await.unwrap();
+
+    // Import from file path
+    let job_id = AttendanceAdjustmentService::batch_import_from_file(
+        pool.clone(),
+        ws_id,
+        user_id,
+        file_path.clone()
+    ).await.expect("Import job creation failed");
+
+    // Wait for async processing
+    let mut processed = false;
+    let mut error_msg = String::new();
+    for _ in 0..20 {
+        sleep(Duration::from_millis(100)).await;
+        let job = apiserver::repositories::import_job_repository::get_job_by_id(&pool, job_id).await.unwrap().unwrap();
+        if job.status == "failed" {
+            processed = true;
+            error_msg = job.error_log.unwrap_or_default();
+            break;
+        }
+    }
+    
+    assert!(processed, "Job did not fail as expected");
+    assert!(error_msg.contains("Found 1 unknown employees"), "Error message mismatch: {}", error_msg);
+    assert!(error_msg.contains("UNKNOWN-001"), "Error message should contain missing ID: {}", error_msg);
+
+    // Verify file is deleted
+    assert!(!fs::try_exists(&file_path).await.unwrap(), "File should be deleted after failure");
+}
