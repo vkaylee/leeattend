@@ -155,7 +155,62 @@
       "organization": "组织架构",
       "time_leave": "考勤休假",
       "payroll_shifts": "薪资排班",
-      "system": "系统设置"
+      "system": "系统设置",
+      "self_service": "自助服务"
+    },
+    "my_profile": "我的个人资料",
+    "my_attendance": "我的出勤",
+    "my_leave": "我的请假",
+    "my_documents": "我的文件",
+    "my_payslips": "我的工资单"
+  },
+  "ess": {
+    "profile": {
+      "title": "我的个人资料",
+      "subtitle": "管理个人信息和紧急联系人",
+      "personal_info": "个人信息",
+      "bank_info": "银行信息",
+      "emergency_contacts": "紧急联系人",
+      "phone": "电话",
+      "address": "地址",
+      "date_of_birth": "出生日期",
+      "gender": "性别",
+      "national_id": "身份证 / 护照",
+      "bank_name": "银行名称",
+      "bank_account": "账号",
+      "bank_branch": "支行",
+      "contact_name": "联系人姓名",
+      "relationship": "关系",
+      "primary_contact": "主要联系人",
+      "add_contact": "添加联系人",
+      "no_contacts": "暂无紧急联系人",
+      "male": "男",
+      "female": "女",
+      "other": "其他",
+      "messages": {
+        "update_success": "个人资料更新成功！",
+        "update_error": "更新个人资料时出错",
+        "add_contact_success": "紧急联系人已添加！",
+        "add_contact_error": "添加联系人时出错",
+        "delete_contact_success": "联系人已删除",
+        "delete_contact_error": "删除联系人时出错"
+      }
+    },
+    "attendance": {
+      "title": "我的出勤",
+      "subtitle": "查看您的考勤历史"
+    },
+    "leave": {
+      "title": "我的请假",
+      "subtitle": "查看余额和请假申请"
+    },
+    "documents": {
+      "title": "我的文件",
+      "subtitle": "访问已上传的文件"
+    },
+    "payslips": {
+      "title": "我的工资单",
+      "subtitle": "查看并下载工资单"
     }
   },
   "leave_requests": {
@@ -663,6 +718,7 @@
     "time_format": "时间格式",
     "timezone": "系统时区",
     "default_language": "默认语言",
+    "pairing_algorithm": "匹配算法",
     "theme_config": "界面配置",
     "primary_color": "主题颜色",
     "invite_member": "邀请成员",
@@ -699,6 +755,14 @@
       "vn": "越南 (UTC+7)",
       "th": "泰国 (UTC+7)",
       "utc": "协调世界时 (UTC)"
+    },
+    "algorithm_options": {
+      "dp_pattern": "模式匹配 (DP)",
+      "dp_pattern_desc": "最适合固定班次和休息时间。智能配对。",
+      "anchor_first": "首尾配对 (Anchor)",
+      "anchor_first_desc": "最简单。仅使用当天的第一个和最后一个记录。",
+      "sequential": "顺序配对 (零售)",
+      "sequential_desc": "配对记录 1+2、3+4 等。最适合分段班次和高频打卡。"
     }
   },
   "employees": {

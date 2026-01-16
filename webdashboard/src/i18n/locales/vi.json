@@ -761,7 +761,9 @@
       "dp_pattern": "Khớp theo mẫu (DP)",
       "dp_pattern_desc": "Tốt nhất cho ca cố định và có nghỉ giữa ca. Ghép cặp thông minh.",
       "anchor_first": "Đầu & Cuối (Anchor)",
-      "anchor_first_desc": "Đơn giản nhất. Chỉ lấy bản ghi đầu tiên và cuối cùng trong ngày."
+      "anchor_first_desc": "Đơn giản nhất. Chỉ lấy bản ghi đầu tiên và cuối cùng trong ngày.",
+      "sequential": "Nối tiếp (Retail)",
+      "sequential_desc": "Ghép cặp log 1+2, 3+4, v.v. Tốt nhất cho ca gãy và quẹt thẻ nhiều lần."
     }
   },
   "employees": {

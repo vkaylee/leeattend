@@ -1,5 +1,5 @@
 
-use apiserver::services::pairing_algo::{self, PairingShiftConfig, PairingStrategy, DpPatternStrategy, AnchorFirstStrategy};
+use apiserver::services::pairing_algo::{self, PairingShiftConfig, PairingStrategy, DpPatternStrategy, AnchorFirstStrategy, SequentialStrategy};
 
 fn standard_shift() -> PairingShiftConfig {
     PairingShiftConfig {
@@ -74,6 +74,7 @@ fn test_strategies_missing_out() {
 fn test_factory_dispatch() {
     let dp = pairing_algo::get_strategy("dp_pattern");
     let anchor = pairing_algo::get_strategy("anchor_first");
+    let sequential = pairing_algo::get_strategy("sequential");
     let random = pairing_algo::get_strategy("something_else");
 
     let logs = vec![100, 200, 300, 400];
@@ -81,5 +82,27 @@ fn test_factory_dispatch() {
     // DP needs shift or it fallbacks to anchor behavior (1 session)
     assert_eq!(dp.pair(&logs, None).len(), 1);
     assert_eq!(anchor.pair(&logs, None).len(), 1);
+    assert_eq!(sequential.pair(&logs, None).len(), 2); // Sequential should find 2
     assert_eq!(random.pair(&logs, None).len(), 1); // defaults to DP -> fallback anchor
+}
+
+#[test]
+fn test_strategies_sequential() {
+    let strategy = SequentialStrategy;
+    
+    // Case 1: 4 logs -> 2 sessions
+    let logs = vec![480, 720, 780, 1020];
+    let sessions = strategy.pair(&logs, None);
+    assert_eq!(sessions.len(), 2);
+    assert_eq!(sessions[0].start_minutes, 480);
+    assert_eq!(sessions[0].end_minutes, Some(720));
+    assert_eq!(sessions[1].start_minutes, 780);
+    assert_eq!(sessions[1].end_minutes, Some(1020));
+
+    // Case 2: 3 logs -> 1 session + 1 missing
+    let logs = vec![480, 720, 780];
+    let sessions = strategy.pair(&logs, None);
+    assert_eq!(sessions.len(), 2);
+    assert_eq!(sessions[1].start_minutes, 780);
+    assert!(sessions[1].end_minutes.is_none());
 }

@@ -21,6 +21,7 @@ Dịch vụ `PairingService` thực hiện nhiệm vụ chuyển đổi luồng 
 - **Configurable Strategies**:
     - **Pattern Matching (DP)**: Sử dụng quy hoạch động (Dynamic Programming) để khớp các logs với các mẫu ca làm việc (Shift Patterns) có sẵn. Tốt nhất cho môi trường văn phòng có ca cố định và cần theo dõi giờ nghỉ giữa ca.
     - **First & Last (Anchor)**: Thuật toán đơn giản chỉ lấy bản ghi đầu tiên (In) và cuối cùng (Out) trong ngày. Tốt nhất cho môi trường sản xuất (nhà máy) có lượng Overtime lớn và không cần theo dõi chi tiết giờ nghỉ.
+    - **Sequential (Retail)**: Ghép cặp các bản ghi theo thứ tự thời gian (Log 1+2, 3+4...). Tốt nhất cho môi trường bán lẻ hoặc y tế nơi nhân viên làm ca gãy (split shifts) hoặc ra vào nhiều lần trong ngày.
     - **Chronological (Fallback)**: Tự động ghép cặp theo thứ tự thời gian khi không có lịch trình (shift) được gán.
 - **Enhanced Reliability**: Thuật toán DP được cấu hình với độ trễ (penalty) lên tới 300 phút, đảm bảo không bỏ sót các trường hợp làm thêm giờ (overtime) muộn.
 - **Timezone Safety**: Mọi mốc thời gian được lưu trữ dưới dạng UTC và chỉ được chuyển đổi sang múi giờ địa phương (ICT) tại tầng hiển thị.

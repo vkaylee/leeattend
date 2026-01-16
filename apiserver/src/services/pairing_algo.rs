@@ -26,11 +26,13 @@ pub trait PairingStrategy: Send + Sync {
 
 pub struct DpPatternStrategy;
 pub struct AnchorFirstStrategy;
+pub struct SequentialStrategy;
 
 /// Factory function to get the requested strategy
 pub fn get_strategy(algorithm: &str) -> Box<dyn PairingStrategy> {
     match algorithm {
         "anchor_first" => Box::new(AnchorFirstStrategy),
+        "sequential" => Box::new(SequentialStrategy),
         _ => Box::new(DpPatternStrategy),
     }
 }
@@ -88,6 +90,35 @@ impl PairingStrategy for AnchorFirstStrategy {
             entry_type: "work".to_string(),
             note: if end.is_none() { Some("Missing Punch Out".to_string()) } else { None },
         }]
+    }
+}
+
+// --- SequentialStrategy Implementation ---
+
+impl PairingStrategy for SequentialStrategy {
+    fn pair(&self, logs: &[i32], _config: Option<&PairingShiftConfig>) -> Vec<PairedSession> {
+        let mut sessions = Vec::new();
+        let mut chunks = logs.chunks_exact(2);
+        
+        for chunk in chunks.by_ref() {
+            sessions.push(PairedSession {
+                start_minutes: chunk[0],
+                end_minutes: Some(chunk[1]),
+                entry_type: "work".to_string(),
+                note: None,
+            });
+        }
+        
+        if let Some(last) = chunks.remainder().first() {
+             sessions.push(PairedSession {
+                start_minutes: *last,
+                end_minutes: None,
+                entry_type: "work".to_string(),
+                note: Some("Missing Punch Out".to_string()),
+            });
+        }
+        
+        sessions
     }
 }
 

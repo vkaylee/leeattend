@@ -6,8 +6,8 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ### Added
 - **Attendance Pairing Strategy Pattern**: Refactored the core attendance log matching logic into a clean Strategy Pattern.
-    - **Multiple Algorithms**: Implemented `DpPatternStrategy` (intelligent matching with break support) and `AnchorFirstStrategy` (simple first/last matching).
-    - **Workspace Selection**: Added `pairing_algorithm` setting to workspaces, allowing users to choose the optimal logic for their environment (e.g., Office vs. Factory).
+    - **Multiple Algorithms**: Implemented `DpPatternStrategy` (intelligent matching with break support), `AnchorFirstStrategy` (simple first/last matching), and `SequentialStrategy` (chronological pairing for split shifts).
+    - **Workspace Selection**: Added `pairing_algorithm` setting to workspaces, allowing users to choose the optimal logic for their environment (e.g., Office, Factory, or Retail).
     - **Enhanced Overtime Detection**: Increased the penalty for unmatched logs in the DP algorithm to 300 minutes, ensuring late punch-outs are correctly captured as overtime rather than being ignored.
 - **Hierarchical Leave Policy Assignment**: Implemented a flexible, prioritized system for assigning leave policies.
     - **Multi-Level Assignment**: Policies can now be assigned at the **Workspace** (Global), **Department**, or **Employee** level.
