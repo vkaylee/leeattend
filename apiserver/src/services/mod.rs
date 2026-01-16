@@ -13,6 +13,7 @@ pub mod report_service;
 pub mod shift_service;
 pub mod time_tracking_service;
 pub mod workspace_service;
+pub mod working_pattern_service;
 
 pub use agent_service::AgentService;
 pub use attendance_calculator::AttendanceCalculator;

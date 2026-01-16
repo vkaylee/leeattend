@@ -56,7 +56,6 @@ pub async fn get_workspace_schedules(
     }
 
     // 4. Fetch Fixed Assignments (overlapping)
-    // We fetch all assignments that *start* before end_date and *end* after start_date (or are null)
     let fixed_assignments = sqlx::query!(
         r#"
         SELECT employee_id, shift_id, start_date, end_date, created_at
@@ -73,7 +72,26 @@ pub async fn get_workspace_schedules(
     .fetch_all(pool)
     .await?;
 
-    // 5. Fetch Department Defaults & History
+    // 5. Fetch Pattern Assignments (overlapping)
+    let pattern_assignments = sqlx::query!(
+        r#"
+        SELECT ewp.employee_id, ewp.pattern_id, ewp.start_date, ewp.end_date, ewp.created_at,
+               wpd.day_of_week, wpd.shift_id as pattern_shift_id
+        FROM employee_working_patterns ewp
+        JOIN working_pattern_details wpd ON ewp.pattern_id = wpd.pattern_id
+        WHERE ewp.workspace_id = $1
+          AND ewp.start_date <= $2
+          AND (ewp.end_date IS NULL OR ewp.end_date >= $3)
+        ORDER BY ewp.created_at DESC
+        "#,
+        workspace_id,
+        end_date,
+        start_date
+    )
+    .fetch_all(pool)
+    .await?;
+
+    // 6. Fetch Department Defaults & History
     // (Simplification: For now, we assume if Dept Default exists, we fetch it. 
     // Implementing full Dept History temporal logic in bulk is complex, 
     // we can do a simplified version or iterate.)
@@ -94,28 +112,32 @@ pub async fn get_workspace_schedules(
                 effective_shift_id = *shift_opt; // Can be None (Day Off)
                 source = "roster".to_string();
             } else {
-                // P2: Fixed (Find latest created valid assignment)
-                // Since we sorted by created_at DESC in SQL, the first match is the effective one
-                let fixed = fixed_assignments.iter().find(|a| {
+                // P2: Pattern
+                let dow = chrono::Datelike::weekday(&curr_date).num_days_from_sunday() as i32;
+                let pattern = pattern_assignments.iter().find(|a| {
                     a.employee_id == emp.id &&
                     a.start_date <= curr_date &&
-                    a.end_date.is_none_or(|ed| ed >= curr_date)
+                    a.end_date.is_none_or(|ed| ed >= curr_date) &&
+                    a.day_of_week == dow
                 });
 
-                if let Some(f) = fixed {
-                    effective_shift_id = Some(f.shift_id);
-                    source = "fixed".to_string();
+                if let Some(p) = pattern {
+                    effective_shift_id = p.pattern_shift_id;
+                    source = "pattern".to_string();
                 } else {
-                    // P3: Dept Default (Fallback - simplified query per day/employee if needed, 
-                    // or just leave as 'none' if we want to save optimization effort for now.
-                    // Given the requirement is "display fixed + roster", Dept is less critical for this specific view 
-                    // but ideally should be there. Let's call the single helper if needed, 
-                    // OR just skip for bulk performance now and add later.)
-                    
-                    // For massive performance, we should preload Dept data. 
-                    // For now, let's leave Dept fallback as a TODO or do a quick check if we want perfection.
-                    // The user specifically asked for "Fixed + Roster".
-                    source = "none".to_string();
+                    // P3: Fixed
+                    let fixed = fixed_assignments.iter().find(|a| {
+                        a.employee_id == emp.id &&
+                        a.start_date <= curr_date &&
+                        a.end_date.is_none_or(|ed| ed >= curr_date)
+                    });
+
+                    if let Some(f) = fixed {
+                        effective_shift_id = Some(f.shift_id);
+                        source = "fixed".to_string();
+                    } else {
+                        source = "none".to_string();
+                    }
                 }
             }
 
@@ -305,7 +327,35 @@ pub async fn get_effective_shift(
         return Ok(shift); // Returns the shift ID or None (day off)
     }
 
-    // Priority 2: Employee Default Shift (Temporal Overriding Logic)
+    // Priority 2: Working Pattern (Resolved based on day of week)
+    let day_of_week = chrono::Datelike::weekday(&date).num_days_from_sunday() as i32;
+    let pattern_shift = sqlx::query_scalar::<_, Option<Uuid>>(
+        r#"
+        SELECT wpd.shift_id
+        FROM working_pattern_details wpd
+        JOIN employee_working_patterns ewp ON ewp.pattern_id = wpd.pattern_id
+        WHERE ewp.employee_id = $1 
+          AND ewp.start_date <= $2 
+          AND (ewp.end_date IS NULL OR ewp.end_date >= $2)
+          AND wpd.day_of_week = $3
+        ORDER BY ewp.created_at DESC
+        LIMIT 1
+        "#
+    )
+    .bind(employee_id)
+    .bind(date)
+    .bind(day_of_week)
+    .fetch_optional(pool)
+    .await?;
+
+    if let Some(shift_opt) = pattern_shift {
+        // If we found a pattern, it might be Some(shift_id) or None (day off)
+        // If it's a pattern, it overrides Fixed/Department.
+        // We return it even if it's None because the pattern explicitly defines the schedule.
+        return Ok(shift_opt); 
+    }
+
+    // Priority 3: Employee Default Shift (Legacy Fixed Assignment)
     // Find the latest created assignment that is valid for the given date
     let employee_shift = sqlx::query_scalar::<_, Uuid>(
         r#"
@@ -327,7 +377,7 @@ pub async fn get_effective_shift(
         return Ok(employee_shift);
     }
 
-    // Priority 3: Department Default Shift
+    // Priority 4: Department Default Shift
     let dept_shift = sqlx::query_scalar::<_, Uuid>(
         r#"
         SELECT dds.shift_id 

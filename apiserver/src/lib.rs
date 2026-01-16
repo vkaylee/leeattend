@@ -357,7 +357,20 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/shifts/:shift_id",
             put(handlers::update_shift),
         )
-        .route("/workspaces/:ws_id/shifts/assign", post(handlers::assign_shift));
+        .route("/workspaces/:ws_id/shifts/assign", post(handlers::assign_shift))
+        // Working Patterns
+        .route(
+            "/workspaces/:ws_id/working-patterns",
+            get(handlers::working_patterns::list_patterns).post(handlers::working_patterns::create_pattern),
+        )
+        .route(
+            "/workspaces/:ws_id/working-patterns/:pattern_id",
+            get(handlers::working_patterns::get_pattern_details),
+        )
+        .route(
+            "/workspaces/:ws_id/employees/:id/working-patterns",
+            get(handlers::working_patterns::get_employee_pattern_history).post(handlers::working_patterns::assign_pattern),
+        );
 
     // Rosters
     let roster_routes = Router::new()

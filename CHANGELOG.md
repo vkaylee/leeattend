@@ -5,6 +5,13 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased] - 2026-01-16
 
 ### Added
+- **Roster Pattern System**: Implemented a template-based scheduling system to manage thousands of employees efficiently.
+    - **Scalable Templates**: Define `WorkingPattern` (e.g., Mon-Fri 8:00-17:00) once and assign it to multiple employees over any date range.
+    - **Resolution Priority Engine**: Updated `get_effective_shift` logic to follow a strict priority: `Manual Override (Roster)` > `Working Pattern` > `Fixed Assignment (Legacy)` > `Department Default`.
+    - **Bulk Resolution Support**: Optimized `get_workspace_schedules` to handle thousands of pattern assignments in a single query.
+    - **New Endpoints**: Added `/working-patterns` for pattern management and `/employees/:id/working-patterns` for assignment and history.
+    - **Persistence Layer**: Created `working_patterns`, `working_pattern_details`, and `employee_working_patterns` tables with optimized indexing.
+    - **Integration Tests**: Verified that patterns are correctly resolved based on the day of the week and can be overridden by specific roster entries.
 - **Strict Import Validation (Integrity First)**: Enforced a "Validate First" policy for Attendance Imports.
     - **Atomic Failure**: The entire import job now fails immediately if *any* Employee ID in the file does not exist in the database, preventing partial imports and "ghost" logs.
     - **Actionable Feedback**: The error log explicitly lists the unknown Employee IDs (e.g., "Found 2 unknown employees: EMP01, EMP02"), allowing admins to quickly fix the data.

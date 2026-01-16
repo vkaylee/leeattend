@@ -656,6 +656,57 @@ pub struct TransferEmployeeRequest {
 // --- Schedule & Roster Models ---
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct WorkingPattern {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub is_active: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct WorkingPatternDetail {
+    pub id: Uuid,
+    pub pattern_id: Uuid,
+    pub day_of_week: i32,
+    pub shift_id: Option<Uuid>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct EmployeeWorkingPattern {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub employee_id: Uuid,
+    pub pattern_id: Uuid,
+    pub start_date: NaiveDate,
+    pub end_date: Option<NaiveDate>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct WorkingPatternDetailRequest {
+    pub day_of_week: i32,
+    pub shift_id: Option<Uuid>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct CreateWorkingPatternRequest {
+    pub name: String,
+    pub description: Option<String>,
+    pub details: Vec<WorkingPatternDetailRequest>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct AssignPatternRequest {
+    pub pattern_id: Uuid,
+    pub start_date: NaiveDate,
+    pub end_date: Option<NaiveDate>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct RawAttendanceLog {
     pub id: Uuid,
     pub workspace_id: Uuid,

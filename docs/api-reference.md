@@ -665,6 +665,76 @@ Cập nhật hoặc gán ca làm việc cho một ngày cụ thể (Upsert).
   ```
 - **Response (200 OK)**
 
+        .route(
+            "/workspaces/:ws_id/shifts/:shift_id",
+            put(handlers::update_shift),
+        )
+        .route("/workspaces/:ws_id/shifts/assign", post(handlers::assign_shift));
+
+---
+
+### 13. Working Patterns (New)
+
+Quản lý các mẫu lịch làm việc định kỳ (Templates) để gán cho hàng loạt nhân viên.
+
+#### Working Pattern Model
+```json
+{
+  "id": "uuid",
+  "workspace_id": "uuid",
+  "name": "Văn phòng chuẩn",
+  "description": "Thứ 2 - Thứ 6: 8:00 - 17:00",
+  "is_active": true,
+  "created_at": "datetime"
+}
+```
+
+#### GET /workspaces/:ws_id/working-patterns
+Lấy danh sách các mẫu lịch làm việc của workspace.
+- **Response (200)**: `Array<WorkingPattern>`
+
+#### POST /workspaces/:ws_id/working-patterns
+Tạo mẫu lịch làm việc mới kèm chi tiết các ngày trong tuần.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**:
+  ```json
+  {
+    "name": "Ca hành chính",
+    "description": "Làm việc từ T2 đến T6",
+    "details": [
+      { "day_of_week": 1, "shift_id": "uuid-ca-sang" },
+      { "day_of_week": 2, "shift_id": "uuid-ca-sang" },
+      { "day_of_week": 3, "shift_id": "uuid-ca-sang" },
+      { "day_of_week": 4, "shift_id": "uuid-ca-sang" },
+      { "day_of_week": 5, "shift_id": "uuid-ca-sang" },
+      { "day_of_week": 6, "shift_id": null }, // Nghỉ thứ 7
+      { "day_of_week": 0, "shift_id": null }  // Nghỉ Chủ nhật
+    ]
+  }
+  ```
+- **Response (201)**: `WorkingPattern` object
+
+#### GET /workspaces/:ws_id/working-patterns/:pattern_id
+Lấy chi tiết ca làm việc của từng ngày trong một mẫu pattern.
+- **Response (200)**: `Array<WorkingPatternDetail>`
+
+#### POST /workspaces/:ws_id/employees/:id/working-patterns
+Gán một mẫu lịch làm việc cho nhân viên.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**:
+  ```json
+  {
+    "pattern_id": "uuid",
+    "start_date": "2026-01-01",
+    "end_date": null // NULL nếu gán vĩnh viễn
+  }
+  ```
+- **Response (200 OK)**
+
+#### GET /workspaces/:ws_id/employees/:id/working-patterns
+Xem lịch sử gán pattern của một nhân viên.
+- **Response (200)**: `Array<EmployeeWorkingPattern>`
+
 ---
 
 ### 14. Employee Self-Service (ESS) (New)

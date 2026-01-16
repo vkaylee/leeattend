@@ -8,6 +8,7 @@ pub mod attendance;
 pub mod shifts;
 pub mod payroll;
 pub mod ess;
+pub mod working_patterns;
 
 pub use common::*;
 pub use auth::*;
