@@ -786,6 +786,13 @@ pub struct CreateLeavePolicyRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UpdateLeavePolicyRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub rule_config: Option<LeavePolicyConfig>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AssignLeavePolicyRequest {
     pub assignee_type: String,
     pub assignee_id: Option<Uuid>,

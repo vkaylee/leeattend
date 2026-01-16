@@ -13,7 +13,7 @@ use crate::handlers::common::MemberContext;
 use crate::models::{
     SubmitLeaveRequest, ApproveLeaveRequest, LeaveRequest, 
     WorkspaceLeaveBalance, EmployeeLeaveBalance, AdjustBalanceRequest,
-    CreateLeavePolicyRequest, AssignLeavePolicyRequest, LeavePolicyAssignment,
+    CreateLeavePolicyRequest, UpdateLeavePolicyRequest, AssignLeavePolicyRequest, LeavePolicyAssignment,
     LeaveHistoryItem
 };
 use crate::repositories::leave_policy_repository;
@@ -190,6 +190,47 @@ pub async fn create_leave_policy(
     .await
     {
         Ok(policy) => (StatusCode::CREATED, Json(policy)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+pub async fn update_leave_policy(
+    State(state): State<Arc<AppState>>,
+    Path((workspace_id, policy_id)): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
+    Json(req): Json<UpdateLeavePolicyRequest>,
+) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return (StatusCode::FORBIDDEN, "Only admins can manage policies").into_response();
+    }
+
+    match leave_policy_repository::update_policy_definition(
+        &state.db,
+        policy_id,
+        workspace_id,
+        req.name.as_deref(),
+        req.description.as_deref(),
+        req.rule_config,
+    )
+    .await
+    {
+        Ok(policy) => (StatusCode::OK, Json(policy)).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+pub async fn delete_leave_policy(
+    State(state): State<Arc<AppState>>,
+    Path((workspace_id, policy_id)): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
+) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return (StatusCode::FORBIDDEN, "Only admins can manage policies").into_response();
+    }
+
+    match leave_policy_repository::delete_policy_definition(&state.db, policy_id, workspace_id).await {
+        Ok(rows) if rows > 0 => StatusCode::NO_CONTENT.into_response(),
+        Ok(_) => StatusCode::NOT_FOUND.into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }

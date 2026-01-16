@@ -102,6 +102,29 @@ export async function createLeavePolicy(
   return response.json();
 }
 
+export async function updateLeavePolicy(
+  wsId: string,
+  policyId: string,
+  data: Partial<LeavePolicy>
+): Promise<LeavePolicy> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/policies/${policyId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to update leave policy");
+  return response.json();
+}
+
+export async function deleteLeavePolicy(
+  wsId: string,
+  policyId: string
+): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/policies/${policyId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to delete leave policy");
+}
+
 export async function assignLeavePolicy(
   wsId: string,
   data: { employee_id: string; leave_policy_id: string; effective_date: string }

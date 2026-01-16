@@ -44,6 +44,54 @@ pub async fn get_policy_definitions(
     .await
 }
 
+pub async fn update_policy_definition(
+    pool: &PgPool,
+    id: Uuid,
+    workspace_id: Uuid,
+    name: Option<&str>,
+    description: Option<&str>,
+    rule_config: Option<LeavePolicyConfig>,
+) -> Result<LeavePolicyDefinition, sqlx::Error> {
+    sqlx::query_as!(
+        LeavePolicyDefinition,
+        r#"
+        UPDATE leave_policy_definitions
+        SET name = COALESCE($3, name),
+            description = COALESCE($4, description),
+            rule_config = COALESCE($5, rule_config),
+            updated_at = NOW()
+        WHERE id = $1 AND workspace_id = $2
+        RETURNING id, workspace_id, name, description, rule_config as "rule_config: sqlx::types::Json<LeavePolicyConfig>", created_at as "created_at!", updated_at as "updated_at!"
+        "#,
+        id,
+        workspace_id,
+        name,
+        description,
+        rule_config.map(|c| sqlx::types::Json(c)) as _
+    )
+    .fetch_one(pool)
+    .await
+}
+
+pub async fn delete_policy_definition(
+    pool: &PgPool,
+    id: Uuid,
+    workspace_id: Uuid,
+) -> Result<u64, sqlx::Error> {
+    let result = sqlx::query!(
+        r#"
+        DELETE FROM leave_policy_definitions
+        WHERE id = $1 AND workspace_id = $2
+        "#,
+        id,
+        workspace_id
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(result.rows_affected())
+}
+
 pub async fn create_policy_assignment(
     pool: &PgPool,
     assignment: &LeavePolicyAssignment,

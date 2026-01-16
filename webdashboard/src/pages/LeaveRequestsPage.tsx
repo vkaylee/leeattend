@@ -1,15 +1,20 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Calendar, CheckCircle2, XCircle, Send, Plus, X, Settings2, PlayCircle, UserPlus, FileText, ShieldCheck, UserCircle } from "lucide-react";
-import { 
-  fetchEmployees, 
-  submitLeaveRequest, 
-  fetchWorkspaceLeaveRequests, 
+import {
+  CalendarDays, Calendar, CheckCircle2, XCircle, Send, Plus, X, Settings2, PlayCircle,
+  UserPlus, FileText, ShieldCheck, UserCircle, Edit2, Trash2
+} from "lucide-react";
+import {
+  fetchEmployees,
+  submitLeaveRequest,
+  fetchWorkspaceLeaveRequests,
   approveLeaveRequest,
   fetchEmployeeLeaveBalances,
   fetchLeavePolicies,
   createLeavePolicy,
+  updateLeavePolicy,
+  deleteLeavePolicy,
   assignLeavePolicy,
   triggerAccrualRun,
   getCurrentWorkspaceId,
@@ -21,6 +26,7 @@ import {
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
+import { toast } from "react-hot-toast";
 
 export default function LeaveRequestsPage() {
   const { t } = useTranslation();
@@ -29,6 +35,7 @@ export default function LeaveRequestsPage() {
   const { formatDate } = useDateTimeFormatter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
+  const [editingPolicy, setEditingPolicy] = useState<LeavePolicy | null>(null);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("pending");
   const [selectedEmpId, setSelectedEmpId] = useState<string>("");
@@ -80,10 +87,23 @@ export default function LeaveRequestsPage() {
   });
 
   const policyMutation = useMutation({
-    mutationFn: (data: Partial<LeavePolicy>) => createLeavePolicy(wsId!, data),
+    mutationFn: (data: Partial<LeavePolicy>) => 
+      editingPolicy 
+        ? updateLeavePolicy(wsId!, editingPolicy.id, data) 
+        : createLeavePolicy(wsId!, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leave-policies", wsId] });
       setIsPolicyModalOpen(false);
+      setEditingPolicy(null);
+      toast.success(editingPolicy ? t("leave_requests.policy.messages.update_success") : t("leave_requests.policy.messages.create_success"));
+    },
+  });
+
+  const deletePolicyMutation = useMutation({
+    mutationFn: (policyId: string) => deleteLeavePolicy(wsId!, policyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leave-policies", wsId] });
+      toast.success(t("leave_requests.policy.messages.delete_success"));
     },
   });
 
@@ -210,11 +230,12 @@ export default function LeaveRequestsPage() {
                   <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("leave_requests.policy.table.entitlement")}</th>
                   <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("leave_requests.policy.table.strategy")}</th>
                   <th className="px-6 py-4 text-sm font-semibold text-slate-600">Carry-over</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">{t("common.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {policies.length === 0 ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500 italic">{t("leave_requests.policy.messages.no_policies")}</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500 italic">{t("leave_requests.policy.messages.no_policies")}</td></tr>
                 ) : policies.map((policy) => (
                   <tr key={policy.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4 font-medium text-slate-900">{policy.name}</td>
@@ -224,6 +245,31 @@ export default function LeaveRequestsPage() {
                       {policy.accrual_strategy === 'monthly' ? t("leave_requests.policy.strategies.monthly") : t("leave_requests.policy.strategies.lump_sum")}
                     </td>
                     <td className="px-6 py-4 text-slate-600">{policy.carry_over_limit} {t("common.days")}</td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button 
+                          onClick={() => {
+                            setEditingPolicy(policy);
+                            setPolicyType(policy.leave_type);
+                            setAccrualStrategy(policy.accrual_strategy);
+                            setIsPolicyModalOpen(true);
+                          }}
+                          className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => {
+                            if (confirm(t("leave_requests.policy.messages.confirm_delete"))) {
+                              deletePolicyMutation.mutate(policy.id);
+                            }
+                          }}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -389,15 +435,18 @@ export default function LeaveRequestsPage() {
       {/* Policy Modal */}
       <Modal
         isOpen={isPolicyModalOpen}
-        onClose={() => setIsPolicyModalOpen(false)}
-        title={t("leave_requests.policy.title")}
+        onClose={() => {
+          setIsPolicyModalOpen(false);
+          setEditingPolicy(null);
+        }}
+        title={editingPolicy ? t("leave_requests.policy.edit_title") : t("leave_requests.policy.title")}
         subtitle={t("leave_requests.policy.subtitle")}
         icon={<ShieldCheck className="w-6 h-6" />}
       >
         <form onSubmit={handleCreatePolicy} className="p-2 space-y-6">
           <div className="space-y-1">
             <label htmlFor="policy-name" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.table.name")}</label>
-            <input id="policy-name" name="name" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" placeholder={t("leave_requests.policy.name_placeholder")} />
+            <input id="policy-name" name="name" required defaultValue={editingPolicy?.name} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" placeholder={t("leave_requests.policy.name_placeholder")} />
           </div>
           <div className="space-y-2">
             <label htmlFor="policy-type" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.table.type")}</label>
@@ -415,11 +464,11 @@ export default function LeaveRequestsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label htmlFor="annual-entitlement" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.table.entitlement")}</label>
-              <input id="annual-entitlement" type="number" name="annual_entitlement" required defaultValue={12} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
+              <input id="annual-entitlement" type="number" name="annual_entitlement" required defaultValue={editingPolicy?.annual_entitlement ?? 12} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
             </div>
             <div className="space-y-1">
               <label htmlFor="carry-over" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Carry-over limit</label>
-              <input id="carry-over" type="number" name="carry_over_limit" required defaultValue={5} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
+              <input id="carry-over" type="number" name="carry_over_limit" required defaultValue={editingPolicy?.carry_over_limit ?? 5} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
             </div>
           </div>
           <div className="space-y-2">
@@ -436,8 +485,10 @@ export default function LeaveRequestsPage() {
             />
           </div>
           <div className="pt-4 flex gap-3">
-            <button type="button" onClick={() => setIsPolicyModalOpen(false)} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors">{t("common.cancel")}</button>
-            <button type="submit" className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200">{t("leave_requests.policy.save_btn")}</button>
+            <button type="button" onClick={() => { setIsPolicyModalOpen(false); setEditingPolicy(null); }} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors">{t("common.cancel")}</button>
+            <button type="submit" className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200">
+              {editingPolicy ? t("common.save_changes") : t("leave_requests.policy.save_btn")}
+            </button>
           </div>
         </form>
       </Modal>

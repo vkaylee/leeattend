@@ -269,14 +269,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             post(handlers::adjust_leave_balance),
         )
         // Leave Policies
-        .route(
-            "/workspaces/:ws_id/leave/policies",
-            get(handlers::get_leave_policies).post(handlers::create_leave_policy),
-        )
-        .route(
-            "/workspaces/:ws_id/leave/policies/assign",
-            post(handlers::assign_leave_policy),
-        )
+                .route("/leave/policies", get(handlers::leaves::get_leave_policies).post(handlers::leaves::create_leave_policy))
+                .route("/leave/policies/:policy_id", patch(handlers::leaves::update_leave_policy).delete(handlers::leaves::delete_leave_policy))
+                .route("/leave/policies/assign", post(handlers::leaves::assign_leave_policy))
+
         .route(
             "/workspaces/:ws_id/leave/accrual/run",
             post(handlers::trigger_accrual_run),
