@@ -33,6 +33,8 @@ import {
   bulkUpsertRoster,
   deleteRoster,
   getCurrentWorkspaceId,
+  fetchWorkingPatterns,
+  assignPattern,
   Employee,
   Shift
 } from "../lib/api";
@@ -45,6 +47,8 @@ import { MousePointer2, Copy, Trash, Calendar as CalendarIcon } from "lucide-rea
 import Modal from "@/components/ui/Modal";
 import { ShiftList } from "../components/shifts/ShiftList";
 import { AssignmentHistory } from "../components/shifts/AssignmentHistory";
+
+import { Link } from "react-router-dom";
 
 type TabType = "assignments" | "weekly-roster" | "directory";
 
@@ -75,7 +79,9 @@ export default function ShiftsPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   // Fixed Assignment Form State
+  const [assignmentType, setAssignmentType] = useState<"fixed" | "pattern">("fixed");
   const [selectedShiftId, setSelectedShiftId] = useState("");
+  const [selectedPatternId, setSelectedPatternId] = useState("");
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState<string>("");
   const [isForever, setIsForever] = useState(true);
@@ -106,6 +112,12 @@ export default function ShiftsPage() {
   const { data: shifts } = useQuery({
     queryKey: ["shifts", wsId],
     queryFn: () => fetchShifts(wsId),
+    enabled: !!wsId,
+  });
+
+  const { data: patterns } = useQuery({
+    queryKey: ["working-patterns", wsId],
+    queryFn: () => fetchWorkingPatterns(wsId),
     enabled: !!wsId,
   });
 
@@ -150,6 +162,19 @@ export default function ShiftsPage() {
     onSuccess: () => {
       toast.success(t("shifts.messages.assign_success"));
       setSelectedShiftId("");
+      setEndDate("");
+      setIsForever(true);
+      queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
+    },
+    onError: (error: any) => toast.error(error.message, t("shifts.messages.assign_error"))
+  });
+
+  const assignPatternMutation = useMutation({
+    mutationFn: (data: any) => assignPattern(wsId, selectedEmployee!.id, data),
+    onSuccess: () => {
+      toast.success(t("shifts.messages.assign_success"));
+      setSelectedPatternId("");
       setEndDate("");
       setIsForever(true);
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
@@ -221,16 +246,33 @@ export default function ShiftsPage() {
 
   // Handlers
   const handleAssign = () => {
-    if (!selectedEmployee || !selectedShiftId || !startDate) {
+    if (!selectedEmployee || !startDate) {
       toast.warning(t("shifts.messages.validation_missing_fields"));
       return;
     }
-    assignMutation.mutate({
-      employee_id: selectedEmployee.id,
-      shift_id: selectedShiftId,
-      start_date: startDate,
-      end_date: isForever ? null : endDate,
-    });
+
+    if (assignmentType === "fixed") {
+      if (!selectedShiftId) {
+        toast.warning(t("shifts.messages.validation_missing_fields"));
+        return;
+      }
+      assignMutation.mutate({
+        employee_id: selectedEmployee.id,
+        shift_id: selectedShiftId,
+        start_date: startDate,
+        end_date: isForever ? null : endDate,
+      });
+    } else {
+      if (!selectedPatternId) {
+        toast.warning(t("shifts.messages.validation_missing_fields"));
+        return;
+      }
+      assignPatternMutation.mutate({
+        pattern_id: selectedPatternId,
+        start_date: startDate,
+        end_date: isForever ? null : endDate,
+      });
+    }
   };
 
   const handleShiftAssign = (date: Date, shiftId: string | null) => {
@@ -390,6 +432,15 @@ export default function ShiftsPage() {
               <List size={14} /> {t("shifts.tabs.directory")}
             </button>
           </div>
+          
+          <Link 
+            to="/working-patterns"
+            className="bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2 border border-slate-200 shadow-sm transition-all active:scale-95"
+          >
+            <CalendarRange className="w-4 h-4" />
+            <span className="text-xs uppercase tracking-widest">{t("patterns.manage_btn")}</span>
+          </Link>
+
           <button 
             onClick={() => setIsCreateModalOpen(true)}
             className="bg-primary-600 hover:bg-primary-700 text-white font-black px-6 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg shadow-primary-100 transition-all active:scale-95"
@@ -637,38 +688,87 @@ export default function ShiftsPage() {
                 </div>
 
                 <div className="space-y-10">
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-1">
-                      <Clock size={12} /> {t("shifts.select_default_shift")}
-                    </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {shifts?.map(shift => (
-                        <button
-                          key={shift.id}
-                          onClick={() => setSelectedShiftId(shift.id)}
-                          className={`p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group ${selectedShiftId === shift.id ? 'border-blue-600 bg-primary-50/50' : 'border-slate-100 hover:border-slate-200 bg-slate-50/30'}`}
-                        >
-                          <div className={`font-black text-sm uppercase tracking-tight ${selectedShiftId === shift.id ? 'text-blue-700' : 'text-slate-700'}`}>{shift.name}</div>
-                          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
-                            <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
-                              <Clock size={10} /> {formatTime(shift.start_time)} - {formatTime(shift.end_time)}
-                            </div>
-                            <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
-                              <Info size={10} /> 
-                              {shift.break_start ? (
-                                <span>{shift.break_start.substring(0, 5)}-{shift.break_end?.substring(0, 5)}</span>
-                              ) : (
-                                <span>{t("common.break")} {shift.break_duration_minutes}p</span>
-                              )}
-                            </div>
-                          </div>
-                          {selectedShiftId === shift.id && (
-                            <div className="absolute top-4 right-4 w-3 h-3 bg-primary-600 rounded-full animate-pulse" />
-                          )}
-                        </button>
-                      ))}
+                  {/* Assignment Type Toggle */}
+                  <div className="flex justify-center">
+                    <div className="bg-slate-100 p-1 rounded-xl inline-flex">
+                      <button
+                        onClick={() => setAssignmentType("fixed")}
+                        className={`px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${assignmentType === "fixed" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                      >
+                        {t("shifts.types.fixed")}
+                      </button>
+                      <button
+                        onClick={() => setAssignmentType("pattern")}
+                        className={`px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${assignmentType === "pattern" ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                      >
+                        {t("patterns.title")}
+                      </button>
                     </div>
                   </div>
+
+                  {assignmentType === "fixed" ? (
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-1">
+                        <Clock size={12} /> {t("shifts.select_default_shift")}
+                      </label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {shifts?.map(shift => (
+                          <button
+                            key={shift.id}
+                            onClick={() => setSelectedShiftId(shift.id)}
+                            className={`p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group ${selectedShiftId === shift.id ? 'border-blue-600 bg-primary-50/50' : 'border-slate-100 hover:border-slate-200 bg-slate-50/30'}`}
+                          >
+                            <div className={`font-black text-sm uppercase tracking-tight ${selectedShiftId === shift.id ? 'text-blue-700' : 'text-slate-700'}`}>{shift.name}</div>
+                            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
+                              <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                                <Clock size={10} /> {formatTime(shift.start_time)} - {formatTime(shift.end_time)}
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                                <Info size={10} /> 
+                                {shift.break_start ? (
+                                  <span>{shift.break_start.substring(0, 5)}-{shift.break_end?.substring(0, 5)}</span>
+                                ) : (
+                                  <span>{t("common.break")} {shift.break_duration_minutes}m</span>
+                                )}
+                              </div>
+                            </div>
+                            {selectedShiftId === shift.id && (
+                              <div className="absolute top-4 right-4 w-3 h-3 bg-primary-600 rounded-full animate-pulse" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-1">
+                        <CalendarRange size={12} /> {t("patterns.select_pattern")}
+                      </label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {patterns?.map(pattern => (
+                          <button
+                            key={pattern.id}
+                            onClick={() => setSelectedPatternId(pattern.id)}
+                            className={`p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group ${selectedPatternId === pattern.id ? 'border-purple-600 bg-purple-50/50' : 'border-slate-100 hover:border-slate-200 bg-slate-50/30'}`}
+                          >
+                            <div className={`font-black text-sm uppercase tracking-tight ${selectedPatternId === pattern.id ? 'text-purple-700' : 'text-slate-700'}`}>{pattern.name}</div>
+                            <p className="text-[10px] text-slate-400 font-bold mt-1 line-clamp-1">{pattern.description || t("common.no_description")}</p>
+                            {selectedPatternId === pattern.id && (
+                              <div className="absolute top-4 right-4 w-3 h-3 bg-purple-600 rounded-full animate-pulse" />
+                            )}
+                          </button>
+                        ))}
+                        {(!patterns || patterns.length === 0) && (
+                          <div className="col-span-2 text-center p-8 border border-dashed border-slate-200 rounded-[24px]">
+                            <p className="text-sm text-slate-500 font-medium">{t("patterns.empty_desc")}</p>
+                            <Link to="/working-patterns" className="text-xs font-bold text-primary-600 hover:underline mt-2 inline-block">
+                              {t("patterns.create_first")}
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">

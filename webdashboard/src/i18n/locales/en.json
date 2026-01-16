@@ -971,5 +971,32 @@
     "checking_security": "Checking security...",
     "session_expired": "Session expired, redirecting...",
     "user_not_found": "User not found..."
+  },
+  "patterns": {
+    "title": "Working Patterns",
+    "subtitle": "Manage recurring weekly schedules for employees",
+    "manage_btn": "Manage Patterns",
+    "create_btn": "Create Pattern",
+    "create_title": "Create Working Pattern",
+    "create_subtitle": "Define a weekly template",
+    "create_submit": "Create Pattern",
+    "empty_title": "No patterns yet",
+    "empty_desc": "Create a pattern to quickly assign recurring shifts to employees.",
+    "create_first": "Create your first pattern",
+    "weekly_schedule": "Weekly Schedule",
+    "select_pattern": "Select Working Pattern",
+    "form": {
+      "name": "Pattern Name",
+      "description": "Description"
+    },
+    "weekly_config": "Weekly Configuration",
+    "actions": {
+      "prefill_standard": "Prefill: Standard (Mon-Fri)"
+    },
+    "validation_name_required": "Please enter a pattern name.",
+    "messages": {
+      "create_success": "Working pattern created successfully.",
+      "create_error": "Failed to create working pattern."
+    }
   }
 }

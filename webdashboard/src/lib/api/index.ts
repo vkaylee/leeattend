@@ -11,3 +11,4 @@ export * from "./shifts";
 export * from "./payroll";
 export * from "./departments";
 export * from "./ess";
+export * from "./working-patterns";

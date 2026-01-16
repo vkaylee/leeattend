@@ -432,8 +432,107 @@ export interface UpdateProfileRequest {
 }
 
 export interface CreateEmergencyContactRequest {
+
   contact_name: string;
+
   relationship: string;
+
   phone: string;
+
   is_primary?: boolean;
+
+}
+
+
+
+// --- Working Pattern Models ---
+
+
+
+export interface WorkingPattern {
+
+  id: string;
+
+  workspace_id: string;
+
+  name: string;
+
+  description?: string;
+
+  is_active: boolean;
+
+  created_at: string;
+
+  updated_at: string;
+
+}
+
+
+
+export interface WorkingPatternDetail {
+
+  id: string;
+
+  pattern_id: string;
+
+  day_of_week: number; // 0=Sunday, 1=Monday...
+
+  shift_id: string | null;
+
+}
+
+
+
+export interface EmployeeWorkingPattern {
+
+  id: string;
+
+  workspace_id: string;
+
+  employee_id: string;
+
+  pattern_id: string;
+
+  start_date: string;
+
+  end_date: string | null;
+
+  created_at: string;
+
+  updated_at: string;
+
+}
+
+
+
+export interface WorkingPatternDetailRequest {
+
+  day_of_week: number;
+
+  shift_id: string | null;
+
+}
+
+
+
+export interface CreateWorkingPatternRequest {
+
+  name: string;
+
+  description?: string;
+
+  details: WorkingPatternDetailRequest[];
+
+}
+
+
+
+export interface AssignPatternRequest {
+
+  pattern_id: string;
+
+  start_date: string;
+
+  end_date?: string | null;
+
 }

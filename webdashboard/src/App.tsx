@@ -50,6 +50,7 @@ import LeaveBalancesPage from "./pages/LeaveBalancesPage";
 import ReportsPage from "./pages/ReportsPage";
 import PayrollPage from "./pages/PayrollPage";
 import ShiftsPage from "./pages/ShiftsPage";
+import WorkingPatternsPage from "./pages/WorkingPatternsPage";
 import WorkspaceSwitcher from "./components/WorkspaceSwitcher";
 import AuthGuard from "./components/AuthGuard";
 import WorkspaceGuard from "./components/WorkspaceGuard";
@@ -123,6 +124,7 @@ function Layout() {
       "/attendance-adjustments": t("common.attendance_confirm"),
       "/reports": t("common.reports"),
       "/shifts": t("common.shifts"),
+      "/working-patterns": t("patterns.title"),
       "/payroll": t("common.payroll"),
       "/agents": t("common.agents"),
       "/devices": t("common.devices"),
@@ -560,6 +562,7 @@ function App() {
                 <Route path="/attendance-adjustments" element={<AttendanceAdjustmentsPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/shifts" element={<ShiftsPage />} />
+                <Route path="/working-patterns" element={<WorkingPatternsPage />} />
                 <Route path="/payroll" element={<PayrollPage />} />
                 <Route
                   path="/workspace/settings"

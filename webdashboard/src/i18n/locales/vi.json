@@ -33,7 +33,6 @@
     "loading_workspace": "Đang tải không gian làm việc...",
     "system_connection_error": "Lỗi kết nối hệ thống",
     "retry": "Thử lại",
-    "add_office_branch": "Thêm văn phòng/chi nhánh",
     "create_workspace_error": "Không thể tạo Workspace. Vui lòng thử lại.",
     "success": "Thành công",
     "error": "Lỗi",
@@ -464,7 +463,6 @@
     }
   },
   "debug_tools": {
-
     "title": "Debug Tools (Chỉ dành cho Dev)",
     "subtitle": "Các công cụ dọn dẹp nhanh dữ liệu để hỗ trợ testing.",
     "warning": "Cảnh báo: Dữ liệu bị xóa sẽ không thể phục hồi!",
@@ -973,5 +971,32 @@
     "checking_security": "Đang kiểm tra bảo mật...",
     "session_expired": "Phiên làm việc hết hạn, đang chuyển hướng...",
     "user_not_found": "Không tìm thấy thông tin người dùng..."
+  },
+  "patterns": {
+    "title": "Mẫu lịch làm việc",
+    "subtitle": "Quản lý lịch làm việc tuần hoàn cho nhân viên",
+    "manage_btn": "Quản lý mẫu",
+    "create_btn": "Tạo mẫu mới",
+    "create_title": "Tạo mẫu lịch làm việc",
+    "create_subtitle": "Định nghĩa mẫu tuần",
+    "create_submit": "Tạo mẫu",
+    "empty_title": "Chưa có mẫu nào",
+    "empty_desc": "Tạo một mẫu để gán nhanh ca làm việc tuần hoàn cho nhân viên.",
+    "create_first": "Tạo mẫu đầu tiên",
+    "weekly_schedule": "Lịch tuần",
+    "select_pattern": "Chọn mẫu lịch",
+    "form": {
+      "name": "Tên mẫu",
+      "description": "Mô tả"
+    },
+    "weekly_config": "Cấu hình tuần",
+    "actions": {
+      "prefill_standard": "Điền nhanh: Hành chính (T2-T6)"
+    },
+    "validation_name_required": "Vui lòng nhập tên mẫu.",
+    "messages": {
+      "create_success": "Đã tạo mẫu lịch thành công.",
+      "create_error": "Lỗi khi tạo mẫu lịch."
+    }
   }
 }
