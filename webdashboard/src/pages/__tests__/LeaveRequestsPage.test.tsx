@@ -16,6 +16,8 @@ vi.mock("../../lib/api", () => ({
   fetchEmployeeLeaveBalances: vi.fn(),
   fetchLeavePolicies: vi.fn(),
   createLeavePolicy: vi.fn(),
+  updateLeavePolicy: vi.fn(),
+  deleteLeavePolicy: vi.fn(),
   assignLeavePolicy: vi.fn(),
   triggerAccrualRun: vi.fn(),
   getCurrentWorkspaceId: vi.fn(),
@@ -194,6 +196,77 @@ describe("LeaveRequestsPage", () => {
 
     await waitFor(() => {
       expect(api.createLeavePolicy).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({ name: "New Policy" }));
+    });
+  });
+
+  it("edits an existing policy", async () => {
+    const user = userEvent.setup();
+    (api.fetchLeavePolicies as any).mockResolvedValue([
+      { id: "pol-1", name: "Old Policy", leave_type: "vacation", annual_entitlement: 12, accrual_strategy: "monthly", carry_over_limit: 5 }
+    ]);
+    (api.updateLeavePolicy as any).mockResolvedValue({});
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <BrowserRouter>
+            <LeaveRequestsPage />
+          </BrowserRouter>
+        </ToastProvider>
+      </QueryClientProvider>
+    );
+
+    await user.click(screen.getByText("Chính sách"));
+    expect(await screen.findByText("Old Policy")).toBeDefined();
+
+    // Click edit button (using its container or SVG if needed, but let's try finding by role/class if possible or just first button in actions)
+    // Based on implementation: <Edit2 className="w-4 h-4" />
+    const editBtns = await screen.findAllByRole("button");
+    // Find the button that has the edit icon or just use the index if we know it. 
+    // Better: find the one near "Old Policy"
+    const row = screen.getByText("Old Policy").closest("tr");
+    const editBtn = row!.querySelector('button'); // First button in actions is Edit
+    await user.click(editBtn!);
+
+    expect(await screen.findByText("Sửa chính sách")).toBeDefined();
+    const nameInput = screen.getByLabelText("Tên chính sách");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Updated Policy");
+    await user.click(screen.getByText("Lưu thay đổi"));
+
+    await waitFor(() => {
+      expect(api.updateLeavePolicy).toHaveBeenCalledWith("test-ws-id", "pol-1", expect.objectContaining({ name: "Updated Policy" }));
+    });
+  });
+
+  it("deletes a policy", async () => {
+    const user = userEvent.setup();
+    (api.fetchLeavePolicies as any).mockResolvedValue([
+      { id: "pol-1", name: "To Be Deleted", leave_type: "vacation", annual_entitlement: 12, accrual_strategy: "monthly", carry_over_limit: 5 }
+    ]);
+    (api.deleteLeavePolicy as any).mockResolvedValue({});
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <BrowserRouter>
+            <LeaveRequestsPage />
+          </BrowserRouter>
+        </ToastProvider>
+      </QueryClientProvider>
+    );
+
+    await user.click(screen.getByText("Chính sách"));
+    expect(await screen.findByText("To Be Deleted")).toBeDefined();
+
+    const row = screen.getByText("To Be Deleted").closest("tr");
+    const deleteBtn = row!.querySelectorAll('button')[1]; // Second button in actions is Delete
+    await user.click(deleteBtn);
+
+    expect(window.confirm).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(api.deleteLeavePolicy).toHaveBeenCalledWith("test-ws-id", "pol-1");
     });
   });
 

@@ -123,4 +123,64 @@ async fn test_leave_policy_api_lifecycle() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
+
+    // 5. Update Policy
+    let update_req = serde_json::json!({
+        "name": "Updated Annual Leave",
+        "description": "Updated description",
+        "rule_config": {
+            "frequency": "monthly",
+            "accrual_amount": 2.0,
+            "accrual_timing": "start_of_period"
+        }
+    });
+
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("PATCH")
+                .uri(format!("/api/workspaces/{}/leave/policies/{}", ws_id, policy_id))
+                .header("Content-Type", "application/json")
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", admin_id.to_string())
+                .body(axum::body::Body::from(update_req.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let updated_policy: serde_json::Value = serde_json::from_slice(&axum::body::to_bytes(response.into_body(), 10000).await.unwrap()).unwrap();
+    assert_eq!(updated_policy["name"], "Updated Annual Leave");
+
+    // 6. Delete Policy
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("DELETE")
+                .uri(format!("/api/workspaces/{}/leave/policies/{}", ws_id, policy_id))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", admin_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+
+    // 7. Verify deletion
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!("/api/workspaces/{}/leave/policies", ws_id))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", admin_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let policies: Vec<serde_json::Value> = serde_json::from_slice(&axum::body::to_bytes(response.into_body(), 10000).await.unwrap()).unwrap();
+    assert!(policies.iter().all(|p| p["id"] != policy_id));
 }

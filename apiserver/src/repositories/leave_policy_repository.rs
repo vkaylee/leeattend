@@ -78,6 +78,18 @@ pub async fn delete_policy_definition(
     id: Uuid,
     workspace_id: Uuid,
 ) -> Result<u64, sqlx::Error> {
+    // First delete assignments to avoid FK constraint issues
+    sqlx::query!(
+        r#"
+        DELETE FROM leave_policy_assignments
+        WHERE policy_id = $1 AND workspace_id = $2
+        "#,
+        id,
+        workspace_id
+    )
+    .execute(pool)
+    .await?;
+
     let result = sqlx::query!(
         r#"
         DELETE FROM leave_policy_definitions

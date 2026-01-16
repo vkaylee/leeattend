@@ -26,10 +26,11 @@ import {
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
-import { toast } from "react-hot-toast";
+import { useToast } from "@/components/Toast";
 
 export default function LeaveRequestsPage() {
   const { t } = useTranslation();
+  const toast = useToast();
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
   const { formatDate } = useDateTimeFormatter();
