@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE shifts \n         SET name = $2, start_time = $3, end_time = $4, \n             break_duration_minutes = $5, break_start = $6, break_end = $7, \n             is_break_auto_deduct = $8, break_is_overtime = $9, \n             early_punch_in_grace_period_minutes = $10, updated_at = CURRENT_TIMESTAMP\n         WHERE id = $1\n         RETURNING \n            id, workspace_id, name, start_time, end_time, \n            break_duration_minutes, break_start, break_end, \n            is_break_auto_deduct, break_is_overtime, \n            early_punch_in_grace_period_minutes, is_active, parent_shift_id,\n            created_at as \"created_at!\", updated_at as \"updated_at!\"",
+  "query": "SELECT \n            s.id, s.workspace_id, s.name, s.start_time, s.end_time, \n            s.break_duration_minutes, s.break_start, s.break_end, \n            s.is_break_auto_deduct, s.break_is_overtime, \n            s.early_punch_in_grace_period_minutes, s.allow_early_ot, s.is_active, s.parent_shift_id,\n            s.created_at as \"created_at!\", s.updated_at as \"updated_at!\"\n         FROM shifts s\n         JOIN employee_shifts es ON s.id = es.shift_id\n         WHERE es.employee_id = $1 \n           AND es.start_date <= $2 \n           AND (es.end_date IS NULL OR es.end_date >= $2)\n         ORDER BY es.created_at DESC\n         LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -60,21 +60,26 @@
       },
       {
         "ordinal": 11,
-        "name": "is_active",
+        "name": "allow_early_ot",
         "type_info": "Bool"
       },
       {
         "ordinal": 12,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
         "name": "parent_shift_id",
         "type_info": "Uuid"
       },
       {
-        "ordinal": 13,
+        "ordinal": 14,
         "name": "created_at!",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 14,
+        "ordinal": 15,
         "name": "updated_at!",
         "type_info": "Timestamptz"
       }
@@ -82,15 +87,7 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Varchar",
-        "Time",
-        "Time",
-        "Int4",
-        "Time",
-        "Time",
-        "Bool",
-        "Bool",
-        "Int4"
+        "Date"
       ]
     },
     "nullable": [
@@ -106,10 +103,11 @@
       false,
       false,
       false,
+      false,
       true,
       true,
       true
     ]
   },
-  "hash": "79b7337495a6f5b1fbe766ad8a2da69ecac2757935396aeff773ab7f43dde868"
+  "hash": "2e99ac847ed234a6ab8393a78bf7fcc5173f58242f4c9a61ce8f20b40fcd2575"
 }

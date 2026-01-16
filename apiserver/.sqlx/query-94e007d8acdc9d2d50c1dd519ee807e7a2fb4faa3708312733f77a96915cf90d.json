@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO leave_balances (employee_id, leave_type, year, entitlement, accrued_amount, carried_over)\n        VALUES ($1, $2, $3, 0, $4, 0)\n        ON CONFLICT (employee_id, leave_type, year)\n        DO UPDATE SET \n            accrued_amount = leave_balances.accrued_amount + EXCLUDED.accrued_amount,\n            updated_at = CURRENT_TIMESTAMP\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Int4",
+        "Numeric"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "94e007d8acdc9d2d50c1dd519ee807e7a2fb4faa3708312733f77a96915cf90d"
+}

@@ -83,6 +83,7 @@
     "status_approved": "Đã duyệt",
     "status_rejected": "Từ chối",
     "select_employee": "Chọn nhân viên...",
+    "select_department": "Chọn phòng ban...",
     "effective_from": "Ngày hiệu lực",
     "indefinite": "Vô thời hạn",
     "definite": "Có thời hạn",
@@ -200,12 +201,21 @@
         "lump_sum": "Cấp một lần đầu năm",
         "lump_sum_desc": "Cấp toàn bộ định mức vào đầu năm"
       },
+      "assignee_types": {
+        "workspace": "Toàn hệ thống (All)",
+        "workspace_desc": "Áp dụng cho mọi nhân viên trong workspace",
+        "department": "Theo phòng ban",
+        "department_desc": "Áp dụng cho một phòng ban cụ thể",
+        "employee": "Cá nhân nhân viên",
+        "employee_desc": "Áp dụng cho duy nhất một người được chọn"
+      },
       "edit_title": "Sửa chính sách",
       "messages": {
         "no_policies": "Chưa có chính sách nào.",
         "create_success": "Đã tạo chính sách thành công!",
         "update_success": "Đã cập nhật chính sách thành công!",
         "delete_success": "Đã xóa chính sách thành công!",
+        "assign_success": "Đã gán chính sách thành công!",
         "confirm_delete": "Bạn có chắc chắn muốn xóa chính sách này không?"
       }
     },

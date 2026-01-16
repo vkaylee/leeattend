@@ -300,8 +300,9 @@ describe("LeaveRequestsPage", () => {
 
     await waitFor(() => {
       expect(api.assignLeavePolicy).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
-        employee_id: "emp-1",
-        leave_policy_id: "pol-1"
+        assignee_type: "employee",
+        assignee_id: "emp-1",
+        policy_id: "pol-1"
       }));
     });
   });

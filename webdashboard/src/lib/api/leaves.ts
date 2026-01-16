@@ -127,7 +127,13 @@ export async function deleteLeavePolicy(
 
 export async function assignLeavePolicy(
   wsId: string,
-  data: { employee_id: string; leave_policy_id: string; effective_date: string }
+  data: { 
+    assignee_type: string; 
+    assignee_id: string | null; 
+    policy_id: string; 
+    effective_from: string; 
+    effective_to?: string 
+  }
 ): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/policies/assign`, {
     method: "POST",

@@ -48,10 +48,11 @@ describe("useWorkspaces", () => {
           time_format: "24h",
           timezone: "Asia/Ho_Chi_Minh",
           theme_primary_color: "#7c3aed",
+          default_language: "en",
           created_at: new Date().toISOString()
         },
       ];
-        vi.mocked(api.fetchWorkspaces).mockResolvedValue(mockWorkspaces);
+        vi.mocked(api.fetchWorkspaces).mockResolvedValue(mockWorkspaces as any);
 
     const { result } = renderHook(() => useWorkspaces(), {
       wrapper: createWrapper(),
@@ -71,8 +72,9 @@ describe("useWorkspaces", () => {
           time_format: "24h", 
           timezone: "Asia/Ho_Chi_Minh", 
           theme_primary_color: "#7c3aed",
+          default_language: "en",
           created_at: new Date().toISOString() 
-        };    vi.mocked(api.createWorkspace).mockResolvedValue(newWs);
+        };    vi.mocked(api.createWorkspace).mockResolvedValue(newWs as any);
 
     const { result } = renderHook(() => useWorkspaces(), {
       wrapper: createWrapper(),

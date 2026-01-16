@@ -83,6 +83,7 @@
     "status_approved": "已通过",
     "status_rejected": "已拒绝",
     "select_employee": "选择员工...",
+    "select_department": "选择部门...",
     "effective_from": "生效日期",
     "indefinite": "长期有效",
     "definite": "有期限",
@@ -200,12 +201,21 @@
         "lump_sum": "年度发放",
         "lump_sum_desc": "年初一次性发放全部配额"
       },
+      "assignee_types": {
+        "workspace": "全公司 (All)",
+        "workspace_desc": "应用于工作区内的所有员工",
+        "department": "按部门",
+        "department_desc": "应用于特定部门",
+        "employee": "个人员工",
+        "employee_desc": "应用于单个选定员工"
+      },
       "edit_title": "编辑制度",
       "messages": {
         "no_policies": "未找到休假制度。",
         "create_success": "成功创建休假制度！",
         "update_success": "成功更新休假制度！",
         "delete_success": "成功删除休假制度！",
+        "assign_success": "成功分配休假制度！",
         "confirm_delete": "您确定要删除此休假制度吗？"
       }
     },

@@ -70,6 +70,7 @@ export function Combobox({
 
       <Popover.Trigger asChild>
         <button
+          id={id}
           data-testid={testId}
           type="button"
           className={cn(
@@ -109,6 +110,7 @@ export function Combobox({
                   <Command.Item
                     key={option.value}
                     value={option.label} // search by label
+                    data-testid={testId ? `${testId}-option-${option.value}` : `combo-option-${option.value}`}
                     onSelect={() => {
                       onChange(option.value);
                       setOpen(false);

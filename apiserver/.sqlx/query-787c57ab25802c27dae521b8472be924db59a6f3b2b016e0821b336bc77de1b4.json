@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT start_time, end_time, break_start, break_end FROM shifts WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "start_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 1,
+        "name": "end_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 2,
+        "name": "break_start",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 3,
+        "name": "break_end",
+        "type_info": "Time"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "787c57ab25802c27dae521b8472be924db59a6f3b2b016e0821b336bc77de1b4"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT d.id, d.workspace_id, d.name, d.description, d.rule_config as \"rule_config: sqlx::types::Json<LeavePolicyConfig>\", d.created_at as \"created_at!\", d.updated_at as \"updated_at!\"\n            FROM leave_policy_assignments a\n            JOIN leave_policy_definitions d ON a.policy_id = d.id\n            WHERE a.workspace_id = $1\n              AND a.assignee_type = 'department'\n              AND a.assignee_id = $2\n              AND a.effective_from <= $3\n              AND (a.effective_to IS NULL OR a.effective_to > $3)\n            LIMIT 1\n            ",
+  "query": "\n        INSERT INTO leave_policy_definitions (workspace_id, name, description, leave_type, rule_config)\n        VALUES ($1, $2, $3, $4, $5)\n        RETURNING id, workspace_id, name, description, leave_type, rule_config as \"rule_config: sqlx::types::Json<LeavePolicyConfig>\", created_at as \"created_at!\", updated_at as \"updated_at!\"\n        ",
   "describe": {
     "columns": [
       {
@@ -25,16 +25,21 @@
       },
       {
         "ordinal": 4,
+        "name": "leave_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
         "name": "rule_config: sqlx::types::Json<LeavePolicyConfig>",
         "type_info": "Jsonb"
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "created_at!",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "updated_at!",
         "type_info": "Timestamptz"
       }
@@ -42,8 +47,10 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Uuid",
-        "Date"
+        "Text",
+        "Text",
+        "Varchar",
+        "Jsonb"
       ]
     },
     "nullable": [
@@ -52,9 +59,10 @@
       false,
       true,
       false,
+      false,
       true,
       true
     ]
   },
-  "hash": "7068042899ff61ff28188d47ea185a114fb33ec938394266149666be1c611fcf"
+  "hash": "094419b242e3f5164ed5f9bd30b900f80b8d70a9dd016599f199506a0cd2fbe4"
 }

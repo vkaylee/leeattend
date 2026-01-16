@@ -82,6 +82,7 @@
     "status_approved": "Approved",
     "status_rejected": "Rejected",
     "select_employee": "Select employee...",
+    "select_department": "Select department...",
     "effective_from": "Effective from",
     "indefinite": "Indefinite",
     "definite": "Definite",
@@ -199,12 +200,21 @@
         "lump_sum": "Annual Lump Sum",
         "lump_sum_desc": "Grants full entitlement at start of year"
       },
+      "assignee_types": {
+        "workspace": "Workspace (All)",
+        "workspace_desc": "Apply to every employee in the workspace",
+        "department": "Department",
+        "department_desc": "Apply to a specific department",
+        "employee": "Individual Employee",
+        "employee_desc": "Apply to a single selected employee"
+      },
       "edit_title": "Edit Policy",
       "messages": {
         "no_policies": "No policies found.",
         "create_success": "Policy created successfully!",
         "update_success": "Policy updated successfully!",
         "delete_success": "Policy deleted successfully!",
+        "assign_success": "Policy assigned successfully!",
         "confirm_delete": "Are you sure you want to delete this policy?"
       }
     },

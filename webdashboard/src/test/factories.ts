@@ -5,7 +5,6 @@ export const userFactory = (overrides: Partial<User> = {}): User => {
   return {
     id,
     email: `user_${id.slice(0, 8)}@example.com`,
-    created_at: new Date().toISOString(),
     full_name: `User ${id.slice(0, 4)}`,
     avatar_url: undefined,
     bio: undefined,
@@ -26,6 +25,7 @@ export const workspaceFactory = (
     time_format: "24h", // Default value
     timezone: "Asia/Ho_Chi_Minh", // Default value
     theme_primary_color: "#7c3aed",
+    default_language: "en",
     created_at: new Date().toISOString(),
     ...overrides,
   };

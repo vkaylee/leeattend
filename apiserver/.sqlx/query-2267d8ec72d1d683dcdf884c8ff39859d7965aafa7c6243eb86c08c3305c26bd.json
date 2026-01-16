@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE leave_policy_assignments a\n        SET effective_to = $5\n        FROM leave_policy_definitions d\n        WHERE a.policy_id = d.id\n          AND a.workspace_id = $1\n          AND a.assignee_type = $2\n          AND (a.assignee_id = $3 OR (a.assignee_id IS NULL AND $3 IS NULL))\n          AND d.leave_type = $4\n          AND a.effective_from < $6\n          AND (a.effective_to IS NULL OR a.effective_to >= $6)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Text",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2267d8ec72d1d683dcdf884c8ff39859d7965aafa7c6243eb86c08c3305c26bd"
+}

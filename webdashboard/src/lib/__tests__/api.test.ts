@@ -270,7 +270,12 @@ describe("api.ts comprehensive tests", () => {
 
     it("assignLeavePolicy", async () => {
       mockSuccess({});
-      await api.assignLeavePolicy("ws-1", { employee_id: "e1", leave_policy_id: "p1", effective_date: "..." });
+      await api.assignLeavePolicy("ws-1", { 
+        assignee_type: "employee", 
+        assignee_id: "e1", 
+        policy_id: "p1", 
+        effective_from: "2026-01-01" 
+      });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/leave/policies/assign"), expect.objectContaining({ method: "POST" }));
     });
 

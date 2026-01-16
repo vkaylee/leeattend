@@ -748,6 +748,7 @@ pub struct LeavePolicyDefinition {
     pub workspace_id: Uuid,
     pub name: String,
     pub description: Option<String>,
+    pub leave_type: String,
     pub rule_config: sqlx::types::Json<LeavePolicyConfig>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -782,6 +783,7 @@ pub struct LeaveAccrualLog {
 pub struct CreateLeavePolicyRequest {
     pub name: String,
     pub description: Option<String>,
+    pub leave_type: String,
     pub rule_config: LeavePolicyConfig,
 }
 
@@ -789,6 +791,7 @@ pub struct CreateLeavePolicyRequest {
 pub struct UpdateLeavePolicyRequest {
     pub name: Option<String>,
     pub description: Option<String>,
+    pub leave_type: Option<String>,
     pub rule_config: Option<LeavePolicyConfig>,
 }
 

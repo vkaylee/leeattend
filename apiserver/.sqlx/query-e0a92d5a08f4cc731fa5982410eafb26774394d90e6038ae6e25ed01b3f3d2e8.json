@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT \n            id, workspace_id, name, start_time, end_time, \n            break_duration_minutes, break_start, break_end, \n            is_break_auto_deduct, break_is_overtime, \n            early_punch_in_grace_period_minutes, is_active, parent_shift_id,\n            created_at as \"created_at!\", updated_at as \"updated_at!\" \n         FROM shifts WHERE id = $1",
+  "query": "UPDATE shifts \n         SET name = $2, start_time = $3, end_time = $4, \n             break_duration_minutes = $5, break_start = $6, break_end = $7, \n             is_break_auto_deduct = $8, break_is_overtime = $9, \n             early_punch_in_grace_period_minutes = $10, allow_early_ot = $11, updated_at = CURRENT_TIMESTAMP\n         WHERE id = $1\n         RETURNING \n            id, workspace_id, name, start_time, end_time, \n            break_duration_minutes, break_start, break_end, \n            is_break_auto_deduct, break_is_overtime, \n            early_punch_in_grace_period_minutes, allow_early_ot, is_active, parent_shift_id,\n            created_at as \"created_at!\", updated_at as \"updated_at!\"",
   "describe": {
     "columns": [
       {
@@ -60,28 +60,43 @@
       },
       {
         "ordinal": 11,
-        "name": "is_active",
+        "name": "allow_early_ot",
         "type_info": "Bool"
       },
       {
         "ordinal": 12,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
         "name": "parent_shift_id",
         "type_info": "Uuid"
       },
       {
-        "ordinal": 13,
+        "ordinal": 14,
         "name": "created_at!",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 14,
+        "ordinal": 15,
         "name": "updated_at!",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Uuid",
+        "Varchar",
+        "Time",
+        "Time",
+        "Int4",
+        "Time",
+        "Time",
+        "Bool",
+        "Bool",
+        "Int4",
+        "Bool"
       ]
     },
     "nullable": [
@@ -97,10 +112,11 @@
       false,
       false,
       false,
+      false,
       true,
       true,
       true
     ]
   },
-  "hash": "f527bba7d35716f2a0b18e5528eec3479340ee2580250d76252bb22289a8b2fb"
+  "hash": "e0a92d5a08f4cc731fa5982410eafb26774394d90e6038ae6e25ed01b3f3d2e8"
 }

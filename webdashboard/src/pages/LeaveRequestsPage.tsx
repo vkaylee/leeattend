@@ -18,6 +18,7 @@ import {
   assignLeavePolicy,
   triggerAccrualRun,
   getCurrentWorkspaceId,
+  fetchDepartments,
   Employee,
   LeaveRequest,
   EmployeeLeaveBalance,
@@ -43,12 +44,20 @@ export default function LeaveRequestsPage() {
   const [leaveType, setLeaveType] = useState<string>("vacation");
   const [policyType, setPolicyType] = useState<string>("vacation");
   const [accrualStrategy, setAccrualStrategy] = useState<string>("monthly");
+  const [assigneeType, setAssigneeType] = useState<string>("employee");
   const [assignEmpId, setAssignEmpId] = useState<string>("");
+  const [assignDeptId, setAssignDeptId] = useState<string>("");
   const [assignPolicyId, setAssignPolicyId] = useState<string>("");
 
   const { data: employees = [] } = useQuery({
     queryKey: ["employees", wsId],
     queryFn: () => fetchEmployees(wsId!),
+    enabled: !!wsId,
+  });
+
+  const { data: departments = [] } = useQuery({
+    queryKey: ["departments", wsId],
+    queryFn: () => fetchDepartments(wsId!),
     enabled: !!wsId,
   });
 
@@ -124,11 +133,17 @@ export default function LeaveRequestsPage() {
   });
 
   const assignMutation = useMutation({
-    mutationFn: (data: { employee_id: string; leave_policy_id: string; effective_date: string }) => 
-      assignLeavePolicy(wsId!, data),
+    mutationFn: (data: { 
+      assignee_type: string; 
+      assignee_id: string | null; 
+      policy_id: string; 
+      effective_from: string 
+    }) => assignLeavePolicy(wsId!, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leave-balances", wsId] });
+      queryClient.invalidateQueries({ queryKey: ["leave-policies", wsId] });
       setIsAssignModalOpen(false);
+      toast.success(t("leave_requests.policy.messages.assign_success"));
     },
   });
 
@@ -167,6 +182,7 @@ export default function LeaveRequestsPage() {
 
     policyMutation.mutate({
       name: formData.get("name") as string,
+      leave_type: policyType,
       rule_config: rule_config as any,
     });
   };
@@ -175,9 +191,10 @@ export default function LeaveRequestsPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     assignMutation.mutate({
-      employee_id: assignEmpId,
-      leave_policy_id: assignPolicyId,
-      effective_date: formData.get("effective_date") as string,
+      assignee_type: assigneeType,
+      assignee_id: assigneeType === 'workspace' ? null : (assigneeType === 'department' ? assignDeptId : assignEmpId),
+      policy_id: assignPolicyId,
+      effective_from: formData.get("effective_from") as string,
     });
   };
 
@@ -527,24 +544,70 @@ export default function LeaveRequestsPage() {
         <form onSubmit={handleAssignPolicy} className="p-2 space-y-6">
           <div className="space-y-2">
             <label 
-              htmlFor="assign-emp"
+              htmlFor="assignee-type"
               className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1"
             >
-              {t("common.employee")}
+              {t("leave_requests.policy.table.type")}
             </label>
             <Combobox
-              id="assign-emp"
-              options={employees.map(e => ({
-                value: e.id,
-                label: `${e.first_name} ${e.last_name}`,
-                icon: <UserCircle className="w-4 h-4" />
-              }))}
-              value={assignEmpId}
-              onChange={setAssignEmpId}
-              placeholder={t("common.select_employee")}
+              id="assignee-type"
+              options={[
+                { value: "workspace", label: t("leave_requests.policy.assignee_types.workspace"), description: t("leave_requests.policy.assignee_types.workspace_desc") },
+                { value: "department", label: t("leave_requests.policy.assignee_types.department"), description: t("leave_requests.policy.assignee_types.department_desc") },
+                { value: "employee", label: t("leave_requests.policy.assignee_types.employee"), description: t("leave_requests.policy.assignee_types.employee_desc") },
+              ]}
+              value={assigneeType}
+              onChange={setAssigneeType}
               className="bg-slate-50 border-slate-200"
             />
           </div>
+
+          {assigneeType === 'employee' && (
+            <div className="space-y-2">
+              <label 
+                htmlFor="assign-emp"
+                className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1"
+              >
+                {t("common.employee")}
+              </label>
+              <Combobox
+                id="assign-emp"
+                options={employees.map(e => ({
+                  value: e.id,
+                  label: `${e.first_name} ${e.last_name}`,
+                  icon: <UserCircle className="w-4 h-4" />
+                }))}
+                value={assignEmpId}
+                onChange={setAssignEmpId}
+                placeholder={t("common.select_employee")}
+                className="bg-slate-50 border-slate-200"
+              />
+            </div>
+          )}
+
+          {assigneeType === 'department' && (
+            <div className="space-y-2">
+              <label 
+                htmlFor="assign-dept"
+                className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1"
+              >
+                {t("common.department")}
+              </label>
+              <Combobox
+                id="assign-dept"
+                options={departments.map(d => ({
+                  value: d.id,
+                  label: d.name,
+                  icon: <FileText className="w-4 h-4" />
+                }))}
+                value={assignDeptId}
+                onChange={setAssignDeptId}
+                placeholder={t("common.select_department")}
+                className="bg-slate-50 border-slate-200"
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
             <label 
               htmlFor="assign-policy"
@@ -568,7 +631,7 @@ export default function LeaveRequestsPage() {
           </div>
           <div className="space-y-1">
             <label htmlFor="assign-date" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.effective_from")}</label>
-            <input id="assign-date" type="date" name="effective_date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
+            <input id="assign-date" type="date" name="effective_from" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
           </div>
           <div className="pt-4 flex gap-3">
             <button type="button" onClick={() => setIsAssignModalOpen(false)} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors">{t("common.cancel")}</button>
