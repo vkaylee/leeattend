@@ -662,6 +662,67 @@ Cập nhật hoặc gán ca làm việc cho một ngày cụ thể (Upsert).
 
 ---
 
+### 14. Employee Self-Service (ESS) (New)
+
+Các endpoint dành riêng cho nhân viên tự quản lý thông tin cá nhân. **Yêu cầu header: `Authorization: Bearer <token>`**. Hệ thống tự động xác định `employee_id` dựa trên User đang đăng nhập.
+
+#### GET /ess/profile
+Lấy toàn bộ thông tin hồ sơ cá nhân, bao gồm cả các giai đoạn làm việc và liên hệ khẩn cấp.
+- **Response (200)**: `MyProfileResponse`
+  ```json
+  {
+    "employee": { "id": "...", "first_name": "...", "hire_date": "..." },
+    "profile": { "phone": "...", "address": "...", "bank_name": "..." },
+    "emergency_contacts": [ ... ]
+  }
+  ```
+
+#### PATCH /ess/profile
+Cập nhật thông tin hồ sơ (số điện thoại, địa chỉ, ngày sinh, thông tin ngân hàng).
+- **Request**: `UpdateEmployeeProfileRequest`
+- **Response (200)**: `EmployeeProfile` object
+
+#### GET /ess/emergency-contacts
+Lấy danh sách người liên hệ khẩn cấp.
+- **Response (200)**: `Array<EmployeeEmergencyContact>`
+
+#### POST /ess/emergency-contacts
+Thêm mới người liên hệ khẩn cấp.
+- **Request**: `{ "contact_name": "...", "relationship": "...", "phone": "...", "is_primary": true }`
+- **Response (201)**: `EmployeeEmergencyContact` object
+
+#### DELETE /ess/emergency-contacts/:id
+Xóa người liên hệ khẩn cấp.
+- **Response (204)**: No Content
+
+#### GET /ess/documents
+Lấy danh sách các tài liệu cá nhân đã tải lên (CCCD, Hợp đồng, Bằng cấp).
+- **Response (200)**: `Array<EmployeeDocument>`
+
+#### GET /ess/attendance
+Xem lịch sử chấm công cá nhân.
+- **Query Params**: `?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
+- **Response (200)**: `Array<TimeEntry>`
+
+#### GET /ess/leave/balances
+Xem số dư phép hiện tại trong năm.
+- **Response (200)**: 
+  ```json
+  [
+    {
+      "leave_type": "vacation",
+      "entitlement": 12,
+      "accrued_amount": 3.0,
+      "used": 2,
+      "remaining": 13.0
+    }
+  ]
+  ```
+
+#### GET /ess/leave/requests
+Xem lịch sử các đơn xin nghỉ phép cá nhân.
+- **Response (200)**: `Array<LeaveRequest>`
+
 ---
 
 ### 13. Debug & Development (Debug Mode Only)

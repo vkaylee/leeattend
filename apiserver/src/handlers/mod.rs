@@ -7,6 +7,7 @@ pub mod leaves;
 pub mod attendance;
 pub mod shifts;
 pub mod payroll;
+pub mod ess;
 
 pub use common::*;
 pub use auth::*;
@@ -17,3 +18,4 @@ pub use leaves::*;
 pub use attendance::*;
 pub use shifts::*;
 pub use payroll::*;
+pub use ess::*;

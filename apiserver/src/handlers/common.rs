@@ -5,6 +5,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use sqlx;
 use std::sync::Arc;
 use uuid::Uuid;
 use crate::{AppState, UserId};
@@ -102,6 +103,55 @@ where
             user_id,
             workspace_id,
             roles,
+        })
+    }
+}
+
+// --- Employee Self-Service Context ---
+
+/// Extractor for employee self-service endpoints.
+/// Validates that the current user is linked to an employee record.
+pub struct EmployeeContext {
+    pub user_id: Uuid,
+    pub employee_id: Uuid,
+    pub workspace_id: Uuid,
+}
+
+#[async_trait]
+impl<S> FromRequestParts<S> for EmployeeContext
+where
+    S: Send + Sync,
+    Arc<AppState>: FromRef<S>,
+{
+    type Rejection = (StatusCode, String);
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let UserId(user_id) = UserId::from_request_parts(parts, state).await?;
+        let WorkspaceId(workspace_id) = WorkspaceId::from_request_parts(parts, state).await?;
+
+        let app_state = Arc::<AppState>::from_ref(state);
+
+        // Find employee linked to this user in this workspace
+        let employee = sqlx::query_as::<_, (Uuid,)>(
+            r#"
+            SELECT id FROM employees
+            WHERE user_id = $1 AND workspace_id = $2 AND is_active = true
+            "#,
+        )
+        .bind(user_id)
+        .bind(workspace_id)
+        .fetch_optional(&app_state.db)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((
+            StatusCode::FORBIDDEN,
+            "No employee record linked to your account".to_string(),
+        ))?;
+
+        Ok(EmployeeContext {
+            user_id,
+            employee_id: employee.0,
+            workspace_id,
         })
     }
 }

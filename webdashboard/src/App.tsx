@@ -30,6 +30,7 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronRight as BreadcrumbSeparator,
+  Briefcase,
 } from "lucide-react"; 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import DashboardPage from "./pages/DashboardPage";
@@ -54,6 +55,7 @@ import AuthGuard from "./components/AuthGuard";
 import WorkspaceGuard from "./components/WorkspaceGuard";
 import AttendanceAdjustmentsPage from "./pages/AttendanceAdjustmentsPage";
 import AttendanceLogsPage from "./pages/AttendanceLogsPage";
+import MyProfilePage from "./pages/ess/MyProfilePage";
 import { useWorkspaces } from "./hooks/use-workspace";
 import { getCurrentWorkspaceId } from "./lib/api";
 import { useTheme } from "./hooks/use-theme";
@@ -87,6 +89,7 @@ function Layout() {
       time: ["/time-tracking", "/attendance-logs", "/leave-requests", "/attendance-adjustments", "/reports", "/leave-balances"].includes(path) || path === "/",
       payroll: ["/shifts", "/payroll"].includes(path),
       system: ["/agents", "/devices", "/workspace/settings"].includes(path),
+      ess: path.startsWith("/ess/"),
     };
   };
 
@@ -97,12 +100,13 @@ function Layout() {
   const currentWorkspace = workspaces.find(ws => ws.id === currentWsId);
 
   const toggleSection = (section: string) => {
-    setOpenSections(prev => ({ 
-      org: false, 
-      time: false, 
-      payroll: false, 
-      system: false, 
-      [section]: !prev[section] 
+    setOpenSections(prev => ({
+      org: false,
+      time: false,
+      payroll: false,
+      system: false,
+      ess: false,
+      [section]: !prev[section]
     }));
   };
 
@@ -124,6 +128,7 @@ function Layout() {
       "/devices": t("common.devices"),
       "/workspace/settings": t("common.settings"),
       "/profile": t("common.profile"),
+      "/ess/profile": t("common.my_profile"),
     };
     return map[path] || path.split('/').pop()?.replace(/-/g, ' ') || "";
   };
@@ -140,6 +145,7 @@ function Layout() {
     const isTime = ["/time-tracking", "/attendance-logs", "/leave-requests", "/attendance-adjustments", "/reports", "/leave-balances"].includes(path);
     const isPayroll = ["/shifts", "/payroll"].includes(path);
     const isSystem = ["/agents", "/devices", "/workspace/settings"].includes(path);
+    const isEss = path.startsWith("/ess/");
 
     // Use setTimeout to avoid synchronous setState during render warning
     const timer = setTimeout(() => {
@@ -150,6 +156,7 @@ function Layout() {
         if (isTime && !prev.time) { next.time = true; changed = true; }
         if (isPayroll && !prev.payroll) { next.payroll = true; changed = true; }
         if (isSystem && !prev.system) { next.system = true; changed = true; }
+        if (isEss && !prev.ess) { next.ess = true; changed = true; }
         return changed ? next : prev;
       });
       setIsSidebarOpen(false);
@@ -384,6 +391,28 @@ function Layout() {
               </Link>
             </div>
           </div>
+
+          {/* Section: Self Service (ESS) */}
+          <div className="pt-2">
+            <button
+              onClick={() => toggleSection('ess')}
+              className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
+            >
+              <span>{t("common.sections.self_service")}</span>
+              {openSections.ess ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            </button>
+            <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.ess ? "max-h-64 opacity-100" : "max-h-0 opacity-0 invisible"}`}>
+              <Link
+                to="/ess/profile"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/ess/profile" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
+                }`}
+              >
+                <Briefcase className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">{t("common.my_profile")}</span>
+              </Link>
+            </div>
+          </div>
         </nav>
 
         <div className="p-6 border-t border-slate-50 space-y-1">
@@ -537,6 +566,8 @@ function App() {
                   element={<WorkspaceSettingsPage />} 
                 />
                 <Route path="/profile" element={<ProfilePage />} />
+                {/* ESS Routes */}
+                <Route path="/ess/profile" element={<MyProfilePage />} />
               </Route>
             </Route>
           </Route>

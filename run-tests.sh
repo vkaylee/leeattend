@@ -10,6 +10,7 @@ set -euo pipefail
 # ANSI Color Codes
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}${BOLD}🚀 LeeAttend Unified Test Runner${NC}"

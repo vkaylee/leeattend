@@ -298,12 +298,120 @@ describe("LeaveRequestsPage", () => {
     
     await user.click(screen.getByText("Gán ngay"));
 
-    await waitFor(() => {
-      expect(api.assignLeavePolicy).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
-        assignee_type: "employee",
-        assignee_id: "emp-1",
-        policy_id: "pol-1"
-      }));
-    });
-  });
-});
+        await waitFor(() => {
+
+          expect(api.assignLeavePolicy).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+
+            assignee_type: "employee",
+
+            assignee_id: "emp-1",
+
+            policy_id: "pol-1"
+
+          }));
+
+        });
+
+      });
+
+    
+
+        it("fetches leave policies on mount regardless of the active tab", async () => {
+
+    
+
+          (api.fetchLeavePolicies as any).mockResolvedValue([
+
+    
+
+            { id: "pol-1", name: "Standard Vacation", leave_type: "vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period" } }
+
+    
+
+          ]);
+
+    
+
+      
+
+    
+
+          render(
+
+    
+
+            <QueryClientProvider client={queryClient}>
+
+    
+
+              <ToastProvider>
+
+    
+
+                <BrowserRouter>
+
+    
+
+                  <LeaveRequestsPage />
+
+    
+
+                </BrowserRouter>
+
+    
+
+              </ToastProvider>
+
+    
+
+            </QueryClientProvider>
+
+    
+
+          );
+
+    
+
+      
+
+    
+
+          // Initial tab is "Chờ duyệt"
+
+    
+
+          expect(screen.getByText("Chờ duyệt")).toBeDefined();
+
+    
+
+      
+
+    
+
+          // Verify fetchLeavePolicies was called
+
+    
+
+          await waitFor(() => {
+
+    
+
+            expect(api.fetchLeavePolicies).toHaveBeenCalledWith("test-ws-id");
+
+    
+
+          });
+
+    
+
+        });
+
+    
+
+      });
+
+    
+
+      
+
+    

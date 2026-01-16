@@ -578,6 +578,8 @@
       "effective_date_label": "Effective Date",
       "effective_date_desc": "The system will create a new version and switch all employees to this shift from the selected date.",
       "select_shift_title": "Select Work Shift",
+      "select_shift_subtitle": "Choose shift for {{count}} selected days",
+      "mark_as_off": "Mark selected days as off/rest day",
       "assign_to_days": "Assign to {{days}}"
     },
     "messages": {

@@ -22,6 +22,7 @@ use crate::services::leave_accrual_service::LeaveAccrualService;
 // --- Leave Handlers ---
 
 pub async fn submit_leave_request(
+    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
     MemberContext { workspace_id, .. }: MemberContext,
@@ -82,6 +83,7 @@ pub async fn get_my_leave_requests(
 }
 
 pub async fn get_workspace_leave_balances(
+    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> Result<Json<Vec<WorkspaceLeaveBalance>>, StatusCode> {
@@ -112,6 +114,7 @@ pub struct LeaveStatusQuery {
 }
 
 pub async fn get_workspace_leave_requests(
+    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Query(query): Query<LeaveStatusQuery>,
@@ -171,8 +174,8 @@ pub async fn adjust_leave_balance(
 }
 
 pub async fn create_leave_policy(
-    State(state): State<Arc<AppState>>,
     Path(workspace_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<CreateLeavePolicyRequest>,
 ) -> impl IntoResponse {
@@ -238,8 +241,8 @@ pub async fn delete_leave_policy(
 }
 
 pub async fn get_leave_policies(
-    State(state): State<Arc<AppState>>,
     Path(workspace_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
     _ctx: MemberContext,
 ) -> impl IntoResponse {
     match leave_policy_repository::get_policy_definitions(&state.db, workspace_id).await {
@@ -249,8 +252,8 @@ pub async fn get_leave_policies(
 }
 
 pub async fn assign_leave_policy(
-    State(state): State<Arc<AppState>>,
     Path(workspace_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<AssignLeavePolicyRequest>,
 ) -> impl IntoResponse {
@@ -276,8 +279,8 @@ pub async fn assign_leave_policy(
 }
 
 pub async fn trigger_accrual_run(
-    State(state): State<Arc<AppState>>,
     Path(workspace_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {

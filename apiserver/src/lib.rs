@@ -382,9 +382,36 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             delete(handlers::delete_roster),
         );
 
+    // Employee Self-Service (ESS) Routes
+    let ess_routes = Router::new()
+        // Profile
+        .route(
+            "/ess/profile",
+            get(handlers::ess::get_my_profile).put(handlers::ess::update_my_profile),
+        )
+        // Emergency Contacts
+        .route(
+            "/ess/emergency-contacts",
+            get(handlers::ess::get_my_emergency_contacts).post(handlers::ess::add_emergency_contact),
+        )
+        .route(
+            "/ess/emergency-contacts/:contact_id",
+            delete(handlers::ess::delete_emergency_contact),
+        )
+        // Documents
+        .route("/ess/documents", get(handlers::ess::get_my_documents))
+        // Payslips
+        .route("/ess/payslips", get(handlers::ess::get_my_payslips))
+        // Attendance
+        .route("/ess/attendance", get(handlers::ess::get_my_attendance))
+        // Leave
+        .route("/ess/leave/balances", get(handlers::ess::get_my_leave_balances))
+        .route("/ess/leave/requests", get(handlers::ess::ess_get_my_leave_requests));
+
     Router::new()
         .nest("/api", router)
         .nest("/api", roster_routes)
+        .nest("/api", ess_routes)
         .layer(cors)
         .with_state(state)
 }

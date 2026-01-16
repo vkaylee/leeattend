@@ -68,6 +68,21 @@ LeeAttend áp dụng cơ chế định danh thương hiệu linh hoạt (Dynamic
     3. **System Default**: Màu Violet mặc định.
 - **Cross-Tab Sync**: Sử dụng sự kiện `storage` của trình duyệt để đảm bảo thay đổi màu sắc tại trang Profile được cập nhật tức thì trên tất cả các tab đang mở mà không cần tải lại trang.
 
+### 13. Employee Self-Service (ESS) Portal
+Hệ thống cung cấp một phân hệ dành riêng cho nhân viên để tự quản lý dữ liệu cá nhân, giảm bớt gánh nặng quản trị cho bộ phận HR:
+
+#### 13.1. Identity-Linked Security
+- **Automatic Context**: Hệ thống tự động ánh xạ tài khoản người dùng (`User`) với hồ sơ nhân viên (`Employee`) thông qua `user_id`. Nhân viên không cần biết ID của mình để truy cập dữ liệu.
+- **Scope Isolation**: Các API trong nhóm `/api/ess/` được thiết kế để chỉ trả về dữ liệu thuộc về chính nhân viên đang đăng nhập, thực thi bảo mật tại tầng Database Query.
+
+#### 13.2. Personal Data Autonomy
+- **Profile & Contacts**: Nhân viên có quyền cập nhật các thông tin biến động như số điện thoại, địa chỉ và danh sách người liên hệ khẩn cấp mà không cần qua Admin phê duyệt.
+- **Document Repository**: Cung cấp kho lưu trữ an toàn cho các tài liệu cá nhân (CCCD, Bằng cấp, Hợp đồng lao động), cho phép nhân viên tra cứu bất cứ lúc nào.
+
+#### 13.3. Transparency & Insight
+- **Live Attendance History**: Nhân viên có thể theo dõi lịch sử quẹt thẻ và các phiên làm việc đã được ghép cặp để phát hiện sớm các sai sót.
+- **Real-time Leave Balances**: Hệ thống hiển thị số dư phép được tính toán theo thời gian thực (bao gồm cả phép cộng dồn theo thâm niên), giúp nhân viên chủ động lập kế hoạch nghỉ ngơi.
+
 ## Infrastructure Diagram
 ```ascii
 [ Web Dashboard ] <--- REST API ---> [ API Server ] <--- WebSocket (Outbound Only) ---> [ Agent (Rust) ] <--- JSON-RPC (TCP) ---> [ ZK Worker (Python) ] <---> [ ZKTeco Devices ]

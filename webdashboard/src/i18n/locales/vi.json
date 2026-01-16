@@ -580,6 +580,8 @@
       "effective_date_label": "Ngày áp dụng thay đổi",
       "effective_date_desc": "Hệ thống sẽ tạo phiên bản mới và chuyển toàn bộ nhân viên sang ca này từ ngày đã chọn.",
       "select_shift_title": "Chọn ca làm việc",
+      "select_shift_subtitle": "Chọn ca cho {{count}} ngày đã chọn",
+      "mark_as_off": "Đánh dấu các ngày đã chọn là nghỉ",
       "assign_to_days": "Gán cho {{days}}"
     },
     "messages": {

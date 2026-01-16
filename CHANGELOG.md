@@ -5,6 +5,19 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased] - 2026-01-16
 
 ### Added
+- **Employee Self-Service (ESS) Portal**: Launched the first phase of the personal portal for employees.
+    - **Personal Profile**: View and edit basic information, including avatar support.
+    - **Emergency Contacts**: Dedicated management for multiple emergency contact persons.
+    - **Document Vault**: Infrastructure for secure employee document storage (identities, contracts, certifications).
+    - **Self-Service API**: New protected endpoints under `/api/ess/` for individual data access without administrative privileges.
+    - **ESS Hooks**: Developed `use-ess` React hook for streamlined frontend integration.
+- **Advanced Attendance Pairing Algorithms**: Expanded the strategy engine with industrial-grade logic.
+    - **FSM (State-based) Strategy**: Leverages device metadata ('Check-In'/'Check-Out' button presses) to enforce strict state transitions, ideal for high-security environments.
+    - **Sequential (Retail) Strategy**: Optimized for retail/hospitality where employees punch multiple times a day; uses chronological pairing with gap-based session detection.
+    - **Strategy Persistence**: Workspaces now permanently store their chosen pairing algorithm in the database.
+- **UI & UX Stability Suite**:
+    - **Z-Index Stacking Fix**: Resolved long-standing issues where modals and dropdowns conflicted by standardizing the stacking context.
+    - **Localized E2E Testing**: Updated Playwright suites to use language-agnostic selectors, ensuring test stability across English, Vietnamese, and Chinese locales.
 - **Attendance Pairing Strategy Pattern**: Refactored the core attendance log matching logic into a clean Strategy Pattern.
     - **Multiple Algorithms**: Implemented `DpPatternStrategy` (intelligent matching), `AnchorFirstStrategy` (simple first/last), `SequentialStrategy` (chronological), and `FsmStrategy` (state-based using device metadata).
     - **Metadata-Aware Pairing**: Refactored the pairing engine to support `LogEvent` metadata, allowing the system to respect explicit 'Check-In' and 'Check-Out' intents from hardware.
@@ -45,25 +58,20 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **E2E Visibility**: Integrated `invisible` and `visible` classes to collapsed/expanded sections, ensuring Playwright accurately detects element visibility during tests.
 - **Zero-Warning Linter Policy**: Enforced `--max-warnings 0` for frontend linting.
 - **New E2E Suite**: Created `sidebar-navigation.spec.ts` to verify default expansion logic and accordion exclusivity.
-
-### Fixed
 - **React 18/19 Compatibility**: Resolved "setState synchronously within an effect" warnings across 6 major components (`App`, `AgentEditModal`, `WorkspaceSwitcher`, `DepartmentsPage`, `ProfilePage`, `WorkspaceSettingsPage`) using `setTimeout` and derived state patterns.
 - **Purity & Idempotency**: Fixed `react-hooks/purity` warnings in `TimeTrackingPage` by wrapping non-deterministic date logic in `useMemo`.
 - **Reference Errors**: Fixed a critical `ReferenceError` in `WorkspaceSettingsPage` where an incorrect state setter was called during initialization.
 - **Test Stability**: Updated `AgentEditModal.test.tsx` to handle asynchronous state updates using `findBy` queries.
-
-### Changed
-- **Resource Cleanup**: Integrated Docker volume removal (`down -v`) and signal file deletion into the `run-tests.sh` cleanup trap, ensuring a pristine system state after every test run, even on interruption (SIGINT/SIGTERM).
-
-## [Unreleased] - 2026-01-16 (Initial)
 - **API Consistency**: Standardized `UpdateShiftRequest` with `#[serde(default)]` for new fields (`allow_early_ot`, `is_correction`) to maintain backward compatibility with legacy tests.
 - **Linter Compliance**: Resolved over 30 Clippy warnings and 10 ESLint warnings to maintain a zero-warning codebase.
 - **Function Signatures**: Corrected `update_employee` signature mismatch in `employee_repository.rs` and applied `clippy::too_many_arguments` where appropriate.
 - **Frontend Dependencies**: Fixed missing imports for `changePassword` and `clearAuthSession` in `ProfilePage.tsx`.
 
 ### Changed
+- **Resource Cleanup**: Integrated Docker volume removal (`down -v`) and signal file deletion into the `run-tests.sh` cleanup trap, ensuring a pristine system state after every test run, even on interruption (SIGINT/SIGTERM).
 - **E2E Stability**: Increased Playwright suite-level timeout to 5 minutes while maintaining a 1-minute per-test limit to handle high-concurrency initialization overhead.
 - **UI Testing Resilience**: Standardized E2E selectors to use localized regex (e.g., `text=/Time|Thời gian/`) for improved reliability across language states.
+
 
 ## [Unreleased] - 2026-01-15
 

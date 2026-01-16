@@ -10,3 +10,4 @@ export * from "./leaves";
 export * from "./shifts";
 export * from "./payroll";
 export * from "./departments";
+export * from "./ess";

@@ -579,6 +579,8 @@
       "effective_date_label": "生效日期",
       "effective_date_desc": "系统将创建一个新版本，并从所选日期起将所有员工切换到该班次。",
       "select_shift_title": "选择工作班次",
+      "select_shift_subtitle": "为 {{count}} 个选定的日期选择班次",
+      "mark_as_off": "将选定的日期标记为休息日",
       "assign_to_days": "分配给 {{days}}"
     },
     "messages": {

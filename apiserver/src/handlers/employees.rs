@@ -17,6 +17,7 @@ use crate::services::employee_service::EmployeeService;
 // --- Employee Management Handlers ---
 
 pub async fn get_employees(
+    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> impl IntoResponse {
@@ -49,6 +50,7 @@ pub async fn get_employee(
 }
 
 pub async fn create_employee(
+    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<CreateEmployeeRequest>,

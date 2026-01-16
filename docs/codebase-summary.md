@@ -67,6 +67,11 @@ leeattend/
             - **Early OT Filter**: Policy-based filtering of early arrivals via `allow_early_ot` toggle.
             - **Boundary Rounding**: Uses `Floor` rounding on total bucket duration to handle "late 1 min = lose 30 mins" policies.
         - **Strict Validation**: High-fidelity file parsing that enforces workspace settings and provides line-by-line detailed error context.
+    - **Employee Self-Service (ESS) Portal**: Dedicated subsystem for employee empowerment and data autonomy.
+        - **Secure Personal Access**: Direct access to personal data (Profile, Contacts, Documents) without requiring workspace administrative roles.
+        - **Emergency Contact Management**: Self-service tools for maintaining up-to-date emergency notification information.
+        - **Document Repository**: Infrastructure for storing and accessing employment-related documents (IDs, contracts).
+        - **Personal Insights**: On-demand viewing of payslips, attendance history, and real-time leave balances.
     - **Time Tracking**: Core logic for punch in/out, shift calculation, and payroll-ready duration processing.
         - **Attendance Calculator**: Centralized Domain Service (`attendance_calculator.rs`) implementing pure business logic for:
             - **Grace Period**: Logic "châm chước" đi trễ (ví dụ: cho phép trễ 15p).
@@ -127,6 +132,8 @@ leeattend/
 - [x] **Admin Leave Dashboard**: Workspace-wide overview of quotas and manual balance adjustments with audit trail.
 - [x] **Dynamic Leave Policies**: Configurable accrual rules (Monthly, Quarterly) with temporal assignment (Effective Date) and seniority bonuses.
 - [x] **Overnight Shift Support**: Complete linearization engine for punches spanning multiple calendar days.
+- [x] **Employee Self-Service (ESS) Portal**: Personal profile management, emergency contacts, and document vault.
+- [x] **Advanced Pairing Algorithms**: Industrial-grade FSM (State-based) and Sequential (Retail) matching strategies.
 - [ ] Automated Deployment scripts (NSSM/Service for production).
 
 ### 🛠️ Debugging & Automation Tools
