@@ -54,7 +54,7 @@ export function Combobox({
     <Popover.Root open={open} onOpenChange={setOpen}>
       {/* Hidden select for accessibility and testing */}
       <select 
-        id={id} 
+        id={id ? `${id}-select` : undefined} 
         value={value} 
         onChange={(e) => onChange(e.target.value)}
         className="sr-only"
@@ -88,7 +88,7 @@ export function Combobox({
 
       <Popover.Portal>
         <Popover.Content
-          className="z-50 w-[var(--radix-popover-trigger-width)] min-w-[200px] overflow-hidden rounded-[1.5rem] border border-slate-50 bg-white p-2 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+          className="z-[10000] w-[var(--radix-popover-trigger-width)] min-w-[200px] overflow-hidden rounded-[1.5rem] border border-slate-50 bg-white p-2 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
           sideOffset={8}
         >
           <Command className="flex flex-col gap-2">

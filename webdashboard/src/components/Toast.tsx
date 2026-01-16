@@ -71,7 +71,10 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
   };
 
   return (
-    <div className={`pointer-events-auto flex items-start gap-4 p-4 rounded-[24px] border shadow-xl shadow-slate-200/50 animate-in slide-in-from-right-8 duration-300 ${bgColors[toast.type]}`}>
+    <div 
+      role="status"
+      className={`pointer-events-auto flex items-start gap-4 p-4 rounded-[24px] border shadow-xl shadow-slate-200/50 animate-in slide-in-from-right-8 duration-300 ${bgColors[toast.type]}`}
+    >
       <div className="shrink-0 mt-0.5">{icons[toast.type]}</div>
       <div className="flex-1">
         {toast.title && <div className="text-sm font-black text-slate-900 mb-0.5 uppercase tracking-tight">{toast.title}</div>}
