@@ -27,6 +27,13 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Strict Preparation**: Added explicit error checking for Docker setup, migrations, and pre-compilation steps.
     - **Dynamic Worker Scaling**: Automatically calculates optimal concurrency by using half of the system's CPU cores (e.g., 8 workers on a 16-core machine).
     - **CPU Subscription Control**: Optimized Phase 3 by limiting Rust integration test threads (`--test-threads`) to match the `NUM_WORKERS` count, preventing system-wide oversubscription and ensuring smooth parallel execution of both API and E2E suites.
+- **Test Infrastructure Robustness**:
+    - **Bash Syntax**: Fixed a missing parenthesis in `scripts/test-integration.sh`.
+    - **Localization Stability**: Removed hardcoded keyboard typing in `leave-policy-assignment.spec.ts` to prevent test failures when running in different locale states (e.g., Vietnamese).
+- **UI & Accessibility Fixes**:
+    - **Stacking Context**: Increased `Combobox` dropdown z-index to `10000` to correctly appear above the high-priority `modal-backdrop` (`z-9999`).
+    - **A11y Role Mapping**: Added `role="status"` to `ToastItem` component, making success messages discoverable by Playwright standard locators and screen readers.
+- **API Resilience**: Applied `#[serde(default)]` to `AssignLeavePolicyRequest` optional fields to gracefully handle missing keys in JSON payloads.
 - **Intelligent Sidebar Navigation**:
     - **Default Expansion**: The "Time & Leave" (Thời gian & Nghỉ phép) section is now expanded by default for better feature discoverability.
     - **Derived State**: Re-engineered sidebar initialization to calculate open sections directly from the URL, eliminating cascading renders and improving performance.
