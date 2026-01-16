@@ -1,5 +1,5 @@
 use axum::http::StatusCode;
-use chrono::{Utc, NaiveDateTime, DateTime, TimeZone};
+use chrono::{Utc, DateTime, TimeZone};
 use chrono_tz::Tz;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -137,7 +137,7 @@ impl AttendanceImportService {
                     continue; 
                 }
 
-                let punch_time = match AttendanceAdjustmentService::parse_datetime(emp_dt_str, Some(&date_format), Some(&time_format)) {
+                let punch_time = match AttendanceAdjustmentService::parse_datetime(emp_dt_str, &timezone, Some(&date_format), Some(&time_format)) {
                     Ok(dt) => dt,
                     Err(e) => {
                         errors.push(format!("Dòng {} (NV {}): {} [Dữ liệu gốc: '{}']", current_line, emp_id_number, e, emp_dt_str));
@@ -145,7 +145,7 @@ impl AttendanceImportService {
                     }
                 };
 
-                match Self::process_import_row(&pool, &job, &emp_id_number, punch_time, &timezone).await {
+                match Self::process_import_row(&pool, &job, &emp_id_number, punch_time).await {
                     Ok(c) => {
                         processed_rows += c as i32;
                         if processed_rows % 10 == 0 {
@@ -197,7 +197,7 @@ impl AttendanceImportService {
                 }
             };
             let punch_time = match row.get(2) {
-                Some(Data::String(s)) => match AttendanceAdjustmentService::parse_datetime(s, preferred_date, preferred_time) {
+                Some(Data::String(s)) => match AttendanceAdjustmentService::parse_datetime(s, timezone, preferred_date, preferred_time) {
                     Ok(dt) => Some(dt),
                     Err(e) => {
                         errors.push(format!("Dòng {} (NV {}): {} [Dữ liệu gốc: '{}']", current_line, emp_id_number, e, s));
@@ -205,8 +205,13 @@ impl AttendanceImportService {
                     }
                 },
                 Some(cell_data) => {
-                    if let Some(dt) = cell_data.as_datetime() {
-                        Some(dt)
+                    if let Some(naive) = cell_data.as_datetime() {
+                        // For Excel naive datetime, we assume it's in the workspace timezone
+                        let tz: Tz = timezone.parse().unwrap_or(chrono_tz::Asia::Ho_Chi_Minh);
+                        match tz.from_local_datetime(&naive) {
+                            chrono::LocalResult::Single(dt) => Some(dt.with_timezone(&Utc)),
+                            _ => Some(DateTime::<Utc>::from_naive_utc_and_offset(naive, Utc)),
+                        }
                     } else {
                         errors.push(format!("Dòng {} (NV {}): Không phải định dạng ngày giờ hợp lệ [Dữ liệu gốc: '{}']", current_line, emp_id_number, cell_data));
                         None
@@ -223,7 +228,7 @@ impl AttendanceImportService {
                 None => continue,
             };
 
-            match Self::process_import_row(pool, job, &emp_id_number, punch_time, timezone).await {
+            match Self::process_import_row(pool, job, &emp_id_number, punch_time).await {
                 Ok(c) => {
                     *processed_rows += c as i32;
                     if *processed_rows % 10 == 0 {
@@ -239,27 +244,13 @@ impl AttendanceImportService {
         pool: &PgPool,
         job: &AttendanceImportJob,
         emp_id_number: &str,
-        punch_time: NaiveDateTime,
-        timezone: &str,
+        punch_time_utc: DateTime<Utc>,
     ) -> Result<usize, StatusCode> {
         let employee = match employee_repository::get_employee_by_id_number(pool, emp_id_number, job.workspace_id).await {
             Ok(Some(emp)) => emp,
             _ => {
                 error!("EMPLOYEE_NOT_FOUND: {} in WS {}", emp_id_number, job.workspace_id);
                 return Ok(0);
-            }
-        };
-
-        // Convert NaiveDateTime (local time from file) to DateTime<Utc> using Workspace Timezone
-        let tz: Tz = timezone.parse().unwrap_or(chrono_tz::Asia::Ho_Chi_Minh);
-        
-        let punch_time_utc = match tz.from_local_datetime(&punch_time) {
-            chrono::LocalResult::Single(dt) => dt.with_timezone(&Utc),
-            chrono::LocalResult::Ambiguous(dt1, _) => dt1.with_timezone(&Utc), // Default to first if ambiguous
-            chrono::LocalResult::None => {
-                // If the time doesn't exist (e.g. during DST switch), fallback to simple UTC conversion 
-                // but this shouldn't happen in Asia/Ho_Chi_Minh
-                DateTime::<Utc>::from_naive_utc_and_offset(punch_time, Utc)
             }
         };
 

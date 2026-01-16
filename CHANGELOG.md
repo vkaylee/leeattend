@@ -5,6 +5,15 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased] - 2026-01-16
 
 ### Added
+- **Timezone-Aware Handling**: Implemented a comprehensive system to ensure data consistency across different geographical regions.
+    - **Centralized Parsing**: Created a shared `utils::datetime` module in the backend to robustly handle both ISO-8601 (with offset) and naive (local) datetime strings.
+    - **Intelligent Fallback**: Backend now automatically falls back to the workspace's configured IANA timezone when parsing datetime strings without explicit offsets (e.g., from Excel imports).
+    - **Frontend Normalization**: Centralized local-to-UTC conversion in `webdashboard/src/lib/datetime.ts` using `Intl.DateTimeFormat` to ensure correct offsets even during DST changes.
+    - **Enhanced Time Formatter**: Added `formatTime24h` to `useDateTimeFormatter` hook to ensure consistent "HH:mm" formatting for HTML5 time inputs.
+- **Improved Import Resilience**: Refactored `AttendanceImportService` to leverage the new centralized parsing logic, improving reliability for CSV and Excel processing.
+
+### Fixed
+- **Integration Test Alignment**: Updated `test_import_csv_with_line_errors` to correctly verify error messages under the new, more flexible parsing logic.
 - **Fail-Fast Test Orchestration**: Upgraded `run-tests.sh` to support immediate pipeline abortion.
     - **Instant Termination**: The orchestrator now kills all concurrent tasks in a phase as soon as any single task fails, saving resources and providing faster feedback.
     - **Strict Preparation**: Added explicit error checking for Docker setup, migrations, and pre-compilation steps.

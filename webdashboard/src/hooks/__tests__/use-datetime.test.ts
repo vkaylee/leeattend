@@ -28,6 +28,7 @@ describe("useDateTimeFormatter hook", () => {
 
     expect(result.current.formatDate(testDate)).toBe("14/01/2026");
     expect(result.current.formatTime(testDate)).toBe("15:30");
+    expect(result.current.formatTime24h(testDate)).toBe("15:30");
     expect(result.current.formatDateTime(testDate)).toBe("14/01/2026 15:30");
   });
 
@@ -45,6 +46,7 @@ describe("useDateTimeFormatter hook", () => {
 
     expect(result.current.formatDate(testDate)).toBe("01/14/2026");
     expect(result.current.formatTime(testDate)).toBe("03:30 PM");
+    expect(result.current.formatTime24h(testDate)).toBe("15:30");
     expect(result.current.formatDateTime(testDate)).toBe("01/14/2026 03:30 PM");
   });
 

@@ -17,6 +17,7 @@ leeattend/
 │   │   ├── handlers/  # Domain-specific API Modules (Auth, Agents, Shifts...)
 │   │   ├── services/  # Business logic (PayrollService, etc.)
 │   │   ├── repositories/ # Database access (Dept, Roster, Payroll)
+│   │   ├── utils/     # Shared utilities (DateTime, etc.)
 │   │   ├── models.rs  # Domain models (Employee, Shift, Roster)
 │   │   └── dev_initialization.rs # Automatic seeding for debug mode
 │   └── tests/         # Integration tests with TestFactory

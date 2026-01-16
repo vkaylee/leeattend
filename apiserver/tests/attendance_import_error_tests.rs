@@ -28,9 +28,9 @@ async fn test_import_csv_with_line_errors() {
     // CSV with mixed valid and invalid lines
     // Line 1: Header
     // Line 2: Valid
-    // Line 3: Invalid Date (ISO instead of DD/MM/YYYY)
+    // Line 3: Invalid Date (Completely wrong format)
     // Line 4: Missing Time
-    let csv_content = format!("empNo,empName,empDt\n{},User 1,14/01/2026 08:00\n{},User 1,2026-01-14 09:00\n{},User 1,", 
+    let csv_content = format!("empNo,empName,empDt\n{},User 1,14/01/2026 08:00\n{},User 1,not-a-date\n{},User 1,", 
         emp_id_number, emp_id_number, emp_id_number
     );
 
@@ -66,7 +66,7 @@ async fn test_import_csv_with_line_errors() {
     // Line 2: OK
     // Line 3: Error
     
-    assert!(errors.contains("sai định dạng"), "Should identify setting mismatch error");
-    assert!(errors.contains("2026-01-14 09:00"), "Should show faulty data");
+    assert!(errors.contains("Không thể nhận diện"), "Should identify recognition error");
+    assert!(errors.contains("not-a-date"), "Should show faulty data");
     assert!(errors.contains("Thiếu mã nhân viên hoặc thời gian"), "Should describe error for empty time");
 }

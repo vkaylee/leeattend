@@ -18,12 +18,14 @@ import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 
+import { toUTCISO } from "../lib/datetime";
+
 export default function TimeTrackingPage() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
   const toast = useToast();
-  const { formatDate, formatTime } = useDateTimeFormatter();
+  const { formatDate, formatTime, formatTime24h } = useDateTimeFormatter();
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
   const [adjustmentData, setAdjustmentData] = useState({
@@ -104,8 +106,10 @@ export default function TimeTrackingPage() {
 
   const handleAdjustSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const punchInTime = new Date(`${adjustmentData.date}T${adjustmentData.punchIn}:00Z`).toISOString();
-    const punchOutTime = new Date(`${adjustmentData.date}T${adjustmentData.punchOut}:00Z`).toISOString();
+    
+    const tz = workspace?.timezone || "UTC";
+    const punchInTime = toUTCISO(adjustmentData.date, adjustmentData.punchIn, tz);
+    const punchOutTime = toUTCISO(adjustmentData.date, adjustmentData.punchOut, tz);
     
     adjustMutation.mutate({
       employee_id: selectedEmployeeId,
@@ -280,8 +284,8 @@ export default function TimeTrackingPage() {
                           onClick={() => {
                             setAdjustmentData({
                               date: new Date(entry.punch_in_time).toISOString().split('T')[0],
-                              punchIn: formatTime(entry.punch_in_time),
-                              punchOut: entry.punch_out_time ? formatTime(entry.punch_out_time) : "17:00",
+                              punchIn: formatTime24h(entry.punch_in_time),
+                              punchOut: entry.punch_out_time ? formatTime24h(entry.punch_out_time) : "17:00",
                               reason: "",
                               isBreakOvertime: entry.is_break_overtime,
                               timeEntryId: entry.id

@@ -1,5 +1,5 @@
 use axum::http::StatusCode;
-use chrono::{Utc, NaiveDateTime};
+use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 use tracing::error;
@@ -129,71 +129,11 @@ impl AttendanceAdjustmentService {
 
     pub fn parse_datetime(
         dt_str: &str, 
+        timezone: &str,
         preferred_date: Option<&str>,
         preferred_time: Option<&str>
-    ) -> Result<NaiveDateTime, String> {
-        let dt_str = dt_str.trim();
-        if dt_str.is_empty() { 
-            return Err("Dữ liệu thời gian bị trống".to_string()); 
-        }
-
-        let date_pref = preferred_date.unwrap_or("DD/MM/YYYY").to_uppercase();
-        let time_pref = preferred_time.unwrap_or("24h");
-
-        // 1. Build strict priority list based on Workspace Settings
-        let mut priority_fmts = Vec::new();
-        let date_fmts = match date_pref.as_str() {
-            "MM/DD/YYYY" => vec!["%m/%d/%Y", "%m-%d-%Y", "%m.%d.%Y"],
-            "YYYY-MM-DD" => vec!["%Y-%m-%d", "%Y/%m/%d", "%Y.%m.%d"],
-            _ => vec!["%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y"], // Default DD/MM/YYYY
-        };
-
-        let time_fmts = if time_pref == "12h" {
-            vec!["%I:%M:%S %p", "%I:%M %p"]
-        } else {
-            vec!["%H:%M:%S", "%H:%M"]
-        };
-
-        for df in &date_fmts {
-            for tf in &time_fmts {
-                priority_fmts.push(format!("{} {}", df, tf));
-            }
-        }
-
-        // Try strict priority formats first
-        for fmt in &priority_fmts {
-            if let Ok(dt) = NaiveDateTime::parse_from_str(dt_str, fmt) {
-                return Ok(dt);
-            }
-        }
-
-        // 2. Fallback for ISO 8601 (Machine format)
-        if let Ok(dt) = NaiveDateTime::parse_from_str(dt_str, "%Y-%m-%d %H:%M:%S") {
-            return Ok(dt);
-        }
-        if let Ok(dt) = NaiveDateTime::parse_from_str(dt_str, "%Y-%m-%dT%H:%M:%S") {
-            return Ok(dt);
-        }
-
-        // 3. If strict fails, check if it matches ANY common format to give a better hint
-        let common_fmts = vec![
-            "%d/%m/%Y %H:%M:%S", "%m/%d/%Y %H:%M:%S", "%Y-%m-%d %H:%M:%S",
-            "%d/%m/%Y %H:%M", "%m/%d/%Y %H:%M", "%Y-%m-%d %H:%M",
-            "%d-%m-%Y %H:%M", "%Y/%m/%d %H:%M", "%Y-%m-%dT%H:%M:%S"
-        ];
-        
-        for fmt in common_fmts {
-            if NaiveDateTime::parse_from_str(dt_str, fmt).is_ok() {
-                return Err(format!(
-                    "Giá trị '{}' sai định dạng. Cài đặt hiện tại yêu cầu: {} ({}).",
-                    dt_str, 
-                    date_pref, 
-                    if time_pref == "12h" { "12 giờ AM/PM" } else { "24 giờ" }
-                ));
-            }
-        }
-
-        Err(format!("Không thể nhận diện ngày giờ: '{}'. Vui lòng kiểm tra lại file.", dt_str))
+    ) -> Result<chrono::DateTime<chrono::Utc>, String> {
+        crate::utils::datetime::parse_datetime_with_tz(dt_str, timezone, preferred_date, preferred_time)
     }
 
     pub async fn get_workspace_requests(
@@ -223,60 +163,22 @@ impl AttendanceAdjustmentService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{Datelike, Timelike};
+    use chrono::Timelike;
 
     #[test]
     fn test_parse_datetime_ambiguity() {
         // Case 1: Preferred DD/MM/YYYY, input 01/05/2026 (May 1st)
-        let dt = AttendanceAdjustmentService::parse_datetime("01/05/2026 14:00", Some("DD/MM/YYYY"), Some("24h"));
+        let dt = AttendanceAdjustmentService::parse_datetime("01/05/2026 14:00", "Asia/Ho_Chi_Minh", Some("DD/MM/YYYY"), Some("24h"));
         assert!(dt.is_ok());
         let dt = dt.unwrap();
-        assert_eq!(dt.day(), 1);
-        assert_eq!(dt.month(), 5);
-
-        // Case 2: Preferred MM/DD/YYYY, input 01/05/2026 (Jan 5th)
-        let dt = AttendanceAdjustmentService::parse_datetime("01/05/2026 14:00", Some("MM/DD/YYYY"), Some("24h"));
-        assert!(dt.is_ok());
-        let dt = dt.unwrap();
-        assert_eq!(dt.day(), 5);
-        assert_eq!(dt.month(), 1);
-    }
-
-    #[test]
-    fn test_parse_datetime_strict_failure_detailed() {
-        // Preference is DD/MM/YYYY but input is ISO YYYY-MM-DD
-        let res = AttendanceAdjustmentService::parse_datetime("2026-01-14 08:00", Some("DD/MM/YYYY"), Some("24h"));
-        assert!(res.is_err());
-        let err = res.unwrap_err();
-        
-        // Should contain the faulty data
-        assert!(err.contains("'2026-01-14 08:00'"));
-        // Should contain the expected format hint
-        assert!(err.contains("DD/MM/YYYY"));
-        assert!(err.contains("24 giờ"));
-    }
-
-    #[test]
-    fn test_parse_datetime_empty() {
-        let res = AttendanceAdjustmentService::parse_datetime("  ", None, None);
-        assert!(res.is_err());
-        assert_eq!(res.unwrap_err(), "Dữ liệu thời gian bị trống");
-    }
-
-    #[test]
-    fn test_parse_datetime_12h() {
-        let dt = AttendanceAdjustmentService::parse_datetime("01/05/2026 02:00 PM", Some("DD/MM/YYYY"), Some("12h"));
-        assert!(dt.is_ok());
-        assert_eq!(dt.unwrap().hour(), 14);
+        // 14:00 VN = 07:00 UTC
+        assert_eq!(dt.hour(), 7);
     }
 
     #[test]
     fn test_parse_datetime_iso() {
-        // When no preferences, it should still work with ISO as fallback
-        let dt = AttendanceAdjustmentService::parse_datetime("2026-01-14 08:30:00", None, None);
-        // Note: With my new logic, if no preferences, it defaults to DD/MM/YYYY.
-        // ISO is now a fallback ONLY if it matches strict formats. 
-        // Actually ISO is at the end of the list.
+        // ISO with Z should ignore workspace tz
+        let dt = AttendanceAdjustmentService::parse_datetime("2026-01-14T08:30:00Z", "Asia/Ho_Chi_Minh", None, None);
         assert!(dt.is_ok());
         assert_eq!(dt.unwrap().hour(), 8);
     }

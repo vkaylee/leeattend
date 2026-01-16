@@ -42,6 +42,21 @@ export function useDateTimeFormatter() {
     }
   };
 
+  const formatTime24h = (date: string | Date | null | undefined) => {
+    if (!date) return "";
+    try {
+      let d = new Date(date);
+      if (isNaN(d.getTime()) && typeof date === 'string' && date.includes(':')) {
+        const [h, m, s] = date.split(':');
+        d = new Date();
+        d.setHours(parseInt(h), parseInt(m), s ? parseInt(s) : 0);
+      }
+      return format(d, "HH:mm");
+    } catch (e) {
+      return "";
+    }
+  };
+
   const formatDateTime = (date: string | Date | null | undefined) => {
     if (!date) return "---";
     try {
@@ -51,5 +66,5 @@ export function useDateTimeFormatter() {
     }
   };
 
-  return { formatDate, formatTime, formatDateTime };
+  return { formatDate, formatTime, formatTime24h, formatDateTime };
 }

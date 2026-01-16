@@ -456,12 +456,13 @@ Gửi yêu cầu xác nhận/điều chỉnh công mới.
   {
     "employee_id": "...",
     "time_entry_id": "optional-uuid-if-editing",
-    "requested_punch_in_time": "2026-01-08T08:00:00Z",
-    "requested_punch_out_time": "2026-01-08T17:00:00Z",
+    "requested_punch_in_time": "2026-01-08T08:00:00Z", // UTC ISO string
+    "requested_punch_out_time": "2026-01-08T17:00:00Z", // UTC ISO string
     "is_break_overtime": true,
     "reason": "Làm thông trưa"
   }
   ```
+  *Lưu ý: Nếu chuỗi thời gian không có offset (Naive), Backend sẽ tự động parse theo múi giờ đã cài đặt của Workspace.*
 - **Response (201)**: `AttendanceAdjustmentRequest` object
 
 #### GET /workspaces/:ws_id/attendance/adjustments
