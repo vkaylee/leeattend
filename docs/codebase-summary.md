@@ -4,7 +4,13 @@
 
 ```
 leeattend/
-├── run-tests.sh       # Unified Test Orchestrator (Parallel + Docker)
+├── run-tests.sh       # Unified Test Orchestrator (Wrapper)
+├── setup-test-env.sh  # Test Environment Setup (Parent Script)
+├── scripts/           # Modular Test Scripts
+│   ├── test-utils.sh       # Shared utilities (logging, parallel execution)
+│   ├── test-lint.sh        # Phase 0: Linting
+│   ├── test-unit.sh        # Phase 1: Unit Tests
+│   └── test-integration.sh # Phase 3: Integration Tests
 ├── agent-main/        # Rust Main Agent (Orchestrator)
 │   ├── src/           # Rust Logic (Management, WS, SQLite)
 │   └── Cargo.toml     # Rust dependencies
@@ -136,11 +142,19 @@ leeattend/
     - `apiserver/.api_port`: File tạm chứa port hiện tại của backend.
 
 ### Testing Infrastructure
-- **Unified 4-Phase Pipeline (`run-tests.sh`)**: A high-performance test runner designed for extreme reliability and speed.
+- **Refactored Modular Test Runner (`run-tests.sh` + `scripts/`)**: A modular and robust test execution system.
+    - **`run-tests.sh`**: Acts as an orchestrator, delegating to specific phase scripts.
+    - **`setup-test-env.sh`**: "Parent" script that handles the entire DB infrastructure lifecycle (Up/Migration/Down) and executes child scripts (like integration tests) within that environment.
+    - **Modular Scripts (`scripts/`)**:
+        - `test-utils.sh`: Shared logic for parallel logging, worker calculation, and cleanup traps.
+        - `test-lint.sh`: Phase 0 (Linting).
+        - `test-unit.sh`: Phase 1 (Unit Tests).
+        - `test-integration.sh`: Phase 3 (Integration/E2E), automatically pre-compiles backend before running.
+- **Unified 4-Phase Pipeline**:
     - **Phase 0 (Linting)**: Mandatory code quality check using `clippy` and `eslint`. Halts pipeline on any warnings (`--max-warnings 0`).
     - **Phase 1 (Unit Tests)**: Simultaneously executes unit tests for all modules (`apiserver`, `agent-main`, `agent-zk-worker`, and `webdashboard`).
-    - **Phase 2 (Orchestration)**: Provisions isolated databases for parallel E2E and pre-compiles the backend binary. Strict error checking ensures the environment is perfect before testing starts.
-    - **Phase 3 (Parallel Integration)**: Runs Rust integration tests and Playwright E2E concurrently.
+    - **Phase 2 (Environment Setup)**: Provisions isolated databases for parallel E2E and pre-compiles the backend binary. Strict error checking ensures the environment is perfect before testing starts.
+    - **Phase 3 (Parallel Integration)**: Runs Rust integration tests and Playwright E2E concurrently using the pre-provisioned environment.
 - **Fail-Fast Engine**: Orchestrator immediately terminates all sibling tasks in a phase if a single task fails, providing instantaneous feedback and saving system resources.
 - **Real-time Sequential Logging**: Sophisticated output engine that streams parallel logs in real-time sequential blocks (e.g., Worker 2's logs start exactly when Worker 1 finishes), providing "parallel speed with sequential clarity."
 - **Reliable Resource Cleanup**: Implemented a comprehensive `trap` mechanism in the orchestrator that automatically stops containers, drops Docker volumes (`-v`), and removes temporary signal files on `EXIT`, `INT`, or `TERM`.

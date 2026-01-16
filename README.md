@@ -67,6 +67,12 @@ Run the unified test suite (Parallel Unit + Docker Integration):
 ```bash
 ./run-tests.sh
 ```
+Or run specific phases:
+```bash
+./scripts/test-lint.sh      # Phase 0
+./scripts/test-unit.sh      # Phase 1
+./setup-test-env.sh ./scripts/test-integration.sh # Phase 3 (needs DB environment)
+```
 
 ## 📝 Changelog
 See [CHANGELOG.md](./CHANGELOG.md) for version history.
