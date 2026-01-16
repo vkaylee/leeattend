@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './worker-orchestrator';
 
 test.describe('Sidebar Navigation', () => {
   test('should have "Time & Leave" section expanded by default', async ({ page }) => {

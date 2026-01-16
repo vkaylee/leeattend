@@ -406,6 +406,7 @@ Tạo một định nghĩa chính sách mới (Rule Definition).
   {
     "name": "Standard Monthly",
     "description": "Cộng 1 ngày/tháng",
+    "leave_type": "vacation", // vacation, sick, personal, etc.
     "rule_config": {
       "frequency": "monthly", // monthly, quarterly, yearly
       "accrual_amount": 1.0,
@@ -425,14 +426,14 @@ Lấy danh sách các định nghĩa chính sách đã tạo.
 #### POST /workspaces/:ws_id/leave/policies/assign
 Gán chính sách cho đối tượng (Global, Dept, Employee) trong khoảng thời gian cụ thể (Temporal Assignment).
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Transactional Auto-Close**: Hệ thống sẽ tự động tìm các bản gán (assignment) hiện tại của cùng đối tượng cho cùng loại phép (`leave_type`) và cập nhật ngày kết thúc (`effective_to`) của chúng thành `effective_from - 1 day` để đảm bảo tính liên tục của dữ liệu.
 - **Request**:
   ```json
   {
     "assignee_type": "employee", // workspace, department, employee
-    "assignee_id": "uuid-or-null",
+    "assignee_id": "uuid-or-null", // NULL if assignee_type is 'workspace'
     "policy_id": "uuid",
-    "effective_from": "2026-01-01",
-    "effective_to": "2026-12-31" // Optional, null = forever
+    "effective_from": "2026-01-01"
   }
   ```
 - **Response (201)**: `LeavePolicyAssignment` object

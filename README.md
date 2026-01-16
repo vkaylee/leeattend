@@ -25,7 +25,7 @@ leeattend/
 1.  **apiserver**: Viết bằng **Rust (Axum)**, chịu trách nhiệm quản lý Agent, nhận log và cung cấp API cho Dashboard.
 2.  **agent-main**: Viết bằng **Rust**, đóng vai trò Agent Orchestrator quản lý tiến trình.
 3.  **agent-zk-worker**: Viết bằng **Python**, chứa logic xử lý thiết bị ZKTeco và đồng bộ dữ liệu.
-4.  **webdashboard**: Viết bằng **Next.js**, giao diện web để quản lý và theo dõi hệ thống.
+4.  **webdashboard**: Viết bằng **React (Vite)**, giao diện web để quản lý và theo dõi hệ thống.
 5.  **docs**: Tài liệu hướng dẫn chi tiết.
 
 

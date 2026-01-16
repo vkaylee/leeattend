@@ -29,7 +29,7 @@ async fn test_find_active_policy_priority() {
 
     // 1. Create Global Policy
     let global_policy = leave_policy_repository::create_policy_definition(
-        &pool, ws_id, "Global", None, config.clone()
+        &pool, ws_id, "Global", None, "vacation", config.clone()
     ).await.unwrap();
     
     let global_assign = LeavePolicyAssignment {
@@ -52,7 +52,7 @@ async fn test_find_active_policy_priority() {
 
     // 2. Create Dept Policy
     let dept_policy = leave_policy_repository::create_policy_definition(
-        &pool, ws_id, "Dept", None, config.clone()
+        &pool, ws_id, "Dept", None, "vacation", config.clone()
     ).await.unwrap();
     
     let dept_assign = LeavePolicyAssignment {
@@ -75,7 +75,7 @@ async fn test_find_active_policy_priority() {
 
     // 3. Create Employee Policy
     let emp_policy = leave_policy_repository::create_policy_definition(
-        &pool, ws_id, "Employee", None, config.clone()
+        &pool, ws_id, "Employee", None, "vacation", config.clone()
     ).await.unwrap();
     
     let emp_assign = LeavePolicyAssignment {

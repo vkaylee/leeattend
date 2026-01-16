@@ -5,6 +5,14 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased] - 2026-01-16
 
 ### Added
+- **Hierarchical Leave Policy Assignment**: Implemented a flexible, prioritized system for assigning leave policies.
+    - **Multi-Level Assignment**: Policies can now be assigned at the **Workspace** (Global), **Department**, or **Employee** level.
+    - **Priority Enforcement**: The accrual engine respects a strict priority order: **Employee > Department > Workspace**.
+    - **Transactional Auto-Close**: Creating a new policy assignment for the same category and entity now automatically closes the previous assignment by setting its `effective_to` date to one day before the new policy's start date.
+    - **Leave Category Support**: Added `leave_type` (e.g., 'vacation', 'sick') to policy definitions, allowing different overlapping policies for distinct leave categories.
+- **Enhanced Policy Management UI**:
+    - **Quick Assignment**: Expanded the assignment modal to support "All Employees" and "Specific Department" shortcuts.
+    - **Stability props**: Added `id` and `data-testid` to `Combobox` triggers and options to ensure stable automated testing.
 - **Timezone-Aware Handling**: Implemented a comprehensive system to ensure data consistency across different geographical regions.
     - **Centralized Parsing**: Created a shared `utils::datetime` module in the backend to robustly handle both ISO-8601 (with offset) and naive (local) datetime strings.
     - **Intelligent Fallback**: Backend now automatically falls back to the workspace's configured IANA timezone when parsing datetime strings without explicit offsets (e.g., from Excel imports).

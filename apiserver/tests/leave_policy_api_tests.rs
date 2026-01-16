@@ -42,6 +42,7 @@ async fn test_leave_policy_api_lifecycle() {
     let policy_req = serde_json::json!({
         "name": "Standard Annual Leave",
         "description": "Standard policy for all employees",
+        "leave_type": "vacation",
         "rule_config": {
             "frequency": "monthly",
             "accrual_amount": 1.25,

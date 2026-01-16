@@ -121,14 +121,14 @@ echo -e "${BLUE}${BOLD}🚀 LeeAttend Unified Test Runner${NC}"
 
 # --- PHASE 0: LINTING ---
 run_parallel_ordered "Phase 0 (Linting)" \
-    "1|apiserver-clippy|apiserver|cargo clippy -- -D warnings" \
-    "2|agent-main-clippy|agent-main|cargo clippy -- -D warnings" \
+    "1|apiserver-clippy|apiserver|SQLX_OFFLINE=true cargo clippy -- -D warnings" \
+    "2|agent-main-clippy|agent-main|SQLX_OFFLINE=true cargo clippy -- -D warnings" \
     "3|webdashboard-lint|webdashboard|npm run lint -- --max-warnings 0"
 
 # --- PHASE 1: UNIT TESTS ---
 run_parallel_ordered "Phase 1 (Unit Tests)" \
-    "1|apiserver|apiserver|cargo test --lib" \
-    "2|agent-main|agent-main|cargo test --lib" \
+    "1|apiserver|apiserver|SQLX_OFFLINE=true cargo test --lib" \
+    "2|agent-main|agent-main|SQLX_OFFLINE=true cargo test --lib" \
     "3|agent-zk-worker|agent-zk-worker|venv/bin/pytest" \
     "4|webdashboard|webdashboard|npm run test"
 
@@ -159,7 +159,7 @@ for i in $(seq 0 $((NUM_WORKERS-1))); do
 done
 
 echo -e "  Pre-compiling backend for integration tests..."
-(cd apiserver && cargo build) > "$LOG_DIR/prebuild.log" 2>&1 || { echo -e "${RED}Backend build failed${NC}"; exit 1; }
+(cd apiserver && SQLX_OFFLINE=true cargo build) > "$LOG_DIR/prebuild.log" 2>&1 || { echo -e "${RED}Backend build failed${NC}"; exit 1; }
 echo -e "  ${GREEN}Infrastructure ready.${NC}"
 
 # --- PHASE 3: INTEGRATION TESTS ---

@@ -66,6 +66,10 @@ leeattend/
         - **Leave Management**: Tracking of annual leave entitlements, carry-over balances, and usage history.
         - **Admin Management & Auditing**: High-level workspace overview of all employee balances. Merged history stream of auto-accruals, usage, and manual corrections.
         - **Dynamic Accrual Engine**: Automated leave balance calculation based on configurable rules (Monthly/Quarterly/Yearly) and Seniority Bonuses.
+        - **Hierarchical Assignment Engine**: Flexible policy distribution system supporting Workspace, Department, and Employee levels.
+            - **Priority Logic**: Strictly enforces Employee > Department > Workspace override order.
+            - **Transactional Auto-Close**: Seamlessly manages policy transitions by automatically closing previous assignments when a new one is created for the same category.
+            - **Multi-Category Support**: Added `leave_type` field to definitions to allow distinct accrual rules for different leave categories (Vacation, Sick, etc.).
         - **Resilience**: **PortFileGuard** ensures robust resource cleanup (port files) even during unexpected shutdowns or panics.
 
 2.  **Web Dashboard (React/Vite)**:

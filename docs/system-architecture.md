@@ -28,7 +28,24 @@ Quy trình nhập dữ liệu từ file được thực thi với tiêu chuẩn 
 - **Workspace-Aware Parsing**: Engine phân tích ngày tháng nghiêm ngặt dựa trên cài đặt của từng Workspace (`DD/MM/YYYY`, `MM/DD/YYYY`, v.v.). Không tự động "đoán" định dạng để tránh sai lệch dữ liệu.
 - **Instructional Feedback**: Khi có dòng lỗi, hệ thống cung cấp thông báo chi tiết: **Số dòng**, **Mã nhân viên**, **Giá trị sai thực tế** và **Định dạng mong đợi** để người dùng sửa file nhanh nhất.
 
-### 11. Branding & Dynamic Themeing
+### 11. Hierarchical Leave Policy Assignment
+Hệ thống gán chính sách nghỉ phép được thiết kế theo mô hình phân cấp linh hoạt, cho phép áp dụng các quy tắc cộng phép khác nhau cho từng nhóm đối tượng:
+
+#### 11.1. Phân cấp ưu tiên (Hierarchy)
+Khi tính toán cộng phép cho một nhân viên tại một thời điểm nhất định, hệ thống sẽ tìm kiếm chính sách có hiệu lực theo thứ tự ưu tiên giảm dần:
+1. **Employee-level**: Chính sách gán trực tiếp cho cá nhân nhân viên.
+2. **Department-level**: Chính sách gán cho phòng ban mà nhân viên đang thuộc về.
+3. **Workspace-level (Global)**: Chính sách mặc định cho toàn bộ tổ chức.
+
+#### 11.2. Transactional Auto-Close (Quản lý vòng đời)
+Để đảm bảo tính nhất quán của dữ liệu lịch sử và tránh việc một nhân viên có hai chính sách cùng loại (`leave_type`) hiệu lực đồng thời:
+- Khi tạo một bản gán chính sách (`Assignment`) mới, hệ thống thực hiện một transaction:
+    1. Tìm kiếm bản gán hiện tại đang mở (`effective_to IS NULL`) của cùng đối tượng cho cùng loại phép.
+    2. Tự động đóng bản gán cũ bằng cách set `effective_to = effective_from_new - 1 day`.
+    3. Chèn bản gán mới.
+- Cơ chế này đảm bảo dữ liệu cộng phép trong quá khứ được bảo toàn theo đúng chính sách tại thời điểm đó.
+
+### 12. Branding & Dynamic Themeing
 LeeAttend áp dụng cơ chế định danh thương hiệu linh hoạt (Dynamic Identity) để hỗ trợ cả SaaS đa khách hàng và cá nhân hóa trải nghiệm:
 
 #### 11.1. Workspace Branding
