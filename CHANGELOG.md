@@ -5,6 +5,12 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased] - 2026-01-16
 
 ### Added
+- **Department Default Working Patterns & Bulk Assignment**: Streamlined scheduling for large organizations.
+    - **Inheritance Logic**: Departments can now have a `default_working_pattern_id`. Employees automatically inherit this schedule if no individual pattern or roster is assigned.
+    - **Bulk Assignment UI**: Added a "Bulk Assign" tool in the Working Patterns page to apply templates to multiple employees simultaneously.
+    - **Updated Resolution Engine**: Extended `get_effective_shift` to support the new 5-level priority: `Roster` > `Individual Pattern` > `Department Pattern` > `Fixed Assignment` > `Department Default`.
+    - **Department Settings**: Enhanced the department management UI to allow setting and updating the default working pattern.
+    - **New API Endpoint**: `POST /working-patterns/bulk-assign` for efficient mass updates.
 - **Roster Pattern System**: Implemented a template-based scheduling system to manage thousands of employees efficiently.
     - **Scalable Templates**: Define `WorkingPattern` (e.g., Mon-Fri 8:00-17:00) once and assign it to multiple employees over any date range.
     - **Resolution Priority Engine**: Updated `get_effective_shift` logic to follow a strict priority: `Manual Override (Roster)` > `Working Pattern` > `Fixed Assignment (Legacy)` > `Department Default`.

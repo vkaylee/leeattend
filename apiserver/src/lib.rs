@@ -364,6 +364,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(handlers::working_patterns::list_patterns).post(handlers::working_patterns::create_pattern),
         )
         .route(
+            "/workspaces/:ws_id/working-patterns/bulk-assign",
+            post(handlers::working_patterns::bulk_assign_pattern),
+        )
+        .route(
             "/workspaces/:ws_id/working-patterns/:pattern_id",
             get(handlers::working_patterns::get_pattern_details),
         )

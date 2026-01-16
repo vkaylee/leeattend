@@ -585,9 +585,18 @@ Tạo phòng ban mới.
 - **Response (201)**: `Department` object
 
 #### PATCH /workspaces/:ws_id/departments/:id
-Cập nhật thông tin phòng ban.
+Cập nhật thông tin phòng ban. Hỗ trợ cập nhật từng phần (Partial Update).
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
-- **Request**: `{ "name": "...", "description": "...", "manager_id": "uuid" }`
+- **Request**: 
+  ```json
+  { 
+    "name": "...", 
+    "description": "...", 
+    "manager_id": "uuid",
+    "default_working_pattern_id": "uuid-or-null" 
+  }
+  ```
+- **Ghi chú**: Nếu `default_working_pattern_id` được truyền là `null`, mẫu lịch trình mặc định của phòng ban sẽ bị xóa. Nếu không truyền trường này, giá trị cũ sẽ được giữ nguyên.
 - **Response (200)**: `Department` object (updated)
 
 #### DELETE /workspaces/:ws_id/departments/:id
@@ -611,7 +620,7 @@ Lấy lịch biểu (ca làm việc thực tế) của nhân viên trong một k
 - **Response (200)**: `Array<ShiftRoster>`
 
 #### GET /api/workspaces/:id/schedules
-Tính toán lịch biểu hiệu lực (Effective Schedule) cho tất cả nhân viên trong workspace dựa trên thứ tự ưu tiên (Lịch tuần > Lịch cố định > Lịch phòng ban).
+Tính toán lịch biểu hiệu lực (Effective Schedule) cho tất cả nhân viên trong workspace dựa trên thứ tự ưu tiên (Lịch tuần > Lịch mẫu cá nhân > Lịch mẫu phòng ban > Lịch cố định).
 - **Query Params**: `?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
 - **Response (200)**: 
   ```json
@@ -624,7 +633,7 @@ Tính toán lịch biểu hiệu lực (Effective Schedule) cho tất cả nhân
         {
           "date": "2026-01-10",
           "shift_id": "uuid-or-null",
-          "source": "roster|fixed|department|none",
+          "source": "roster|pattern|department_pattern|fixed|department_fixed|none",
           "shift_name": "Morning Shift",
           "start_time": "08:00:00",
           "end_time": "17:00:00",
@@ -717,6 +726,20 @@ Tạo mẫu lịch làm việc mới kèm chi tiết các ngày trong tuần.
 #### GET /workspaces/:ws_id/working-patterns/:pattern_id
 Lấy chi tiết ca làm việc của từng ngày trong một mẫu pattern.
 - **Response (200)**: `Array<WorkingPatternDetail>`
+
+#### POST /workspaces/:ws_id/working-patterns/bulk-assign (New)
+Gán mẫu lịch làm việc cho hàng loạt nhân viên cùng lúc.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**:
+  ```json
+  {
+    "employee_ids": ["uuid-1", "uuid-2"],
+    "pattern_id": "uuid",
+    "start_date": "2026-01-01",
+    "end_date": null
+  }
+  ```
+- **Response (200 OK)**
 
 #### POST /workspaces/:ws_id/employees/:id/working-patterns
 Gán một mẫu lịch làm việc cho nhân viên.

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Edit2, Trash2, Building2, UserCircle, Users, LayoutGrid } from "lucide-react";
-import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment, getCurrentWorkspaceId, fetchUsers } from "../lib/api";
+import { Plus, Search, Edit2, Trash2, Building2, UserCircle, Users, LayoutGrid, CalendarDays } from "lucide-react";
+import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment, getCurrentWorkspaceId, fetchUsers, fetchWorkingPatterns } from "../lib/api";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 
@@ -13,6 +13,7 @@ export default function DepartmentsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<any>(null);
   const [selectedManagerId, setSelectedManagerId] = useState<string>("");
+  const [selectedPatternId, setSelectedPatternId] = useState<string>("");
 
   const { data: departments = [], isLoading } = useQuery({
     queryKey: ["departments", wsId],
@@ -23,6 +24,12 @@ export default function DepartmentsPage() {
   const { data: users = [] } = useQuery({
     queryKey: ["users"],
     queryFn: fetchUsers,
+  });
+
+  const { data: patterns = [] } = useQuery({
+    queryKey: ["working-patterns", wsId],
+    queryFn: () => fetchWorkingPatterns(wsId),
+    enabled: !!wsId,
   });
 
   const createMutation = useMutation({
@@ -56,6 +63,7 @@ export default function DepartmentsPage() {
       name: formData.get("name") as string,
       description: formData.get("description") as string,
       manager_id: selectedManagerId || null,
+      default_working_pattern_id: selectedPatternId || null,
     };
 
     if (editingDept) {
@@ -69,8 +77,10 @@ export default function DepartmentsPage() {
     const timer = setTimeout(() => {
       if (editingDept) {
         setSelectedManagerId(editingDept.manager_id || "");
+        setSelectedPatternId(editingDept.default_working_pattern_id || "");
       } else {
         setSelectedManagerId("");
+        setSelectedPatternId("");
       }
     }, 0);
     return () => clearTimeout(timer);
@@ -139,6 +149,18 @@ export default function DepartmentsPage() {
                   </span>
                 </div>
               </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
+                  <CalendarDays className="w-4 h-4" />
+                </div>
+                <div className="text-xs">
+                  <span className="block text-slate-400 font-bold uppercase tracking-widest text-[9px]">{t("departments.default_pattern_label")}</span>
+                  <span className="font-bold text-slate-700">
+                    {patterns.find(p => p.id === dept.default_working_pattern_id)?.name || t("departments.not_assigned")}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         ))}
@@ -187,6 +209,23 @@ export default function DepartmentsPage() {
               value={selectedManagerId}
               onChange={setSelectedManagerId}
               placeholder={t("departments.form.manager_placeholder")}
+              className="bg-slate-50 border-slate-100"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="dept-pattern" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">{t("departments.default_pattern_label")}</label>
+            <Combobox
+              id="dept-pattern"
+              data-testid="dept-pattern"
+              options={patterns.map(p => ({
+                value: p.id,
+                label: p.name,
+                icon: <CalendarDays className="w-4 h-4" />
+              }))}
+              value={selectedPatternId}
+              onChange={setSelectedPatternId}
+              placeholder={t("departments.form.pattern_placeholder")}
               className="bg-slate-50 border-slate-100"
             />
           </div>

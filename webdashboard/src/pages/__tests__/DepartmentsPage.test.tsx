@@ -15,6 +15,18 @@ vi.mock("../../lib/api", () => ({
   deleteDepartment: vi.fn(),
   getCurrentWorkspaceId: vi.fn(),
   fetchUsers: vi.fn(),
+  fetchWorkingPatterns: vi.fn(),
+}));
+
+// Override i18n for this test to return keys
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+    i18n: {
+      changeLanguage: () => Promise.resolve(),
+      language: 'en',
+    },
+  }),
 }));
 
 describe("DepartmentsPage", () => {
@@ -38,6 +50,9 @@ describe("DepartmentsPage", () => {
     (api.fetchUsers as any).mockResolvedValue([
       { id: "user-1", full_name: "Manager One", email: "manager1@example.com" }
     ]);
+    (api.fetchWorkingPatterns as any).mockResolvedValue([
+      { id: "pat-1", name: "Standard Pattern" }
+    ]);
   });
 
   it("renders without workspace selected", () => {
@@ -50,7 +65,7 @@ describe("DepartmentsPage", () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByText("Chọn Workspace")).toBeDefined();
+    expect(screen.getByText("common.select_workspace")).toBeDefined();
   });
 
   it("renders departments list", async () => {
@@ -67,7 +82,7 @@ describe("DepartmentsPage", () => {
     expect(screen.getByText("Manager One")).toBeDefined();
   });
 
-  it("handles creating a new department", async () => {
+  it("handles creating a new department with working pattern", async () => {
     const user = userEvent.setup();
     (api.createDepartment as any).mockResolvedValue({ id: "new-dept", name: "HR" });
 
@@ -79,20 +94,24 @@ describe("DepartmentsPage", () => {
       </QueryClientProvider>
     );
 
-    await user.click(screen.getByText("Thêm phòng ban"));
+    await user.click(screen.getByText("departments.add_btn"));
 
-    const nameInput = await screen.findByLabelText("Tên phòng ban");
+    // Wait for modal to be visible
+    expect(await screen.findByText("departments.modal.add_title")).toBeDefined();
+
+    const nameInput = await screen.findByLabelText("departments.form.name_label");
     await user.type(nameInput, "Human Resources");
     
-    const descInput = screen.getByLabelText("Mô tả");
-    await user.type(descInput, "People stuff");
+    // Select pattern via mock select (which is what Combobox is in tests)
+    const mockSelect = await screen.findByTestId("dept-pattern");
+    await user.selectOptions(mockSelect, "pat-1");
 
-    await user.click(screen.getByText("Tạo phòng ban"));
+    await user.click(screen.getByText("departments.modal.submit_btn"));
 
     await waitFor(() => {
       expect(api.createDepartment).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
         name: "Human Resources",
-        description: "People stuff"
+        default_working_pattern_id: "pat-1"
       }));
     });
   });
@@ -137,11 +156,11 @@ describe("DepartmentsPage", () => {
     
     await user.click(editBtn);
 
-    const nameInput = await screen.findByLabelText("Tên phòng ban");
+    const nameInput = await screen.findByLabelText("departments.form.name_label");
     await user.clear(nameInput);
     await user.type(nameInput, "Software Engineering");
 
-    await user.click(screen.getByText("Cập nhật"));
+    await user.click(screen.getByText("common.update"));
 
     await waitFor(() => {
       expect(api.updateDepartment).toHaveBeenCalledWith("test-ws-id", "dept-1", expect.objectContaining({

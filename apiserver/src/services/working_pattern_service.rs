@@ -1,4 +1,4 @@
-use crate::models::{WorkingPattern, WorkingPatternDetail, EmployeeWorkingPattern, CreateWorkingPatternRequest, AssignPatternRequest};
+use crate::models::{WorkingPattern, WorkingPatternDetail, EmployeeWorkingPattern, CreateWorkingPatternRequest, AssignPatternRequest, BulkAssignPatternRequest};
 use crate::repositories::working_pattern_repository as repo;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -40,6 +40,21 @@ pub async fn assign_pattern(
         pool,
         workspace_id,
         employee_id,
+        req.pattern_id,
+        req.start_date,
+        req.end_date,
+    ).await
+}
+
+pub async fn bulk_assign_pattern(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    req: BulkAssignPatternRequest,
+) -> Result<(), sqlx::Error> {
+    repo::bulk_assign_pattern(
+        pool,
+        workspace_id,
+        &req.employee_ids,
         req.pattern_id,
         req.start_date,
         req.end_date,

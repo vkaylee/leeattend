@@ -428,6 +428,7 @@ pub async fn create_department(
         req.name,
         req.description,
         req.manager_id,
+        req.default_working_pattern_id,
     )
     .await
     {
@@ -452,11 +453,15 @@ pub async fn update_department(
         req.name,
         req.description,
         req.manager_id,
+        req.default_working_pattern_id,
     )
     .await
     {
         Ok(dept) => Json(dept).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        Err(e) => {
+            tracing::error!("Failed to update department: {:?}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
+        }
     }
 }
 

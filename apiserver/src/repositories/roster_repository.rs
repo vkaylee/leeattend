@@ -91,11 +91,38 @@ pub async fn get_workspace_schedules(
     .fetch_all(pool)
     .await?;
 
-    // 6. Fetch Department Defaults & History
-    // (Simplification: For now, we assume if Dept Default exists, we fetch it. 
-    // Implementing full Dept History temporal logic in bulk is complex, 
-    // we can do a simplified version or iterate.)
-    
+    // 6. Fetch Department Patterns & History
+    let dept_patterns = sqlx::query!(
+        r#"
+        SELECT edh.employee_id, d.default_working_pattern_id, edh.effective_date,
+               wpd.day_of_week, wpd.shift_id as pattern_shift_id
+        FROM employee_department_history edh
+        JOIN departments d ON edh.department_id = d.id
+        JOIN working_pattern_details wpd ON d.default_working_pattern_id = wpd.pattern_id
+        WHERE d.workspace_id = $1
+          AND edh.effective_date <= $2
+        ORDER BY edh.effective_date DESC
+        "#,
+        workspace_id,
+        end_date
+    )
+    .fetch_all(pool)
+    .await?;
+
+    // 7. Fetch Department Default Shifts
+    let dept_fixed_shifts = sqlx::query!(
+        r#"
+        SELECT edh.employee_id, dds.shift_id, edh.effective_date
+        FROM employee_department_history edh
+        JOIN department_default_shifts dds ON edh.department_id = dds.department_id
+        WHERE edh.effective_date <= $1
+        ORDER BY edh.effective_date DESC
+        "#,
+        end_date
+    )
+    .fetch_all(pool)
+    .await?;
+
     // Let's iterate employees to build result
     let mut result = Vec::new();
 
@@ -112,8 +139,9 @@ pub async fn get_workspace_schedules(
                 effective_shift_id = *shift_opt; // Can be None (Day Off)
                 source = "roster".to_string();
             } else {
-                // P2: Pattern
                 let dow = chrono::Datelike::weekday(&curr_date).num_days_from_sunday() as i32;
+
+                // P2: Individual Pattern
                 let pattern = pattern_assignments.iter().find(|a| {
                     a.employee_id == emp.id &&
                     a.start_date <= curr_date &&
@@ -125,18 +153,41 @@ pub async fn get_workspace_schedules(
                     effective_shift_id = p.pattern_shift_id;
                     source = "pattern".to_string();
                 } else {
-                    // P3: Fixed
-                    let fixed = fixed_assignments.iter().find(|a| {
+                    // P3: Department Pattern
+                    let dept_p = dept_patterns.iter().find(|a| {
                         a.employee_id == emp.id &&
-                        a.start_date <= curr_date &&
-                        a.end_date.is_none_or(|ed| ed >= curr_date)
+                        a.effective_date <= curr_date &&
+                        a.day_of_week == dow
                     });
 
-                    if let Some(f) = fixed {
-                        effective_shift_id = Some(f.shift_id);
-                        source = "fixed".to_string();
+                    if let Some(dp) = dept_p {
+                        effective_shift_id = dp.pattern_shift_id;
+                        source = "department_pattern".to_string();
                     } else {
-                        source = "none".to_string();
+                        // P4: Fixed (Individual)
+                        let fixed = fixed_assignments.iter().find(|a| {
+                            a.employee_id == emp.id &&
+                            a.start_date <= curr_date &&
+                            a.end_date.is_none_or(|ed| ed >= curr_date)
+                        });
+
+                        if let Some(f) = fixed {
+                            effective_shift_id = Some(f.shift_id);
+                            source = "fixed".to_string();
+                        } else {
+                            // P5: Department Fixed
+                            let dept_f = dept_fixed_shifts.iter().find(|a| {
+                                a.employee_id == emp.id &&
+                                a.effective_date <= curr_date
+                            });
+
+                            if let Some(df) = dept_f {
+                                effective_shift_id = Some(df.shift_id);
+                                source = "department_fixed".to_string();
+                            } else {
+                                source = "none".to_string();
+                            }
+                        }
                     }
                 }
             }
@@ -355,7 +406,31 @@ pub async fn get_effective_shift(
         return Ok(shift_opt); 
     }
 
-    // Priority 3: Employee Default Shift (Legacy Fixed Assignment)
+    // Priority 3: Department Working Pattern (Inheritance)
+    let dept_pattern_shift = sqlx::query_scalar::<_, Option<Uuid>>(
+        r#"
+        SELECT wpd.shift_id
+        FROM working_pattern_details wpd
+        JOIN departments d ON d.default_working_pattern_id = wpd.pattern_id
+        JOIN employee_department_history edh ON edh.department_id = d.id
+        WHERE edh.employee_id = $1 
+          AND edh.effective_date <= $2
+          AND wpd.day_of_week = $3
+        ORDER BY edh.effective_date DESC
+        LIMIT 1
+        "#
+    )
+    .bind(employee_id)
+    .bind(date)
+    .bind(day_of_week)
+    .fetch_optional(pool)
+    .await?;
+
+    if let Some(shift_opt) = dept_pattern_shift {
+        return Ok(shift_opt);
+    }
+
+    // Priority 4: Employee Default Shift (Legacy Fixed Assignment)
     // Find the latest created assignment that is valid for the given date
     let employee_shift = sqlx::query_scalar::<_, Uuid>(
         r#"
@@ -377,7 +452,7 @@ pub async fn get_effective_shift(
         return Ok(employee_shift);
     }
 
-    // Priority 4: Department Default Shift
+    // Priority 5: Department Default Shift
     let dept_shift = sqlx::query_scalar::<_, Uuid>(
         r#"
         SELECT dds.shift_id 

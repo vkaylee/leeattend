@@ -8,20 +8,24 @@ import {
   Clock,
   ArrowLeft,
   Info,
-  Check
+  Check,
+  Users
 } from "lucide-react";
 import { 
   fetchWorkingPatterns, 
   createWorkingPattern, 
   fetchPatternDetails,
   fetchShifts,
+  fetchEmployees,
+  bulkAssignPattern,
   getCurrentWorkspaceId,
   WorkingPattern,
-  Shift
+  Shift,
+  Employee
 } from "../lib/api";
 import { useToast } from "../components/Toast";
 import Modal from "@/components/ui/Modal";
-import { format } from "date-fns";
+import { format, startOfToday } from "date-fns";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Link } from "react-router-dom";
 
@@ -33,9 +37,16 @@ export default function WorkingPatternsPage() {
   const { formatTime } = useDateTimeFormatter();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  
   const [newPatternName, setNewPatternName] = useState("");
   const [newPatternDesc, setNewPatternDesc] = useState("");
   
+  // Bulk Assign State
+  const [selectedPatternId, setSelectedPatternId] = useState<string>("");
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  const [assignStartDate, setAssignStartDate] = useState(format(startOfToday(), "yyyy-MM-dd"));
+
   // Weekly grid state: 0=Sun, 1=Mon, ..., 6=Sat. Value = shift_id or null (off)
   const [weeklyGrid, setWeeklyGrid] = useState<(string | null)[]>(Array(7).fill(null));
 
@@ -49,6 +60,12 @@ export default function WorkingPatternsPage() {
     queryKey: ["shifts", wsId],
     queryFn: () => fetchShifts(wsId),
     enabled: !!wsId,
+  });
+
+  const { data: employees } = useQuery({
+    queryKey: ["employees", wsId],
+    queryFn: () => fetchEmployees(wsId),
+    enabled: !!wsId && isBulkModalOpen,
   });
 
   // Fetch details for expanded view (optional, or just show summary)
@@ -73,6 +90,17 @@ export default function WorkingPatternsPage() {
     onError: (error: any) => toast.error(error.message, t("patterns.messages.create_error"))
   });
 
+  const bulkAssignMutation = useMutation({
+    mutationFn: (data: any) => bulkAssignPattern(wsId, data),
+    onSuccess: () => {
+      toast.success(t("patterns.messages.bulk_assign_success"));
+      setIsBulkModalOpen(false);
+      setSelectedEmployeeIds([]);
+      queryClient.invalidateQueries({ queryKey: ["schedules"] });
+    },
+    onError: (error: any) => toast.error(error.message, t("patterns.messages.bulk_assign_error"))
+  });
+
   const handleCreate = () => {
     if (!newPatternName) {
       toast.warning(t("patterns.validation_name_required"));
@@ -88,6 +116,23 @@ export default function WorkingPatternsPage() {
       name: newPatternName,
       description: newPatternDesc,
       details
+    });
+  };
+
+  const handleBulkAssign = () => {
+    if (!selectedPatternId) {
+      toast.warning(t("patterns.validation_pattern_required"));
+      return;
+    }
+    if (selectedEmployeeIds.length === 0) {
+      toast.warning(t("patterns.validation_employees_required"));
+      return;
+    }
+
+    bulkAssignMutation.mutate({
+      employee_ids: selectedEmployeeIds,
+      pattern_id: selectedPatternId,
+      start_date: assignStartDate,
     });
   };
 
@@ -125,12 +170,20 @@ export default function WorkingPatternsPage() {
           </div>
           <p className="text-slate-500">{t("patterns.subtitle")}</p>
         </div>
-        <button 
-          onClick={() => setIsCreateModalOpen(true)}
-          className="bg-primary-600 hover:bg-primary-700 text-white font-black px-6 py-3 rounded-2xl flex items-center gap-2 shadow-lg shadow-primary-100 transition-all active:scale-95 text-xs uppercase tracking-widest"
-        >
-          <Plus size={16} /> {t("patterns.create_btn")}
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setIsBulkModalOpen(true)}
+            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-black px-6 py-3 rounded-2xl flex items-center gap-2 shadow-sm transition-all active:scale-95 text-xs uppercase tracking-widest"
+          >
+            <Users size={16} /> {t("patterns.bulk_assign_btn")}
+          </button>
+          <button 
+            onClick={() => setIsCreateModalOpen(true)}
+            className="bg-primary-600 hover:bg-primary-700 text-white font-black px-6 py-3 rounded-2xl flex items-center gap-2 shadow-lg shadow-primary-100 transition-all active:scale-95 text-xs uppercase tracking-widest"
+          >
+            <Plus size={16} /> {t("patterns.create_btn")}
+          </button>
+        </div>
       </div>
 
       {/* Grid of Patterns */}
@@ -227,8 +280,8 @@ export default function WorkingPatternsPage() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         title={t("patterns.create_title")}
-        description={t("patterns.create_subtitle")}
-        className="max-w-2xl"
+        subtitle={t("patterns.create_subtitle")}
+        maxWidth="2xl"
       >
         <div className="space-y-6 pt-4">
           <div className="grid grid-cols-1 gap-4">
@@ -305,6 +358,102 @@ export default function WorkingPatternsPage() {
               className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-black px-6 py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-primary-100 transition-all active:scale-95 disabled:opacity-50 text-xs uppercase tracking-widest"
             >
               <Check className="w-4 h-4" /> {t("patterns.create_submit")}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Bulk Assign Modal */}
+      <Modal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        title={t("patterns.bulk_assign_title")}
+        subtitle={t("patterns.bulk_assign_subtitle")}
+        maxWidth="2xl"
+      >
+        <div className="space-y-6 pt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("patterns.form.select_pattern")}</label>
+              <select
+                value={selectedPatternId}
+                onChange={(e) => setSelectedPatternId(e.target.value)}
+                className="w-full bg-slate-50 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-900 focus:ring-2 focus:ring-primary-500 transition-all"
+              >
+                <option value="">{t("patterns.form.select_pattern_placeholder")}</option>
+                {patterns?.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="space-y-2">
+               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("patterns.form.start_date")}</label>
+               <input
+                type="date"
+                value={assignStartDate}
+                onChange={(e) => setAssignStartDate(e.target.value)}
+                className="w-full bg-slate-50 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-900 focus:ring-2 focus:ring-primary-500 transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("patterns.form.select_employees")}</label>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setSelectedEmployeeIds(employees?.map(e => e.id) || [])}
+                  className="text-[10px] font-bold text-primary-600 hover:underline"
+                >
+                  {t("common.select_all")}
+                </button>
+                <button 
+                  onClick={() => setSelectedEmployeeIds([])}
+                  className="text-[10px] font-bold text-slate-400 hover:underline"
+                >
+                  {t("common.deselect_all")}
+                </button>
+              </div>
+            </div>
+            
+            <div className="bg-slate-50 rounded-[32px] p-4 border border-slate-100 max-h-60 overflow-y-auto custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-2">
+               {employees?.map(emp => (
+                 <label key={emp.id} className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-transparent hover:border-primary-100 transition-all cursor-pointer group">
+                    <input 
+                      type="checkbox"
+                      checked={selectedEmployeeIds.includes(emp.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedEmployeeIds([...selectedEmployeeIds, emp.id]);
+                        } else {
+                          setSelectedEmployeeIds(selectedEmployeeIds.filter(id => id !== emp.id));
+                        }
+                      }}
+                      className="w-5 h-5 rounded-lg border-slate-200 text-primary-600 focus:ring-primary-500"
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-slate-900 group-hover:text-primary-600 transition-colors">{emp.first_name} {emp.last_name}</span>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{emp.employee_id_number}</span>
+                    </div>
+                 </label>
+               ))}
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => setIsBulkModalOpen(false)}
+              className="flex-1 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all"
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              onClick={handleBulkAssign}
+              disabled={bulkAssignMutation.isPending || selectedEmployeeIds.length === 0 || !selectedPatternId}
+              className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-black px-6 py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-primary-100 transition-all active:scale-95 disabled:opacity-50 text-xs uppercase tracking-widest"
+            >
+              <Check className="w-4 h-4" /> {t("patterns.bulk_assign_submit")}
             </button>
           </div>
         </div>

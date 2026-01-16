@@ -131,3 +131,68 @@ async fn test_department_management() {
     assert!(!history.is_empty());
     assert_eq!(history[0].department_id, dept.id);
 }
+
+#[tokio::test]
+async fn test_department_working_pattern_api() {
+    let (_test_db, factory, app) = setup_app().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    
+    // Create a pattern first
+    let pattern = apiserver::repositories::working_pattern_repository::create_pattern(
+        &factory.pool,
+        ws_id,
+        "Dept Pattern",
+        None
+    ).await.unwrap();
+
+    // 1. Create Department with Pattern
+    let dept_req = serde_json::json!({
+        "name": "HR",
+        "default_working_pattern_id": pattern.id
+    });
+
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri(format!("/api/workspaces/{}/departments", ws_id))
+                .header("Content-Type", "application/json")
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(serde_json::to_string(&dept_req).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let dept: Department = serde_json::from_slice(&body).unwrap();
+    assert_eq!(dept.default_working_pattern_id, Some(pattern.id));
+
+    // 2. Update Department Pattern
+    let update_req = serde_json::json!({
+        "default_working_pattern_id": null
+    });
+
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("PATCH")
+                .uri(format!("/api/workspaces/{}/departments/{}", ws_id, dept.id))
+                .header("Content-Type", "application/json")
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::from(serde_json::to_string(&update_req).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let updated_dept: Department = serde_json::from_slice(&body).unwrap();
+    assert_eq!(updated_dept.default_working_pattern_id, None);
+}

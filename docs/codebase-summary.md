@@ -49,7 +49,7 @@ leeattend/
     - Agent Manager: WebSocket handler for remote agents.
     - **Discovery**: Dynamic port selection (3000+).
     - **Branding Engine**: Support for workspace-specific `theme_primary_color` with persistence and validation.
-    - **Temporal Engine**: Logic gán ca (`employee_shifts`) dựa trên thời gian. Hỗ trợ ghi đè ca tạm thời lên ca vĩnh viễn và tự động fallback.
+    - **Temporal Engine**: Logic gán ca dựa trên thời gian với cơ chế kế thừa phân cấp (Inheritance). Thứ tự ưu tiên: `Manual Override (Roster)` > `Individual Pattern` > `Department Pattern` > `Fixed Assignment` > `Department Default`. Hỗ trợ gán mẫu lịch làm việc (Working Patterns) hàng loạt.
     - **Heartbeat Engine**: Time-based tracking of edge agent connectivity.
     - **Timezone Engine**: Comprehensive timezone management per workspace. Correctly handles local-to-UTC conversion for external data imports (Excel/CSV) using the workspace's configured IANA timezone ID.
     - **Internationalization (i18n) Engine**: Persistent language preferences stored at both user and workspace levels. Backend automatically detects and synchronizes with frontend state via `preferred_language` and `default_language` fields.
@@ -86,6 +86,7 @@ leeattend/
             - **Transactional Auto-Close**: Seamlessly manages policy transitions by automatically closing previous assignments when a new one is created for the same category.
             - **Multi-Category Support**: Added `leave_type` field to definitions to allow distinct accrual rules for different leave categories (Vacation, Sick, etc.).
         - **Resilience**: **PortFileGuard** ensures robust resource cleanup (port files) even during unexpected shutdowns or panics.
+    - **Advanced Deserialization**: Implemented `serde_helpers` to accurately distinguish between missing fields and explicit `null` values in partial update APIs (e.g., clearing a department's default pattern).
 
 2.  **Web Dashboard (React/Vite)**:
     - **Premium UI (Violet)**: Zero-distraction layout with a static breadcrumb header and a single-open accordion sidebar.
@@ -118,6 +119,7 @@ leeattend/
 - [x] **Shift Rostering System (Weekly calendar & Priority logic)**:
     - **Selection-First UX**: Người dùng chọn một hoặc nhiều ngày trên lịch để kích hoạt thanh công cụ (Bulk Action Bar), sau đó mới chọn ca làm việc để áp dụng. Không sử dụng các nút hành động trực tiếp trên từng thẻ ngày để giảm nhiễu giao diện.
     - **Visual Indicators**: Hệ thống sử dụng màu sắc và biểu tượng (Zap cho linh hoạt, Shield cho cố định) để phân biệt nguồn gốc của lịch làm việc.
+- [x] **Bulk Schedule Assignment**: Cho phép gán mẫu lịch (Working Patterns) cho hàng loạt nhân viên và thiết lập mẫu lịch mặc định cho từng Phòng ban để tự động hóa khâu onboarding.
 - [x] Attendance Adjustment Workflow (Manual confirmation requests).
 - [x] **Payroll Engine**: Advanced logic for worked-through breaks and configurable early clock-in grace periods.
 - [x] **Reporting Suite**: Attendance reports now use the **Attendance Calculator** to show accurate "Payable Minutes" (applying grace period, break deduction, and rounding) instead of just raw duration.

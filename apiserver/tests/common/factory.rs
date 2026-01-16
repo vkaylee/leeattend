@@ -75,6 +75,7 @@ impl AuthHelper {
         Self
     }
 
+    #[allow(dead_code)]
     pub fn create_token(&self, user_id: Uuid) -> String {
         let now = chrono::Utc::now();
         let claims = apiserver::services::auth_service::Claims {

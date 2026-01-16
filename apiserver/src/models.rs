@@ -586,6 +586,7 @@ pub struct Department {
     pub name: String,
     pub description: Option<String>,
     pub manager_id: Option<Uuid>,
+    pub default_working_pattern_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -627,6 +628,7 @@ pub struct CreateDepartmentRequest {
     pub name: String,
     pub description: Option<String>,
     pub manager_id: Option<Uuid>,
+    pub default_working_pattern_id: Option<Uuid>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -634,6 +636,8 @@ pub struct UpdateDepartmentRequest {
     pub name: Option<String>,
     pub description: Option<String>,
     pub manager_id: Option<Uuid>,
+    #[serde(default, deserialize_with = "crate::utils::serde_helpers::deserialize_option_option")]
+    pub default_working_pattern_id: Option<Option<Uuid>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
@@ -701,6 +705,14 @@ pub struct CreateWorkingPatternRequest {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AssignPatternRequest {
+    pub pattern_id: Uuid,
+    pub start_date: NaiveDate,
+    pub end_date: Option<NaiveDate>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct BulkAssignPatternRequest {
+    pub employee_ids: Vec<Uuid>,
     pub pattern_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: Option<NaiveDate>,

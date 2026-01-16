@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::{
     handlers::common::MemberContext,
-    models::{CreateWorkingPatternRequest, AssignPatternRequest},
+    models::{CreateWorkingPatternRequest, AssignPatternRequest, BulkAssignPatternRequest},
     services::working_pattern_service as service,
     AppState,
 };
@@ -64,6 +64,21 @@ pub async fn assign_pattern(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(assignment))
+}
+
+pub async fn bulk_assign_pattern(
+    State(state): State<Arc<AppState>>,
+    Path(_ws_id): Path<Uuid>,
+    ctx: MemberContext,
+    Json(req): Json<BulkAssignPatternRequest>,
+) -> Result<impl IntoResponse, StatusCode> {
+    if !ctx.is_admin_or_owner() {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    service::bulk_assign_pattern(&state.db, ctx.workspace_id, req)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(StatusCode::OK)
 }
 
 pub async fn get_employee_pattern_history(

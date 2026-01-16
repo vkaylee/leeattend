@@ -98,3 +98,33 @@ pub async fn get_employee_pattern_history(
     .fetch_all(pool)
     .await
 }
+
+pub async fn bulk_assign_pattern(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    employee_ids: &[Uuid],
+    pattern_id: Uuid,
+    start_date: NaiveDate,
+    end_date: Option<NaiveDate>,
+) -> Result<(), sqlx::Error> {
+    let mut tx = pool.begin().await?;
+
+    for &employee_id in employee_ids {
+        sqlx::query(
+            r#"
+            INSERT INTO employee_working_patterns (workspace_id, employee_id, pattern_id, start_date, end_date)
+            VALUES ($1, $2, $3, $4, $5)
+            "#
+        )
+        .bind(workspace_id)
+        .bind(employee_id)
+        .bind(pattern_id)
+        .bind(start_date)
+        .bind(end_date)
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    tx.commit().await?;
+    Ok(())
+}

@@ -194,3 +194,51 @@ async fn test_rbac_security() {
 
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
+
+#[tokio::test]
+async fn test_bulk_assign_pattern_api() {
+    let (address, test_db) = spawn_app().await;
+    let pool = test_db.pool();
+    let factory = TestFactory::new(pool.clone());
+    let client = reqwest::Client::new();
+    
+    let user_id = factory.user().create().await;
+    let workspace_id = factory.workspace().create_with_owner(user_id).await;
+    let token = factory.auth().create_token(user_id);
+
+    let pattern = apiserver::repositories::working_pattern_repository::create_pattern(
+        &pool,
+        workspace_id,
+        "Bulk Pattern",
+        None
+    ).await.unwrap();
+
+    let emp1 = factory.employee().with_workspace(workspace_id).create().await;
+    let emp2 = factory.employee().with_workspace(workspace_id).create().await;
+
+    let req = apiserver::models::BulkAssignPatternRequest {
+        employee_ids: vec![emp1, emp2],
+        pattern_id: pattern.id,
+        start_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+        end_date: None,
+    };
+
+    let response = client
+        .post(&format!("{}/api/workspaces/{}/working-patterns/bulk-assign", address, workspace_id))
+        .header("Authorization", format!("Bearer {}", token))
+        .header("X-Workspace-Id", workspace_id.to_string())
+        .json(&req)
+        .send()
+        .await
+        .expect("Failed to send");
+
+    assert_eq!(response.status(), StatusCode::OK);
+    
+    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM employee_working_patterns WHERE pattern_id = $1")
+        .bind(pattern.id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        
+    assert_eq!(count, 2);
+}

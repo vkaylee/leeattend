@@ -13,6 +13,8 @@ vi.mock("../../lib/api", () => ({
   createWorkingPattern: vi.fn(),
   fetchPatternDetails: vi.fn(),
   fetchShifts: vi.fn(),
+  fetchEmployees: vi.fn(),
+  bulkAssignPattern: vi.fn(),
   getCurrentWorkspaceId: vi.fn(),
 }));
 
@@ -58,6 +60,10 @@ describe("WorkingPatternsPage", () => {
     (api.fetchPatternDetails as any).mockResolvedValue([
       { day_of_week: 1, shift_id: "shift-1" },
       { day_of_week: 2, shift_id: "shift-1" }
+    ]);
+    (api.fetchEmployees as any).mockResolvedValue([
+      { id: "emp-1", first_name: "John", last_name: "Doe", employee_id_number: "E001" },
+      { id: "emp-2", first_name: "Jane", last_name: "Smith", employee_id_number: "E002" }
     ]);
   });
 
@@ -133,5 +139,44 @@ describe("WorkingPatternsPage", () => {
     // Wait for details
     expect(await screen.findByText("days.monday")).toBeDefined();
     expect(screen.getAllByText("Morning")[0]).toBeDefined();
+  });
+
+  it("opens bulk assign modal and submits", async () => {
+    const user = userEvent.setup();
+    (api.bulkAssignPattern as any).mockResolvedValue({});
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <WorkingPatternsPage />
+        </BrowserRouter>
+      </QueryClientProvider>
+    );
+
+    // Open Modal
+    await user.click(screen.getByText("patterns.bulk_assign_btn"));
+
+    // Select Pattern
+    const patternSelect = await screen.findByDisplayValue("patterns.form.select_pattern_placeholder");
+    await user.selectOptions(patternSelect, "pat-1");
+
+    // Select Employee (Checkbox)
+    const checkbox = screen.getByLabelValue ? screen.queryByLabelText("John Doe") : null;
+    // Fallback if getByLabelText fails due to custom UI
+    const johnDoeText = await screen.findByText("John Doe");
+    await user.click(johnDoeText);
+
+    // Submit
+    await user.click(screen.getByText("patterns.bulk_assign_submit"));
+
+    await waitFor(() => {
+      expect(api.bulkAssignPattern).toHaveBeenCalledWith(
+        "ws-1",
+        expect.objectContaining({
+          employee_ids: expect.arrayContaining(["emp-1"]),
+          pattern_id: "pat-1"
+        })
+      );
+    });
   });
 });
