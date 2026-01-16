@@ -155,7 +155,62 @@
       "organization": "Tổ chức",
       "time_leave": "Thời gian & Nghỉ phép",
       "payroll_shifts": "Lương & Ca làm",
-      "system": "Hệ thống"
+      "system": "Hệ thống",
+      "self_service": "Tự phục vụ"
+    },
+    "my_profile": "Hồ sơ của tôi",
+    "my_attendance": "Chấm công của tôi",
+    "my_leave": "Nghỉ phép của tôi",
+    "my_documents": "Tài liệu của tôi",
+    "my_payslips": "Phiếu lương của tôi"
+  },
+  "ess": {
+    "profile": {
+      "title": "Hồ sơ của tôi",
+      "subtitle": "Quản lý thông tin cá nhân và liên hệ khẩn cấp",
+      "personal_info": "Thông tin cá nhân",
+      "bank_info": "Thông tin ngân hàng",
+      "emergency_contacts": "Liên hệ khẩn cấp",
+      "phone": "Số điện thoại",
+      "address": "Địa chỉ",
+      "date_of_birth": "Ngày sinh",
+      "gender": "Giới tính",
+      "national_id": "CMND / CCCD / Hộ chiếu",
+      "bank_name": "Tên ngân hàng",
+      "bank_account": "Số tài khoản",
+      "bank_branch": "Chi nhánh",
+      "contact_name": "Tên người liên hệ",
+      "relationship": "Mối quan hệ",
+      "primary_contact": "Liên hệ chính",
+      "add_contact": "Thêm liên hệ",
+      "no_contacts": "Chưa có liên hệ khẩn cấp nào",
+      "male": "Nam",
+      "female": "Nữ",
+      "other": "Khác",
+      "messages": {
+        "update_success": "Đã cập nhật hồ sơ thành công!",
+        "update_error": "Lỗi khi cập nhật hồ sơ",
+        "add_contact_success": "Đã thêm liên hệ khẩn cấp!",
+        "add_contact_error": "Lỗi khi thêm liên hệ",
+        "delete_contact_success": "Đã xóa liên hệ",
+        "delete_contact_error": "Lỗi khi xóa liên hệ"
+      }
+    },
+    "attendance": {
+      "title": "Chấm công của tôi",
+      "subtitle": "Xem lịch sử chấm công của bạn"
+    },
+    "leave": {
+      "title": "Nghỉ phép của tôi",
+      "subtitle": "Xem số dư và yêu cầu nghỉ phép"
+    },
+    "documents": {
+      "title": "Tài liệu của tôi",
+      "subtitle": "Truy cập các tài liệu đã tải lên"
+    },
+    "payslips": {
+      "title": "Phiếu lương của tôi",
+      "subtitle": "Xem và tải về phiếu lương"
     }
   },
   "leave_requests": {
@@ -664,11 +719,12 @@
     "time_format": "Định dạng giờ",
     "timezone": "Múi giờ hệ thống",
     "default_language": "Ngôn ngữ mặc định",
+    "pairing_algorithm": "Thuật toán ghép cặp",
     "theme_config": "Cấu hình giao diện",
     "primary_color": "Màu chủ đạo",
     "invite_member": "Mời thành viên",
     "members_list": "Danh sách thành viên",
-    "founder": "Sáng lập",
+    "founder": "Người sáng lập",
     "work_unit_options": {
       "1min": "1 phút",
       "1min_desc": "Mặc định, độ chính xác cao nhất",
@@ -686,20 +742,26 @@
       "round": "Làm tròn gần nhất (Round)"
     },
     "date_format_options": {
-      "vn": "Kiểu Việt Nam (Ví dụ: 31/12/2025)",
-      "us": "Kiểu Mỹ (Ví dụ: 12/31/2025)",
-      "iso": "Kiểu ISO (Ví dụ: 2025-12-31)"
+      "vn": "Kiểu Việt Nam (VD: 31/12/2025)",
+      "us": "Kiểu Mỹ (VD: 12/31/2025)",
+      "iso": "Kiểu ISO (VD: 2025-12-31)"
     },
     "time_format_options": {
-      "24h": "Định dạng 24 Giờ",
-      "12h": "Định dạng 12 Giờ",
+      "24h": "24 Giờ",
+      "12h": "12 Giờ",
       "example_24h": "Ví dụ: 14:30",
       "example_12h": "Ví dụ: 02:30 PM"
     },
     "timezone_options": {
       "vn": "Việt Nam (UTC+7)",
-      "th": "Thailand (UTC+7)",
+      "th": "Thái Lan (UTC+7)",
       "utc": "Giờ quốc tế (UTC)"
+    },
+    "algorithm_options": {
+      "dp_pattern": "Khớp theo mẫu (DP)",
+      "dp_pattern_desc": "Tốt nhất cho ca cố định và có nghỉ giữa ca. Ghép cặp thông minh.",
+      "anchor_first": "Đầu & Cuối (Anchor)",
+      "anchor_first_desc": "Đơn giản nhất. Chỉ lấy bản ghi đầu tiên và cuối cùng trong ngày."
     }
   },
   "employees": {

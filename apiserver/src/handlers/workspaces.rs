@@ -149,6 +149,7 @@ pub async fn update_workspace(
         req.timezone,
         req.theme_primary_color,
         req.default_language,
+        req.pairing_algorithm,
     )
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
@@ -157,6 +158,7 @@ pub async fn update_workspace(
 }
 
 pub async fn get_workspace_members(
+    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> impl IntoResponse {
@@ -176,6 +178,7 @@ pub async fn get_workspace_members(
 }
 
 pub async fn add_workspace_member(
+    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<AddMemberRequest>,
@@ -399,6 +402,7 @@ pub async fn clear_workspace_data(
 }
 
 pub async fn get_departments(
+    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> impl IntoResponse {
@@ -410,6 +414,7 @@ pub async fn get_departments(
 }
 
 pub async fn create_department(
+    Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<CreateDepartmentRequest>,

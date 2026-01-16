@@ -154,7 +154,62 @@
       "organization": "Organization",
       "time_leave": "Time & Leave",
       "payroll_shifts": "Payroll & Shifts",
-      "system": "System"
+      "system": "System",
+      "self_service": "Self Service"
+    },
+    "my_profile": "My Profile",
+    "my_attendance": "My Attendance",
+    "my_leave": "My Leave",
+    "my_documents": "My Documents",
+    "my_payslips": "My Payslips"
+  },
+  "ess": {
+    "profile": {
+      "title": "My Profile",
+      "subtitle": "Manage your personal information and emergency contacts",
+      "personal_info": "Personal Information",
+      "bank_info": "Bank Information",
+      "emergency_contacts": "Emergency Contacts",
+      "phone": "Phone Number",
+      "address": "Address",
+      "date_of_birth": "Date of Birth",
+      "gender": "Gender",
+      "national_id": "National ID / Passport",
+      "bank_name": "Bank Name",
+      "bank_account": "Account Number",
+      "bank_branch": "Branch Name",
+      "contact_name": "Contact Name",
+      "relationship": "Relationship",
+      "primary_contact": "Primary Contact",
+      "add_contact": "Add Contact",
+      "no_contacts": "No emergency contacts added yet",
+      "male": "Male",
+      "female": "Female",
+      "other": "Other",
+      "messages": {
+        "update_success": "Profile updated successfully!",
+        "update_error": "Error updating profile",
+        "add_contact_success": "Emergency contact added!",
+        "add_contact_error": "Error adding contact",
+        "delete_contact_success": "Contact deleted",
+        "delete_contact_error": "Error deleting contact"
+      }
+    },
+    "attendance": {
+      "title": "My Attendance",
+      "subtitle": "View your attendance records"
+    },
+    "leave": {
+      "title": "My Leave",
+      "subtitle": "View your leave balances and requests"
+    },
+    "documents": {
+      "title": "My Documents",
+      "subtitle": "Access your uploaded documents"
+    },
+    "payslips": {
+      "title": "My Payslips",
+      "subtitle": "View and download your payslips"
     }
   },
   "leave_requests": {
@@ -662,6 +717,7 @@
     "time_format": "Time Format",
     "timezone": "System Timezone",
     "default_language": "Default Language",
+    "pairing_algorithm": "Pairing Algorithm",
     "theme_config": "Interface Configuration",
     "primary_color": "Primary Color",
     "invite_member": "Invite Member",
@@ -698,6 +754,12 @@
       "vn": "Vietnam (UTC+7)",
       "th": "Thailand (UTC+7)",
       "utc": "Universal Time (UTC)"
+    },
+    "algorithm_options": {
+      "dp_pattern": "Pattern Matching (DP)",
+      "dp_pattern_desc": "Best for fixed shifts and breaks. Intelligent pairing.",
+      "anchor_first": "First & Last (Anchor)",
+      "anchor_first_desc": "Simplest. Only uses the first and last logs of the day."
     }
   },
   "employees": {

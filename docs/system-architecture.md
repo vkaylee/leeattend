@@ -14,13 +14,15 @@ Hệ thống xử lý dữ liệu quẹt thẻ (punch) theo mô hình **Event-So
 - **Auditability**: Dữ liệu này không bao giờ bị xóa hoặc sửa, cho phép người quản trị luôn có thể đối soát lại nguồn gốc của một session làm việc.
 - **Source Tracking**: Mỗi bản ghi lưu rõ nguồn (`device`, `import`, `manual`) và ID thiết bị tương ứng.
 
-#### 10.2. Pairing Engine (Logic ghép cặp)
-Dịch vụ `PairingService` thực hiện nhiệm vụ chuyển đổi luồng sự kiện phẳng (flat events) thành các phiên làm việc (sessions) có ý nghĩa:
-- **Deduplication (1-minute window)**: Tự động bỏ qua các lượt quẹt thẻ liên tiếp của cùng một nhân viên trong vòng 60 giây để chống nhiễu (ví dụ: nhân viên quẹt thẻ 2 lần do lo lắng máy chưa nhận).
-- **Auto-Session Matching**:
-    - Khi có log mới, Engine tìm kiếm phiên làm việc (Time Entry) gần nhất chưa đóng (`punch_out_time IS NULL`).
-    - **Session Recovery (14-hour window)**: Nếu log mới xảy ra trong vòng 14 giờ kể từ lúc bắt đầu phiên, nó sẽ được coi là giờ **Ra (Punch Out)** và đóng phiên đó lại.
-    - **New Session**: Nếu không tìm thấy phiên cũ hoặc khoảng cách quá 14 giờ, Engine tự động khởi tạo một phiên làm việc mới (giờ **Vào - Punch In**).
+#### 10.2. Pairing Engine (Strategy Pattern)
+Dịch vụ `PairingService` thực hiện nhiệm vụ chuyển đổi luồng sự kiện phẳng (flat events) thành các phiên làm việc (sessions) thông qua các thuật toán có thể cấu hình tùy theo đặc thù doanh nghiệp:
+
+- **Deduplication (1-minute window)**: Tự động bỏ qua các lượt quẹt thẻ liên tiếp của cùng một nhân viên trong vòng 60 giây để chống nhiễu.
+- **Configurable Strategies**:
+    - **Pattern Matching (DP)**: Sử dụng quy hoạch động (Dynamic Programming) để khớp các logs với các mẫu ca làm việc (Shift Patterns) có sẵn. Tốt nhất cho môi trường văn phòng có ca cố định và cần theo dõi giờ nghỉ giữa ca.
+    - **First & Last (Anchor)**: Thuật toán đơn giản chỉ lấy bản ghi đầu tiên (In) và cuối cùng (Out) trong ngày. Tốt nhất cho môi trường sản xuất (nhà máy) có lượng Overtime lớn và không cần theo dõi chi tiết giờ nghỉ.
+    - **Chronological (Fallback)**: Tự động ghép cặp theo thứ tự thời gian khi không có lịch trình (shift) được gán.
+- **Enhanced Reliability**: Thuật toán DP được cấu hình với độ trễ (penalty) lên tới 300 phút, đảm bảo không bỏ sót các trường hợp làm thêm giờ (overtime) muộn.
 - **Timezone Safety**: Mọi mốc thời gian được lưu trữ dưới dạng UTC và chỉ được chuyển đổi sang múi giờ địa phương (ICT) tại tầng hiển thị.
 
 #### 10.3. Strict Import Validation

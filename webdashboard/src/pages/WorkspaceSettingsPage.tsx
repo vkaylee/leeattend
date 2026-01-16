@@ -36,6 +36,7 @@ export default function WorkspaceSettingsPage() {
   const [timezone, setTimezone] = useState("Asia/Ho_Chi_Minh");
   const [themePrimaryColor, setThemePrimaryColor] = useState("#7c3aed");
   const [defaultLanguage, setDefaultLanguage] = useState("vi");
+  const [pairingAlgorithm, setPairingAlgorithm] = useState("dp_pattern");
 
   useEffect(() => {
     if (workspace) {
@@ -47,6 +48,7 @@ export default function WorkspaceSettingsPage() {
         setTimezone(workspace.timezone);
         setDefaultLanguage(workspace.default_language);
         setThemePrimaryColor(workspace.theme_primary_color);
+        setPairingAlgorithm(workspace.pairing_algorithm || "dp_pattern");
       }, 0);
       return () => clearTimeout(timer);
     }
@@ -94,6 +96,7 @@ export default function WorkspaceSettingsPage() {
       timezone: timezone,
       theme_primary_color: themePrimaryColor,
       default_language: defaultLanguage,
+      pairing_algorithm: pairingAlgorithm,
     });
   }
 
@@ -227,6 +230,22 @@ export default function WorkspaceSettingsPage() {
                   ]}
                   value={defaultLanguage}
                   onChange={setDefaultLanguage}
+                  className="bg-slate-50 border-slate-200"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+                  {t("workspace_settings.pairing_algorithm")}
+                </label>
+                <Combobox
+                  data-testid="algorithm-select"
+                  options={[
+                    { value: "dp_pattern", label: t("workspace_settings.algorithm_options.dp_pattern"), description: t("workspace_settings.algorithm_options.dp_pattern_desc"), icon: <Settings2 className="w-4 h-4" /> },
+                    { value: "anchor_first", label: t("workspace_settings.algorithm_options.anchor_first"), description: t("workspace_settings.algorithm_options.anchor_first_desc"), icon: <Clock className="w-4 h-4" /> },
+                  ]}
+                  value={pairingAlgorithm}
+                  onChange={setPairingAlgorithm}
                   className="bg-slate-50 border-slate-200"
                 />
               </div>

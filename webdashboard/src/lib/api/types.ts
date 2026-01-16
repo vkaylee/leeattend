@@ -46,6 +46,7 @@ export interface Workspace {
   timezone: string;
   theme_primary_color: string;
   default_language: string;
+  pairing_algorithm: string;
   created_at: string;
 }
 
@@ -369,4 +370,70 @@ export interface LeaveHistoryItem {
   reason?: string;
   reference_id?: string;
   created_at: string;
+}
+
+// --- Employee Self-Service (ESS) Types ---
+
+export interface EmployeeProfile {
+  id: string;
+  employee_id: string;
+  phone?: string;
+  address?: string;
+  date_of_birth?: string;
+  gender?: string;
+  national_id?: string;
+  bank_name?: string;
+  bank_account_number?: string;
+  bank_branch?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmployeeEmergencyContact {
+  id: string;
+  employee_id: string;
+  contact_name: string;
+  relationship: string;
+  phone: string;
+  is_primary: boolean;
+  created_at: string;
+}
+
+export interface EmployeeDocument {
+  id: string;
+  employee_id: string;
+  workspace_id: string;
+  document_type: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  mime_type: string;
+  expires_at?: string;
+  is_active: boolean;
+  uploaded_by?: string;
+  created_at: string;
+}
+
+export interface MyProfileResponse {
+  employee: Employee;
+  profile?: EmployeeProfile;
+  emergency_contacts: EmployeeEmergencyContact[];
+}
+
+export interface UpdateProfileRequest {
+  phone?: string;
+  address?: string;
+  date_of_birth?: string;
+  gender?: string;
+  national_id?: string;
+  bank_name?: string;
+  bank_account_number?: string;
+  bank_branch?: string;
+}
+
+export interface CreateEmergencyContactRequest {
+  contact_name: string;
+  relationship: string;
+  phone: string;
+  is_primary?: boolean;
 }

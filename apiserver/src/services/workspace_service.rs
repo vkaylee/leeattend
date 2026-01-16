@@ -77,6 +77,7 @@ impl WorkspaceService {
         timezone: Option<String>,
         theme_primary_color: Option<String>,
         default_language: Option<String>,
+        pairing_algorithm: Option<String>,
     ) -> Result<Workspace, String> {
         let mut query = String::from("UPDATE workspaces SET ");
         let mut has_fields = false;
@@ -129,6 +130,12 @@ impl WorkspaceService {
             arg_idx += 1;
             has_fields = true;
         }
+        if pairing_algorithm.is_some() {
+            if has_fields { query.push_str(", "); }
+            query.push_str(&format!("pairing_algorithm = ${}", arg_idx));
+            arg_idx += 1;
+            has_fields = true;
+        }
 
         if !has_fields {
             return Err("No fields to update".to_string());
@@ -161,6 +168,9 @@ impl WorkspaceService {
         }
         if let Some(dl) = default_language {
             q = q.bind(dl);
+        }
+        if let Some(pa) = pairing_algorithm {
+            q = q.bind(pa);
         }
         q = q.bind(ws_id);
 

@@ -56,7 +56,10 @@ leeattend/
     - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections. Supports **Robust Asynchronous Batch Import** (Excel/CSV) with auto-recovery and real-time progress tracking.
     - **Attendance Persistence Layer**: 
         - **Raw Event Store**: Dedicated `raw_attendance_logs` table for immutable original punch data from hardware and imports.
-        - **Pairing Engine**: `PairingService` handles the automatic conversion of flat events into logical attendance sessions.
+        - **Pairing Engine (Strategy Pattern)**: `PairingService` handles the conversion of flat events into logical sessions using a pluggable strategy architecture:
+            - **Pluggable Algorithms**: Supports `DpPatternStrategy` (intelligent matching with break support) and `AnchorFirstStrategy` (simple first/last matching).
+            - **Workspace Selection**: Users can configure the preferred algorithm per workspace to match their specific business environment.
+            - **High-Penalty Matching**: Optimized the DP algorithm with a 300-minute unmatched log penalty to correctly capture extreme overtime scenarios.
         - **Accurate Calculation Engine**: `AttendanceCalculator` implements a high-precision **Clamping + Bucket** strategy:
             - **Standard Clamping**: Work is capped within `[ShiftStart, ShiftEnd]`. Early arrivals (e.g., 07:25 for 07:30) are correctly handled as `max(In, Start)`.
             - **Bucket Logic**: Separation of Standard, Early OT, and Late OT time buckets.

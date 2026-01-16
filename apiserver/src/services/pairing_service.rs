@@ -44,15 +44,16 @@ impl PairingService {
             return Ok(());
         }
 
-        // 2. Fetch Workspace Timezone
+        // 2. Fetch Workspace Config
         let workspace_info = sqlx::query!(
-            "SELECT timezone FROM workspaces WHERE id = $1",
+            "SELECT timezone, pairing_algorithm FROM workspaces WHERE id = $1",
             log.workspace_id
         )
         .fetch_optional(pool)
         .await?;
 
-        let timezone_str = workspace_info.map(|w| w.timezone).unwrap_or_else(|| "UTC".to_string());
+        let timezone_str = workspace_info.as_ref().map(|w| w.timezone.clone()).unwrap_or_else(|| "UTC".to_string());
+        let algorithm = workspace_info.map(|w| w.pairing_algorithm).unwrap_or_else(|| "dp_pattern".to_string());
         let tz: Tz = timezone_str.parse().unwrap_or(chrono_tz::UTC);
 
         // 3. Determine Local Date
@@ -60,7 +61,7 @@ impl PairingService {
         let local_date = local_dt.date_naive();
 
         // 4. Reprocess that day
-        Self::reprocess_daily_attendance(pool, log.employee_id, local_date, tz).await?;
+        Self::reprocess_daily_attendance(pool, log.employee_id, local_date, tz, &algorithm).await?;
 
         Ok(())
     }
@@ -70,8 +71,9 @@ impl PairingService {
         employee_id: Uuid,
         date: NaiveDate,
         tz: Tz,
+        algorithm: &str,
     ) -> Result<(), sqlx::Error> {
-        info!("Reprocessing attendance for emp {} on date {}", employee_id, date);
+        info!("Reprocessing attendance for emp {} on date {} using {}", employee_id, date, algorithm);
 
         // 1. Fetch effective schedule
         let shift_id_opt = roster_repository::get_effective_shift(pool, employee_id, date).await?;
@@ -154,10 +156,11 @@ impl PairingService {
         }
 
         // 4. Run Algorithm
-        let sessions = if let Some(config) = shift_config {
-            pairing_algo::pair_logs_min_cost(&filtered_log_minutes, &config)
+        let sessions = if algorithm == "chronological" || (algorithm == "dp_pattern" && shift_config.is_none()) {
+             Self::pair_chronological(&filtered_log_minutes)
         } else {
-            Self::pair_chronological(&filtered_log_minutes)
+            let strategy = pairing_algo::get_strategy(algorithm);
+            strategy.pair(&filtered_log_minutes, shift_config.as_ref())
         };
 
         // 5. Update Database

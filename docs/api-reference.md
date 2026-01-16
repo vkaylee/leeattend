@@ -81,6 +81,7 @@ Quản lý không gian làm việc và cấu hình hệ thống.
   "timezone": "Asia/Ho_Chi_Minh", // IANA Timezone ID
   "default_language": "vi", // vi, en, zh
   "theme_primary_color": "#7c3aed", // HEX color for UI branding
+  "pairing_algorithm": "dp_pattern", // dp_pattern (Intelligent), anchor_first (Simple First/Last)
   "created_at": "datetime"
 }
 ```
@@ -110,7 +111,8 @@ Cập nhật thông tin hoặc cấu hình hệ thống của workspace.
     "time_format": "12h",
     "timezone": "Asia/Ho_Chi_Minh",
     "default_language": "vi|en|zh",
-    "theme_primary_color": "#059669"
+    "theme_primary_color": "#059669",
+    "pairing_algorithm": "dp_pattern|anchor_first"
   }
   ```
 - **Response (200)**: `Workspace` (updated)

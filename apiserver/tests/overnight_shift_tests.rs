@@ -82,7 +82,7 @@ async fn test_overnight_shift_pairing() {
     ).execute(&pool).await.unwrap();
 
     // 3. Trigger Pairing manually
-    apiserver::services::pairing_service::PairingService::reprocess_daily_attendance(&pool, employee_id, shift_date, tz).await.unwrap();
+    apiserver::services::pairing_service::PairingService::reprocess_daily_attendance(&pool, employee_id, shift_date, tz, "dp_pattern").await.unwrap();
 
     // 4. Verify Time Entry
     let entry = sqlx::query!(

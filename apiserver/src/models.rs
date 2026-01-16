@@ -108,6 +108,7 @@ pub struct Workspace {
     pub timezone: String,
     pub theme_primary_color: String,
     pub default_language: String,
+    pub pairing_algorithm: String,
     pub created_at: DateTime<Utc>,
 }
 
@@ -126,6 +127,7 @@ pub struct UpdateWorkspaceRequest {
     pub timezone: Option<String>,
     pub theme_primary_color: Option<String>,
     pub default_language: Option<String>,
+    pub pairing_algorithm: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
