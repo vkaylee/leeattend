@@ -35,6 +35,7 @@ import {
   rehireEmployee
 } from "../lib/api";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { format } from "date-fns";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 
@@ -304,7 +305,7 @@ export default function EmployeesPage() {
                   onClick={() => {
                     const confirmTerm = window.confirm(t("employees.details.terminate_confirm"));
                     if (confirmTerm) {
-                      updateMutation.mutate({ id: selectedEmployee.id, employee: { is_active: false, termination_date: new Date().toISOString().split('T')[0] } });
+                      updateMutation.mutate({ id: selectedEmployee.id, employee: { is_active: false, termination_date: format(new Date(), 'yyyy-MM-dd') } });
                     }
                   }}
                   className="flex items-center justify-center gap-2 py-3.5 bg-rose-50 text-rose-600 font-bold rounded-2xl hover:bg-rose-100 transition-all text-sm"
@@ -506,7 +507,7 @@ export default function EmployeesPage() {
           </div>
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-2">{t("employees.transfer.effective_date")}</label>
-            <input type="date" name="effective_date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" />
+            <input type="date" name="effective_date" required defaultValue={format(new Date(), 'yyyy-MM-dd')} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" />
           </div>
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-2">{t("employees.transfer.notes")}</label>
@@ -575,7 +576,7 @@ export default function EmployeesPage() {
               type="date" 
               name="hire_date" 
               required 
-              defaultValue={new Date().toISOString().split('T')[0]} 
+              defaultValue={format(new Date(), 'yyyy-MM-dd')} 
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" 
             />
           </div>
@@ -615,7 +616,7 @@ export default function EmployeesPage() {
           </div>
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-2">{t("employees.salary.effective_date")}</label>
-            <input type="date" name="effective_date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" />
+            <input type="date" name="effective_date" required defaultValue={format(new Date(), 'yyyy-MM-dd')} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" />
           </div>
           <div className="grid grid-cols-2 gap-4 pt-4">
             <button type="button" onClick={() => setIsSalaryModalOpen(false)} className="px-6 py-3 border border-slate-200 text-slate-600 font-bold rounded-2xl">{t("employees.salary.cancel")}</button>

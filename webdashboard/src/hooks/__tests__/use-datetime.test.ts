@@ -101,4 +101,46 @@ describe("useDateTimeFormatter hook", () => {
     expect(result.current.formatDate(testDate)).toBe("14/01/2026");
     expect(result.current.formatTime(testDate)).toBe("08:30");
   });
+
+  it("formats month and year correctly based on workspace date preference", () => {
+    // Case 1: DD/MM/YYYY -> MM/yyyy
+    (useWorkspace as any).mockReturnValue({
+      workspace: { date_format: "DD/MM/YYYY" }
+    });
+    const { result: res1 } = renderHook(() => useDateTimeFormatter());
+    expect(res1.current.formatMonthYear(new Date(2026, 0, 1))).toBe("01/2026");
+
+    // Case 2: MM/DD/YYYY -> MM/yyyy
+    (useWorkspace as any).mockReturnValue({
+      workspace: { date_format: "MM/DD/YYYY" }
+    });
+    const { result: res2 } = renderHook(() => useDateTimeFormatter());
+    expect(res2.current.formatMonthYear(new Date(2026, 0, 1))).toBe("01/2026");
+
+    // Case 3: YYYY-MM-DD -> yyyy-MM
+    (useWorkspace as any).mockReturnValue({
+      workspace: { date_format: "YYYY-MM-DD" }
+    });
+    const { result: res3 } = renderHook(() => useDateTimeFormatter());
+    expect(res3.current.formatMonthYear(new Date(2026, 0, 1))).toBe("2026-01");
+  });
+
+  it("is timezone-safe compared to toISOString", () => {
+    // Manual check for the bug logic: 
+    // Jan 1st 00:00:00 in a UTC+7 environment is Dec 31st 17:00:00 UTC.
+    // We mock a date that would represent this.
+    const janFirstLocal = new Date(2026, 0, 1, 0, 0, 0);
+    
+    // This is the problematic logic we removed:
+    const buggyString = janFirstLocal.toISOString().split('T')[0];
+    
+    // This is the new logic:
+    const { format } = require('date-fns');
+    const safeString = format(janFirstLocal, 'yyyy-MM-dd');
+
+    expect(safeString).toBe("2026-01-01");
+    // If this test runs in a timezone > UTC, buggyString would be "2025-12-31"
+    // We don't assert on buggyString because it depends on the runner's TZ, 
+    // but we ensure safeString ALWAYS returns the local date part.
+  });
 });

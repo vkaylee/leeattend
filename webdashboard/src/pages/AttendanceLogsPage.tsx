@@ -76,8 +76,8 @@ export default function AttendanceLogsPage() {
   const getMonthRange = (offset: number = 0) => {
     const d = new Date();
     d.setMonth(d.getMonth() + offset);
-    const firstDay = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
-    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
+    const firstDay = format(new Date(d.getFullYear(), d.getMonth(), 1), 'yyyy-MM-dd');
+    const lastDay = format(new Date(d.getFullYear(), d.getMonth() + 1, 0), 'yyyy-MM-dd');
     return { start: firstDay, end: lastDay };
   };
 

@@ -52,11 +52,15 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Centralized Parsing**: Created a shared `utils::datetime` module in the backend to robustly handle both ISO-8601 (with offset) and naive (local) datetime strings.
     - **Intelligent Fallback**: Backend now automatically falls back to the workspace's configured IANA timezone when parsing datetime strings without explicit offsets (e.g., from Excel imports).
     - **Frontend Normalization**: Centralized local-to-UTC conversion in `webdashboard/src/lib/datetime.ts` using `Intl.DateTimeFormat` to ensure correct offsets even during DST changes.
-    - **Enhanced Time Formatter**: Added `formatTime24h` to `useDateTimeFormatter` hook to ensure consistent "HH:mm" formatting for HTML5 time inputs.
+    - **Enhanced Time Formatter**: Added `formatTime24h` and `formatMonthYear` to `useDateTimeFormatter` hook to ensure consistent display and input formatting.
+    - **Timezone-Safe Extraction**: Replaced buggy `toISOString().split('T')[0]` patterns with `format(date, 'yyyy-MM-dd')` to prevent 1-day shifts in positive timezones (UTC+7, etc.).
 - **Improved Import Resilience**: Refactored `AttendanceImportService` to leverage the new centralized parsing logic, improving reliability for CSV and Excel processing.
+- **Date Format Integration Testing**: Added a dedicated integration suite (`DateFormatIntegration.test.tsx`) ensuring the UI renders dates strictly according to the workspace's `date_format` configuration.
 
 ### Fixed
 - **Integration Test Alignment**: Updated `test_import_csv_with_line_errors` to correctly verify error messages under the new, more flexible parsing logic.
+- **Frontend Timezone Bug**: Resolved a critical issue where "Jan 1st" was displayed as "Dec 31st" in Reports and Logs due to improper UTC conversion of local dates.
+- **UI Date Consistency**: Unified date formatting in Payroll history and Leave history to respect workspace preferences instead of hardcoded strings.
 - **Fail-Fast Test Orchestration**: Upgraded `run-tests.sh` to support immediate pipeline abortion.
     - **Instant Termination**: The orchestrator now kills all concurrent tasks in a phase as soon as any single task fails, saving resources and providing faster feedback.
     - **Strict Preparation**: Added explicit error checking for Docker setup, migrations, and pre-compilation steps.

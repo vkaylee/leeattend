@@ -33,8 +33,11 @@ vi.mock("date-fns", async () => {
         const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         return days[date.getDay()];
       }
-      // For other formats, just return a simple string
-      return date.toISOString().split('T')[0];
+      // For other formats, return YYYY-MM-DD in local time
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     },
   };
 });
@@ -81,7 +84,12 @@ vi.mock("@/hooks/use-datetime", () => ({
   useDateTimeFormatter: () => ({
     formatDate: (date: Date | string) => {
       const d = typeof date === "string" ? new Date(date) : date;
-      return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+      // Mocking the behavior of useDateTimeFormatter which uses workspace format
+      // In tests, we'll just use DD/MM/YYYY as default mock
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
     },
     formatTime: (time: string) => time.substring(0, 5),
     formatDateTime: (datetime: string) => datetime,

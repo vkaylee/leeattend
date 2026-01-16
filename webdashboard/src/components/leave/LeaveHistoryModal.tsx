@@ -19,6 +19,7 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { formatDate } = useDateTimeFormatter();
   const [activeTab, setActiveTab] = useState("history");
 
   // Fetch History
@@ -48,7 +49,7 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
     leave_type: "vacation",
     amount: "",
     reason: "",
-    date: new Date().toISOString().split('T')[0]
+    date: format(new Date(), 'yyyy-MM-dd')
   });
 
   const handleAdjustSubmit = (e: React.FormEvent) => {
@@ -127,7 +128,7 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
                     {history.map((item) => (
                       <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-4 py-3 text-sm text-slate-600 font-medium whitespace-nowrap">
-                          {format(new Date(item.date), "MMM dd, yyyy")}
+                          {formatDate(item.date)}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getTransactionColor(item.transaction_type)}`}>

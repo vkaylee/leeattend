@@ -82,7 +82,7 @@ export default function ShiftsPage() {
   const [assignmentType, setAssignmentType] = useState<"fixed" | "pattern">("fixed");
   const [selectedShiftId, setSelectedShiftId] = useState("");
   const [selectedPatternId, setSelectedPatternId] = useState("");
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState<string>("");
   const [isForever, setIsForever] = useState(true);
   
@@ -100,7 +100,7 @@ export default function ShiftsPage() {
   // Edit Shift State
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [isEditCorrection, setIsEditCorrection] = useState(false);
-  const [editEffectiveDate, setEditEffectiveDate] = useState(new Date().toISOString().split('T')[0]);
+  const [editEffectiveDate, setEditEffectiveDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   // Queries
   const { data: employees } = useQuery({
@@ -138,11 +138,11 @@ export default function ShiftsPage() {
 
   // Fetch Effective Schedules (Bulk)
   const { data: allSchedules } = useQuery({
-    queryKey: ["schedules", wsId, startOfWeek.toISOString().split('T')[0]],
+    queryKey: ["schedules", wsId, format(startOfWeek, 'yyyy-MM-dd')],
     queryFn: () => fetchWorkspaceSchedules(
       wsId,
-      weekDays[0].toISOString().split('T')[0],
-      weekDays[6].toISOString().split('T')[0]
+      format(weekDays[0], 'yyyy-MM-dd'),
+      format(weekDays[6], 'yyyy-MM-dd')
     ),
     enabled: !!wsId && activeTab === "weekly-roster",
   });
@@ -279,7 +279,7 @@ export default function ShiftsPage() {
     if (!selectedEmployee) return;
     rosterMutation.mutate({
       employee_id: selectedEmployee.id,
-      date: date.toISOString().split('T')[0],
+      date: format(date, 'yyyy-MM-dd'),
       shift_id: shiftId,
     });
   };
@@ -299,7 +299,7 @@ export default function ShiftsPage() {
     if (!selectedEmployee) return;
     
     const items = weekDays.map(day => ({
-      date: day.toISOString().split('T')[0],
+      date: format(day, 'yyyy-MM-dd'),
       shift_id: shiftId,
     }));
     
@@ -315,8 +315,8 @@ export default function ShiftsPage() {
     try {
       const prevSchedules = await fetchWorkspaceSchedules(
         wsId, 
-        prevWeekStart.toISOString().split('T')[0], 
-        prevWeekEnd.toISOString().split('T')[0]
+        format(prevWeekStart, 'yyyy-MM-dd'), 
+        format(prevWeekEnd, 'yyyy-MM-dd')
       );
       
       const empPrev = prevSchedules.find(s => s.employee_id === selectedEmployee.id);
@@ -326,7 +326,7 @@ export default function ShiftsPage() {
       }
 
       const items = empPrev.schedules.map((s, idx) => ({
-        date: weekDays[idx].toISOString().split('T')[0],
+        date: format(weekDays[idx], 'yyyy-MM-dd'),
         shift_id: s.shift_id,
       }));
 
@@ -524,7 +524,7 @@ export default function ShiftsPage() {
                             } else if (val === "clear-week") {
                               handleAssignAllWeek(null);
                             } else if (val === "assign-all") {
-                              setTargetDates(weekDays.map(d => d.toISOString().split('T')[0]));
+                              setTargetDates(weekDays.map(d => format(d, 'yyyy-MM-dd')));
                               setIsShiftPickerOpen(true);
                             }
                           }}
@@ -584,7 +584,7 @@ export default function ShiftsPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
                     {weekDays.map((day, idx) => {
-                      const dateStr = day.toISOString().split('T')[0];
+                      const dateStr = format(day, 'yyyy-MM-dd');
                       const isSelected = selectedDays.includes(dateStr);
                       const effectiveSchedule = employeeSchedule?.schedules.find(s => s.date === dateStr);
                       const isToday = day.toDateString() === new Date().toDateString();

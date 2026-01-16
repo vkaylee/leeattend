@@ -1,11 +1,14 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import ReportsPage from "../ReportsPage";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ReportsPage from "../ReportsPage";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "../../components/Toast";
 import * as api from "../../lib/api";
+import { format, subMonths, startOfMonth } from "date-fns";
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
@@ -15,9 +18,27 @@ vi.mock("../../lib/api", () => ({
 
 describe("ReportsPage", () => {
   let queryClient: QueryClient;
+  const originalDate = global.Date;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    const mockNow = new originalDate(2026, 0, 17);
+    // @ts-ignore
+    global.Date = class extends originalDate {
+      constructor(...args: any[]) {
+        if (args.length === 0) {
+          super(mockNow.getTime());
+          return;
+        }
+        // @ts-ignore
+        super(...args);
+      }
+      static now() {
+        return mockNow.getTime();
+      }
+    };
+
     queryClient = new QueryClient({
       defaultOptions: {
         queries: {
@@ -26,6 +47,10 @@ describe("ReportsPage", () => {
         },
       },
     });
+  });
+
+  afterEach(() => {
+    global.Date = originalDate;
   });
 
   it("renders report table and default to current month", async () => {
@@ -72,9 +97,8 @@ describe("ReportsPage", () => {
     // Verify button state
     expect(lastMonthBtn.className).toContain("text-primary-600");
 
-    const now = new Date();
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const expectedStart = lastMonth.toISOString().split('T')[0];
+    const lastMonth = subMonths(new Date(), 1);
+    const expectedStart = format(startOfMonth(lastMonth), 'yyyy-MM-dd');
 
     await waitFor(() => {
       expect(api.fetchAttendanceReport).toHaveBeenCalledWith(

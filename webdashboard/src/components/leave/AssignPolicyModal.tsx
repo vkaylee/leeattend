@@ -12,6 +12,7 @@ import {
 import { Combobox } from "../ui/Combobox";
 import Modal from "../ui/Modal";
 import { useToast } from "../Toast";
+import { format } from "date-fns";
 
 interface AssignPolicyModalProps {
   isOpen: boolean;
@@ -206,7 +207,7 @@ export function AssignPolicyModal({ isOpen, onClose, wsId }: AssignPolicyModalPr
         </div>
         <div className="space-y-1">
           <label htmlFor="assign-date" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.effective_from")}</label>
-          <input id="assign-date" type="date" name="effective_from" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
+          <input id="assign-date" type="date" name="effective_from" required defaultValue={format(new Date(), 'yyyy-MM-dd')} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
         </div>
         <div className="pt-4 flex gap-3">
           <button type="button" onClick={onClose} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors">{t("common.cancel")}</button>

@@ -35,7 +35,7 @@ export default function PayrollPage() {
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
   const toast = useToast();
-  const { formatDate } = useDateTimeFormatter();
+  const { formatDate, formatMonthYear } = useDateTimeFormatter();
   
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -192,7 +192,7 @@ export default function PayrollPage() {
                     ) : payslips.map(slip => (
                       <tr key={slip.id} className="hover:bg-slate-50/50 transition-colors group">
                         <td className="px-8 py-6">
-                          <div className="font-bold text-slate-900">{t("common.month")} {new Date(slip.period_start).getMonth() + 1}/{new Date(slip.period_start).getFullYear()}</div>
+                          <div className="font-bold text-slate-900">{t("common.month")} {formatMonthYear(slip.period_start)}</div>
                           <div className="text-[10px] text-slate-400 font-bold mt-1">
                             {formatDate(slip.period_start)} - {formatDate(slip.period_end)}
                           </div>

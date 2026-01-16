@@ -15,6 +15,7 @@ import {
 } from "../lib/api";
 import { useToast } from "../components/Toast";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { format } from "date-fns";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 
@@ -29,7 +30,7 @@ export default function TimeTrackingPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
   const [adjustmentData, setAdjustmentData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: format(new Date(), 'yyyy-MM-dd'),
     punchIn: "08:00",
     punchOut: "17:00",
     reason: "",
@@ -283,7 +284,7 @@ export default function TimeTrackingPage() {
                         <button 
                           onClick={() => {
                             setAdjustmentData({
-                              date: new Date(entry.punch_in_time).toISOString().split('T')[0],
+                              date: format(new Date(entry.punch_in_time), 'yyyy-MM-dd'),
                               punchIn: formatTime24h(entry.punch_in_time),
                               punchOut: entry.punch_out_time ? formatTime24h(entry.punch_out_time) : "17:00",
                               reason: "",

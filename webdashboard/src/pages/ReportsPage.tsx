@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { FileBarChart, Download, Calendar, Search, List, TableProperties, Clock, User as UserIcon, CalendarDays } from "lucide-react";
+import { format } from "date-fns";
 import { 
   fetchAttendanceReport, 
   getCurrentWorkspaceId,
@@ -19,8 +20,8 @@ export default function ReportsPage() {
   const getMonthRange = (offset: number = 0) => {
     const d = new Date();
     d.setMonth(d.getMonth() + offset);
-    const firstDay = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
-    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
+    const firstDay = format(new Date(d.getFullYear(), d.getMonth(), 1), 'yyyy-MM-dd');
+    const lastDay = format(new Date(d.getFullYear(), d.getMonth() + 1, 0), 'yyyy-MM-dd');
     return { start: firstDay, end: lastDay };
   };
 

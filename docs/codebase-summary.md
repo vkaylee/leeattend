@@ -98,7 +98,7 @@ leeattend/
     - **Common UI Library**: Standardized components (Modal, Combobox, DropdownMenu, etc.) based on Radix UI and React Portals.
     - **Portal-based Modals**: Centralized `Modal` component using `createPortal` to ensure dialogs are always rendered at the top level of the DOM, preventing clipping by parent containers and ensuring full-screen backdrops.
     - **Global Toast System**: Non-blocking notification engine for consistent UX.
-    - **Unified Date/Time Formatting**: Centralized formatting via `useDateTimeFormatter` hook, ensuring all displays respect per-workspace `date_format` and `time_format` preferences.
+    - **Unified Date/Time Formatting**: Centralized formatting via `useDateTimeFormatter` hook, ensuring all displays respect per-workspace `date_format` and `time_format` preferences. Includes helpers for `formatDate`, `formatTime`, `formatDateTime`, and `formatMonthYear`.
     - **Full-stack Multi-language Support**: Comprehensive i18n implementation using `i18next` for Vietnamese, English, and Chinese. Features automatic synchronization between browser local state and backend user preferences.
     - **Quick Month Filters**: Optimized UX for report and log views with shortcut buttons for "This Month", "Last Month", and "Custom" date ranges.
     - Onboarding & Workspace management flows.

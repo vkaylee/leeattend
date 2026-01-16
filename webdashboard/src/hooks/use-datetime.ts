@@ -66,5 +66,16 @@ export function useDateTimeFormatter() {
     }
   };
 
-  return { formatDate, formatTime, formatTime24h, formatDateTime };
+  const formatMonthYear = (date: string | Date | null | undefined) => {
+    if (!date) return "---";
+    try {
+      // Use localized month and year based on datePattern
+      const pattern = datePattern.includes("dd/MM") ? "MM/yyyy" : datePattern.includes("MM/dd") ? "MM/yyyy" : "yyyy-MM";
+      return format(new Date(date), pattern);
+    } catch (e) {
+      return String(date);
+    }
+  };
+
+  return { formatDate, formatTime, formatTime24h, formatDateTime, formatMonthYear };
 }

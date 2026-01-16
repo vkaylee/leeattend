@@ -1,11 +1,12 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import AttendanceLogsPage from "../AttendanceLogsPage";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "../../components/Toast";
 import * as api from "../../lib/api";
+import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
@@ -25,9 +26,27 @@ vi.mock("@/hooks/use-datetime", () => ({
 
 describe("AttendanceLogsPage", () => {
   let queryClient: QueryClient;
+  const originalDate = global.Date;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    const mockNow = new originalDate(2026, 0, 17);
+    // @ts-ignore
+    global.Date = class extends originalDate {
+      constructor(...args: any[]) {
+        if (args.length === 0) {
+          super(mockNow.getTime());
+          return;
+        }
+        // @ts-ignore
+        super(...args);
+      }
+      static now() {
+        return mockNow.getTime();
+      }
+    };
+
     queryClient = new QueryClient({
       defaultOptions: {
         queries: {
@@ -36,6 +55,10 @@ describe("AttendanceLogsPage", () => {
         },
       },
     });
+  });
+
+  afterEach(() => {
+    global.Date = originalDate;
   });
 
   it("renders raw attendance logs table", async () => {
@@ -93,9 +116,20 @@ describe("AttendanceLogsPage", () => {
     const lastMonthBtn = screen.getByText("Tháng trước");
     await user.click(lastMonthBtn);
 
+    const lastMonthDate = subMonths(new Date(), 1);
+    const startOfLastMonth = startOfMonth(lastMonthDate);
+    const endOfLastMonth = endOfMonth(lastMonthDate);
+
+    // The component does: new Date(`${dateStr}T00:00:00`).toISOString()
+    const expectedFrom = new originalDate(format(startOfLastMonth, "yyyy-MM-dd") + "T00:00:00").toISOString();
+    const expectedTo = new originalDate(format(endOfLastMonth, "yyyy-MM-dd") + "T23:59:59").toISOString();
+
     await waitFor(() => {
-      // It should trigger another fetch
-      expect(api.fetchRawAttendanceLogs).toHaveBeenCalledTimes(2);
+      // It should trigger another fetch with last month's range
+      expect(api.fetchRawAttendanceLogs).toHaveBeenCalledWith(expect.objectContaining({
+        from: expectedFrom,
+        to: expectedTo
+      }));
     });
   });
 

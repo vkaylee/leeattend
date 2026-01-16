@@ -126,6 +126,11 @@ Khi tính toán ca làm việc hiệu lực của nhân viên tại một thời
   - `formatDate(date)`: Hiển thị ngày (ví dụ: 14/01/2026).
   - `formatTime(date)`: Hiển thị giờ (ví dụ: 08:30 hoặc 08:30 AM).
   - `formatDateTime(date)`: Hiển thị cả ngày và giờ.
+  - `formatMonthYear(date)`: Hiển thị tháng và năm (ví dụ: 01/2026 hoặc 2026-01) tùy theo cấu hình workspace.
+
+- **Internal/API Format**: 
+  - **BẮT BUỘC** sử dụng `format(date, 'yyyy-MM-dd')` từ `date-fns` khi cần lấy chuỗi ngày cho API hoặc internal state. 
+  - **CẤM** sử dụng `date.toISOString().split('T')[0]` vì phương thức này chuyển về UTC, gây lệch ngày ở các múi giờ dương (như Việt Nam UTC+7) vào thời điểm rạng sáng.
 
 ---
 
