@@ -167,7 +167,7 @@ leeattend/
 - **Mandatory Quality Gate**: Bắt buộc 100% các bài test (Unit, Integration, Frontend) phải PASS trước khi merge.
 - **Comprehensive Auth Testing**: Added production-ready E2E suites for standard login flows, ensuring correct i18n handling, credential validation, and redirection logic.
 - **Leave Policy Assignment**: Added comprehensive integration test (`leave-policy-assignment.spec.ts`) covering multi-level policy allocation (Employee/Department) and transactional auto-closing logic.
-- **UI Interaction Robustness**: Hardened portal-based components (Combobox, Modal) with high z-index stacking (`z-[10000]`) and standard ARIA roles (`role="status"`) to ensure reliable automated interaction and accessibility.
+- **UI Interaction Robustness**: Hardened portal-based components (Combobox, Modal) with high z-index stacking (`z-[10000]`) and standard ARIA roles (`role="status"`) to ensure reliable automated interaction and accessibility. Verified via `z-index-stacking.spec.ts`.
 - **UI Interaction Verification**: Dedicated suite for Sidebar navigation (`sidebar-navigation.spec.ts`) ensuring correct default expansion and accordion behavior.
 
 ## External Integrations
