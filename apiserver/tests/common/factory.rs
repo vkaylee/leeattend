@@ -61,6 +61,34 @@ impl TestFactory {
     pub fn department(&self) -> DepartmentBuilder {
         DepartmentBuilder::new(self.pool.clone())
     }
+
+    #[allow(dead_code)]
+    pub fn auth(&self) -> AuthHelper {
+        AuthHelper::new()
+    }
+}
+
+pub struct AuthHelper;
+
+impl AuthHelper {
+    pub fn new() -> Self {
+        Self
+    }
+
+    pub fn create_token(&self, user_id: Uuid) -> String {
+        let now = chrono::Utc::now();
+        let claims = apiserver::services::auth_service::Claims {
+            sub: user_id.to_string(),
+            exp: (now + chrono::Duration::hours(1)).timestamp(),
+            iat: now.timestamp(),
+        };
+        jsonwebtoken::encode(
+            &jsonwebtoken::Header::default(),
+            &claims,
+            &jsonwebtoken::EncodingKey::from_secret("test_secret_123".as_ref()),
+        )
+        .unwrap()
+    }
 }
 
 #[allow(dead_code)]
