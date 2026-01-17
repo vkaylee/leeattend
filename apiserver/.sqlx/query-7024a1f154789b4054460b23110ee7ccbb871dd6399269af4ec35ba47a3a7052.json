@@ -1,0 +1,107 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n            esc.id as esc_id, esc.employee_id, esc.component_definition_id, esc.amount, esc.effective_date, esc.created_at as \"esc_created_at!\", esc.updated_at as \"esc_updated_at!\",\n            scd.id as scd_id, scd.workspace_id, scd.name, scd.code, scd.is_base_for_ot, scd.is_taxable, scd.created_at as \"scd_created_at!\", scd.updated_at as \"scd_updated_at!\"\n           FROM employee_salary_components esc\n           JOIN salary_component_definitions scd ON scd.id = esc.component_definition_id\n           WHERE esc.employee_id = $1 AND esc.effective_date <= $2\n           AND NOT EXISTS (\n               SELECT 1 FROM employee_salary_components esc2 \n               WHERE esc2.employee_id = esc.employee_id \n               AND esc2.component_definition_id = esc.component_definition_id \n               AND esc2.effective_date <= $2 \n               AND (esc2.effective_date > esc.effective_date OR (esc2.effective_date = esc.effective_date AND esc2.created_at > esc.created_at))\n           )",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "esc_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "employee_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "component_definition_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "effective_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "esc_created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "esc_updated_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "scd_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "code",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "is_base_for_ot",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "is_taxable",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "scd_created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "scd_updated_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "7024a1f154789b4054460b23110ee7ccbb871dd6399269af4ec35ba47a3a7052"
+}

@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT edh.employee_id, d.default_working_pattern_id, edh.effective_date,\n               wpd.day_of_week, wpd.shift_id as pattern_shift_id\n        FROM employee_department_history edh\n        JOIN departments d ON edh.department_id = d.id\n        JOIN working_pattern_details wpd ON d.default_working_pattern_id = wpd.pattern_id\n        WHERE d.workspace_id = $1\n          AND edh.effective_date <= $2\n        ORDER BY edh.effective_date DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "employee_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "default_working_pattern_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "effective_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "day_of_week",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "pattern_shift_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "0cbb71152ce1efa399ebc94c3720aa1546772e56be743dcc069477834c74836c"
+}

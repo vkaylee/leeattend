@@ -2,6 +2,23 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
+## [Unreleased] - 2026-01-17
+
+### Added
+- **Dynamic Payroll & Salary Components**: Implemented a flexible, component-based payroll architecture.
+    - **Custom Salary Components**: Organizations can now define their own income categories (e.g., Meal, Transport, Seniority) with individual taxability and "Base for OT" flags.
+    - **Flexible Standard Day Policy**: Added workspace-level configuration for calculating daily/hourly rates. Supports both `Fixed` (e.g., 26 days) and `Actual Month` (calendar-based) modes.
+    - **Hourly Rate Engine**: Re-engineered the payroll calculator to derive hourly rates dynamically: `(Sum of Base-for-OT Components) / (Standard Days * Standard Hours)`.
+    - **Historical Persistence**: New `employee_salary_components` table ensures salary changes are tracked over time with full auditability.
+    - **Standardized Utilities**: Integrated `count_working_days` into `AttendanceCalculator` to ensure consistency between attendance reports and payslip calculations.
+    - **New API Endpoints**: Full CRUD for `payroll-settings`, `salary-components`, and employee-specific assignments.
+    - **Data Migration**: Automated migration path from legacy flat `salary_history` to the new hierarchical component system.
+
+### Fixed
+- **Payroll Backward Compatibility**: Maintained the standard 176-hour fallback for legacy workspaces/tests while enabling dynamic overrides for new tenants.
+- **Hourly Salary Logic**: Fixed a bug where hourly-rate employees had their pay incorrectly divided by standard days.
+- **SQLX Offline Desync**: Synchronized metadata using `cargo sqlx prepare` to reflect new schema changes in the offline build cache.
+
 ## [Unreleased] - 2026-01-16
 
 ### Added

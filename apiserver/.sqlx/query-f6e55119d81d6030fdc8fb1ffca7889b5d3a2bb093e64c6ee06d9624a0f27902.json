@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT edh.employee_id, dds.shift_id, edh.effective_date\n        FROM employee_department_history edh\n        JOIN department_default_shifts dds ON edh.department_id = dds.department_id\n        WHERE edh.effective_date <= $1\n        ORDER BY edh.effective_date DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "employee_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "shift_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "effective_date",
+        "type_info": "Date"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f6e55119d81d6030fdc8fb1ffca7889b5d3a2bb093e64c6ee06d9624a0f27902"
+}

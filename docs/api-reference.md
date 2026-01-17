@@ -528,7 +528,84 @@ Lấy danh sách nhật ký quẹt thẻ thô (nguyên bản) từ thiết bị 
 
 ### 11. Payroll & Shifts
 
-Quản lý lương, ca làm việc và báo cáo công.
+Quản lý lương, ca làm việc và báo cáo công. Hệ thống hỗ trợ cấu hình lương động dựa trên các thành phần thu nhập (Components) và chính sách công chuẩn của từng tổ chức.
+
+#### Payroll Settings Model
+Lưu cấu hình tính toán lương cấp Workspace.
+```json
+{
+  "workspace_id": "uuid",
+  "std_working_day_mode": "fixed|actual_month",
+  "fixed_std_days": 26.0,
+  "working_days_per_week": 6, // 5, 6, 7
+  "hours_per_day": 8.0,
+  "updated_at": "datetime"
+}
+```
+
+#### GET /workspaces/:ws_id/payroll-settings
+Lấy cấu hình lương hiện tại của workspace.
+- **Response (200)**: `PayrollSettings`
+
+#### PATCH /workspaces/:ws_id/payroll-settings
+Cập nhật cấu hình tính công chuẩn.
+- **Request**:
+  ```json
+  {
+    "std_working_day_mode": "actual_month",
+    "working_days_per_week": 5,
+    "hours_per_day": 8.0
+  }
+  ```
+- **Response (200 OK)**
+
+#### Salary Component Definition
+Định nghĩa các loại khoản thu nhập (Lương cơ bản, Phụ cấp, Thưởng...).
+```json
+{
+  "id": "uuid",
+  "workspace_id": "uuid",
+  "name": "Phụ cấp ăn trưa",
+  "code": "MEAL",
+  "is_base_for_ot": false, // Nếu TRUE, khoản này sẽ được cộng vào gốc tính lương tăng ca
+  "is_taxable": true
+}
+```
+
+#### GET /workspaces/:ws_id/salary-components
+Lấy danh mục các loại thành phần lương của workspace.
+- **Response (200)**: `Array<SalaryComponentDefinition>`
+
+#### POST /workspaces/:ws_id/salary-components
+Tạo loại thành phần lương mới.
+- **Request**: `{ "name": "...", "code": "...", "is_base_for_ot": true, "is_taxable": true }`
+
+#### GET /workspaces/:ws_id/employees/:id/salary-components
+Lấy các khoản lương đang được áp dụng cho một nhân viên cụ thể (Lấy bản ghi mới nhất tính đến hiện tại).
+- **Response (200)**: 
+  ```json
+  [
+    {
+      "id": "uuid",
+      "name": "Lương cơ bản",
+      "code": "BASE",
+      "amount": 10000000,
+      "is_base_for_ot": true,
+      "effective_date": "2026-01-01"
+    }
+  ]
+  ```
+
+#### POST /workspaces/:ws_id/employees/:id/salary-components
+Gán một khoản lương/phụ cấp mới cho nhân viên.
+- **Request**: 
+  ```json
+  {
+    "component_definition_id": "uuid",
+    "amount": 500000,
+    "effective_date": "2026-01-15"
+  }
+  ```
 
 #### GET /workspaces/:ws_id/shifts
 Lấy danh sách các ca làm việc đã định nghĩa (bao gồm cả các phiên bản cũ).

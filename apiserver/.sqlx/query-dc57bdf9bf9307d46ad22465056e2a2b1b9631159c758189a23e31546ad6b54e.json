@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE departments \n           SET name = COALESCE($3, name),\n               description = COALESCE($4, description),\n               manager_id = COALESCE($5, manager_id)\n           WHERE id = $1 AND workspace_id = $2\n           RETURNING id, workspace_id, name, description, manager_id, created_at as \"created_at!\", updated_at as \"updated_at!\"",
+  "query": "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date, updated_at)\n           VALUES ($1, $2, $3, $4, $5)\n           RETURNING id, employee_id, component_definition_id, amount, effective_date, created_at as \"created_at!\", updated_at as \"updated_at!\"",
   "describe": {
     "columns": [
       {
@@ -10,23 +10,23 @@
       },
       {
         "ordinal": 1,
-        "name": "workspace_id",
+        "name": "employee_id",
         "type_info": "Uuid"
       },
       {
         "ordinal": 2,
-        "name": "name",
-        "type_info": "Varchar"
+        "name": "component_definition_id",
+        "type_info": "Uuid"
       },
       {
         "ordinal": 3,
-        "name": "description",
-        "type_info": "Text"
+        "name": "amount",
+        "type_info": "Numeric"
       },
       {
         "ordinal": 4,
-        "name": "manager_id",
-        "type_info": "Uuid"
+        "name": "effective_date",
+        "type_info": "Date"
       },
       {
         "ordinal": 5,
@@ -43,20 +43,20 @@
       "Left": [
         "Uuid",
         "Uuid",
-        "Varchar",
-        "Text",
-        "Uuid"
+        "Numeric",
+        "Date",
+        "Timestamptz"
       ]
     },
     "nullable": [
       false,
       false,
       false,
-      true,
-      true,
+      false,
+      false,
       true,
       true
     ]
   },
-  "hash": "6d00315c3a6a097f182778cfdd841e6be7bbefc7d2f88921156cd36a7c727a64"
+  "hash": "dc57bdf9bf9307d46ad22465056e2a2b1b9631159c758189a23e31546ad6b54e"
 }
