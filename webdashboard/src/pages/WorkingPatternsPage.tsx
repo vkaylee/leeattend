@@ -28,6 +28,7 @@ import Modal from "@/components/ui/Modal";
 import { format, startOfToday } from "date-fns";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Link } from "react-router-dom";
+import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 
 export default function WorkingPatternsPage() {
   const { t } = useTranslation();
@@ -403,7 +404,10 @@ export default function WorkingPatternsPage() {
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("patterns.form.select_employees")}</label>
               <div className="flex gap-2">
                 <button 
-                  onClick={() => setSelectedEmployeeIds(employees?.map(e => e.id) || [])}
+                  onClick={async () => {
+                    const allEmps = await fetchEmployees(wsId);
+                    setSelectedEmployeeIds(allEmps.map(e => e.id));
+                  }}
                   className="text-[10px] font-bold text-primary-600 hover:underline"
                 >
                   {t("common.select_all")}
@@ -417,28 +421,13 @@ export default function WorkingPatternsPage() {
               </div>
             </div>
             
-            <div className="bg-slate-50 rounded-[32px] p-4 border border-slate-100 max-h-60 overflow-y-auto custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-2">
-               {employees?.map(emp => (
-                 <label key={emp.id} className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-transparent hover:border-primary-100 transition-all cursor-pointer group">
-                    <input 
-                      type="checkbox"
-                      checked={selectedEmployeeIds.includes(emp.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedEmployeeIds([...selectedEmployeeIds, emp.id]);
-                        } else {
-                          setSelectedEmployeeIds(selectedEmployeeIds.filter(id => id !== emp.id));
-                        }
-                      }}
-                      className="w-5 h-5 rounded-lg border-slate-200 text-primary-600 focus:ring-primary-500"
-                    />
-                    <div className="flex flex-col">
-                      <span className="text-sm font-bold text-slate-900 group-hover:text-primary-600 transition-colors">{emp.first_name} {emp.last_name}</span>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{emp.employee_id_number}</span>
-                    </div>
-                 </label>
-               ))}
-            </div>
+            <EmployeeSearch
+              workspaceId={wsId}
+              multiple={true}
+              value={selectedEmployeeIds}
+              onChange={setSelectedEmployeeIds}
+              placeholder={t("patterns.form.select_employees_placeholder", "Search employees...")}
+            />
           </div>
 
           <div className="flex gap-3 pt-2">

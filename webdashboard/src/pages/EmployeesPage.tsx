@@ -38,6 +38,7 @@ import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { format } from "date-fns";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
+import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 
 export default function EmployeesPage() {
   const { t } = useTranslation();
@@ -196,20 +197,33 @@ export default function EmployeesPage() {
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{t("employees.title")}</h1>
             <p className="text-slate-500 mt-1">{t("employees.subtitle")}</p>
           </div>
-          <button 
-            onClick={() => { setEditingEmployee(null); setIsModalOpen(true); }}
-            className="flex items-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-2xl hover:bg-primary-700 hover:scale-105 transition-all shadow-xl shadow-primary-200 active:scale-95 font-bold"
-          >
-            <UserPlus className="w-5 h-5" />
-            {t("employees.add_btn")}
-          </button>
+          <div className="flex items-center gap-4">
+            <div className="w-72">
+              <EmployeeSearch
+                workspaceId={wsId}
+                value={selectedEmployee?.id}
+                onChange={(id) => {
+                  const emp = employees.find(e => e.id === id);
+                  if (emp) setSelectedEmployee(emp);
+                }}
+                placeholder={t("employees.search_placeholder")}
+              />
+            </div>
+            <button 
+              onClick={() => { setEditingEmployee(null); setIsModalOpen(true); }}
+              className="flex items-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-2xl hover:bg-primary-700 hover:scale-105 transition-all shadow-xl shadow-primary-200 active:scale-95 font-bold shrink-0"
+            >
+              <UserPlus className="w-5 h-5" />
+              {t("employees.add_btn")}
+            </button>
+          </div>
         </div>
 
         <div className="relative shrink-0 group">
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 group-focus-within:text-primary-500 transition-colors" />
           <input 
             type="text" 
-            placeholder={t("employees.search_placeholder")}
+            placeholder={t("common.filter_by_name", "Filter table...")}
             className="w-full pl-14 pr-6 py-4 bg-white border border-slate-100 rounded-[1.5rem] shadow-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all text-lg"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

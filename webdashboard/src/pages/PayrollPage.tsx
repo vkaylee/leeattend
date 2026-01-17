@@ -30,6 +30,7 @@ import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 import EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
+import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 
 export default function PayrollPage() {
   const { t } = useTranslation();
@@ -90,11 +91,23 @@ export default function PayrollPage() {
         </div>
 
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <EmployeeSearch
+            workspaceId={wsId}
+            value={selectedEmployee?.id}
+            onChange={(id) => {
+              const emp = employees.find(e => e.id === id);
+              if (emp) setSelectedEmployee(emp);
+            }}
+            placeholder={t("payroll.search_placeholder")}
+          />
+        </div>
+
+        <div className="relative mt-2 group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-primary-500" />
           <input 
             type="text" 
-            placeholder={t("payroll.search_placeholder")}
-            className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-blue-500 transition-all"
+            placeholder={t("common.filter_by_name", "Filter sidebar...")}
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary-500/10 transition-all text-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />

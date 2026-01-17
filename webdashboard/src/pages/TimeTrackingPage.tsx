@@ -16,10 +16,7 @@ import {
 import { useToast } from "../components/Toast";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { format } from "date-fns";
-import { Combobox } from "@/components/ui/Combobox";
-import Modal from "@/components/ui/Modal";
-
-import { toUTCISO } from "../lib/datetime";
+import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 
 export default function TimeTrackingPage() {
   const { t } = useTranslation();
@@ -136,21 +133,11 @@ export default function TimeTrackingPage() {
           {t("time_tracking.select_employee_label")}
         </label>
         <div className="max-w-xl">
-          <Combobox
-            options={employees.map((emp) => ({
-              value: emp.id,
-              label: `${emp.first_name} ${emp.last_name}`,
-              description: `${t("employees.table.id")}: ${emp.employee_id_number} • ${emp.department_name || t("employees.details.not_assigned_dept")}`,
-              icon: (
-                <div className="bg-primary-100 p-2 rounded-xl text-primary-600 shadow-inner">
-                  <User className="w-4 h-4" />
-                </div>
-              ),
-            }))}
+          <EmployeeSearch
+            workspaceId={wsId!}
             value={selectedEmployeeId}
             onChange={setSelectedEmployeeId}
             placeholder={t("time_tracking.search_placeholder")}
-            searchPlaceholder={t("time_tracking.type_search_placeholder")}
             className="h-16 text-lg border-slate-100 bg-slate-50/50 hover:bg-white focus:ring-primary-500/10"
           />
         </div>

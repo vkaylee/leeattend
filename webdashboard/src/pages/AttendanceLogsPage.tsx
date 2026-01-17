@@ -19,8 +19,8 @@ import {
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import AttendanceImportDialog from "@/components/AttendanceImportDialog";
-import { Combobox } from "@/components/ui/Combobox";
+import { AttendanceImportDialog } from "@/components/AttendanceImportDialog";
+import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -192,22 +192,25 @@ export default function AttendanceLogsPage() {
               </button>
             </div>
 
-            <div className="flex-1 max-w-md">
-              <Combobox
-                options={[
-                  { value: "all", label: t("common.all_employees"), icon: <Users className="w-4 h-4" /> },
-                  ...(employees?.map((emp) => ({
-                    value: emp.id,
-                    label: `${emp.first_name} ${emp.last_name}`,
-                    description: `${t("employees.table.id")}: ${emp.employee_id_number}`,
-                    icon: <User className="w-4 h-4" />
-                  })) || [])
-                ]}
-                value={employeeId}
-                onChange={(val) => { setEmployeeId(val); setPage(1); }}
-                placeholder={t("common.search_placeholder")}
-                className="bg-slate-50 border-slate-200"
-              />
+            <div className="flex-1 max-w-md flex items-center gap-2">
+              <div className="flex-1">
+                <EmployeeSearch
+                  workspaceId={wsId!}
+                  value={employeeId === "all" ? "" : employeeId}
+                  onChange={(val) => { setEmployeeId(val || "all"); setPage(1); }}
+                  placeholder={employeeId === "all" ? t("common.all_employees") : undefined}
+                />
+              </div>
+              {employeeId !== "all" && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => { setEmployeeId("all"); setPage(1); }}
+                  className="rounded-2xl"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  {t("common.all_employees")}
+                </Button>
+              )}
             </div>
           </div>
 

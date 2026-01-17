@@ -29,6 +29,7 @@ import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/Toast";
 import { AssignPolicyModal } from "@/components/leave/AssignPolicyModal";
+import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 
 export default function LeaveRequestsPage() {
   const { t } = useTranslation();
@@ -367,21 +368,11 @@ export default function LeaveRequestsPage() {
             >
               {t("common.employee")}
             </label>
-            <Combobox
+            <EmployeeSearch
               id="leave-emp"
-              options={employees.map((e) => ({
-                value: e.id,
-                label: `${e.first_name} ${e.last_name}`,
-                description: `${t("employees.table.id")}: ${e.employee_id_number}`,
-                icon: (
-                  <div className="bg-primary-100 p-2 rounded-xl text-primary-600 shadow-inner">
-                    <UserCircle className="w-4 h-4" />
-                  </div>
-                ),
-              }))}
+              workspaceId={wsId!}
               value={selectedEmpId}
               onChange={setSelectedEmpId}
-              placeholder={t("common.select_employee")}
               className="bg-slate-50 border-slate-200"
             />
           </div>

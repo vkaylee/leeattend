@@ -12,6 +12,7 @@ import {
 } from "../lib/api";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { formatUnitsToHours } from "@/lib/utils/attendance";
+import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 
 export default function ReportsPage() {
   const { t } = useTranslation();
@@ -37,7 +38,7 @@ export default function ReportsPage() {
 
   const [filterMode, setFilterMode] = useState<"this_month" | "last_month" | "custom">("this_month");
   const [dateRange, setDateRange] = useState(getMonthRange(0));
-  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [reportType, setReportType] = useState<"summary" | "daily">("summary");
 
   const handleFilterModeChange = (mode: "this_month" | "last_month" | "custom") => {
@@ -56,7 +57,7 @@ export default function ReportsPage() {
   });
 
   const filteredData = Array.isArray(reportData) ? reportData.filter((row: any) => 
-    row.employee_name.toLowerCase().includes(searchTerm.toLowerCase())
+    selectedEmployeeIds.length === 0 || selectedEmployeeIds.includes(row.employee_id)
   ) : [];
 
   if (!wsId) return <div className="p-8 text-center">{t("common.select_workspace")}</div>;
@@ -148,15 +149,14 @@ export default function ReportsPage() {
             </button>
           </div>
 
-          <div className="flex-1 max-w-md relative">
-            <input 
-              type="text" 
+          <div className="flex-1 max-w-md">
+            <EmployeeSearch
+              workspaceId={wsId!}
+              value={selectedEmployeeIds}
+              onChange={setSelectedEmployeeIds}
+              multiple={true}
               placeholder={t("reports.search_placeholder")}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium"
             />
-            <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
           </div>
         </div>
 
