@@ -6,7 +6,8 @@ import {
   EmployeeWorkingPattern,
   CreateWorkingPatternRequest,
   AssignPatternRequest,
-  BulkAssignPatternRequest
+  BulkAssignPatternRequest,
+  BulkAssignResponse
 } from "./types";
 
 export async function fetchWorkingPatterns(wsId: string): Promise<WorkingPattern[]> {
@@ -46,12 +47,13 @@ export async function assignPattern(
 export async function bulkAssignPattern(
   wsId: string,
   data: BulkAssignPatternRequest
-): Promise<void> {
+): Promise<BulkAssignResponse> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/working-patterns/bulk-assign`, {
     method: "POST",
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to bulk assign pattern");
+  return response.json();
 }
 
 export async function fetchEmployeePatternHistory(

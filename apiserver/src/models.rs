@@ -169,6 +169,7 @@ pub struct UserResponse {
     pub avatar_url: Option<String>,
     pub bio: Option<String>,
     pub preferred_language: Option<String>,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -723,6 +724,12 @@ pub struct BulkAssignPatternRequest {
     pub pattern_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: Option<NaiveDate>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BulkAssignResponse {
+    pub success_count: usize,
+    pub failed_employees: Vec<Uuid>,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]

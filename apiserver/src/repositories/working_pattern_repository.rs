@@ -1,4 +1,4 @@
-use crate::models::{WorkingPattern, WorkingPatternDetail, EmployeeWorkingPattern};
+use crate::models::{WorkingPattern, WorkingPatternDetail, EmployeeWorkingPattern, BulkAssignResponse};
 use sqlx::{PgPool, Postgres, Executor};
 use uuid::Uuid;
 use chrono::NaiveDate;
@@ -106,8 +106,28 @@ pub async fn bulk_assign_pattern(
     pattern_id: Uuid,
     start_date: NaiveDate,
     end_date: Option<NaiveDate>,
-) -> Result<(), sqlx::Error> {
+) -> Result<BulkAssignResponse, sqlx::Error> {
     let mut tx = pool.begin().await?;
+
+    // 1. Validation: Check if any employee already has a pattern starting on the same date
+    let conflicts = sqlx::query_scalar::<_, Uuid>(
+        r#"
+        SELECT employee_id FROM employee_working_patterns 
+        WHERE workspace_id = $1 AND start_date = $2 AND employee_id = ANY($3)
+        "#
+    )
+    .bind(workspace_id)
+    .bind(start_date)
+    .bind(employee_ids)
+    .fetch_all(&mut *tx)
+    .await?;
+
+    if !conflicts.is_empty() {
+        return Ok(BulkAssignResponse {
+            success_count: 0,
+            failed_employees: conflicts,
+        });
+    }
 
     for &employee_id in employee_ids {
         sqlx::query(
@@ -126,5 +146,8 @@ pub async fn bulk_assign_pattern(
     }
 
     tx.commit().await?;
-    Ok(())
+    Ok(BulkAssignResponse {
+        success_count: employee_ids.len(),
+        failed_employees: vec![],
+    })
 }

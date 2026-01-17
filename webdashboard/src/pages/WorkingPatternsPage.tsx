@@ -93,11 +93,15 @@ export default function WorkingPatternsPage() {
 
   const bulkAssignMutation = useMutation({
     mutationFn: (data: any) => bulkAssignPattern(wsId, data),
-    onSuccess: () => {
-      toast.success(t("patterns.messages.bulk_assign_success"));
-      setIsBulkModalOpen(false);
-      setSelectedEmployeeIds([]);
-      queryClient.invalidateQueries({ queryKey: ["schedules"] });
+    onSuccess: (data) => {
+      if (data.success_count > 0) {
+        toast.success(t("patterns.messages.bulk_assign_success_count", { count: data.success_count }));
+        setIsBulkModalOpen(false);
+        setSelectedEmployeeIds([]);
+        queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      } else if (data.failed_employees.length > 0) {
+        toast.error(t("patterns.messages.bulk_assign_conflict", { count: data.failed_employees.length }));
+      }
     },
     onError: (error: any) => toast.error(error.message, t("patterns.messages.bulk_assign_error"))
   });

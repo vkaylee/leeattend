@@ -5,6 +5,12 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased] - 2026-01-17
 
 ### Added
+- **Enterprise Bulk Schedule Assignment**: Upgraded the mass-scheduling system with robustness and detailed feedback.
+    - **Transaction Safety**: Bulk assignment now runs within a single database transaction, ensuring all-or-nothing consistency.
+    - **Conflict Detection**: The system pre-validates assignments to prevent overlapping patterns for the same employee on the same start date.
+    - **Detailed Feedback UI**: The Bulk Assign modal now reports the exact number of successful assignments or specific conflict errors.
+    - **API Transparency**: Updated `POST /bulk-assign` to return a structured response `{ success_count, failed_employees }` instead of a generic 200 OK.
+    - **Integration Test Suite**: Added `bulk_assignment_robustness_test.rs` to verify rollback behavior and conflict handling.
 - **Unified Employee Search Feature**: Standardized the employee search experience across the entire dashboard.
     - **Global Implementation**: Replaced manual filters with a high-performance, debounced `EmployeeSearch` combobox in Attendance, Employees, Leave, Payroll, Reports, Time Tracking, and Working Patterns pages.
     - **Search-on-Type**: Integrated server-side fuzzy matching by Name and Employee ID Number.

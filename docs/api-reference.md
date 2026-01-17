@@ -841,7 +841,13 @@ Gán mẫu lịch làm việc cho hàng loạt nhân viên cùng lúc.
     "end_date": null
   }
   ```
-- **Response (200 OK)**
+- **Response (200 OK)**:
+  ```json
+  {
+    "success_count": 2,
+    "failed_employees": [] // List of employee_ids that caused conflicts (if any)
+  }
+  ```
 
 #### POST /workspaces/:ws_id/employees/:id/working-patterns
 Gán một mẫu lịch làm việc cho nhân viên.

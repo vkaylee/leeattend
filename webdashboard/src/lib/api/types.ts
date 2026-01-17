@@ -57,6 +57,7 @@ export interface User {
   avatar_url?: string;
   bio?: string;
   preferred_language?: string;
+  created_at?: string;
 }
 
 export interface UpdateUserRequest {
@@ -561,49 +562,21 @@ export interface CreateWorkingPatternRequest {
 
 
 export interface AssignPatternRequest {
-
-
-
   pattern_id: string;
-
-
-
   start_date: string;
-
-
-
   end_date?: string | null;
-
-
-
 }
 
-
-
-
-
-
+export interface BulkAssignResponse {
+  success_count: number;
+  failed_employees: string[];
+}
 
 export interface BulkAssignPatternRequest {
-
-
-
   employee_ids: string[];
-
-
-
   pattern_id: string;
-
-
-
   start_date: string;
-
-
-
   end_date?: string | null;
-
-
-
 }
 
 

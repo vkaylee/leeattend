@@ -75,10 +75,10 @@ pub async fn bulk_assign_pattern(
     if !ctx.is_admin_or_owner() {
         return Err(StatusCode::FORBIDDEN);
     }
-    service::bulk_assign_pattern(&state.db, ctx.workspace_id, req)
+    let result = service::bulk_assign_pattern(&state.db, ctx.workspace_id, req)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(StatusCode::OK)
+    Ok(Json(result))
 }
 
 pub async fn get_employee_pattern_history(
