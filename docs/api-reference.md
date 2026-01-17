@@ -543,6 +543,26 @@ Lưu cấu hình tính toán lương cấp Workspace.
 }
 ```
 
+#### Payslip Model (New)
+Lưu thông tin chi tiết phiếu lương hàng tháng.
+```json
+{
+  "id": "uuid",
+  "employee_id": "uuid",
+  "period_start": "YYYY-MM-DD",
+  "period_end": "YYYY-MM-DD",
+  "base_pay_amount": "decimal_string",
+  "overtime_pay_amount": "decimal_string",
+  "deductions_amount": "decimal_string",
+  "net_pay_amount": "decimal_string",
+  "standard_units": 160, // Số Work Unit chuẩn (Số nguyên)
+  "overtime_units": 10,  // Số Work Unit tăng ca (Số nguyên)
+  "status": "draft|published|paid",
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
+```
+
 #### GET /workspaces/:ws_id/payroll-settings
 Lấy cấu hình lương hiện tại của workspace.
 - **Response (200)**: `PayrollSettings`
@@ -641,9 +661,10 @@ Xuất báo cáo chấm công của workspace.
     - `start_date`: YYYY-MM-DD
     - `end_date`: YYYY-MM-DD
     - `type`: `summary` (mặc định) hoặc `daily`
-- **Response (type=summary)**: Báo cáo tổng hợp số giờ, số ngày công theo từng nhân viên.
+- **Response (type=summary)**: Báo cáo tổng hợp số Work Unit, số ngày công theo từng nhân viên.
+    - **Fields**: `employee_id`, `employee_name`, `total_work_units` (Số lượng đơn vị công nguyên), `total_leave_days`.
 - **Response (type=daily)**: Báo cáo chi tiết từng lượt quẹt thẻ (Work/Break) theo ngày của từng nhân viên.
-    - **Fields**: `employee_id`, `employee_name`, `date`, `scheduled_start`, `scheduled_end`, `break_duration_minutes`, `break_start`, `break_end`, `is_break_auto_deduct`, `actual_punch_in`, `actual_punch_out`, `total_minutes` (Thời gian công thực tế sau khi trừ giờ nghỉ và làm tròn), `status`.
+    - **Fields**: `employee_id`, `employee_name`, `date`, `scheduled_start`, `scheduled_end`, `break_duration_minutes`, `break_start`, `break_end`, `is_break_auto_deduct`, `actual_punch_in`, `actual_punch_out`, `work_units` (Số lượng đơn vị công nguyên sau khi làm tròn), `status`.
 
 ---
 

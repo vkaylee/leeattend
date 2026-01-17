@@ -72,7 +72,7 @@ leeattend/
     - **Dynamic Payroll System (Component-Based)**: Flexible architecture for multi-tenant salary calculation.
         - **Salary Component Directory**: Allows defining custom income types (Meal, Gas, Seniority) with configurable taxability and "Base for OT" flags.
         - **Flexible Standard Day Policy**: Support for diverse company cultures via `Fixed` (e.g., always 26 days) or `Actual Month` (calendar-based) standard day modes.
-        - **Dynamic Hourly Rate Engine**: Automatically derives OT hourly rates based on the sum of all "Base for OT" components divided by the calculated standard hours.
+        - **Dynamic Hourly Rate Engine**: Automatically derives OT unit rates based on the sum of all "Base for OT" components divided by the calculated standard units.
         - **Historical Tracking**: Time-series storage of component assignments ensuring payroll integrity even when salaries change mid-period.
     - **Employee Self-Service (ESS) Portal**: Dedicated subsystem for employee empowerment and data autonomy.
         - **Secure Personal Access**: Direct access to personal data (Profile, Contacts, Documents) without requiring workspace administrative roles.
@@ -83,8 +83,8 @@ leeattend/
         - **Attendance Calculator**: Centralized Domain Service (`attendance_calculator.rs`) implementing pure business logic for:
             - **Grace Period**: Logic "châm chước" đi trễ (ví dụ: cho phép trễ 15p).
             - **Break Deduction**: Tự động trừ giờ nghỉ trưa hoặc trừ theo thực tế.
-            - **Rounding**: Làm tròn giờ công (Floor/Ceil/Round) theo Work Unit (15m/30m).
-        - **Overtime Engine**: Priority-based calculation logic supporting worked-through breaks and daily OT thresholds.
+            - **Work Unit Calculation**: Quy đổi từ phút thực tế sang số Work Unit (Số nguyên) và áp dụng quy tắc làm tròn (Floor/Ceil/Round) theo cấu hình Workspace (15m/30m/60m).
+        - **Overtime Engine**: Priority-based calculation logic supporting worked-through breaks and daily OT thresholds. Result is converted to integer Units.
         - **Leave Management**: Tracking of annual leave entitlements, carry-over balances, and usage history.
         - **Admin Management & Auditing**: High-level workspace overview of all employee balances. Merged history stream of auto-accruals, usage, and manual corrections.
         - **Dynamic Accrual Engine**: Automated leave balance calculation based on configurable rules (Monthly/Quarterly/Yearly) and Seniority Bonuses.
