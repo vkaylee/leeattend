@@ -1,7 +1,7 @@
 use axum::http::StatusCode;
-use chrono::{NaiveDate, TimeZone, Utc};
+use chrono::{Datelike, NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
-use rust_decimal::prelude::FromPrimitive;
+use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use rust_decimal::Decimal;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -32,6 +32,20 @@ impl PayrollService {
 
         let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
 
+        // 0.1 Get Payroll Settings
+        let payroll_settings = payroll_repository::get_payroll_settings(pool, workspace_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .unwrap_or(crate::models::PayrollSettings {
+                workspace_id,
+                std_working_day_mode: "fixed".to_string(),
+                fixed_std_days: Decimal::from(26),
+                working_days_per_week: 6,
+                hours_per_day: Decimal::from(8),
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            });
+
         // 1. Get employee and salary settings
         let _employee = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
             .await
@@ -49,10 +63,10 @@ impl PayrollService {
             .pred_opt()
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        let settings = payroll_repository::get_latest_salary(pool, employee_id, end_date)
+        // Fetch dynamic salary components
+        let salary_components = payroll_repository::get_employee_salary_components(pool, employee_id, end_date)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-            .ok_or(StatusCode::BAD_REQUEST)?;
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         // 2. Define period
         let start_date = NaiveDate::from_ymd_opt(year, month, 1).ok_or(StatusCode::BAD_REQUEST)?;
@@ -167,66 +181,97 @@ impl PayrollService {
             total_overtime_minutes += AttendanceCalculator::apply_rounding(day_overtime, workspace.work_unit_minutes, &workspace.rounding_policy);
         }
 
-        let worked_hours = total_standard_minutes as f64 / 60.0;
-
-
+        let _worked_hours = total_standard_minutes as f64 / 60.0;
         let overtime_hours = total_overtime_minutes as f64 / 60.0;
 
         // 4. Calculate pay
 
-        // Base pay
-
-        let base_pay = if settings.salary_type == "monthly" {
-            settings.base_salary
+        // 4.1 Determine standard working days for this month
+        let std_days = if payroll_settings.std_working_day_mode == "actual_month" {
+            Self::count_working_days(year, month, payroll_settings.working_days_per_week)
         } else {
-            let rate = settings.base_salary;
-
-            rate * Decimal::from_f64(worked_hours).unwrap_or(Decimal::ZERO)
+            payroll_settings.fixed_std_days.to_f64().unwrap_or(26.0)
         };
 
-        // Overtime pay (calculated as 1.5x hourly rate)
+        // 4.2 Calculate Base for OT and Total Base Pay
+        let mut base_pay_for_ot = Decimal::ZERO;
+        let mut total_base_pay = Decimal::ZERO;
 
-        let hourly_rate = if settings.salary_type == "monthly" {
-            // Assume 176 hours per month for salary calculation if monthly
+        for (esc, scd) in salary_components {
+            total_base_pay += esc.amount;
+            if scd.is_base_for_ot {
+                base_pay_for_ot += esc.amount;
+            }
+        }
 
-            settings.base_salary / Decimal::from(176)
-        } else {
-            settings.base_salary
-        };
+        // If no components found, fallback to old salary_history if needed?
+        // Actually, the migration should have handled this. 
+        // But let's add a fallback to keep it robust during transition.
+        if total_base_pay.is_zero() {
+             let old_settings = payroll_repository::get_latest_salary(pool, employee_id, end_date)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+                .ok_or(StatusCode::BAD_REQUEST)?;
+             total_base_pay = old_settings.base_salary;
+             base_pay_for_ot = old_settings.base_salary;
+        }
+
+        // Overtime pay
+        let hourly_rate = base_pay_for_ot / (Decimal::from_f64(std_days).unwrap_or(Decimal::from(26)) * payroll_settings.hours_per_day);
 
         let overtime_pay =
             hourly_rate * Decimal::from_f64(overtime_hours * 1.5).unwrap_or(Decimal::ZERO);
 
         let deductions = Decimal::ZERO;
 
-        let net_pay = base_pay + overtime_pay - deductions;
+        let net_pay = total_base_pay + overtime_pay - deductions;
 
         let payslip = Payslip {
             id: Uuid::new_v4(),
-
             employee_id,
-
             period_start: start_date,
-
             period_end: end_date,
-
-            base_pay_amount: base_pay,
-
+            base_pay_amount: total_base_pay,
             overtime_pay_amount: overtime_pay,
-
             deductions_amount: deductions,
-
             net_pay_amount: net_pay,
-
             status: "draft".to_string(),
-
             created_at: chrono::Utc::now(),
-
             updated_at: chrono::Utc::now(),
         };
 
         payroll_repository::create_payslip(pool, &payslip)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
+    fn count_working_days(year: i32, month: u32, days_per_week: i32) -> f64 {
+        let start_date = NaiveDate::from_ymd_opt(year, month, 1).unwrap();
+        let next_month = if month == 12 {
+            NaiveDate::from_ymd_opt(year + 1, 1, 1).unwrap()
+        } else {
+            NaiveDate::from_ymd_opt(year, month + 1, 1).unwrap()
+        };
+
+        let mut working_days = 0;
+        let mut current_date = start_date;
+        while current_date < next_month {
+            let weekday = current_date.weekday();
+            let is_working = match days_per_week {
+                7 => true,
+                6 => weekday != chrono::Weekday::Sun,
+                5 => weekday != chrono::Weekday::Sat && weekday != chrono::Weekday::Sun,
+                _ => true,
+            };
+            if is_working {
+                working_days += 1;
+            }
+            if let Some(next) = current_date.succ_opt() {
+                current_date = next;
+            } else {
+                break;
+            }
+        }
+        working_days as f64
     }
 }

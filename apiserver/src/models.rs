@@ -780,6 +780,65 @@ pub struct AssignmentHistory {
     pub created_at: DateTime<Utc>,
 }
 
+// --- Payroll Settings & Components Models ---
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct PayrollSettings {
+    pub workspace_id: Uuid,
+    pub std_working_day_mode: String,
+    pub fixed_std_days: rust_decimal::Decimal,
+    pub working_days_per_week: i32,
+    pub hours_per_day: rust_decimal::Decimal,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct SalaryComponentDefinition {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub name: String,
+    pub code: String,
+    pub is_base_for_ot: bool,
+    pub is_taxable: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EmployeeSalaryComponent {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub component_definition_id: Uuid,
+    pub amount: rust_decimal::Decimal,
+    pub effective_date: NaiveDate,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdatePayrollSettingsRequest {
+    pub std_working_day_mode: Option<String>,
+    pub fixed_std_days: Option<rust_decimal::Decimal>,
+    pub working_days_per_week: Option<i32>,
+    pub hours_per_day: Option<rust_decimal::Decimal>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateSalaryComponentRequest {
+    pub name: String,
+    pub code: String,
+    pub is_base_for_ot: bool,
+    pub is_taxable: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AssignSalaryComponentRequest {
+    pub component_definition_id: Uuid,
+    pub amount: rust_decimal::Decimal,
+    pub effective_date: NaiveDate,
+}
+
 // --- Dynamic Leave Policy Models ---
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

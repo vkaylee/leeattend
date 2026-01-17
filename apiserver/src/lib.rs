@@ -324,8 +324,20 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         )
         // Payroll
         .route(
+            "/workspaces/:ws_id/payroll-settings",
+            get(handlers::get_payroll_settings).patch(handlers::update_payroll_settings),
+        )
+        .route(
+            "/workspaces/:ws_id/salary-components",
+            get(handlers::get_salary_components).post(handlers::create_salary_component),
+        )
+        .route(
             "/workspaces/:ws_id/employees/:id/salary",
             get(handlers::get_salary_history).post(handlers::add_salary_history),
+        )
+        .route(
+            "/workspaces/:ws_id/employees/:id/salary-components",
+            get(handlers::get_employee_salary_components).post(handlers::assign_employee_salary_component),
         )
         .route(
             "/workspaces/:ws_id/employees/:id/payslips",
