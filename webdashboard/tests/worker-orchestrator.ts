@@ -17,6 +17,13 @@ export const test = base.extend<{ workerWebUrl: string }>({
     const apiPortFile = `.api_port_${workerIndex}`;
     const webPortFile = `.web_port_${workerIndex}`;
 
+    const apiPortPath = path.resolve(__dirname, `../../apiserver/${apiPortFile}`);
+    const webPortPath = path.resolve(__dirname, `../${webPortFile}`);
+
+    // Pre-cleanup stale files
+    if (fs.existsSync(apiPortPath)) fs.unlinkSync(apiPortPath);
+    if (fs.existsSync(webPortPath)) fs.unlinkSync(webPortPath);
+
     console.log(`👷 Worker ${workerIndex}: Starting isolated environment...`);
 
     // 1. Start Backend
@@ -40,7 +47,6 @@ export const test = base.extend<{ workerWebUrl: string }>({
     backend.stderr?.on('data', (data) => console.error(`[Backend W${workerIndex}] ${data}`));
 
     // 2. Wait for Backend port file
-    const apiPortPath = path.resolve(__dirname, `../../apiserver/${apiPortFile}`);
     const apiPort = await waitForFile(apiPortPath);
 
     // 3. Start Frontend (Vite)
@@ -60,11 +66,13 @@ export const test = base.extend<{ workerWebUrl: string }>({
     frontend.stderr?.on('data', (data) => console.error(`[Frontend W${workerIndex}] ${data}`));
 
     // 4. Wait for Frontend port file
-    const webPortPath = path.resolve(__dirname, `../${webPortFile}`);
     const webPort = await waitForFile(webPortPath);
 
     const workerWebUrl = `http://127.0.0.1:${webPort}`;
     console.log(`👷 Worker ${workerIndex}: Environment ready at ${workerWebUrl}`);
+
+    // Optional: wait a bit more for Vite to be fully ready
+    await new Promise(r => setTimeout(r, 2000));
 
     await use(workerWebUrl);
 
@@ -78,7 +86,7 @@ export const test = base.extend<{ workerWebUrl: string }>({
 
     if (fs.existsSync(apiPortPath)) fs.unlinkSync(apiPortPath);
     if (fs.existsSync(webPortPath)) fs.unlinkSync(webPortPath);
-  }, { scope: 'test', auto: true }],
+  }, { scope: 'worker' }],
 });
 
 async function waitForFile(filePath: string, timeout = 60000): Promise<string> {

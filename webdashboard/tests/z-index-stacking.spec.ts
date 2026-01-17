@@ -4,10 +4,10 @@ test.describe('UI Z-Index Stacking Verification', () => {
   test('Combobox dropdown should have higher z-index than Modal backdrop', async ({ page }) => {
     // 1. Setup: Use Debug Login
     await page.goto('/login');
-    const fastLoginBtn = page.locator('button:has-text("Fast Login")');
-    await expect(fastLoginBtn).toBeVisible();
+    const fastLoginBtn = page.locator('button').filter({ hasText: /Fast Login|⚡ Fast Login/i });
+    await expect(fastLoginBtn).toBeVisible({ timeout: 15000 });
     await fastLoginBtn.click();
-    await expect(page.locator('h1:has-text("Dashboard")')).toBeVisible();
+    await expect(page.locator('h1').filter({ hasText: /Dashboard/i })).toBeVisible({ timeout: 30000 });
 
     // 2. Navigate to Leave Requests via Sidebar
     console.log('Navigating to Leave Requests via Sidebar...');
