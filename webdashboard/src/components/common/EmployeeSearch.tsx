@@ -22,6 +22,7 @@ interface EmployeeSearchProps {
   placeholder?: string;
   className?: string;
   id?: string;
+  testId?: string;
   multiple?: boolean;
 }
 
@@ -36,6 +37,7 @@ export function EmployeeSearch({
   placeholder,
   className,
   id,
+  testId,
   multiple = false,
 }: EmployeeSearchProps) {
   const { t } = useTranslation();
@@ -128,8 +130,9 @@ export function EmployeeSearch({
       
       <Combobox
         id={id}
+        data-testid={testId}
         options={options}
-        value={multiple ? "" : (value as string)}
+        value={multiple ? undefined : (value as string || "")}
         onChange={handleSelect}
         onSearchChange={setSearchTerm}
         placeholder={placeholder || t("employees.search.placeholder")}

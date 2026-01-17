@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { AttendanceImportDialog } from "@/components/AttendanceImportDialog";
+import AttendanceImportDialog from "@/components/AttendanceImportDialog";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 
 function cn(...inputs: ClassValue[]) {

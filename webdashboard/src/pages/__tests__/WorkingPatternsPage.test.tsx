@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import WorkingPatternsPage from "../WorkingPatternsPage";
@@ -16,6 +16,26 @@ vi.mock("../../lib/api", () => ({
   fetchEmployees: vi.fn(),
   bulkAssignPattern: vi.fn(),
   getCurrentWorkspaceId: vi.fn(),
+}));
+
+// Mock EmployeeSearch
+vi.mock("@/components/common/EmployeeSearch", () => ({
+  EmployeeSearch: ({ value, onChange, multiple, testId }: any) => (
+    <div className="space-y-2" data-testid={testId || "employee-search-mock"}>
+      <button 
+        onClick={() => {
+          if (multiple) {
+            onChange(["emp-1"]);
+          } else {
+            onChange("emp-1");
+          }
+        }}
+      >
+        Select John Doe
+      </button>
+      {multiple && Array.isArray(value) && value.includes("emp-1") && <span>Selected: John Doe</span>}
+    </div>
+  )
 }));
 
 // Mock Toast
@@ -49,21 +69,23 @@ describe("WorkingPatternsPage", () => {
       },
     });
     (api.getCurrentWorkspaceId as any).mockReturnValue("ws-1");
-    
-    // Mock Data
     (api.fetchWorkingPatterns as any).mockResolvedValue([
       { id: "pat-1", name: "Standard Office", description: "Mon-Fri", is_active: true }
     ]);
     (api.fetchShifts as any).mockResolvedValue([
-      { id: "shift-1", name: "Morning", start_time: "08:00:00", end_time: "17:00:00" }
+      { id: "shift-1", name: "Morning", start_time: "08:00", end_time: "17:00" }
+    ]);
+    (api.fetchEmployees as any).mockResolvedValue([
+      { id: "emp-1", first_name: "John", last_name: "Doe", employee_id_number: "EMP001" }
     ]);
     (api.fetchPatternDetails as any).mockResolvedValue([
       { day_of_week: 1, shift_id: "shift-1" },
-      { day_of_week: 2, shift_id: "shift-1" }
-    ]);
-    (api.fetchEmployees as any).mockResolvedValue([
-      { id: "emp-1", first_name: "John", last_name: "Doe", employee_id_number: "E001" },
-      { id: "emp-2", first_name: "Jane", last_name: "Smith", employee_id_number: "E002" }
+      { day_of_week: 2, shift_id: "shift-1" },
+      { day_of_week: 3, shift_id: "shift-1" },
+      { day_of_week: 4, shift_id: "shift-1" },
+      { day_of_week: 5, shift_id: "shift-1" },
+      { day_of_week: 6, shift_id: null },
+      { day_of_week: 0, shift_id: null },
     ]);
   });
 
@@ -153,21 +175,20 @@ describe("WorkingPatternsPage", () => {
       </QueryClientProvider>
     );
 
-    // Open Modal
-    await user.click(screen.getByText("patterns.bulk_assign_btn"));
+    // Open bulk assign modal
+    const bulkBtn = screen.getByText("patterns.bulk_assign_btn");
+    await user.click(bulkBtn);
 
     // Select Pattern
     const patternSelect = await screen.findByDisplayValue("patterns.form.select_pattern_placeholder");
     await user.selectOptions(patternSelect, "pat-1");
 
-    // Select Employee (Checkbox)
-    const checkbox = screen.getByLabelValue ? screen.queryByLabelText("John Doe") : null;
-    // Fallback if getByLabelText fails due to custom UI
-    const johnDoeText = await screen.findByText("John Doe");
-    await user.click(johnDoeText);
+    // Select Employee (via mock button)
+    const select = screen.getByTestId("employee-search-mock");
+    fireEvent.change(select, { target: { value: "emp-1" } });
 
     // Submit
-    await user.click(screen.getByText("patterns.bulk_assign_submit"));
+    const submitBtn = screen.getByText("patterns.bulk_assign_submit");
 
     await waitFor(() => {
       expect(api.bulkAssignPattern).toHaveBeenCalledWith(

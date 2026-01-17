@@ -23,6 +23,20 @@ vi.mock("../../lib/api", () => ({
   getCurrentWorkspaceId: vi.fn(),
 }));
 
+// Mock EmployeeSearch
+vi.mock("@/components/common/EmployeeSearch", () => ({
+  EmployeeSearch: ({ value, onChange }: any) => (
+    <select 
+      aria-label="Nhân viên"
+      value={value} 
+      onChange={(e) => onChange(e.target.value)}
+    >
+      <option value="">Chọn...</option>
+      <option value="emp-1">John Doe</option>
+    </select>
+  )
+}));
+
 describe("LeaveRequestsPage", () => {
   let queryClient: QueryClient;
 
@@ -107,7 +121,7 @@ describe("LeaveRequestsPage", () => {
 
     // Select employee
     const empSelect = await screen.findByLabelText("Nhân viên");
-    await user.selectOptions(empSelect, "emp-1");
+    fireEvent.change(empSelect, { target: { value: "emp-1" } });
 
     // Wait for the balances to appear.
     expect(await screen.findByText(/Còn/)).toBeDefined();

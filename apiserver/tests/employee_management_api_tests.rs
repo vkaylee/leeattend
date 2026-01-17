@@ -204,6 +204,68 @@ async fn test_get_employees_list() {
 }
 
 #[tokio::test]
+async fn test_get_employees_search() {
+    let (_test_db, factory, app) = setup_app().await;
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    
+    // Create 2 employees
+    factory.employee()
+        .with_workspace(ws_id)
+        .with_first_name("Alice")
+        .with_last_name("Wonder")
+        .with_employee_id_number("ALICE001")
+        .create().await;
+        
+    factory.employee()
+        .with_workspace(ws_id)
+        .with_first_name("Bob")
+        .with_last_name("Builder")
+        .with_employee_id_number("BOB999")
+        .create().await;
+
+    // Search by name
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!("/api/workspaces/{}/employees?q=Alice", ws_id))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let employees: Vec<Employee> = serde_json::from_slice(&body).unwrap();
+    assert_eq!(employees.len(), 1);
+    assert_eq!(employees[0].first_name, "Alice");
+
+    // Search by ID
+    let response = app.clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!("/api/workspaces/{}/employees?q=999", ws_id))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let employees: Vec<Employee> = serde_json::from_slice(&body).unwrap();
+    assert_eq!(employees.len(), 1);
+    assert_eq!(employees[0].last_name, "Builder");
+}
+
+#[tokio::test]
 async fn test_update_employee_complex() {
     let (_test_db, factory, app) = setup_app().await;
     let user_id = factory.user().create().await;

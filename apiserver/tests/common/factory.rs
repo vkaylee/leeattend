@@ -280,6 +280,18 @@ impl EmployeeBuilder {
     }
 
     #[allow(dead_code)]
+    pub fn with_first_name(mut self, name: &str) -> Self {
+        self.first_name = name.to_string();
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn with_last_name(mut self, name: &str) -> Self {
+        self.last_name = name.to_string();
+        self
+    }
+
+    #[allow(dead_code)]
     pub fn with_hire_date(mut self, date: chrono::NaiveDate) -> Self {
         self.hire_date = date;
         self
