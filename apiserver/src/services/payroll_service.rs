@@ -1,5 +1,5 @@
 use axum::http::StatusCode;
-use chrono::{Datelike, NaiveDate, TimeZone, Utc};
+use chrono::{NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use rust_decimal::Decimal;
@@ -188,7 +188,7 @@ impl PayrollService {
 
         // 4.1 Determine standard working days for this month
         let std_days = if payroll_settings.std_working_day_mode == "actual_month" {
-            Self::count_working_days(year, month, payroll_settings.working_days_per_week)
+            AttendanceCalculator::count_working_days(year, month, payroll_settings.working_days_per_week)
         } else {
             payroll_settings.fixed_std_days.to_f64().unwrap_or(26.0)
         };
@@ -243,35 +243,5 @@ impl PayrollService {
         payroll_repository::create_payslip(pool, &payslip)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
-    }
-
-    fn count_working_days(year: i32, month: u32, days_per_week: i32) -> f64 {
-        let start_date = NaiveDate::from_ymd_opt(year, month, 1).unwrap();
-        let next_month = if month == 12 {
-            NaiveDate::from_ymd_opt(year + 1, 1, 1).unwrap()
-        } else {
-            NaiveDate::from_ymd_opt(year, month + 1, 1).unwrap()
-        };
-
-        let mut working_days = 0;
-        let mut current_date = start_date;
-        while current_date < next_month {
-            let weekday = current_date.weekday();
-            let is_working = match days_per_week {
-                7 => true,
-                6 => weekday != chrono::Weekday::Sun,
-                5 => weekday != chrono::Weekday::Sat && weekday != chrono::Weekday::Sun,
-                _ => true,
-            };
-            if is_working {
-                working_days += 1;
-            }
-            if let Some(next) = current_date.succ_opt() {
-                current_date = next;
-            } else {
-                break;
-            }
-        }
-        working_days as f64
     }
 }

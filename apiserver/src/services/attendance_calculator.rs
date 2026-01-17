@@ -1,4 +1,4 @@
-use chrono::{DateTime, Duration, TimeZone};
+use chrono::{DateTime, Datelike, Duration, NaiveDate, TimeZone, Weekday};
 
 #[derive(Debug, Default)]
 pub struct WorkBuckets {
@@ -167,6 +167,41 @@ impl AttendanceCalculator {
         let total_ot = buckets.early_ot_minutes + buckets.late_ot_minutes;
         
         (rounded_standard, total_ot)
+    }
+
+    /// Calculate the number of standard working days in a month based on policy.
+    pub fn count_working_days(year: i32, month: u32, days_per_week: i32) -> f64 {
+        let start_date = match NaiveDate::from_ymd_opt(year, month, 1) {
+            Some(d) => d,
+            None => return 26.0,
+        };
+        
+        let next_month = if month == 12 {
+            NaiveDate::from_ymd_opt(year + 1, 1, 1).unwrap()
+        } else {
+            NaiveDate::from_ymd_opt(year, month + 1, 1).unwrap()
+        };
+
+        let mut working_days = 0;
+        let mut current_date = start_date;
+        while current_date < next_month {
+            let weekday = current_date.weekday();
+            let is_working = match days_per_week {
+                7 => true,
+                6 => weekday != Weekday::Sun,
+                5 => weekday != Weekday::Sat && weekday != Weekday::Sun,
+                _ => true,
+            };
+            if is_working {
+                working_days += 1;
+            }
+            if let Some(next) = current_date.succ_opt() {
+                current_date = next;
+            } else {
+                break;
+            }
+        }
+        working_days as f64
     }
 }
 
