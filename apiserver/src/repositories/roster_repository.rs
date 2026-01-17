@@ -272,6 +272,22 @@ pub async fn get_assignment_history(
 
             UNION ALL
 
+            -- Pattern Assignments
+            SELECT 
+                ewp.id,
+                ewp.employee_id,
+                'pattern' as assignment_type,
+                wp.name as shift_name,
+                TO_CHAR(ewp.start_date, 'YYYY-MM-DD') || 
+                CASE WHEN ewp.end_date IS NULL THEN ' -> ∞' ELSE ' -> ' || TO_CHAR(ewp.end_date, 'YYYY-MM-DD') END as date_range,
+                ewp.created_at
+            FROM employee_working_patterns ewp
+            JOIN working_patterns wp ON ewp.pattern_id = wp.id
+            JOIN employees e ON ewp.employee_id = e.id
+            WHERE e.workspace_id = $1
+
+            UNION ALL
+
             -- Roster Assignments
             SELECT 
                 sr.id,
@@ -283,6 +299,38 @@ pub async fn get_assignment_history(
             FROM shift_rosters sr
             LEFT JOIN shifts s ON sr.shift_id = s.id
             JOIN employees e ON sr.employee_id = e.id
+            WHERE e.workspace_id = $1
+
+            UNION ALL
+
+            -- Department Patterns
+            SELECT 
+                edh.id,
+                edh.employee_id,
+                'department_pattern' as assignment_type,
+                wp.name as shift_name,
+                TO_CHAR(edh.effective_date, 'YYYY-MM-DD') || ' -> ∞' as date_range,
+                edh.created_at
+            FROM employee_department_history edh
+            JOIN departments d ON edh.department_id = d.id
+            JOIN working_patterns wp ON d.default_working_pattern_id = wp.id
+            JOIN employees e ON edh.employee_id = e.id
+            WHERE e.workspace_id = $1
+
+            UNION ALL
+
+            -- Department Fixed
+            SELECT 
+                edh.id,
+                edh.employee_id,
+                'department_fixed' as assignment_type,
+                s.name as shift_name,
+                TO_CHAR(edh.effective_date, 'YYYY-MM-DD') || ' -> ∞' as date_range,
+                edh.created_at
+            FROM employee_department_history edh
+            JOIN department_default_shifts dds ON edh.department_id = dds.department_id
+            JOIN shifts s ON dds.shift_id = s.id
+            JOIN employees e ON edh.employee_id = e.id
             WHERE e.workspace_id = $1
         ) as history
         ORDER BY created_at DESC

@@ -557,8 +557,10 @@ export default function ShiftsPage() {
                       const isToday = day.toDateString() === new Date().toDateString();
                       
                       const isRoster = effectiveSchedule?.source === "roster";
+                      const isPattern = effectiveSchedule?.source === "pattern";
+                      const isDeptPattern = effectiveSchedule?.source === "department_pattern";
                       const isFixed = effectiveSchedule?.source === "fixed";
-                      const isDept = effectiveSchedule?.source === "department";
+                      const isDept = effectiveSchedule?.source === "department" || effectiveSchedule?.source === "department_fixed";
 
                       return (
                         <div 
@@ -590,6 +592,8 @@ export default function ShiftsPage() {
                             {/* Source Badge */}
                             <div className="flex justify-center">
                               {isRoster && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-100 uppercase tracking-tighter flex items-center gap-1"><Zap size={8} /> {t("shifts.types.flexible")}</span>}
+                              {isPattern && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-tighter flex items-center gap-1"><ShieldCheck size={8} /> {t("patterns.title")}</span>}
+                              {isDeptPattern && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200 uppercase tracking-tighter flex items-center gap-1"><Building2 size={8} /> {t("patterns.title")}</span>}
                               {isFixed && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-tighter flex items-center gap-1"><ShieldCheck size={8} /> {t("shifts.types.fixed")}</span>}
                               {isDept && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-100 uppercase tracking-tighter flex items-center gap-1"><Building2 size={8} /> {t("common.department")}</span>}
                             </div>

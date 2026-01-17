@@ -43,6 +43,18 @@ export function AssignmentHistory({ history, selectedEmployee }: AssignmentHisto
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-50 text-purple-600 text-[10px] font-black uppercase tracking-tighter border border-purple-100">
                       <Zap size={10} /> {t("shifts.types.flexible")}
                     </span>
+                  ) : h.assignment_type === 'pattern' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-tighter border border-blue-100">
+                      <ShieldCheck size={10} /> {t("patterns.title")}
+                    </span>
+                  ) : h.assignment_type === 'department_pattern' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 text-slate-600 text-[10px] font-black uppercase tracking-tighter border border-slate-200">
+                      <ShieldCheck size={10} /> {t("patterns.title")} (Dept)
+                    </span>
+                  ) : h.assignment_type === 'department_fixed' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-tighter border border-slate-100">
+                      <ShieldCheck size={10} /> {t("shifts.types.fixed")} (Dept)
+                    </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-tighter border border-emerald-100">
                       <ShieldCheck size={10} /> {t("shifts.types.fixed")}
