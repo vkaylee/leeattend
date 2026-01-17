@@ -804,6 +804,11 @@
     "subtitle": "Manage records and work history system-wide",
     "add_btn": "Add Employee",
     "search_placeholder": "Search by name or employee ID...",
+    "search": {
+      "placeholder": "Select employee...",
+      "input_placeholder": "Search by name or ID...",
+      "no_results": "No employees found."
+    },
     "table": {
       "name": "Full Name",
       "id": "Emp ID",

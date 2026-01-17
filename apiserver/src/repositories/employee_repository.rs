@@ -77,12 +77,27 @@ pub async fn get_employee_by_id(
 pub async fn get_all_employees(
     pool: &PgPool,
     workspace_id: Uuid,
+    search_query: Option<String>,
 ) -> Result<Vec<Employee>, sqlx::Error> {
-    let query = format!("{} WHERE e.workspace_id = $1 ORDER BY e.last_name, e.first_name", EMPLOYEE_SELECT_QUERY);
-    query_as::<_, Employee>(&query)
-        .bind(workspace_id)
-        .fetch_all(pool)
-        .await
+    let mut sql = format!("{} WHERE e.workspace_id = $1", EMPLOYEE_SELECT_QUERY);
+    
+    if let Some(ref q) = search_query {
+        if !q.trim().is_empty() {
+            sql.push_str(" AND (e.first_name ILIKE $2 OR e.last_name ILIKE $2 OR e.employee_id_number ILIKE $2 OR (e.first_name || ' ' || e.last_name) ILIKE $2)");
+        }
+    }
+    
+    sql.push_str(" ORDER BY e.last_name, e.first_name");
+
+    let mut db_query = query_as::<_, Employee>(&sql).bind(workspace_id);
+    
+    if let Some(q) = search_query {
+        if !q.trim().is_empty() {
+            db_query = db_query.bind(format!("%{}%", q.trim()));
+        }
+    }
+
+    db_query.fetch_all(pool).await
 }
 
 #[allow(clippy::too_many_arguments)]

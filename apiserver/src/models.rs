@@ -11,6 +11,11 @@ pub struct WorkspaceStats {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EmployeeSearchQuery {
+    pub q: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GenericResponse {
     pub message: String,
 }

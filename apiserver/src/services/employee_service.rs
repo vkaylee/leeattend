@@ -143,8 +143,9 @@ impl EmployeeService {
     pub async fn get_all_employees(
         pool: &PgPool,
         workspace_id: Uuid,
+        search_query: Option<String>,
     ) -> Result<Vec<Employee>, StatusCode> {
-        employee_repository::get_all_employees(pool, workspace_id)
+        employee_repository::get_all_employees(pool, workspace_id, search_query)
             .await
             .map_err(|e| {
                 eprintln!("Error getting all employees: {:?}", e);

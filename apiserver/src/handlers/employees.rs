@@ -1,5 +1,5 @@
 use axum::{
-    extract::{State, Path},
+    extract::{State, Path, Query},
     response::{IntoResponse, Json},
     http::StatusCode,
 };
@@ -10,7 +10,7 @@ use crate::AppState;
 use crate::handlers::common::MemberContext;
 use crate::models::{
     Employee, CreateEmployeeRequest, UpdateEmployeeRequest, RehireEmployeeRequest,
-    EmployeeDepartmentHistory, TransferEmployeeRequest
+    EmployeeDepartmentHistory, TransferEmployeeRequest, EmployeeSearchQuery
 };
 use crate::services::employee_service::EmployeeService;
 
@@ -20,10 +20,12 @@ pub async fn get_employees(
     Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
+    Query(query): Query<EmployeeSearchQuery>,
 ) -> impl IntoResponse {
     match EmployeeService::get_all_employees(
         &state.db,
         workspace_id,
+        query.q,
     )
     .await
     {

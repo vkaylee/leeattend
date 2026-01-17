@@ -21,6 +21,7 @@ interface ComboboxProps {
   options: ComboboxOption[];
   value?: string;
   onChange: (value: string) => void;
+  onSearchChange?: (value: string) => void;
   placeholder?: string;
   searchPlaceholder?: string;
   emptyText?: string;
@@ -33,6 +34,7 @@ export function Combobox({
   options,
   value,
   onChange,
+  onSearchChange,
   placeholder,
   searchPlaceholder,
   emptyText,
@@ -96,6 +98,7 @@ export function Combobox({
               <Search className="mr-2 h-4 w-4 shrink-0 text-slate-400" />
               <Command.Input
                 placeholder={searchPlaceholder}
+                onValueChange={onSearchChange}
                 className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-50 font-medium"
               />
             </div>
