@@ -67,6 +67,7 @@ export default function PayrollSettingsSection({ wsId }: Props) {
         </h2>
         <button
           onClick={handleSave}
+          data-testid="payroll-settings-save"
           disabled={updateMutation.isPending}
           className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 disabled:opacity-50 text-sm"
         >

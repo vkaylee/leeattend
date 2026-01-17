@@ -27,6 +27,7 @@
     "select_workspace": "Chọn Workspace",
     "search_placeholder": "Tìm kiếm...",
     "close": "Đóng",
+    "add": "Thêm",
     "loading": "Đang tải dữ liệu...",
     "creating": "Đang tạo...",
     "inviting": "Đang mời...",
@@ -628,6 +629,32 @@
       "paid": "ĐÃ CHI TRẢ",
       "finalized": "ĐÃ CHỐT"
     },
+    "settings": {
+      "title": "Cấu hình ngày công chuẩn",
+      "working_day_mode": "Chế độ tính công chuẩn",
+      "mode_fixed": "Số ngày cố định",
+      "mode_fixed_desc": "Ví dụ: Luôn tính là 26 ngày/tháng",
+      "mode_actual": "Theo lịch thực tế",
+      "mode_actual_desc": "Tổng số ngày trừ đi ngày nghỉ (T7/CN)",
+      "fixed_days": "Số ngày công cố định",
+      "days_per_week": "Số ngày làm việc/tuần",
+      "5days": "5 ngày (Nghỉ T7, CN)",
+      "6days": "6 ngày (Nghỉ CN)",
+      "7days": "7 ngày (Không ngày nghỉ)",
+      "hours_per_day": "Số giờ làm việc chuẩn/ngày",
+      "note_title": "Lưu ý về cách tính lương giờ",
+      "note_desc": "Lương giờ dùng để tính OT = (Tổng các khoản Lương cơ bản) / (Số ngày công chuẩn × Số giờ làm chuẩn/ngày)."
+    },
+    "components": {
+      "title": "Danh mục thành phần lương",
+      "add_new": "Thêm thành phần lương"
+    },
+    "employee_config": {
+      "title": "Cấu hình lương nhân viên",
+      "tab_title": "Cấu hình lương",
+      "add_btn": "Thêm khoản lương",
+      "effective_note": "Lưu ý: Nếu có nhiều bản ghi cho cùng một khoản lương, bản ghi có ngày hiệu lực mới nhất (và gần nhất với ngày tính lương) sẽ được sử dụng."
+    },
     "modal": {
       "title": "Tính lương tháng",
       "subtitle": "Xử lý dữ liệu",
@@ -711,6 +738,7 @@
   "workspace_settings": {
     "title": "Cài đặt Workspace",
     "description": "Quản lý cấu hình, nhân sự và giao diện không gian làm việc.",
+    "general_config": "Cấu hình chung",
     "payroll_config": "Cấu hình công lương",
     "save_config": "Lưu cấu hình",
     "work_unit": "Đơn vị tính công (Work Unit)",

@@ -77,7 +77,7 @@ describe("PayrollPage", () => {
     const employeeBtn = await screen.findByText("John Doe");
     fireEvent.click(employeeBtn);
 
-    expect(await screen.findByText("Hồ sơ lương nhân sự")).toBeDefined();
+    expect((await screen.findAllByText("Lịch sử phiếu lương (Payslips)"))[0]).toBeDefined();
     expect(await screen.findByText("10.400.000")).toBeDefined();
     expect(screen.getByText("ĐÃ CHI TRẢ")).toBeDefined();
   });

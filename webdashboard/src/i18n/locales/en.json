@@ -27,6 +27,7 @@
     "select_workspace": "Select Workspace",
     "search_placeholder": "Search...",
     "close": "Close",
+    "add": "Add",
     "loading": "Loading data...",
     "creating": "Creating...",
     "inviting": "Inviting...",
@@ -628,8 +629,34 @@
       "paid": "PAID",
       "finalized": "FINALIZED"
     },
+    "settings": {
+      "title": "Standard Working Days Config",
+      "working_day_mode": "Working Day Mode",
+      "mode_fixed": "Fixed Days",
+      "mode_fixed_desc": "Example: Always 26 days/month",
+      "mode_actual": "Actual Calendar",
+      "mode_actual_desc": "Total days minus weekends (Sat/Sun)",
+      "fixed_days": "Fixed Standard Days",
+      "days_per_week": "Work days per week",
+      "5days": "5 days (Sat, Sun off)",
+      "6days": "6 days (Sun off)",
+      "7days": "7 days (No days off)",
+      "hours_per_day": "Standard hours per day",
+      "note_title": "Note on hourly rate calculation",
+      "note_desc": "Hourly rate for OT = (Total Base Salaries) / (Std Days × Std Hours/day)."
+    },
+    "components": {
+      "title": "Salary Component Directory",
+      "add_new": "Add Salary Component"
+    },
+    "employee_config": {
+      "title": "Employee Salary Config",
+      "tab_title": "Salary Config",
+      "add_btn": "Add Salary Item",
+      "effective_note": "Note: If multiple records exist for the same item, the latest record (closest to payroll date) will be used."
+    },
     "modal": {
-      "title": "Calculate Monthly Payroll",
+      "title": "Monthly Payroll",
       "subtitle": "Data Processing",
       "submit": "Start Calculation"
     },
@@ -711,6 +738,7 @@
   "workspace_settings": {
     "title": "Workspace Settings",
     "description": "Manage configuration, personnel, and workspace interface.",
+    "general_config": "General Configuration",
     "payroll_config": "Payroll Configuration",
     "save_config": "Save Configuration",
     "work_unit": "Work Unit",

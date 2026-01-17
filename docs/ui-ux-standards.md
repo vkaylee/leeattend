@@ -111,3 +111,20 @@ Hệ thống hỗ trợ đa ngôn ngữ để phục vụ các doanh nghiệp đ
 - Sử dụng key-based translation (ví dụ: `common.save`, `errors.unauthorized`).
 - Tuyệt đối không hardcode chuỗi ký tự hiển thị trong component.
 - Đối với các thông báo lỗi từ Backend, Frontend sẽ dựa vào mã lỗi để hiển thị nội dung dịch tương ứng.
+
+---
+
+## 8. Các mẫu thiết kế đặc thù (Special Patterns)
+
+### 8.1. Tab-based Management (Quản lý theo Tab)
+Khi một thực thể (ví dụ: Nhân viên) có nhiều loại dữ liệu liên quan (Lịch sử phiếu lương vs Cấu hình lương), sử dụng hệ thống Tab switch ngay trong vùng nội dung chi tiết.
+- **Vị trí:** Đặt dưới tên thực thể.
+- **Visual:** Sử dụng text-only tabs với dấu phân cách (Bullet dot) và màu sắc nhấn (Primary color) cho tab đang hoạt động.
+- **Trải nghiệm:** Chuyển đổi tab không được làm tải lại trang (Single Page navigation).
+
+### 8.2. Selection-First Bulk Actions (Chọn trước - Thao tác sau)
+Pattern dùng cho các bảng dữ liệu lớn (Roster, Logs):
+1. Người dùng chọn các bản ghi (Checkbox hoặc Click chọn).
+2. Thanh công cụ nổi (Floating Action Bar) xuất hiện ở đáy màn hình.
+3. Người dùng chọn hành động để áp dụng cho toàn bộ mục đã chọn.
+- **Mục tiêu:** Giảm nhiễu giao diện trên từng dòng dữ liệu.

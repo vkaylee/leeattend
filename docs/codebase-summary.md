@@ -66,7 +66,13 @@ leeattend/
             - **Bucket Logic**: Separation of Standard, Early OT, and Late OT time buckets.
             - **Early OT Filter**: Policy-based filtering of early arrivals via `allow_early_ot` toggle.
             - **Boundary Rounding**: Uses `Floor` rounding on total bucket duration to handle "late 1 min = lose 30 mins" policies.
+            - **Shared Working Day Utility**: Unified logic for counting monthly standard working days based on fixed counts or actual calendar rules (e.g., Sat/Sun off).
         - **Strict Validation**: High-fidelity file parsing that enforces workspace settings and provides line-by-line detailed error context.
+    - **Dynamic Payroll System (Component-Based)**: Flexible architecture for multi-tenant salary calculation.
+        - **Salary Component Directory**: Allows defining custom income types (Meal, Gas, Seniority) with configurable taxability and "Base for OT" flags.
+        - **Flexible Standard Day Policy**: Support for diverse company cultures via `Fixed` (e.g., always 26 days) or `Actual Month` (calendar-based) standard day modes.
+        - **Dynamic Hourly Rate Engine**: Automatically derives OT hourly rates based on the sum of all "Base for OT" components divided by the calculated standard hours.
+        - **Historical Tracking**: Time-series storage of component assignments ensuring payroll integrity even when salaries change mid-period.
     - **Employee Self-Service (ESS) Portal**: Dedicated subsystem for employee empowerment and data autonomy.
         - **Secure Personal Access**: Direct access to personal data (Profile, Contacts, Documents) without requiring workspace administrative roles.
         - **Emergency Contact Management**: Self-service tools for maintaining up-to-date emergency notification information.
@@ -122,6 +128,8 @@ leeattend/
 - [x] **Bulk Schedule Assignment**: Cho phép gán mẫu lịch (Working Patterns) cho hàng loạt nhân viên và thiết lập mẫu lịch mặc định cho từng Phòng ban để tự động hóa khâu onboarding.
 - [x] Attendance Adjustment Workflow (Manual confirmation requests).
 - [x] **Payroll Engine**: Advanced logic for worked-through breaks and configurable early clock-in grace periods.
+- [x] **Dynamic Payroll System**: Fully implemented component-based salary management with flexible standard day policies and historical tracking.
+- [x] **Payroll UI Suite**: Integrated management tools for workspace payroll settings and employee-specific component assignments.
 - [x] **Reporting Suite**: Attendance reports now use the **Attendance Calculator** to show accurate "Payable Minutes" (applying grace period, break deduction, and rounding) instead of just raw duration.
 - [x] **Shift Versioning**: Automated tracking of shift configuration changes to maintain historical record integrity.
 - [x] Configurable Work Units: Support for 15m/30m/60m rounding blocks with configurable policies (Floor/Ceil/Round).
@@ -181,6 +189,7 @@ leeattend/
 - **Comprehensive Auth Testing**: Added production-ready E2E suites for standard login flows, ensuring correct i18n handling, credential validation, and redirection logic.
 - **Leave Policy Assignment**: Added comprehensive integration test (`leave-policy-assignment.spec.ts`) covering multi-level policy allocation (Employee/Department) and transactional auto-closing logic.
 - **UI Interaction Robustness**: Hardened portal-based components (Combobox, Modal) with high z-index stacking (`z-[10000]`) and standard ARIA roles (`role="status"`) to ensure reliable automated interaction and accessibility. Verified via `z-index-stacking.spec.ts`.
+- **Payroll Testing**: Comprehensive suite covering both legacy flat history and new dynamic component logic. Includes verification of hourly rate derivation, standard day modes (Fixed/Actual), and break deductions.
 - **UI Interaction Verification**: Dedicated suite for Sidebar navigation (`sidebar-navigation.spec.ts`) ensuring correct default expansion and accordion behavior.
 
 ## External Integrations

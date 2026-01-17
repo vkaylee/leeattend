@@ -27,7 +27,8 @@
     "select_workspace": "选择工作区",
     "search_placeholder": "搜索...",
     "close": "关闭",
-    "loading": "加载中...",
+    "add": "添加",
+    "loading": "正在加载...",
     "creating": "正在创建...",
     "inviting": "正在邀请...",
     "loading_workspace": "正在加载工作区...",
@@ -625,11 +626,37 @@
       "no_payslips": "未找到工资单"
     },
     "status": {
-      "paid": "已发放",
+      "paid": "已支付",
       "finalized": "已结算"
     },
+    "settings": {
+      "title": "标准工作日配置",
+      "working_day_mode": "计工模式",
+      "mode_fixed": "固定天数",
+      "mode_fixed_desc": "例如：每月始终计算为 26 天",
+      "mode_actual": "实际日历",
+      "mode_actual_desc": "总天数减去休息日（周六/周日）",
+      "fixed_days": "固定标准天数",
+      "days_per_week": "每周工作天数",
+      "5days": "5 天 (周六、日休息)",
+      "6days": "6 天 (周日休息)",
+      "7days": "7 天 (无休息日)",
+      "hours_per_day": "标准日工作时长",
+      "note_title": "关于时薪计算的说明",
+      "note_desc": "加班时薪 = (基本工资总额) / (标准天数 × 标准日时长)。"
+    },
+    "components": {
+      "title": "薪资构成目录",
+      "add_new": "添加薪资项"
+    },
+    "employee_config": {
+      "title": "员工薪资配置",
+      "tab_title": "薪资配置",
+      "add_btn": "添加薪资项",
+      "effective_note": "注意：如果同一薪资项存在多条记录，将使用最新且最接近计薪日期的记录。"
+    },
     "modal": {
-      "title": "计算月度薪资",
+      "title": "月度工资",
       "subtitle": "数据处理",
       "submit": "开始计算"
     },
@@ -710,8 +737,9 @@
   },
   "workspace_settings": {
     "title": "工作区设置",
-    "description": "管理配置、人员和工作区界面。",
-    "payroll_config": "薪资配置",
+    "description": "管理工作区配置、成员和外观。",
+    "general_config": "通用配置",
+    "payroll_config": "薪酬配置",
     "save_config": "保存配置",
     "work_unit": "计薪单位 (Work Unit)",
     "rounding_policy": "舍入规则",

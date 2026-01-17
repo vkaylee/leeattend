@@ -13,6 +13,15 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Standardized Utilities**: Integrated `count_working_days` into `AttendanceCalculator` to ensure consistency between attendance reports and payslip calculations.
     - **New API Endpoints**: Full CRUD for `payroll-settings`, `salary-components`, and employee-specific assignments.
     - **Data Migration**: Automated migration path from legacy flat `salary_history` to the new hierarchical component system.
+- **Dynamic Payroll UI Management**: Launched a comprehensive administrative interface for payroll configuration.
+    - **Payroll Settings Section**: New UI in Workspace Settings to toggle between Fixed and Actual standard day modes.
+    - **Salary Component Manager**: Dedicated interface to define custom income categories (Meal, Transport, etc.) with metadata control.
+    - **Employee Salary Configuration**: Integrated a new "Salary Config" tab in the Payroll page, allowing HR to assign multiple components with specific effective dates to individual employees.
+    - **Tab-based Navigation**: Refactored the Payroll detail view to support seamless switching between Payslip History and Salary Configuration.
+- **Automated Frontend Quality Suite**:
+    - **Payroll Component Tests**: Added unit tests for `PayrollSettingsSection`, `SalaryComponentManager`, and `EmployeeSalaryConfig` with 100% logic coverage.
+    - **Stability Enhancements**: Integrated `data-testid` attributes across new components to ensure reliable automated selectors.
+    - **i18n Synchronization**: Updated English and Chinese locale files to maintain full multi-language support for all new payroll features.
 
 ### Fixed
 - **Payroll Backward Compatibility**: Maintained the standard 176-hour fallback for legacy workspaces/tests while enabling dynamic overrides for new tenants.

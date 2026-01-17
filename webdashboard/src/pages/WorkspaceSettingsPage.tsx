@@ -128,6 +128,7 @@ export default function WorkspaceSettingsPage() {
               </h2>
               <button
                 onClick={handleSaveConfig}
+                data-testid="workspace-settings-save"
                 disabled={updateWsMutation.isPending || isLoadingWs}
                 className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 disabled:opacity-50 text-sm"
               >

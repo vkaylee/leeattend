@@ -71,6 +71,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
         </div>
         <button
           onClick={() => setIsAdding(!isAdding)}
+          data-testid="add-salary-item-btn"
           className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all ${
             isAdding ? 'bg-slate-100 text-slate-500' : 'bg-primary-600 text-white shadow-lg shadow-primary-100'
           }`}
@@ -116,6 +117,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
           <div className="mt-4 flex justify-end">
             <button
               type="submit"
+              data-testid="save-salary-item-btn"
               disabled={assignMutation.isPending}
               className="bg-slate-900 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-black transition-all shadow-lg"
             >
