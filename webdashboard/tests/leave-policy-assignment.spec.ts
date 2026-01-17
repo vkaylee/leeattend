@@ -49,7 +49,8 @@ test.describe('Leave Policy Assignment Integration', () => {
     await page.fill('input[name="employee_id_number"]', uniqueId);
     await page.fill('input[name="hire_date"]', '2026-01-01');
     await page.click('button[type="submit"]');
-    await expect(page.locator('text=Alice Integrator').first()).toBeVisible();
+    // Specifically look for the employee in the table body to avoid hidden <option> elements in the search box
+    await expect(page.locator('tbody').locator('text=Alice Integrator').first()).toBeVisible();
     console.log('Employee created.');
 
     // 4. Create a Policy via UI

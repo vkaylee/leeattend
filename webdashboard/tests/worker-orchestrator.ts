@@ -13,7 +13,7 @@ export const test = base.extend<{ workerWebUrl: string }>({
   },
 
   workerWebUrl: [async ({}, use, workerInfo) => { // eslint-disable-line no-empty-pattern
-    const workerIndex = workerInfo.workerIndex;
+    const workerIndex = workerInfo.parallelIndex;
     const apiPortFile = `.api_port_${workerIndex}`;
     const webPortFile = `.web_port_${workerIndex}`;
 

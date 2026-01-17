@@ -9,7 +9,9 @@ Hệ thống sử dụng JWT (JSON Web Token) để xác thực người dùng.
 
 - **Access Token**: Gửi trong header `Authorization: Bearer <token>`. Hết hạn sau 1 giờ.
 - **Refresh Token**: Dùng để lấy Access Token mới. Hết hạn sau 7 ngày.
-- **X-Workspace-Id**: Header bắt buộc cho các yêu cầu liên quan đến tài nguyên cụ thể của tổ chức.
+- **X-Workspace-Id**: Header dùng để xác định tổ chức (Workspace). 
+    - **Lưu ý quan trọng**: Đối với hầu hết các yêu cầu có chứa `:ws_id` hoặc `:id` trong đường dẫn (Path), backend sẽ ưu tiên trích xuất ID từ URI. Trong trường hợp này, header `X-Workspace-Id` là không bắt buộc (redundant).
+    - Header này vẫn cần thiết cho các endpoint "vùng đệm" (ví dụ: ESS portal) nơi ID không xuất hiện trong đường dẫn.
 
 #### 🌐 API URL Resolution Strategy (Client-side)
 Đối với các ứng dụng Web (đặc biệt trong môi trường Development với Vite), client sẽ ưu tiên gọi API thông qua đường dẫn tương đối `/api`. Vite sẽ tự động proxy các request này đến backend server đang chạy trên một port ngẫu nhiên.
@@ -161,10 +163,10 @@ Thu hồi một role phụ trước thời hạn.
 
 ### 4. Device Management (CRUD)
 
-**Yêu cầu headers: `X-User-Id`, `X-Workspace-Id`**.
+Quản lý thiết bị phần cứng.
 
 #### GET /devices
-Lấy danh sách tất cả các thiết bị trong workspace hiện tại.
+Lấy danh sách tất cả các thiết bị trong workspace hiện tại (Xác định qua header `X-Workspace-Id`).
 - **Response (200)**: `Array<Device>`
 
 #### POST /devices
@@ -176,10 +178,10 @@ Thêm thiết bị mới vào workspace.
 
 ### 4. Agent Management
 
-**Yêu cầu headers: `X-User-Id`, `X-Workspace-Id`**.
+Quản lý các Edge Agents.
 
 #### GET /authorized-agents
-Lấy danh sách Agent thuộc workspace hiện tại.
+Lấy danh sách Agent thuộc workspace hiện tại (Xác định qua header `X-Workspace-Id`).
 - **Query Params**: `?include_inactive=true`
 - **Response (200)**: `Array<AuthorizedAgent>`
 

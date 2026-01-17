@@ -41,11 +41,30 @@ impl TestDatabase {
             .await
             .expect("Failed to connect to Postgres admin");
         
-        let sql = format!("CREATE DATABASE \"{}\"", db_name);
-        connection
-            .execute(sql.as_str())
-            .await
-            .expect("Failed to create test database");
+        // Tối ưu hóa: Dùng template database đã được migrate sẵn để tránh chạy lại migrations
+        let sql = format!("CREATE DATABASE \"{}\" TEMPLATE leeattend_test_template", db_name);
+        let create_result = connection.execute(sql.as_str()).await;
+        
+        if let Err(e) = create_result {
+            eprintln!("Warning: Failed to create database from template: {}. Falling back to manual migration.", e);
+            let sql_fallback = format!("CREATE DATABASE \"{}\"", db_name);
+            connection.execute(sql_fallback.as_str()).await.expect("Failed to create test database even with fallback");
+            
+            let db_url = format!("{}/{}", base_connection_string, db_name);
+            let pool = PgPool::connect(&db_url).await.expect("Failed to connect to the new test database");
+            sqlx::migrate!("./migrations").run(&pool).await.expect("Failed to run migrations");
+            
+            {
+                let mut dbs = get_active_dbs().lock().unwrap();
+                dbs.insert((db_name.clone(), base_url.clone()));
+            }
+
+            return Self {
+                pool,
+                db_name,
+                base_url: base_url.to_string(),
+            };
+        }
 
         {
             let mut dbs = get_active_dbs().lock().unwrap();
@@ -57,10 +76,7 @@ impl TestDatabase {
             .await
             .expect("Failed to connect to the new test database");
 
-        sqlx::migrate!("./migrations")
-            .run(&pool)
-            .await
-            .expect("Failed to run migrations");
+        // KHÔNG chạy migrations ở đây vì đã dùng TEMPLATE
 
         Self {
             pool,

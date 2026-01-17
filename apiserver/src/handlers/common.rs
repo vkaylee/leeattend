@@ -22,20 +22,37 @@ where
 {
     type Rejection = (StatusCode, String);
 
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        // 1. Try to extract from Path parameters first (e.g., /workspaces/:ws_id/...)
+        // We look specifically for 'ws_id' to avoid conflicts with other ':id' parameters.
+        if let Ok(axum::extract::Path(params)) =
+            axum::extract::Path::<std::collections::HashMap<String, String>>::from_request_parts(
+                parts, state,
+            )
+            .await
+        {
+            if let Some(ws_id_str) = params.get("ws_id") {
+                if let Ok(ws_id) = Uuid::parse_str(ws_id_str) {
+                    return Ok(WorkspaceId(ws_id));
+                }
+            }
+        }
+
+        // 2. Fallback to header (for non-path routes like ESS or backward compatibility)
         let workspace_id_str = parts
             .headers
             .get("X-Workspace-Id")
             .and_then(|h| h.to_str().ok())
             .ok_or((
                 StatusCode::BAD_REQUEST,
-                "Missing X-Workspace-Id header".to_string(),
+                "Missing Workspace Context. Provide 'ws_id' in path or 'X-Workspace-Id' header."
+                    .to_string(),
             ))?;
 
         let workspace_id = Uuid::parse_str(workspace_id_str).map_err(|_| {
             (
                 StatusCode::BAD_REQUEST,
-                "Invalid X-Workspace-Id format".to_string(),
+                "Invalid Workspace ID format".to_string(),
             )
         })?;
 

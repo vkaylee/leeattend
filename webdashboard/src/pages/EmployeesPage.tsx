@@ -43,6 +43,7 @@ import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 export default function EmployeesPage() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId() || "";
+  console.log("[EmployeesPage] Rendered with wsId:", wsId);
   const queryClient = useQueryClient();
   const { formatDate } = useDateTimeFormatter();
   const [isModalOpen, setIsModalOpen] = useState(false);

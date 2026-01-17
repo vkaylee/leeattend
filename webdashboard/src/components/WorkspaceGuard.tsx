@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, Outlet } from "react-router-dom";
 import { useWorkspaces } from "@/hooks/use-workspace";
@@ -12,7 +12,7 @@ import { getCurrentWorkspaceId, setCurrentWorkspaceId } from "@/lib/api";
 export default function WorkspaceGuard() {
   const { t } = useTranslation();
   const { workspaces, isLoading, isError } = useWorkspaces();
-  const activeWsId = getCurrentWorkspaceId();
+  const [activeWsId, setActiveWsId] = useState(getCurrentWorkspaceId());
 
   console.log("[WorkspaceGuard] State:", {
     workspacesCount: workspaces.length,
@@ -29,6 +29,8 @@ export default function WorkspaceGuard() {
         workspaces[0].id,
       );
       setCurrentWorkspaceId(workspaces[0].id);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveWsId(workspaces[0].id);
     }
   }, [workspaces, activeWsId, isLoading]);
 

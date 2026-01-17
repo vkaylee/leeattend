@@ -6,4 +6,4 @@ source "$SOURCE_DIR/test-utils.sh"
 run_parallel_ordered "Phase 0 (Linting)" \
     "1|apiserver-clippy|apiserver|SQLX_OFFLINE=true cargo clippy -- -D warnings" \
     "2|agent-main-clippy|agent-main|SQLX_OFFLINE=true cargo clippy -- -D warnings" \
-    "3|webdashboard-lint|webdashboard|npm run lint -- --max-warnings 1"
+    "3|webdashboard-lint|webdashboard|npm run lint -- --max-warnings 0"

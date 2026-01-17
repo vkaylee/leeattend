@@ -13,8 +13,5 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    volumes:
-      - test_db_data:/var/lib/postgresql/data
-
-volumes:
-  test_db_data:
+    tmpfs: 
+      - /var/lib/postgresql/data

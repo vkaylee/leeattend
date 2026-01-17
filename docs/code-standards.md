@@ -44,7 +44,7 @@ Sử dụng `Arc<dyn RepositoryTrait>` để inject vào Services. Khởi tạo 
 - **Zero Tolerance**: Tất cả các bài kiểm tra (Unit tests, Integration tests, Frontend tests) **BẮT BUỘC** phải vượt qua (PASS) trước khi thực hiện bất kỳ lệnh commit hoặc merge nào. Code có test thất bại sẽ không được chấp nhận.
 - **Automated Linting (Phase 0)**: Hệ thống thực thi kiểm tra code quality tự động (Linting) ở bước đầu tiên của pipeline.
     - **Rust**: `cargo clippy -- -D warnings` (Deny all warnings).
-    - **Frontend**: `npm run lint` (ESLint strict mode).
+    - **Frontend**: `npm run lint` (ESLint with `--max-warnings 0`).
     - Bất kỳ cảnh báo (warning) nào từ linter đều bị coi là lỗi và sẽ dừng pipeline ngay lập tức.
 - **Recommended Execution**: Sử dụng script hợp nhất để chạy toàn bộ suite một cách nhanh nhất (hỗ trợ thực thi song song và tự động setup môi trường):
   ```bash

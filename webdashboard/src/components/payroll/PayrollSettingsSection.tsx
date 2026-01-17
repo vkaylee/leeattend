@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Calculator, Save, Calendar, Clock, Globe, ShieldAlert } from "lucide-react";
+import { Calculator, Save, ShieldAlert } from "lucide-react";
 import { fetchPayrollSettings, updatePayrollSettings } from "@/lib/api/payroll";
 import { useToast } from "@/components/Toast";
 import { Combobox } from "@/components/ui/Combobox";
@@ -12,29 +12,31 @@ interface Props {
 }
 
 export default function PayrollSettingsSection({ wsId }: Props) {
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const toast = useToast();
-
   const { data: settings, isLoading } = useQuery({
     queryKey: ["payroll-settings", wsId],
     queryFn: () => fetchPayrollSettings(wsId),
     enabled: !!wsId,
   });
 
-  const [mode, setMode] = useState<"fixed" | "actual_month">("fixed");
-  const [fixedDays, setFixedDays] = useState(26);
-  const [daysPerWeek, setDaysPerWeek] = useState(6);
-  const [hoursPerDay, setHoursPerDay] = useState(8);
+  if (isLoading) return <div className="p-8 text-center text-slate-400 italic">Loading settings...</div>;
 
-  useEffect(() => {
-    if (settings) {
-      setMode(settings.std_working_day_mode as any);
-      setFixedDays(Number(settings.fixed_std_days));
-      setDaysPerWeek(settings.working_days_per_week);
-      setHoursPerDay(Number(settings.hours_per_day));
-    }
-  }, [settings]);
+  return <PayrollSettingsForm wsId={wsId} initialSettings={settings} />;
+}
+
+interface FormProps {
+  wsId: string;
+  initialSettings?: PayrollSettings;
+}
+
+function PayrollSettingsForm({ wsId, initialSettings }: FormProps) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  const [mode, setMode] = useState<"fixed" | "actual_month">(initialSettings?.std_working_day_mode as any || "fixed");
+  const [fixedDays, setFixedDays] = useState(Number(initialSettings?.fixed_std_days || 26));
+  const [daysPerWeek, setDaysPerWeek] = useState(initialSettings?.working_days_per_week || 6);
+  const [hoursPerDay, setHoursPerDay] = useState(Number(initialSettings?.hours_per_day || 8));
 
   const updateMutation = useMutation({
     mutationFn: (data: Partial<PayrollSettings>) => updatePayrollSettings(wsId, data),
@@ -55,8 +57,6 @@ export default function PayrollSettingsSection({ wsId }: Props) {
       hours_per_day: hoursPerDay,
     });
   };
-
-  if (isLoading) return <div className="p-8 text-center text-slate-400 italic">Loading settings...</div>;
 
   return (
     <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">

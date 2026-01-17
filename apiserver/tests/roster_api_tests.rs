@@ -69,7 +69,6 @@ async fn test_bulk_upsert_roster_api() {
                 .method("POST")
                 .uri(format!("/api/workspaces/{}/employees/{}/rosters/bulk", workspace_id, employee_id))
                 .header("Content-Type", "application/json")
-                .header("X-Workspace-Id", workspace_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::from(serde_json::to_string(&req).unwrap()))
                 .unwrap(),
@@ -132,7 +131,6 @@ async fn test_delete_roster_reverts_to_default() {
             axum::http::Request::builder()
                 .method("DELETE")
                 .uri(format!("/api/workspaces/{}/employees/{}/rosters/{}", workspace_id, employee_id, date))
-                .header("X-Workspace-Id", workspace_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -175,7 +173,6 @@ async fn test_single_upsert_and_get_rosters() {
                 .method("POST")
                 .uri(format!("/api/workspaces/{}/employees/{}/rosters", workspace_id, employee_id))
                 .header("Content-Type", "application/json")
-                .header("X-Workspace-Id", workspace_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::from(req.to_string()))
                 .unwrap(),
@@ -191,7 +188,6 @@ async fn test_single_upsert_and_get_rosters() {
                 .method("GET")
                 .uri(format!("/api/workspaces/{}/employees/{}/rosters?start_date={}&end_date={}", 
                     workspace_id, employee_id, date, date))
-                .header("X-Workspace-Id", workspace_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -209,7 +205,6 @@ async fn test_single_upsert_and_get_rosters() {
                 .method("GET")
                 .uri(format!("/api/workspaces/{}/employees/{}/rosters?start_date=INVALID", 
                     workspace_id, employee_id))
-                .header("X-Workspace-Id", workspace_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -238,7 +233,6 @@ async fn test_get_assignment_history_api() {
             axum::http::Request::builder()
                 .method("GET")
                 .uri(format!("/api/workspaces/{}/assignment-history", ws_id))
-                .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -253,7 +247,6 @@ async fn test_get_assignment_history_api() {
             axum::http::Request::builder()
                 .method("GET")
                 .uri(format!("/api/workspaces/{}/schedules?start_date=2026-01-01&end_date=2026-01-31", ws_id))
-                .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -268,7 +261,6 @@ async fn test_get_assignment_history_api() {
             axum::http::Request::builder()
                 .method("GET")
                 .uri(format!("/api/workspaces/{}/schedules?start_date=INVALID&end_date=2026-01-31", ws_id))
-                .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),

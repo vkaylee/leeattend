@@ -5,6 +5,9 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased] - 2026-01-17
 
 ### Fixed
+- **Code Quality Enforcement**: Enforced `--max-warnings 0` for frontend linting to maintain a high code quality standard and prevent technical debt accumulation.
+- **React Performance Optimization**: Refactored `PayrollSettingsSection.tsx` to eliminate a `useEffect` state synchronization antipattern, resolving a linter warning and preventing unnecessary re-renders.
+- **E2E Test Robustness**: Hardened `EmployeeSearchIntegration.test.ts` by replacing flaky API-based data seeding with a robust UI-driven creation flow, ensuring tests accurately reflect user interactions and are resilient to API authentication nuances.
 - **Employee Search Robustness**: Resolved multiple issues in the `EmployeeSearch` subsystem to ensure reliable results across the dashboard.
     - **Combobox Filtering Conflict**: Fixed a bug where `cmdk` internal filtering was shadowing valid server-side results (e.g., matching by Employee ID). Added `shouldFilter` prop to `Combobox` to disable local filtering during remote searches.
     - **API Endpoint Standardization**: Unified all employee search calls to use the central `searchEmployees` utility, resolving an issue where manually constructed URLs were missing the `/api` prefix and returning HTML instead of JSON.

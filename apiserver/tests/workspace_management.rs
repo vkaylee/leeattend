@@ -84,7 +84,6 @@ async fn test_workspace_creation_and_membership() {
     // 2. Kiểm tra danh sách members của workspace vừa tạo
     let response = client
         .get(&format!("{}/api/workspaces/{}/members", address, ws_id))
-        .header("X-Workspace-Id", ws_id)
         .header("X-User-Id", user_id.to_string())
         .send()
         .await

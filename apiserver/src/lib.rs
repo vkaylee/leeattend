@@ -391,11 +391,11 @@ pub fn create_app(state: Arc<AppState>) -> Router {
     // Rosters
     let roster_routes = Router::new()
         .route(
-            "/workspaces/:id/schedules",
+            "/workspaces/:ws_id/schedules",
             get(handlers::get_workspace_schedules),
         )
         .route(
-            "/workspaces/:id/assignment-history",
+            "/workspaces/:ws_id/assignment-history",
             get(handlers::get_assignment_history),
         )
         .route(
