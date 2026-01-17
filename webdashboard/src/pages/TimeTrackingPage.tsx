@@ -17,6 +17,8 @@ import { useToast } from "../components/Toast";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { format } from "date-fns";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
+import Modal from "../components/ui/Modal";
+import { toUTCISO } from "../lib/datetime";
 
 export default function TimeTrackingPage() {
   const { t } = useTranslation();
@@ -262,7 +264,7 @@ export default function TimeTrackingPage() {
                         {entry.punch_out_time ? (
                           <span className="font-bold text-slate-500">{formatTime(entry.punch_out_time)}</span>
                         ) : (
-                          <span className={`${entry.entry_type === 'break' ? t("time_tracking.status.on_break") : t("time_tracking.status.working")} font-black px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-widest animate-pulse`}>
+                          <span className={`${entry.entry_type === 'break' ? 'text-amber-600 bg-amber-50' : 'text-primary-600 bg-primary-50'} font-black px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-widest animate-pulse`}>
                             {entry.entry_type === 'break' ? t("time_tracking.status.on_break") : t("time_tracking.status.working")}
                           </span>
                         )}

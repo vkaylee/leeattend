@@ -8,6 +8,7 @@ export const userFactory = (overrides: Partial<User> = {}): User => {
     full_name: `User ${id.slice(0, 4)}`,
     avatar_url: undefined,
     bio: undefined,
+    created_at: new Date().toISOString(),
     ...overrides,
   };
 };
@@ -26,6 +27,7 @@ export const workspaceFactory = (
     timezone: "Asia/Ho_Chi_Minh", // Default value
     theme_primary_color: "#7c3aed",
     default_language: "en",
+    pairing_algorithm: "sequential",
     created_at: new Date().toISOString(),
     ...overrides,
   };

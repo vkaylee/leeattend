@@ -63,6 +63,7 @@ pub async fn register(
         avatar_url: user.avatar_url,
         bio: user.bio,
         preferred_language: user.preferred_language,
+        created_at: user.created_at,
     };
 
     // 4. Generate Tokens
@@ -109,6 +110,7 @@ pub async fn login(
         avatar_url: user.avatar_url,
         bio: user.bio,
         preferred_language: user.preferred_language,
+        created_at: user.created_at,
     };
 
     let access_token = match AuthService::generate_token(user.id, &state.jwt_secret, 60) {
@@ -208,6 +210,7 @@ pub async fn get_me(
             avatar_url: user.avatar_url,
             bio: user.bio,
             preferred_language: user.preferred_language,
+            created_at: user.created_at,
         })
         .into_response(),
         Ok(None) => {
@@ -243,6 +246,7 @@ pub async fn update_me(
             avatar_url: user.avatar_url,
             bio: user.bio,
             preferred_language: user.preferred_language,
+            created_at: user.created_at,
         })
         .into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
@@ -262,6 +266,7 @@ pub async fn get_user_profile(
             avatar_url: user.avatar_url,
             bio: user.bio,
             preferred_language: user.preferred_language,
+            created_at: user.created_at,
         })
         .into_response(),
         Ok(None) => {
@@ -305,6 +310,7 @@ pub async fn update_user_profile(
             avatar_url: user.avatar_url,
             bio: user.bio,
             preferred_language: user.preferred_language,
+            created_at: user.created_at,
         })
         .into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),

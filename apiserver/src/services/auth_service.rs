@@ -104,6 +104,7 @@ impl AuthService {
                 avatar_url: user.avatar_url,
                 bio: user.bio,
                 preferred_language: user.preferred_language,
+                created_at: user.created_at,
             },
         })
     }

@@ -827,7 +827,7 @@ export default function ShiftsPage() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         title={t("shifts.modal.setup_title")}
-        description={t("shifts.modal.setup_subtitle")}
+        subtitle={t("shifts.modal.setup_subtitle")}
       >
         <div className="space-y-6 pt-4">
           <div className="space-y-4">
@@ -954,7 +954,7 @@ export default function ShiftsPage() {
           setTargetDates([]);
         }}
         title={t("shifts.modal.select_shift_title")}
-        description={t("shifts.modal.select_shift_subtitle", { count: targetDates.length })}
+        subtitle={t("shifts.modal.select_shift_subtitle", { count: targetDates.length })}
       >
         <div className="space-y-6 pt-4">
           <div className="grid grid-cols-1 gap-3">
@@ -1017,7 +1017,7 @@ export default function ShiftsPage() {
         isOpen={!!editingShift}
         onClose={() => setEditingShift(null)}
         title={t("shifts.modal.setup_title")}
-        description={t("shifts.modal.edit_subtitle")}
+        subtitle={t("shifts.modal.edit_subtitle")}
       >
         <div className="space-y-6 pt-4">
           <div className="space-y-4">

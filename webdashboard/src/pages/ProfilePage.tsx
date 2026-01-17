@@ -25,6 +25,7 @@ export default function ProfilePage() {
   const { user, isLoading, updateProfile, isUpdating } = useProfile();
   const { formatDate } = useDateTimeFormatter();
   const { primaryColor, isOverridden, setUserTheme } = useTheme();
+  const toast = useToast();
 
   const [formData, setFormData] = useState({
     full_name: "",

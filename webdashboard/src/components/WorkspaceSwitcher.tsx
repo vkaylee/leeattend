@@ -20,6 +20,7 @@ export default function WorkspaceSwitcher() {
 
   useEffect(() => {
     if (workspaces.length > 0) {
+      const currentId = getCurrentWorkspaceId();
       const current = workspaces.find((ws) => ws.id === currentId) || workspaces[0];
 
       if (current) {

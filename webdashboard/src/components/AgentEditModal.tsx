@@ -58,7 +58,6 @@ export default function AgentEditModal({
           is_active: isActive,
         },
       });
-      // @ts-expect-error - The mutation return might not be the full agent depending on API but useAuthorizedAgents refetches
       onSave(updated || agent);
       onClose();
     } catch (e) {

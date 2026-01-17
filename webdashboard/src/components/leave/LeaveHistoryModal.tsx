@@ -4,6 +4,7 @@ import { Loader2, Plus, Minus, History, Calendar, MessageSquare, Info } from "lu
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { adjustLeaveBalance, fetchLeaveHistory } from "@/lib/api";
 import { useToast } from "../Toast";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import Modal from "../ui/Modal";
 import { format } from "date-fns";
 
@@ -87,7 +88,7 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
       title={`Leave History: ${employeeName}`}
       subtitle="View detailed history and adjust leave balances."
       icon={<History className="w-6 h-6 text-primary-600" />}
-      maxWidth="max-w-2xl"
+      maxWidth="2xl"
     >
       <div className="space-y-6">
         {/* Tabs */}
