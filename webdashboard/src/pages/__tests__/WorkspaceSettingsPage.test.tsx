@@ -78,7 +78,8 @@ describe("WorkspaceSettingsPage", () => {
     expect(screen.getByText("Cài đặt Workspace")).toBeDefined();
     
     // Check if sections are rendered
-    expect(await screen.findByText("Cấu hình công lương")).toBeDefined();
+    expect(await screen.findByText("Cấu hình ngày công chuẩn")).toBeDefined();
+    expect(await screen.findByText("Danh mục thành phần lương")).toBeDefined();
     expect(await screen.findByText("Cấu hình chấm công")).toBeDefined();
     expect(await screen.findByText("Cấu hình chung")).toBeDefined();
     expect(await screen.findByText("Cấu hình giao diện")).toBeDefined();

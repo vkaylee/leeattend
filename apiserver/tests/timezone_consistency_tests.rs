@@ -111,7 +111,7 @@ async fn test_report_uses_workspace_timezone_boundary() {
 
     assert_eq!(summary.len(), 1, "Should return 1 summary row");
     assert_eq!(summary[0].employee_id, employee_id);
-    assert!(summary[0].total_hours > 0.0, "Total hours should be > 0 (found {}), proving the entry was included", summary[0].total_hours);
+    assert!(summary[0].total_work_units > 0, "Total work units should be > 0 (found {}), proving the entry was included", summary[0].total_work_units);
 
     factory.cleanup().await;
 }

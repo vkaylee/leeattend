@@ -2,6 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useDateTimeFormatter } from "../use-datetime";
 import { useWorkspace } from "../use-workspace";
+import { format } from "date-fns";
 
 // Mock useWorkspace
 vi.mock("../use-workspace", () => ({
@@ -135,7 +136,6 @@ describe("useDateTimeFormatter hook", () => {
     const buggyString = janFirstLocal.toISOString().split('T')[0];
     
     // This is the new logic:
-    const { format } = require('date-fns');
     const safeString = format(janFirstLocal, 'yyyy-MM-dd');
 
     expect(safeString).toBe("2026-01-01");

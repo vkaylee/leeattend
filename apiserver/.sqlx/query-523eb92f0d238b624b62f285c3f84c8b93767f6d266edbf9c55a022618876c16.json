@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, employee_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, status, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM payslips WHERE employee_id = $1 ORDER BY period_start DESC",
+  "query": "SELECT id, employee_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, standard_units, overtime_units, status, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM payslips WHERE employee_id = $1 ORDER BY period_start DESC",
   "describe": {
     "columns": [
       {
@@ -45,16 +45,26 @@
       },
       {
         "ordinal": 8,
+        "name": "standard_units",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "overtime_units",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
         "name": "status",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 9,
+        "ordinal": 11,
         "name": "created_at!",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 10,
+        "ordinal": 12,
         "name": "updated_at!",
         "type_info": "Timestamptz"
       }
@@ -74,9 +84,11 @@
       false,
       false,
       false,
+      false,
+      false,
       true,
       true
     ]
   },
-  "hash": "83a9a65da44c34d3734668b6564c97fbee8909ccb37e23345d9b5b8f527a868a"
+  "hash": "523eb92f0d238b624b62f285c3f84c8b93767f6d266edbf9c55a022618876c16"
 }

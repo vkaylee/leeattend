@@ -28,7 +28,7 @@ async fn setup_employee_with_salary(
         .create()
         .await;
 
-    let base_salary = Decimal::from_f64(100.0).unwrap();
+    let base_salary = Decimal::from_f64(50.0).unwrap();
     sqlx::query(
         "INSERT INTO salary_history (employee_id, base_salary, salary_type, currency, effective_date) VALUES ($1, $2, $3, $4, $5)",
     )

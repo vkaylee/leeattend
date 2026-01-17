@@ -32,14 +32,14 @@ describe("AttendanceLogsPage", () => {
     vi.clearAllMocks();
     
     const mockNow = new originalDate(2026, 0, 17);
-    // @ts-ignore
+    // @ts-expect-error Mocking API
     global.Date = class extends originalDate {
       constructor(...args: any[]) {
         if (args.length === 0) {
           super(mockNow.getTime());
           return;
         }
-        // @ts-ignore
+        // @ts-expect-error Mocking API
         super(...args);
       }
       static now() {

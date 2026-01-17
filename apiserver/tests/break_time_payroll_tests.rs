@@ -30,6 +30,14 @@ async fn setup_employee_with_salary(
         .await;
 
     let base_salary = Decimal::from_f64(100.0).unwrap();
+    
+    // Set work_unit_minutes to 60 so that 'hourly' salary is per hour
+    sqlx::query("UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1")
+        .bind(workspace_id)
+        .execute(pool)
+        .await
+        .unwrap();
+
     sqlx::query(
         "INSERT INTO salary_history (employee_id, base_salary, salary_type, currency, effective_date) VALUES ($1, $2, $3, $4, $5)",
     )
@@ -88,8 +96,9 @@ async fn test_payroll_with_explicit_breaks() {
     // Total gross: 9 hours (540 mins)
     // Actual break: 90 mins
     // Net worked: 450 mins = 7.5 hours
-    // Expected pay: 7.5 * 100 = 750.0
-    assert_eq!(payslip.base_pay_amount.to_f64().unwrap(), 750.0, "Should use explicit 90m break instead of 60m default");
+    // Integer Work Units (60m block): Floor(450 / 60) = 7 units
+    // Expected pay: 7 * 100 = 700.0
+    assert_eq!(payslip.base_pay_amount.to_f64().unwrap(), 700.0, "Should use explicit 90m break instead of 60m default");
 
     factory.cleanup().await;
 }

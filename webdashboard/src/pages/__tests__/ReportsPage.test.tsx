@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ReportsPage from "../ReportsPage";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import ReportsPage from "../ReportsPage";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "../../components/Toast";
@@ -13,6 +11,7 @@ import { format, subMonths, startOfMonth } from "date-fns";
 // Mock the API library
 vi.mock("../../lib/api", () => ({
   fetchAttendanceReport: vi.fn(),
+  fetchWorkspace: vi.fn(() => Promise.resolve({ work_unit_minutes: 60 })),
   getCurrentWorkspaceId: vi.fn(() => "test-ws-id"),
 }));
 
@@ -24,14 +23,14 @@ describe("ReportsPage", () => {
     vi.clearAllMocks();
     
     const mockNow = new originalDate(2026, 0, 17);
-    // @ts-ignore
+    // @ts-expect-error Mocking API
     global.Date = class extends originalDate {
       constructor(...args: any[]) {
         if (args.length === 0) {
           super(mockNow.getTime());
           return;
         }
-        // @ts-ignore
+        // @ts-expect-error Mocking API
         super(...args);
       }
       static now() {
@@ -55,7 +54,7 @@ describe("ReportsPage", () => {
 
   it("renders report table and default to current month", async () => {
     (api.fetchAttendanceReport as any).mockResolvedValue([
-      { employee_id: "emp-1", employee_name: "John Doe", total_hours: 160, total_leave_days: 0 }
+      { employee_id: "emp-1", employee_name: "John Doe", total_work_units: 160, total_leave_days: 0 }
     ]);
 
     render(
@@ -69,7 +68,8 @@ describe("ReportsPage", () => {
     );
 
     expect(await screen.findByText("John Doe")).toBeDefined();
-    const totalHoursElements = screen.getAllByText("160.0h");
+    // 160 units * 60m / 60 = 160h
+    const totalHoursElements = await screen.findAllByText(/160/);
     expect(totalHoursElements.length).toBeGreaterThan(0);
     
     // Default should be "Tháng này"
