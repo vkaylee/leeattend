@@ -10,6 +10,8 @@ import { Combobox } from "@/components/ui/Combobox";
 import { Globe, Calendar, CheckCircle2, ShieldAlert } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { useTranslation } from "react-i18next";
+import PayrollSettingsSection from "@/components/payroll/PayrollSettingsSection";
+import SalaryComponentManager from "@/components/payroll/SalaryComponentManager";
 
 export default function WorkspaceSettingsPage() {
   const { t } = useTranslation();
@@ -113,12 +115,16 @@ export default function WorkspaceSettingsPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-8">
-          {/* Payroll Config Section */}
+          <PayrollSettingsSection wsId={wsId!} />
+          
+          <SalaryComponentManager wsId={wsId!} />
+
+          {/* General Config Section */}
           <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800">
-                <Calculator className="w-5 h-5 text-primary-500" />
-                {t("workspace_settings.payroll_config")}
+                <Settings2 className="w-5 h-5 text-primary-500" />
+                {t("workspace_settings.general_config")}
               </h2>
               <button
                 onClick={handleSaveConfig}
@@ -131,42 +137,6 @@ export default function WorkspaceSettingsPage() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-                  {t("workspace_settings.work_unit")}
-                </label>
-                <Combobox
-                  data-testid="work-unit-select"
-                  options={[
-                    { value: "1", label: t("workspace_settings.work_unit_options.1min"), description: t("workspace_settings.work_unit_options.1min_desc") },
-                    { value: "15", label: t("workspace_settings.work_unit_options.15min"), description: t("workspace_settings.work_unit_options.15min_desc") },
-                    { value: "30", label: t("workspace_settings.work_unit_options.30min"), description: t("workspace_settings.work_unit_options.30min_desc") },
-                    { value: "60", label: t("workspace_settings.work_unit_options.60min"), description: t("workspace_settings.work_unit_options.60min_desc") },
-                  ]}
-                  value={workUnit.toString()}
-                  onChange={(val) => setWorkUnit(parseInt(val))}
-                  className="bg-slate-50 border-slate-200"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-                  {t("workspace_settings.rounding_policy")}
-                </label>
-                <Combobox
-                  data-testid="rounding-policy-select"
-                  options={[
-                    { value: "none", label: t("workspace_settings.rounding_options.none"), icon: <CheckCircle2 className="w-4 h-4" /> },
-                    { value: "floor", label: t("workspace_settings.rounding_options.floor"), icon: <ShieldAlert className="w-4 h-4" /> },
-                    { value: "ceil", label: t("workspace_settings.rounding_options.ceil"), icon: <ShieldAlert className="w-4 h-4" /> },
-                    { value: "round", label: t("workspace_settings.rounding_options.round"), icon: <ShieldAlert className="w-4 h-4" /> },
-                  ]}
-                  value={roundingPolicy}
-                  onChange={setRoundingPolicy}
-                  className="bg-slate-50 border-slate-200"
-                />
-              </div>
-
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
                   {t("workspace_settings.date_format")}

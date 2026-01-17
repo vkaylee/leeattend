@@ -231,6 +231,36 @@ export interface SalaryHistory {
   updated_at: string;
 }
 
+export interface PayrollSettings {
+  workspace_id: string;
+  std_working_day_mode: "fixed" | "actual_month";
+  fixed_std_days: number;
+  working_days_per_week: number;
+  hours_per_day: number;
+  updated_at: string;
+}
+
+export interface SalaryComponentDefinition {
+  id: string;
+  workspace_id: string;
+  name: string;
+  code: string;
+  is_base_for_ot: boolean;
+  is_taxable: boolean;
+}
+
+export interface EmployeeSalaryComponent {
+  id: string;
+  employee_id: string;
+  component_definition_id: string;
+  amount: string;
+  effective_date: string;
+  name?: string;
+  code?: string;
+  is_base_for_ot?: boolean;
+  is_taxable?: boolean;
+}
+
 export interface Payslip {
   id: string;
   employee_id: string;

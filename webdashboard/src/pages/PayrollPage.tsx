@@ -29,6 +29,7 @@ import { useToast } from "../components/Toast";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
+import EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
 
 export default function PayrollPage() {
   const { t } = useTranslation();
@@ -40,6 +41,7 @@ export default function PayrollPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCalcModalOpen, setIsCalcModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"payslips" | "config">("payslips");
   
   const [calcYear, setCalcYear] = useState(new Date().getFullYear());
   const [calcMonth, setCalcMonth] = useState(new Date().getMonth() + 1);
@@ -147,7 +149,21 @@ export default function PayrollPage() {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-slate-900">{selectedEmployee.first_name} {selectedEmployee.last_name}</h2>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t("payroll.employee_profile")}</p>
+                  <div className="flex items-center gap-4 mt-1">
+                    <button 
+                      onClick={() => setActiveTab("payslips")}
+                      className={`text-[10px] font-black uppercase tracking-widest transition-colors ${activeTab === 'payslips' ? 'text-primary-600' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                      {t("payroll.history_title")}
+                    </button>
+                    <div className="w-1 h-1 bg-slate-200 rounded-full" />
+                    <button 
+                      onClick={() => setActiveTab("config")}
+                      className={`text-[10px] font-black uppercase tracking-widest transition-colors ${activeTab === 'config' ? 'text-primary-600' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                      {t("payroll.employee_config.tab_title", "Cấu hình lương")}
+                    </button>
+                  </div>
                 </div>
               </div>
               <button 
@@ -159,74 +175,82 @@ export default function PayrollPage() {
               </button>
             </div>
 
-            <div className="flex-1 bg-white border border-slate-200 rounded-[40px] overflow-hidden shadow-sm flex flex-col">
-              <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
-                <History className="w-4 h-4 text-slate-400" />
-                <h3 className="font-black text-[10px] text-slate-400 uppercase tracking-widest">{t("payroll.history_title")}</h3>
-              </div>
-              
-              <div className="flex-1 overflow-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-slate-50/30 sticky top-0 backdrop-blur-md border-b border-slate-100">
-                    <tr>
-                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("payroll.table.period")}</th>
-                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.base_pay")}</th>
-                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.overtime")}</th>
-                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.deductions")}</th>
-                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.net_pay")}</th>
-                      <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t("payroll.table.status")}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {payslipsLoading ? (
-                      <tr><td colSpan={6} className="px-8 py-12 text-center text-slate-400 italic">{t("payroll.table.loading_payslips")}</td></tr>
-                    ) : payslips.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-8 py-20 text-center">
-                          <div className="bg-slate-50 w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                            <FileText className="text-slate-200 w-6 h-6" />
-                          </div>
-                          <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">{t("payroll.table.no_payslips")}</p>
-                        </td>
-                      </tr>
-                    ) : payslips.map(slip => (
-                      <tr key={slip.id} className="hover:bg-slate-50/50 transition-colors group">
-                        <td className="px-8 py-6">
-                          <div className="font-bold text-slate-900">{t("common.month")} {formatMonthYear(slip.period_start)}</div>
-                          <div className="text-[10px] text-slate-400 font-bold mt-1">
-                            {formatDate(slip.period_start)} - {formatDate(slip.period_end)}
-                          </div>
-                        </td>
-                        <td className="px-8 py-6 text-right font-mono text-sm text-slate-600">
-                          {new Intl.NumberFormat('vi-VN').format(parseFloat(slip.base_pay_amount))}
-                        </td>
-                        <td className="px-8 py-6 text-right font-mono text-sm text-emerald-600 font-bold">
-                          +{new Intl.NumberFormat('vi-VN').format(parseFloat(slip.overtime_pay_amount))}
-                        </td>
-                        <td className="px-8 py-6 text-right font-mono text-sm text-rose-600 font-bold">
-                          -{new Intl.NumberFormat('vi-VN').format(parseFloat(slip.deductions_amount))}
-                        </td>
-                        <td className="px-8 py-6 text-right">
-                          <div className="font-black text-primary-600 text-lg">
-                            {new Intl.NumberFormat('vi-VN').format(parseFloat(slip.net_pay_amount))}
-                          </div>
-                        </td>
-                        <td className="px-8 py-6 text-center">
-                          {slip.status === 'paid' ? (
-                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-tighter">
-                              <CheckCircle2 size={10} /> {t("payroll.status.paid")}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-tighter">
-                              <AlertCircle size={10} /> {t("payroll.status.finalized")}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div className="flex-1 overflow-y-auto">
+              {activeTab === "payslips" ? (
+                <div className="bg-white border border-slate-200 rounded-[40px] overflow-hidden shadow-sm flex flex-col h-full">
+                  <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
+                    <History className="w-4 h-4 text-slate-400" />
+                    <h3 className="font-black text-[10px] text-slate-400 uppercase tracking-widest">{t("payroll.history_title")}</h3>
+                  </div>
+                  
+                  <div className="flex-1 overflow-auto">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50/30 sticky top-0 backdrop-blur-md border-b border-slate-100">
+                        <tr>
+                          <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("payroll.table.period")}</th>
+                          <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.base_pay")}</th>
+                          <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.overtime")}</th>
+                          <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.deductions")}</th>
+                          <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.net_pay")}</th>
+                          <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t("payroll.table.status")}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {payslipsLoading ? (
+                          <tr><td colSpan={6} className="px-8 py-12 text-center text-slate-400 italic">{t("payroll.table.loading_payslips")}</td></tr>
+                        ) : payslips.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="px-8 py-20 text-center">
+                              <div className="bg-slate-50 w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                <FileText className="text-slate-200 w-6 h-6" />
+                              </div>
+                              <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">{t("payroll.table.no_payslips")}</p>
+                            </td>
+                          </tr>
+                        ) : payslips.map(slip => (
+                          <tr key={slip.id} className="hover:bg-slate-50/50 transition-colors group">
+                            <td className="px-8 py-6">
+                              <div className="font-bold text-slate-900">{t("common.month")} {formatMonthYear(slip.period_start)}</div>
+                              <div className="text-[10px] text-slate-400 font-bold mt-1">
+                                {formatDate(slip.period_start)} - {formatDate(slip.period_end)}
+                              </div>
+                            </td>
+                            <td className="px-8 py-6 text-right font-mono text-sm text-slate-600">
+                              {new Intl.NumberFormat('vi-VN').format(parseFloat(slip.base_pay_amount))}
+                            </td>
+                            <td className="px-8 py-6 text-right font-mono text-sm text-emerald-600 font-bold">
+                              +{new Intl.NumberFormat('vi-VN').format(parseFloat(slip.overtime_pay_amount))}
+                            </td>
+                            <td className="px-8 py-6 text-right font-mono text-sm text-rose-600 font-bold">
+                              -{new Intl.NumberFormat('vi-VN').format(parseFloat(slip.deductions_amount))}
+                            </td>
+                            <td className="px-8 py-6 text-right">
+                              <div className="font-black text-primary-600 text-lg">
+                                {new Intl.NumberFormat('vi-VN').format(parseFloat(slip.net_pay_amount))}
+                              </div>
+                            </td>
+                            <td className="px-8 py-6 text-center">
+                              {slip.status === 'paid' ? (
+                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-tighter">
+                                  <CheckCircle2 size={10} /> {t("payroll.status.paid")}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-tighter">
+                                  <AlertCircle size={10} /> {t("payroll.status.finalized")}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <EmployeeSalaryConfig wsId={wsId} employeeId={selectedEmployee.id} />
+                </div>
+              )}
             </div>
           </>
         )}
