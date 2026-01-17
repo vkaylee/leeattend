@@ -48,6 +48,10 @@ leeattend/
     - Workspace: Organizational isolation.
     - Agent Manager: WebSocket handler for remote agents.
     - **Discovery**: Dynamic port selection (3000+).
+    - **Workspace Identification Refactor (Path Priority)**: Modernized the API identification strategy for multi-tenant isolation.
+        - **Smart URI Extraction**: The backend `WorkspaceId` extractor now prioritizes extracting the Workspace ID directly from URL path parameters (`/workspaces/:ws_id/...`).
+        - **Optional Headers**: Removed the strict requirement for the `X-Workspace-Id` header when the ID is present in the path, simplifying client integrations and improving compatibility with standard browser requests.
+        - **Header Fallback**: Maintained header-based identification as a secondary fallback for ESS routes and legacy support.
     - **Branding Engine**: Support for workspace-specific `theme_primary_color` with persistence and validation.
     - **Temporal Engine**: Logic gán ca dựa trên thời gian với cơ chế kế thừa phân cấp (Inheritance). Thứ tự ưu tiên: `Manual Override (Roster)` > `Individual Pattern` > `Department Pattern` > `Fixed Assignment` > `Department Default`. Hỗ trợ gán mẫu lịch làm việc (Working Patterns) hàng loạt.
     - **Heartbeat Engine**: Time-based tracking of edge agent connectivity.

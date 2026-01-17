@@ -118,6 +118,12 @@ Core backend viết bằng **Rust** sử dụng framework **Axum**.
   - `repositories/`: Database abstraction layer via SQLx.
   - `models/`: Type-safe domain entities.
 
+### 2.1. Multi-Tenancy & Identification (Path Priority)
+LeeAttend sử dụng chiến lược định danh Workspace ưu tiên đường dẫn (Path Priority) để đảm bảo tính cô lập dữ liệu giữa các tổ chức:
+- **URI-based Identification**: Hệ thống ưu tiên trích xuất `workspace_id` trực tiếp từ tham số đường dẫn (ví dụ: `/workspaces/:ws_id/employees`). Điều này giúp API trở nên tường minh và tương thích tốt hơn với các công cụ web tiêu chuẩn.
+- **Smart Extraction**: Extractor `WorkspaceId` trong Rust sẽ tự động kiểm tra các tham số `:ws_id` hoặc `:id` trong URL trước khi tìm kiếm trong Header.
+- **Fallback Header**: Header `X-Workspace-Id` vẫn được duy trì như một phương thức dự phòng cho các ứng dụng không sử dụng Path-based routing (như ESS portal) hoặc các phiên bản client cũ.
+
 ## 3. Web Dashboard (Admin UI)
 Ứng dụng quản trị tập trung dành cho Admin.
 - **Responsibility**: Quản lý cấu hình, phê duyệt Agent và theo dõi dữ liệu chấm công.

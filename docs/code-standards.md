@@ -115,15 +115,40 @@ async fn my_feature_test() {
 - **Tailwind CSS 4**: Sử dụng các tiện ích của Tailwind 4 để styling.
 - **Lucide React**: Thư viện icon chuẩn.
 
-### 📅 Logic Lịch trình & Ca làm việc
+### 📅 Logic Lịch trình & Ca làm việc (Effective Schedule)
 
-Khi tính toán ca làm việc hiệu lực của nhân viên tại một thời điểm, **PHẢI** tuân thủ thứ tự ưu tiên sau:
+Khi tính toán ca làm việc hiệu lực của nhân viên tại một thời điểm, **PHẢI** tuân thủ thứ tự ưu tiên 5 cấp sau:
 
-1.  **Mức 1: Lịch trực tuần (Weekly Roster)** - `shift_rosters`. Bản ghi gán cho một ngày cụ thể. Nếu gán là NULL, nghĩa là nhân viên ĐƯỢC NGHỈ (Day Off) bất chấp các mức dưới.
-2.  **Mức 2: Gán cố định (Fixed Assignment)** - `employee_shifts`. Lấy bản ghi có ngày hiệu lực (`start_date`) thỏa mãn và có thời điểm tạo (`created_at`) mới nhất (Temporal Overriding).
-3.  **Mức 3: Ca mặc định phòng ban (Department Default)** - `department_default_shifts`. Lấy ca mặc định của phòng ban nhân viên đang thuộc về tại thời điểm đó.
+1.  **Mức 1: Lịch trực tuần (Manual Roster)** - `shift_rosters`. Bản ghi gán cho một ngày cụ thể. Nếu gán là NULL, nghĩa là nhân viên ĐƯỢC NGHỈ (Day Off) bất chấp các mức dưới.
+2.  **Mức 2: Mẫu lịch cá nhân (Individual Working Pattern)** - `employee_working_patterns`. Mẫu lịch lặp lại gán cho nhân viên trong một khoảng thời gian.
+3.  **Mức 3: Mẫu lịch phòng ban (Department Working Pattern)** - Mẫu lịch mặc định của phòng ban mà nhân viên đang thuộc về.
+4.  **Mức 4: Gán cố định (Fixed Assignment - Legacy)** - `employee_shifts`. Lấy bản ghi có ngày hiệu lực (`start_date`) thỏa mãn và có thời điểm tạo (`created_at`) mới nhất.
+5.  **Mức 5: Ca mặc định phòng ban (Department Default Shift)** - Ca làm việc mặc định cuối cùng của phòng ban.
 
 **Lưu ý**: Tuyệt đối không tính toán logic này ở Frontend. Luôn sử dụng API `/api/workspaces/:id/schedules` để lấy kết quả đã tính toán từ Backend.
+
+---
+
+### 🔍 Tìm kiếm nhân viên (Unified Search Pattern)
+
+Để đảm bảo trải nghiệm người dùng nhất quán, việc tìm kiếm nhân viên phải tuân thủ mẫu thiết kế sau:
+
+1.  **Component**: Luôn sử dụng component `EmployeeSearch` (Combobox) thay vì các input text đơn giản.
+2.  **Behavior**:
+    - **Debounced Remote Search**: Tìm kiếm server-side với delay 400ms để tối ưu hiệu năng.
+    - **Offline Result Shadowing**: Tắt tính năng tự động filter của thư viện client (như `cmdk`) để hiển thị chính xác kết quả từ Server (đặc biệt khi tìm theo mã nhân viên).
+    - **Label Persistence**: Phải capture và lưu trữ label (tên nhân viên) của item đã chọn để hiển thị đúng ngay cả khi item đó không còn nằm trong tập kết quả search hiện tại.
+3.  **Backend API**: Luôn sử dụng endpoint `/workspaces/:ws_id/employees?q=...` hỗ trợ tìm kiếm không phân biệt hoa thường (Case-insensitive) trên Tên, Họ, và Mã nhân viên.
+
+---
+
+### 🌐 Định danh Workspace (Path Priority)
+
+Hệ thống ưu tiên định danh tổ chức dựa trên URI để tăng tính tường minh và khả năng tương thích:
+
+1.  **Path over Header**: Ưu tiên sử dụng tham số `:ws_id` hoặc `:id` trong URL.
+2.  **Client Responsibility**: Frontend phải đảm bảo truyền ID vào path của request. Utility `apiFetch` hỗ trợ việc này một cách tự động khi kết hợp với `WorkspaceGuard`.
+3.  **Optional Header**: Header `X-Workspace-Id` chỉ mang tính dự phòng và không được coi là bắt buộc cho các routes đã có ID trong path.
 
 ---
 

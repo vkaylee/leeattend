@@ -4,6 +4,20 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ## [Unreleased] - 2026-01-17
 
+### Added
+- **Unified Employee Search Feature**: Standardized the employee search experience across the entire dashboard.
+    - **Global Implementation**: Replaced manual filters with a high-performance, debounced `EmployeeSearch` combobox in Attendance, Employees, Leave, Payroll, Reports, Time Tracking, and Working Patterns pages.
+    - **Search-on-Type**: Integrated server-side fuzzy matching by Name and Employee ID Number.
+    - **Localized E2E Verification**: Added a comprehensive Playwright suite to ensure search reliability across all supported languages.
+- **Employee Search E2E Suite**: Implemented `webdashboard/tests/EmployeeSearchIntegration.test.ts` using Playwright to verify the full "Login -> Search -> Select" flow with real backend integration.
+- **Dynamic Payroll & Salary Components**: Implemented a flexible, component-based payroll architecture.
+
+### Changed
+- **Workspace Identification Refactor (Path Priority)**: Modernized the API identification strategy for multi-tenant isolation.
+    - **Smart URI Extraction**: The backend now prioritizes extracting the Workspace ID directly from the URL path (`/workspaces/:ws_id/...`), reducing client-side overhead.
+    - **Optional Headers**: The `X-Workspace-Id` header is now optional for path-based routes, improving compatibility with standard browser requests and simpler integrations.
+    - **ESS Compatibility**: Maintained header-based identification as a secondary fallback for Employee Self-Service routes and legacy client versions.
+
 ### Fixed
 - **Code Quality Enforcement**: Enforced `--max-warnings 0` for frontend linting to maintain a high code quality standard and prevent technical debt accumulation.
 - **React Performance Optimization**: Refactored `PayrollSettingsSection.tsx` to eliminate a `useEffect` state synchronization antipattern, resolving a linter warning and preventing unnecessary re-renders.

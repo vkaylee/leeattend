@@ -128,3 +128,15 @@ Pattern dùng cho các bảng dữ liệu lớn (Roster, Logs):
 2. Thanh công cụ nổi (Floating Action Bar) xuất hiện ở đáy màn hình.
 3. Người dùng chọn hành động để áp dụng cho toàn bộ mục đã chọn.
 - **Mục tiêu:** Giảm nhiễu giao diện trên từng dòng dữ liệu.
+
+### 8.3. Unified Employee Search (Tìm kiếm nhân viên tập trung)
+Để đảm bảo trải nghiệm tìm kiếm nhất quán trên toàn hệ thống:
+- **Component**: Luôn sử dụng Combobox `EmployeeSearch` tích hợp sẵn.
+- **Search-as-you-type**: Hiển thị kết quả ngay khi người dùng nhập liệu (sau 400ms debounce).
+- **Rich Results**: Hiển thị đầy đủ Họ tên kèm Mã nhân viên (Employee ID) để tránh nhầm lẫn.
+- **Persistent Selection**: Khi một nhân viên đã được chọn, nhãn (label) của họ phải luôn hiển thị rõ ràng ngay cả khi kết quả tìm kiếm đã thay đổi.
+- **Multi-select basket**: Đối với các báo cáo, cho phép chọn nhiều nhân viên bằng cách hiển thị các "chips" (thẻ) có thể xóa được dưới thanh tìm kiếm.
+
+---
+
+## 9. Cá nhân hóa (Personalization)
