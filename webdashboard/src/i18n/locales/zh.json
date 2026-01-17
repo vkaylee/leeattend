@@ -683,12 +683,14 @@
     },
     "table": {
       "total_hours": "总工时",
-      "leave_days": "休假天数",
-      "hours": "工时"
+      "leave_days": "请假天数",
+      "hours": "工作小时",
+      "units": "工分单位"
     },
     "quick_stats": {
       "title": "快速统计",
-      "total_hours": "总工时"
+      "total_hours": "总工时",
+      "total_units": "总工分单位"
     },
     "messages": {
       "generating": "正在生成报告...",
@@ -739,7 +741,8 @@
     "title": "工作区设置",
     "description": "管理工作区配置、成员和外观。",
     "general_config": "通用配置",
-    "payroll_config": "薪酬配置",
+    "payroll_config": "薪资配置",
+    "attendance_config": "考勤配置",
     "save_config": "保存配置",
     "work_unit": "计薪单位 (Work Unit)",
     "rounding_policy": "舍入规则",

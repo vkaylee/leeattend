@@ -89,6 +89,21 @@ async fn my_feature_test() {
 - Use `ZKService_mock.py` for external hardware simulation.
 
 
+### 🔢 Hệ thống Đơn vị công (Integer Work Unit - WU)
+
+Để đảm bảo tính chính xác tuyệt đối (không sai số floating-point) và bảo toàn dữ liệu lịch sử, hệ thống tuân thủ các nguyên tắc sau:
+
+1.  **Atomic Unit**: Đơn vị nhỏ nhất để tính toán công và lương là **Work Unit (Số nguyên)**. Tuyệt đối không lưu trữ hoặc tính toán số giờ dưới dạng số thập phân (float) ở tầng Service/Database.
+2.  **Calculation Rule**: 
+    - `Minutes / work_unit_minutes = Units`. 
+    - Phải áp dụng quy tắc làm tròn (`rounding_policy`) của Workspace ngay tại thời điểm chuyển đổi sang Unit.
+3.  **Temporal Integrity (Snapshotting)**: 
+    - Khi chốt lương, **PHẢI** snapshot số lượng Unit (`standard_units`, `overtime_units`) vào bảng `payslips`. 
+    - Tuyệt đối không tính toán lại số unit từ log thô khi xem lại phiếu lương cũ, vì cấu hình Workspace (độ dài unit, quy tắc làm tròn) có thể đã thay đổi theo thời gian.
+4.  **UI Representation**: 
+    - Frontend hiển thị số giờ (`Decimal Hours`) phục vụ UX: `Hours = Units * (work_unit_minutes / 60)`.
+    - Tuy nhiên, khi nhập liệu hoặc hiển thị chi tiết, nên hiển thị kèm số lượng Unit thô để người dùng đối soát.
+
 ---
 
 ## ⚛️ React (Frontend)

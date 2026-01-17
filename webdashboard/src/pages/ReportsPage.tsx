@@ -1,20 +1,30 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { FileBarChart, Download, Calendar, Search, List, TableProperties, Clock, User as UserIcon, CalendarDays } from "lucide-react";
+import { FileBarChart, Download, Calendar, Search, List, TableProperties, Clock, User as UserIcon, CalendarDays, Info } from "lucide-react";
 import { format } from "date-fns";
 import { 
   fetchAttendanceReport, 
   getCurrentWorkspaceId,
+  fetchWorkspace,
   AttendanceSummary,
   DailyAttendanceReport
 } from "../lib/api";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { formatUnitsToHours } from "@/lib/utils/attendance";
 
 export default function ReportsPage() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
   const { formatDate, formatTime } = useDateTimeFormatter();
+
+  const { data: workspace } = useQuery({
+    queryKey: ["workspace", wsId],
+    queryFn: () => fetchWorkspace(wsId!),
+    enabled: !!wsId,
+  });
+
+  const workUnitMinutes = workspace?.work_unit_minutes || 60;
   
   // Helper to get month range
   const getMonthRange = (offset: number = 0) => {
@@ -186,7 +196,12 @@ export default function ReportsPage() {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("common.employee")}</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">{t("reports.table.total_hours")}</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">
+                  <div className="flex items-center justify-end gap-1.5 group cursor-help" title={`Units × ${workUnitMinutes}m / 60`}>
+                    {t("reports.table.total_hours")}
+                    <Info className="w-3.5 h-3.5 text-slate-400 group-hover:text-primary-500 transition-colors" />
+                  </div>
+                </th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">{t("reports.table.leave_days")}</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">{t("common.notes")}</th>
               </tr>
@@ -200,7 +215,8 @@ export default function ReportsPage() {
                 <tr key={row.employee_id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4 font-medium text-slate-900">{row.employee_name}</td>
                   <td className="px-6 py-4 text-right font-mono text-primary-600 font-bold">
-                    {row.total_hours.toFixed(1)}h
+                    {formatUnitsToHours(row.total_work_units, workUnitMinutes)} {t("reports.table.hours")}
+                    <span className="block text-[10px] text-slate-400 font-normal">{row.total_work_units} {t("reports.table.units")}</span>
                   </td>
                   <td className="px-6 py-4 text-right font-mono text-orange-600 font-bold">
                     {row.total_leave_days} {t("common.days")}
@@ -222,7 +238,12 @@ export default function ReportsPage() {
                   <th className="px-6 py-4 text-sm font-semibold text-slate-600 whitespace-nowrap">{t("common.shift")}</th>
                   <th className="px-6 py-4 text-sm font-semibold text-slate-600 whitespace-nowrap text-center">Punch In</th>
                   <th className="px-6 py-4 text-sm font-semibold text-slate-600 whitespace-nowrap text-center">Punch Out</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">{t("reports.table.hours")}</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">
+                    <div className="flex items-center justify-end gap-1.5 group cursor-help" title={`Units × ${workUnitMinutes}m / 60`}>
+                      {t("reports.table.hours")}
+                      <Info className="w-3.5 h-3.5 text-slate-400 group-hover:text-primary-500 transition-colors" />
+                    </div>
+                  </th>
                   <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-center">{t("common.status")}</th>
                 </tr>
               </thead>
@@ -268,7 +289,8 @@ export default function ReportsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right font-mono text-primary-600 font-black">
-                      {(row.total_minutes / 60).toFixed(1)}h
+                      {formatUnitsToHours(row.work_units, workUnitMinutes)} {t("reports.table.hours")}
+                      <span className="block text-[10px] text-slate-400 font-normal">{row.work_units} {t("reports.table.units")}</span>
                     </td>
                     <td className="px-6 py-4 text-center">
                       {getStatusBadge(row.status)}
@@ -294,9 +316,12 @@ export default function ReportsPage() {
             <div className="bg-slate-800/50 p-4 rounded-2xl">
               <p className="text-slate-400 text-xs font-black uppercase tracking-widest">{t("reports.quick_stats.total_hours")}</p>
               <p className="text-2xl font-bold text-blue-400 mt-1">
-                {reportType === "summary" 
-                  ? filteredData.reduce((acc: number, r: any) => acc + r.total_hours, 0).toFixed(1)
-                  : (filteredData.reduce((acc: number, r: any) => acc + r.total_minutes, 0) / 60).toFixed(1)}h
+                {formatUnitsToHours(
+                  reportType === "summary" 
+                    ? filteredData.reduce((acc: number, r: any) => acc + r.total_work_units, 0)
+                    : filteredData.reduce((acc: number, r: any) => acc + r.work_units, 0),
+                  workUnitMinutes
+                )}
               </p>
             </div>
           </div>

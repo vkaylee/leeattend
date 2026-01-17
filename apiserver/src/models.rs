@@ -436,7 +436,7 @@ pub struct AttendanceSummary {
 
     pub employee_name: String,
 
-    pub total_hours: f64,
+    pub total_work_units: i32,
 
     pub total_leave_days: i64,
 }
@@ -454,7 +454,7 @@ pub struct DailyAttendanceReport {
     pub is_break_auto_deduct: Option<bool>,
     pub actual_punch_in: Option<DateTime<Utc>>,
     pub actual_punch_out: Option<DateTime<Utc>>,
-    pub total_minutes: i32,
+    pub work_units: i32,
     pub status: String,
 }
 
@@ -572,6 +572,8 @@ pub struct Payslip {
     pub overtime_pay_amount: rust_decimal::Decimal,
     pub deductions_amount: rust_decimal::Decimal,
     pub net_pay_amount: rust_decimal::Decimal,
+    pub standard_units: i32,
+    pub overtime_units: i32,
     pub status: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

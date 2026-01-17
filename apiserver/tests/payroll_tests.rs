@@ -22,6 +22,14 @@ async fn setup_employee_with_salary(
 ) -> (Uuid, Uuid, Decimal) {
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
+    
+    // Set work_unit_minutes to 60 for consistent hourly-like testing
+    sqlx::query("UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1")
+        .bind(workspace_id)
+        .execute(pool)
+        .await
+        .unwrap();
+
     let employee_id = factory
         .employee()
         .with_workspace(workspace_id)
@@ -29,7 +37,7 @@ async fn setup_employee_with_salary(
         .create()
         .await;
 
-    let base_salary = Decimal::from_f64(100.0).unwrap(); // 100 units per hour
+    let base_salary = Decimal::from_f64(100.0).unwrap(); // 100 units per hour (since unit is 60m)
     sqlx::query(
         "INSERT INTO salary_history (employee_id, base_salary, salary_type, currency, effective_date) VALUES ($1, $2, $3, $4, $5)",
     )
@@ -52,6 +60,14 @@ async fn setup_employee_with_monthly_salary(
 ) -> (Uuid, Uuid, Decimal) {
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
+    
+    // Set work_unit_minutes to 60 for consistent hourly-like testing
+    sqlx::query("UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1")
+        .bind(workspace_id)
+        .execute(pool)
+        .await
+        .unwrap();
+
     let employee_id = factory
         .employee()
         .with_workspace(workspace_id)
@@ -120,8 +136,11 @@ async fn test_calculate_payroll_monthly_with_overtime() {
     ).await.unwrap();
 
     assert_eq!(payslip.base_pay_amount, base_salary);
-    // 2 hours overtime. Hourly rate = base / 176. OT = 2 * (base/176) * 1.5 = 3 * base / 176
-    let expected_ot = ((base_salary / Decimal::from(176)) * Decimal::from_f64(2.0 * 1.5).unwrap())
+    // 2 hours overtime = 2 units (since unit=60m). 
+    // Standard units/month = 26 days * 8 hours = 208 units.
+    // Unit rate = 3000 / 208 = 14.423...
+    // OT = 2 units * 14.423 * 1.5 = 43.269... -> 43.27
+    let expected_ot = ((base_salary / Decimal::from(208)) * Decimal::from_f64(2.0 * 1.5).unwrap())
         .round_dp(2);
     assert_eq!(payslip.overtime_pay_amount, expected_ot);
 }

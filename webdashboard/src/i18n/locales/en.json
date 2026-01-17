@@ -684,11 +684,13 @@
     "table": {
       "total_hours": "Total Hours",
       "leave_days": "Leave Days",
-      "hours": "Work Hours"
+      "hours": "Hours",
+      "units": "Units"
     },
     "quick_stats": {
       "title": "Quick Stats",
-      "total_hours": "Total Hours"
+      "total_hours": "Total Hours",
+      "total_units": "Total Units"
     },
     "messages": {
       "generating": "Generating report...",
@@ -738,9 +740,10 @@
   "workspace_settings": {
     "title": "Workspace Settings",
     "description": "Manage configuration, personnel, and workspace interface.",
-    "general_config": "General Configuration",
-    "payroll_config": "Payroll Configuration",
-    "save_config": "Save Configuration",
+    "general_config": "General Config",
+    "payroll_config": "Payroll Config",
+    "attendance_config": "Attendance Config",
+    "save_config": "Save Config",
     "work_unit": "Work Unit",
     "rounding_policy": "Rounding Policy",
     "date_format": "Date Format",

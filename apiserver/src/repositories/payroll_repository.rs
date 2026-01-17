@@ -223,9 +223,9 @@ pub async fn add_salary_history(
 pub async fn create_payslip(pool: &PgPool, payslip: &Payslip) -> Result<Payslip, sqlx::Error> {
     query_as!(
         Payslip,
-        r#"INSERT INTO payslips (id, employee_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-         RETURNING id, employee_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, status, created_at as "created_at!", updated_at as "updated_at!""#,
+        r#"INSERT INTO payslips (id, employee_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, standard_units, overtime_units, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         RETURNING id, employee_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, standard_units, overtime_units, status, created_at as "created_at!", updated_at as "updated_at!""#,
         payslip.id,
         payslip.employee_id,
         payslip.period_start,
@@ -234,6 +234,8 @@ pub async fn create_payslip(pool: &PgPool, payslip: &Payslip) -> Result<Payslip,
         payslip.overtime_pay_amount,
         payslip.deductions_amount,
         payslip.net_pay_amount,
+        payslip.standard_units,
+        payslip.overtime_units,
         payslip.status
     )
     .fetch_one(pool)
@@ -246,7 +248,7 @@ pub async fn get_payslips_by_employee(
 ) -> Result<Vec<Payslip>, sqlx::Error> {
     query_as!(
         Payslip,
-        r#"SELECT id, employee_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, status, created_at as "created_at!", updated_at as "updated_at!" FROM payslips WHERE employee_id = $1 ORDER BY period_start DESC"#,
+        r#"SELECT id, employee_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, standard_units, overtime_units, status, created_at as "created_at!", updated_at as "updated_at!" FROM payslips WHERE employee_id = $1 ORDER BY period_start DESC"#,
         employee_id
     )
     .fetch_all(pool)

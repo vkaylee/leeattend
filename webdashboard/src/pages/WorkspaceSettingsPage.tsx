@@ -119,6 +119,70 @@ export default function WorkspaceSettingsPage() {
           
           <SalaryComponentManager wsId={wsId!} />
 
+          {/* Attendance Config Section */}
+          <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-800">
+              <Calculator className="w-5 h-5 text-indigo-500" />
+              {t("workspace_settings.attendance_config", "Cấu hình chấm công")}
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+                  {t("workspace_settings.work_unit")}
+                </label>
+                <Combobox
+                  data-testid="work-unit-select"
+                  options={[
+                    { value: "1", label: t("workspace_settings.work_unit_options.1min"), description: t("workspace_settings.work_unit_options.1min_desc"), icon: <Clock className="w-4 h-4" /> },
+                    { value: "15", label: t("workspace_settings.work_unit_options.15min"), description: t("workspace_settings.work_unit_options.15min_desc"), icon: <Clock className="w-4 h-4" /> },
+                    { value: "30", label: t("workspace_settings.work_unit_options.30min"), description: t("workspace_settings.work_unit_options.30min_desc"), icon: <Clock className="w-4 h-4" /> },
+                    { value: "60", label: t("workspace_settings.work_unit_options.60min"), description: t("workspace_settings.work_unit_options.60min_desc"), icon: <Clock className="w-4 h-4" /> },
+                  ]}
+                  value={workUnit.toString()}
+                  onChange={(v) => setWorkUnit(parseInt(v))}
+                  className="bg-slate-50 border-slate-200"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+                  {t("workspace_settings.rounding_policy")}
+                </label>
+                <Combobox
+                  data-testid="rounding-policy-select"
+                  options={[
+                    { value: "none", label: t("workspace_settings.rounding_options.none"), icon: <ShieldAlert className="w-4 h-4" /> },
+                    { value: "floor", label: t("workspace_settings.rounding_options.floor"), icon: <Calculator className="w-4 h-4" /> },
+                    { value: "ceil", label: t("workspace_settings.rounding_options.ceil"), icon: <Calculator className="w-4 h-4" /> },
+                    { value: "round", label: t("workspace_settings.rounding_options.round"), icon: <Calculator className="w-4 h-4" /> },
+                  ]}
+                  value={roundingPolicy}
+                  onChange={setRoundingPolicy}
+                  className="bg-slate-50 border-slate-200"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+                  {t("workspace_settings.pairing_algorithm")}
+                </label>
+                <Combobox
+                  data-testid="algorithm-select"
+                  options={[
+                    { value: "dp_pattern", label: t("workspace_settings.algorithm_options.dp_pattern"), description: t("workspace_settings.algorithm_options.dp_pattern_desc"), icon: <Settings2 className="w-4 h-4" /> },
+                    { value: "anchor_first", label: t("workspace_settings.algorithm_options.anchor_first"), description: t("workspace_settings.algorithm_options.anchor_first_desc"), icon: <Clock className="w-4 h-4" /> },
+                    { value: "sequential", label: t("workspace_settings.algorithm_options.sequential"), description: t("workspace_settings.algorithm_options.sequential_desc"), icon: <Calculator className="w-4 h-4" /> },
+                    { value: "fsm", label: t("workspace_settings.algorithm_options.fsm"), description: t("workspace_settings.algorithm_options.fsm_desc"), icon: <Shield className="w-4 h-4" /> },
+                  ]}
+                  value={pairingAlgorithm}
+                  onChange={setPairingAlgorithm}
+                  className="bg-slate-50 border-slate-200"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* General Config Section */}
           <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
             <div className="flex justify-between items-center mb-6">
@@ -201,24 +265,6 @@ export default function WorkspaceSettingsPage() {
                   ]}
                   value={defaultLanguage}
                   onChange={setDefaultLanguage}
-                  className="bg-slate-50 border-slate-200"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-                  {t("workspace_settings.pairing_algorithm")}
-                </label>
-                <Combobox
-                  data-testid="algorithm-select"
-                  options={[
-                    { value: "dp_pattern", label: t("workspace_settings.algorithm_options.dp_pattern"), description: t("workspace_settings.algorithm_options.dp_pattern_desc"), icon: <Settings2 className="w-4 h-4" /> },
-                    { value: "anchor_first", label: t("workspace_settings.algorithm_options.anchor_first"), description: t("workspace_settings.algorithm_options.anchor_first_desc"), icon: <Clock className="w-4 h-4" /> },
-                    { value: "sequential", label: t("workspace_settings.algorithm_options.sequential"), description: t("workspace_settings.algorithm_options.sequential_desc"), icon: <Calculator className="w-4 h-4" /> },
-                    { value: "fsm", label: t("workspace_settings.algorithm_options.fsm"), description: t("workspace_settings.algorithm_options.fsm_desc"), icon: <Shield className="w-4 h-4" /> },
-                  ]}
-                  value={pairingAlgorithm}
-                  onChange={setPairingAlgorithm}
                   className="bg-slate-50 border-slate-200"
                 />
               </div>

@@ -335,7 +335,23 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 - **Database Cleanup Reliability**: Improved background cleanup worker in `TestDatabase` to prevent database leaks and handle concurrent drops more robustly.
 - **Python Test Suite**: Temporarily ignored legacy broken tests in `agent-zk-worker` to maintain CI/CD stability during Rust transition.
 
-## [0.1.0] - 2026-01-09
+## [Unreleased]
+
+### Added
+- **Integer Work Unit (WU) Architecture**: Transitioned core attendance and payroll logic from raw minutes/hours to a strictly integer-based "Work Unit" model.
+- **Payslip Snapshotting**: Payslips now permanently store `standard_units` and `overtime_units` to ensure historical payroll integrity regardless of workspace configuration changes.
+- **UI Tooltips**: Added information tooltips on reports to explain the conversion from Units to Decimal Hours.
+
+### Changed
+- Refactored `AttendanceCalculator` to perform integer division and rounding based on workspace policy (Floor, Ceil, Round).
+- Updated `PayrollService` to use Unit-based rates: `Rate = Salary / (Days * Units/Day)`.
+- Updated Reporting UI to display Decimal Hours (Units * UnitMinutes / 60) by default for better UX.
+
+### Fixed
+- Fixed precision issues and floating-point leaks in attendance duration calculations.
+- Synchronized frontend TypeScript models with backend Work Unit changes.
+
+## [0.1.0] - 2026-01-16
 
 ### Added
 - **Early Clock-in Grace Period**: Implemented a configurable grace period for shifts (e.g., 30 mins). Punch-ins within this window are treated as being exactly on time, while punch-ins before the window count as overtime for the entire duration.

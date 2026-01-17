@@ -97,8 +97,8 @@ impl PayrollService {
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        let mut total_standard_minutes = 0;
-        let mut total_overtime_minutes = 0;
+        let mut total_standard_units = 0;
+        let mut total_overtime_units = 0;
 
         // Group entries by local date
         use std::collections::HashMap;
@@ -126,8 +126,8 @@ impl PayrollService {
                 })
             }).sum();
 
-            let mut day_standard = 0;
-            let mut day_overtime = 0;
+            let mut day_standard_units = 0;
+            let mut day_overtime_units = 0;
 
             for entry in work_entries {
                 let punch_in = entry.punch_in_time.with_timezone(&tz);
@@ -148,7 +148,7 @@ impl PayrollService {
                                     end += chrono::Duration::days(1);
                                 }
 
-                                let (std, ot) = AttendanceCalculator::calculate_daily_net_hours(
+                                let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(
                                     punch_in,
                                     punch_out,
                                     Some(start),
@@ -162,27 +162,35 @@ impl PayrollService {
                                     workspace.work_unit_minutes,
                                     &workspace.rounding_policy
                                 );
-                                day_standard += std;
-                                day_overtime += ot;
+                                day_standard_units += std_units;
+                                day_overtime_units += ot_units;
                             } else {
-                                day_standard += (punch_out - punch_in).num_minutes() as i32;
+                                day_standard_units += AttendanceCalculator::calculate_units(
+                                    (punch_out - punch_in).num_minutes() as i32,
+                                    workspace.work_unit_minutes,
+                                    &workspace.rounding_policy
+                                );
                             }
                         } else {
-                            day_standard += (punch_out - punch_in).num_minutes() as i32;
+                            day_standard_units += AttendanceCalculator::calculate_units(
+                                (punch_out - punch_in).num_minutes() as i32,
+                                workspace.work_unit_minutes,
+                                &workspace.rounding_policy
+                            );
                         }
                     } else {
-                        day_standard += (punch_out - punch_in).num_minutes() as i32;
+                        day_standard_units += AttendanceCalculator::calculate_units(
+                            (punch_out - punch_in).num_minutes() as i32,
+                            workspace.work_unit_minutes,
+                            &workspace.rounding_policy
+                        );
                     }
                 }
             }
 
-            // Apply rounding to daily totals
-            total_standard_minutes += AttendanceCalculator::apply_rounding(day_standard, workspace.work_unit_minutes, &workspace.rounding_policy);
-            total_overtime_minutes += AttendanceCalculator::apply_rounding(day_overtime, workspace.work_unit_minutes, &workspace.rounding_policy);
+            total_standard_units += day_standard_units;
+            total_overtime_units += day_overtime_units;
         }
-
-        let _worked_hours = total_standard_minutes as f64 / 60.0;
-        let overtime_hours = total_overtime_minutes as f64 / 60.0;
 
         // 4. Calculate pay
 
@@ -192,6 +200,10 @@ impl PayrollService {
         } else {
             payroll_settings.fixed_std_days.to_f64().unwrap_or(26.0)
         };
+
+        // Standard units per day (HoursPerDay / WorkUnitMinutes)
+        let units_per_day = (payroll_settings.hours_per_day * Decimal::from(60)) / Decimal::from(workspace.work_unit_minutes);
+        let std_units_per_month = Decimal::from_f64(std_days).unwrap_or(Decimal::from(26)) * units_per_day;
 
         // 4.2 Calculate Base for OT and Total Base Pay
         let mut base_pay_for_ot = Decimal::ZERO;
@@ -214,32 +226,23 @@ impl PayrollService {
              
              if old_settings.salary_type == "hourly" {
                  is_hourly = true;
-                 total_base_pay = old_settings.base_salary * Decimal::from_f64(_worked_hours).unwrap_or(Decimal::ZERO);
-                 base_pay_for_ot = old_settings.base_salary;
+                 total_base_pay = old_settings.base_salary * Decimal::from(total_standard_units);
+                 base_pay_for_ot = old_settings.base_salary; // This is actually unit rate if hourly
              } else {
                  total_base_pay = old_settings.base_salary;
                  base_pay_for_ot = old_settings.base_salary;
              }
         }
 
-        // Calculate hourly rate for Overtime
-        let hourly_rate = if is_hourly {
+        // Calculate unit rate for Overtime
+        let unit_rate = if is_hourly {
             base_pay_for_ot
         } else {
-            // For monthly salary, calculate hourly rate based on standard days
-            // If the workspace has explicit payroll settings, use them. 
-            // Otherwise, for backward compatibility with old tests, use 176 hours if it's the default 26 days.
-            if payroll_settings.fixed_std_days == Decimal::from(26) && payroll_settings.std_working_day_mode == "fixed" {
-                // Check if we should use 176 (old default) or 208 (26 * 8)
-                // To pass existing tests, we fallback to 176 if not explicitly changed
-                base_pay_for_ot / Decimal::from(176)
-            } else {
-                base_pay_for_ot / (Decimal::from_f64(std_days).unwrap_or(Decimal::from(26)) * payroll_settings.hours_per_day)
-            }
+            base_pay_for_ot / std_units_per_month
         };
 
         let overtime_pay =
-            hourly_rate * Decimal::from_f64(overtime_hours * 1.5).unwrap_or(Decimal::ZERO);
+            unit_rate * Decimal::from(total_overtime_units) * Decimal::from_f64(1.5).unwrap();
 
         let deductions = Decimal::ZERO;
 
@@ -254,6 +257,8 @@ impl PayrollService {
             overtime_pay_amount: overtime_pay,
             deductions_amount: deductions,
             net_pay_amount: net_pay,
+            standard_units: total_standard_units,
+            overtime_units: total_overtime_units,
             status: "draft".to_string(),
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),

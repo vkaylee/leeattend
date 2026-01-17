@@ -682,13 +682,15 @@
       "off": "Ngày nghỉ"
     },
     "table": {
-      "total_hours": "Tổng giờ làm",
+      "total_hours": "Tổng giờ công",
       "leave_days": "Số ngày nghỉ",
-      "hours": "Giờ làm"
+      "hours": "Giờ công",
+      "units": "Đơn vị"
     },
     "quick_stats": {
       "title": "Thống kê nhanh",
-      "total_hours": "Tổng giờ"
+      "total_hours": "Tổng giờ công",
+      "total_units": "Tổng đơn vị"
     },
     "messages": {
       "generating": "Đang tạo báo cáo...",
@@ -740,6 +742,7 @@
     "description": "Quản lý cấu hình, nhân sự và giao diện không gian làm việc.",
     "general_config": "Cấu hình chung",
     "payroll_config": "Cấu hình công lương",
+    "attendance_config": "Cấu hình chấm công",
     "save_config": "Lưu cấu hình",
     "work_unit": "Đơn vị tính công (Work Unit)",
     "rounding_policy": "Quy tắc làm tròn",

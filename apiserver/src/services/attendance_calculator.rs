@@ -112,28 +112,24 @@ impl AttendanceCalculator {
         }
     }
 
-    /// 3. Rounding Logic
+    /// 3. Unit Calculation Logic
     ///
-    /// For standard work hours, we typically use FLOOR rounding on the total duration.
-    pub fn apply_rounding(minutes: i32, unit: i32, policy: &str) -> i32 {
-        if unit <= 1 || policy == "none" {
-            return minutes;
-        }
-
-        let unit = unit as f64;
+    /// Converts minutes to the number of work units based on the policy.
+    pub fn calculate_units(minutes: i32, unit_size: i32, policy: &str) -> i32 {
+        let size = if unit_size <= 1 { 1.0 } else { unit_size as f64 };
         let mins = minutes as f64;
 
         match policy {
-            "floor" => (mins / unit).floor() as i32 * unit as i32,
-            "ceil" => (mins / unit).ceil() as i32 * unit as i32,
-            "round" => (mins / unit).round() as i32 * unit as i32,
-            _ => minutes,
+            "floor" => (mins / size).floor() as i32,
+            "ceil" => (mins / size).ceil() as i32,
+            "round" => (mins / size).round() as i32,
+            _ => (mins / size) as i32,
         }
     }
 
-    /// High-level method to calculate daily standard and OT minutes in one go.
+    /// High-level method to calculate daily standard and OT units in one go.
     #[allow(clippy::too_many_arguments)]
-    pub fn calculate_daily_net_hours<T: TimeZone>(
+    pub fn calculate_daily_units<T: TimeZone>(
         punch_in: DateTime<T>,
         punch_out: DateTime<T>,
         shift_start_dt: Option<DateTime<T>>,
@@ -160,13 +156,13 @@ impl AttendanceCalculator {
             allow_early_ot,
         );
 
-        // Apply rounding to standard time (Usually Floor)
-        let rounded_standard = Self::apply_rounding(buckets.standard_minutes, work_unit, rounding_policy);
+        // Apply rounding to standard time (Result in Units)
+        let standard_units = Self::calculate_units(buckets.standard_minutes, work_unit, rounding_policy);
         
-        // Overtime is usually summed (Early + Late)
-        let total_ot = buckets.early_ot_minutes + buckets.late_ot_minutes;
+        // Overtime units (Summed Early + Late)
+        let total_ot_units = Self::calculate_units(buckets.early_ot_minutes + buckets.late_ot_minutes, work_unit, rounding_policy);
         
-        (rounded_standard, total_ot)
+        (standard_units, total_ot_units)
     }
 
     /// Calculate the number of standard working days in a month based on policy.
@@ -244,8 +240,8 @@ mod tests {
         // 560 - 60 (break) = 500m.
         assert_eq!(b3.standard_minutes, 500);
         
-        let rounded = AttendanceCalculator::apply_rounding(b3.standard_minutes, 30, "floor");
-        assert_eq!(rounded, 480); // 8 hours (loses 20 mins worked + 10 mins penalty = 30 mins)
+        let rounded = AttendanceCalculator::calculate_units(b3.standard_minutes, 30, "floor");
+        assert_eq!(rounded, 16); // 16 units (8 hours)
 
         // Case 4: Grace Period (30m). Start 07:30 -> Grace starts 07:00.
         // Punch in 07:15 (within grace) -> No OT
@@ -298,11 +294,11 @@ mod tests {
         // Punch In 08:00, Punch Out 16:55 (Left 5 mins early)
         // Standard: 08:00 to 16:55 = 8h55m = 535m
         // Net: 535 - 60 = 475m
-        // Floor(475, 30) = 450m (7.5h) -> Lost 30 mins for leaving 5 mins early.
-        let (std, _) = AttendanceCalculator::calculate_daily_net_hours(
+        // Floor(475, 30) = 15 units (7.5h) -> Lost 1 unit for leaving 5 mins early.
+        let (std, _) = AttendanceCalculator::calculate_daily_units(
             dt(8, 0), dt(16, 55), start, end, 60, 0, true, false, 0, false, 30, "floor"
         );
-        assert_eq!(std, 450);
+        assert_eq!(std, 15);
     }
 
     #[test]
@@ -334,31 +330,32 @@ mod tests {
         // Standard duration: 30m.
         // Break to deduct: 60m.
         // Net: max(0, 30 - 60) = 0.
-        let (std, _) = AttendanceCalculator::calculate_daily_net_hours(
+        let (std, _) = AttendanceCalculator::calculate_daily_units(
             dt(8, 0), dt(8, 30), Some(dt(8, 0)), Some(dt(17, 0)), 60, 0, true, false, 0, false, 1, "none"
         );
         assert_eq!(std, 0);
     }
 
     #[test]
-    fn test_rounding_policies() {
+    fn test_unit_calculation_policies() {
         // Unit 30
-        assert_eq!(AttendanceCalculator::apply_rounding(29, 30, "floor"), 0);
-        assert_eq!(AttendanceCalculator::apply_rounding(31, 30, "floor"), 30);
+        assert_eq!(AttendanceCalculator::calculate_units(29, 30, "floor"), 0);
+        assert_eq!(AttendanceCalculator::calculate_units(31, 30, "floor"), 1);
         
-        assert_eq!(AttendanceCalculator::apply_rounding(1, 30, "ceil"), 30);
-        assert_eq!(AttendanceCalculator::apply_rounding(30, 30, "ceil"), 30);
-        assert_eq!(AttendanceCalculator::apply_rounding(31, 30, "ceil"), 60);
+        assert_eq!(AttendanceCalculator::calculate_units(1, 30, "ceil"), 1);
+        assert_eq!(AttendanceCalculator::calculate_units(30, 30, "ceil"), 1);
+        assert_eq!(AttendanceCalculator::calculate_units(31, 30, "ceil"), 2);
 
-        assert_eq!(AttendanceCalculator::apply_rounding(14, 30, "round"), 0);
-        assert_eq!(AttendanceCalculator::apply_rounding(15, 30, "round"), 30); // Boundary
-        assert_eq!(AttendanceCalculator::apply_rounding(44, 30, "round"), 30);
-        assert_eq!(AttendanceCalculator::apply_rounding(45, 30, "round"), 60);
+        assert_eq!(AttendanceCalculator::calculate_units(14, 30, "round"), 0);
+        assert_eq!(AttendanceCalculator::calculate_units(15, 30, "round"), 1); // Boundary
+        assert_eq!(AttendanceCalculator::calculate_units(44, 30, "round"), 1);
+        assert_eq!(AttendanceCalculator::calculate_units(45, 30, "round"), 2);
 
-        // Policy "none"
-        assert_eq!(AttendanceCalculator::apply_rounding(17, 30, "none"), 17);
+        // Policy "none" (truncates)
+        assert_eq!(AttendanceCalculator::calculate_units(17, 30, "none"), 0);
+        assert_eq!(AttendanceCalculator::calculate_units(45, 30, "none"), 1);
         // Unit <= 1
-        assert_eq!(AttendanceCalculator::apply_rounding(17, 1, "floor"), 17);
+        assert_eq!(AttendanceCalculator::calculate_units(17, 1, "floor"), 17);
     }
 
     #[test]
@@ -466,10 +463,10 @@ mod tests {
         // Arrive 08:01 (Late 1 min)
         // Duration: 08:01 to 17:00 = 8h59m = 539m
         // Net: 539 - 60 = 479m
-        // Floor(479, 30) = 450m (7.5h) -> Lost 30 mins for being 1 min late.
-        let (std, _) = AttendanceCalculator::calculate_daily_net_hours(
+        // Floor(479, 30) = 15 units (7.5h) -> Lost 1 unit for being 1 min late.
+        let (std, _) = AttendanceCalculator::calculate_daily_units(
             dt(8, 1), dt(17, 0), start, end, 60, 0, true, false, 0, false, 30, "floor"
         );
-        assert_eq!(std, 450);
+        assert_eq!(std, 15);
     }
 }

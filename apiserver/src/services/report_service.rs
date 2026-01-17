@@ -73,7 +73,7 @@ impl ReportService {
                 let actual_punch_out = day_entries.last().and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
                 
                 // --- CALCULATION LOGIC ---
-                let mut total_payable_minutes = 0;
+                let mut total_payable_units = 0;
 
                 if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
                     let actual_break_minutes: i32 = day_entries.iter()
@@ -89,7 +89,7 @@ impl ReportService {
                             end += chrono::Duration::days(1);
                         }
 
-                        let (std, ot) = AttendanceCalculator::calculate_daily_net_hours(
+                        let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(
                             punch_in,
                             punch_out,
                             Some(start),
@@ -104,19 +104,7 @@ impl ReportService {
                             &workspace.rounding_policy
                         );
 
-                        let rounded_std = AttendanceCalculator::apply_rounding(
-                            std, 
-                            workspace.work_unit_minutes, 
-                            &workspace.rounding_policy
-                        );
-                        
-                        let rounded_ot = AttendanceCalculator::apply_rounding(
-                            ot, 
-                            workspace.work_unit_minutes, 
-                            &workspace.rounding_policy
-                        );
-
-                        total_payable_minutes = rounded_std + rounded_ot;
+                        total_payable_units = std_units + ot_units;
                     }
                 }
                 // -----------------------------
@@ -146,7 +134,7 @@ impl ReportService {
                     is_break_auto_deduct: daily.is_break_auto_deduct,
                     actual_punch_in: actual_punch_in.map(|t| t.with_timezone(&Utc)), 
                     actual_punch_out: actual_punch_out.map(|t| t.with_timezone(&Utc)),
-                    total_minutes: total_payable_minutes,
+                    work_units: total_payable_units,
                     status,
                 });
             }
@@ -196,7 +184,7 @@ impl ReportService {
             SELECT 
                 e.id as employee_id,
                 e.first_name || ' ' || e.last_name as employee_name,
-                COALESCE(SUM(te.duration_minutes), 0)::float / 60.0 as total_hours,
+                COALESCE(SUM(te.duration_minutes), 0)::float as total_minutes,
                 COALESCE((
                     SELECT SUM(lr.end_date - lr.start_date + 1)
                     FROM leave_requests lr
@@ -227,11 +215,20 @@ impl ReportService {
 
         Ok(summaries
             .into_iter()
-            .map(|row| AttendanceSummary {
-                employee_id: row.employee_id,
-                employee_name: row.employee_name.unwrap_or_default(),
-                total_hours: row.total_hours.unwrap_or(0.0),
-                total_leave_days: row.total_leave_days.unwrap_or(0),
+            .map(|row| {
+                let total_minutes = row.total_minutes.unwrap_or(0.0) as i32;
+                let work_units = AttendanceCalculator::calculate_units(
+                    total_minutes,
+                    workspace.work_unit_minutes,
+                    &workspace.rounding_policy
+                );
+                
+                AttendanceSummary {
+                    employee_id: row.employee_id,
+                    employee_name: row.employee_name.unwrap_or_default(),
+                    total_work_units: work_units,
+                    total_leave_days: row.total_leave_days.unwrap_or(0),
+                }
             })
             .collect())
     }

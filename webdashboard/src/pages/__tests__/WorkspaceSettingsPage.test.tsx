@@ -77,8 +77,15 @@ describe("WorkspaceSettingsPage", () => {
 
     expect(screen.getByText("Cài đặt Workspace")).toBeDefined();
     
-    // Check if general config is rendered
-    expect(screen.getByText("Cấu hình chung")).toBeDefined();
+    // Check if sections are rendered
+    expect(await screen.findByText("Cấu hình công lương")).toBeDefined();
+    expect(await screen.findByText("Cấu hình chấm công")).toBeDefined();
+    expect(await screen.findByText("Cấu hình chung")).toBeDefined();
+    expect(await screen.findByText("Cấu hình giao diện")).toBeDefined();
+
+    // Check if work unit and rounding policy labels are present
+    expect(screen.getByText("Đơn vị tính công (Work Unit)")).toBeDefined();
+    expect(screen.getByText("Quy tắc làm tròn")).toBeDefined();
   });
 
   it("allows changing and saving configuration", async () => {
@@ -95,7 +102,15 @@ describe("WorkspaceSettingsPage", () => {
       </QueryClientProvider>
     );
 
-    // Date format is in General Config section
+    // Change Work Unit
+    const workUnitSelect = await screen.findByTestId("work-unit-select");
+    await user.selectOptions(workUnitSelect, "30");
+
+    // Change Rounding Policy
+    const roundingSelect = await screen.findByTestId("rounding-policy-select");
+    await user.selectOptions(roundingSelect, "round");
+
+    // Change Date format
     const dateFormatSelect = await screen.findByTestId("date-format-select");
     await user.selectOptions(dateFormatSelect, "YYYY-MM-DD");
 
@@ -104,6 +119,8 @@ describe("WorkspaceSettingsPage", () => {
 
     await waitFor(() => {
       expect(api.updateWorkspace).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+        work_unit_minutes: 30,
+        rounding_policy: "round",
         date_format: "YYYY-MM-DD"
       }));
     });

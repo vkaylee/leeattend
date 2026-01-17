@@ -131,8 +131,13 @@ async fn test_report_calculation_grace_period_and_break() {
     assert_eq!(res.status(), 200);
     let report: Vec<DailyAttendanceReport> = res.json().await.unwrap();
     
+    // Assert
     assert_eq!(report.len(), 1);
-    assert_eq!(report[0].total_minutes, 480, "Expected 480 minutes (8h) after grace period and break deduction");
+    // Punch 07:45 -> effective 08:00 (due to 30m grace). 
+    // Out 17:00. 08:00 to 17:00 = 9h = 540m.
+    // Break 60m. Net = 480m.
+    // Unit size 1 -> 480 units.
+    assert_eq!(report[0].work_units, 480, "Expected 480 units (8h) after grace period and break deduction");
 }
 
 #[tokio::test]
@@ -233,5 +238,10 @@ async fn test_report_calculation_rounding() {
     assert_eq!(res.status(), 200);
     let report: Vec<DailyAttendanceReport> = res.json().await.unwrap();
     
-    assert_eq!(report[0].total_minutes, 540, "Expected 540 minutes after floor rounding (554 -> 540)");
+    assert_eq!(report.len(), 1);
+    // Work 09:00 to 18:14 = 9h14m = 554m. 
+    // Break 0m. Net = 554m.
+    // Rounding 15m Floor: 554 -> 540m.
+    // 540 / 15 = 36 units.
+    assert_eq!(report[0].work_units, 36, "Expected 36 units after floor rounding (554m -> 540m / 15)");
 }

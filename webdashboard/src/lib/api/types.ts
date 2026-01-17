@@ -184,7 +184,7 @@ export interface AttendanceAdjustmentRequest {
 export interface AttendanceSummary {
   employee_id: string;
   employee_name: string;
-  total_hours: number;
+  total_work_units: number;
   total_leave_days: number;
 }
 
@@ -200,7 +200,7 @@ export interface DailyAttendanceReport {
   is_break_auto_deduct: boolean | null;
   actual_punch_in: string | null;
   actual_punch_out: string | null;
-  total_minutes: number;
+  work_units: number;
   status: string;
 }
 
@@ -270,6 +270,8 @@ export interface Payslip {
   overtime_pay_amount: string;
   deductions_amount: string;
   net_pay_amount: string;
+  standard_units: number;
+  overtime_units: number;
   status: "draft" | "published" | "paid";
   created_at: string;
   updated_at: string;

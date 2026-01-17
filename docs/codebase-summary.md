@@ -61,12 +61,13 @@ leeattend/
             - **Metadata-Aware**: Algorithms use the `LogEvent` structure to access `punch_type` information (Status) from devices, enabling explicit intent-based pairing.
             - **Workspace Selection**: Users can configure the preferred algorithm per workspace to match their specific business environment (Office, Factory, Retail, Professional Hardware).
             - **High-Penalty Matching**: Optimized the DP algorithm with a 300-minute unmatched log penalty to correctly capture extreme overtime scenarios.
-        - **Accurate Calculation Engine**: `AttendanceCalculator` implements a high-precision **Clamping + Bucket** strategy:
+        - **Accurate Calculation Engine**: `AttendanceCalculator` implements a high-precision **Integer Work Unit (WU)** strategy:
+            - **Atomic Integer Units**: All internal calculations (Standard, OT) are performed in strictly integer units. Fractional units (e.g., 1.5 units) are physically impossible in the data layer.
+            - **Unit-Based Rounding**: Uses workspace-specific `work_unit_minutes` (e.g., 15, 30, 60m) to convert raw minutes to units using configurable policies (`Floor`, `Ceil`, `Round`).
             - **Standard Clamping**: Work is capped within `[ShiftStart, ShiftEnd]`. Early arrivals (e.g., 07:25 for 07:30) are correctly handled as `max(In, Start)`.
-            - **Bucket Logic**: Separation of Standard, Early OT, and Late OT time buckets.
+            - **Bucket Logic**: Separation of Standard Units and Overtime Units.
             - **Early OT Filter**: Policy-based filtering of early arrivals via `allow_early_ot` toggle.
-            - **Boundary Rounding**: Uses `Floor` rounding on total bucket duration to handle "late 1 min = lose 30 mins" policies.
-            - **Shared Working Day Utility**: Unified logic for counting monthly standard working days based on fixed counts or actual calendar rules (e.g., Sat/Sun off).
+            - **Historical Integrity (Snapshotting)**: Payslips store immutable unit counts (`standard_units`, `overtime_units`) at the moment of calculation, ensuring that future changes to workspace unit settings do not affect past payroll records.
         - **Strict Validation**: High-fidelity file parsing that enforces workspace settings and provides line-by-line detailed error context.
     - **Dynamic Payroll System (Component-Based)**: Flexible architecture for multi-tenant salary calculation.
         - **Salary Component Directory**: Allows defining custom income types (Meal, Gas, Seniority) with configurable taxability and "Base for OT" flags.

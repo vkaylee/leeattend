@@ -298,10 +298,18 @@ async fn test_get_workspace_attendance_summary() {
         .await
         .unwrap();
 
-    // Assert
-    assert_eq!(res.status(), 200);
-    let summary: Vec<apiserver::models::AttendanceSummary> = res.json().await.unwrap();
-    assert_eq!(summary.len(), 1);
-    assert!(summary[0].total_hours >= 8.0);
-    assert_eq!(summary[0].total_leave_days, 1);
-}
+        // Assert
+
+        assert_eq!(res.status(), 200);
+
+        let summary: Vec<apiserver::models::AttendanceSummary> = res.json().await.unwrap();
+
+        assert_eq!(summary.len(), 1);
+
+        assert!(summary[0].total_work_units >= 480);
+
+        assert_eq!(summary[0].total_leave_days, 1);
+
+    }
+
+    
