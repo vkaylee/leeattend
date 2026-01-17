@@ -8,6 +8,16 @@ export async function fetchEmployees(wsId: string): Promise<Employee[]> {
   return response.json();
 }
 
+export async function searchEmployees(wsId: string, query: string): Promise<Employee[]> {
+  const queryParams = new URLSearchParams();
+  if (query) {
+    queryParams.append("q", query);
+  }
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees?${queryParams.toString()}`);
+  if (!response.ok) throw new Error("Failed to search employees");
+  return response.json();
+}
+
 export async function fetchEmployee(wsId: string, id: string): Promise<Employee> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${id}`);
   if (!response.ok) throw new Error("Failed to fetch employee");

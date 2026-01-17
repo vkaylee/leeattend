@@ -4,9 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { User, X } from "lucide-react";
 import { Combobox } from "../ui/Combobox";
 import { useDebounce } from "../../hooks/use-debounce";
-import { apiFetch } from "../../lib/api";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
+import { searchEmployees } from "../../lib/api";
 
 interface Employee {
   id: string;
@@ -47,21 +45,7 @@ export function EmployeeSearch({
   // Fetch employees with debounced query
   const { data: employees = [], isLoading } = useQuery<Employee[]>({
     queryKey: ["employees", workspaceId, "search", debouncedSearchTerm],
-    queryFn: async () => {
-      const queryParams = new URLSearchParams();
-      if (debouncedSearchTerm) {
-        queryParams.append("q", debouncedSearchTerm);
-      }
-      
-      const response = await apiFetch(
-        `${API_BASE_URL}/workspaces/${workspaceId}/employees?${queryParams.toString()}`
-      );
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch employees");
-      }
-      return response.json();
-    },
+    queryFn: () => searchEmployees(workspaceId, debouncedSearchTerm),
     enabled: !!workspaceId,
   });
 
@@ -69,18 +53,36 @@ export function EmployeeSearch({
   // (Alternatively, we could fetch full details for the IDs in 'value')
   const [selectedMeta, setSelectedMeta] = useState<Employee[]>([]);
 
-  const selectedIds = Array.isArray(value) ? value : value ? [value] : [];
+  const selectedIds = React.useMemo(() => 
+    Array.isArray(value) ? value : value ? [value] : [],
+    [value]
+  );
+
+  // Auto-populate selectedMeta when employees are loaded
+  React.useEffect(() => {
+    if (employees.length > 0 && selectedIds.length > 0) {
+      const found = employees.filter(emp => selectedIds.includes(emp.id));
+      if (found.length > 0) {
+        setSelectedMeta(prev => {
+          const missing = found.filter(f => !prev.find(m => m.id === f.id));
+          if (missing.length === 0) return prev;
+          return [...prev, ...missing];
+        });
+      }
+    }
+  }, [employees, selectedIds]);
 
   const handleSelect = (selectedId: string) => {
     const emp = employees.find(e => e.id === selectedId);
     
+    if (emp && !selectedMeta.find(m => m.id === emp.id)) {
+      setSelectedMeta(prev => [...prev, emp]);
+    }
+
     if (multiple) {
       const current = Array.isArray(value) ? value : [];
       if (!current.includes(selectedId)) {
         onChange([...current, selectedId]);
-        if (emp && !selectedMeta.find(m => m.id === emp.id)) {
-          setSelectedMeta(prev => [...prev, emp]);
-        }
       }
       setSearchTerm(""); // Reset for next search
     } else {
@@ -95,14 +97,31 @@ export function EmployeeSearch({
   };
 
   // Transform to Combobox options
-  const options = employees
-    .filter(emp => !selectedIds.includes(emp.id)) // Hide already selected in multi-mode
+  // In multi-mode, we hide already selected items from the dropdown list.
+  // In single-mode, we keep them visible so the user can see which one is selected.
+  const baseOptions = employees
+    .filter(emp => !multiple || !selectedIds.includes(emp.id)) 
     .map((emp) => ({
       value: emp.id,
       label: `${emp.first_name} ${emp.last_name}`,
       description: emp.employee_id_number,
       icon: <User className="h-4 w-4 text-slate-400" />,
     }));
+
+  // Ensure currently selected items are in the options list 
+  // (even if they were filtered out by server-side search)
+  // so the Combobox trigger can always find their labels.
+  const extraOptions = selectedMeta
+    .filter(m => selectedIds.includes(m.id))
+    .filter(m => !baseOptions.find(opt => opt.value === m.id))
+    .map(m => ({
+      value: m.id,
+      label: `${m.first_name} ${m.last_name}`,
+      description: m.employee_id_number,
+      icon: <User className="h-4 w-4 text-slate-400" />,
+    }));
+
+  const options = [...extraOptions, ...baseOptions];
 
   return (
     <div className={`space-y-2 ${className}`}>

@@ -22,6 +22,18 @@ vi.mock("../../lib/api", () => ({
 vi.mock("@/components/common/EmployeeSearch", () => ({
   EmployeeSearch: ({ value, onChange, multiple, testId }: any) => (
     <div className="space-y-2" data-testid={testId || "employee-search-mock"}>
+      <input 
+        data-testid="employee-search-input"
+        value={Array.isArray(value) ? value.join(",") : (value || "")}
+        onChange={(e) => {
+          const val = e.target.value;
+          if (multiple) {
+            onChange(val ? val.split(",") : []);
+          } else {
+            onChange(val);
+          }
+        }}
+      />
       <button 
         onClick={() => {
           if (multiple) {
@@ -179,16 +191,20 @@ describe("WorkingPatternsPage", () => {
     const bulkBtn = screen.getByText("patterns.bulk_assign_btn");
     await user.click(bulkBtn);
 
+    // Wait for modal content
+    expect(await screen.findByText("patterns.bulk_assign_title")).toBeDefined();
+
     // Select Pattern
     const patternSelect = await screen.findByDisplayValue("patterns.form.select_pattern_placeholder");
     await user.selectOptions(patternSelect, "pat-1");
 
-    // Select Employee (via mock button)
-    const select = screen.getByTestId("employee-search-mock");
-    fireEvent.change(select, { target: { value: "emp-1" } });
+    // Select Employee (via mock input)
+    const input = screen.getByTestId("employee-search-input");
+    fireEvent.change(input, { target: { value: "emp-1" } });
 
     // Submit
     const submitBtn = screen.getByText("patterns.bulk_assign_submit");
+    await user.click(submitBtn);
 
     await waitFor(() => {
       expect(api.bulkAssignPattern).toHaveBeenCalledWith(

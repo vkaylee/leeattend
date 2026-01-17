@@ -60,7 +60,8 @@ describe("EmployeeSearch Component", () => {
     // For now, we verify it renders without crashing.
     render(<EmployeeSearch workspaceId="ws-1" multiple value={value} onChange={onChange} />, { wrapper });
     
-    // If name is not in meta yet, it shows first 8 chars of ID
-    expect(screen.getByText("1")).toBeDefined();
+    // With the new useEffect, it should find '1' in mockEmployees and show 'John Doe'
+    // It appears in both the chip and the hidden select option
+    expect(screen.getAllByText("John Doe").length).toBeGreaterThanOrEqual(1);
   });
 });

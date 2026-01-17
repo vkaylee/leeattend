@@ -28,6 +28,7 @@ interface ComboboxProps {
   className?: string;
   id?: string;
   "data-testid"?: string;
+  shouldFilter?: boolean;
 }
 
 export function Combobox({
@@ -41,6 +42,7 @@ export function Combobox({
   className,
   id,
   "data-testid": testId,
+  shouldFilter,
 }: ComboboxProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -93,7 +95,10 @@ export function Combobox({
           className="z-[10000] w-[var(--radix-popover-trigger-width)] min-w-[200px] overflow-hidden rounded-[1.5rem] border border-slate-50 bg-white p-2 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
           sideOffset={8}
         >
-          <Command className="flex flex-col gap-2">
+          <Command 
+            shouldFilter={shouldFilter ?? !onSearchChange}
+            className="flex flex-col gap-2"
+          >
             <div className="flex items-center border-b border-slate-50 px-3 pb-2">
               <Search className="mr-2 h-4 w-4 shrink-0 text-slate-400" />
               <Command.Input
@@ -112,7 +117,7 @@ export function Combobox({
                 {options.map((option) => (
                   <Command.Item
                     key={option.value}
-                    value={option.label} // search by label
+                    value={`${option.label} ${option.description || ""} ${option.value}`}
                     data-testid={testId ? `${testId}-option-${option.value}` : `combo-option-${option.value}`}
                     onSelect={() => {
                       onChange(option.value);

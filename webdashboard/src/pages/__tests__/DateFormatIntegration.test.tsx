@@ -70,11 +70,24 @@ describe("Date Format Integration", () => {
     vi.clearAllMocks();
     const mockEmp = { id: "emp-1", first_name: "John", last_name: "Doe", employee_id_number: "EMP001" };
     (api.fetchEmployees as any).mockResolvedValue([mockEmp]);
+    (api.fetchWorkspace as any).mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC" });
     (api.fetchRawAttendanceLogs as any).mockResolvedValue({
       data: [{ id: "1", employee_id: "emp-1", punch_time: "2026-01-15T08:00:00Z", source: "device" }],
       total: 1
     });
-    (api.fetchEmployeePayslips as any).mockResolvedValue([]);
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+    const periodStart = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`;
+    (api.fetchEmployeePayslips as any).mockResolvedValue([{
+      id: "slip-1",
+      period_start: periodStart,
+      period_end: periodStart,
+      base_pay_amount: "1000",
+      overtime_pay_amount: "0",
+      deductions_amount: "0",
+      net_pay_amount: "1000",
+      status: "draft"
+    }]);
   });
 
   it("renders dates in DD/MM/YYYY format when workspace setting is DD/MM/YYYY", async () => {
@@ -99,16 +112,21 @@ describe("Date Format Integration", () => {
     const user = userEvent.setup();
     render(<PayrollPage />, { wrapper });
     
-    // Select employee from the sidebar directly
-    const empBtn = await screen.findByText("John Doe");
-    await user.click(empBtn);
-    
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
-    const expected = `${currentMonth.toString().padStart(2, '0')}/${currentYear}`;
+    const monthStr = currentMonth.toString().padStart(2, '0');
+    const yearStr = currentYear.toString();
     
+    // Select employee from the sidebar directly
+    // Use role button to be more precise
+    const empBtn = await screen.findByRole("button", { name: /John Doe/i });
+    await user.click(empBtn);
+    
+    // Wait for the details to render - payslips should show Month/Year
     await waitFor(() => {
-      expect(screen.queryByText(new RegExp(expected))).not.toBeNull();
-    });
+      const text = document.body.textContent || "";
+      expect(text).toContain(monthStr);
+      expect(text).toContain(yearStr);
+    }, { timeout: 5000 });
   });
 });

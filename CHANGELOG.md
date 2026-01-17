@@ -4,35 +4,22 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ## [Unreleased] - 2026-01-17
 
-### Added
-- **Dynamic Payroll & Salary Components**: Implemented a flexible, component-based payroll architecture.
-    - **Custom Salary Components**: Organizations can now define their own income categories (e.g., Meal, Transport, Seniority) with individual taxability and "Base for OT" flags.
-    - **Flexible Standard Day Policy**: Added workspace-level configuration for calculating daily/hourly rates. Supports both `Fixed` (e.g., 26 days) and `Actual Month` (calendar-based) modes.
-    - **Hourly Rate Engine**: Re-engineered the payroll calculator to derive hourly rates dynamically: `(Sum of Base-for-OT Components) / (Standard Days * Standard Hours)`.
-    - **Historical Persistence**: New `employee_salary_components` table ensures salary changes are tracked over time with full auditability.
-    - **Standardized Utilities**: Integrated `count_working_days` into `AttendanceCalculator` to ensure consistency between attendance reports and payslip calculations.
-    - **New API Endpoints**: Full CRUD for `payroll-settings`, `salary-components`, and employee-specific assignments.
-    - **Data Migration**: Automated migration path from legacy flat `salary_history` to the new hierarchical component system.
-- **Dynamic Payroll UI Management**: Launched a comprehensive administrative interface for payroll configuration.
-    - **Payroll Settings Section**: New UI in Workspace Settings to toggle between Fixed and Actual standard day modes.
-    - **Salary Component Manager**: Dedicated interface to define custom income categories (Meal, Transport, etc.) with metadata control.
-    - **Employee Salary Configuration**: Integrated a new "Salary Config" tab in the Payroll page, allowing HR to assign multiple components with specific effective dates to individual employees.
-    - **Tab-based Navigation**: Refactored the Payroll detail view to support seamless switching between Payslip History and Salary Configuration.
-- **Unified Employee Search**: Implemented a standardized, high-performance employee search component across the entire dashboard.
-    - **Server-Side Filtering**: Enhanced the backend employee API to support high-fidelity filtering by name, ID, or partial matching.
-    - **Debounced Interaction**: Optimized frontend search with a 400ms debounce buffer to ensure a smooth UI experience while minimizing server impact.
-    - **Multi-Select Workflow**: Added support for selecting multiple employees simultaneously, visualized via dismissible badges (chips) for advanced report filtering.
-    - **Universal Integration**: Successfully migrated Attendance Logs, Leave Requests, Reports, Working Patterns, Employees, and Payroll pages to the new search architecture.
-    - **Developer Productivity**: Created a reusable `EmployeeSearch` component and `useDebounce` hook for future features.
-- **Automated Frontend Quality Suite**:
-    - **Payroll Component Tests**: Added unit tests for `PayrollSettingsSection`, `SalaryComponentManager`, and `EmployeeSalaryConfig` with 100% logic coverage.
-    - **Stability Enhancements**: Integrated `data-testid` attributes across new components to ensure reliable automated selectors.
-    - **i18n Synchronization**: Updated English and Chinese locale files to maintain full multi-language support for all new payroll features.
-
 ### Fixed
+- **Employee Search Robustness**: Resolved multiple issues in the `EmployeeSearch` subsystem to ensure reliable results across the dashboard.
+    - **Combobox Filtering Conflict**: Fixed a bug where `cmdk` internal filtering was shadowing valid server-side results (e.g., matching by Employee ID). Added `shouldFilter` prop to `Combobox` to disable local filtering during remote searches.
+    - **API Endpoint Standardization**: Unified all employee search calls to use the central `searchEmployees` utility, resolving an issue where manually constructed URLs were missing the `/api` prefix and returning HTML instead of JSON.
+    - **Metadata Persistence**: Implemented a `useEffect` synchronization pattern to capture and persist employee labels from search results, ensuring selected items remain correctly labeled even when they are no longer in the current search set.
+    - **Selection Visibility**: Fixed single-selection mode to correctly display the currently selected employee in the options list, improving UX for re-selection.
+- **Unit Test Stability**:
+    - **Interactive Mocks**: Updated `EmployeeSearch` mocks in `WorkingPatternsPage.test.tsx` to use standard visible inputs, fixing "The given element does not have a value setter" errors in Vitest.
+    - **Flexible Date Matching**: Refactored `DateFormatIntegration.test.tsx` to use robust numeric-only regex for month/year verification, ensuring stability across different localized output formats and mocked translation environments.
 - **Payroll Backward Compatibility**: Maintained the standard 176-hour fallback for legacy workspaces/tests while enabling dynamic overrides for new tenants.
 - **Hourly Salary Logic**: Fixed a bug where hourly-rate employees had their pay incorrectly divided by standard days.
 - **SQLX Offline Desync**: Synchronized metadata using `cargo sqlx prepare` to reflect new schema changes in the offline build cache.
+
+### Added
+- **Employee Search E2E Suite**: Implemented `webdashboard/tests/EmployeeSearchIntegration.test.ts` using Playwright to verify the full "Login -> Search -> Select" flow with real backend integration.
+- **Dynamic Payroll & Salary Components**: Implemented a flexible, component-based payroll architecture.
 
 ## [Unreleased] - 2026-01-16
 
