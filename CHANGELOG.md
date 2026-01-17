@@ -18,6 +18,12 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Salary Component Manager**: Dedicated interface to define custom income categories (Meal, Transport, etc.) with metadata control.
     - **Employee Salary Configuration**: Integrated a new "Salary Config" tab in the Payroll page, allowing HR to assign multiple components with specific effective dates to individual employees.
     - **Tab-based Navigation**: Refactored the Payroll detail view to support seamless switching between Payslip History and Salary Configuration.
+- **Unified Employee Search**: Implemented a standardized, high-performance employee search component across the entire dashboard.
+    - **Server-Side Filtering**: Enhanced the backend employee API to support high-fidelity filtering by name, ID, or partial matching.
+    - **Debounced Interaction**: Optimized frontend search with a 400ms debounce buffer to ensure a smooth UI experience while minimizing server impact.
+    - **Multi-Select Workflow**: Added support for selecting multiple employees simultaneously, visualized via dismissible badges (chips) for advanced report filtering.
+    - **Universal Integration**: Successfully migrated Attendance Logs, Leave Requests, Reports, Working Patterns, Employees, and Payroll pages to the new search architecture.
+    - **Developer Productivity**: Created a reusable `EmployeeSearch` component and `useDebounce` hook for future features.
 - **Automated Frontend Quality Suite**:
     - **Payroll Component Tests**: Added unit tests for `PayrollSettingsSection`, `SalaryComponentManager`, and `EmployeeSalaryConfig` with 100% logic coverage.
     - **Stability Enhancements**: Integrated `data-testid` attributes across new components to ensure reliable automated selectors.
