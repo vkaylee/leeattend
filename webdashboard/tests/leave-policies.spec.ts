@@ -2,58 +2,50 @@ import { test } from "./worker-orchestrator";
 import { expect } from "@playwright/test";
 
 test.describe("Leave Policies CRUD", () => {
-  test("should create, edit, and delete leave policies", async ({ page, baseURL }) => {
-    // 1. Login
-    await page.goto(`${baseURL}/login`);
-    if (page.url().endsWith("/login")) {
-        await page.click('button:has-text("⚡ Fast Login"), button:has-text("⚡ Đăng nhập nhanh")');
-        await page.waitForURL("**/", { timeout: 30000 });
-    }
+  test('should create, edit, and delete a leave policy', async ({ page }) => {
+    // 1. Login and Navigate
+    await page.goto('/login');
+    await page.getByTestId('fast-login-btn').click();
 
-    await expect(page.locator("text=Đang kiểm tra bảo mật...")).not.toBeVisible({ timeout: 60000 });
-    await expect(page.locator("text=Đang tải không gian làm việc...")).not.toBeVisible({ timeout: 60000 });
+    // Navigate to Leave Requests
+    await page.getByTestId('sidebar-section-time').click();
+    await page.getByTestId('sidebar-link-leave-requests').click();
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Leave Requests|Yêu cầu nghỉ phép/);
 
-    // 2. Navigate to Leave Requests page
-    const sectionHeader = page.locator('button:has-text("Time & Leave"), button:has-text("Thời gian & Nghỉ phép")');
-    if (await sectionHeader.isVisible()) {
-        await sectionHeader.click();
-    }
-    await page.click('a[href="/leave-requests"]');
-    await expect(page.locator("h1")).toContainText(/Leave Requests|Yêu cầu nghỉ phép/);
+    // Switch to Policies tab
+    await page.getByTestId('leave-tab-policies').click();
 
-    // 3. Switch to Policies Tab
-    await page.click('button:has-text("Policies"), button:has-text("Chính sách")');
-    
-    // 4. Create a New Policy
-    await page.click('button:has-text("Add Policy"), button:has-text("Thêm chính sách")');
-    await expect(page.locator('h2:has-text("Leave Policies"), h2:has-text("Chính sách nghỉ phép")')).toBeVisible();
-    
-    const policyName = "E2E Test Policy " + Date.now();
+    // Add new policy
+    await page.getByTestId('add-policy-btn').click();
+    await expect(page.getByRole('heading', { level: 2, name: /Leave Policies|Chính sách nghỉ phép/i })).toBeVisible();
+
+    const policyName = `E2E Policy ${Date.now()}`;
     await page.fill('input[id="policy-name"]', policyName);
-    await page.fill('input[id="annual-entitlement"]', "15");
-    await page.click('button:has-text("Save Policy"), button:has-text("Lưu chính sách")');
+    await page.fill('input[id="annual-entitlement"]', '15');
+
+    await page.getByTestId('save-policy-btn').click();
     
     // Wait for modal to close and policy to appear in table
-    await expect(page.locator('h2:has-text("Leave Policies"), h2:has-text("Chính sách nghỉ phép")')).not.toBeVisible();
-    await expect(page.locator(`td:has-text("${policyName}")`)).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2, name: /Leave Policies|Chính sách nghỉ phép/i })).not.toBeVisible();
+    await expect(page.getByRole('cell', { name: policyName })).toBeVisible();
 
     // 5. Edit the Policy
-    const row = page.locator(`tr:has-text("${policyName}")`);
+    const row = page.getByRole('row', { name: policyName });
     // First button in actions is Edit
-    await row.locator('button').first().click();
+        await row.getByRole('button').first().click();
+        await expect(page.getByRole('heading', { level: 2, name: /Edit Policy|Sửa chính sách/i })).toBeVisible();
     
-    await expect(page.locator('h2:has-text("Edit Policy"), h2:has-text("Sửa chính sách")')).toBeVisible();
-    const updatedName = policyName + " Updated";
-    await page.fill('input[id="policy-name"]', updatedName);
-    await page.click('button:has-text("Save changes"), button:has-text("Lưu thay đổi")');
+        const updatedName = `${policyName} Updated`;
+        await page.fill('input[id="policy-name"]', updatedName);
+        await page.getByTestId('save-policy-btn').click();
     
-    await expect(page.locator('h2:has-text("Edit Policy"), h2:has-text("Sửa chính sách")')).not.toBeVisible();
-    await expect(page.locator(`td:has-text("${updatedName}")`)).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2, name: /Edit Policy|Sửa chính sách/i })).not.toBeVisible();
+    await expect(page.getByRole('cell', { name: updatedName })).toBeVisible();
 
     // 6. Delete the Policy
     page.on('dialog', dialog => dialog.accept()); // Handle confirm()
-    await row.locator('button').nth(1).click(); // Second button is Delete
+    await page.getByRole('row', { name: updatedName }).getByRole('button').nth(1).click(); // Second button is Delete
     
-    await expect(page.locator(`td:has-text("${updatedName}")`)).not.toBeVisible();
+    await expect(page.getByRole('cell', { name: updatedName })).not.toBeVisible();
   });
 });

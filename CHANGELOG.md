@@ -5,6 +5,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased] - 2026-01-18
 
 ### Added
+- **E2E Locator Standardization (Hybrid Pattern)**: Migrated the entire Playwright test suite to a resilient locator strategy.
+    - **Data-TestID Integration**: Added `data-testid` to over 50 critical UI elements including Auth buttons, Sidebar navigation, Modal actions, and Tab switchers.
+    - **Resilient Locators**: Established a hierarchy prioritizing Semantic Attributes and `data-testid` over brittle, localized regex-based text selectors.
+    - **Full Coverage**: Updated all 20 test specs (Auth, Employees, Leave, Departments, System, Settings) to use the new stable pattern.
+    - **Stability Fixes**: Resolved syntax errors and race conditions in `attendance-logs.spec.ts` and `stability-regression.spec.ts` discovered during the migration.
 - **Auto Assignment Rules (Enterprise)**: New system to automatically assign schedules based on flexible conditions.
     - **Logic Engine**: Backend `rule_evaluator.rs` evaluates high-priority rules (Day of week, Department, Location) before falling back to defaults.
     - **Management UI**: Dedicated `AssignmentRulesPage.tsx` for creating and managing rule priorities.

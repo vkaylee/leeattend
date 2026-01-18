@@ -211,7 +211,7 @@ export function AssignPolicyModal({ isOpen, onClose, wsId }: AssignPolicyModalPr
         </div>
         <div className="pt-4 flex gap-3">
           <button type="button" onClick={onClose} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors">{t("common.cancel")}</button>
-          <button type="submit" disabled={assignMutation.isPending} className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200 disabled:opacity-50">
+          <button type="submit" data-testid="submit-assign-policy-btn" disabled={assignMutation.isPending} className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200 disabled:opacity-50">
             {assignMutation.isPending ? t("common.processing") : t("leave_requests.policy.assign_now_btn")}
           </button>
         </div>

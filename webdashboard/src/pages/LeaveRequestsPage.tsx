@@ -190,6 +190,7 @@ export default function LeaveRequestsPage() {
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
+          data-testid="create-leave-btn"
           className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 font-bold"
         >
           <Plus className="w-5 h-5" />
@@ -204,6 +205,7 @@ export default function LeaveRequestsPage() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
+            data-testid={`leave-tab-${tab}`}
             className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${activeTab === tab ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
             {tab === 'pending' ? t("common.status_pending") : 
@@ -219,6 +221,7 @@ export default function LeaveRequestsPage() {
           <div className="flex justify-end gap-3">
             <button 
               onClick={() => setIsAssignModalOpen(true)}
+              data-testid="assign-policy-btn"
               className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:bg-slate-50 transition-all font-bold text-sm"
             >
               <UserPlus className="w-4 h-4" />
@@ -226,6 +229,7 @@ export default function LeaveRequestsPage() {
             </button>
             <button 
               onClick={() => setIsPolicyModalOpen(true)}
+              data-testid="add-policy-btn"
               className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-slate-800 transition-all font-bold text-sm shadow-lg shadow-slate-100"
             >
               <Plus className="w-4 h-4" />
@@ -488,7 +492,7 @@ export default function LeaveRequestsPage() {
           </div>
           <div className="pt-4 flex gap-3">
             <button type="button" onClick={() => { setIsPolicyModalOpen(false); setEditingPolicy(null); }} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors">{t("common.cancel")}</button>
-            <button type="submit" className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200">
+            <button type="submit" data-testid="save-policy-btn" className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200">
               {editingPolicy ? t("common.save_changes") : t("leave_requests.policy.save_btn")}
             </button>
           </div>

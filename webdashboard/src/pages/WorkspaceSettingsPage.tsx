@@ -341,6 +341,7 @@ export default function WorkspaceSettingsPage() {
                   <input
                     required
                     type="email"
+                    data-testid="invite-member-email"
                     placeholder="dong-nghiep@congty.com"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all pr-10"
                     value={newMemberEmail}
@@ -358,6 +359,7 @@ export default function WorkspaceSettingsPage() {
                 </label>
                 <Combobox
                   id="new-member-role"
+                  data-testid="invite-member-role"
                   options={[
                     { value: "member", label: t("members.roles.member"), description: t("members.roles.member_desc") },
                     { value: "admin", label: t("members.roles.admin"), description: t("members.roles.admin_desc") },
@@ -371,6 +373,7 @@ export default function WorkspaceSettingsPage() {
                 <button
                   type="submit"
                   disabled={isAdding}
+                  data-testid="invite-member-btn"
                   className="bg-primary-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 h-[50px] disabled:opacity-50"
                 >
                   {isAdding ? t("common.inviting") : t("workspace_settings.invite_member")}

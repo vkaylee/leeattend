@@ -22,6 +22,7 @@ export default function MembersPage() {
 
         <button
           onClick={() => setIsInviteOpen(true)}
+          data-testid="invite-member-trigger"
           className="flex items-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-primary-700 hover:scale-105 transition-all shadow-xl shadow-primary-200 active:scale-95"
         >
           <UserPlus className="w-5 h-5" />

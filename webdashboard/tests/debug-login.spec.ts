@@ -4,7 +4,7 @@ import { test } from './worker-orchestrator';
 test.describe('Debug Login Flow', () => {
   test('should verify the Debug Login button text', async ({ page, workerWebUrl }) => {
     await page.goto(`${workerWebUrl}/login`);
-    const debugButton = page.locator('text=⚡ Fast Login');
+    const debugButton = page.getByRole('button', { name: /Fast Login/i });
     await expect(debugButton).toBeVisible();
     await expect(debugButton).toBeEnabled();
   });
@@ -19,7 +19,7 @@ test.describe('Debug Login Flow', () => {
     );
 
     // 3. Click the debug login button
-    await page.click('text=⚡ Fast Login');
+    await page.getByRole('button', { name: /Fast Login/i }).click();
 
     // 4. Verify request payload matches known dev credentials
     const request = await loginRequestPromise;
@@ -34,6 +34,6 @@ test.describe('Debug Login Flow', () => {
 
     // 6. Verify Dashboard content is visible (e.g. Sidebar or Welcome message)
     // Checking for a common element like the sidebar or main heading
-    await expect(page.locator('text=LeeAttend')).toBeVisible();
+    await expect(page.getByText('LeeAttend')).toBeVisible();
   });
 });

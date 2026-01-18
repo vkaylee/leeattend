@@ -97,6 +97,7 @@ export default function DepartmentsPage() {
         </div>
         <button 
           onClick={() => { setEditingDept(null); setIsModalOpen(true); }}
+          data-testid="add-dept-btn"
           className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 font-bold"
         >
           <Plus className="w-5 h-5" />
@@ -240,6 +241,7 @@ export default function DepartmentsPage() {
             </button>
             <button 
               type="submit" 
+              data-testid="save-dept-btn"
               className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 hover:scale-[1.02] active:scale-95"
             >
               {editingDept ? t("common.update") : t("departments.modal.submit_btn")}

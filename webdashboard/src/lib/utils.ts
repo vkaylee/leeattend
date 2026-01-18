@@ -27,3 +27,16 @@ export function formatDateTime(dateTimeStr: string | null | undefined, timeForma
   const pattern = timeFormat === "12h" ? "dd/MM/yyyy hh:mm a" : "dd/MM/yyyy HH:mm";
   return format(date, pattern);
 }
+
+/**
+ * Returns attributes for debugging and testing.
+ * Stripped in production via build-time rollup configuration.
+ */
+export function debugProps(data: Record<string, any>) {
+  // We check PROD here for runtime safety, though Rollup will strip the result anyway
+  if (import.meta.env.PROD) return {};
+  
+  return {
+    'data-debug-context': JSON.stringify(data)
+  };
+}

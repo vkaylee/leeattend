@@ -320,6 +320,7 @@ function ChangePasswordForm() {
           <input
             type="password"
             required
+            data-testid="current-password-input"
             className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500 outline-none transition-all pr-10"
             value={formData.old_password}
             onChange={(e) =>
@@ -338,6 +339,7 @@ function ChangePasswordForm() {
           <input
             type="password"
             required
+            data-testid="new-password-input"
             className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500 outline-none transition-all pr-10"
             value={formData.new_password}
             onChange={(e) =>
@@ -356,6 +358,7 @@ function ChangePasswordForm() {
           <input
             type="password"
             required
+            data-testid="confirm-password-input"
             className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500 outline-none transition-all pr-10"
             value={formData.confirm_password}
             onChange={(e) =>
@@ -370,6 +373,7 @@ function ChangePasswordForm() {
         <button
           type="submit"
           disabled={isSubmitting}
+          data-testid="update-password-btn"
           className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center gap-2 disabled:opacity-50"
         >
           {isSubmitting ? t("common.processing") : t("profile.security.submit_btn")}

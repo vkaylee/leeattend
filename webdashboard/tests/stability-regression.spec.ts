@@ -5,17 +5,17 @@ import { test, expect } from "./worker-orchestrator";
  * Root Cause Fix: Ensures that the first API request after login 
  * includes the necessary workspace headers, preventing 400 Bad Request.
  */
-test("should include X-Workspace-Id header on initial dashboard load", async ({ page, baseURL }) => {
+test("should include X-Workspace-Id header on initial dashboard load", async ({ page }) => {
   // 1. Intercept the dashboard stats request
   const statsRequestPromise = page.waitForRequest((request) => 
     request.url().includes("/api/dashboard/workspace-stats") && request.method() === "GET"
   );
 
-  // 2. Perform Fast Login
-  await page.goto(`${baseURL}/login`);
-  const loginBtn = page.locator('button:has-text("⚡ Fast Login")');
-  await expect(loginBtn).toBeVisible();
-  await loginBtn.click();
+  await page.goto('/');
+
+  // 2. Fast Login
+  // Using testid for stability
+  await page.getByTestId('fast-login-btn').click();
 
   // 3. Wait for the stats request to be sent
   const request = await statsRequestPromise;
@@ -38,26 +38,15 @@ test("should load settings page without ReferenceErrors", async ({ page, baseURL
   
   // Login first
   await page.goto(`${baseURL}/login`);
-  await page.locator('button:has-text("⚡ Fast Login")').click();
+  await page.getByTestId('fast-login-btn').click();
   
-  // Expand "System" section first
-  const systemSection = page.getByRole('button', { name: 'System', exact: true });
-  await expect(systemSection).toBeVisible();
-  
-  // Click to expand and wait for internal link to become visible
-  const settingsLink = page.locator('nav a[href="/workspace/settings"]');
-  
-  // Try to click section if settings link not visible
-  if (!(await settingsLink.isVisible())) {
-    await systemSection.click();
-  }
-
-  // Wait for sidebar and navigate to settings
-  await expect(settingsLink).toBeVisible({ timeout: 5000 });
+  // Navigate via testids
+  await page.getByTestId('sidebar-section-system').click();
+  const settingsLink = page.getByTestId('sidebar-link-settings');
   await settingsLink.click();
   
   // Verify heading is visible (Settings2 icon used to be in the sidebar or page header)
-  await expect(page.locator('h1, h2:has-text("Workspace Settings")')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(/Workspace Settings|Cài đặt Workspace/i);
   
   // Check console for "ReferenceError"
   const logs: string[] = [];

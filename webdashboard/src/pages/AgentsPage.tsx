@@ -130,6 +130,7 @@ export default function AgentsPage() {
           <div className="flex gap-3">
             <button
               onClick={() => setIncludeInactive(!includeInactive)}
+              data-testid="toggle-archived-agents-btn"
               className={`px-4 py-2.5 rounded-2xl border font-bold flex items-center gap-2 transition-all ${includeInactive
                   ? "bg-slate-100 border-slate-300 text-slate-900 shadow-inner"
                   : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
@@ -147,6 +148,7 @@ export default function AgentsPage() {
             </button>
             <button
               onClick={() => refetch()}
+              data-testid="refresh-agents-btn"
               className="bg-white p-2.5 rounded-2xl border border-slate-200 hover:bg-slate-50 transition-colors text-slate-600"
             >
               <RefreshCcw
@@ -155,6 +157,7 @@ export default function AgentsPage() {
             </button>
             <button
               onClick={() => setShowAddForm(!showAddForm)}
+              data-testid="add-agent-btn"
               className="bg-slate-900 text-white px-6 py-2.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-black transition-all shadow-lg shadow-slate-200"
             >
               <Plus className="w-5 h-5" />
@@ -179,6 +182,7 @@ export default function AgentsPage() {
                 </label>
                 <input
                   required
+                  data-testid="agent-id-input"
                   placeholder={t("agents.form.id_placeholder")}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                   value={newAgent.id}
@@ -193,6 +197,7 @@ export default function AgentsPage() {
                 </label>
                 <input
                   required
+                  data-testid="agent-name-input"
                   placeholder={t("agents.form.name_placeholder")}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                   value={newAgent.name}
@@ -209,6 +214,7 @@ export default function AgentsPage() {
                   <div className="relative">
                     <input
                       required
+                      data-testid="agent-token-input"
                       placeholder={t("agents.form.token_placeholder")}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all pr-10"
                       value={newAgent.token}
@@ -221,6 +227,7 @@ export default function AgentsPage() {
                 </div>
                 <button
                   type="submit"
+                  data-testid="save-new-agent-btn"
                   className="bg-primary-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100"
                 >
                   {t("common.save")}

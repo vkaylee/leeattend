@@ -69,7 +69,11 @@ For E2E stability and performance, we adhere to the **Isolated Parallel Environm
 
 1. **Multi-DB Isolation**: Mỗi worker E2E chạy trên một database Postgres hoàn toàn độc lập (`test_database_e2e_N`) được setup tự động bởi `run-tests.sh`.
 2. **Pre-compiled Binary**: E2E workers thực thi file binary backend đã được build sẵn thay vì dùng `cargo run` để tránh xung đột file lock của Rust compiler.
-3. **Regex Locators**: Sử dụng Regex cho các text locator (ví dụ: `text=/Time|Thời gian/`) để đảm bảo test chạy đúng trên cả UI Tiếng Việt và Tiếng Anh.
+3. **Hybrid Locators (Priority Order)**: 
+    - **Level 1: Semantic Attributes**: Sử dụng `page.locator('input[name="email"]')` hoặc `getByPlaceholder`.
+    - **Level 2: Stable Roles**: Sử dụng `getByRole('button', { name: 'submit' })` nếu attribute `type="submit"` ổn định.
+    - **Level 3: Data-TestID (Recommended for i18n)**: Sử dụng `page.getByTestId('sidebar-link-members')` cho các thành phần có text thay đổi theo ngôn ngữ (VI/EN/ZH) hoặc UI phức tạp.
+    - **Avoid**: Hạn chế sử dụng `getByText(/Regex/i)` với nhiều ngôn ngữ vì rất dễ gây break test khi đổi nội dung dịch (copy changes).
 4. **Resilient Timeouts**: 
     - **Global Test Timeout**: 30 giây (để đảm bảo ổn định khi chạy song song nhiều backend/frontend).
     - **API Response Timeout**: 10 giây (centralized via `apiFetch`).

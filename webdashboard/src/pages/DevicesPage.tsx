@@ -110,6 +110,7 @@ export default function DevicesPage() {
           </div>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
+            data-testid="add-device-btn"
             className="bg-primary-600 text-white px-6 py-2.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-primary-700 transition-colors shadow-lg shadow-primary-200"
           >
             <Plus className="w-5 h-5" />
@@ -227,6 +228,7 @@ export default function DevicesPage() {
             </button>
             <button
               type="submit"
+              data-testid="save-device-btn"
               className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
             >
               {editingDevice ? t("devices.form.update_device") : t("devices.form.save_device")}

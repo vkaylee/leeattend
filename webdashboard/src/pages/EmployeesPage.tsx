@@ -202,6 +202,7 @@ export default function EmployeesPage() {
             <div className="w-72">
               <EmployeeSearch
                 workspaceId={wsId}
+                testId="employee-search"
                 value={selectedEmployee?.id}
                 onChange={(id) => {
                   const emp = employees.find(e => e.id === id);
@@ -212,6 +213,7 @@ export default function EmployeesPage() {
             </div>
             <button 
               onClick={() => { setEditingEmployee(null); setIsModalOpen(true); }}
+              data-testid="add-employee-btn"
               className="flex items-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-2xl hover:bg-primary-700 hover:scale-105 transition-all shadow-xl shadow-primary-200 active:scale-95 font-bold shrink-0"
             >
               <UserPlus className="w-5 h-5" />
@@ -225,6 +227,7 @@ export default function EmployeesPage() {
           <input 
             type="text" 
             placeholder={t("common.filter_by_name", "Filter table...")}
+            data-testid="employee-list-search"
             className="w-full pl-14 pr-6 py-4 bg-white border border-slate-100 rounded-[1.5rem] shadow-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all text-lg"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -310,6 +313,7 @@ export default function EmployeesPage() {
             <div className="grid grid-cols-2 gap-4">
               <button 
                 onClick={() => { setEditingEmployee(selectedEmployee); setIsModalOpen(true); }}
+                data-testid="edit-employee-btn"
                 className="flex items-center justify-center gap-2 py-3.5 bg-white border border-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 hover:border-primary-200 transition-all text-sm shadow-sm"
               >
                 <Edit2 className="w-4 h-4" />
@@ -323,6 +327,7 @@ export default function EmployeesPage() {
                       updateMutation.mutate({ id: selectedEmployee.id, employee: { is_active: false, termination_date: format(new Date(), 'yyyy-MM-dd') } });
                     }
                   }}
+                  data-testid="terminate-employee-btn"
                   className="flex items-center justify-center gap-2 py-3.5 bg-rose-50 text-rose-600 font-bold rounded-2xl hover:bg-rose-100 transition-all text-sm"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -331,6 +336,7 @@ export default function EmployeesPage() {
               ) : (
                 <button 
                   onClick={() => setIsRehireModalOpen(true)}
+                  data-testid="rehire-employee-btn"
                   className="flex items-center justify-center gap-2 py-3.5 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all text-sm shadow-xl shadow-primary-200"
                 >
                   <UserPlus className="w-4 h-4" />
@@ -350,6 +356,7 @@ export default function EmployeesPage() {
                 </div>
                 <button 
                   onClick={() => setIsTransferModalOpen(true)}
+                  data-testid="transfer-employee-btn"
                   className="text-xs font-bold text-primary-600 hover:underline flex items-center gap-1.5 bg-primary-50 px-3 py-1.5 rounded-xl transition-colors"
                 >
                   <ArrowRightLeft className="w-3.5 h-3.5" />
@@ -383,6 +390,7 @@ export default function EmployeesPage() {
                 </div>
                 <button 
                   onClick={() => setIsSalaryModalOpen(true)}
+                  data-testid="update-salary-btn"
                   className="text-xs font-bold text-primary-600 hover:underline flex items-center gap-1.5 bg-primary-50 px-3 py-1.5 rounded-xl transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -489,7 +497,7 @@ export default function EmployeesPage() {
           </div>
           <div className="pt-6 grid grid-cols-2 gap-5">
             <button type="button" onClick={() => setIsModalOpen(false)} className="px-8 py-4 border border-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all">{t("employees.form.cancel")}</button>
-            <button type="submit" className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 hover:scale-[1.02] active:scale-95">
+            <button type="submit" data-testid="save-employee-btn" className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 hover:scale-[1.02] active:scale-95">
               {editingEmployee ? t("employees.form.update") : t("employees.form.save")}
             </button>
           </div>
@@ -530,7 +538,7 @@ export default function EmployeesPage() {
           </div>
           <div className="grid grid-cols-2 gap-4 pt-4">
             <button type="button" onClick={() => setIsTransferModalOpen(false)} className="px-6 py-3 border border-slate-200 text-slate-600 font-bold rounded-2xl">{t("employees.transfer.cancel")}</button>
-            <button type="submit" className="px-6 py-3 bg-slate-900 text-white font-bold rounded-2xl shadow-lg shadow-slate-100 hover:bg-slate-800">{t("employees.transfer.submit")}</button>
+            <button type="submit" data-testid="submit-transfer-btn" className="px-6 py-3 bg-slate-900 text-white font-bold rounded-2xl shadow-lg shadow-slate-100 hover:bg-slate-800">{t("employees.transfer.submit")}</button>
           </div>
         </form>
       </Modal>
@@ -597,7 +605,7 @@ export default function EmployeesPage() {
           </div>
           <div className="grid grid-cols-2 gap-4 pt-4">
             <button type="button" onClick={() => setIsRehireModalOpen(false)} className="px-6 py-3 border border-slate-200 text-slate-600 font-bold rounded-2xl">{t("employees.rehire.cancel")}</button>
-            <button type="submit" disabled={rehireMutation.isPending} className="px-6 py-3 bg-primary-600 text-white font-bold rounded-2xl shadow-lg shadow-primary-100 hover:bg-primary-700 disabled:opacity-50">
+            <button type="submit" data-testid="confirm-rehire-btn" disabled={rehireMutation.isPending} className="px-6 py-3 bg-primary-600 text-white font-bold rounded-2xl shadow-lg shadow-primary-100 hover:bg-primary-700 disabled:opacity-50">
               {rehireMutation.isPending ? t("employees.rehire.processing") : t("employees.rehire.confirm")}
             </button>
           </div>
@@ -635,7 +643,7 @@ export default function EmployeesPage() {
           </div>
           <div className="grid grid-cols-2 gap-4 pt-4">
             <button type="button" onClick={() => setIsSalaryModalOpen(false)} className="px-6 py-3 border border-slate-200 text-slate-600 font-bold rounded-2xl">{t("employees.salary.cancel")}</button>
-            <button type="submit" className="px-6 py-3 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 hover:bg-emerald-700">{t("employees.salary.submit")}</button>
+            <button type="submit" data-testid="submit-salary-btn" className="px-6 py-3 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 hover:bg-emerald-700">{t("employees.salary.submit")}</button>
           </div>
         </form>
       </Modal>

@@ -9,6 +9,7 @@ import {
   login as apiLogin,
 } from "@/lib/api";
 import { useState } from "react";
+import { debugProps } from "@/lib/utils";
 
 export default function LoginPage() {
   const { t } = useTranslation();
@@ -70,7 +71,7 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <div className="bg-rose-50 border border-rose-100 text-rose-600 p-4 rounded-2xl text-sm font-bold text-center animate-in fade-in slide-in-from-top-2">
+          <div role="alert" className="bg-rose-50 border border-rose-100 text-rose-600 p-4 rounded-2xl text-sm font-bold text-center animate-in fade-in slide-in-from-top-2">
             {error}
           </div>
         )}
@@ -78,6 +79,8 @@ export default function LoginPage() {
         <div className="space-y-8">
           <button
             onClick={handleFastLogin}
+            {...debugProps({ devEmail: "admin@leeattend.com", devPass: "admin123" })}
+            data-testid="fast-login-btn"
             className="group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-black rounded-2xl text-white bg-primary-600 hover:bg-primary-700 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary-200 uppercase tracking-widest"
           >
             {t("auth.fast_login")}
@@ -129,6 +132,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
+              data-testid="login-submit-btn"
               className="w-full flex justify-center py-4 px-4 border border-slate-200 text-sm font-black rounded-2xl text-slate-700 bg-white hover:bg-slate-50 hover:border-primary-200 transition-all disabled:opacity-50 uppercase tracking-widest shadow-sm"
             >
               {isSubmitting ? t("auth.processing") : t("auth.login_btn")}

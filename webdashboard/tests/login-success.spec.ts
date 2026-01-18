@@ -12,9 +12,8 @@ test.describe('Login Success Flow', () => {
 
     // 3. Click the login button
     // The button has text "Đăng nhập" in Vietnamese (from i18n)
-    // Looking at LoginPage.tsx, it uses t("auth.login_btn")
-    // We can also use the type="submit" attribute
-    await page.click('button[type="submit"]');
+    // We use data-testid for stability
+    await page.getByTestId('login-submit-btn').click();
 
     // 4. Verify successful redirection to Home
     await page.waitForURL(`${workerWebUrl}/`, { timeout: 15000 });
@@ -23,7 +22,7 @@ test.describe('Login Success Flow', () => {
     await expect(page).toHaveURL(new RegExp(`${workerWebUrl}/?$`));
 
     // 5. Verify Sidebar or some home page element is visible
-    await expect(page.locator('text=LeeAttend')).toBeVisible();
+    await expect(page.getByText('LeeAttend')).toBeVisible();
     
     // Check if we are actually logged in by looking for a logout button or profile info
     // Usually there's a sidebar with menu items
@@ -36,15 +35,13 @@ test.describe('Login Success Flow', () => {
     await page.fill('input[name="email"]', 'wrong@example.com');
     await page.fill('input[name="password"]', 'wrongpass');
 
-    await page.click('button[type="submit"]');
+    await page.getByTestId('login-submit-btn').click();
 
     // Should stay on login page
     await expect(page).toHaveURL(`${workerWebUrl}/login`);
 
     // Should show error message
-    // LoginPage.tsx shows error in a div with rose-50 background or similar
-    // We can look for text that indicates failure
-    const errorAlert = page.locator('.bg-rose-50');
-    await expect(errorAlert).toBeVisible();
+    // LoginPage.tsx shows error in a div with role="alert" or similar
+    await expect(page.getByRole('alert')).toBeVisible();
   });
 });

@@ -223,6 +223,8 @@ function Layout() {
           <div className="pt-4">
             <button 
               onClick={() => toggleSection('org')}
+              aria-label={t("common.sections.organization")}
+              data-testid="sidebar-section-org"
               className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
             >
               <span>{t("common.sections.organization")}</span>
@@ -231,6 +233,7 @@ function Layout() {
             <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.org ? "max-h-96 opacity-100" : "max-h-0 opacity-0 invisible"}`}>
               <Link
                 to="/members"
+                data-testid="sidebar-link-members"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
                   location.pathname === "/members" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
@@ -240,6 +243,7 @@ function Layout() {
               </Link>
               <Link
                 to="/employees"
+                data-testid="sidebar-link-employees"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
                   location.pathname === "/employees" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
@@ -249,6 +253,7 @@ function Layout() {
               </Link>
               <Link
                 to="/departments"
+                data-testid="sidebar-link-departments"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
                   location.pathname === "/departments" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
@@ -263,6 +268,7 @@ function Layout() {
           <div className="pt-2">
             <button 
               onClick={() => toggleSection('time')}
+              data-testid="sidebar-section-time"
               className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
             >
               <span>{t("common.sections.time_leave")}</span>
@@ -271,6 +277,7 @@ function Layout() {
             <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.time ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0 invisible"}`}>
               <Link
                 to="/time-tracking"
+                data-testid="sidebar-link-time-tracking"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
                   location.pathname === "/time-tracking" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
@@ -280,6 +287,7 @@ function Layout() {
               </Link>
               <Link
                 to="/attendance-logs"
+                data-testid="sidebar-link-attendance-logs"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
                   location.pathname === "/attendance-logs" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
@@ -289,6 +297,7 @@ function Layout() {
               </Link>
               <Link
                 to="/leave-requests"
+                data-testid="sidebar-link-leave-requests"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
                   location.pathname === "/leave-requests" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
@@ -298,6 +307,7 @@ function Layout() {
               </Link>
               <Link
                 to="/leave-balances"
+                data-testid="sidebar-link-leave-balances"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
                   location.pathname === "/leave-balances" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
@@ -307,6 +317,7 @@ function Layout() {
               </Link>
               <Link
                 to="/attendance-adjustments"
+                data-testid="sidebar-link-attendance-adjustments"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
                   location.pathname === "/attendance-adjustments" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
@@ -316,6 +327,7 @@ function Layout() {
               </Link>
               <Link
                 to="/reports"
+                data-testid="sidebar-link-reports"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
                   location.pathname === "/reports" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
@@ -330,6 +342,7 @@ function Layout() {
           <div className="pt-2">
             <button 
               onClick={() => toggleSection('payroll')}
+              data-testid="sidebar-section-payroll"
               className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
             >
               <span>{t("common.sections.payroll_shifts")}</span>
@@ -338,6 +351,7 @@ function Layout() {
             <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.payroll ? "max-h-64 opacity-100" : "max-h-0 opacity-0 invisible"}`}>
               <Link
                 to="/shifts"
+                data-testid="sidebar-link-shifts"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
                   location.pathname === "/shifts" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
@@ -347,6 +361,7 @@ function Layout() {
               </Link>
               <Link
                 to="/working-patterns"
+                data-testid="sidebar-link-working-patterns"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
                   location.pathname === "/working-patterns" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
@@ -356,6 +371,7 @@ function Layout() {
               </Link>
               <Link
                 to="/assignment-rules"
+                data-testid="sidebar-link-assignment-rules"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
                   location.pathname === "/assignment-rules" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
@@ -365,6 +381,7 @@ function Layout() {
               </Link>
               <Link
                 to="/payroll"
+                data-testid="sidebar-link-payroll"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
                   location.pathname === "/payroll" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
@@ -379,6 +396,7 @@ function Layout() {
           <div className="pt-2">
             <button 
               onClick={() => toggleSection('system')}
+              data-testid="sidebar-section-system"
               className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
             >
               <span>{t("common.sections.system")}</span>
@@ -387,6 +405,7 @@ function Layout() {
             <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.system ? "max-h-64 opacity-100" : "max-h-0 opacity-0 invisible"}`}>
               <Link
                 to="/agents"
+                data-testid="sidebar-link-agents"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
                   location.pathname === "/agents" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
@@ -396,6 +415,7 @@ function Layout() {
               </Link>
               <Link
                 to="/devices"
+                data-testid="sidebar-link-devices"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
                   location.pathname === "/devices" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
@@ -405,6 +425,7 @@ function Layout() {
               </Link>
               <Link
                 to="/workspace/settings"
+                data-testid="sidebar-link-settings"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
                   location.pathname === "/workspace/settings" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
@@ -419,6 +440,7 @@ function Layout() {
           <div className="pt-2">
             <button
               onClick={() => toggleSection('ess')}
+              data-testid="sidebar-section-ess"
               className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
             >
               <span>{t("common.sections.self_service")}</span>
@@ -427,6 +449,7 @@ function Layout() {
             <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.ess ? "max-h-64 opacity-100" : "max-h-0 opacity-0 invisible"}`}>
               <Link
                 to="/ess/profile"
+                data-testid="sidebar-link-ess-profile"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
                   location.pathname === "/ess/profile" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}

@@ -11,25 +11,21 @@ test.describe('UI Z-Index Stacking Verification', () => {
 
     // 2. Navigate to Leave Requests via Sidebar
     console.log('Navigating to Leave Requests via Sidebar...');
-    const timeLeaveSection = page.getByRole('button', { name: /Thời gian & Nghỉ phép|Time & Leave/i });
-    await expect(timeLeaveSection).toBeVisible({ timeout: 15000 });
-    // It's expanded by default, but let's make sure
-    
-    const leaveRequestsLink = page.getByRole('link', { name: /Nghỉ phép|Leave Requests/i }).first();
-    await expect(leaveRequestsLink).toBeVisible({ timeout: 15000 });
+    await page.getByTestId('sidebar-section-time').click();
+    const leaveRequestsLink = page.getByTestId('sidebar-link-leave-requests').first();
     await leaveRequestsLink.click();
     
     await expect(page.locator('h1')).toHaveText(/Yêu cầu nghỉ phép|Leave Requests/i, { timeout: 15000 });
     
     // Switch to Policies tab
     console.log('Switching to Policies tab...');
-    const policiesTab = page.locator('button').filter({ hasText: /Chính sách|Policies/i }).first();
+    const policiesTab = page.getByTestId('leave-tab-policies');
     await expect(policiesTab).toBeVisible({ timeout: 15000 });
     await policiesTab.click();
 
     // Open Assignment Modal
     console.log('Opening Assignment Modal...');
-    const assignBtn = page.getByRole('button', { name: /Gán chính sách|Assign Policy/i });
+    const assignBtn = page.getByTestId('assign-policy-btn');
     await expect(assignBtn).toBeVisible({ timeout: 15000 });
     await assignBtn.click();
 

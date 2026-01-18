@@ -61,7 +61,18 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
 
   return {
     plugins: [
-      react(),
+      react({
+        babel: mode === 'production' ? {
+          plugins: [
+            [
+              'react-remove-properties',
+              {
+                properties: ['data-debug-context', 'data-testid'],
+              },
+            ],
+          ],
+        } : undefined
+      }),
       {
         name: 'save-port-file',
         configureServer(server: any) { // Explicitly declare server type as any

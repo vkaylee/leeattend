@@ -86,6 +86,7 @@ export default function InviteMemberDialog({
           <button
             type="submit"
             disabled={isAdding}
+            data-testid="submit-invite-member-btn"
             className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-100 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isAdding ? (
