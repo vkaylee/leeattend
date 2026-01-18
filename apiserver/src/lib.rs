@@ -1,5 +1,6 @@
 pub mod agent_manager;
 pub mod dev_initialization;
+pub mod domain;
 pub mod handlers;
 pub mod models;
 pub mod repositories;

@@ -119,6 +119,8 @@ impl ReportService {
                             daily.allow_early_ot.unwrap_or(false),
                             workspace.work_unit_minutes,
                             &workspace.rounding_policy,
+                            0,
+                            false,
                         );
 
                         total_payable_units = std_units + ot_units;

@@ -23,6 +23,8 @@ impl AttendanceCalculator {
         is_break_auto_deduct: bool,
         is_break_overtime: bool,
         allow_early_ot: bool,
+        authorized_early_leave_minutes: i32,
+        is_early_leave_paid: bool,
     ) -> WorkBuckets {
         let mut buckets = WorkBuckets::default();
 
@@ -55,7 +57,16 @@ impl AttendanceCalculator {
 
                 // 1. Standard Bucket: Intersection of [In, Out] and [Start, End]
                 let standard_in = DateTime::max(punch_in.clone(), start.clone());
-                let standard_out = DateTime::min(punch_out.clone(), end.clone());
+                let mut standard_out = DateTime::min(punch_out.clone(), end.clone());
+
+                // Apply Authorized Early Leave (Paid)
+                if is_early_leave_paid && authorized_early_leave_minutes > 0 {
+                     let missing_minutes = end.clone().signed_duration_since(standard_out.clone()).num_minutes();
+                     if missing_minutes > 0 && missing_minutes <= authorized_early_leave_minutes as i64 {
+                         // Boost standard_out to end (fill the gap)
+                         standard_out = end.clone();
+                     }
+                }
 
                 if standard_out > standard_in {
                     let mut standard_raw = standard_out
@@ -153,6 +164,8 @@ impl AttendanceCalculator {
         allow_early_ot: bool,
         work_unit: i32,
         rounding_policy: &str,
+        authorized_early_leave_minutes: i32,
+        is_early_leave_paid: bool,
     ) -> (i32, i32) {
         let buckets = Self::calculate_buckets(
             punch_in,
@@ -165,6 +178,8 @@ impl AttendanceCalculator {
             is_break_auto_deduct,
             is_break_overtime,
             allow_early_ot,
+            authorized_early_leave_minutes,
+            is_early_leave_paid,
         );
 
         // Apply rounding to standard time (Result in Units)
@@ -249,6 +264,8 @@ mod tests {
             true,
             false,
             false,
+            0,
+            false,
         );
         assert_eq!(b1.standard_minutes, 510); // (17:00 - 07:30) - 60m = 8.5h = 510m
         assert_eq!(b1.early_ot_minutes, 0);
@@ -265,6 +282,8 @@ mod tests {
             true,
             false,
             true,
+            0,
+            false,
         );
         assert_eq!(b2.standard_minutes, 510);
         assert_eq!(b2.early_ot_minutes, 5); // 07:25 to 07:30
@@ -280,6 +299,8 @@ mod tests {
             0,
             true,
             false,
+            false,
+            0,
             false,
         );
         // (17:00 - 07:40) = 9h20m = 560m.
@@ -302,6 +323,8 @@ mod tests {
             true,
             false,
             true,
+            0,
+            false,
         );
         assert_eq!(b4.early_ot_minutes, 0);
 
@@ -317,6 +340,8 @@ mod tests {
             true,
             false,
             true,
+            0,
+            false,
         );
         assert_eq!(b5.early_ot_minutes, 45);
     }
@@ -345,7 +370,7 @@ mod tests {
             .unwrap();
 
         let b = AttendanceCalculator::calculate_buckets(
-            punch_in, punch_out, start, end, 0, 0, 0, false, false, true,
+            punch_in, punch_out, start, end, 0, 0, 0, false, false, true, 0, false,
         );
 
         assert_eq!(b.standard_minutes, 480);
@@ -376,6 +401,8 @@ mod tests {
             false,
             30,
             "floor",
+            0,
+            false,
         );
         assert_eq!(std, 15);
     }
@@ -397,6 +424,8 @@ mod tests {
             false,
             false,
             true,
+            0,
+            false,
         );
         assert_eq!(b1.standard_minutes, 0);
         assert_eq!(b1.early_ot_minutes, 60);
@@ -414,6 +443,8 @@ mod tests {
             false,
             false,
             true,
+            0,
+            false,
         );
         assert_eq!(b2.standard_minutes, 0);
         assert_eq!(b2.early_ot_minutes, 0);
@@ -440,6 +471,8 @@ mod tests {
             false,
             1,
             "none",
+            0,
+            false,
         );
         assert_eq!(std, 0);
     }
@@ -502,6 +535,8 @@ mod tests {
             false,
             false,
             true,
+            0,
+            false,
         );
         assert_eq!(b1.standard_minutes, 0);
         assert_eq!(b1.late_ot_minutes, 60);
@@ -518,6 +553,8 @@ mod tests {
             false,
             false,
             true,
+            0,
+            false,
         );
         assert_eq!(b2.standard_minutes, 0);
         assert_eq!(b2.early_ot_minutes, 60);
@@ -540,6 +577,8 @@ mod tests {
             false,
             false,
             true,
+            0,
+            false,
         );
         assert_eq!(b.standard_minutes, 0);
         assert_eq!(b.early_ot_minutes, 0);
@@ -560,6 +599,8 @@ mod tests {
             false,
             false,
             true,
+            0,
+            false,
         );
         assert_eq!(b.standard_minutes, 120);
         assert_eq!(b.early_ot_minutes, 0);
@@ -592,7 +633,18 @@ mod tests {
             .unwrap();
 
         let b = AttendanceCalculator::calculate_buckets(
-            punch_in, punch_out, start, end, 0, 0, 0, false, false, true,
+            punch_in,
+            punch_out,
+            start,
+            end,
+            0,
+            0,
+            0,
+            false,
+            false,
+            true,
+            0,
+            false,
         );
 
         // Standard: intersection of [01:00, 07:00] and [22:00 Jan 1, 06:00 Jan 2]
@@ -629,6 +681,8 @@ mod tests {
             false,
             30,
             "floor",
+            0,
+            false,
         );
         assert_eq!(std, 15);
     }

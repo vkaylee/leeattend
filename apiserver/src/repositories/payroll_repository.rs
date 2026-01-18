@@ -200,3 +200,95 @@ pub async fn get_payslips_by_employee(
     .fetch_all(pool)
     .await
 }
+
+pub async fn get_salary_components_history(
+    pool: &PgPool,
+    employee_id: Uuid,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"SELECT 
+            esc.id as esc_id, esc.employee_id, esc.component_definition_id, esc.amount, esc.effective_date, esc.created_at as "esc_created_at!", esc.updated_at as "esc_updated_at!",
+            scd.id as scd_id, scd.workspace_id, scd.name, scd.code, scd.is_base_for_ot, scd.is_taxable, scd.created_at as "scd_created_at!", scd.updated_at as "scd_updated_at!"
+           FROM employee_salary_components esc
+           JOIN salary_component_definitions scd ON scd.id = esc.component_definition_id
+           WHERE esc.employee_id = $1
+           AND (
+               esc.effective_date BETWEEN $2 AND $3
+               OR esc.effective_date = (
+                   SELECT MAX(effective_date) 
+                   FROM employee_salary_components esc2 
+                   WHERE esc2.employee_id = esc.employee_id 
+                   AND esc2.component_definition_id = esc.component_definition_id
+                   AND esc2.effective_date < $2
+               )
+           )
+           ORDER BY esc.effective_date ASC"#,
+        employee_id,
+        start_date,
+        end_date
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|row| {
+            (
+                EmployeeSalaryComponent {
+                    id: row.esc_id,
+                    employee_id: row.employee_id,
+                    component_definition_id: row.component_definition_id,
+                    amount: row.amount,
+                    effective_date: row.effective_date,
+                    created_at: row.esc_created_at,
+                    updated_at: row.esc_updated_at,
+                },
+                SalaryComponentDefinition {
+                    id: row.scd_id,
+                    workspace_id: row.workspace_id,
+                    name: row.name,
+                    code: row.code,
+                    is_base_for_ot: row.is_base_for_ot,
+                    is_taxable: row.is_taxable,
+                    created_at: row.scd_created_at,
+                    updated_at: row.scd_updated_at,
+                },
+            )
+        })
+        .collect())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn create_payslip_segment(
+    pool: &PgPool,
+    payslip_id: Uuid,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    department_id: Option<Uuid>,
+    applied_base_salary: Decimal,
+    applied_std_days: Decimal,
+    actual_work_days: Decimal,
+    paid_work_days: Decimal,
+    amount: Decimal,
+) -> Result<Uuid, sqlx::Error> {
+    let id = Uuid::new_v4();
+    sqlx::query!(
+        r#"INSERT INTO payslip_segments (id, payslip_id, start_date, end_date, department_id, applied_base_salary, applied_std_days, actual_work_days, paid_work_days, amount)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#, 
+        id,
+        payslip_id,
+        start_date,
+        end_date,
+        department_id,
+        applied_base_salary,
+        applied_std_days,
+        actual_work_days,
+        paid_work_days,
+        amount
+    )
+    .execute(pool)
+    .await?;
+    Ok(id)
+}

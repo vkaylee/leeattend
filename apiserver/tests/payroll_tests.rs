@@ -94,6 +94,9 @@ async fn setup_employee_with_monthly_salary(
 
     let base_salary = Decimal::from_f64(3000.0).unwrap();
     
+    // Effective from start of the month to ensure coverage
+    let effective_date = test_date.with_day(1).unwrap();
+
     // Create a 'BASE' salary component
     let component_id: Uuid = sqlx::query_scalar(
         "INSERT INTO salary_component_definitions (workspace_id, name, code, is_base_for_ot, is_taxable) VALUES ($1, $2, $3, $4, $5) RETURNING id",
@@ -114,7 +117,7 @@ async fn setup_employee_with_monthly_salary(
     .bind(employee_id)
     .bind(component_id)
     .bind(base_salary)
-    .bind(test_date)
+    .bind(effective_date)
     .execute(pool)
     .await
     .unwrap();
@@ -128,7 +131,7 @@ async fn test_calculate_payroll_monthly() {
     let pool = test_db.pool();
     let test_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
 
-    let (employee_id, workspace_id, base_salary) =
+    let (employee_id, workspace_id, _base_salary) =
         setup_employee_with_monthly_salary(&factory, &pool, test_date).await;
 
     let payslip =
@@ -136,7 +139,8 @@ async fn test_calculate_payroll_monthly() {
             .await
             .unwrap();
 
-    assert_eq!(payslip.base_pay_amount, base_salary);
+    // New Logic: No attendance = No Pay
+    assert_eq!(payslip.base_pay_amount, Decimal::ZERO);
 }
 
 #[tokio::test]
@@ -182,14 +186,19 @@ async fn test_calculate_payroll_monthly_with_overtime() {
             .await
             .unwrap();
 
-    assert_eq!(payslip.base_pay_amount, base_salary);
-    // 2 hours overtime = 2 units (since unit=60m).
-    // Standard units/month = 26 days * 8 hours = 208 units.
-    // Unit rate = 3000 / 208 = 14.423...
-    // OT = 2 units * 14.423 * 1.5 = 43.269... -> 43.27
+    // Standard Days = 26 (Default). Units Per Day = 8 (since unit=60m).
+    // Daily Rate = 3000 / 26 = 115.3846...
+    // Worked 1 day (8 standard hours) -> 115.38
+    let expected_base = (base_salary / Decimal::from(26)).round_dp(2);
+    assert_eq!(payslip.base_pay_amount.round_dp(2), expected_base);
+
+    // 2 hours overtime = 2 units.
+    // Monthly Standard Units = 26 * 8 = 208.
+    // Hourly Rate (Unit Rate) = 3000 / 208 = 14.423...
+    // OT = 2 * 14.423 * 1.5 = 43.269... -> 43.27
     let expected_ot =
         ((base_salary / Decimal::from(208)) * Decimal::from_f64(2.0 * 1.5).unwrap()).round_dp(2);
-    assert_eq!(payslip.overtime_pay_amount, expected_ot);
+    assert_eq!(payslip.overtime_pay_amount.round_dp(2), expected_ot);
 }
 
 #[tokio::test]
