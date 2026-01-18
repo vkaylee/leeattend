@@ -64,6 +64,9 @@ import { getCurrentWorkspaceId } from "./lib/api";
 import { useTheme } from "./hooks/use-theme";
 import { useI18nSync } from "./hooks/use-i18n-sync";
 
+import { DebugProvider } from "./context/DebugContext";
+import { DebugToolbar } from "./components/debug/DebugToolbar";
+
 console.log("🚀 [LeeAttend] Bundle initialized at:", new Date().toISOString());
 
 const queryClient = new QueryClient({
@@ -582,44 +585,47 @@ function Layout() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+      <DebugProvider>
+        <Router>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
 
-          {/* Protected routes */}
-          <Route element={<AuthGuard />}>
-            <Route path="/onboarding" element={<OnboardingPage />} />
-            <Route element={<WorkspaceGuard />}>
-              <Route element={<Layout />}>
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/agents" element={<AgentsPage />} />
-                <Route path="/devices" element={<DevicesPage />} />
-                <Route path="/members" element={<MembersPage />} />
-                <Route path="/employees" element={<EmployeesPage />} />
-                <Route path="/departments" element={<DepartmentsPage />} />
-                <Route path="/time-tracking" element={<TimeTrackingPage />} />
-                <Route path="/attendance-logs" element={<AttendanceLogsPage />} />
-                <Route path="/leave-requests" element={<LeaveRequestsPage />} />
-                <Route path="/leave-balances" element={<LeaveBalancesPage />} />
-                <Route path="/attendance-adjustments" element={<AttendanceAdjustmentsPage />} />
-                <Route path="/reports" element={<ReportsPage />} />
-                                    <Route path="/shifts" element={<ShiftsPage />} />
-                                    <Route path="/working-patterns" element={<WorkingPatternsPage />} />
-                                    <Route path="/assignment-rules" element={<AssignmentRulesPage />} />
-                                    <Route path="/payroll" element={<PayrollPage />} />                <Route
-                  path="/workspace/settings"
-                  element={<WorkspaceSettingsPage />} 
-                />
-                <Route path="/profile" element={<ProfilePage />} />
-                {/* ESS Routes */}
-                <Route path="/ess/profile" element={<MyProfilePage />} />
+            {/* Protected routes */}
+            <Route element={<AuthGuard />}>
+              <Route path="/onboarding" element={<OnboardingPage />} />
+              <Route element={<WorkspaceGuard />}>
+                <Route element={<Layout />}>
+                  <Route path="/" element={<DashboardPage />} />
+                  <Route path="/agents" element={<AgentsPage />} />
+                  <Route path="/devices" element={<DevicesPage />} />
+                  <Route path="/members" element={<MembersPage />} />
+                  <Route path="/employees" element={<EmployeesPage />} />
+                  <Route path="/departments" element={<DepartmentsPage />} />
+                  <Route path="/time-tracking" element={<TimeTrackingPage />} />
+                  <Route path="/attendance-logs" element={<AttendanceLogsPage />} />
+                  <Route path="/leave-requests" element={<LeaveRequestsPage />} />
+                  <Route path="/leave-balances" element={<LeaveBalancesPage />} />
+                  <Route path="/attendance-adjustments" element={<AttendanceAdjustmentsPage />} />
+                  <Route path="/reports" element={<ReportsPage />} />
+                                      <Route path="/shifts" element={<ShiftsPage />} />
+                                      <Route path="/working-patterns" element={<WorkingPatternsPage />} />
+                                      <Route path="/assignment-rules" element={<AssignmentRulesPage />} />
+                                      <Route path="/payroll" element={<PayrollPage />} />                <Route
+                    path="/workspace/settings"
+                    element={<WorkspaceSettingsPage />} 
+                  />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  {/* ESS Routes */}
+                  <Route path="/ess/profile" element={<MyProfilePage />} />
+                </Route>
               </Route>
             </Route>
-          </Route>
-        </Routes>
-      </Router>
+          </Routes>
+        </Router>
+        <DebugToolbar />
+      </DebugProvider>
     </QueryClientProvider>
   );
 }

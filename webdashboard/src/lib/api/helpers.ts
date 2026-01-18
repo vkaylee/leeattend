@@ -55,6 +55,22 @@ function getHeaders() {
     const userId = getCurrentUserId();
     if (userId) headers["X-User-Id"] = userId;
   }
+
+  // Debug Headers (only in development)
+  if (import.meta.env.DEV) {
+    const isEnabled = localStorage.getItem("debug_enabled") === "true";
+    if (isEnabled) {
+      const impId = localStorage.getItem("debug_impersonate_id");
+      if (impId) {
+        headers["X-Debug-Impersonate-Id"] = impId;
+      }
+      const mockDate = localStorage.getItem("debug_mock_date");
+      if (mockDate) {
+        headers["X-Debug-Mock-Date"] = mockDate;
+      }
+    }
+  }
+
   return headers;
 }
 

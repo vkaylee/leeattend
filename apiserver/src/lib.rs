@@ -51,7 +51,17 @@ mod ax_auth {
         type Rejection = (StatusCode, String);
 
         async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-            // 1. Check for JWT in Authorization header
+            // 1. In development, allow Impersonation via Header
+            #[cfg(debug_assertions)]
+            {
+                if let Some(imp_id_str) = parts.headers.get("X-Debug-Impersonate-Id").and_then(|h| h.to_str().ok()) {
+                    if let Ok(user_id) = Uuid::parse_str(imp_id_str) {
+                        return Ok(UserId(user_id));
+                    }
+                }
+            }
+
+            // 2. Check for JWT in Authorization header
             if let Some(auth_header) = parts.headers.get("Authorization") {
                 if let Ok(auth_str) = auth_header.to_str() {
                     if let Some(token) = auth_str.strip_prefix("Bearer ") {
@@ -70,7 +80,7 @@ mod ax_auth {
                 }
             }
 
-            // 2. Fallback to X-User-Id in development (debug assertions)
+            // 3. Fallback to X-User-Id in development (debug assertions)
             #[cfg(debug_assertions)]
             {
                 if let Some(user_id_str) =
@@ -150,6 +160,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
     #[cfg(debug_assertions)]
     {
         router = router.route("/dev/super-user", get(handlers::get_dev_super_user));
+        router = router.route("/debug/users", get(handlers::debug::get_debug_users));
         router = router.route(
             "/dev/workspaces/:ws_id/clear",
             post(handlers::clear_workspace_data),

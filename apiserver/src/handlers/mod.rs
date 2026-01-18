@@ -2,6 +2,7 @@ pub mod agents;
 pub mod assignment_rules;
 pub mod attendance;
 pub mod auth;
+pub mod debug;
 pub mod common;
 pub mod employees;
 pub mod ess;
