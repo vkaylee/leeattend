@@ -17,8 +17,18 @@ export const DebugToolbar: React.FC = () => {
   React.useEffect(() => {
     if (isOpen && isEnabled && activeTab === "identity") {
       debugApi.getUsers()
-        .then(setDebugUsers)
-        .catch(console.error);
+        .then(res => {
+          if (Array.isArray(res)) {
+            setDebugUsers(res);
+          } else {
+            console.warn("Debug users API did not return an array:", res);
+            setDebugUsers([]);
+          }
+        })
+        .catch(err => {
+          console.error("Failed to fetch debug users:", err);
+          setDebugUsers([]);
+        });
     }
   }, [isOpen, isEnabled, activeTab]);
 
@@ -127,7 +137,7 @@ export const DebugToolbar: React.FC = () => {
                 value={tempId}
               >
                 <option value="">-- All Workspace Users --</option>
-                {debugUsers.map(u => (
+                {Array.isArray(debugUsers) && debugUsers.map(u => (
                   <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
                 ))}
               </select>
