@@ -96,14 +96,101 @@ Instead of a simple monthly calculation, the system employs a **Segmentation Eng
 - **Granular Audit Trail**: Every calculation detail for each segment is persisted in the `payslip_segments` table.
 - **History Protection**: Future changes to department settings or global policies will **never** alter the values of finalized payslips, as the calculation parameters are frozen in the snapshot.
 
-#### 14.4. 3-Tier Hierarchical Configuration (New)
-The system employs a sophisticated 3-tier temporal resolution logic for critical payroll settings ("Standard Working Days" and "Hours per Day"):
-- **Resolution Order**: When calculating payroll for a specific date, the `PolicyResolver` searches for active configurations in the following priority:
-    1. **Individual Override**: Configuration specifically set for the employee.
-    2. **Department Override**: Configuration set for the employee's assigned department at that time.
-    3. **Workspace Global**: The organization-wide default settings.
-- **Point-in-Time Lookup**: The resolver always performs a "Maximum Effective Date <= Payroll Start Date" search. This ensures that even if a policy changes today, a re-calculation of a 2-month-old payroll period will still use the exact settings that were active *at that time*.
-- **Temporal Integrity**: Composite unique constraints on `(entity_id, effective_date)` prevent overlapping versions on the same day, ensuring a deterministic calculation state for any given point in history.
+### 📅 Temporal Policy Engine (3-Tier)
+
+The system uses a hierarchical resolution strategy to determine working conditions (Standard Days, Hours per Day) at any specific point in time.
+
+#### Resolution Order (Descending Priority)
+1. **Individual Override**: Highest priority, stored in `employee_payroll_configs`.
+2. **Department Override**: Inherited if no individual config exists, stored in `department_payroll_configs`.
+3. **Workspace Global**: Global default for the organization, stored in `payroll_settings`.
+4. **System Default**: Hardcoded fallback (26 days, 8 hours).
+
+#### Point-in-Time Lookup
+The `PolicyResolver` uses the logic: `Max(EffectiveDate) where EffectiveDate <= TargetDate`. This ensures that recalculating past payroll periods always uses the rules that were actually in effect during that time.
+
+---
+
+### 🧮 Detailed Payroll Calculation Flow
+
+The `PayrollService` uses a multi-pass approach to ensure precise prorating when organizational or financial changes occur mid-month.
+
+```ascii
+    [ Request: Calculate Payroll ]
+    (EmployeeID, Month, Year)
+               │
+               ▼
+    ┌──────────────────────────┐
+    │ 1. Change Point Detection│
+    └──────────┬───────────────┘
+               │  Detects: Salary Changes, Department Transfers,
+               │          and Policy Override Effective Dates.
+               ▼
+    ┌──────────────────────────┐
+    │ 2. Period Segmentation   │
+    └──────────┬───────────────┘
+               │  Splits month into N segments.
+               │  Example: Jan 01-15 (Old Salary), Jan 16-31 (New Salary).
+               ▼
+    ┌──────────────────────────────────────────────────────────┐
+    │ 3. PER-SEGMENT CALCULATION (Loop)                        │
+    ├──────────────────────────────────────────────────────────┤
+    │                                                          │
+    │  A. Policy Resolution (3-Tier)                           │
+    │     - Resolve (Std Days, Hours/Day) via:                 │
+    │       Individual > Dept > Workspace hierarchy.           │
+    │                                                          │
+    │  B. Rate Derivation                                      │
+    │     - Sum all "Base for OT" Components at segment start. │
+    │     - Hourly Rate = Total Base / (Std Days * Hours/Day). │
+    │                                                          │
+    │  C. Attendance Aggregation                               │
+    │     - Filter Work Units (Standard/OT) within segment.    │
+    │                                                          │
+    │  D. Financial Computation                                │
+    │     - Subtotal = (Units * Hourly Rate) + Flat Additions. │
+    │                                                          │
+    └──────────────────────────┬───────────────────────────────┘
+                               │
+                               ▼
+    ┌──────────────────────────┐
+    │ 4. Final Aggregation     │
+    └──────────┬───────────────┘
+               │  Sum all segment subtotals, taxes, and
+               │  deductions into a master Payslip record.
+               ▼
+    ┌──────────────────────────┐
+    │ 5. Immutable Snapshot    │
+    └──────────────────────────┘
+       - Persist Payslip.
+       - Persist PayslipSegments (storing snapshots of
+         applied_hours_per_day and base_salary).
+```
+
+---
+
+### 🛠 Debug & Observability Stack
+
+The system includes a developer-first observability suite that hooks deep into the request lifecycle.
+
+#### Authentication Impersonation
+The `UserId` extractor in `apiserver/src/lib.rs` includes a high-priority check for the `X-Debug-Impersonate-Id` header. When present (and in debug builds), it bypasses JWT verification and automatically assumes the identity of the specified UUID.
+
+#### Time Travel Middleware
+Every request can include an optional `X-Debug-Mock-Date` header. This is parsed into a `DebugContext` which handlers can use to override the current system time when calling the `PolicyResolver` or `PayrollService`.
+
+```ascii
+[ Browser ] --(X-Debug-*)--> [ Axum Router ]
+                                   │
+                        ┌──────────┴──────────┐
+                        │  Debug Extractors   │
+                        └──────────┬──────────┘
+                                   ▼
+                        ┌─────────────────────┐
+                        │   Business Logic    │
+                        │ (uses Mock Context) │
+                        └─────────────────────┘
+```
 
 ## Infrastructure Diagram
 ```ascii

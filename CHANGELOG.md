@@ -5,6 +5,24 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Hierarchical 3-tier Temporal Payroll**:
+    - New schema for versioned payroll settings at Individual, Department, and Workspace levels.
+    - `PolicyResolver` domain service for point-in-time rule resolution.
+    - Multi-segment payroll calculation with proration support for mid-month changes.
+    - Reusable `TemporalConfigTable` React component for historical setting management.
+    - Persistence of `applied_hours_per_day` in payslip segments for auditability.
+- **Advanced Debug Suite**:
+    - Floating Developer Toolbar for quick access to debug features.
+    - **User Impersonation**: Switch roles (Owner/Admin/Member) or specific users in one click via `X-Debug-Impersonate-Id`.
+    - **Time Travel**: Simulate any system date via `X-Debug-Mock-Date` to test future/past payroll logic.
+    - **Debug API Directory**: Endpoint `/api/debug/users` to list available test identities.
+
+### Changed
+- Increased E2E test stability by raising DB pool `acquire_timeout` to 30s and Playwright navigation timeouts to 60s.
+- Synchronized i18n keys for temporal settings across en, vi, and zh locales.
+- Updated `PayrollService` to use the new hierarchical resolver instead of legacy fixed fields.
+
+### Added
 - **3-Tier Temporal Payroll Settings**: Implemented a hierarchical versioning system for "Standard Working Days" and "Hours per Day" (Individual > Department > Workspace).
 - **Point-in-Time Policy Resolver**: New logic to resolve payroll settings based on the payroll period's effective date.
 - **Temporal Configuration UI**: Added `TemporalConfigTable` for managing historical and future configuration changes across Workspace, Departments, and Employee profiles.

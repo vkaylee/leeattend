@@ -119,6 +119,11 @@ leeattend/
             - **Multi-Category Support**: Added `leave_type` field to definitions to allow distinct accrual rules for different leave categories (Vacation, Sick, etc.).
         - **Resilience**: **PortFileGuard** ensures robust resource cleanup (port files) even during unexpected shutdowns or panics.
     - **Advanced Deserialization**: Implemented `serde_helpers` to accurately distinguish between missing fields and explicit `null` values in partial update APIs (e.g., clearing a department's default pattern).
+    - **Advanced Debug Suite (Development Only)**:
+        - **Impersonation Support**: Integrated `X-Debug-Impersonate-Id` support in the authentication layer, allowing developers to act as any user without credentials.
+        - **Time Travel Simulator**: Context-aware `X-Debug-Mock-Date` header allows simulating any system date, enabling precise testing of temporal proration and future policy changes.
+        - **Debug Utilities**: Lightweight `DebugContext` extractor (`utils/debug.rs`) provides safe access to mock parameters across all API handlers.
+        - **Developer Toolbar**: Floating UI component in the dashboard providing quick access to role switching, date simulation, and a user directory for rapid testing.
 
 2.  **Web Dashboard (React/Vite)**:
 ...
