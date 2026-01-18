@@ -3,7 +3,10 @@
 ## 🦀 Rust (Backend)
 
 ### 1. Linter & Quality
-- **Warnings as Errors**: Dự án được cấu hình để từ chối tất cả các warnings (`warnings = "deny"` trong `Cargo.toml`). Code không được phép merge nếu còn tồn tại warning (unused variables, dead code, etc.).
+- **Zero-Warning Policy**: Dự án thực thi chính sách không cảnh báo nghiêm ngặt. Code phải vượt qua `cargo clippy -- -D warnings` trước khi commit.
+- **Test Module Placement**: Luôn đặt khối `mod tests` ở cuối tệp tin để tránh cảnh báo Clippy về việc sắp xếp các mục sau module test.
+- **Type Complexity**: Tránh các kiểu dữ liệu lồng nhau quá sâu (ví dụ: `OnceLock<Arc<Mutex<HashSet<...>>>>`). Hãy sử dụng `type` alias để cải thiện khả năng đọc và bảo trì.
+- **SQLx Metadata**: Khi thay đổi schema database, phải chạy `cargo sqlx prepare` để cập nhật metadata trong `.sqlx/`, đảm bảo linting offline hoạt động chính xác.
 - **Method Size (Rule of 30)**: Một hàm không nên dài quá 30 dòng code. Nếu dài hơn, hãy cân nhắc tách nhỏ ra các private methods hoặc helper functions.
 - **Single Responsibility (SRP)**: Một hàm chỉ làm một việc duy nhất. Tên hàm phải phản ánh đúng hành động (ví dụ: `validate_agent_token` thay vì `check_agent`).
 
@@ -44,8 +47,10 @@ Sử dụng `Arc<dyn RepositoryTrait>` để inject vào Services. Khởi tạo 
 - **Zero Tolerance**: Tất cả các bài kiểm tra (Unit tests, Integration tests, Frontend tests) **BẮT BUỘC** phải vượt qua (PASS) trước khi thực hiện bất kỳ lệnh commit hoặc merge nào. Code có test thất bại sẽ không được chấp nhận.
 - **Automated Linting (Phase 0)**: Hệ thống thực thi kiểm tra code quality tự động (Linting) ở bước đầu tiên của pipeline.
     - **Rust**: `cargo clippy -- -D warnings` (Deny all warnings).
-    - **Frontend**: `npm run lint` (ESLint with `--max-warnings 0`).
-    - Bất kỳ cảnh báo (warning) nào từ linter đều bị coi là lỗi và sẽ dừng pipeline ngay lập tức.
+    - **Frontend**: `npm run lint` (ESLint with cache) và `npm run type-check`.
+    - Bất kỳ cảnh báo (warning) nào từ linter hoặc lỗi type đều bị coi là lỗi và sẽ dừng pipeline ngay lập tức.
+- **Unit Tests (Phase 1)**: 
+    - **Vitest**: Timeouts 10s, `isolate: false` để tăng tốc độ thực thi.
 - **Recommended Execution**: Sử dụng script hợp nhất để chạy toàn bộ suite một cách nhanh nhất (hỗ trợ thực thi song song và tự động setup môi trường):
   ```bash
   ./run-tests.sh
@@ -75,7 +80,7 @@ For E2E stability and performance, we adhere to the **Isolated Parallel Environm
     - **Level 3: Data-TestID (Recommended for i18n)**: Sử dụng `page.getByTestId('sidebar-link-members')` cho các thành phần có text thay đổi theo ngôn ngữ (VI/EN/ZH) hoặc UI phức tạp.
     - **Avoid**: Hạn chế sử dụng `getByText(/Regex/i)` với nhiều ngôn ngữ vì rất dễ gây break test khi đổi nội dung dịch (copy changes).
 4. **Resilient Timeouts**: 
-    - **Global Test Timeout**: 30 giây (để đảm bảo ổn định khi chạy song song nhiều backend/frontend).
+    - **Global Test Timeout**: 15 giây (tối ưu để phát hiện lỗi nhanh).
     - **API Response Timeout**: 10 giây (centralized via `apiFetch`).
     - Các test phức tạp có thể sử dụng `test.slow()` để nhân 3 timeout mặc định.
 

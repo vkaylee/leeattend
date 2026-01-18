@@ -1,18 +1,19 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect, WorkerInfo } from '@playwright/test';
 import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 
 export { expect };
 
-export const test = base.extend<{ workerWebUrl: string }>({
-  // Override baseURL to use the dynamic one
-  baseURL: async ({ workerWebUrl }, use) => {
-    await use(workerWebUrl);
-  },
+// 1. Extend base with worker-scoped fixtures
+// Worker fixtures type definition
+type WorkerFixtures = {
+  workerWebUrl: string;
+};
 
-  workerWebUrl: [async ({}, use, workerInfo) => { // eslint-disable-line no-empty-pattern
+const workerTest = base.extend<{}, WorkerFixtures>({
+  workerWebUrl: [async ({}, use: (r: string) => Promise<void>, workerInfo: WorkerInfo) => { // eslint-disable-line no-empty-pattern
     const workerIndex = workerInfo.parallelIndex;
     const apiPortFile = `.api_port_${workerIndex}`;
     const webPortFile = `.web_port_${workerIndex}`;
@@ -87,6 +88,14 @@ export const test = base.extend<{ workerWebUrl: string }>({
     if (fs.existsSync(apiPortPath)) fs.unlinkSync(apiPortPath);
     if (fs.existsSync(webPortPath)) fs.unlinkSync(webPortPath);
   }, { scope: 'worker' }],
+});
+
+// 2. Extend with test-scoped fixtures that depend on worker fixtures
+export const test = workerTest.extend<{ }>({
+  // Override baseURL to use the dynamic one from worker scope
+  baseURL: async ({ workerWebUrl }, use) => {
+    await use(workerWebUrl);
+  },
 });
 
 async function waitForFile(filePath: string, timeout = 60000): Promise<string> {

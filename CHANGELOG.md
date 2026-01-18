@@ -5,30 +5,19 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased] - 2026-01-18
 
 ### Added
+- **Strict Rust "Zero-Warning" Policy**: Enforced a project-wide policy where all Rust code must pass `cargo clippy --all-targets --all-features -- -D warnings`.
+    - **Lint Cleanliness**: Refactored over 50 files to resolve stylistic, performance, and structural warnings.
+    - **Complexity Management**: Introduced type aliases for deeply nested types in test infrastructure.
 - **E2E Locator Standardization (Hybrid Pattern)**: Migrated the entire Playwright test suite to a resilient locator strategy.
-    - **Data-TestID Integration**: Added `data-testid` to over 50 critical UI elements including Auth buttons, Sidebar navigation, Modal actions, and Tab switchers.
-    - **Resilient Locators**: Established a hierarchy prioritizing Semantic Attributes and `data-testid` over brittle, localized regex-based text selectors.
-    - **Full Coverage**: Updated all 20 test specs (Auth, Employees, Leave, Departments, System, Settings) to use the new stable pattern.
-    - **Stability Fixes**: Resolved syntax errors and race conditions in `attendance-logs.spec.ts` and `stability-regression.spec.ts` discovered during the migration.
-- **Auto Assignment Rules (Enterprise)**: New system to automatically assign schedules based on flexible conditions.
-    - **Logic Engine**: Backend `rule_evaluator.rs` evaluates high-priority rules (Day of week, Department, Location) before falling back to defaults.
-    - **Management UI**: Dedicated `AssignmentRulesPage.tsx` for creating and managing rule priorities.
-    - **Database Infrastructure**: New `assignment_rules` table with JSONB conditions support.
-- **API Standardization Enforcement**: Implemented `standardization.test.ts` to strictly forbid direct `fetch()` calls in the frontend API layer, mandating the use of `apiFetch`.
-- **System Stability Regression Suite**: Added `stability-regression.spec.ts` to ensure critical fixes (Workspace headers, UI icons) are never reverted.
-- **Fetch Timeout Protection**: Centralized 10s timeout implemented in `apiFetch` using `AbortController` to prevent hanging requests.
-- **Morning Lookback for Overnight Shifts**: Enhanced the `PairingService` to automatically reprocess the previous day's attendance when a log is received before 12:00 PM.
-
-### Fixed
-- **E2E Initialization Race Conditions**: Increased global test timeouts to **30 seconds** across Playwright, Vitest, and Pytest to ensure isolated environments (Rust + Vite) have sufficient time to start under parallel load.
-- **Critical UI ReferenceError**: Fixed "Settings2 is not defined" crash in `App.tsx` by adding the missing `lucide-react` import.
-- **API Context Mismatch**: Fixed intermittent 400 Bad Request errors in dashboard by ensuring all core functions (`login`, `register`, `stats`) use the `apiFetch` wrapper with automatic header injection.
-- **Attendance Pairing Test Stability**: Hardened `raw_attendance_pairing_tests.rs` by enforcing a UTC timezone for all test workspaces.
-- **Workspace Member API Tests**: Resolved database foreign key violations in tests by ensuring real user records are created via factories.
-
+...
 ### Changed
-- **Resilient Test Orchestration**: Unified all test timeouts to 30s standard for reliable CI/CD and local execution.
-- **API Strategy**: Standardized on `apiFetch` for all outbound traffic from the web dashboard.
+- **SQLx Upgrade (v0.8.6)**: Upgraded `sqlx` from 0.7 to 0.8.6 in `apiserver` to resolve future-incompatibility warnings (Rust 2024 never-type fallback) and synchronize with other crates.
+- **SQLx Metadata Synchronization**: Updated offline query metadata in `.sqlx/` across the project.
+- **Optimized E2E Timeouts**: Decreased global test timeout from **30s to 15s** and added a **5s expectation timeout** to enable faster failure detection during development and CI.
+...
+### Fixed
+- **Rust Clippy Findings**: Manually resolved structural warnings including item ordering (moving `mod tests` to the end of files) and unnecessary borrows.
+- **E2E Initialization Race Conditions**: Increased global test timeouts to **30 seconds** across Playwright, Vitest, and Pytest to ensure isolated environments (Rust + Vite) have sufficient time to start under parallel load.
 
 ## [Unreleased] - 2026-01-17
 

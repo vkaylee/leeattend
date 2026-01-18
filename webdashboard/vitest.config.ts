@@ -11,8 +11,8 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
-    testTimeout: 30000,
-    hookTimeout: 30000,
+    testTimeout: 10000,
+    hookTimeout: 10000,
     exclude: ['**/node_modules/**', '**/dist/**', '**/tests/**', '**/e2e/**'],
   },
 });

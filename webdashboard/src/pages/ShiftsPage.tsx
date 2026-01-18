@@ -556,11 +556,11 @@ export default function ShiftsPage() {
                       const effectiveSchedule = employeeSchedule?.schedules.find(s => s.date === dateStr);
                       const isToday = day.toDateString() === new Date().toDateString();
                       
-                      const isRoster = effectiveSchedule?.source === "roster";
-                      const isPattern = effectiveSchedule?.source === "pattern";
-                      const isDeptPattern = effectiveSchedule?.source === "department_pattern";
-                      const isFixed = effectiveSchedule?.source === "fixed";
-                      const isDept = effectiveSchedule?.source === "department" || effectiveSchedule?.source === "department_fixed";
+                      const isRoster = (effectiveSchedule?.source as any) === "roster";
+                      const isPattern = (effectiveSchedule?.source as any) === "pattern";
+                      const isDeptPattern = (effectiveSchedule?.source as any) === "department_pattern";
+                      const isFixed = (effectiveSchedule?.source as any) === "fixed";
+                      const isDept = (effectiveSchedule?.source as any) === "department" || (effectiveSchedule?.source as any) === "department_fixed";
 
                       return (
                         <div 
@@ -723,14 +723,13 @@ export default function ShiftsPage() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={handleAssign}
-                    disabled={assignMutation.isPending}
-                    className="w-full bg-slate-900 text-white font-black py-5 rounded-[28px] flex items-center justify-center gap-3 hover:bg-black transition-all active:scale-[0.98] disabled:opacity-50 shadow-2xl shadow-slate-200 uppercase tracking-widest text-xs"
-                  >
-                    <Save size={18} /> {t("shifts.assign_btn")}
-                  </button>
-                </div>
+                                        <button
+                                          onClick={handleAssign}
+                                          disabled={assignPatternMutation.isPending}
+                                          className="w-full bg-slate-900 text-white font-black py-5 rounded-[28px] flex items-center justify-center gap-3 hover:bg-black transition-all active:scale-[0.98] disabled:opacity-50 shadow-2xl shadow-slate-200 uppercase tracking-widest text-xs"
+                                        >
+                                          <Save size={18} /> {t("shifts.assign_btn")}
+                                        </button>                </div>
               </div>
             )}
           </div>
