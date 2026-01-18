@@ -12,13 +12,14 @@ interface Props {
 }
 
 export default function PayrollSettingsSection({ wsId }: Props) {
+  const { t } = useTranslation();
   const { data: settings, isLoading } = useQuery({
     queryKey: ["payroll-settings", wsId],
     queryFn: () => fetchPayrollSettings(wsId),
     enabled: !!wsId,
   });
 
-  if (isLoading) return <div className="p-8 text-center text-slate-400 italic">Loading settings...</div>;
+  if (isLoading) return <div className="p-8 text-center text-slate-400 italic">{t("common.loading")}</div>;
 
   return <PayrollSettingsForm wsId={wsId} initialSettings={settings} />;
 }

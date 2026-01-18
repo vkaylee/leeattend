@@ -6,6 +6,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "../../components/Toast";
 import * as useAgentsHook from "@/hooks/use-agents";
 
+// Mock i18n
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
 // Mock the hook
 vi.mock("@/hooks/use-agents", () => ({
   useAuthorizedAgents: vi.fn(),
@@ -61,8 +68,8 @@ describe("AgentsPage", () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByText("Quản lý Agent")).toBeDefined();
-    expect(screen.getByText("Chưa có Agent nào được khai báo.")).toBeDefined();
+    expect(screen.getByText("agents.title")).toBeDefined();
+    expect(screen.getByText("agents.messages.no_agents")).toBeDefined();
   });
 
   it("shows loading state", () => {
@@ -115,10 +122,10 @@ describe("AgentsPage", () => {
 
     expect(screen.getByText("Agent One")).toBeDefined();
     expect(screen.getByText("Agent Two")).toBeDefined();
-    expect(screen.getByText(/đã duyệt/i)).toBeDefined();
-    expect(screen.getByText(/chờ duyệt/i)).toBeDefined();
-    expect(screen.getByText(/online/i)).toBeDefined();
-    expect(screen.getByText(/offline/i)).toBeDefined();
+    expect(screen.getByText(/agents.status.trusted/i)).toBeDefined();
+    expect(screen.getByText(/agents.status.pending/i)).toBeDefined();
+    expect(screen.getByText(/common.online/i)).toBeDefined();
+    expect(screen.getByText(/common.offline/i)).toBeDefined();
   });
 
   it("handles adding a new agent", async () => {
@@ -134,13 +141,13 @@ describe("AgentsPage", () => {
       </QueryClientProvider>
     );
 
-    fireEvent.click(screen.getByText("Khai báo Agent"));
+    fireEvent.click(screen.getByText("agents.actions.declare_agent"));
     
-    fireEvent.change(screen.getByPlaceholderText("Ví dụ: BRANCH_HN_01"), { target: { value: "NEW_ID" } });
-    fireEvent.change(screen.getByPlaceholderText("Ví dụ: Văn phòng Hà Nội"), { target: { value: "New Name" } });
-    fireEvent.change(screen.getByPlaceholderText("Mật mã kết nối"), { target: { value: "secret" } });
+    fireEvent.change(screen.getByPlaceholderText("agents.form.id_placeholder"), { target: { value: "NEW_ID" } });
+    fireEvent.change(screen.getByPlaceholderText("agents.form.name_placeholder"), { target: { value: "New Name" } });
+    fireEvent.change(screen.getByPlaceholderText("agents.form.token_placeholder"), { target: { value: "secret" } });
     
-    fireEvent.click(screen.getByText("Lưu"));
+    fireEvent.click(screen.getByText("common.save"));
 
     await waitFor(() => {
       expect(mockCreateAgent).toHaveBeenCalledWith({ id: "NEW_ID", name: "New Name", token: "secret" });
@@ -171,7 +178,7 @@ describe("AgentsPage", () => {
       </QueryClientProvider>
     );
 
-    fireEvent.click(screen.getByText("Duyệt"));
+    fireEvent.click(screen.getByText("common.trust"));
 
     expect(window.confirm).toHaveBeenCalled();
     await waitFor(() => {
@@ -204,7 +211,7 @@ describe("AgentsPage", () => {
     );
 
     // Find delete icon/button - it uses Trash2
-    const deleteBtn = document.querySelector('button[title="Xóa"]');
+    const deleteBtn = document.querySelector('button[title="common.delete"]');
     if (deleteBtn) fireEvent.click(deleteBtn);
 
     expect(window.confirm).toHaveBeenCalled();
@@ -236,7 +243,7 @@ describe("AgentsPage", () => {
       </QueryClientProvider>
     );
 
-    fireEvent.click(screen.getByText("Khôi phục"));
+    fireEvent.click(screen.getByText("common.restore"));
 
     await waitFor(() => {
       expect(mockUpdateAgent).toHaveBeenCalledWith({ id: "agent-1", agent: { is_active: true } });
@@ -254,7 +261,7 @@ describe("AgentsPage", () => {
       </QueryClientProvider>
     );
 
-    fireEvent.click(screen.getByText("Hiện lưu trữ"));
+    fireEvent.click(screen.getByText("agents.actions.show_archived"));
     expect(mockSetIncludeInactive).toHaveBeenCalledWith(true);
   });
 
@@ -278,7 +285,7 @@ describe("AgentsPage", () => {
       </QueryClientProvider>
     );
 
-    const editBtn = document.querySelector('button[title="Chỉnh sửa"]');
+    const editBtn = document.querySelector('button[title="common.edit"]');
     if (editBtn) fireEvent.click(editBtn);
 
     expect(screen.getByTestId("agent-edit-modal")).toBeDefined();

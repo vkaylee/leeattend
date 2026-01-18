@@ -37,11 +37,11 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leave-history", wsId, employeeId] });
       queryClient.invalidateQueries({ queryKey: ["leave-balances", wsId, employeeId] });
-      toast.success("Balance adjusted successfully");
+      toast.success(t("leave_balances.history.messages.adjust_success"));
       setActiveTab("history");
     },
     onError: (error: any) => {
-      toast.error("Failed to adjust balance: " + (error.message || "Unknown error"));
+      toast.error(t("leave_balances.history.messages.adjust_error") + ": " + (error.message || "Unknown error"));
     }
   });
 
@@ -57,7 +57,7 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
     e.preventDefault();
     const amount = parseFloat(adjustForm.amount);
     if (isNaN(amount) || amount <= 0) {
-      toast.error("Invalid amount");
+      toast.error(t("leave_balances.history.validation.invalid_amount"));
       return;
     }
 
@@ -85,8 +85,8 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Leave History: ${employeeName}`}
-      subtitle="View detailed history and adjust leave balances."
+      title={`${t("leave_balances.history.title")}: ${employeeName}`}
+      subtitle={t("leave_balances.history.subtitle")}
       icon={<History className="w-6 h-6 text-primary-600" />}
       maxWidth="2xl"
     >
@@ -97,13 +97,13 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
             onClick={() => setActiveTab("history")}
             className={`flex-1 py-2 rounded-xl font-bold text-sm transition-all ${activeTab === "history" ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            History
+            {t("leave_balances.history.tab_history")}
           </button>
           <button
             onClick={() => setActiveTab("adjust")}
             className={`flex-1 py-2 rounded-xl font-bold text-sm transition-all ${activeTab === "adjust" ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            Manual Adjustment
+            {t("leave_balances.history.tab_adjust")}
           </button>
         </div>
 
@@ -119,10 +119,10 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
                 <table className="w-full text-left">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-100">
-                      <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
-                      <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Type</th>
-                      <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Amount</th>
-                      <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Reason</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.date")}</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.type")}</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("common.total")}</th>
+                      <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.reason")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
@@ -150,7 +150,7 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
             ) : (
               <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                 <Info className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <p className="text-slate-400 font-medium italic">No history records found.</p>
+                <p className="text-slate-400 font-medium italic">{t("leave_balances.history.no_history")}</p>
               </div>
             )}
           </div>
@@ -158,40 +158,40 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
           <form onSubmit={handleAdjustSubmit} className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Action</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("leave_balances.history.action_label")}</label>
                 <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
                   <button
                     type="button"
                     onClick={() => setAdjustForm({ ...adjustForm, type: "add" })}
                     className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${adjustForm.type === "add" ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
                   >
-                    <Plus className="w-3 h-3" /> Add
+                    <Plus className="w-3 h-3" /> {t("leave_balances.history.add")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setAdjustForm({ ...adjustForm, type: "deduct" })}
                     className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${adjustForm.type === "deduct" ? "bg-white text-rose-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
                   >
-                    <Minus className="w-3 h-3" /> Deduct
+                    <Minus className="w-3 h-3" /> {t("leave_balances.history.deduct")}
                   </button>
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Leave Type</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.table.type")}</label>
                 <select 
                   value={adjustForm.leave_type} 
                   onChange={(e) => setAdjustForm({...adjustForm, leave_type: e.target.value})}
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-500 font-bold text-sm transition-all"
                 >
-                  <option value="vacation">Annual Leave</option>
-                  <option value="sick">Sick Leave</option>
+                  <option value="vacation">{t("leave_requests.types.vacation_full")}</option>
+                  <option value="sick">{t("leave_requests.types.sick_full")}</option>
                 </select>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Amount (Days)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("leave_balances.history.amount_placeholder").split('.')[0]}</label>
                 <input 
                   type="number" 
                   step="0.5" 
@@ -199,12 +199,12 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
                   required
                   value={adjustForm.amount} 
                   onChange={(e) => setAdjustForm({...adjustForm, amount: e.target.value})} 
-                  placeholder="e.g. 1.0"
+                  placeholder={t("leave_balances.history.amount_placeholder")}
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-500 font-bold transition-all"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.date")}</label>
                 <div className="relative">
                   <input 
                     type="date" 
@@ -219,12 +219,12 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Reason (Required for audit)</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("leave_balances.history.reason_label")}</label>
               <div className="relative">
                 <textarea 
                   required
                   rows={3}
-                  placeholder="Explain why this adjustment is made..."
+                  placeholder={t("leave_balances.history.reason_placeholder")}
                   value={adjustForm.reason}
                   onChange={(e) => setAdjustForm({...adjustForm, reason: e.target.value})}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-500 font-medium transition-all resize-none"
@@ -244,10 +244,10 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
               <button 
                 type="submit" 
                 disabled={adjustMutation.isPending}
-                className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-black transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex-1 px-6 py-3 bg-primary-900 text-white rounded-xl font-bold hover:bg-black transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {adjustMutation.isPending ? <Loader2 className="animate-spin w-4 h-4" /> : <Shield className="w-4 h-4" />}
-                Confirm Adjustment
+                {t("leave_balances.history.confirm_btn")}
               </button>
             </div>
           </form>

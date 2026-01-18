@@ -57,6 +57,8 @@ leeattend/
     - **Heartbeat Engine**: Time-based tracking of edge agent connectivity.
     - **Timezone Engine**: Comprehensive timezone management per workspace. Correctly handles local-to-UTC conversion for external data imports (Excel/CSV) using the workspace's configured IANA timezone ID.
     - **Internationalization (i18n) Engine**: Persistent language preferences stored at both user and workspace levels. Backend automatically detects and synchronizes with frontend state via `preferred_language` and `default_language` fields.
+        - **Feature-First Structure**: Locale files (`.json`) are organized with major functional modules (Auth, ESS, Shifts, etc.) at the top-level for concise key access and maintainability.
+        - **100% Key Parity**: Enforced 100% key synchronization between all supported languages (en, vi, zh) through an automated audit suite.
     - **Unified Employee Search**: High-fidelity search subsystem used across all administrative and reporting modules.
         - **Server-Side Filtering**: Optimized SQL queries using `ILIKE` for case-insensitive matching across first names, last names, and employee ID numbers.
         - **Intelligent Debouncing**: Integrated `useDebounce` hook (400ms delay) to minimize server load while providing a responsive "search-as-you-type" experience.
@@ -198,6 +200,7 @@ leeattend/
     - **Phase 2 (Environment Setup)**: Provisions isolated databases for parallel E2E and pre-compiles the backend binary. Strict error checking ensures the environment is perfect before testing starts.
     - **Phase 3 (Parallel Integration)**: Runs Rust integration tests and Playwright E2E concurrently using the pre-provisioned environment.
 - **API Standardization Coverage**: `standardization.test.ts` ensures 100% of API implementations use the secure `apiFetch` wrapper.
+- **Automated i18n Audit Suite**: `translation-usage.test.ts` enforces 100% key parity across all locale files and scans the codebase to ensure all utilized keys exist in all languages. It also proactively detects hardcoded JSX strings.
 - **Timeout Verification**: `apiFetch.test.ts` unit tests verify the integrity of the 10s request abort logic.
 - **Fail-Fast Engine**: Orchestrator immediately terminates all sibling tasks in a phase if a single task fails, providing instantaneous feedback and saving system resources.
 - **Real-time Sequential Logging**: Sophisticated output engine that streams parallel logs in real-time sequential blocks (e.g., Worker 2's logs start exactly when Worker 1 finishes), providing "parallel speed with sequential clarity."

@@ -5,7 +5,18 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased] - 2026-01-18
 
 ### Added
+- **Full-Stack Multi-Language Parity (vi, en, zh)**: Achieved 100% key synchronization across all supported languages.
+    - **Structural Synchronization**: Refactored `vi.json` and `zh.json` to strictly match the `en.json` baseline, moving feature modules (auth, ess, shifts, etc.) to the top level.
+    - **Automated i18n Audit Suite**: Added a new test case to `translation-usage.test.ts` that enforces 100% key parity between all locale files, preventing desync in future development.
+    - **Functional Key Coverage**: Verified that every translation key used in the codebase is present in all three language files.
+- **Global UI Localization Hardening**:
+    - **Reports & Logs**: Localized "Punch In" and "Punch Out" headers and status labels.
+    - **Payroll Configuration**: Localized "Loading settings..." and other dynamic UI feedback.
+    - **Assignment Rules**: Internationalized all form placeholders and condition hints.
+    - **Working Patterns**: Localized pattern name and description placeholders.
+    - **Leave Management**: Standardized "Carry-over" and "Carry-over limit" terminology across languages.
 - **Strict Rust "Zero-Warning" Policy**: Enforced a project-wide policy where all Rust code must pass `cargo clippy --all-targets --all-features -- -D warnings`.
+...
     - **Lint Cleanliness**: Refactored over 50 files to resolve stylistic, performance, and structural warnings.
     - **Complexity Management**: Introduced type aliases for deeply nested types in test infrastructure.
 - **E2E Locator Standardization (Hybrid Pattern)**: Migrated the entire Playwright test suite to a resilient locator strategy.

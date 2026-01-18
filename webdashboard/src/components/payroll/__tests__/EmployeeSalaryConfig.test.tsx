@@ -61,7 +61,7 @@ describe("EmployeeSalaryConfig", () => {
     const typeSelect = screen.getByRole("combobox");
     fireEvent.change(typeSelect, { target: { value: "def-1" } });
 
-    const amountInput = screen.getByPlaceholderText("10,000,000");
+    const amountInput = screen.getByPlaceholderText("1,000");
     fireEvent.change(amountInput, { target: { value: "5000" } });
 
     const saveBtn = screen.getByTestId("save-salary-item-btn");

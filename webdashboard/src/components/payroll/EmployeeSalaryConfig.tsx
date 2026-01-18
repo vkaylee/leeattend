@@ -66,7 +66,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
         <div className="flex items-center gap-2">
           <Wallet className="w-4 h-4 text-primary-500" />
           <h3 className="font-black text-[10px] text-slate-400 uppercase tracking-widest">
-            {t("payroll.employee_config.title", "Cấu hình lương nhân viên")}
+            {t("payroll.employee_config.title")}
           </h3>
         </div>
         <button
@@ -76,7 +76,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
             isAdding ? 'bg-slate-100 text-slate-500' : 'bg-primary-600 text-white shadow-lg shadow-primary-100'
           }`}
         >
-          {isAdding ? t("common.cancel") : <><Plus className="w-4 h-4" /> {t("payroll.employee_config.add_btn", "Thêm khoản lương")}</>}
+          {isAdding ? t("common.cancel") : <><Plus className="w-4 h-4" /> {t("payroll.employee_config.add_btn")}</>}
         </button>
       </div>
 
@@ -84,7 +84,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
         <form onSubmit={handleAssign} className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 animate-in slide-in-from-top-4 duration-300">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Loại khoản lương</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("payroll.employee_config.item_type")}</label>
               <Combobox
                 options={definitions.map(d => ({ value: d.id, label: d.name, description: d.code }))}
                 value={selectedCompId}
@@ -93,18 +93,18 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Số tiền (VND/Tháng)</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.amount")} ({t("common.currency")})</label>
               <input
                 required
                 type="number"
-                placeholder="10,000,000"
+                placeholder="1,000"
                 className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary-500 transition-all font-bold"
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ngày hiệu lực</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.effective_date")}</label>
               <input
                 required
                 type="date"
@@ -131,10 +131,10 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
         <table className="w-full text-left">
           <thead className="bg-slate-50/50 border-b border-slate-100">
             <tr>
-              <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Khoản lương</th>
-              <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Số tiền</th>
-              <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Tính OT</th>
-              <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Hiệu lực</th>
+              <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("payroll.employee_config.salary_item")}</th>
+              <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("common.amount")}</th>
+              <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t("common.base_for_ot")}</th>
+              <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("common.effective_date")}</th>
               <th className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center"></th>
             </tr>
           </thead>
@@ -142,7 +142,7 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
             {isLoading ? (
               <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">{t("common.loading")}</td></tr>
             ) : employeeComps.length === 0 ? (
-              <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">Chưa có cấu hình lương</td></tr>
+              <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">{t("payroll.employee_config.no_config")}</td></tr>
             ) : (
               employeeComps.map(comp => (
                 <tr key={comp.id} className="hover:bg-slate-50/50 transition-colors">
@@ -151,16 +151,16 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
                     <div className="text-[10px] text-slate-400 font-mono">{comp.code}</div>
                   </td>
                   <td className="px-6 py-4 text-right font-mono font-bold text-slate-700">
-                    {new Intl.NumberFormat('vi-VN').format(parseFloat(comp.amount))}
+                    {new Intl.NumberFormat(t("common.languages." + (t("common.currency") === "VND" ? "vi" : "en")) === "Tiếng Việt" ? "vi-VN" : "en-US").format(parseFloat(comp.amount))}
                   </td>
                   <td className="px-6 py-4 text-center">
                     {comp.is_base_for_ot ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-600 rounded-full text-[9px] font-black uppercase tracking-tighter border border-green-100">
-                        <ShieldCheck size={10} /> Có
+                        <ShieldCheck size={10} /> {t("common.yes")}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-400 rounded-full text-[9px] font-black uppercase tracking-tighter">
-                        Không
+                        {t("common.no")}
                       </span>
                     )}
                   </td>

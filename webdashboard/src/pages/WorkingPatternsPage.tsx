@@ -303,7 +303,7 @@ export default function WorkingPatternsPage() {
                 type="text"
                 value={newPatternName}
                 onChange={(e) => setNewPatternName(e.target.value)}
-                placeholder="e.g., Office Standard, Night Shift Rotation"
+                placeholder={t("patterns.form.name_placeholder")}
                 className="w-full bg-slate-50 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-900 focus:ring-2 focus:ring-primary-500 transition-all"
               />
             </div>
@@ -314,7 +314,7 @@ export default function WorkingPatternsPage() {
                 type="text"
                 value={newPatternDesc}
                 onChange={(e) => setNewPatternDesc(e.target.value)}
-                placeholder="Optional description"
+                placeholder={t("patterns.form.desc_placeholder")}
                 className="w-full bg-slate-50 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 focus:ring-2 focus:ring-primary-500 transition-all text-sm"
               />
             </div>

@@ -236,8 +236,8 @@ export default function ReportsPage() {
                   <th className="px-6 py-4 text-sm font-semibold text-slate-600 whitespace-nowrap">{t("common.date")}</th>
                   <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("common.employee")}</th>
                   <th className="px-6 py-4 text-sm font-semibold text-slate-600 whitespace-nowrap">{t("common.shift")}</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-600 whitespace-nowrap text-center">Punch In</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-600 whitespace-nowrap text-center">Punch Out</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-slate-600 whitespace-nowrap text-center">{t("common.punch_in")}</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-slate-600 whitespace-nowrap text-center">{t("common.punch_out")}</th>
                   <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">
                     <div className="flex items-center justify-end gap-1.5 group cursor-help" title={`Units × ${workUnitMinutes}m / 60`}>
                       {t("reports.table.hours")}

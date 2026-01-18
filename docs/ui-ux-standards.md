@@ -107,10 +107,17 @@ Hệ thống hỗ trợ đa ngôn ngữ để phục vụ các doanh nghiệp đ
     3. Nếu là khách (chưa login), sử dụng `default_language` của Workspace.
     4. Cuối cùng, fallback về trình duyệt hoặc Tiếng Việt.
 
-### 7.3. Quy tắc dịch thuật
-- Sử dụng key-based translation (ví dụ: `common.save`, `errors.unauthorized`).
-- Tuyệt đối không hardcode chuỗi ký tự hiển thị trong component.
-- Đối với các thông báo lỗi từ Backend, Frontend sẽ dựa vào mã lỗi để hiển thị nội dung dịch tương ứng.
+### 7.3. Quy tắc dịch thuật & Cấu trúc (Structure)
+Để đảm bảo tính mở rộng và dễ bảo trì, cấu trúc tệp tin ngôn ngữ (`.json`) phải tuân thủ:
+- **Feature-First Sections**: Các module lớn (auth, ess, shifts, payroll, patterns, rules...) phải được đặt ở **top-level** của tệp JSON. Điều này giúp các component truy cập key ngắn gọn hơn (ví dụ: `t("auth.login")`).
+- **Common Section**: Chỉ dùng cho các nhãn UI dùng chung (Save, Cancel, Close, Search...).
+- **Key Parity**: Tất cả các tệp ngôn ngữ (`en.json`, `vi.json`, `zh.json`) **PHẢI** có bộ keys giống hệt nhau 100%.
+
+### 7.4. Kiểm soát tự động (Automated Audit)
+Hệ thống thực thi các bài kiểm tra tự động (`npm run test`) để đảm bảo chất lượng dịch thuật:
+1.  **Usage Check**: Quét toàn bộ mã nguồn để đảm bảo mọi key được gọi trong `t()` đều tồn tại trong tệp ngôn ngữ.
+2.  **Parity Check**: Đảm bảo không có key nào bị thiếu giữa các ngôn ngữ khác nhau.
+3.  **JSX Literal Check**: Cảnh báo (Warning) nếu phát hiện chuỗi ký tự thô (Hardcoded strings) trong JSX mà chưa qua hàm `t()`.
 
 ---
 

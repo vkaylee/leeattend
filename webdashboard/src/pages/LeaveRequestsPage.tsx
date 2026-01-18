@@ -244,7 +244,7 @@ export default function LeaveRequestsPage() {
                   <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("leave_requests.policy.table.type")}</th>
                   <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("leave_requests.policy.table.entitlement")}</th>
                   <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("leave_requests.policy.table.strategy")}</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">Carry-over</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("leave_requests.policy.table.carry_over")}</th>
                   <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">{t("common.actions")}</th>
                 </tr>
               </thead>
@@ -472,7 +472,7 @@ export default function LeaveRequestsPage() {
               <input id="annual-entitlement" type="number" name="annual_entitlement" required defaultValue={editingPolicy ? calculateAnnualEntitlement(editingPolicy) : 12} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
             </div>
             <div className="space-y-1">
-              <label htmlFor="carry-over" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Carry-over limit</label>
+              <label htmlFor="carry-over" className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.carry_over_limit")}</label>
               <input id="carry-over" type="number" name="carry_over_limit" required defaultValue={editingPolicy?.rule_config.carry_over_limit ?? 5} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" />
             </div>
           </div>

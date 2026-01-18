@@ -128,7 +128,7 @@ describe("WorkingPatternsPage", () => {
 
     await user.click(screen.getByText("patterns.create_btn"));
 
-    const nameInput = await screen.findByPlaceholderText("e.g., Office Standard, Night Shift Rotation");
+    const nameInput = await screen.findByPlaceholderText("patterns.form.name_placeholder");
     await user.type(nameInput, "New Rotation");
     await user.click(screen.getByText("patterns.actions.prefill_standard"));
     await user.click(screen.getByText("patterns.create_submit"));

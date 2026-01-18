@@ -29,15 +29,15 @@ export default function LeaveBalancesPage() {
         <div className="mb-8 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              {t("common.leave_balances")}
+              {t("leave_balances.title")}
             </h1>
-            <p className="text-slate-500 mt-1">Quản lý định mức nghỉ phép của nhân viên trong năm.</p>
+            <p className="text-slate-500 mt-1">{t("leave_balances.subtitle")}</p>
           </div>
         </div>
 
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <h2 className="text-lg font-bold text-slate-800">Bảng tổng hợp số dư</h2>
+            <h2 className="text-lg font-bold text-slate-800">{t("leave_balances.summary_table")}</h2>
             <div className="flex items-center gap-3">
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -61,12 +61,12 @@ export default function LeaveBalancesPage() {
                 <tr className="bg-slate-50 border-b border-slate-100">
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{t("common.employee")}</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{t("common.type")}</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Gốc</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Tích lũy</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Chuyển từ năm trước</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Đã dùng</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Còn lại</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Sử dụng</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{t("leave_balances.table.base")}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{t("leave_balances.table.accrued")}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{t("leave_balances.table.carried_over")}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{t("leave_balances.table.used")}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{t("leave_balances.table.remaining")}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{t("leave_balances.table.usage")}</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">{t("common.actions")}</th>
                 </tr>
               </thead>
@@ -74,7 +74,7 @@ export default function LeaveBalancesPage() {
                 {isLoading ? (
                   <tr><td colSpan={9} className="px-6 py-12 text-center text-slate-400 italic">{t("common.loading")}</td></tr>
                 ) : filteredBalances?.length === 0 ? (
-                  <tr><td colSpan={9} className="px-6 py-12 text-center text-slate-400 italic">No data found.</td></tr>
+                  <tr><td colSpan={9} className="px-6 py-12 text-center text-slate-400 italic">{t("attendance_logs.messages.no_data")}</td></tr>
                 ) : filteredBalances?.map((balance, idx) => (
                   <BalanceRow 
                     key={`${balance.employee_id}-${balance.leave_type}-${idx}`} 
@@ -131,7 +131,7 @@ function BalanceRow({ balance, onViewHistory }: { balance: WorkspaceLeaveBalance
             <div className="group relative">
               <Info className="h-3 w-3 text-slate-300 cursor-help" />
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                Bao gồm số ngày tích lũy định kỳ và các điều chỉnh thủ công.
+                {t("leave_balances.table.accrued_info")}
               </div>
             </div>
           )}
@@ -161,7 +161,7 @@ function BalanceRow({ balance, onViewHistory }: { balance: WorkspaceLeaveBalance
         <button 
           onClick={onViewHistory}
           className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
-          title="Lịch sử & Điều chỉnh"
+          title={t("leave_balances.table.history_tooltip")}
         >
           <History className="h-5 w-5" />
         </button>

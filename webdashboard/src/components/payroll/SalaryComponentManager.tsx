@@ -53,7 +53,7 @@ export default function SalaryComponentManager({ wsId }: Props) {
       <div className="p-6 border-b border-slate-50 flex items-center justify-between">
         <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
           <Coins className="w-5 h-5 text-amber-500" />
-          {t("payroll.components.title", "Danh mục thành phần lương")}
+          {t("payroll.components.title")}
         </h2>
         <button
           onClick={() => setIsModalOpen(true)}
@@ -68,7 +68,7 @@ export default function SalaryComponentManager({ wsId }: Props) {
         {isLoading ? (
           <div className="p-12 text-center text-slate-400 italic">{t("common.loading")}</div>
         ) : components?.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 italic">Chưa có thành phần lương nào</div>
+          <div className="p-12 text-center text-slate-400 italic">{t("payroll.components.no_components")}</div>
         ) : (
           components?.map((comp) => (
             <div key={comp.id} className="p-6 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
@@ -87,10 +87,10 @@ export default function SalaryComponentManager({ wsId }: Props) {
                   <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
                     comp.is_base_for_ot ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-slate-100 text-slate-400'
                   }`}>
-                    {comp.is_base_for_ot ? "Dùng tính OT" : "Không tính OT"}
+                    {comp.is_base_for_ot ? t("payroll.components.use_for_ot") : t("payroll.components.no_ot")}
                   </span>
                   <span className="text-[10px] text-slate-400 mt-1 italic">
-                    {comp.is_taxable ? "Có tính thuế" : "Miễn thuế"}
+                    {comp.is_taxable ? t("payroll.components.taxable") : t("payroll.components.tax_exempt")}
                   </span>
                 </div>
                 
@@ -106,23 +106,23 @@ export default function SalaryComponentManager({ wsId }: Props) {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={t("payroll.components.add_new", "Thêm thành phần lương")}
+        title={t("payroll.components.add_new")}
       >
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.name")}</label>
               <input
                 required
                 type="text"
-                placeholder="Ví dụ: Phụ cấp ăn trưa"
+                placeholder={t("payroll.components.name_placeholder")}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary-500 transition-all"
                 value={formData.name}
                 onChange={e => setFormData({...formData, name: e.target.value})}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Mã (Code)</label>
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t("payroll.components.code_label")}</label>
               <input
                 required
                 type="text"
@@ -143,8 +143,8 @@ export default function SalaryComponentManager({ wsId }: Props) {
                 onChange={e => setFormData({...formData, is_base_for_ot: e.target.checked})}
               />
               <div>
-                <p className="font-bold text-slate-800 text-sm">Dùng làm gốc tính lương OT</p>
-                <p className="text-xs text-slate-500">Khi tính OT, hệ thống sẽ cộng dồn các khoản này để ra lương giờ.</p>
+                <p className="font-bold text-slate-800 text-sm">{t("payroll.components.ot_base_label")}</p>
+                <p className="text-xs text-slate-500">{t("payroll.components.ot_base_desc")}</p>
               </div>
             </label>
 
@@ -156,8 +156,8 @@ export default function SalaryComponentManager({ wsId }: Props) {
                 onChange={e => setFormData({...formData, is_taxable: e.target.checked})}
               />
               <div>
-                <p className="font-bold text-slate-800 text-sm">Khoản thu nhập tính thuế</p>
-                <p className="text-xs text-slate-500">Khoản này sẽ được tính vào tổng thu nhập chịu thuế TNCN.</p>
+                <p className="font-bold text-slate-800 text-sm">{t("payroll.components.taxable_label")}</p>
+                <p className="text-xs text-slate-500">{t("payroll.components.taxable_desc")}</p>
               </div>
             </label>
           </div>

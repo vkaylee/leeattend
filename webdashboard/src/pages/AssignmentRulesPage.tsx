@@ -252,13 +252,13 @@ export default function AssignmentRulesPage() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Factory Workers Night Shift"
+                placeholder={t("rules.form.name_placeholder")}
                 className="w-full bg-slate-50 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-900 focus:ring-2 focus:ring-primary-500 transition-all"
               />
             </div>
             
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("rules.form.priority", "Priority (Higher = Stronger)")}</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("rules.form.priority")}</label>
               <input
                 type="number"
                 value={priority}
@@ -269,7 +269,7 @@ export default function AssignmentRulesPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("rules.form.pattern", "Select Pattern")}</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("rules.form.pattern")}</label>
             <select
               value={patternId}
               onChange={(e) => setPatternId(e.target.value)}
@@ -284,18 +284,18 @@ export default function AssignmentRulesPage() {
 
           <div className="bg-slate-50 rounded-[32px] p-6 border border-slate-100 space-y-4">
             <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-              <Filter size={14} /> {t("rules.conditions_title", "Match Conditions")}
+              <Filter size={14} /> {t("rules.conditions_title")}
             </h4>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500">{t("common.department", "Department")}</label>
+                <label className="text-[10px] font-bold text-slate-500">{t("common.department")}</label>
                 <select
                   value={conditions.department_id || ""}
                   onChange={(e) => setConditions({ ...conditions, department_id: e.target.value || undefined })}
                   className="w-full bg-white border border-slate-100 rounded-xl px-4 py-2 text-sm font-bold"
                 >
-                  <option value="">{t("common.all_departments", "All Departments")}</option>
+                  <option value="">{t("common.all_departments")}</option>
                   {departments?.map(d => (
                     <option key={d.id} value={d.id}>{d.name}</option>
                   ))}
@@ -303,7 +303,7 @@ export default function AssignmentRulesPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500">{t("common.tags", "Tags (Comma separated)")}</label>
+                <label className="text-[10px] font-bold text-slate-500">{t("common.tags")}</label>
                 <input
                   type="text"
                   value={conditions.tags?.join(", ") || ""}
@@ -311,14 +311,14 @@ export default function AssignmentRulesPage() {
                     const tags = e.target.value.split(",").map(t => t.trim()).filter(t => t !== "");
                     setConditions({ ...conditions, tags: tags.length > 0 ? tags : undefined });
                   }}
-                  placeholder="NightShift, Hanoi, VVIP"
+                  placeholder={t("rules.form.tags_placeholder")}
                   className="w-full bg-white border border-slate-100 rounded-xl px-4 py-2 text-sm font-bold"
                 />
               </div>
             </div>
             
             <p className="text-[10px] text-slate-400 italic">
-              {t("rules.condition_help", "Leave empty to match all employees (within the scope of other conditions).")}
+              {t("rules.condition_help")}
             </p>
           </div>
 
