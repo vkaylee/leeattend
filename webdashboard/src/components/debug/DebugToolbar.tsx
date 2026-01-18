@@ -3,10 +3,12 @@ import { useDebug } from "../../context/DebugContext";
 import { Terminal, User, Calendar, X, RefreshCcw, Power, Database, Trash2, UserPlus } from "lucide-react";
 import { debugApi, ClearDbGroup } from "../../lib/api/debug";
 import { getCurrentWorkspaceId } from "../../lib/api/helpers";
+import { useQueryClient } from "@tanstack/react-query";
 
 type DebugTab = "identity" | "time" | "database";
 
 export const DebugToolbar: React.FC = () => {
+  const queryClient = useQueryClient();
   const { isEnabled, impersonateId, mockDate, setIsEnabled, setImpersonateId, setMockDate, reset } = useDebug();
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DebugTab>("identity");
@@ -45,6 +47,8 @@ export const DebugToolbar: React.FC = () => {
     setIsWiping(true);
     try {
       await debugApi.clearDb(currentWorkspaceId, group);
+      // Invalidate all queries to refresh the UI
+      queryClient.invalidateQueries();
       alert(`${group} data wiped successfully.`);
     } catch (err) {
       alert("Wipe failed: " + (err as Error).message);
