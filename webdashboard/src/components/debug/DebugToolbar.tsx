@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useDebug } from "../../context/DebugContext";
 import { Terminal, User, Calendar, X, RefreshCcw, Power, Database, Trash2, UserPlus } from "lucide-react";
 import { debugApi, ClearDbGroup } from "../../lib/api/debug";
+import { getCurrentWorkspaceId } from "../../lib/api/helpers";
 
 type DebugTab = "identity" | "time" | "database";
 
@@ -35,7 +36,7 @@ export const DebugToolbar: React.FC = () => {
   // Only show in DEV
   if (!import.meta.env.DEV) return null;
 
-  const currentWorkspaceId = localStorage.getItem("workspace_id");
+  const currentWorkspaceId = getCurrentWorkspaceId();
 
   const handleClearDb = async (group: ClearDbGroup) => {
     if (!currentWorkspaceId) return alert("No workspace selected");
