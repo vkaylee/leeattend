@@ -83,6 +83,25 @@ Hệ thống cung cấp một phân hệ dành riêng cho nhân viên để tự
 - **Live Attendance History**: Nhân viên có thể theo dõi lịch sử quẹt thẻ và các phiên làm việc đã được ghép cặp để phát hiện sớm các sai sót.
 - **Real-time Leave Balances**: Hệ thống hiển thị số dư phép được tính toán theo thời gian thực (bao gồm cả phép cộng dồn theo thâm niên), giúp nhân viên chủ động lập kế hoạch nghỉ ngơi.
 
+### 14. Dynamic Payroll System V2
+LeeAttend implements a robust, professional-grade payroll engine designed for complex enterprise requirements:
+
+#### 14.1. Multi-Segment Calculation
+Instead of a simple monthly calculation, the system employs a **Segmentation Engine** that automatically detects "Change Points" (e.g., Department Transfer, Salary Increase) within a payroll period.
+- **Slicing**: A pay period (e.g., 01/01 - 31/01) is sliced into segments (e.g., 01-14, 15-31).
+- **Independent Configuration**: Each segment is calculated independently with its own snapshot of configuration (Standard Working Days, Base Salary).
+- **Exact Prorating**: Ensures mathematically precise salary calculation when an employee moves between departments with different working policies (e.g., 26 days vs 22 days).
+
+#### 14.2. Immutable Snapshots (`payslip_segments`)
+- **Granular Audit Trail**: Every calculation detail for each segment is persisted in the `payslip_segments` table.
+- **History Protection**: Future changes to department settings or global policies will **never** alter the values of finalized payslips, as the calculation parameters are frozen in the snapshot.
+
+#### 14.3. Working Conditions (Attendance Adjustments)
+The system supports flexible working policies beyond standard shifts via the `working_conditions` table:
+- **Authorized Adjustments**: Supports specific conditions like "Childcare Early Leave" or "Pregnancy Late In".
+- **Penalty Exemption**: Employees with active conditions are not penalized (marked as "Early Leave") if their deviation is within the allowed allowance.
+- **Paid/Unpaid Control**: Admins can configure whether the adjusted time is paid (subsidized by company) or unpaid (deducted from work hours but without disciplinary penalty).
+
 ## Infrastructure Diagram
 ```ascii
 [ Web Dashboard ] <--- REST API ---> [ API Server ] <--- WebSocket (Outbound Only) ---> [ Agent (Rust) ] <--- JSON-RPC (TCP) ---> [ ZK Worker (Python) ] <---> [ ZKTeco Devices ]
@@ -114,7 +133,8 @@ Core backend viết bằng **Rust** sử dụng framework **Axum**.
 - **Safety**: Type-safe business logic to prevent common runtime errors (NullPointer, Data Race).
 - **Architecture**: Modular design with clean separation of concerns:
   - `handlers/`: Domain-specific API endpoints (Auth, Agents, Attendance, etc.).
-  - `services/`: Pure business logic (Payroll, Pairing, Accrual).
+  - `domain/`: Core Domain Logic (Policy Resolver, Payroll Engine).
+  - `services/`: Business logic (PayrollService, Pairing, Accrual).
   - `repositories/`: Database abstraction layer via SQLx.
   - `models/`: Type-safe domain entities.
 
@@ -165,5 +185,3 @@ Khi gặp lỗi giao diện, AI Agent nên thực hiện các bước sau:
 4.  Chạy Playwright Debug: `npx playwright test tests/debug-ui.spec.ts`.
 
 5.  **Dọn dẹp:** Sử dụng `pkill -f "AI_MANAGED=true"` để tắt chính xác các server do AI tạo ra, tránh giết nhầm server của người dùng.
-
-
