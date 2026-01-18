@@ -312,7 +312,7 @@ pub async fn calculate_payroll(
     Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
-    crate::utils::debug::DebugContext { mock_date }: crate::utils::debug::DebugContext,
+    crate::utils::debug::DebugContext { mock_date: _mock_date }: crate::utils::debug::DebugContext,
     Query(query): Query<PayrollQuery>,
 ) -> impl IntoResponse {
     match crate::services::payroll_service::PayrollService::calculate_monthly_payslip(
