@@ -1,7 +1,7 @@
-use axum::{extract::State, Json, response::IntoResponse};
+use axum::{extract::{State, Path}, Json, response::IntoResponse};
 use std::sync::Arc;
 use crate::AppState;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -10,6 +10,11 @@ pub struct DebugUser {
     pub name: String,
     pub email: String,
     pub role: String,
+}
+
+#[derive(Deserialize)]
+pub struct ClearDbQuery {
+    pub group: String,
 }
 
 pub async fn get_debug_users(
@@ -32,5 +37,74 @@ pub async fn get_debug_users(
     #[cfg(not(debug_assertions))]
     {
         axum::http::StatusCode::NOT_FOUND.into_response()
+    }
+}
+
+pub async fn clear_debug_db(
+    Path(ws_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<ClearDbQuery>,
+) -> Result<impl IntoResponse, (axum::http::StatusCode, String)> {
+    #[cfg(debug_assertions)]
+    {
+        let mut conn = state.db.acquire().await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        match payload.group.as_str() {
+            "attendance" => {
+                sqlx::query("DELETE FROM time_entries WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)")
+                    .bind(ws_id)
+                    .execute(&mut *conn)
+                    .await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+                
+                sqlx::query("DELETE FROM raw_attendance_logs WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)")
+                    .bind(ws_id)
+                    .execute(&mut *conn)
+                    .await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            }
+            "payroll" => {
+                sqlx::query("DELETE FROM payslip_segments WHERE payslip_id IN (SELECT id FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1))")
+                    .bind(ws_id)
+                    .execute(&mut *conn)
+                    .await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+                
+                sqlx::query("DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)")
+                    .bind(ws_id)
+                    .execute(&mut *conn)
+                    .await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            }
+            "rosters" => {
+                sqlx::query("DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)")
+                    .bind(ws_id)
+                    .execute(&mut *conn)
+                    .await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            }
+            "full_reset" => {
+                let mut tx = state.db.begin().await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+                
+                let queries = [
+                    "DELETE FROM time_entries WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+                    "DELETE FROM raw_attendance_logs WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+                    "DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+                    "DELETE FROM payslip_segments WHERE payslip_id IN (SELECT id FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1))",
+                    "DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+                    "DELETE FROM employee_payroll_configs WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
+                    "DELETE FROM department_payroll_configs WHERE department_id IN (SELECT id FROM departments WHERE workspace_id = $1)",
+                ];
+                
+                for q in queries {
+                    sqlx::query(q).bind(ws_id).execute(&mut *tx).await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+                }
+                
+                tx.commit().await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            }
+            _ => return Err((axum::http::StatusCode::BAD_REQUEST, "Invalid group".to_string())),
+        };
+
+        Ok((axum::http::StatusCode::OK, "Cleared"))
+    }
+
+    #[cfg(not(debug_assertions))]
+    {
+        Err((axum::http::StatusCode::NOT_FOUND, "Not found".to_string()))
     }
 }
