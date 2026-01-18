@@ -9,13 +9,14 @@ pub async fn create_employee_tx(
     employee: &Employee,
 ) -> Result<(), sqlx::Error> {
     query!(
-        "INSERT INTO employees (id, workspace_id, user_id, first_name, last_name, employee_id_number, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        "INSERT INTO employees (id, workspace_id, user_id, first_name, last_name, employee_id_number, tags, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
         employee.id,
         employee.workspace_id,
         employee.user_id,
         employee.first_name,
         employee.last_name,
         employee.employee_id_number,
+        &employee.tags,
         employee.is_active,
         employee.created_at,
         employee.updated_at,
@@ -39,7 +40,7 @@ const EMPLOYEE_SELECT_QUERY: &str = r#"
     SELECT 
         e.id, e.workspace_id, e.user_id, e.first_name, e.last_name, e.employee_id_number, 
         COALESCE(ep.hire_date, CURRENT_DATE) as hire_date, ep.termination_date, 
-        e.is_active, e.created_at, e.updated_at
+        e.tags, e.is_active, e.created_at, e.updated_at
     FROM employees e
     LEFT JOIN (
         SELECT DISTINCT ON (employee_id) employee_id, hire_date, termination_date
@@ -111,6 +112,7 @@ pub async fn update_employee(
     employee_id_number: Option<String>,
     hire_date: Option<NaiveDate>,
     termination_date: Option<NaiveDate>,
+    tags: Option<Vec<String>>,
     is_active: Option<bool>,
 ) -> Result<Option<Employee>, sqlx::Error> {
     let mut tx = pool.begin().await?;
@@ -122,8 +124,9 @@ pub async fn update_employee(
             first_name = COALESCE($4, first_name),
             last_name = COALESCE($5, last_name),
             employee_id_number = COALESCE($6, employee_id_number),
-            is_active = COALESCE($7, is_active),
-            updated_at = $8
+            tags = COALESCE($7, tags),
+            is_active = COALESCE($8, is_active),
+            updated_at = $9
         WHERE id = $1 AND workspace_id = $2",
         id,
         workspace_id,
@@ -131,6 +134,7 @@ pub async fn update_employee(
         first_name,
         last_name,
         employee_id_number,
+        tags.as_ref().map(|t| t.as_slice()),
         is_active,
         Utc::now()
     )

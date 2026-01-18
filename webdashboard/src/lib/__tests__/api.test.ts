@@ -476,7 +476,7 @@ describe("api.ts comprehensive tests", () => {
     it("fetchDevSuperUser", async () => {
       mockSuccess({});
       await api.fetchDevSuperUser();
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/dev/super-user"));
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/dev/super-user"), expect.any(Object));
     });
   });
 });

@@ -975,6 +975,56 @@ Tự động đăng nhập với tư cách Superuser (admin@leeattend.com).
 
 ---
 
+### 15. Assignment Rules (New)
+
+Quản lý các quy tắc gán ca tự động dựa trên điều kiện (Ngày trong tuần, Vị trí, Phòng ban).
+
+#### Assignment Rule Model
+```json
+{
+  "id": "uuid",
+  "workspace_id": "uuid",
+  "pattern_id": "uuid",
+  "priority": 100, // Độ ưu tiên cao nhất sẽ được áp dụng (số nhỏ hơn = ưu tiên cao hơn)
+  "conditions": {
+    "days_of_week": [1, 2, 3, 4, 5],
+    "department_ids": ["uuid-1"],
+    "employee_ids": [],
+    "locations": []
+  },
+  "is_active": true,
+  "created_at": "datetime"
+}
+```
+
+#### GET /workspaces/:ws_id/assignment-rules
+Lấy danh sách các quy tắc gán ca tự động.
+- **Response (200)**: `Array<AssignmentRule>`
+
+#### POST /workspaces/:ws_id/assignment-rules
+Tạo quy tắc mới.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**:
+  ```json
+  {
+    "pattern_id": "uuid",
+    "priority": 10,
+    "conditions": { ... },
+    "is_active": true
+  }
+  ```
+- **Response (201)**: `AssignmentRule` object
+
+#### PATCH /workspaces/:ws_id/assignment-rules/:rule_id
+Cập nhật quy tắc.
+- **Response (200 OK)**
+
+#### DELETE /workspaces/:ws_id/assignment-rules/:rule_id
+Xóa quy tắc.
+- **Response (204)**: No Content
+
+---
+
 ### WebSocket Giao thức (Agent <-> Server)
 
 Agent gửi dữ liệu chấm công thô và trạng thái sức khỏe lên Server qua một kết nối duy nhất.

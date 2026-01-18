@@ -65,6 +65,9 @@ export async function apiFetch(
   url: string,
   options: RequestInit = {},
 ): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), 10000);
+
   const headers = { ...getHeaders(), ...options.headers };
   
   if (options.body instanceof FormData) {
@@ -78,14 +81,24 @@ export async function apiFetch(
     fullUrl = `${API_BASE_URL}${path}`;
   }
 
-  const response = await fetch(fullUrl, { ...options, headers });
-  
-  if (response.status === 401) {
-      // Handle token refresh logic here if needed, or just return response
-      // For now, let the caller handle 401 or global interceptor
-  }
+  try {
+    const response = await fetch(fullUrl, { 
+      ...options, 
+      headers,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    
+    if (response.status === 401) {
+        // Handle token refresh logic here if needed, or just return response
+        // For now, let the caller handle 401 or global interceptor
+    }
 
-  return response;
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
 }
 
 export async function fetchHealth(): Promise<{ status: string }> {

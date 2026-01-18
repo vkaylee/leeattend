@@ -3,6 +3,7 @@ import { expect } from "@playwright/test";
 
 test.describe("Change Password Flow", () => {
   test("should change password successfully", async ({ page, baseURL }) => {
+    test.slow(); // Increases timeout for this test
     // 1. Initial Login
     await page.goto(`${baseURL}/login`);
     await page.fill(

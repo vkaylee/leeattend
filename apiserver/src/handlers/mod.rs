@@ -9,6 +9,7 @@ pub mod shifts;
 pub mod payroll;
 pub mod ess;
 pub mod working_patterns;
+pub mod assignment_rules;
 
 pub use common::*;
 pub use auth::*;

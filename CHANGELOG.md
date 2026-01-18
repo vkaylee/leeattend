@@ -5,13 +5,25 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased] - 2026-01-18
 
 ### Added
-- **Morning Lookback for Overnight Shifts**: Enhanced the `PairingService` to automatically reprocess the previous day's attendance when a log is received before 12:00 PM. This ensures that employees finishing a night shift (e.g., 22:00 - 06:00) have their morning check-out correctly paired with the previous night's check-in.
+- **Auto Assignment Rules (Enterprise)**: New system to automatically assign schedules based on flexible conditions.
+    - **Logic Engine**: Backend `rule_evaluator.rs` evaluates high-priority rules (Day of week, Department, Location) before falling back to defaults.
+    - **Management UI**: Dedicated `AssignmentRulesPage.tsx` for creating and managing rule priorities.
+    - **Database Infrastructure**: New `assignment_rules` table with JSONB conditions support.
+- **API Standardization Enforcement**: Implemented `standardization.test.ts` to strictly forbid direct `fetch()` calls in the frontend API layer, mandating the use of `apiFetch`.
+- **System Stability Regression Suite**: Added `stability-regression.spec.ts` to ensure critical fixes (Workspace headers, UI icons) are never reverted.
+- **Fetch Timeout Protection**: Centralized 10s timeout implemented in `apiFetch` using `AbortController` to prevent hanging requests.
+- **Morning Lookback for Overnight Shifts**: Enhanced the `PairingService` to automatically reprocess the previous day's attendance when a log is received before 12:00 PM.
 
 ### Fixed
-- **Attendance Pairing Test Stability**: Hardened `raw_attendance_pairing_tests.rs` by enforcing a UTC timezone for all test workspaces, eliminating date-boundary flakiness.
-- **Workspace Member API Tests**: Fixed `workspace_extended_tests.rs` by correcting the role update endpoint to use `PATCH` (matching the actual implementation) and resolving a database foreign key violation by creating real users via the test factory.
-- **E2E Selector Specificity**: Refined the `z-index-stacking.spec.ts` selector to target `[cmdk-root]`, preventing false negatives in Z-Index verification caused by accidentally selecting the modal backdrop.
-- **Frontend Quality**: Fixed a regression in `webdashboard/vitest.config.ts` and refined the `Modal` component's backdrop implementation.
+- **E2E Initialization Race Conditions**: Increased global test timeouts to **30 seconds** across Playwright, Vitest, and Pytest to ensure isolated environments (Rust + Vite) have sufficient time to start under parallel load.
+- **Critical UI ReferenceError**: Fixed "Settings2 is not defined" crash in `App.tsx` by adding the missing `lucide-react` import.
+- **API Context Mismatch**: Fixed intermittent 400 Bad Request errors in dashboard by ensuring all core functions (`login`, `register`, `stats`) use the `apiFetch` wrapper with automatic header injection.
+- **Attendance Pairing Test Stability**: Hardened `raw_attendance_pairing_tests.rs` by enforcing a UTC timezone for all test workspaces.
+- **Workspace Member API Tests**: Resolved database foreign key violations in tests by ensuring real user records are created via factories.
+
+### Changed
+- **Resilient Test Orchestration**: Unified all test timeouts to 30s standard for reliable CI/CD and local execution.
+- **API Strategy**: Standardized on `apiFetch` for all outbound traffic from the web dashboard.
 
 ## [Unreleased] - 2026-01-17
 

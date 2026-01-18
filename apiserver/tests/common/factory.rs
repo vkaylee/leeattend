@@ -64,6 +64,11 @@ impl TestFactory {
     }
 
     #[allow(dead_code)]
+    pub fn assignment_rule(&self) -> AssignmentRuleBuilder {
+        AssignmentRuleBuilder::new(self.pool.clone())
+    }
+
+    #[allow(dead_code)]
     pub fn auth(&self) -> AuthHelper {
         AuthHelper::new()
     }
@@ -620,6 +625,10 @@ impl TestFactory {
                 .execute(&self.pool)
                 .await
                 .unwrap();
+            sqlx::query("DELETE FROM assignment_rules CASCADE")
+                .execute(&self.pool)
+                .await
+                .unwrap();
             sqlx::query("DELETE FROM leave_accrual_logs CASCADE")
                 .execute(&self.pool)
                 .await
@@ -882,6 +891,69 @@ impl DepartmentBuilder {
         .bind(self.name)
         .bind(self.description)
         .bind(self.manager_id)
+        .fetch_one(&self.pool)
+        .await
+        .unwrap()
+    }
+}
+
+// --- Assignment Rule Builder ---
+#[allow(dead_code)]
+pub struct AssignmentRuleBuilder {
+    pool: PgPool,
+    workspace_id: Option<Uuid>,
+    pattern_id: Option<Uuid>,
+    name: String,
+    priority: i32,
+    conditions: apiserver::models::AssignmentRuleConditions,
+}
+
+#[allow(dead_code)]
+impl AssignmentRuleBuilder {
+    pub fn new(pool: PgPool) -> Self {
+        Self {
+            pool,
+            workspace_id: None,
+            pattern_id: None,
+            name: "Test Rule".to_string(),
+            priority: 0,
+            conditions: apiserver::models::AssignmentRuleConditions {
+                department_id: None,
+                employee_id_numbers: None,
+                tags: None,
+            },
+        }
+    }
+
+    pub fn with_workspace(mut self, ws_id: Uuid) -> Self {
+        self.workspace_id = Some(ws_id);
+        self
+    }
+
+    pub fn with_pattern(mut self, pattern_id: Uuid) -> Self {
+        self.pattern_id = Some(pattern_id);
+        self
+    }
+
+    pub fn with_priority(mut self, priority: i32) -> Self {
+        self.priority = priority;
+        self
+    }
+
+    pub fn with_conditions(mut self, conditions: apiserver::models::AssignmentRuleConditions) -> Self {
+        self.conditions = conditions;
+        self
+    }
+
+    pub async fn create(self) -> Uuid {
+        sqlx::query_scalar!(
+            "INSERT INTO assignment_rules (workspace_id, pattern_id, name, priority, conditions) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+            self.workspace_id.expect("WS ID required"),
+            self.pattern_id.expect("Pattern ID required"),
+            self.name,
+            self.priority,
+            serde_json::to_value(&self.conditions).unwrap()
+        )
         .fetch_one(&self.pool)
         .await
         .unwrap()

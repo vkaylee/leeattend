@@ -70,7 +70,31 @@ For E2E stability and performance, we adhere to the **Isolated Parallel Environm
 1. **Multi-DB Isolation**: Mỗi worker E2E chạy trên một database Postgres hoàn toàn độc lập (`test_database_e2e_N`) được setup tự động bởi `run-tests.sh`.
 2. **Pre-compiled Binary**: E2E workers thực thi file binary backend đã được build sẵn thay vì dùng `cargo run` để tránh xung đột file lock của Rust compiler.
 3. **Regex Locators**: Sử dụng Regex cho các text locator (ví dụ: `text=/Time|Thời gian/`) để đảm bảo test chạy đúng trên cả UI Tiếng Việt và Tiếng Anh.
-4. **Deterministic Timeouts**: Giới hạn timeout 1 phút cho mỗi test case và 5 phút cho toàn bộ suite để sớm phát hiện các trường hợp treo process.
+4. **Resilient Timeouts**: 
+    - **Global Test Timeout**: 30 giây (để đảm bảo ổn định khi chạy song song nhiều backend/frontend).
+    - **API Response Timeout**: 10 giây (centralized via `apiFetch`).
+    - Các test phức tạp có thể sử dụng `test.slow()` để nhân 3 timeout mặc định.
+
+### API Standardization (Frontend)
+
+To prevent security leaks and ensure reliable connectivity, all frontend API calls MUST follow these rules:
+
+1. **Centralized Wrapper**: Use `apiFetch` from `@/lib/api/helpers` instead of the native `window.fetch`.
+2. **Auto-Headers**: `apiFetch` automatically attaches `Authorization` (JWT), `X-Workspace-Id` (from localStorage), and `Content-Type: application/json`.
+3. **Validation**: API implementations in `src/lib/api` are protected by a regression test (`standardization.test.ts`) that forbids direct `fetch()` usage.
+4. **Timeout Enforcement**: All requests inherit a 10s timeout via `AbortController` implemented in the helper.
+
+**Example Pattern:**
+```typescript
+// ✅ CORRECT
+import { apiFetch } from "./helpers";
+const response = await apiFetch(`${API_BASE_URL}/my-endpoint`);
+
+// ❌ INCORRECT (Forbidden)
+const response = await fetch(`${API_BASE_URL}/my-endpoint`); 
+```
+
+### End-to-End Tests (Playwright)
 
 **Example Pattern:**
 ```rust

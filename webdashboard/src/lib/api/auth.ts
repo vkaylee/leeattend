@@ -3,9 +3,8 @@ import { apiFetch, setAccessToken, setRefreshToken, setCurrentUserId, clearAuthS
 import { AuthResponse, RegisterRequest, ChangePasswordRequest, User } from "./types";
 
 export async function login(username: string, password: string): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+  const response = await apiFetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: username, password }),
   });
   if (!response.ok) throw new Error("Login failed");
@@ -22,9 +21,8 @@ export async function logout(): Promise<void> {
 }
 
 export async function register(data: RegisterRequest): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+  const response = await apiFetch(`${API_BASE_URL}/auth/register`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   if (!response.ok) {
@@ -75,7 +73,7 @@ export async function fetchDevSuperUser(): Promise<{
   access_token?: string;
   refresh_token?: string;
 }> {
-  const response = await fetch(`${API_BASE_URL}/dev/super-user`);
+  const response = await apiFetch(`${API_BASE_URL}/dev/super-user`);
   if (!response.ok) throw new Error("Failed to fetch dev super user");
   return response.json();
 }

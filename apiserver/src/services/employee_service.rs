@@ -35,6 +35,7 @@ impl EmployeeService {
             employee_id_number: req.employee_id_number,
             hire_date: req.hire_date,
             termination_date: None,
+            tags: req.tags.unwrap_or_default(),
             is_active: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
@@ -82,7 +83,7 @@ impl EmployeeService {
             pool,
             employee_id,
             workspace_id,
-            None, None, None, None, None, None, Some(true),
+            None, None, None, None, None, None, None, Some(true),
         )
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -180,6 +181,7 @@ impl EmployeeService {
             req.employee_id_number,
             req.hire_date,
             req.termination_date,
+            req.tags,
             req.is_active,
         )
         .await

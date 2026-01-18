@@ -9,7 +9,8 @@ import {
   ArrowLeft,
   Info,
   Check,
-  Users
+  Users,
+  Settings2
 } from "lucide-react";
 import { 
   fetchWorkingPatterns, 
@@ -176,6 +177,12 @@ export default function WorkingPatternsPage() {
           <p className="text-slate-500">{t("patterns.subtitle")}</p>
         </div>
         <div className="flex gap-2">
+          <Link 
+            to="/assignment-rules"
+            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-black px-6 py-3 rounded-2xl flex items-center gap-2 shadow-sm transition-all active:scale-95 text-xs uppercase tracking-widest"
+          >
+            <Settings2 size={16} /> {t("rules.title", "Auto-Assignment")}
+          </Link>
           <button 
             onClick={() => setIsBulkModalOpen(true)}
             className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-black px-6 py-3 rounded-2xl flex items-center gap-2 shadow-sm transition-all active:scale-95 text-xs uppercase tracking-widest"

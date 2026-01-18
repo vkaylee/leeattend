@@ -386,6 +386,15 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(
             "/workspaces/:ws_id/employees/:id/working-patterns",
             get(handlers::working_patterns::get_employee_pattern_history).post(handlers::working_patterns::assign_pattern),
+        )
+        // Assignment Rules
+        .route(
+            "/workspaces/:ws_id/assignment-rules",
+            get(handlers::assignment_rules::get_assignment_rules).post(handlers::assignment_rules::create_assignment_rule),
+        )
+        .route(
+            "/workspaces/:ws_id/assignment-rules/:rule_id",
+            patch(handlers::assignment_rules::update_assignment_rule).delete(handlers::assignment_rules::delete_assignment_rule),
         );
 
     // Rosters

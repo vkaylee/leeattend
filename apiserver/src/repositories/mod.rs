@@ -13,6 +13,7 @@ pub mod time_entry_repository;
 pub mod user_repository;
 pub mod workspace_repository;
 pub mod working_pattern_repository;
+pub mod assignment_rule_repository;
 
 pub use agent_repository::{AgentRepository, SqlxAgentRepository};
 pub use workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};

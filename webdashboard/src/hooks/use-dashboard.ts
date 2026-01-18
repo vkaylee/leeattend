@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspace } from "./use-workspace";
+import { apiFetch } from "@/lib/api";
 
 export interface WorkspaceStats {
   total_employees: number;
@@ -16,12 +17,7 @@ export function useDashboardStats() {
     queryFn: async () => {
       if (!workspace) throw new Error("No workspace selected");
       
-      const response = await fetch(`/api/dashboard/workspace-stats`, {
-        headers: {
-          "X-Workspace-Id": workspace.id,
-          "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
-        },
-      });
+      const response = await apiFetch(`/dashboard/workspace-stats`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch dashboard stats");

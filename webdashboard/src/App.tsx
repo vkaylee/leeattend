@@ -13,6 +13,7 @@ import {
   Cpu,
   History,
   Settings,
+  Settings2,
   UserCheck,
   UserCircle,
   Users,
@@ -51,6 +52,7 @@ import ReportsPage from "./pages/ReportsPage";
 import PayrollPage from "./pages/PayrollPage";
 import ShiftsPage from "./pages/ShiftsPage";
 import WorkingPatternsPage from "./pages/WorkingPatternsPage";
+import AssignmentRulesPage from "./pages/AssignmentRulesPage";
 import WorkspaceSwitcher from "./components/WorkspaceSwitcher";
 import AuthGuard from "./components/AuthGuard";
 import WorkspaceGuard from "./components/WorkspaceGuard";
@@ -125,6 +127,7 @@ function Layout() {
       "/reports": t("common.reports"),
       "/shifts": t("common.shifts"),
       "/working-patterns": t("patterns.title"),
+      "/assignment-rules": t("rules.title"),
       "/payroll": t("common.payroll"),
       "/agents": t("common.agents"),
       "/devices": t("common.devices"),
@@ -145,7 +148,7 @@ function Layout() {
     const path = location.pathname;
     const isOrg = ["/members", "/employees", "/departments"].includes(path);
     const isTime = ["/time-tracking", "/attendance-logs", "/leave-requests", "/attendance-adjustments", "/reports", "/leave-balances"].includes(path);
-    const isPayroll = ["/shifts", "/payroll"].includes(path);
+    const isPayroll = ["/shifts", "/payroll", "/working-patterns", "/assignment-rules"].includes(path);
     const isSystem = ["/agents", "/devices", "/workspace/settings"].includes(path);
     const isEss = path.startsWith("/ess/");
 
@@ -341,6 +344,24 @@ function Layout() {
               >
                 <CalendarRange className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="font-semibold text-sm">{t("common.shifts")}</span>
+              </Link>
+              <Link
+                to="/working-patterns"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/working-patterns" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
+                }`}
+              >
+                <ListOrdered className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">{t("patterns.title")}</span>
+              </Link>
+              <Link
+                to="/assignment-rules"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/assignment-rules" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
+                }`}
+              >
+                <Settings2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">{t("rules.title", "Auto-Assignment")}</span>
               </Link>
               <Link
                 to="/payroll"
@@ -561,10 +582,10 @@ function App() {
                 <Route path="/leave-balances" element={<LeaveBalancesPage />} />
                 <Route path="/attendance-adjustments" element={<AttendanceAdjustmentsPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
-                <Route path="/shifts" element={<ShiftsPage />} />
-                <Route path="/working-patterns" element={<WorkingPatternsPage />} />
-                <Route path="/payroll" element={<PayrollPage />} />
-                <Route
+                                    <Route path="/shifts" element={<ShiftsPage />} />
+                                    <Route path="/working-patterns" element={<WorkingPatternsPage />} />
+                                    <Route path="/assignment-rules" element={<AssignmentRulesPage />} />
+                                    <Route path="/payroll" element={<PayrollPage />} />                <Route
                   path="/workspace/settings"
                   element={<WorkspaceSettingsPage />} 
                 />

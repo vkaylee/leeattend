@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT e.workspace_id, e.employee_id_number, e.tags, edh.department_id as \"department_id?\"\n        FROM employees e\n        LEFT JOIN employee_department_history edh ON edh.employee_id = e.id AND edh.effective_date <= $2\n        WHERE e.id = $1\n        ORDER BY edh.effective_date DESC\n        LIMIT 1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "employee_id_number",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "tags",
+        "type_info": "VarcharArray"
+      },
+      {
+        "ordinal": 3,
+        "name": "department_id?",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "88512918c41a9176add47f446911e554c9b709c2cae37a8f0a3243ad0a1fbe95"
+}

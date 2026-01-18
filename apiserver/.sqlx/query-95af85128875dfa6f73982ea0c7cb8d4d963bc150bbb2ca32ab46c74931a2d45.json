@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, first_name, last_name FROM employees WHERE workspace_id = $1 AND is_active = true",
+  "query": "SELECT id, first_name, last_name, employee_id_number, tags FROM employees WHERE workspace_id = $1 AND is_active = true",
   "describe": {
     "columns": [
       {
@@ -17,6 +17,16 @@
         "ordinal": 2,
         "name": "last_name",
         "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "employee_id_number",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "tags",
+        "type_info": "VarcharArray"
       }
     ],
     "parameters": {
@@ -27,8 +37,10 @@
     "nullable": [
       false,
       false,
-      false
+      false,
+      false,
+      true
     ]
   },
-  "hash": "6e0ea85826dc1d1720e45b3eb1696509e9707793e73ff8081ab1d9dc9eeb7386"
+  "hash": "95af85128875dfa6f73982ea0c7cb8d4d963bc150bbb2ca32ab46c74931a2d45"
 }

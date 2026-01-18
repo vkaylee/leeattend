@@ -14,7 +14,7 @@ pub async fn get_workspace_schedules(
 ) -> Result<Vec<EmployeeSchedule>, sqlx::Error> {
     // 1. Fetch Employees
     let employees = sqlx::query!(
-        "SELECT id, first_name, last_name FROM employees WHERE workspace_id = $1 AND is_active = true",
+        "SELECT id, first_name, last_name, employee_id_number, tags FROM employees WHERE workspace_id = $1 AND is_active = true",
         workspace_id
     )
     .fetch_all(pool)
@@ -123,6 +123,26 @@ pub async fn get_workspace_schedules(
     .fetch_all(pool)
     .await?;
 
+    // 8. Fetch Dynamic Assignment Rules
+    let active_rules = crate::repositories::assignment_rule_repository::AssignmentRuleRepository::get_active_rules(pool, workspace_id).await?;
+    
+    // 9. Fetch Pattern Details for Rules
+    let rule_patterns_details = sqlx::query!(
+        "SELECT pattern_id, day_of_week, shift_id FROM working_pattern_details WHERE pattern_id IN (SELECT pattern_id FROM assignment_rules WHERE workspace_id = $1 AND is_active = true)",
+        workspace_id
+    )
+    .fetch_all(pool)
+    .await?;
+
+    // 10. Fetch Employee Department History for context
+    let all_dept_history = sqlx::query!(
+        "SELECT employee_id, department_id, effective_date FROM employee_department_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1) AND effective_date <= $2 ORDER BY effective_date DESC",
+        workspace_id,
+        end_date
+    )
+    .fetch_all(pool)
+    .await?;
+
     // Let's iterate employees to build result
     let mut result = Vec::new();
 
@@ -153,39 +173,54 @@ pub async fn get_workspace_schedules(
                     effective_shift_id = p.pattern_shift_id;
                     source = "pattern".to_string();
                 } else {
-                    // P3: Department Pattern
-                    let dept_p = dept_patterns.iter().find(|a| {
-                        a.employee_id == emp.id &&
-                        a.effective_date <= curr_date &&
-                        a.day_of_week == dow
-                    });
+                    // P3: Dynamic Rules
+                    let emp_dept_id = all_dept_history.iter().find(|h| h.employee_id == emp.id && h.effective_date <= curr_date).map(|h| h.department_id);
+                    let match_ctx = crate::services::rule_evaluator::EmployeeMatchContext {
+                        department_id: emp_dept_id,
+                        employee_id_number: emp.employee_id_number.clone(),
+                        tags: emp.tags.clone().unwrap_or_default(),
+                    };
 
-                    if let Some(dp) = dept_p {
-                        effective_shift_id = dp.pattern_shift_id;
-                        source = "department_pattern".to_string();
+                    let matched_rule = crate::services::rule_evaluator::RuleEvaluator::resolve_rule(&match_ctx, &active_rules);
+                    
+                    if let Some(rule) = matched_rule {
+                        effective_shift_id = rule_patterns_details.iter().find(|d| d.pattern_id == rule.pattern_id && d.day_of_week == dow).and_then(|d| d.shift_id);
+                        source = "assignment_rule".to_string();
                     } else {
-                        // P4: Fixed (Individual)
-                        let fixed = fixed_assignments.iter().find(|a| {
+                        // P4: Department Pattern
+                        let dept_p = dept_patterns.iter().find(|a| {
                             a.employee_id == emp.id &&
-                            a.start_date <= curr_date &&
-                            a.end_date.is_none_or(|ed| ed >= curr_date)
+                            a.effective_date <= curr_date &&
+                            a.day_of_week == dow
                         });
 
-                        if let Some(f) = fixed {
-                            effective_shift_id = Some(f.shift_id);
-                            source = "fixed".to_string();
+                        if let Some(dp) = dept_p {
+                            effective_shift_id = dp.pattern_shift_id;
+                            source = "department_pattern".to_string();
                         } else {
-                            // P5: Department Fixed
-                            let dept_f = dept_fixed_shifts.iter().find(|a| {
+                            // P5: Fixed (Individual)
+                            let fixed = fixed_assignments.iter().find(|a| {
                                 a.employee_id == emp.id &&
-                                a.effective_date <= curr_date
+                                a.start_date <= curr_date &&
+                                a.end_date.is_none_or(|ed| ed >= curr_date)
                             });
 
-                            if let Some(df) = dept_f {
-                                effective_shift_id = Some(df.shift_id);
-                                source = "department_fixed".to_string();
+                            if let Some(f) = fixed {
+                                effective_shift_id = Some(f.shift_id);
+                                source = "fixed".to_string();
                             } else {
-                                source = "none".to_string();
+                                // P6: Department Fixed
+                                let dept_f = dept_fixed_shifts.iter().find(|a| {
+                                    a.employee_id == emp.id &&
+                                    a.effective_date <= curr_date
+                                });
+
+                                if let Some(df) = dept_f {
+                                    effective_shift_id = Some(df.shift_id);
+                                    source = "department_fixed".to_string();
+                                } else {
+                                    source = "none".to_string();
+                                }
                             }
                         }
                     }
@@ -454,7 +489,51 @@ pub async fn get_effective_shift(
         return Ok(shift_opt); 
     }
 
-    // Priority 3: Department Working Pattern (Inheritance)
+    // Priority 3: Dynamic Assignment Rules
+    let employee_full = sqlx::query!(
+        r#"
+        SELECT e.workspace_id, e.employee_id_number, e.tags, edh.department_id as "department_id?"
+        FROM employees e
+        LEFT JOIN employee_department_history edh ON edh.employee_id = e.id AND edh.effective_date <= $2
+        WHERE e.id = $1
+        ORDER BY edh.effective_date DESC
+        LIMIT 1
+        "#,
+        employee_id,
+        date
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    if let Some(info) = employee_full {
+        let rules = crate::repositories::assignment_rule_repository::AssignmentRuleRepository::get_active_rules(pool, info.workspace_id).await.unwrap_or_default();
+        
+        if !rules.is_empty() {
+            let match_ctx = crate::services::rule_evaluator::EmployeeMatchContext {
+                department_id: info.department_id,
+                employee_id_number: info.employee_id_number,
+                tags: info.tags.unwrap_or_default(),
+            };
+
+            if let Some(matched_rule) = crate::services::rule_evaluator::RuleEvaluator::resolve_rule(&match_ctx, &rules) {
+                // Resolve pattern for the day of week
+                let day_of_week = chrono::Datelike::weekday(&date).num_days_from_sunday() as i32;
+                let rule_shift = sqlx::query_scalar!(
+                    "SELECT shift_id FROM working_pattern_details WHERE pattern_id = $1 AND day_of_week = $2",
+                    matched_rule.pattern_id,
+                    day_of_week
+                )
+                .fetch_optional(pool)
+                .await?;
+
+                if let Some(shift_opt) = rule_shift {
+                    return Ok(shift_opt);
+                }
+            }
+        }
+    }
+
+    // Priority 4: Department Working Pattern (Inheritance)
     let dept_pattern_shift = sqlx::query_scalar::<_, Option<Uuid>>(
         r#"
         SELECT wpd.shift_id

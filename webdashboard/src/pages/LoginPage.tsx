@@ -6,6 +6,7 @@ import {
   getCurrentUserId,
   setAccessToken,
   setRefreshToken,
+  login as apiLogin,
 } from "@/lib/api";
 import { useState } from "react";
 
@@ -28,25 +29,11 @@ export default function LoginPage() {
     setIsSubmitting(true);
     setError(null);
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginEmail, password: loginPass }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setAccessToken(data.access_token);
-        setRefreshToken(data.refresh_token);
-        setCurrentUserId(data.user.id);
-        navigate("/", { replace: true });
-        window.location.reload();
-      } else {
-        const msg = await response.text();
-        setError(msg || t("auth.login_error"));
-      }
-    } catch (error) {
-      setError(t("auth.connection_error"));
+      await apiLogin(loginEmail, loginPass);
+      navigate("/", { replace: true });
+      window.location.reload();
+    } catch (err: any) {
+      setError(err.message || t("auth.login_error"));
     } finally {
       setIsSubmitting(false);
     }

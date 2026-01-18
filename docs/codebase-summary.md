@@ -61,6 +61,9 @@ leeattend/
         - **Server-Side Filtering**: Optimized SQL queries using `ILIKE` for case-insensitive matching across first names, last names, and employee ID numbers.
         - **Intelligent Debouncing**: Integrated `useDebounce` hook (400ms delay) to minimize server load while providing a responsive "search-as-you-type" experience.
         - **Multi-Select Workflow**: Support for building complex filters using a dismissal chip-based UI, allowing users to build a "basket" of employees for targeted reporting.
+    - **Assignment Rule Engine (Enterprise)**: Advanced scheduling automation based on flexible conditions.
+        - **Condition Evaluation**: `rule_evaluator.rs` resolves complex logic (Day of week, Department, Location) to determine the correct shift pattern for an employee.
+        - **Priority Logic**: Rules are evaluated in descending order of priority, allowing global defaults to be overridden by department or individual-specific rules.
     - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections. Supports **Robust Asynchronous Batch Import** (Excel/CSV) with auto-recovery and real-time progress tracking.
     - **Attendance Persistence Layer**: 
         - **Raw Event Store**: Dedicated `raw_attendance_logs` table for immutable original punch data from hardware and imports.
@@ -88,6 +91,10 @@ leeattend/
         - **Emergency Contact Management**: Self-service tools for maintaining up-to-date emergency notification information.
         - **Document Repository**: Infrastructure for storing and accessing employment-related documents (IDs, contracts).
         - **Personal Insights**: On-demand viewing of payslips, attendance history, and real-time leave balances.
+    - **API Standardization Framework**: Mandatory security and stability layer for all outbound requests.
+        - **Fetch Wrapper**: Centralized `apiFetch` utility (`lib/api/helpers.ts`) implemented with a strict 10s timeout using `AbortController`.
+        - **Header Injection**: Automatically attaches `Authorization` (JWT), `X-Workspace-Id`, and `Content-Type: application/json` to every call.
+        - **Regression Enforcement**: Automated `standardization.test.ts` suite that scans the API layer to forbid direct use of `window.fetch`.
     - **Time Tracking**: Core logic for punch in/out, shift calculation, and payroll-ready duration processing.
         - **Attendance Calculator**: Centralized Domain Service (`attendance_calculator.rs`) implementing pure business logic for:
             - **Grace Period**: Logic "châm chước" đi trễ (ví dụ: cho phép trễ 15p).
@@ -135,6 +142,7 @@ leeattend/
 - [x] **Shift Rostering System (Weekly calendar & Priority logic)**:
     - **Selection-First UX**: Người dùng chọn một hoặc nhiều ngày trên lịch để kích hoạt thanh công cụ (Bulk Action Bar), sau đó mới chọn ca làm việc để áp dụng. Không sử dụng các nút hành động trực tiếp trên từng thẻ ngày để giảm nhiễu giao diện.
     - **Visual Indicators**: Hệ thống sử dụng màu sắc và biểu tượng (Zap cho linh hoạt, Shield cho cố định) để phân biệt nguồn gốc của lịch làm việc.
+- [x] **Auto Assignment Rules**: Set up recurring schedules automatically based on department, location, or day-of-week criteria.
 - [x] **Bulk Schedule Assignment**: Cho phép gán mẫu lịch (Working Patterns) cho hàng loạt nhân viên và thiết lập mẫu lịch mặc định cho từng Phòng ban để tự động hóa khâu onboarding.
 - [x] Attendance Adjustment Workflow (Manual confirmation requests).
 - [x] **Payroll Engine**: Advanced logic for worked-through breaks and configurable early clock-in grace periods.
@@ -181,11 +189,16 @@ leeattend/
         - `test-lint.sh`: Phase 0 (Linting).
         - `test-unit.sh`: Phase 1 (Unit Tests).
         - `test-integration.sh`: Phase 3 (Integration/E2E), automatically pre-compiles backend before running.
+- **Resilient Stability Suite**:
+    - **Initialization Hardening**: Standardized test timeouts to **30 seconds** across all frameworks to accommodate the high resource load of parallel setup.
+    - **Regression Protection**: Implemented `stability-regression.spec.ts` to verify that critical functional fixes (like Workspace Context headers and UI icon presence) remain intact.
 - **Unified 4-Phase Pipeline**:
     - **Phase 0 (Linting)**: Mandatory code quality check using `clippy` and `eslint`. Halts pipeline on any warnings (`--max-warnings 0`).
     - **Phase 1 (Unit Tests)**: Simultaneously executes unit tests for all modules (`apiserver`, `agent-main`, `agent-zk-worker`, and `webdashboard`).
     - **Phase 2 (Environment Setup)**: Provisions isolated databases for parallel E2E and pre-compiles the backend binary. Strict error checking ensures the environment is perfect before testing starts.
     - **Phase 3 (Parallel Integration)**: Runs Rust integration tests and Playwright E2E concurrently using the pre-provisioned environment.
+- **API Standardization Coverage**: `standardization.test.ts` ensures 100% of API implementations use the secure `apiFetch` wrapper.
+- **Timeout Verification**: `apiFetch.test.ts` unit tests verify the integrity of the 10s request abort logic.
 - **Fail-Fast Engine**: Orchestrator immediately terminates all sibling tasks in a phase if a single task fails, providing instantaneous feedback and saving system resources.
 - **Real-time Sequential Logging**: Sophisticated output engine that streams parallel logs in real-time sequential blocks (e.g., Worker 2's logs start exactly when Worker 1 finishes), providing "parallel speed with sequential clarity."
 - **Reliable Resource Cleanup**: Implemented a comprehensive `trap` mechanism in the orchestrator that automatically stops containers, drops Docker volumes (`-v`), and removes temporary signal files on `EXIT`, `INT`, or `TERM`.
