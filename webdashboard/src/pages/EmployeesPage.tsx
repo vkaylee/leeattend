@@ -27,9 +27,7 @@ import {
   getCurrentWorkspaceId,
   Employee,
   fetchDepartments,
-  fetchSalaryHistory,
   fetchEmployeeDepartmentHistory,
-  addSalaryHistory,
   transferEmployee,
   fetchEmploymentHistory,
   rehireEmployee
@@ -39,6 +37,7 @@ import { format } from "date-fns";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
+import EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
 
 export default function EmployeesPage() {
   const { t } = useTranslation();
@@ -53,13 +52,11 @@ export default function EmployeesPage() {
   
   // States for sub-modals
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
-  const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isRehireModalOpen, setIsRehireModalOpen] = useState(false);
 
   // Combobox states
   const [selectedDeptId, setSelectedDeptId] = useState<string>("");
-  const [salaryType, setSalaryType] = useState<string>("monthly");
 
   const { data: employees = [], isLoading } = useQuery({
     queryKey: ["employees", wsId],
@@ -71,12 +68,6 @@ export default function EmployeesPage() {
     queryKey: ["departments", wsId],
     queryFn: () => fetchDepartments(wsId),
     enabled: !!wsId,
-  });
-
-  const { data: salaryHistory } = useQuery({
-    queryKey: ["salaryHistory", selectedEmployee?.id],
-    queryFn: () => fetchSalaryHistory(wsId, selectedEmployee!.id),
-    enabled: !!selectedEmployee,
   });
 
   const { data: deptHistory } = useQuery({
@@ -114,14 +105,6 @@ export default function EmployeesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deptHistory", selectedEmployee?.id] });
       setIsTransferModalOpen(false);
-    },
-  });
-
-  const salaryMutation = useMutation({
-    mutationFn: (data: any) => addSalaryHistory(wsId, selectedEmployee!.id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["salaryHistory", selectedEmployee?.id] });
-      setIsSalaryModalOpen(false);
     },
   });
 
@@ -168,17 +151,6 @@ export default function EmployeesPage() {
     });
   };
 
-  const handleSalarySubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    salaryMutation.mutate({
-      base_salary: formData.get("base_salary"),
-      salary_type: salaryType,
-      currency: "VND",
-      effective_date: formData.get("effective_date"),
-    });
-  };
-
   const handleRehireSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -187,7 +159,13 @@ export default function EmployeesPage() {
     });
   };
 
-  if (!wsId) return <div className="p-8 text-center">{t("employees.select_workspace")}</div>;
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100vh-10rem)] gap-8 overflow-hidden animate-enter">
@@ -381,47 +359,13 @@ export default function EmployeesPage() {
               </div>
             </section>
 
-            {/* Salary History */}
+            {/* Salary Configuration (Unified) */}
             <section className="space-y-5">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3 font-black text-slate-900 uppercase tracking-widest text-xs">
-                  <Banknote className="w-5 h-5 text-emerald-500" />
-                  <span>{t("employees.details.salary_benefits")}</span>
-                </div>
-                <button 
-                  onClick={() => setIsSalaryModalOpen(true)}
-                  data-testid="update-salary-btn"
-                  className="text-xs font-bold text-primary-600 hover:underline flex items-center gap-1.5 bg-primary-50 px-3 py-1.5 rounded-xl transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  {t("employees.details.update")}
-                </button>
+              <div className="flex items-center gap-3 font-black text-slate-900 uppercase tracking-widest text-xs">
+                <Banknote className="w-5 h-5 text-emerald-500" />
+                <span>{t("employees.details.salary_benefits")}</span>
               </div>
-
-              <div className="space-y-4">
-                {salaryHistory?.map((sal, idx) => (
-                  <div key={sal.id} className={`p-6 rounded-3xl border transition-all ${idx === 0 ? 'bg-emerald-50/30 border-emerald-100 shadow-sm' : 'bg-white border-slate-50 hover:border-slate-200'}`}>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-black text-slate-900 text-xl tracking-tight">
-                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: sal.currency }).format(parseFloat(sal.base_salary))}
-                          <span className="text-xs text-slate-400 font-bold ml-2 uppercase tracking-widest">/ {sal.salary_type}</span>
-                        </div>
-                        <div className="text-[10px] text-slate-500 mt-2 uppercase font-black flex items-center gap-1.5 tracking-widest">
-                          <Calendar className="w-3.5 h-3.5" />
-                          {formatDate(sal.effective_date)}
-                        </div>
-                      </div>
-                      {idx === 0 && <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-[9px] font-black rounded-full uppercase tracking-widest shadow-sm">{t("employees.details.current")}</span>}
-                    </div>
-                  </div>
-                ))}
-                {(!salaryHistory || salaryHistory.length === 0) && (
-                  <div className="bg-slate-50 rounded-3xl p-8 border border-slate-50 text-sm text-slate-400 italic font-medium text-center">
-                    {t("employees.details.no_salary_history")}
-                  </div>
-                )}
-              </div>
+              <EmployeeSalaryConfig wsId={wsId} employeeId={selectedEmployee.id} />
             </section>
 
             {/* Timeline/Activity */}
@@ -608,42 +552,6 @@ export default function EmployeesPage() {
             <button type="submit" data-testid="confirm-rehire-btn" disabled={rehireMutation.isPending} className="px-6 py-3 bg-primary-600 text-white font-bold rounded-2xl shadow-lg shadow-primary-100 hover:bg-primary-700 disabled:opacity-50">
               {rehireMutation.isPending ? t("employees.rehire.processing") : t("employees.rehire.confirm")}
             </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Salary Update Modal */}
-      <Modal
-        isOpen={isSalaryModalOpen}
-        onClose={() => setIsSalaryModalOpen(false)}
-        title={t("employees.salary.title")}
-        subtitle={t("employees.salary.subtitle")}
-        icon={<Banknote className="w-6 h-6" />}
-      >
-        <form onSubmit={handleSalarySubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">{t("employees.salary.base_salary")}</label>
-            <input type="number" name="base_salary" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" />
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("employees.salary.type")}</label>
-            <Combobox
-              options={[
-                { value: "monthly", label: t("employees.salary.monthly"), icon: <Banknote className="w-4 h-4" /> },
-                { value: "hourly", label: t("employees.salary.hourly"), icon: <Clock className="w-4 h-4" /> },
-              ]}
-              value={salaryType}
-              onChange={setSalaryType}
-              className="bg-slate-50 border-slate-200"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">{t("employees.salary.effective_date")}</label>
-            <input type="date" name="effective_date" required defaultValue={format(new Date(), 'yyyy-MM-dd')} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" />
-          </div>
-          <div className="grid grid-cols-2 gap-4 pt-4">
-            <button type="button" onClick={() => setIsSalaryModalOpen(false)} className="px-6 py-3 border border-slate-200 text-slate-600 font-bold rounded-2xl">{t("employees.salary.cancel")}</button>
-            <button type="submit" data-testid="submit-salary-btn" className="px-6 py-3 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 hover:bg-emerald-700">{t("employees.salary.submit")}</button>
           </div>
         </form>
       </Modal>

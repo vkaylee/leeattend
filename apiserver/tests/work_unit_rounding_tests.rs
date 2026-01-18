@@ -29,13 +29,27 @@ async fn setup_employee_with_salary(
         .await;
 
     let base_salary = Decimal::from_f64(50.0).unwrap();
+    
+    // Create a 'BASE' salary component
+    let component_id: Uuid = sqlx::query_scalar(
+        "INSERT INTO salary_component_definitions (workspace_id, name, code, is_base_for_ot, is_taxable) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+    )
+    .bind(workspace_id)
+    .bind("Lương cơ bản")
+    .bind("BASE")
+    .bind(true)
+    .bind(true)
+    .fetch_one(pool)
+    .await
+    .unwrap();
+
+    // Assign to employee
     sqlx::query(
-        "INSERT INTO salary_history (employee_id, base_salary, salary_type, currency, effective_date) VALUES ($1, $2, $3, $4, $5)",
+        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
     )
     .bind(employee_id)
+    .bind(component_id)
     .bind(base_salary)
-    .bind("hourly")
-    .bind("VND")
     .bind(test_date)
     .execute(pool)
     .await
@@ -88,8 +102,8 @@ async fn test_payroll_rounding_30m_floor() {
             .await
             .unwrap();
 
-    // 2.5 hours * 100 = 250.0
-    assert_eq!(payslip.base_pay_amount.to_f64().unwrap(), 250.0);
+    // 2.5 hours = 150 mins = 5 units (30m each)
+    assert_eq!(payslip.standard_units, 5);
 }
 
 #[tokio::test]
@@ -126,8 +140,8 @@ async fn test_payroll_rounding_30m_ceil() {
             .await
             .unwrap();
 
-    // 0.5 hours * 100 = 50.0
-    assert_eq!(payslip.base_pay_amount.to_f64().unwrap(), 50.0);
+    // 0.5 hours = 30 mins = 1 unit
+    assert_eq!(payslip.standard_units, 1);
 }
 
 #[tokio::test]
@@ -164,6 +178,6 @@ async fn test_payroll_rounding_30m_round() {
             .await
             .unwrap();
 
-    // 1.0 hour * 100 = 100.0
-    assert_eq!(payslip.base_pay_amount.to_f64().unwrap(), 100.0);
+    // 1.0 hour = 60 mins = 2 units
+    assert_eq!(payslip.standard_units, 2);
 }

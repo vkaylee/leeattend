@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    AssignSalaryComponentRequest, CreateSalaryComponentRequest, CreateSalaryHistoryRequest,
+    AssignSalaryComponentRequest, CreateSalaryComponentRequest,
     UpdatePayrollSettingsRequest,
 };
 use crate::AppState;
@@ -175,41 +175,6 @@ pub async fn assign_employee_salary_component(
     .await
     {
         Ok(component) => (StatusCode::CREATED, Json(component)).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
-}
-
-// --- Existing Payroll Handlers ---
-
-pub async fn get_salary_history(
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
-    State(state): State<Arc<AppState>>,
-    MemberContext { .. }: MemberContext,
-) -> impl IntoResponse {
-    match crate::repositories::payroll_repository::get_salary_history(&state.db, employee_id).await
-    {
-        Ok(history) => Json(history).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
-}
-
-pub async fn add_salary_history(
-    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
-    State(state): State<Arc<AppState>>,
-    MemberContext { .. }: MemberContext,
-    Json(req): Json<CreateSalaryHistoryRequest>,
-) -> impl IntoResponse {
-    match crate::repositories::payroll_repository::add_salary_history(
-        &state.db,
-        employee_id,
-        req.base_salary,
-        req.salary_type,
-        req.currency,
-        req.effective_date,
-    )
-    .await
-    {
-        Ok(history) => (StatusCode::CREATED, Json(history)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }

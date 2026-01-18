@@ -20,7 +20,7 @@ import {
 import { 
   fetchEmployees, 
   fetchEmployeePayslips, 
-  calculatePayroll, 
+  calculate_payroll, 
   getCurrentWorkspaceId,
   Employee,
   Payslip
@@ -61,7 +61,7 @@ export default function PayrollPage() {
 
   const calcMutation = useMutation({
     mutationFn: (data: { year: number; month: number }) => 
-      calculatePayroll(wsId, selectedEmployee!.id, data.year, data.month),
+      calculate_payroll(wsId, selectedEmployee!.id, data.year, data.month),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payslips", selectedEmployee?.id] });
       toast.success(t("payroll.messages.calculate_success"));

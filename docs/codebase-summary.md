@@ -140,7 +140,6 @@ leeattend/
 - [x] Workspace & Member management (RBAC).
 - [x] **Full Employee Lifecycle**: CRUD operations, Department transfers with historical tracking (`employee_department_history`), and **Employment History System** (Re-hire support via `employment_periods`).
 - [x] **Department Management**: Full CRUD operations with manager assignment and historical tracking.
-- [x] Time-series Salary History.
 - [x] **Shift Rostering System (Weekly calendar & Priority logic)**:
     - **Selection-First UX**: Người dùng chọn một hoặc nhiều ngày trên lịch để kích hoạt thanh công cụ (Bulk Action Bar), sau đó mới chọn ca làm việc để áp dụng. Không sử dụng các nút hành động trực tiếp trên từng thẻ ngày để giảm nhiễu giao diện.
     - **Visual Indicators**: Hệ thống sử dụng màu sắc và biểu tượng (Zap cho linh hoạt, Shield cho cố định) để phân biệt nguồn gốc của lịch làm việc.

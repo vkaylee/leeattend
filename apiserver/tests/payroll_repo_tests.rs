@@ -44,46 +44,6 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
 }
 
 #[tokio::test]
-async fn test_payroll_salary_history() {
-    let test_db = TestDatabase::new().await;
-    let pool = test_db.pool();
-    let factory = TestFactory::new(pool.clone());
-
-    let user_id = factory.user().create().await;
-    let ws_id = factory.workspace().create_with_owner(user_id).await;
-    let employee_id = factory.employee().with_workspace(ws_id).create().await;
-
-    // 1. Add salary history
-    let salary = payroll_repository::add_salary_history(
-        &pool,
-        employee_id,
-        Decimal::from_i32(5000).unwrap(),
-        "monthly".to_string(),
-        "USD".to_string(),
-        Utc::now().date_naive(),
-    )
-    .await
-    .unwrap();
-    assert_eq!(salary.base_salary, Decimal::from_i32(5000).unwrap());
-
-    // 2. Get latest salary
-    let latest = payroll_repository::get_latest_salary(&pool, employee_id, Utc::now().date_naive())
-        .await
-        .unwrap();
-    assert!(latest.is_some());
-    assert_eq!(
-        latest.unwrap().base_salary,
-        Decimal::from_i32(5000).unwrap()
-    );
-
-    // 3. Get history list
-    let history = payroll_repository::get_salary_history(&pool, employee_id)
-        .await
-        .unwrap();
-    assert_eq!(history.len(), 1);
-}
-
-#[tokio::test]
 async fn test_payroll_payslips() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
@@ -149,13 +109,24 @@ async fn test_get_employee_payslips_api() {
         .await
         .unwrap();
 
-    // Add salary history so calculation doesn't fail with 400
-    payroll_repository::add_salary_history(
+    // Create a 'BASE' salary component
+    let component_def = payroll_repository::create_salary_component_definition(
+        &factory.pool,
+        ws_id,
+        "Lương cơ bản".to_string(),
+        "BASE".to_string(),
+        true,
+        true,
+    )
+    .await
+    .unwrap();
+
+    // Assign it to employee
+    payroll_repository::assign_employee_salary_component(
         &factory.pool,
         emp_id,
+        component_def.id,
         Decimal::from_i32(2000).unwrap(),
-        "monthly".to_string(),
-        "USD".to_string(),
         Utc::now().date_naive(),
     )
     .await

@@ -657,26 +657,6 @@ fn default_true() -> bool {
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
-pub struct SalaryHistory {
-    pub id: Uuid,
-    pub employee_id: Uuid,
-    pub base_salary: rust_decimal::Decimal,
-    pub salary_type: String,
-    pub currency: String,
-    pub effective_date: NaiveDate,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct CreateSalaryHistoryRequest {
-    pub base_salary: rust_decimal::Decimal,
-    pub salary_type: String,
-    pub currency: String,
-    pub effective_date: NaiveDate,
-}
-
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct Payslip {
     pub id: Uuid,
     pub employee_id: Uuid,

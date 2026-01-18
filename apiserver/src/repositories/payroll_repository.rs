@@ -4,7 +4,7 @@ use sqlx::{query_as, PgPool};
 use uuid::Uuid;
 
 use crate::models::{
-    EmployeeSalaryComponent, PayrollSettings, Payslip, SalaryComponentDefinition, SalaryHistory,
+    EmployeeSalaryComponent, PayrollSettings, Payslip, SalaryComponentDefinition,
 };
 
 pub async fn get_payroll_settings(
@@ -164,65 +164,6 @@ pub async fn get_employee_salary_components(
             )
         })
         .collect())
-}
-
-pub async fn get_latest_salary(
-    pool: &PgPool,
-    employee_id: Uuid,
-    reference_date: NaiveDate,
-) -> Result<Option<SalaryHistory>, sqlx::Error> {
-    query_as!(
-        SalaryHistory,
-        r#"SELECT id, employee_id, base_salary, salary_type, currency, effective_date, created_at as "created_at!", updated_at as "updated_at!" 
-           FROM salary_history 
-           WHERE employee_id = $1 AND effective_date <= $2 
-           ORDER BY effective_date DESC, created_at DESC 
-           LIMIT 1"#,
-        employee_id,
-        reference_date
-    )
-    .fetch_optional(pool)
-    .await
-}
-
-pub async fn get_salary_history(
-    pool: &PgPool,
-    employee_id: Uuid,
-) -> Result<Vec<SalaryHistory>, sqlx::Error> {
-    query_as!(
-        SalaryHistory,
-        r#"SELECT id, employee_id, base_salary, salary_type, currency, effective_date, created_at as "created_at!", updated_at as "updated_at!" 
-           FROM salary_history 
-           WHERE employee_id = $1 
-           ORDER BY effective_date DESC"#,
-        employee_id
-    )
-    .fetch_all(pool)
-    .await
-}
-
-pub async fn add_salary_history(
-    pool: &PgPool,
-    employee_id: Uuid,
-    base_salary: Decimal,
-    salary_type: String,
-    currency: String,
-    effective_date: NaiveDate,
-) -> Result<SalaryHistory, sqlx::Error> {
-    query_as!(
-        SalaryHistory,
-        r#"INSERT INTO salary_history (employee_id, base_salary, salary_type, currency, effective_date, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING id, employee_id, base_salary, salary_type, currency, effective_date, created_at as "created_at!", updated_at as "updated_at!""#,
-        employee_id,
-        base_salary,
-        salary_type,
-        currency,
-        effective_date,
-        Utc::now()
-    )
-    .fetch_one(pool)
-    .await
 }
 
 pub async fn create_payslip(pool: &PgPool, payslip: &Payslip) -> Result<Payslip, sqlx::Error> {

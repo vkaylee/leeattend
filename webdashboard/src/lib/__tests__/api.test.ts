@@ -113,18 +113,6 @@ describe("api.ts comprehensive tests", () => {
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees/e1"), expect.objectContaining({ method: "DELETE" }));
     });
 
-    it("fetchSalaryHistory", async () => {
-      mockSuccess([]);
-      await api.fetchSalaryHistory("ws-1", "emp-1");
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees/emp-1/salary"), expect.any(Object));
-    });
-
-    it("addSalaryHistory", async () => {
-      mockSuccess({});
-      await api.addSalaryHistory("ws-1", "emp-1", { base_salary: "1000" });
-      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees/emp-1/salary"), expect.objectContaining({ method: "POST" }));
-    });
-
     it("fetchDepartments", async () => {
       mockSuccess([]);
       await api.fetchDepartments("ws-1");
@@ -287,9 +275,9 @@ describe("api.ts comprehensive tests", () => {
   });
 
   describe("Payroll & Shift API", () => {
-    it("calculatePayroll", async () => {
+    it("calculate_payroll", async () => {
       mockSuccess({});
-      await api.calculatePayroll("ws-1", "e1", 2026, 1);
+      await api.calculate_payroll("ws-1", "e1", 2026, 1);
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees/e1/calculate-payroll?year=2026&month=1"), expect.objectContaining({ method: "POST" }));
     });
 

@@ -221,17 +221,6 @@ export interface Shift {
   updated_at: string;
 }
 
-export interface SalaryHistory {
-  id: string;
-  employee_id: string;
-  base_salary: string;
-  salary_type: "hourly" | "monthly";
-  currency: string;
-  effective_date: string;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface PayrollSettings {
   workspace_id: string;
   std_working_day_mode: "fixed" | "actual_month";

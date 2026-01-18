@@ -35,13 +35,27 @@ async fn test_work_unit_integer_integrity_flow() {
     // Std units per month: 26 days * 8 hours (16 units/day) = 416 units
     // Unit rate = 300,000 / 416 = 721.1538...
     let base_salary = Decimal::from(300000);
+    
+    // Create a 'BASE' salary component
+    let component_id: uuid::Uuid = sqlx::query_scalar(
+        "INSERT INTO salary_component_definitions (workspace_id, name, code, is_base_for_ot, is_taxable) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+    )
+    .bind(ws_id)
+    .bind("Lương cơ bản")
+    .bind("BASE")
+    .bind(true)
+    .bind(true)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+
+    // Assign to employee
     sqlx::query(
-        "INSERT INTO salary_history (employee_id, base_salary, salary_type, currency, effective_date) VALUES ($1, $2, $3, $4, $5)",
+        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
     )
     .bind(employee_id)
+    .bind(component_id)
     .bind(base_salary)
-    .bind("monthly")
-    .bind("VND")
     .bind(Utc::now().date_naive())
     .execute(&pool)
     .await

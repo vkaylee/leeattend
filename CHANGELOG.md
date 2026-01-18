@@ -22,6 +22,7 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 - **E2E Locator Standardization (Hybrid Pattern)**: Migrated the entire Playwright test suite to a resilient locator strategy.
 ...
 ### Changed
+- **Legacy Payroll Cleanup**: Removed the deprecated `salary_history` table and associated API endpoints/legacy logic. The system now exclusively uses the Dynamic Payroll (Salary Components) architecture for all calculations.
 - **SQLx Upgrade (v0.8.6)**: Upgraded `sqlx` from 0.7 to 0.8.6 in `apiserver` to resolve future-incompatibility warnings (Rust 2024 never-type fallback) and synchronize with other crates.
 - **SQLx Metadata Synchronization**: Updated offline query metadata in `.sqlx/` across the project.
 - **Optimized E2E Timeouts**: Decreased global test timeout from **30s to 15s** and added a **5s expectation timeout** to enable faster failure detection during development and CI.

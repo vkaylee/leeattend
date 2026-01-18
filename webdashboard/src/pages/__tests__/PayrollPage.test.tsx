@@ -10,7 +10,7 @@ import * as api from "../../lib/api";
 vi.mock("../../lib/api", () => ({
   fetchEmployees: vi.fn(),
   fetchEmployeePayslips: vi.fn(),
-  calculatePayroll: vi.fn(),
+  calculate_payroll: vi.fn(),
   getCurrentWorkspaceId: vi.fn(() => "test-ws-id"),
 }));
 
@@ -87,7 +87,7 @@ describe("PayrollPage", () => {
       { id: "emp-1", first_name: "John", last_name: "Doe", employee_id_number: "EMP001" }
     ]);
     (api.fetchEmployeePayslips as any).mockResolvedValue([]);
-    (api.calculatePayroll as any).mockResolvedValue({ id: "new-slip" });
+    (api.calculate_payroll as any).mockResolvedValue({ id: "new-slip" });
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -107,7 +107,7 @@ describe("PayrollPage", () => {
     fireEvent.click(screen.getByText("Bắt đầu tính lương"));
 
     await waitFor(() => {
-      expect(api.calculatePayroll).toHaveBeenCalledWith("test-ws-id", "emp-1", expect.any(Number), expect.any(Number));
+      expect(api.calculate_payroll).toHaveBeenCalledWith("test-ws-id", "emp-1", expect.any(Number), expect.any(Number));
     });
   });
 });

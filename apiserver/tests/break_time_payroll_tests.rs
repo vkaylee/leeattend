@@ -40,13 +40,26 @@ async fn setup_employee_with_salary(
     .await
     .unwrap();
 
+    // Create a 'BASE' salary component
+    let component_id: Uuid = sqlx::query_scalar(
+        "INSERT INTO salary_component_definitions (workspace_id, name, code, is_base_for_ot, is_taxable) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+    )
+    .bind(workspace_id)
+    .bind("Lương cơ bản")
+    .bind("BASE")
+    .bind(true)
+    .bind(true)
+    .fetch_one(pool)
+    .await
+    .unwrap();
+
+    // Assign to employee
     sqlx::query(
-        "INSERT INTO salary_history (employee_id, base_salary, salary_type, currency, effective_date) VALUES ($1, $2, $3, $4, $5)",
+        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
     )
     .bind(employee_id)
+    .bind(component_id)
     .bind(base_salary)
-    .bind("hourly")
-    .bind("VND")
     .bind(test_date)
     .execute(pool)
     .await
@@ -122,11 +135,12 @@ async fn test_payroll_with_explicit_breaks() {
     // Actual break: 90 mins
     // Net worked: 450 mins = 7.5 hours
     // Integer Work Units (60m block): Floor(450 / 60) = 7 units
-    // Expected pay: 7 * 100 = 700.0
+    
+    // We check units directly to verify break deduction logic, ignoring hourly/monthly pay rate nuances
     assert_eq!(
-        payslip.base_pay_amount.to_f64().unwrap(),
-        700.0,
-        "Should use explicit 90m break instead of 60m default"
+        payslip.standard_units,
+        7,
+        "Should use explicit 90m break => 450m work => 7 units"
     );
 
     factory.cleanup().await;

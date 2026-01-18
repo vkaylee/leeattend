@@ -230,29 +230,12 @@ impl PayrollService {
         // 4.2 Calculate Base for OT and Total Base Pay
         let mut base_pay_for_ot = Decimal::ZERO;
         let mut total_base_pay = Decimal::ZERO;
-        let mut is_hourly = false;
+        let is_hourly = false;
 
         for (esc, scd) in &salary_components {
             total_base_pay += esc.amount;
             if scd.is_base_for_ot {
                 base_pay_for_ot += esc.amount;
-            }
-        }
-
-        // If no components found, fallback to old salary_history
-        if total_base_pay.is_zero() && salary_components.is_empty() {
-            let old_settings = payroll_repository::get_latest_salary(pool, employee_id, end_date)
-                .await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-                .ok_or(StatusCode::BAD_REQUEST)?;
-
-            if old_settings.salary_type == "hourly" {
-                is_hourly = true;
-                total_base_pay = old_settings.base_salary * Decimal::from(total_standard_units);
-                base_pay_for_ot = old_settings.base_salary; // This is actually unit rate if hourly
-            } else {
-                total_base_pay = old_settings.base_salary;
-                base_pay_for_ot = old_settings.base_salary;
             }
         }
 

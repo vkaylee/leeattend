@@ -964,7 +964,7 @@ Dọn dẹp nhanh dữ liệu theo nhóm trong một workspace.
     - `attendance`: Xóa logs thô, time entries, yêu cầu điều chỉnh công và lịch sử import.
     - `schedules`: Xóa lịch biểu (rosters) và gán ca linh hoạt.
     - `leave`: Xóa đơn nghỉ phép, lịch sử cộng phép và số dư phép.
-    - `payroll`: Xóa phiếu lương (payslips) và lịch sử lương.
+    - `payroll`: Xóa phiếu lương (payslips) và cấu hình lương nhân viên (salary components).
     - `full_reset`: Xóa toàn bộ dữ liệu trên cộng với danh sách nhân viên, phòng ban, ca làm việc và chính sách phép. (Giữ lại thông tin Workspace và Members).
 - **Response (200 OK)**
 

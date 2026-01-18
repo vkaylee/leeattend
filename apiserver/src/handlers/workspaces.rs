@@ -75,14 +75,43 @@ pub async fn get_workspace_stats(
     .unwrap_or(0);
 
     // 4. Estimated Monthly Payroll (Sum of latest base salaries)
+    // Priority: employee_salary_components -> fallback to salary_history
     let payroll: rust_decimal::Decimal = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(s.base_salary), 0) FROM salary_history s
-         INNER JOIN (
-            SELECT employee_id, MAX(effective_date) as max_date 
-            FROM salary_history 
-            GROUP BY employee_id
-         ) latest ON s.employee_id = latest.employee_id AND s.effective_date = latest.max_date
-         WHERE s.employee_id IN (SELECT id FROM employees WHERE workspace_id = $1 AND is_active = TRUE)"
+        r#"
+        WITH active_emps AS (
+            SELECT id FROM employees WHERE workspace_id = $1 AND is_active = TRUE
+        ),
+        dynamic_payroll AS (
+            SELECT esc.employee_id, SUM(esc.amount) as total_amount
+            FROM employee_salary_components esc
+            INNER JOIN (
+                SELECT employee_id, component_definition_id, MAX(effective_date) as max_date
+                FROM employee_salary_components
+                WHERE effective_date <= CURRENT_DATE
+                GROUP BY employee_id, component_definition_id
+            ) latest ON esc.employee_id = latest.employee_id 
+                     AND esc.component_definition_id = latest.component_definition_id 
+                     AND esc.effective_date = latest.max_date
+            WHERE esc.employee_id IN (SELECT id FROM active_emps)
+            GROUP BY esc.employee_id
+        ),
+        legacy_payroll AS (
+            SELECT s.employee_id, s.base_salary as total_amount
+            FROM salary_history s
+            INNER JOIN (
+                SELECT employee_id, MAX(effective_date) as max_date 
+                FROM salary_history 
+                GROUP BY employee_id
+            ) latest ON s.employee_id = latest.employee_id AND s.effective_date = latest.max_date
+            WHERE s.employee_id IN (SELECT id FROM active_emps)
+            AND s.employee_id NOT IN (SELECT employee_id FROM dynamic_payroll)
+        )
+        SELECT COALESCE(SUM(total_amount), 0) FROM (
+            SELECT total_amount FROM dynamic_payroll
+            UNION ALL
+            SELECT total_amount FROM legacy_payroll
+        ) combined
+        "#
     )
     .bind(workspace_id)
     .fetch_one(&state.db)
@@ -397,7 +426,8 @@ pub async fn clear_workspace_data(
         }
         "payroll" => {
             sqlx::query("DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-            sqlx::query("DELETE FROM salary_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            sqlx::query("DELETE FROM employee_salary_components WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            sqlx::query("DELETE FROM salary_component_definitions WHERE workspace_id = $1").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
         }
         "full_reset" => {
             sqlx::query("DELETE FROM time_entries WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
@@ -422,7 +452,8 @@ pub async fn clear_workspace_data(
             sqlx::query("DELETE FROM leave_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
             sqlx::query("DELETE FROM leave_balances WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
             sqlx::query("DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-            sqlx::query("DELETE FROM salary_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            sqlx::query("DELETE FROM employee_salary_components WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            sqlx::query("DELETE FROM salary_component_definitions WHERE workspace_id = $1").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
             sqlx::query("DELETE FROM employee_department_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
             sqlx::query("DELETE FROM leave_policy_assignments WHERE workspace_id = $1")
                 .bind(ws_id)

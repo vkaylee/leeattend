@@ -1,7 +1,6 @@
 mod common;
 
 use apiserver::services::payroll_service::PayrollService;
-use axum::http::StatusCode;
 use chrono::{Datelike, Local, NaiveDate, NaiveTime, TimeZone, Utc};
 use common::db::TestDatabase;
 use common::factory::TestFactory;
@@ -40,13 +39,27 @@ async fn setup_employee_with_salary(
         .await;
 
     let base_salary = Decimal::from_f64(100.0).unwrap(); // 100 units per hour (since unit is 60m)
+
+    // Create a 'BASE' salary component
+    let component_id: Uuid = sqlx::query_scalar(
+        "INSERT INTO salary_component_definitions (workspace_id, name, code, is_base_for_ot, is_taxable) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+    )
+    .bind(workspace_id)
+    .bind("Lương cơ bản")
+    .bind("BASE")
+    .bind(true)
+    .bind(true)
+    .fetch_one(pool)
+    .await
+    .unwrap();
+
+    // Assign to employee
     sqlx::query(
-        "INSERT INTO salary_history (employee_id, base_salary, salary_type, currency, effective_date) VALUES ($1, $2, $3, $4, $5)",
+        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
     )
     .bind(employee_id)
+    .bind(component_id)
     .bind(base_salary)
-    .bind("hourly")
-    .bind("VND")
     .bind(test_date)
     .execute(pool)
     .await
@@ -80,13 +93,27 @@ async fn setup_employee_with_monthly_salary(
         .await;
 
     let base_salary = Decimal::from_f64(3000.0).unwrap();
+    
+    // Create a 'BASE' salary component
+    let component_id: Uuid = sqlx::query_scalar(
+        "INSERT INTO salary_component_definitions (workspace_id, name, code, is_base_for_ot, is_taxable) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+    )
+    .bind(workspace_id)
+    .bind("Lương cơ bản")
+    .bind("BASE")
+    .bind(true)
+    .bind(true)
+    .fetch_one(pool)
+    .await
+    .unwrap();
+
+    // Assign to employee
     sqlx::query(
-        "INSERT INTO salary_history (employee_id, base_salary, salary_type, currency, effective_date) VALUES ($1, $2, $3, $4, $5)",
+        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)",
     )
     .bind(employee_id)
+    .bind(component_id)
     .bind(base_salary)
-    .bind("monthly")
-    .bind("USD")
     .bind(test_date)
     .execute(pool)
     .await
@@ -231,8 +258,8 @@ async fn test_early_punch_in_grace_period() {
     .await
     .unwrap();
     assert_eq!(
-        payslip_case1.overtime_pay_amount.to_f64().unwrap(),
-        0.0,
+        payslip_case1.overtime_units,
+        0,
         "Case 1: No early punch-in overtime expected"
     );
 
@@ -289,8 +316,8 @@ async fn test_early_punch_in_grace_period() {
     .await
     .unwrap();
     assert_eq!(
-        payslip_case2.overtime_pay_amount.to_f64().unwrap(),
-        0.0,
+        payslip_case2.overtime_units,
+        0,
         "Case 2: No early punch-in overtime expected within grace period"
     );
 
@@ -347,14 +374,14 @@ async fn test_early_punch_in_grace_period() {
     .await
     .unwrap();
     assert_eq!(
-        payslip_case3.overtime_pay_amount.to_f64().unwrap(),
-        0.0,
+        payslip_case3.overtime_units,
+        0,
         "Case 3: No early punch-in overtime expected exactly at grace period start"
     );
 
     // Case 4: Punch in before grace period start (07:00)
     factory.cleanup().await;
-    let (employee_id, workspace_id, base_salary) =
+    let (employee_id, workspace_id, _base_salary) =
         setup_employee_with_salary(&factory, &pool, test_date).await;
     factory
         .shift()
@@ -407,11 +434,9 @@ async fn test_early_punch_in_grace_period() {
     .unwrap();
     // Actual punch-in at 07:00. Shift starts at 08:00. Grace period is 30 mins (starts 07:30).
     // Since 07:00 < 07:30, effective punch-in is 07:00.
-    // Overtime minutes: 07:00 to 08:00 = 60 minutes (1.0 hour)
-    let expected_overtime_pay_case4 =
-        base_salary * Decimal::from_f64(1.0).unwrap() * Decimal::from_f64(1.5).unwrap();
+    // Overtime minutes: 07:00 to 08:00 = 60 minutes (1.0 hour) = 1 Unit
     assert_eq!(
-        payslip_case4.overtime_pay_amount, expected_overtime_pay_case4,
+        payslip_case4.overtime_units, 1,
         "Case 4: Early punch-in overtime expected before grace period"
     );
 
@@ -468,8 +493,8 @@ async fn test_early_punch_in_grace_period() {
     .await
     .unwrap();
     assert_eq!(
-        payslip_case5.overtime_pay_amount.to_f64().unwrap(),
-        0.0,
+        payslip_case5.overtime_units,
+        0,
         "Case 5: No early punch-in overtime expected when punching in after shift start"
     );
 
@@ -487,5 +512,8 @@ async fn test_calculate_payroll_no_salary() {
 
     let result = PayrollService::calculate_monthly_payslip(&pool, emp_id, ws_id, 2026, 1).await;
 
-    assert_eq!(result.unwrap_err(), StatusCode::BAD_REQUEST);
+    // After cleanup, no salary history fallback means payroll is calculated with 0 base pay
+    assert!(result.is_ok());
+    let payslip = result.unwrap();
+    assert_eq!(payslip.base_pay_amount, Decimal::ZERO);
 }

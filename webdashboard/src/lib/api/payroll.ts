@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
-import { SalaryHistory, Payslip, PayrollSettings, SalaryComponentDefinition, EmployeeSalaryComponent } from "./types";
+import { Payslip, PayrollSettings, SalaryComponentDefinition, EmployeeSalaryComponent } from "./types";
 
 export async function fetchPayrollSettings(wsId: string): Promise<PayrollSettings> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll-settings`);
@@ -54,26 +54,7 @@ export async function assignEmployeeSalaryComponent(
   return response.json();
 }
 
-export async function fetchSalaryHistory(wsId: string, employeeId: string): Promise<SalaryHistory[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/salary`);
-  if (!response.ok) throw new Error("Failed to fetch salary history");
-  return response.json();
-}
-
-export async function addSalaryHistory(
-  wsId: string, 
-  employeeId: string, 
-  data: Partial<SalaryHistory>
-): Promise<SalaryHistory> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/salary`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Failed to add salary history");
-  return response.json();
-}
-
-export async function calculatePayroll(
+export async function calculate_payroll(
   wsId: string,
   employeeId: string,
   year: number,
