@@ -14,7 +14,7 @@ use crate::models::{
     SubmitLeaveRequest, ApproveLeaveRequest, LeaveRequest, 
     WorkspaceLeaveBalance, EmployeeLeaveBalance, AdjustBalanceRequest,
     CreateLeavePolicyRequest, UpdateLeavePolicyRequest, AssignLeavePolicyRequest, LeavePolicyAssignment,
-    LeaveHistoryItem
+    LeaveHistoryItem, LeaveStatus
 };
 use crate::repositories::leave_policy_repository;
 use crate::services::leave_accrual_service::LeaveAccrualService;
@@ -49,7 +49,7 @@ pub async fn approve_leave_request(
     Json(req): Json<ApproveLeaveRequest>,
 ) -> impl IntoResponse {
     if !ctx.is_admin_or_owner() {
-        return Err(StatusCode::FORBIDDEN);
+        return (StatusCode::FORBIDDEN, "Only admins can approve leave").into_response();
     }
     match crate::services::leave_service::LeaveService::approve_leave_request(
         &state.db,
@@ -60,8 +60,8 @@ pub async fn approve_leave_request(
     )
     .await
     {
-        Ok(_) => Ok(StatusCode::OK.into_response()),
-        Err(status) => Err(status),
+        Ok(_) => StatusCode::OK.into_response(),
+        Err(status) => status.into_response(),
     }
 }
 
@@ -70,12 +70,6 @@ pub async fn get_my_leave_requests(
     UserId(_user_id): UserId,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<LeaveRequest>>, StatusCode> {
-    // For "my" requests without a specific workspace context in URL, 
-    // we might need to fetch them differently, but for now let's just 
-    // allow fetching by employee_id if we have a valid user.
-    // In a real scenario, we should verify the user_id matches the employee's user_id.
-    
-    // Temporary hack: use a special internal method or just skip workspace check if we trust the employee_id
     crate::repositories::leave_request_repository::get_employee_leave_requests(&state.db, id)
         .await
         .map(Json)
@@ -110,7 +104,7 @@ pub async fn get_employee_leave_balances(
 
 #[derive(Deserialize)]
 pub struct LeaveStatusQuery {
-    pub status: Option<String>,
+    pub status: Option<LeaveStatus>,
 }
 
 pub async fn get_workspace_leave_requests(

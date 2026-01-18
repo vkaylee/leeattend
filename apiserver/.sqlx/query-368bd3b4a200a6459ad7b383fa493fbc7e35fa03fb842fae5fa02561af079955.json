@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, employee_id, leave_type, start_date, end_date, reason, status, requested_by_user_id, approved_by_user_id, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM leave_requests WHERE employee_id = $1 ORDER BY start_date DESC",
+  "query": "SELECT id, employee_id, leave_type, start_date, end_date, reason, status as \"status: LeaveStatus\", requested_by_user_id, approved_by_user_id, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM leave_requests WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -35,8 +35,19 @@
       },
       {
         "ordinal": 6,
-        "name": "status",
-        "type_info": "Varchar"
+        "name": "status: LeaveStatus",
+        "type_info": {
+          "Custom": {
+            "name": "leave_status_type",
+            "kind": {
+              "Enum": [
+                "pending",
+                "approved",
+                "rejected"
+              ]
+            }
+          }
+        }
       },
       {
         "ordinal": 7,
@@ -78,5 +89,5 @@
       true
     ]
   },
-  "hash": "0eb1f68f98867c0e429088746e4fe1793e946d3c617dbb057d8a24e484ba1810"
+  "hash": "368bd3b4a200a6459ad7b383fa493fbc7e35fa03fb842fae5fa02561af079955"
 }

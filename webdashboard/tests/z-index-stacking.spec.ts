@@ -50,7 +50,7 @@ test.describe('UI Z-Index Stacking Verification', () => {
     // 5. Verify Combobox Content (Popover) is visible
     // Radix Popovers usually render in a portal. We look for the content div.
     // Based on our fix, it should have z-index 10000.
-    const popoverContent = page.locator('[role="dialog"], [cmdk-root]').first();
+    const popoverContent = page.locator('[cmdk-root]').first();
     await expect(popoverContent).toBeVisible();
 
     const popoverZIndex = await popoverContent.evaluate((el) => {

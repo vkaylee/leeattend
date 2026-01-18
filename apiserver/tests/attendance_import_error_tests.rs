@@ -1,5 +1,6 @@
 mod common;
 
+use apiserver::models::{ImportJobStatus};
 use common::db::TestDatabase;
 use common::factory::TestFactory;
 use apiserver::models::AttendanceImportJob;
@@ -51,7 +52,7 @@ async fn test_import_csv_with_line_errors() {
     for _ in 0..20 {
         sleep(Duration::from_millis(200)).await;
         if let Ok(Some(j)) = import_job_repository::get_job_by_id(&pool, job_id).await {
-            if j.status == "completed" || j.status == "failed" {
+            if j.status == ImportJobStatus::Completed || j.status == ImportJobStatus::Failed {
                 job = Some(j);
                 break;
             }

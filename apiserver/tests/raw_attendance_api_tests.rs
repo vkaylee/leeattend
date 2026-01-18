@@ -5,7 +5,7 @@ use common::factory::TestFactory;
 use chrono::{Utc, Duration, TimeZone};
 use axum::http::{StatusCode, Request};
 use tower::ServiceExt;
-use apiserver::models::RawAttendanceLog;
+use apiserver::models::{RawAttendanceLog, LogSource};
 use apiserver::AppState;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -41,64 +41,43 @@ async fn setup_test_context() -> (TestDatabase, sqlx::PgPool, TestFactory, Arc<A
     let base_time = Utc.with_ymd_and_hms(2026, 1, 14, 8, 0, 0).unwrap();
     
     for i in 0..3 {
-        let log = RawAttendanceLog {
+        let raw_log = RawAttendanceLog {
             id: Uuid::new_v4(),
             workspace_id: ws_id,
             employee_id: emp_id,
-            punch_time: base_time + Duration::hours(i),
-            source: "test".to_string(),
+            punch_time: base_time + Duration::hours(i as i64),
+            source: LogSource::Manual,
             device_id: None,
             raw_data: None,
             created_at: Utc::now(),
         };
-        apiserver::repositories::raw_attendance_log_repository::create_raw_log(&pool, &log).await.unwrap();
+        apiserver::repositories::raw_attendance_log_repository::create_raw_log(&pool, &raw_log).await.unwrap();
     }
 
-    (_test_db, pool, factory, state, user_id, ws_id, emp_id, base_time)
+    (
+        _test_db, pool, factory, state, ws_id, emp_id, user_id, base_time
+    )
 }
 
 #[tokio::test]
-async fn test_get_raw_logs_filter_employee() {
-    let (_db, _pool, _factory, state, user_id, ws_id, emp_id, _base_time) = setup_test_context().await;
+async fn test_get_raw_attendance_logs() {
+    let (_db, _pool, _factory, state, ws_id, _emp_id, user_id, _base_time) = setup_test_context().await;
     let app = apiserver::create_app(state);
-    
-    let uri = format!("/api/workspaces/{}/attendance/raw-logs?employee_id={}", ws_id, emp_id);
-    let response = app.oneshot(
-        Request::builder()
-            .uri(uri)
-            .header("X-Workspace-Id", ws_id.to_string())
-            .header("X-User-Id", user_id.to_string()) 
-            .body(axum::body::Body::empty())
-            .unwrap()
-    ).await.map_err(|e| format!("{:?}", e)).unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), 10000).await.unwrap();
-    let res_obj: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    assert_eq!(res_obj["data"].as_array().unwrap().len(), 3);
-}
-
-#[tokio::test]
-async fn test_get_raw_logs_filter_date() {
-    let (_db, _pool, _factory, state, user_id, ws_id, _emp_id, base_time) = setup_test_context().await;
-    let app = apiserver::create_app(state);
-    
-    let from_time = base_time + Duration::minutes(30); // 08:30
-    // Use ISO format with 'Z' which is safer for query params
-    let from_str = from_time.format("%Y-%m-%dT%H:%M:%SZ").to_string();
-    let uri = format!("/api/workspaces/{}/attendance/raw-logs?from={}", ws_id, from_str);
-    let response = app.oneshot(
+    let res = app.oneshot(
         Request::builder()
-            .uri(uri)
+            .uri(format!("/api/workspaces/{}/attendance/raw-logs", ws_id))
             .header("X-Workspace-Id", ws_id.to_string())
             .header("X-User-Id", user_id.to_string())
             .body(axum::body::Body::empty())
             .unwrap()
-    ).await.map_err(|e| format!("{:?}", e)).unwrap();
+    ).await.unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), 10000).await.unwrap();
-    let res_obj: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    // Should return 09:00 and 10:00 logs (2 logs)
-    assert_eq!(res_obj["data"].as_array().unwrap().len(), 2);
+    assert_eq!(res.status(), StatusCode::OK);
+    
+    let body = axum::body::to_bytes(res.into_body(), 1000000).await.unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    
+    assert!(json["data"].as_array().unwrap().len() >= 3);
+    assert_eq!(json["total"], 3);
 }

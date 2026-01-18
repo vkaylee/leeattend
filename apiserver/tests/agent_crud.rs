@@ -1,4 +1,5 @@
 mod common;
+use apiserver::models::{MemberRole};
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
 use common::factory::TestFactory;
 use common::db::TestDatabase;
@@ -195,16 +196,8 @@ async fn test_rbac_member_cannot_invite() {
     let client = reqwest::Client::new();
 
     // 1. Create a "Member" user using factory
-    let member_user_id = factory
-        .user()
-        .with_email("member@example.com")
-        .create()
-        .await;
-
-    // 2. Add them to workspace as "member" using factory
-    factory
-        .add_member(workspace_id, member_user_id, "member")
-        .await;
+    let member_user_id = factory.user().with_email("member@example.com").create().await;
+    factory.add_member(workspace_id, member_user_id, MemberRole::Member).await;
 
     // 3. Try to invite someone as this member
     let response = client

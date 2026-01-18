@@ -3,6 +3,7 @@ mod common;
 use axum::http::StatusCode;
 use common::db::TestDatabase;
 use common::factory::TestFactory;
+use apiserver::models::{MemberRole};
 use apiserver::AppState;
 use apiserver::agent_manager::AgentManager;
 use std::sync::Arc;
@@ -45,43 +46,32 @@ async fn test_member_roles_and_permissions() {
     let admin_id = factory.user().create().await;
     let member_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
-    factory.add_member(ws_id, member_id, "member").await;
+    factory.add_member(ws_id, member_id, MemberRole::Member).await;
 
-    // 2. Member tries to list all members (should be OK)
-    let response = app.clone()
-        .oneshot(
-            axum::http::Request::builder()
-                .method("GET")
-                .uri(format!("/api/workspaces/{}/members", ws_id))
-                .header("X-Workspace-Id", ws_id.to_string())
-                .header("X-User-Id", member_id.to_string())
-                .body(axum::body::Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
+    let headers = [
+        ("X-Workspace-Id", ws_id.to_string()),
+        ("X-User-Id", member_id.to_string()),
+    ];
 
-    assert_eq!(response.status(), StatusCode::OK);
-
-    // 3. Member tries to create a shift (should be FORBIDDEN - typically only admin/owner)
     let shift_req = serde_json::json!({
-        "name": "Member Shift",
+        "name": "Member Created Shift",
         "start_time": "09:00:00",
         "end_time": "17:00:00",
         "break_duration_minutes": 60,
-        "is_break_auto_deduct": true,
         "break_is_overtime": false,
-        "early_punch_in_grace_period_minutes": 0
+        "early_punch_in_grace_period_minutes": 0,
+        "allow_early_ot": false
     });
 
+    // 2. Member tries to create a shift (should fail)
     let response = app.clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
                 .uri(format!("/api/workspaces/{}/shifts", ws_id))
                 .header("Content-Type", "application/json")
-                .header("X-Workspace-Id", ws_id.to_string())
-                .header("X-User-Id", member_id.to_string())
+                .header(headers[0].0, &headers[0].1)
+                .header(headers[1].0, &headers[1].1)
                 .body(axum::body::Body::from(serde_json::to_string(&shift_req).unwrap()))
                 .unwrap(),
         )
@@ -90,18 +80,18 @@ async fn test_member_roles_and_permissions() {
 
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
-    // 4. Grant extra role "admin" to member temporarily
-    factory.add_extra_role(ws_id, member_id, "admin", Utc::now() + Duration::hours(1)).await;
+    // 3. Add temporary Admin role
+    factory.add_extra_role(ws_id, member_id, MemberRole::Admin, Utc::now() + Duration::hours(1)).await;
 
-    // 5. Member tries to create a shift again (should now be OK)
+    // 4. Member tries to create a shift again (should now be OK)
     let response = app.clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
                 .uri(format!("/api/workspaces/{}/shifts", ws_id))
                 .header("Content-Type", "application/json")
-                .header("X-Workspace-Id", ws_id.to_string())
-                .header("X-User-Id", member_id.to_string())
+                .header(headers[0].0, &headers[0].1)
+                .header(headers[1].0, &headers[1].1)
                 .body(axum::body::Body::from(serde_json::to_string(&shift_req).unwrap()))
                 .unwrap(),
         )

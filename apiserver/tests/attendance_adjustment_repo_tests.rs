@@ -3,7 +3,7 @@ mod common;
 use common::db::TestDatabase;
 use common::factory::TestFactory;
 use apiserver::repositories::attendance_adjustment_repository;
-use apiserver::models::AttendanceAdjustmentRequest;
+use apiserver::models::{AttendanceAdjustmentRequest, AdjustmentStatus};
 use uuid::Uuid;
 use chrono::Utc;
 
@@ -25,7 +25,7 @@ async fn test_attendance_adjustment_repo_lifecycle() {
         requested_punch_out_time: Some(Utc::now()),
         is_break_overtime: false,
         reason: Some("Forgot to punch in".to_string()),
-        status: "pending".to_string(),
+        status: AdjustmentStatus::Pending,
         requested_by_user_id: Some(user_id),
         approved_by_user_id: None,
         created_at: Utc::now(),
@@ -40,9 +40,9 @@ async fn test_attendance_adjustment_repo_lifecycle() {
     assert_eq!(fetched.reason.unwrap(), "Forgot to punch in");
 
     // 3. Update status
-    attendance_adjustment_repository::update_adjustment_status(&pool, request.id, "approved", Some(user_id)).await.unwrap();
+    attendance_adjustment_repository::update_adjustment_status(&pool, request.id, AdjustmentStatus::Approved, Some(user_id)).await.unwrap();
     let updated = attendance_adjustment_repository::get_request_by_id(&pool, request.id).await.unwrap().unwrap();
-    assert_eq!(updated.status, "approved");
+    assert_eq!(updated.status, AdjustmentStatus::Approved);
     assert_eq!(updated.approved_by_user_id, Some(user_id));
 
     // 4. Get workspace requests

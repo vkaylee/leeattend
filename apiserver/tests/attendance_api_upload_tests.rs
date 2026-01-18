@@ -1,5 +1,6 @@
 mod common;
 
+use apiserver::models::{ImportJobStatus};
 use axum::http::StatusCode;
 use common::db::TestDatabase;
 use common::factory::TestFactory;
@@ -87,7 +88,7 @@ async fn test_upload_attendance_csv_api() {
         sleep(Duration::from_millis(200)).await;
         let job_opt = apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid).await.unwrap();
         if let Some(job) = job_opt {
-            if job.status == "completed" {
+            if job.status == ImportJobStatus::Completed {
                 completed = true;
                 break;
             }
@@ -144,7 +145,7 @@ async fn test_upload_attendance_xls_fallback_api() {
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
         let job = apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid).await.unwrap().unwrap();
-        if job.status == "completed" {
+        if job.status == ImportJobStatus::Completed {
             success = true;
             break;
         }

@@ -1,4 +1,4 @@
-use crate::models::AttendanceAdjustmentRequest;
+use crate::models::{AttendanceAdjustmentRequest, AdjustmentStatus};
 use sqlx::{query, query_as, PgPool};
 use uuid::Uuid;
 
@@ -15,7 +15,7 @@ pub async fn create_request(
         request.requested_punch_out_time,
         request.is_break_overtime,
         request.reason,
-        request.status,
+        request.status as AdjustmentStatus,
         request.requested_by_user_id,
         request.created_at,
         request.updated_at,
@@ -31,7 +31,7 @@ pub async fn get_request_by_id(
 ) -> Result<Option<AttendanceAdjustmentRequest>, sqlx::Error> {
     query_as!(
         AttendanceAdjustmentRequest,
-        "SELECT id, employee_id, time_entry_id, requested_punch_in_time as \"requested_punch_in_time!\", requested_punch_out_time, is_break_overtime, reason, status, requested_by_user_id, approved_by_user_id, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM attendance_adjustment_requests WHERE id = $1",
+        "SELECT id, employee_id, time_entry_id, requested_punch_in_time as \"requested_punch_in_time!\", requested_punch_out_time, is_break_overtime, reason, status as \"status: AdjustmentStatus\", requested_by_user_id, approved_by_user_id, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM attendance_adjustment_requests WHERE id = $1",
         id
     )
     .fetch_optional(pool)
@@ -41,12 +41,12 @@ pub async fn get_request_by_id(
 pub async fn update_adjustment_status(
     pool: &PgPool,
     id: Uuid,
-    status: &str,
+    status: AdjustmentStatus,
     approved_by: Option<Uuid>,
 ) -> Result<(), sqlx::Error> {
     query!(
         "UPDATE attendance_adjustment_requests SET status = $1, approved_by_user_id = $2, updated_at = NOW() WHERE id = $3",
-        status,
+        status as AdjustmentStatus,
         approved_by,
         id
     )
@@ -58,7 +58,7 @@ pub async fn update_adjustment_status(
 pub async fn get_workspace_adjustment_requests(
     pool: &PgPool,
     workspace_id: Uuid,
-    status: Option<String>,
+    status: Option<AdjustmentStatus>,
 ) -> Result<Vec<AttendanceAdjustmentRequest>, sqlx::Error> {
     let mut query_str = String::from("SELECT r.id, r.employee_id, r.time_entry_id, r.requested_punch_in_time, r.requested_punch_out_time, r.is_break_overtime, r.reason, r.status, r.requested_by_user_id, r.approved_by_user_id, r.created_at, r.updated_at FROM attendance_adjustment_requests r JOIN employees e ON r.employee_id = e.id WHERE e.workspace_id = $1");
 
@@ -87,7 +87,7 @@ pub async fn get_employee_adjustment_requests(
 ) -> Result<Vec<AttendanceAdjustmentRequest>, sqlx::Error> {
     query_as!(
         AttendanceAdjustmentRequest,
-        "SELECT id, employee_id, time_entry_id, requested_punch_in_time as \"requested_punch_in_time!\", requested_punch_out_time, is_break_overtime, reason, status, requested_by_user_id, approved_by_user_id, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM attendance_adjustment_requests WHERE employee_id = $1 ORDER BY created_at DESC",
+        "SELECT id, employee_id, time_entry_id, requested_punch_in_time as \"requested_punch_in_time!\", requested_punch_out_time, is_break_overtime, reason, status as \"status: AdjustmentStatus\", requested_by_user_id, approved_by_user_id, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM attendance_adjustment_requests WHERE employee_id = $1 ORDER BY created_at DESC",
         employee_id
     )
     .fetch_all(pool)

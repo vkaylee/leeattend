@@ -2,7 +2,7 @@ mod common;
 
 use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
-use apiserver::models::{CreateWorkingPatternRequest, WorkingPatternDetailRequest, AssignPatternRequest};
+use apiserver::models::{CreateWorkingPatternRequest, WorkingPatternDetailRequest, AssignPatternRequest, MemberRole};
 use apiserver::AppState;
 use chrono::NaiveDate;
 use common::factory::TestFactory;
@@ -173,7 +173,7 @@ async fn test_rbac_security() {
     
     // 2. Regular Member Setup
     let member_id = factory.user().create().await;
-    factory.add_member(workspace_id, member_id, "member").await;
+    factory.add_member(workspace_id, member_id, MemberRole::Member).await;
     let member_token = factory.auth().create_token(member_id);
 
     // 3. Attempt Create Pattern as Member

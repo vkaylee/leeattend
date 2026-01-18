@@ -4,7 +4,7 @@ use axum::http::StatusCode;
 use chrono::Utc;
 use common::db::TestDatabase;
 use common::factory::TestFactory;
-use apiserver::models::{LeaveRequest, SubmitLeaveRequest, ApproveLeaveRequest, ShiftRoster, EmployeeLeaveBalance};
+use apiserver::models::{LeaveRequest, SubmitLeaveRequest, ApproveLeaveRequest, ShiftRoster, EmployeeLeaveBalance, LeaveStatus};
 use apiserver::AppState;
 use apiserver::agent_manager::AgentManager;
 use std::sync::Arc;
@@ -77,7 +77,7 @@ async fn test_leave_request_lifecycle() {
     println!("Submitted leave request successfully");
     let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let leave_req: LeaveRequest = serde_json::from_slice(&body).unwrap();
-    assert_eq!(leave_req.status, "pending");
+    assert_eq!(leave_req.status, LeaveStatus::Pending);
     assert_eq!(leave_req.employee_id, emp_id);
 
     // 3. Get My Leave Requests
@@ -104,7 +104,7 @@ async fn test_leave_request_lifecycle() {
     // 4. Approve Leave Request
     println!("Approving leave request...");
     let approve_req = ApproveLeaveRequest {
-        status: "approved".to_string(),
+        status: LeaveStatus::Approved,
     };
 
     let response = app.clone()
@@ -193,7 +193,7 @@ async fn test_reject_leave_request() {
 
     // Verify rejected in DB
     let fetched = apiserver::repositories::leave_request_repository::get_leave_request_by_id(&factory.pool, leave_req.id).await.unwrap().unwrap();
-    assert_eq!(fetched.status, "rejected");
+    assert_eq!(fetched.status, LeaveStatus::Rejected);
 }
 
 #[tokio::test]
@@ -294,8 +294,8 @@ async fn test_workspace_leave_requests_filter() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
-    factory.leave_request().with_employee(emp_id).with_status("pending").create().await;
-    factory.leave_request().with_employee(emp_id).with_status("approved").create().await;
+    factory.leave_request().with_employee(emp_id).with_status(LeaveStatus::Pending).create().await;
+    factory.leave_request().with_employee(emp_id).with_status(LeaveStatus::Approved).create().await;
 
     // Filter by pending
     let response = app.clone()
@@ -315,7 +315,7 @@ async fn test_workspace_leave_requests_filter() {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let requests: Vec<LeaveRequest> = serde_json::from_slice(&body).unwrap();
     assert_eq!(requests.len(), 1);
-    assert_eq!(requests[0].status, "pending");
+    assert_eq!(requests[0].status, LeaveStatus::Pending);
 
     // Filter by approved
     let response = app.clone()
@@ -335,5 +335,5 @@ async fn test_workspace_leave_requests_filter() {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let requests: Vec<LeaveRequest> = serde_json::from_slice(&body).unwrap();
     assert_eq!(requests.len(), 1);
-    assert_eq!(requests[0].status, "approved");
+    assert_eq!(requests[0].status, LeaveStatus::Approved);
 }

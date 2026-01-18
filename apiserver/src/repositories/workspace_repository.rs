@@ -1,4 +1,4 @@
-use crate::models::{MemberExtraRole, Workspace};
+use crate::models::{MemberExtraRole, Workspace, MemberRole};
 use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -7,20 +7,20 @@ use uuid::Uuid;
 pub trait WorkspaceRepository: Send + Sync {
     async fn create_workspace(&self, name: &str) -> Result<Workspace, String>;
     async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, String>;
-    async fn add_member(&self, workspace_id: Uuid, user_id: Uuid, role: &str)
+    async fn add_member(&self, workspace_id: Uuid, user_id: Uuid, role: MemberRole)
         -> Result<(), String>;
     async fn update_member_role(
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-        role: &str,
+        role: MemberRole,
     ) -> Result<(), String>;
     async fn remove_member(&self, workspace_id: Uuid, user_id: Uuid) -> Result<(), String>;
     async fn find_primary_role(
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-    ) -> Result<Option<String>, String>;
+    ) -> Result<Option<MemberRole>, String>;
     async fn find_extra_roles(
         &self,
         workspace_id: Uuid,
@@ -65,7 +65,7 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-        role: &str,
+        role: MemberRole,
     ) -> Result<(), String> {
         sqlx::query(
             "INSERT INTO workspace_members (workspace_id, user_id, role) 
@@ -85,7 +85,7 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-        role: &str,
+        role: MemberRole,
     ) -> Result<(), String> {
         sqlx::query(
             "UPDATE workspace_members SET role = $1 WHERE workspace_id = $2 AND user_id = $3",
@@ -115,8 +115,8 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
         &self,
         workspace_id: Uuid,
         user_id: Uuid,
-    ) -> Result<Option<String>, String> {
-        let row: Option<(String,)> = sqlx::query_as(
+    ) -> Result<Option<MemberRole>, String> {
+        let row: Option<(MemberRole,)> = sqlx::query_as(
             "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2",
         )
         .bind(workspace_id)

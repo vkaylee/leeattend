@@ -5,7 +5,18 @@
     "columns": [],
     "parameters": {
       "Left": [
-        "Varchar",
+        {
+          "Custom": {
+            "name": "adjustment_status_type",
+            "kind": {
+              "Enum": [
+                "pending",
+                "approved",
+                "rejected"
+              ]
+            }
+          }
+        },
         "Uuid",
         "Uuid"
       ]

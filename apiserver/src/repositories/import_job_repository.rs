@@ -1,7 +1,7 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 use chrono::Utc;
-use crate::models::AttendanceImportJob;
+use crate::models::{AttendanceImportJob, ImportJobStatus};
 
 pub async fn create_job(
     pool: &PgPool,
@@ -13,7 +13,7 @@ pub async fn create_job(
     .bind(job.id)
     .bind(job.workspace_id)
     .bind(job.user_id)
-    .bind(&job.status)
+    .bind(job.status)
     .bind(job.total_rows)
     .bind(job.processed_rows)
     .bind(&job.file_path)
@@ -30,7 +30,7 @@ pub async fn update_job_progress(
     pool: &PgPool,
     id: Uuid,
     processed_rows: i32,
-    status: &str,
+    status: ImportJobStatus,
     error_log: Option<String>,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(

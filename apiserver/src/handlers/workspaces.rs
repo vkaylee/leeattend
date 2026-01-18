@@ -13,7 +13,7 @@ use crate::handlers::common::MemberContext;
 use crate::models::{
     Workspace, CreateWorkspaceRequest, UpdateWorkspaceRequest, WorkspaceStats,
     AddMemberRequest, AssignRoleRequest, MemberExtraRole,
-    CreateDepartmentRequest, UpdateDepartmentRequest
+    CreateDepartmentRequest, UpdateDepartmentRequest, MemberRole
 };
 use crate::services::WorkspaceService;
 
@@ -21,7 +21,7 @@ use crate::services::WorkspaceService;
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateMemberRoleRequest {
-    pub role: String,
+    pub role: MemberRole,
 }
 
 #[derive(Debug, Deserialize)]
@@ -205,7 +205,7 @@ pub async fn add_workspace_member(
     )
     .bind(ctx.workspace_id)
     .bind(user_id)
-    .bind(&req.role)
+    .bind(req.role)
     .execute(&state.db)
     .await
     {
@@ -230,7 +230,7 @@ pub async fn update_workspace_member_role(
 
     match state
         .workspace_repo
-        .update_member_role(ctx.workspace_id, user_id, &req.role)
+        .update_member_role(ctx.workspace_id, user_id, req.role)
         .await
     {
         Ok(_) => StatusCode::OK.into_response(),
@@ -317,7 +317,7 @@ pub async fn assign_extra_role(
     )
     .bind(ctx.workspace_id)
     .bind(user_id)
-    .bind(&req.role)
+    .bind(req.role)
     .bind(req.expires_at)
     .fetch_one(&state.db)
     .await

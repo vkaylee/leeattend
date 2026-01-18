@@ -11,7 +11,18 @@
         "Date",
         "Date",
         "Text",
-        "Varchar",
+        {
+          "Custom": {
+            "name": "leave_status_type",
+            "kind": {
+              "Enum": [
+                "pending",
+                "approved",
+                "rejected"
+              ]
+            }
+          }
+        },
         "Uuid",
         "Uuid",
         "Timestamptz",

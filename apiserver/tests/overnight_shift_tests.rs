@@ -1,5 +1,6 @@
 mod common;
 
+use apiserver::models::{LogSource};
 use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
 use apiserver::AppState;
@@ -73,12 +74,12 @@ async fn test_overnight_shift_pairing() {
     // Insert manually into raw logs
     sqlx::query!(
         "INSERT INTO raw_attendance_logs (id, workspace_id, employee_id, punch_time, source) VALUES ($1, $2, $3, $4, $5)",
-        Uuid::new_v4(), ws_id, employee_id, punch_in_utc, "device"
+        Uuid::new_v4(), ws_id, employee_id, punch_in_utc, LogSource::Device as LogSource
     ).execute(&pool).await.unwrap();
 
     sqlx::query!(
         "INSERT INTO raw_attendance_logs (id, workspace_id, employee_id, punch_time, source) VALUES ($1, $2, $3, $4, $5)",
-        Uuid::new_v4(), ws_id, employee_id, punch_out_utc, "device"
+        Uuid::new_v4(), ws_id, employee_id, punch_out_utc, LogSource::Device as LogSource
     ).execute(&pool).await.unwrap();
 
     // 3. Trigger Pairing manually

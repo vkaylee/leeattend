@@ -3,6 +3,7 @@ mod common;
 use axum::http::StatusCode;
 use common::db::TestDatabase;
 use common::factory::TestFactory;
+use apiserver::models::{MemberRole};
 use apiserver::AppState;
 use apiserver::agent_manager::AgentManager;
 use std::sync::Arc;
@@ -38,7 +39,7 @@ async fn test_forbidden_operations_for_member() {
     let owner_id = factory.user().create().await;
     let member_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(owner_id).await;
-    factory.add_member(ws_id, member_id, "member").await;
+    factory.add_member(ws_id, member_id, MemberRole::Member).await;
 
     let headers = [
         ("X-Workspace-Id", ws_id.to_string()),

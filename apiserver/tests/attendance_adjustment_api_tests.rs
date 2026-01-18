@@ -4,7 +4,7 @@ use axum::http::StatusCode;
 use chrono::{Utc, Duration};
 use common::db::TestDatabase;
 use common::factory::TestFactory;
-use apiserver::models::{AttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest, ApproveAttendanceAdjustmentRequest, TimeEntry};
+use apiserver::models::{AttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest, ApproveAttendanceAdjustmentRequest, TimeEntry, AdjustmentStatus};
 use apiserver::AppState;
 use apiserver::agent_manager::AgentManager;
 use std::sync::Arc;
@@ -78,7 +78,7 @@ async fn test_attendance_adjustment_lifecycle() {
     assert_eq!(response.status(), StatusCode::CREATED);
     let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let adjustment: AttendanceAdjustmentRequest = serde_json::from_slice(&body).unwrap();
-    assert_eq!(adjustment.status, "pending");
+    assert_eq!(adjustment.status, AdjustmentStatus::Pending);
 
     // 3. Get My Adjustments
     let response = app.clone()
@@ -101,7 +101,7 @@ async fn test_attendance_adjustment_lifecycle() {
 
     // 4. Approve Adjustment
     let approve_req = ApproveAttendanceAdjustmentRequest {
-        status: "approved".to_string(),
+        status: AdjustmentStatus::Approved,
     };
 
     let response = app.clone()
@@ -238,7 +238,7 @@ async fn test_get_workspace_adjustments_filter() {
     assert_eq!(response.status(), StatusCode::OK);
     let adjustments: Vec<AttendanceAdjustmentRequest> = serde_json::from_slice(&axum::body::to_bytes(response.into_body(), 10000).await.unwrap()).unwrap();
     assert_eq!(adjustments.len(), 1);
-    assert_eq!(adjustments[0].status, "pending");
+    assert_eq!(adjustments[0].status, AdjustmentStatus::Pending);
 }
 
 #[tokio::test]
@@ -291,7 +291,7 @@ async fn test_reject_attendance_adjustment() {
 
     // Verify rejected in DB
     let fetched = apiserver::repositories::attendance_adjustment_repository::get_request_by_id(&factory.pool, adjustment.id).await.unwrap().unwrap();
-    assert_eq!(fetched.status, "rejected");
+    assert_eq!(fetched.status, AdjustmentStatus::Rejected);
 }
 
 #[tokio::test]

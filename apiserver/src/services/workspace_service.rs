@@ -1,4 +1,4 @@
-use crate::models::{MemberExtraRole, Workspace};
+use crate::models::{MemberExtraRole, Workspace, MemberRole};
 use crate::repositories::WorkspaceRepository;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -40,7 +40,7 @@ impl WorkspaceService {
         )
         .bind(workspace.id)
         .bind(owner_id)
-        .bind("owner")
+        .bind(MemberRole::Owner)
         .execute(&mut *tx)
         .await
         .map_err(|e| e.to_string())?;
@@ -54,7 +54,7 @@ impl WorkspaceService {
         repo: &dyn WorkspaceRepository,
         workspace_id: Uuid,
         user_id: Uuid,
-    ) -> Result<(String, Vec<MemberExtraRole>), String> {
+    ) -> Result<(MemberRole, Vec<MemberExtraRole>), String> {
         let primary_role = repo
             .find_primary_role(workspace_id, user_id)
             .await?

@@ -32,6 +32,8 @@ json-patch = "0.3.0"
 rust_decimal = { version = "1.39.0", features = ["serde"] }
 calamine = { version = "0.32.0", features = ["dates"] }
 csv = "1.4.0"
+strum = "0.26"
+strum_macros = "0.26"
 
 [lints.rust]
 warnings = "deny"

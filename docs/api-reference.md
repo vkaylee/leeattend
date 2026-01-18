@@ -123,10 +123,31 @@ Cập nhật thông tin hoặc cấu hình hệ thống của workspace.
 
 ### 2. Workspace Members
 
-Hệ thống cho phép gán thêm các Role phụ có thời hạn cho thành viên.
+Hệ thống quản lý thành viên và phân quyền trong tổ chức. Một thành viên có một **Role chính** (Primary Role) và có thể được gán thêm các **Role phụ** (Extra Roles) có thời hạn.
 
-#### GET /workspaces/:id/members/:user_id/roles
-Lấy danh sách tất cả các role của một thành viên (bao gồm role chính và các role phụ).
+#### GET /workspaces/:ws_id/members
+Lấy danh sách tất cả thành viên trong workspace.
+- **Response (200)**: `Array<WorkspaceMember>`
+
+#### POST /workspaces/:ws_id/members
+Mời hoặc thêm thành viên mới vào workspace.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**: `{ "user_id": "...", "role": "admin|member" }`
+- **Response (201)**: `WorkspaceMember` object
+
+#### PATCH /workspaces/:ws_id/members/:user_id
+Cập nhật **Role chính** của thành viên.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**: `{ "role": "admin|member" }`
+- **Response (200 OK)**
+
+#### DELETE /workspaces/:ws_id/members/:user_id
+Xóa thành viên khỏi workspace.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`. Không cho phép tự xóa chính mình hoặc xóa `owner`.
+- **Response (204)**: No Content
+
+#### GET /workspaces/:ws_id/members/:user_id/roles
+Lấy danh sách tất cả các role hiện tại của một thành viên (bao gồm role chính và các role phụ đang hiệu lực).
 - **Response (200)**: 
   ```json
   {
@@ -142,8 +163,8 @@ Lấy danh sách tất cả các role của một thành viên (bao gồm role c
   }
   ```
 
-#### POST /workspaces/:id/members/:user_id/roles
-Gán một role phụ có thời hạn cho thành viên.
+#### POST /workspaces/:ws_id/members/:user_id/roles
+Gán một **Role phụ** có thời hạn cho thành viên.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**:
   ```json
@@ -154,7 +175,7 @@ Gán một role phụ có thời hạn cho thành viên.
   ```
 - **Response (201)**: `MemberExtraRole` object
 
-#### DELETE /workspaces/:id/members/:user_id/roles/:role_id
+#### DELETE /workspaces/:ws_id/members/:user_id/roles/:role_id
 Thu hồi một role phụ trước thời hạn.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Response (204)**: No Content

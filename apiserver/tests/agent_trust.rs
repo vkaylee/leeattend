@@ -1,3 +1,4 @@
+use apiserver::models::{MemberRole};
 use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
 use apiserver::AppState;
@@ -63,7 +64,7 @@ async fn spawn_app() -> (String, Uuid, Uuid) {
     sqlx::query("INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3)")
         .bind(workspace_id)
         .bind(user_id)
-        .bind("owner")
+        .bind(MemberRole::Owner)
         .execute(&db_pool)
         .await
         .unwrap();

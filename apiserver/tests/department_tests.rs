@@ -1,4 +1,5 @@
 mod common;
+use apiserver::models::{MemberRole};
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
 use common::factory::TestFactory;
 use common::db::TestDatabase;
@@ -146,7 +147,7 @@ async fn test_department_rbac() {
 
     // Create a regular member
     let member_id = factory.user().create().await;
-    factory.add_member(workspace_id, member_id, "member").await;
+    factory.add_member(workspace_id, member_id, MemberRole::Member).await;
 
     // Member tries to create a department - should fail
     let response = client

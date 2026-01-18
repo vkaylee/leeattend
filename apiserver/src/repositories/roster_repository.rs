@@ -260,7 +260,7 @@ pub async fn get_assignment_history(
             SELECT 
                 es.id,
                 es.employee_id,
-                'fixed' as assignment_type,
+                'fixed'::assignment_history_type as assignment_type,
                 s.name as shift_name,
                 TO_CHAR(es.start_date, 'YYYY-MM-DD') || 
                 CASE WHEN es.end_date IS NULL THEN ' -> ∞' ELSE ' -> ' || TO_CHAR(es.end_date, 'YYYY-MM-DD') END as date_range,
@@ -276,7 +276,7 @@ pub async fn get_assignment_history(
             SELECT 
                 ewp.id,
                 ewp.employee_id,
-                'pattern' as assignment_type,
+                'pattern'::assignment_history_type as assignment_type,
                 wp.name as shift_name,
                 TO_CHAR(ewp.start_date, 'YYYY-MM-DD') || 
                 CASE WHEN ewp.end_date IS NULL THEN ' -> ∞' ELSE ' -> ' || TO_CHAR(ewp.end_date, 'YYYY-MM-DD') END as date_range,
@@ -292,7 +292,7 @@ pub async fn get_assignment_history(
             SELECT 
                 sr.id,
                 sr.employee_id,
-                'roster' as assignment_type,
+                'roster'::assignment_history_type as assignment_type,
                 CASE WHEN sr.shift_id IS NULL THEN 'OFF' ELSE s.name END as shift_name,
                 TO_CHAR(sr.date, 'YYYY-MM-DD') as date_range,
                 sr.created_at
@@ -307,7 +307,7 @@ pub async fn get_assignment_history(
             SELECT 
                 edh.id,
                 edh.employee_id,
-                'department_pattern' as assignment_type,
+                'department_pattern'::assignment_history_type as assignment_type,
                 wp.name as shift_name,
                 TO_CHAR(edh.effective_date, 'YYYY-MM-DD') || ' -> ∞' as date_range,
                 edh.created_at
@@ -323,7 +323,7 @@ pub async fn get_assignment_history(
             SELECT 
                 edh.id,
                 edh.employee_id,
-                'department_fixed' as assignment_type,
+                'department_fixed'::assignment_history_type as assignment_type,
                 s.name as shift_name,
                 TO_CHAR(edh.effective_date, 'YYYY-MM-DD') || ' -> ∞' as date_range,
                 edh.created_at

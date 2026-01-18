@@ -66,6 +66,7 @@ leeattend/
         - **Raw Event Store**: Dedicated `raw_attendance_logs` table for immutable original punch data from hardware and imports.
         - **Pairing Engine (Strategy Pattern)**: `PairingService` handles the conversion of flat events into logical sessions using a pluggable strategy architecture:
             - **Pluggable Algorithms**: Supports `DpPatternStrategy` (intelligent matching), `AnchorFirstStrategy` (first/last), `SequentialStrategy` (chronological/retail), and `FsmStrategy` (state-based).
+            - **Morning Lookback (Overnight support)**: Backend automatically reprocesses the previous day's attendance if a log is received before 12:00 PM. This ensures morning check-outs are correctly paired with the previous night's check-ins without requiring manual reprocessing.
             - **Metadata-Aware**: Algorithms use the `LogEvent` structure to access `punch_type` information (Status) from devices, enabling explicit intent-based pairing.
             - **Workspace Selection**: Users can configure the preferred algorithm per workspace to match their specific business environment (Office, Factory, Retail, Professional Hardware).
             - **High-Penalty Matching**: Optimized the DP algorithm with a 300-minute unmatched log penalty to correctly capture extreme overtime scenarios.

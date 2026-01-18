@@ -9,7 +9,7 @@ use sqlx;
 use std::sync::Arc;
 use uuid::Uuid;
 use crate::{AppState, UserId};
-use crate::models::GenericResponse;
+use crate::models::{GenericResponse, MemberRole};
 
 // --- Extractors ---
 
@@ -63,16 +63,16 @@ where
 pub struct MemberContext {
     pub user_id: Uuid,
     pub workspace_id: Uuid,
-    pub roles: Vec<String>,
+    pub roles: Vec<MemberRole>,
 }
 
 impl MemberContext {
-    pub fn has_role(&self, role: &str) -> bool {
-        self.roles.iter().any(|r| r == role)
+    pub fn has_role(&self, role: MemberRole) -> bool {
+        self.roles.contains(&role)
     }
 
     pub fn is_admin_or_owner(&self) -> bool {
-        self.has_role("admin") || self.has_role("owner")
+        self.has_role(MemberRole::Admin) || self.has_role(MemberRole::Owner)
     }
 }
 
@@ -108,7 +108,7 @@ where
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
-        let mut roles: Vec<String> = all_extra_roles
+        let mut roles: Vec<MemberRole> = all_extra_roles
             .into_iter()
             .filter(|r| r.expires_at > chrono::Utc::now())
             .map(|r| r.role)

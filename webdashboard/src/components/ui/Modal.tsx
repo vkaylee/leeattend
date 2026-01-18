@@ -56,6 +56,8 @@ export default function Modal({
   return createPortal(
     <div className="modal-backdrop" onClick={onClose}>
       <div 
+        role="dialog"
+        aria-modal="true"
         className={cn(
           "modal-content", 
           maxWidthMap[maxWidth],

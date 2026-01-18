@@ -4,7 +4,7 @@ use axum::http::StatusCode;
 use chrono::NaiveDate;
 use common::db::TestDatabase;
 use common::factory::TestFactory;
-use apiserver::models::{LeaveHistoryItem, SubmitLeaveRequest, ApproveLeaveRequest, AdjustBalanceRequest, LeaveRequest};
+use apiserver::models::{LeaveHistoryItem, SubmitLeaveRequest, ApproveLeaveRequest, AdjustBalanceRequest, LeaveRequest, LeaveStatus, LeaveTransactionType};
 use apiserver::AppState;
 use apiserver::agent_manager::AgentManager;
 use std::sync::Arc;
@@ -104,7 +104,7 @@ async fn test_leave_history_and_adjustment() {
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(serde_json::to_string(&ApproveLeaveRequest { status: "approved".to_string() }).unwrap()))
+                .body(axum::body::Body::from(serde_json::to_string(&ApproveLeaveRequest { status: LeaveStatus::Approved }).unwrap()))
                 .unwrap(),
         )
         .await
@@ -133,11 +133,11 @@ async fn test_leave_history_and_adjustment() {
     assert_eq!(history.len(), 2);
     
     // Sort logic: usage (Feb) should be first, adjustment (Jan) second
-    assert_eq!(history[0].transaction_type, "usage");
+    assert_eq!(history[0].transaction_type, LeaveTransactionType::Usage);
     assert_eq!(history[0].amount, -2.0); // 2 days
     assert_eq!(history[0].reference_id, Some(leave_req.id));
 
-    assert_eq!(history[1].transaction_type, "adjustment");
+    assert_eq!(history[1].transaction_type, LeaveTransactionType::Adjustment);
     assert_eq!(history[1].amount, 5.0);
     assert_eq!(history[1].reason, Some("Initial Balance".to_string()));
 }

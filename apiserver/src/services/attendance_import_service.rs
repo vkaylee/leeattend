@@ -8,7 +8,7 @@ use std::io::Cursor;
 use calamine::{Reader, Xlsx, Xls, Data, DataType};
 use std::collections::HashSet;
 
-use crate::models::{AttendanceImportJob, CreateAttendanceAdjustmentRequest, RawAttendanceLog};
+use crate::models::{AttendanceImportJob, CreateAttendanceAdjustmentRequest, RawAttendanceLog, AdjustmentStatus, ImportJobStatus, LogSource};
 use crate::repositories::{import_job_repository, employee_repository, raw_attendance_log_repository};
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::services::pairing_service::PairingService;
@@ -36,7 +36,7 @@ impl AttendanceImportService {
             id: job_id,
             workspace_id,
             user_id,
-            status: "processing".to_string(),
+            status: ImportJobStatus::Processing,
             total_rows: 0,
             processed_rows: 0,
             file_path: Some(file_path.clone()),
@@ -86,7 +86,7 @@ impl AttendanceImportService {
             Ok(Some(ws)) => ws,
             _ => {
                 error!("WORKSPACE_NOT_FOUND for job {}", job_id);
-                let _ = import_job_repository::update_job_progress(&pool, job_id, job.processed_rows, "failed", Some("Workspace not found".to_string())).await;
+                let _ = import_job_repository::update_job_progress(&pool, job_id, job.processed_rows, ImportJobStatus::Failed, Some("Workspace not found".to_string())).await;
                 return Err(());
             }
         };
@@ -104,7 +104,7 @@ impl AttendanceImportService {
             Ok(b) => b,
             Err(e) => {
                 error!("READ_FILE_ERROR for job {}: {:?}", job_id, e);
-                let _ = import_job_repository::update_job_progress(&pool, job_id, job.processed_rows, "failed", Some(format!("Could not read file: {:?}", e))).await;
+                let _ = import_job_repository::update_job_progress(&pool, job_id, job.processed_rows, ImportJobStatus::Failed, Some(format!("Could not read file: {:?}", e))).await;
                 return Err(());
             }
         };
@@ -172,7 +172,7 @@ impl AttendanceImportService {
             .bind(total_rows).bind(job_id).execute(&pool).await;
 
         if !errors.is_empty() {
-             let _ = import_job_repository::update_job_progress(&pool, job_id, 0, "failed", Some(errors.join("\n"))).await;
+             let _ = import_job_repository::update_job_progress(&pool, job_id, 0, ImportJobStatus::Failed, Some(errors.join("\n"))).await;
              let _ = tokio::fs::remove_file(file_path).await;
              return Err(());
         }
@@ -188,14 +188,14 @@ impl AttendanceImportService {
                 
                 if !missing_ids.is_empty() {
                     let err_msg = format!("Found {} unknown employees: {}", missing_ids.len(), missing_ids.join(", "));
-                    let _ = import_job_repository::update_job_progress(&pool, job_id, 0, "failed", Some(err_msg)).await;
+                    let _ = import_job_repository::update_job_progress(&pool, job_id, 0, ImportJobStatus::Failed, Some(err_msg)).await;
                     let _ = tokio::fs::remove_file(file_path).await;
                     return Err(());
                 }
             },
             Err(e) => {
                 error!("VALIDATION_ERROR: {:?}", e);
-                let _ = import_job_repository::update_job_progress(&pool, job_id, 0, "failed", Some("Database error during validation".to_string())).await;
+                let _ = import_job_repository::update_job_progress(&pool, job_id, 0, ImportJobStatus::Failed, Some("Database error during validation".to_string())).await;
                 return Err(());
             }
         }
@@ -215,7 +215,7 @@ impl AttendanceImportService {
                 Ok(c) => {
                     processed_rows += c as i32;
                     if processed_rows % 10 == 0 {
-                        let _ = import_job_repository::update_job_progress(&pool, job_id, processed_rows, "processing", None).await;
+                        let _ = import_job_repository::update_job_progress(&pool, job_id, processed_rows, ImportJobStatus::Processing, None).await;
                     }
                 },
                 Err(_) => {
@@ -225,7 +225,7 @@ impl AttendanceImportService {
             }
         }
 
-        let status = if !errors.is_empty() { "failed" } else { "completed" };
+        let status = if !errors.is_empty() { ImportJobStatus::Failed } else { ImportJobStatus::Completed };
         let error_log = if errors.is_empty() { None } else { Some(errors.join("\n")) };
         let _ = import_job_repository::update_job_progress(&pool, job_id, processed_rows, status, error_log).await;
         
@@ -316,7 +316,7 @@ impl AttendanceImportService {
                 workspace_id: job.workspace_id,
                 employee_id: employee.id,
                 punch_time: punch_time_utc,
-                source: "import".to_string(),
+                source: LogSource::Import,
                 device_id: None,
                 raw_data: None, 
                 created_at: Utc::now(),
@@ -348,7 +348,8 @@ impl AttendanceImportService {
             };
 
             if let Ok(adjustment) = AttendanceAdjustmentService::submit_request(pool, job.workspace_id, job.user_id, req).await {
-                let _ = AttendanceAdjustmentService::approve_request(pool, job.workspace_id, job.user_id, adjustment.id, "approved".to_string()).await;
+                                    let _ = AttendanceAdjustmentService::approve_request(pool, job.workspace_id, job.user_id, adjustment.id, AdjustmentStatus::Approved).await;
+                
                 return Ok(1);
             }
             Ok(0)

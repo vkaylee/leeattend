@@ -2,6 +2,62 @@ use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display)]
+#[sqlx(type_name = "member_role_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum MemberRole {
+    Owner,
+    Admin,
+    Member,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display)]
+#[sqlx(type_name = "leave_status_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum LeaveStatus {
+    Pending,
+    Approved,
+    Rejected,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display)]
+#[sqlx(type_name = "adjustment_status_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum AdjustmentStatus {
+    Pending,
+    Approved,
+    Rejected,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display)]
+#[sqlx(type_name = "log_source_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum LogSource {
+    Device,
+    Import,
+    Manual,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display)]
+#[sqlx(type_name = "import_job_status_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum ImportJobStatus {
+    Pending,
+    Processing,
+    Completed,
+    Failed,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display)]
+#[sqlx(type_name = "leave_transaction_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum LeaveTransactionType {
+    Accrual,
+    Usage,
+    Adjustment,
+    CarryOver,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WorkspaceStats {
     pub total_employees: i64,
@@ -202,13 +258,13 @@ pub struct ChangePasswordRequest {
 pub struct WorkspaceMember {
     pub workspace_id: Uuid,
     pub user_id: Uuid,
-    pub role: String,
+    pub role: MemberRole,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AddMemberRequest {
     pub email: String,
-    pub role: String,
+    pub role: MemberRole,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
@@ -216,14 +272,14 @@ pub struct MemberExtraRole {
     pub id: Uuid,
     pub workspace_id: Uuid,
     pub user_id: Uuid,
-    pub role: String,
+    pub role: MemberRole,
     pub assigned_at: DateTime<Utc>,
     pub expires_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AssignRoleRequest {
-    pub role: String,
+    pub role: MemberRole,
     pub expires_at: DateTime<Utc>,
 }
 
@@ -231,7 +287,7 @@ pub struct AssignRoleRequest {
 pub struct WorkspaceMemberDetail {
     pub workspace_id: Uuid,
     pub user_id: Uuid,
-    pub role: String,
+    pub role: MemberRole,
     pub email: String,
     pub full_name: Option<String>,
     pub avatar_url: Option<String>,
@@ -338,7 +394,7 @@ pub struct LeaveRequest {
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,
     pub reason: Option<String>,
-    pub status: String,
+    pub status: LeaveStatus,
     pub requested_by_user_id: Option<Uuid>,
     pub approved_by_user_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -356,7 +412,7 @@ pub struct SubmitLeaveRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ApproveLeaveRequest {
-    pub status: String,
+    pub status: LeaveStatus,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
@@ -411,7 +467,7 @@ pub struct AttendanceAdjustmentRequest {
     pub requested_punch_out_time: Option<DateTime<Utc>>,
     pub is_break_overtime: bool,
     pub reason: Option<String>,
-    pub status: String,
+    pub status: AdjustmentStatus,
     pub requested_by_user_id: Option<Uuid>,
     pub approved_by_user_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -430,7 +486,7 @@ pub struct CreateAttendanceAdjustmentRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ApproveAttendanceAdjustmentRequest {
-    pub status: String,
+    pub status: AdjustmentStatus,
 }
 
 // --- Basic Reporting Models ---
@@ -738,7 +794,7 @@ pub struct RawAttendanceLog {
     pub workspace_id: Uuid,
     pub employee_id: Uuid,
     pub punch_time: DateTime<Utc>,
-    pub source: String,
+    pub source: LogSource,
     pub device_id: Option<String>,
     pub raw_data: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
@@ -749,7 +805,7 @@ pub struct AttendanceImportJob {
     pub id: Uuid,
     pub workspace_id: Uuid,
     pub user_id: Uuid,
-    pub status: String,
+    pub status: ImportJobStatus,
     pub total_rows: i32,
     pub processed_rows: i32,
     pub file_path: Option<String>,
@@ -783,12 +839,23 @@ pub struct EmployeeSchedule {
     pub schedules: Vec<EffectiveSchedule>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "assignment_history_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum AssignmentHistoryType {
+    Roster,
+    Pattern,
+    DepartmentPattern,
+    Fixed,
+    DepartmentFixed,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct AssignmentHistory {
     pub id: Uuid,
     pub employee_id: Uuid,
     pub employee_name: String,
-    pub assignment_type: String, // "roster", "fixed"
+    pub assignment_type: AssignmentHistoryType,
     pub shift_name: Option<String>,
     pub date_range: String,      // "2023-01-01" or "2023-01-01 -> 2023-02-01"
     pub created_at: DateTime<Utc>,
@@ -948,7 +1015,7 @@ pub struct AssignLeavePolicyRequest {
 pub struct LeaveHistoryItem {
     pub id: Uuid,
     pub date: NaiveDate,
-    pub transaction_type: String, // "accrual", "usage", "adjustment", "carry_over"
+    pub transaction_type: LeaveTransactionType,
     pub amount: f64,
     pub reason: Option<String>,
     pub reference_id: Option<Uuid>,

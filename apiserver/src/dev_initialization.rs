@@ -2,6 +2,8 @@ use sqlx::PgPool;
 use uuid::Uuid;
 use tracing::info;
 
+use crate::models::MemberRole;
+
 pub async fn ensure_dev_data(pool: &PgPool) -> Result<(), sqlx::Error> {
     info!("Ensuring dev data exists...");
 
@@ -52,7 +54,7 @@ pub async fn ensure_dev_data(pool: &PgPool) -> Result<(), sqlx::Error> {
     )
     .bind(workspace_id)
     .bind(admin_user_id)
-    .bind("owner")
+    .bind(MemberRole::Owner)
     .execute(pool)
     .await?;
 

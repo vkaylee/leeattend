@@ -1,5 +1,6 @@
 mod common;
 
+use apiserver::models::{ImportJobStatus};
 use common::db::TestDatabase;
 use common::factory::TestFactory;
 use apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService;
@@ -49,7 +50,7 @@ async fn test_workspace_specific_date_parsing() {
     for _ in 0..20 {
         sleep(Duration::from_millis(100)).await;
         let job = apiserver::repositories::import_job_repository::get_job_by_id(&pool, job_id).await.unwrap().unwrap();
-        if job.status == "completed" {
+        if job.status == ImportJobStatus::Completed {
             finished = true;
             break;
         }
@@ -86,7 +87,7 @@ async fn test_workspace_specific_date_parsing() {
     for _ in 0..20 {
         sleep(Duration::from_millis(100)).await;
         let job = apiserver::repositories::import_job_repository::get_job_by_id(&pool, job_id_vn).await.unwrap().unwrap();
-        if job.status == "completed" { break; }
+        if job.status == ImportJobStatus::Completed { break; }
     }
 
     // This one should be February 1st

@@ -2,6 +2,17 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
+## [Unreleased] - 2026-01-18
+
+### Added
+- **Morning Lookback for Overnight Shifts**: Enhanced the `PairingService` to automatically reprocess the previous day's attendance when a log is received before 12:00 PM. This ensures that employees finishing a night shift (e.g., 22:00 - 06:00) have their morning check-out correctly paired with the previous night's check-in.
+
+### Fixed
+- **Attendance Pairing Test Stability**: Hardened `raw_attendance_pairing_tests.rs` by enforcing a UTC timezone for all test workspaces, eliminating date-boundary flakiness.
+- **Workspace Member API Tests**: Fixed `workspace_extended_tests.rs` by correcting the role update endpoint to use `PATCH` (matching the actual implementation) and resolving a database foreign key violation by creating real users via the test factory.
+- **E2E Selector Specificity**: Refined the `z-index-stacking.spec.ts` selector to target `[cmdk-root]`, preventing false negatives in Z-Index verification caused by accidentally selecting the modal backdrop.
+- **Frontend Quality**: Fixed a regression in `webdashboard/vitest.config.ts` and refined the `Modal` component's backdrop implementation.
+
 ## [Unreleased] - 2026-01-17
 
 ### Added

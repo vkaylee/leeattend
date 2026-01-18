@@ -351,13 +351,12 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         await user.click(dayCards[0]);
 
         const assignButton = await screen.findByText("Assign shift to selected");
-        await user.click(assignButton.closest("button")!);
-
-        await waitFor(() => {
-          expect(screen.getByText("Morning Shift")).toBeDefined();
-          expect(screen.getByText("Afternoon Shift")).toBeDefined();
-          expect(screen.getByText("Night Shift")).toBeDefined();
-        });
+                await user.click(assignButton.closest("button")!);
+                await waitFor(() => {
+                  expect(screen.getAllByText("Morning Shift").length).toBeGreaterThan(0);
+                  expect(screen.getAllByText("Afternoon Shift").length).toBeGreaterThan(0);
+                  expect(screen.getAllByText("Night Shift").length).toBeGreaterThan(0);
+                });
       }
     });
 
@@ -507,11 +506,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         const assignButton = await screen.findByText("Assign shift to selected");
         await user.click(assignButton.closest("button")!);
 
-        await waitFor(() => {
-          expect(screen.getByText("Morning Shift")).toBeDefined();
-        });
-
-        const morningShiftButton = screen.getByText("Morning Shift").closest("button");
+        const modal = await screen.findByRole("dialog");
+        const morningShiftButton = within(modal).getByText("Morning Shift").closest("button");
         await user.click(morningShiftButton!);
 
         await waitFor(() => {
@@ -599,11 +595,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         const assignButton = await screen.findByText("Assign shift to selected");
         await user.click(assignButton.closest("button")!);
 
-        await waitFor(() => {
-          expect(screen.getByText("Morning Shift")).toBeDefined();
-        });
-
-        const morningShiftButton = screen.getByText("Morning Shift").closest("button");
+        const modal = await screen.findByRole("dialog");
+        const morningShiftButton = within(modal).getByText("Morning Shift").closest("button");
         await user.click(morningShiftButton!);
 
         await waitFor(() => {
@@ -644,11 +637,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         const assignButton = await screen.findByText("Assign shift to selected");
         await user.click(assignButton.closest("button")!);
 
-        await waitFor(() => {
-          expect(screen.getByText("Morning Shift")).toBeDefined();
-        });
-
-        const morningShiftButton = screen.getByText("Morning Shift").closest("button");
+        const modal = await screen.findByRole("dialog");
+        const morningShiftButton = within(modal).getByText("Morning Shift").closest("button");
         await user.click(morningShiftButton!);
 
         await waitFor(() => {
@@ -716,11 +706,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         const assignButton = await screen.findByText("Assign shift to selected");
         await user.click(assignButton.closest("button")!);
 
-        await waitFor(() => {
-          expect(screen.getByText("Morning Shift")).toBeDefined();
-        });
-
-        const morningShiftButton = screen.getByText("Morning Shift").closest("button");
+        const modal = await screen.findByRole("dialog");
+        const morningShiftButton = within(modal).getByText("Morning Shift").closest("button");
         await user.click(morningShiftButton!);
 
         await waitFor(() => {
@@ -763,11 +750,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         const assignButton = await screen.findByText("Assign shift to selected");
         await user.click(assignButton.closest("button")!);
 
-        await waitFor(() => {
-          expect(screen.getByText("Morning Shift")).toBeDefined();
-        });
-
-        const morningShiftButton = screen.getByText("Morning Shift").closest("button");
+        const modal = await screen.findByRole("dialog");
+        const morningShiftButton = within(modal).getByText("Morning Shift").closest("button");
         await user.click(morningShiftButton!);
 
         // Wait a bit for mutation to process

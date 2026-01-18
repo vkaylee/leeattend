@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc, Datelike};
 use sqlx::PgPool;
 use uuid::Uuid;
+use apiserver::models::{MemberRole, LeaveStatus};
 
 pub struct TestFactory {
     pub pool: PgPool,
@@ -193,7 +194,7 @@ impl WorkspaceBuilder {
         )
         .bind(ws_id)
         .bind(user_id)
-        .bind("owner")
+        .bind(MemberRole::Owner)
         .execute(&pool)
         .await
         .unwrap();
@@ -203,7 +204,7 @@ impl WorkspaceBuilder {
 
 impl TestFactory {
     #[allow(dead_code)]
-    pub async fn add_member(&self, ws_id: Uuid, user_id: Uuid, role: &str) {
+    pub async fn add_member(&self, ws_id: Uuid, user_id: Uuid, role: MemberRole) {
         sqlx::query(
             "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3)",
         )
@@ -220,7 +221,7 @@ impl TestFactory {
         &self,
         ws_id: Uuid,
         user_id: Uuid,
-        role: &str,
+        role: MemberRole,
         expires_at: DateTime<Utc>,
     ) {
         sqlx::query("INSERT INTO member_extra_roles (workspace_id, user_id, role, expires_at) VALUES ($1, $2, $3, $4) RETURNING *")
@@ -661,7 +662,7 @@ pub struct LeaveRequestBuilder {
     leave_type: String,
     start_date: chrono::NaiveDate,
     end_date: chrono::NaiveDate,
-    status: String,
+    status: LeaveStatus,
 }
 
 #[allow(dead_code)]
@@ -673,7 +674,7 @@ impl LeaveRequestBuilder {
             leave_type: "annual".to_string(),
             start_date: chrono::Utc::now().date_naive(),
             end_date: chrono::Utc::now().date_naive(),
-            status: "pending".to_string(),
+            status: LeaveStatus::Pending,
         }
     }
 
@@ -688,8 +689,8 @@ impl LeaveRequestBuilder {
         self
     }
 
-    pub fn with_status(mut self, status: &str) -> Self {
-        self.status = status.to_string();
+    pub fn with_status(mut self, status: LeaveStatus) -> Self {
+        self.status = status;
         self
     }
 

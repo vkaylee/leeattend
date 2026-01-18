@@ -14,7 +14,7 @@ pub async fn create_raw_log(
     .bind(log.workspace_id)
     .bind(log.employee_id)
     .bind(log.punch_time)
-    .bind(&log.source)
+    .bind(log.source)
     .bind(&log.device_id)
     .bind(&log.raw_data)
     .bind(log.created_at)

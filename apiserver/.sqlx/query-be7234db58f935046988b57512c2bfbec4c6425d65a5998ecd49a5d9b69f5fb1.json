@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, employee_id, time_entry_id, requested_punch_in_time as \"requested_punch_in_time!\", requested_punch_out_time, is_break_overtime, reason, status, requested_by_user_id, approved_by_user_id, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM attendance_adjustment_requests WHERE employee_id = $1 ORDER BY created_at DESC",
+  "query": "SELECT id, employee_id, time_entry_id, requested_punch_in_time as \"requested_punch_in_time!\", requested_punch_out_time, is_break_overtime, reason, status as \"status: AdjustmentStatus\", requested_by_user_id, approved_by_user_id, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM attendance_adjustment_requests WHERE employee_id = $1 ORDER BY created_at DESC",
   "describe": {
     "columns": [
       {
@@ -40,8 +40,19 @@
       },
       {
         "ordinal": 7,
-        "name": "status",
-        "type_info": "Varchar"
+        "name": "status: AdjustmentStatus",
+        "type_info": {
+          "Custom": {
+            "name": "adjustment_status_type",
+            "kind": {
+              "Enum": [
+                "pending",
+                "approved",
+                "rejected"
+              ]
+            }
+          }
+        }
       },
       {
         "ordinal": 8,
@@ -84,5 +95,5 @@
       true
     ]
   },
-  "hash": "43ea541c7ca45867c2959b0d4a5c0943bf852d5da87f6999b26fe090eb5c3ee1"
+  "hash": "be7234db58f935046988b57512c2bfbec4c6425d65a5998ecd49a5d9b69f5fb1"
 }

@@ -2,7 +2,7 @@ mod common;
 
 use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
-use apiserver::models::DailyAttendanceReport;
+use apiserver::models::{DailyAttendanceReport, LeaveStatus};
 use apiserver::AppState;
 use chrono::{Duration, NaiveTime, Utc};
 use common::factory::TestFactory;
@@ -277,7 +277,7 @@ async fn test_get_workspace_attendance_summary() {
         "vacation",
         start_date,
         end_date,
-        "approved"
+        LeaveStatus::Approved as LeaveStatus
     )
     .execute(&pool)
     .await

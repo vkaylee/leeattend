@@ -4,7 +4,11 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::repositories::roster_repository;
-use crate::models::{ApproveLeaveRequest, LeaveRequest, SubmitLeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, ShiftRoster, LeaveHistoryItem, AdjustBalanceRequest};
+use crate::models::{
+    LeaveRequest, LeaveStatus, LeaveTransactionType, LeaveHistoryItem,
+    WorkspaceLeaveBalance, AdjustBalanceRequest, EmployeeLeaveBalance,
+    SubmitLeaveRequest, ApproveLeaveRequest, ShiftRoster
+};
 use crate::repositories::employee_repository;
 use crate::repositories::leave_request_repository;
 use crate::repositories::leave_balance_repository;
@@ -63,11 +67,11 @@ impl LeaveService {
         let mut history: Vec<LeaveHistoryItem> = Vec::new();
 
         for log in logs {
-            let type_str = if log.policy_assignment_id.is_some() { "accrual" } else { "adjustment" };
+            let transaction_type = if log.policy_assignment_id.is_some() { LeaveTransactionType::Accrual } else { LeaveTransactionType::Adjustment };
             history.push(LeaveHistoryItem {
                 id: log.id,
                 date: log.accrual_date,
-                transaction_type: type_str.to_string(),
+                transaction_type,
                 amount: log.amount.to_f64().unwrap_or(0.0),
                 reason: log.notes,
                 reference_id: None,
@@ -80,7 +84,7 @@ impl LeaveService {
             history.push(LeaveHistoryItem {
                 id: Uuid::new_v4(), // Virtual ID for history view
                 date: req.start_date,
-                transaction_type: "usage".to_string(),
+                transaction_type: LeaveTransactionType::Usage,
                 amount: -(days as f64),
                 reason: req.reason,
                 reference_id: Some(req.id),
@@ -152,7 +156,7 @@ impl LeaveService {
             start_date: req.start_date,
             end_date: req.end_date,
             reason: req.reason,
-            status: "pending".to_string(),
+            status: LeaveStatus::Pending,
             requested_by_user_id: Some(user_id),
             approved_by_user_id: None,
             created_at: Utc::now(),
@@ -187,14 +191,14 @@ impl LeaveService {
         leave_request_repository::update_leave_request_status(
             pool,
             request_id,
-            &req.status,
+            req.status,
             Some(user_id),
         )
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         // If approved, update roster
-        if req.status == "approved" {
+        if req.status == LeaveStatus::Approved {
             let mut current_date = request.start_date;
             while current_date <= request.end_date {
                 let roster = ShiftRoster {
@@ -242,7 +246,7 @@ impl LeaveService {
     pub async fn get_workspace_leave_requests(
         pool: &PgPool,
         workspace_id: Uuid,
-        status: Option<String>,
+        status: Option<LeaveStatus>,
     ) -> Result<Vec<LeaveRequest>, StatusCode> {
         leave_request_repository::get_workspace_leave_requests(pool, workspace_id, status)
             .await

@@ -63,6 +63,13 @@ impl PairingService {
         // 4. Reprocess that day
         Self::reprocess_daily_attendance(pool, log.employee_id, local_date, tz, &algorithm).await?;
 
+        // 5. Reprocess previous day if early in the morning (Overnight checkouts)
+        if local_dt.hour() < 12 {
+            let prev_date = local_date - Duration::days(1);
+            info!("Log is early in day ({}), reprocessing previous day {} for overnight checkouts", local_dt, prev_date);
+            Self::reprocess_daily_attendance(pool, log.employee_id, prev_date, tz, &algorithm).await?;
+        }
+
         Ok(())
     }
 
@@ -173,12 +180,12 @@ impl PairingService {
         // 5. Update Database
         let mut tx = pool.begin().await?;
 
-        // Delete existing auto entries for the standard 24h period of that date
+        // Delete existing auto entries for the search window to prevent duplicates when reprocessing
         sqlx::query!(
             "DELETE FROM time_entries WHERE employee_id = $1 AND punch_in_time >= $2 AND punch_in_time < $3",
             employee_id,
             start_of_day_utc,
-            start_of_day_utc + Duration::hours(24)
+            end_of_window_utc
         )
         .execute(&mut *tx)
         .await?;

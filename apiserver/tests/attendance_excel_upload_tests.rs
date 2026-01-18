@@ -1,4 +1,5 @@
 mod common;
+use apiserver::models::{ImportJobStatus};
 use common::db::TestDatabase;
 use common::factory::TestFactory;
 use apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService;
@@ -42,7 +43,7 @@ async fn test_batch_import_from_file_success() {
     for _ in 0..20 {
         sleep(Duration::from_millis(100)).await;
         let job = apiserver::repositories::import_job_repository::get_job_by_id(&pool, job_id).await.unwrap().unwrap();
-        if job.status == "completed" {
+        if job.status == ImportJobStatus::Completed {
             processed = true;
             break;
         }
@@ -100,7 +101,7 @@ async fn test_import_recovery_on_startup() {
     for _ in 0..20 {
         sleep(Duration::from_millis(100)).await;
         let job = apiserver::repositories::import_job_repository::get_job_by_id(&pool, job_id).await.unwrap().unwrap();
-        if job.status == "completed" {
+        if job.status == ImportJobStatus::Completed {
             recovered = true;
             break;
         }
@@ -151,7 +152,7 @@ async fn test_import_fallback_logic() {
     for _ in 0..20 {
         sleep(Duration::from_millis(100)).await;
         let job = apiserver::repositories::import_job_repository::get_job_by_id(&pool, job_id).await.unwrap().unwrap();
-        if job.status == "completed" {
+        if job.status == ImportJobStatus::Completed {
             processed = true;
             break;
         }
@@ -197,7 +198,7 @@ async fn test_import_strict_validation_failure() {
     for _ in 0..20 {
         sleep(Duration::from_millis(100)).await;
         let job = apiserver::repositories::import_job_repository::get_job_by_id(&pool, job_id).await.unwrap().unwrap();
-        if job.status == "failed" {
+        if job.status == ImportJobStatus::Failed {
             processed = true;
             error_msg = job.error_log.unwrap_or_default();
             break;

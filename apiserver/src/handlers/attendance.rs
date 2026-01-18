@@ -15,7 +15,7 @@ use crate::handlers::common::MemberContext;
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::models::{
     PunchInRequest, PunchOutRequest, UpdateTimeEntryRequest, CreateAttendanceAdjustmentRequest,
-    ApproveAttendanceAdjustmentRequest
+    ApproveAttendanceAdjustmentRequest, MemberRole, AdjustmentStatus
 };
 
 // --- Time Tracking Handlers ---
@@ -134,7 +134,7 @@ pub async fn upload_attendance_excel(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::FORBIDDEN)?;
 
-    if role != "admin" && role != "owner" {
+    if role != MemberRole::Admin && role != MemberRole::Owner {
         return Err(StatusCode::FORBIDDEN);
     }
 
@@ -179,7 +179,7 @@ pub async fn upload_attendance_logs(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::FORBIDDEN)?;
 
-    if role != "admin" && role != "owner" {
+    if role != MemberRole::Admin && role != MemberRole::Owner {
         return Err(StatusCode::FORBIDDEN);
     }
 
@@ -408,7 +408,7 @@ pub async fn get_my_attendance_adjustments(
 
 #[derive(Deserialize)]
 pub struct AdjustmentStatusQuery {
-    pub status: Option<String>,
+    pub status: Option<AdjustmentStatus>,
 }
 
 pub async fn get_workspace_attendance_adjustments(

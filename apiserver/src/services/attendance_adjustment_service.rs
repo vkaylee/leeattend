@@ -4,7 +4,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 use tracing::error;
 
-use crate::models::{AttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest, TimeEntry};
+use crate::models::{AttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest, TimeEntry, AdjustmentStatus};
 use crate::repositories::{attendance_adjustment_repository, time_entry_repository};
 use crate::services::attendance_import_service::AttendanceImportService;
 
@@ -40,7 +40,7 @@ impl AttendanceAdjustmentService {
             requested_punch_out_time: req.requested_punch_out_time,
             is_break_overtime: req.is_break_overtime,
             reason: req.reason,
-            status: "pending".to_string(),
+            status: AdjustmentStatus::Pending,
             requested_by_user_id: Some(user_id),
             approved_by_user_id: None,
             created_at: Utc::now(),
@@ -62,7 +62,7 @@ impl AttendanceAdjustmentService {
         _workspace_id: Uuid,
         approver_id: Uuid,
         request_id: Uuid,
-        status: String,
+        status: AdjustmentStatus,
     ) -> Result<(), StatusCode> {
         let request = attendance_adjustment_repository::get_request_by_id(pool, request_id)
             .await
@@ -72,13 +72,13 @@ impl AttendanceAdjustmentService {
         attendance_adjustment_repository::update_adjustment_status(
             pool,
             request_id,
-            &status,
+            status,
             Some(approver_id),
         )
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        if status == "approved" {
+        if status == AdjustmentStatus::Approved {
             if let Some(time_entry_id) = request.time_entry_id {
                 let mut entry = time_entry_repository::get_time_entry_by_id(pool, time_entry_id)
                     .await
@@ -139,7 +139,7 @@ impl AttendanceAdjustmentService {
     pub async fn get_workspace_requests(
         pool: &PgPool,
         workspace_id: Uuid,
-        status: Option<String>,
+        status: Option<AdjustmentStatus>,
     ) -> Result<Vec<AttendanceAdjustmentRequest>, StatusCode> {
         attendance_adjustment_repository::get_workspace_adjustment_requests(
             pool,
