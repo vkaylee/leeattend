@@ -254,7 +254,9 @@
     "effective_date": "Effective Date",
     "yes": "Yes",
     "no": "No",
-    "base_for_ot": "Base for OT"
+    "base_for_ot": "Base for OT",
+    "add_new": "Add New",
+    "active": "Active"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -942,7 +944,14 @@
       "7days": "7 days (No days off)",
       "hours_per_day": "Standard hours per day",
       "note_title": "Note on hourly rate calculation",
-      "note_desc": "Hourly rate for OT = (Total Base Salaries) / (Std Days × Std Hours/day)."
+      "note_desc": "Hourly rate for OT = (Total Base Salaries) / (Std Days × Std Hours/day).",
+      "effective_date": "Effective Date",
+      "std_days": "Std Working Days",
+      "no_history": "No history records found",
+      "dept_title": "Department Payroll Config",
+      "global_history": "Global Configuration History",
+      "std_days_history": "Std Days History",
+      "std_days_override": "Std Days Override"
     },
     "components": {
       "title": "Salary Component Catalog",
@@ -976,6 +985,15 @@
     "messages": {
       "calculate_success": "Payroll calculated successfully.",
       "calculate_error": "Calculation error"
+    },
+    "adjustments": {
+      "title": "Attendance Adjustments",
+      "resolved_success": "Adjustment resolved successfully",
+      "resolved_error": "Error resolving adjustment",
+      "all_clear": "All adjustments cleared!"
+    },
+    "segments": {
+      "title": "Payroll Segments"
     }
   },
   "reports": {

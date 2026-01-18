@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO payroll_settings (workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, updated_at)\n           VALUES ($1, $2, $3, $4, $5, $6)\n           ON CONFLICT (workspace_id) DO UPDATE \n           SET std_working_day_mode = EXCLUDED.std_working_day_mode,\n               fixed_std_days = EXCLUDED.fixed_std_days,\n               working_days_per_week = EXCLUDED.working_days_per_week,\n               hours_per_day = EXCLUDED.hours_per_day,\n               updated_at = EXCLUDED.updated_at\n           RETURNING workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, created_at as \"created_at!\", updated_at as \"updated_at!\"",
+  "query": "SELECT workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, effective_date, created_at as \"created_at!\", updated_at as \"updated_at!\" \n           FROM payroll_settings \n           WHERE workspace_id = $1 AND effective_date <= $2\n           ORDER BY effective_date DESC LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -30,11 +30,16 @@
       },
       {
         "ordinal": 5,
+        "name": "effective_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 6,
         "name": "created_at!",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "updated_at!",
         "type_info": "Timestamptz"
       }
@@ -42,14 +47,11 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Text",
-        "Numeric",
-        "Int4",
-        "Numeric",
-        "Timestamptz"
+        "Date"
       ]
     },
     "nullable": [
+      false,
       false,
       false,
       false,
@@ -59,5 +61,5 @@
       true
     ]
   },
-  "hash": "7c4751c0f490a06b7d02e9379ff6835b4f2253581db4c00b3efc9f7f43ff09bd"
+  "hash": "f110eef6e89f219450cc0cb1e88af69805a33726f0f40d8175a41b07764d6820"
 }

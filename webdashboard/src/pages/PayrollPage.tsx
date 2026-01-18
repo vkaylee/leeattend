@@ -4,44 +4,38 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Banknote, 
   Calculator, 
-  Calendar, 
   ChevronRight, 
-  Download, 
-  FileText, 
   History, 
-  Plus, 
   Search, 
   UserCircle,
   X,
-  CreditCard,
-  CheckCircle2,
-  AlertCircle
 } from "lucide-react";
 import { 
   fetchEmployees, 
   fetchEmployeePayslips, 
   calculate_payroll, 
   getCurrentWorkspaceId,
+  fetchWorkspaceAttendanceAdjustments,
   Employee,
-  Payslip
 } from "../lib/api";
 import { useToast } from "../components/Toast";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 import EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
+import PayrollTable from "@/components/payroll/PayrollTable";
+import AdjustmentDrawer from "@/components/payroll/AdjustmentDrawer";
 
 export default function PayrollPage() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
   const toast = useToast();
-  const { formatDate, formatMonthYear } = useDateTimeFormatter();
   
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCalcModalOpen, setIsCalcModalOpen] = useState(false);
+  const [isAdjustmentDrawerOpen, setIsAdjustmentDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"payslips" | "config">("payslips");
   
   const [calcYear, setCalcYear] = useState(new Date().getFullYear());
@@ -59,6 +53,16 @@ export default function PayrollPage() {
     enabled: !!selectedEmployee,
   });
 
+  const { data: allAdjustments = [] } = useQuery({
+    queryKey: ["adjustments", wsId, "pending"],
+    queryFn: () => fetchWorkspaceAttendanceAdjustments(wsId, "pending"),
+    enabled: !!wsId,
+  });
+
+  const employeeAdjustments = selectedEmployee 
+    ? allAdjustments.filter(adj => adj.employee_id === selectedEmployee.id)
+    : [];
+
   const calcMutation = useMutation({
     mutationFn: (data: { year: number; month: number }) => 
       calculate_payroll(wsId, selectedEmployee!.id, data.year, data.month),
@@ -72,6 +76,14 @@ export default function PayrollPage() {
 
   const handleCalculate = () => {
     calcMutation.mutate({ year: calcYear, month: calcMonth });
+  };
+
+  const handleAdjustmentResolved = () => {
+    // Optionally trigger a recalculation for the affected month? 
+    // For now, just invalidate payslips so user sees they can re-run payroll
+    queryClient.invalidateQueries({ queryKey: ["payslips", selectedEmployee?.id] });
+    // Also invalidate adjustments
+    queryClient.invalidateQueries({ queryKey: ["adjustments"] });
   };
 
   const filteredEmployees = employees.filter(emp => 
@@ -197,66 +209,12 @@ export default function PayrollPage() {
                   </div>
                   
                   <div className="flex-1 overflow-auto">
-                    <table className="w-full text-left">
-                      <thead className="bg-slate-50/30 sticky top-0 backdrop-blur-md border-b border-slate-100">
-                        <tr>
-                          <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("payroll.table.period")}</th>
-                          <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.base_pay")}</th>
-                          <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.overtime")}</th>
-                          <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.deductions")}</th>
-                          <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.net_pay")}</th>
-                          <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t("payroll.table.status")}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-50">
-                        {payslipsLoading ? (
-                          <tr><td colSpan={6} className="px-8 py-12 text-center text-slate-400 italic">{t("payroll.table.loading_payslips")}</td></tr>
-                        ) : payslips.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="px-8 py-20 text-center">
-                              <div className="bg-slate-50 w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                <FileText className="text-slate-200 w-6 h-6" />
-                              </div>
-                              <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">{t("payroll.table.no_payslips")}</p>
-                            </td>
-                          </tr>
-                        ) : payslips.map(slip => (
-                          <tr key={slip.id} className="hover:bg-slate-50/50 transition-colors group">
-                            <td className="px-8 py-6">
-                              <div className="font-bold text-slate-900">{t("common.month")} {formatMonthYear(slip.period_start)}</div>
-                              <div className="text-[10px] text-slate-400 font-bold mt-1">
-                                {formatDate(slip.period_start)} - {formatDate(slip.period_end)}
-                              </div>
-                            </td>
-                            <td className="px-8 py-6 text-right font-mono text-sm text-slate-600">
-                              {new Intl.NumberFormat('vi-VN').format(parseFloat(slip.base_pay_amount))}
-                            </td>
-                            <td className="px-8 py-6 text-right font-mono text-sm text-emerald-600 font-bold">
-                              +{new Intl.NumberFormat('vi-VN').format(parseFloat(slip.overtime_pay_amount))}
-                            </td>
-                            <td className="px-8 py-6 text-right font-mono text-sm text-rose-600 font-bold">
-                              -{new Intl.NumberFormat('vi-VN').format(parseFloat(slip.deductions_amount))}
-                            </td>
-                            <td className="px-8 py-6 text-right">
-                              <div className="font-black text-primary-600 text-lg">
-                                {new Intl.NumberFormat('vi-VN').format(parseFloat(slip.net_pay_amount))}
-                              </div>
-                            </td>
-                            <td className="px-8 py-6 text-center">
-                              {slip.status === 'paid' ? (
-                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-tighter">
-                                  <CheckCircle2 size={10} /> {t("payroll.status.paid")}
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-tighter">
-                                  <AlertCircle size={10} /> {t("payroll.status.finalized")}
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <PayrollTable 
+                      payslips={payslips} 
+                      isLoading={payslipsLoading} 
+                      adjustments={employeeAdjustments}
+                      onResolveAdjustments={() => setIsAdjustmentDrawerOpen(true)}
+                    />
                   </div>
                 </div>
               ) : (
@@ -312,7 +270,17 @@ export default function PayrollPage() {
         </div>
       </Modal>
 
-
+      {/* Adjustment Drawer */}
+      {selectedEmployee && (
+        <AdjustmentDrawer
+          isOpen={isAdjustmentDrawerOpen}
+          onClose={() => setIsAdjustmentDrawerOpen(false)}
+          employeeId={selectedEmployee.id}
+          employeeName={`${selectedEmployee.first_name} ${selectedEmployee.last_name}`}
+          onAdjustmentResolved={handleAdjustmentResolved}
+        />
+      )}
     </div>
   );
 }
+

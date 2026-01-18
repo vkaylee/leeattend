@@ -2,7 +2,21 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
-## [Unreleased] - 2026-01-18
+## [Unreleased]
+
+### Added
+- **3-Tier Temporal Payroll Settings**: Implemented a hierarchical versioning system for "Standard Working Days" and "Hours per Day" (Individual > Department > Workspace).
+- **Point-in-Time Policy Resolver**: New logic to resolve payroll settings based on the payroll period's effective date.
+- **Temporal Configuration UI**: Added `TemporalConfigTable` for managing historical and future configuration changes across Workspace, Departments, and Employee profiles.
+- **Payroll Segmentation**: The payroll engine now automatically splits calculations into segments when settings (salary, department, or std-days) change mid-month.
+- **Global Settings History**: Admins can now view and schedule changes to workspace-wide payroll configurations.
+
+### Changed
+- Refactored `PayrollService` to support multi-segment calculations and hierarchical policy resolution.
+- Updated `PayslipSegment` to record `applied_hours_per_day` for enhanced auditability.
+- Synchronized i18n keys for temporal settings across English, Vietnamese, and Chinese locales.
+
+## [0.2.0] - 2026-01-15
 
 ### Added
 - **Dynamic Payroll & Attendance System V2**: Implemented a robust "Multi-Segment Calculation" engine to handle complex payroll scenarios.

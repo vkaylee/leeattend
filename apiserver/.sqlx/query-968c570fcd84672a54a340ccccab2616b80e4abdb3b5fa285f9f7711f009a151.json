@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, department_id, std_working_days, hours_per_day, effective_date, created_at as \"created_at!\"\n           FROM department_payroll_configs\n           WHERE department_id = $1 AND effective_date <= $2\n           ORDER BY effective_date DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "department_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "std_working_days",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "hours_per_day",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "effective_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "968c570fcd84672a54a340ccccab2616b80e4abdb3b5fa285f9f7711f009a151"
+}

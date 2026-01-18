@@ -56,8 +56,12 @@ leeattend_setup() {
     done
 
     echo -e "  Running migrations..."
+    (cd apiserver && sqlx migrate run --database-url "$DATABASE_URL") > "$LOG_DIR/parent_mig_main.log" 2>&1
     (cd apiserver && sqlx migrate run --database-url "postgres://test_user:test_password@localhost:5433/leeattend_test_template") > "$LOG_DIR/parent_mig_template.log" 2>&1
     
+    echo -e "  Preparing SQLx cache..."
+    (cd apiserver && DATABASE_URL="postgres://test_user:test_password@localhost:5433/leeattend_test_template" cargo sqlx prepare -- --all-targets) > "$LOG_DIR/parent_sqlx_prepare.log" 2>&1
+
     # Đảm bảo không có kết nối nào treo vào template để có thể dùng làm TEMPLATE cho CREATE DATABASE
     docker-compose -f "$COMPOSE_FILE" exec test_db psql -U test_user -d postgres -c "REVOKE CONNECT ON DATABASE leeattend_test_template FROM public;" > /dev/null 2>&1
     docker-compose -f "$COMPOSE_FILE" exec test_db psql -U test_user -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'leeattend_test_template' AND pid <> pg_backend_pid();" > /dev/null 2>&1

@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, payslip_id, start_date, end_date, department_id, applied_base_salary, applied_std_days, applied_hours_per_day, actual_work_days, paid_work_days, amount, NULL::text as reason\n           FROM payslip_segments\n           WHERE payslip_id = $1\n           ORDER BY start_date ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "payslip_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "end_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "department_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "applied_base_salary",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "applied_std_days",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "applied_hours_per_day",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "actual_work_days",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "paid_work_days",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 10,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 11,
+        "name": "reason",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "d32a415d3b3aacccff55701e15c41ab7b975cc5c2469a001fefe9c7446866e43"
+}

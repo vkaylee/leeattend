@@ -657,6 +657,22 @@ fn default_true() -> bool {
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct PayslipSegment {
+    pub id: Uuid,
+    pub payslip_id: Uuid,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub department_id: Option<Uuid>,
+    pub applied_base_salary: rust_decimal::Decimal,
+    pub applied_std_days: rust_decimal::Decimal,
+    pub applied_hours_per_day: rust_decimal::Decimal,
+    pub actual_work_days: rust_decimal::Decimal,
+    pub paid_work_days: rust_decimal::Decimal,
+    pub amount: rust_decimal::Decimal,
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct Payslip {
     pub id: Uuid,
     pub employee_id: Uuid,
@@ -905,11 +921,32 @@ pub struct PayrollSettings {
     pub fixed_std_days: rust_decimal::Decimal,
     pub working_days_per_week: i32,
     pub hours_per_day: rust_decimal::Decimal,
+    pub effective_date: NaiveDate,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct DepartmentPayrollConfig {
+    pub id: Uuid,
+    pub department_id: Uuid,
+    pub std_working_days: rust_decimal::Decimal,
+    pub hours_per_day: rust_decimal::Decimal,
+    pub effective_date: NaiveDate,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct EmployeePayrollConfig {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub std_working_days: rust_decimal::Decimal,
+    pub hours_per_day: rust_decimal::Decimal,
+    pub effective_date: NaiveDate,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SalaryComponentDefinition {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -938,6 +975,21 @@ pub struct UpdatePayrollSettingsRequest {
     pub fixed_std_days: Option<rust_decimal::Decimal>,
     pub working_days_per_week: Option<i32>,
     pub hours_per_day: Option<rust_decimal::Decimal>,
+    pub effective_date: Option<NaiveDate>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SetDepartmentPayrollConfigRequest {
+    pub std_working_days: rust_decimal::Decimal,
+    pub hours_per_day: rust_decimal::Decimal,
+    pub effective_date: NaiveDate,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SetEmployeePayrollConfigRequest {
+    pub std_working_days: rust_decimal::Decimal,
+    pub hours_per_day: rust_decimal::Decimal,
+    pub effective_date: NaiveDate,
 }
 
 #[derive(Debug, Deserialize)]

@@ -344,6 +344,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(handlers::get_payroll_settings).patch(handlers::update_payroll_settings),
         )
         .route(
+            "/workspaces/:ws_id/payroll-settings/history",
+            get(handlers::get_payroll_settings_history),
+        )
+        .route(
             "/workspaces/:ws_id/salary-components",
             get(handlers::get_salary_components).post(handlers::create_salary_component),
         )
@@ -360,6 +364,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/employees/:id/calculate-payroll",
             post(handlers::calculate_payroll),
         )
+        .route(
+            "/workspaces/:ws_id/employees/:id/payroll-config",
+            post(handlers::set_employee_payroll_config).get(handlers::get_employee_payroll_configs),
+        )
         // Departments
         .route(
             "/workspaces/:ws_id/departments",
@@ -368,6 +376,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(
             "/workspaces/:ws_id/departments/:id",
             patch(handlers::update_department).delete(handlers::delete_department),
+        )
+        .route(
+            "/workspaces/:ws_id/departments/:id/payroll-config",
+            post(handlers::set_department_payroll_config).get(handlers::get_department_payroll_configs),
         )
         .route(
             "/workspaces/:ws_id/employees/:id/departments",

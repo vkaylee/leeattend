@@ -252,7 +252,9 @@
     "effective_date": "Ngày hiệu lực",
     "yes": "Có",
     "no": "Không",
-    "base_for_ot": "Tính OT"
+    "base_for_ot": "Tính OT",
+    "add_new": "Thêm mới",
+    "active": "Hiện tại"
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -940,7 +942,14 @@
       "7days": "7 ngày (Không ngày nghỉ)",
       "hours_per_day": "Số giờ làm việc chuẩn/ngày",
       "note_title": "Lưu ý về cách tính lương giờ",
-      "note_desc": "Lương giờ dùng để tính OT = (Tổng các khoản Lương cơ bản) / (Số ngày công chuẩn × Số giờ làm chuẩn/ngày)."
+      "note_desc": "Lương giờ dùng để tính OT = (Tổng các khoản Lương cơ bản) / (Số ngày công chuẩn × Số giờ làm chuẩn/ngày).",
+      "effective_date": "Ngày có hiệu lực",
+      "std_days": "Ngày công chuẩn",
+      "no_history": "Chưa có lịch sử cấu hình",
+      "dept_title": "Cấu hình lương phòng ban",
+      "global_history": "Lịch sử cấu hình toàn hệ thống",
+      "std_days_history": "Lịch sử công chuẩn",
+      "std_days_override": "Đặc cách ngày công chuẩn"
     },
     "components": {
       "title": "Danh mục thành phần lương",
@@ -974,6 +983,15 @@
     "messages": {
       "calculate_success": "Đã tính lương thành công.",
       "calculate_error": "Lỗi tính lương"
+    },
+    "adjustments": {
+      "title": "Hiệu chỉnh chấm công",
+      "resolved_success": "Đã xử lý hiệu chỉnh thành công",
+      "resolved_error": "Lỗi khi xử lý hiệu chỉnh",
+      "all_clear": "Tất cả yêu cầu đã được xử lý!"
+    },
+    "segments": {
+      "title": "Chi tiết dòng lương (Segments)"
     }
   },
   "reports": {

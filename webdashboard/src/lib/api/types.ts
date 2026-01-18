@@ -227,6 +227,7 @@ export interface PayrollSettings {
   fixed_std_days: number;
   working_days_per_week: number;
   hours_per_day: number;
+  effective_date: string;
   updated_at: string;
 }
 
@@ -251,6 +252,19 @@ export interface EmployeeSalaryComponent {
   is_taxable?: boolean;
 }
 
+export interface PayrollSegment {
+  id: string;
+  start_date: string;
+  end_date: string;
+  department_id?: string;
+  applied_base_salary: number;
+  applied_std_days: number;
+  actual_work_days: number;
+  paid_work_days: number;
+  amount: number;
+  reason: string;
+}
+
 export interface Payslip {
   id: string;
   employee_id: string;
@@ -263,6 +277,7 @@ export interface Payslip {
   standard_units: number;
   overtime_units: number;
   status: "draft" | "published" | "paid";
+  segments?: PayrollSegment[];
   created_at: string;
   updated_at: string;
 }

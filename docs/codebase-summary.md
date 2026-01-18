@@ -88,11 +88,12 @@ leeattend/
         - **Salary Component Directory**: Allows defining custom income types (Meal, Gas, Seniority) with configurable taxability and "Base for OT" flags.
         - **Flexible Standard Day Policy**: Support for diverse company cultures via `Fixed` (e.g., always 26 days) or `Actual Month` (calendar-based) standard day modes.
         - **Multi-Segment Calculation**: The `PayrollService` employs a sophisticated segmentation engine that detects "Change Points" (e.g., salary updates, department transfers) within a payroll period.
-            - **Prorated Accuracy**: Each segment is calculated independently with its own configuration (Standard Days, Base Salary), ensuring mathematically precise prorating.
-            - **Granular Snapshots**: All calculation parameters for every segment are persisted in the `payslip_segments` table, creating an immutable audit trail of exactly *how* the total was derived.
-        - **Policy Resolver**: A domain service (`PolicyResolver`) responsible for resolving the active configuration at any given date, respecting the hierarchy: **Department > Workspace**.
-        - **Dynamic Hourly Rate Engine**: Automatically derives OT unit rates based on the sum of all "Base for OT" components divided by the calculated standard units.
-        - **Historical Tracking**: Time-series storage of component assignments ensuring payroll integrity even when salaries change mid-period.
+            - **Prorated Accuracy**: Each segment is calculated independently with its own configuration (Standard Days, Hours per Day, Base Salary), ensuring mathematically precise prorating.
+            - **Granular Snapshots**: All calculation parameters for every segment are persisted in the `payslip_segments` table, creating an immutable audit trail of exactly *how* the total was derived, including `applied_hours_per_day`.
+        - **3-Tier Policy Resolver**: A domain service (`PolicyResolver`) responsible for resolving the active configuration at any given date, respecting the hierarchy: **Individual Override > Department Override > Workspace Global**.
+        - **Temporal Configuration UI**: Reusable `TemporalConfigTable` component manages versioned history of "Standard Days" and "Hours per Day" across all three tiers, supporting point-in-time lookup for 100% payroll accuracy.
+        - **Dynamic Hourly Rate Engine**: Automatically derives OT unit rates based on the segment-specific `hours_per_day` and the sum of all "Base for OT" components.
+        - **Historical Tracking**: Time-series storage of component assignments and work-day configurations ensuring payroll integrity even when settings change mid-period.
     - **Employee Self-Service (ESS) Portal**: Dedicated subsystem for employee empowerment and data autonomy.
         - **Secure Personal Access**: Direct access to personal data (Profile, Contacts, Documents) without requiring workspace administrative roles.
         - **Emergency Contact Management**: Self-service tools for maintaining up-to-date emergency notification information.

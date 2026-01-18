@@ -4,13 +4,16 @@ import { Plus, Coins, Calendar, Wallet, Trash2, ShieldCheck, AlertCircle } from 
 import { 
   fetchSalaryComponents, 
   fetchEmployeeSalaryComponents, 
-  assignEmployeeSalaryComponent 
+  assignEmployeeSalaryComponent,
+  fetchEmployeePayrollConfigs,
+  setEmployeePayrollConfig
 } from "@/lib/api/payroll";
 import { useToast } from "@/components/Toast";
 import { useTranslation } from "react-i18next";
 import { EmployeeSalaryComponent, SalaryComponentDefinition } from "@/lib/api/types";
 import { Combobox } from "@/components/ui/Combobox";
 import { format } from "date-fns";
+import TemporalConfigTable from "../common/TemporalConfigTable";
 
 interface Props {
   wsId: string;
@@ -35,6 +38,20 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
   const { data: employeeComps = [], isLoading } = useQuery({
     queryKey: ["employee-salary-components", employeeId],
     queryFn: () => fetchEmployeeSalaryComponents(wsId, employeeId),
+  });
+
+  const { data: individualConfigs = [], isLoading: isConfigsLoading } = useQuery({
+    queryKey: ["employee-payroll-configs", employeeId],
+    queryFn: () => fetchEmployeePayrollConfigs(wsId, employeeId),
+  });
+
+  const saveIndividualConfigMutation = useMutation({
+    mutationFn: (data: { std_working_days: number; hours_per_day: number; effective_date: string }) => 
+      setEmployeePayrollConfig(wsId, employeeId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["employee-payroll-configs", employeeId] });
+      toast.success(t("common.success"));
+    },
   });
 
   const assignMutation = useMutation({
@@ -184,6 +201,17 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
         <p className="text-xs text-amber-700 leading-relaxed italic">
           {t("payroll.employee_config.effective_note", "Lưu ý: Nếu có nhiều bản ghi cho cùng một khoản lương, bản ghi có ngày hiệu lực mới nhất (và gần nhất với ngày tính lương) sẽ được sử dụng.")}
         </p>
+      </div>
+
+      <div className="pt-8 border-t border-slate-100">
+        <TemporalConfigTable 
+          title={t("payroll.settings.std_days_override", "Đặc cách ngày công chuẩn")}
+          records={individualConfigs}
+          isLoading={isConfigsLoading}
+          onSave={async (data) => {
+            await saveIndividualConfigMutation.mutateAsync(data);
+          }}
+        />
       </div>
     </div>
   );

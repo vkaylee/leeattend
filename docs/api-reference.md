@@ -592,17 +592,55 @@ Lưu thông tin chi tiết phiếu lương hàng tháng.
 Lấy cấu hình lương hiện tại của workspace.
 - **Response (200)**: `PayrollSettings`
 
+#### GET /workspaces/:ws_id/payroll-settings/history (New)
+Lấy toàn bộ lịch sử thay đổi cấu hình lương của workspace.
+- **Response (200)**: `Array<PayrollSettings>`
+
 #### PATCH /workspaces/:ws_id/payroll-settings
-Cập nhật cấu hình tính công chuẩn.
+Cập nhật hoặc lên lịch thay đổi cấu hình tính công chuẩn.
 - **Request**:
   ```json
   {
     "std_working_day_mode": "actual_month",
+    "fixed_std_days": 26.0,
     "working_days_per_week": 5,
-    "hours_per_day": 8.0
+    "hours_per_day": 8.0,
+    "effective_date": "2026-02-01" // Optional point-in-time scheduled change
   }
   ```
 - **Response (200 OK)**
+
+#### GET /workspaces/:ws_id/departments/:id/payroll-config (New)
+Lấy lịch sử cấu hình lương đặc thù của phòng ban.
+- **Response (200)**: `Array<DepartmentPayrollConfig>`
+
+#### POST /workspaces/:ws_id/departments/:id/payroll-config (New)
+Thiết lập hoặc cập nhật đặc cách ngày công/giờ công cho phòng ban.
+- **Request**:
+  ```json
+  {
+    "std_working_days": 22.0,
+    "hours_per_day": 8.0,
+    "effective_date": "2026-02-01"
+  }
+  ```
+- **Response (201)**: `DepartmentPayrollConfig` object
+
+#### GET /workspaces/:ws_id/employees/:id/payroll-config (New)
+Lấy lịch sử đặc cách lương cá nhân của nhân viên.
+- **Response (200)**: `Array<EmployeePayrollConfig>`
+
+#### POST /workspaces/:ws_id/employees/:id/payroll-config (New)
+Thiết lập đặc cách ngày công/giờ công cho riêng một nhân viên.
+- **Request**:
+  ```json
+  {
+    "std_working_days": 20.0,
+    "hours_per_day": 4.0, // Chế độ part-time
+    "effective_date": "2026-02-01"
+  }
+  ```
+- **Response (201)**: `EmployeePayrollConfig` object
 
 #### Salary Component Definition
 Định nghĩa các loại khoản thu nhập (Lương cơ bản, Phụ cấp, Thưởng...).

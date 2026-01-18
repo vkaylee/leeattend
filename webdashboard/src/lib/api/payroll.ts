@@ -17,6 +17,12 @@ export async function updatePayrollSettings(wsId: string, data: Partial<PayrollS
   return response.json();
 }
 
+export async function fetchPayrollSettingsHistory(wsId: string): Promise<PayrollSettings[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll-settings/history`);
+  if (!response.ok) throw new Error("Failed to fetch payroll settings history");
+  return response.json();
+}
+
 export async function fetchSalaryComponents(wsId: string): Promise<SalaryComponentDefinition[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/salary-components`);
   if (!response.ok) throw new Error("Failed to fetch salary components");
@@ -71,5 +77,49 @@ export async function calculate_payroll(
 export async function fetchEmployeePayslips(wsId: string, employeeId: string): Promise<Payslip[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/payslips`);
   if (!response.ok) throw new Error("Failed to fetch payslips");
+  return response.json();
+}
+
+export async function setDepartmentPayrollConfig(
+  wsId: string, 
+  deptId: string, 
+  data: { std_working_days: number; hours_per_day: number; effective_date: string }
+): Promise<any> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/departments/${deptId}/payroll-config`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to set department payroll config");
+  return response.json();
+}
+
+export async function fetchDepartmentPayrollConfigs(
+  wsId: string, 
+  deptId: string
+): Promise<any[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/departments/${deptId}/payroll-config`);
+  if (!response.ok) throw new Error("Failed to fetch department payroll configs");
+  return response.json();
+}
+
+export async function setEmployeePayrollConfig(
+  wsId: string, 
+  employeeId: string, 
+  data: { std_working_days: number; hours_per_day: number; effective_date: string }
+): Promise<any> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/payroll-config`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to set employee payroll config");
+  return response.json();
+}
+
+export async function fetchEmployeePayrollConfigs(
+  wsId: string, 
+  employeeId: string
+): Promise<any[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/payroll-config`);
+  if (!response.ok) throw new Error("Failed to fetch employee payroll configs");
   return response.json();
 }

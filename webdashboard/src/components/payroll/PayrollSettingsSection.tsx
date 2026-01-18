@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Calculator, Save, ShieldAlert } from "lucide-react";
-import { fetchPayrollSettings, updatePayrollSettings } from "@/lib/api/payroll";
+import { fetchPayrollSettings, updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
 import { useToast } from "@/components/Toast";
 import { Combobox } from "@/components/ui/Combobox";
 import { useTranslation } from "react-i18next";
 import { PayrollSettings } from "@/lib/api/types";
+import TemporalConfigTable from "../common/TemporalConfigTable";
 
 interface Props {
   wsId: string;
@@ -19,9 +20,38 @@ export default function PayrollSettingsSection({ wsId }: Props) {
     enabled: !!wsId,
   });
 
+  const { data: history = [], isLoading: isHistoryLoading } = useQuery({
+    queryKey: ["payroll-settings-history", wsId],
+    queryFn: () => fetchPayrollSettingsHistory(wsId),
+    enabled: !!wsId,
+  });
+
   if (isLoading) return <div className="p-8 text-center text-slate-400 italic">{t("common.loading")}</div>;
 
-  return <PayrollSettingsForm wsId={wsId} initialSettings={settings} />;
+  return (
+    <div className="space-y-8">
+      <PayrollSettingsForm wsId={wsId} initialSettings={settings} />
+      
+      <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+        <TemporalConfigTable 
+          title={t("payroll.settings.global_history", "Lịch sử cấu hình toàn hệ thống")}
+          records={history.map(h => ({
+            std_working_days: Number(h.fixed_std_days),
+            hours_per_day: Number(h.hours_per_day),
+            effective_date: h.effective_date
+          }))}
+          isLoading={isHistoryLoading}
+          onSave={async (data) => {
+            await updatePayrollSettings(wsId, {
+              fixed_std_days: data.std_working_days,
+              hours_per_day: data.hours_per_day,
+              effective_date: data.effective_date as any
+            });
+          }}
+        />
+      </div>
+    </div>
+  );
 }
 
 interface FormProps {
@@ -38,6 +68,11 @@ function PayrollSettingsForm({ wsId, initialSettings }: FormProps) {
   const [fixedDays, setFixedDays] = useState(Number(initialSettings?.fixed_std_days || 26));
   const [daysPerWeek, setDaysPerWeek] = useState(initialSettings?.working_days_per_week || 6);
   const [hoursPerDay, setHoursPerDay] = useState(Number(initialSettings?.hours_per_day || 8));
+  
+  // Default effective date to the first of the current month
+  const firstOfOfMonth = new Date();
+  firstOfOfMonth.setDate(1);
+  const [effectiveDate, setEffectiveDate] = useState(firstOfOfMonth.toISOString().split('T')[0]);
 
   const updateMutation = useMutation({
     mutationFn: (data: Partial<PayrollSettings>) => updatePayrollSettings(wsId, data),
@@ -56,6 +91,7 @@ function PayrollSettingsForm({ wsId, initialSettings }: FormProps) {
       fixed_std_days: fixedDays,
       working_days_per_week: daysPerWeek,
       hours_per_day: hoursPerDay,
+      effective_date: effectiveDate as any,
     });
   };
 
@@ -78,6 +114,18 @@ function PayrollSettingsForm({ wsId, initialSettings }: FormProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+            {t("payroll.settings.effective_date", "Ngày có hiệu lực")}
+          </label>
+          <input
+            type="date"
+            value={effectiveDate}
+            onChange={(e) => setEffectiveDate(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+          />
+        </div>
+
         <div className="space-y-2">
           <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
             {t("payroll.settings.working_day_mode", "Chế độ tính công chuẩn")}

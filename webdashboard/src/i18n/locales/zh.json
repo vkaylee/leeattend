@@ -251,7 +251,9 @@
     "effective_date": "生效日期",
     "yes": "是",
     "no": "否",
-    "base_for_ot": "作为加班费基数"
+    "base_for_ot": "作为加班费基数",
+    "add_new": "添加",
+    "active": "活跃"
   },
   "dashboard": {
     "title": "仪表板",
@@ -939,7 +941,14 @@
       "7days": "7 天 (无休息日)",
       "hours_per_day": "标准日工作时长",
       "note_title": "关于时薪计算的说明",
-      "note_desc": "加班时薪 = (基本工资总额) / (标准天数 × 标准日时长)。"
+      "note_desc": "加班时薪 = (基本工资总额) / (标准天数 × 标准日时长)。",
+      "effective_date": "生效日期",
+      "std_days": "标准工作日",
+      "no_history": "未找到历史配置",
+      "dept_title": "部门薪资配置",
+      "global_history": "全局配置历史",
+      "std_days_history": "标准工作日历史",
+      "std_days_override": "个人工日特例"
     },
     "components": {
       "title": "薪资项目目录",
@@ -973,6 +982,15 @@
     "messages": {
       "calculate_success": "薪资计算成功。",
       "calculate_error": "计算出错"
+    },
+    "adjustments": {
+      "title": "考勤修正",
+      "resolved_success": "修正已处理",
+      "resolved_error": "处理修正时出错",
+      "all_clear": "所有申请已处理！"
+    },
+    "segments": {
+      "title": "薪资条细目 (Segments)"
     }
   },
   "reports": {

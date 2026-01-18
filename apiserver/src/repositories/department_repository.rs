@@ -182,3 +182,48 @@ pub async fn get_current_department(
     .fetch_optional(pool)
     .await
 }
+
+use crate::models::DepartmentPayrollConfig;
+use rust_decimal::Decimal;
+
+pub async fn upsert_department_payroll_config(
+    pool: &PgPool,
+    department_id: Uuid,
+    std_working_days: Decimal,
+    hours_per_day: Decimal,
+    effective_date: NaiveDate,
+) -> Result<DepartmentPayrollConfig, sqlx::Error> {
+    sqlx::query_as!(
+        DepartmentPayrollConfig,
+        r#"INSERT INTO department_payroll_configs (department_id, std_working_days, hours_per_day, effective_date)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (department_id, effective_date) DO UPDATE 
+           SET std_working_days = EXCLUDED.std_working_days,
+               hours_per_day = EXCLUDED.hours_per_day
+           RETURNING id, department_id, std_working_days, hours_per_day, effective_date, created_at as "created_at!""#,
+        department_id,
+        std_working_days,
+        hours_per_day,
+        effective_date
+    )
+    .fetch_one(pool)
+    .await
+}
+
+pub async fn get_department_payroll_config_at(
+    pool: &PgPool,
+    department_id: Uuid,
+    date: NaiveDate,
+) -> Result<Option<DepartmentPayrollConfig>, sqlx::Error> {
+    sqlx::query_as!(
+        DepartmentPayrollConfig,
+        r#"SELECT id, department_id, std_working_days, hours_per_day, effective_date, created_at as "created_at!"
+           FROM department_payroll_configs
+           WHERE department_id = $1 AND effective_date <= $2
+           ORDER BY effective_date DESC LIMIT 1"#,
+        department_id,
+        date
+    )
+    .fetch_optional(pool)
+    .await
+}

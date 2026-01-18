@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Edit2, Trash2, Building2, UserCircle, Users, LayoutGrid, CalendarDays } from "lucide-react";
-import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment, getCurrentWorkspaceId, fetchUsers, fetchWorkingPatterns } from "../lib/api";
+import { Plus, Search, Edit2, Trash2, Building2, UserCircle, Users, LayoutGrid, CalendarDays, Calculator } from "lucide-react";
+import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment, getCurrentWorkspaceId, fetchUsers, fetchWorkingPatterns, fetchDepartmentPayrollConfigs, setDepartmentPayrollConfig } from "../lib/api";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
+import TemporalConfigTable from "@/components/common/TemporalConfigTable";
 
 export default function DepartmentsPage() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<any>(null);
   const [selectedManagerId, setSelectedManagerId] = useState<string>("");
   const [selectedPatternId, setSelectedPatternId] = useState<string>("");
@@ -19,6 +21,20 @@ export default function DepartmentsPage() {
     queryKey: ["departments", wsId],
     queryFn: () => fetchDepartments(wsId),
     enabled: !!wsId,
+  });
+
+  const { data: deptConfigs = [], isLoading: isConfigsLoading } = useQuery({
+    queryKey: ["dept-payroll-configs", editingDept?.id],
+    queryFn: () => fetchDepartmentPayrollConfigs(wsId, editingDept.id),
+    enabled: isConfigModalOpen && !!editingDept?.id,
+  });
+
+  const saveConfigMutation = useMutation({
+    mutationFn: (data: { std_working_days: number; hours_per_day: number; effective_date: string }) => 
+      setDepartmentPayrollConfig(wsId, editingDept.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dept-payroll-configs", editingDept?.id] });
+    },
   });
 
   const { data: users = [] } = useQuery({
@@ -116,6 +132,13 @@ export default function DepartmentsPage() {
           <div key={dept.id} className="bg-white border border-slate-50 p-8 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all group relative overflow-hidden">
             <div className="absolute top-0 right-0 p-6 flex gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
               <button 
+                onClick={() => { setEditingDept(dept); setIsConfigModalOpen(true); }}
+                className="p-2.5 bg-slate-50 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all shadow-sm"
+                title={t("payroll.settings.title", "Cấu hình lương")}
+              >
+                <Calculator className="w-4 h-4" />
+              </button>
+              <button 
                 onClick={() => { setEditingDept(dept); setIsModalOpen(true); }}
                 className="p-2.5 bg-slate-50 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all shadow-sm"
                 title={t("common.edit")}
@@ -166,6 +189,34 @@ export default function DepartmentsPage() {
           </div>
         ))}
       </div>
+
+      {/* Dept Config Modal */}
+      <Modal
+        isOpen={isConfigModalOpen && !!editingDept}
+        onClose={() => setIsConfigModalOpen(false)}
+        title={t("payroll.settings.dept_title", "Cấu hình lương phòng ban")}
+        subtitle={editingDept?.name}
+        icon={<Calculator className="w-6 h-6" />}
+      >
+        <div className="space-y-6">
+          <TemporalConfigTable 
+            title={t("payroll.settings.std_days_history", "Lịch sử công chuẩn")}
+            records={deptConfigs}
+            isLoading={isConfigsLoading}
+            onSave={async (data) => {
+              await saveConfigMutation.mutateAsync(data);
+            }}
+          />
+          <div className="pt-4 flex justify-end">
+            <button 
+              onClick={() => setIsConfigModalOpen(false)}
+              className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg"
+            >
+              {t("common.close")}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isModalOpen}

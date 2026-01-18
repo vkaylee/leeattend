@@ -4,19 +4,30 @@ use sqlx::{query_as, PgPool};
 use uuid::Uuid;
 
 use crate::models::{
-    EmployeeSalaryComponent, PayrollSettings, Payslip, SalaryComponentDefinition,
+    EmployeeSalaryComponent, PayrollSettings, Payslip, PayslipSegment, SalaryComponentDefinition,
 };
 
 pub async fn get_payroll_settings(
     pool: &PgPool,
     workspace_id: Uuid,
 ) -> Result<Option<PayrollSettings>, sqlx::Error> {
+    // Get the latest settings version
+    get_payroll_settings_at(pool, workspace_id, Utc::now().date_naive()).await
+}
+
+pub async fn get_payroll_settings_at(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    date: NaiveDate,
+) -> Result<Option<PayrollSettings>, sqlx::Error> {
     query_as!(
         PayrollSettings,
-        r#"SELECT workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, created_at as "created_at!", updated_at as "updated_at!" 
+        r#"SELECT workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, effective_date, created_at as "created_at!", updated_at as "updated_at!" 
            FROM payroll_settings 
-           WHERE workspace_id = $1"#,
-        workspace_id
+           WHERE workspace_id = $1 AND effective_date <= $2
+           ORDER BY effective_date DESC LIMIT 1"#,
+        workspace_id,
+        date
     )
     .fetch_optional(pool)
     .await
@@ -29,23 +40,25 @@ pub async fn update_payroll_settings(
     fixed_std_days: Decimal,
     working_days_per_week: i32,
     hours_per_day: Decimal,
+    effective_date: NaiveDate,
 ) -> Result<PayrollSettings, sqlx::Error> {
     query_as!(
         PayrollSettings,
-        r#"INSERT INTO payroll_settings (workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6)
-           ON CONFLICT (workspace_id) DO UPDATE 
+        r#"INSERT INTO payroll_settings (workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, effective_date, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT (workspace_id, effective_date) DO UPDATE 
            SET std_working_day_mode = EXCLUDED.std_working_day_mode,
                fixed_std_days = EXCLUDED.fixed_std_days,
                working_days_per_week = EXCLUDED.working_days_per_week,
                hours_per_day = EXCLUDED.hours_per_day,
                updated_at = EXCLUDED.updated_at
-           RETURNING workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, created_at as "created_at!", updated_at as "updated_at!""#,
+           RETURNING workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, effective_date, created_at as "created_at!", updated_at as "updated_at!""#,
         workspace_id,
         std_working_day_mode,
         fixed_std_days,
         working_days_per_week,
         hours_per_day,
+        effective_date,
         Utc::now()
     )
     .fetch_one(pool)
@@ -269,14 +282,15 @@ pub async fn create_payslip_segment(
     department_id: Option<Uuid>,
     applied_base_salary: Decimal,
     applied_std_days: Decimal,
+    applied_hours_per_day: Decimal,
     actual_work_days: Decimal,
     paid_work_days: Decimal,
     amount: Decimal,
 ) -> Result<Uuid, sqlx::Error> {
     let id = Uuid::new_v4();
     sqlx::query!(
-        r#"INSERT INTO payslip_segments (id, payslip_id, start_date, end_date, department_id, applied_base_salary, applied_std_days, actual_work_days, paid_work_days, amount)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#, 
+        r#"INSERT INTO payslip_segments (id, payslip_id, start_date, end_date, department_id, applied_base_salary, applied_std_days, applied_hours_per_day, actual_work_days, paid_work_days, amount)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"#, 
         id,
         payslip_id,
         start_date,
@@ -284,6 +298,7 @@ pub async fn create_payslip_segment(
         department_id,
         applied_base_salary,
         applied_std_days,
+        applied_hours_per_day,
         actual_work_days,
         paid_work_days,
         amount
@@ -291,4 +306,21 @@ pub async fn create_payslip_segment(
     .execute(pool)
     .await?;
     Ok(id)
+}
+
+pub async fn get_payslip_segments(
+    pool: &PgPool,
+    payslip_id: Uuid,
+) -> Result<Vec<PayslipSegment>, sqlx::Error> {
+    // Note: We don't have 'reason' column yet, so we select NULL as reason
+    query_as!(
+        PayslipSegment,
+        r#"SELECT id, payslip_id, start_date, end_date, department_id, applied_base_salary, applied_std_days, applied_hours_per_day, actual_work_days, paid_work_days, amount, NULL::text as reason
+           FROM payslip_segments
+           WHERE payslip_id = $1
+           ORDER BY start_date ASC"#,
+        payslip_id
+    )
+    .fetch_all(pool)
+    .await
 }

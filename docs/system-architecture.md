@@ -96,11 +96,14 @@ Instead of a simple monthly calculation, the system employs a **Segmentation Eng
 - **Granular Audit Trail**: Every calculation detail for each segment is persisted in the `payslip_segments` table.
 - **History Protection**: Future changes to department settings or global policies will **never** alter the values of finalized payslips, as the calculation parameters are frozen in the snapshot.
 
-#### 14.3. Working Conditions (Attendance Adjustments)
-The system supports flexible working policies beyond standard shifts via the `working_conditions` table:
-- **Authorized Adjustments**: Supports specific conditions like "Childcare Early Leave" or "Pregnancy Late In".
-- **Penalty Exemption**: Employees with active conditions are not penalized (marked as "Early Leave") if their deviation is within the allowed allowance.
-- **Paid/Unpaid Control**: Admins can configure whether the adjusted time is paid (subsidized by company) or unpaid (deducted from work hours but without disciplinary penalty).
+#### 14.4. 3-Tier Hierarchical Configuration (New)
+The system employs a sophisticated 3-tier temporal resolution logic for critical payroll settings ("Standard Working Days" and "Hours per Day"):
+- **Resolution Order**: When calculating payroll for a specific date, the `PolicyResolver` searches for active configurations in the following priority:
+    1. **Individual Override**: Configuration specifically set for the employee.
+    2. **Department Override**: Configuration set for the employee's assigned department at that time.
+    3. **Workspace Global**: The organization-wide default settings.
+- **Point-in-Time Lookup**: The resolver always performs a "Maximum Effective Date <= Payroll Start Date" search. This ensures that even if a policy changes today, a re-calculation of a 2-month-old payroll period will still use the exact settings that were active *at that time*.
+- **Temporal Integrity**: Composite unique constraints on `(entity_id, effective_date)` prevent overlapping versions on the same day, ensuring a deterministic calculation state for any given point in history.
 
 ## Infrastructure Diagram
 ```ascii

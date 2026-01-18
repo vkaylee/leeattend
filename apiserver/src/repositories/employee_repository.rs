@@ -261,3 +261,48 @@ pub async fn create_employment_period(
     .await?;
     Ok(())
 }
+
+use crate::models::EmployeePayrollConfig;
+use rust_decimal::Decimal;
+
+pub async fn upsert_employee_payroll_config(
+    pool: &PgPool,
+    employee_id: Uuid,
+    std_working_days: Decimal,
+    hours_per_day: Decimal,
+    effective_date: NaiveDate,
+) -> Result<EmployeePayrollConfig, sqlx::Error> {
+    sqlx::query_as!(
+        EmployeePayrollConfig,
+        r#"INSERT INTO employee_payroll_configs (employee_id, std_working_days, hours_per_day, effective_date)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (employee_id, effective_date) DO UPDATE 
+           SET std_working_days = EXCLUDED.std_working_days,
+               hours_per_day = EXCLUDED.hours_per_day
+           RETURNING id, employee_id, std_working_days, hours_per_day, effective_date, created_at as "created_at!""#,
+        employee_id,
+        std_working_days,
+        hours_per_day,
+        effective_date
+    )
+    .fetch_one(pool)
+    .await
+}
+
+pub async fn get_employee_payroll_config_at(
+    pool: &PgPool,
+    employee_id: Uuid,
+    date: NaiveDate,
+) -> Result<Option<EmployeePayrollConfig>, sqlx::Error> {
+    sqlx::query_as!(
+        EmployeePayrollConfig,
+        r#"SELECT id, employee_id, std_working_days, hours_per_day, effective_date, created_at as "created_at!"
+           FROM employee_payroll_configs
+           WHERE employee_id = $1 AND effective_date <= $2
+           ORDER BY effective_date DESC LIMIT 1"#,
+        employee_id,
+        date
+    )
+    .fetch_optional(pool)
+    .await
+}
