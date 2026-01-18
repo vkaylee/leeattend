@@ -3,7 +3,9 @@ use rust_decimal::Decimal;
 use sqlx::{query_as, PgPool};
 use uuid::Uuid;
 
-use crate::models::{Payslip, SalaryHistory, PayrollSettings, SalaryComponentDefinition, EmployeeSalaryComponent};
+use crate::models::{
+    EmployeeSalaryComponent, PayrollSettings, Payslip, SalaryComponentDefinition, SalaryHistory,
+};
 
 pub async fn get_payroll_settings(
     pool: &PgPool,
@@ -136,29 +138,32 @@ pub async fn get_employee_salary_components(
     .fetch_all(pool)
     .await?;
 
-    Ok(rows.into_iter().map(|row| {
-        (
-            EmployeeSalaryComponent {
-                id: row.esc_id,
-                employee_id: row.employee_id,
-                component_definition_id: row.component_definition_id,
-                amount: row.amount,
-                effective_date: row.effective_date,
-                created_at: row.esc_created_at,
-                updated_at: row.esc_updated_at,
-            },
-            SalaryComponentDefinition {
-                id: row.scd_id,
-                workspace_id: row.workspace_id,
-                name: row.name,
-                code: row.code,
-                is_base_for_ot: row.is_base_for_ot,
-                is_taxable: row.is_taxable,
-                created_at: row.scd_created_at,
-                updated_at: row.scd_updated_at,
-            }
-        )
-    }).collect())
+    Ok(rows
+        .into_iter()
+        .map(|row| {
+            (
+                EmployeeSalaryComponent {
+                    id: row.esc_id,
+                    employee_id: row.employee_id,
+                    component_definition_id: row.component_definition_id,
+                    amount: row.amount,
+                    effective_date: row.effective_date,
+                    created_at: row.esc_created_at,
+                    updated_at: row.esc_updated_at,
+                },
+                SalaryComponentDefinition {
+                    id: row.scd_id,
+                    workspace_id: row.workspace_id,
+                    name: row.name,
+                    code: row.code,
+                    is_base_for_ot: row.is_base_for_ot,
+                    is_taxable: row.is_taxable,
+                    created_at: row.scd_created_at,
+                    updated_at: row.scd_updated_at,
+                },
+            )
+        })
+        .collect())
 }
 
 pub async fn get_latest_salary(

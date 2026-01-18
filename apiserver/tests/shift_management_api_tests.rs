@@ -1,13 +1,13 @@
+use crate::common::factory::TestFactory;
+use apiserver::{agent_manager::AgentManager, create_app, AppState};
 use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use tower::ServiceExt;
 use serde_json::json;
-use std::sync::Arc;
-use apiserver::{create_app, AppState, agent_manager::AgentManager};
 use sqlx::PgPool;
-use crate::common::factory::TestFactory;
+use std::sync::Arc;
+use tower::ServiceExt;
 
 mod common;
 
@@ -64,7 +64,8 @@ async fn test_create_shift_api_flow() {
         "early_punch_in_grace_period_minutes": 15
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             Request::builder()
                 .method("POST")
@@ -95,14 +96,21 @@ async fn test_create_shift_api_flow() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let shifts: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    
-    assert!(shifts.as_array().unwrap().len() > 0);
-    
+
+    assert!(!shifts.as_array().unwrap().is_empty());
+
     // Tìm shift vừa tạo trong danh sách
-    let created_shift = shifts.as_array().unwrap().iter().find(|s| s["name"] == "Test Shift API").unwrap();
+    let created_shift = shifts
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|s| s["name"] == "Test Shift API")
+        .unwrap();
     assert_eq!(created_shift["break_start"], "12:00:00");
     assert_eq!(created_shift["break_end"], "13:00:00");
     assert_eq!(created_shift["is_break_auto_deduct"], true);

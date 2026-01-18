@@ -4,12 +4,12 @@
 
 mod common;
 
+use apiserver::agent_manager::AgentManager;
+use apiserver::models::{EmployeeEmergencyContact, EmployeeProfile, MyProfileResponse};
+use apiserver::AppState;
 use axum::http::StatusCode;
 use common::db::TestDatabase;
 use common::factory::TestFactory;
-use apiserver::models::{EmployeeEmergencyContact, EmployeeProfile, MyProfileResponse};
-use apiserver::AppState;
-use apiserver::agent_manager::AgentManager;
 use std::sync::Arc;
 use tower::ServiceExt;
 
@@ -23,10 +23,16 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
     let pool = test_db.pool().clone();
     let factory = TestFactory::new(pool.clone());
 
-    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(pool.clone()));
-    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(
+        pool.clone(),
+    ));
+    let workspace_repo =
+        Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
     let agent_manager = AgentManager::new();
-    let agent_service = Arc::new(apiserver::services::AgentService::new(agent_repo.clone(), agent_manager.clone()));
+    let agent_service = Arc::new(apiserver::services::AgentService::new(
+        agent_repo.clone(),
+        agent_manager.clone(),
+    ));
 
     let app_state = Arc::new(AppState {
         agent_manager,
@@ -45,7 +51,8 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
 async fn setup_employee_with_user(factory: &TestFactory) -> (uuid::Uuid, uuid::Uuid, uuid::Uuid) {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
-    let emp_id = factory.employee()
+    let emp_id = factory
+        .employee()
         .with_workspace(ws_id)
         .with_user(user_id)
         .create()
@@ -62,7 +69,8 @@ async fn test_get_my_profile_success() {
     let (_test_db, factory, app) = setup_app().await;
     let (user_id, ws_id, _emp_id) = setup_employee_with_user(&factory).await;
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -76,7 +84,9 @@ async fn test_get_my_profile_success() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let profile_response: MyProfileResponse = serde_json::from_slice(&body).unwrap();
 
     // Employee should be present
@@ -98,7 +108,8 @@ async fn test_get_my_profile_user_not_linked_to_employee() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -128,7 +139,8 @@ async fn test_update_my_profile_creates_new_profile() {
         "bank_account_number": "1234567890"
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
@@ -136,18 +148,25 @@ async fn test_update_my_profile_creates_new_profile() {
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(serde_json::to_string(&update_req).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&update_req).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let profile: EmployeeProfile = serde_json::from_slice(&body).unwrap();
 
     assert_eq!(profile.phone, Some("+84901234567".to_string()));
-    assert_eq!(profile.address, Some("123 Main St, Ho Chi Minh City".to_string()));
+    assert_eq!(
+        profile.address,
+        Some("123 Main St, Ho Chi Minh City".to_string())
+    );
     assert_eq!(profile.gender, Some("male".to_string()));
     assert_eq!(profile.bank_name, Some("Vietcombank".to_string()));
 }
@@ -162,7 +181,8 @@ async fn test_update_my_profile_updates_existing_profile() {
         "phone": "+84901234567"
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
@@ -170,7 +190,9 @@ async fn test_update_my_profile_updates_existing_profile() {
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(serde_json::to_string(&initial_req).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&initial_req).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
@@ -182,7 +204,8 @@ async fn test_update_my_profile_updates_existing_profile() {
         "address": "456 New Address"
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
@@ -190,14 +213,18 @@ async fn test_update_my_profile_updates_existing_profile() {
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(serde_json::to_string(&update_req).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&update_req).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let profile: EmployeeProfile = serde_json::from_slice(&body).unwrap();
 
     // Phone should be preserved, address should be updated
@@ -221,7 +248,8 @@ async fn test_add_emergency_contact_success() {
         "is_primary": true
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
@@ -229,14 +257,18 @@ async fn test_add_emergency_contact_success() {
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(serde_json::to_string(&contact_req).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&contact_req).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let contact: EmployeeEmergencyContact = serde_json::from_slice(&body).unwrap();
 
     assert_eq!(contact.contact_name, "John Doe");
@@ -266,7 +298,9 @@ async fn test_get_emergency_contacts_returns_sorted_list() {
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(serde_json::to_string(&contact1).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&contact1).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
@@ -288,14 +322,17 @@ async fn test_get_emergency_contacts_returns_sorted_list() {
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(serde_json::to_string(&contact2).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&contact2).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
         .unwrap();
 
     // Get contacts
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -309,7 +346,9 @@ async fn test_get_emergency_contacts_returns_sorted_list() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let contacts: Vec<EmployeeEmergencyContact> = serde_json::from_slice(&body).unwrap();
 
     assert_eq!(contacts.len(), 2);
@@ -331,7 +370,8 @@ async fn test_delete_emergency_contact_success() {
         "is_primary": false
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
@@ -339,17 +379,22 @@ async fn test_delete_emergency_contact_success() {
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(serde_json::to_string(&contact_req).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&contact_req).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
         .unwrap();
 
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let contact: EmployeeEmergencyContact = serde_json::from_slice(&body).unwrap();
 
     // Delete the contact
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
@@ -365,7 +410,8 @@ async fn test_delete_emergency_contact_success() {
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
 
     // Verify contact is deleted
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -378,7 +424,9 @@ async fn test_delete_emergency_contact_success() {
         .await
         .unwrap();
 
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let contacts: Vec<EmployeeEmergencyContact> = serde_json::from_slice(&body).unwrap();
     assert!(contacts.is_empty());
 }
@@ -392,7 +440,8 @@ async fn test_get_my_attendance_empty() {
     let (_test_db, factory, app) = setup_app().await;
     let (user_id, ws_id, _emp_id) = setup_employee_with_user(&factory).await;
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -406,7 +455,9 @@ async fn test_get_my_attendance_empty() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let entries: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
     assert!(entries.is_empty());
 }
@@ -416,7 +467,8 @@ async fn test_get_my_attendance_with_date_filter() {
     let (_test_db, factory, app) = setup_app().await;
     let (user_id, ws_id, _emp_id) = setup_employee_with_user(&factory).await;
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -441,7 +493,8 @@ async fn test_get_my_leave_balances_empty() {
     let (_test_db, factory, app) = setup_app().await;
     let (user_id, ws_id, _emp_id) = setup_employee_with_user(&factory).await;
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -455,7 +508,9 @@ async fn test_get_my_leave_balances_empty() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let balances: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
     assert!(balances.is_empty());
 }
@@ -469,7 +524,8 @@ async fn test_get_my_leave_requests_empty() {
     let (_test_db, factory, app) = setup_app().await;
     let (user_id, ws_id, _emp_id) = setup_employee_with_user(&factory).await;
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -483,7 +539,9 @@ async fn test_get_my_leave_requests_empty() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let requests: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
     assert!(requests.is_empty());
 }
@@ -497,7 +555,8 @@ async fn test_get_my_documents_empty() {
     let (_test_db, factory, app) = setup_app().await;
     let (user_id, ws_id, _emp_id) = setup_employee_with_user(&factory).await;
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -511,7 +570,9 @@ async fn test_get_my_documents_empty() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let docs: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
     assert!(docs.is_empty());
 }
@@ -525,7 +586,8 @@ async fn test_get_my_payslips_empty() {
     let (_test_db, factory, app) = setup_app().await;
     let (user_id, ws_id, _emp_id) = setup_employee_with_user(&factory).await;
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -539,7 +601,9 @@ async fn test_get_my_payslips_empty() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let payslips: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
     assert!(payslips.is_empty());
 }

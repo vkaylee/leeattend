@@ -1,11 +1,11 @@
-use chrono::{DateTime, Utc, NaiveDateTime, TimeZone};
+use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 use chrono_tz::Tz;
 
 /// Parses a datetime string into Utc.
-/// 
+///
 /// Priority:
 /// 1. If string contains a timezone/offset (e.g. ISO8601 with Z or +HH:mm), parse it directly.
-/// 2. Otherwise, parse as NaiveDateTime using provided or fallback formats, 
+/// 2. Otherwise, parse as NaiveDateTime using provided or fallback formats,
 ///    and convert to Utc using the provided workspace timezone.
 pub fn parse_datetime_with_tz(
     dt_str: &str,
@@ -22,7 +22,7 @@ pub fn parse_datetime_with_tz(
     if let Ok(dt) = DateTime::parse_from_rfc3339(dt_str) {
         return Ok(dt.with_timezone(&Utc));
     }
-    
+
     // Try other ISO formats that DateTime::parse_from_str might handle if they have offsets
     // e.g. "2023-01-01 12:00:00 +07:00"
     if let Ok(dt) = DateTime::parse_from_str(dt_str, "%Y-%m-%d %H:%M:%S %z") {
@@ -30,8 +30,10 @@ pub fn parse_datetime_with_tz(
     }
 
     // 2. Parse as Naive if no offset is found
-    let tz: Tz = workspace_tz.parse().map_err(|_| format!("Múi giờ không hợp lệ: {}", workspace_tz))?;
-    
+    let tz: Tz = workspace_tz
+        .parse()
+        .map_err(|_| format!("Múi giờ không hợp lệ: {}", workspace_tz))?;
+
     let date_pref = preferred_date_fmt.unwrap_or("DD/MM/YYYY").to_uppercase();
     let time_pref = preferred_time_fmt.unwrap_or("24h");
 
@@ -63,10 +65,10 @@ pub fn parse_datetime_with_tz(
 
     // Fallbacks for common naive formats
     let fallbacks = vec![
-        "%Y-%m-%d %H:%M:%S", 
+        "%Y-%m-%d %H:%M:%S",
         "%Y-%m-%dT%H:%M:%S",
         "%d/%m/%Y %H:%M",
-        "%Y-%m-%d %H:%M"
+        "%Y-%m-%d %H:%M",
     ];
 
     for fmt in fallbacks {
@@ -77,7 +79,10 @@ pub fn parse_datetime_with_tz(
 
     Err(format!(
         "Không thể nhận diện ngày giờ: '{}'. Múi giờ: {}, Định dạng yêu cầu: {} ({}).",
-        dt_str, workspace_tz, date_pref, if time_pref == "12h" { "12h" } else { "24h" }
+        dt_str,
+        workspace_tz,
+        date_pref,
+        if time_pref == "12h" { "12h" } else { "24h" }
     ))
 }
 
@@ -87,7 +92,7 @@ fn naive_to_utc(naive: NaiveDateTime, tz: Tz) -> Result<DateTime<Utc>, String> {
         chrono::LocalResult::Ambiguous(dt1, _dt2) => {
             // In case of DST overlap, pick the first one (standard practice)
             Ok(dt1.with_timezone(&Utc))
-        },
+        }
         chrono::LocalResult::None => {
             Err("Thời gian không tồn tại trong múi giờ này (do thay đổi giờ mùa hè).".to_string())
         }
@@ -100,28 +105,47 @@ mod tests {
 
     #[test]
     fn test_parse_with_z() {
-        let dt = parse_datetime_with_tz("2026-01-16T10:00:00Z", "Asia/Ho_Chi_Minh", None, None).unwrap();
+        let dt =
+            parse_datetime_with_tz("2026-01-16T10:00:00Z", "Asia/Ho_Chi_Minh", None, None).unwrap();
         assert_eq!(dt.to_rfc3339(), "2026-01-16T10:00:00+00:00");
     }
 
     #[test]
     fn test_parse_naive_vn() {
         // 08:00 VN is 01:00 UTC
-        let dt = parse_datetime_with_tz("16/01/2026 08:00", "Asia/Ho_Chi_Minh", Some("DD/MM/YYYY"), Some("24h")).unwrap();
+        let dt = parse_datetime_with_tz(
+            "16/01/2026 08:00",
+            "Asia/Ho_Chi_Minh",
+            Some("DD/MM/YYYY"),
+            Some("24h"),
+        )
+        .unwrap();
         assert_eq!(dt.to_rfc3339(), "2026-01-16T01:00:00+00:00");
     }
 
     #[test]
     fn test_parse_us_format() {
         // 12/31/2025 11:00 PM (US) -> 2026-01-01 04:00 AM UTC (if NY)
-        let dt = parse_datetime_with_tz("12/31/2025 11:00 PM", "America/New_York", Some("MM/DD/YYYY"), Some("12h")).unwrap();
+        let dt = parse_datetime_with_tz(
+            "12/31/2025 11:00 PM",
+            "America/New_York",
+            Some("MM/DD/YYYY"),
+            Some("12h"),
+        )
+        .unwrap();
         assert_eq!(dt.to_rfc3339(), "2026-01-01T04:00:00+00:00");
     }
 
     #[test]
     fn test_parse_iso_naive() {
         // 2026-01-16 08:00 (Naive ISO) in VN -> 01:00 UTC
-        let dt = parse_datetime_with_tz("2026-01-16 08:00:00", "Asia/Ho_Chi_Minh", Some("YYYY-MM-DD"), Some("24h")).unwrap();
+        let dt = parse_datetime_with_tz(
+            "2026-01-16 08:00:00",
+            "Asia/Ho_Chi_Minh",
+            Some("YYYY-MM-DD"),
+            Some("24h"),
+        )
+        .unwrap();
         assert_eq!(dt.to_rfc3339(), "2026-01-16T01:00:00+00:00");
     }
 
@@ -136,7 +160,12 @@ mod tests {
     fn test_parse_dst_gap() {
         // America/New_York DST starts 2026-03-08 02:00:00
         // 02:30:00 does not exist
-        let res = parse_datetime_with_tz("08/03/2026 02:30:00", "America/New_York", Some("DD/MM/YYYY"), Some("24h"));
+        let res = parse_datetime_with_tz(
+            "08/03/2026 02:30:00",
+            "America/New_York",
+            Some("DD/MM/YYYY"),
+            Some("24h"),
+        );
         assert!(res.is_err());
         assert!(res.unwrap_err().contains("thay đổi giờ mùa hè"));
     }

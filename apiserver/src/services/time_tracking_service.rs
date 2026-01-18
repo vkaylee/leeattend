@@ -6,10 +6,10 @@ use uuid::Uuid;
 
 use crate::models::{PunchInRequest, PunchOutRequest, TimeEntry, UpdateTimeEntryRequest};
 use crate::repositories::employee_repository;
-use crate::repositories::time_entry_repository;
 use crate::repositories::roster_repository;
 use crate::repositories::shift_repository;
-use crate::repositories::workspace_repository::{WorkspaceRepository, SqlxWorkspaceRepository};
+use crate::repositories::time_entry_repository;
+use crate::repositories::workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};
 
 pub struct TimeTrackingService;
 
@@ -31,7 +31,8 @@ impl TimeTrackingService {
 
         // Get Workspace Timezone
         let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
-        let workspace = workspace_repo.get_workspace_by_id(workspace_id)
+        let workspace = workspace_repo
+            .get_workspace_by_id(workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?; // Should allow not found? No, foreign key usually enforces it, but safe to error.
@@ -68,7 +69,7 @@ impl TimeTrackingService {
             if entry_type == "work" {
                 let start_time = shift.start_time;
                 let grace_minutes = shift.early_punch_in_grace_period_minutes as u32;
-                
+
                 let shift_start = today.and_time(start_time);
                 let earliest_punch = shift_start - chrono::Duration::minutes(grace_minutes as i64);
 

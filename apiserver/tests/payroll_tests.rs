@@ -2,9 +2,9 @@ mod common;
 
 use apiserver::services::payroll_service::PayrollService;
 use axum::http::StatusCode;
-use chrono::{Datelike, NaiveDate, NaiveTime, TimeZone, Utc, Local};
-use common::factory::TestFactory;
+use chrono::{Datelike, Local, NaiveDate, NaiveTime, TimeZone, Utc};
 use common::db::TestDatabase;
+use common::factory::TestFactory;
 use rust_decimal::prelude::*;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -22,13 +22,15 @@ async fn setup_employee_with_salary(
 ) -> (Uuid, Uuid, Decimal) {
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
-    
+
     // Set work_unit_minutes to 60 for consistent hourly-like testing
-    sqlx::query("UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1")
-        .bind(workspace_id)
-        .execute(pool)
-        .await
-        .unwrap();
+    sqlx::query(
+        "UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1",
+    )
+    .bind(workspace_id)
+    .execute(pool)
+    .await
+    .unwrap();
 
     let employee_id = factory
         .employee()
@@ -60,13 +62,15 @@ async fn setup_employee_with_monthly_salary(
 ) -> (Uuid, Uuid, Decimal) {
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
-    
+
     // Set work_unit_minutes to 60 for consistent hourly-like testing
-    sqlx::query("UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1")
-        .bind(workspace_id)
-        .execute(pool)
-        .await
-        .unwrap();
+    sqlx::query(
+        "UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1",
+    )
+    .bind(workspace_id)
+    .execute(pool)
+    .await
+    .unwrap();
 
     let employee_id = factory
         .employee()
@@ -97,11 +101,13 @@ async fn test_calculate_payroll_monthly() {
     let pool = test_db.pool();
     let test_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
 
-    let (employee_id, workspace_id, base_salary) = setup_employee_with_monthly_salary(&factory, &pool, test_date).await;
+    let (employee_id, workspace_id, base_salary) =
+        setup_employee_with_monthly_salary(&factory, &pool, test_date).await;
 
-    let payslip = PayrollService::calculate_monthly_payslip(
-        &pool, employee_id, workspace_id, 2026, 1
-    ).await.unwrap();
+    let payslip =
+        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
+            .await
+            .unwrap();
 
     assert_eq!(payslip.base_pay_amount, base_salary);
 }
@@ -112,40 +118,52 @@ async fn test_calculate_payroll_monthly_with_overtime() {
     let pool = test_db.pool();
     let test_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
 
-    let (employee_id, workspace_id, base_salary) = setup_employee_with_monthly_salary(&factory, &pool, test_date).await;
+    let (employee_id, workspace_id, base_salary) =
+        setup_employee_with_monthly_salary(&factory, &pool, test_date).await;
 
     // Create a shift: 8 hours work (09:00 - 17:00)
-    let _shift_id = factory.shift()
+    let _shift_id = factory
+        .shift()
         .with_workspace(workspace_id)
-        .with_times(NaiveTime::from_hms_opt(9, 0, 0).unwrap(), NaiveTime::from_hms_opt(17, 0, 0).unwrap())
+        .with_times(
+            NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+        )
         .with_break_duration(0)
         .assign_to_employee(employee_id, test_date)
         .await;
 
     // Work 10 hours (09:00 - 19:00) -> 2 hours overtime
-    let punch_in = Local.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap().with_timezone(&Utc);
-    let punch_out = Local.with_ymd_and_hms(2026, 1, 15, 19, 0, 0).unwrap().with_timezone(&Utc);
-    factory.time_entry()
+    let punch_in = Local
+        .with_ymd_and_hms(2026, 1, 15, 9, 0, 0)
+        .unwrap()
+        .with_timezone(&Utc);
+    let punch_out = Local
+        .with_ymd_and_hms(2026, 1, 15, 19, 0, 0)
+        .unwrap()
+        .with_timezone(&Utc);
+    factory
+        .time_entry()
         .with_employee(employee_id)
         .with_punch_in(punch_in)
         .with_punch_out(punch_out)
-        .create().await;
+        .create()
+        .await;
 
-    let payslip = PayrollService::calculate_monthly_payslip(
-        &pool, employee_id, workspace_id, 2026, 1
-    ).await.unwrap();
+    let payslip =
+        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
+            .await
+            .unwrap();
 
     assert_eq!(payslip.base_pay_amount, base_salary);
-    // 2 hours overtime = 2 units (since unit=60m). 
+    // 2 hours overtime = 2 units (since unit=60m).
     // Standard units/month = 26 days * 8 hours = 208 units.
     // Unit rate = 3000 / 208 = 14.423...
     // OT = 2 units * 14.423 * 1.5 = 43.269... -> 43.27
-    let expected_ot = ((base_salary / Decimal::from(208)) * Decimal::from_f64(2.0 * 1.5).unwrap())
-        .round_dp(2);
+    let expected_ot =
+        ((base_salary / Decimal::from(208)) * Decimal::from_f64(2.0 * 1.5).unwrap()).round_dp(2);
     assert_eq!(payslip.overtime_pay_amount, expected_ot);
 }
-
-
 
 #[tokio::test]
 async fn test_early_punch_in_grace_period() {
@@ -174,11 +192,25 @@ async fn test_early_punch_in_grace_period() {
         .await;
 
     let punch_in_time_case1 = Local
-        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 8, 0, 0)
+        .with_ymd_and_hms(
+            test_date.year(),
+            test_date.month(),
+            test_date.day(),
+            8,
+            0,
+            0,
+        )
         .unwrap()
         .with_timezone(&Utc);
     let punch_out_time_case1 = Local
-        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 17, 0, 0)
+        .with_ymd_and_hms(
+            test_date.year(),
+            test_date.month(),
+            test_date.day(),
+            17,
+            0,
+            0,
+        )
         .unwrap()
         .with_timezone(&Utc);
     factory
@@ -218,11 +250,25 @@ async fn test_early_punch_in_grace_period() {
         .await;
 
     let punch_in_time_case2 = Local
-        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 7, 45, 0)
+        .with_ymd_and_hms(
+            test_date.year(),
+            test_date.month(),
+            test_date.day(),
+            7,
+            45,
+            0,
+        )
         .unwrap()
         .with_timezone(&Utc);
     let punch_out_time_case2 = Local
-        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 17, 0, 0)
+        .with_ymd_and_hms(
+            test_date.year(),
+            test_date.month(),
+            test_date.day(),
+            17,
+            0,
+            0,
+        )
         .unwrap()
         .with_timezone(&Utc);
     factory
@@ -262,11 +308,25 @@ async fn test_early_punch_in_grace_period() {
         .await;
 
     let punch_in_time_case3 = Local
-        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 7, 30, 0)
+        .with_ymd_and_hms(
+            test_date.year(),
+            test_date.month(),
+            test_date.day(),
+            7,
+            30,
+            0,
+        )
         .unwrap()
         .with_timezone(&Utc);
     let punch_out_time_case3 = Local
-        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 17, 0, 0)
+        .with_ymd_and_hms(
+            test_date.year(),
+            test_date.month(),
+            test_date.day(),
+            17,
+            0,
+            0,
+        )
         .unwrap()
         .with_timezone(&Utc);
     factory
@@ -307,11 +367,25 @@ async fn test_early_punch_in_grace_period() {
         .await;
 
     let punch_in_time_case4 = Local
-        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 7, 0, 0)
+        .with_ymd_and_hms(
+            test_date.year(),
+            test_date.month(),
+            test_date.day(),
+            7,
+            0,
+            0,
+        )
         .unwrap()
         .with_timezone(&Utc);
     let punch_out_time_case4 = Local
-        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 17, 0, 0)
+        .with_ymd_and_hms(
+            test_date.year(),
+            test_date.month(),
+            test_date.day(),
+            17,
+            0,
+            0,
+        )
         .unwrap()
         .with_timezone(&Utc);
     factory
@@ -355,11 +429,25 @@ async fn test_early_punch_in_grace_period() {
         .await;
 
     let punch_in_time_case5 = Local
-        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 8, 15, 0)
+        .with_ymd_and_hms(
+            test_date.year(),
+            test_date.month(),
+            test_date.day(),
+            8,
+            15,
+            0,
+        )
         .unwrap()
         .with_timezone(&Utc);
     let punch_out_time_case5 = Local
-        .with_ymd_and_hms(test_date.year(), test_date.month(), test_date.day(), 17, 0, 0)
+        .with_ymd_and_hms(
+            test_date.year(),
+            test_date.month(),
+            test_date.day(),
+            17,
+            0,
+            0,
+        )
         .unwrap()
         .with_timezone(&Utc);
     factory
@@ -397,9 +485,7 @@ async fn test_calculate_payroll_no_salary() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
-    let result = PayrollService::calculate_monthly_payslip(
-        &pool, emp_id, ws_id, 2026, 1
-    ).await;
+    let result = PayrollService::calculate_monthly_payslip(&pool, emp_id, ws_id, 2026, 1).await;
 
     assert_eq!(result.unwrap_err(), StatusCode::BAD_REQUEST);
 }

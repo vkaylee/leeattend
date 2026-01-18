@@ -1,7 +1,7 @@
 mod common;
 
 use apiserver::services::payroll_service::PayrollService;
-use chrono::{NaiveDate, NaiveTime, TimeZone, Local, Utc};
+use chrono::{Local, NaiveDate, NaiveTime, TimeZone, Utc};
 use common::factory::TestFactory;
 use rust_decimal::prelude::*;
 use sqlx::PgPool;
@@ -30,13 +30,15 @@ async fn setup_employee_with_salary(
         .await;
 
     let base_salary = Decimal::from_f64(100.0).unwrap();
-    
+
     // Set work_unit_minutes to 60 so that 'hourly' salary is per hour
-    sqlx::query("UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1")
-        .bind(workspace_id)
-        .execute(pool)
-        .await
-        .unwrap();
+    sqlx::query(
+        "UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1",
+    )
+    .bind(workspace_id)
+    .execute(pool)
+    .await
+    .unwrap();
 
     sqlx::query(
         "INSERT INTO salary_history (employee_id, base_salary, salary_type, currency, effective_date) VALUES ($1, $2, $3, $4, $5)",
@@ -60,45 +62,72 @@ async fn test_payroll_with_explicit_breaks() {
     let test_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
 
     // Shift: 08:00 - 17:00, 60m default break
-    let (employee_id, workspace_id, _base_salary) = setup_employee_with_salary(&factory, &pool, test_date).await;
+    let (employee_id, workspace_id, _base_salary) =
+        setup_employee_with_salary(&factory, &pool, test_date).await;
     factory
         .shift()
         .with_workspace(workspace_id)
-        .with_times(NaiveTime::from_hms_opt(8, 0, 0).unwrap(), NaiveTime::from_hms_opt(17, 0, 0).unwrap())
+        .with_times(
+            NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+        )
         .with_break_duration(60)
         .assign_to_employee(employee_id, test_date)
         .await;
 
     // Case 1: Employee takes a 90 minute break (Longer than 60m default)
     // Work entry: 08:00 - 17:00
-    let punch_in = Local.with_ymd_and_hms(2026, 1, 15, 8, 0, 0).unwrap().with_timezone(&Utc);
-    let punch_out = Local.with_ymd_and_hms(2026, 1, 15, 17, 0, 0).unwrap().with_timezone(&Utc);
-    factory.time_entry()
+    let punch_in = Local
+        .with_ymd_and_hms(2026, 1, 15, 8, 0, 0)
+        .unwrap()
+        .with_timezone(&Utc);
+    let punch_out = Local
+        .with_ymd_and_hms(2026, 1, 15, 17, 0, 0)
+        .unwrap()
+        .with_timezone(&Utc);
+    factory
+        .time_entry()
         .with_employee(employee_id)
         .with_punch_in(punch_in)
         .with_punch_out(punch_out)
         .with_entry_type("work")
-        .create().await;
+        .create()
+        .await;
 
     // Break entry: 12:00 - 13:30 (90 minutes)
-    let break_in = Local.with_ymd_and_hms(2026, 1, 15, 12, 0, 0).unwrap().with_timezone(&Utc);
-    let break_out = Local.with_ymd_and_hms(2026, 1, 15, 13, 30, 0).unwrap().with_timezone(&Utc);
-    factory.time_entry()
+    let break_in = Local
+        .with_ymd_and_hms(2026, 1, 15, 12, 0, 0)
+        .unwrap()
+        .with_timezone(&Utc);
+    let break_out = Local
+        .with_ymd_and_hms(2026, 1, 15, 13, 30, 0)
+        .unwrap()
+        .with_timezone(&Utc);
+    factory
+        .time_entry()
         .with_employee(employee_id)
         .with_punch_in(break_in)
         .with_punch_out(break_out)
         .with_entry_type("break")
-        .create().await;
+        .create()
+        .await;
 
-    let payslip = PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1).await.unwrap();
-    
-    // Calculation: 
+    let payslip =
+        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
+            .await
+            .unwrap();
+
+    // Calculation:
     // Total gross: 9 hours (540 mins)
     // Actual break: 90 mins
     // Net worked: 450 mins = 7.5 hours
     // Integer Work Units (60m block): Floor(450 / 60) = 7 units
     // Expected pay: 7 * 100 = 700.0
-    assert_eq!(payslip.base_pay_amount.to_f64().unwrap(), 700.0, "Should use explicit 90m break instead of 60m default");
+    assert_eq!(
+        payslip.base_pay_amount.to_f64().unwrap(),
+        700.0,
+        "Should use explicit 90m break instead of 60m default"
+    );
 
     factory.cleanup().await;
 }

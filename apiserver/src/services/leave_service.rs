@@ -3,15 +3,15 @@ use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::repositories::roster_repository;
 use crate::models::{
-    LeaveRequest, LeaveStatus, LeaveTransactionType, LeaveHistoryItem,
-    WorkspaceLeaveBalance, AdjustBalanceRequest, EmployeeLeaveBalance,
-    SubmitLeaveRequest, ApproveLeaveRequest, ShiftRoster
+    AdjustBalanceRequest, ApproveLeaveRequest, EmployeeLeaveBalance, LeaveHistoryItem,
+    LeaveRequest, LeaveStatus, LeaveTransactionType, ShiftRoster, SubmitLeaveRequest,
+    WorkspaceLeaveBalance,
 };
 use crate::repositories::employee_repository;
-use crate::repositories::leave_request_repository;
 use crate::repositories::leave_balance_repository;
+use crate::repositories::leave_request_repository;
+use crate::repositories::roster_repository;
 use rust_decimal::prelude::ToPrimitive;
 
 pub struct LeaveService;
@@ -67,7 +67,11 @@ impl LeaveService {
         let mut history: Vec<LeaveHistoryItem> = Vec::new();
 
         for log in logs {
-            let transaction_type = if log.policy_assignment_id.is_some() { LeaveTransactionType::Accrual } else { LeaveTransactionType::Adjustment };
+            let transaction_type = if log.policy_assignment_id.is_some() {
+                LeaveTransactionType::Accrual
+            } else {
+                LeaveTransactionType::Adjustment
+            };
             history.push(LeaveHistoryItem {
                 id: log.id,
                 date: log.accrual_date,
@@ -104,8 +108,8 @@ impl LeaveService {
         employee_id: Uuid,
         req: AdjustBalanceRequest,
     ) -> Result<(), StatusCode> {
-        let amount_dec = rust_decimal::Decimal::from_f64_retain(req.amount)
-            .ok_or(StatusCode::BAD_REQUEST)?;
+        let amount_dec =
+            rust_decimal::Decimal::from_f64_retain(req.amount).ok_or(StatusCode::BAD_REQUEST)?;
 
         leave_balance_repository::adjust_balance(
             pool,
@@ -114,7 +118,7 @@ impl LeaveService {
             &req.leave_type,
             amount_dec,
             req.transaction_date,
-            &req.reason
+            &req.reason,
         )
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
@@ -211,11 +215,11 @@ impl LeaveService {
                     created_at: Utc::now(),
                     updated_at: Utc::now(),
                 };
-                
+
                 let _ = roster_repository::upsert_roster(pool, &roster)
                     .await
                     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-                
+
                 if let Some(next_date) = current_date.succ_opt() {
                     current_date = next_date;
                 } else {

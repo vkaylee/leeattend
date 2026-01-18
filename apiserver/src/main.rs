@@ -94,7 +94,8 @@ async fn main() {
 
     // Try to bind to the preferred port, or find another one if it's busy
     // Dọn dẹp file cũ nếu có để tránh stale data
-    let port_file_name = std::env::var("PORT_FILE_NAME").unwrap_or_else(|_| ".api_port".to_string());
+    let port_file_name =
+        std::env::var("PORT_FILE_NAME").unwrap_or_else(|_| ".api_port".to_string());
     let _ = std::fs::remove_file(&port_file_name);
 
     let listener = {

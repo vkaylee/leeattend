@@ -1,19 +1,19 @@
 pub mod agent_repository;
+pub mod assignment_rule_repository;
 pub mod attendance_adjustment_repository;
-pub mod import_job_repository;
 pub mod department_repository;
 pub mod employee_repository;
-pub mod leave_request_repository;
+pub mod import_job_repository;
 pub mod leave_balance_repository;
+pub mod leave_request_repository;
 pub mod payroll_repository;
-pub mod roster_repository;
 pub mod raw_attendance_log_repository;
+pub mod roster_repository;
 pub mod shift_repository;
 pub mod time_entry_repository;
 pub mod user_repository;
-pub mod workspace_repository;
 pub mod working_pattern_repository;
-pub mod assignment_rule_repository;
+pub mod workspace_repository;
 
 pub use agent_repository::{AgentRepository, SqlxAgentRepository};
 pub use workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};

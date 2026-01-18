@@ -1,4 +1,4 @@
-use crate::models::{AttendanceAdjustmentRequest, AdjustmentStatus};
+use crate::models::{AdjustmentStatus, AttendanceAdjustmentRequest};
 use sqlx::{query, query_as, PgPool};
 use uuid::Uuid;
 

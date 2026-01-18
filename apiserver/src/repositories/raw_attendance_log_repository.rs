@@ -1,12 +1,9 @@
+use crate::models::RawAttendanceLog;
+use chrono::{DateTime, Utc};
 use sqlx::{query, query_as, PgPool};
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
-use crate::models::RawAttendanceLog;
 
-pub async fn create_raw_log(
-    pool: &PgPool,
-    log: &RawAttendanceLog,
-) -> Result<(), sqlx::Error> {
+pub async fn create_raw_log(pool: &PgPool, log: &RawAttendanceLog) -> Result<(), sqlx::Error> {
     query(
         "INSERT INTO raw_attendance_logs (id, workspace_id, employee_id, punch_time, source, device_id, raw_data, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
     )
@@ -28,7 +25,7 @@ pub async fn get_latest_log(
     employee_id: Uuid,
 ) -> Result<Option<RawAttendanceLog>, sqlx::Error> {
     query_as::<_, RawAttendanceLog>(
-        "SELECT * FROM raw_attendance_logs WHERE employee_id = $1 ORDER BY punch_time DESC LIMIT 1"
+        "SELECT * FROM raw_attendance_logs WHERE employee_id = $1 ORDER BY punch_time DESC LIMIT 1",
     )
     .bind(employee_id)
     .fetch_optional(pool)
@@ -44,7 +41,8 @@ pub async fn get_paginated_raw_logs(
     p_limit: i64,
     p_offset: i64,
 ) -> Result<Vec<RawAttendanceLog>, sqlx::Error> {
-    let mut query_builder: sqlx::QueryBuilder<sqlx::Postgres> = sqlx::QueryBuilder::new("SELECT * FROM raw_attendance_logs WHERE workspace_id = ");
+    let mut query_builder: sqlx::QueryBuilder<sqlx::Postgres> =
+        sqlx::QueryBuilder::new("SELECT * FROM raw_attendance_logs WHERE workspace_id = ");
     query_builder.push_bind(workspace_id);
 
     if let Some(emp_id) = p_employee_id {
@@ -67,7 +65,10 @@ pub async fn get_paginated_raw_logs(
     query_builder.push(" OFFSET ");
     query_builder.push_bind(p_offset);
 
-    query_builder.build_query_as::<RawAttendanceLog>().fetch_all(pool).await
+    query_builder
+        .build_query_as::<RawAttendanceLog>()
+        .fetch_all(pool)
+        .await
 }
 
 pub async fn count_raw_logs(
@@ -77,7 +78,8 @@ pub async fn count_raw_logs(
     p_from: Option<DateTime<Utc>>,
     p_to: Option<DateTime<Utc>>,
 ) -> Result<i64, sqlx::Error> {
-    let mut query_builder: sqlx::QueryBuilder<sqlx::Postgres> = sqlx::QueryBuilder::new("SELECT COUNT(*) FROM raw_attendance_logs WHERE workspace_id = ");
+    let mut query_builder: sqlx::QueryBuilder<sqlx::Postgres> =
+        sqlx::QueryBuilder::new("SELECT COUNT(*) FROM raw_attendance_logs WHERE workspace_id = ");
     query_builder.push_bind(workspace_id);
 
     if let Some(emp_id) = p_employee_id {
@@ -95,5 +97,9 @@ pub async fn count_raw_logs(
         query_builder.push_bind(to);
     }
 
-    query_builder.build_query_as::<(i64,)>().fetch_one(pool).await.map(|r| r.0)
+    query_builder
+        .build_query_as::<(i64,)>()
+        .fetch_one(pool)
+        .await
+        .map(|r| r.0)
 }

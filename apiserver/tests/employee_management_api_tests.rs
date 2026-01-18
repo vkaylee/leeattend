@@ -1,11 +1,11 @@
 mod common;
 
+use apiserver::agent_manager::AgentManager;
+use apiserver::models::Employee;
+use apiserver::AppState;
 use axum::http::StatusCode;
 use common::db::TestDatabase;
 use common::factory::TestFactory;
-use apiserver::models::Employee;
-use apiserver::AppState;
-use apiserver::agent_manager::AgentManager;
 use std::sync::Arc;
 use tower::ServiceExt;
 
@@ -18,12 +18,18 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
     let factory = TestFactory::new(pool.clone());
-    
-    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(pool.clone()));
-    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+
+    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(
+        pool.clone(),
+    ));
+    let workspace_repo =
+        Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
     let agent_manager = AgentManager::new();
-    let agent_service = Arc::new(apiserver::services::AgentService::new(agent_repo.clone(), agent_manager.clone()));
-    
+    let agent_service = Arc::new(apiserver::services::AgentService::new(
+        agent_repo.clone(),
+        agent_manager.clone(),
+    ));
+
     let app_state = Arc::new(AppState {
         agent_manager,
         db: pool.clone(),
@@ -32,7 +38,7 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
         agent_service: agent_service.clone(),
         jwt_secret: "test_secret".to_string(),
     });
-    
+
     let app = apiserver::create_app(app_state);
     (test_db, factory, app)
 }
@@ -54,7 +60,8 @@ async fn test_employee_crud_lifecycle() {
         "is_active": true
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
@@ -62,23 +69,31 @@ async fn test_employee_crud_lifecycle() {
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(serde_json::to_string(&employee_req).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&employee_req).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let employee: Employee = serde_json::from_slice(&body).unwrap();
     assert_eq!(employee.first_name, "John");
 
     // 3. Get Employee
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{}/employees/{}", ws_id, employee.id))
+                .uri(format!(
+                    "/api/workspaces/{}/employees/{}",
+                    ws_id, employee.id
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -88,7 +103,9 @@ async fn test_employee_crud_lifecycle() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let fetched: Employee = serde_json::from_slice(&body).unwrap();
     assert_eq!(fetched.id, employee.id);
 
@@ -97,31 +114,43 @@ async fn test_employee_crud_lifecycle() {
         "first_name": "Johnny"
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
-                .uri(format!("/api/workspaces/{}/employees/{}", ws_id, employee.id))
+                .uri(format!(
+                    "/api/workspaces/{}/employees/{}",
+                    ws_id, employee.id
+                ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(serde_json::to_string(&update_req).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&update_req).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated: Employee = serde_json::from_slice(&body).unwrap();
     assert_eq!(updated.first_name, "Johnny");
 
     // 5. Delete Employee
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/workspaces/{}/employees/{}", ws_id, employee.id))
+                .uri(format!(
+                    "/api/workspaces/{}/employees/{}",
+                    ws_id, employee.id
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -133,11 +162,15 @@ async fn test_employee_crud_lifecycle() {
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
 
     // 6. Verify Deletion
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{}/employees/{}", ws_id, employee.id))
+                .uri(format!(
+                    "/api/workspaces/{}/employees/{}",
+                    ws_id, employee.id
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -163,7 +196,8 @@ async fn test_create_employee_invalid_user() {
         "hire_date": "2026-01-01"
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
@@ -171,7 +205,9 @@ async fn test_create_employee_invalid_user() {
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(serde_json::to_string(&employee_req).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&employee_req).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
@@ -187,7 +223,8 @@ async fn test_get_employees_list() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     factory.employee().with_workspace(ws_id).create().await;
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -208,24 +245,29 @@ async fn test_get_employees_search() {
     let (_test_db, factory, app) = setup_app().await;
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
-    
+
     // Create 2 employees
-    factory.employee()
+    factory
+        .employee()
         .with_workspace(ws_id)
         .with_first_name("Alice")
         .with_last_name("Wonder")
         .with_employee_id_number("ALICE001")
-        .create().await;
-        
-    factory.employee()
+        .create()
+        .await;
+
+    factory
+        .employee()
         .with_workspace(ws_id)
         .with_first_name("Bob")
         .with_last_name("Builder")
         .with_employee_id_number("BOB999")
-        .create().await;
+        .create()
+        .await;
 
     // Search by name
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -239,13 +281,16 @@ async fn test_get_employees_search() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let employees: Vec<Employee> = serde_json::from_slice(&body).unwrap();
     assert_eq!(employees.len(), 1);
     assert_eq!(employees[0].first_name, "Alice");
 
     // Search by ID
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -259,7 +304,9 @@ async fn test_get_employees_search() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let employees: Vec<Employee> = serde_json::from_slice(&body).unwrap();
     assert_eq!(employees.len(), 1);
     assert_eq!(employees[0].last_name, "Builder");
@@ -277,7 +324,8 @@ async fn test_update_employee_complex() {
         "is_active": false
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
@@ -285,7 +333,9 @@ async fn test_update_employee_complex() {
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(serde_json::to_string(&update_req).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&update_req).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
@@ -300,11 +350,16 @@ async fn test_delete_non_existent_employee() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/workspaces/{}/employees/{}", ws_id, uuid::Uuid::new_v4()))
+                .uri(format!(
+                    "/api/workspaces/{}/employees/{}",
+                    ws_id,
+                    uuid::Uuid::new_v4()
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -322,11 +377,16 @@ async fn test_employee_dept_history_not_found() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{}/employees/{}/departments", ws_id, uuid::Uuid::new_v4()))
+                .uri(format!(
+                    "/api/workspaces/{}/employees/{}/departments",
+                    ws_id,
+                    uuid::Uuid::new_v4()
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -349,11 +409,16 @@ async fn test_transfer_non_existent_employee() {
         "effective_date": "2026-01-01"
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{}/employees/{}/departments", ws_id, uuid::Uuid::new_v4()))
+                .uri(format!(
+                    "/api/workspaces/{}/employees/{}/departments",
+                    ws_id,
+                    uuid::Uuid::new_v4()
+                ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())

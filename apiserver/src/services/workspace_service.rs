@@ -1,4 +1,4 @@
-use crate::models::{MemberExtraRole, Workspace, MemberRole};
+use crate::models::{MemberExtraRole, MemberRole, Workspace};
 use crate::repositories::WorkspaceRepository;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -89,49 +89,65 @@ impl WorkspaceService {
             has_fields = true;
         }
         if work_unit_minutes.is_some() {
-            if has_fields { query.push_str(", "); }
+            if has_fields {
+                query.push_str(", ");
+            }
             query.push_str(&format!("work_unit_minutes = ${}", arg_idx));
             arg_idx += 1;
             has_fields = true;
         }
         if rounding_policy.is_some() {
-            if has_fields { query.push_str(", "); }
+            if has_fields {
+                query.push_str(", ");
+            }
             query.push_str(&format!("rounding_policy = ${}", arg_idx));
             arg_idx += 1;
             has_fields = true;
         }
         if date_format.is_some() {
-            if has_fields { query.push_str(", "); }
+            if has_fields {
+                query.push_str(", ");
+            }
             query.push_str(&format!("date_format = ${}", arg_idx));
             arg_idx += 1;
             has_fields = true;
         }
         if time_format.is_some() {
-            if has_fields { query.push_str(", "); }
+            if has_fields {
+                query.push_str(", ");
+            }
             query.push_str(&format!("time_format = ${}", arg_idx));
             arg_idx += 1;
             has_fields = true;
         }
         if timezone.is_some() {
-            if has_fields { query.push_str(", "); }
+            if has_fields {
+                query.push_str(", ");
+            }
             query.push_str(&format!("timezone = ${}", arg_idx));
             arg_idx += 1;
             has_fields = true;
         }
         if theme_primary_color.is_some() {
-            if has_fields { query.push_str(", "); }
+            if has_fields {
+                query.push_str(", ");
+            }
             query.push_str(&format!("theme_primary_color = ${}", arg_idx));
             arg_idx += 1;
             has_fields = true;
         }
         if default_language.is_some() {
-            if has_fields { query.push_str(", "); }
+            if has_fields {
+                query.push_str(", ");
+            }
             query.push_str(&format!("default_language = ${}", arg_idx));
             arg_idx += 1;
             has_fields = true;
         }
         if pairing_algorithm.is_some() {
-            if has_fields { query.push_str(", "); }
+            if has_fields {
+                query.push_str(", ");
+            }
             query.push_str(&format!("pairing_algorithm = ${}", arg_idx));
             arg_idx += 1;
             has_fields = true;

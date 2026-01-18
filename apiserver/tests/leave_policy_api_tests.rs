@@ -1,10 +1,10 @@
 mod common;
 
+use apiserver::agent_manager::AgentManager;
+use apiserver::AppState;
 use axum::http::StatusCode;
 use common::db::TestDatabase;
 use common::factory::TestFactory;
-use apiserver::AppState;
-use apiserver::agent_manager::AgentManager;
 use std::sync::Arc;
 use tower::ServiceExt;
 
@@ -12,12 +12,18 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
     let factory = TestFactory::new(pool.clone());
-    
-    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(pool.clone()));
-    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+
+    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(
+        pool.clone(),
+    ));
+    let workspace_repo =
+        Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
     let agent_manager = AgentManager::new();
-    let agent_service = Arc::new(apiserver::services::AgentService::new(agent_repo.clone(), agent_manager.clone()));
-    
+    let agent_service = Arc::new(apiserver::services::AgentService::new(
+        agent_repo.clone(),
+        agent_manager.clone(),
+    ));
+
     let app_state = Arc::new(AppState {
         agent_manager,
         db: pool.clone(),
@@ -26,7 +32,7 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
         agent_service: agent_service.clone(),
         jwt_secret: "test_secret_policy".to_string(),
     });
-    
+
     let app = apiserver::create_app(app_state);
     (test_db, factory, app)
 }
@@ -50,7 +56,8 @@ async fn test_leave_policy_api_lifecycle() {
         }
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
@@ -64,11 +71,17 @@ async fn test_leave_policy_api_lifecycle() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::CREATED);
-    let policy: serde_json::Value = serde_json::from_slice(&axum::body::to_bytes(response.into_body(), 10000).await.unwrap()).unwrap();
+    let policy: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(response.into_body(), 10000)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     let policy_id = policy["id"].as_str().unwrap();
 
     // 2. List Policies
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -90,7 +103,8 @@ async fn test_leave_policy_api_lifecycle() {
         "effective_from": "2026-01-01"
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
@@ -110,7 +124,8 @@ async fn test_leave_policy_api_lifecycle() {
         "date": "2026-01-10"
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
@@ -136,11 +151,15 @@ async fn test_leave_policy_api_lifecycle() {
         }
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("PATCH")
-                .uri(format!("/api/workspaces/{}/leave/policies/{}", ws_id, policy_id))
+                .uri(format!(
+                    "/api/workspaces/{}/leave/policies/{}",
+                    ws_id, policy_id
+                ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_id.to_string())
@@ -150,15 +169,24 @@ async fn test_leave_policy_api_lifecycle() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let updated_policy: serde_json::Value = serde_json::from_slice(&axum::body::to_bytes(response.into_body(), 10000).await.unwrap()).unwrap();
+    let updated_policy: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(response.into_body(), 10000)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(updated_policy["name"], "Updated Annual Leave");
 
     // 6. Delete Policy
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/workspaces/{}/leave/policies/{}", ws_id, policy_id))
+                .uri(format!(
+                    "/api/workspaces/{}/leave/policies/{}",
+                    ws_id, policy_id
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", admin_id.to_string())
                 .body(axum::body::Body::empty())
@@ -169,7 +197,8 @@ async fn test_leave_policy_api_lifecycle() {
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
 
     // 7. Verify deletion
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -182,6 +211,11 @@ async fn test_leave_policy_api_lifecycle() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let policies: Vec<serde_json::Value> = serde_json::from_slice(&axum::body::to_bytes(response.into_body(), 10000).await.unwrap()).unwrap();
+    let policies: Vec<serde_json::Value> = serde_json::from_slice(
+        &axum::body::to_bytes(response.into_body(), 10000)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert!(policies.iter().all(|p| p["id"] != policy_id));
 }

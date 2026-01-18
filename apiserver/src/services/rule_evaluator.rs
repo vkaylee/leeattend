@@ -1,5 +1,5 @@
-use uuid::Uuid;
 use crate::models::AssignmentRule;
+use uuid::Uuid;
 
 pub struct EmployeeMatchContext {
     pub department_id: Option<Uuid>,
@@ -10,26 +10,23 @@ pub struct EmployeeMatchContext {
 pub struct RuleEvaluator;
 
 impl RuleEvaluator {
-    pub fn matches(
-        ctx: &EmployeeMatchContext,
-        rule: &AssignmentRule,
-    ) -> bool {
+    pub fn matches(ctx: &EmployeeMatchContext, rule: &AssignmentRule) -> bool {
         let conditions = &rule.conditions;
-        
+
         // 1. Department match (Strict)
         if let Some(dept_id) = conditions.department_id {
             if ctx.department_id != Some(dept_id) {
                 return false;
             }
         }
-        
+
         // 2. Employee ID Numbers match (Whitelist)
         if let Some(ids) = &conditions.employee_id_numbers {
             if !ids.contains(&ctx.employee_id_number) {
                 return false;
             }
         }
-        
+
         // 3. Tags match (Intersection - AT LEAST ONE)
         if let Some(rule_tags) = &conditions.tags {
             if !rule_tags.is_empty() {
@@ -39,7 +36,7 @@ impl RuleEvaluator {
                 }
             }
         }
-        
+
         true
     }
 

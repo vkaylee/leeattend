@@ -1,23 +1,22 @@
 use axum::{
-    extract::{State, Path, Query},
-    response::{IntoResponse, Json},
+    extract::{Path, Query, State},
     http::StatusCode,
+    response::{IntoResponse, Json},
 };
+use chrono::{Datelike, NaiveDate, Utc};
+use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
-use chrono::{Utc, Datelike, NaiveDate};
-use serde::Deserialize;
 
-use crate::{AppState, UserId};
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    SubmitLeaveRequest, ApproveLeaveRequest, LeaveRequest, 
-    WorkspaceLeaveBalance, EmployeeLeaveBalance, AdjustBalanceRequest,
-    CreateLeavePolicyRequest, UpdateLeavePolicyRequest, AssignLeavePolicyRequest, LeavePolicyAssignment,
-    LeaveHistoryItem, LeaveStatus
+    AdjustBalanceRequest, ApproveLeaveRequest, AssignLeavePolicyRequest, CreateLeavePolicyRequest,
+    EmployeeLeaveBalance, LeaveHistoryItem, LeavePolicyAssignment, LeaveRequest, LeaveStatus,
+    SubmitLeaveRequest, UpdateLeavePolicyRequest, WorkspaceLeaveBalance,
 };
 use crate::repositories::leave_policy_repository;
 use crate::services::leave_accrual_service::LeaveAccrualService;
+use crate::{AppState, UserId};
 
 // --- Leave Handlers ---
 
@@ -85,7 +84,13 @@ pub async fn get_workspace_leave_balances(
         return Err(StatusCode::FORBIDDEN);
     }
     let year = Utc::now().year();
-    match crate::services::leave_service::LeaveService::get_workspace_balances(&state.db, ctx.workspace_id, year).await {
+    match crate::services::leave_service::LeaveService::get_workspace_balances(
+        &state.db,
+        ctx.workspace_id,
+        year,
+    )
+    .await
+    {
         Ok(balances) => Ok(Json(balances)),
         Err(status) => Err(status),
     }
@@ -96,7 +101,11 @@ pub async fn get_employee_leave_balances(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<EmployeeLeaveBalance>>, StatusCode> {
     let year = Utc::now().year();
-    match crate::services::leave_service::LeaveService::get_employee_balances(&state.db, ws_id, emp_id, year).await {
+    match crate::services::leave_service::LeaveService::get_employee_balances(
+        &state.db, ws_id, emp_id, year,
+    )
+    .await
+    {
         Ok(balances) => Ok(Json(balances)),
         Err(status) => Err(status),
     }
@@ -134,12 +143,10 @@ pub async fn get_employee_leave_history(
 ) -> Result<Json<Vec<LeaveHistoryItem>>, StatusCode> {
     let year = Utc::now().year();
     match crate::services::leave_service::LeaveService::get_employee_leave_history(
-        &state.db,
-        ws_id,
-        emp_id,
-        year,
+        &state.db, ws_id, emp_id, year,
     )
-    .await {
+    .await
+    {
         Ok(history) => Ok(Json(history)),
         Err(status) => Err(status),
     }
@@ -155,10 +162,7 @@ pub async fn adjust_leave_balance(
         return StatusCode::FORBIDDEN.into_response();
     }
     match crate::services::leave_service::LeaveService::adjust_balance(
-        &state.db,
-        ws_id,
-        emp_id,
-        req,
+        &state.db, ws_id, emp_id, req,
     )
     .await
     {
@@ -227,7 +231,9 @@ pub async fn delete_leave_policy(
         return (StatusCode::FORBIDDEN, "Only admins can manage policies").into_response();
     }
 
-    match leave_policy_repository::delete_policy_definition(&state.db, policy_id, workspace_id).await {
+    match leave_policy_repository::delete_policy_definition(&state.db, policy_id, workspace_id)
+        .await
+    {
         Ok(rows) if rows > 0 => StatusCode::NO_CONTENT.into_response(),
         Ok(_) => StatusCode::NOT_FOUND.into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
@@ -285,7 +291,9 @@ pub async fn trigger_accrual_run(
     let date_str = payload["date"].as_str().unwrap_or_default();
     let date = match NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
         Ok(d) => d,
-        Err(_) => return (StatusCode::BAD_REQUEST, "Invalid date format YYYY-MM-DD").into_response(),
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, "Invalid date format YYYY-MM-DD").into_response()
+        }
     };
 
     match LeaveAccrualService::process_workspace_accruals(&state.db, workspace_id, date).await {

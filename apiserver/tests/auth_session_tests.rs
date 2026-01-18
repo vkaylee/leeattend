@@ -1,25 +1,31 @@
 mod common;
 
-use axum::http::StatusCode;
-use tower::ServiceExt;
 use apiserver::agent_manager::AgentManager;
-use apiserver::AppState;
 use apiserver::services::auth_service::AuthService;
+use apiserver::AppState;
+use axum::http::StatusCode;
 use common::db::TestDatabase;
 use common::factory::TestFactory;
 use std::sync::Arc;
+use tower::ServiceExt;
 use uuid::Uuid;
 
 async fn setup_context() -> (TestDatabase, TestFactory, Arc<AppState>) {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
     let factory = TestFactory::new(pool.clone());
-    
-    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(pool.clone()));
-    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+
+    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(
+        pool.clone(),
+    ));
+    let workspace_repo =
+        Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
     let agent_manager = AgentManager::new();
-    let agent_service = Arc::new(apiserver::services::AgentService::new(agent_repo.clone(), agent_manager.clone()));
-    
+    let agent_service = Arc::new(apiserver::services::AgentService::new(
+        agent_repo.clone(),
+        agent_manager.clone(),
+    ));
+
     let app_state = Arc::new(AppState {
         agent_manager,
         db: pool.clone(),
@@ -38,11 +44,15 @@ async fn test_auth_session_lifecycle() {
     let user_id = factory.user().create().await;
 
     // 1. Create session
-    let refresh_token = AuthService::create_session(&state.db, user_id).await.unwrap();
+    let refresh_token = AuthService::create_session(&state.db, user_id)
+        .await
+        .unwrap();
     assert!(!refresh_token.is_empty());
 
     // 2. Refresh session
-    let auth_res = AuthService::refresh_session(&state.db, &refresh_token, &state.jwt_secret).await.unwrap();
+    let auth_res = AuthService::refresh_session(&state.db, &refresh_token, &state.jwt_secret)
+        .await
+        .unwrap();
     assert_eq!(auth_res.user.id, user_id);
     assert!(!auth_res.access_token.is_empty());
     assert!(!auth_res.refresh_token.is_empty());
@@ -55,10 +65,13 @@ async fn test_auth_session_lifecycle() {
     assert_eq!(verified_id, user_id);
 
     // 4. Revoke session
-    AuthService::revoke_session(&state.db, &new_refresh_token).await.unwrap();
+    AuthService::revoke_session(&state.db, &new_refresh_token)
+        .await
+        .unwrap();
 
     // 5. Try to refresh again (should fail)
-    let result = AuthService::refresh_session(&state.db, &new_refresh_token, &state.jwt_secret).await;
+    let result =
+        AuthService::refresh_session(&state.db, &new_refresh_token, &state.jwt_secret).await;
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), "Invalid or expired refresh token");
 }
@@ -68,27 +81,44 @@ async fn test_revoke_all_sessions() {
     let (_test_db, factory, state) = setup_context().await;
     let user_id = factory.user().create().await;
 
-    let token1 = AuthService::create_session(&state.db, user_id).await.unwrap();
-    let token2 = AuthService::create_session(&state.db, user_id).await.unwrap();
+    let token1 = AuthService::create_session(&state.db, user_id)
+        .await
+        .unwrap();
+    let token2 = AuthService::create_session(&state.db, user_id)
+        .await
+        .unwrap();
 
     // Revoke all
-    AuthService::revoke_all_sessions_for_user(&state.db, user_id).await.unwrap();
+    AuthService::revoke_all_sessions_for_user(&state.db, user_id)
+        .await
+        .unwrap();
 
     // Verify both are invalid
-    assert!(AuthService::refresh_session(&state.db, &token1, &state.jwt_secret).await.is_err());
-    assert!(AuthService::refresh_session(&state.db, &token2, &state.jwt_secret).await.is_err());
+    assert!(
+        AuthService::refresh_session(&state.db, &token1, &state.jwt_secret)
+            .await
+            .is_err()
+    );
+    assert!(
+        AuthService::refresh_session(&state.db, &token2, &state.jwt_secret)
+            .await
+            .is_err()
+    );
 }
 
 #[tokio::test]
 async fn test_get_me_and_logout() {
     let (_test_db, factory, state) = setup_context().await;
     let app = apiserver::create_app(state.clone());
-    
+
     let user_id = factory.user().create().await;
-    let refresh_token = AuthService::create_session(&state.db, user_id).await.unwrap();
+    let refresh_token = AuthService::create_session(&state.db, user_id)
+        .await
+        .unwrap();
 
     // 1. Get Me
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -105,7 +135,8 @@ async fn test_get_me_and_logout() {
     let logout_req = serde_json::json!({
         "refresh_token": refresh_token
     });
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
@@ -127,8 +158,9 @@ async fn test_get_me_and_logout() {
 async fn test_get_me_not_found() {
     let (_test_db, _factory, state) = setup_context().await;
     let app = apiserver::create_app(state.clone());
-    
-    let response = app.clone()
+
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -146,15 +178,18 @@ async fn test_get_me_not_found() {
 async fn test_refresh_token_api() {
     let (_test_db, factory, state) = setup_context().await;
     let app = apiserver::create_app(state.clone());
-    
+
     let user_id = factory.user().create().await;
-    let refresh_token = AuthService::create_session(&state.db, user_id).await.unwrap();
+    let refresh_token = AuthService::create_session(&state.db, user_id)
+        .await
+        .unwrap();
 
     let req = serde_json::json!({
         "refresh_token": refresh_token
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
@@ -168,11 +203,10 @@ async fn test_refresh_token_api() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
-
-
 #[tokio::test]
 async fn test_invalid_refresh_token() {
     let (_test_db, _factory, state) = setup_context().await;
-    let result = AuthService::refresh_session(&state.db, "non-existent-token", &state.jwt_secret).await;
+    let result =
+        AuthService::refresh_session(&state.db, "non-existent-token", &state.jwt_secret).await;
     assert!(result.is_err());
 }

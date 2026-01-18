@@ -1,14 +1,14 @@
 mod common;
 
+use apiserver::agent_manager::AgentManager;
+use apiserver::models::MemberRole;
+use apiserver::AppState;
 use axum::http::StatusCode;
+use chrono::{Duration, Utc};
 use common::db::TestDatabase;
 use common::factory::TestFactory;
-use apiserver::models::{MemberRole};
-use apiserver::AppState;
-use apiserver::agent_manager::AgentManager;
 use std::sync::Arc;
 use tower::ServiceExt;
-use chrono::{Utc, Duration};
 
 async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
     let _ = tracing_subscriber::fmt()
@@ -19,12 +19,18 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
     let factory = TestFactory::new(pool.clone());
-    
-    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(pool.clone()));
-    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+
+    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(
+        pool.clone(),
+    ));
+    let workspace_repo =
+        Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
     let agent_manager = AgentManager::new();
-    let agent_service = Arc::new(apiserver::services::AgentService::new(agent_repo.clone(), agent_manager.clone()));
-    
+    let agent_service = Arc::new(apiserver::services::AgentService::new(
+        agent_repo.clone(),
+        agent_manager.clone(),
+    ));
+
     let app_state = Arc::new(AppState {
         agent_manager,
         db: pool.clone(),
@@ -33,7 +39,7 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
         agent_service: agent_service.clone(),
         jwt_secret: "test_secret".to_string(),
     });
-    
+
     let app = apiserver::create_app(app_state);
     (test_db, factory, app)
 }
@@ -46,7 +52,9 @@ async fn test_member_roles_and_permissions() {
     let admin_id = factory.user().create().await;
     let member_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
-    factory.add_member(ws_id, member_id, MemberRole::Member).await;
+    factory
+        .add_member(ws_id, member_id, MemberRole::Member)
+        .await;
 
     let headers = [
         ("X-Workspace-Id", ws_id.to_string()),
@@ -64,7 +72,8 @@ async fn test_member_roles_and_permissions() {
     });
 
     // 2. Member tries to create a shift (should fail)
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
@@ -72,7 +81,9 @@ async fn test_member_roles_and_permissions() {
                 .header("Content-Type", "application/json")
                 .header(headers[0].0, &headers[0].1)
                 .header(headers[1].0, &headers[1].1)
-                .body(axum::body::Body::from(serde_json::to_string(&shift_req).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&shift_req).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
@@ -81,10 +92,18 @@ async fn test_member_roles_and_permissions() {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // 3. Add temporary Admin role
-    factory.add_extra_role(ws_id, member_id, MemberRole::Admin, Utc::now() + Duration::hours(1)).await;
+    factory
+        .add_extra_role(
+            ws_id,
+            member_id,
+            MemberRole::Admin,
+            Utc::now() + Duration::hours(1),
+        )
+        .await;
 
     // 4. Member tries to create a shift again (should now be OK)
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
@@ -92,7 +111,9 @@ async fn test_member_roles_and_permissions() {
                 .header("Content-Type", "application/json")
                 .header(headers[0].0, &headers[0].1)
                 .header(headers[1].0, &headers[1].1)
-                .body(axum::body::Body::from(serde_json::to_string(&shift_req).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&shift_req).unwrap(),
+                ))
                 .unwrap(),
         )
         .await

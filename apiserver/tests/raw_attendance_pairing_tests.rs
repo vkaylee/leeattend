@@ -1,14 +1,21 @@
 mod common;
 
+use apiserver::models::{LogSource, RawAttendanceLog};
+use apiserver::services::pairing_service::PairingService;
+use chrono::{DateTime, Utc};
 use common::db::TestDatabase;
 use common::factory::TestFactory;
-use apiserver::services::pairing_service::PairingService;
-use apiserver::models::{RawAttendanceLog, LogSource};
-use chrono::{Utc, DateTime};
 use uuid::Uuid;
 
-async fn create_log(pool: &sqlx::PgPool, ws_id: Uuid, employee_id: Uuid, time_str: &str) -> RawAttendanceLog {
-    let dt = DateTime::parse_from_str(&format!("{} +0000", time_str), "%Y-%m-%d %H:%M:%S %z").unwrap().with_timezone(&Utc);
+async fn create_log(
+    pool: &sqlx::PgPool,
+    ws_id: Uuid,
+    employee_id: Uuid,
+    time_str: &str,
+) -> RawAttendanceLog {
+    let dt = DateTime::parse_from_str(&format!("{} +0000", time_str), "%Y-%m-%d %H:%M:%S %z")
+        .unwrap()
+        .with_timezone(&Utc);
     let log = RawAttendanceLog {
         id: Uuid::new_v4(),
         workspace_id: ws_id,
@@ -19,8 +26,10 @@ async fn create_log(pool: &sqlx::PgPool, ws_id: Uuid, employee_id: Uuid, time_st
         raw_data: None,
         created_at: Utc::now(),
     };
-    
-    apiserver::repositories::raw_attendance_log_repository::create_raw_log(pool, &log).await.unwrap();
+
+    apiserver::repositories::raw_attendance_log_repository::create_raw_log(pool, &log)
+        .await
+        .unwrap();
     log
 }
 
@@ -34,19 +43,43 @@ async fn test_pairing_two_logs_same_day() {
 
     // 1. First log (Punch In)
     let log1 = create_log(&pool, ws_id, emp_id, "2026-01-14 08:00:00").await;
-    PairingService::process_new_raw_log(&pool, &log1).await.unwrap();
+    PairingService::process_new_raw_log(&pool, &log1)
+        .await
+        .unwrap();
 
     // Verify time_entry created (pending)
-    let entries = apiserver::repositories::time_entry_repository::get_paginated_logs(&pool, ws_id, Some(emp_id), None, None, 10, 0).await.unwrap();
+    let entries = apiserver::repositories::time_entry_repository::get_paginated_logs(
+        &pool,
+        ws_id,
+        Some(emp_id),
+        None,
+        None,
+        10,
+        0,
+    )
+    .await
+    .unwrap();
     assert_eq!(entries.len(), 1);
     assert!(entries[0].punch_out_time.is_none());
 
     // 2. Second log (Punch Out)
     let log2 = create_log(&pool, ws_id, emp_id, "2026-01-14 17:00:00").await;
-    PairingService::process_new_raw_log(&pool, &log2).await.unwrap();
+    PairingService::process_new_raw_log(&pool, &log2)
+        .await
+        .unwrap();
 
     // Verify paired
-    let entries = apiserver::repositories::time_entry_repository::get_paginated_logs(&pool, ws_id, Some(emp_id), None, None, 10, 0).await.unwrap();
+    let entries = apiserver::repositories::time_entry_repository::get_paginated_logs(
+        &pool,
+        ws_id,
+        Some(emp_id),
+        None,
+        None,
+        10,
+        0,
+    )
+    .await
+    .unwrap();
     assert_eq!(entries.len(), 1);
     assert!(entries[0].punch_out_time.is_some());
     assert_eq!(entries[0].duration_minutes, Some(9 * 60));
@@ -62,16 +95,32 @@ async fn test_pairing_multiple_logs_filtering() {
 
     // Sequence: 08:00, 12:00, 13:00, 17:00
     // Result expected: 08:00 -> 12:00 (work), 13:00 -> 17:00 (work)
-    
-    let times = ["2026-01-14 08:00:00", "2026-01-14 12:00:00", 
-                 "2026-01-14 13:00:00", "2026-01-14 17:00:00"];
-    
+
+    let times = [
+        "2026-01-14 08:00:00",
+        "2026-01-14 12:00:00",
+        "2026-01-14 13:00:00",
+        "2026-01-14 17:00:00",
+    ];
+
     for t in times {
         let log = create_log(&pool, ws_id, emp_id, t).await;
-        PairingService::process_new_raw_log(&pool, &log).await.unwrap();
+        PairingService::process_new_raw_log(&pool, &log)
+            .await
+            .unwrap();
     }
 
-    let entries = apiserver::repositories::time_entry_repository::get_paginated_logs(&pool, ws_id, Some(emp_id), None, None, 10, 0).await.unwrap();
+    let entries = apiserver::repositories::time_entry_repository::get_paginated_logs(
+        &pool,
+        ws_id,
+        Some(emp_id),
+        None,
+        None,
+        10,
+        0,
+    )
+    .await
+    .unwrap();
     // 2 work sessions
     assert_eq!(entries.len(), 2);
 }
@@ -87,14 +136,28 @@ async fn test_pairing_overnight_logic_basics() {
     // Shift: 22:00 -> 06:00
     // Log1: 22:05 (Day 1)
     // Log2: 05:55 (Day 2)
-    
+
     let log1 = create_log(&pool, ws_id, emp_id, "2026-01-14 22:05:00").await;
-    PairingService::process_new_raw_log(&pool, &log1).await.unwrap();
+    PairingService::process_new_raw_log(&pool, &log1)
+        .await
+        .unwrap();
 
     let log2 = create_log(&pool, ws_id, emp_id, "2026-01-15 05:55:00").await;
-    PairingService::process_new_raw_log(&pool, &log2).await.unwrap();
+    PairingService::process_new_raw_log(&pool, &log2)
+        .await
+        .unwrap();
 
-    let entries = apiserver::repositories::time_entry_repository::get_paginated_logs(&pool, ws_id, Some(emp_id), None, None, 10, 0).await.unwrap();
+    let entries = apiserver::repositories::time_entry_repository::get_paginated_logs(
+        &pool,
+        ws_id,
+        Some(emp_id),
+        None,
+        None,
+        10,
+        0,
+    )
+    .await
+    .unwrap();
     assert_eq!(entries.len(), 1);
     assert!(entries[0].punch_out_time.is_some());
 }
@@ -107,7 +170,9 @@ async fn test_pairing_manual_source_overrides() {
     let ws_id = factory.workspace().with_timezone("UTC").create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
-    let dt1 = DateTime::parse_from_str("2026-01-14 08:00:00 +0000", "%Y-%m-%d %H:%M:%S %z").unwrap().with_timezone(&Utc);
+    let dt1 = DateTime::parse_from_str("2026-01-14 08:00:00 +0000", "%Y-%m-%d %H:%M:%S %z")
+        .unwrap()
+        .with_timezone(&Utc);
     let log1 = RawAttendanceLog {
         id: Uuid::new_v4(),
         workspace_id: ws_id,
@@ -118,10 +183,16 @@ async fn test_pairing_manual_source_overrides() {
         raw_data: None,
         created_at: Utc::now(),
     };
-    apiserver::repositories::raw_attendance_log_repository::create_raw_log(&pool, &log1).await.unwrap();
-    PairingService::process_new_raw_log(&pool, &log1).await.unwrap();
+    apiserver::repositories::raw_attendance_log_repository::create_raw_log(&pool, &log1)
+        .await
+        .unwrap();
+    PairingService::process_new_raw_log(&pool, &log1)
+        .await
+        .unwrap();
 
-    let dt2 = DateTime::parse_from_str("2026-01-14 17:00:00 +0000", "%Y-%m-%d %H:%M:%S %z").unwrap().with_timezone(&Utc);
+    let dt2 = DateTime::parse_from_str("2026-01-14 17:00:00 +0000", "%Y-%m-%d %H:%M:%S %z")
+        .unwrap()
+        .with_timezone(&Utc);
     let log2 = RawAttendanceLog {
         id: Uuid::new_v4(),
         workspace_id: ws_id,
@@ -132,10 +203,24 @@ async fn test_pairing_manual_source_overrides() {
         raw_data: None,
         created_at: Utc::now(),
     };
-    apiserver::repositories::raw_attendance_log_repository::create_raw_log(&pool, &log2).await.unwrap();
-    PairingService::process_new_raw_log(&pool, &log2).await.unwrap();
+    apiserver::repositories::raw_attendance_log_repository::create_raw_log(&pool, &log2)
+        .await
+        .unwrap();
+    PairingService::process_new_raw_log(&pool, &log2)
+        .await
+        .unwrap();
 
-    let entries = apiserver::repositories::time_entry_repository::get_paginated_logs(&pool, ws_id, Some(emp_id), None, None, 10, 0).await.unwrap();
+    let entries = apiserver::repositories::time_entry_repository::get_paginated_logs(
+        &pool,
+        ws_id,
+        Some(emp_id),
+        None,
+        None,
+        10,
+        0,
+    )
+    .await
+    .unwrap();
     assert_eq!(entries.len(), 1);
     assert!(entries[0].punch_out_time.is_some());
 }
@@ -148,7 +233,9 @@ async fn test_bulk_process_logs() {
     let ws_id = factory.workspace().with_timezone("UTC").create().await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
-    let base = DateTime::parse_from_str("2026-01-14 08:00:00 +0000", "%Y-%m-%d %H:%M:%S %z").unwrap().with_timezone(&Utc);
+    let base = DateTime::parse_from_str("2026-01-14 08:00:00 +0000", "%Y-%m-%d %H:%M:%S %z")
+        .unwrap()
+        .with_timezone(&Utc);
     let log_times = vec![
         base,
         base + chrono::Duration::hours(4),
@@ -162,21 +249,35 @@ async fn test_bulk_process_logs() {
             id: Uuid::new_v4(),
             workspace_id: ws_id,
             employee_id: emp_id,
-            punch_time: p, 
-            source: LogSource::Device, 
-            device_id: None, 
-            raw_data: None, 
+            punch_time: p,
+            source: LogSource::Device,
+            device_id: None,
+            raw_data: None,
             created_at: Utc::now(),
         };
-        apiserver::repositories::raw_attendance_log_repository::create_raw_log(&pool, &log).await.unwrap();
+        apiserver::repositories::raw_attendance_log_repository::create_raw_log(&pool, &log)
+            .await
+            .unwrap();
         logs.push(log);
     }
 
     // Process all
     for log in logs {
-        PairingService::process_new_raw_log(&pool, &log).await.unwrap();
+        PairingService::process_new_raw_log(&pool, &log)
+            .await
+            .unwrap();
     }
 
-    let entries = apiserver::repositories::time_entry_repository::get_paginated_logs(&pool, ws_id, Some(emp_id), None, None, 10, 0).await.unwrap();
+    let entries = apiserver::repositories::time_entry_repository::get_paginated_logs(
+        &pool,
+        ws_id,
+        Some(emp_id),
+        None,
+        None,
+        10,
+        0,
+    )
+    .await
+    .unwrap();
     assert_eq!(entries.len(), 2);
 }

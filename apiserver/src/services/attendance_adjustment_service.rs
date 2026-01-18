@@ -1,10 +1,12 @@
 use axum::http::StatusCode;
 use chrono::Utc;
 use sqlx::PgPool;
-use uuid::Uuid;
 use tracing::error;
+use uuid::Uuid;
 
-use crate::models::{AttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest, TimeEntry, AdjustmentStatus};
+use crate::models::{
+    AdjustmentStatus, AttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest, TimeEntry,
+};
 use crate::repositories::{attendance_adjustment_repository, time_entry_repository};
 use crate::services::attendance_import_service::AttendanceImportService;
 
@@ -18,7 +20,14 @@ impl AttendanceAdjustmentService {
         user_id: Uuid,
         file_path: String,
     ) -> Result<Uuid, StatusCode> {
-        AttendanceImportService::batch_import_from_file(pool, workspace_id, user_id, file_path, "adjustment".to_string()).await
+        AttendanceImportService::batch_import_from_file(
+            pool,
+            workspace_id,
+            user_id,
+            file_path,
+            "adjustment".to_string(),
+        )
+        .await
     }
 
     /// Resume all jobs that were interrupted by a server restart
@@ -128,12 +137,17 @@ impl AttendanceAdjustmentService {
     }
 
     pub fn parse_datetime(
-        dt_str: &str, 
+        dt_str: &str,
         timezone: &str,
         preferred_date: Option<&str>,
-        preferred_time: Option<&str>
+        preferred_time: Option<&str>,
     ) -> Result<chrono::DateTime<chrono::Utc>, String> {
-        crate::utils::datetime::parse_datetime_with_tz(dt_str, timezone, preferred_date, preferred_time)
+        crate::utils::datetime::parse_datetime_with_tz(
+            dt_str,
+            timezone,
+            preferred_date,
+            preferred_time,
+        )
     }
 
     pub async fn get_workspace_requests(
@@ -168,7 +182,12 @@ mod tests {
     #[test]
     fn test_parse_datetime_ambiguity() {
         // Case 1: Preferred DD/MM/YYYY, input 01/05/2026 (May 1st)
-        let dt = AttendanceAdjustmentService::parse_datetime("01/05/2026 14:00", "Asia/Ho_Chi_Minh", Some("DD/MM/YYYY"), Some("24h"));
+        let dt = AttendanceAdjustmentService::parse_datetime(
+            "01/05/2026 14:00",
+            "Asia/Ho_Chi_Minh",
+            Some("DD/MM/YYYY"),
+            Some("24h"),
+        );
         assert!(dt.is_ok());
         let dt = dt.unwrap();
         // 14:00 VN = 07:00 UTC
@@ -178,7 +197,12 @@ mod tests {
     #[test]
     fn test_parse_datetime_iso() {
         // ISO with Z should ignore workspace tz
-        let dt = AttendanceAdjustmentService::parse_datetime("2026-01-14T08:30:00Z", "Asia/Ho_Chi_Minh", None, None);
+        let dt = AttendanceAdjustmentService::parse_datetime(
+            "2026-01-14T08:30:00Z",
+            "Asia/Ho_Chi_Minh",
+            None,
+            None,
+        );
         assert!(dt.is_ok());
         assert_eq!(dt.unwrap().hour(), 8);
     }

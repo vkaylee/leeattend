@@ -1,9 +1,9 @@
 pub mod agent_manager;
+pub mod dev_initialization;
 pub mod handlers;
 pub mod models;
 pub mod repositories;
 pub mod services;
-pub mod dev_initialization;
 pub mod utils;
 
 use axum::{
@@ -137,7 +137,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
 
     let mut router = Router::new()
         .route("/health", get(handlers::health_check))
-        .route("/dashboard/workspace-stats", get(handlers::get_workspace_stats))
+        .route(
+            "/dashboard/workspace-stats",
+            get(handlers::get_workspace_stats),
+        )
         .route("/auth/login", post(handlers::login))
         .route("/auth/register", post(handlers::register))
         .route("/auth/refresh", post(handlers::refresh_token))
@@ -146,7 +149,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
     #[cfg(debug_assertions)]
     {
         router = router.route("/dev/super-user", get(handlers::get_dev_super_user));
-        router = router.route("/dev/workspaces/:ws_id/clear", post(handlers::clear_workspace_data));
+        router = router.route(
+            "/dev/workspaces/:ws_id/clear",
+            post(handlers::clear_workspace_data),
+        );
     }
 
     router = router
@@ -269,10 +275,19 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             post(handlers::adjust_leave_balance),
         )
         // Leave Policies
-                .route("/workspaces/:ws_id/leave/policies", get(handlers::leaves::get_leave_policies).post(handlers::leaves::create_leave_policy))
-                .route("/workspaces/:ws_id/leave/policies/:policy_id", patch(handlers::leaves::update_leave_policy).delete(handlers::leaves::delete_leave_policy))
-                .route("/workspaces/:ws_id/leave/policies/assign", post(handlers::leaves::assign_leave_policy))
-
+        .route(
+            "/workspaces/:ws_id/leave/policies",
+            get(handlers::leaves::get_leave_policies).post(handlers::leaves::create_leave_policy),
+        )
+        .route(
+            "/workspaces/:ws_id/leave/policies/:policy_id",
+            patch(handlers::leaves::update_leave_policy)
+                .delete(handlers::leaves::delete_leave_policy),
+        )
+        .route(
+            "/workspaces/:ws_id/leave/policies/assign",
+            post(handlers::leaves::assign_leave_policy),
+        )
         .route(
             "/workspaces/:ws_id/leave/accrual/run",
             post(handlers::trigger_accrual_run),
@@ -337,7 +352,8 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         )
         .route(
             "/workspaces/:ws_id/employees/:id/salary-components",
-            get(handlers::get_employee_salary_components).post(handlers::assign_employee_salary_component),
+            get(handlers::get_employee_salary_components)
+                .post(handlers::assign_employee_salary_component),
         )
         .route(
             "/workspaces/:ws_id/employees/:id/payslips",
@@ -369,11 +385,15 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/shifts/:shift_id",
             put(handlers::update_shift),
         )
-        .route("/workspaces/:ws_id/shifts/assign", post(handlers::assign_shift))
+        .route(
+            "/workspaces/:ws_id/shifts/assign",
+            post(handlers::assign_shift),
+        )
         // Working Patterns
         .route(
             "/workspaces/:ws_id/working-patterns",
-            get(handlers::working_patterns::list_patterns).post(handlers::working_patterns::create_pattern),
+            get(handlers::working_patterns::list_patterns)
+                .post(handlers::working_patterns::create_pattern),
         )
         .route(
             "/workspaces/:ws_id/working-patterns/bulk-assign",
@@ -385,16 +405,19 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         )
         .route(
             "/workspaces/:ws_id/employees/:id/working-patterns",
-            get(handlers::working_patterns::get_employee_pattern_history).post(handlers::working_patterns::assign_pattern),
+            get(handlers::working_patterns::get_employee_pattern_history)
+                .post(handlers::working_patterns::assign_pattern),
         )
         // Assignment Rules
         .route(
             "/workspaces/:ws_id/assignment-rules",
-            get(handlers::assignment_rules::get_assignment_rules).post(handlers::assignment_rules::create_assignment_rule),
+            get(handlers::assignment_rules::get_assignment_rules)
+                .post(handlers::assignment_rules::create_assignment_rule),
         )
         .route(
             "/workspaces/:ws_id/assignment-rules/:rule_id",
-            patch(handlers::assignment_rules::update_assignment_rule).delete(handlers::assignment_rules::delete_assignment_rule),
+            patch(handlers::assignment_rules::update_assignment_rule)
+                .delete(handlers::assignment_rules::delete_assignment_rule),
         );
 
     // Rosters
@@ -430,7 +453,8 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         // Emergency Contacts
         .route(
             "/ess/emergency-contacts",
-            get(handlers::ess::get_my_emergency_contacts).post(handlers::ess::add_emergency_contact),
+            get(handlers::ess::get_my_emergency_contacts)
+                .post(handlers::ess::add_emergency_contact),
         )
         .route(
             "/ess/emergency-contacts/:contact_id",
@@ -443,8 +467,14 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         // Attendance
         .route("/ess/attendance", get(handlers::ess::get_my_attendance))
         // Leave
-        .route("/ess/leave/balances", get(handlers::ess::get_my_leave_balances))
-        .route("/ess/leave/requests", get(handlers::ess::ess_get_my_leave_requests));
+        .route(
+            "/ess/leave/balances",
+            get(handlers::ess::get_my_leave_balances),
+        )
+        .route(
+            "/ess/leave/requests",
+            get(handlers::ess::ess_get_my_leave_requests),
+        );
 
     Router::new()
         .nest("/api", router)

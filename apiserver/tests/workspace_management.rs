@@ -1,7 +1,7 @@
 mod common;
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
-use common::factory::TestFactory;
 use common::db::TestDatabase;
+use common::factory::TestFactory;
 use reqwest::StatusCode;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -70,7 +70,7 @@ async fn test_workspace_creation_and_membership() {
 
     // 1. Tạo workspace mới
     let response = client
-        .post(&format!("{}/api/workspaces", address))
+        .post(format!("{}/api/workspaces", address))
         .header("X-User-Id", user_id.to_string())
         .json(&serde_json::json!({ "name": "New Ventures" }))
         .send()
@@ -83,7 +83,7 @@ async fn test_workspace_creation_and_membership() {
 
     // 2. Kiểm tra danh sách members của workspace vừa tạo
     let response = client
-        .get(&format!("{}/api/workspaces/{}/members", address, ws_id))
+        .get(format!("{}/api/workspaces/{}/members", address, ws_id))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -103,7 +103,7 @@ async fn test_create_workspace_with_non_existent_user() {
     let fake_user_id = Uuid::new_v4();
 
     let response = client
-        .post(&format!("{}/api/workspaces", address))
+        .post(format!("{}/api/workspaces", address))
         .header("X-User-Id", fake_user_id.to_string())
         .json(&serde_json::json!({ "name": "Ghost Workspace" }))
         .send()
@@ -122,7 +122,7 @@ async fn test_get_dev_super_user() {
     let client = reqwest::Client::new();
 
     let response = client
-        .get(&format!("{}/api/dev/super-user", address))
+        .get(format!("{}/api/dev/super-user", address))
         .send()
         .await
         .unwrap();

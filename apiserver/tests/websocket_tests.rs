@@ -79,7 +79,11 @@ async fn spawn_app() -> (String, Uuid, Arc<AppState>) {
         axum::serve(listener, app).await.unwrap();
     });
 
-    (format!("ws://127.0.0.1:{}/api/ws", port), workspace_id, state)
+    (
+        format!("ws://127.0.0.1:{}/api/ws", port),
+        workspace_id,
+        state,
+    )
 }
 
 #[tokio::test]

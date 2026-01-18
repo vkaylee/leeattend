@@ -2,8 +2,8 @@ mod common;
 
 use apiserver::repositories::shift_repository;
 use chrono::{NaiveDate, NaiveTime};
-use common::factory::TestFactory;
 use common::db::TestDatabase;
+use common::factory::TestFactory;
 
 async fn setup_test_db() -> (TestDatabase, TestFactory) {
     let test_db = TestDatabase::new().await;

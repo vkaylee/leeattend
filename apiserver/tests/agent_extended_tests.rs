@@ -1,10 +1,10 @@
 mod common;
 
+use apiserver::agent_manager::AgentManager;
+use apiserver::AppState;
 use axum::http::StatusCode;
 use common::db::TestDatabase;
 use common::factory::TestFactory;
-use apiserver::AppState;
-use apiserver::agent_manager::AgentManager;
 use std::sync::Arc;
 use tower::ServiceExt;
 
@@ -12,12 +12,18 @@ async fn setup_app() -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router)
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
     let factory = TestFactory::new(pool.clone());
-    
-    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(pool.clone()));
-    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+
+    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(
+        pool.clone(),
+    ));
+    let workspace_repo =
+        Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
     let agent_manager = AgentManager::new();
-    let agent_service = Arc::new(apiserver::services::AgentService::new(agent_repo.clone(), agent_manager.clone()));
-    
+    let agent_service = Arc::new(apiserver::services::AgentService::new(
+        agent_repo.clone(),
+        agent_manager.clone(),
+    ));
+
     let app_state = Arc::new(AppState {
         agent_manager,
         db: pool.clone(),
@@ -26,7 +32,7 @@ async fn setup_app() -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router)
         agent_service: agent_service.clone(),
         jwt_secret: "test_secret_agent_ext".to_string(),
     });
-    
+
     let app = apiserver::create_app(app_state.clone());
     (test_db, factory, app_state, app)
 }
@@ -44,7 +50,8 @@ async fn test_update_authorized_agent_fields() {
         "name": "New Agent Name",
         "token": "new_token_123"
     });
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("PATCH")
@@ -58,7 +65,12 @@ async fn test_update_authorized_agent_fields() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let updated: serde_json::Value = serde_json::from_slice(&axum::body::to_bytes(response.into_body(), 10000).await.unwrap()).unwrap();
+    let updated: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(response.into_body(), 10000)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(updated["name"], "New Agent Name");
     assert_eq!(updated["token"], "new_token_123");
 
@@ -66,7 +78,8 @@ async fn test_update_authorized_agent_fields() {
     let update_req = serde_json::json!({
         "is_active": false
     });
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("PATCH")
@@ -80,7 +93,12 @@ async fn test_update_authorized_agent_fields() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let updated: serde_json::Value = serde_json::from_slice(&axum::body::to_bytes(response.into_body(), 10000).await.unwrap()).unwrap();
+    let updated: serde_json::Value = serde_json::from_slice(
+        &axum::body::to_bytes(response.into_body(), 10000)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(updated["is_active"], false);
 }
 
@@ -90,10 +108,20 @@ async fn test_get_authorized_agents_list_filters() {
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
-    
-    factory.agent().with_id("A1").with_workspace(ws_id).create().await;
-    let a2_id = factory.agent().with_id("A2").with_workspace(ws_id).create().await;
-    
+
+    factory
+        .agent()
+        .with_id("A1")
+        .with_workspace(ws_id)
+        .create()
+        .await;
+    let a2_id = factory
+        .agent()
+        .with_id("A2")
+        .with_workspace(ws_id)
+        .create()
+        .await;
+
     // Deactivate A2
     sqlx::query("UPDATE authorized_agents SET is_active = FALSE WHERE id = $1")
         .bind(a2_id)
@@ -102,7 +130,8 @@ async fn test_get_authorized_agents_list_filters() {
         .unwrap();
 
     // 1. List active only (default)
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -115,12 +144,18 @@ async fn test_get_authorized_agents_list_filters() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let agents: Vec<serde_json::Value> = serde_json::from_slice(&axum::body::to_bytes(response.into_body(), 10000).await.unwrap()).unwrap();
+    let agents: Vec<serde_json::Value> = serde_json::from_slice(
+        &axum::body::to_bytes(response.into_body(), 10000)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(agents.len(), 1);
     assert_eq!(agents[0]["id"], "A1");
 
     // 2. List all including inactive
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -133,7 +168,12 @@ async fn test_get_authorized_agents_list_filters() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let agents: Vec<serde_json::Value> = serde_json::from_slice(&axum::body::to_bytes(response.into_body(), 10000).await.unwrap()).unwrap();
+    let agents: Vec<serde_json::Value> = serde_json::from_slice(
+        &axum::body::to_bytes(response.into_body(), 10000)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(agents.len(), 2);
 }
 
@@ -145,7 +185,8 @@ async fn test_delete_authorized_agent() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let agent_id = factory.agent().with_workspace(ws_id).create().await;
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
@@ -160,8 +201,12 @@ async fn test_delete_authorized_agent() {
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
 
     // Verify inactive in DB
-    let is_active: bool = sqlx::query_scalar("SELECT is_active FROM authorized_agents WHERE id = $1")
-        .bind(agent_id).fetch_one(&factory.pool).await.unwrap();
+    let is_active: bool =
+        sqlx::query_scalar("SELECT is_active FROM authorized_agents WHERE id = $1")
+            .bind(agent_id)
+            .fetch_one(&factory.pool)
+            .await
+            .unwrap();
     assert!(!is_active);
 }
 
@@ -171,7 +216,8 @@ async fn test_update_agent_trust_not_found() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("PUT")
@@ -194,7 +240,8 @@ async fn test_update_authorized_agent_no_fields() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let agent_id = factory.agent().with_workspace(ws_id).create().await;
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("PATCH")
@@ -209,5 +256,3 @@ async fn test_update_authorized_agent_no_fields() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
-
-

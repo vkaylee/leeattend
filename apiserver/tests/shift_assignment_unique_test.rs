@@ -1,14 +1,14 @@
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
+use apiserver::{agent_manager::AgentManager, create_app, AppState};
 use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use tower::ServiceExt;
 use serde_json::json;
-use std::sync::Arc;
-use apiserver::{create_app, AppState, agent_manager::AgentManager};
 use sqlx::PgPool;
-use crate::common::factory::TestFactory;
-use crate::common::db::TestDatabase;
+use std::sync::Arc;
+use tower::ServiceExt;
 
 mod common;
 
@@ -49,15 +49,13 @@ async fn test_unique_shift_assignment_constraint() {
     // 1. Setup
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
-    let employee_id = factory.employee()
+    let employee_id = factory
+        .employee()
         .with_workspace(workspace_id)
-        .create().await;
-    let shift_1_id = factory.shift()
-        .with_workspace(workspace_id)
-        .create().await;
-    let shift_2_id = factory.shift()
-        .with_workspace(workspace_id)
-        .create().await;
+        .create()
+        .await;
+    let shift_1_id = factory.shift().with_workspace(workspace_id).create().await;
+    let shift_2_id = factory.shift().with_workspace(workspace_id).create().await;
 
     // 2. Assign Shift 1 - Should Succeed
     let assign_req_1 = json!({
@@ -66,7 +64,8 @@ async fn test_unique_shift_assignment_constraint() {
         "start_date": "2026-01-01"
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             Request::builder()
                 .method("POST")
@@ -89,7 +88,8 @@ async fn test_unique_shift_assignment_constraint() {
         "start_date": "2026-01-01"
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             Request::builder()
                 .method("POST")
@@ -112,7 +112,8 @@ async fn test_unique_shift_assignment_constraint() {
         "start_date": "2026-01-02"
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             Request::builder()
                 .method("POST")

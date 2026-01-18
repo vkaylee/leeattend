@@ -1,8 +1,8 @@
 mod common;
-use apiserver::models::{MemberRole};
+use apiserver::models::MemberRole;
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
-use common::factory::TestFactory;
 use common::db::TestDatabase;
+use common::factory::TestFactory;
 use reqwest::StatusCode;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -71,7 +71,10 @@ async fn test_department_crud() {
 
     // 1. Create a department
     let response = client
-        .post(&format!("{}/api/workspaces/{}/departments", address, workspace_id))
+        .post(format!(
+            "{}/api/workspaces/{}/departments",
+            address, workspace_id
+        ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
         .json(&serde_json::json!({
@@ -89,7 +92,10 @@ async fn test_department_crud() {
 
     // 2. List departments
     let response = client
-        .get(&format!("{}/api/workspaces/{}/departments", address, workspace_id))
+        .get(format!(
+            "{}/api/workspaces/{}/departments",
+            address, workspace_id
+        ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
         .send()
@@ -102,7 +108,10 @@ async fn test_department_crud() {
 
     // 3. Update department
     let response = client
-        .patch(&format!("{}/api/workspaces/{}/departments/{}", address, workspace_id, dept_id))
+        .patch(format!(
+            "{}/api/workspaces/{}/departments/{}",
+            address, workspace_id, dept_id
+        ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
         .json(&serde_json::json!({
@@ -118,7 +127,10 @@ async fn test_department_crud() {
 
     // 4. Delete department
     let response = client
-        .delete(&format!("{}/api/workspaces/{}/departments/{}", address, workspace_id, dept_id))
+        .delete(format!(
+            "{}/api/workspaces/{}/departments/{}",
+            address, workspace_id, dept_id
+        ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
         .send()
@@ -129,7 +141,10 @@ async fn test_department_crud() {
 
     // 5. Verify deletion
     let response = client
-        .get(&format!("{}/api/workspaces/{}/departments", address, workspace_id))
+        .get(format!(
+            "{}/api/workspaces/{}/departments",
+            address, workspace_id
+        ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
         .send()
@@ -147,11 +162,16 @@ async fn test_department_rbac() {
 
     // Create a regular member
     let member_id = factory.user().create().await;
-    factory.add_member(workspace_id, member_id, MemberRole::Member).await;
+    factory
+        .add_member(workspace_id, member_id, MemberRole::Member)
+        .await;
 
     // Member tries to create a department - should fail
     let response = client
-        .post(&format!("{}/api/workspaces/{}/departments", address, workspace_id))
+        .post(format!(
+            "{}/api/workspaces/{}/departments",
+            address, workspace_id
+        ))
         .header("X-User-Id", member_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
         .json(&serde_json::json!({
@@ -164,11 +184,19 @@ async fn test_department_rbac() {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     // Owner creates a department
-    let dept_id = factory.department().with_workspace(workspace_id).with_name("Owner Dept").create().await;
+    let dept_id = factory
+        .department()
+        .with_workspace(workspace_id)
+        .with_name("Owner Dept")
+        .create()
+        .await;
 
     // Member tries to update - should fail
     let response = client
-        .patch(&format!("{}/api/workspaces/{}/departments/{}", address, workspace_id, dept_id))
+        .patch(format!(
+            "{}/api/workspaces/{}/departments/{}",
+            address, workspace_id, dept_id
+        ))
         .header("X-User-Id", member_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
         .json(&serde_json::json!({
@@ -182,7 +210,10 @@ async fn test_department_rbac() {
 
     // Member tries to delete - should fail
     let response = client
-        .delete(&format!("{}/api/workspaces/{}/departments/{}", address, workspace_id, dept_id))
+        .delete(format!(
+            "{}/api/workspaces/{}/departments/{}",
+            address, workspace_id, dept_id
+        ))
         .header("X-User-Id", member_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
         .send()

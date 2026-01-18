@@ -54,7 +54,7 @@ async fn test_change_password_flow() {
         full_name: "Test User".to_string(),
     };
     let res = client
-        .post(&format!("{}/api/auth/register", address))
+        .post(format!("{}/api/auth/register", address))
         .json(&reg_req)
         .send()
         .await
@@ -67,7 +67,7 @@ async fn test_change_password_flow() {
         password: "old_password_123".to_string(),
     };
     let res = client
-        .post(&format!("{}/api/auth/login", address))
+        .post(format!("{}/api/auth/login", address))
         .json(&login_req)
         .send()
         .await
@@ -82,7 +82,7 @@ async fn test_change_password_flow() {
         new_password: "new_password_456".to_string(),
     };
     let res = client
-        .post(&format!("{}/api/auth/change-password", address))
+        .post(format!("{}/api/auth/change-password", address))
         .header("Authorization", format!("Bearer {}", token))
         .json(&change_req)
         .send()
@@ -96,7 +96,7 @@ async fn test_change_password_flow() {
         password: "old_password_123".to_string(),
     };
     let res = client
-        .post(&format!("{}/api/auth/login", address))
+        .post(format!("{}/api/auth/login", address))
         .json(&login_req_old)
         .send()
         .await
@@ -109,7 +109,7 @@ async fn test_change_password_flow() {
         password: "new_password_456".to_string(),
     };
     let res = client
-        .post(&format!("{}/api/auth/login", address))
+        .post(format!("{}/api/auth/login", address))
         .json(&login_req_new)
         .send()
         .await

@@ -1,16 +1,19 @@
 use axum::{
     extract::State,
-    response::{IntoResponse, Json},
     http::StatusCode,
+    response::{IntoResponse, Json},
 };
+use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
-use chrono::Utc;
 
-use crate::{AppState, UserId};
-use crate::models::{User, RegisterRequest, LoginRequest, AuthResponse, RefreshRequest, ChangePasswordRequest, UpdateUserRequest, UserResponse};
+use crate::models::{
+    AuthResponse, ChangePasswordRequest, LoginRequest, RefreshRequest, RegisterRequest,
+    UpdateUserRequest, User, UserResponse,
+};
 use crate::repositories::user_repository;
 use crate::services::auth_service::AuthService;
+use crate::{AppState, UserId};
 
 // --- Auth Handlers ---
 

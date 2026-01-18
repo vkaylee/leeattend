@@ -4,9 +4,9 @@ use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
 use apiserver::models::DailyAttendanceReport;
 use apiserver::AppState;
-use chrono::{NaiveTime, Utc, Local, TimeZone};
-use common::factory::TestFactory;
+use chrono::{Local, NaiveTime, TimeZone, Utc};
 use common::db::TestDatabase;
+use common::factory::TestFactory;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -64,7 +64,7 @@ async fn test_report_calculation_grace_period_and_break() {
     let test_date = Utc::now().date_naive();
     let start_time = NaiveTime::from_hms_opt(8, 0, 0).unwrap();
     let end_time = NaiveTime::from_hms_opt(17, 0, 0).unwrap();
-    
+
     // Create Shift: 08:00 - 17:00, Break 60m (Auto), Grace 15m
     let shift_id = sqlx::query_scalar!(
         r#"
@@ -79,7 +79,7 @@ async fn test_report_calculation_grace_period_and_break() {
         "Standard Shift",
         start_time,
         end_time,
-        60, // 60 min break
+        60,   // 60 min break
         true, // Auto deduct
         false,
         15 // 15 min grace
@@ -105,11 +105,20 @@ async fn test_report_calculation_grace_period_and_break() {
     // Raw Duration: 08:00 -> 17:00 = 9h (540m)
     // Break Deduction: 60m (Auto)
     // Net: 540 - 60 = 480m
-    
-    let punch_in = Local.from_local_datetime(&test_date.and_time(NaiveTime::from_hms_opt(7, 50, 0).unwrap())).single().unwrap().with_timezone(&Utc);
-    let punch_out = Local.from_local_datetime(&test_date.and_time(NaiveTime::from_hms_opt(17, 0, 0).unwrap())).single().unwrap().with_timezone(&Utc);
 
-    factory.time_entry()
+    let punch_in = Local
+        .from_local_datetime(&test_date.and_time(NaiveTime::from_hms_opt(7, 50, 0).unwrap()))
+        .single()
+        .unwrap()
+        .with_timezone(&Utc);
+    let punch_out = Local
+        .from_local_datetime(&test_date.and_time(NaiveTime::from_hms_opt(17, 0, 0).unwrap()))
+        .single()
+        .unwrap()
+        .with_timezone(&Utc);
+
+    factory
+        .time_entry()
         .with_employee(employee_id)
         .with_punch_in(punch_in)
         .with_punch_out(punch_out)
@@ -118,7 +127,7 @@ async fn test_report_calculation_grace_period_and_break() {
 
     // Act
     let res = client
-        .get(&format!(
+        .get(format!(
             "{}/api/workspaces/{}/reports/attendance?start_date={}&end_date={}&type=daily",
             address, ws_id, test_date, test_date
         ))
@@ -130,14 +139,17 @@ async fn test_report_calculation_grace_period_and_break() {
 
     assert_eq!(res.status(), 200);
     let report: Vec<DailyAttendanceReport> = res.json().await.unwrap();
-    
+
     // Assert
     assert_eq!(report.len(), 1);
-    // Punch 07:45 -> effective 08:00 (due to 30m grace). 
+    // Punch 07:45 -> effective 08:00 (due to 30m grace).
     // Out 17:00. 08:00 to 17:00 = 9h = 540m.
     // Break 60m. Net = 480m.
     // Unit size 1 -> 480 units.
-    assert_eq!(report[0].work_units, 480, "Expected 480 units (8h) after grace period and break deduction");
+    assert_eq!(
+        report[0].work_units, 480,
+        "Expected 480 units (8h) after grace period and break deduction"
+    );
 }
 
 #[tokio::test]
@@ -148,7 +160,7 @@ async fn test_report_calculation_rounding() {
     let client = reqwest::Client::new();
 
     let user_id = factory.user().create().await;
-    
+
     // Workspace with 15m Floor Rounding
     let ws_id = sqlx::query_scalar!(
         "INSERT INTO workspaces (id, name, work_unit_minutes, rounding_policy) VALUES ($1, $2, $3, $4) RETURNING id",
@@ -160,10 +172,16 @@ async fn test_report_calculation_rounding() {
     .fetch_one(&pool)
     .await
     .unwrap();
-    
+
     // Add owner
-    sqlx::query("INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, 'owner')")
-        .bind(ws_id).bind(user_id).execute(&pool).await.unwrap();
+    sqlx::query(
+        "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, 'owner')",
+    )
+    .bind(ws_id)
+    .bind(user_id)
+    .execute(&pool)
+    .await
+    .unwrap();
 
     let employee_id = factory
         .employee()
@@ -175,7 +193,7 @@ async fn test_report_calculation_rounding() {
     let test_date = Utc::now().date_naive();
     let start_time = NaiveTime::from_hms_opt(9, 0, 0).unwrap();
     let end_time = NaiveTime::from_hms_opt(18, 0, 0).unwrap();
-    
+
     // Create Shift: 09:00 - 18:00, Break 0m
     let shift_id = sqlx::query_scalar!(
         r#"
@@ -190,8 +208,8 @@ async fn test_report_calculation_rounding() {
         "Simple Shift",
         start_time,
         end_time,
-        0, 
-        false, 
+        0,
+        false,
         false,
         0
     )
@@ -212,11 +230,20 @@ async fn test_report_calculation_rounding() {
     // Scenario:
     // Worked 9h 14m (554m)
     // Rounding: Floor 15m -> 540m (9h)
-    
-    let punch_in = Local.from_local_datetime(&test_date.and_time(NaiveTime::from_hms_opt(9, 0, 0).unwrap())).single().unwrap().with_timezone(&Utc);
-    let punch_out = Local.from_local_datetime(&test_date.and_time(NaiveTime::from_hms_opt(18, 14, 0).unwrap())).single().unwrap().with_timezone(&Utc);
 
-    factory.time_entry()
+    let punch_in = Local
+        .from_local_datetime(&test_date.and_time(NaiveTime::from_hms_opt(9, 0, 0).unwrap()))
+        .single()
+        .unwrap()
+        .with_timezone(&Utc);
+    let punch_out = Local
+        .from_local_datetime(&test_date.and_time(NaiveTime::from_hms_opt(18, 14, 0).unwrap()))
+        .single()
+        .unwrap()
+        .with_timezone(&Utc);
+
+    factory
+        .time_entry()
         .with_employee(employee_id)
         .with_punch_in(punch_in)
         .with_punch_out(punch_out)
@@ -225,7 +252,7 @@ async fn test_report_calculation_rounding() {
 
     // Act
     let res = client
-        .get(&format!(
+        .get(format!(
             "{}/api/workspaces/{}/reports/attendance?start_date={}&end_date={}&type=daily",
             address, ws_id, test_date, test_date
         ))
@@ -237,11 +264,14 @@ async fn test_report_calculation_rounding() {
 
     assert_eq!(res.status(), 200);
     let report: Vec<DailyAttendanceReport> = res.json().await.unwrap();
-    
+
     assert_eq!(report.len(), 1);
-    // Work 09:00 to 18:14 = 9h14m = 554m. 
+    // Work 09:00 to 18:14 = 9h14m = 554m.
     // Break 0m. Net = 554m.
     // Rounding 15m Floor: 554 -> 540m.
     // 540 / 15 = 36 units.
-    assert_eq!(report[0].work_units, 36, "Expected 36 units after floor rounding (554m -> 540m / 15)");
+    assert_eq!(
+        report[0].work_units, 36,
+        "Expected 36 units after floor rounding (554m -> 540m / 15)"
+    );
 }

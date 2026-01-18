@@ -1,7 +1,10 @@
+#[allow(unused_imports)]
+use crate::models::{
+    AssignmentRule, AssignmentRuleConditions, CreateAssignmentRuleRequest,
+    UpdateAssignmentRuleRequest,
+};
 use sqlx::PgPool;
 use uuid::Uuid;
-#[allow(unused_imports)]
-use crate::models::{AssignmentRule, CreateAssignmentRuleRequest, UpdateAssignmentRuleRequest, AssignmentRuleConditions};
 
 pub struct AssignmentRuleRepository;
 
@@ -30,7 +33,10 @@ impl AssignmentRuleRepository {
         Ok(rule)
     }
 
-    pub async fn get_rules(pool: &PgPool, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, sqlx::Error> {
+    pub async fn get_rules(
+        pool: &PgPool,
+        workspace_id: Uuid,
+    ) -> Result<Vec<AssignmentRule>, sqlx::Error> {
         let rules = sqlx::query_as!(
             AssignmentRule,
             r#"
@@ -47,7 +53,10 @@ impl AssignmentRuleRepository {
         Ok(rules)
     }
 
-    pub async fn get_active_rules(pool: &PgPool, workspace_id: Uuid) -> Result<Vec<AssignmentRule>, sqlx::Error> {
+    pub async fn get_active_rules(
+        pool: &PgPool,
+        workspace_id: Uuid,
+    ) -> Result<Vec<AssignmentRule>, sqlx::Error> {
         let rules = sqlx::query_as!(
             AssignmentRule,
             r#"

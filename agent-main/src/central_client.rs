@@ -1,12 +1,16 @@
-use futures_util::{SinkExt, StreamExt};
+use futures_util::{ SinkExt, StreamExt };
 use log::{error, info, warn};
 use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 use tokio::time::sleep;
 use tokio_tungstenite::{
-    connect_async, tungstenite::client::IntoClientRequest, tungstenite::http::HeaderValue,
-    tungstenite::Message, MaybeTlsStream, WebSocketStream,
+    connect_async,
+    tungstenite::client::IntoClientRequest,
+    tungstenite::http::HeaderValue,
+    tungstenite::Message,
+    MaybeTlsStream,
+    WebSocketStream,
 };
 
 use crate::database::Database;
@@ -86,7 +90,7 @@ impl RetryManager {
     }
 
     fn record_connection_established(&mut self) {
-        // We don't reset count yet. 
+        // We don't reset count yet.
         // We wait for record_stable to clear the counter.
     }
 
@@ -201,7 +205,7 @@ impl CentralClient {
                                             error!("⚠️ WebSocket error: {}", e);
                                             break;
                                         }
-                                        _ => {}
+                                        _ => {} // Ignore other message types for now
                                     }
                                 }
                             }
@@ -233,6 +237,53 @@ fn calculate_backoff(retry_count: u32) -> Duration {
     let max_delay = Duration::from_secs(60);
     let exponent = std::cmp::min(retry_count.saturating_sub(1), 31); // 2^0 = 1s on first backoff retry
     std::cmp::min(base_delay.saturating_mul(2u32.pow(exponent)), max_delay)
+}
+
+async fn connect_central(
+    url: &str,
+    agent_id: &str,
+    token: &str,
+) -> Result<(WebSocketStream<MaybeTlsStream<TcpStream>>, tokio_tungstenite::tungstenite::handshake::client::Response), Box<dyn std::error::Error + Send + Sync>> {
+    let mut request = url.into_client_request()?;
+    let headers = request.headers_mut();
+    headers.insert(
+        "Authorization",
+        HeaderValue::from_str(&format!("Bearer {}", token))?,
+    );
+    headers.insert("X-Agent-ID", HeaderValue::from_str(agent_id)?);
+
+    let (ws_stream, response) = connect_async(request).await?;
+    Ok((ws_stream, response))
+}
+
+async fn handle_incoming_text(text: &str, db: &Database) {
+    // Note: text comes as Utf8Bytes, so we might need to treat it as string if from_str expects &str.
+    // Tungstenite's Utf8Bytes implements Deref<Target=str>, so it should work fine.
+    match serde_json::from_str::<CentralMessage>(text) {
+        Ok(msg) => match msg {
+            CentralMessage::ConfigPush { data } => {
+                info!("Received Config Push: {:?}", data);
+                if let Some(devices) = data.get("devices").and_then(|d| d.as_array()) {
+                    for d in devices {
+                        let id = d.get("device_id").or(d.get("id")).and_then(|v| v.as_str());
+                        let ip = d.get("ip").and_then(|v| v.as_str());
+                        
+                        if let (Some(id), Some(ip)) = (id, ip) {
+                            let _ = db.upsert_device(id, None, ip, 4370).await;
+                        }
+                    }
+                }
+            }
+            CentralMessage::Command { id, method, params: _ } => {
+                info!("Received Command: {} {}", method, id);
+            }
+            CentralMessage::Ack { msg_id } => {
+                info!("Received ACK for {}", msg_id);
+            }
+            _ => {} // Ignore other message types for now
+        },
+        Err(e) => error!("Failed to parse incoming message: {}", e),
+    }
 }
 
 #[cfg(test)]
@@ -361,49 +412,3 @@ mod tests {
     }
 }
 
-async fn connect_central(
-    url: &str,
-    agent_id: &str,
-    token: &str,
-) -> Result<(WebSocketStream<MaybeTlsStream<TcpStream>>, tokio_tungstenite::tungstenite::handshake::client::Response), Box<dyn std::error::Error + Send + Sync>> {
-    let mut request = url.into_client_request()?;
-    let headers = request.headers_mut();
-    headers.insert(
-        "Authorization",
-        HeaderValue::from_str(&format!("Bearer {}", token))?,
-    );
-    headers.insert("X-Agent-ID", HeaderValue::from_str(agent_id)?);
-
-    let (ws_stream, response) = connect_async(request).await?;
-    Ok((ws_stream, response))
-}
-
-async fn handle_incoming_text(text: &str, db: &Database) {
-    // Note: text comes as Utf8Bytes, so we might need to treat it as string if from_str expects &str.
-    // Tungstenite's Utf8Bytes implements Deref<Target=str>, so it should work fine.
-    match serde_json::from_str::<CentralMessage>(text) {
-        Ok(msg) => match msg {
-            CentralMessage::ConfigPush { data } => {
-                info!("Received Config Push: {:?}", data);
-                if let Some(devices) = data.get("devices").and_then(|d| d.as_array()) {
-                    for d in devices {
-                        let id = d.get("device_id").or(d.get("id")).and_then(|v| v.as_str());
-                        let ip = d.get("ip").and_then(|v| v.as_str());
-                        
-                        if let (Some(id), Some(ip)) = (id, ip) {
-                            let _ = db.upsert_device(id, None, ip, 4370).await;
-                        }
-                    }
-                }
-            }
-            CentralMessage::Command { id, method, params: _ } => {
-                info!("Received Command: {} {}", method, id);
-            }
-            CentralMessage::Ack { msg_id } => {
-                info!("Received ACK for {}", msg_id);
-            }
-            _ => {}
-        },
-        Err(e) => error!("Failed to parse incoming message: {}", e),
-    }
-}

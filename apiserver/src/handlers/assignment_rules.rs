@@ -7,10 +7,10 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::AppState;
 use crate::handlers::common::MemberContext;
 use crate::models::{CreateAssignmentRuleRequest, UpdateAssignmentRuleRequest};
 use crate::repositories::assignment_rule_repository::AssignmentRuleRepository;
+use crate::AppState;
 
 pub async fn get_assignment_rules(
     Path(ws_id): Path<Uuid>,

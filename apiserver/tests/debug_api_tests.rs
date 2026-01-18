@@ -1,7 +1,7 @@
 mod common;
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
-use common::factory::TestFactory;
 use common::db::TestDatabase;
+use common::factory::TestFactory;
 use reqwest::StatusCode;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -70,7 +70,7 @@ async fn test_clear_attendance_data() {
 
     // 1. Setup some data
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
-    
+
     // Add time entries
     sqlx::query("INSERT INTO time_entries (employee_id, punch_in_time) VALUES ($1, NOW())")
         .bind(emp_id)
@@ -89,7 +89,10 @@ async fn test_clear_attendance_data() {
     // 2. Clear attendance data
     if cfg!(debug_assertions) {
         let response = client
-            .post(&format!("{}/api/dev/workspaces/{}/clear?group=attendance", address, ws_id))
+            .post(format!(
+                "{}/api/dev/workspaces/{}/clear?group=attendance",
+                address, ws_id
+            ))
             .header("X-Workspace-Id", ws_id.to_string())
             .header("X-User-Id", user_id.to_string())
             .send()
@@ -99,11 +102,12 @@ async fn test_clear_attendance_data() {
         assert_eq!(response.status(), StatusCode::OK);
 
         // 3. Verify data is gone
-        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM time_entries WHERE employee_id = $1")
-            .bind(emp_id)
-            .fetch_one(&_db.pool())
-            .await
-            .unwrap();
+        let count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM time_entries WHERE employee_id = $1")
+                .bind(emp_id)
+                .fetch_one(&_db.pool())
+                .await
+                .unwrap();
         assert_eq!(count, 0);
     }
 }
@@ -115,11 +119,14 @@ async fn test_full_reset() {
 
     // 1. Setup data
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
-    
+
     // 2. Full reset
     if cfg!(debug_assertions) {
         let response = client
-            .post(&format!("{}/api/dev/workspaces/{}/clear?group=full_reset", address, ws_id))
+            .post(format!(
+                "{}/api/dev/workspaces/{}/clear?group=full_reset",
+                address, ws_id
+            ))
             .header("X-Workspace-Id", ws_id.to_string())
             .header("X-User-Id", user_id.to_string())
             .send()
@@ -129,11 +136,12 @@ async fn test_full_reset() {
         assert_eq!(response.status(), StatusCode::OK);
 
         // 3. Verify employee is gone
-        let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM employees WHERE id = $1)")
-            .bind(emp_id)
-            .fetch_one(&_db.pool())
-            .await
-            .unwrap();
+        let exists: bool =
+            sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM employees WHERE id = $1)")
+                .bind(emp_id)
+                .fetch_one(&_db.pool())
+                .await
+                .unwrap();
         assert!(!exists);
     }
 }
@@ -145,7 +153,10 @@ async fn test_clear_invalid_group() {
 
     if cfg!(debug_assertions) {
         let response = client
-            .post(&format!("{}/api/dev/workspaces/{}/clear?group=invalid", address, ws_id))
+            .post(format!(
+                "{}/api/dev/workspaces/{}/clear?group=invalid",
+                address, ws_id
+            ))
             .header("X-Workspace-Id", ws_id.to_string())
             .header("X-User-Id", user_id.to_string())
             .send()

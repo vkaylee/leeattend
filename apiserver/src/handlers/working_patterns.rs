@@ -1,15 +1,15 @@
 use axum::{
     extract::{Path, State},
+    http::StatusCode,
     response::IntoResponse,
     Json,
-    http::StatusCode,
 };
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::{
     handlers::common::MemberContext,
-    models::{CreateWorkingPatternRequest, AssignPatternRequest, BulkAssignPatternRequest},
+    models::{AssignPatternRequest, BulkAssignPatternRequest, CreateWorkingPatternRequest},
     services::working_pattern_service as service,
     AppState,
 };

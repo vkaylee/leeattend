@@ -1,15 +1,18 @@
 use axum::{
-    extract::{State, Path, Query},
-    response::{IntoResponse, Json},
+    extract::{Path, Query, State},
     http::StatusCode,
+    response::{IntoResponse, Json},
 };
+use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
-use serde::Deserialize;
 
-use crate::AppState;
 use crate::handlers::common::MemberContext;
-use crate::models::{CreateSalaryHistoryRequest, UpdatePayrollSettingsRequest, CreateSalaryComponentRequest, AssignSalaryComponentRequest};
+use crate::models::{
+    AssignSalaryComponentRequest, CreateSalaryComponentRequest, CreateSalaryHistoryRequest,
+    UpdatePayrollSettingsRequest,
+};
+use crate::AppState;
 
 // --- Payroll Settings Handlers ---
 
@@ -18,7 +21,8 @@ pub async fn get_payroll_settings(
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
 ) -> impl IntoResponse {
-    match crate::repositories::payroll_repository::get_payroll_settings(&state.db, workspace_id).await
+    match crate::repositories::payroll_repository::get_payroll_settings(&state.db, workspace_id)
+        .await
     {
         Ok(Some(settings)) => Json(settings).into_response(),
         Ok(None) => StatusCode::NOT_FOUND.into_response(),
@@ -33,14 +37,35 @@ pub async fn update_payroll_settings(
     Json(req): Json<UpdatePayrollSettingsRequest>,
 ) -> impl IntoResponse {
     // Get current settings first to fill in missing fields if needed
-    let current = crate::repositories::payroll_repository::get_payroll_settings(&state.db, workspace_id)
-        .await
-        .unwrap_or(None);
+    let current =
+        crate::repositories::payroll_repository::get_payroll_settings(&state.db, workspace_id)
+            .await
+            .unwrap_or(None);
 
-    let mode = req.std_working_day_mode.unwrap_or_else(|| current.as_ref().map(|s| s.std_working_day_mode.clone()).unwrap_or("fixed".to_string()));
-    let fixed_days = req.fixed_std_days.unwrap_or_else(|| current.as_ref().map(|s| s.fixed_std_days).unwrap_or(rust_decimal::Decimal::from(26)));
-    let days_per_week = req.working_days_per_week.unwrap_or_else(|| current.as_ref().map(|s| s.working_days_per_week).unwrap_or(6));
-    let hours_per_day = req.hours_per_day.unwrap_or_else(|| current.as_ref().map(|s| s.hours_per_day).unwrap_or(rust_decimal::Decimal::from(8)));
+    let mode = req.std_working_day_mode.unwrap_or_else(|| {
+        current
+            .as_ref()
+            .map(|s| s.std_working_day_mode.clone())
+            .unwrap_or("fixed".to_string())
+    });
+    let fixed_days = req.fixed_std_days.unwrap_or_else(|| {
+        current
+            .as_ref()
+            .map(|s| s.fixed_std_days)
+            .unwrap_or(rust_decimal::Decimal::from(26))
+    });
+    let days_per_week = req.working_days_per_week.unwrap_or_else(|| {
+        current
+            .as_ref()
+            .map(|s| s.working_days_per_week)
+            .unwrap_or(6)
+    });
+    let hours_per_day = req.hours_per_day.unwrap_or_else(|| {
+        current
+            .as_ref()
+            .map(|s| s.hours_per_day)
+            .unwrap_or(rust_decimal::Decimal::from(8))
+    });
 
     match crate::repositories::payroll_repository::update_payroll_settings(
         &state.db,
@@ -64,7 +89,11 @@ pub async fn get_salary_components(
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
 ) -> impl IntoResponse {
-    match crate::repositories::payroll_repository::get_salary_component_definitions(&state.db, workspace_id).await
+    match crate::repositories::payroll_repository::get_salary_component_definitions(
+        &state.db,
+        workspace_id,
+    )
+    .await
     {
         Ok(components) => Json(components).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
@@ -99,25 +128,33 @@ pub async fn get_employee_salary_components(
 ) -> impl IntoResponse {
     // Note: This returns latest components for effective_date = now
     let now = chrono::Utc::now().date_naive();
-    match crate::repositories::payroll_repository::get_employee_salary_components(&state.db, employee_id, now).await
+    match crate::repositories::payroll_repository::get_employee_salary_components(
+        &state.db,
+        employee_id,
+        now,
+    )
+    .await
     {
         Ok(components) => {
             // Flatten the tuple (Component, Definition) for response
-            let response: Vec<_> = components.into_iter().map(|(c, d)| {
-                serde_json::json!({
-                    "id": c.id,
-                    "employee_id": c.employee_id,
-                    "component_definition_id": c.component_definition_id,
-                    "amount": c.amount,
-                    "effective_date": c.effective_date,
-                    "name": d.name,
-                    "code": d.code,
-                    "is_base_for_ot": d.is_base_for_ot,
-                    "is_taxable": d.is_taxable,
+            let response: Vec<_> = components
+                .into_iter()
+                .map(|(c, d)| {
+                    serde_json::json!({
+                        "id": c.id,
+                        "employee_id": c.employee_id,
+                        "component_definition_id": c.component_definition_id,
+                        "amount": c.amount,
+                        "effective_date": c.effective_date,
+                        "name": d.name,
+                        "code": d.code,
+                        "is_base_for_ot": d.is_base_for_ot,
+                        "is_taxable": d.is_taxable,
+                    })
                 })
-            }).collect();
+                .collect();
             Json(response).into_response()
-        },
+        }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }

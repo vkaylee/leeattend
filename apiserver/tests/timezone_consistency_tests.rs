@@ -3,11 +3,11 @@ mod common;
 use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
 use apiserver::AppState;
-use chrono::{Duration, NaiveDate, Utc, TimeZone};
-use common::factory::TestFactory;
-use common::db::TestDatabase;
-use std::sync::Arc;
+use chrono::{Duration, NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
+use common::db::TestDatabase;
+use common::factory::TestFactory;
+use std::sync::Arc;
 
 async fn spawn_app() -> (String, TestDatabase) {
     let test_db = TestDatabase::new().await;
@@ -54,7 +54,8 @@ async fn test_report_uses_workspace_timezone_boundary() {
     let user_id = factory.user().create().await;
     // Create workspace with UTC+7 (Asia/Ho_Chi_Minh)
     // 00:00 Local = 17:00 Previous Day UTC
-    let ws_id = factory.workspace()
+    let ws_id = factory
+        .workspace()
         .with_timezone("Asia/Ho_Chi_Minh")
         .create_with_owner(user_id)
         .await;
@@ -72,17 +73,22 @@ async fn test_report_uses_workspace_timezone_boundary() {
     // 1. Create a Time Entry at 01:00 AM Local Time on target_date
     // 01:00 AM UTC+7 = 18:00 PM UTC (Previous Day, 2026-05-09)
     let tz: Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
-    let punch_in_local = tz.from_local_datetime(
-        &target_date.and_hms_opt(1, 0, 0).unwrap()
-    ).single().unwrap();
-    
+    let punch_in_local = tz
+        .from_local_datetime(&target_date.and_hms_opt(1, 0, 0).unwrap())
+        .single()
+        .unwrap();
+
     let punch_in_utc = punch_in_local.with_timezone(&Utc);
     let punch_out_utc = punch_in_utc + Duration::minutes(60);
-    
-    // Sanity check: ensure it really is previous day in UTC
-    assert_eq!(punch_in_utc.date_naive(), NaiveDate::from_ymd_opt(2026, 5, 9).unwrap());
 
-    factory.time_entry()
+    // Sanity check: ensure it really is previous day in UTC
+    assert_eq!(
+        punch_in_utc.date_naive(),
+        NaiveDate::from_ymd_opt(2026, 5, 9).unwrap()
+    );
+
+    factory
+        .time_entry()
         .with_employee(employee_id)
         .with_punch_in(punch_in_utc)
         .with_punch_out(punch_out_utc)
@@ -94,9 +100,9 @@ async fn test_report_uses_workspace_timezone_boundary() {
     // The entry (May 9th 18:00 UTC) would be EXCLUDED.
     // If the server uses Timezone, it converts target_date to '2026-05-09 17:00:00Z' (Start of May 10th Local).
     // The entry (May 9th 18:00 UTC) should be INCLUDED.
-    
+
     let res = client
-        .get(&format!(
+        .get(format!(
             "{}/api/workspaces/{}/reports/attendance?start_date={}&end_date={}&type=summary",
             address, ws_id, target_date, target_date
         ))
@@ -111,7 +117,11 @@ async fn test_report_uses_workspace_timezone_boundary() {
 
     assert_eq!(summary.len(), 1, "Should return 1 summary row");
     assert_eq!(summary[0].employee_id, employee_id);
-    assert!(summary[0].total_work_units > 0, "Total work units should be > 0 (found {}), proving the entry was included", summary[0].total_work_units);
+    assert!(
+        summary[0].total_work_units > 0,
+        "Total work units should be > 0 (found {}), proving the entry was included",
+        summary[0].total_work_units
+    );
 
     factory.cleanup().await;
 }

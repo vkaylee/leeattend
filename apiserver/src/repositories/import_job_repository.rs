@@ -1,12 +1,9 @@
+use crate::models::{AttendanceImportJob, ImportJobStatus};
+use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
-use chrono::Utc;
-use crate::models::{AttendanceImportJob, ImportJobStatus};
 
-pub async fn create_job(
-    pool: &PgPool,
-    job: &AttendanceImportJob,
-) -> Result<(), sqlx::Error> {
+pub async fn create_job(pool: &PgPool, job: &AttendanceImportJob) -> Result<(), sqlx::Error> {
     sqlx::query(
         "INSERT INTO attendance_import_jobs (id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, target_type, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
     )
@@ -64,25 +61,23 @@ pub async fn get_latest_job(
     target_type: Option<String>,
 ) -> Result<Option<AttendanceImportJob>, sqlx::Error> {
     let mut query = "SELECT id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, target_type, created_at, updated_at FROM attendance_import_jobs WHERE workspace_id = $1".to_string();
-    
+
     if target_type.is_some() {
         query.push_str(" AND target_type = $2");
     }
-    
+
     query.push_str(" ORDER BY created_at DESC LIMIT 1");
 
     let mut q = sqlx::query_as::<_, AttendanceImportJob>(&query).bind(workspace_id);
-    
+
     if let Some(tt) = target_type {
         q = q.bind(tt);
     }
-    
+
     q.fetch_optional(pool).await
 }
 
-pub async fn get_pending_jobs(
-    pool: &PgPool,
-) -> Result<Vec<AttendanceImportJob>, sqlx::Error> {
+pub async fn get_pending_jobs(pool: &PgPool) -> Result<Vec<AttendanceImportJob>, sqlx::Error> {
     sqlx::query_as::<_, AttendanceImportJob>(
         "SELECT id, workspace_id, user_id, status, total_rows, processed_rows, file_path, error_log, target_type, created_at, updated_at FROM attendance_import_jobs WHERE status = 'processing'"
     )

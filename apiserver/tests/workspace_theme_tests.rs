@@ -1,7 +1,7 @@
 mod common;
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
-use common::factory::TestFactory;
 use common::db::TestDatabase;
+use common::factory::TestFactory;
 use reqwest::StatusCode;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -70,7 +70,7 @@ async fn test_workspace_theme_color_update() {
 
     // 1. Kiểm tra màu mặc định (Violet #7c3aed)
     let response = client
-        .get(&format!("{}/api/workspaces/{}", address, workspace_id))
+        .get(format!("{}/api/workspaces/{}", address, workspace_id))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -83,7 +83,7 @@ async fn test_workspace_theme_color_update() {
     // 2. Cập nhật màu mới (ví dụ: Emerald #059669)
     let new_color = "#059669";
     let response = client
-        .patch(&format!("{}/api/workspaces/{}", address, workspace_id))
+        .patch(format!("{}/api/workspaces/{}", address, workspace_id))
         .header("X-User-Id", user_id.to_string())
         .json(&serde_json::json!({ "theme_primary_color": new_color }))
         .send()
@@ -96,7 +96,7 @@ async fn test_workspace_theme_color_update() {
 
     // 3. Kiểm tra lại bằng GET
     let response = client
-        .get(&format!("{}/api/workspaces/{}", address, workspace_id))
+        .get(format!("{}/api/workspaces/{}", address, workspace_id))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await

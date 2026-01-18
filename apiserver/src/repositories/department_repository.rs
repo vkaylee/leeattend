@@ -50,8 +50,14 @@ pub async fn update_department(
     manager_id: Option<Uuid>,
     default_working_pattern_id: Option<Option<Uuid>>,
 ) -> Result<Department, sqlx::Error> {
-    if name.is_none() && description.is_none() && manager_id.is_none() && default_working_pattern_id.is_none() {
-        return get_department_by_id(pool, workspace_id, id).await?.ok_or(sqlx::Error::RowNotFound);
+    if name.is_none()
+        && description.is_none()
+        && manager_id.is_none()
+        && default_working_pattern_id.is_none()
+    {
+        return get_department_by_id(pool, workspace_id, id)
+            .await?
+            .ok_or(sqlx::Error::RowNotFound);
     }
 
     let mut query = String::from("UPDATE departments SET ");
@@ -76,7 +82,11 @@ pub async fn update_department(
     }
 
     query.push_str(&updates.join(", "));
-    query.push_str(&format!(" WHERE id = ${} AND workspace_id = ${}", next_bind, next_bind + 1));
+    query.push_str(&format!(
+        " WHERE id = ${} AND workspace_id = ${}",
+        next_bind,
+        next_bind + 1
+    ));
     query.push_str(r#" RETURNING id, workspace_id, name, description, manager_id, default_working_pattern_id, created_at, updated_at"#);
 
     let mut q = sqlx::query_as::<_, Department>(&query);

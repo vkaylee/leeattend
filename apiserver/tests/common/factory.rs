@@ -1,7 +1,7 @@
-use chrono::{DateTime, Utc, Datelike};
+use apiserver::models::{LeaveStatus, MemberRole};
+use chrono::{DateTime, Datelike, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
-use apiserver::models::{MemberRole, LeaveStatus};
 
 pub struct TestFactory {
     pub pool: PgPool,
@@ -179,12 +179,14 @@ impl WorkspaceBuilder {
     #[allow(dead_code)]
     pub async fn create(self) -> Uuid {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
-            sqlx::query_scalar("INSERT INTO workspaces (name, timezone) VALUES ($1, $2) RETURNING id")
-                .bind(self.name)
-                .bind(self.timezone)
-                .fetch_one(&self.pool)
-                .await
-                .unwrap()
+            sqlx::query_scalar(
+                "INSERT INTO workspaces (name, timezone) VALUES ($1, $2) RETURNING id",
+            )
+            .bind(self.name)
+            .bind(self.timezone)
+            .fetch_one(&self.pool)
+            .await
+            .unwrap()
         })
         .await
         .expect("Workspace creation timed out")
@@ -306,7 +308,7 @@ impl EmployeeBuilder {
     pub async fn create(self) -> Uuid {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
             let mut tx = self.pool.begin().await.unwrap();
-            
+
             let id: Uuid = sqlx::query_scalar(
                 "INSERT INTO employees (workspace_id, user_id, first_name, last_name, employee_id_number) VALUES ($1, $2, $3, $4, $5) RETURNING id",
             )
@@ -516,7 +518,6 @@ impl TimeEntryBuilder {
         }).await.expect("TimeEntry creation timed out")
     }
 }
-
 
 #[allow(dead_code)]
 pub struct AgentBuilder {
@@ -827,13 +828,13 @@ impl LeavePolicyBuilder {
     }
 
     pub async fn assign_to(
-        &self, 
-        workspace_id: Uuid, 
-        policy_id: Uuid, 
-        assignee_type: &str, 
-        assignee_id: Option<Uuid>, 
+        &self,
+        workspace_id: Uuid,
+        policy_id: Uuid,
+        assignee_type: &str,
+        assignee_id: Option<Uuid>,
         from: chrono::NaiveDate,
-        to: Option<chrono::NaiveDate>
+        to: Option<chrono::NaiveDate>,
     ) -> Uuid {
         sqlx::query_scalar(
             "INSERT INTO leave_policy_assignments (workspace_id, policy_id, assignee_type, assignee_id, effective_from, effective_to) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
@@ -940,7 +941,10 @@ impl AssignmentRuleBuilder {
         self
     }
 
-    pub fn with_conditions(mut self, conditions: apiserver::models::AssignmentRuleConditions) -> Self {
+    pub fn with_conditions(
+        mut self,
+        conditions: apiserver::models::AssignmentRuleConditions,
+    ) -> Self {
         self.conditions = conditions;
         self
     }

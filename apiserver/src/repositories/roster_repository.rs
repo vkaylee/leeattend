@@ -1,8 +1,8 @@
-use crate::models::{ShiftRoster, EmployeeSchedule, EffectiveSchedule};
+use crate::models::{EffectiveSchedule, EmployeeSchedule, ShiftRoster};
 use chrono::NaiveDate;
 use sqlx::PgPool;
-use uuid::Uuid;
 use std::collections::HashMap;
+use uuid::Uuid;
 
 // ... (existing imports)
 
@@ -41,7 +41,7 @@ pub async fn get_workspace_schedules(
         WHERE e.workspace_id = $1 
           AND sr.date >= $2 
           AND sr.date <= $3
-        "#
+        "#,
     )
     .bind(workspace_id)
     .bind(start_date)
@@ -125,7 +125,7 @@ pub async fn get_workspace_schedules(
 
     // 8. Fetch Dynamic Assignment Rules
     let active_rules = crate::repositories::assignment_rule_repository::AssignmentRuleRepository::get_active_rules(pool, workspace_id).await?;
-    
+
     // 9. Fetch Pattern Details for Rules
     let rule_patterns_details = sqlx::query!(
         "SELECT pattern_id, day_of_week, shift_id FROM working_pattern_details WHERE pattern_id IN (SELECT pattern_id FROM assignment_rules WHERE workspace_id = $1 AND is_active = true)",
@@ -163,10 +163,10 @@ pub async fn get_workspace_schedules(
 
                 // P2: Individual Pattern
                 let pattern = pattern_assignments.iter().find(|a| {
-                    a.employee_id == emp.id &&
-                    a.start_date <= curr_date &&
-                    a.end_date.is_none_or(|ed| ed >= curr_date) &&
-                    a.day_of_week == dow
+                    a.employee_id == emp.id
+                        && a.start_date <= curr_date
+                        && a.end_date.is_none_or(|ed| ed >= curr_date)
+                        && a.day_of_week == dow
                 });
 
                 if let Some(p) = pattern {
@@ -174,24 +174,33 @@ pub async fn get_workspace_schedules(
                     source = "pattern".to_string();
                 } else {
                     // P3: Dynamic Rules
-                    let emp_dept_id = all_dept_history.iter().find(|h| h.employee_id == emp.id && h.effective_date <= curr_date).map(|h| h.department_id);
+                    let emp_dept_id = all_dept_history
+                        .iter()
+                        .find(|h| h.employee_id == emp.id && h.effective_date <= curr_date)
+                        .map(|h| h.department_id);
                     let match_ctx = crate::services::rule_evaluator::EmployeeMatchContext {
                         department_id: emp_dept_id,
                         employee_id_number: emp.employee_id_number.clone(),
                         tags: emp.tags.clone().unwrap_or_default(),
                     };
 
-                    let matched_rule = crate::services::rule_evaluator::RuleEvaluator::resolve_rule(&match_ctx, &active_rules);
-                    
+                    let matched_rule = crate::services::rule_evaluator::RuleEvaluator::resolve_rule(
+                        &match_ctx,
+                        &active_rules,
+                    );
+
                     if let Some(rule) = matched_rule {
-                        effective_shift_id = rule_patterns_details.iter().find(|d| d.pattern_id == rule.pattern_id && d.day_of_week == dow).and_then(|d| d.shift_id);
+                        effective_shift_id = rule_patterns_details
+                            .iter()
+                            .find(|d| d.pattern_id == rule.pattern_id && d.day_of_week == dow)
+                            .and_then(|d| d.shift_id);
                         source = "assignment_rule".to_string();
                     } else {
                         // P4: Department Pattern
                         let dept_p = dept_patterns.iter().find(|a| {
-                            a.employee_id == emp.id &&
-                            a.effective_date <= curr_date &&
-                            a.day_of_week == dow
+                            a.employee_id == emp.id
+                                && a.effective_date <= curr_date
+                                && a.day_of_week == dow
                         });
 
                         if let Some(dp) = dept_p {
@@ -200,9 +209,9 @@ pub async fn get_workspace_schedules(
                         } else {
                             // P5: Fixed (Individual)
                             let fixed = fixed_assignments.iter().find(|a| {
-                                a.employee_id == emp.id &&
-                                a.start_date <= curr_date &&
-                                a.end_date.is_none_or(|ed| ed >= curr_date)
+                                a.employee_id == emp.id
+                                    && a.start_date <= curr_date
+                                    && a.end_date.is_none_or(|ed| ed >= curr_date)
                             });
 
                             if let Some(f) = fixed {
@@ -211,8 +220,7 @@ pub async fn get_workspace_schedules(
                             } else {
                                 // P6: Department Fixed
                                 let dept_f = dept_fixed_shifts.iter().find(|a| {
-                                    a.employee_id == emp.id &&
-                                    a.effective_date <= curr_date
+                                    a.employee_id == emp.id && a.effective_date <= curr_date
                                 });
 
                                 if let Some(df) = dept_f {
@@ -243,7 +251,18 @@ pub async fn get_workspace_schedules(
             };
 
             if let Some(sid) = effective_shift_id {
-                if let Some((name, start, end, duration, b_start, b_end, auto_deduct, grace, allow_ot)) = shifts_map.get(&sid) {
+                if let Some((
+                    name,
+                    start,
+                    end,
+                    duration,
+                    b_start,
+                    b_end,
+                    auto_deduct,
+                    grace,
+                    allow_ot,
+                )) = shifts_map.get(&sid)
+                {
                     sched.shift_name = Some(name.clone());
                     sched.start_time = Some(*start);
                     sched.end_time = Some(*end);
@@ -474,7 +493,7 @@ pub async fn get_effective_shift(
           AND wpd.day_of_week = $3
         ORDER BY ewp.created_at DESC
         LIMIT 1
-        "#
+        "#,
     )
     .bind(employee_id)
     .bind(date)
@@ -486,7 +505,7 @@ pub async fn get_effective_shift(
         // If we found a pattern, it might be Some(shift_id) or None (day off)
         // If it's a pattern, it overrides Fixed/Department.
         // We return it even if it's None because the pattern explicitly defines the schedule.
-        return Ok(shift_opt); 
+        return Ok(shift_opt);
     }
 
     // Priority 3: Dynamic Assignment Rules
@@ -507,7 +526,7 @@ pub async fn get_effective_shift(
 
     if let Some(info) = employee_full {
         let rules = crate::repositories::assignment_rule_repository::AssignmentRuleRepository::get_active_rules(pool, info.workspace_id).await.unwrap_or_default();
-        
+
         if !rules.is_empty() {
             let match_ctx = crate::services::rule_evaluator::EmployeeMatchContext {
                 department_id: info.department_id,
@@ -515,7 +534,9 @@ pub async fn get_effective_shift(
                 tags: info.tags.unwrap_or_default(),
             };
 
-            if let Some(matched_rule) = crate::services::rule_evaluator::RuleEvaluator::resolve_rule(&match_ctx, &rules) {
+            if let Some(matched_rule) =
+                crate::services::rule_evaluator::RuleEvaluator::resolve_rule(&match_ctx, &rules)
+            {
                 // Resolve pattern for the day of week
                 let day_of_week = chrono::Datelike::weekday(&date).num_days_from_sunday() as i32;
                 let rule_shift = sqlx::query_scalar!(
@@ -545,7 +566,7 @@ pub async fn get_effective_shift(
           AND wpd.day_of_week = $3
         ORDER BY edh.effective_date DESC
         LIMIT 1
-        "#
+        "#,
     )
     .bind(employee_id)
     .bind(date)
@@ -610,4 +631,3 @@ pub async fn delete_roster(
 
     Ok(())
 }
-

@@ -2,7 +2,9 @@ use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display)]
+#[derive(
+    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
+)]
 #[sqlx(type_name = "member_role_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum MemberRole {
@@ -11,7 +13,9 @@ pub enum MemberRole {
     Member,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display)]
+#[derive(
+    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
+)]
 #[sqlx(type_name = "leave_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum LeaveStatus {
@@ -20,7 +24,9 @@ pub enum LeaveStatus {
     Rejected,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display)]
+#[derive(
+    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
+)]
 #[sqlx(type_name = "adjustment_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum AdjustmentStatus {
@@ -29,7 +35,9 @@ pub enum AdjustmentStatus {
     Rejected,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display)]
+#[derive(
+    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
+)]
 #[sqlx(type_name = "log_source_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum LogSource {
@@ -38,7 +46,9 @@ pub enum LogSource {
     Manual,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display)]
+#[derive(
+    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
+)]
 #[sqlx(type_name = "import_job_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum ImportJobStatus {
@@ -48,7 +58,9 @@ pub enum ImportJobStatus {
     Failed,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display)]
+#[derive(
+    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
+)]
 #[sqlx(type_name = "leave_transaction_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum LeaveTransactionType {
@@ -632,7 +644,7 @@ pub struct UpdateShiftRequest {
     pub early_punch_in_grace_period_minutes: i32,
     #[serde(default)]
     pub allow_early_ot: bool,
-    /// If true, update the current record (Correction). 
+    /// If true, update the current record (Correction).
     /// If false (default), create a new version if time-related fields changed.
     #[serde(default)]
     pub is_correction: bool,
@@ -740,7 +752,10 @@ pub struct UpdateDepartmentRequest {
     pub name: Option<String>,
     pub description: Option<String>,
     pub manager_id: Option<Uuid>,
-    #[serde(default, deserialize_with = "crate::utils::serde_helpers::deserialize_option_option")]
+    #[serde(
+        default,
+        deserialize_with = "crate::utils::serde_helpers::deserialize_option_option"
+    )]
     pub default_working_pattern_id: Option<Option<Uuid>>,
 }
 
@@ -897,7 +912,7 @@ pub struct AssignmentHistory {
     pub employee_name: String,
     pub assignment_type: AssignmentHistoryType,
     pub shift_name: Option<String>,
-    pub date_range: String,      // "2023-01-01" or "2023-01-01 -> 2023-02-01"
+    pub date_range: String, // "2023-01-01" or "2023-01-01 -> 2023-02-01"
     pub created_at: DateTime<Utc>,
 }
 

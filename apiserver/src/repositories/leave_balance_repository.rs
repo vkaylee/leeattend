@@ -1,7 +1,7 @@
+use crate::models::{EmployeeLeaveBalance, LeaveBalance, WorkspaceLeaveBalance};
+use chrono::Datelike;
 use sqlx::{query, query_as, PgPool};
 use uuid::Uuid;
-use chrono::Datelike;
-use crate::models::{LeaveBalance, EmployeeLeaveBalance, WorkspaceLeaveBalance};
 
 pub async fn get_employee_balances(
     pool: &PgPool,
@@ -11,7 +11,7 @@ pub async fn get_employee_balances(
     // We calculate "used" days by summing up approved leave requests in the given year
     // Note: This is a simple implementation that counts days between start and end.
     // In a production system, you'd need to exclude weekends or holidays depending on policy.
-    
+
     let balances = query_as!(
         EmployeeLeaveBalance,
         r#"
@@ -163,25 +163,25 @@ pub async fn adjust_balance(
     .await?;
 
     // 2. Update the balance
-    // We treat 'adjustment' as modifying 'entitlement' for simplicity in this model, 
-    // or we could have a separate 'adjustments' column. 
+    // We treat 'adjustment' as modifying 'entitlement' for simplicity in this model,
+    // or we could have a separate 'adjustments' column.
     // Given the current schema has `entitlement` and `accrued_amount` (from previous migrations),
     // let's check `leave_balances` schema again.
     // Based on previous context, `leave_balances` has `entitlement`, `accrued_amount`, `carried_over`.
     // Let's add to `accrued_amount` as that's the most logical place for dynamic additions.
-    
+
     // However, looking at the `upsert_leave_balance` above, it only updates `entitlement` and `carried_over`.
     // Wait, I recall a migration added `accrued_amount`. Let me verify `models.rs` doesn't show it in `LeaveBalance` struct yet?
-    // Checking `models.rs`... `LeaveBalance` has `entitlement` and `carried_over`. 
-    // Ah, `LeaveAccrualService` uses `accrued_amount`. 
+    // Checking `models.rs`... `LeaveBalance` has `entitlement` and `carried_over`.
+    // Ah, `LeaveAccrualService` uses `accrued_amount`.
     // I need to be consistent. If `accrued_amount` exists in DB, I should use it.
     // The previous `upsert_leave_balance` in this file might be outdated or for initial setup.
-    
+
     // Let's assume `accrued_amount` exists as per `LeaveAccrualService`.
     // I will update `accrued_amount` + amount.
-    
+
     let year = transaction_date.year();
-    
+
     sqlx::query!(
         r#"
         INSERT INTO leave_balances (employee_id, leave_type, year, entitlement, accrued_amount, carried_over)

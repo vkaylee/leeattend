@@ -1,15 +1,20 @@
 use axum::http::StatusCode;
-use chrono::{Utc, DateTime, TimeZone};
+use calamine::{Data, DataType, Reader, Xls, Xlsx};
+use chrono::{DateTime, TimeZone, Utc};
 use chrono_tz::Tz;
 use sqlx::PgPool;
-use uuid::Uuid;
-use tracing::{error, info};
-use std::io::Cursor;
-use calamine::{Reader, Xlsx, Xls, Data, DataType};
 use std::collections::HashSet;
+use std::io::Cursor;
+use tracing::{error, info};
+use uuid::Uuid;
 
-use crate::models::{AttendanceImportJob, CreateAttendanceAdjustmentRequest, RawAttendanceLog, AdjustmentStatus, ImportJobStatus, LogSource};
-use crate::repositories::{import_job_repository, employee_repository, raw_attendance_log_repository};
+use crate::models::{
+    AdjustmentStatus, AttendanceImportJob, CreateAttendanceAdjustmentRequest, ImportJobStatus,
+    LogSource, RawAttendanceLog,
+};
+use crate::repositories::{
+    employee_repository, import_job_repository, raw_attendance_log_repository,
+};
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
 use crate::services::pairing_service::PairingService;
 
@@ -31,7 +36,7 @@ impl AttendanceImportService {
         target_type: String, // "adjustment" or "log"
     ) -> Result<Uuid, StatusCode> {
         let job_id = Uuid::new_v4();
-        
+
         let job = AttendanceImportJob {
             id: job_id,
             workspace_id,
@@ -64,7 +69,10 @@ impl AttendanceImportService {
     pub async fn resume_all_pending_jobs(pool: PgPool) {
         if let Ok(jobs) = import_job_repository::get_pending_jobs(&pool).await {
             for job in jobs {
-                info!("Resuming import job: {} (target: {})", job.id, job.target_type);
+                info!(
+                    "Resuming import job: {} (target: {})",
+                    job.id, job.target_type
+                );
                 let pool_clone = pool.clone();
                 tokio::spawn(async move {
                     let _ = Self::process_job(pool_clone, job.id).await;
@@ -104,20 +112,27 @@ impl AttendanceImportService {
             Ok(b) => b,
             Err(e) => {
                 error!("READ_FILE_ERROR for job {}: {:?}", job_id, e);
-                let _ = import_job_repository::update_job_progress(&pool, job_id, job.processed_rows, ImportJobStatus::Failed, Some(format!("Could not read file: {:?}", e))).await;
+                let _ = import_job_repository::update_job_progress(
+                    &pool,
+                    job_id,
+                    job.processed_rows,
+                    ImportJobStatus::Failed,
+                    Some(format!("Could not read file: {:?}", e)),
+                )
+                .await;
                 return Err(());
             }
         };
 
-        let mut processed_rows = job.processed_rows; // This might be > 0 if resumed, but strictly validating means we might re-validate or fail. 
-        // For simplicity, if we are resuming, we assume validation passed previously? 
-        // Or better: just re-process from start if it's strict. But `processed_rows` implies we skip.
-        // Given strict validation requirement, if we resume, we probably should re-validate everything remaining?
-        // Let's assume for now we parse EVERYTHING to validate, but only insert what's needed?
-        // Actually, if `processed_rows > 0`, it means some were inserted. If we failed halfway, we might have partial data.
-        // But "Strict Validation" (Approach A) implies "Atomic Batch" conceptually (don't start if bad).
-        // So if we are resuming a CRASHED job, we should probably re-validate.
-        
+        let mut processed_rows = job.processed_rows; // This might be > 0 if resumed, but strictly validating means we might re-validate or fail.
+                                                     // For simplicity, if we are resuming, we assume validation passed previously?
+                                                     // Or better: just re-process from start if it's strict. But `processed_rows` implies we skip.
+                                                     // Given strict validation requirement, if we resume, we probably should re-validate everything remaining?
+                                                     // Let's assume for now we parse EVERYTHING to validate, but only insert what's needed?
+                                                     // Actually, if `processed_rows > 0`, it means some were inserted. If we failed halfway, we might have partial data.
+                                                     // But "Strict Validation" (Approach A) implies "Atomic Batch" conceptually (don't start if bad).
+                                                     // So if we are resuming a CRASHED job, we should probably re-validate.
+
         let mut errors = Vec::new();
         let mut pending_rows: Vec<PendingRow> = Vec::new();
 
@@ -126,17 +141,33 @@ impl AttendanceImportService {
         if let Ok(mut reader) = Xlsx::new(Cursor::new(&file_bytes)) {
             if let Some(Ok(range)) = reader.worksheet_range_at(0) {
                 is_excel = true;
-                Self::parse_excel_range(range, &mut pending_rows, &mut errors, Some(&date_format), Some(&time_format), &timezone);
+                Self::parse_excel_range(
+                    range,
+                    &mut pending_rows,
+                    &mut errors,
+                    Some(&date_format),
+                    Some(&time_format),
+                    &timezone,
+                );
             }
         } else if let Ok(mut reader) = Xls::new(Cursor::new(&file_bytes)) {
             if let Some(Ok(range)) = reader.worksheet_range_at(0) {
                 is_excel = true;
-                Self::parse_excel_range(range, &mut pending_rows, &mut errors, Some(&date_format), Some(&time_format), &timezone);
+                Self::parse_excel_range(
+                    range,
+                    &mut pending_rows,
+                    &mut errors,
+                    Some(&date_format),
+                    Some(&time_format),
+                    &timezone,
+                );
             }
         }
 
         if !is_excel {
-            let mut reader = csv::ReaderBuilder::new().has_headers(true).from_reader(Cursor::new(&file_bytes));
+            let mut reader = csv::ReaderBuilder::new()
+                .has_headers(true)
+                .from_reader(Cursor::new(&file_bytes));
             let records: Vec<_> = reader.records().flatten().collect();
             // In CSV, first row is header, so rows are records.
             // But parse_excel_range handles header skipping (row 0).
@@ -146,68 +177,117 @@ impl AttendanceImportService {
                 let emp_id_number = record.get(0).unwrap_or("").trim().to_string();
                 let emp_dt_str = record.get(2).unwrap_or("").trim();
 
-                if emp_id_number.is_empty() || emp_dt_str.is_empty() { 
-                    errors.push(format!("Dòng {}: Thiếu mã nhân viên hoặc thời gian", current_line));
-                    continue; 
+                if emp_id_number.is_empty() || emp_dt_str.is_empty() {
+                    errors.push(format!(
+                        "Dòng {}: Thiếu mã nhân viên hoặc thời gian",
+                        current_line
+                    ));
+                    continue;
                 }
 
-                match AttendanceAdjustmentService::parse_datetime(emp_dt_str, &timezone, Some(&date_format), Some(&time_format)) {
+                match AttendanceAdjustmentService::parse_datetime(
+                    emp_dt_str,
+                    &timezone,
+                    Some(&date_format),
+                    Some(&time_format),
+                ) {
                     Ok(dt) => {
                         pending_rows.push(PendingRow {
                             emp_id_number,
                             punch_time: dt,
                             line_number: current_line,
                         });
-                    },
+                    }
                     Err(e) => {
-                        errors.push(format!("Dòng {} (NV {}): {} [Dữ liệu gốc: '{}']", current_line, emp_id_number, e, emp_dt_str));
+                        errors.push(format!(
+                            "Dòng {} (NV {}): {} [Dữ liệu gốc: '{}']",
+                            current_line, emp_id_number, e, emp_dt_str
+                        ));
                     }
                 };
             }
         }
 
         let total_rows = pending_rows.len() as i32 + errors.len() as i32;
-        
+
         let _ = sqlx::query("UPDATE attendance_import_jobs SET total_rows = $1 WHERE id = $2")
-            .bind(total_rows).bind(job_id).execute(&pool).await;
+            .bind(total_rows)
+            .bind(job_id)
+            .execute(&pool)
+            .await;
 
         if !errors.is_empty() {
-             let _ = import_job_repository::update_job_progress(&pool, job_id, 0, ImportJobStatus::Failed, Some(errors.join("\n"))).await;
-             let _ = tokio::fs::remove_file(file_path).await;
-             return Err(());
+            let _ = import_job_repository::update_job_progress(
+                &pool,
+                job_id,
+                0,
+                ImportJobStatus::Failed,
+                Some(errors.join("\n")),
+            )
+            .await;
+            let _ = tokio::fs::remove_file(file_path).await;
+            return Err(());
         }
 
         // 2. VALIDATION PHASE (Strict)
-        let unique_emp_ids: HashSet<String> = pending_rows.iter().map(|r| r.emp_id_number.clone()).collect();
+        let unique_emp_ids: HashSet<String> = pending_rows
+            .iter()
+            .map(|r| r.emp_id_number.clone())
+            .collect();
         let unique_emp_ids_vec: Vec<String> = unique_emp_ids.iter().cloned().collect();
 
-        match employee_repository::get_existing_employee_ids_by_numbers(&pool, job.workspace_id, &unique_emp_ids_vec).await {
+        match employee_repository::get_existing_employee_ids_by_numbers(
+            &pool,
+            job.workspace_id,
+            &unique_emp_ids_vec,
+        )
+        .await
+        {
             Ok(existing_ids) => {
                 let existing_set: HashSet<String> = existing_ids.into_iter().collect();
-                let missing_ids: Vec<String> = unique_emp_ids.difference(&existing_set).cloned().collect();
-                
+                let missing_ids: Vec<String> =
+                    unique_emp_ids.difference(&existing_set).cloned().collect();
+
                 if !missing_ids.is_empty() {
-                    let err_msg = format!("Found {} unknown employees: {}", missing_ids.len(), missing_ids.join(", "));
-                    let _ = import_job_repository::update_job_progress(&pool, job_id, 0, ImportJobStatus::Failed, Some(err_msg)).await;
+                    let err_msg = format!(
+                        "Found {} unknown employees: {}",
+                        missing_ids.len(),
+                        missing_ids.join(", ")
+                    );
+                    let _ = import_job_repository::update_job_progress(
+                        &pool,
+                        job_id,
+                        0,
+                        ImportJobStatus::Failed,
+                        Some(err_msg),
+                    )
+                    .await;
                     let _ = tokio::fs::remove_file(file_path).await;
                     return Err(());
                 }
-            },
+            }
             Err(e) => {
                 error!("VALIDATION_ERROR: {:?}", e);
-                let _ = import_job_repository::update_job_progress(&pool, job_id, 0, ImportJobStatus::Failed, Some("Database error during validation".to_string())).await;
+                let _ = import_job_repository::update_job_progress(
+                    &pool,
+                    job_id,
+                    0,
+                    ImportJobStatus::Failed,
+                    Some("Database error during validation".to_string()),
+                )
+                .await;
                 return Err(());
             }
         }
 
         // 3. PROCESSING PHASE
-        // If we are resuming, skip already processed rows? 
+        // If we are resuming, skip already processed rows?
         // With strict validation, we might just re-process everything that hasn't been saved?
-        // But if `processed_rows` > 0, it means we did some. 
+        // But if `processed_rows` > 0, it means we did some.
         // The loop below will try to process all pending_rows.
         // We should skip the first `processed_rows` if the order is deterministic.
         // Since `pending_rows` is built sequentially from file, it is deterministic.
-        
+
         let rows_to_process = pending_rows.into_iter().skip(processed_rows as usize);
 
         for row in rows_to_process {
@@ -215,22 +295,50 @@ impl AttendanceImportService {
                 Ok(c) => {
                     processed_rows += c as i32;
                     if processed_rows % 10 == 0 {
-                        let _ = import_job_repository::update_job_progress(&pool, job_id, processed_rows, ImportJobStatus::Processing, None).await;
+                        let _ = import_job_repository::update_job_progress(
+                            &pool,
+                            job_id,
+                            processed_rows,
+                            ImportJobStatus::Processing,
+                            None,
+                        )
+                        .await;
                     }
-                },
+                }
                 Err(_) => {
                     // This should be rare if validation passed, maybe DB error
-                    errors.push(format!("NV {}: Lỗi hệ thống khi lưu (Dòng {})", row.emp_id_number, row.line_number));
+                    errors.push(format!(
+                        "NV {}: Lỗi hệ thống khi lưu (Dòng {})",
+                        row.emp_id_number, row.line_number
+                    ));
                 }
             }
         }
 
-        let status = if !errors.is_empty() { ImportJobStatus::Failed } else { ImportJobStatus::Completed };
-        let error_log = if errors.is_empty() { None } else { Some(errors.join("\n")) };
-        let _ = import_job_repository::update_job_progress(&pool, job_id, processed_rows, status, error_log).await;
-        
+        let status = if !errors.is_empty() {
+            ImportJobStatus::Failed
+        } else {
+            ImportJobStatus::Completed
+        };
+        let error_log = if errors.is_empty() {
+            None
+        } else {
+            Some(errors.join("\n"))
+        };
+        let _ = import_job_repository::update_job_progress(
+            &pool,
+            job_id,
+            processed_rows,
+            status,
+            error_log,
+        )
+        .await;
+
         let _ = tokio::fs::remove_file(file_path).await;
-        info!("Import job {} ({}) finished with status {}", job_id, job.target_type, status);
+        info!(
+            "Import job {} ({}) finished with status {}",
+            job_id, job.target_type, status
+        );
         Ok(())
     }
 
@@ -257,10 +365,18 @@ impl AttendanceImportService {
 
             // Column 2 (index 2) is usually Time/Date
             let punch_time = match row.get(2) {
-                Some(Data::String(s)) => match AttendanceAdjustmentService::parse_datetime(s.trim(), timezone, preferred_date, preferred_time) {
+                Some(Data::String(s)) => match AttendanceAdjustmentService::parse_datetime(
+                    s.trim(),
+                    timezone,
+                    preferred_date,
+                    preferred_time,
+                ) {
                     Ok(dt) => Some(dt),
                     Err(e) => {
-                        errors.push(format!("Dòng {} (NV {}): {} [Dữ liệu gốc: '{}']", current_line, emp_id_number, e, s));
+                        errors.push(format!(
+                            "Dòng {} (NV {}): {} [Dữ liệu gốc: '{}']",
+                            current_line, emp_id_number, e, s
+                        ));
                         None
                     }
                 },
@@ -275,19 +391,22 @@ impl AttendanceImportService {
                         errors.push(format!("Dòng {} (NV {}): Không phải định dạng ngày giờ hợp lệ [Dữ liệu gốc: '{}']", current_line, emp_id_number, cell_data));
                         None
                     }
-                },
+                }
                 _ => {
-                    errors.push(format!("Dòng {} (NV {}): Thiếu dữ liệu thời gian", current_line, emp_id_number));
+                    errors.push(format!(
+                        "Dòng {} (NV {}): Thiếu dữ liệu thời gian",
+                        current_line, emp_id_number
+                    ));
                     None
                 }
             };
 
             if let Some(dt) = punch_time {
-                 pending_rows.push(PendingRow {
-                     emp_id_number,
-                     punch_time: dt,
-                     line_number: current_line,
-                 });
+                pending_rows.push(PendingRow {
+                    emp_id_number,
+                    punch_time: dt,
+                    line_number: current_line,
+                });
             }
         }
     }
@@ -300,11 +419,20 @@ impl AttendanceImportService {
     ) -> Result<usize, StatusCode> {
         // We still fetch the employee here to get the UUID, or we could have cached it in validation map.
         // Fetching again is safer/easier for now.
-        let employee = match employee_repository::get_employee_by_id_number(pool, emp_id_number, job.workspace_id).await {
+        let employee = match employee_repository::get_employee_by_id_number(
+            pool,
+            emp_id_number,
+            job.workspace_id,
+        )
+        .await
+        {
             Ok(Some(emp)) => emp,
             _ => {
                 // Should not happen due to validation
-                error!("EMPLOYEE_NOT_FOUND: {} in WS {}", emp_id_number, job.workspace_id);
+                error!(
+                    "EMPLOYEE_NOT_FOUND: {} in WS {}",
+                    emp_id_number, job.workspace_id
+                );
                 return Ok(0);
             }
         };
@@ -318,7 +446,7 @@ impl AttendanceImportService {
                 punch_time: punch_time_utc,
                 source: LogSource::Import,
                 device_id: None,
-                raw_data: None, 
+                raw_data: None,
                 created_at: Utc::now(),
             };
 
@@ -347,9 +475,23 @@ impl AttendanceImportService {
                 reason: Some("Import from Excel/CSV".to_string()),
             };
 
-            if let Ok(adjustment) = AttendanceAdjustmentService::submit_request(pool, job.workspace_id, job.user_id, req).await {
-                                    let _ = AttendanceAdjustmentService::approve_request(pool, job.workspace_id, job.user_id, adjustment.id, AdjustmentStatus::Approved).await;
-                
+            if let Ok(adjustment) = AttendanceAdjustmentService::submit_request(
+                pool,
+                job.workspace_id,
+                job.user_id,
+                req,
+            )
+            .await
+            {
+                let _ = AttendanceAdjustmentService::approve_request(
+                    pool,
+                    job.workspace_id,
+                    job.user_id,
+                    adjustment.id,
+                    AdjustmentStatus::Approved,
+                )
+                .await;
+
                 return Ok(1);
             }
             Ok(0)

@@ -7,7 +7,9 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::repositories::{
-    employee_repository, payroll_repository, shift_repository, time_entry_repository, roster_repository, workspace_repository::{WorkspaceRepository, SqlxWorkspaceRepository}
+    employee_repository, payroll_repository, roster_repository, shift_repository,
+    time_entry_repository,
+    workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository},
 };
 
 use crate::models::Payslip;
@@ -25,7 +27,8 @@ impl PayrollService {
     ) -> Result<Payslip, StatusCode> {
         // 0. Get workspace settings for Timezone & Rounding
         let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
-        let workspace = workspace_repo.get_workspace_by_id(workspace_id)
+        let workspace = workspace_repo
+            .get_workspace_by_id(workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
@@ -64,9 +67,10 @@ impl PayrollService {
             .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
         // Fetch dynamic salary components
-        let salary_components = payroll_repository::get_employee_salary_components(pool, employee_id, end_date)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let salary_components =
+            payroll_repository::get_employee_salary_components(pool, employee_id, end_date)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         // 2. Define period
         let start_date = NaiveDate::from_ymd_opt(year, month, 1).ok_or(StatusCode::BAD_REQUEST)?;
@@ -113,18 +117,25 @@ impl PayrollService {
                 .await
                 .unwrap_or(None);
 
-            let work_entries: Vec<_> = entries.iter().filter(|e| e.entry_type == "work" || e.entry_type.is_empty()).collect();
-            let break_entries: Vec<_> = entries.iter().filter(|e| e.entry_type == "break").collect();
+            let work_entries: Vec<_> = entries
+                .iter()
+                .filter(|e| e.entry_type == "work" || e.entry_type.is_empty())
+                .collect();
+            let break_entries: Vec<_> =
+                entries.iter().filter(|e| e.entry_type == "break").collect();
 
-            let actual_break_minutes: i32 = break_entries.iter().map(|e| {
-                e.duration_minutes.unwrap_or_else(|| {
-                    if let Some(out) = e.punch_out_time {
-                        out.signed_duration_since(e.punch_in_time).num_minutes() as i32
-                    } else {
-                        0
-                    }
+            let actual_break_minutes: i32 = break_entries
+                .iter()
+                .map(|e| {
+                    e.duration_minutes.unwrap_or_else(|| {
+                        if let Some(out) = e.punch_out_time {
+                            out.signed_duration_since(e.punch_in_time).num_minutes() as i32
+                        } else {
+                            0
+                        }
+                    })
                 })
-            }).sum();
+                .sum();
 
             let mut day_standard_units = 0;
             let mut day_overtime_units = 0;
@@ -140,49 +151,54 @@ impl PayrollService {
                             .unwrap_or(None);
 
                         if let Some(s) = shift {
-                            let start_dt = tz.from_local_datetime(&entry_date.and_time(s.start_time)).single();
-                            let end_dt = tz.from_local_datetime(&entry_date.and_time(s.end_time)).single();
-                            
+                            let start_dt = tz
+                                .from_local_datetime(&entry_date.and_time(s.start_time))
+                                .single();
+                            let end_dt = tz
+                                .from_local_datetime(&entry_date.and_time(s.end_time))
+                                .single();
+
                             if let (Some(start), Some(mut end)) = (start_dt, end_dt) {
                                 if s.end_time < s.start_time {
                                     end += chrono::Duration::days(1);
                                 }
 
-                                let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(
-                                    punch_in,
-                                    punch_out,
-                                    Some(start),
-                                    Some(end),
-                                    s.break_duration_minutes,
-                                    s.early_punch_in_grace_period_minutes,
-                                    s.is_break_auto_deduct,
-                                    entry.is_break_overtime,
-                                    actual_break_minutes,
-                                    s.allow_early_ot,
-                                    workspace.work_unit_minutes,
-                                    &workspace.rounding_policy
-                                );
+                                let (std_units, ot_units) =
+                                    AttendanceCalculator::calculate_daily_units(
+                                        punch_in,
+                                        punch_out,
+                                        Some(start),
+                                        Some(end),
+                                        s.break_duration_minutes,
+                                        s.early_punch_in_grace_period_minutes,
+                                        s.is_break_auto_deduct,
+                                        entry.is_break_overtime,
+                                        actual_break_minutes,
+                                        s.allow_early_ot,
+                                        workspace.work_unit_minutes,
+                                        &workspace.rounding_policy,
+                                    );
                                 day_standard_units += std_units;
                                 day_overtime_units += ot_units;
                             } else {
                                 day_standard_units += AttendanceCalculator::calculate_units(
                                     (punch_out - punch_in).num_minutes() as i32,
                                     workspace.work_unit_minutes,
-                                    &workspace.rounding_policy
+                                    &workspace.rounding_policy,
                                 );
                             }
                         } else {
                             day_standard_units += AttendanceCalculator::calculate_units(
                                 (punch_out - punch_in).num_minutes() as i32,
                                 workspace.work_unit_minutes,
-                                &workspace.rounding_policy
+                                &workspace.rounding_policy,
                             );
                         }
                     } else {
                         day_standard_units += AttendanceCalculator::calculate_units(
                             (punch_out - punch_in).num_minutes() as i32,
                             workspace.work_unit_minutes,
-                            &workspace.rounding_policy
+                            &workspace.rounding_policy,
                         );
                     }
                 }
@@ -196,14 +212,20 @@ impl PayrollService {
 
         // 4.1 Determine standard working days for this month
         let std_days = if payroll_settings.std_working_day_mode == "actual_month" {
-            AttendanceCalculator::count_working_days(year, month, payroll_settings.working_days_per_week)
+            AttendanceCalculator::count_working_days(
+                year,
+                month,
+                payroll_settings.working_days_per_week,
+            )
         } else {
             payroll_settings.fixed_std_days.to_f64().unwrap_or(26.0)
         };
 
         // Standard units per day (HoursPerDay / WorkUnitMinutes)
-        let units_per_day = (payroll_settings.hours_per_day * Decimal::from(60)) / Decimal::from(workspace.work_unit_minutes);
-        let std_units_per_month = Decimal::from_f64(std_days).unwrap_or(Decimal::from(26)) * units_per_day;
+        let units_per_day = (payroll_settings.hours_per_day * Decimal::from(60))
+            / Decimal::from(workspace.work_unit_minutes);
+        let std_units_per_month =
+            Decimal::from_f64(std_days).unwrap_or(Decimal::from(26)) * units_per_day;
 
         // 4.2 Calculate Base for OT and Total Base Pay
         let mut base_pay_for_ot = Decimal::ZERO;
@@ -219,19 +241,19 @@ impl PayrollService {
 
         // If no components found, fallback to old salary_history
         if total_base_pay.is_zero() && salary_components.is_empty() {
-             let old_settings = payroll_repository::get_latest_salary(pool, employee_id, end_date)
+            let old_settings = payroll_repository::get_latest_salary(pool, employee_id, end_date)
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
                 .ok_or(StatusCode::BAD_REQUEST)?;
-             
-             if old_settings.salary_type == "hourly" {
-                 is_hourly = true;
-                 total_base_pay = old_settings.base_salary * Decimal::from(total_standard_units);
-                 base_pay_for_ot = old_settings.base_salary; // This is actually unit rate if hourly
-             } else {
-                 total_base_pay = old_settings.base_salary;
-                 base_pay_for_ot = old_settings.base_salary;
-             }
+
+            if old_settings.salary_type == "hourly" {
+                is_hourly = true;
+                total_base_pay = old_settings.base_salary * Decimal::from(total_standard_units);
+                base_pay_for_ot = old_settings.base_salary; // This is actually unit rate if hourly
+            } else {
+                total_base_pay = old_settings.base_salary;
+                base_pay_for_ot = old_settings.base_salary;
+            }
         }
 
         // Calculate unit rate for Overtime

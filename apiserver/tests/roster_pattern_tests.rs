@@ -1,9 +1,9 @@
 mod common;
 
-use apiserver::repositories::{roster_repository, working_pattern_repository, shift_repository};
-use chrono::{NaiveDate, NaiveTime, Datelike};
-use common::factory::TestFactory;
+use apiserver::repositories::{roster_repository, shift_repository, working_pattern_repository};
+use chrono::{Datelike, NaiveDate, NaiveTime};
 use common::db::TestDatabase;
+use common::factory::TestFactory;
 use uuid::Uuid;
 
 async fn setup_test_db() -> (TestDatabase, TestFactory) {
@@ -49,13 +49,22 @@ async fn test_roster_pattern_resolution() {
 
     // Details: 1=Mon to 5=Fri
     for dow in 1..=5 {
-        working_pattern_repository::add_pattern_detail(&pool, pattern.id, dow, Some(shift_morning_id))
-            .await
-            .unwrap();
+        working_pattern_repository::add_pattern_detail(
+            &pool,
+            pattern.id,
+            dow,
+            Some(shift_morning_id),
+        )
+        .await
+        .unwrap();
     }
     // Sat and Sun (6 and 0) as NULL
-    working_pattern_repository::add_pattern_detail(&pool, pattern.id, 6, None).await.unwrap();
-    working_pattern_repository::add_pattern_detail(&pool, pattern.id, 0, None).await.unwrap();
+    working_pattern_repository::add_pattern_detail(&pool, pattern.id, 6, None)
+        .await
+        .unwrap();
+    working_pattern_repository::add_pattern_detail(&pool, pattern.id, 0, None)
+        .await
+        .unwrap();
 
     // 3. Assign Pattern to Employee
     working_pattern_repository::assign_pattern(
@@ -70,17 +79,25 @@ async fn test_roster_pattern_resolution() {
     .unwrap();
 
     // 4. Verify Resolution
-    
+
     // 2026-01-05 is a Monday
     let monday = NaiveDate::from_ymd_opt(2026, 1, 5).unwrap();
     assert_eq!(monday.weekday().number_from_monday(), 1); // Extra check
-    
-    let shift_mon = roster_repository::get_effective_shift(&pool, employee_id, monday).await.unwrap();
-    assert_eq!(shift_mon, Some(shift_morning_id), "Monday should be Morning shift");
+
+    let shift_mon = roster_repository::get_effective_shift(&pool, employee_id, monday)
+        .await
+        .unwrap();
+    assert_eq!(
+        shift_mon,
+        Some(shift_morning_id),
+        "Monday should be Morning shift"
+    );
 
     // 2026-01-11 is a Sunday
     let sunday = NaiveDate::from_ymd_opt(2026, 1, 11).unwrap();
-    let shift_sun = roster_repository::get_effective_shift(&pool, employee_id, sunday).await.unwrap();
+    let shift_sun = roster_repository::get_effective_shift(&pool, employee_id, sunday)
+        .await
+        .unwrap();
     assert_eq!(shift_sun, None, "Sunday should be Day Off (None)");
 
     // 5. Verify Override (Roster > Pattern)
@@ -111,8 +128,14 @@ async fn test_roster_pattern_resolution() {
     .await
     .unwrap();
 
-    let shift_overridden = roster_repository::get_effective_shift(&pool, employee_id, monday).await.unwrap();
-    assert_eq!(shift_overridden, Some(shift_special_id), "Roster should override Pattern");
+    let shift_overridden = roster_repository::get_effective_shift(&pool, employee_id, monday)
+        .await
+        .unwrap();
+    assert_eq!(
+        shift_overridden,
+        Some(shift_special_id),
+        "Roster should override Pattern"
+    );
 }
 
 #[tokio::test]
@@ -144,9 +167,13 @@ async fn test_pattern_overrides_fixed() {
     .unwrap();
 
     // 2. Assign Pattern
-    let pattern = working_pattern_repository::create_pattern(&pool, workspace_id, "Pattern", None).await.unwrap();
-    working_pattern_repository::add_pattern_detail(&pool, pattern.id, 1, Some(shift_pattern_id)).await.unwrap(); // Monday
-    
+    let pattern = working_pattern_repository::create_pattern(&pool, workspace_id, "Pattern", None)
+        .await
+        .unwrap();
+    working_pattern_repository::add_pattern_detail(&pool, pattern.id, 1, Some(shift_pattern_id))
+        .await
+        .unwrap(); // Monday
+
     working_pattern_repository::assign_pattern(
         &pool,
         workspace_id,
@@ -160,8 +187,14 @@ async fn test_pattern_overrides_fixed() {
 
     // 3. Verify Pattern wins
     let monday = NaiveDate::from_ymd_opt(2026, 1, 5).unwrap();
-    let effective = roster_repository::get_effective_shift(&pool, employee_id, monday).await.unwrap();
-    assert_eq!(effective, Some(shift_pattern_id), "Pattern should override Legacy Fixed Assignment");
+    let effective = roster_repository::get_effective_shift(&pool, employee_id, monday)
+        .await
+        .unwrap();
+    assert_eq!(
+        effective,
+        Some(shift_pattern_id),
+        "Pattern should override Legacy Fixed Assignment"
+    );
 }
 
 #[tokio::test]
@@ -171,43 +204,77 @@ async fn test_department_pattern_resolution() {
 
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
-    let employee_id = factory.employee().with_workspace(workspace_id).create().await;
-    
-    let shift_dept_id = factory.shift().with_workspace(workspace_id).with_name("Dept Shift").create().await;
-    let shift_emp_id = factory.shift().with_workspace(workspace_id).with_name("Emp Shift").create().await;
+    let employee_id = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .create()
+        .await;
+
+    let shift_dept_id = factory
+        .shift()
+        .with_workspace(workspace_id)
+        .with_name("Dept Shift")
+        .create()
+        .await;
+    let shift_emp_id = factory
+        .shift()
+        .with_workspace(workspace_id)
+        .with_name("Emp Shift")
+        .create()
+        .await;
 
     // 1. Create Department Pattern
-    let dept_pattern = working_pattern_repository::create_pattern(&pool, workspace_id, "Dept Pattern", None).await.unwrap();
-    working_pattern_repository::add_pattern_detail(&pool, dept_pattern.id, 1, Some(shift_dept_id)).await.unwrap(); // Monday
+    let dept_pattern =
+        working_pattern_repository::create_pattern(&pool, workspace_id, "Dept Pattern", None)
+            .await
+            .unwrap();
+    working_pattern_repository::add_pattern_detail(&pool, dept_pattern.id, 1, Some(shift_dept_id))
+        .await
+        .unwrap(); // Monday
 
     // 2. Create Department and assign pattern
     let dept = apiserver::repositories::department_repository::create_department(
-        &pool, 
-        workspace_id, 
-        "IT".to_string(), 
-        None, 
-        None, 
-        Some(dept_pattern.id)
-    ).await.unwrap();
+        &pool,
+        workspace_id,
+        "IT".to_string(),
+        None,
+        None,
+        Some(dept_pattern.id),
+    )
+    .await
+    .unwrap();
 
     // 3. Assign Employee to Department
     apiserver::repositories::department_repository::transfer_employee(
-        &pool, 
-        employee_id, 
-        dept.id, 
-        NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(), 
-        None
-    ).await.unwrap();
+        &pool,
+        employee_id,
+        dept.id,
+        NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+        None,
+    )
+    .await
+    .unwrap();
 
     let monday = NaiveDate::from_ymd_opt(2026, 1, 5).unwrap();
 
     // 4. Verify inheritance from Department
-    let effective = roster_repository::get_effective_shift(&pool, employee_id, monday).await.unwrap();
-    assert_eq!(effective, Some(shift_dept_id), "Employee should inherit from Department pattern");
+    let effective = roster_repository::get_effective_shift(&pool, employee_id, monday)
+        .await
+        .unwrap();
+    assert_eq!(
+        effective,
+        Some(shift_dept_id),
+        "Employee should inherit from Department pattern"
+    );
 
     // 5. Override with individual Pattern
-    let emp_pattern = working_pattern_repository::create_pattern(&pool, workspace_id, "Emp Pattern", None).await.unwrap();
-    working_pattern_repository::add_pattern_detail(&pool, emp_pattern.id, 1, Some(shift_emp_id)).await.unwrap(); // Monday
+    let emp_pattern =
+        working_pattern_repository::create_pattern(&pool, workspace_id, "Emp Pattern", None)
+            .await
+            .unwrap();
+    working_pattern_repository::add_pattern_detail(&pool, emp_pattern.id, 1, Some(shift_emp_id))
+        .await
+        .unwrap(); // Monday
 
     working_pattern_repository::assign_pattern(
         &pool,
@@ -216,9 +283,17 @@ async fn test_department_pattern_resolution() {
         emp_pattern.id,
         NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
         None,
-    ).await.unwrap();
+    )
+    .await
+    .unwrap();
 
     // 6. Verify Individual wins
-    let effective_overridden = roster_repository::get_effective_shift(&pool, employee_id, monday).await.unwrap();
-    assert_eq!(effective_overridden, Some(shift_emp_id), "Individual pattern should override Department pattern");
+    let effective_overridden = roster_repository::get_effective_shift(&pool, employee_id, monday)
+        .await
+        .unwrap();
+    assert_eq!(
+        effective_overridden,
+        Some(shift_emp_id),
+        "Individual pattern should override Department pattern"
+    );
 }

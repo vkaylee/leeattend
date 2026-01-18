@@ -42,7 +42,8 @@ impl AttendanceCalculator {
                 // If punch_in is before 'start - grace', we count full OT from punch_in.
                 let mut effective_ot_start = start.clone();
                 if grace_period_minutes > 0 {
-                    let grace_threshold = start.clone() - Duration::minutes(grace_period_minutes as i64);
+                    let grace_threshold =
+                        start.clone() - Duration::minutes(grace_period_minutes as i64);
                     if punch_in >= grace_threshold && punch_in < start {
                         effective_ot_start = start.clone(); // Within grace, no OT
                     } else if punch_in < grace_threshold {
@@ -57,8 +58,10 @@ impl AttendanceCalculator {
                 let standard_out = DateTime::min(punch_out.clone(), end.clone());
 
                 if standard_out > standard_in {
-                    let mut standard_raw = standard_out.signed_duration_since(standard_in).num_minutes() as i32;
-                    
+                    let mut standard_raw = standard_out
+                        .signed_duration_since(standard_in)
+                        .num_minutes() as i32;
+
                     // Deduct break from standard time
                     let break_to_deduct = Self::calculate_break_deduction(
                         actual_break_minutes,
@@ -74,7 +77,10 @@ impl AttendanceCalculator {
                 if allow_early_ot && punch_in < start {
                     let early_out = DateTime::min(punch_out.clone(), start.clone());
                     if early_out > effective_ot_start {
-                        buckets.early_ot_minutes = early_out.signed_duration_since(effective_ot_start).num_minutes() as i32;
+                        buckets.early_ot_minutes = early_out
+                            .signed_duration_since(effective_ot_start)
+                            .num_minutes()
+                            as i32;
                     }
                 }
 
@@ -82,7 +88,8 @@ impl AttendanceCalculator {
                 if punch_out > end {
                     let late_in = DateTime::max(punch_in.clone(), end.clone());
                     if punch_out > late_in {
-                        buckets.late_ot_minutes = punch_out.signed_duration_since(late_in).num_minutes() as i32;
+                        buckets.late_ot_minutes =
+                            punch_out.signed_duration_since(late_in).num_minutes() as i32;
                     }
                 }
             }
@@ -116,7 +123,11 @@ impl AttendanceCalculator {
     ///
     /// Converts minutes to the number of work units based on the policy.
     pub fn calculate_units(minutes: i32, unit_size: i32, policy: &str) -> i32 {
-        let size = if unit_size <= 1 { 1.0 } else { unit_size as f64 };
+        let size = if unit_size <= 1 {
+            1.0
+        } else {
+            unit_size as f64
+        };
         let mins = minutes as f64;
 
         match policy {
@@ -157,11 +168,16 @@ impl AttendanceCalculator {
         );
 
         // Apply rounding to standard time (Result in Units)
-        let standard_units = Self::calculate_units(buckets.standard_minutes, work_unit, rounding_policy);
-        
+        let standard_units =
+            Self::calculate_units(buckets.standard_minutes, work_unit, rounding_policy);
+
         // Overtime units (Summed Early + Late)
-        let total_ot_units = Self::calculate_units(buckets.early_ot_minutes + buckets.late_ot_minutes, work_unit, rounding_policy);
-        
+        let total_ot_units = Self::calculate_units(
+            buckets.early_ot_minutes + buckets.late_ot_minutes,
+            work_unit,
+            rounding_policy,
+        );
+
         (standard_units, total_ot_units)
     }
 
@@ -171,7 +187,7 @@ impl AttendanceCalculator {
             Some(d) => d,
             None => return 26.0,
         };
-        
+
         let next_month = if month == 12 {
             NaiveDate::from_ymd_opt(year + 1, 1, 1).unwrap()
         } else {
@@ -208,51 +224,99 @@ mod tests {
 
     fn dt(h: u32, m: u32) -> DateTime<Utc> {
         Utc.from_local_datetime(
-            &NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
-                .and_time(NaiveTime::from_hms_opt(h, m, 0).unwrap())
-        ).single().unwrap()
+            &NaiveDate::from_ymd_opt(2026, 1, 1)
+                .unwrap()
+                .and_time(NaiveTime::from_hms_opt(h, m, 0).unwrap()),
+        )
+        .single()
+        .unwrap()
     }
 
     #[test]
     fn test_clamping_and_buckets() {
         let start = Some(dt(7, 30));
         let end = Some(dt(17, 0));
-        
+
         // Case 1: Early In (07:25), Out (17:00), No Early OT
         let b1 = AttendanceCalculator::calculate_buckets(
-            dt(7, 25), dt(17, 0), start, end, 60, 0, 0, true, false, false
+            dt(7, 25),
+            dt(17, 0),
+            start,
+            end,
+            60,
+            0,
+            0,
+            true,
+            false,
+            false,
         );
         assert_eq!(b1.standard_minutes, 510); // (17:00 - 07:30) - 60m = 8.5h = 510m
         assert_eq!(b1.early_ot_minutes, 0);
 
         // Case 2: Early In (07:25), Allow Early OT
         let b2 = AttendanceCalculator::calculate_buckets(
-            dt(7, 25), dt(17, 0), start, end, 60, 0, 0, true, false, true
+            dt(7, 25),
+            dt(17, 0),
+            start,
+            end,
+            60,
+            0,
+            0,
+            true,
+            false,
+            true,
         );
         assert_eq!(b2.standard_minutes, 510);
         assert_eq!(b2.early_ot_minutes, 5); // 07:25 to 07:30
 
         // Case 3: Late In (07:40), Unit 30, Policy Floor
         let b3 = AttendanceCalculator::calculate_buckets(
-            dt(7, 40), dt(17, 0), start, end, 60, 0, 0, true, false, false
+            dt(7, 40),
+            dt(17, 0),
+            start,
+            end,
+            60,
+            0,
+            0,
+            true,
+            false,
+            false,
         );
-        // (17:00 - 07:40) = 9h20m = 560m. 
+        // (17:00 - 07:40) = 9h20m = 560m.
         // 560 - 60 (break) = 500m.
         assert_eq!(b3.standard_minutes, 500);
-        
+
         let rounded = AttendanceCalculator::calculate_units(b3.standard_minutes, 30, "floor");
         assert_eq!(rounded, 16); // 16 units (8 hours)
 
         // Case 4: Grace Period (30m). Start 07:30 -> Grace starts 07:00.
         // Punch in 07:15 (within grace) -> No OT
         let b4 = AttendanceCalculator::calculate_buckets(
-            dt(7, 15), dt(17, 0), start, end, 60, 30, 0, true, false, true
+            dt(7, 15),
+            dt(17, 0),
+            start,
+            end,
+            60,
+            30,
+            0,
+            true,
+            false,
+            true,
         );
         assert_eq!(b4.early_ot_minutes, 0);
 
         // Case 5: Before Grace Period. Punch in 06:45 -> OT from 06:45 (45m)
         let b5 = AttendanceCalculator::calculate_buckets(
-            dt(6, 45), dt(17, 0), start, end, 60, 30, 0, true, false, true
+            dt(6, 45),
+            dt(17, 0),
+            start,
+            end,
+            60,
+            30,
+            0,
+            true,
+            false,
+            true,
         );
         assert_eq!(b5.early_ot_minutes, 45);
     }
@@ -261,23 +325,27 @@ mod tests {
     fn test_overnight_shift_edge_case() {
         // Shift: 22:00 (Jan 1) to 06:00 (Jan 2) -> 8 hours
         let start = Some(dt(22, 0));
-        let end = Some(dt(6, 0)); // Note: dt helper uses Jan 1. End is 06:00 Jan 1 in helper. 
-                                   // The calculator logic linearizes this by adding 1 day.
+        let end = Some(dt(6, 0)); // Note: dt helper uses Jan 1. End is 06:00 Jan 1 in helper.
+                                  // The calculator logic linearizes this by adding 1 day.
 
         // Scenario: Punch In 21:50, Punch Out 06:10.
         // Standard: [22:00, 06:00] -> 8 hours (480m)
         // Early OT: 21:50 to 22:00 -> 10m
         // Late OT: 06:00 to 06:10 -> 10m
-        
+
         // We need a helper for Jan 2 to test accurately
         let punch_in = dt(21, 50);
-        let punch_out = Utc.from_local_datetime(
-            &NaiveDate::from_ymd_opt(2026, 1, 2).unwrap()
-                .and_time(NaiveTime::from_hms_opt(6, 10, 0).unwrap())
-        ).single().unwrap();
+        let punch_out = Utc
+            .from_local_datetime(
+                &NaiveDate::from_ymd_opt(2026, 1, 2)
+                    .unwrap()
+                    .and_time(NaiveTime::from_hms_opt(6, 10, 0).unwrap()),
+            )
+            .single()
+            .unwrap();
 
         let b = AttendanceCalculator::calculate_buckets(
-            punch_in, punch_out, start, end, 0, 0, 0, false, false, true
+            punch_in, punch_out, start, end, 0, 0, 0, false, false, true,
         );
 
         assert_eq!(b.standard_minutes, 480);
@@ -296,7 +364,18 @@ mod tests {
         // Net: 535 - 60 = 475m
         // Floor(475, 30) = 15 units (7.5h) -> Lost 1 unit for leaving 5 mins early.
         let (std, _) = AttendanceCalculator::calculate_daily_units(
-            dt(8, 0), dt(16, 55), start, end, 60, 0, true, false, 0, false, 30, "floor"
+            dt(8, 0),
+            dt(16, 55),
+            start,
+            end,
+            60,
+            0,
+            true,
+            false,
+            0,
+            false,
+            30,
+            "floor",
         );
         assert_eq!(std, 15);
     }
@@ -308,7 +387,16 @@ mod tests {
 
         // Case 1: Entirely before shift (06:00 to 07:00)
         let b1 = AttendanceCalculator::calculate_buckets(
-            dt(6, 0), dt(7, 0), start, end, 0, 0, 0, false, false, true
+            dt(6, 0),
+            dt(7, 0),
+            start,
+            end,
+            0,
+            0,
+            0,
+            false,
+            false,
+            true,
         );
         assert_eq!(b1.standard_minutes, 0);
         assert_eq!(b1.early_ot_minutes, 60);
@@ -316,7 +404,16 @@ mod tests {
 
         // Case 2: Entirely after shift (18:00 to 19:00)
         let b2 = AttendanceCalculator::calculate_buckets(
-            dt(18, 0), dt(19, 0), start, end, 0, 0, 0, false, false, true
+            dt(18, 0),
+            dt(19, 0),
+            start,
+            end,
+            0,
+            0,
+            0,
+            false,
+            false,
+            true,
         );
         assert_eq!(b2.standard_minutes, 0);
         assert_eq!(b2.early_ot_minutes, 0);
@@ -331,7 +428,18 @@ mod tests {
         // Break to deduct: 60m.
         // Net: max(0, 30 - 60) = 0.
         let (std, _) = AttendanceCalculator::calculate_daily_units(
-            dt(8, 0), dt(8, 30), Some(dt(8, 0)), Some(dt(17, 0)), 60, 0, true, false, 0, false, 1, "none"
+            dt(8, 0),
+            dt(8, 30),
+            Some(dt(8, 0)),
+            Some(dt(17, 0)),
+            60,
+            0,
+            true,
+            false,
+            0,
+            false,
+            1,
+            "none",
         );
         assert_eq!(std, 0);
     }
@@ -341,7 +449,7 @@ mod tests {
         // Unit 30
         assert_eq!(AttendanceCalculator::calculate_units(29, 30, "floor"), 0);
         assert_eq!(AttendanceCalculator::calculate_units(31, 30, "floor"), 1);
-        
+
         assert_eq!(AttendanceCalculator::calculate_units(1, 30, "ceil"), 1);
         assert_eq!(AttendanceCalculator::calculate_units(30, 30, "ceil"), 1);
         assert_eq!(AttendanceCalculator::calculate_units(31, 30, "ceil"), 2);
@@ -384,14 +492,32 @@ mod tests {
 
         // Punch In exactly at Shift End (No standard time)
         let b1 = AttendanceCalculator::calculate_buckets(
-            dt(17, 0), dt(18, 0), start, end, 0, 0, 0, false, false, true
+            dt(17, 0),
+            dt(18, 0),
+            start,
+            end,
+            0,
+            0,
+            0,
+            false,
+            false,
+            true,
         );
         assert_eq!(b1.standard_minutes, 0);
         assert_eq!(b1.late_ot_minutes, 60);
 
         // Punch Out exactly at Shift Start (No standard time)
         let b2 = AttendanceCalculator::calculate_buckets(
-            dt(7, 0), dt(8, 0), start, end, 0, 0, 0, false, false, true
+            dt(7, 0),
+            dt(8, 0),
+            start,
+            end,
+            0,
+            0,
+            0,
+            false,
+            false,
+            true,
         );
         assert_eq!(b2.standard_minutes, 0);
         assert_eq!(b2.early_ot_minutes, 60);
@@ -404,7 +530,16 @@ mod tests {
 
         // Punch In == Punch Out
         let b = AttendanceCalculator::calculate_buckets(
-            dt(9, 0), dt(9, 0), start, end, 0, 0, 0, false, false, true
+            dt(9, 0),
+            dt(9, 0),
+            start,
+            end,
+            0,
+            0,
+            0,
+            false,
+            false,
+            true,
         );
         assert_eq!(b.standard_minutes, 0);
         assert_eq!(b.early_ot_minutes, 0);
@@ -415,7 +550,16 @@ mod tests {
     fn test_no_shift_logic() {
         // Without shift, everything is standard duration
         let b = AttendanceCalculator::calculate_buckets(
-            dt(9, 0), dt(11, 0), None, None, 0, 0, 0, false, false, true
+            dt(9, 0),
+            dt(11, 0),
+            None,
+            None,
+            0,
+            0,
+            0,
+            false,
+            false,
+            true,
         );
         assert_eq!(b.standard_minutes, 120);
         assert_eq!(b.early_ot_minutes, 0);
@@ -429,18 +573,26 @@ mod tests {
         let end = Some(dt(6, 0));
 
         // Employee arrives late on Jan 2: 01:00 to 07:00
-        let punch_in = Utc.from_local_datetime(
-            &NaiveDate::from_ymd_opt(2026, 1, 2).unwrap()
-                .and_time(NaiveTime::from_hms_opt(1, 0, 0).unwrap())
-        ).single().unwrap();
-        
-        let punch_out = Utc.from_local_datetime(
-            &NaiveDate::from_ymd_opt(2026, 1, 2).unwrap()
-                .and_time(NaiveTime::from_hms_opt(7, 0, 0).unwrap())
-        ).single().unwrap();
+        let punch_in = Utc
+            .from_local_datetime(
+                &NaiveDate::from_ymd_opt(2026, 1, 2)
+                    .unwrap()
+                    .and_time(NaiveTime::from_hms_opt(1, 0, 0).unwrap()),
+            )
+            .single()
+            .unwrap();
+
+        let punch_out = Utc
+            .from_local_datetime(
+                &NaiveDate::from_ymd_opt(2026, 1, 2)
+                    .unwrap()
+                    .and_time(NaiveTime::from_hms_opt(7, 0, 0).unwrap()),
+            )
+            .single()
+            .unwrap();
 
         let b = AttendanceCalculator::calculate_buckets(
-            punch_in, punch_out, start, end, 0, 0, 0, false, false, true
+            punch_in, punch_out, start, end, 0, 0, 0, false, false, true,
         );
 
         // Standard: intersection of [01:00, 07:00] and [22:00 Jan 1, 06:00 Jan 2]
@@ -448,7 +600,7 @@ mod tests {
         // Standard Out = min(07:00 Jan 2, 06:00 Jan 2) = 06:00 Jan 2
         // Standard: 01:00 to 06:00 = 5 hours (300m)
         assert_eq!(b.standard_minutes, 300);
-        
+
         // Late OT: max(0, 07:00 - 06:00) = 60m
         assert_eq!(b.late_ot_minutes, 60);
         assert_eq!(b.early_ot_minutes, 0);
@@ -465,7 +617,18 @@ mod tests {
         // Net: 539 - 60 = 479m
         // Floor(479, 30) = 15 units (7.5h) -> Lost 1 unit for being 1 min late.
         let (std, _) = AttendanceCalculator::calculate_daily_units(
-            dt(8, 1), dt(17, 0), start, end, 60, 0, true, false, 0, false, 30, "floor"
+            dt(8, 1),
+            dt(17, 0),
+            start,
+            end,
+            60,
+            0,
+            true,
+            false,
+            0,
+            false,
+            30,
+            "floor",
         );
         assert_eq!(std, 15);
     }

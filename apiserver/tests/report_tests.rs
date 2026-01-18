@@ -5,8 +5,8 @@ use apiserver::create_app;
 use apiserver::models::{DailyAttendanceReport, LeaveStatus};
 use apiserver::AppState;
 use chrono::{Duration, NaiveTime, Utc};
-use common::factory::TestFactory;
 use common::db::TestDatabase;
+use common::factory::TestFactory;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -44,7 +44,6 @@ async fn spawn_app() -> (String, TestDatabase) {
 
     (format!("http://127.0.0.1:{}", port), test_db)
 }
-
 
 #[tokio::test]
 async fn test_get_daily_attendance_report_with_break_times() {
@@ -119,7 +118,7 @@ async fn test_get_daily_attendance_report_with_break_times() {
 
     // Act
     let res = client
-        .get(&format!(
+        .get(format!(
             "{}/api/workspaces/{}/reports/attendance?start_date={}&end_date={}&type=daily",
             address, ws_id, test_date, test_date
         ))
@@ -216,7 +215,7 @@ async fn test_get_daily_attendance_report_no_break_auto_deduct() {
 
     // Act
     let res = client
-        .get(&format!(
+        .get(format!(
             "{}/api/workspaces/{}/reports/attendance?start_date={}&end_date={}&type=daily",
             address, ws_id, test_date, test_date
         ))
@@ -260,7 +259,8 @@ async fn test_get_workspace_attendance_summary() {
         .await;
 
     // Create a time entry
-    factory.time_entry()
+    factory
+        .time_entry()
         .with_employee(employee_id)
         .with_punch_in(Utc::now() - Duration::hours(8))
         .with_punch_out(Utc::now())
@@ -288,7 +288,7 @@ async fn test_get_workspace_attendance_summary() {
 
     // Act
     let res = client
-        .get(&format!(
+        .get(format!(
             "{}/api/workspaces/{}/reports/attendance?start_date={}&end_date={}&type=summary",
             address, ws_id, start_date_str, end_date_str
         ))
@@ -298,18 +298,15 @@ async fn test_get_workspace_attendance_summary() {
         .await
         .unwrap();
 
-        // Assert
+    // Assert
 
-        assert_eq!(res.status(), 200);
+    assert_eq!(res.status(), 200);
 
-        let summary: Vec<apiserver::models::AttendanceSummary> = res.json().await.unwrap();
+    let summary: Vec<apiserver::models::AttendanceSummary> = res.json().await.unwrap();
 
-        assert_eq!(summary.len(), 1);
+    assert_eq!(summary.len(), 1);
 
-        assert!(summary[0].total_work_units >= 480);
+    assert!(summary[0].total_work_units >= 480);
 
-        assert_eq!(summary[0].total_leave_days, 1);
-
-    }
-
-    
+    assert_eq!(summary[0].total_leave_days, 1);
+}

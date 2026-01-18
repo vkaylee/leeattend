@@ -1,3 +1,5 @@
+use crate::models::{GenericResponse, MemberRole};
+use crate::{AppState, UserId};
 use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts},
@@ -8,8 +10,6 @@ use axum::{
 use sqlx;
 use std::sync::Arc;
 use uuid::Uuid;
-use crate::{AppState, UserId};
-use crate::models::{GenericResponse, MemberRole};
 
 // --- Extractors ---
 
@@ -25,11 +25,10 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         // 1. Try to extract from Path parameters first (e.g., /workspaces/:ws_id/...)
         // We look specifically for 'ws_id' to avoid conflicts with other ':id' parameters.
-        if let Ok(axum::extract::Path(params)) =
-            axum::extract::Path::<std::collections::HashMap<String, String>>::from_request_parts(
-                parts, state,
-            )
-            .await
+        if let Ok(axum::extract::Path(params)) = axum::extract::Path::<
+            std::collections::HashMap<String, String>,
+        >::from_request_parts(parts, state)
+        .await
         {
             if let Some(ws_id_str) = params.get("ws_id") {
                 if let Ok(ws_id) = Uuid::parse_str(ws_id_str) {

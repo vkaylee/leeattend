@@ -1,21 +1,21 @@
 use axum::{
-    extract::{State, Path, Query},
-    response::{IntoResponse, Json},
+    extract::{Path, Query, State},
     http::StatusCode,
+    response::{IntoResponse, Json},
 };
-use std::sync::Arc;
-use uuid::Uuid;
 use chrono::Utc;
 use serde::Deserialize;
+use std::sync::Arc;
+use uuid::Uuid;
 
-use crate::{AppState, UserId};
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    Workspace, CreateWorkspaceRequest, UpdateWorkspaceRequest, WorkspaceStats,
-    AddMemberRequest, AssignRoleRequest, MemberExtraRole,
-    CreateDepartmentRequest, UpdateDepartmentRequest, MemberRole
+    AddMemberRequest, AssignRoleRequest, CreateDepartmentRequest, CreateWorkspaceRequest,
+    MemberExtraRole, MemberRole, UpdateDepartmentRequest, UpdateWorkspaceRequest, Workspace,
+    WorkspaceStats,
 };
 use crate::services::WorkspaceService;
+use crate::{AppState, UserId};
 
 // --- Local DTOs ---
 
@@ -36,20 +36,28 @@ pub async fn get_workspace_stats(
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> impl IntoResponse {
     // 1. Total Employees
-    let total_employees: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM employees WHERE workspace_id = $1 AND is_active = TRUE")
-        .bind(workspace_id)
-        .fetch_one(&state.db)
-        .await
-        .unwrap_or(0);
+    let total_employees: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM employees WHERE workspace_id = $1 AND is_active = TRUE",
+    )
+    .bind(workspace_id)
+    .fetch_one(&state.db)
+    .await
+    .unwrap_or(0);
 
     // 2. Present Today (Employees with at least one punch-in today)
     let today = Utc::now().date_naive();
     let present_today: i64 = sqlx::query_scalar(
         "SELECT COUNT(DISTINCT employee_id) FROM time_entries 
          WHERE punch_in_time >= $1 
-         AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $2)"
+         AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $2)",
     )
-    .bind(today.and_hms_opt(0, 0, 0).unwrap().and_local_timezone(Utc).unwrap())
+    .bind(
+        today
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_local_timezone(Utc)
+            .unwrap(),
+    )
     .bind(workspace_id)
     .fetch_one(&state.db)
     .await
@@ -59,7 +67,7 @@ pub async fn get_workspace_stats(
     let pending_leave: i64 = sqlx::query_scalar(
         "SELECT COUNT(*) FROM leave_requests 
          WHERE status = 'pending' 
-         AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)"
+         AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)",
     )
     .bind(workspace_id)
     .fetch_one(&state.db)
@@ -353,21 +361,37 @@ pub async fn clear_workspace_data(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ClearWorkspaceDataQuery>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-    let mut tx = state.db.begin().await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let mut tx = state
+        .db
+        .begin()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     match query.group.as_str() {
         "attendance" => {
             sqlx::query("DELETE FROM time_entries WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-            sqlx::query("DELETE FROM raw_attendance_logs WHERE workspace_id = $1").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            sqlx::query("DELETE FROM raw_attendance_logs WHERE workspace_id = $1")
+                .bind(ws_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
             sqlx::query("DELETE FROM attendance_adjustment_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-            sqlx::query("DELETE FROM attendance_import_jobs WHERE workspace_id = $1").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            sqlx::query("DELETE FROM attendance_import_jobs WHERE workspace_id = $1")
+                .bind(ws_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
         }
         "schedules" => {
             sqlx::query("DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
             sqlx::query("DELETE FROM employee_shifts WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
         }
         "leave" => {
-            sqlx::query("DELETE FROM leave_accrual_logs WHERE workspace_id = $1").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            sqlx::query("DELETE FROM leave_accrual_logs WHERE workspace_id = $1")
+                .bind(ws_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
             sqlx::query("DELETE FROM leave_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
             sqlx::query("DELETE FROM leave_balances WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
         }
@@ -377,27 +401,61 @@ pub async fn clear_workspace_data(
         }
         "full_reset" => {
             sqlx::query("DELETE FROM time_entries WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-            sqlx::query("DELETE FROM raw_attendance_logs WHERE workspace_id = $1").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            sqlx::query("DELETE FROM raw_attendance_logs WHERE workspace_id = $1")
+                .bind(ws_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
             sqlx::query("DELETE FROM attendance_adjustment_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-            sqlx::query("DELETE FROM attendance_import_jobs WHERE workspace_id = $1").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            sqlx::query("DELETE FROM attendance_import_jobs WHERE workspace_id = $1")
+                .bind(ws_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
             sqlx::query("DELETE FROM shift_rosters WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
             sqlx::query("DELETE FROM employee_shifts WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-            sqlx::query("DELETE FROM leave_accrual_logs WHERE workspace_id = $1").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            sqlx::query("DELETE FROM leave_accrual_logs WHERE workspace_id = $1")
+                .bind(ws_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
             sqlx::query("DELETE FROM leave_requests WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
             sqlx::query("DELETE FROM leave_balances WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
             sqlx::query("DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
             sqlx::query("DELETE FROM salary_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
             sqlx::query("DELETE FROM employee_department_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-            sqlx::query("DELETE FROM leave_policy_assignments WHERE workspace_id = $1").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-            sqlx::query("DELETE FROM leave_policy_definitions WHERE workspace_id = $1").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-            sqlx::query("DELETE FROM employees WHERE workspace_id = $1").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-            sqlx::query("DELETE FROM shifts WHERE workspace_id = $1").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-            sqlx::query("DELETE FROM departments WHERE workspace_id = $1").bind(ws_id).execute(&mut *tx).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            sqlx::query("DELETE FROM leave_policy_assignments WHERE workspace_id = $1")
+                .bind(ws_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            sqlx::query("DELETE FROM leave_policy_definitions WHERE workspace_id = $1")
+                .bind(ws_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            sqlx::query("DELETE FROM employees WHERE workspace_id = $1")
+                .bind(ws_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            sqlx::query("DELETE FROM shifts WHERE workspace_id = $1")
+                .bind(ws_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            sqlx::query("DELETE FROM departments WHERE workspace_id = $1")
+                .bind(ws_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
         }
         _ => return Err((StatusCode::BAD_REQUEST, "Invalid group".to_string())),
     };
 
-    tx.commit().await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    tx.commit()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     Ok(StatusCode::OK)
 }
 
@@ -473,7 +531,13 @@ pub async fn delete_department(
     if !ctx.is_admin_or_owner() {
         return (StatusCode::FORBIDDEN, "Only admins can manage departments").into_response();
     }
-    match crate::repositories::department_repository::delete_department(&state.db, ctx.workspace_id, id).await {
+    match crate::repositories::department_repository::delete_department(
+        &state.db,
+        ctx.workspace_id,
+        id,
+    )
+    .await
+    {
         Ok(_) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }

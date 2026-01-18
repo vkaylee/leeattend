@@ -1,22 +1,22 @@
 use axum::{
-    extract::{State, Path, Query, Multipart},
-    response::{IntoResponse, Json},
+    extract::{Multipart, Path, Query, State},
     http::StatusCode,
+    response::{IntoResponse, Json},
 };
-use std::sync::Arc;
-use uuid::Uuid;
-use chrono::{Utc, DateTime, NaiveDate};
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::sync::Arc;
 use tracing::error;
+use uuid::Uuid;
 
-use crate::{AppState, UserId};
 use crate::handlers::common::MemberContext;
-use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::models::{
-    PunchInRequest, PunchOutRequest, UpdateTimeEntryRequest, CreateAttendanceAdjustmentRequest,
-    ApproveAttendanceAdjustmentRequest, MemberRole, AdjustmentStatus
+    AdjustmentStatus, ApproveAttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest,
+    MemberRole, PunchInRequest, PunchOutRequest, UpdateTimeEntryRequest,
 };
+use crate::repositories::workspace_repository::WorkspaceRepository;
+use crate::{AppState, UserId};
 
 // --- Time Tracking Handlers ---
 
@@ -128,27 +128,37 @@ pub async fn upload_attendance_excel(
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, StatusCode> {
     // RBAC: Only Admin/Owner
-    let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository { pool: state.db.clone() }
-        .find_primary_role(ws_id, user_id)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .ok_or(StatusCode::FORBIDDEN)?;
+    let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
+        pool: state.db.clone(),
+    }
+    .find_primary_role(ws_id, user_id)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    .ok_or(StatusCode::FORBIDDEN)?;
 
     if role != MemberRole::Admin && role != MemberRole::Owner {
         return Err(StatusCode::FORBIDDEN);
     }
 
     let mut file_path = None;
-    while let Some(field) = multipart.next_field().await.map_err(|_| StatusCode::BAD_REQUEST)? {
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|_| StatusCode::BAD_REQUEST)?
+    {
         let name = field.name().unwrap_or("").to_string();
         if name == "file" {
             let file_name = field.file_name().unwrap_or("upload.xlsx").to_string();
             let data = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
-            
+
             let dir = "storage/imports";
-            tokio::fs::create_dir_all(dir).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            tokio::fs::create_dir_all(dir)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
             let path = format!("{}/{}_{}", dir, Uuid::new_v4(), file_name);
-            tokio::fs::write(&path, data).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            tokio::fs::write(&path, data)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
             file_path = Some(path);
         }
     }
@@ -173,27 +183,37 @@ pub async fn upload_attendance_logs(
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, StatusCode> {
     // RBAC: Only Admin/Owner
-    let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository { pool: state.db.clone() }
-        .find_primary_role(ws_id, user_id)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .ok_or(StatusCode::FORBIDDEN)?;
+    let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
+        pool: state.db.clone(),
+    }
+    .find_primary_role(ws_id, user_id)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    .ok_or(StatusCode::FORBIDDEN)?;
 
     if role != MemberRole::Admin && role != MemberRole::Owner {
         return Err(StatusCode::FORBIDDEN);
     }
 
     let mut file_path = None;
-    while let Some(field) = multipart.next_field().await.map_err(|_| StatusCode::BAD_REQUEST)? {
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|_| StatusCode::BAD_REQUEST)?
+    {
         let name = field.name().unwrap_or("").to_string();
         if name == "file" {
             let file_name = field.file_name().unwrap_or("upload.xlsx").to_string();
             let data = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
-            
+
             let dir = "storage/imports";
-            tokio::fs::create_dir_all(dir).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            tokio::fs::create_dir_all(dir)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
             let path = format!("{}/{}_{}", dir, Uuid::new_v4(), file_name);
-            tokio::fs::write(&path, data).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            tokio::fs::write(&path, data)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
             file_path = Some(path);
         }
     }
@@ -222,7 +242,13 @@ pub async fn get_latest_import_job(
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<ImportJobQuery>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    match crate::repositories::import_job_repository::get_latest_job(&state.db, workspace_id, query.target_type).await {
+    match crate::repositories::import_job_repository::get_latest_job(
+        &state.db,
+        workspace_id,
+        query.target_type,
+    )
+    .await
+    {
         Ok(job) => Ok(Json(job)),
         Err(e) => {
             error!("GET_LATEST_JOB_ERROR: {:?}", e);
@@ -246,7 +272,6 @@ pub async fn get_attendance_logs(
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<AttendanceLogQuery>,
 ) -> Result<impl IntoResponse, StatusCode> {
-
     let limit = query.limit.unwrap_or(20);
     let page = query.page.unwrap_or(1);
     let offset = (page - 1) * limit;
@@ -353,7 +378,10 @@ pub async fn submit_attendance_adjustment(
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<CreateAttendanceAdjustmentRequest>,
 ) -> impl IntoResponse {
-    println!("SUBMIT_ADJUSTMENT_HANDLER_REACHED: ws_id={}, user_id={}", workspace_id, user_id);
+    println!(
+        "SUBMIT_ADJUSTMENT_HANDLER_REACHED: ws_id={}, user_id={}",
+        workspace_id, user_id
+    );
     match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::submit_request(
         &state.db,
         workspace_id,
@@ -433,8 +461,10 @@ pub async fn get_attendance_report(
     let end_date_str = params.get("end_date").ok_or(StatusCode::BAD_REQUEST)?;
     let report_type = params.get("type").map(|s| s.as_str()).unwrap_or("summary");
 
-    let start_date = NaiveDate::parse_from_str(start_date_str, "%Y-%m-%d").map_err(|_| StatusCode::BAD_REQUEST)?;
-    let end_date = NaiveDate::parse_from_str(end_date_str, "%Y-%m-%d").map_err(|_| StatusCode::BAD_REQUEST)?;
+    let start_date = NaiveDate::parse_from_str(start_date_str, "%Y-%m-%d")
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    let end_date =
+        NaiveDate::parse_from_str(end_date_str, "%Y-%m-%d").map_err(|_| StatusCode::BAD_REQUEST)?;
 
     if report_type == "daily" {
         match crate::services::ReportService::get_daily_attendance_report(

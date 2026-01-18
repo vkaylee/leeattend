@@ -1,4 +1,4 @@
-use crate::models::{MemberExtraRole, Workspace, MemberRole};
+use crate::models::{MemberExtraRole, MemberRole, Workspace};
 use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -7,8 +7,12 @@ use uuid::Uuid;
 pub trait WorkspaceRepository: Send + Sync {
     async fn create_workspace(&self, name: &str) -> Result<Workspace, String>;
     async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, String>;
-    async fn add_member(&self, workspace_id: Uuid, user_id: Uuid, role: MemberRole)
-        -> Result<(), String>;
+    async fn add_member(
+        &self,
+        workspace_id: Uuid,
+        user_id: Uuid,
+        role: MemberRole,
+    ) -> Result<(), String>;
     async fn update_member_role(
         &self,
         workspace_id: Uuid,
@@ -50,13 +54,11 @@ impl WorkspaceRepository for SqlxWorkspaceRepository {
     }
 
     async fn get_workspace_by_id(&self, id: Uuid) -> Result<Option<Workspace>, String> {
-        let ws = sqlx::query_as::<_, Workspace>(
-            "SELECT * FROM workspaces WHERE id = $1",
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| e.to_string())?;
+        let ws = sqlx::query_as::<_, Workspace>("SELECT * FROM workspaces WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| e.to_string())?;
 
         Ok(ws)
     }

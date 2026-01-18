@@ -1,4 +1,7 @@
-use crate::models::{WorkingPattern, WorkingPatternDetail, EmployeeWorkingPattern, CreateWorkingPatternRequest, AssignPatternRequest, BulkAssignPatternRequest, BulkAssignResponse};
+use crate::models::{
+    AssignPatternRequest, BulkAssignPatternRequest, BulkAssignResponse,
+    CreateWorkingPatternRequest, EmployeeWorkingPattern, WorkingPattern, WorkingPatternDetail,
+};
 use crate::repositories::working_pattern_repository as repo;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -11,7 +14,13 @@ pub async fn create_working_pattern(
     let mut tx = pool.begin().await?;
 
     // 1. Create Pattern Header
-    let pattern = repo::create_pattern(&mut *tx, workspace_id, &req.name, req.description.as_deref()).await?;
+    let pattern = repo::create_pattern(
+        &mut *tx,
+        workspace_id,
+        &req.name,
+        req.description.as_deref(),
+    )
+    .await?;
 
     // 2. Add Details
     for detail in req.details {
@@ -22,11 +31,17 @@ pub async fn create_working_pattern(
     Ok(pattern)
 }
 
-pub async fn list_patterns(pool: &PgPool, workspace_id: Uuid) -> Result<Vec<WorkingPattern>, sqlx::Error> {
+pub async fn list_patterns(
+    pool: &PgPool,
+    workspace_id: Uuid,
+) -> Result<Vec<WorkingPattern>, sqlx::Error> {
     repo::get_patterns(pool, workspace_id).await
 }
 
-pub async fn get_pattern_details(pool: &PgPool, pattern_id: Uuid) -> Result<Vec<WorkingPatternDetail>, sqlx::Error> {
+pub async fn get_pattern_details(
+    pool: &PgPool,
+    pattern_id: Uuid,
+) -> Result<Vec<WorkingPatternDetail>, sqlx::Error> {
     repo::get_pattern_details(pool, pattern_id).await
 }
 
@@ -43,7 +58,8 @@ pub async fn assign_pattern(
         req.pattern_id,
         req.start_date,
         req.end_date,
-    ).await
+    )
+    .await
 }
 
 pub async fn bulk_assign_pattern(
@@ -58,7 +74,8 @@ pub async fn bulk_assign_pattern(
         req.pattern_id,
         req.start_date,
         req.end_date,
-    ).await
+    )
+    .await
 }
 
 pub async fn get_employee_pattern_history(

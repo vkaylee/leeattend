@@ -19,9 +19,8 @@ use uuid::Uuid;
 
 use crate::handlers::EmployeeContext;
 use crate::models::{
-    CreateEmergencyContactRequest, Employee,
-    EmployeeDocument, EmployeeEmergencyContact, EmployeeProfile,
-    MyProfileResponse, TimeEntry, UpdateEmployeeProfileRequest,
+    CreateEmergencyContactRequest, Employee, EmployeeDocument, EmployeeEmergencyContact,
+    EmployeeProfile, MyProfileResponse, TimeEntry, UpdateEmployeeProfileRequest,
 };
 use crate::AppState;
 
@@ -148,11 +147,13 @@ pub async fn add_emergency_contact(
 
     // If setting as primary, unset other primary contacts first
     if is_primary {
-        sqlx::query("UPDATE employee_emergency_contacts SET is_primary = false WHERE employee_id = $1")
-            .bind(employee.employee_id)
-            .execute(&state.db)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        sqlx::query(
+            "UPDATE employee_emergency_contacts SET is_primary = false WHERE employee_id = $1",
+        )
+        .bind(employee.employee_id)
+        .execute(&state.db)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     }
 
     let contact = sqlx::query_as::<_, EmployeeEmergencyContact>(
@@ -181,14 +182,13 @@ pub async fn delete_emergency_contact(
     Path(contact_id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     // Verify ownership and delete
-    let result = sqlx::query(
-        "DELETE FROM employee_emergency_contacts WHERE id = $1 AND employee_id = $2",
-    )
-    .bind(contact_id)
-    .bind(employee.employee_id)
-    .execute(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let result =
+        sqlx::query("DELETE FROM employee_emergency_contacts WHERE id = $1 AND employee_id = $2")
+            .bind(contact_id)
+            .bind(employee.employee_id)
+            .execute(&state.db)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     if result.rows_affected() == 0 {
         return Err((StatusCode::NOT_FOUND, "Contact not found".to_string()));
@@ -250,10 +250,12 @@ pub async fn get_my_attendance(
     employee: EmployeeContext,
     axum::extract::Query(query): axum::extract::Query<AttendanceQuery>,
 ) -> ApiResult<Vec<TimeEntry>> {
-    let start = query.start_date.unwrap_or_else(|| {
-        chrono::Utc::now().date_naive() - chrono::Duration::days(30)
-    });
-    let end = query.end_date.unwrap_or_else(|| chrono::Utc::now().date_naive());
+    let start = query
+        .start_date
+        .unwrap_or_else(|| chrono::Utc::now().date_naive() - chrono::Duration::days(30));
+    let end = query
+        .end_date
+        .unwrap_or_else(|| chrono::Utc::now().date_naive());
 
     let entries = sqlx::query_as::<_, TimeEntry>(
         r#"

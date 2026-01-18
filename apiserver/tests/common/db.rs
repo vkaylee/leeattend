@@ -1,12 +1,14 @@
 use sqlx::{Connection, Executor, PgConnection, PgPool};
-use uuid::Uuid;
-use std::sync::{Arc, Mutex, OnceLock};
 use std::collections::HashSet;
+use std::sync::{Arc, Mutex, OnceLock};
+use uuid::Uuid;
 
-static ACTIVE_DBS: OnceLock<Arc<Mutex<HashSet<(String, String)>>>> = OnceLock::new();
+type ActiveDbSet = Arc<Mutex<HashSet<(String, String)>>>;
+
+static ACTIVE_DBS: OnceLock<ActiveDbSet> = OnceLock::new();
 static SIGNAL_HANDLER_INITIALIZED: OnceLock<()> = OnceLock::new();
 
-fn get_active_dbs() -> &'static Arc<Mutex<HashSet<(String, String)>>> {
+fn get_active_dbs() -> &'static ActiveDbSet {
     ACTIVE_DBS.get_or_init(|| Arc::new(Mutex::new(HashSet::new())))
 }
 
@@ -24,15 +26,15 @@ impl TestDatabase {
         let base_url = std::env::var("DATABASE_URL_FOR_TEST_GENERATION")
             .or_else(|_| std::env::var("DATABASE_URL"))
             .expect("DATABASE_URL_FOR_TEST_GENERATION or DATABASE_URL must be set");
-        
+
         if base_url.contains("leeattzkt") {
             panic!("SAFETY TRIGGERED: Tests are attempting to run against the production database (leeattzkt)! Check your .env vs .env.test configuration.");
         }
-        
+
         let mut url_parts: Vec<&str> = base_url.split('/').collect();
         let _database_name = url_parts.pop().unwrap_or("postgres");
         let base_connection_string = url_parts.join("/");
-        
+
         let db_name = format!("test_db_{}", Uuid::new_v4().simple());
 
         Self::init_trap();
@@ -40,20 +42,31 @@ impl TestDatabase {
         let mut connection = PgConnection::connect(&base_url)
             .await
             .expect("Failed to connect to Postgres admin");
-        
+
         // Tối ưu hóa: Dùng template database đã được migrate sẵn để tránh chạy lại migrations
-        let sql = format!("CREATE DATABASE \"{}\" TEMPLATE leeattend_test_template", db_name);
+        let sql = format!(
+            "CREATE DATABASE \"{}\" TEMPLATE leeattend_test_template",
+            db_name
+        );
         let create_result = connection.execute(sql.as_str()).await;
-        
+
         if let Err(e) = create_result {
             eprintln!("Warning: Failed to create database from template: {}. Falling back to manual migration.", e);
             let sql_fallback = format!("CREATE DATABASE \"{}\"", db_name);
-            connection.execute(sql_fallback.as_str()).await.expect("Failed to create test database even with fallback");
-            
+            connection
+                .execute(sql_fallback.as_str())
+                .await
+                .expect("Failed to create test database even with fallback");
+
             let db_url = format!("{}/{}", base_connection_string, db_name);
-            let pool = PgPool::connect(&db_url).await.expect("Failed to connect to the new test database");
-            sqlx::migrate!("./migrations").run(&pool).await.expect("Failed to run migrations");
-            
+            let pool = PgPool::connect(&db_url)
+                .await
+                .expect("Failed to connect to the new test database");
+            sqlx::migrate!("./migrations")
+                .run(&pool)
+                .await
+                .expect("Failed to run migrations");
+
             {
                 let mut dbs = get_active_dbs().lock().unwrap();
                 dbs.insert((db_name.clone(), base_url.clone()));
@@ -117,7 +130,7 @@ impl TestDatabase {
 
         let kill_sql = format!("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{}' AND pid <> pg_backend_pid();", db_name);
         let drop_sql = format!("DROP DATABASE \"{}\";", db_name);
-        
+
         // Dùng psql trực tiếp, gộp lệnh và đảm bảo thoát các kết nối khác
         let full_cmd = format!(
             "psql -X \"{}\" -c \"{}\" > /tmp/db_cleanup_{}.log 2>&1 && psql -X \"{}\" -c \"{}\" >> /tmp/db_cleanup_{}.log 2>&1",
@@ -130,8 +143,12 @@ impl TestDatabase {
             .spawn();
     }
 
-    pub fn pool(&self) -> PgPool { self.pool.clone() }
-    pub fn db_name(&self) -> &str { &self.db_name }
+    pub fn pool(&self) -> PgPool {
+        self.pool.clone()
+    }
+    pub fn db_name(&self) -> &str {
+        &self.db_name
+    }
 }
 
 impl Drop for TestDatabase {

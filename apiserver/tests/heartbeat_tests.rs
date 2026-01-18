@@ -26,12 +26,9 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory, common::db::TestDataba
         .await;
 
     let agent_manager = AgentManager::new();
-    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository {
-        pool: pool.clone(),
-    });
-    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository {
-        pool: pool.clone(),
-    });
+    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: pool.clone() });
+    let workspace_repo =
+        Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
     let agent_service = Arc::new(apiserver::services::AgentService::new(
         agent_repo.clone(),
         agent_manager.clone(),

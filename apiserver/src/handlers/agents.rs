@@ -1,26 +1,25 @@
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
-        State, Path, Query
+        Path, Query, State,
     },
-    response::{IntoResponse, Json},
     http::StatusCode,
+    response::{IntoResponse, Json},
 };
-use futures_util::{sink::SinkExt, stream::StreamExt};
-use tokio::sync::mpsc;
-use std::sync::Arc;
-use uuid::Uuid;
-use serde::Deserialize;
 use chrono;
+use futures_util::{sink::SinkExt, stream::StreamExt};
+use serde::Deserialize;
+use std::sync::Arc;
+use tokio::sync::mpsc;
+use uuid::Uuid;
 
-use crate::{AppState};
 use crate::agent_manager::AgentCommand;
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    Device, CreateDeviceRequest, UpdateDeviceRequest,
-    AuthorizedAgent, CreateAuthorizedAgentRequest, UpdateAuthorizedAgentRequest,
-    TrustAgentRequest
+    AuthorizedAgent, CreateAuthorizedAgentRequest, CreateDeviceRequest, Device, TrustAgentRequest,
+    UpdateAuthorizedAgentRequest, UpdateDeviceRequest,
 };
+use crate::AppState;
 
 // --- WebSocket Handlers ---
 
@@ -82,61 +81,62 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                     let _ = state_clone.agent_service.update_last_seen(id).await;
                                 }
                             }
-                        } else if (v["type"] == "handshake" || !agent_id.is_empty()) && agent_id.is_empty() {
+                        } else if (v["type"] == "handshake" || !agent_id.is_empty())
+                            && agent_id.is_empty()
+                        {
                             if let (Some(id), Some(token)) =
                                 (v["agent_id"].as_str(), v["token"].as_str())
                             {
-                                    match state_clone.agent_service.authorize_agent(id, token).await
-                                    {
-                                        Ok(Some(_agent)) => {
-                                            agent_id = id.to_string();
-                                            state_clone
-                                                .agent_manager
-                                                .add_agent(agent_id.clone(), tx.clone())
-                                                .await;
+                                match state_clone.agent_service.authorize_agent(id, token).await {
+                                    Ok(Some(_agent)) => {
+                                        agent_id = id.to_string();
+                                        state_clone
+                                            .agent_manager
+                                            .add_agent(agent_id.clone(), tx.clone())
+                                            .await;
 
-                                            let _ = state_clone
-                                                .agent_service
-                                                .update_last_ip(&agent_id, "websocket_conn")
-                                                .await;
+                                        let _ = state_clone
+                                            .agent_service
+                                            .update_last_ip(&agent_id, "websocket_conn")
+                                            .await;
 
-                                            let _ = state_clone
-                                                .agent_service
-                                                .notify_config_update(&agent_id)
-                                                .await;
-                                        }
-                                        Ok(None) => {
-                                            let _ = tx.send(Message::Text(
-                                                serde_json::json!({
-                                                    "type": "error",
-                                                    "code": "UNAUTHORIZED_AGENT",
-                                                    "message": "Agent ID không hợp lệ."
-                                                })
-                                                .to_string(),
-                                            ));
-                                            break;
-                                        }
-                                        Err(code) => {
-                                            let message = match code.as_str() {
-                                                "INVALID_TOKEN" => "Token không chính xác.",
-                                                "AGENT_NOT_TRUSTED" => "Agent chưa được phê duyệt.",
-                                                _ => "Lỗi xác thực.",
-                                            };
-                                            let _ = tx.send(Message::Text(
-                                                serde_json::json!({
-                                                    "type": "error",
-                                                    "code": code,
-                                                    "message": message
-                                                })
-                                                .to_string(),
-                                            ));
-                                            break;
-                                        }
+                                        let _ = state_clone
+                                            .agent_service
+                                            .notify_config_update(&agent_id)
+                                            .await;
+                                    }
+                                    Ok(None) => {
+                                        let _ = tx.send(Message::Text(
+                                            serde_json::json!({
+                                                "type": "error",
+                                                "code": "UNAUTHORIZED_AGENT",
+                                                "message": "Agent ID không hợp lệ."
+                                            })
+                                            .to_string(),
+                                        ));
+                                        break;
+                                    }
+                                    Err(code) => {
+                                        let message = match code.as_str() {
+                                            "INVALID_TOKEN" => "Token không chính xác.",
+                                            "AGENT_NOT_TRUSTED" => "Agent chưa được phê duyệt.",
+                                            _ => "Lỗi xác thực.",
+                                        };
+                                        let _ = tx.send(Message::Text(
+                                            serde_json::json!({
+                                                "type": "error",
+                                                "code": code,
+                                                "message": message
+                                            })
+                                            .to_string(),
+                                        ));
+                                        break;
                                     }
                                 }
                             }
                         }
                     }
+                }
                 Message::Close(_) => break,
                 _ => (),
             }

@@ -1,14 +1,14 @@
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
+use apiserver::{agent_manager::AgentManager, create_app, AppState};
 use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use tower::ServiceExt;
 use serde_json::json;
-use std::sync::Arc;
-use apiserver::{create_app, AppState, agent_manager::AgentManager};
 use sqlx::PgPool;
-use crate::common::factory::TestFactory;
-use crate::common::db::TestDatabase;
+use std::sync::Arc;
+use tower::ServiceExt;
 
 mod common;
 
@@ -63,7 +63,8 @@ async fn test_create_shift_with_fixed_break() {
         "early_punch_in_grace_period_minutes": 15
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             Request::builder()
                 .method("POST")
@@ -80,7 +81,9 @@ async fn test_create_shift_with_fixed_break() {
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // 3. Assert: Verify response
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let created_shift: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
     assert_eq!(created_shift["name"], "Fixed Break Shift");
@@ -111,7 +114,8 @@ async fn test_create_shift_with_flexible_break() {
         // is_break_auto_deduct omitted -> should default to true (as per serde default)
     });
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             Request::builder()
                 .method("POST")
@@ -128,7 +132,9 @@ async fn test_create_shift_with_flexible_break() {
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // 3. Assert: Verify response
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let created_shift: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
     assert_eq!(created_shift["name"], "Flexible Break Shift");

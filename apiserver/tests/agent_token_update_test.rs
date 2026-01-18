@@ -13,7 +13,6 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory, common::db::TestDataba
     let factory = TestFactory::new(db_pool.clone());
     // factory.cleanup().await; // TestDatabase is already empty, no need to cleanup manually and risk main DB
 
-
     let user_id = factory
         .user()
         .with_email("token_test@example.com")
@@ -65,7 +64,7 @@ async fn test_agent_token_update() {
 
     // 1. Khai báo agent
     client
-        .post(&format!("{}/api/authorized-agents", address))
+        .post(format!("{}/api/authorized-agents", address))
         .header("X-Workspace-Id", workspace_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .json(&serde_json::json!({
@@ -79,7 +78,7 @@ async fn test_agent_token_update() {
 
     // 2. Cập nhật token
     let response = client
-        .patch(&format!("{}/api/authorized-agents/{}", address, agent_id))
+        .patch(format!("{}/api/authorized-agents/{}", address, agent_id))
         .header("X-Workspace-Id", workspace_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .json(&serde_json::json!({
@@ -95,7 +94,7 @@ async fn test_agent_token_update() {
 
     // 3. Kiểm tra lại bằng GET
     let response = client
-        .get(&format!("{}/api/authorized-agents/{}", address, agent_id))
+        .get(format!("{}/api/authorized-agents/{}", address, agent_id))
         .header("X-Workspace-Id", workspace_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .send()

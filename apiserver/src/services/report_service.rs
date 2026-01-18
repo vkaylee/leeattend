@@ -1,12 +1,12 @@
 use axum::http::StatusCode;
-use chrono::{Utc, NaiveDate, TimeZone};
+use chrono::{NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::models::{AttendanceSummary, DailyAttendanceReport};
+use crate::repositories::workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};
 use crate::repositories::{roster_repository, time_entry_repository};
-use crate::repositories::workspace_repository::{WorkspaceRepository, SqlxWorkspaceRepository};
 use crate::services::AttendanceCalculator;
 
 pub struct ReportService;
@@ -20,7 +20,8 @@ impl ReportService {
     ) -> Result<Vec<DailyAttendanceReport>, StatusCode> {
         // 0. Get Workspace Settings for Timezone & Rounding Logic
         let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
-        let workspace = workspace_repo.get_workspace_by_id(workspace_id)
+        let workspace = workspace_repo
+            .get_workspace_by_id(workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
@@ -28,9 +29,10 @@ impl ReportService {
         let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
 
         // 1. Get all schedules for the range
-        let schedules = roster_repository::get_workspace_schedules(pool, workspace_id, start_date, end_date)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let schedules =
+            roster_repository::get_workspace_schedules(pool, workspace_id, start_date, end_date)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         // 2. Get all time entries for the range
         // Convert NaiveDate to DateTime<Utc> using Workspace Timezone
@@ -57,32 +59,47 @@ impl ReportService {
         let mut reports = Vec::new();
 
         for emp_sched in schedules {
-            let entries = time_entry_repository::get_employee_time_entries(pool, emp_sched.employee_id, start_dt, end_dt)
-                .await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            let entries = time_entry_repository::get_employee_time_entries(
+                pool,
+                emp_sched.employee_id,
+                start_dt,
+                end_dt,
+            )
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
             for daily in emp_sched.schedules {
                 let date = daily.date;
-                
+
                 // Find entries for this day in Workspace Local Time
-                let day_entries: Vec<_> = entries.iter()
+                let day_entries: Vec<_> = entries
+                    .iter()
                     .filter(|e| e.punch_in_time.with_timezone(&tz).date_naive() == date)
                     .collect();
 
-                let actual_punch_in = day_entries.first().map(|e| e.punch_in_time.with_timezone(&tz));
-                let actual_punch_out = day_entries.last().and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
-                
+                let actual_punch_in = day_entries
+                    .first()
+                    .map(|e| e.punch_in_time.with_timezone(&tz));
+                let actual_punch_out = day_entries
+                    .last()
+                    .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
+
                 // --- CALCULATION LOGIC ---
                 let mut total_payable_units = 0;
 
                 if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
-                    let actual_break_minutes: i32 = day_entries.iter()
+                    let actual_break_minutes: i32 = day_entries
+                        .iter()
                         .filter(|e| e.entry_type == "break")
                         .map(|e| e.duration_minutes.unwrap_or(0))
                         .sum();
 
-                    let start_dt = daily.start_time.and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
-                    let end_dt = daily.end_time.and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
+                    let start_dt = daily
+                        .start_time
+                        .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
+                    let end_dt = daily
+                        .end_time
+                        .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
 
                     if let (Some(start), Some(mut end)) = (start_dt, end_dt) {
                         if daily.end_time < daily.start_time {
@@ -97,11 +114,11 @@ impl ReportService {
                             daily.break_duration_minutes.unwrap_or(0),
                             daily.early_punch_in_grace_period_minutes.unwrap_or(0),
                             daily.is_break_auto_deduct.unwrap_or(false),
-                            false, 
+                            false,
                             actual_break_minutes,
                             daily.allow_early_ot.unwrap_or(false),
                             workspace.work_unit_minutes,
-                            &workspace.rounding_policy
+                            &workspace.rounding_policy,
                         );
 
                         total_payable_units = std_units + ot_units;
@@ -112,8 +129,9 @@ impl ReportService {
                 let mut status = "absent".to_string();
                 if actual_punch_in.is_some() {
                     status = "present".to_string();
-                    
-                    if let (Some(punch_in), Some(sched_start)) = (actual_punch_in, daily.start_time) {
+
+                    if let (Some(punch_in), Some(sched_start)) = (actual_punch_in, daily.start_time)
+                    {
                         if punch_in.time() > sched_start + chrono::Duration::minutes(5) {
                             status = "late".to_string();
                         }
@@ -132,7 +150,7 @@ impl ReportService {
                     break_start: daily.break_start,
                     break_end: daily.break_end,
                     is_break_auto_deduct: daily.is_break_auto_deduct,
-                    actual_punch_in: actual_punch_in.map(|t| t.with_timezone(&Utc)), 
+                    actual_punch_in: actual_punch_in.map(|t| t.with_timezone(&Utc)),
                     actual_punch_out: actual_punch_out.map(|t| t.with_timezone(&Utc)),
                     work_units: total_payable_units,
                     status,
@@ -151,7 +169,8 @@ impl ReportService {
     ) -> Result<Vec<AttendanceSummary>, StatusCode> {
         // 0. Get Workspace Settings for Timezone
         let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
-        let workspace = workspace_repo.get_workspace_by_id(workspace_id)
+        let workspace = workspace_repo
+            .get_workspace_by_id(workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
@@ -220,9 +239,9 @@ impl ReportService {
                 let work_units = AttendanceCalculator::calculate_units(
                     total_minutes,
                     workspace.work_unit_minutes,
-                    &workspace.rounding_policy
+                    &workspace.rounding_policy,
                 );
-                
+
                 AttendanceSummary {
                     employee_id: row.employee_id,
                     employee_name: row.employee_name.unwrap_or_default(),

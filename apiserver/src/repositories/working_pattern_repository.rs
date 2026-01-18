@@ -1,15 +1,18 @@
-use crate::models::{WorkingPattern, WorkingPatternDetail, EmployeeWorkingPattern, BulkAssignResponse};
-use sqlx::{PgPool, Postgres, Executor};
-use uuid::Uuid;
+use crate::models::{
+    BulkAssignResponse, EmployeeWorkingPattern, WorkingPattern, WorkingPatternDetail,
+};
 use chrono::NaiveDate;
+use sqlx::{Executor, PgPool, Postgres};
+use uuid::Uuid;
 
 pub async fn create_pattern<'a, E>(
     executor: E,
     workspace_id: Uuid,
     name: &str,
     description: Option<&str>,
-) -> Result<WorkingPattern, sqlx::Error> 
-where E: Executor<'a, Database = Postgres>
+) -> Result<WorkingPattern, sqlx::Error>
+where
+    E: Executor<'a, Database = Postgres>,
 {
     sqlx::query_as::<_, WorkingPattern>(
         "INSERT INTO working_patterns (workspace_id, name, description) VALUES ($1, $2, $3) RETURNING *"
@@ -26,8 +29,9 @@ pub async fn add_pattern_detail<'a, E>(
     pattern_id: Uuid,
     day_of_week: i32,
     shift_id: Option<Uuid>,
-) -> Result<WorkingPatternDetail, sqlx::Error> 
-where E: Executor<'a, Database = Postgres>
+) -> Result<WorkingPatternDetail, sqlx::Error>
+where
+    E: Executor<'a, Database = Postgres>,
 {
     sqlx::query_as::<_, WorkingPatternDetail>(
         "INSERT INTO working_pattern_details (pattern_id, day_of_week, shift_id) VALUES ($1, $2, $3) RETURNING *"
@@ -44,7 +48,7 @@ pub async fn get_patterns(
     workspace_id: Uuid,
 ) -> Result<Vec<WorkingPattern>, sqlx::Error> {
     sqlx::query_as::<_, WorkingPattern>(
-        "SELECT * FROM working_patterns WHERE workspace_id = $1 AND is_active = true ORDER BY name"
+        "SELECT * FROM working_patterns WHERE workspace_id = $1 AND is_active = true ORDER BY name",
     )
     .bind(workspace_id)
     .fetch_all(pool)
@@ -56,7 +60,7 @@ pub async fn get_pattern_details(
     pattern_id: Uuid,
 ) -> Result<Vec<WorkingPatternDetail>, sqlx::Error> {
     sqlx::query_as::<_, WorkingPatternDetail>(
-        "SELECT * FROM working_pattern_details WHERE pattern_id = $1 ORDER BY day_of_week"
+        "SELECT * FROM working_pattern_details WHERE pattern_id = $1 ORDER BY day_of_week",
     )
     .bind(pattern_id)
     .fetch_all(pool)
@@ -92,7 +96,7 @@ pub async fn get_employee_pattern_history(
     employee_id: Uuid,
 ) -> Result<Vec<EmployeeWorkingPattern>, sqlx::Error> {
     sqlx::query_as::<_, EmployeeWorkingPattern>(
-        "SELECT * FROM employee_working_patterns WHERE employee_id = $1 ORDER BY start_date DESC"
+        "SELECT * FROM employee_working_patterns WHERE employee_id = $1 ORDER BY start_date DESC",
     )
     .bind(employee_id)
     .fetch_all(pool)
@@ -114,7 +118,7 @@ pub async fn bulk_assign_pattern(
         r#"
         SELECT employee_id FROM employee_working_patterns 
         WHERE workspace_id = $1 AND start_date = $2 AND employee_id = ANY($3)
-        "#
+        "#,
     )
     .bind(workspace_id)
     .bind(start_date)

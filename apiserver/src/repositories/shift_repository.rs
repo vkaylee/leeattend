@@ -1,5 +1,5 @@
 use chrono::{NaiveDate, NaiveTime};
-use sqlx::{query, query_as, PgPool, Postgres, Executor};
+use sqlx::{query, query_as, Executor, PgPool, Postgres};
 use uuid::Uuid;
 
 use crate::models::Shift;
@@ -20,8 +20,9 @@ pub async fn create_shift<'a, E>(
     allow_early_ot: bool,
     is_active: bool,
     parent_shift_id: Option<Uuid>,
-) -> Result<Shift, sqlx::Error> 
-where E: Executor<'a, Database = Postgres>
+) -> Result<Shift, sqlx::Error>
+where
+    E: Executor<'a, Database = Postgres>,
 {
     query_as!(
         Shift,
@@ -56,10 +57,7 @@ where E: Executor<'a, Database = Postgres>
     .await
 }
 
-pub async fn get_shift_by_id(
-    pool: &PgPool,
-    id: Uuid,
-) -> Result<Option<Shift>, sqlx::Error> {
+pub async fn get_shift_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Shift>, sqlx::Error> {
     query_as!(
         Shift,
         r#"SELECT 
@@ -141,11 +139,9 @@ pub async fn update_shift_direct(
     .await
 }
 
-pub async fn archive_shift<'a, E>(
-    executor: E,
-    id: Uuid,
-) -> Result<(), sqlx::Error> 
-where E: Executor<'a, Database = Postgres>
+pub async fn archive_shift<'a, E>(executor: E, id: Uuid) -> Result<(), sqlx::Error>
+where
+    E: Executor<'a, Database = Postgres>,
 {
     query!(
         "UPDATE shifts SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $1",
@@ -238,4 +234,3 @@ pub async fn update_assignments_to_new_version_tx(
 
     Ok(())
 }
-

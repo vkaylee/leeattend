@@ -1,6 +1,6 @@
 use sqlx::PgPool;
-use uuid::Uuid;
 use tracing::info;
+use uuid::Uuid;
 
 use crate::models::MemberRole;
 
@@ -13,7 +13,7 @@ pub async fn ensure_dev_data(pool: &PgPool) -> Result<(), sqlx::Error> {
     // 1. Upsert Admin User
     // Password is 'admin123' hashed with bcrypt
     let password_hash = bcrypt::hash("admin123", bcrypt::DEFAULT_COST).unwrap();
-    
+
     sqlx::query(
         r#"
         INSERT INTO users (id, email, full_name, password_hash)

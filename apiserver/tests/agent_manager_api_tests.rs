@@ -1,10 +1,10 @@
 mod common;
 
+use apiserver::agent_manager::AgentManager;
+use apiserver::AppState;
 use axum::http::StatusCode;
 use common::db::TestDatabase;
 use common::factory::TestFactory;
-use apiserver::AppState;
-use apiserver::agent_manager::AgentManager;
 use std::sync::Arc;
 use tower::ServiceExt;
 
@@ -12,12 +12,18 @@ async fn setup_app() -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router)
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
     let factory = TestFactory::new(pool.clone());
-    
-    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(pool.clone()));
-    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+
+    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(
+        pool.clone(),
+    ));
+    let workspace_repo =
+        Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
     let agent_manager = AgentManager::new();
-    let agent_service = Arc::new(apiserver::services::AgentService::new(agent_repo.clone(), agent_manager.clone()));
-    
+    let agent_service = Arc::new(apiserver::services::AgentService::new(
+        agent_repo.clone(),
+        agent_manager.clone(),
+    ));
+
     let app_state = Arc::new(AppState {
         agent_manager,
         db: pool.clone(),
@@ -26,7 +32,7 @@ async fn setup_app() -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router)
         agent_service: agent_service.clone(),
         jwt_secret: "test_secret_agent".to_string(),
     });
-    
+
     let app = apiserver::create_app(app_state.clone());
     (test_db, factory, app_state, app)
 }
@@ -37,10 +43,16 @@ async fn test_agent_commands_api() {
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
-    let agent_id = factory.agent().with_workspace(ws_id).with_trust(true).create().await;
+    let agent_id = factory
+        .agent()
+        .with_workspace(ws_id)
+        .with_trust(true)
+        .create()
+        .await;
 
     // 1. Get agents (none online yet)
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -57,7 +69,8 @@ async fn test_agent_commands_api() {
         "method": "reboot",
         "data": null
     });
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
@@ -75,7 +88,8 @@ async fn test_agent_commands_api() {
     state.agent_manager.add_agent(agent_id.clone(), tx).await;
 
     // 4. Send command to online agent
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")

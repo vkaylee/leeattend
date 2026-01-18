@@ -1,20 +1,20 @@
 use axum::{
-    extract::{State, Path, Query},
-    response::{IntoResponse, Json},
+    extract::{Path, Query, State},
     http::StatusCode,
+    response::{IntoResponse, Json},
 };
-use std::sync::Arc;
-use uuid::Uuid;
 use chrono::NaiveDate;
 use std::collections::HashMap;
+use std::sync::Arc;
 use tracing::error;
+use uuid::Uuid;
 
-use crate::AppState;
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    CreateShiftRequest, UpdateShiftRequest, AssignShiftRequest, CreateRosterRequest,
-    BulkRosterRequest, ShiftRoster, EmployeeSchedule, AssignmentHistory
+    AssignShiftRequest, AssignmentHistory, BulkRosterRequest, CreateRosterRequest,
+    CreateShiftRequest, EmployeeSchedule, ShiftRoster, UpdateShiftRequest,
 };
+use crate::AppState;
 
 // --- Shift Handlers ---
 
@@ -43,7 +43,7 @@ pub async fn create_shift(
     if !ctx.is_admin_or_owner() {
         return Err(StatusCode::FORBIDDEN);
     }
-    
+
     let workspace_id = ctx.workspace_id;
     match crate::services::shift_service::ShiftService::create_shift(
         &state.db,
@@ -75,18 +75,12 @@ pub async fn update_shift(
     if !ctx.is_admin_or_owner() {
         return Err(StatusCode::FORBIDDEN);
     }
-    match crate::services::shift_service::ShiftService::update_shift(
-        &state.db,
-        shift_id,
-        req,
-    )
-    .await
+    match crate::services::shift_service::ShiftService::update_shift(&state.db, shift_id, req).await
     {
         Ok(shift) => Ok(Json(shift)),
         Err(status) => Err(status),
     }
 }
-
 
 pub async fn assign_shift(
     State(state): State<Arc<AppState>>,
@@ -115,11 +109,13 @@ pub async fn get_workspace_schedules(
     Path(workspace_id): Path<Uuid>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<Vec<EmployeeSchedule>>, StatusCode> {
-    let start_date = params.get("start_date")
+    let start_date = params
+        .get("start_date")
         .and_then(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
         .ok_or(StatusCode::BAD_REQUEST)?;
-    
-    let end_date = params.get("end_date")
+
+    let end_date = params
+        .get("end_date")
         .and_then(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
         .ok_or(StatusCode::BAD_REQUEST)?;
 
@@ -127,7 +123,7 @@ pub async fn get_workspace_schedules(
         &state.db,
         workspace_id,
         start_date,
-        end_date
+        end_date,
     )
     .await
     .map_err(|e| {
@@ -145,7 +141,7 @@ pub async fn get_assignment_history(
     let history = crate::repositories::roster_repository::get_assignment_history(
         &state.db,
         workspace_id,
-        50 // Limit to last 50 entries
+        50, // Limit to last 50 entries
     )
     .await
     .map_err(|e| {

@@ -3,7 +3,9 @@ use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::{CreateEmployeeRequest, Employee, EmploymentPeriod, RehireEmployeeRequest, UpdateEmployeeRequest};
+use crate::models::{
+    CreateEmployeeRequest, Employee, EmploymentPeriod, RehireEmployeeRequest, UpdateEmployeeRequest,
+};
 use crate::repositories::employee_repository;
 use crate::repositories::user_repository;
 
@@ -41,14 +43,19 @@ impl EmployeeService {
             updated_at: Utc::now(),
         };
 
-        let mut tx = pool.begin().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let mut tx = pool
+            .begin()
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         employee_repository::create_employee_tx(&mut tx, &employee)
             .await
             .map_err(|e| {
                 eprintln!("Error creating employee: {:?}", e);
                 StatusCode::INTERNAL_SERVER_ERROR
             })?;
-        tx.commit().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        tx.commit()
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         Ok(employee)
     }
@@ -76,14 +83,24 @@ impl EmployeeService {
             }
         }
 
-        let tx = pool.begin().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let tx = pool
+            .begin()
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         // Update employee to be active
         employee_repository::update_employee(
             pool,
             employee_id,
             workspace_id,
-            None, None, None, None, None, None, None, Some(true),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(true),
         )
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -103,7 +120,9 @@ impl EmployeeService {
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        tx.commit().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        tx.commit()
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
             .await
@@ -222,9 +241,12 @@ impl EmployeeService {
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
-        crate::repositories::department_repository::get_employee_department_history(pool, employee_id)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+        crate::repositories::department_repository::get_employee_department_history(
+            pool,
+            employee_id,
+        )
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
 
     pub async fn transfer_employee(

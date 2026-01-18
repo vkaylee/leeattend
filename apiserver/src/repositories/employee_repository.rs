@@ -54,7 +54,10 @@ pub async fn get_employee_by_id_number(
     id_number: &str,
     workspace_id: Uuid,
 ) -> Result<Option<Employee>, sqlx::Error> {
-    let query = format!("{} WHERE e.employee_id_number = $1 AND e.workspace_id = $2", EMPLOYEE_SELECT_QUERY);
+    let query = format!(
+        "{} WHERE e.employee_id_number = $1 AND e.workspace_id = $2",
+        EMPLOYEE_SELECT_QUERY
+    );
     query_as::<_, Employee>(&query)
         .bind(id_number)
         .bind(workspace_id)
@@ -67,7 +70,10 @@ pub async fn get_employee_by_id(
     id: Uuid,
     workspace_id: Uuid,
 ) -> Result<Option<Employee>, sqlx::Error> {
-    let query = format!("{} WHERE e.id = $1 AND e.workspace_id = $2", EMPLOYEE_SELECT_QUERY);
+    let query = format!(
+        "{} WHERE e.id = $1 AND e.workspace_id = $2",
+        EMPLOYEE_SELECT_QUERY
+    );
     query_as::<_, Employee>(&query)
         .bind(id)
         .bind(workspace_id)
@@ -81,17 +87,17 @@ pub async fn get_all_employees(
     search_query: Option<String>,
 ) -> Result<Vec<Employee>, sqlx::Error> {
     let mut sql = format!("{} WHERE e.workspace_id = $1", EMPLOYEE_SELECT_QUERY);
-    
+
     if let Some(ref q) = search_query {
         if !q.trim().is_empty() {
             sql.push_str(" AND (e.first_name ILIKE $2 OR e.last_name ILIKE $2 OR e.employee_id_number ILIKE $2 OR (e.first_name || ' ' || e.last_name) ILIKE $2)");
         }
     }
-    
+
     sql.push_str(" ORDER BY e.last_name, e.first_name");
 
     let mut db_query = query_as::<_, Employee>(&sql).bind(workspace_id);
-    
+
     if let Some(q) = search_query {
         if !q.trim().is_empty() {
             db_query = db_query.bind(format!("%{}%", q.trim()));
@@ -193,7 +199,10 @@ pub async fn get_active_employees(
     pool: &PgPool,
     workspace_id: Uuid,
 ) -> Result<Vec<Employee>, sqlx::Error> {
-    let query = format!("{} WHERE e.workspace_id = $1 AND e.is_active = true ORDER BY e.last_name, e.first_name", EMPLOYEE_SELECT_QUERY);
+    let query = format!(
+        "{} WHERE e.workspace_id = $1 AND e.is_active = true ORDER BY e.last_name, e.first_name",
+        EMPLOYEE_SELECT_QUERY
+    );
     query_as::<_, Employee>(&query)
         .bind(workspace_id)
         .fetch_all(pool)
@@ -208,7 +217,7 @@ pub async fn get_existing_employee_ids_by_numbers(
     if id_numbers.is_empty() {
         return Ok(Vec::new());
     }
-    
+
     let query = "SELECT employee_id_number FROM employees WHERE workspace_id = $1 AND employee_id_number = ANY($2)";
     let result: Vec<String> = sqlx::query_scalar(query)
         .bind(workspace_id)

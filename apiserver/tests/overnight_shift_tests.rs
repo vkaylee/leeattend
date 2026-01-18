@@ -1,14 +1,14 @@
 mod common;
 
-use apiserver::models::{LogSource};
 use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
+use apiserver::models::LogSource;
 use apiserver::AppState;
-use chrono::{Duration, NaiveTime, Utc, TimeZone, NaiveDate};
-use common::factory::TestFactory;
-use common::db::TestDatabase;
-use std::sync::Arc;
+use chrono::{Duration, NaiveDate, NaiveTime, TimeZone, Utc};
 use chrono_tz::Tz;
+use common::db::TestDatabase;
+use common::factory::TestFactory;
+use std::sync::Arc;
 use uuid::Uuid;
 
 async fn spawn_app() -> (String, TestDatabase) {
@@ -16,8 +16,12 @@ async fn spawn_app() -> (String, TestDatabase) {
     let pool = test_db.pool();
     let agent_manager = AgentManager::new();
     let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: pool.clone() });
-    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
-    let agent_service = Arc::new(apiserver::services::AgentService::new(agent_repo.clone(), agent_manager.clone()));
+    let workspace_repo =
+        Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+    let agent_service = Arc::new(apiserver::services::AgentService::new(
+        agent_repo.clone(),
+        agent_manager.clone(),
+    ));
 
     let state = Arc::new(AppState {
         agent_manager,
@@ -31,7 +35,9 @@ async fn spawn_app() -> (String, TestDatabase) {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     let app = create_app(state);
-    tokio::spawn(async move { axum::serve(listener, app).await.unwrap(); });
+    tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
 
     (format!("http://127.0.0.1:{}", port), test_db)
 }
@@ -43,18 +49,27 @@ async fn test_overnight_shift_pairing() {
     let factory = TestFactory::new(pool.clone());
 
     let user_id = factory.user().create().await;
-    let ws_id = factory.workspace().with_timezone("Asia/Ho_Chi_Minh").create_with_owner(user_id).await;
+    let ws_id = factory
+        .workspace()
+        .with_timezone("Asia/Ho_Chi_Minh")
+        .create_with_owner(user_id)
+        .await;
     let employee_id = factory.employee().with_workspace(ws_id).create().await;
 
     // 1. Create Overnight Shift: 22:00 to 06:00
-    let shift_id = factory.shift()
+    let shift_id = factory
+        .shift()
         .with_workspace(ws_id)
         .with_name("Night Shift")
-        .with_times(NaiveTime::from_hms_opt(22, 0, 0).unwrap(), NaiveTime::from_hms_opt(6, 0, 0).unwrap())
-        .create().await;
+        .with_times(
+            NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
+        )
+        .create()
+        .await;
 
     let shift_date = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
-    
+
     // Assign the shift manually to employee_shifts table
     sqlx::query!(
         "INSERT INTO employee_shifts (id, employee_id, shift_id, start_date) VALUES ($1, $2, $3, $4)",
@@ -63,13 +78,21 @@ async fn test_overnight_shift_pairing() {
 
     // 2. Insert Raw Logs
     let tz: Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
-    
+
     // Punch In: Jan 15, 21:55 Local
-    let punch_in_utc = tz.from_local_datetime(&shift_date.and_hms_opt(21, 55, 0).unwrap()).single().unwrap().with_timezone(&Utc);
-    
+    let punch_in_utc = tz
+        .from_local_datetime(&shift_date.and_hms_opt(21, 55, 0).unwrap())
+        .single()
+        .unwrap()
+        .with_timezone(&Utc);
+
     // Punch Out: Jan 16, 06:05 Local (Next Day)
     let next_day = shift_date + Duration::days(1);
-    let punch_out_utc = tz.from_local_datetime(&next_day.and_hms_opt(6, 5, 0).unwrap()).single().unwrap().with_timezone(&Utc);
+    let punch_out_utc = tz
+        .from_local_datetime(&next_day.and_hms_opt(6, 5, 0).unwrap())
+        .single()
+        .unwrap()
+        .with_timezone(&Utc);
 
     // Insert manually into raw logs
     sqlx::query!(
@@ -83,7 +106,15 @@ async fn test_overnight_shift_pairing() {
     ).execute(&pool).await.unwrap();
 
     // 3. Trigger Pairing manually
-    apiserver::services::pairing_service::PairingService::reprocess_daily_attendance(&pool, employee_id, shift_date, tz, "dp_pattern").await.unwrap();
+    apiserver::services::pairing_service::PairingService::reprocess_daily_attendance(
+        &pool,
+        employee_id,
+        shift_date,
+        tz,
+        "dp_pattern",
+    )
+    .await
+    .unwrap();
 
     // 4. Verify Time Entry
     let entry = sqlx::query!(

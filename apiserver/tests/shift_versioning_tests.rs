@@ -28,10 +28,7 @@ async fn setup_test_app(pool: PgPool) -> axum::Router {
     let agent_manager = AgentManager::new();
     let agent_repo = Arc::new(SqlxAgentRepository { pool: pool.clone() });
     let workspace_repo = Arc::new(SqlxWorkspaceRepository { pool: pool.clone() });
-    let agent_service = Arc::new(AgentService::new(
-        agent_repo.clone(),
-        agent_manager.clone(),
-    ));
+    let agent_service = Arc::new(AgentService::new(agent_repo.clone(), agent_manager.clone()));
 
     let state = Arc::new(AppState {
         agent_manager,
@@ -76,7 +73,7 @@ async fn test_shift_versioning_update() {
     // 2. Perform Versioning Update (New Version)
     let effective_date = NaiveDate::from_ymd_opt(2025, 2, 1).unwrap();
     let new_name = "Shift V2";
-    
+
     let update_payload = json!({
         "name": new_name,
         "start_time": "10:00:00",
@@ -102,7 +99,9 @@ async fn test_shift_versioning_update() {
     let response = app.clone().oneshot(req).await.unwrap();
     let status = response.status();
     if status != StatusCode::OK {
-        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
         println!("Response body: {:?}", String::from_utf8_lossy(&bytes));
     }
     assert_eq!(status, StatusCode::OK);
@@ -119,12 +118,14 @@ async fn test_shift_versioning_update() {
 
     // B. New Shift should exist and be active
     // If logic isn't strictly parent=old_id, let's just search by name
-    let active_shifts = sqlx::query_as::<_, Shift>("SELECT * FROM shifts WHERE workspace_id = $1 AND is_active = true")
-        .bind(ws_id)
-        .fetch_all(&pool)
-        .await
-        .unwrap();
-    
+    let active_shifts = sqlx::query_as::<_, Shift>(
+        "SELECT * FROM shifts WHERE workspace_id = $1 AND is_active = true",
+    )
+    .bind(ws_id)
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+
     assert_eq!(active_shifts.len(), 1);
     let new_shift_record = &active_shifts[0];
     assert_eq!(new_shift_record.name, new_name);
@@ -154,7 +155,7 @@ async fn test_shift_versioning_update() {
     .fetch_one(&pool)
     .await
     .unwrap();
-    
+
     assert_eq!(new_assignment.start_date, effective_date);
     assert_eq!(new_assignment.end_date, None);
 
@@ -216,7 +217,9 @@ async fn test_shift_correction_update() {
     let response = app.clone().oneshot(req).await.unwrap();
     let status = response.status();
     if status != StatusCode::OK {
-        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
         println!("Response body: {:?}", String::from_utf8_lossy(&bytes));
     }
     assert_eq!(status, StatusCode::OK);
@@ -228,7 +231,7 @@ async fn test_shift_correction_update() {
         .fetch_one(&pool)
         .await
         .unwrap();
-    
+
     assert_eq!(shift.name, corrected_name);
     assert!(shift.is_active);
 

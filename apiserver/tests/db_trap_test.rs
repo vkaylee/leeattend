@@ -23,9 +23,9 @@ async fn test_database_cleanup_lifecycle() {
             .fetch_one(&mut conn)
             .await
             .unwrap();
-        
+
         assert!(exists, "Arrange: Database {} should exist after creation", db_name);
-    } 
+    }
 
     println!("Act: Dropped TestDatabase, waiting for background worker...");
     sleep(Duration::from_millis(5000)).await;
@@ -66,7 +66,7 @@ async fn test_concurrent_databases_cleanup() {
                 .unwrap();
             assert!(exists);
         }
-    } 
+    }
 
     println!("Act: Dropped 3 databases, waiting for concurrent background workers...");
     sleep(Duration::from_millis(5000)).await;

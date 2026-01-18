@@ -1,29 +1,35 @@
 mod common;
 
+use apiserver::agent_manager::AgentManager;
+use apiserver::models::Payslip;
+use apiserver::repositories::payroll_repository;
+use apiserver::AppState;
+use axum::http::StatusCode;
+use chrono::Utc;
 use common::db::TestDatabase;
 use common::factory::TestFactory;
-use apiserver::repositories::payroll_repository;
-use apiserver::models::Payslip;
 use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::Decimal;
-use uuid::Uuid;
-use chrono::Utc;
-use apiserver::agent_manager::AgentManager;
-use apiserver::AppState;
 use std::sync::Arc;
 use tower::ServiceExt;
-use axum::http::StatusCode;
+use uuid::Uuid;
 
 async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
     let factory = TestFactory::new(pool.clone());
-    
-    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(pool.clone()));
-    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+
+    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(
+        pool.clone(),
+    ));
+    let workspace_repo =
+        Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
     let agent_manager = AgentManager::new();
-    let agent_service = Arc::new(apiserver::services::AgentService::new(agent_repo.clone(), agent_manager.clone()));
-    
+    let agent_service = Arc::new(apiserver::services::AgentService::new(
+        agent_repo.clone(),
+        agent_manager.clone(),
+    ));
+
     let app_state = Arc::new(AppState {
         agent_manager,
         db: pool.clone(),
@@ -32,7 +38,7 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
         agent_service: agent_service.clone(),
         jwt_secret: "test_secret_payroll".to_string(),
     });
-    
+
     let app = apiserver::create_app(app_state);
     (test_db, factory, app)
 }
@@ -54,17 +60,26 @@ async fn test_payroll_salary_history() {
         Decimal::from_i32(5000).unwrap(),
         "monthly".to_string(),
         "USD".to_string(),
-        Utc::now().date_naive()
-    ).await.unwrap();
+        Utc::now().date_naive(),
+    )
+    .await
+    .unwrap();
     assert_eq!(salary.base_salary, Decimal::from_i32(5000).unwrap());
 
     // 2. Get latest salary
-    let latest = payroll_repository::get_latest_salary(&pool, employee_id, Utc::now().date_naive()).await.unwrap();
+    let latest = payroll_repository::get_latest_salary(&pool, employee_id, Utc::now().date_naive())
+        .await
+        .unwrap();
     assert!(latest.is_some());
-    assert_eq!(latest.unwrap().base_salary, Decimal::from_i32(5000).unwrap());
+    assert_eq!(
+        latest.unwrap().base_salary,
+        Decimal::from_i32(5000).unwrap()
+    );
 
     // 3. Get history list
-    let history = payroll_repository::get_salary_history(&pool, employee_id).await.unwrap();
+    let history = payroll_repository::get_salary_history(&pool, employee_id)
+        .await
+        .unwrap();
     assert_eq!(history.len(), 1);
 }
 
@@ -95,11 +110,15 @@ async fn test_payroll_payslips() {
     };
 
     // 1. Create payslip
-    let created = payroll_repository::create_payslip(&pool, &payslip).await.unwrap();
+    let created = payroll_repository::create_payslip(&pool, &payslip)
+        .await
+        .unwrap();
     assert_eq!(created.net_pay_amount, Decimal::from_i32(4600).unwrap());
 
     // 2. Get by employee
-    let list = payroll_repository::get_payslips_by_employee(&pool, employee_id).await.unwrap();
+    let list = payroll_repository::get_payslips_by_employee(&pool, employee_id)
+        .await
+        .unwrap();
     assert_eq!(list.len(), 1);
 }
 
@@ -126,7 +145,9 @@ async fn test_get_employee_payslips_api() {
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
-    payroll_repository::create_payslip(&factory.pool, &payslip).await.unwrap();
+    payroll_repository::create_payslip(&factory.pool, &payslip)
+        .await
+        .unwrap();
 
     // Add salary history so calculation doesn't fail with 400
     payroll_repository::add_salary_history(
@@ -135,14 +156,20 @@ async fn test_get_employee_payslips_api() {
         Decimal::from_i32(2000).unwrap(),
         "monthly".to_string(),
         "USD".to_string(),
-        Utc::now().date_naive()
-    ).await.unwrap();
+        Utc::now().date_naive(),
+    )
+    .await
+    .unwrap();
 
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{}/employees/{}/payslips", ws_id, emp_id))
+                .uri(format!(
+                    "/api/workspaces/{}/employees/{}/payslips",
+                    ws_id, emp_id
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -153,11 +180,15 @@ async fn test_get_employee_payslips_api() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Test calculate payroll API
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{}/employees/{}/calculate-payroll?year=2026&month=1", ws_id, emp_id))
+                .uri(format!(
+                    "/api/workspaces/{}/employees/{}/calculate-payroll?year=2026&month=1",
+                    ws_id, emp_id
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())

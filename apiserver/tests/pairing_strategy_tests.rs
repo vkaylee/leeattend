@@ -1,22 +1,36 @@
-
-use apiserver::services::pairing_algo::{self, PairingShiftConfig, PairingStrategy, DpPatternStrategy, AnchorFirstStrategy, SequentialStrategy, FsmStrategy, LogEvent};
+use apiserver::services::pairing_algo::{
+    self, AnchorFirstStrategy, DpPatternStrategy, FsmStrategy, LogEvent, PairingShiftConfig,
+    PairingStrategy, SequentialStrategy,
+};
 
 fn standard_shift() -> PairingShiftConfig {
     PairingShiftConfig {
-        start_minutes: 8 * 60, // 480 (08:00)
-        end_minutes: 17 * 60, // 1020 (17:00)
+        start_minutes: 8 * 60,              // 480 (08:00)
+        end_minutes: 17 * 60,               // 1020 (17:00)
         break_start_minutes: Some(12 * 60), // 720 (12:00)
-        break_end_minutes: Some(13 * 60), // 780 (13:00)
+        break_end_minutes: Some(13 * 60),   // 780 (13:00)
     }
 }
 
 #[test]
 fn test_strategies_perfect_day() {
     let logs = vec![
-        LogEvent { minutes: 475, punch_type: None },
-        LogEvent { minutes: 725, punch_type: None },
-        LogEvent { minutes: 775, punch_type: None },
-        LogEvent { minutes: 1025, punch_type: None },
+        LogEvent {
+            minutes: 475,
+            punch_type: None,
+        },
+        LogEvent {
+            minutes: 725,
+            punch_type: None,
+        },
+        LogEvent {
+            minutes: 775,
+            punch_type: None,
+        },
+        LogEvent {
+            minutes: 1025,
+            punch_type: None,
+        },
     ];
     let shift = standard_shift();
 
@@ -40,8 +54,14 @@ fn test_strategies_perfect_day() {
 #[test]
 fn test_strategies_overtime() {
     let logs = vec![
-        LogEvent { minutes: 436, punch_type: None },
-        LogEvent { minutes: 1204, punch_type: None },
+        LogEvent {
+            minutes: 436,
+            punch_type: None,
+        },
+        LogEvent {
+            minutes: 1204,
+            punch_type: None,
+        },
     ];
     let shift = standard_shift();
 
@@ -62,9 +82,10 @@ fn test_strategies_overtime() {
 
 #[test]
 fn test_strategies_missing_out() {
-    let logs = vec![
-        LogEvent { minutes: 480, punch_type: None },
-    ];
+    let logs = vec![LogEvent {
+        minutes: 480,
+        punch_type: None,
+    }];
     let shift = standard_shift();
 
     let dp = DpPatternStrategy;
@@ -77,7 +98,10 @@ fn test_strategies_missing_out() {
     let anchor_sessions = anchor.pair(&logs, Some(&shift));
     assert_eq!(anchor_sessions.len(), 1);
     assert!(anchor_sessions[0].end_minutes.is_none());
-    assert_eq!(anchor_sessions[0].note, Some("Missing Punch Out".to_string()));
+    assert_eq!(
+        anchor_sessions[0].note,
+        Some("Missing Punch Out".to_string())
+    );
 }
 
 #[test]
@@ -89,12 +113,24 @@ fn test_factory_dispatch() {
     let random = pairing_algo::get_strategy("something_else");
 
     let logs = vec![
-        LogEvent { minutes: 100, punch_type: None },
-        LogEvent { minutes: 200, punch_type: None },
-        LogEvent { minutes: 300, punch_type: None },
-        LogEvent { minutes: 400, punch_type: None },
+        LogEvent {
+            minutes: 100,
+            punch_type: None,
+        },
+        LogEvent {
+            minutes: 200,
+            punch_type: None,
+        },
+        LogEvent {
+            minutes: 300,
+            punch_type: None,
+        },
+        LogEvent {
+            minutes: 400,
+            punch_type: None,
+        },
     ];
-    
+
     // DP needs shift or it fallbacks to anchor behavior (1 session)
     assert_eq!(dp.pair(&logs, None).len(), 1);
     assert_eq!(anchor.pair(&logs, None).len(), 1);
@@ -106,13 +142,25 @@ fn test_factory_dispatch() {
 #[test]
 fn test_strategies_sequential() {
     let strategy = SequentialStrategy;
-    
+
     // Case 1: 4 logs -> 2 sessions
     let logs = vec![
-        LogEvent { minutes: 480, punch_type: None },
-        LogEvent { minutes: 720, punch_type: None },
-        LogEvent { minutes: 780, punch_type: None },
-        LogEvent { minutes: 1020, punch_type: None },
+        LogEvent {
+            minutes: 480,
+            punch_type: None,
+        },
+        LogEvent {
+            minutes: 720,
+            punch_type: None,
+        },
+        LogEvent {
+            minutes: 780,
+            punch_type: None,
+        },
+        LogEvent {
+            minutes: 1020,
+            punch_type: None,
+        },
     ];
     let sessions = strategy.pair(&logs, None);
     assert_eq!(sessions.len(), 2);
@@ -123,9 +171,18 @@ fn test_strategies_sequential() {
 
     // Case 2: 3 logs -> 1 session + 1 missing
     let logs = vec![
-        LogEvent { minutes: 480, punch_type: None },
-        LogEvent { minutes: 720, punch_type: None },
-        LogEvent { minutes: 780, punch_type: None },
+        LogEvent {
+            minutes: 480,
+            punch_type: None,
+        },
+        LogEvent {
+            minutes: 720,
+            punch_type: None,
+        },
+        LogEvent {
+            minutes: 780,
+            punch_type: None,
+        },
     ];
     let sessions = strategy.pair(&logs, None);
     assert_eq!(sessions.len(), 2);
@@ -139,8 +196,14 @@ fn test_strategies_fsm() {
 
     // Case 1: Explicit In/Out
     let logs = vec![
-        LogEvent { minutes: 480, punch_type: Some(0) }, // In
-        LogEvent { minutes: 1020, punch_type: Some(1) }, // Out
+        LogEvent {
+            minutes: 480,
+            punch_type: Some(0),
+        }, // In
+        LogEvent {
+            minutes: 1020,
+            punch_type: Some(1),
+        }, // Out
     ];
     let sessions = strategy.pair(&logs, None);
     assert_eq!(sessions.len(), 1);
@@ -149,9 +212,18 @@ fn test_strategies_fsm() {
 
     // Case 2: Double Check-In (Error Recovery)
     let logs = vec![
-        LogEvent { minutes: 480, punch_type: Some(0) }, // In
-        LogEvent { minutes: 500, punch_type: Some(0) }, // In again!
-        LogEvent { minutes: 1020, punch_type: Some(1) }, // Out
+        LogEvent {
+            minutes: 480,
+            punch_type: Some(0),
+        }, // In
+        LogEvent {
+            minutes: 500,
+            punch_type: Some(0),
+        }, // In again!
+        LogEvent {
+            minutes: 1020,
+            punch_type: Some(1),
+        }, // Out
     ];
     let sessions = strategy.pair(&logs, None);
     assert_eq!(sessions.len(), 2);
@@ -161,10 +233,22 @@ fn test_strategies_fsm() {
 
     // Case 3: Mixed metadata (Fallback to toggle)
     let logs = vec![
-        LogEvent { minutes: 480, punch_type: Some(0) }, // In
-        LogEvent { minutes: 720, punch_type: None },    // Unspecified (acts as Out)
-        LogEvent { minutes: 780, punch_type: None },    // Unspecified (acts as In)
-        LogEvent { minutes: 1020, punch_type: Some(1) }, // Out
+        LogEvent {
+            minutes: 480,
+            punch_type: Some(0),
+        }, // In
+        LogEvent {
+            minutes: 720,
+            punch_type: None,
+        }, // Unspecified (acts as Out)
+        LogEvent {
+            minutes: 780,
+            punch_type: None,
+        }, // Unspecified (acts as In)
+        LogEvent {
+            minutes: 1020,
+            punch_type: Some(1),
+        }, // Out
     ];
     let sessions = strategy.pair(&logs, None);
     assert_eq!(sessions.len(), 2);
