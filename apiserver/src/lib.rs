@@ -425,7 +425,8 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         )
         .route(
             "/workspaces/:ws_id/working-patterns/:pattern_id",
-            get(handlers::working_patterns::get_pattern_details),
+            get(handlers::working_patterns::get_pattern_details)
+                .delete(handlers::working_patterns::delete_pattern),
         )
         .route(
             "/workspaces/:ws_id/employees/:id/working-patterns",

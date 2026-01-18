@@ -91,3 +91,20 @@ pub async fn get_employee_pattern_history(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(history))
 }
+
+pub async fn delete_pattern(
+    State(state): State<Arc<AppState>>,
+    Path((_ws_id, pattern_id)): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
+) -> Result<impl IntoResponse, StatusCode> {
+    if !ctx.is_admin_or_owner() {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    service::delete_working_pattern(&state.db, pattern_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to delete pattern: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    Ok(StatusCode::NO_CONTENT)
+}

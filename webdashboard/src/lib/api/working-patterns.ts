@@ -64,3 +64,10 @@ export async function fetchEmployeePatternHistory(
   if (!response.ok) throw new Error("Failed to fetch pattern history");
   return response.json();
 }
+
+export async function deleteWorkingPattern(wsId: string, patternId: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/working-patterns/${patternId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to delete working pattern");
+}

@@ -19,6 +19,7 @@ import {
   fetchShifts,
   fetchEmployees,
   bulkAssignPattern,
+  deleteWorkingPattern,
   getCurrentWorkspaceId,
   WorkingPattern,
   Shift,
@@ -106,6 +107,21 @@ export default function WorkingPatternsPage() {
     },
     onError: (error: any) => toast.error(error.message, t("patterns.messages.bulk_assign_error"))
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (patternId: string) => deleteWorkingPattern(wsId, patternId),
+    onSuccess: () => {
+      toast.success(t("patterns.messages.delete_success", "Pattern deleted successfully"));
+      queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
+    },
+    onError: (error: any) => toast.error(error.message, t("patterns.messages.delete_error", "Failed to delete pattern"))
+  });
+
+  const handleDelete = (pattern: WorkingPattern) => {
+    if (confirm(t("patterns.confirm_delete", { name: pattern.name }, `Are you sure you want to delete "${pattern.name}"?`))) {
+      deleteMutation.mutate(pattern.id);
+    }
+  };
 
   const handleCreate = () => {
     if (!newPatternName) {
@@ -263,7 +279,11 @@ export default function WorkingPatternsPage() {
             </div>
             
             <div className="mt-6 pt-4 border-t border-slate-50 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-               <button className="p-2 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-xl transition-all">
+               <button 
+                 onClick={() => handleDelete(pattern)}
+                 disabled={deleteMutation.isPending}
+                 className="p-2 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-xl transition-all disabled:opacity-50"
+               >
                  <Trash2 size={16} />
                </button>
             </div>
