@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { toUTCISO } from "../datetime";
 
 describe("toUTCISO utility", () => {
@@ -32,8 +32,14 @@ describe("toUTCISO utility", () => {
   });
 
   it("falls back to Z-suffix on invalid timezone", () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    
     const result = toUTCISO("2026-01-16", "08:00", "Invalid/Zone");
+    
     // Should fallback to adding Z
     expect(result).toBe("2026-01-16T08:00:00Z");
+    expect(consoleSpy).toHaveBeenCalled();
+    
+    consoleSpy.mockRestore();
   });
 });

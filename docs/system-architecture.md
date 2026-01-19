@@ -15,18 +15,14 @@ Hệ thống xử lý dữ liệu quẹt thẻ (punch) theo mô hình **Event-So
 - **Source Tracking**: Mỗi bản ghi lưu rõ nguồn (`device`, `import`, `manual`) và ID thiết bị tương ứng.
 
 #### 10.2. Pairing Engine (Strategy Pattern)
-Dịch vụ `PairingService` thực hiện nhiệm vụ chuyển đổi luồng sự kiện phẳng (flat events) thành các phiên làm việc (sessions) thông qua các thuật toán có thể cấu hình tùy theo đặc thù doanh nghiệp:
+Dịch vụ `PairingService` thực hiện nhiệm vụ chuyển đổi luồng sự kiện phẳng (flat events) thành các phiên làm việc (sessions) thông qua thuật toán ghép cặp (pairing algorithm). Hệ thống hiện tại đã được tinh gọn để tập trung vào một chiến lược duy nhất đạt độ tin cậy cao nhất:
 
-- **Deduplication (1-minute window)**: Tự động bỏ qua các lượt quẹt thẻ liên tiếp của cùng một nhân viên trong vòng 60 giây để chống nhiễu.
-- **Configurable Strategies**:
-    - **Pattern Matching (DP)**: Sử dụng quy hoạch động (Dynamic Programming) để khớp các logs với các mẫu ca làm việc (Shift Patterns) có sẵn. Tốt nhất cho môi trường văn phòng có ca cố định và cần theo dõi giờ nghỉ giữa ca.
-    - **First & Last (Anchor)**: Thuật toán đơn giản chỉ lấy bản ghi đầu tiên (In) và cuối cùng (Out) trong ngày. Tốt nhất cho môi trường sản xuất (nhà máy) có lượng Overtime lớn và không cần theo dõi chi tiết giờ nghỉ.
-    - **Sequential (Retail)**: Ghép cặp các bản ghi theo thứ tự thời gian (Log 1+2, 3+4...). Tốt nhất cho môi trường bán lẻ hoặc y tế nơi nhân viên làm ca gãy (split shifts) hoặc ra vào nhiều lần trong ngày.
-    - **State-based (FSM)**: Sử dụng máy trạng thái hữu hạn để xử lý logs dựa trên metadata `punch_type` từ thiết bị (Vào, Ra, Nghỉ...). Có độ chính xác cao nhất đối với các thiết bị phần cứng hỗ trợ phím chức năng.
-    - **Chronological (Fallback)**: Tự động ghép cặp theo thứ tự thời gian khi không có lịch trình (shift) được gán.
-- **Metadata Awareness**: Engine hiện tại sử dụng cấu trúc `LogEvent` thay vì chỉ lưu mốc thời gian, cho phép các thuật toán truy cập vào trạng thái nguyên bản từ thiết bị để đưa ra quyết định ghép cặp chính xác hơn.
-- **Enhanced Reliability**: Thuật toán DP được cấu hình với độ trễ (penalty) lên tới 300 phút, đảm bảo không bỏ sót các trường hợp làm thêm giờ (overtime) muộn.
-- **Timezone Safety**: Mọi mốc thời gian được lưu trữ dưới dạng UTC và chỉ được chuyển đổi sang múi giờ địa phương (ICT) tại tầng hiển thị.
+- **Primary Algorithm: Anchor First**: Thuật toán lấy bản ghi đầu tiên (In) và cuối cùng (Out) trong một cửa sổ thời gian làm mốc (Anchors). Đây là giải pháp tối ưu cho hầu hết các môi trường sản xuất và văn phòng, giúp giảm thiểu sai sót do quẹt thẻ dư thừa hoặc quên quẹt giữa ca.
+- **12-Hour Session Limit**: Hệ thống áp đặt giới hạn cứng 720 phút (12 giờ) cho một phiên làm việc. Nếu khoảng cách giữa hai bản ghi vượt quá giới hạn này, chúng sẽ tự động được tách thành hai phiên "Missing Out" riêng biệt để tránh việc ghép cặp sai giữa các ngày khác nhau.
+- **Identity Deduplication (Identity-based)**: Tối ưu hóa việc lọc nhiễu bằng cách chỉ bỏ qua các lượt quẹt thẻ có cùng mốc thời gian chính xác (timestamp), cho phép ghi nhận các lượt quẹt nhanh liên tiếp (ví dụ cách nhau 1 giây).
+- **Morning Lookback (Overnight support)**: Tự động tính toán lại dữ liệu của ngày hôm trước nếu nhận được log vào buổi sáng (trước 12:00 PM), hỗ trợ tốt cho các ca làm việc xuyên đêm (Overnight shifts).
+- **Metadata Awareness**: Engine sử dụng thông tin `punch_type` từ thiết bị (nếu có) để xác định ý định của người dùng, giúp việc ghép cặp chính xác hơn khi có dữ liệu từ các máy chấm công hỗ trợ phím chức năng.
+- **Deprecated Strategies**: Các chiến lược phức tạp khác như Quy hoạch động (DP), Ghép cặp tuần tự (Sequential) và Máy trạng thái (FSM) đã được loại bỏ để đơn giản hóa vận hành và bảo trì hệ thống.
 
 #### 10.3. Strict Import Validation
 Quy trình nhập dữ liệu từ file được thực thi với tiêu chuẩn cao nhất về độ chính xác:

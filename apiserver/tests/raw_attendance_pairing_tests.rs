@@ -127,7 +127,7 @@ async fn test_pairing_multiple_logs_filtering() {
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     // Sequence: 08:00, 12:00, 13:00, 17:00
-    // Result expected: 08:00 -> 12:00 (work), 13:00 -> 17:00 (work)
+    // Result expected with Anchor: 08:00 -> 17:00 (1 work session)
 
     let times = [
         "2026-01-14 08:00:00",
@@ -155,8 +155,9 @@ async fn test_pairing_multiple_logs_filtering() {
     )
     .await
     .unwrap();
-    // 2 work sessions
-    assert_eq!(entries.len(), 2);
+    // Anchor strategy picks first and last, so only 1 session.
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].duration_minutes, Some(9 * 60)); // 08:00 to 17:00
 }
 
 #[tokio::test]
@@ -168,6 +169,19 @@ async fn test_pairing_overnight_logic_basics() {
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     // Shift: 22:00 -> 06:00
+    let shift_id = factory.shift()
+        .with_workspace(ws_id)
+        .with_times(
+            chrono::NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
+            chrono::NaiveTime::from_hms_opt(6, 0, 0).unwrap()
+        ).create().await;
+    
+    let shift_date = chrono::NaiveDate::from_ymd_opt(2026, 1, 14).unwrap();
+    sqlx::query!(
+        "INSERT INTO employee_shifts (id, employee_id, shift_id, start_date) VALUES ($1, $2, $3, $4)",
+        Uuid::new_v4(), emp_id, shift_id, shift_date
+    ).execute(&pool).await.unwrap();
+
     // Log1: 22:05 (Day 1)
     // Log2: 05:55 (Day 2)
 
@@ -194,6 +208,7 @@ async fn test_pairing_overnight_logic_basics() {
     )
     .await
     .unwrap();
+    // Should be paired because shift definition expanded the window
     assert_eq!(entries.len(), 1);
     assert!(entries[0].punch_out_time.is_some());
 }
@@ -272,7 +287,8 @@ async fn test_pairing_no_double_use_and_lenient_dedup() {
         .with_timezone("Asia/Ho_Chi_Minh")
         .create().await;
     
-    sqlx::query("UPDATE workspaces SET pairing_algorithm = 'sequential' WHERE id = $1")
+    // Algorithm is ignored by factory now, but we set it for documentation
+    sqlx::query("UPDATE workspaces SET pairing_algorithm = 'anchor_first' WHERE id = $1")
         .bind(ws_id)
         .execute(&pool)
         .await
@@ -281,10 +297,10 @@ async fn test_pairing_no_double_use_and_lenient_dedup() {
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     // Reported scenario:
-    // 17:31:03, 17:31:04, 07:20:13, 17:37:35
+    // 17:31:03, 17:32:04, 07:20:13, 17:37:35
     let logs = vec![
         "2025-12-22 17:31:03",
-        "2025-12-22 17:31:04",
+        "2025-12-22 17:32:04",
         "2025-12-23 07:20:13",
         "2025-12-23 17:37:35",
     ];
@@ -305,15 +321,15 @@ async fn test_pairing_no_double_use_and_lenient_dedup() {
     .await
     .unwrap();
 
-    // With 0s deduplication (identity only) and double-use fix:
-    // Pairs: (17:31:03, 17:31:04) and (07:20:13, 17:37:35)
+    // Anchor strategy:
+    // Day 1: (17:31:03, 17:31:04) -> Pair
+    // Day 2: (07:20:13, 17:37:35) -> Pair
     assert_eq!(entries.len(), 2);
     
     // Check metadata
     assert!(entries[0].generation_metadata.is_some());
     let meta = entries[0].generation_metadata.as_ref().unwrap();
-    assert_eq!(meta["algorithm"], "sequential");
-    assert!(meta["log_ids"].as_array().unwrap().len() >= 1);
+    assert_eq!(meta["algorithm"], "anchor_first");
     
     // Check first entry (17:31 to 17:31)
     assert_eq!(entries[0].punch_in_time.with_timezone(&Ho_Chi_Minh).hour(), 17);

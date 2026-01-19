@@ -4,6 +4,13 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ## [Unreleased]
 
+### Changed
+- **Streamlined Attendance Pairing Engine**:
+    - Simplified the pairing architecture by retaining only the robust **AnchorFirstStrategy** (First-In / Last-Out).
+    - Deprecated and removed complex strategies including `Sequential`, `DP Pattern`, and `FSM` to improve system reliability and maintainability.
+    - Updated the maximum allowed gap between punches from 16 hours to **12 hours** (720 minutes) across the entire system.
+    - Removed internal fallback logic in `PairingService` to ensure consistent algorithm application through the central factory.
+
 ### Added
 - **Attendance Pairing Traceability**:
     - Added `generation_metadata` (JSONB) to `time_entries` table to track the pairing algorithm and source logs.

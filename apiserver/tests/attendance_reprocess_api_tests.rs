@@ -41,8 +41,11 @@ async fn test_force_reprocess_attendance_api() {
     });
 
     let base_date = NaiveDate::from_ymd_opt(2026, 1, 14).unwrap();
-    let start_time = Utc.with_ymd_and_hms(2026, 1, 14, 8, 0, 0).unwrap();
-    let end_time = Utc.with_ymd_and_hms(2026, 1, 14, 17, 0, 0).unwrap();
+    // Use UTC times that result in the SAME DAY for Asia/Ho_Chi_Minh (UTC+7)
+    // 01:00 UTC = 08:00 Local
+    // 10:00 UTC = 17:00 Local
+    let start_time = Utc.with_ymd_and_hms(2026, 1, 14, 1, 0, 0).unwrap();
+    let end_time = Utc.with_ymd_and_hms(2026, 1, 14, 10, 0, 0).unwrap();
 
     // 1. Create raw logs WITHOUT processing them
     let logs = vec![start_time, end_time];

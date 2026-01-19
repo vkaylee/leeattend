@@ -111,7 +111,7 @@ async fn test_overnight_shift_pairing() {
         employee_id,
         shift_date,
         tz,
-        "dp_pattern",
+        "anchor_first",
     )
     .await
     .unwrap();

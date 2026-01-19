@@ -57,7 +57,7 @@ impl PairingService {
             .unwrap_or_else(|| "UTC".to_string());
         let algorithm = workspace_info
             .map(|w| w.pairing_algorithm)
-            .unwrap_or_else(|| "dp_pattern".to_string());
+            .unwrap_or_else(|| "anchor_first".to_string());
         let tz: Tz = timezone_str.parse().unwrap_or(chrono_tz::UTC);
 
         // 3. Determine Local Date
@@ -137,42 +137,35 @@ impl PairingService {
         }
 
         // 2. Fetch raw logs
-        // Search window: Date 00:00 to Date+1 12:00 (36 hours) to catch overnight checkouts
+        // Search window: strictly bounded by shift hours + buffer to avoid cross-day stealing.
         let start_of_day_local = tz
             .from_local_datetime(&date.and_hms_opt(0, 0, 0).unwrap())
             .unwrap();
         let start_of_day_utc = start_of_day_local.with_timezone(&Utc);
-        let end_of_window_utc = start_of_day_utc + Duration::hours(36);
+        
+        let (window_start_utc, window_end_utc) = if let Some(s) = &shift_config {
+            // Use shift start/end with a generous 6-hour buffer
+            let buffer_mins = 360; // 6 hours
+            let start_mins = s.start_minutes - buffer_mins;
+            let end_mins = s.end_minutes + buffer_mins;
+            
+            let s_utc = (start_of_day_local + Duration::minutes(start_mins as i64)).with_timezone(&Utc);
+            let e_utc = (start_of_day_local + Duration::minutes(end_mins as i64)).with_timezone(&Utc);
+            (s_utc, e_utc)
+        } else {
+            // Fallback to strict 24h if no shift
+            let s_utc = start_of_day_local.with_timezone(&Utc);
+            let e_utc = s_utc + Duration::hours(24);
+            (s_utc, e_utc)
+        };
 
-        let next_day_local = tz
-            .from_local_datetime(&(date + Duration::days(1)).and_hms_opt(0, 0, 0).unwrap())
-            .unwrap();
-        let next_day_utc = next_day_local.with_timezone(&Utc);
+        let next_day_utc = (start_of_day_local + Duration::days(1)).with_timezone(&Utc);
 
         let logs = sqlx::query!(
             "SELECT id, punch_time, (raw_data->'punch')::text as punch_str FROM raw_attendance_logs WHERE employee_id = $1 AND punch_time >= $2 AND punch_time < $3 ORDER BY punch_time ASC",
             employee_id,
-            start_of_day_utc,
-            end_of_window_utc
-        )
-        .fetch_all(pool)
-        .await?;
-
-        // 2b. Identify logs already "claimed" by existing sessions outside this reprocess window
-        // Sessions starting before today but ending today/tomorrow
-        let claimed_out_times = sqlx::query_scalar!(
-            "SELECT punch_out_time FROM time_entries WHERE employee_id = $1 AND punch_in_time < $2 AND punch_out_time >= $2",
-            employee_id,
-            start_of_day_utc
-        )
-        .fetch_all(pool)
-        .await?;
-        
-        // Sessions starting after our window
-        let claimed_in_times = sqlx::query_scalar!(
-            "SELECT punch_in_time FROM time_entries WHERE employee_id = $1 AND punch_in_time >= $2",
-            employee_id,
-            end_of_window_utc
+            window_start_utc,
+            window_end_utc
         )
         .fetch_all(pool)
         .await?;
@@ -180,22 +173,15 @@ impl PairingService {
         // 3. Filter and Linearize Logs
         let mut filtered_log_events = Vec::new();
         if !logs.is_empty() {
-            let mut last_time: Option<DateTime<Utc>> = None;
+            let mut last_minute: Option<i64> = None;
 
             for log in logs {
-                if let Some(lt) = last_time {
-                    if log.punch_time == lt {
+                // Deduplicate by minute
+                let current_minute = log.punch_time.timestamp() / 60;
+                if let Some(lm) = last_minute {
+                    if current_minute == lm {
                         continue;
                     }
-                }
-
-                // Check if this log is already claimed (matching to the minute)
-                let rounded_log_utc = log.punch_time.with_nanosecond(0).unwrap().with_second(0).unwrap();
-                let is_claimed_out = claimed_out_times.iter().any(|t| t.map(|v| v == rounded_log_utc).unwrap_or(false));
-                let is_claimed_in = claimed_in_times.contains(&rounded_log_utc);
-
-                if is_claimed_out || is_claimed_in {
-                    continue;
                 }
 
                 // Linearize: minutes since start_of_day_local
@@ -211,7 +197,7 @@ impl PairingService {
                     punch_type,
                 });
 
-                last_time = Some(log.punch_time);
+                last_minute = Some(current_minute);
             }
         }
 
@@ -227,20 +213,14 @@ impl PairingService {
         }
 
         // 4. Run Algorithm
-        let sessions = if algorithm == "chronological"
-            || (algorithm == "dp_pattern" && shift_config.is_none())
-        {
-            Self::pair_chronological_events(&filtered_log_events)
-        } else {
-            let strategy = pairing_algo::get_strategy(algorithm);
-            strategy.pair(&filtered_log_events, shift_config.as_ref())
-        };
+        let strategy = pairing_algo::get_strategy(algorithm);
+        let sessions = strategy.pair(&filtered_log_events, shift_config.as_ref());
 
         // 5. Update Database
         let mut tx = pool.begin().await?;
 
-        // Delete existing entries starting on THIS day only.
-        // We use next_day_utc instead of end_of_window_utc to avoid deleting morning shifts of the next day.
+        // Delete existing entries starting on THIS day only (24h window)
+        // This prevents reprocessing Day N from accidentally deleting morning shifts of Day N+1
         sqlx::query!(
             "DELETE FROM time_entries WHERE employee_id = $1 AND punch_in_time >= $2 AND punch_in_time < $3",
             employee_id,
@@ -251,20 +231,23 @@ impl PairingService {
         .await?;
 
         for session in sessions {
-            let start_dt = start_of_day_utc + Duration::minutes(session.start_minutes as i64);
+            // Calculate timestamps based on local day start to ensure accuracy
+            let start_dt_local = tz.from_local_datetime(&date.and_hms_opt(0, 0, 0).unwrap()).unwrap()
+                + Duration::minutes(session.start_minutes as i64);
+            let start_dt_utc = start_dt_local.with_timezone(&Utc);
 
-            // Important: Only save sessions that actually start on the target date.
-            // If the algorithm returned a session starting on the next day (due to 36h window), 
-            // we ignore it here as it belongs to the next day's reprocessing.
-            if start_dt.with_timezone(&tz).date_naive() != date {
+            // Important: Only save sessions that actually START on the target date.
+            if start_dt_local.date_naive() != date {
                 continue;
             }
 
-            let end_dt = session
-                .end_minutes
-                .map(|m| start_of_day_utc + Duration::minutes(m as i64));
+            let end_dt_utc = session.end_minutes.map(|m| {
+                let end_dt_local = tz.from_local_datetime(&date.and_hms_opt(0, 0, 0).unwrap()).unwrap()
+                    + Duration::minutes(m as i64);
+                end_dt_local.with_timezone(&Utc)
+            });
 
-            let duration = end_dt.map(|end| (end - start_dt).num_minutes() as i32);
+            let duration = end_dt_utc.map(|end| (end - start_dt_utc).num_minutes() as i32);
 
             sqlx::query!(
                 r#"
@@ -275,8 +258,8 @@ impl PairingService {
                 Uuid::new_v4(),
                 employee_id,
                 shift_id_opt,
-                start_dt,
-                end_dt,
+                start_dt_utc,
+                end_dt_utc,
                 duration,
                 session.entry_type,
                 session.note,
@@ -303,58 +286,5 @@ impl PairingService {
         .execute(pool)
         .await?;
         Ok(())
-    }
-
-    fn pair_chronological_events(
-        logs: &[pairing_algo::LogEvent],
-    ) -> Vec<pairing_algo::PairedSession> {
-        let mut sessions = Vec::new();
-        let mut i = 0;
-        while i < logs.len() {
-            let current = &logs[i];
-            if i + 1 < logs.len() {
-                let next = &logs[i + 1];
-                let diff = next.minutes - current.minutes;
-
-                if diff <= 960 {
-                    sessions.push(pairing_algo::PairedSession {
-                        start_minutes: current.minutes,
-                        end_minutes: Some(next.minutes),
-                        entry_type: "work".to_string(),
-                        note: Some("No Shift - Auto Paired".to_string()),
-                        metadata: Some(serde_json::json!({
-                            "algorithm": "chronological",
-                            "log_ids": vec![current.id, next.id]
-                        })),
-                    });
-                    i += 2;
-                } else {
-                    sessions.push(pairing_algo::PairedSession {
-                        start_minutes: current.minutes,
-                        end_minutes: None,
-                        entry_type: "work".to_string(),
-                        note: Some("No Shift - Missing Out (Gap)".to_string()),
-                        metadata: Some(serde_json::json!({
-                            "algorithm": "chronological",
-                            "log_ids": vec![current.id]
-                        })),
-                    });
-                    i += 1;
-                }
-            } else {
-                sessions.push(pairing_algo::PairedSession {
-                    start_minutes: current.minutes,
-                    end_minutes: None,
-                    entry_type: "work".to_string(),
-                    note: Some("No Shift - Missing Out".to_string()),
-                    metadata: Some(serde_json::json!({
-                        "algorithm": "chronological",
-                        "log_ids": vec![current.id]
-                    })),
-                });
-                i += 1;
-            }
-        }
-        sessions
     }
 }

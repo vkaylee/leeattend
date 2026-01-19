@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE workspaces SET pairing_algorithm = 'anchor_first' WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0ac5a2836966749c6fac7e4f8e8db390cbc88c4e688f05e60d9fd3aaa78f8638"
+}

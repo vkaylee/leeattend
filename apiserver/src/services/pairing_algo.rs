@@ -33,63 +33,12 @@ pub trait PairingStrategy: Send + Sync {
     fn algorithm_name(&self) -> &'static str;
 }
 
-pub struct DpPatternStrategy;
 pub struct AnchorFirstStrategy;
-pub struct SequentialStrategy;
-pub struct FsmStrategy;
 
-/// Factory function to get the requested strategy
-pub fn get_strategy(algorithm: &str) -> Box<dyn PairingStrategy> {
-    match algorithm {
-        "anchor_first" => Box::new(AnchorFirstStrategy),
-        "sequential" => Box::new(SequentialStrategy),
-        "fsm" => Box::new(FsmStrategy),
-        _ => Box::new(DpPatternStrategy),
-    }
-}
-
-// --- DpPatternStrategy Implementation ---
-
-impl PairingStrategy for DpPatternStrategy {
-    fn algorithm_name(&self) -> &'static str {
-        "dp_pattern"
-    }
-
-    fn pair(&self, logs: &[LogEvent], config: Option<&PairingShiftConfig>) -> Vec<PairedSession> {
-        if logs.is_empty() {
-            return vec![];
-        }
-
-        let minutes: Vec<i32> = logs.iter().map(|l| l.minutes).collect();
-
-        let Some(shift) = config else {
-            // Fallback if no shift config provided for DP strategy
-            return AnchorFirstStrategy.pair(logs, None);
-        };
-
-        // 1. Generate Patterns
-        let patterns = generate_patterns(shift);
-
-        // 2. Evaluate all patterns
-        let mut best_score = u32::MAX;
-        let mut best_sessions = Vec::new();
-
-        for pattern in patterns {
-            let (score, sessions) = evaluate_pattern(&minutes, &pattern);
-            if score < best_score {
-                best_score = score;
-                best_sessions = sessions;
-            }
-        }
-
-        // Map log IDs to best sessions (This is complex for DP, we'll implement mapping logic)
-        // For simplicity in MVP, we just label the algorithm
-        for s in best_sessions.iter_mut() {
-            s.metadata = Some(serde_json::json!({ "algorithm": self.algorithm_name() }));
-        }
-
-        best_sessions
-    }
+/// Factory function to get the requested strategy.
+/// Currently defaults to AnchorFirstStrategy as other algorithms are deprecated.
+pub fn get_strategy(_algorithm: &str) -> Box<dyn PairingStrategy> {
+    Box::new(AnchorFirstStrategy)
 }
 
 // --- AnchorFirstStrategy Implementation ---
@@ -107,9 +56,9 @@ impl PairingStrategy for AnchorFirstStrategy {
         let first = &logs[0];
         let mut last_idx = 0;
 
-        // Find the furthest log that is within 16 hours (960 minutes) of the first log
+        // Find the furthest log that is within 12 hours (720 minutes) of the first log
         for (i, log) in logs.iter().enumerate().skip(1) {
-            if log.minutes - first.minutes <= 960 {
+            if log.minutes - first.minutes <= 720 {
                 last_idx = i;
             } else {
                 // Once we hit a log too far away, we stop for AnchorFirst
@@ -146,507 +95,10 @@ impl PairingStrategy for AnchorFirstStrategy {
     }
 }
 
-// --- SequentialStrategy Implementation ---
-
-impl PairingStrategy for SequentialStrategy {
-    fn algorithm_name(&self) -> &'static str {
-        "sequential"
-    }
-
-    fn pair(&self, logs: &[LogEvent], _config: Option<&PairingShiftConfig>) -> Vec<PairedSession> {
-        let mut sessions = Vec::new();
-        // Use a window of 2 to manually inspect pairs
-        let mut i = 0;
-        while i < logs.len() {
-            let current = &logs[i];
-            
-            if i + 1 < logs.len() {
-                let next = &logs[i+1];
-                let diff = next.minutes - current.minutes;
-                
-                // If diff <= 16 hours (960 mins), treat as a pair
-                if diff <= 960 {
-                    sessions.push(PairedSession {
-                        start_minutes: current.minutes,
-                        end_minutes: Some(next.minutes),
-                        entry_type: "work".to_string(),
-                        note: None,
-                        metadata: Some(serde_json::json!({
-                            "algorithm": self.algorithm_name(),
-                            "log_ids": vec![current.id, next.id]
-                        })),
-                    });
-                    i += 2;
-                } else {
-                    // Too far apart, treat current as missing out
-                    sessions.push(PairedSession {
-                        start_minutes: current.minutes,
-                        end_minutes: None,
-                        entry_type: "work".to_string(),
-                        note: Some("Missing Punch Out".to_string()),
-                        metadata: Some(serde_json::json!({
-                            "algorithm": self.algorithm_name(),
-                            "log_ids": vec![current.id]
-                        })),
-                    });
-                    i += 1;
-                }
-            } else {
-                // Last element
-                sessions.push(PairedSession {
-                    start_minutes: current.minutes,
-                    end_minutes: None,
-                    entry_type: "work".to_string(),
-                    note: Some("Missing Punch Out".to_string()),
-                    metadata: Some(serde_json::json!({
-                        "algorithm": self.algorithm_name(),
-                        "log_ids": vec![current.id]
-                    })),
-                });
-                i += 1;
-            }
-        }
-
-        sessions
-    }
-}
-
-// --- FsmStrategy Implementation ---
-
-impl PairingStrategy for FsmStrategy {
-    fn algorithm_name(&self) -> &'static str {
-        "fsm"
-    }
-
-    fn pair(&self, logs: &[LogEvent], _config: Option<&PairingShiftConfig>) -> Vec<PairedSession> {
-        if logs.is_empty() {
-            return vec![];
-        }
-
-        let mut sessions = Vec::new();
-        let mut current_start: Option<&LogEvent> = None;
-
-        for event in logs {
-            match event.punch_type {
-                Some(0) | Some(2) | Some(4) => {
-                    // In types
-                    // If already have a start, close it as missing out
-                    if let Some(start) = current_start {
-                        sessions.push(PairedSession {
-                            start_minutes: start.minutes,
-                            end_minutes: None,
-                            entry_type: "work".to_string(),
-                            note: Some("Missing Punch Out".to_string()),
-                            metadata: Some(serde_json::json!({
-                                "algorithm": self.algorithm_name(),
-                                "log_ids": vec![start.id]
-                            })),
-                        });
-                    }
-                    current_start = Some(event);
-                }
-                Some(1) | Some(3) | Some(5) => {
-                    // Out types
-                    if let Some(start) = current_start {
-                        // Implement 16-hour limit even for explicit Out types to prevent logic errors
-                        if event.minutes - start.minutes <= 960 {
-                            sessions.push(PairedSession {
-                                start_minutes: start.minutes,
-                                end_minutes: Some(event.minutes),
-                                entry_type: "work".to_string(),
-                                note: None,
-                                metadata: Some(serde_json::json!({
-                                    "algorithm": self.algorithm_name(),
-                                    "log_ids": vec![start.id, event.id]
-                                })),
-                            });
-                            current_start = None;
-                        } else {
-                            // Gap too large, previous In is missing Out, current Out is Orphaned
-                            sessions.push(PairedSession {
-                                start_minutes: start.minutes,
-                                end_minutes: None,
-                                entry_type: "work".to_string(),
-                                note: Some("Missing Punch Out (Gap)".to_string()),
-                                metadata: Some(serde_json::json!({
-                                    "algorithm": self.algorithm_name(),
-                                    "log_ids": vec![start.id]
-                                })),
-                            });
-                            sessions.push(PairedSession {
-                                start_minutes: event.minutes,
-                                end_minutes: Some(event.minutes),
-                                entry_type: "work".to_string(),
-                                note: Some("Missing Punch In (Gap)".to_string()),
-                                metadata: Some(serde_json::json!({
-                                    "algorithm": self.algorithm_name(),
-                                    "log_ids": vec![event.id]
-                                })),
-                            });
-                            current_start = None;
-                        }
-                    } else {
-                        // Orphaned Out
-                        sessions.push(PairedSession {
-                            start_minutes: event.minutes,
-                            end_minutes: Some(event.minutes),
-                            entry_type: "work".to_string(),
-                            note: Some("Missing Punch In".to_string()),
-                            metadata: Some(serde_json::json!({
-                                "algorithm": self.algorithm_name(),
-                                "log_ids": vec![event.id]
-                            })),
-                        });
-                    }
-                }
-                _ => {
-                    // Fallback to toggle behavior if no metadata
-                    if let Some(start) = current_start {
-                        // Implement 16-hour limit (960 minutes) for toggle mode
-                        if event.minutes - start.minutes <= 960 {
-                            sessions.push(PairedSession {
-                                start_minutes: start.minutes,
-                                end_minutes: Some(event.minutes),
-                                entry_type: "work".to_string(),
-                                note: None,
-                                metadata: Some(serde_json::json!({
-                                    "algorithm": self.algorithm_name(),
-                                    "log_ids": vec![start.id, event.id]
-                                })),
-                            });
-                            current_start = None;
-                        } else {
-                            // Gap too large, close previous as missing and start new one with current
-                            sessions.push(PairedSession {
-                                start_minutes: start.minutes,
-                                end_minutes: None,
-                                entry_type: "work".to_string(),
-                                note: Some("Missing Punch Out (Gap)".to_string()),
-                                metadata: Some(serde_json::json!({
-                                    "algorithm": self.algorithm_name(),
-                                    "log_ids": vec![start.id]
-                                })),
-                            });
-                            current_start = Some(event);
-                        }
-                    } else {
-                        current_start = Some(event);
-                    }
-                }
-            }
-        }
-
-        if let Some(start) = current_start {
-            sessions.push(PairedSession {
-                start_minutes: start.minutes,
-                end_minutes: None,
-                entry_type: "work".to_string(),
-                note: Some("Missing Punch Out".to_string()),
-                metadata: Some(serde_json::json!({
-                    "algorithm": self.algorithm_name(),
-                    "log_ids": vec![start.id]
-                })),
-            });
-        }
-
-        sessions
-    }
-}
-
-// --- Private Helper Logic for DP (Internal to this module) ---
-
-struct AttendancePattern {
-    #[allow(dead_code)]
-    name: &'static str,
-    slots: Vec<PatternSlot>,
-    base_penalty: u32,
-}
-
-struct PatternSlot {
-    target: i32,
-    kind: SlotKind,
-    mandatory: bool,
-}
-
-#[derive(PartialEq, Debug, Clone, Copy)]
-enum SlotKind {
-    In,
-    Out,
-}
-
-#[derive(Clone, Copy, Debug)]
-enum MatchAction {
-    Match(i32),
-    SkipSlot,
-    SkipLog,
-}
-
-fn generate_patterns(shift: &PairingShiftConfig) -> Vec<AttendancePattern> {
-    let mut patterns = Vec::new();
-
-    if let (Some(bs), Some(be)) = (shift.break_start_minutes, shift.break_end_minutes) {
-        patterns.push(AttendancePattern {
-            name: "Full Day",
-            slots: vec![
-                PatternSlot {
-                    target: shift.start_minutes,
-                    kind: SlotKind::In,
-                    mandatory: true,
-                },
-                PatternSlot {
-                    target: bs,
-                    kind: SlotKind::Out,
-                    mandatory: false,
-                },
-                PatternSlot {
-                    target: be,
-                    kind: SlotKind::In,
-                    mandatory: false,
-                },
-                PatternSlot {
-                    target: shift.end_minutes,
-                    kind: SlotKind::Out,
-                    mandatory: true,
-                },
-            ],
-            base_penalty: 0,
-        });
-
-        patterns.push(AttendancePattern {
-            name: "Morning Only",
-            slots: vec![
-                PatternSlot {
-                    target: shift.start_minutes,
-                    kind: SlotKind::In,
-                    mandatory: true,
-                },
-                PatternSlot {
-                    target: bs,
-                    kind: SlotKind::Out,
-                    mandatory: true,
-                },
-            ],
-            base_penalty: 10,
-        });
-
-        patterns.push(AttendancePattern {
-            name: "Afternoon Only",
-            slots: vec![
-                PatternSlot {
-                    target: be,
-                    kind: SlotKind::In,
-                    mandatory: true,
-                },
-                PatternSlot {
-                    target: shift.end_minutes,
-                    kind: SlotKind::Out,
-                    mandatory: true,
-                },
-            ],
-            base_penalty: 10,
-        });
-    }
-
-    patterns.push(AttendancePattern {
-        name: "Continuous",
-        slots: vec![
-            PatternSlot {
-                target: shift.start_minutes,
-                kind: SlotKind::In,
-                mandatory: true,
-            },
-            PatternSlot {
-                target: shift.end_minutes,
-                kind: SlotKind::Out,
-                mandatory: true,
-            },
-        ],
-        base_penalty: if shift.break_start_minutes.is_some() {
-            60
-        } else {
-            0
-        },
-    });
-
-    patterns
-}
-
-fn evaluate_pattern(logs: &[i32], pattern: &AttendancePattern) -> (u32, Vec<PairedSession>) {
-    let (cost, actions) = match_recursive(logs, &pattern.slots, 0, 0);
-    let total_score = cost.saturating_add(pattern.base_penalty);
-    let sessions = build_sessions(actions, &pattern.slots);
-    (total_score, sessions)
-}
-
-fn match_recursive(
-    logs: &[i32],
-    slots: &[PatternSlot],
-    log_idx: usize,
-    slot_idx: usize,
-) -> (u32, Vec<MatchAction>) {
-    const PENALTY_UNMATCHED_LOG: u32 = 300;
-    const PENALTY_MANDATORY_SLOT: u32 = 120;
-    const PENALTY_OPTIONAL_SLOT: u32 = 60;
-
-    if slot_idx >= slots.len() {
-        let remaining_logs = (logs.len() - log_idx) as u32;
-        let cost = remaining_logs.saturating_mul(PENALTY_UNMATCHED_LOG);
-        let actions = vec![MatchAction::SkipLog; logs.len() - log_idx];
-        return (cost, actions);
-    }
-
-    if log_idx >= logs.len() {
-        let mut cost = 0;
-        let mut actions = Vec::new();
-        for slot in slots.iter().skip(slot_idx) {
-            cost += if slot.mandatory {
-                PENALTY_MANDATORY_SLOT
-            } else {
-                PENALTY_OPTIONAL_SLOT
-            };
-            actions.push(MatchAction::SkipSlot);
-        }
-        return (cost, actions);
-    }
-
-    let diff = (logs[log_idx] - slots[slot_idx].target).unsigned_abs();
-    let (cost_a, mut acts_a) = match_recursive(logs, slots, log_idx + 1, slot_idx + 1);
-    let total_cost_a = diff.saturating_add(cost_a);
-
-    let slot_penalty = if slots[slot_idx].mandatory {
-        PENALTY_MANDATORY_SLOT
-    } else {
-        PENALTY_OPTIONAL_SLOT
-    };
-    let (cost_b, mut acts_b) = match_recursive(logs, slots, log_idx, slot_idx + 1);
-    let total_cost_b = slot_penalty.saturating_add(cost_b);
-
-    let (cost_c, mut acts_c) = match_recursive(logs, slots, log_idx + 1, slot_idx);
-    let total_cost_c = PENALTY_UNMATCHED_LOG.saturating_add(cost_c);
-
-    if total_cost_a <= total_cost_b && total_cost_a <= total_cost_c {
-        let mut res = vec![MatchAction::Match(logs[log_idx])];
-        res.append(&mut acts_a);
-        (total_cost_a, res)
-    } else if total_cost_b <= total_cost_c {
-        let mut res = vec![MatchAction::SkipSlot];
-        res.append(&mut acts_b);
-        (total_cost_b, res)
-    } else {
-        let mut res = vec![MatchAction::SkipLog];
-        res.append(&mut acts_c);
-        (total_cost_c, res)
-    }
-}
-
-fn build_sessions(actions: Vec<MatchAction>, slots: &[PatternSlot]) -> Vec<PairedSession> {
-    let mut sessions = Vec::new();
-    let mut current_start: Option<i32> = None;
-
-    let slot_actions: Vec<&MatchAction> = actions
-        .iter()
-        .filter(|a| !matches!(a, MatchAction::SkipLog))
-        .collect();
-
-    for (i, action) in slot_actions.iter().enumerate() {
-        if i >= slots.len() {
-            break;
-        }
-
-        let val = match action {
-            MatchAction::Match(v) => Some(*v),
-            MatchAction::SkipSlot => None,
-            _ => None,
-        };
-
-        match slots[i].kind {
-            SlotKind::In => {
-                current_start = val;
-            }
-            SlotKind::Out => {
-                if let Some(start) = current_start {
-                    if let Some(end) = val {
-                        sessions.push(PairedSession {
-                            start_minutes: start,
-                            end_minutes: Some(end),
-                            entry_type: "work".to_string(),
-                            note: None,
-                            metadata: None,
-                        });
-                    } else {
-                        sessions.push(PairedSession {
-                            start_minutes: start,
-                            end_minutes: None,
-                            entry_type: "work".to_string(),
-                            note: Some("Missing Punch Out".to_string()),
-                            metadata: None,
-                        });
-                    }
-                    current_start = None;
-                } else if let Some(end) = val {
-                    sessions.push(PairedSession {
-                        start_minutes: end,
-                        end_minutes: Some(end),
-                        entry_type: "work".to_string(),
-                        note: Some("Missing Punch In".to_string()),
-                        metadata: None,
-                    });
-                }
-            }
-        }
-    }
-    sessions
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use uuid::Uuid;
-
-    fn standard_shift() -> PairingShiftConfig {
-        PairingShiftConfig {
-            start_minutes: 8 * 60,              // 480
-            end_minutes: 17 * 60,               // 1020
-            break_start_minutes: Some(12 * 60), // 720
-            break_end_minutes: Some(13 * 60),   // 780
-        }
-    }
-
-    #[test]
-    fn test_dp_perfect_day() {
-        let strategy = DpPatternStrategy;
-        let shift = standard_shift();
-        let logs = vec![
-            LogEvent {
-                id: Uuid::new_v4(),
-                minutes: 475,
-                punch_type: None,
-            },
-            LogEvent {
-                id: Uuid::new_v4(),
-                minutes: 725,
-                punch_type: None,
-            },
-            LogEvent {
-                id: Uuid::new_v4(),
-                minutes: 775,
-                punch_type: None,
-            },
-            LogEvent {
-                id: Uuid::new_v4(),
-                minutes: 1025,
-                punch_type: None,
-            },
-        ];
-
-        let sessions = strategy.pair(&logs, Some(&shift));
-
-        assert_eq!(sessions.len(), 2);
-        assert_eq!(sessions[0].start_minutes, 475);
-        assert_eq!(sessions[0].end_minutes, Some(725));
-        assert_eq!(sessions[1].start_minutes, 775);
-        assert_eq!(sessions[1].end_minutes, Some(1025));
-    }
 
     #[test]
     fn test_anchor_perfect_day() {
@@ -654,22 +106,12 @@ mod tests {
         let logs = vec![
             LogEvent {
                 id: Uuid::new_v4(),
-                minutes: 475,
+                minutes: 480, // 08:00
                 punch_type: None,
             },
             LogEvent {
                 id: Uuid::new_v4(),
-                minutes: 725,
-                punch_type: None,
-            },
-            LogEvent {
-                id: Uuid::new_v4(),
-                minutes: 775,
-                punch_type: None,
-            },
-            LogEvent {
-                id: Uuid::new_v4(),
-                minutes: 1025,
+                minutes: 1020, // 17:00
                 punch_type: None,
             },
         ];
@@ -677,7 +119,41 @@ mod tests {
         let sessions = strategy.pair(&logs, None);
 
         assert_eq!(sessions.len(), 1);
-        assert_eq!(sessions[0].start_minutes, 475);
-        assert_eq!(sessions[0].end_minutes, Some(1025));
+        assert_eq!(sessions[0].start_minutes, 480);
+        assert_eq!(sessions[0].end_minutes, Some(1020));
+    }
+
+    #[test]
+    fn test_anchor_missing_out() {
+        let strategy = AnchorFirstStrategy;
+        let logs = vec![
+            LogEvent {
+                id: Uuid::new_v4(),
+                minutes: 480,
+                punch_type: None,
+            },
+        ];
+
+        let sessions = strategy.pair(&logs, None);
+
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].start_minutes, 480);
+        assert!(sessions[0].end_minutes.is_none());
+    }
+
+    #[test]
+    fn test_anchor_12h_limit() {
+        let strategy = AnchorFirstStrategy;
+        
+        // Log 1: 08:00 (480)
+        // Log 2: 21:00 (1260) -> 13h gap (780 mins). Should NOT pair.
+        let logs = vec![
+            LogEvent { id: Uuid::new_v4(), minutes: 480, punch_type: None },
+            LogEvent { id: Uuid::new_v4(), minutes: 1260, punch_type: None },
+        ];
+        
+        let sessions = strategy.pair(&logs, None);
+        assert_eq!(sessions.len(), 1);
+        assert!(sessions[0].end_minutes.is_none());
     }
 }
