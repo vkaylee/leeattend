@@ -144,6 +144,11 @@ impl PairingService {
         let start_of_day_utc = start_of_day_local.with_timezone(&Utc);
         let end_of_window_utc = start_of_day_utc + Duration::hours(36);
 
+        let next_day_local = tz
+            .from_local_datetime(&(date + Duration::days(1)).and_hms_opt(0, 0, 0).unwrap())
+            .unwrap();
+        let next_day_utc = next_day_local.with_timezone(&Utc);
+
         let logs = sqlx::query!(
             "SELECT id, punch_time, (raw_data->'punch')::text as punch_str FROM raw_attendance_logs WHERE employee_id = $1 AND punch_time >= $2 AND punch_time < $3 ORDER BY punch_time ASC",
             employee_id,
@@ -215,7 +220,7 @@ impl PairingService {
                 pool,
                 employee_id,
                 start_of_day_utc,
-                start_of_day_utc + Duration::hours(24),
+                next_day_utc,
             )
             .await?;
             return Ok(());
@@ -234,18 +239,27 @@ impl PairingService {
         // 5. Update Database
         let mut tx = pool.begin().await?;
 
-        // Delete existing auto entries for the search window to prevent duplicates when reprocessing
+        // Delete existing entries starting on THIS day only.
+        // We use next_day_utc instead of end_of_window_utc to avoid deleting morning shifts of the next day.
         sqlx::query!(
             "DELETE FROM time_entries WHERE employee_id = $1 AND punch_in_time >= $2 AND punch_in_time < $3",
             employee_id,
             start_of_day_utc,
-            end_of_window_utc
+            next_day_utc
         )
         .execute(&mut *tx)
         .await?;
 
         for session in sessions {
             let start_dt = start_of_day_utc + Duration::minutes(session.start_minutes as i64);
+
+            // Important: Only save sessions that actually start on the target date.
+            // If the algorithm returned a session starting on the next day (due to 36h window), 
+            // we ignore it here as it belongs to the next day's reprocessing.
+            if start_dt.with_timezone(&tz).date_naive() != date {
+                continue;
+            }
+
             let end_dt = session
                 .end_minutes
                 .map(|m| start_of_day_utc + Duration::minutes(m as i64));
