@@ -72,7 +72,7 @@ leeattend/
         - **Raw Event Store**: Dedicated `raw_attendance_logs` table for immutable original punch data from hardware and imports.
         - **Pairing Engine (Strategy Pattern)**: `PairingService` handles the conversion of flat events into logical sessions using a pluggable strategy architecture:
             - **Pluggable Algorithms**: Supports `DpPatternStrategy` (intelligent matching), `AnchorFirstStrategy` (first/last), `SequentialStrategy` (chronological/retail), and `FsmStrategy` (state-based).
-            - **16-Hour Session Limit**: Enforced a 960-minute (16h) maximum gap between punches in `SequentialStrategy` and chronological fallbacks. Exceeding this limit automatically splits logs into separate "Missing Out" sessions to prevent invalid multi-day pairings.
+            - **16-Hour Session Limit**: Enforced a 960-minute (16h) maximum gap between punches across **all** strategies (`Sequential`, `AnchorFirst`, `Fsm`, and fallback chronological). Exceeding this limit automatically splits logs into separate "Missing Out" sessions to prevent invalid multi-day pairings.
             - **Identity Deduplication**: Relaxed identity deduplication to only skip logs with the exact same timestamp, allowing rapid double-punches (e.g., 1s apart) which are common in retail environments.
             - **Morning Lookback (Overnight support)**: Backend automatically reprocesses the previous day's attendance if a log is received before 12:00 PM.
             - **Pairing Traceability**: Time entries now persist `generation_metadata` (JSONB) including the algorithm name and the IDs of source `raw_attendance_logs`.

@@ -16,7 +16,8 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ### Fixed
 - **Attendance Pairing Engine**:
     - Resolved "Log Stealing" bug where 36-hour search windows caused overlaps between adjacent days.
-    - Implemented a **16-Hour Gap Limit** (960 minutes) in `SequentialStrategy` to prevent aggressive pairing of punches across multi-day gaps.
+    - Implemented a **16-Hour Gap Limit** (960 minutes) across **all** pairing strategies (`Sequential`, `AnchorFirst`, `Fsm`, and fallback `chronological`) to prevent aggressive pairing of punches across multi-day gaps.
+    - Added "Missing Punch Out (Gap)" status when the duration limit is exceeded to improve audit clarity.
     - Relaxed identity deduplication to allow rapid double-punches (different timestamps) while still preventing exact duplicate log entries.
     - Fixed a Clippy linting error (`manual-contains`) in `pairing_service.rs` for better performance.
 

@@ -104,16 +104,29 @@ impl PairingStrategy for AnchorFirstStrategy {
             return vec![];
         }
 
-        let start = logs[0].minutes;
-        let end = if logs.len() > 1 {
-            Some(logs[logs.len() - 1].minutes)
+        let first = &logs[0];
+        let mut last_idx = 0;
+
+        // Find the furthest log that is within 16 hours (960 minutes) of the first log
+        for (i, log) in logs.iter().enumerate().skip(1) {
+            if log.minutes - first.minutes <= 960 {
+                last_idx = i;
+            } else {
+                // Once we hit a log too far away, we stop for AnchorFirst
+                break;
+            }
+        }
+
+        let start = first.minutes;
+        let end = if last_idx > 0 {
+            Some(logs[last_idx].minutes)
         } else {
             None
         };
 
-        let mut log_ids = vec![logs[0].id];
-        if logs.len() > 1 {
-            log_ids.push(logs[logs.len() - 1].id);
+        let mut log_ids = vec![first.id];
+        if last_idx > 0 {
+            log_ids.push(logs[last_idx].id);
         }
 
         vec![PairedSession {
@@ -235,17 +248,43 @@ impl PairingStrategy for FsmStrategy {
                 Some(1) | Some(3) | Some(5) => {
                     // Out types
                     if let Some(start) = current_start {
-                        sessions.push(PairedSession {
-                            start_minutes: start.minutes,
-                            end_minutes: Some(event.minutes),
-                            entry_type: "work".to_string(),
-                            note: None,
-                            metadata: Some(serde_json::json!({
-                                "algorithm": self.algorithm_name(),
-                                "log_ids": vec![start.id, event.id]
-                            })),
-                        });
-                        current_start = None;
+                        // Implement 16-hour limit even for explicit Out types to prevent logic errors
+                        if event.minutes - start.minutes <= 960 {
+                            sessions.push(PairedSession {
+                                start_minutes: start.minutes,
+                                end_minutes: Some(event.minutes),
+                                entry_type: "work".to_string(),
+                                note: None,
+                                metadata: Some(serde_json::json!({
+                                    "algorithm": self.algorithm_name(),
+                                    "log_ids": vec![start.id, event.id]
+                                })),
+                            });
+                            current_start = None;
+                        } else {
+                            // Gap too large, previous In is missing Out, current Out is Orphaned
+                            sessions.push(PairedSession {
+                                start_minutes: start.minutes,
+                                end_minutes: None,
+                                entry_type: "work".to_string(),
+                                note: Some("Missing Punch Out (Gap)".to_string()),
+                                metadata: Some(serde_json::json!({
+                                    "algorithm": self.algorithm_name(),
+                                    "log_ids": vec![start.id]
+                                })),
+                            });
+                            sessions.push(PairedSession {
+                                start_minutes: event.minutes,
+                                end_minutes: Some(event.minutes),
+                                entry_type: "work".to_string(),
+                                note: Some("Missing Punch In (Gap)".to_string()),
+                                metadata: Some(serde_json::json!({
+                                    "algorithm": self.algorithm_name(),
+                                    "log_ids": vec![event.id]
+                                })),
+                            });
+                            current_start = None;
+                        }
                     } else {
                         // Orphaned Out
                         sessions.push(PairedSession {
@@ -263,17 +302,33 @@ impl PairingStrategy for FsmStrategy {
                 _ => {
                     // Fallback to toggle behavior if no metadata
                     if let Some(start) = current_start {
-                        sessions.push(PairedSession {
-                            start_minutes: start.minutes,
-                            end_minutes: Some(event.minutes),
-                            entry_type: "work".to_string(),
-                            note: None,
-                            metadata: Some(serde_json::json!({
-                                "algorithm": self.algorithm_name(),
-                                "log_ids": vec![start.id, event.id]
-                            })),
-                        });
-                        current_start = None;
+                        // Implement 16-hour limit (960 minutes) for toggle mode
+                        if event.minutes - start.minutes <= 960 {
+                            sessions.push(PairedSession {
+                                start_minutes: start.minutes,
+                                end_minutes: Some(event.minutes),
+                                entry_type: "work".to_string(),
+                                note: None,
+                                metadata: Some(serde_json::json!({
+                                    "algorithm": self.algorithm_name(),
+                                    "log_ids": vec![start.id, event.id]
+                                })),
+                            });
+                            current_start = None;
+                        } else {
+                            // Gap too large, close previous as missing and start new one with current
+                            sessions.push(PairedSession {
+                                start_minutes: start.minutes,
+                                end_minutes: None,
+                                entry_type: "work".to_string(),
+                                note: Some("Missing Punch Out (Gap)".to_string()),
+                                metadata: Some(serde_json::json!({
+                                    "algorithm": self.algorithm_name(),
+                                    "log_ids": vec![start.id]
+                                })),
+                            });
+                            current_start = Some(event);
+                        }
                     } else {
                         current_start = Some(event);
                     }
