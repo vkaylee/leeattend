@@ -1024,7 +1024,18 @@
     "messages": {
       "generating": "Đang tạo báo cáo...",
       "no_data": "Không có dữ liệu trong khoảng thời gian này."
-    }
+    },
+    "reprocess": {
+      "button": "Tính lại",
+      "processing": "Đang xử lý...",
+      "tooltip": "Tính lại dữ liệu chấm công cho ngày này",
+      "confirm_title": "Tính lại dữ liệu chấm công?",
+      "confirm_message": "Hệ thống sẽ tính lại dữ liệu chấm công cho {{employee}} vào ngày {{date}} sử dụng thuật toán ghép cặp và cài đặt ca làm việc mới nhất.",
+      "confirm": "Tính lại",
+      "error": "Không thể tính lại dữ liệu chấm công. Vui lòng thử lại."
+    },
+    "debug_mode_on": "Gỡ lỗi: Bật",
+    "debug_mode_off": "Gỡ lỗi: Tắt"
   },
   "patterns": {
     "title": "Mẫu lịch làm việc",

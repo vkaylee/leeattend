@@ -20,6 +20,16 @@ pub async fn create_raw_log(pool: &PgPool, log: &RawAttendanceLog) -> Result<(),
     Ok(())
 }
 
+pub async fn get_raw_log_by_id(
+    pool: &PgPool,
+    id: Uuid,
+) -> Result<Option<RawAttendanceLog>, sqlx::Error> {
+    query_as::<_, RawAttendanceLog>("SELECT * FROM raw_attendance_logs WHERE id = $1")
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+}
+
 pub async fn get_latest_log(
     pool: &PgPool,
     employee_id: Uuid,

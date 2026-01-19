@@ -334,6 +334,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(handlers::get_raw_attendance_logs),
         )
         .route(
+            "/workspaces/:ws_id/attendance/reprocess/:employee_id",
+            post(handlers::force_reprocess_attendance),
+        )
+        .route(
             "/workspaces/:ws_id/attendance/import-jobs/latest",
             get(handlers::get_latest_import_job),
         )

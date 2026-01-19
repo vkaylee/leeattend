@@ -15,19 +15,19 @@ fn standard_shift() -> PairingShiftConfig {
 #[test]
 fn test_strategies_perfect_day() {
     let logs = vec![
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 475,
             punch_type: None,
         },
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 725,
             punch_type: None,
         },
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 775,
             punch_type: None,
         },
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 1025,
             punch_type: None,
         },
@@ -54,11 +54,11 @@ fn test_strategies_perfect_day() {
 #[test]
 fn test_strategies_overtime() {
     let logs = vec![
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 436,
             punch_type: None,
         },
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 1204,
             punch_type: None,
         },
@@ -82,7 +82,7 @@ fn test_strategies_overtime() {
 
 #[test]
 fn test_strategies_missing_out() {
-    let logs = vec![LogEvent {
+    let logs = vec![LogEvent { id: uuid::Uuid::new_v4(),
         minutes: 480,
         punch_type: None,
     }];
@@ -113,19 +113,19 @@ fn test_factory_dispatch() {
     let random = pairing_algo::get_strategy("something_else");
 
     let logs = vec![
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 100,
             punch_type: None,
         },
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 200,
             punch_type: None,
         },
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 300,
             punch_type: None,
         },
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 400,
             punch_type: None,
         },
@@ -145,19 +145,19 @@ fn test_strategies_sequential() {
 
     // Case 1: 4 logs -> 2 sessions
     let logs = vec![
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 480,
             punch_type: None,
         },
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 720,
             punch_type: None,
         },
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 780,
             punch_type: None,
         },
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 1020,
             punch_type: None,
         },
@@ -171,15 +171,15 @@ fn test_strategies_sequential() {
 
     // Case 2: 3 logs -> 1 session + 1 missing
     let logs = vec![
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 480,
             punch_type: None,
         },
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 720,
             punch_type: None,
         },
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 780,
             punch_type: None,
         },
@@ -196,11 +196,11 @@ fn test_strategies_fsm() {
 
     // Case 1: Explicit In/Out
     let logs = vec![
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 480,
             punch_type: Some(0),
         }, // In
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 1020,
             punch_type: Some(1),
         }, // Out
@@ -212,15 +212,15 @@ fn test_strategies_fsm() {
 
     // Case 2: Double Check-In (Error Recovery)
     let logs = vec![
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 480,
             punch_type: Some(0),
         }, // In
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 500,
             punch_type: Some(0),
         }, // In again!
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 1020,
             punch_type: Some(1),
         }, // Out
@@ -233,19 +233,19 @@ fn test_strategies_fsm() {
 
     // Case 3: Mixed metadata (Fallback to toggle)
     let logs = vec![
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 480,
             punch_type: Some(0),
         }, // In
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 720,
             punch_type: None,
         }, // Unspecified (acts as Out)
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 780,
             punch_type: None,
         }, // Unspecified (acts as In)
-        LogEvent {
+        LogEvent { id: uuid::Uuid::new_v4(),
             minutes: 1020,
             punch_type: Some(1),
         }, // Out

@@ -123,6 +123,7 @@ impl AttendanceAdjustmentService {
                     is_break_overtime: request.is_break_overtime,
                     entry_type: "work".to_string(),
                     note: request.reason.map(|r| format!("Adjustment: {}", r)),
+                    generation_metadata: Some(serde_json::json!({ "source": "adjustment" })),
                     created_at: Utc::now(),
                     updated_at: Utc::now(),
                 };

@@ -549,6 +549,14 @@ Lấy danh sách nhật ký quẹt thẻ thô (nguyên bản) từ thiết bị 
   ]
   ```
 
+#### POST /workspaces/:ws_id/attendance/reprocess/:employee_id (New)
+Kích hoạt tính toán lại (reprocess) dữ liệu chấm công cho một nhân viên trong khoảng thời gian cụ thể.
+- **Query Params**:
+    - `start_date`: YYYY-MM-DD
+    - `end_date`: YYYY-MM-DD
+- **Mục đích**: Chạy lại thuật toán ghép cặp (pairing algorithm) dựa trên logs thô hiện có. Thường dùng khi thay đổi cấu hình thuật toán của Workspace hoặc sửa lỗi ca làm việc.
+- **Response (200 OK)**
+
 ---
 
 ### 11. Payroll & Shifts

@@ -1026,7 +1026,18 @@
     "messages": {
       "generating": "Generating report...",
       "no_data": "No data found for this period."
-    }
+    },
+    "reprocess": {
+      "button": "Recalculate",
+      "processing": "Processing...",
+      "tooltip": "Recalculate attendance for this day",
+      "confirm_title": "Recalculate Attendance?",
+      "confirm_message": "This will recalculate attendance data for {{employee}} on {{date}} using the latest pairing algorithm and shift settings.",
+      "confirm": "Recalculate",
+      "error": "Failed to recalculate attendance. Please try again."
+    },
+    "debug_mode_on": "Debug: ON",
+    "debug_mode_off": "Debug: OFF"
   },
   "patterns": {
     "title": "Working Patterns",

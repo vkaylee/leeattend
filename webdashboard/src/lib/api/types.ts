@@ -203,6 +203,7 @@ export interface DailyAttendanceReport {
   actual_punch_out: string | null;
   work_units: number;
   status: string;
+  generation_metadata?: any;
 }
 
 // --- Payroll and Shift Models ---

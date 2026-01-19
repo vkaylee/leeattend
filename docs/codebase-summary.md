@@ -72,10 +72,13 @@ leeattend/
         - **Raw Event Store**: Dedicated `raw_attendance_logs` table for immutable original punch data from hardware and imports.
         - **Pairing Engine (Strategy Pattern)**: `PairingService` handles the conversion of flat events into logical sessions using a pluggable strategy architecture:
             - **Pluggable Algorithms**: Supports `DpPatternStrategy` (intelligent matching), `AnchorFirstStrategy` (first/last), `SequentialStrategy` (chronological/retail), and `FsmStrategy` (state-based).
-            - **Morning Lookback (Overnight support)**: Backend automatically reprocesses the previous day's attendance if a log is received before 12:00 PM. This ensures morning check-outs are correctly paired with the previous night's check-ins without requiring manual reprocessing.
+            - **16-Hour Session Limit**: Enforced a 960-minute (16h) maximum gap between punches in `SequentialStrategy` and chronological fallbacks. Exceeding this limit automatically splits logs into separate "Missing Out" sessions to prevent invalid multi-day pairings.
+            - **Identity Deduplication**: Relaxed identity deduplication to only skip logs with the exact same timestamp, allowing rapid double-punches (e.g., 1s apart) which are common in retail environments.
+            - **Morning Lookback (Overnight support)**: Backend automatically reprocesses the previous day's attendance if a log is received before 12:00 PM.
+            - **Pairing Traceability**: Time entries now persist `generation_metadata` (JSONB) including the algorithm name and the IDs of source `raw_attendance_logs`.
+            - **Traceability UI (BSON Detail)**: Integrated a "Debug Mode" in Attendance Reports that visualizes the pairing metadata and raw source data for auditability.
+            - **Manual Reprocessing API**: Dedicated endpoint `POST /attendance/reprocess/:employee_id` allows admins to trigger recalculations for specific date ranges after shift or algorithm changes.
             - **Metadata-Aware**: Algorithms use the `LogEvent` structure to access `punch_type` information (Status) from devices, enabling explicit intent-based pairing.
-            - **Workspace Selection**: Users can configure the preferred algorithm per workspace to match their specific business environment (Office, Factory, Retail, Professional Hardware).
-            - **High-Penalty Matching**: Optimized the DP algorithm with a 300-minute unmatched log penalty to correctly capture extreme overtime scenarios.
         - **Accurate Calculation Engine**: `AttendanceCalculator` implements a high-precision **Integer Work Unit (WU)** strategy:
             - **Atomic Integer Units**: All internal calculations (Standard, OT) are performed in strictly integer units. Fractional units (e.g., 1.5 units) are physically impossible in the data layer.
             - **Unit-Based Rounding**: Uses workspace-specific `work_unit_minutes` (e.g., 15, 30, 60m) to convert raw minutes to units using configurable policies (`Floor`, `Ceil`, `Round`).

@@ -91,6 +91,7 @@ impl TimeTrackingService {
             is_break_overtime: final_is_break_overtime,
             entry_type: req.entry_type.unwrap_or_else(|| "work".to_string()),
             note: req.note,
+            generation_metadata: Some(serde_json::json!({ "source": "direct_punch" })),
             created_at: now,
             updated_at: now,
         };

@@ -411,6 +411,7 @@ pub struct TimeEntry {
     pub is_break_overtime: bool,
     pub entry_type: String,
     pub note: Option<String>,
+    pub generation_metadata: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -570,6 +571,7 @@ pub struct DailyAttendanceReport {
     pub actual_punch_out: Option<DateTime<Utc>>,
     pub work_units: i32,
     pub status: String,
+    pub generation_metadata: Option<serde_json::Value>,
 }
 
 // --- Payroll and Shift Models ---

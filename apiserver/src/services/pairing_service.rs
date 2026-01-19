@@ -15,25 +15,21 @@ impl PairingService {
         pool: &PgPool,
         log: &RawAttendanceLog,
     ) -> Result<(), sqlx::Error> {
-        // 1. Deduplication (1 minute window)
-        let start_window = log.punch_time - Duration::minutes(1);
-        let end_window = log.punch_time + Duration::minutes(1);
-
+        // 1. Deduplication (exact match check)
+        // We only skip if there is a log at the EXACT same timestamp to avoid database unique constraint or redundant work.
         let is_duplicate = sqlx::query_scalar!(
             r#"
             SELECT EXISTS (
                 SELECT 1 FROM raw_attendance_logs 
                 WHERE employee_id = $1 
                 AND id != $2
-                AND punch_time >= $3
-                AND punch_time <= $4
+                AND punch_time = $3
                 LIMIT 1
             )
             "#,
             log.employee_id,
             log.id,
-            start_window,
-            end_window
+            log.punch_time
         )
         .fetch_one(pool)
         .await?
@@ -41,7 +37,7 @@ impl PairingService {
 
         if is_duplicate {
             info!(
-                "Deduplicating log {} for employee {}. Found another log within 1m window.",
+                "Deduplicating log {} for employee {}. Found another log with identical timestamp.",
                 log.id, log.employee_id
             );
             return Ok(());
@@ -149,9 +145,28 @@ impl PairingService {
         let end_of_window_utc = start_of_day_utc + Duration::hours(36);
 
         let logs = sqlx::query!(
-            "SELECT punch_time, (raw_data->'punch')::text as punch_str FROM raw_attendance_logs WHERE employee_id = $1 AND punch_time >= $2 AND punch_time < $3 ORDER BY punch_time ASC",
+            "SELECT id, punch_time, (raw_data->'punch')::text as punch_str FROM raw_attendance_logs WHERE employee_id = $1 AND punch_time >= $2 AND punch_time < $3 ORDER BY punch_time ASC",
             employee_id,
             start_of_day_utc,
+            end_of_window_utc
+        )
+        .fetch_all(pool)
+        .await?;
+
+        // 2b. Identify logs already "claimed" by existing sessions outside this reprocess window
+        // Sessions starting before today but ending today/tomorrow
+        let claimed_out_times = sqlx::query_scalar!(
+            "SELECT punch_out_time FROM time_entries WHERE employee_id = $1 AND punch_in_time < $2 AND punch_out_time >= $2",
+            employee_id,
+            start_of_day_utc
+        )
+        .fetch_all(pool)
+        .await?;
+        
+        // Sessions starting after our window
+        let claimed_in_times = sqlx::query_scalar!(
+            "SELECT punch_in_time FROM time_entries WHERE employee_id = $1 AND punch_in_time >= $2",
+            employee_id,
             end_of_window_utc
         )
         .fetch_all(pool)
@@ -164,9 +179,18 @@ impl PairingService {
 
             for log in logs {
                 if let Some(lt) = last_time {
-                    if log.punch_time.signed_duration_since(lt) <= Duration::minutes(1) {
+                    if log.punch_time == lt {
                         continue;
                     }
+                }
+
+                // Check if this log is already claimed (matching to the minute)
+                let rounded_log_utc = log.punch_time.with_nanosecond(0).unwrap().with_second(0).unwrap();
+                let is_claimed_out = claimed_out_times.iter().any(|t| t.map(|v| v == rounded_log_utc).unwrap_or(false));
+                let is_claimed_in = claimed_in_times.contains(&rounded_log_utc);
+
+                if is_claimed_out || is_claimed_in {
+                    continue;
                 }
 
                 // Linearize: minutes since start_of_day_local
@@ -177,6 +201,7 @@ impl PairingService {
                 let punch_type = log.punch_str.and_then(|s| s.parse::<i32>().ok());
 
                 filtered_log_events.push(pairing_algo::LogEvent {
+                    id: log.id,
                     minutes: duration_since_start.num_minutes() as i32,
                     punch_type,
                 });
@@ -230,8 +255,8 @@ impl PairingService {
             sqlx::query!(
                 r#"
                 INSERT INTO time_entries 
-                (id, employee_id, shift_id, punch_in_time, punch_out_time, duration_minutes, entry_type, note, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+                (id, employee_id, shift_id, punch_in_time, punch_out_time, duration_minutes, entry_type, note, generation_metadata, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
                 "#,
                 Uuid::new_v4(),
                 employee_id,
@@ -240,7 +265,8 @@ impl PairingService {
                 end_dt,
                 duration,
                 session.entry_type,
-                session.note
+                session.note,
+                session.metadata
             )
             .execute(&mut *tx)
             .await?;
@@ -269,33 +295,52 @@ impl PairingService {
         logs: &[pairing_algo::LogEvent],
     ) -> Vec<pairing_algo::PairedSession> {
         let mut sessions = Vec::new();
+        let mut i = 0;
+        while i < logs.len() {
+            let current = &logs[i];
+            if i + 1 < logs.len() {
+                let next = &logs[i + 1];
+                let diff = next.minutes - current.minutes;
 
-        let mut chunks = logs.chunks_exact(2);
-
-        for chunk in chunks.by_ref() {
-            sessions.push(pairing_algo::PairedSession {
-                start_minutes: chunk[0].minutes,
-
-                end_minutes: Some(chunk[1].minutes),
-
-                entry_type: "work".to_string(),
-
-                note: Some("No Shift - Auto Paired".to_string()),
-            });
+                if diff <= 960 {
+                    sessions.push(pairing_algo::PairedSession {
+                        start_minutes: current.minutes,
+                        end_minutes: Some(next.minutes),
+                        entry_type: "work".to_string(),
+                        note: Some("No Shift - Auto Paired".to_string()),
+                        metadata: Some(serde_json::json!({
+                            "algorithm": "chronological",
+                            "log_ids": vec![current.id, next.id]
+                        })),
+                    });
+                    i += 2;
+                } else {
+                    sessions.push(pairing_algo::PairedSession {
+                        start_minutes: current.minutes,
+                        end_minutes: None,
+                        entry_type: "work".to_string(),
+                        note: Some("No Shift - Missing Out (Gap)".to_string()),
+                        metadata: Some(serde_json::json!({
+                            "algorithm": "chronological",
+                            "log_ids": vec![current.id]
+                        })),
+                    });
+                    i += 1;
+                }
+            } else {
+                sessions.push(pairing_algo::PairedSession {
+                    start_minutes: current.minutes,
+                    end_minutes: None,
+                    entry_type: "work".to_string(),
+                    note: Some("No Shift - Missing Out".to_string()),
+                    metadata: Some(serde_json::json!({
+                        "algorithm": "chronological",
+                        "log_ids": vec![current.id]
+                    })),
+                });
+                i += 1;
+            }
         }
-
-        if let Some(last) = chunks.remainder().first() {
-            sessions.push(pairing_algo::PairedSession {
-                start_minutes: last.minutes,
-
-                end_minutes: None,
-
-                entry_type: "work".to_string(),
-
-                note: Some("No Shift - Missing Out".to_string()),
-            });
-        }
-
         sessions
     }
 }

@@ -18,16 +18,19 @@ pub struct PairedSession {
     pub end_minutes: Option<i32>,
     pub entry_type: String, // "work"
     pub note: Option<String>,
+    pub metadata: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LogEvent {
+    pub id: uuid::Uuid,
     pub minutes: i32,
     pub punch_type: Option<i32>, // 0: Check-In, 1: Check-Out, 2: Break-In, 3: Break-Out, 4: Overtime-In, 5: Overtime-Out
 }
 
 pub trait PairingStrategy: Send + Sync {
     fn pair(&self, logs: &[LogEvent], config: Option<&PairingShiftConfig>) -> Vec<PairedSession>;
+    fn algorithm_name(&self) -> &'static str;
 }
 
 pub struct DpPatternStrategy;
@@ -48,6 +51,10 @@ pub fn get_strategy(algorithm: &str) -> Box<dyn PairingStrategy> {
 // --- DpPatternStrategy Implementation ---
 
 impl PairingStrategy for DpPatternStrategy {
+    fn algorithm_name(&self) -> &'static str {
+        "dp_pattern"
+    }
+
     fn pair(&self, logs: &[LogEvent], config: Option<&PairingShiftConfig>) -> Vec<PairedSession> {
         if logs.is_empty() {
             return vec![];
@@ -75,6 +82,12 @@ impl PairingStrategy for DpPatternStrategy {
             }
         }
 
+        // Map log IDs to best sessions (This is complex for DP, we'll implement mapping logic)
+        // For simplicity in MVP, we just label the algorithm
+        for s in best_sessions.iter_mut() {
+            s.metadata = Some(serde_json::json!({ "algorithm": self.algorithm_name() }));
+        }
+
         best_sessions
     }
 }
@@ -82,6 +95,10 @@ impl PairingStrategy for DpPatternStrategy {
 // --- AnchorFirstStrategy Implementation ---
 
 impl PairingStrategy for AnchorFirstStrategy {
+    fn algorithm_name(&self) -> &'static str {
+        "anchor_first"
+    }
+
     fn pair(&self, logs: &[LogEvent], _config: Option<&PairingShiftConfig>) -> Vec<PairedSession> {
         if logs.is_empty() {
             return vec![];
@@ -94,6 +111,11 @@ impl PairingStrategy for AnchorFirstStrategy {
             None
         };
 
+        let mut log_ids = vec![logs[0].id];
+        if logs.len() > 1 {
+            log_ids.push(logs[logs.len() - 1].id);
+        }
+
         vec![PairedSession {
             start_minutes: start,
             end_minutes: end,
@@ -103,6 +125,10 @@ impl PairingStrategy for AnchorFirstStrategy {
             } else {
                 None
             },
+            metadata: Some(serde_json::json!({
+                "algorithm": self.algorithm_name(),
+                "log_ids": log_ids
+            })),
         }]
     }
 }
@@ -110,26 +136,62 @@ impl PairingStrategy for AnchorFirstStrategy {
 // --- SequentialStrategy Implementation ---
 
 impl PairingStrategy for SequentialStrategy {
+    fn algorithm_name(&self) -> &'static str {
+        "sequential"
+    }
+
     fn pair(&self, logs: &[LogEvent], _config: Option<&PairingShiftConfig>) -> Vec<PairedSession> {
         let mut sessions = Vec::new();
-        let mut chunks = logs.chunks_exact(2);
-
-        for chunk in chunks.by_ref() {
-            sessions.push(PairedSession {
-                start_minutes: chunk[0].minutes,
-                end_minutes: Some(chunk[1].minutes),
-                entry_type: "work".to_string(),
-                note: None,
-            });
-        }
-
-        if let Some(last) = chunks.remainder().first() {
-            sessions.push(PairedSession {
-                start_minutes: last.minutes,
-                end_minutes: None,
-                entry_type: "work".to_string(),
-                note: Some("Missing Punch Out".to_string()),
-            });
+        // Use a window of 2 to manually inspect pairs
+        let mut i = 0;
+        while i < logs.len() {
+            let current = &logs[i];
+            
+            if i + 1 < logs.len() {
+                let next = &logs[i+1];
+                let diff = next.minutes - current.minutes;
+                
+                // If diff <= 16 hours (960 mins), treat as a pair
+                if diff <= 960 {
+                    sessions.push(PairedSession {
+                        start_minutes: current.minutes,
+                        end_minutes: Some(next.minutes),
+                        entry_type: "work".to_string(),
+                        note: None,
+                        metadata: Some(serde_json::json!({
+                            "algorithm": self.algorithm_name(),
+                            "log_ids": vec![current.id, next.id]
+                        })),
+                    });
+                    i += 2;
+                } else {
+                    // Too far apart, treat current as missing out
+                    sessions.push(PairedSession {
+                        start_minutes: current.minutes,
+                        end_minutes: None,
+                        entry_type: "work".to_string(),
+                        note: Some("Missing Punch Out".to_string()),
+                        metadata: Some(serde_json::json!({
+                            "algorithm": self.algorithm_name(),
+                            "log_ids": vec![current.id]
+                        })),
+                    });
+                    i += 1;
+                }
+            } else {
+                // Last element
+                sessions.push(PairedSession {
+                    start_minutes: current.minutes,
+                    end_minutes: None,
+                    entry_type: "work".to_string(),
+                    note: Some("Missing Punch Out".to_string()),
+                    metadata: Some(serde_json::json!({
+                        "algorithm": self.algorithm_name(),
+                        "log_ids": vec![current.id]
+                    })),
+                });
+                i += 1;
+            }
         }
 
         sessions
@@ -139,13 +201,17 @@ impl PairingStrategy for SequentialStrategy {
 // --- FsmStrategy Implementation ---
 
 impl PairingStrategy for FsmStrategy {
+    fn algorithm_name(&self) -> &'static str {
+        "fsm"
+    }
+
     fn pair(&self, logs: &[LogEvent], _config: Option<&PairingShiftConfig>) -> Vec<PairedSession> {
         if logs.is_empty() {
             return vec![];
         }
 
         let mut sessions = Vec::new();
-        let mut current_start: Option<i32> = None;
+        let mut current_start: Option<&LogEvent> = None;
 
         for event in logs {
             match event.punch_type {
@@ -154,22 +220,30 @@ impl PairingStrategy for FsmStrategy {
                     // If already have a start, close it as missing out
                     if let Some(start) = current_start {
                         sessions.push(PairedSession {
-                            start_minutes: start,
+                            start_minutes: start.minutes,
                             end_minutes: None,
                             entry_type: "work".to_string(),
                             note: Some("Missing Punch Out".to_string()),
+                            metadata: Some(serde_json::json!({
+                                "algorithm": self.algorithm_name(),
+                                "log_ids": vec![start.id]
+                            })),
                         });
                     }
-                    current_start = Some(event.minutes);
+                    current_start = Some(event);
                 }
                 Some(1) | Some(3) | Some(5) => {
                     // Out types
                     if let Some(start) = current_start {
                         sessions.push(PairedSession {
-                            start_minutes: start,
+                            start_minutes: start.minutes,
                             end_minutes: Some(event.minutes),
                             entry_type: "work".to_string(),
                             note: None,
+                            metadata: Some(serde_json::json!({
+                                "algorithm": self.algorithm_name(),
+                                "log_ids": vec![start.id, event.id]
+                            })),
                         });
                         current_start = None;
                     } else {
@@ -179,6 +253,10 @@ impl PairingStrategy for FsmStrategy {
                             end_minutes: Some(event.minutes),
                             entry_type: "work".to_string(),
                             note: Some("Missing Punch In".to_string()),
+                            metadata: Some(serde_json::json!({
+                                "algorithm": self.algorithm_name(),
+                                "log_ids": vec![event.id]
+                            })),
                         });
                     }
                 }
@@ -186,14 +264,18 @@ impl PairingStrategy for FsmStrategy {
                     // Fallback to toggle behavior if no metadata
                     if let Some(start) = current_start {
                         sessions.push(PairedSession {
-                            start_minutes: start,
+                            start_minutes: start.minutes,
                             end_minutes: Some(event.minutes),
                             entry_type: "work".to_string(),
                             note: None,
+                            metadata: Some(serde_json::json!({
+                                "algorithm": self.algorithm_name(),
+                                "log_ids": vec![start.id, event.id]
+                            })),
                         });
                         current_start = None;
                     } else {
-                        current_start = Some(event.minutes);
+                        current_start = Some(event);
                     }
                 }
             }
@@ -201,10 +283,14 @@ impl PairingStrategy for FsmStrategy {
 
         if let Some(start) = current_start {
             sessions.push(PairedSession {
-                start_minutes: start,
+                start_minutes: start.minutes,
                 end_minutes: None,
                 entry_type: "work".to_string(),
                 note: Some("Missing Punch Out".to_string()),
+                metadata: Some(serde_json::json!({
+                    "algorithm": self.algorithm_name(),
+                    "log_ids": vec![start.id]
+                })),
             });
         }
 
@@ -430,6 +516,7 @@ fn build_sessions(actions: Vec<MatchAction>, slots: &[PatternSlot]) -> Vec<Paire
                             end_minutes: Some(end),
                             entry_type: "work".to_string(),
                             note: None,
+                            metadata: None,
                         });
                     } else {
                         sessions.push(PairedSession {
@@ -437,6 +524,7 @@ fn build_sessions(actions: Vec<MatchAction>, slots: &[PatternSlot]) -> Vec<Paire
                             end_minutes: None,
                             entry_type: "work".to_string(),
                             note: Some("Missing Punch Out".to_string()),
+                            metadata: None,
                         });
                     }
                     current_start = None;
@@ -446,6 +534,7 @@ fn build_sessions(actions: Vec<MatchAction>, slots: &[PatternSlot]) -> Vec<Paire
                         end_minutes: Some(end),
                         entry_type: "work".to_string(),
                         note: Some("Missing Punch In".to_string()),
+                        metadata: None,
                     });
                 }
             }
@@ -457,6 +546,7 @@ fn build_sessions(actions: Vec<MatchAction>, slots: &[PatternSlot]) -> Vec<Paire
 #[cfg(test)]
 mod tests {
     use super::*;
+    use uuid::Uuid;
 
     fn standard_shift() -> PairingShiftConfig {
         PairingShiftConfig {
@@ -473,18 +563,22 @@ mod tests {
         let shift = standard_shift();
         let logs = vec![
             LogEvent {
+                id: Uuid::new_v4(),
                 minutes: 475,
                 punch_type: None,
             },
             LogEvent {
+                id: Uuid::new_v4(),
                 minutes: 725,
                 punch_type: None,
             },
             LogEvent {
+                id: Uuid::new_v4(),
                 minutes: 775,
                 punch_type: None,
             },
             LogEvent {
+                id: Uuid::new_v4(),
                 minutes: 1025,
                 punch_type: None,
             },
@@ -504,18 +598,22 @@ mod tests {
         let strategy = AnchorFirstStrategy;
         let logs = vec![
             LogEvent {
+                id: Uuid::new_v4(),
                 minutes: 475,
                 punch_type: None,
             },
             LogEvent {
+                id: Uuid::new_v4(),
                 minutes: 725,
                 punch_type: None,
             },
             LogEvent {
+                id: Uuid::new_v4(),
                 minutes: 775,
                 punch_type: None,
             },
             LogEvent {
+                id: Uuid::new_v4(),
                 minutes: 1025,
                 punch_type: None,
             },

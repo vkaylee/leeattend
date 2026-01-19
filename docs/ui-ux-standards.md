@@ -146,4 +146,21 @@ Pattern dùng cho các bảng dữ liệu lớn (Roster, Logs):
 
 ---
 
-## 9. Cá nhân hóa (Personalization)
+---
+
+## 10. Debug Suite & Traceability (New)
+
+Thiết kế dành cho quản trị viên và kỹ thuật viên để kiểm toán (audit) logic hệ thống.
+
+### 10.1. Developer Toolbar
+Một floating action button ở góc dưới bên phải màn hình (`z-[9999]`). Toolbar cung cấp các công cụ:
+- **Identity**: Chuyển đổi nhanh vai trò (Owner/Admin/Member) hoặc giả lập (impersonate) một user cụ thể.
+- **Time Travel**: Giả lập thời gian hệ thống để kiểm tra logic tính lương/phép trong tương lai.
+- **Database Utilities**: Các thao tác dọn dẹp nhanh (Wipe logs/payroll) để phục vụ testing.
+
+### 10.2. Traceability UI (BSON Visibility)
+Nguyên tắc hiển thị nguồn gốc dữ liệu mà không làm rối người dùng thông thường.
+- **Pattern**: Thêm một cột "Debug Info" (ẩn mặc định) trong các bảng báo cáo quan trọng (Attendance Reports).
+- **Detail Level**: Sử dụng cơ chế **Expandable Rows**. Khi nhấn vào icon Debug, một vùng nội dung mới sẽ mở ra bên dưới dòng hiện tại.
+- **Visual Style**: Sử dụng Terminal-style box (nền `slate-900`, chữ `emerald-400`, font `mono`) để hiển thị JSON metadata thô.
+- **Activation**: Chỉ hiển thị cột Debug và các thành phần liên quan khi "Global Debug Mode" được kích hoạt từ Developer Toolbar.

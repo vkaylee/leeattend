@@ -214,3 +214,19 @@ export async function fetchImportJobStatus(
   if (!response.ok) throw new Error("Failed to fetch import job status");
   return response.json();
 }
+
+export async function reprocessAttendance(
+  wsId: string,
+  employeeId: string,
+  startDate: string,
+  endDate: string
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/attendance/reprocess/${employeeId}?start_date=${startDate}&end_date=${endDate}`,
+    {
+      method: "POST",
+    }
+  );
+  if (!response.ok) throw new Error("Failed to reprocess attendance");
+}
+

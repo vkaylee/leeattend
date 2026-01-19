@@ -371,6 +371,57 @@ pub async fn get_import_job_status(
     Ok(Json(job))
 }
 
+#[derive(Deserialize)]
+pub struct ReprocessQuery {
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+}
+
+pub async fn force_reprocess_attendance(
+    State(state): State<Arc<AppState>>,
+    Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
+    Query(query): Query<ReprocessQuery>,
+) -> Result<impl IntoResponse, StatusCode> {
+    if !ctx.is_admin_or_owner() {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    let workspace = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
+        pool: state.db.clone(),
+    }
+    .get_workspace_by_id(ctx.workspace_id)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    .ok_or(StatusCode::NOT_FOUND)?;
+
+    let tz: chrono_tz::Tz = workspace
+        .timezone
+        .parse()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let mut curr_date = query.start_date;
+    while curr_date <= query.end_date {
+        crate::services::pairing_service::PairingService::reprocess_daily_attendance(
+            &state.db,
+            employee_id,
+            curr_date,
+            tz,
+            &workspace.pairing_algorithm,
+        )
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        if let Some(next) = curr_date.succ_opt() {
+            curr_date = next;
+        } else {
+            break;
+        }
+    }
+
+    Ok(StatusCode::OK)
+}
+
 pub async fn submit_attendance_adjustment(
     Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,

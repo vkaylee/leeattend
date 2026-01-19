@@ -142,6 +142,17 @@ impl ReportService {
                     status = "off".to_string();
                 }
 
+                // Collect metadata from all entries for this day
+                let metadata_list: Vec<_> = day_entries
+                    .iter()
+                    .filter_map(|e| e.generation_metadata.clone())
+                    .collect();
+                let combined_metadata = if metadata_list.is_empty() {
+                    None
+                } else {
+                    Some(serde_json::json!(metadata_list))
+                };
+
                 reports.push(DailyAttendanceReport {
                     date,
                     employee_id: emp_sched.employee_id,
@@ -156,6 +167,7 @@ impl ReportService {
                     actual_punch_out: actual_punch_out.map(|t| t.with_timezone(&Utc)),
                     work_units: total_payable_units,
                     status,
+                    generation_metadata: combined_metadata,
                 });
             }
         }

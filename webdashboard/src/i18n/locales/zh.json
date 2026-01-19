@@ -1023,7 +1023,18 @@
     "messages": {
       "generating": "正在生成报告...",
       "no_data": "该时间段内无数据。"
-    }
+    },
+    "reprocess": {
+      "button": "重新计算",
+      "processing": "处理中...",
+      "tooltip": "重新计算当天的考勤数据",
+      "confirm_title": "重新计算考勤数据？",
+      "confirm_message": "系统将使用最新的配对算法和班次设置为 {{employee}} 重新计算 {{date}} 的考勤数据。",
+      "confirm": "重新计算",
+      "error": "无法重新计算考勤数据。请重试。"
+    },
+    "debug_mode_on": "调试模式：开启",
+    "debug_mode_off": "调试模式：关闭"
   },
   "patterns": {
     "title": "工作模式",

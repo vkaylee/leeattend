@@ -5,6 +5,22 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Attendance Pairing Traceability**:
+    - Added `generation_metadata` (JSONB) to `time_entries` table to track the pairing algorithm and source logs.
+    - Implemented a "Debug Mode" in Attendance Reports to visualize pairing metadata and BSON source data directly in the UI.
+    - Integrated report traceability into the global **Debug Suite** for developers.
+- **Manual Attendance Reprocessing**:
+    - New API endpoint `POST /api/workspaces/:ws_id/attendance/reprocess/:employee_id` to trigger manual pairing recalculation for a specific date range.
+    - Added a "Recalculate" button in the Attendance Report UI with confirmation dialogs.
+
+### Fixed
+- **Attendance Pairing Engine**:
+    - Resolved "Log Stealing" bug where 36-hour search windows caused overlaps between adjacent days.
+    - Implemented a **16-Hour Gap Limit** (960 minutes) in `SequentialStrategy` to prevent aggressive pairing of punches across multi-day gaps.
+    - Relaxed identity deduplication to allow rapid double-punches (different timestamps) while still preventing exact duplicate log entries.
+    - Fixed a Clippy linting error (`manual-contains`) in `pairing_service.rs` for better performance.
+
+### Added
 - **Hierarchical 3-tier Temporal Payroll**:
     - New schema for versioned payroll settings at Individual, Department, and Workspace levels.
     - `PolicyResolver` domain service for point-in-time rule resolution.
