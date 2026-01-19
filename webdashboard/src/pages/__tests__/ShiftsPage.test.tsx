@@ -21,6 +21,7 @@ vi.mock("../../lib/api", () => ({
   bulkUpsertRoster: vi.fn(),
   deleteRoster: vi.fn(),
   getCurrentWorkspaceId: vi.fn(),
+  fetchWorkingPatterns: vi.fn(),
 }));
 
 // Mock date-fns functions
@@ -72,6 +73,7 @@ vi.mock("react-i18next", () => ({
         "common.cancel": "Cancel",
         "common.break": "Break",
         "common.minutes": "minutes",
+        "common.search_employee": "Search employees...",
       };
       return translations[key] || key;
     },
@@ -84,8 +86,6 @@ vi.mock("@/hooks/use-datetime", () => ({
   useDateTimeFormatter: () => ({
     formatDate: (date: Date | string) => {
       const d = typeof date === "string" ? new Date(date) : date;
-      // Mocking the behavior of useDateTimeFormatter which uses workspace format
-      // In tests, we'll just use DD/MM/YYYY as default mock
       const day = String(d.getDate()).padStart(2, '0');
       const month = String(d.getMonth() + 1).padStart(2, '0');
       const year = d.getFullYear();
@@ -185,6 +185,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
     (api.fetchWorkspaceSchedules as any).mockResolvedValue(mockSchedules);
     (api.fetchAssignmentHistory as any).mockResolvedValue([]);
     (api.bulkUpsertRoster as any).mockResolvedValue({});
+    (api.fetchWorkingPatterns as any).mockResolvedValue([]);
   });
 
   const renderShiftsPage = () => {
@@ -199,6 +200,16 @@ describe("ShiftsPage - Shift Picker Modal", () => {
     );
   };
 
+  const selectEmployee = async (user: any, employeeId: string) => {
+    await waitFor(() => {
+      const select = screen.getByTestId("employee-select");
+      // Use queryAllByRole to check for options
+      expect(within(select).queryAllByRole("option").length).toBeGreaterThan(1);
+    });
+    const employeeSelect = screen.getByTestId("employee-select");
+    await user.selectOptions(employeeSelect, employeeId);
+  };
+
   describe("Shift Picker Modal - Unit Tests", () => {
     it("should render weekly roster tab by default", async () => {
       renderShiftsPage();
@@ -208,12 +219,13 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       });
     });
 
-    it("should show employee list", async () => {
+    it("should show employee options in select", async () => {
       renderShiftsPage();
 
       await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeDefined();
-        expect(screen.getByText("Jane Smith")).toBeDefined();
+        const select = screen.getByTestId("employee-select");
+        expect(within(select).getByText("John Doe")).toBeDefined();
+        expect(within(select).getByText("Jane Smith")).toBeDefined();
       });
     });
 
@@ -221,14 +233,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       const user = userEvent.setup();
       renderShiftsPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeDefined();
-      });
-
-      const employeeButton = screen.getByText("John Doe").closest("button");
-      expect(employeeButton).toBeDefined();
-
-      await user.click(employeeButton!);
+      await selectEmployee(user, "emp-1");
 
       await waitFor(() => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
@@ -239,28 +244,18 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       const user = userEvent.setup();
       renderShiftsPage();
 
-      // Select employee first
-      await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeDefined();
-      });
+      await selectEmployee(user, "emp-1");
 
-      const employeeButton = screen.getByText("John Doe").closest("button");
-      await user.click(employeeButton!);
-
-      // Wait for weekly roster to load
       await waitFor(() => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
       });
 
-      // Find and click on day cards
       const dayCards = screen.getAllByRole("generic").filter(el =>
         el.className.includes("rounded-[32px]") && el.className.includes("cursor-pointer")
       );
 
-      // Click first day
       if (dayCards.length > 0) {
         await user.click(dayCards[0]);
-
         await waitFor(() => {
           expect(screen.getByText("1 days selected")).toBeDefined();
         });
@@ -271,25 +266,18 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       const user = userEvent.setup();
       renderShiftsPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeDefined();
-      });
-
-      const employeeButton = screen.getByText("John Doe").closest("button");
-      await user.click(employeeButton!);
+      await selectEmployee(user, "emp-1");
 
       await waitFor(() => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
       });
 
-      // Simulate day selection by clicking on a day card
       const dayCards = screen.getAllByRole("generic").filter(el =>
         el.className.includes("rounded-[32px]") && el.className.includes("cursor-pointer")
       );
 
       if (dayCards.length > 0) {
         await user.click(dayCards[0]);
-
         await waitFor(() => {
           expect(screen.getByText("Assign shift to selected")).toBeDefined();
         });
@@ -300,28 +288,20 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       const user = userEvent.setup();
       renderShiftsPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeDefined();
-      });
-
-      const employeeButton = screen.getByText("John Doe").closest("button");
-      await user.click(employeeButton!);
+      await selectEmployee(user, "emp-1");
 
       await waitFor(() => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
       });
 
-      // Click on a day to select it
       const dayCards = screen.getAllByRole("generic").filter(el =>
         el.className.includes("rounded-[32px]") && el.className.includes("cursor-pointer")
       );
 
       if (dayCards.length > 0) {
         await user.click(dayCards[0]);
-
         const assignButton = await screen.findByText("Assign shift to selected");
         await user.click(assignButton.closest("button")!);
-
         await waitFor(() => {
           expect(screen.getByText("Select Work Shift")).toBeDefined();
         });
@@ -332,12 +312,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       const user = userEvent.setup();
       renderShiftsPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeDefined();
-      });
-
-      const employeeButton = screen.getByText("John Doe").closest("button");
-      await user.click(employeeButton!);
+      await selectEmployee(user, "emp-1");
 
       await waitFor(() => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
@@ -349,14 +324,13 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
       if (dayCards.length > 0) {
         await user.click(dayCards[0]);
-
         const assignButton = await screen.findByText("Assign shift to selected");
-                await user.click(assignButton.closest("button")!);
-                await waitFor(() => {
-                  expect(screen.getAllByText("Morning Shift").length).toBeGreaterThan(0);
-                  expect(screen.getAllByText("Afternoon Shift").length).toBeGreaterThan(0);
-                  expect(screen.getAllByText("Night Shift").length).toBeGreaterThan(0);
-                });
+        await user.click(assignButton.closest("button")!);
+        await waitFor(() => {
+          expect(screen.getAllByText("Morning Shift").length).toBeGreaterThan(0);
+          expect(screen.getAllByText("Afternoon Shift").length).toBeGreaterThan(0);
+          expect(screen.getAllByText("Night Shift").length).toBeGreaterThan(0);
+        });
       }
     });
 
@@ -364,12 +338,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       const user = userEvent.setup();
       renderShiftsPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeDefined();
-      });
-
-      const employeeButton = screen.getByText("John Doe").closest("button");
-      await user.click(employeeButton!);
+      await selectEmployee(user, "emp-1");
 
       await waitFor(() => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
@@ -381,13 +350,10 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
       if (dayCards.length > 0) {
         await user.click(dayCards[0]);
-
         const assignButton = await screen.findByText("Assign shift to selected");
         await user.click(assignButton.closest("button")!);
-
         await waitFor(() => {
-          const offText = screen.getAllByText("OFF");
-          expect(offText.length).toBeGreaterThan(0);
+          expect(screen.getAllByText("OFF").length).toBeGreaterThan(0);
           expect(screen.getByText("Mark selected days as off/rest day")).toBeDefined();
         });
       }
@@ -397,12 +363,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       const user = userEvent.setup();
       renderShiftsPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeDefined();
-      });
-
-      const employeeButton = screen.getByText("John Doe").closest("button");
-      await user.click(employeeButton!);
+      await selectEmployee(user, "emp-1");
 
       await waitFor(() => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
@@ -414,10 +375,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
       if (dayCards.length > 0) {
         await user.click(dayCards[0]);
-
         const assignButton = await screen.findByText("Assign shift to selected");
         await user.click(assignButton.closest("button")!);
-
         await waitFor(() => {
           expect(screen.getByText("Select Work Shift")).toBeDefined();
         });
@@ -425,7 +384,6 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         const cancelButtons = screen.getAllByText("Cancel");
         if (cancelButtons.length > 0) {
           await user.click(cancelButtons[0].closest("button")!);
-
           await waitFor(() => {
             expect(screen.queryByText("Select Work Shift")).toBeNull();
           });
@@ -437,12 +395,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       const user = userEvent.setup();
       renderShiftsPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeDefined();
-      });
-
-      const employeeButton = screen.getByText("John Doe").closest("button");
-      await user.click(employeeButton!);
+      await selectEmployee(user, "emp-1");
 
       await waitFor(() => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
@@ -454,10 +407,8 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
       if (dayCards.length > 0) {
         await user.click(dayCards[0]);
-
         const assignButton = await screen.findByText("Assign shift to selected");
         await user.click(assignButton.closest("button")!);
-
         await waitFor(() => {
           expect(screen.getByText("Select Work Shift")).toBeDefined();
         });
@@ -465,13 +416,9 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         const cancelButtons = screen.getAllByText("Cancel");
         if (cancelButtons.length > 0) {
           await user.click(cancelButtons[0].closest("button")!);
-
-          // Wait for modal to close
           await waitFor(() => {
             expect(screen.queryByText("Select Work Shift")).toBeNull();
           });
-
-          // Selected days should still be visible after cancel
           await waitFor(() => {
             expect(screen.getByText("1 days selected")).toBeDefined();
           });
@@ -485,12 +432,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       const user = userEvent.setup();
       renderShiftsPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeDefined();
-      });
-
-      const employeeButton = screen.getByText("John Doe").closest("button");
-      await user.click(employeeButton!);
+      await selectEmployee(user, "emp-1");
 
       await waitFor(() => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
@@ -502,7 +444,6 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
       if (dayCards.length > 0) {
         await user.click(dayCards[0]);
-
         const assignButton = await screen.findByText("Assign shift to selected");
         await user.click(assignButton.closest("button")!);
 
@@ -515,9 +456,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
             "test-ws-id",
             "emp-1",
             expect.arrayContaining([
-              expect.objectContaining({
-                shift_id: "shift-1",
-              })
+              expect.objectContaining({ shift_id: "shift-1" })
             ])
           );
         });
@@ -528,12 +467,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       const user = userEvent.setup();
       renderShiftsPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeDefined();
-      });
-
-      const employeeButton = screen.getByText("John Doe").closest("button");
-      await user.click(employeeButton!);
+      await selectEmployee(user, "emp-1");
 
       await waitFor(() => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
@@ -545,7 +479,6 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
       if (dayCards.length > 0) {
         await user.click(dayCards[0]);
-
         const assignButton = await screen.findByText("Assign shift to selected");
         await user.click(assignButton.closest("button")!);
 
@@ -561,9 +494,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
             "test-ws-id",
             "emp-1",
             expect.arrayContaining([
-              expect.objectContaining({
-                shift_id: null,
-              })
+              expect.objectContaining({ shift_id: null })
             ])
           );
         });
@@ -574,12 +505,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       const user = userEvent.setup();
       renderShiftsPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeDefined();
-      });
-
-      const employeeButton = screen.getByText("John Doe").closest("button");
-      await user.click(employeeButton!);
+      await selectEmployee(user, "emp-1");
 
       await waitFor(() => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
@@ -591,7 +517,6 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
       if (dayCards.length > 0) {
         await user.click(dayCards[0]);
-
         const assignButton = await screen.findByText("Assign shift to selected");
         await user.click(assignButton.closest("button")!);
 
@@ -609,12 +534,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       const user = userEvent.setup();
       renderShiftsPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeDefined();
-      });
-
-      const employeeButton = screen.getByText("John Doe").closest("button");
-      await user.click(employeeButton!);
+      await selectEmployee(user, "emp-1");
 
       await waitFor(() => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
@@ -624,7 +544,6 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         el.className.includes("rounded-[32px]") && el.className.includes("cursor-pointer")
       );
 
-      // Select multiple days
       if (dayCards.length >= 3) {
         await user.click(dayCards[0]);
         await user.click(dayCards[1]);
@@ -659,24 +578,12 @@ describe("ShiftsPage - Shift Picker Modal", () => {
       const user = userEvent.setup();
       renderShiftsPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeDefined();
-      });
-
-      const employeeButton = screen.getByText("John Doe").closest("button");
-      await user.click(employeeButton!);
+      await selectEmployee(user, "emp-1");
 
       await waitFor(() => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
       });
-
-      // Try to find and click the quick actions dropdown
-      const quickActionsButton = screen.queryByText("Quick Actions");
-      if (quickActionsButton) {
-        // Note: This might need adjustment based on actual Combobox implementation
-        // The actual test would need to interact with the Combobox component
-        // which might require additional mocking or a different approach
-      }
+      // Test omitted as it requires deeper Combobox mocking
     });
 
     it("should invalidate queries after successful assignment", async () => {
@@ -685,12 +592,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
       renderShiftsPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeDefined();
-      });
-
-      const employeeButton = screen.getByText("John Doe").closest("button");
-      await user.click(employeeButton!);
+      await selectEmployee(user, "emp-1");
 
       await waitFor(() => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
@@ -702,7 +604,6 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
       if (dayCards.length > 0) {
         await user.click(dayCards[0]);
-
         const assignButton = await screen.findByText("Assign shift to selected");
         await user.click(assignButton.closest("button")!);
 
@@ -729,12 +630,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
       renderShiftsPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeDefined();
-      });
-
-      const employeeButton = screen.getByText("John Doe").closest("button");
-      await user.click(employeeButton!);
+      await selectEmployee(user, "emp-1");
 
       await waitFor(() => {
         expect(screen.getByText("Current Week Roster")).toBeDefined();
@@ -746,7 +642,6 @@ describe("ShiftsPage - Shift Picker Modal", () => {
 
       if (dayCards.length > 0) {
         await user.click(dayCards[0]);
-
         const assignButton = await screen.findByText("Assign shift to selected");
         await user.click(assignButton.closest("button")!);
 
@@ -754,29 +649,21 @@ describe("ShiftsPage - Shift Picker Modal", () => {
         const morningShiftButton = within(modal).getByText("Morning Shift").closest("button");
         await user.click(morningShiftButton!);
 
-        // Wait a bit for mutation to process
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Modal should close even on error (based on current implementation)
-        // The error is shown via toast, but modal still closes
         await waitFor(() => {
           expect(screen.queryByText("Select Work Shift")).toBeNull();
         }, { timeout: 2000 });
 
-        // Verify the API was called
         expect(api.bulkUpsertRoster).toHaveBeenCalled();
       }
     });
 
     it("should not open modal when no employee is selected", async () => {
       renderShiftsPage();
-
       await waitFor(() => {
-        expect(screen.getByText("John Doe")).toBeDefined();
+        expect(screen.getByTestId("employee-select")).toBeDefined();
       });
-
-      // Don't select an employee
-      // The "Assign shift to selected" button should not be visible
       expect(screen.queryByText("Assign shift to selected")).toBeNull();
     });
   });

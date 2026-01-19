@@ -376,13 +376,39 @@ export default function ShiftsPage() {
     setIsEditCorrection(false);
   };
 
+  const employeeOptions = employees?.map(emp => ({
+    value: emp.id,
+    label: `${emp.first_name} ${emp.last_name}`,
+    description: emp.employee_id_number,
+    icon: (
+      <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
+        {emp.last_name[0]}
+      </div>
+    )
+  })) || [];
+
   return (
     <div className="space-y-6">
       {/* Header section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
+        <div className="flex-1 w-full md:w-auto">
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{t("shifts.title")}</h1>
-          <p className="text-slate-500 mt-1">{t("shifts.subtitle")}</p>
+          <p className="text-slate-500 mt-1 mb-6">{t("shifts.subtitle")}</p>
+          
+          <div className="max-w-md">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">
+              {t("common.employees")}
+            </label>
+            <Combobox 
+              options={employeeOptions}
+              value={selectedEmployee?.id}
+              onChange={(id) => setSelectedEmployee(employees?.find(e => e.id === id) || null)}
+              placeholder={t("shifts.empty_state.title")}
+              searchPlaceholder={t("common.search_employee")}
+              className="bg-white border-slate-200 shadow-sm h-12 rounded-[20px]"
+              data-testid="employee-select"
+            />
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="bg-slate-100 p-1 rounded-2xl flex border border-slate-200 shadow-inner">
@@ -420,41 +446,11 @@ export default function ShiftsPage() {
 
       {activeTab !== "directory" ? (
         <div className="grid grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* Sidebar: Employee List */}
-          <div className="col-span-12 lg:col-span-4 xl:col-span-3 bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm flex flex-col h-fit lg:max-h-[700px]">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <span className="font-black text-[10px] uppercase tracking-widest text-slate-400">{t("common.employees")}</span>
-              <span className="bg-white px-2 py-1 rounded-lg text-[10px] font-black text-slate-400 border border-slate-200">
-                {employees?.length || 0} {t("common.people").toUpperCase()}
-              </span>
-            </div>
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
-              {employees?.map(emp => (
-                <button
-                  key={emp.id}
-                  onClick={() => setSelectedEmployee(emp)}
-                  className={`w-full flex items-center gap-4 p-4 hover:bg-slate-50 transition-all text-left group ${selectedEmployee?.id === emp.id ? 'bg-primary-50/50' : ''}`}
-                >
-                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-base transition-transform group-active:scale-95 ${selectedEmployee?.id === emp.id ? 'bg-primary-600 text-white shadow-lg shadow-primary-100' : 'bg-slate-100 text-slate-400'}`}>
-                    {emp.last_name[0]}
-                  </div>
-                  <div className="flex-1">
-                    <div className={`font-bold text-sm leading-tight ${selectedEmployee?.id === emp.id ? 'text-blue-700' : 'text-slate-900'}`}>
-                      {emp.first_name} {emp.last_name}
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-black tracking-tighter uppercase mt-0.5">{emp.employee_id_number}</div>
-                  </div>
-                  <ChevronRight className={`w-4 h-4 transition-transform ${selectedEmployee?.id === emp.id ? 'text-blue-400 translate-x-1' : 'text-slate-200'}`} />
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Main Content: Tabs View */}
-          <div className="col-span-12 lg:col-span-8 xl:col-span-9 space-y-8">
+          <div className="col-span-12 space-y-8">
             {!selectedEmployee ? (
               <div className="bg-white border border-slate-200 rounded-[40px] h-[500px] flex flex-col items-center justify-center text-center p-12">
-                <div className="bg-slate-50 p-6 rounded-[32px] mb-6">
+                <div className="bg-slate-50 p-6 rounded-[32px] mb-6 animate-pulse">
                   <User className="w-12 h-12 text-slate-300" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900">{t("shifts.empty_state.title")}</h3>
