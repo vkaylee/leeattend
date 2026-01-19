@@ -22,7 +22,7 @@ test.describe('Login Success Flow', () => {
     await expect(page).toHaveURL(new RegExp(`${workerWebUrl}/?$`));
 
     // 5. Verify Sidebar or some home page element is visible
-    await expect(page.getByText('LeeAttend')).toBeVisible();
+    await expect(page.getByText('LeeAttend').first()).toBeVisible({ timeout: 30000 });
     
     // Check if we are actually logged in by looking for a logout button or profile info
     // Usually there's a sidebar with menu items

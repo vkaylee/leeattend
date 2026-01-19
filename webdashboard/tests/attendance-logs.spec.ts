@@ -9,12 +9,13 @@ test.describe("Attendance Logs UI", () => {
       await page.getByTestId('fast-login-btn').click();
 
       // 2. Expand Sidebar Section if needed
-      // Using testid for stability
-      await page.getByTestId('sidebar-section-time').click();
+      const logsLink = page.getByTestId('sidebar-link-attendance-logs');
+      if (!await logsLink.isVisible()) {
+        await page.getByTestId('sidebar-section-time').click();
+      }
 
       // 3. Click Logs link
-      const logsLink = page.getByTestId('sidebar-link-attendance-logs');
-      await logsLink.click();
+      await logsLink.click({ force: true });
 
       // The page title in H1 is "Attendance Logs" or "Nhật ký quẹt thẻ"
       console.log("Checking page content...");

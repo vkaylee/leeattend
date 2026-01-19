@@ -105,6 +105,7 @@ export default function EmployeesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deptHistory", selectedEmployee?.id] });
       setIsTransferModalOpen(false);
+      setSelectedDeptId("");
     },
   });
 
@@ -333,7 +334,10 @@ export default function EmployeesPage() {
                   <span>{t("employees.details.current_dept")}</span>
                 </div>
                 <button 
-                  onClick={() => setIsTransferModalOpen(true)}
+                  onClick={() => {
+                    setSelectedDeptId(deptHistory?.[0]?.department_id || "");
+                    setIsTransferModalOpen(true);
+                  }}
                   data-testid="transfer-employee-btn"
                   className="text-xs font-bold text-primary-600 hover:underline flex items-center gap-1.5 bg-primary-50 px-3 py-1.5 rounded-xl transition-colors"
                 >
@@ -452,7 +456,10 @@ export default function EmployeesPage() {
       {/* Transfer Modal */}
       <Modal
         isOpen={isTransferModalOpen}
-        onClose={() => setIsTransferModalOpen(false)}
+        onClose={() => {
+          setIsTransferModalOpen(false);
+          setSelectedDeptId("");
+        }}
         title={t("employees.transfer.title")}
         subtitle={t("employees.transfer.subtitle")}
         icon={<Building2 className="w-6 h-6" />}

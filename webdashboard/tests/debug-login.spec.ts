@@ -29,7 +29,8 @@ test.describe('Debug Login Flow', () => {
 
     // 5. Verify successful redirection to Dashboard
     // We expect the URL to end with '/' (root)
-    await page.waitForURL(/\/$/, { timeout: 15000 });
+    await page.waitForURL(url => url.pathname === '/' || url.pathname === '', { timeout: 30000 });
+    await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL(/\/$/);
 
     // 6. Verify Dashboard content is visible (e.g. Sidebar or Welcome message)

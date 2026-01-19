@@ -1058,10 +1058,13 @@
     "messages": {
       "create_success": "Đã tạo mẫu lịch làm việc thành công.",
       "create_error": "Lỗi khi tạo mẫu lịch làm việc.",
+      "delete_success": "Xóa mẫu lịch làm việc thành công.",
+      "delete_error": "Lỗi khi xóa mẫu lịch làm việc.",
       "bulk_assign_success_count": "Đã gán mẫu cho {{count}} nhân viên.",
       "bulk_assign_conflict": "Một số nhân viên đã có lịch làm việc, hệ thống sẽ ghi đè.",
       "bulk_assign_error": "Lỗi khi gán lịch hàng loạt."
     },
+    "confirm_delete": "Bạn có chắc chắn muốn xóa mẫu \"{{name}}\"?",
     "bulk_assign_btn": "Gán hàng loạt",
     "bulk_assign_title": "Gán lịch hàng loạt",
     "bulk_assign_subtitle": "Gán mẫu lịch cho nhiều nhân viên cùng lúc",

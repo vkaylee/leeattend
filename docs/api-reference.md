@@ -769,7 +769,7 @@ Xóa phòng ban.
 Điều chuyển phòng ban cho nhân viên.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
 - **Request**: `{ "department_id": "...", "effective_date": "...", "notes": "..." }`
-- **Response (201)**: `EmployeeDepartmentHistory` object
+- **Response (200)**: `EmployeeDepartmentHistory` object
 
 #### GET /workspaces/:ws_id/employees/:id/departments
 Xem lịch sử điều chuyển phòng ban của một nhân viên.

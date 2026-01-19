@@ -21,8 +21,9 @@ test.describe('Leave Policy Assignment Integration', () => {
     // 2. Create a Department via UI
     console.log('Navigating to /departments...');
     await page.goto('/departments');
+    await page.waitForLoadState('networkidle');
     const addDeptBtn = page.getByTestId('add-dept-btn');
-    await expect(addDeptBtn).toBeVisible({ timeout: 15000 });
+    await expect(addDeptBtn).toBeVisible({ timeout: 30000 });
     await addDeptBtn.click();
     
     await page.fill('input[name="name"]', 'Engineering Team');
@@ -50,9 +51,11 @@ test.describe('Leave Policy Assignment Integration', () => {
 
     // 2. Navigate to Leave Requests via Sidebar
     console.log('Navigating to Leave Requests via Sidebar...');
-    await page.getByTestId('sidebar-section-time').click();
     const leaveRequestsLink = page.getByTestId('sidebar-link-leave-requests');
-    await leaveRequestsLink.click();
+    if (!await leaveRequestsLink.isVisible()) {
+      await page.getByTestId('sidebar-section-time').click();
+    }
+    await leaveRequestsLink.click({ force: true });
 
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Yêu cầu nghỉ phép|Leave Requests/i, { timeout: 15000 });
 

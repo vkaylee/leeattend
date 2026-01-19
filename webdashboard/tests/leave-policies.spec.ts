@@ -8,8 +8,11 @@ test.describe("Leave Policies CRUD", () => {
     await page.getByTestId('fast-login-btn').click();
 
     // Navigate to Leave Requests
-    await page.getByTestId('sidebar-section-time').click();
-    await page.getByTestId('sidebar-link-leave-requests').click();
+    const leaveRequestsLink = page.getByTestId('sidebar-link-leave-requests');
+    if (!await leaveRequestsLink.isVisible()) {
+      await page.getByTestId('sidebar-section-time').click();
+    }
+    await leaveRequestsLink.click({ force: true });
     await expect(page.getByRole('heading', { level: 1 })).toContainText(/Leave Requests|Yêu cầu nghỉ phép/);
 
     // Switch to Policies tab

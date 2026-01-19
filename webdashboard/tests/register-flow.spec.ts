@@ -7,7 +7,9 @@ test.describe("Registration Flow", () => {
     await page.goto(`${baseURL}/login`);
 
     // 2. Click Sign up
-    await page.click('a[href="/register"]');
+    const registerLink = page.locator('a[href="/register"]');
+    await expect(registerLink).toBeVisible({ timeout: 30000 });
+    await registerLink.click();
     await expect(page).toHaveURL("/register");
     await expect(page.locator("h2")).toContainText("Create new account");
 

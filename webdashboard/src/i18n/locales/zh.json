@@ -1057,10 +1057,13 @@
     "messages": {
       "create_success": "工作模式创建成功.",
       "create_error": "创建工作模式失败.",
+      "delete_success": "工作模式删除成功.",
+      "delete_error": "删除工作模式失败.",
       "bulk_assign_success_count": "成功为 {{count}} 名员工分配模式.",
       "bulk_assign_conflict": "部分员工已有工作模式，系统将覆盖原记录.",
       "bulk_assign_error": "批量分配时出错."
     },
+    "confirm_delete": "确定要删除模式 \"{{name}}\" 吗？",
     "bulk_assign_btn": "批量分配",
     "bulk_assign_title": "批量分配",
     "bulk_assign_subtitle": "同时为多名员工分配模式",

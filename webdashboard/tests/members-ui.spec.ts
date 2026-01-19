@@ -6,12 +6,21 @@ test.describe("Members UI", () => {
     // 1. Login
     await page.goto('/login');
     await page.getByTestId('fast-login-btn').click();
+    await expect(page.getByRole('heading', { level: 1, name: /Dashboard|Bảng điều khiển/i })).toBeVisible({ timeout: 30000 });
 
     // 2. Expand Sidebar Section if needed
-    await page.getByTestId('sidebar-section-org').click();
+    const membersLink = page.getByTestId('sidebar-link-members');
+    const orgSection = page.getByTestId('sidebar-section-org');
+    
+    // Check if link is visible, if not, click section to expand
+    if (!await membersLink.isVisible()) {
+      await orgSection.click();
+      await expect(membersLink).toBeVisible({ timeout: 10000 });
+    }
 
     // 3. Click Members link
-    await page.getByTestId('sidebar-link-members').click();
+    await membersLink.click();
+    await expect(page).toHaveURL(/\/members/i, { timeout: 30000 });
 
     await expect(page.getByRole('heading', { level: 1 })).toContainText(/Members & Permissions|Thành viên & Quyền hạn/);
 

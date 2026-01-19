@@ -19,8 +19,16 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ### Changed
 - Increased E2E test stability by raising DB pool `acquire_timeout` to 30s and Playwright navigation timeouts to 60s.
-- Synchronized i18n keys for temporal settings across en, vi, and zh locales.
+- Optimized sidebar navigation in E2E tests to handle pre-expanded sections and prevent accidental collapses.
+- Switched E2E test URL matching to more flexible partial matching to reduce environment-specific flakiness.
+- Synchronized i18n keys for working patterns (`delete_success`, `delete_error`, `confirm_delete`) across en, vi, and zh locales.
 - Updated `PayrollService` to use the new hierarchical resolver instead of legacy fixed fields.
+
+### Fixed
+- **Department Transfer**: Fixed a bug where employee department transfers were not completing due to API return type mismatch (JSON vs Status).
+- **Security Audit**: Added missing RBAC checks to the `transfer_employee` handler to ensure only Admins/Owners can move personnel.
+- **Frontend State Leak**: Resolved an issue in `EmployeesPage` where the department selection state persisted between modal sessions.
+- **TypeScript & Linting**: Fixed invalid i18next `t()` usage in `WorkingPatternsPage.tsx` and resolved `react-refresh` component export warnings.
 
 ### Added
 - **3-Tier Temporal Payroll Settings**: Implemented a hierarchical versioning system for "Standard Working Days" and "Hours per Day" (Individual > Department > Workspace).

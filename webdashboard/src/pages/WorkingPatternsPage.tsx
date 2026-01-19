@@ -118,7 +118,7 @@ export default function WorkingPatternsPage() {
   });
 
   const handleDelete = (pattern: WorkingPattern) => {
-    if (confirm(t("patterns.confirm_delete", { name: pattern.name }, `Are you sure you want to delete "${pattern.name}"?`))) {
+    if (confirm(t("patterns.confirm_delete", { name: pattern.name, defaultValue: `Are you sure you want to delete "${pattern.name}"?` }))) {
       deleteMutation.mutate(pattern.id);
     }
   };

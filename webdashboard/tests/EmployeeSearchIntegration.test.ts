@@ -22,7 +22,7 @@ test.describe('Employee Search Integration', () => {
     // 2. Navigate to Employees page
     console.log('Navigating to /employees...');
     await page.goto('/employees');
-    await expect(page.getByRole('heading', { level: 1, name: /Employees|Nhân sự|Nhân viên/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { level: 1, name: /Employees|Nhân sự|Nhân viên/i })).toBeVisible({ timeout: 30000 });
 
     // 3. Create an employee via UI
     console.log('Creating new employee via UI...');

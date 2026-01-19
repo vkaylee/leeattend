@@ -1060,10 +1060,13 @@
     "messages": {
       "create_success": "Working pattern created successfully.",
       "create_error": "Failed to create working pattern.",
+      "delete_success": "Working pattern deleted successfully.",
+      "delete_error": "Failed to delete working pattern.",
       "bulk_assign_success_count": "Successfully assigned pattern to {{count}} employees.",
       "bulk_assign_conflict": "Some employees have existing patterns that will be overridden.",
       "bulk_assign_error": "Error during bulk assignment."
     },
+    "confirm_delete": "Are you sure you want to delete \"{{name}}\"?",
     "bulk_assign_btn": "Bulk Assign",
     "bulk_assign_title": "Bulk Assignment",
     "bulk_assign_subtitle": "Assign pattern to multiple employees",

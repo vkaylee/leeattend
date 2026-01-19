@@ -124,11 +124,14 @@ pub async fn get_employee_department_history(
 pub async fn transfer_employee(
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
-    MemberContext { workspace_id, .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<TransferEmployeeRequest>,
-) -> Result<StatusCode, StatusCode> {
-    match EmployeeService::transfer_employee(&state.db, id, workspace_id, req).await {
-        Ok(_) => Ok(StatusCode::OK),
+) -> Result<impl IntoResponse, StatusCode> {
+    if !ctx.is_admin_or_owner() {
+        return Ok((StatusCode::FORBIDDEN, "Only admins can transfer employees").into_response());
+    }
+    match EmployeeService::transfer_employee(&state.db, id, ctx.workspace_id, req).await {
+        Ok(history) => Ok(Json(history).into_response()),
         Err(status) => Err(status),
     }
 }
