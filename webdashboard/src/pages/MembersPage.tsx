@@ -9,17 +9,17 @@ export default function MembersPage() {
   const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 flex items-center justify-center text-primary-600 shadow-sm border border-primary-100/50">
-            <Users size={24} />
+    <div className="space-y-10 animate-in fade-in duration-700 pb-20">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
+        <div className="flex items-center gap-5">
+          <div className="w-14 h-14 rounded-2xl bg-primary-50 flex items-center justify-center text-primary-600 shadow-inner border border-primary-100/50">
+            <Users size={32} />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight leading-tight">
+            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">
               {t("members.title")}
             </h1>
-            <p className="text-slate-500 mt-1 font-medium">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mt-2 opacity-60">
               {t("members.subtitle")}
             </p>
           </div>
@@ -28,14 +28,14 @@ export default function MembersPage() {
         <button
           onClick={() => setIsInviteOpen(true)}
           data-testid="invite-member-trigger"
-          className="flex items-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 active:scale-95"
+          className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95"
         >
-          <UserPlus size={16} />
-          {t("members.invite.title")}
+          <UserPlus size={18} />
+          {t("members.invite.title").toUpperCase()}
         </button>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-sm overflow-hidden animate-in slide-in-from-bottom-4 duration-500 delay-150">
+      <div className="animate-in slide-in-from-bottom-8 duration-700">
         <MemberTable />
       </div>
 
