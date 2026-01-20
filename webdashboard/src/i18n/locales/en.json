@@ -180,7 +180,13 @@
         "patterns": "Working Patterns",
         "rules": "Auto-Assignment",
         "payroll_policy": "Payroll Policy",
-        "salary_components": "Salary Components"
+        "salary_components": "Salary Components",
+        "members": "Members",
+        "departments": "Departments",
+        "localization": "Localization",
+        "appearance": "Appearance",
+        "agents": "Edge Agents",
+        "devices": "Devices"
       }
     },
     "logout": "Logout",

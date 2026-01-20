@@ -180,7 +180,13 @@
         "patterns": "Mẫu lịch làm việc",
         "rules": "Quy tắc gán tự động",
         "payroll_policy": "Chính sách lương",
-        "salary_components": "Thành phần lương"
+        "salary_components": "Thành phần lương",
+        "members": "Thành viên",
+        "departments": "Phòng ban",
+        "localization": "Địa phương",
+        "appearance": "Giao diện",
+        "agents": "Ứng dụng kết nối",
+        "devices": "Thiết bị IoT"
       }
     },
     "logout": "Đăng xuất",

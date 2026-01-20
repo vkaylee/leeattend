@@ -175,7 +175,13 @@
         "patterns": "工作模式",
         "rules": "自动分配规则",
         "payroll_policy": "工资政策",
-        "salary_components": "工资构成"
+        "salary_components": "工资构成",
+        "members": "成员管理",
+        "departments": "组织架构",
+        "localization": "本地化",
+        "appearance": "外观界面",
+        "agents": "连接代理",
+        "devices": "考勤设备"
       }
     },
     "logout": "注销",
