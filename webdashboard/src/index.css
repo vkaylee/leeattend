@@ -24,10 +24,12 @@
 
   --shadow-premium: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
   --shadow-premium-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  --shadow-premium-xl: 0 25px 50px -12px rgb(0 0 0 / 0.08);
+  --shadow-premium-2xl: 0 32px 64px -15px rgb(0 0 0 / 0.1);
 }
 
 :root {
-  --background: #fcfcfd;
+  --background: #f8fafc;
   --foreground: #0f172a;
 
   /* Dynamic Primary Color Palette (Default: Violet) */
@@ -64,8 +66,8 @@
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -73,7 +75,7 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-200/50 rounded-full hover:bg-primary-200 transition-colors;
+  @apply bg-slate-200 rounded-full hover:bg-primary-300 transition-colors;
 }
 
 /* Scrollbar Hide Utility */
@@ -86,13 +88,17 @@
     display: none;
   }
   
+  .glass-premium {
+    @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-premium-lg;
+  }
+
   /* Premium Modal Backdrop */
   .modal-backdrop {
-    @apply fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/20 backdrop-blur-md animate-in fade-in duration-300;
+    @apply fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8 bg-slate-900/20 backdrop-blur-lg animate-in fade-in duration-500;
   }
   
   .modal-content {
-    @apply bg-white w-full max-w-md rounded-[2.5rem] shadow-[0_32px_64px_-15px_rgba(0,0,0,0.1)] border border-white/50 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300;
+    @apply bg-white w-full max-w-md rounded-[3rem] shadow-premium-2xl border border-white/60 animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 overflow-hidden;
   }
 }
 
