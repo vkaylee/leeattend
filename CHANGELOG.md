@@ -5,6 +5,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Payroll Standard Days Traceability**:
+    - Backend: Enhanced `PolicyResolver` and `PayrollService` to track and persist the source of standard working days (Individual > Department > Workspace).
+    - Backend: Added `std_days_source` column to `payslip_segments` for granular auditability.
+    - Frontend: Implemented `PayrollPriorityLegend` to visualize the 3-tier payroll hierarchy in the `PayrollTable` segment details.
+    - Added comprehensive integration tests for payroll traceability (`payroll_traceability_tests.rs`).
 - **Schedule Traceability System**:
     - Backend: Enhanced `RuleEvaluator` to track rule outcomes and decision logic for every shift assignment.
     - Frontend: Implemented `PriorityLegend` and `ScheduleTracePopover` to visualize why a specific shift was assigned (e.g., Roster Override vs. Pattern).
@@ -28,6 +33,8 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ### Changed
 - **UI/UX Refinement**:
+    - Created a generic `HierarchyLegend` component to provide a unified "Vertical Metro Map" visual language for all hierarchical decision systems (Shifts, Payroll).
+    - Refactored the Shift `PriorityLegend` to consume the new generic component, maintaining consistency while reducing code duplication.
     - Updated `PriorityLegend` to use a **Vertical Metro Map** style, providing a clearer visualization of the priority hierarchy and fallback logic.
     - Standardized `PriorityLegend` colors and labels across English and Vietnamese locales.
 - **Refactored Settings Hub i18n**:
