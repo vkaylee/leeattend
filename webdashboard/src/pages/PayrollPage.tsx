@@ -63,7 +63,6 @@ export default function PayrollPage() {
   const [isAdjustmentDrawerOpen, setIsAdjustmentDrawerOpen] = useState(false);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
   
-  // Default to last month
   const [calcYear, setCalcYear] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
@@ -108,21 +107,14 @@ export default function PayrollPage() {
       `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
       emp.employee_id_number.toLowerCase().includes(searchTerm.toLowerCase())
     );
-
-    if (selectedIds.size === employeesToSelect.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(employeesToSelect.map(e => e.id)));
-    }
+    if (selectedIds.size === employeesToSelect.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(employeesToSelect.map(e => e.id)));
   };
 
   const toggleSelect = (id: string) => {
     const next = new Set(selectedIds);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
     setSelectedIds(next);
   };
 
@@ -133,9 +125,7 @@ export default function PayrollPage() {
 
   const employeeNames = React.useMemo(() => {
     const map: Record<string, string> = {};
-    employees.forEach(e => {
-      map[e.id] = `${e.first_name} ${e.last_name}`;
-    });
+    employees.forEach(e => { map[e.id] = `${e.first_name} ${e.last_name}`; });
     return map;
   }, [employees]);
 
@@ -148,13 +138,8 @@ export default function PayrollPage() {
   const changeMonth = (delta: number) => {
     let nextMonth = calcMonth + delta;
     let nextYear = calcYear;
-    if (nextMonth > 12) {
-      nextMonth = 1;
-      nextYear++;
-    } else if (nextMonth < 1) {
-      nextMonth = 12;
-      nextYear--;
-    }
+    if (nextMonth > 12) { nextMonth = 1; nextYear++; }
+    else if (nextMonth < 1) { nextMonth = 12; nextYear--; }
     setCalcMonth(nextMonth);
     setCalcYear(nextYear);
   };
@@ -164,49 +149,32 @@ export default function PayrollPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] gap-8 overflow-hidden animate-in fade-in duration-500">
       {/* Header with Stats and Actions */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">{t("payroll.title")}</h1>
-          <p className="text-slate-500 mt-2 text-lg">{t("payroll.subtitle")}</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">{t("payroll.title")}</h1>
+          <p className="text-slate-500 mt-1 font-medium">{t("payroll.subtitle")}</p>
         </div>
 
-        <div className="flex items-center gap-4 bg-white p-2 rounded-[2rem] border border-slate-100 shadow-premium-sm">
-           <div className="flex items-center bg-slate-50 rounded-2xl p-1 shadow-inner border border-slate-100">
-              <button 
-                onClick={() => changeMonth(-1)}
-                className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-primary-600 hover:bg-white hover:shadow-sm rounded-xl transition-all"
-              >
-                <ArrowLeft size={18} />
-              </button>
+        <div className="flex items-center gap-4 bg-white p-2 rounded-[2rem] border border-slate-200 shadow-sm">
+           <div className="flex items-center bg-slate-100/50 rounded-2xl p-1 shadow-inner border border-slate-200/50">
+              <button onClick={() => changeMonth(-1)} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-primary-600 hover:bg-white hover:shadow-sm rounded-xl transition-all"><ArrowLeft size={18} /></button>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="px-6 flex flex-col items-center min-w-[140px] cursor-pointer hover:bg-slate-50 rounded-xl transition-colors py-1 group outline-none">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-primary-500 transition-colors">Kỳ lương</span>
-                    <span className="text-sm font-bold text-slate-900 group-hover:text-primary-600 transition-colors">
-                      Tháng {calcMonth}, {calcYear}
+                  <button className="px-6 flex flex-col items-center min-w-[160px] cursor-pointer hover:bg-white hover:shadow-sm rounded-xl transition-all py-1.5 group outline-none border border-transparent hover:border-slate-100">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-primary-500 transition-colors">{t("payroll.table.period")}</span>
+                    <span className="text-sm font-black text-slate-900 group-hover:text-primary-600 transition-colors uppercase tracking-tighter">
+                      {t("common.month")} {calcMonth}, {calcYear}
                     </span>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-72 p-4" align="center">
-                    <DropdownMenuLabel className="text-center text-xs text-slate-400 mb-4">Chọn kỳ lương</DropdownMenuLabel>
-                    <MonthYearPicker 
-                        month={calcMonth}
-                        year={calcYear}
-                        onChange={(m, y) => {
-                            setCalcMonth(m);
-                            setCalcYear(y);
-                        }}
-                    />
+                <DropdownMenuContent className="w-80 p-4 rounded-[2rem] shadow-2xl border-slate-100" align="center" sideOffset={8}>
+                    <DropdownMenuLabel className="text-center text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">{t("common.select_month", { defaultValue: "SELECT PAY PERIOD" })}</DropdownMenuLabel>
+                    <MonthYearPicker month={calcMonth} year={calcYear} onChange={(m, y) => { setCalcMonth(m); setCalcYear(y); }} />
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <button 
-                onClick={() => changeMonth(1)}
-                className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-primary-600 hover:bg-white hover:shadow-sm rounded-xl transition-all"
-              >
-                <ArrowRight size={18} />
-              </button>
+              <button onClick={() => changeMonth(1)} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-primary-600 hover:bg-white hover:shadow-sm rounded-xl transition-all"><ArrowRight size={18} /></button>
            </div>
 
            <div className="h-10 w-px bg-slate-100" />
@@ -215,17 +183,33 @@ export default function PayrollPage() {
             onClick={() => setIsBatchCalcModalOpen(true)}
             disabled={selectedIds.size === 0}
             className={cn(
-              "flex items-center gap-2 px-8 py-3 rounded-2xl font-black text-sm transition-all shadow-lg active:scale-95",
+              "flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95",
               selectedIds.size > 0 
-                ? "bg-slate-900 text-white shadow-slate-200 hover:bg-black" 
+                ? "bg-primary-600 text-white shadow-primary-100 hover:bg-primary-700" 
                 : "bg-slate-100 text-slate-400 shadow-none cursor-not-allowed"
             )}
            >
              <Calculator size={18} />
-             {t("payroll.calculate_btn")} {selectedIds.size > 0 ? `(${selectedIds.size})` : ""}
+             {t("payroll.calculate_btn")} {selectedIds.size > 0 && <span className="ml-1 bg-white/20 px-2 py-0.5 rounded-lg text-white">{selectedIds.size}</span>}
            </button>
         </div>
       </header>
+
+      {/* Main Grid Section */}
+      <div className="flex-1 min-h-0">
+        <PayrollSummaryTable 
+          employees={employees}
+          payslips={workspacePayslips}
+          isLoading={empsLoading || workspacePayslipsLoading}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+          onToggleSelectAll={toggleSelectAll}
+          onViewDetail={handleViewDetail}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+        />
+      </div>
+      {/* Drawers and Modals... */}
 
       {/* Main Grid Section */}
       <div className="flex-1 min-h-0">
