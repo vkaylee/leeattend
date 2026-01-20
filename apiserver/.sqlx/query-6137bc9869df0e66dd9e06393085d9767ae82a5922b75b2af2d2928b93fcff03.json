@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO payslip_segments (\n            payslip_id, start_date, end_date, department_id,\n            applied_base_salary, applied_std_days, applied_hours_per_day,\n            actual_work_days, paid_work_days, amount, std_days_source\n        )\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date",
+        "Uuid",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6137bc9869df0e66dd9e06393085d9767ae82a5922b75b2af2d2928b93fcff03"
+}

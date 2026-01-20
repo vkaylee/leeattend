@@ -1010,6 +1010,13 @@
     }
   },
   "payroll": {
+    "traceability": {
+      "hierarchy_title": "Policy Hierarchy",
+      "hierarchy_explanation": "Payroll settings are resolved from Individual > Department > Workspace.",
+      "individual_policy": "Individual Policy",
+      "department_policy": "Department Policy",
+      "workspace_default": "Workspace Default"
+    },
     "title": "Payroll",
     "subtitle": "Manage earnings and payslips",
     "search_placeholder": "Search employees...",

@@ -1,16 +1,19 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import * as Popover from '@radix-ui/react-popover';
 import { 
   CheckCircle2, 
   AlertCircle, 
   ChevronDown, 
   ChevronRight,
   FileText,
-  AlertTriangle
+  AlertTriangle,
+  Info
 } from "lucide-react";
 import { Payslip, AttendanceAdjustmentRequest } from "@/lib/api/types";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import SegmentVisualizer from "./SegmentVisualizer";
+import { PayrollPriorityLegend } from "./PayrollPriorityLegend";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -206,7 +209,31 @@ export default function PayrollTable({ payslips, isLoading, adjustments = [], on
                                 <td className="py-3 px-4 text-right font-mono">
                                   {new Intl.NumberFormat('vi-VN').format(seg.applied_base_salary)}
                                 </td>
-                                <td className="py-3 px-4 text-right font-mono">{seg.applied_std_days}</td>
+                                <td className="py-3 px-4 text-right font-mono">
+                                  <div className="flex items-center justify-end gap-2">
+                                    {seg.applied_std_days}
+                                    <Popover.Root>
+                                      <Popover.Trigger asChild>
+                                        <button 
+                                          className="p-1 rounded-full hover:bg-slate-100 text-slate-400 transition-colors"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <Info size={12} />
+                                        </button>
+                                      </Popover.Trigger>
+                                      <Popover.Portal>
+                                        <Popover.Content 
+                                          className="z-50 w-72 bg-transparent animate-in zoom-in-95 duration-200" 
+                                          side="left"
+                                          sideOffset={5}
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <PayrollPriorityLegend activeSource={seg.std_days_source} />
+                                        </Popover.Content>
+                                      </Popover.Portal>
+                                    </Popover.Root>
+                                  </div>
+                                </td>
                                 <td className="py-3 px-4 text-right font-mono">{seg.actual_work_days}</td>
                                 <td className="py-3 px-4 text-right font-bold text-slate-900 font-mono">
                                   {new Intl.NumberFormat('vi-VN').format(seg.amount)}

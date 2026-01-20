@@ -282,30 +282,37 @@ pub async fn create_payslip_segment(
     department_id: Option<Uuid>,
     applied_base_salary: Decimal,
     applied_std_days: Decimal,
-    applied_hours_per_day: Decimal,
+    hours_per_day: Decimal,
     actual_work_days: Decimal,
     paid_work_days: Decimal,
     amount: Decimal,
-) -> Result<Uuid, sqlx::Error> {
-    let id = Uuid::new_v4();
+    std_days_source: Option<String>,
+) -> Result<(), sqlx::Error> {
     sqlx::query!(
-        r#"INSERT INTO payslip_segments (id, payslip_id, start_date, end_date, department_id, applied_base_salary, applied_std_days, applied_hours_per_day, actual_work_days, paid_work_days, amount)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"#, 
-        id,
+        r#"
+        INSERT INTO payslip_segments (
+            payslip_id, start_date, end_date, department_id,
+            applied_base_salary, applied_std_days, applied_hours_per_day,
+            actual_work_days, paid_work_days, amount, std_days_source
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        "#,
         payslip_id,
         start_date,
         end_date,
         department_id,
         applied_base_salary,
         applied_std_days,
-        applied_hours_per_day,
+        hours_per_day,
         actual_work_days,
         paid_work_days,
-        amount
+        amount,
+        std_days_source
     )
     .execute(pool)
     .await?;
-    Ok(id)
+
+    Ok(())
 }
 
 pub async fn get_payslip_segments(
@@ -315,7 +322,7 @@ pub async fn get_payslip_segments(
     // Note: We don't have 'reason' column yet, so we select NULL as reason
     query_as!(
         PayslipSegment,
-        r#"SELECT id, payslip_id, start_date, end_date, department_id, applied_base_salary, applied_std_days, applied_hours_per_day, actual_work_days, paid_work_days, amount, NULL::text as reason
+        r#"SELECT id, payslip_id, start_date, end_date, department_id, applied_base_salary, applied_std_days, applied_hours_per_day, actual_work_days, paid_work_days, amount, NULL::text as reason, std_days_source
            FROM payslip_segments
            WHERE payslip_id = $1
            ORDER BY start_date ASC"#,

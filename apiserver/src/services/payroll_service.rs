@@ -219,7 +219,8 @@ impl PayrollService {
             
             segment_snapshots.push((
                 seg_start, seg_end, dept_id, segment_base_salary, std_config.std_working_days,
-                std_config.hours_per_day, worked_days_dec, worked_days_dec, segment_amount
+                std_config.hours_per_day, worked_days_dec, worked_days_dec, segment_amount,
+                std_config.source
             ));
         }
 
@@ -241,9 +242,9 @@ impl PayrollService {
 
         let created_payslip = payroll_repository::create_payslip(pool, &payslip).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
             
-        for (start, end, dept, base, std, hours, actual, paid, amount) in segment_snapshots {
+        for (start, end, dept, base, std, hours, actual, paid, amount, source) in segment_snapshots {
             payroll_repository::create_payslip_segment(
-                pool, created_payslip.id, start, end, dept, base, std, hours, actual, paid, amount
+                pool, created_payslip.id, start, end, dept, base, std, hours, actual, paid, amount, Some(source)
             ).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         }
 

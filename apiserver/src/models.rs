@@ -677,6 +677,7 @@ pub struct PayslipSegment {
     pub paid_work_days: rust_decimal::Decimal,
     pub amount: rust_decimal::Decimal,
     pub reason: Option<String>,
+    pub std_days_source: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]

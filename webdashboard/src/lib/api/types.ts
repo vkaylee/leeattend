@@ -265,6 +265,7 @@ export interface PayrollSegment {
   paid_work_days: number;
   amount: number;
   reason: string;
+  std_days_source?: "individual" | "department" | "workspace" | "system";
 }
 
 export interface Payslip {

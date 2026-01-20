@@ -1008,6 +1008,13 @@
     }
   },
   "payroll": {
+    "traceability": {
+      "hierarchy_title": "制度层级",
+      "hierarchy_explanation": "薪资设置按以下顺序解析：个人 > 部门 > 工作区。",
+      "individual_policy": "个人制度",
+      "department_policy": "部门制度",
+      "workspace_default": "工作区默认"
+    },
     "title": "薪资计算",
     "subtitle": "管理收入与工资单",
     "search_placeholder": "搜索员工...",

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, payslip_id, start_date, end_date, department_id, applied_base_salary, applied_std_days, applied_hours_per_day, actual_work_days, paid_work_days, amount, NULL::text as reason\n           FROM payslip_segments\n           WHERE payslip_id = $1\n           ORDER BY start_date ASC",
+  "query": "SELECT id, payslip_id, start_date, end_date, department_id, applied_base_salary, applied_std_days, applied_hours_per_day, actual_work_days, paid_work_days, amount, NULL::text as reason, std_days_source\n           FROM payslip_segments\n           WHERE payslip_id = $1\n           ORDER BY start_date ASC",
   "describe": {
     "columns": [
       {
@@ -62,6 +62,11 @@
         "ordinal": 11,
         "name": "reason",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "std_days_source",
+        "type_info": "Varchar"
       }
     ],
     "parameters": {
@@ -81,8 +86,9 @@
       false,
       false,
       false,
-      null
+      null,
+      true
     ]
   },
-  "hash": "d32a415d3b3aacccff55701e15c41ab7b975cc5c2469a001fefe9c7446866e43"
+  "hash": "51e8095c47e4c50a65b756d51126aa5f2776fe8d882024469575ae09ca114646"
 }

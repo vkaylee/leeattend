@@ -14,6 +14,7 @@ pub struct WorkingCondition {
 pub struct StandardMonthConfig {
     pub std_working_days: Decimal,
     pub hours_per_day: Decimal,
+    pub source: String,
 }
 
 pub struct PolicyResolver;
@@ -37,6 +38,7 @@ impl PolicyResolver {
             return Ok(StandardMonthConfig {
                 std_working_days: config.std_working_days,
                 hours_per_day: config.hours_per_day,
+                source: "individual".to_string(),
             });
         }
 
@@ -52,6 +54,7 @@ impl PolicyResolver {
                 return Ok(StandardMonthConfig {
                     std_working_days: config.std_working_days,
                     hours_per_day: config.hours_per_day,
+                    source: "department".to_string(),
                 });
             }
             
@@ -68,6 +71,7 @@ impl PolicyResolver {
                     return Ok(StandardMonthConfig {
                         std_working_days: days,
                         hours_per_day: Decimal::from(8), // Default legacy hours
+                        source: "department".to_string(),
                     });
                 }
             }
@@ -84,6 +88,7 @@ impl PolicyResolver {
              return Ok(StandardMonthConfig {
                  std_working_days: settings.fixed_std_days,
                  hours_per_day: settings.hours_per_day,
+                 source: "workspace".to_string(),
              });
         }
 
@@ -91,6 +96,7 @@ impl PolicyResolver {
         Ok(StandardMonthConfig {
             std_working_days: Decimal::from(26),
             hours_per_day: Decimal::from(8),
+            source: "system".to_string(),
         })
     }
 
