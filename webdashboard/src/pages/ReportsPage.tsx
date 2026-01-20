@@ -40,362 +40,617 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function ReportsPage() {
+
   const { t } = useTranslation();
+
   const wsId = getCurrentWorkspaceId();
+
   const { formatDate, formatTime } = useDateTimeFormatter();
+
   const queryClient = useQueryClient();
+
   const { isEnabled: isDebugMode } = useDebug();
 
+
+
   const { data: workspace } = useQuery({
+
     queryKey: ["workspace", wsId],
+
     queryFn: () => fetchWorkspace(wsId!),
+
     enabled: !!wsId,
+
   });
+
+
 
   const workUnitMinutes = workspace?.work_unit_minutes || 60;
 
+
+
   const getMonthRange = (offset: number = 0) => {
-    const d = new Date();
-    d.setMonth(d.getMonth() + offset);
+
+    const d = new Date(); d.setMonth(d.getMonth() + offset);
+
     const firstDay = format(new Date(d.getFullYear(), d.getMonth(), 1), 'yyyy-MM-dd');
+
     const lastDay = format(new Date(d.getFullYear(), d.getMonth() + 1, 0), 'yyyy-MM-dd');
+
     return { start: firstDay, end: lastDay };
+
   };
+
+
 
   const [filterMode, setFilterMode] = useState<"this_month" | "last_month" | "custom" | "specific_month">("last_month");
+
   const [dateRange, setDateRange] = useState(getMonthRange(-1));
+
   const [specificMonth, setSpecificMonth] = useState({ 
+
     month: new Date().getMonth() === 0 ? 12 : new Date().getMonth(), 
+
     year: new Date().getMonth() === 0 ? new Date().getFullYear() - 1 : new Date().getFullYear() 
+
   });
+
   
+
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+
   const [reportType, setReportType] = useState<"summary" | "daily">("summary");
+
   const [expandedDebugRows, setExpandedDebugRows] = useState<Set<string>>(new Set());
+
   const [reprocessingRow, setReprocessingRow] = useState<string | null>(null);
+
   const [confirmDialog, setConfirmDialog] = useState<{ show: boolean; employeeId: string; employeeName: string; date: string; } | null>(null);
 
+
+
   const handleFilterModeChange = (mode: "this_month" | "last_month" | "custom" | "specific_month") => {
+
     setFilterMode(mode);
+
     if (mode === "this_month") setDateRange(getMonthRange(0));
+
     else if (mode === "last_month") setDateRange(getMonthRange(-1));
+
   };
+
+
 
   const handleSpecificMonthChange = (m: number, y: number) => {
-    setSpecificMonth({ month: m, year: y });
-    setFilterMode("specific_month");
+
+    setSpecificMonth({ month: m, year: y }); setFilterMode("specific_month");
+
     const start = format(new Date(y, m - 1, 1), 'yyyy-MM-dd');
+
     const end = format(endOfMonth(new Date(y, m - 1, 1)), 'yyyy-MM-dd');
+
     setDateRange({ start, end });
+
   };
+
+
 
   const toggleExpandRow = (rowKey: string) => {
+
     const next = new Set(expandedDebugRows);
-    if (next.has(rowKey)) next.delete(rowKey);
-    else next.add(rowKey);
+
+    if (next.has(rowKey)) next.delete(rowKey); else next.add(rowKey);
+
     setExpandedDebugRows(next);
+
   };
 
+
+
   const { data: reportData = [], isLoading } = useQuery({
+
     queryKey: ["attendance-report", wsId, dateRange, reportType],
+
     queryFn: () => fetchAttendanceReport(wsId!, dateRange.start, dateRange.end, reportType),
+
     enabled: !!wsId,
+
   });
 
+
+
   const reprocessMutation = useMutation({
+
     mutationFn: ({ employeeId, date }: { employeeId: string; date: string }) => reprocessAttendance(wsId!, employeeId, date, date),
+
     onSuccess: () => {
+
       queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
+
       setReprocessingRow(null); setConfirmDialog(null);
+
       toast.success(t("common.success"));
+
     },
+
   });
+
+
 
   const toast = useToast();
 
-  const filteredData = Array.isArray(reportData) ? reportData.filter((row: any) =>
-    selectedEmployeeIds.length === 0 || selectedEmployeeIds.includes(row.employee_id)
-  ) : [];
 
-  if (!wsId) return <div className="p-8 text-center">{t("common.select_workspace")}</div>;
 
-  const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      present: "bg-emerald-50 text-emerald-600 border-emerald-100",
-      late: "bg-amber-50 text-amber-600 border-amber-100",
-      absent: "bg-rose-50 text-rose-600 border-rose-100",
-      off: "bg-slate-50 text-slate-400 border-slate-100",
-    };
-    const labels: Record<string, string> = {
-      present: t("reports.status.present"),
-      late: t("reports.status.late"),
-      absent: t("reports.status.absent"),
-      off: t("reports.status.off"),
-    };
-    return <span className={cn("px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border", styles[status] || styles.off)}>{labels[status] || status}</span>;
+  const handleReprocessClick = (row: DailyAttendanceReport) => {
+
+    setConfirmDialog({ show: true, employeeId: row.employee_id, employeeName: row.employee_name, date: row.date });
+
   };
 
+
+
+  const handleConfirmReprocess = () => {
+
+    if (!confirmDialog) return;
+
+    setReprocessingRow(`${confirmDialog.employeeId}-${confirmDialog.date}`);
+
+    reprocessMutation.mutate({ employeeId: confirmDialog.employeeId, date: confirmDialog.date });
+
+  };
+
+
+
+  const filteredData = Array.isArray(reportData) ? reportData.filter((row: any) =>
+
+    selectedEmployeeIds.length === 0 || selectedEmployeeIds.includes(row.employee_id)
+
+  ) : [];
+
+
+
+  if (!wsId) return <div className="p-12 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
+
+
+
+  const getStatusBadge = (status: string) => {
+
+    const styles: Record<string, string> = {
+
+      present: "bg-emerald-50 text-emerald-600 border-emerald-100",
+
+      late: "bg-amber-50 text-amber-600 border-amber-100",
+
+      absent: "bg-rose-50 text-rose-600 border-rose-100",
+
+      off: "bg-slate-50 text-slate-400 border-slate-100",
+
+    };
+
+    const labels: Record<string, string> = {
+
+      present: t("reports.status.present"), late: t("reports.status.late"),
+
+      absent: t("reports.status.absent"), off: t("reports.status.off"),
+
+    };
+
+    return <span className={cn("px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm", styles[status] || styles.off)}>{labels[status] || status}</span>;
+
+  };
+
+
+
   return (
-    <div className="space-y-8 pb-20 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">{t("reports.title")}</h1>
-          <p className="text-slate-500 mt-1 font-medium">{t("reports.subtitle")}</p>
+
+    <div className="space-y-10 pb-20 animate-in fade-in duration-700">
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
+
+        <div className="space-y-1">
+
+          <h1 className="text-4xl font-black tracking-tighter text-slate-900 uppercase leading-none">{t("reports.title")}</h1>
+
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("reports.subtitle")}</p>
+
         </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-2xl hover:bg-slate-50 transition-all font-black text-[10px] uppercase tracking-widest shadow-sm"><Download size={14} /> {t("reports.export_excel")}</button>
-        </div>
+
+        <button className="flex items-center gap-3 bg-white border border-slate-200 text-slate-700 px-8 py-3 rounded-2xl hover:bg-slate-50 transition-all font-black text-xs uppercase tracking-widest shadow-xl active:scale-95"><Download size={18} /> {t("reports.export_excel").toUpperCase()}</button>
+
       </div>
 
-      {/* Tabs & Period Selector Container */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-        <div className="flex items-center gap-1 bg-slate-100/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50">
-          <button onClick={() => setReportType("summary")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all ${reportType === 'summary' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700"}`}>
-            <List size={14} /> {t("reports.tabs.summary")}
-          </button>
-          <button onClick={() => setReportType("daily")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all ${reportType === 'daily' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700"}`}>
-            <TableProperties size={14} /> {t("reports.tabs.daily")}
-          </button>
+
+
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
+
+        <div className="flex bg-slate-100/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50 shadow-inner">
+
+          <button onClick={() => setReportType("summary")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", reportType === 'summary' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><List size={14} /> {t("reports.tabs.summary")}</button>
+
+          <button onClick={() => setReportType("daily")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", reportType === 'daily' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><TableProperties size={14} /> {t("reports.tabs.daily")}</button>
+
         </div>
 
-        <div className="flex items-center gap-4 bg-white p-2 rounded-[2rem] border border-slate-200 shadow-sm">
-          <div className="flex items-center bg-slate-100/50 rounded-2xl p-1 shadow-inner border border-slate-200/50">
+
+
+        <div className="flex flex-col md:flex-row md:items-center gap-6 bg-white p-3 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-900/5 pr-6">
+
+          <div className="flex items-center bg-slate-100/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200/50">
+
             {["this_month", "last_month"].map(mode => (
-              <button key={mode} onClick={() => handleFilterModeChange(mode as any)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === mode ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700"}`}>{t(`common.filters.${mode}`)}</button>
+
+              <button key={mode} onClick={() => handleFilterModeChange(mode as any)} className={cn("px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", filterMode === mode ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}>{t(`common.filters.${mode}`).toUpperCase()}</button>
+
             ))}
-            <div className="h-6 w-px bg-slate-200 mx-1" />
+
+            <div className="h-6 w-px bg-slate-200 mx-2 opacity-50" />
+
             <DropdownMenu>
+
               <DropdownMenuTrigger asChild>
-                <button className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === "specific_month" ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700"}`}>
-                  <CalendarRange size={14} /> {filterMode === "specific_month" ? `T${specificMonth.month}/${specificMonth.year}` : t("common.filters.specific_month")}
+
+                <button className={cn("flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", filterMode === "specific_month" ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}>
+
+                  <CalendarRange size={14} /> {filterMode === "specific_month" ? `T${specificMonth.month}/${specificMonth.year}` : t("common.filters.specific_month").toUpperCase()}
+
                 </button>
+
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-80 p-4 rounded-[2rem] shadow-2xl border-slate-100" align="end" sideOffset={8}>
+
+              <DropdownMenuContent className="w-80 p-4 rounded-[2.5rem] shadow-premium-2xl border-slate-100 bg-white/95 backdrop-blur-xl" align="end" sideOffset={12}>
+
                  <MonthYearPicker month={specificMonth.month} year={specificMonth.year} onChange={handleSpecificMonthChange} />
+
               </DropdownMenuContent>
+
             </DropdownMenu>
-            <button onClick={() => handleFilterModeChange("custom")} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === "custom" ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700"}`}>{t("common.filters.custom")}</button>
+
+            <button onClick={() => handleFilterModeChange("custom")} className={cn("px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", filterMode === "custom" ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}>{t("common.filters.custom").toUpperCase()}</button>
+
           </div>
-          <div className="h-10 w-px bg-slate-100" />
-          <div className="w-72">
-            <EmployeeSearch workspaceId={wsId!} value={selectedEmployeeIds} onChange={setSelectedEmployeeIds} multiple={true} placeholder={t("reports.search_placeholder")} />
-          </div>
+
+          <div className="h-10 w-px bg-slate-100 hidden md:block opacity-50" />
+
+          <div className="w-full md:w-80"><EmployeeSearch workspaceId={wsId!} value={selectedEmployeeIds} onChange={setSelectedEmployeeIds} multiple={true} placeholder={t("reports.search_placeholder")} /></div>
+
         </div>
+
       </div>
+
+
 
       {filterMode === "custom" && (
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-top-2 duration-300 max-w-2xl">
-          <div className="space-y-2">
+
+        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-primary-900/5 grid grid-cols-1 md:grid-cols-2 gap-10 animate-in slide-in-from-top-4 duration-500 max-w-2xl">
+
+          <div className="space-y-3 px-1">
+
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Calendar size={12} /> {t("common.from_date")}</label>
-            <input type="date" value={dateRange.start} onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-black text-sm" />
+
+            <input type="date" value={dateRange.start} onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white transition-all font-black text-sm shadow-inner" />
+
           </div>
-          <div className="space-y-2">
+
+          <div className="space-y-3 px-1">
+
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Calendar size={12} /> {t("common.to_date")}</label>
-            <input type="date" value={dateRange.end} onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-4 focus:ring-primary-500/10 transition-all font-black text-sm" />
+
+            <input type="date" value={dateRange.end} onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white transition-all font-black text-sm shadow-inner" />
+
           </div>
+
         </div>
+
       )}
 
-      <div className="bg-white border border-slate-200 rounded-[2.5rem] overflow-hidden shadow-sm">
+
+
+      <div className="bg-white border border-slate-100 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700">
+
         {reportType === "summary" ? (
+
           <table className="w-full text-left border-collapse">
+
             <thead>
+
               <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.employee")}</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("reports.table.total_hours")}</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("reports.table.leave_days")}</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("common.notes")}</th>
+
+                <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{t("common.employee")}</th>
+
+                <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-right">{t("reports.table.total_hours")}</th>
+
+                <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-right">{t("reports.table.leave_days")}</th>
+
+                <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-right">{t("common.notes")}</th>
+
               </tr>
+
             </thead>
+
             <tbody className="divide-y divide-slate-50">
+
               {isLoading ? (
-                <tr><td colSpan={4} className="px-8 py-12 text-center text-slate-400 font-bold italic">{t("reports.messages.generating")}</td></tr>
+
+                <tr><td colSpan={4} className="px-10 py-20 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("reports.messages.generating")}</td></tr>
+
               ) : filteredData.length === 0 ? (
-                <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("reports.messages.no_data")}</td></tr>
+
+                <tr><td colSpan={4} className="px-10 py-32 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("reports.messages.no_data")}</td></tr>
+
               ) : filteredData.map((row: AttendanceSummary) => (
-                <tr key={row.employee_id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-8 py-5 font-black text-slate-900 text-sm tracking-tight">{row.employee_name}</td>
-                  <td className="px-8 py-5 text-right">
-                    <div className="font-mono font-black text-primary-600 text-sm tracking-tight">{formatUnitsToHours(row.total_work_units, workUnitMinutes)} {t("reports.table.hours")}</div>
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{row.total_work_units} {t("reports.table.units")}</span>
+
+                <tr key={row.employee_id} className="hover:bg-slate-50/50 transition-all group">
+
+                  <td className="px-10 py-6 font-black text-slate-900 text-sm tracking-tight uppercase leading-none">{row.employee_name}</td>
+
+                  <td className="px-10 py-6 text-right">
+
+                    <div className="font-mono font-black text-primary-600 text-base tracking-tighter">{formatUnitsToHours(row.total_work_units, workUnitMinutes)}h</div>
+
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-60">{row.total_work_units} UNITS</span>
+
                   </td>
-                  <td className="px-8 py-5 text-right font-mono font-black text-orange-600 text-sm">{row.total_leave_days} {t("common.days_short")}</td>
-                  <td className="px-8 py-5 text-right text-slate-300 font-bold">-</td>
+
+                  <td className="px-10 py-6 text-right font-mono font-black text-orange-600 text-base tracking-tighter">{row.total_leave_days} {t("common.days_short")}</td>
+
+                  <td className="px-10 py-6 text-right text-slate-200 font-bold tracking-widest">—</td>
+
                 </tr>
+
               ))}
+
             </tbody>
+
           </table>
+
         ) : (
+
           <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[1000px] border-collapse">
+
+            <table className="w-full text-left min-w-[1200px] border-collapse">
+
               <thead>
+
                 <tr className="bg-slate-50/50 border-b border-slate-100">
-                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.date")}</th>
-                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.employee")}</th>
-                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.shift")}</th>
-                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t("common.in")}</th>
-                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t("common.out")}</th>
-                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("reports.table.hours")}</th>
-                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t("common.status")}</th>
-                  {isDebugMode && <th className="px-8 py-4 text-[10px] font-black text-amber-600 uppercase tracking-widest text-center">Debug</th>}
-                  <th className="px-8 py-4 text-right"></th>
+
+                  <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{t("common.date")}</th>
+
+                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{t("common.employee")}</th>
+
+                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{t("common.shift")}</th>
+
+                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-center">{t("common.in")}</th>
+
+                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-center">{t("common.out")}</th>
+
+                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-right">{t("reports.table.hours")}</th>
+
+                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-center">{t("common.status")}</th>
+
+                  {isDebugMode && <th className="px-8 py-6 text-[10px] font-black text-amber-600 uppercase tracking-[0.25em] text-center">DEBUG</th>}
+
+                  <th className="px-8 py-6"></th>
+
                 </tr>
+
               </thead>
+
               <tbody className="divide-y divide-slate-50">
+
                 {isLoading ? (
-                  <tr><td colSpan={isDebugMode ? 9 : 8} className="px-8 py-12 text-center text-slate-400 font-bold italic">{t("common.loading")}</td></tr>
+
+                  <tr><td colSpan={isDebugMode ? 9 : 8} className="px-10 py-20 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</td></tr>
+
                 ) : filteredData.length === 0 ? (
-                  <tr><td colSpan={isDebugMode ? 9 : 8} className="px-8 py-20 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("reports.messages.no_data")}</td></tr>
+
+                  <tr><td colSpan={isDebugMode ? 9 : 8} className="px-10 py-32 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("reports.messages.no_data")}</td></tr>
+
                 ) : filteredData.map((row: DailyAttendanceReport, idx: number) => {
+
                   const rowKey = `${row.employee_id}-${row.date}`;
+
                   const isReprocessing = reprocessingRow === rowKey;
+
                   const isExpanded = expandedDebugRows.has(rowKey);
+
                   return (
+
                   <React.Fragment key={`${rowKey}-${idx}`}>
+
                     <tr className={cn("transition-all group", isExpanded ? "bg-amber-50/20" : "hover:bg-slate-50/50")}>
-                      <td className="px-8 py-5 font-mono text-[11px] font-black text-slate-500 uppercase">{formatDate(row.date)}</td>
-                      <td className="px-8 py-5 font-black text-slate-900 text-sm tracking-tight">{row.employee_name}</td>
-                      <td className="px-8 py-5">
+
+                      <td className="px-10 py-6 font-mono text-[11px] font-black text-slate-500 uppercase">{formatDate(row.date)}</td>
+
+                      <td className="px-8 py-6 font-black text-slate-900 text-sm tracking-tight uppercase leading-none">{row.employee_name}</td>
+
+                      <td className="px-8 py-6">
+
                         {row.scheduled_start ? (
+
                           <div className="flex flex-col">
-                            <span className="font-black text-slate-700 text-xs">{row.scheduled_start.substring(0, 5)} - {row.scheduled_end?.substring(0, 5)}</span>
-                            {row.break_duration_minutes !== null && <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{row.break_start ? `${t("common.break")}: ${row.break_start.substring(0, 5)}-${row.break_end?.substring(0, 5)}` : `${t("common.break")}: ${row.break_duration_minutes}m`}</span>}
+
+                            <span className="font-black text-slate-700 text-xs uppercase tracking-tighter shadow-sm bg-white px-2 py-0.5 rounded-lg border border-slate-100 w-fit">{row.scheduled_start.substring(0, 5)} — {row.scheduled_end?.substring(0, 5)}</span>
+
+                            {row.break_duration_minutes !== null && <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1.5 opacity-70 italic">{row.break_start ? `${t("common.break")}: ${row.break_start.substring(0, 5)}-${row.break_end?.substring(0, 5)}` : `${t("common.break")}: ${row.break_duration_minutes}m`}</span>}
+
                           </div>
-                        ) : <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{t("reports.no_shift")}</span>}
+
+                        ) : <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic opacity-50">{t("reports.no_shift")}</span>}
+
                       </td>
-                      <td className="px-8 py-5 text-center font-mono font-black text-xs text-slate-900">{formatTime(row.actual_punch_in)}</td>
-                      <td className="px-8 py-5 text-center font-mono font-black text-xs text-slate-900">{formatTime(row.actual_punch_out)}</td>
-                      <td className="px-8 py-5 text-right">
-                        <div className="font-mono font-black text-primary-600 text-sm">{formatUnitsToHours(row.work_units, workUnitMinutes)}h</div>
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{row.work_units}u</span>
+
+                      <td className="px-8 py-6 text-center font-mono font-black text-xs text-slate-900 tracking-tighter shadow-inner bg-slate-50/50 rounded-xl m-2">{formatTime(row.actual_punch_in)}</td>
+
+                      <td className="px-8 py-6 text-center font-mono font-black text-xs text-slate-900 tracking-tighter shadow-inner bg-slate-50/50 rounded-xl m-2">{formatTime(row.actual_punch_out)}</td>
+
+                      <td className="px-8 py-6 text-right">
+
+                        <div className="font-mono font-black text-primary-600 text-base tracking-tighter leading-none">{formatUnitsToHours(row.work_units, workUnitMinutes)}h</div>
+
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-60">{row.work_units}U</span>
+
                       </td>
-                      <td className="px-8 py-5 text-center">{getStatusBadge(row.status)}</td>
+
+                      <td className="px-8 py-6 text-center">{getStatusBadge(row.status)}</td>
+
                       {isDebugMode && (
-                        <td className="px-8 py-5 text-center">
-                          <button onClick={() => toggleExpandRow(rowKey)} className={cn("p-1.5 rounded-xl transition-all shadow-sm border", isExpanded ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-white text-amber-600 border-slate-100 hover:bg-amber-50")}><Bug size={14} /></button>
+
+                        <td className="px-8 py-6 text-center">
+
+                          <button onClick={() => toggleExpandRow(rowKey)} className={cn("p-2 rounded-xl transition-all shadow-md border active:scale-90", isExpanded ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-white text-amber-600 border-slate-100 hover:bg-amber-50")}><Bug size={16} /></button>
+
                         </td>
+
                       )}
-                      <td className="px-8 py-5 text-right">
-                        <button onClick={() => handleReprocessClick(row)} disabled={isReprocessing} className="p-2 bg-white text-blue-600 hover:bg-blue-50 rounded-xl shadow-sm border border-slate-100 transition-all active:scale-90 opacity-0 group-hover:opacity-100 disabled:opacity-50" title={t("reports.reprocess.tooltip")}><RefreshCw size={16} className={cn(isReprocessing && "animate-spin")} /></button>
+
+                      <td className="px-10 py-6 text-right">
+
+                        <button onClick={() => handleReprocessClick(row)} disabled={isReprocessing} className="p-3 bg-white text-blue-600 hover:text-blue-700 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90 opacity-0 group-hover:opacity-100 disabled:opacity-50" title={t("reports.reprocess.tooltip")}><RefreshCw size={18} className={cn(isReprocessing && "animate-spin")} /></button>
+
                       </td>
+
                     </tr>
+
                     {isDebugMode && isExpanded && (
-                      <tr className="bg-amber-50/10">
-                        <td colSpan={9} className="px-8 py-6">
-                          <div className="bg-slate-900 rounded-[2rem] p-6 shadow-2xl border-2 border-amber-200/30 overflow-auto max-h-[500px]">
-                            <div className="flex items-center gap-3 mb-4 border-b border-white/5 pb-4">
-                              <Bug className="w-5 h-5 text-amber-400" />
-                              <span className="text-[10px] font-black text-amber-400 uppercase tracking-[0.2em]">BSON Generation Metadata (Audit Trail)</span>
+
+                      <tr className="bg-slate-900/5 animate-in slide-in-from-top-2 duration-500">
+
+                        <td colSpan={9} className="px-10 py-10">
+
+                          <div className="bg-slate-900 rounded-[3rem] p-10 shadow-2xl border-2 border-amber-200/20 overflow-hidden relative">
+
+                            <div className="flex items-center gap-4 mb-8 border-b border-white/10 pb-6 relative z-10">
+
+                              <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 shadow-inner border border-amber-500/20"><Bug size={20} /></div>
+
+                              <div>
+
+                                <h4 className="text-[10px] font-black text-amber-400 uppercase tracking-[0.3em]">Audit Trail Analysis</h4>
+
+                                <p className="text-[9px] text-white/40 uppercase tracking-widest mt-1 font-bold">BSON Traceability Metadata — Real-time Evaluator Logs</p>
+
+                              </div>
+
                             </div>
-                            <pre className="text-[11px] font-mono text-emerald-400 leading-relaxed overflow-x-auto">
+
+                            <pre className="text-[11px] font-mono text-emerald-400 leading-relaxed overflow-x-auto custom-scrollbar relative z-10 p-2 selection:bg-emerald-500/20 max-h-[400px]">
+
                               {JSON.stringify(row.generation_metadata || { message: "No metadata available" }, null, 2)}
+
                             </pre>
+
+                            <Bug className="absolute -right-16 -bottom-16 w-64 h-64 text-amber-500 opacity-5 -rotate-12 pointer-events-none" />
+
                           </div>
+
                         </td>
+
                       </tr>
+
                     )}
+
                   </React.Fragment>
+
                   );
+
                 })}
+
               </tbody>
+
             </table>
+
           </div>
+
         )}
+
       </div>
 
-      {/* Quick Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-2">
-        <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl shadow-slate-200 overflow-hidden relative group">
-          <div className="bg-primary-500/20 w-12 h-12 rounded-xl flex items-center justify-center mb-6 text-primary-400 shadow-inner">
-            <FileBarChart size={20} />
+
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 px-2">
+
+        <div className="bg-slate-900 p-10 rounded-[3rem] border border-slate-800 shadow-2xl shadow-slate-900/20 overflow-hidden relative group hover:scale-[1.02] transition-all duration-500">
+
+          <div className="bg-primary-500/20 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 text-primary-400 shadow-inner border border-white/5 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
+
+            <FileBarChart size={32} />
+
           </div>
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t("reports.quick_stats.total_hours")}</p>
-          <p className="text-3xl font-black text-white mt-2 truncate">
+
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-2 opacity-70">{t("reports.quick_stats.total_hours")}</p>
+
+          <p className="text-5xl font-black text-white tracking-tighter">
+
             {formatUnitsToHours(
+
               reportType === "summary" 
+
                 ? filteredData.reduce((acc: number, r: any) => acc + r.total_work_units, 0)
+
                 : filteredData.reduce((acc: number, r: any) => acc + r.work_units, 0),
+
               workUnitMinutes
-            )} <span className="text-lg opacity-50 font-medium">h</span>
+
+            )} <span className="text-xl opacity-30 font-black uppercase tracking-widest ml-1">HRS</span>
+
           </p>
-          <FileBarChart className="absolute -right-4 -bottom-4 w-24 h-24 text-white opacity-[0.03] -rotate-12 group-hover:rotate-0 transition-transform duration-700" />
+
+          <FileBarChart className="absolute -right-8 -bottom-8 w-40 h-44 text-white opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
+
         </div>
+
+        <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-900/5 overflow-hidden relative group hover:scale-[1.02] transition-all duration-500">
+
+          <div className="bg-primary-50 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 text-primary-600 shadow-inner border border-primary-100 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
+
+            <Users2 size={32} />
+
+          </div>
+
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-2 opacity-70">{t("common.employees")}</p>
+
+          <p className="text-5xl font-black text-slate-900 tracking-tighter">
+
+            {new Set(filteredData.map((r: any) => r.employee_id)).size} <span className="text-xl opacity-20 font-black uppercase tracking-widest ml-1">STAFF</span>
+
+          </p>
+
+          <Users2 className="absolute -right-8 -bottom-8 w-40 h-44 text-slate-100 opacity-20 -rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
+
+        </div>
+
       </div>
+
+
 
       <Modal isOpen={!!confirmDialog} onClose={() => !reprocessMutation.isPending && setConfirmDialog(null)} title={t("reports.reprocess.confirm_title")} icon={<RefreshCw size={24} />} maxWidth="md">
-        <div className="space-y-8 pt-4">
-          <p className="text-sm font-bold text-slate-600 leading-relaxed">{confirmDialog && t("reports.reprocess.confirm_message", { employee: confirmDialog.employeeName, date: formatDate(confirmDialog.date) })}</p>
-          <div className="flex gap-4">
-            <button onClick={() => setConfirmDialog(null)} className="flex-1 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all" disabled={reprocessMutation.isPending}>{t("common.cancel")}</button>
-            <button onClick={handleConfirmReprocess} disabled={reprocessMutation.isPending} className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-black px-6 py-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-primary-100 text-xs uppercase tracking-widest">
-              {reprocessMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check size={18} />} {t("reports.reprocess.confirm")}
-            </button>
-          </div>
-        </div>
-      </Modal>
-    </div>
-  );
-}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl shadow-slate-200">
-          <h3 className="text-white font-bold mb-2 flex items-center gap-2">
-            <FileBarChart className="w-5 h-5 text-blue-400" /> {t("reports.quick_stats.title")}
-          </h3>
-          <div className="grid grid-cols-2 gap-4 mt-4">
-            <div className="bg-slate-800/50 p-4 rounded-2xl">
-              <p className="text-slate-400 text-xs font-black uppercase tracking-widest">{t("common.employees")}</p>
-              <p className="text-2xl font-bold text-white mt-1">{new Set(filteredData.map((r: any) => r.employee_id)).size}</p>
-            </div>
-            <div className="bg-slate-800/50 p-4 rounded-2xl">
-              <p className="text-slate-400 text-xs font-black uppercase tracking-widest">{t("reports.quick_stats.total_hours")}</p>
-              <p className="text-2xl font-bold text-blue-400 mt-1">
-                {formatUnitsToHours(
-                  reportType === "summary" 
-                    ? filteredData.reduce((acc: number, r: any) => acc + r.total_work_units, 0)
-                    : filteredData.reduce((acc: number, r: any) => acc + r.work_units, 0),
-                  workUnitMinutes
-                )}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+        <div className="space-y-10 pt-4 animate-in fade-in duration-500">
 
-      {/* Confirmation Dialog */}
-      <Modal
-        isOpen={!!confirmDialog}
-        onClose={() => !reprocessMutation.isPending && setConfirmDialog(null)}
-        title={t("reports.reprocess.confirm_title")}
-        icon={<RefreshCw className="w-6 h-6" />}
-        maxWidth="md"
-      >
-        <div className="space-y-6">
-          <p className="text-sm text-slate-600">
-            {confirmDialog && t("reports.reprocess.confirm_message", {
-              employee: confirmDialog.employeeName,
-              date: formatDate(confirmDialog.date),
-            })}
-          </p>
-          <div className="flex gap-3 justify-end">
-            <button
-              onClick={() => setConfirmDialog(null)}
-              className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
-              disabled={reprocessMutation.isPending}
-            >
-              {t("common.cancel")}
-            </button>
-            <button
-              onClick={handleConfirmReprocess}
-              disabled={reprocessMutation.isPending}
-              className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {reprocessMutation.isPending && <RefreshCw className="w-4 h-4 animate-spin" />}
-              {t("reports.reprocess.confirm")}
-            </button>
+          <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 shadow-inner">
+
+            <p className="text-base font-black text-slate-700 uppercase tracking-tight leading-relaxed text-center italic opacity-80">"{confirmDialog && t("reports.reprocess.confirm_message", { employee: confirmDialog.employeeName, date: formatDate(confirmDialog.date) })}"</p>
+
           </div>
+
+          <div className="flex gap-6 border-t border-slate-50 pt-2">
+
+            <button onClick={() => setConfirmDialog(null)} className="flex-1 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all active:scale-95" disabled={reprocessMutation.isPending}>{t("common.cancel")}</button>
+
+            <button onClick={handleConfirmReprocess} disabled={reprocessMutation.isPending} className="flex-[1.5] bg-slate-900 hover:bg-black text-white font-black px-8 py-4 rounded-2xl flex items-center justify-center gap-4 transition-all active:scale-95 disabled:opacity-50 shadow-2xl shadow-slate-400 text-xs uppercase tracking-widest">
+
+              {reprocessMutation.isPending ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Check size={20} />} {t("reports.reprocess.confirm").toUpperCase()}
+
+            </button>
+
+          </div>
+
         </div>
+
       </Modal>
+
     </div>
+
   );
+
 }
