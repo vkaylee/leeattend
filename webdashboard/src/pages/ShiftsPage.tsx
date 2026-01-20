@@ -52,13 +52,7 @@ import { PriorityLegend } from "../components/shifts/PriorityLegend";
 
 import { Link } from "react-router-dom";
 
-type TabType = "assignments" | "weekly-roster" | "directory";
-
-const dateLocales: Record<string, any> = {
-  vi: vi,
-  en: enUS,
-  zh: zhCN,
-};
+type TabType = "weekly-roster" | "assignments" | "directory";
 
 export default function ShiftsPage() {
   const { t, i18n } = useTranslation();
@@ -81,9 +75,8 @@ export default function ShiftsPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   // Fixed Assignment Form State
-  const [assignmentType, setAssignmentType] = useState<"pattern">("pattern");
   const [selectedPatternId, setSelectedPatternId] = useState("");
-  const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-01'));
   const [endDate, setEndDate] = useState<string>("");
   const [isForever, setIsForever] = useState(true);
   
@@ -122,12 +115,6 @@ export default function ShiftsPage() {
     enabled: !!wsId,
   });
 
-  const { data: workspace } = useQuery({
-    queryKey: ["workspace", wsId],
-    queryFn: () => fetchWorkspace(wsId),
-    enabled: !!wsId,
-  });
-
   // Weekly Dates Logic
   const startOfWeek = new Date(currentDate);
   startOfWeek.setDate(currentDate.getDate() - currentDate.getDay() + 1); // Monday
@@ -145,7 +132,7 @@ export default function ShiftsPage() {
       format(weekDays[0], 'yyyy-MM-dd'),
       format(weekDays[6], 'yyyy-MM-dd')
     ),
-    enabled: !!wsId && activeTab === "weekly-roster",
+    enabled: !!wsId,
   });
 
   const { data: history } = useQuery({
@@ -175,7 +162,7 @@ export default function ShiftsPage() {
     mutationFn: (data: any) => upsertRoster(wsId, selectedEmployee!.id, data),
     onSuccess: () => {
       toast.success(t("shifts.messages.update_roster_success"));
-      queryClient.invalidateQueries({ queryKey: ["schedules"] }); // Re-fetch effective schedules
+      queryClient.invalidateQueries({ queryKey: ["schedules"] });
       queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
     onError: (error: any) => toast.error(error.message, t("shifts.messages.update_roster_error"))
@@ -234,12 +221,7 @@ export default function ShiftsPage() {
 
   // Handlers
   const handleAssign = () => {
-    if (!selectedEmployee || !startDate) {
-      toast.warning(t("shifts.messages.validation_missing_fields"));
-      return;
-    }
-
-    if (!selectedPatternId) {
+    if (!selectedEmployee || !selectedPatternId) {
       toast.warning(t("shifts.messages.validation_missing_fields"));
       return;
     }
@@ -250,115 +232,52 @@ export default function ShiftsPage() {
     });
   };
 
-  const handleShiftAssign = (date: Date, shiftId: string | null) => {
-    if (!selectedEmployee) return;
-    rosterMutation.mutate({
-      employee_id: selectedEmployee.id,
-      date: format(date, 'yyyy-MM-dd'),
-      shift_id: shiftId,
-    });
-  };
-
   const handleBulkAssign = (shiftId: string | null) => {
     if (!selectedEmployee || selectedDays.length === 0) return;
-    
-    const items = selectedDays.map(date => ({
-      date,
-      shift_id: shiftId,
-    }));
-    
+    const items = selectedDays.map(date => ({ date, shift_id: shiftId }));
     bulkRosterMutation.mutate(items);
   };
 
   const handleAssignAllWeek = (shiftId: string | null) => {
     if (!selectedEmployee) return;
-    
-    const items = weekDays.map(day => ({
-      date: format(day, 'yyyy-MM-dd'),
-      shift_id: shiftId,
-    }));
-    
+    const items = weekDays.map(day => ({ date: format(day, 'yyyy-MM-dd'), shift_id: shiftId }));
     bulkRosterMutation.mutate(items);
   };
 
   const handleCopyPreviousWeek = async () => {
     if (!selectedEmployee || !allSchedules) return;
-    
     const prevWeekStart = addDays(startOfWeek, -7);
     const prevWeekEnd = addDays(startOfWeek, -1);
-    
     try {
-      const prevSchedules = await fetchWorkspaceSchedules(
-        wsId, 
-        format(prevWeekStart, 'yyyy-MM-dd'), 
-        format(prevWeekEnd, 'yyyy-MM-dd')
-      );
-      
+      const prevSchedules = await fetchWorkspaceSchedules(wsId, format(prevWeekStart, 'yyyy-MM-dd'), format(prevWeekEnd, 'yyyy-MM-dd'));
       const empPrev = prevSchedules.find(s => s.employee_id === selectedEmployee.id);
-      if (!empPrev) {
-        toast.warning(t("shifts.messages.no_previous_data"));
-        return;
-      }
-
-      const items = empPrev.schedules.map((s, idx) => ({
-        date: format(weekDays[idx], 'yyyy-MM-dd'),
-        shift_id: s.shift_id,
-      }));
-
+      if (!empPrev) { toast.warning(t("shifts.messages.no_previous_data")); return; }
+      const items = empPrev.schedules.map((s, idx) => ({ date: format(weekDays[idx], 'yyyy-MM-dd'), shift_id: s.shift_id }));
       bulkRosterMutation.mutate(items);
-    } catch (e: any) {
-      toast.error(e.message, t("shifts.messages.copy_error"));
-    }
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const handleCreateShift = () => {
-    if (!newShiftName || !newShiftStart || !newShiftEnd) {
-      toast.warning(t("shifts.messages.validation_shift_name_time"));
-      return;
-    }
-
-    if (isFixedBreak && (!newBreakStart || !newBreakEnd)) {
-      toast.warning(t("shifts.messages.validation_break_times"));
-      return;
-    }
-    
-    // Calculate duration if fixed break is selected
-    let duration = newShiftBreak;
-    if (isFixedBreak && newBreakStart && newBreakEnd) {
-      const start = new Date(`2000-01-01T${newBreakStart}`);
-      const end = new Date(`2000-01-01T${newBreakEnd}`);
-      const diff = (end.getTime() - start.getTime()) / (1000 * 60);
-      if (diff > 0) duration = diff;
-    }
-
+    if (!newShiftName || !newShiftStart || !newShiftEnd) return;
     createShiftMutation.mutate({
-      name: newShiftName,
-      start_time: newShiftStart + ":00",
-      end_time: newShiftEnd + ":00",
-      break_duration_minutes: duration,
+      name: newShiftName, start_time: newShiftStart + ":00", end_time: newShiftEnd + ":00",
+      break_duration_minutes: newShiftBreak,
       break_start: (isFixedBreak && newBreakStart) ? newBreakStart + ":00" : undefined,
       break_end: (isFixedBreak && newBreakEnd) ? newBreakEnd + ":00" : undefined,
       is_break_auto_deduct: isAutoDeduct,
-      break_is_overtime: false,
-      early_punch_in_grace_period_minutes: 0,
     });
   };
 
   const handleUpdateShift = () => {
     if (!editingShift) return;
-
     updateShiftMutation.mutate({
       id: editingShift.id,
       data: {
-        name: newShiftName,
-        start_time: newShiftStart.length === 5 ? newShiftStart + ":00" : newShiftStart,
-        end_time: newShiftEnd.length === 5 ? newShiftEnd + ":00" : newShiftEnd,
+        name: newShiftName, start_time: newShiftStart, end_time: newShiftEnd,
         break_duration_minutes: newShiftBreak,
-        break_start: (isFixedBreak && newBreakStart) ? (newBreakStart.length === 5 ? newBreakStart + ":00" : newBreakStart) : null,
-        break_end: (isFixedBreak && newBreakEnd) ? (newBreakEnd.length === 5 ? newBreakEnd + ":00" : newBreakEnd) : null,
+        break_start: isFixedBreak ? newBreakStart : null,
+        break_end: isFixedBreak ? newBreakEnd : null,
         is_break_auto_deduct: isAutoDeduct,
-        break_is_overtime: false,
-        early_punch_in_grace_period_minutes: 0,
         is_correction: isEditCorrection,
         effective_date: isEditCorrection ? undefined : editEffectiveDate
       }
@@ -379,372 +298,175 @@ export default function ShiftsPage() {
   };
 
   const employeeOptions = employees?.map(emp => ({
-    value: emp.id,
-    label: `${emp.first_name} ${emp.last_name}`,
-    description: emp.employee_id_number,
-    icon: (
-      <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
-        {emp.last_name[0]}
-      </div>
-    )
+    value: emp.id, label: `${emp.first_name} ${emp.last_name}`, description: emp.employee_id_number,
+    icon: <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">{emp.last_name[0]}</div>
   })) || [];
 
   return (
     <div className="space-y-6">
       {/* Header section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div className="flex-1 w-full md:w-auto">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{t("shifts.title")}</h1>
-          <p className="text-slate-500 mt-1 mb-6">{t("shifts.subtitle")}</p>
-          
-          <div className="max-w-md">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">
-              {t("common.employees")}
-            </label>
-            <Combobox 
-              options={employeeOptions}
-              value={selectedEmployee?.id}
-              onChange={(id) => setSelectedEmployee(employees?.find(e => e.id === id) || null)}
-              placeholder={t("shifts.empty_state.title")}
-              searchPlaceholder={t("common.search_employee")}
-              className="bg-white border-slate-200 shadow-sm h-12 rounded-[20px]"
-              data-testid="employee-select"
-            />
-          </div>
+          <p className="text-slate-500 mt-1">{t("shifts.subtitle")}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="bg-slate-100 p-1 rounded-2xl flex border border-slate-200 shadow-inner">
-            <button 
-              onClick={() => setActiveTab("weekly-roster")}
-              className={`px-4 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${activeTab === 'weekly-roster' ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              <LayoutGrid size={14} /> {t("shifts.tabs.weekly_roster")}
-            </button>
-            <button 
-              onClick={() => setActiveTab("directory")}
-              className={`px-4 py-2 rounded-xl text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${activeTab === 'directory' ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              <List size={14} /> {t("shifts.tabs.directory")}
-            </button>
-          </div>
-          
-          <Link 
-            to="/working-patterns"
-            className="bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2 border border-slate-200 shadow-sm transition-all active:scale-95"
-          >
+        <div className="flex items-center gap-3">
+          <Link to="/working-patterns" className="bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2 border border-slate-200 shadow-sm transition-all">
             <CalendarRange className="w-4 h-4" />
             <span className="text-xs uppercase tracking-widest">{t("patterns.manage_btn")}</span>
           </Link>
-
-          <button 
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-primary-600 hover:bg-primary-700 text-white font-black px-6 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg shadow-primary-100 transition-all active:scale-95"
-          >
+          <button onClick={() => setIsCreateModalOpen(true)} className="bg-primary-600 hover:bg-primary-700 text-white font-black px-6 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg shadow-primary-100 transition-all">
             <Plus className="w-5 h-5" />
             <span className="text-xs uppercase tracking-widest">{t("shifts.create_btn")}</span>
           </button>
         </div>
       </div>
 
-      {activeTab !== "directory" ? (
-        <div className="grid grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* Main Content: Tabs View */}
-          <div className="col-span-12 space-y-8">
-            {!selectedEmployee ? (
-              <div className="bg-white border border-slate-200 rounded-[40px] h-[500px] flex flex-col items-center justify-center text-center p-12">
-                <div className="bg-slate-50 p-6 rounded-[32px] mb-6 animate-pulse">
-                  <User className="w-12 h-12 text-slate-300" />
+      {/* Tabs Navigation */}
+      <div className="flex items-center gap-1 bg-slate-100/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50">
+        <button onClick={() => setActiveTab("weekly-roster")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'weekly-roster' ? 'bg-white text-primary-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>
+          <LayoutGrid size={14} /> {t("shifts.tabs.weekly_roster")}
+        </button>
+        <button onClick={() => setActiveTab("assignments")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'assignments' ? 'bg-white text-primary-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>
+          <Zap size={14} /> {t("shifts.tabs.fixed_assignments", "Patterns & Rules")}
+        </button>
+        <button onClick={() => setActiveTab("directory")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'directory' ? 'bg-white text-primary-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>
+          <List size={14} /> {t("shifts.tabs.directory")}
+        </button>
+      </div>
+
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {activeTab !== "directory" && (
+          <div className="max-w-md mb-8">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">{t("common.employees")}</label>
+            <Combobox options={employeeOptions} value={selectedEmployee?.id} onChange={(id) => setSelectedEmployee(employees?.find(e => e.id === id) || null)} placeholder={t("shifts.empty_state.title")} searchPlaceholder={t("common.search_employee")} className="bg-white border-slate-200 shadow-sm h-12 rounded-[20px]" />
+          </div>
+        )}
+
+        {!selectedEmployee && activeTab !== "directory" ? (
+          <div className="bg-white border border-slate-200 rounded-[40px] h-[500px] flex flex-col items-center justify-center text-center p-12 shadow-sm">
+            <div className="bg-slate-50 p-6 rounded-[32px] mb-6 animate-pulse text-slate-300"><User className="w-12 h-12" /></div>
+            <h3 className="text-xl font-bold text-slate-900">{t("shifts.empty_state.title")}</h3>
+            <p className="text-slate-500 mt-2 max-w-xs mx-auto text-sm">{t("shifts.empty_state.desc")}</p>
+          </div>
+        ) : activeTab === "weekly-roster" ? (
+          /* TAB: WEEKLY ROSTER */
+          <div className="space-y-6">
+            <div className="flex items-center justify-between bg-white p-4 rounded-[32px] border border-slate-200 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center text-white text-lg font-black shadow-lg shadow-primary-100">{selectedEmployee!.last_name[0]}</div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 leading-tight">{selectedEmployee!.first_name} {selectedEmployee!.last_name}</h2>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t("shifts.current_week_roster")}</p>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900">{t("shifts.empty_state.title")}</h3>
-                <p className="text-slate-500 mt-2 max-w-xs mx-auto text-sm">
-                  {t("shifts.empty_state.desc")}
-                </p>
               </div>
-            ) : activeTab === "weekly-roster" ? (
-              /* TAB: WEEKLY ROSTER */
-              <>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between bg-white p-4 rounded-[32px] border border-slate-200 shadow-sm">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center text-white text-lg font-black">
-                        {selectedEmployee.last_name[0]}
-                      </div>
-                      <div>
-                        <h2 className="text-lg font-bold text-slate-900 leading-tight">{selectedEmployee.first_name} {selectedEmployee.last_name}</h2>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t("shifts.current_week_roster")}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <div className="w-56">
-                        <Combobox
-                          options={[
-                            { value: "copy-prev", label: t("shifts.actions.copy_previous"), icon: <Copy className="w-4 h-4" /> },
-                            { value: "assign-all", label: t("shifts.actions.assign_all_week"), icon: <CalendarIcon className="w-4 h-4" /> },
-                            { value: "clear-week", label: t("shifts.actions.clear_week"), icon: <Trash className="w-4 h-4" /> },
-                          ]}
-                          onChange={(val) => {
-                            if (val === "copy-prev") {
-                              handleCopyPreviousWeek();
-                            } else if (val === "clear-week") {
-                              handleAssignAllWeek(null);
-                            } else if (val === "assign-all") {
-                              setTargetDates(weekDays.map(d => format(d, 'yyyy-MM-dd')));
-                              setIsShiftPickerOpen(true);
-                            }
-                          }}
-                          placeholder={t("common.quick_actions")}
-                          className="h-10 bg-slate-100 border-slate-200 text-[10px] py-2 px-3 rounded-xl uppercase tracking-tighter"
-                        />
-                      </div>
-
-                      <button 
-                        onClick={() => {
-                          const d = new Date(currentDate);
-                          d.setDate(d.getDate() - 7);
-                          setCurrentDate(d);
-                          setSelectedDays([]);
-                        }}
-                        className="p-2.5 hover:bg-slate-100 border border-slate-100 rounded-xl transition-all"
-                      >
-                        <ChevronLeft size={18} />
-                      </button>
-                      <div className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600">
-                        {t("common.week").toUpperCase()}: {formatDate(weekDays[0])} - {formatDate(weekDays[6])}
-                      </div>
-                      <button 
-                        onClick={() => {
-                          const d = new Date(currentDate);
-                          d.setDate(d.getDate() + 7);
-                          setCurrentDate(d);
-                          setSelectedDays([]);
-                        }}
-                        className="p-2.5 hover:bg-slate-100 border border-slate-100 rounded-xl transition-all"
-                      >
-                        <ChevronRight size={18} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {selectedDays.length > 0 && (
-                    <div className="bg-primary-600 text-white p-4 rounded-[24px] flex items-center justify-between shadow-lg shadow-primary-100 animate-in slide-in-from-top-4">
-                      <div className="flex items-center gap-4">
-                        <span className="text-xs font-black uppercase tracking-widest">{t("shifts.days_selected", { count: selectedDays.length })}</span>
-                        <div className="h-4 w-px bg-white/20" />
-                        <button 
-                          onClick={() => {
-                            setTargetDates(selectedDays);
-                            setIsShiftPickerOpen(true);
-                          }}
-                          className="bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition-all flex items-center gap-2"
-                        >
-                          <Plus size={14} /> {t("shifts.assign_selected_btn")}
-                        </button>
-                      </div>
-                      <button onClick={() => setSelectedDays([])} className="hover:bg-white/10 p-2 rounded-xl transition-all">
-                        <X size={18} />
-                      </button>
-                    </div>
-                  )}
-
-                  <PriorityLegend />
-
-                  <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-                    {weekDays.map((day, idx) => {
-                      const dateStr = format(day, 'yyyy-MM-dd');
-                      const isSelected = selectedDays.includes(dateStr);
-                      const effectiveSchedule = employeeSchedule?.schedules.find(s => s.date === dateStr);
-                      const isToday = day.toDateString() === new Date().toDateString();
-                      
-                      const isRoster = (effectiveSchedule?.source as any) === "roster";
-                      const isPattern = (effectiveSchedule?.source as any) === "pattern";
-                      const isDeptPattern = (effectiveSchedule?.source as any) === "department_pattern";
-                      const isFixed = (effectiveSchedule?.source as any) === "fixed";
-                      const isDept = (effectiveSchedule?.source as any) === "department" || (effectiveSchedule?.source as any) === "department_fixed";
-
-                      return (
-                        <div 
-                          key={idx} 
-                          onClick={() => {
-                            if (selectedDays.includes(dateStr)) {
-                              setSelectedDays(selectedDays.filter(d => d !== dateStr));
-                            } else {
-                              setSelectedDays([...selectedDays, dateStr]);
-                            }
-                          }}
-                          className={`bg-white border p-4 rounded-[32px] flex flex-col min-h-[350px] transition-all relative group cursor-pointer ${isSelected ? 'border-blue-500 ring-4 ring-blue-50 shadow-md' : isToday ? 'border-blue-300 ring-4 ring-blue-50 shadow-lg' : 'border-slate-100 hover:border-slate-200 shadow-sm'}`}
-                        >
-                          <div className="text-center mb-5 pb-5 border-b border-slate-50 relative">
-                            {isSelected && (
-                              <div className="absolute -top-1 -right-1 bg-primary-600 text-white rounded-full p-1 shadow-sm">
-                                <ShieldCheck size={12} />
-                              </div>
-                            )}
-                            <div className={`text-[10px] font-black uppercase tracking-tighter ${isToday ? 'text-blue-500' : 'text-slate-400'}`}>
-                              {format(day, "EEEE", { locale: currentLocale })}
-                            </div>
-                            <div className={`text-2xl font-black mt-1 ${isToday ? 'text-primary-600' : 'text-slate-900'}`}>
-                              {day.getDate()}
-                            </div>
-                          </div>
-
-                          <div className="flex-1 space-y-4">
-                            {/* Source Badge */}
-                            <div className="flex justify-center items-center gap-1">
-                              {isRoster && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-100 uppercase tracking-tighter flex items-center gap-1"><Zap size={8} /> {t("shifts.types.flexible")}</span>}
-                              {isPattern && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-tighter flex items-center gap-1"><ShieldCheck size={8} /> {t("patterns.title")}</span>}
-                              {isDeptPattern && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200 uppercase tracking-tighter flex items-center gap-1"><Building2 size={8} /> {t("patterns.title")}</span>}
-                              {isFixed && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-tighter flex items-center gap-1"><ShieldCheck size={8} /> {t("shifts.types.fixed")}</span>}
-                              {isDept && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-100 uppercase tracking-tighter flex items-center gap-1"><Building2 size={8} /> {t("common.department")}</span>}
-                              
-                              {effectiveSchedule && (
-                                <ScheduleTracePopover 
-                                  traces={effectiveSchedule.traces || []} 
-                                  source={effectiveSchedule.source}
-                                />
-                              )}
-                            </div>
-                            
-                            {effectiveSchedule?.shift_id ? (
-                              <div className={`p-4 rounded-[24px] relative group/item animate-in zoom-in-95 border ${isRoster ? 'bg-purple-50/50 border-purple-100' : 'bg-primary-50 border-blue-100'}`}>
-                                <div className={`font-black text-xs mb-1 uppercase tracking-tight leading-tight ${isRoster ? 'text-purple-700' : 'text-blue-700'}`}>
-                                  {effectiveSchedule.shift_name}
-                                </div>
-                                <div className={`flex items-center gap-1.5 text-[10px] font-bold ${isRoster ? 'text-purple-500' : 'text-blue-500'}`}>
-                                  {formatTime(effectiveSchedule.start_time)} - {formatTime(effectiveSchedule.end_time)}
-                                </div>
-
-                                {effectiveSchedule.break_duration_minutes !== null && (
-                                  <div className="mt-2 pt-2 border-t border-black/5 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-tighter text-slate-400">
-                                    <Clock size={8} /> 
-                                    {effectiveSchedule.break_start ? (
-                                      <span>{t("common.break")}: {effectiveSchedule.break_start.substring(0, 5)} - {effectiveSchedule.break_end?.substring(0, 5)}</span>
-                                    ) : (
-                                      <span>{t("common.break")}: {effectiveSchedule.break_duration_minutes}m</span>
-                                    )}
-                                  </div>
-                                )}
-                                
-                                {isRoster && (
-                                  <button 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      deleteRosterMutation.mutate(dateStr);
-                                    }}
-                                    className="absolute -top-2 -right-2 bg-white border border-slate-200 rounded-full p-1.5 shadow-md opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-rose-50 hover:border-rose-200 group/btn"
-                                  >
-                                    <X size={12} className="text-slate-400 group-hover/btn:text-rose-500" />
-                                  </button>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="bg-slate-50/50 border border-slate-100 border-dashed p-6 rounded-[24px] text-[10px] text-slate-400 font-black text-center uppercase tracking-widest flex flex-col items-center justify-center gap-2">
-                                {t("shifts.off_day")}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+              
+              <div className="flex items-center gap-3">
+                <div className="w-56">
+                  <Combobox options={[{ value: "copy-prev", label: t("shifts.actions.copy_previous"), icon: <Copy className="w-4 h-4" /> }, { value: "assign-all", label: t("shifts.actions.assign_all_week"), icon: <CalendarIcon className="w-4 h-4" /> }, { value: "clear-week", label: t("shifts.actions.clear_week"), icon: <Trash className="w-4 h-4" /> }]} onChange={(val) => { if (val === "copy-prev") handleCopyPreviousWeek(); else if (val === "clear-week") handleAssignAllWeek(null); else if (val === "assign-all") { setTargetDates(weekDays.map(d => format(d, 'yyyy-MM-dd'))); setIsShiftPickerOpen(true); } }} placeholder={t("common.quick_actions")} className="h-10 bg-slate-100 border-slate-200 text-[10px] py-2 px-3 rounded-xl uppercase tracking-tighter" />
                 </div>
+                <button onClick={() => { const d = new Date(currentDate); d.setDate(d.getDate() - 7); setCurrentDate(d); setSelectedDays([]); }} className="p-2.5 hover:bg-slate-100 border border-slate-100 rounded-xl transition-all"><ChevronLeft size={18} /></button>
+                <div className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 uppercase tracking-tighter">{formatDate(weekDays[0])} - {formatDate(weekDays[6])}</div>
+                <button onClick={() => { const d = new Date(currentDate); d.setDate(d.getDate() + 7); setCurrentDate(d); setSelectedDays([]); }} className="p-2.5 hover:bg-slate-100 border border-slate-100 rounded-xl transition-all"><ChevronRight size={18} /></button>
+              </div>
+            </div>
 
-                {/* History Section */}
-                <AssignmentHistory history={history} selectedEmployee={selectedEmployee} />
-              </>
-            ) : (
-              /* TAB: ASSIGNMENTS (Fixed/Temporal) */
-              <div className="bg-white border border-slate-200 rounded-[40px] p-8 shadow-sm animate-in fade-in zoom-in-95 duration-300">
-                <div className="flex items-center gap-4 mb-10 pb-10 border-b border-slate-50">
-                  <div className="w-20 h-20 bg-primary-600 rounded-[28px] flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-primary-100">
-                    {selectedEmployee.last_name[0]}
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-900">{selectedEmployee.first_name} {selectedEmployee.last_name}</h2>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">{t("shifts.fixed_assignment_subtitle")}</p>
-                  </div>
+            {selectedDays.length > 0 && (
+              <div className="bg-primary-600 text-white p-4 rounded-[24px] flex items-center justify-between shadow-xl shadow-primary-100 animate-in slide-in-from-top-4 duration-300">
+                <div className="flex items-center gap-4">
+                  <span className="text-xs font-black uppercase tracking-widest">{t("shifts.days_selected", { count: selectedDays.length })}</span>
+                  <div className="h-4 w-px bg-white/20" />
+                  <button onClick={() => { setTargetDates(selectedDays); setIsShiftPickerOpen(true); }} className="bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition-all flex items-center gap-2"><Plus size={14} /> {t("shifts.assign_selected_btn")}</button>
                 </div>
-
-                <div className="space-y-10">
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-1">
-                      <CalendarRange size={12} /> {t("patterns.select_pattern")}
-                    </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {patterns?.map(pattern => (
-                        <button
-                          key={pattern.id}
-                          onClick={() => setSelectedPatternId(pattern.id)}
-                          className={`p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group ${selectedPatternId === pattern.id ? 'border-purple-600 bg-purple-50/50' : 'border-slate-100 hover:border-slate-200 bg-slate-50/30'}`}
-                        >
-                          <div className={`font-black text-sm uppercase tracking-tight ${selectedPatternId === pattern.id ? 'text-purple-700' : 'text-slate-700'}`}>{pattern.name}</div>
-                          <p className="text-[10px] text-slate-400 font-bold mt-1 line-clamp-1">{pattern.description || t("common.no_description")}</p>
-                          {selectedPatternId === pattern.id && (
-                            <div className="absolute top-4 right-4 w-3 h-3 bg-purple-600 rounded-full animate-pulse" />
-                          )}
-                        </button>
-                      ))}
-                      {(!patterns || patterns.length === 0) && (
-                        <div className="col-span-2 text-center p-8 border border-dashed border-slate-200 rounded-[24px]">
-                          <p className="text-sm text-slate-500 font-medium">{t("patterns.empty_desc")}</p>
-                          <Link to="/working-patterns" className="text-xs font-bold text-primary-600 hover:underline mt-2 inline-block">
-                            {t("patterns.create_first")}
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-1">
-                        <Calendar size={12} /> {t("common.effective_from")}
-                      </label>
-                      <input 
-                        type="date" 
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center px-1">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                          <Calendar size={12} /> {t("common.end_date")}
-                        </label>
-                        <button 
-                          onClick={() => setIsForever(!isForever)}
-                          className={`text-[9px] font-black px-3 py-1 rounded-full border transition-all uppercase tracking-tighter ${isForever ? 'bg-primary-600 text-white border-blue-600' : 'bg-slate-100 text-slate-400 border-slate-200'}`}
-                        >
-                          {isForever ? t("common.indefinite").toUpperCase() : t("common.definite").toUpperCase()}
-                        </button>
-                      </div>
-                      <input 
-                        type="date" 
-                        disabled={isForever}
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className={`w-full border rounded-2xl px-5 py-4 font-bold transition-all outline-none ${isForever ? 'bg-slate-100 text-slate-300 border-slate-50' : 'bg-slate-50 text-slate-700 border-slate-200 focus:ring-2 focus:ring-primary-500'}`}
-                      />
-                    </div>
-                  </div>
-
-                                        <button
-                                          onClick={handleAssign}
-                                          disabled={assignPatternMutation.isPending}
-                                          className="w-full bg-slate-900 text-white font-black py-5 rounded-[28px] flex items-center justify-center gap-3 hover:bg-black transition-all active:scale-[0.98] disabled:opacity-50 shadow-2xl shadow-slate-200 uppercase tracking-widest text-xs"
-                                        >
-                                          <Save size={18} /> {t("shifts.assign_btn")}
-                                        </button>                </div>
+                <button onClick={() => setSelectedDays([])} className="hover:bg-white/10 p-2 rounded-xl transition-all"><X size={18} /></button>
               </div>
             )}
+
+            <PriorityLegend />
+
+            <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+              {weekDays.map((day, idx) => {
+                const dateStr = format(day, 'yyyy-MM-dd');
+                const isSelected = selectedDays.includes(dateStr);
+                const effectiveSchedule = employeeSchedule?.schedules.find(s => s.date === dateStr);
+                const isToday = day.toDateString() === new Date().toDateString();
+                const source = effectiveSchedule?.source as any;
+                return (
+                  <div key={idx} onClick={() => isSelected ? setSelectedDays(selectedDays.filter(d => d !== dateStr)) : setSelectedDays([...selectedDays, dateStr])} className={`bg-white border p-4 rounded-[32px] flex flex-col min-h-[350px] transition-all relative group cursor-pointer ${isSelected ? 'border-primary-500 ring-4 ring-primary-50 shadow-md' : isToday ? 'border-primary-300 ring-4 ring-primary-50 shadow-lg' : 'border-slate-100 hover:border-slate-200 shadow-sm'}`}>
+                    <div className="text-center mb-5 pb-5 border-b border-slate-50 relative">
+                      {isSelected && <div className="absolute -top-1 -right-1 bg-primary-600 text-white rounded-full p-1 shadow-sm"><ShieldCheck size={12} /></div>}
+                      <div className={`text-[10px] font-black uppercase tracking-tighter ${isToday ? 'text-primary-600' : 'text-slate-400'}`}>{format(day, "EEEE", { locale: currentLocale })}</div>
+                      <div className={`text-2xl font-black mt-1 ${isToday ? 'text-primary-600' : 'text-slate-900'}`}>{day.getDate()}</div>
+                    </div>
+                    <div className="flex-1 space-y-4">
+                      <div className="flex justify-center items-center gap-1">
+                        {source === "roster" && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-100 uppercase tracking-tighter flex items-center gap-1"><Zap size={8} /> {t("shifts.types.flexible")}</span>}
+                        {source === "pattern" && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-tighter flex items-center gap-1"><ShieldCheck size={8} /> {t("patterns.title")}</span>}
+                        {source === "department_pattern" && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200 uppercase tracking-tighter flex items-center gap-1"><Building2 size={8} /> {t("patterns.title")}</span>}
+                        {source === "fixed" && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-tighter flex items-center gap-1"><ShieldCheck size={8} /> {t("shifts.types.fixed")}</span>}
+                        {source && (source === "department" || source === "department_fixed") && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-100 uppercase tracking-tighter flex items-center gap-1"><Building2 size={8} /> {t("common.department")}</span>}
+                        {effectiveSchedule && <ScheduleTracePopover traces={effectiveSchedule.traces || []} source={effectiveSchedule.source} />}
+                      </div>
+                      {effectiveSchedule?.shift_id ? (
+                        <div className={`p-4 rounded-[24px] relative group/item animate-in zoom-in-95 border ${source === 'roster' ? 'bg-purple-50/50 border-purple-100' : 'bg-primary-50 border-blue-100'}`}>
+                          <div className={`font-black text-xs mb-1 uppercase tracking-tight leading-tight ${source === 'roster' ? 'text-purple-700' : 'text-blue-700'}`}>{effectiveSchedule.shift_name}</div>
+                          <div className={`flex items-center gap-1.5 text-[10px] font-bold ${source === 'roster' ? 'text-purple-500' : 'text-blue-500'}`}>{formatTime(effectiveSchedule.start_time)} - {formatTime(effectiveSchedule.end_time)}</div>
+                          {effectiveSchedule.break_duration_minutes !== null && <div className="mt-2 pt-2 border-t border-black/5 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-tighter text-slate-400"><Clock size={8} /> {effectiveSchedule.break_start ? <span>{t("common.break")}: {effectiveSchedule.break_start.substring(0, 5)} - {effectiveSchedule.break_end?.substring(0, 5)}</span> : <span>{t("common.break")}: {effectiveSchedule.break_duration_minutes}m</span>}</div>}
+                          {source === 'roster' && <button onClick={(e) => { e.stopPropagation(); deleteRosterMutation.mutate(dateStr); }} className="absolute -top-2 -right-2 bg-white border border-slate-200 rounded-full p-1.5 shadow-md opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-rose-50 hover:border-rose-200 group/btn"><X size={12} className="text-slate-400 group-hover/btn:text-rose-500" /></button>}
+                        </div>
+                      ) : <div className="bg-slate-50/50 border border-slate-100 border-dashed p-6 rounded-[24px] text-[10px] text-slate-400 font-black text-center uppercase tracking-widest flex flex-col items-center justify-center gap-2">{t("shifts.off_day")}</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <AssignmentHistory history={history} selectedEmployee={selectedEmployee} />
           </div>
-        </div>
-      ) : (
-        /* TAB: DIRECTORY */
-        <ShiftList shifts={shifts} onEdit={openEditModal} />
-      )}
+        ) : activeTab === "assignments" ? (
+          /* TAB: ASSIGNMENTS (Patterns & Rules) */
+          <div className="bg-white border border-slate-200 rounded-[40px] p-10 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+            <div className="flex items-center gap-6 mb-10 pb-10 border-b border-slate-50">
+              <div className="w-20 h-20 bg-primary-600 rounded-[28px] flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-primary-100">{selectedEmployee!.last_name[0]}</div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">{selectedEmployee!.first_name} {selectedEmployee!.last_name}</h2>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">{t("shifts.fixed_assignment_subtitle")}</p>
+              </div>
+            </div>
+            <div className="space-y-10">
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-1"><CalendarRange size={12} /> {t("patterns.select_pattern")}</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {patterns?.map(pattern => (
+                    <button key={pattern.id} onClick={() => setSelectedPatternId(pattern.id)} className={`p-5 rounded-[28px] border-2 text-left transition-all relative overflow-hidden group ${selectedPatternId === pattern.id ? 'border-primary-600 bg-primary-50/50' : 'border-slate-100 hover:border-slate-200 bg-slate-50/30'}`}>
+                      <div className={`font-black text-sm uppercase tracking-tight ${selectedPatternId === pattern.id ? 'text-primary-700' : 'text-slate-700'}`}>{pattern.name}</div>
+                      <p className="text-[10px] text-slate-400 font-bold mt-1 line-clamp-1">{pattern.description || t("common.no_description")}</p>
+                      {selectedPatternId === pattern.id && <div className="absolute top-4 right-4 w-3 h-3 bg-primary-600 rounded-full animate-pulse" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-1"><Calendar size={12} /> {t("common.effective_from")}</label>
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold text-slate-700 focus:ring-2 focus:ring-primary-500 outline-none transition-all" />
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center px-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Calendar size={12} /> {t("common.end_date")}</label>
+                    <button onClick={() => setIsForever(!isForever)} className={`text-[9px] font-black px-3 py-1 rounded-full border transition-all uppercase tracking-tighter ${isForever ? 'bg-primary-600 text-white border-primary-600' : 'bg-slate-100 text-slate-400 border-slate-200'}`}>{isForever ? t("common.indefinite").toUpperCase() : t("common.definite").toUpperCase()}</button>
+                  </div>
+                  <input type="date" disabled={isForever} value={endDate} onChange={(e) => setEndDate(e.target.value)} className={`w-full border rounded-2xl px-5 py-4 font-bold transition-all outline-none ${isForever ? 'bg-slate-100 text-slate-300 border-slate-50' : 'bg-slate-50 text-slate-700 border-slate-200 focus:ring-2 focus:ring-primary-500'}`} />
+                </div>
+              </div>
+              <button onClick={handleAssign} disabled={assignPatternMutation.isPending} className="w-full bg-slate-900 text-white font-black py-5 rounded-[28px] flex items-center justify-center gap-3 hover:bg-black transition-all active:scale-[0.98] disabled:opacity-50 shadow-2xl shadow-slate-200 uppercase tracking-widest text-xs"><Save size={18} /> {t("shifts.assign_btn")}</button>
+            </div>
+          </div>
+        ) : (
+          /* TAB: DIRECTORY */
+          <ShiftList shifts={shifts} onEdit={openEditModal} />
+        )}
+      </div>
+      {/* Modals remain same... */}
 
       {/* CREATE SHIFT MODAL */}
       <Modal
