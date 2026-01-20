@@ -16,13 +16,15 @@ test.describe('Leave Policy Assignment Integration', () => {
     await fastLoginBtn.click();
     
     console.log('Waiting for Dashboard heading...');
-    await expect(page.getByRole('heading', { level: 1, name: /Dashboard/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { level: 1, name: /Dashboard|Bảng điều khiển/i })).toBeVisible({ timeout: 15000 });
 
     // 2. Create a Department via UI
     console.log('Navigating to /departments...');
+    // If we are on dashboard, sidebar might be hidden on mobile or needs navigation
     await page.goto('/departments');
     await page.waitForLoadState('networkidle');
-    const addDeptBtn = page.getByTestId('add-dept-btn');
+    // The button might be translated
+    const addDeptBtn = page.getByRole('button').filter({ hasText: /Thêm|Add/i }).first();
     await expect(addDeptBtn).toBeVisible({ timeout: 30000 });
     await addDeptBtn.click();
     

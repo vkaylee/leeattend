@@ -35,7 +35,8 @@ test.describe("UI Build Smoke Test", () => {
     const hasAppContent = bodyText.includes("LeeAttend") || 
                          bodyText.includes("Sign in") || 
                          bodyText.includes("Đăng nhập") || 
-                         bodyText.includes("Dashboard");
+                         bodyText.includes("Dashboard") ||
+                         bodyText.includes("Bảng điều khiển");
     
     expect(hasAppContent).toBe(true);
   });

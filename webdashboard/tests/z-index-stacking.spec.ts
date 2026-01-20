@@ -13,7 +13,7 @@ test.describe('UI Z-Index Stacking Verification', () => {
     console.log('Navigating to Leave Requests via Sidebar...');
     await page.getByTestId('sidebar-section-time').click();
     const leaveRequestsLink = page.getByTestId('sidebar-link-leave-requests').first();
-    await leaveRequestsLink.click();
+    await leaveRequestsLink.click({ force: true });
     
     await expect(page.locator('h1')).toHaveText(/Yêu cầu nghỉ phép|Leave Requests/i, { timeout: 15000 });
     

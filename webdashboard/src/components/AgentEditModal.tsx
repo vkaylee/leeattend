@@ -61,7 +61,7 @@ export default function AgentEditModal({
       onSave(updated || agent);
       onClose();
     } catch (e) {
-      alert(t("agents.edit_modal.messages.update_error"));
+      alert(t("common.agents.edit_modal.messages.update_error"));
     }
   }
 
@@ -75,9 +75,9 @@ export default function AgentEditModal({
             </div>
             <div>
               <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                {t("agents.edit_modal.title")}
+                {t("common.agents.edit_modal.title")}
               </h2>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{t("agents.edit_modal.subtitle")}</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{t("common.agents.edit_modal.subtitle")}</p>
             </div>
           </div>
           <button
@@ -92,7 +92,7 @@ export default function AgentEditModal({
           <div className="space-y-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
-                {t("agents.edit_modal.id_label")}
+                {t("common.agents.edit_modal.id_label")}
               </label>
               <input
                 disabled
@@ -103,11 +103,11 @@ export default function AgentEditModal({
 
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
-                {t("agents.edit_modal.name_label")}
+                {t("common.agents.edit_modal.name_label")}
               </label>
               <input
                 required
-                placeholder={t("agents.edit_modal.name_placeholder")}
+                placeholder={t("common.agents.edit_modal.name_placeholder")}
                 className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 outline-none transition-all font-bold text-slate-700"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -116,12 +116,12 @@ export default function AgentEditModal({
 
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
-                {t("agents.edit_modal.token_label")}
+                {t("common.agents.edit_modal.token_label")}
               </label>
               <div className="relative">
                 <input
                   required
-                  placeholder={t("agents.edit_modal.token_placeholder")}
+                  placeholder={t("common.agents.edit_modal.token_placeholder")}
                   className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 outline-none transition-all pr-12 font-mono font-bold text-slate-700"
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
@@ -145,7 +145,7 @@ export default function AgentEditModal({
                 ) : (
                   <ShieldAlert className="w-4 h-4" />
                 )}
-                {isTrusted ? t("agents.status.trusted") : t("agents.status.pending")}
+                {isTrusted ? t("common.agents.status.trusted") : t("common.agents.status.pending")}
               </button>
 
               <button

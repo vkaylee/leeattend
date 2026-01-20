@@ -63,12 +63,30 @@
         "fsm_desc": "Sử dụng trạng thái Vào/Ra trực tiếp từ thiết bị. Độ chính xác cao nhất cho phần cứng cao cấp."
       }
     },
-    "members": "Thành viên",
+    "members": {
+      "roles": {
+        "member": "Thành viên",
+        "member_desc": "Thành viên thông thường",
+        "admin": "Quản trị viên",
+        "admin_desc": "Quản trị viên hệ thống",
+        "owner": "Chủ sở hữu"
+      },
+      "table": {
+        "manage_roles": "Quản lý quyền",
+        "remove_member": "Xóa thành viên"
+      }
+    },
     "employees": "Nhân viên",
     "departments": "Phòng ban",
     "time_tracking": "Chấm công",
     "logs": "Nhật ký",
-    "leave_requests": "Nghỉ phép",
+    "leave_requests": {
+      "policy": {
+        "edit_title": "Sửa chính sách",
+        "title": "Chính sách nghỉ phép",
+        "save_btn": "Lưu chính sách"
+      }
+    },
     "leave_balances": "Số dư nghỉ phép",
     "profile": "Hồ sơ",
     "attendance": "Chấm công",
@@ -76,10 +94,82 @@
     "attendance_confirm": "Xác nhận công",
     "reports": "Báo cáo",
     "shifts": "Lịch trình & Ca",
-    "payroll": "Tính lương",
-    "agents": "Agents",
+    "payroll": {
+      "settings": {
+        "global_history": "Lịch sử cấu hình toàn hệ thống",
+        "title": "Cấu hình ngày công chuẩn",
+        "effective_date": "Ngày có hiệu lực",
+        "working_day_mode": "Chế độ tính công chuẩn",
+        "mode_fixed": "Số ngày cố định",
+        "mode_fixed_desc": "Ví dụ: Luôn tính là 26 ngày/tháng",
+        "mode_actual": "Theo lịch thực tế",
+        "mode_actual_desc": "Tổng số ngày trừ đi ngày nghỉ (T7/CN)",
+        "fixed_days": "Số ngày công cố định",
+        "days_per_week": "Số ngày làm việc/tuần",
+        "5days": "5 ngày (Nghỉ T7, CN)",
+        "6days": "6 ngày (Nghỉ CN)",
+        "7days": "7 ngày (Không ngày nghỉ)",
+        "hours_per_day": "Số giờ làm việc chuẩn/ngày",
+        "note_title": "Lưu ý về cách tính lương giờ",
+        "note_desc": "Lương giờ dùng để tính OT = (Tổng các khoản Lương cơ bản) / (Số ngày công chuẩn × Số giờ làm chuẩn/ngày)."
+      },
+      "table": {
+        "net_pay": "Thực lĩnh",
+        "status": "Trạng thái",
+        "loading_payslips": "Đang tải bảng lương...",
+        "no_payslips": "Không tìm thấy bảng lương",
+        "period": "Kỳ lương",
+        "base_pay": "Lương cơ bản",
+        "overtime": "Tăng ca",
+        "reason": "Lý do",
+        "basis": "Căn cứ",
+        "std_days": "Công chuẩn",
+        "actual": "Thực tế",
+        "amount": "Số tiền"
+      },
+      "status": {
+        "paid": "ĐÃ CHI TRẢ",
+        "finalized": "ĐÃ CHỐT"
+      },
+      "segments": {
+        "title": "Chi tiết dòng lương (Segments)"
+      },
+      "employee_config": {
+        "tab_title": "Cấu hình lương"
+      }
+    },
+    "agents": {
+      "edit_modal": {
+        "messages": {
+          "update_error": "Lỗi khi cập nhật Agent."
+        },
+        "title": "Chỉnh sửa Agent",
+        "subtitle": "Quản lý kết nối",
+        "id_label": "Mã Agent (Chỉ đọc)",
+        "name_label": "Tên Chi nhánh / Vị trí",
+        "name_placeholder": "Ví dụ: Văn phòng Hà Nội",
+        "token_label": "Mã Token bảo mật",
+        "token_placeholder": "Mật mã kết nối"
+      },
+      "status": {
+        "trusted": "Đã duyệt",
+        "pending": "Chờ duyệt"
+      }
+    },
     "devices": "Thiết bị",
-    "settings": "Cài đặt",
+    "settings": {
+      "categories": {
+        "connectivity": "Kết nối",
+        "connectivity_desc": "Quản lý kết nối thiết bị và cài đặt mạng.",
+        "general": "Chung",
+        "payroll": "Lương",
+        "payroll_desc": "Quản lý ngày công chuẩn và công thức tính lương.",
+        "people": "Nhân sự",
+        "people_desc": "Quản lý nhân viên, phòng ban và vai trò.",
+        "time": "Thời gian & Chấm công",
+        "time_desc": "Cấu hình ca làm việc, lịch trình và quy tắc chấm công."
+      }
+    },
     "logout": "Đăng xuất",
     "switch_workspace": "Chuyển cơ sở",
     "admin": "Quản trị viên",
@@ -234,7 +324,7 @@
     "quick_actions": "Thao tác nhanh",
     "work": "Làm việc",
     "inactive": "Tạm dừng",
-    "active": "Hoạt động",
+    "active": "Hiện tại",
     "collapse": "Thu gọn",
     "expand": "Mở rộng",
     "select_all": "Chọn tất cả",
@@ -254,7 +344,7 @@
     "no": "Không",
     "base_for_ot": "Tính OT",
     "add_new": "Thêm mới",
-    "active": "Hiện tại"
+    "search_employee": "Tìm kiếm nhân viên..."
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -911,8 +1001,8 @@
     "calculate_btn": "Tính lương mới",
     "history_title": "Lịch sử phiếu lương (Payslips)",
     "empty_state": {
-      "title": "Chọn nhân sự để quản lý lương",
-      "desc": "Xem lịch sử phiếu lương hoặc tính toán bảng lương tháng mới cho nhân viên."
+      "title": "Chọn nhân sự để tiếp tục",
+      "desc": "Xem lịch sử phiếu lương hoặc tính lương tháng mới cho nhân viên."
     },
     "table": {
       "period": "Kỳ lương",
@@ -1266,5 +1356,22 @@
       "reason_label": "Lý do điều chỉnh",
       "reason_placeholder": "VD: Quên quẹt thẻ, đi công tác..."
     }
+  },
+  "settings": {
+    "title": "Trung tâm cài đặt",
+    "categories": {
+      "general": "Chung",
+      "people": "Nhân sự",
+      "time": "Thời gian & Chấm công",
+      "payroll": "Lương",
+      "connectivity": "Kết nối",
+      "general_desc": "Cấu hình nhận diện thương hiệu và tùy chọn cơ bản.",
+      "people_desc": "Quản lý nhân viên, phòng ban và vai trò.",
+      "time_desc": "Cấu hình ca làm việc, lịch trình và quy tắc chấm công.",
+      "payroll_desc": "Quản lý ngày công chuẩn và công thức tính lương.",
+      "connectivity_desc": "Quản lý kết nối thiết bị và cài đặt mạng."
+    },
+    "navigation": "Điều hướng",
+    "admin_only": "Chỉ dành cho quản trị viên"
   }
 }

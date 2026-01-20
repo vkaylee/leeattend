@@ -4,7 +4,11 @@ import viLocale from "../i18n/locales/vi.json";
 
 // Helper to resolve nested keys
 const resolveKey = (key: string, obj: any): string => {
-  const result = key.split('.').reduce((o, i) => o?.[i], obj);
+  let result = key.split('.').reduce((o, i) => o?.[i], obj);
+  if (!result && key.startsWith('common.')) {
+    const fallbackKey = key.substring(7);
+    result = fallbackKey.split('.').reduce((o, i) => o?.[i], obj);
+  }
   if (!result) console.warn(`Missing key in test mock: ${key}`);
   return result || key;
 };

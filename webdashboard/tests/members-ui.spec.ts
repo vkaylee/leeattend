@@ -9,20 +9,20 @@ test.describe("Members UI", () => {
     await expect(page.getByRole('heading', { level: 1, name: /Dashboard|Bảng điều khiển/i })).toBeVisible({ timeout: 30000 });
 
     // 2. Expand Sidebar Section if needed
-    const membersLink = page.getByTestId('sidebar-link-members');
-    const orgSection = page.getByTestId('sidebar-section-org');
+    const peopleLink = page.getByTestId('sidebar-link-settings-people');
+    const settingsSection = page.getByTestId('sidebar-section-system');
     
     // Check if link is visible, if not, click section to expand
-    if (!await membersLink.isVisible()) {
-      await orgSection.click();
-      await expect(membersLink).toBeVisible({ timeout: 10000 });
+    if (!await peopleLink.isVisible()) {
+      await settingsSection.click();
+      await expect(peopleLink).toBeVisible({ timeout: 10000 });
     }
 
-    // 3. Click Members link
-    await membersLink.click();
-    await expect(page).toHaveURL(/\/members/i, { timeout: 30000 });
+    // 3. Click People link
+    await peopleLink.click();
+    await expect(page).toHaveURL(/\/workspace\/settings\/people/i, { timeout: 30000 });
 
-    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Members & Permissions|Thành viên & Quyền hạn/);
+    await expect(page.getByRole('heading', { level: 1, name: /People|Nhân sự/ })).toBeVisible();
 
     // 4. Click Invite Member button
     await page.getByTestId('invite-member-trigger').click();

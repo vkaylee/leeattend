@@ -59,7 +59,15 @@ leeattend/
     - **Timezone Engine**: Comprehensive timezone management per workspace. Correctly handles local-to-UTC conversion for external data imports (Excel/CSV) using the workspace's configured IANA timezone ID.
     - **Internationalization (i18n) Engine**: Persistent language preferences stored at both user and workspace levels. Backend automatically detects and synchronizes with frontend state via `preferred_language` and `default_language` fields.
         - **Feature-First Structure**: Locale files (`.json`) are organized with major functional modules (Auth, ESS, Shifts, etc.) at the top-level for concise key access and maintainability.
-        - **100% Key Parity**: Enforced 100% key synchronization between all supported languages (en, vi, zh) through an automated audit suite.
+        - **Automated Quality Suite**: Enhanced `translation-usage.test.ts` provides comprehensive codebase auditing:
+            - **100% Key Parity**: Enforces identical key structures across all supported languages (en, vi, zh).
+            - **Missing Key Detection**: Scans all `.ts/.tsx` files for `t()` calls and verifies their existence in locales.
+            - **Untranslated Value Guard**: Warns if a translation value matches the key path (indicative of auto-generated stubs).
+            - **Hardcoded String Scanner**: Identifies raw text in JSX that should be moved to translation files.
+    - **Settings Hub (Centralized Configuration)**:
+        - **Unified Navigation**: Redesigned sidebar and routing to provide a single entry point for all workspace, personnel, and system configurations.
+        - **Categorized Management**: Logical grouping into General, People, Time & Attendance, Payroll, and Connectivity settings.
+        - **Responsive Layout**: Optimized mobile-friendly grid system for setting cards and detailed configuration panels.
     - **Unified Employee Search**: High-fidelity search subsystem used across all administrative and reporting modules.
         - **Server-Side Filtering**: Optimized SQL queries using `ILIKE` for case-insensitive matching across first names, last names, and employee ID numbers.
         - **Intelligent Debouncing**: Integrated `useDebounce` hook (400ms delay) to minimize server load while providing a responsive "search-as-you-type" experience.

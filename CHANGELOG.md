@@ -4,8 +4,28 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ## [Unreleased]
 
+### Added
+- **Robust i18n Testing Suite**:
+    - Enhanced `translation-usage.test.ts` with advanced detection for missing keys, untranslated keys (value equals key path), and hardcoded JSX strings.
+    - Implemented stricter validation for locale file synchronization to ensure 100% key parity across `en.json`, `vi.json`, and `zh.json`.
+- **Payroll UI Localization**:
+    - Added comprehensive translations for payroll segments (Period, Basis, Std Days, Actual, Amount) in all supported languages.
+    - Localized table headers and status labels in the `PayrollTable` component.
+
 ### Changed
-- **Streamlined Attendance Pairing Engine**:
+- **Refactored Settings Hub i18n**:
+    - Standardized translation keys for Settings categories (General, People, Time, Payroll, Connectivity) to resolve "Missing Key" warnings.
+    - Updated `App.tsx` and `PeopleSettings.tsx` to use leaf-node translation keys instead of object paths for better reliability.
+- **Improved E2E Test Stability**:
+    - Increased Playwright timeouts to 120s in `playwright.config.ts` and individual specs to handle slow CI/CD environments.
+    - Updated E2E locators in `members-ui`, `sidebar-navigation`, and `stability-regression` to match recent UI refactors.
+
+### Fixed
+- **Locale Desynchronization**: Resolved numerous missing translation keys in `vi.json` and `zh.json` identified by the new testing suite.
+- **Settings Page Rendering**: Refactored `GeneralSettings.tsx` and `TimeSettings.tsx` into container/presentational components to fix ESLint cascading render warnings.
+- **App Layout**: Fixed broken imports for `AssignmentRulesPage` and `WorkspaceSettingsPage`.
+- **JSON Quality**: Fixed invalid JSON syntax (trailing commas) and synchronized key structures across all locale files.
+
     - Simplified the pairing architecture by retaining only the robust **AnchorFirstStrategy** (First-In / Last-Out).
     - Deprecated and removed complex strategies including `Sequential`, `DP Pattern`, and `FSM` to improve system reliability and maintainability.
     - Updated the maximum allowed gap between punches from 16 hours to **12 hours** (720 minutes) across the entire system.

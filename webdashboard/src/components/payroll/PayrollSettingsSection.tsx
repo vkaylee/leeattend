@@ -34,7 +34,7 @@ export default function PayrollSettingsSection({ wsId }: Props) {
       
       <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
         <TemporalConfigTable 
-          title={t("payroll.settings.global_history", "Lịch sử cấu hình toàn hệ thống")}
+          title={t("common.payroll.settings.global_history")}
           records={history.map(h => ({
             std_working_days: Number(h.fixed_std_days),
             hours_per_day: Number(h.hours_per_day),
@@ -100,7 +100,7 @@ function PayrollSettingsForm({ wsId, initialSettings }: FormProps) {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800">
           <Calculator className="w-5 h-5 text-primary-500" />
-          {t("payroll.settings.title", "Cấu hình ngày công chuẩn")}
+          {t("common.payroll.settings.title")}
         </h2>
         <button
           onClick={handleSave}
@@ -109,14 +109,14 @@ function PayrollSettingsForm({ wsId, initialSettings }: FormProps) {
           className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 disabled:opacity-50 text-sm"
         >
           <Save className="w-4 h-4" />
-          {t("workspace_settings.save_config")}
+          {t("common.workspace_settings.save_config")}
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-            {t("payroll.settings.effective_date", "Ngày có hiệu lực")}
+            {t("common.payroll.settings.effective_date")}
           </label>
           <input
             type="date"
@@ -128,12 +128,12 @@ function PayrollSettingsForm({ wsId, initialSettings }: FormProps) {
 
         <div className="space-y-2">
           <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-            {t("payroll.settings.working_day_mode", "Chế độ tính công chuẩn")}
+            {t("common.payroll.settings.working_day_mode")}
           </label>
           <Combobox
             options={[
-              { value: "fixed", label: t("payroll.settings.mode_fixed", "Số ngày cố định"), description: t("payroll.settings.mode_fixed_desc", "Ví dụ: Luôn tính là 26 ngày/tháng") },
-              { value: "actual_month", label: t("payroll.settings.mode_actual", "Theo lịch thực tế"), description: t("payroll.settings.mode_actual_desc", "Tổng số ngày trừ đi ngày nghỉ (T7/CN)") },
+              { value: "fixed", label: t("common.payroll.settings.mode_fixed"), description: t("common.payroll.settings.mode_fixed_desc") },
+              { value: "actual_month", label: t("common.payroll.settings.mode_actual"), description: t("common.payroll.settings.mode_actual_desc") },
             ]}
             value={mode}
             onChange={(val) => setMode(val as any)}
@@ -144,7 +144,7 @@ function PayrollSettingsForm({ wsId, initialSettings }: FormProps) {
         {mode === "fixed" ? (
           <div className="space-y-2">
             <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-              {t("payroll.settings.fixed_days", "Số ngày công cố định")}
+              {t("common.payroll.settings.fixed_days")}
             </label>
             <input
               type="number"
@@ -156,13 +156,13 @@ function PayrollSettingsForm({ wsId, initialSettings }: FormProps) {
         ) : (
           <div className="space-y-2">
             <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-              {t("payroll.settings.days_per_week", "Số ngày làm việc/tuần")}
+              {t("common.payroll.settings.days_per_week")}
             </label>
             <Combobox
               options={[
-                { value: "5", label: t("payroll.settings.5days", "5 ngày (Nghỉ T7, CN)") },
-                { value: "6", label: t("payroll.settings.6days", "6 ngày (Nghỉ CN)") },
-                { value: "7", label: t("payroll.settings.7days", "7 ngày (Không ngày nghỉ)") },
+                { value: "5", label: t("common.payroll.settings.5days") },
+                { value: "6", label: t("common.payroll.settings.6days") },
+                { value: "7", label: t("common.payroll.settings.7days") },
               ]}
               value={daysPerWeek.toString()}
               onChange={(val) => setDaysPerWeek(parseInt(val))}
@@ -173,7 +173,7 @@ function PayrollSettingsForm({ wsId, initialSettings }: FormProps) {
 
         <div className="space-y-2">
           <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-            {t("payroll.settings.hours_per_day", "Số giờ làm việc chuẩn/ngày")}
+            {t("common.payroll.settings.hours_per_day")}
           </label>
           <input
             type="number"
@@ -187,8 +187,8 @@ function PayrollSettingsForm({ wsId, initialSettings }: FormProps) {
       <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-2xl flex gap-3">
         <ShieldAlert className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
         <div className="text-xs text-blue-700 leading-relaxed">
-          <p className="font-bold mb-1">{t("payroll.settings.note_title", "Lưu ý về cách tính lương giờ")}</p>
-          <p>{t("payroll.settings.note_desc", "Lương giờ dùng để tính OT = (Tổng các khoản Lương cơ bản) / (Số ngày công chuẩn × Số giờ làm chuẩn/ngày).")}</p>
+          <p className="font-bold mb-1">{t("common.payroll.settings.note_title")}</p>
+          <p>{t("common.payroll.settings.note_desc")}</p>
         </div>
       </div>
     </div>

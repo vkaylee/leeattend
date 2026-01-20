@@ -63,12 +63,30 @@
         "fsm_desc": "Uses explicit In/Out status from devices. Highest precision for high-end hardware."
       }
     },
-    "members": "Members",
+    "members": {
+      "roles": {
+        "member": "Member",
+        "member_desc": "Regular member",
+        "admin": "Admin",
+        "admin_desc": "System administrator",
+        "owner": "Owner"
+      },
+      "table": {
+        "manage_roles": "Manage Roles",
+        "remove_member": "Remove Member"
+      }
+    },
     "employees": "Employees",
     "departments": "Departments",
     "time_tracking": "Time Tracking",
     "logs": "Logs",
-    "leave_requests": "Leave Requests",
+    "leave_requests": {
+      "policy": {
+        "edit_title": "Edit Policy",
+        "title": "Leave Policies",
+        "save_btn": "Save Policy"
+      }
+    },
     "leave_balances": "Leave Balances",
     "profile": "Profile",
     "attendance": "Attendance",
@@ -76,10 +94,82 @@
     "attendance_confirm": "Attendance Confirm",
     "reports": "Reports",
     "shifts": "Shifts & Rosters",
-    "payroll": "Payroll",
-    "agents": "Agents",
+    "payroll": {
+      "settings": {
+        "global_history": "Global Configuration History",
+        "title": "Standard Working Days Config",
+        "effective_date": "Effective Date",
+        "working_day_mode": "Working Day Mode",
+        "mode_fixed": "Fixed Days",
+        "mode_fixed_desc": "Example: Always 26 days/month",
+        "mode_actual": "Actual Calendar",
+        "mode_actual_desc": "Total days minus weekends (Sat/Sun)",
+        "fixed_days": "Fixed Standard Days",
+        "days_per_week": "Work days per week",
+        "5days": "5 days (Sat, Sun off)",
+        "6days": "6 days (Sun off)",
+        "7days": "7 days (No days off)",
+        "hours_per_day": "Standard hours per day",
+        "note_title": "Note on hourly rate calculation",
+        "note_desc": "Hourly rate for OT = (Total Base Salaries) / (Std Days × Std Hours/day)."
+      },
+      "table": {
+        "loading_payslips": "Loading payslips...",
+        "no_payslips": "No payslips found",
+        "period": "Pay Period",
+        "base_pay": "Base Salary",
+        "overtime": "Overtime",
+        "net_pay": "Net Pay",
+        "status": "Status",
+        "reason": "Reason",
+        "basis": "Basis",
+        "std_days": "Std Days",
+        "actual": "Actual",
+        "amount": "Amount"
+      },
+      "status": {
+        "paid": "PAID",
+        "finalized": "FINALIZED"
+      },
+      "segments": {
+        "title": "Payroll Segments"
+      },
+      "employee_config": {
+        "tab_title": "Salary Config"
+      }
+    },
+    "agents": {
+      "edit_modal": {
+        "messages": {
+          "update_error": "Error updating agent."
+        },
+        "title": "Edit Agent",
+        "subtitle": "Connection Management",
+        "id_label": "Agent ID (Read-only)",
+        "name_label": "Branch / Location Name",
+        "name_placeholder": "e.g., London Office",
+        "token_label": "Secret Token",
+        "token_placeholder": "Connection password"
+      },
+      "status": {
+        "trusted": "Trusted",
+        "pending": "Pending"
+      }
+    },
     "devices": "Devices",
-    "settings": "Settings",
+    "settings": {
+      "categories": {
+        "connectivity": "Connectivity",
+        "connectivity_desc": "Manage device connections and network settings.",
+        "general": "General",
+        "payroll": "Payroll",
+        "payroll_desc": "Manage standard working days and hourly rate formulas.",
+        "people": "People",
+        "people_desc": "Manage employees, departments, and roles.",
+        "time": "Time & Attendance",
+        "time_desc": "Configure shifts, rosters, and attendance rules."
+      }
+    },
     "logout": "Logout",
     "switch_workspace": "Switch Workspace",
     "admin": "Admin",
@@ -180,9 +270,7 @@
     "trust": "Trust",
     "revoke": "Revoke",
     "submit_request": "Submit request",
-    "attendance": "Attendance",
     "schedule": "Schedule",
-    "leave": "Leave",
     "payroll_and_contracts": "Payroll & Contracts",
     "deleting": "Deleting...",
     "source": "Source",
@@ -256,7 +344,9 @@
     "no": "No",
     "base_for_ot": "Base for OT",
     "add_new": "Add New",
-    "active": "Active"
+    "search_placeholder": "Search...",
+    "search_employee": "Search employees...",
+    "close": "Close"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1268,5 +1358,22 @@
       "reason_label": "Adjustment Reason",
       "reason_placeholder": "e.g., Forgot to punch, business trip..."
     }
+  },
+  "settings": {
+    "title": "Settings Hub",
+    "categories": {
+      "general": "General",
+      "people": "People",
+      "time": "Time & Attendance",
+      "payroll": "Payroll",
+      "connectivity": "Connectivity",
+      "general_desc": "Configure core workspace identity and preferences.",
+      "people_desc": "Manage employees, departments, and roles.",
+      "time_desc": "Configure shifts, rosters, and attendance rules.",
+      "payroll_desc": "Manage standard working days and hourly rate formulas.",
+      "connectivity_desc": "Manage device connections and network settings."
+    },
+    "navigation": "Navigation",
+    "admin_only": "Admin Only"
   }
 }

@@ -44,7 +44,7 @@ describe("PayrollPage", () => {
     );
 
     expect(await screen.findByText("John Doe")).toBeDefined();
-    expect(screen.getByText("Chọn nhân sự để quản lý lương")).toBeDefined();
+    expect(screen.getByText("Chọn nhân sự để tiếp tục")).toBeDefined();
   });
 
   it("shows payslips when an employee is selected", async () => {
@@ -77,9 +77,9 @@ describe("PayrollPage", () => {
     const employeeBtn = await screen.findByText("John Doe");
     fireEvent.click(employeeBtn);
 
-    expect((await screen.findAllByText("Lịch sử phiếu lương (Payslips)"))[0]).toBeDefined();
+    expect((await screen.findAllByText(/Lịch sử phiếu lương/i))[0]).toBeDefined();
     expect(await screen.findByText("10.400.000")).toBeDefined();
-    expect(screen.getByText("ĐÃ CHI TRẢ")).toBeDefined();
+    expect(screen.getByText(/ĐÃ CHI TRẢ/i)).toBeDefined();
   });
 
   it("opens calculation modal and triggers calculation", async () => {

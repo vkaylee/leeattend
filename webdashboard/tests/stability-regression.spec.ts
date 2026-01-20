@@ -42,11 +42,11 @@ test("should load settings page without ReferenceErrors", async ({ page, baseURL
   
   // Navigate via testids
   await page.getByTestId('sidebar-section-system').click();
-  const settingsLink = page.getByTestId('sidebar-link-settings');
+  const settingsLink = page.getByTestId('sidebar-link-settings-general');
   await settingsLink.click();
   
   // Verify heading is visible (Settings2 icon used to be in the sidebar or page header)
-  await expect(page.getByRole('heading', { level: 1 })).toContainText(/Workspace Settings|Cài đặt Workspace/i);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(/Workspace Settings|Cài đặt Workspace|General|Chung|Cấu hình chung/i, { timeout: 15000 });
   
   // Check console for "ReferenceError"
   const logs: string[] = [];

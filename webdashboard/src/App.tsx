@@ -38,7 +38,6 @@ import DashboardPage from "./pages/DashboardPage";
 import AgentsPage from "./pages/AgentsPage";
 import DevicesPage from "./pages/DevicesPage";
 import MembersPage from "./pages/MembersPage";
-import WorkspaceSettingsPage from "./pages/WorkspaceSettingsPage";
 import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -53,6 +52,12 @@ import PayrollPage from "./pages/PayrollPage";
 import ShiftsPage from "./pages/ShiftsPage";
 import WorkingPatternsPage from "./pages/WorkingPatternsPage";
 import AssignmentRulesPage from "./pages/AssignmentRulesPage";
+import SettingsLayout from "./pages/settings/SettingsLayout";
+import GeneralSettings from "./pages/settings/GeneralSettings";
+import PeopleSettings from "./pages/settings/PeopleSettings";
+import TimeSettings from "./pages/settings/TimeSettings";
+import PayrollSettings from "./pages/settings/PayrollSettings";
+import ConnectivitySettings from "./pages/settings/ConnectivitySettings";
 import WorkspaceSwitcher from "./components/WorkspaceSwitcher";
 import AuthGuard from "./components/AuthGuard";
 import WorkspaceGuard from "./components/WorkspaceGuard";
@@ -119,22 +124,27 @@ function Layout() {
   const getPageName = (path: string) => {
     const map: Record<string, string> = {
       "/": t("common.dashboard"),
-      "/members": t("common.members"),
+      "/members": t("members.title"),
       "/employees": t("common.employees"),
       "/departments": t("common.departments"),
       "/time-tracking": t("common.time_tracking"),
       "/attendance-logs": t("common.logs"),
-      "/leave-requests": t("common.leave_requests"),
+      "/leave-requests": t("leave_requests.title"),
       "/leave-balances": t("common.leave_balances"),
       "/attendance-adjustments": t("common.attendance_confirm"),
       "/reports": t("common.reports"),
       "/shifts": t("common.shifts"),
       "/working-patterns": t("patterns.title"),
       "/assignment-rules": t("rules.title"),
-      "/payroll": t("common.payroll"),
-      "/agents": t("common.agents"),
+      "/payroll": t("payroll.title"),
+      "/agents": t("agents.title"),
       "/devices": t("common.devices"),
-      "/workspace/settings": t("common.settings"),
+      "/workspace/settings": t("settings.title"),
+      "/workspace/settings/general": t("settings.categories.general"),
+      "/workspace/settings/people": t("settings.categories.people"),
+      "/workspace/settings/time": t("settings.categories.time"),
+      "/workspace/settings/payroll": t("settings.categories.payroll"),
+      "/workspace/settings/connectivity": t("settings.categories.connectivity"),
       "/profile": t("common.profile"),
       "/ess/profile": t("common.my_profile"),
     };
@@ -235,16 +245,6 @@ function Layout() {
             </button>
             <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.org ? "max-h-96 opacity-100" : "max-h-0 opacity-0 invisible"}`}>
               <Link
-                to="/members"
-                data-testid="sidebar-link-members"
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/members" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
-                }`}
-              >
-                <Users className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">{t("common.members")}</span>
-              </Link>
-              <Link
                 to="/employees"
                 data-testid="sidebar-link-employees"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
@@ -253,16 +253,6 @@ function Layout() {
               >
                 <UserRound className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="font-semibold text-sm">{t("common.employees")}</span>
-              </Link>
-              <Link
-                to="/departments"
-                data-testid="sidebar-link-departments"
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/departments" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
-                }`}
-              >
-                <Building2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">{t("common.departments")}</span>
               </Link>
             </div>
           </div>
@@ -306,7 +296,7 @@ function Layout() {
                 }`}
               >
                 <CalendarDays className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">{t("common.leave_requests")}</span>
+                <span className="font-semibold text-sm">{t("leave_requests.title")}</span>
               </Link>
               <Link
                 to="/leave-balances"
@@ -363,26 +353,6 @@ function Layout() {
                 <span className="font-semibold text-sm">{t("common.shifts")}</span>
               </Link>
               <Link
-                to="/working-patterns"
-                data-testid="sidebar-link-working-patterns"
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/working-patterns" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
-                }`}
-              >
-                <ListOrdered className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">{t("patterns.title")}</span>
-              </Link>
-              <Link
-                to="/assignment-rules"
-                data-testid="sidebar-link-assignment-rules"
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/assignment-rules" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
-                }`}
-              >
-                <Settings2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">{t("rules.title", "Auto-Assignment")}</span>
-              </Link>
-              <Link
                 to="/payroll"
                 data-testid="sidebar-link-payroll"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
@@ -390,51 +360,71 @@ function Layout() {
                 }`}
               >
                 <Banknote className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">{t("common.payroll")}</span>
+                <span className="font-semibold text-sm">{t("payroll.title")}</span>
               </Link>
             </div>
           </div>
 
-          {/* Section: Hệ thống */}
+          {/* Section: Hệ thống (Now renamed to Settings Hub) */}
           <div className="pt-2">
             <button 
               onClick={() => toggleSection('system')}
               data-testid="sidebar-section-system"
               className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
             >
-              <span>{t("common.sections.system")}</span>
+              <span>{t("settings.title")}</span>
               {openSections.system ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
             </button>
             <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${openSections.system ? "max-h-64 opacity-100" : "max-h-0 opacity-0 invisible"}`}>
               <Link
-                to="/agents"
-                data-testid="sidebar-link-agents"
+                to="/workspace/settings/general"
+                data-testid="sidebar-link-settings-general"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/agents" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
-                }`}
-              >
-                <UserCheck className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">{t("common.agents")}</span>
-              </Link>
-              <Link
-                to="/devices"
-                data-testid="sidebar-link-devices"
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/devices" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
-                }`}
-              >
-                <Cpu className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">{t("common.devices")}</span>
-              </Link>
-              <Link
-                to="/workspace/settings"
-                data-testid="sidebar-link-settings"
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
-                  location.pathname === "/workspace/settings" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
+                  location.pathname.startsWith("/workspace/settings/general") ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
                 }`}
               >
                 <Settings className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-semibold text-sm">{t("common.settings")}</span>
+                <span className="font-semibold text-sm">{t("settings.categories.general")}</span>
+              </Link>
+              <Link
+                to="/workspace/settings/people"
+                data-testid="sidebar-link-settings-people"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname.startsWith("/workspace/settings/people") ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
+                }`}
+              >
+                <Users className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">{t("settings.categories.people")}</span>
+              </Link>
+              <Link
+                to="/workspace/settings/time"
+                data-testid="sidebar-link-settings-time"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname.startsWith("/workspace/settings/time") ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
+                }`}
+              >
+                <Clock className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">{t("settings.categories.time")}</span>
+              </Link>
+              <Link
+                to="/workspace/settings/payroll"
+                data-testid="sidebar-link-settings-payroll"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname.startsWith("/workspace/settings/payroll") ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
+                }`}
+              >
+                <Banknote className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">{t("settings.categories.payroll")}</span>
+              </Link>
+              <Link
+                to="/workspace/settings/connectivity"
+                data-testid="sidebar-link-settings-connectivity"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname.startsWith("/workspace/settings/connectivity") ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
+                }`}
+              >
+                <Cpu className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">{t("settings.categories.connectivity")}</span>
               </Link>
             </div>
           </div>
@@ -598,24 +588,26 @@ function App() {
               <Route element={<WorkspaceGuard />}>
                 <Route element={<Layout />}>
                   <Route path="/" element={<DashboardPage />} />
-                  <Route path="/agents" element={<AgentsPage />} />
-                  <Route path="/devices" element={<DevicesPage />} />
-                  <Route path="/members" element={<MembersPage />} />
                   <Route path="/employees" element={<EmployeesPage />} />
-                  <Route path="/departments" element={<DepartmentsPage />} />
                   <Route path="/time-tracking" element={<TimeTrackingPage />} />
                   <Route path="/attendance-logs" element={<AttendanceLogsPage />} />
                   <Route path="/leave-requests" element={<LeaveRequestsPage />} />
                   <Route path="/leave-balances" element={<LeaveBalancesPage />} />
                   <Route path="/attendance-adjustments" element={<AttendanceAdjustmentsPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
-                                      <Route path="/shifts" element={<ShiftsPage />} />
-                                      <Route path="/working-patterns" element={<WorkingPatternsPage />} />
-                                      <Route path="/assignment-rules" element={<AssignmentRulesPage />} />
-                                      <Route path="/payroll" element={<PayrollPage />} />                <Route
-                    path="/workspace/settings"
-                    element={<WorkspaceSettingsPage />} 
-                  />
+                  <Route path="/shifts" element={<ShiftsPage />} />
+                  <Route path="/payroll" element={<PayrollPage />} />
+                  
+                  {/* Settings Hub */}
+                  <Route path="/workspace/settings" element={<SettingsLayout />}>
+                    <Route index element={<GeneralSettings />} />
+                    <Route path="general" element={<GeneralSettings />} />
+                    <Route path="people" element={<PeopleSettings />} />
+                    <Route path="time" element={<TimeSettings />} />
+                    <Route path="payroll" element={<PayrollSettings />} />
+                    <Route path="connectivity" element={<ConnectivitySettings />} />
+                  </Route>
+
                   <Route path="/profile" element={<ProfilePage />} />
                   {/* ESS Routes */}
                   <Route path="/ess/profile" element={<MyProfilePage />} />

@@ -7,6 +7,9 @@ test.describe("Leave Policies CRUD", () => {
     await page.goto('/login');
     await page.getByTestId('fast-login-btn').click();
 
+    // Wait for dashboard to load
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 30000 });
+
     // Navigate to Leave Requests
     const leaveRequestsLink = page.getByTestId('sidebar-link-leave-requests');
     if (!await leaveRequestsLink.isVisible()) {

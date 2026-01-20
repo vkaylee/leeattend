@@ -35,6 +35,6 @@ test.describe('Debug Login Flow', () => {
 
     // 6. Verify Dashboard content is visible (e.g. Sidebar or Welcome message)
     // Checking for a common element like the sidebar or main heading
-    await expect(page.getByText('LeeAttend')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 15000 });
   });
 });

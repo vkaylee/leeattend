@@ -9,6 +9,7 @@ test.describe('Sidebar Navigation', () => {
     await page.getByTestId('fast-login-btn').click();
 
     // 3. Wait for dashboard to load
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 30000 });
     await expect(page).toHaveURL('/');
     
     // 4. Check if "Time & Leave" section is visible and expanded
@@ -20,8 +21,8 @@ test.describe('Sidebar Navigation', () => {
     await expect(timeTrackingLink).toBeVisible();
     
     // 5. Verify "Organization" section is NOT expanded by default (max-h-0)
-    const membersLink = page.getByTestId('sidebar-link-members');
-    await expect(membersLink).not.toBeVisible();
+    const employeesLink = page.getByTestId('sidebar-link-employees');
+    await expect(employeesLink).not.toBeVisible();
   });
 
   test('should expand one section and collapse others when clicked', async ({ page }) => {
@@ -31,16 +32,16 @@ test.describe('Sidebar Navigation', () => {
 
     // Initially "Time & Leave" is expanded, "Organization" is collapsed
     const timeTrackingLink = page.getByTestId('sidebar-link-time-tracking');
-    const membersLink = page.getByTestId('sidebar-link-members');
+    const employeesLink = page.getByTestId('sidebar-link-employees');
     
     await expect(timeTrackingLink).toBeVisible();
-    await expect(membersLink).not.toBeVisible();
+    await expect(employeesLink).not.toBeVisible();
 
     // Click "Organization" section title
     await page.getByTestId('sidebar-section-org').click();
 
     // Now "Organization" should be expanded, "Time & Leave" should be collapsed
-    await expect(membersLink).toBeVisible();
+    await expect(employeesLink).toBeVisible();
     await expect(timeTrackingLink).not.toBeVisible();
   });
 });

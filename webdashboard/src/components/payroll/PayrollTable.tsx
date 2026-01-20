@@ -39,7 +39,7 @@ export default function PayrollTable({ payslips, isLoading, adjustments = [], on
   if (isLoading) {
     return (
       <div className="p-12 text-center text-slate-400 italic">
-        {t("payroll.table.loading_payslips", "Loading payslips...")}
+        {t("common.payroll.table.loading_payslips")}
       </div>
     );
   }
@@ -51,7 +51,7 @@ export default function PayrollTable({ payslips, isLoading, adjustments = [], on
           <FileText className="text-slate-300 w-8 h-8" />
         </div>
         <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
-          {t("payroll.table.no_payslips", "No payslips found")}
+          {t("common.payroll.table.no_payslips")}
         </p>
       </div>
     );
@@ -62,11 +62,11 @@ export default function PayrollTable({ payslips, isLoading, adjustments = [], on
       <thead className="bg-slate-50/50 sticky top-0 backdrop-blur-md border-b border-slate-100 z-10">
         <tr>
           <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest w-12"></th>
-          <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("payroll.table.period", "Period")}</th>
-          <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.base_pay", "Base Pay")}</th>
-          <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.overtime", "Overtime")}</th>
-          <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("payroll.table.net_pay", "Net Pay")}</th>
-          <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t("payroll.table.status", "Status")}</th>
+          <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.payroll.table.period")}</th>
+          <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("common.payroll.table.base_pay")}</th>
+          <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("common.payroll.table.overtime")}</th>
+          <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("common.payroll.table.net_pay")}</th>
+          <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t("common.payroll.table.status")}</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-slate-50">
@@ -105,7 +105,7 @@ export default function PayrollTable({ payslips, isLoading, adjustments = [], on
                 <td className="px-4 py-6">
                   <div className="flex flex-col">
                     <span className="font-bold text-slate-900 text-sm">
-                      {t("common.month", "Month")} {formatMonthYear(slip.period_start)}
+                      {t("common.month")} {formatMonthYear(slip.period_start)}
                     </span>
                     <span className="text-[10px] text-slate-400 font-bold mt-1">
                       {formatDate(slip.period_start)} - {formatDate(slip.period_end)}
@@ -138,11 +138,11 @@ export default function PayrollTable({ payslips, isLoading, adjustments = [], on
                   <div className="flex flex-col items-center gap-2">
                     {slip.status === 'paid' ? (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-tighter">
-                        <CheckCircle2 size={12} /> {t("payroll.status.paid", "Paid")}
+                        <CheckCircle2 size={12} /> {t("common.payroll.status.paid")}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-tighter">
-                        <AlertCircle size={12} /> {t("payroll.status.finalized", "Finalized")}
+                        <AlertCircle size={12} /> {t("common.payroll.status.finalized")}
                       </span>
                     )}
 
@@ -166,7 +166,7 @@ export default function PayrollTable({ payslips, isLoading, adjustments = [], on
                     <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm ml-12">
                       <div className="flex items-center justify-between mb-6">
                         <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                          {t("payroll.segments.title", "Calculation Segments")}
+                          {t("common.payroll.segments.title")}
                         </h4>
                         <div className="w-64">
                           <SegmentVisualizer 
@@ -181,12 +181,12 @@ export default function PayrollTable({ payslips, isLoading, adjustments = [], on
                         <table className="w-full text-left" data-testid="segments-table">
                           <thead>
                             <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                              <th className="py-3 px-4">Period</th>
-                              <th className="py-3 px-4">Reason</th>
-                              <th className="py-3 px-4 text-right">Basis</th>
-                              <th className="py-3 px-4 text-right">Std Days</th>
-                              <th className="py-3 px-4 text-right">Actual</th>
-                              <th className="py-3 px-4 text-right">Amount</th>
+                              <th className="py-3 px-4">{t("common.payroll.table.period")}</th>
+                              <th className="py-3 px-4">{t("common.payroll.table.reason")}</th>
+                              <th className="py-3 px-4 text-right">{t("common.payroll.table.basis")}</th>
+                              <th className="py-3 px-4 text-right">{t("common.payroll.table.std_days")}</th>
+                              <th className="py-3 px-4 text-right">{t("common.payroll.table.actual")}</th>
+                              <th className="py-3 px-4 text-right">{t("common.payroll.table.amount")}</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-50 text-xs text-slate-600 font-medium">

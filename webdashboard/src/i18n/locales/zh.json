@@ -1,8 +1,9 @@
 {
   "common": {
     "dashboard": "仪表板",
-      "workspace_settings": {
-        "title": "工作区设置",      "description": "描述",
+    "workspace_settings": {
+      "title": "工作区设置",
+      "description": "描述",
       "general_config": "通用配置",
       "payroll_config": "薪资配置",
       "attendance_config": "考勤配置",
@@ -62,12 +63,30 @@
         "fsm_desc": "使用设备的显式进/出状态. 高端硬件的最高精度。"
       }
     },
-    "members": "成员",
+    "members": {
+      "roles": {
+        "member": "成员",
+        "member_desc": "普通成员",
+        "admin": "管理员",
+        "admin_desc": "系统管理员",
+        "owner": "所有者"
+      },
+      "table": {
+        "manage_roles": "管理权限",
+        "remove_member": "移除成员"
+      }
+    },
     "employees": "员工",
     "departments": "部门",
     "time_tracking": "考勤管理",
     "logs": "日志",
-    "leave_requests": "请假申请",
+    "leave_requests": {
+      "policy": {
+        "edit_title": "编辑制度",
+        "title": "休假制度",
+        "save_btn": "保存制度"
+      }
+    },
     "leave_balances": "休假余额",
     "profile": "个人资料",
     "attendance": "考勤",
@@ -75,10 +94,82 @@
     "attendance_confirm": "考勤确认",
     "reports": "报告",
     "shifts": "排班管理",
-    "payroll": "工资计算",
-    "agents": "代理",
+    "payroll": {
+      "settings": {
+        "global_history": "全局配置历史",
+        "title": "标准工作日配置",
+        "effective_date": "生效日期",
+        "working_day_mode": "计工模式",
+        "mode_fixed": "固定天数",
+        "mode_fixed_desc": "例如：每月始终计算为 26 天",
+        "mode_actual": "实际日历",
+        "mode_actual_desc": "总天数减去休息日（周六/周日）",
+        "fixed_days": "固定标准天数",
+        "days_per_week": "每周工作天数",
+        "5days": "5 天 (周六、日休息)",
+        "6days": "6 天 (周日休息)",
+        "7days": "7 天 (无休息日)",
+        "hours_per_day": "标准日工作时长",
+        "note_title": "关于时薪计算的说明",
+        "note_desc": "加班时薪 = (基本工资总额) / (标准天数 × 标准日时长)。"
+      },
+      "table": {
+        "net_pay": "净薪资",
+        "status": "状态",
+        "loading_payslips": "正在加载工资单...",
+        "no_payslips": "未找到工资单",
+        "period": "计薪周期",
+        "base_pay": "基本工资",
+        "overtime": "加班费",
+        "reason": "原因",
+        "basis": "依据",
+        "std_days": "标准天数",
+        "actual": "实际",
+        "amount": "金额"
+      },
+      "status": {
+        "paid": "已支付",
+        "finalized": "已结算"
+      },
+      "segments": {
+        "title": "薪资条细目 (Segments)"
+      },
+      "employee_config": {
+        "tab_title": "薪资配置"
+      }
+    },
+    "agents": {
+      "edit_modal": {
+        "messages": {
+          "update_error": "更新代理出错。"
+        },
+        "title": "编辑代理",
+        "subtitle": "连接管理",
+        "id_label": "代理 ID (只读)",
+        "name_label": "分支机构/位置名称",
+        "name_placeholder": "例如：北京办公室",
+        "token_label": "Secret Token",
+        "token_placeholder": "连接密码"
+      },
+      "status": {
+        "trusted": "已信任",
+        "pending": "待处理"
+      }
+    },
     "devices": "设备",
-    "settings": "设置",
+    "settings": {
+      "categories": {
+        "connectivity": "连接",
+        "connectivity_desc": "管理设备连接和网络设置。",
+        "general": "常规",
+        "payroll": "工资",
+        "payroll_desc": "管理标准工作日和时薪公式。",
+        "people": "人事",
+        "people_desc": "管理员工、部门和角色。",
+        "time": "时间与出勤",
+        "time_desc": "配置班次、排班和考勤规则。"
+      }
+    },
     "logout": "注销",
     "switch_workspace": "切换工作区",
     "admin": "管理员",
@@ -253,7 +344,7 @@
     "no": "否",
     "base_for_ot": "作为加班费基数",
     "add_new": "添加",
-    "active": "活跃"
+    "search_employee": "搜索员工..."
   },
   "dashboard": {
     "title": "仪表板",
@@ -1265,5 +1356,22 @@
       "reason_label": "调整原因",
       "reason_placeholder": "例如：忘记打卡、出差..."
     }
+  },
+  "settings": {
+    "title": "设置中心",
+    "categories": {
+      "general": "常规",
+      "people": "人事",
+      "time": "时间与出勤",
+      "payroll": "工资单",
+      "connectivity": "连接",
+      "general_desc": "配置核心工作区身份和偏好。",
+      "people_desc": "管理员工、部门和角色。",
+      "time_desc": "配置班次、排班和考勤规则。",
+      "payroll_desc": "管理标准工作日和时薪公式。",
+      "connectivity_desc": "管理设备连接和网络设置。"
+    },
+    "navigation": "导航",
+    "admin_only": "仅限管理员"
   }
 }

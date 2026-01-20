@@ -186,7 +186,7 @@ export default function PayrollPage() {
                       onClick={() => setActiveTab("config")}
                       className={`text-[10px] font-black uppercase tracking-widest transition-colors ${activeTab === 'config' ? 'text-primary-600' : 'text-slate-400 hover:text-slate-600'}`}
                     >
-                      {t("payroll.employee_config.tab_title", "Cấu hình lương")}
+                      {t("common.payroll.employee_config.tab_title")}
                     </button>
                   </div>
                 </div>

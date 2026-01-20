@@ -444,7 +444,7 @@ export default function LeaveRequestsPage() {
           setIsPolicyModalOpen(false);
           setEditingPolicy(null);
         }}
-        title={editingPolicy ? t("leave_requests.policy.edit_title") : t("leave_requests.policy.title")}
+        title={editingPolicy ? t("common.leave_requests.policy.edit_title") : t("common.leave_requests.policy.title")}
         subtitle={t("leave_requests.policy.subtitle")}
         icon={<ShieldCheck className="w-6 h-6" />}
       >
@@ -492,8 +492,8 @@ export default function LeaveRequestsPage() {
           </div>
           <div className="pt-4 flex gap-3">
             <button type="button" onClick={() => { setIsPolicyModalOpen(false); setEditingPolicy(null); }} className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors">{t("common.cancel")}</button>
-            <button type="submit" data-testid="save-policy-btn" className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200">
-              {editingPolicy ? t("common.save_changes") : t("leave_requests.policy.save_btn")}
+            <button type="submit" data-testid="save-policy-btn" className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-100">
+              {editingPolicy ? t("common.save_changes") : t("common.leave_requests.policy.save_btn")}
             </button>
           </div>
                 </form>
