@@ -545,15 +545,20 @@ pub struct ApproveAttendanceAdjustmentRequest {
 // --- Basic Reporting Models ---
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-
 pub struct AttendanceSummary {
     pub employee_id: Uuid,
-
     pub employee_name: String,
-
     pub total_work_units: i32,
-
     pub total_leave_days: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ScheduleTrace {
+    pub rule_id: Option<Uuid>,
+    pub rule_name: String,
+    pub priority: i32,
+    pub status: String, // "applied", "overridden", "conflict"
+    pub reason: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -882,6 +887,8 @@ pub struct EffectiveSchedule {
     pub is_break_auto_deduct: Option<bool>,
     pub early_punch_in_grace_period_minutes: Option<i32>,
     pub allow_early_ot: Option<bool>,
+    #[serde(default)]
+    pub traces: Vec<ScheduleTrace>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

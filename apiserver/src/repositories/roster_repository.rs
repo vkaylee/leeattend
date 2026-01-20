@@ -153,11 +153,19 @@ pub async fn get_workspace_schedules(
         while curr_date <= end_date {
             let mut effective_shift_id = None;
             let source: String;
+            let mut traces = Vec::new();
 
             // P1: Roster
             if let Some(shift_opt) = roster_map.get(&(emp.id, curr_date)) {
                 effective_shift_id = *shift_opt; // Can be None (Day Off)
                 source = "roster".to_string();
+                traces.push(crate::models::ScheduleTrace {
+                    rule_id: None,
+                    rule_name: "Manual Roster".to_string(),
+                    priority: 100,
+                    status: "applied".to_string(),
+                    reason: Some("Directly assigned via roster".to_string()),
+                });
             } else {
                 let dow = chrono::Datelike::weekday(&curr_date).num_days_from_sunday() as i32;
 
@@ -172,6 +180,13 @@ pub async fn get_workspace_schedules(
                 if let Some(p) = pattern {
                     effective_shift_id = p.pattern_shift_id;
                     source = "pattern".to_string();
+                    traces.push(crate::models::ScheduleTrace {
+                        rule_id: Some(p.pattern_id),
+                        rule_name: "Individual Pattern".to_string(),
+                        priority: 80,
+                        status: "applied".to_string(),
+                        reason: Some("Assigned via individual working pattern".to_string()),
+                    });
                 } else {
                     // P3: Dynamic Rules
                     let emp_dept_id = all_dept_history
@@ -184,10 +199,12 @@ pub async fn get_workspace_schedules(
                         tags: emp.tags.clone().unwrap_or_default(),
                     };
 
-                    let matched_rule = crate::services::rule_evaluator::RuleEvaluator::resolve_rule(
-                        &match_ctx,
-                        &active_rules,
-                    );
+                    let (matched_rule, rule_traces) =
+                        crate::services::rule_evaluator::RuleEvaluator::resolve_with_trace(
+                            &match_ctx,
+                            &active_rules,
+                        );
+                    traces.extend(rule_traces);
 
                     if let Some(rule) = matched_rule {
                         effective_shift_id = rule_patterns_details
@@ -206,6 +223,13 @@ pub async fn get_workspace_schedules(
                         if let Some(dp) = dept_p {
                             effective_shift_id = dp.pattern_shift_id;
                             source = "department_pattern".to_string();
+                            traces.push(crate::models::ScheduleTrace {
+                                rule_id: dp.default_working_pattern_id,
+                                rule_name: "Department Pattern".to_string(),
+                                priority: 40,
+                                status: "applied".to_string(),
+                                reason: Some("Inherited from department default pattern".to_string()),
+                            });
                         } else {
                             // P5: Fixed (Individual)
                             let fixed = fixed_assignments.iter().find(|a| {
@@ -217,6 +241,13 @@ pub async fn get_workspace_schedules(
                             if let Some(f) = fixed {
                                 effective_shift_id = Some(f.shift_id);
                                 source = "fixed".to_string();
+                                traces.push(crate::models::ScheduleTrace {
+                                    rule_id: None,
+                                    rule_name: "Fixed Assignment".to_string(),
+                                    priority: 20,
+                                    status: "applied".to_string(),
+                                    reason: Some("Directly assigned shift".to_string()),
+                                });
                             } else {
                                 // P6: Department Fixed
                                 let dept_f = dept_fixed_shifts.iter().find(|a| {
@@ -226,6 +257,13 @@ pub async fn get_workspace_schedules(
                                 if let Some(df) = dept_f {
                                     effective_shift_id = Some(df.shift_id);
                                     source = "department_fixed".to_string();
+                                    traces.push(crate::models::ScheduleTrace {
+                                        rule_id: None,
+                                        rule_name: "Department Fixed".to_string(),
+                                        priority: 10,
+                                        status: "applied".to_string(),
+                                        reason: Some("Inherited from department default shift".to_string()),
+                                    });
                                 } else {
                                     source = "none".to_string();
                                 }
@@ -248,6 +286,7 @@ pub async fn get_workspace_schedules(
                 is_break_auto_deduct: None,
                 early_punch_in_grace_period_minutes: None,
                 allow_early_ot: None,
+                traces,
             };
 
             if let Some(sid) = effective_shift_id {
@@ -466,7 +505,9 @@ pub async fn get_effective_shift(
     pool: &PgPool,
     employee_id: Uuid,
     date: NaiveDate,
-) -> Result<Option<Uuid>, sqlx::Error> {
+) -> Result<(Option<Uuid>, Vec<crate::models::ScheduleTrace>), sqlx::Error> {
+    let mut traces = Vec::new();
+
     // Priority 1: Shift Roster
     let roster_shift = sqlx::query_scalar::<_, Option<Uuid>>(
         "SELECT shift_id FROM shift_rosters WHERE employee_id = $1 AND date = $2",
@@ -477,14 +518,21 @@ pub async fn get_effective_shift(
     .await?;
 
     if let Some(shift) = roster_shift {
-        return Ok(shift); // Returns the shift ID or None (day off)
+        traces.push(crate::models::ScheduleTrace {
+            rule_id: None,
+            rule_name: "Manual Roster".to_string(),
+            priority: 100,
+            status: "applied".to_string(),
+            reason: Some("Directly assigned via roster".to_string()),
+        });
+        return Ok((shift, traces)); // Returns the shift ID or None (day off)
     }
 
     // Priority 2: Working Pattern (Resolved based on day of week)
     let day_of_week = chrono::Datelike::weekday(&date).num_days_from_sunday() as i32;
-    let pattern_shift = sqlx::query_scalar::<_, Option<Uuid>>(
+    let pattern_info = sqlx::query!(
         r#"
-        SELECT wpd.shift_id
+        SELECT wpd.shift_id, ewp.pattern_id
         FROM working_pattern_details wpd
         JOIN employee_working_patterns ewp ON ewp.pattern_id = wpd.pattern_id
         WHERE ewp.employee_id = $1 
@@ -494,18 +542,22 @@ pub async fn get_effective_shift(
         ORDER BY ewp.created_at DESC
         LIMIT 1
         "#,
+        employee_id,
+        date,
+        day_of_week
     )
-    .bind(employee_id)
-    .bind(date)
-    .bind(day_of_week)
     .fetch_optional(pool)
     .await?;
 
-    if let Some(shift_opt) = pattern_shift {
-        // If we found a pattern, it might be Some(shift_id) or None (day off)
-        // If it's a pattern, it overrides Fixed/Department.
-        // We return it even if it's None because the pattern explicitly defines the schedule.
-        return Ok(shift_opt);
+    if let Some(p) = pattern_info {
+        traces.push(crate::models::ScheduleTrace {
+            rule_id: Some(p.pattern_id),
+            rule_name: "Individual Pattern".to_string(),
+            priority: 80,
+            status: "applied".to_string(),
+            reason: Some("Assigned via individual working pattern".to_string()),
+        });
+        return Ok((p.shift_id, traces));
     }
 
     // Priority 3: Dynamic Assignment Rules
@@ -534,30 +586,35 @@ pub async fn get_effective_shift(
                 tags: info.tags.unwrap_or_default(),
             };
 
-            if let Some(matched_rule) =
-                crate::services::rule_evaluator::RuleEvaluator::resolve_rule(&match_ctx, &rules)
-            {
+            let (matched_rule, rule_traces) =
+                crate::services::rule_evaluator::RuleEvaluator::resolve_with_trace(
+                    &match_ctx,
+                    &rules,
+                );
+            traces.extend(rule_traces);
+
+            if let Some(rule) = matched_rule {
                 // Resolve pattern for the day of week
                 let day_of_week = chrono::Datelike::weekday(&date).num_days_from_sunday() as i32;
                 let rule_shift = sqlx::query_scalar!(
                     "SELECT shift_id FROM working_pattern_details WHERE pattern_id = $1 AND day_of_week = $2",
-                    matched_rule.pattern_id,
+                    rule.pattern_id,
                     day_of_week
                 )
                 .fetch_optional(pool)
                 .await?;
 
                 if let Some(shift_opt) = rule_shift {
-                    return Ok(shift_opt);
+                    return Ok((shift_opt, traces));
                 }
             }
         }
     }
 
     // Priority 4: Department Working Pattern (Inheritance)
-    let dept_pattern_shift = sqlx::query_scalar::<_, Option<Uuid>>(
+    let dept_pattern_info = sqlx::query!(
         r#"
-        SELECT wpd.shift_id
+        SELECT wpd.shift_id, d.default_working_pattern_id
         FROM working_pattern_details wpd
         JOIN departments d ON d.default_working_pattern_id = wpd.pattern_id
         JOIN employee_department_history edh ON edh.department_id = d.id
@@ -567,19 +624,25 @@ pub async fn get_effective_shift(
         ORDER BY edh.effective_date DESC
         LIMIT 1
         "#,
+        employee_id,
+        date,
+        day_of_week
     )
-    .bind(employee_id)
-    .bind(date)
-    .bind(day_of_week)
     .fetch_optional(pool)
     .await?;
 
-    if let Some(shift_opt) = dept_pattern_shift {
-        return Ok(shift_opt);
+    if let Some(dp) = dept_pattern_info {
+        traces.push(crate::models::ScheduleTrace {
+            rule_id: dp.default_working_pattern_id,
+            rule_name: "Department Pattern".to_string(),
+            priority: 40,
+            status: "applied".to_string(),
+            reason: Some("Inherited from department default pattern".to_string()),
+        });
+        return Ok((dp.shift_id, traces));
     }
 
     // Priority 4: Employee Default Shift (Legacy Fixed Assignment)
-    // Find the latest created assignment that is valid for the given date
     let employee_shift = sqlx::query_scalar::<_, Uuid>(
         r#"
         SELECT shift_id 
@@ -596,8 +659,15 @@ pub async fn get_effective_shift(
     .fetch_optional(pool)
     .await?;
 
-    if employee_shift.is_some() {
-        return Ok(employee_shift);
+    if let Some(shift) = employee_shift {
+        traces.push(crate::models::ScheduleTrace {
+            rule_id: None,
+            rule_name: "Fixed Assignment".to_string(),
+            priority: 20,
+            status: "applied".to_string(),
+            reason: Some("Directly assigned shift".to_string()),
+        });
+        return Ok((Some(shift), traces));
     }
 
     // Priority 5: Department Default Shift
@@ -615,7 +685,18 @@ pub async fn get_effective_shift(
     .fetch_optional(pool)
     .await?;
 
-    Ok(dept_shift)
+    if let Some(shift) = dept_shift {
+        traces.push(crate::models::ScheduleTrace {
+            rule_id: None,
+            rule_name: "Department Fixed".to_string(),
+            priority: 10,
+            status: "applied".to_string(),
+            reason: Some("Inherited from department default shift".to_string()),
+        });
+        return Ok((Some(shift), traces));
+    }
+
+    Ok((None, traces))
 }
 
 pub async fn delete_roster(

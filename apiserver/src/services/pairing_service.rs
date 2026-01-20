@@ -94,10 +94,11 @@ impl PairingService {
         );
 
         // 1. Fetch effective schedule
-        let shift_id_opt = roster_repository::get_effective_shift(pool, employee_id, date).await?;
+        let (shift_id_opt, traces) = roster_repository::get_effective_shift(pool, employee_id, date).await?;
 
         let mut shift_config = None;
         if let Some(shift_id) = shift_id_opt {
+// ... (rest of shift fetching logic)
             let shift = sqlx::query!(
                 "SELECT start_time, end_time, break_start, break_end FROM shifts WHERE id = $1",
                 shift_id
@@ -249,6 +250,11 @@ impl PairingService {
 
             let duration = end_dt_utc.map(|end| (end - start_dt_utc).num_minutes() as i32);
 
+            let mut final_metadata = session.metadata.clone().unwrap_or(serde_json::json!({}));
+            if let serde_json::Value::Object(ref mut map) = final_metadata {
+                map.insert("schedule_traces".to_string(), serde_json::json!(traces));
+            }
+
             sqlx::query!(
                 r#"
                 INSERT INTO time_entries 
@@ -263,7 +269,7 @@ impl PairingService {
                 duration,
                 session.entry_type,
                 session.note,
-                session.metadata
+                Some(final_metadata)
             )
             .execute(&mut *tx)
             .await?;

@@ -1292,6 +1292,25 @@
       "validation_shift_name_time": "Tên ca và thời gian làm việc không được để trống.",
       "validation_break_times": "Vui lòng nhập giờ bắt đầu và kết thúc nghỉ trưa.",
       "no_shifts": "Hệ thống chưa có loại ca nào."
+    },
+    "traceability": {
+      "title": "Truy vết Logic",
+      "applied": "Logic đang áp dụng",
+      "overridden": "Các quy tắc bị ghi đè",
+      "show_overridden": "Hiển thị các quy tắc bị ghi đè",
+      "priority": "Độ ưu tiên",
+      "reason": "Lý do",
+      "source": "Nguồn",
+      "winner": "Quy tắc chiến thắng",
+      "priority_hierarchy": "Thứ tự ưu tiên",
+      "p100_manual": "Lịch trực (Gán trực tiếp)",
+      "p80_pattern": "Chu kỳ cá nhân",
+      "p60_rules": "Quy tắc tự động",
+      "p40_dept_pattern": "Chu kỳ phòng ban",
+      "p20_fixed": "Gán ca cố định",
+      "p10_dept_fixed": "Mặc định phòng ban",
+      "override_hint": "Bạn muốn ghi đè logic này? Hãy gán Lịch trực thủ công cho ngày này (Ưu tiên 100).",
+      "highest_priority_hint": "Đây là lịch trực thủ công và có mức ưu tiên cao nhất."
     }
   },
   "days": {

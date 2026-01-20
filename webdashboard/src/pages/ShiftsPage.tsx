@@ -47,6 +47,8 @@ import { MousePointer2, Copy, Trash, Calendar as CalendarIcon } from "lucide-rea
 import Modal from "@/components/ui/Modal";
 import { ShiftList } from "../components/shifts/ShiftList";
 import { AssignmentHistory } from "../components/shifts/AssignmentHistory";
+import { ScheduleTracePopover } from "../components/shifts/ScheduleTracePopover";
+import { PriorityLegend } from "../components/shifts/PriorityLegend";
 
 import { Link } from "react-router-dom";
 
@@ -545,6 +547,8 @@ export default function ShiftsPage() {
                     </div>
                   )}
 
+                  <PriorityLegend />
+
                   <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
                     {weekDays.map((day, idx) => {
                       const dateStr = format(day, 'yyyy-MM-dd');
@@ -586,12 +590,19 @@ export default function ShiftsPage() {
 
                           <div className="flex-1 space-y-4">
                             {/* Source Badge */}
-                            <div className="flex justify-center">
+                            <div className="flex justify-center items-center gap-1">
                               {isRoster && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-100 uppercase tracking-tighter flex items-center gap-1"><Zap size={8} /> {t("shifts.types.flexible")}</span>}
                               {isPattern && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-tighter flex items-center gap-1"><ShieldCheck size={8} /> {t("patterns.title")}</span>}
                               {isDeptPattern && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200 uppercase tracking-tighter flex items-center gap-1"><Building2 size={8} /> {t("patterns.title")}</span>}
                               {isFixed && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-tighter flex items-center gap-1"><ShieldCheck size={8} /> {t("shifts.types.fixed")}</span>}
                               {isDept && <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-100 uppercase tracking-tighter flex items-center gap-1"><Building2 size={8} /> {t("common.department")}</span>}
+                              
+                              {effectiveSchedule && (
+                                <ScheduleTracePopover 
+                                  traces={effectiveSchedule.traces || []} 
+                                  source={effectiveSchedule.source}
+                                />
+                              )}
                             </div>
                             
                             {effectiveSchedule?.shift_id ? (

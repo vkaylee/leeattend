@@ -1294,6 +1294,25 @@
       "validation_shift_name_time": "Shift name and working hours cannot be empty.",
       "validation_break_times": "Please enter break start and end times.",
       "no_shifts": "No shift types found in the system."
+    },
+    "traceability": {
+      "title": "Logic Traceability",
+      "applied": "Applied Logic",
+      "overridden": "Overridden Rules",
+      "show_overridden": "Show overridden rules",
+      "priority": "Priority",
+      "reason": "Reason",
+      "source": "Source",
+      "winner": "Winner",
+      "priority_hierarchy": "Priority Hierarchy",
+      "p100_manual": "Manual Roster (Direct)",
+      "p80_pattern": "Individual Pattern (Cycle)",
+      "p60_rules": "Dynamic Rules",
+      "p40_dept_pattern": "Department Pattern",
+      "p20_fixed": "Fixed Assignment",
+      "p10_dept_fixed": "Department Default",
+      "override_hint": "Want to override this? Assign a manual Roster for this day (Priority 100).",
+      "highest_priority_hint": "This is a manual roster and has the highest priority."
     }
   },
   "days": {

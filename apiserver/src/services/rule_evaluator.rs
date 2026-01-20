@@ -1,4 +1,4 @@
-use crate::models::AssignmentRule;
+use crate::models::{AssignmentRule, ScheduleTrace};
 use uuid::Uuid;
 
 pub struct EmployeeMatchContext {
@@ -46,5 +46,39 @@ impl RuleEvaluator {
         rules: &'a [AssignmentRule],
     ) -> Option<&'a AssignmentRule> {
         rules.iter().find(|r| Self::matches(ctx, r))
+    }
+
+    /// Resolves rules and returns a list of traces for transparency
+    pub fn resolve_with_trace<'a>(
+        ctx: &EmployeeMatchContext,
+        rules: &'a [AssignmentRule],
+    ) -> (Option<&'a AssignmentRule>, Vec<ScheduleTrace>) {
+        let mut traces = Vec::new();
+        let mut winner = None;
+
+        for rule in rules {
+            if Self::matches(ctx, rule) {
+                if winner.is_none() {
+                    winner = Some(rule);
+                    traces.push(ScheduleTrace {
+                        rule_id: Some(rule.id),
+                        rule_name: rule.name.clone(),
+                        priority: rule.priority,
+                        status: "applied".to_string(),
+                        reason: Some("Highest priority matching rule".to_string()),
+                    });
+                } else {
+                    traces.push(ScheduleTrace {
+                        rule_id: Some(rule.id),
+                        rule_name: rule.name.clone(),
+                        priority: rule.priority,
+                        status: "overridden".to_string(),
+                        reason: Some("Overridden by higher priority rule".to_string()),
+                    });
+                }
+            }
+        }
+
+        (winner, traces)
     }
 }

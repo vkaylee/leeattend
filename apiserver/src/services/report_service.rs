@@ -143,14 +143,26 @@ impl ReportService {
                 }
 
                 // Collect metadata from all entries for this day
-                let metadata_list: Vec<_> = day_entries
+                let mut metadata_map = serde_json::Map::new();
+                
+                let log_metadata: Vec<_> = day_entries
                     .iter()
                     .filter_map(|e| e.generation_metadata.clone())
                     .collect();
-                let combined_metadata = if metadata_list.is_empty() {
+                
+                if !log_metadata.is_empty() {
+                    metadata_map.insert("time_entries".to_string(), serde_json::json!(log_metadata));
+                }
+
+                // Add schedule traces from effective schedule
+                if !daily.traces.is_empty() {
+                    metadata_map.insert("schedule_traces".to_string(), serde_json::json!(daily.traces));
+                }
+
+                let combined_metadata = if metadata_map.is_empty() {
                     None
                 } else {
-                    Some(serde_json::json!(metadata_list))
+                    Some(serde_json::Value::Object(metadata_map))
                 };
 
                 reports.push(DailyAttendanceReport {

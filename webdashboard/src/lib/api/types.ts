@@ -371,10 +371,18 @@ export interface LeavePolicyConfig {
   max_balance?: number;
 }
 
+export interface ScheduleTrace {
+  rule_id?: string;
+  rule_name: string;
+  priority: number;
+  status: "applied" | "overridden" | "conflict";
+  reason?: string;
+}
+
 export interface EffectiveSchedule {
   date: string;
   shift_id: string | null;
-  source: "roster" | "fixed" | "department" | "none";
+  source: "roster" | "pattern" | "assignment_rule" | "department_pattern" | "fixed" | "department_fixed" | "none";
   shift_name: string | null;
   start_time: string | null;
   end_time: string | null;
@@ -382,6 +390,7 @@ export interface EffectiveSchedule {
   break_start: string | null;
   break_end: string | null;
   is_break_auto_deduct: boolean | null;
+  traces: ScheduleTrace[];
 }
 
 export interface EmployeeSchedule {

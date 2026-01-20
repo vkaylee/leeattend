@@ -28,6 +28,13 @@ vi.mock('react-i18next', () => ({
   },
 }));
 
+// Mock ResizeObserver for Radix UI
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 // Mock Combobox to be a simple select for existing tests to work
 vi.mock("@/components/ui/Combobox", () => ({
   Combobox: ({ 

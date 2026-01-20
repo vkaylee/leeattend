@@ -166,9 +166,9 @@ impl PayrollService {
             let mut current_date = seg_start;
             while current_date <= seg_end {
                 // Fetch shift and calculate
-                let shift_id = roster_repository::get_effective_shift(pool, employee_id, current_date)
+                let (shift_id, _) = roster_repository::get_effective_shift(pool, employee_id, current_date)
                     .await
-                    .unwrap_or(None);
+                    .unwrap_or((None, Vec::new()));
 
                 if let Some(entries) = daily_entries_map.get(&current_date) {
                     let work_entries: Vec<_> = entries.iter().filter(|e| e.entry_type == "work" || e.entry_type.is_empty()).collect();

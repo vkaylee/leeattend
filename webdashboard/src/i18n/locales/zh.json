@@ -1292,6 +1292,25 @@
       "validation_shift_name_time": "班次名称 and 工作时间不能为空。",
       "validation_break_times": "请输入休息开始 and 结束时间。",
       "no_shifts": "系统中未找到班次类型。"
+    },
+    "traceability": {
+      "title": "逻辑追溯",
+      "applied": "已应用逻辑",
+      "overridden": "已覆盖的规则",
+      "show_overridden": "显示已覆盖的规则",
+      "priority": "优先级",
+      "reason": "原因",
+      "source": "来源",
+      "winner": "胜出规则",
+      "priority_hierarchy": "优先级层级",
+      "p100_manual": "手动排班 (直接分配)",
+      "p80_pattern": "个人排班周期",
+      "p60_rules": "动态规则",
+      "p40_dept_pattern": "部门排班周期",
+      "p20_fixed": "固定分配",
+      "p10_dept_fixed": "部门默认",
+      "override_hint": "想要覆盖此逻辑？请为此日期分配手动排班（优先级 100）。",
+      "highest_priority_hint": "这是手动排班，具有最高优先级。"
     }
   },
   "days": {
