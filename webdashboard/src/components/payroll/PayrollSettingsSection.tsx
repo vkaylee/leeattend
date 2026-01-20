@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Calculator, Save, ShieldAlert } from "lucide-react";
+import { Calculator, Save, ShieldAlert, History } from "lucide-react";
 import { fetchPayrollSettings, updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
 import { useToast } from "@/components/Toast";
 import { Combobox } from "@/components/ui/Combobox";
@@ -29,10 +29,14 @@ export default function PayrollSettingsSection({ wsId }: Props) {
   if (isLoading) return <div className="p-8 text-center text-slate-400 italic">{t("common.loading")}</div>;
 
   return (
-    <div className="space-y-8">
-      <PayrollSettingsForm wsId={wsId} initialSettings={settings} />
+    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+      {/* Configuration Form */}
+      <div className="p-8 border-b border-slate-50">
+        <PayrollSettingsForm wsId={wsId} initialSettings={settings} />
+      </div>
       
-      <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+      {/* History Table */}
+      <div className="p-8 bg-slate-50/30">
         <TemporalConfigTable 
           title={t("common.payroll.settings.global_history")}
           records={history.map(h => ({
@@ -79,6 +83,7 @@ function PayrollSettingsForm({ wsId, initialSettings }: FormProps) {
     onSuccess: () => {
       toast.success(t("common.success"));
       queryClient.invalidateQueries({ queryKey: ["payroll-settings", wsId] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-settings-history", wsId] });
     },
     onError: () => {
       toast.error(t("common.error"));
@@ -96,8 +101,8 @@ function PayrollSettingsForm({ wsId, initialSettings }: FormProps) {
   };
 
   return (
-    <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-      <div className="flex justify-between items-center mb-6">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center mb-2">
         <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800">
           <Calculator className="w-5 h-5 text-primary-500" />
           {t("common.payroll.settings.title")}
@@ -113,7 +118,7 @@ function PayrollSettingsForm({ wsId, initialSettings }: FormProps) {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="space-y-2">
           <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
             {t("common.payroll.settings.effective_date")}
@@ -122,7 +127,7 @@ function PayrollSettingsForm({ wsId, initialSettings }: FormProps) {
             type="date"
             value={effectiveDate}
             onChange={(e) => setEffectiveDate(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none transition-all font-bold text-sm"
           />
         </div>
 
@@ -150,7 +155,7 @@ function PayrollSettingsForm({ wsId, initialSettings }: FormProps) {
               type="number"
               value={fixedDays}
               onChange={(e) => setFixedDays(parseFloat(e.target.value))}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary-500 outline-none transition-all font-bold text-sm"
             />
           </div>
         ) : (
@@ -179,12 +184,12 @@ function PayrollSettingsForm({ wsId, initialSettings }: FormProps) {
             type="number"
             value={hoursPerDay}
             onChange={(e) => setHoursPerDay(parseFloat(e.target.value))}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary-500 outline-none transition-all font-bold text-sm"
           />
         </div>
       </div>
       
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-2xl flex gap-3">
+      <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex gap-3">
         <ShieldAlert className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
         <div className="text-xs text-blue-700 leading-relaxed">
           <p className="font-bold mb-1">{t("common.payroll.settings.note_title")}</p>

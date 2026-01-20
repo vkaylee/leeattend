@@ -169,6 +169,13 @@
         "people_desc": "Quản lý nhân viên, phòng ban và vai trò.",
         "time": "Thời gian & Chấm công",
         "time_desc": "Cấu hình ca làm việc, lịch trình và quy tắc chấm công."
+      },
+      "tabs": {
+        "general": "Cấu hình chung",
+        "patterns": "Mẫu lịch làm việc",
+        "rules": "Quy tắc gán tự động",
+        "payroll_policy": "Chính sách lương",
+        "salary_components": "Thành phần lương"
       }
     },
     "logout": "Đăng xuất",

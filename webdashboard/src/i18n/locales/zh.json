@@ -169,6 +169,13 @@
         "people_desc": "管理员工、部门和角色。",
         "time": "时间与出勤",
         "time_desc": "配置班次、排班和考勤规则。"
+      },
+      "tabs": {
+        "general": "常规设置",
+        "patterns": "工作模式",
+        "rules": "自动分配规则",
+        "payroll_policy": "工资政策",
+        "salary_components": "工资构成"
       }
     },
     "logout": "注销",

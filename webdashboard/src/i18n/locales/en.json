@@ -169,6 +169,13 @@
         "people_desc": "Manage employees, departments, and roles.",
         "time": "Time & Attendance",
         "time_desc": "Configure shifts, rosters, and attendance rules."
+      },
+      "tabs": {
+        "general": "General",
+        "patterns": "Working Patterns",
+        "rules": "Auto-Assignment",
+        "payroll_policy": "Payroll Policy",
+        "salary_components": "Salary Components"
       }
     },
     "logout": "Logout",
