@@ -21,10 +21,7 @@ export default function LoginPage() {
 
   const userId = getCurrentUserId();
 
-  // Redirect if already logged in
-  if (userId) {
-    return <Navigate to="/" replace />;
-  }
+  if (userId) return <Navigate to="/" replace />;
 
   const performLogin = async (loginEmail: string, loginPass: string) => {
     setIsSubmitting(true);
@@ -35,43 +32,31 @@ export default function LoginPage() {
       window.location.reload();
     } catch (err: any) {
       setError(err.message || t("auth.login_error"));
-    } finally {
-      setIsSubmitting(false);
-    }
+    } finally { setIsSubmitting(false); }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await performLogin(email, password);
-  };
-
-  const handleFastLogin = async () => {
-    const devEmail = "admin@leeattend.com";
-    const devPass = "admin123";
-    setEmail(devEmail);
-    setPassword(devPass);
-    await performLogin(devEmail, devPass);
-  };
+  const handleLogin = async (e: React.FormEvent) => { e.preventDefault(); await performLogin(email, password); };
+  const handleFastLogin = async () => { const devEmail = "admin@leeattend.com"; const devPass = "admin123"; setEmail(devEmail); setPassword(devPass); await performLogin(devEmail, devPass); };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#fcfcfd] p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-6 relative overflow-hidden animate-in fade-in duration-1000">
       {/* Decorative Background Elements */}
-      <div className="absolute top-0 -left-20 w-96 h-96 bg-primary-100/50 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 -right-20 w-96 h-96 bg-indigo-100/50 rounded-full blur-3xl" />
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-100/40 rounded-full blur-[120px] animate-pulse duration-[10s]" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-100/40 rounded-full blur-[120px] animate-pulse duration-[8s]" />
       
-      <div className="max-w-md w-full space-y-10 p-12 bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 relative z-10 animate-enter border border-slate-50">
+      <div className="max-w-md w-full space-y-10 p-12 bg-white rounded-[3rem] shadow-2xl shadow-slate-200/60 relative z-10 animate-in zoom-in-95 duration-700 border border-slate-100">
         <div className="text-center">
-          <div className="bg-primary-600 w-16 h-16 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-primary-200 rotate-3">
-             <span className="text-white text-3xl font-black">L</span>
+          <div className="bg-primary-600 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-primary-200 transform hover:rotate-12 transition-transform duration-500">
+             <span className="text-white text-4xl font-black italic">L</span>
           </div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tight">LeeAttend</h2>
-          <p className="mt-3 text-slate-500 font-medium">
+          <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">LeeAttend</h2>
+          <p className="mt-3 text-slate-400 font-bold uppercase tracking-widest text-[10px] opacity-80">
             {t("auth.slogan")}
           </p>
         </div>
 
         {error && (
-          <div role="alert" className="bg-rose-50 border border-rose-100 text-rose-600 p-4 rounded-2xl text-sm font-bold text-center animate-in fade-in slide-in-from-top-2">
+          <div role="alert" className="bg-rose-50 border border-rose-100 text-rose-600 p-4 rounded-2xl text-[11px] font-black uppercase tracking-widest text-center animate-in slide-in-from-top-2">
             {error}
           </div>
         )}
@@ -81,51 +66,29 @@ export default function LoginPage() {
             onClick={handleFastLogin}
             {...debugProps({ devEmail: "admin@leeattend.com", devPass: "admin123" })}
             data-testid="fast-login-btn"
-            className="group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-black rounded-2xl text-white bg-primary-600 hover:bg-primary-700 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary-200 uppercase tracking-widest"
+            className="group relative w-full flex justify-center py-4 px-4 border-2 border-primary-100 text-xs font-black rounded-2xl text-primary-600 bg-primary-50/30 hover:bg-primary-50 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest"
           >
             {t("auth.fast_login")}
           </button>
 
           <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-100" />
-            </div>
-            <div className="relative flex justify-center text-[10px]">
-              <span className="px-4 bg-white text-slate-400 font-black uppercase tracking-[0.2em]">
-                {t("auth.or_use_account")}
-              </span>
-            </div>
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100" /></div>
+            <div className="relative flex justify-center text-[9px]"><span className="px-4 bg-white text-slate-300 font-black uppercase tracking-[0.3em]">{t("auth.or_use_account")}</span></div>
           </div>
 
           <form className="space-y-6" onSubmit={handleLogin}>
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{t("auth.email")}</label>
-                <input
-                  id="email-address"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full px-5 py-4 bg-slate-50 border border-slate-100 text-slate-900 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all font-bold placeholder:text-slate-300"
-                  placeholder="admin@leeattend.com"
-                />
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("auth.email")}</label>
+                <div className="relative group">
+                  <input id="email-address" name="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="block w-full px-5 py-4 bg-slate-50 border border-slate-100 text-slate-900 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white transition-all font-bold placeholder:text-slate-300 text-sm" placeholder="admin@leeattend.com" />
+                </div>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{t("auth.password")}</label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full px-5 py-4 bg-slate-50 border border-slate-100 text-slate-900 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all font-bold placeholder:text-slate-300"
-                  placeholder="••••••••"
-                />
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("auth.password")}</label>
+                <div className="relative group">
+                  <input id="password" name="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="block w-full px-5 py-4 bg-slate-50 border border-slate-100 text-slate-900 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white transition-all font-bold placeholder:text-slate-300 text-sm" placeholder="••••••••" />
+                </div>
               </div>
             </div>
 
@@ -133,19 +96,14 @@ export default function LoginPage() {
               type="submit"
               disabled={isSubmitting}
               data-testid="login-submit-btn"
-              className="w-full flex justify-center py-4 px-4 border border-slate-200 text-sm font-black rounded-2xl text-slate-700 bg-white hover:bg-slate-50 hover:border-primary-200 transition-all disabled:opacity-50 uppercase tracking-widest shadow-sm"
+              className="w-full flex justify-center py-5 px-4 border border-transparent text-xs font-black rounded-2xl text-white bg-slate-900 hover:bg-black transition-all disabled:opacity-50 uppercase tracking-widest shadow-xl shadow-slate-200 active:scale-95"
             >
-              {isSubmitting ? t("auth.processing") : t("auth.login_btn")}
+              {isSubmitting ? t("auth.processing").toUpperCase() : t("auth.login_btn")}
             </button>
 
-            <div className="text-center">
-              <span className="text-slate-400 text-sm font-medium">{t("auth.no_account")} </span>
-              <Link
-                to="/register"
-                className="font-bold text-primary-600 hover:text-primary-700 hover:underline text-sm transition-colors"
-              >
-                {t("auth.register_now")}
-              </Link>
+            <div className="text-center pt-2">
+              <span className="text-slate-400 text-xs font-bold uppercase tracking-tight">{t("auth.no_account")} </span>
+              <Link to="/register" className="font-black text-primary-600 hover:text-primary-700 hover:underline text-xs uppercase tracking-tight transition-colors">{t("auth.register_now")}</Link>
             </div>
           </form>
         </div>
