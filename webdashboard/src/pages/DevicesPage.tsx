@@ -48,9 +48,8 @@ export default function DevicesPage() {
     try {
       await createDevice(newDevice);
       toast.success(t("devices.toast.add_success", { name: newDevice.name }));
-      setShowAddForm(false);
-      setNewDevice({ name: "", agent_id: "", ip: "", port: 4370 });
-    } catch (e) { toast.error(t("devices.toast.add_error")); }
+      setShowAddForm(false); setNewDevice({ name: "", agent_id: "", ip: "", port: 4370 });
+    } catch (e) { }
   }
 
   async function handleUpdate(e: React.FormEvent) {
@@ -59,7 +58,7 @@ export default function DevicesPage() {
       await updateDevice(editingDevice.id, { name: editingDevice.name, agent_id: editingDevice.agent_id, ip: editingDevice.ip, port: editingDevice.port, is_enabled: editingDevice.is_enabled });
       toast.success(t("devices.toast.update_success", { name: editingDevice.name }));
       setEditingDevice(null);
-    } catch (e) { toast.error(t("devices.toast.update_error")); }
+    } catch (e) { }
   }
 
   async function handleDelete(id: string) {
@@ -67,104 +66,97 @@ export default function DevicesPage() {
     try {
       await deleteDevice(id);
       toast.success(t("devices.toast.delete_success"));
-    } catch (e) { toast.error(t("devices.toast.delete_error")); }
+    } catch (e) { }
   }
 
   const loading = devicesLoading || agentsLoading;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex justify-between items-center px-2">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-primary-50 flex items-center justify-center text-primary-600 shadow-sm border border-primary-100/50">
-            <HardDrive size={20} />
-          </div>
+    <div className="space-y-10 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 flex items-center justify-center text-primary-600 shadow-sm border border-primary-100/50"><HardDrive size={24} /></div>
           <div>
-            <h3 className="text-lg font-bold text-slate-800 tracking-tight">{t("devices.title")}</h3>
-            <p className="text-xs text-slate-500 font-medium">{t("devices.form.infrastructure")}</p>
+            <h3 className="text-2xl font-black tracking-tight text-slate-900 uppercase leading-none">{t("devices.title")}</h3>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1.5 opacity-70">{t("devices.form.infrastructure")}</p>
           </div>
         </div>
-        <button onClick={() => setShowAddForm(true)} className="flex items-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 font-black text-[10px] uppercase tracking-widest active:scale-95">
-          <Plus size={14} /> {t("devices.add_btn")}
-        </button>
+        <button onClick={() => setShowAddForm(true)} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95"><Plus size={18} /> {t("devices.add_btn").toUpperCase()}</button>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-white border border-slate-100 p-6 rounded-[32px] shadow-sm animate-pulse h-24" />
+            <div key={i} className="bg-white border border-slate-100 p-8 rounded-[2.5rem] shadow-sm animate-pulse h-32" />
           ))
         ) : devices.length === 0 ? (
-          <div className="py-24 text-center border-2 border-dashed border-slate-100 rounded-[40px] bg-slate-50/30 flex flex-col items-center">
-            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
-              <Cpu size={32} className="text-slate-300" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-900">{t("devices.table.no_data")}</h3>
-            <p className="text-slate-400 text-sm max-w-xs mt-1">{t("devices.messages.empty_desc", { defaultValue: "Bắt đầu bằng cách kết nối máy chấm công đầu tiên." })}</p>
+          <div className="py-32 text-center border-2 border-dashed border-slate-100 rounded-[3rem] bg-slate-50/30 flex flex-col items-center animate-in zoom-in-95 duration-500">
+            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-sm mb-6 border border-slate-100"><Cpu size={40} className="text-slate-200" /></div>
+            <h3 className="text-xl font-bold text-slate-900 uppercase tracking-tight">{t("devices.table.no_data")}</h3>
+            <p className="text-slate-400 text-sm font-black uppercase tracking-widest mt-1 opacity-50 italic">{t("devices.messages.empty_desc")}</p>
           </div>
         ) : (
           devices.map((device) => (
-            <div key={device.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 flex items-center gap-8 hover:shadow-xl hover:shadow-primary-100/10 transition-all group relative">
-              <div className="bg-slate-50 p-5 rounded-3xl group-hover:bg-primary-50 transition-colors border border-slate-100 shadow-inner">
+            <div key={device.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 flex flex-col md:flex-row md:items-center gap-8 hover:shadow-2xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden">
+              <div className="bg-slate-50 p-6 rounded-[2rem] group-hover:bg-primary-50 group-hover:rotate-3 transition-all border border-slate-100 shadow-inner shrink-0">
                 <Cpu size={32} className="text-slate-400 group-hover:text-primary-600 transition-colors" />
               </div>
 
               <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div>
-                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1.5">{t("devices.table.device")}</p>
-                  <h3 className="font-black text-slate-900 text-lg uppercase tracking-tight leading-tight">{device.name}</h3>
-                  <p className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-tighter mt-1">{device.id}</p>
+                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] mb-2">{t("devices.table.device")}</p>
+                  <h3 className="font-black text-slate-900 text-sm uppercase tracking-tight leading-none">{device.name}</h3>
+                  <p className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-tighter mt-2 opacity-70">{device.id}</p>
                 </div>
 
                 <div>
-                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1.5">{t("devices.table.managed_by")}</p>
-                  <div className="flex items-center gap-2 text-slate-700">
-                    <Server size={14} className="text-primary-500" />
+                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] mb-2">{t("devices.table.managed_by")}</p>
+                  <div className="flex items-center gap-2.5 text-slate-700">
+                    <Server size={14} className="text-primary-500 opacity-50" />
                     <span className="font-black text-xs uppercase tracking-tight">{device.agent_id}</span>
                   </div>
                 </div>
 
                 <div>
-                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1.5">{t("devices.table.connection")}</p>
+                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] mb-2">{t("devices.table.connection")}</p>
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 text-slate-600 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 shadow-inner">
+                    <div className="flex items-center gap-2 text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 shadow-inner">
                       <Globe size={12} className="text-slate-300" />
-                      <span className="text-xs font-black font-mono">{device.ip}</span>
+                      <span className="text-[11px] font-black font-mono tracking-tighter">{device.ip}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-slate-400 font-mono font-bold text-xs uppercase">
+                    <div className="flex items-center gap-1.5 text-slate-400 font-mono font-bold text-[11px] uppercase opacity-60">
                       <Hash size={12} /> {device.port}
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-6">
-                <span className={cn("px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border", 
-                  device.is_enabled ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-100 text-slate-400 border-slate-200"
+              <div className="flex items-center gap-8 shrink-0">
+                <span className={cn("px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm", 
+                  device.is_enabled ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-100 text-slate-400 border-slate-200 opacity-60"
                 )}>
-                  {device.is_enabled ? t("devices.table.active") : t("devices.table.disabled")}
+                  {device.is_enabled ? t("devices.table.active").toUpperCase() : t("devices.table.disabled").toUpperCase()}
                 </span>
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="text-slate-300 hover:text-primary-600 p-2 hover:bg-primary-50 rounded-xl transition-all outline-none border border-transparent hover:border-primary-100 shadow-sm hover:shadow-md">
+                    <button className="text-slate-300 hover:text-primary-600 p-3 hover:bg-white rounded-xl transition-all border border-transparent hover:border-slate-100 shadow-sm hover:shadow-md outline-none active:scale-90">
                       <MoreVertical size={20} />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl shadow-xl border-slate-100">
-                    <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">{t("devices.table.actions")}</DropdownMenuLabel>
-                    <DropdownMenuItem className="gap-3 p-3 rounded-xl font-bold text-sm" onSelect={() => setEditingDevice(device)}>
+                  <DropdownMenuContent align="end" className="w-64 p-3 rounded-[1.5rem] shadow-premium-2xl border-slate-100 bg-white/90 backdrop-blur-xl">
+                    <DropdownMenuLabel className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400 px-4 py-3 opacity-70">{t("devices.table.actions")}</DropdownMenuLabel>
+                    <DropdownMenuItem className="gap-4 p-4 rounded-xl font-black text-xs uppercase tracking-widest" onSelect={() => setEditingDevice(device)}>
                       <Edit2 size={16} className="text-slate-400" /> {t("devices.table.edit")}
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="gap-3 p-3 rounded-xl font-bold text-sm">
+                    <DropdownMenuItem className="gap-4 p-4 rounded-xl font-black text-xs uppercase tracking-widest">
                       <RefreshCw size={16} className="text-slate-400" /> {t("devices.table.sync_time")}
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="gap-3 p-3 rounded-xl font-bold text-sm">
+                    <DropdownMenuItem className="gap-4 p-4 rounded-xl font-black text-xs uppercase tracking-widest">
                       <Settings size={16} className="text-slate-400" /> {t("devices.table.advanced")}
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator className="my-2" />
-                    <DropdownMenuItem onSelect={() => handleDelete(device.id)} className="gap-3 p-3 rounded-xl font-black text-sm text-rose-600 focus:text-rose-600 focus:bg-rose-50">
+                    <DropdownMenuSeparator className="my-2 bg-slate-50" />
+                    <DropdownMenuItem onSelect={() => handleDelete(device.id)} className="gap-4 p-4 rounded-xl font-black text-xs uppercase tracking-widest text-rose-600 focus:text-rose-600 focus:bg-rose-50">
                       <Trash2 size={16} /> {t("devices.table.delete")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -176,28 +168,28 @@ export default function DevicesPage() {
       </div>
 
       <Modal isOpen={showAddForm || !!editingDevice} onClose={() => { setShowAddForm(false); setEditingDevice(null); }} title={editingDevice ? t("devices.form.edit_device") : t("devices.form.new_device")} subtitle={t("devices.form.infrastructure")} icon={<Cpu size={24} />} maxWidth="lg">
-        <form onSubmit={editingDevice ? handleUpdate : handleAdd} className="space-y-6 pt-4">
-          <div className="space-y-2">
+        <form onSubmit={editingDevice ? handleUpdate : handleAdd} className="space-y-8 pt-4 animate-in fade-in duration-500">
+          <div className="space-y-3 px-1">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.clock_name")}</label>
-            <input required className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight" placeholder={t("devices.form.clock_name_placeholder")} value={editingDevice ? editingDevice.name : newDevice.name} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, name: e.target.value }) : setNewDevice({ ...newDevice, name: e.target.value })} />
+            <input required className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight shadow-sm" placeholder={t("devices.form.clock_name_placeholder")} value={editingDevice ? editingDevice.name : newDevice.name} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, name: e.target.value }) : setNewDevice({ ...newDevice, name: e.target.value })} />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3 px-1">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.managed_by")}</label>
-            <Combobox options={agents.map((a) => ({ value: a.agent_id, label: a.agent_id, icon: <Server size={14} /> }))} value={editingDevice ? editingDevice.agent_id : newDevice.agent_id} onChange={(val) => editingDevice ? setEditingDevice({ ...editingDevice, agent_id: val }) : setNewDevice({ ...newDevice, agent_id: val })} placeholder={t("devices.form.select_agent")} className="bg-slate-50 border-slate-100" />
+            <Combobox options={agents.map((a) => ({ value: a.agent_id, label: a.agent_id, icon: <Server size={14} /> }))} value={editingDevice ? editingDevice.agent_id : newDevice.agent_id} onChange={(val) => editingDevice ? setEditingDevice({ ...editingDevice, agent_id: val }) : setNewDevice({ ...newDevice, agent_id: val })} placeholder={t("devices.form.select_agent")} className="bg-slate-50 border-slate-100 h-14" />
           </div>
-          <div className="grid grid-cols-3 gap-6">
-            <div className="col-span-2 space-y-2">
+          <div className="grid grid-cols-3 gap-8">
+            <div className="col-span-2 space-y-3 px-1">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.ip_local")}</label>
-              <input required className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono font-black text-sm" placeholder="192.168.1.100" value={editingDevice ? editingDevice.ip : newDevice.ip} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, ip: e.target.value }) : setNewDevice({ ...newDevice, ip: e.target.value })} />
+              <input required className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono font-black text-sm tracking-tight" placeholder="192.168.1.100" value={editingDevice ? editingDevice.ip : newDevice.ip} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, ip: e.target.value }) : setNewDevice({ ...newDevice, ip: e.target.value })} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3 px-1">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.port")}</label>
-              <input type="number" required className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono font-black text-sm text-center" value={editingDevice ? editingDevice.port : newDevice.port} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, port: parseInt(e.target.value) }) : setNewDevice({ ...newDevice, port: parseInt(e.target.value) })} />
+              <input type="number" required className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono font-black text-sm text-center tracking-tighter" value={editingDevice ? editingDevice.port : newDevice.port} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, port: parseInt(e.target.value) }) : setNewDevice({ ...newDevice, port: parseInt(e.target.value) })} />
             </div>
           </div>
-          <div className="pt-6 grid grid-cols-2 gap-5">
-            <button type="button" onClick={() => { setShowAddForm(false); setEditingDevice(null); }} className="px-8 py-4 border border-slate-100 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">{t("devices.form.cancel")}</button>
-            <button type="submit" className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200">{editingDevice ? t("devices.form.update_device") : t("devices.form.save_device")}</button>
+          <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50">
+            <button type="button" onClick={() => { setShowAddForm(false); setEditingDevice(null); }} className="px-8 py-4 bg-white border border-slate-200 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">{t("devices.form.cancel").toUpperCase()}</button>
+            <button type="submit" className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200 active:scale-95">{editingDevice ? t("devices.form.update_device").toUpperCase() : t("devices.form.save_device").toUpperCase()}</button>
           </div>
         </form>
       </Modal>
