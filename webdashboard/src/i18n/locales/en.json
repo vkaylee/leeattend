@@ -112,7 +112,12 @@
         "7days": "7 days (No days off)",
         "hours_per_day": "Standard hours per day",
         "note_title": "Note on hourly rate calculation",
-        "note_desc": "Hourly rate for OT = (Total Base Salaries) / (Std Days × Std Hours/day)."
+        "note_desc": "Hourly rate for OT = (Total Base Salaries) / (Std Days × Std Hours/day).",
+        "policy_desc": "Manage standard work units and their evolution over time.",
+        "add_version": "Add New Policy Version",
+        "date_warning": "Note: The effective date determines which pay periods are affected. Changes apply to all calculations from this date onwards.",
+        "virtual": "System Default",
+        "status": "Status"
       },
       "table": {
         "loading_payslips": "Loading payslips...",

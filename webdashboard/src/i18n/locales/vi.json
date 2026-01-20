@@ -111,8 +111,13 @@
         "6days": "6 ngày (Nghỉ CN)",
         "7days": "7 ngày (Không ngày nghỉ)",
         "hours_per_day": "Số giờ làm việc chuẩn/ngày",
-        "note_title": "Lưu ý về cách tính lương giờ",
-        "note_desc": "Lương giờ dùng để tính OT = (Tổng các khoản Lương cơ bản) / (Số ngày công chuẩn × Số giờ làm chuẩn/ngày)."
+        "note_title": "Lưu ý về cách tính đơn giá lương giờ",
+        "note_desc": "Đơn giá lương giờ để tính OT = (Tổng lương cơ bản & phụ cấp cố định) / (Số ngày công chuẩn × Số giờ làm việc tiêu chuẩn/ngày).",
+        "policy_desc": "Quản lý các đơn vị công chuẩn và sự thay đổi của chúng theo thời gian.",
+        "add_version": "Tạo phiên bản chính sách mới",
+        "date_warning": "Lưu ý: Ngày hiệu lực sẽ quyết định kỳ lương nào bị ảnh hưởng. Các thay đổi sẽ tự động áp dụng cho mọi phép tính lương từ ngày này trở đi.",
+        "virtual": "Mặc định hệ thống",
+        "status": "Trạng thái"
       },
       "table": {
         "net_pay": "Thực lĩnh",
