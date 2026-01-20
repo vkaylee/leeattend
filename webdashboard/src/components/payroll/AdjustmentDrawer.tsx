@@ -45,7 +45,6 @@ export default function AdjustmentDrawer({
     enabled: isOpen && !!wsId,
   });
 
-  // Client-side filter for the specific employee
   const employeeAdjustments = adjustments.filter(adj => adj.employee_id === employeeId);
 
   const resolveMutation = useMutation({
@@ -53,85 +52,64 @@ export default function AdjustmentDrawer({
       approveAttendanceAdjustment(wsId, data.id, { status: data.status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adjustments"] });
-      toast.success(t("payroll.adjustments.resolved_success", "Adjustment resolved successfully"));
+      toast.success(t("common.success"));
       if (onAdjustmentResolved) onAdjustmentResolved();
     },
-    onError: () => toast.error(t("payroll.adjustments.resolved_error", "Failed to resolve adjustment"))
   });
 
   return (
     <Sheet
       isOpen={isOpen}
       onClose={onClose}
-      title={t("payroll.adjustments.title", "Pending Adjustments")}
+      title={t("payroll.adjustments.title")}
       subtitle={`${employeeName} • ${employeeAdjustments.length} Pending`}
     >
-      <div className="space-y-4">
+      <div className="space-y-6 pt-4 animate-in fade-in duration-500">
         {isLoading ? (
-          <div className="text-center py-8 text-slate-400 italic">
-            {t("common.loading", "Loading...")}
-          </div>
+          <div className="p-12 text-center text-slate-400 font-bold italic uppercase tracking-widest text-[10px] opacity-50">{t("common.loading")}</div>
         ) : employeeAdjustments.length === 0 ? (
-          <div className="text-center py-12 bg-slate-50 rounded-2xl border border-slate-100 border-dashed">
-            <Check className="w-8 h-8 text-emerald-300 mx-auto mb-2" />
-            <p className="text-sm font-bold text-slate-400">
-              {t("payroll.adjustments.all_clear", "All caught up! No pending adjustments.")}
-            </p>
+          <div className="p-16 text-center border-2 border-dashed border-slate-100 rounded-[2.5rem] bg-slate-50/30 flex flex-col items-center">
+            <div className="bg-white w-16 h-16 rounded-3xl flex items-center justify-center shadow-sm mb-4 border border-slate-100"><Check className="w-8 h-8 text-emerald-400" /></div>
+            <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight">{t("payroll.adjustments.all_clear")}</h3>
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1 opacity-50">No pending adjustments.</p>
           </div>
         ) : (
           employeeAdjustments.map((adj) => (
-            <div 
-              key={adj.id} 
-              data-testid="adjustment-item"
-              className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-wide">
-                  <Calendar className="w-3 h-3" />
-                  {formatDate(adj.requested_punch_in_time)}
+            <div key={adj.id} data-testid="adjustment-item" className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden">
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shadow-inner group-hover:text-primary-600 transition-colors"><Calendar size={14} /></div>
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">Requested Date</p>
+                    <p className="text-xs font-black text-slate-900 uppercase tracking-tight">{formatDate(adj.requested_punch_in_time)}</p>
+                  </div>
                 </div>
-                <div className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-black uppercase">
-                  Pending
-                </div>
+                <span className="bg-amber-50 text-amber-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-amber-100 shadow-sm animate-pulse">Pending</span>
               </div>
 
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex-1 bg-slate-50 p-2 rounded-lg text-center">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">In</p>
-                  <p className="text-sm font-black text-slate-900">{formatTime(adj.requested_punch_in_time)}</p>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex-1 bg-slate-50/50 p-4 rounded-2xl text-center border border-slate-100 shadow-inner group-hover:bg-white transition-colors">
+                  <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest mb-1.5 opacity-70">Punch In</p>
+                  <p className="text-sm font-black text-slate-900 font-mono tracking-tighter">{formatTime(adj.requested_punch_in_time)}</p>
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-300" />
-                <div className="flex-1 bg-slate-50 p-2 rounded-lg text-center">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">Out</p>
-                  <p className="text-sm font-black text-slate-900">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shadow-inner"><ArrowRight size={14} className="text-slate-300" /></div>
+                <div className="flex-1 bg-slate-50/50 p-4 rounded-2xl text-center border border-slate-100 shadow-inner group-hover:bg-white transition-colors">
+                  <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest mb-1.5 opacity-70">Punch Out</p>
+                  <p className="text-sm font-black text-slate-900 font-mono tracking-tighter">
                     {adj.requested_punch_out_time ? formatTime(adj.requested_punch_out_time) : "--:--"}
                   </p>
                 </div>
               </div>
 
               {adj.reason && (
-                <div className="bg-slate-50 p-3 rounded-xl mb-4 text-xs text-slate-600 italic border border-slate-100" data-testid="adjustment-reason">
-                  "{adj.reason}"
+                <div className="bg-slate-50 p-4 rounded-xl mb-6 border border-slate-100 shadow-inner" data-testid="adjustment-reason">
+                  <div className="flex gap-2 items-start"><MessageSquare size={12} className="text-slate-300 mt-0.5 shrink-0" /><p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight leading-relaxed italic">"{adj.reason}"</p></div>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  data-testid="reject-adjustment-btn"
-                  onClick={() => resolveMutation.mutate({ id: adj.id, status: "rejected" })}
-                  disabled={resolveMutation.isPending}
-                  className="py-2 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors flex items-center justify-center gap-2"
-                >
-                  <X className="w-3 h-3" /> Reject
-                </button>
-                <button
-                  data-testid="approve-adjustment-btn"
-                  onClick={() => resolveMutation.mutate({ id: adj.id, status: "approved" })}
-                  disabled={resolveMutation.isPending}
-                  className="py-2 rounded-xl text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Check className="w-3 h-3" /> Approve
-                </button>
+              <div className="grid grid-cols-2 gap-4">
+                <button data-testid="reject-adjustment-btn" onClick={() => resolveMutation.mutate({ id: adj.id, status: "rejected" })} disabled={resolveMutation.isPending} className="py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 border border-rose-100 hover:bg-rose-100 transition-all active:scale-95 shadow-sm">Reject</button>
+                <button data-testid="approve-adjustment-btn" onClick={() => resolveMutation.mutate({ id: adj.id, status: "approved" })} disabled={resolveMutation.isPending} className="py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition-all active:scale-95 shadow-sm">Approve</button>
               </div>
             </div>
           ))
