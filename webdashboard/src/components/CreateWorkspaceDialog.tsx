@@ -22,18 +22,13 @@ export default function CreateWorkspaceDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-
-    setIsSubmitting(true);
-    setError(null);
+    setIsSubmitting(true); setError(null);
     try {
       await createWorkspace({ name });
-      setName("");
-      onClose();
+      setName(""); onClose();
     } catch (e) {
       setError(t("common.create_workspace_error"));
-    } finally {
-      setIsSubmitting(false);
-    }
+    } finally { setIsSubmitting(false); }
   }
 
   return (
@@ -42,24 +37,25 @@ export default function CreateWorkspaceDialog({
       onClose={onClose}
       title={t("common.create_workspace")}
       subtitle={t("common.leeattend_system")}
-      icon={<LayoutDashboard className="w-6 h-6" />}
+      icon={<LayoutDashboard size={24} />}
+      maxWidth="md"
     >
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-8 pt-4">
         {error && (
-          <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg">
+          <div className="p-4 text-[11px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 border border-rose-100 rounded-2xl animate-in slide-in-from-top-2">
             {error}
           </div>
         )}
 
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+        <div className="space-y-3">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
             {t("common.org_name_label")}
           </label>
           <input
             autoFocus
             type="text"
             required
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
+            className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight"
             placeholder={t("common.org_name_placeholder")}
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -71,14 +67,14 @@ export default function CreateWorkspaceDialog({
           <button
             type="submit"
             disabled={isSubmitting || !name.trim()}
-            className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 text-sm disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200 active:scale-95 disabled:opacity-50"
           >
             {isSubmitting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 size={18} className="animate-spin" />
             ) : (
-              <Plus className="w-4 h-4" />
+              <Plus size={18} />
             )}
-            {t("common.create_workspace")}
+            {t("common.create_workspace").toUpperCase()}
           </button>
         </div>
       </form>

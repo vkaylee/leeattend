@@ -17,7 +17,7 @@ export default function RoleManagementModal({
   onClose,
 }: RoleManagementModalProps) {
   const { t } = useTranslation();
-  const { formatDate, formatTime, formatDateTime } = useDateTimeFormatter();
+  const { formatDateTime } = useDateTimeFormatter();
   const { roles, isLoading, updatePrimaryRole, assignRole, revokeRole } =
     useMemberRoles(userId || "", undefined);
   const [newRole, setNewRole] = useState("member");
@@ -28,76 +28,53 @@ export default function RoleManagementModal({
 
   async function handleUpdatePrimary(role: string) {
     if (role === primaryRole) return;
-    if (
-      !confirm(t("members.roles.confirm_change_primary", { role: role.toUpperCase() }))
-    )
-      return;
-
-    try {
-      await updatePrimaryRole(role);
-    } catch (e: any) {
-      alert(e.message || t("members.roles.messages.update_primary_error"));
-    }
+    if (!confirm(t("members.roles.confirm_change_primary", { role: role.toUpperCase() }))) return;
+    try { await updatePrimaryRole(role); } catch (e: any) { }
   }
 
   async function handleAssign(e: React.FormEvent) {
     e.preventDefault();
     if (!expiresAt || !userId) return;
-
     try {
       const isoExpiresAt = new Date(expiresAt).toISOString();
       await assignRole({ role: newRole, expiresAt: isoExpiresAt });
       setExpiresAt("");
-    } catch (e) {
-      alert(t("members.roles.messages.assign_error"));
-    }
+    } catch (e) { }
   }
 
   async function handleRevoke(roleId: string) {
     if (!confirm(t("members.roles.confirm_revoke"))) return;
-    try {
-      await revokeRole(roleId);
-    } catch (e) {
-      alert(t("members.roles.messages.revoke_error"));
-    }
+    try { await revokeRole(roleId); } catch (e) { }
   }
 
   if (!isOpen) return null;
 
   return (
     <div className="modal-backdrop">
-      <div className="modal-content max-w-lg">
-        <div className="flex items-center justify-between p-8 border-b border-slate-50">
-          <div className="flex items-center gap-4">
-            <div className="bg-primary-50 p-3 rounded-2xl text-primary-600">
-              <UserCheck className="w-6 h-6" />
+      <div className="modal-content max-w-lg shadow-premium-2xl">
+        <div className="flex items-center justify-between p-10 border-b border-slate-50 bg-slate-50/30">
+          <div className="flex items-center gap-5">
+            <div className="bg-primary-50 p-4 rounded-2xl text-primary-600 shadow-inner border border-primary-100/50">
+              <UserCheck size={24} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+              <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">
                 {t("members.roles.modal_title")}
               </h2>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{t("members.roles.modal_subtitle")}</p>
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1 opacity-70">{t("members.roles.modal_subtitle")}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-full transition-colors group"
-          >
-            <X className="w-5 h-5 text-slate-300 group-hover:text-slate-600" />
-          </button>
+          <button onClick={onClose} className="p-3 bg-white hover:bg-slate-50 rounded-xl transition-all shadow-md border border-slate-100 text-slate-400 hover:text-rose-600 active:scale-90"><X size={20} /></button>
         </div>
 
-        <div className="p-8 space-y-8">
+        <div className="p-10 space-y-10">
           {isLoading ? (
-            <div className="py-12 text-center text-slate-400">{t("common.loading")}</div>
+            <div className="py-16 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.loading")}</div>
           ) : (
-            <>
+            <div className="space-y-10 animate-in fade-in duration-500">
               {/* Primary Role */}
               <div className="space-y-3">
-                <label 
-                  htmlFor="primary-role-select"
-                  className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1"
-                >
+                <label htmlFor="primary-role-select" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
                   {t("members.roles.primary_role_label")}
                 </label>
                 <Combobox
@@ -109,7 +86,7 @@ export default function RoleManagementModal({
                   ]}
                   value={primaryRole}
                   onChange={handleUpdatePrimary}
-                  className="bg-slate-50 border-slate-100 h-14"
+                  className="bg-slate-50 border-slate-100 h-16 rounded-[1.25rem] text-sm"
                 />
               </div>
 
@@ -121,95 +98,44 @@ export default function RoleManagementModal({
 
                 <div className="space-y-3">
                   {extraRoles.map((role) => (
-                    <div
-                      key={role.id}
-                      className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 group hover:border-blue-200 transition-all"
-                    >
+                    <div key={role.id} className="flex items-center justify-between p-6 bg-slate-50 border border-slate-100 rounded-[2rem] hover:bg-white hover:shadow-xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden shadow-inner">
                       <div className="space-y-1">
-                        <p className="font-bold text-slate-700 capitalize">
-                          {role.role}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-slate-400">
-                          <Clock className="w-3 h-3" />
-                          <span>
-                            {t("members.roles.expires_at")}:{" "}
-                            {formatDateTime(role.expires_at)}
-                          </span>
+                        <p className="font-black text-slate-800 text-sm uppercase tracking-tight">{role.role}</p>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest opacity-70">
+                          <Clock size={12} /> <span>{t("members.roles.expires_at")}: {formatDateTime(role.expires_at)}</span>
                         </div>
                       </div>
-                      <button
-                        onClick={() => handleRevoke(role.id)}
-                        title={t("common.remove")}
-                        className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <button onClick={() => handleRevoke(role.id)} className="p-2.5 bg-white text-slate-300 hover:text-rose-600 rounded-xl shadow-md border border-slate-100 transition-all opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
                     </div>
                   ))}
 
                   {extraRoles.length === 0 && (
-                    <div className="text-center py-4 border-2 border-dashed border-slate-100 rounded-2xl text-slate-400 text-sm">
-                      {t("members.roles.no_extra_roles")}
+                    <div className="text-center py-10 border-2 border-dashed border-slate-100 rounded-[2rem] bg-slate-50/30 flex flex-col items-center">
+                      <Shield size={24} className="text-slate-200 mb-2" />
+                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{t("members.roles.no_extra_roles")}</p>
                     </div>
                   )}
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           {/* Assign Form */}
-          <div className="pt-6 border-t border-slate-50">
-            <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <Plus className="w-4 h-4 text-blue-500" />
-              {t("members.roles.assign_new_title")}
+          <div className="pt-10 border-t border-slate-100 space-y-6">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <Plus size={14} className="text-primary-500" /> {t("members.roles.assign_new_title")}
             </h3>
-            <form
-              onSubmit={handleAssign}
-              className="grid grid-cols-1 md:grid-cols-2 gap-4"
-            >
+            <form onSubmit={handleAssign} className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-2">
               <div className="space-y-2">
-                <label 
-                  htmlFor="extra-role-select"
-                  className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1"
-                >
-                  {t("members.invite.role_label")}
-                </label>
-                <Combobox
-                  id="extra-role-select"
-                  options={[
-                    { value: "member", label: t("members.roles.member"), icon: <Shield className="w-4 h-4" /> },
-                    { value: "admin", label: t("members.roles.admin"), icon: <Shield className="w-4 h-4 text-primary-600" /> },
-                  ]}
-                  value={newRole}
-                  onChange={setNewRole}
-                  className="bg-slate-50 border-slate-200"
-                />
+                <label htmlFor="extra-role-select" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t("members.invite.role_label")}</label>
+                <Combobox id="extra-role-select" options={[{ value: "member", label: t("members.roles.member"), icon: <Shield className="w-4 h-4" /> }, { value: "admin", label: t("members.roles.admin"), icon: <Shield className="w-4 h-4 text-primary-600" /> }]} value={newRole} onChange={setNewRole} className="bg-slate-50 border-slate-100 h-[52px]" />
               </div>
               <div className="space-y-2">
-                <label
-                  htmlFor="expires-at-input"
-                  className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1"
-                >
-                  {t("members.roles.expiry_date_label")}
-                </label>
-                <div className="relative">
-                  <input
-                    id="expires-at-input"
-                    required
-                    type="datetime-local"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none transition-all text-sm"
-                    value={expiresAt}
-                    onChange={(e) => setExpiresAt(e.target.value)}
-                  />
-                </div>
+                <label htmlFor="expires-at-input" className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t("members.roles.expiry_date_label")}</label>
+                <input id="expires-at-input" required type="datetime-local" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
               </div>
               <div className="md:col-span-2 pt-2">
-                <button
-                  type="submit"
-                  className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 text-sm"
-                >
-                  {t("members.roles.assign_btn")}
-                </button>
+                <button type="submit" className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200 active:scale-95">{t("members.roles.assign_btn").toUpperCase()}</button>
               </div>
             </form>
           </div>
