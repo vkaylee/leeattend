@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchRawAttendanceLogs, fetchEmployees, fetchWorkspace, getCurrentWorkspaceId } from "@/lib/api";
-import { format } from "date-fns";
+import { format, endOfMonth } from "date-fns";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { 
   ChevronLeft, 
@@ -15,12 +15,14 @@ import {
   Clock,
   HardDrive,
   User,
-  Users
+  Users,
+  ChevronDown
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import AttendanceImportDialog from "@/components/AttendanceImportDialog";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
+import { MonthYearPicker } from "@/components/common/MonthYearPicker";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -81,10 +83,14 @@ export default function AttendanceLogsPage() {
     return { start: firstDay, end: lastDay };
   };
 
-  const [filterMode, setFilterMode] = useState<"this_month" | "last_month" | "custom">("this_month");
+  const [filterMode, setFilterMode] = useState<"this_month" | "last_month" | "custom" | "specific_month">("this_month");
   const [dateRange, setDateRange] = useState(getMonthRange(0));
+  const [specificMonth, setSpecificMonth] = useState({
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear()
+  });
 
-  const handleFilterModeChange = (mode: "this_month" | "last_month" | "custom") => {
+  const handleFilterModeChange = (mode: "this_month" | "last_month" | "custom" | "specific_month") => {
     setFilterMode(mode);
     setPage(1);
     if (mode === "this_month") {
@@ -93,6 +99,304 @@ export default function AttendanceLogsPage() {
       setDateRange(getMonthRange(-1));
     }
   };
+
+  const handleSpecificMonthChange = (m: number, y: number) => {
+    setSpecificMonth({ month: m, year: y });
+    setFilterMode("specific_month");
+    setPage(1);
+    
+    const start = format(new Date(y, m - 1, 1), 'yyyy-MM-dd');
+    const end = format(endOfMonth(new Date(y, m - 1, 1)), 'yyyy-MM-dd');
+    setDateRange({ start, end });
+  };
+
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+
+  const { data: employees } = useQuery({
+    queryKey: ["employees", wsId],
+    queryFn: () => fetchEmployees(wsId!),
+    enabled: !!wsId,
+  });
+
+  const { data: workspace } = useQuery({
+    queryKey: ["workspace", wsId],
+    queryFn: () => fetchWorkspace(wsId!),
+    enabled: !!wsId,
+  });
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["attendance-raw-logs", wsId, employeeId, dateRange, page],
+    queryFn: () => {
+      // Correctly handle date boundaries in local time to UTC conversion
+      const from = dateRange.start ? new Date(`${dateRange.start}T00:00:00`).toISOString() : undefined;
+      const to = dateRange.end ? new Date(`${dateRange.end}T23:59:59`).toISOString() : undefined;
+      
+      return fetchRawAttendanceLogs({
+        employee_id: employeeId === "all" ? undefined : employeeId,
+        from,
+        to,
+        page,
+        limit,
+      });
+    },
+    enabled: !!wsId,
+  });
+
+  const getEmployeeName = (id: string) => {
+    const emp = employees?.find(e => e.id === id);
+    return emp ? `${emp.first_name} ${emp.last_name}` : t("common.system");
+  };
+
+  const getEmployeeID = (id: string) => {
+    const emp = employees?.find(e => e.id === id);
+    return emp ? emp.employee_id_number : "";
+  };
+
+  const totalPages = Math.ceil((data?.total || 0) / limit);
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">{t("attendance_logs.title")}</h1>
+          <p className="text-slate-500 mt-1">{t("attendance_logs.subtitle")}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={() => window.print()}>
+            <Download className="mr-2 h-4 w-4" /> {t("attendance_logs.export_btn")}
+          </Button>
+          <Button variant="default" onClick={() => setIsImportDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" /> {t("attendance_logs.import_btn")}
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters Card */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center gap-2">
+            <Filter className="h-5 w-5 text-primary-600" />
+            <h3 className="font-bold text-slate-900">{t("common.filters.title")}</h3>
+          </div>
+        </div>
+        <div className="p-6 space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl">
+              <button
+                onClick={() => handleFilterModeChange("this_month")}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                  filterMode === "this_month" ? "bg-white shadow-sm text-primary-600" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {t("common.filters.this_month")}
+              </button>
+              <button
+                onClick={() => handleFilterModeChange("last_month")}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                  filterMode === "last_month" ? "bg-white shadow-sm text-primary-600" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {t("common.filters.last_month")}
+              </button>
+              
+              <div className="relative group">
+                <button
+                  className={`flex items-center gap-1 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                    filterMode === "specific_month" ? "bg-white shadow-sm text-primary-600" : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  {filterMode === "specific_month" ? `T${specificMonth.month}/${specificMonth.year}` : t("common.filters.specific_month", "Specific Month")}
+                  <ChevronDown size={14} />
+                </button>
+                <div className="absolute left-0 top-full mt-2 z-[100] hidden group-hover:block animate-in zoom-in-95 slide-in-from-top-2 origin-top-left">
+                  <MonthYearPicker 
+                    month={specificMonth.month}
+                    year={specificMonth.year}
+                    onChange={handleSpecificMonthChange}
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={() => handleFilterModeChange("custom")}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                  filterMode === "custom" ? "bg-white shadow-sm text-primary-600" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {t("common.filters.custom")}
+              </button>
+            </div>
+
+            <div className="flex-1 max-w-md flex items-center gap-2">
+              <div className="flex-1">
+                <EmployeeSearch
+                  workspaceId={wsId!}
+                  value={employeeId === "all" ? "" : employeeId}
+                  onChange={(val) => { setEmployeeId(val || "all"); setPage(1); }}
+                  placeholder={employeeId === "all" ? t("common.all_employees") : undefined}
+                />
+              </div>
+              {employeeId !== "all" && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => { setEmployeeId("all"); setPage(1); }}
+                  className="rounded-2xl"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  {t("common.all_employees")}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {filterMode === "custom" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2 duration-300">
+              <div className="space-y-1">
+                <label htmlFor="filter-from-date" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <Calendar className="w-3 h-3" /> {t("common.from_date")}
+                </label>
+                <input 
+                  id="filter-from-date"
+                  type="date" 
+                  value={dateRange.start} 
+                  onChange={(e) => { setDateRange(prev => ({ ...prev, start: e.target.value })); setPage(1); }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+                />
+              </div>
+              <div className="space-y-1">
+                <label htmlFor="filter-to-date" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <Calendar className="w-3 h-3" /> {t("common.to_date")}
+                </label>
+                <input 
+                  id="filter-to-date"
+                  type="date" 
+                  value={dateRange.end} 
+                  onChange={(e) => { setDateRange(prev => ({ ...prev, end: e.target.value })); setPage(1); }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Table Card */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">{t("common.time")}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">{t("employees.table.id")}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">{t("common.employee")}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">{t("common.source")}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">{t("common.device")}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">{t("common.status")}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-slate-500 font-medium">{t("attendance_logs.messages.loading")}</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : data?.data.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500 font-medium">
+                    {t("attendance_logs.messages.no_data")}
+                  </td>
+                </tr>
+              ) : (
+                data?.data.map((log: any) => (
+                  <tr key={log.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary-50 text-primary-600 rounded-lg">
+                          <Clock className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-900">
+                            {formatDate(log.punch_time)}
+                          </div>
+                          <div className="text-xs text-slate-500 font-mono">
+                            {formatTime(log.punch_time)}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant="outline">{getEmployeeID(log.employee_id) || "N/A"}</Badge>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        <div className="font-medium text-slate-700">{getEmployeeName(log.employee_id)}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant="secondary" className="capitalize">
+                        {log.source}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-slate-500 text-sm">
+                        <HardDrive className="w-3 h-3" />
+                        {log.device_id || "N/A"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Badge variant="default" className="bg-emerald-50 text-emerald-700 border-emerald-100">
+                        {t("attendance_logs.status.recorded")}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        <div className="p-6 bg-slate-50/50 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="text-sm text-slate-500 font-medium">
+            {t("common.pagination.showing")} <span className="text-slate-900 font-bold">{data?.data.length || 0}</span> {t("common.pagination.out_of")} <span className="text-slate-900 font-bold">{data?.total || 0}</span> {t("common.pagination.records")}
+          </div>
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              disabled={page === 1} 
+              onClick={() => setPage(p => p - 1)}
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" /> {t("common.pagination.prev")}
+            </Button>
+            <div className="text-sm font-bold text-slate-900">
+              {t("common.pagination.page")} {page} / {totalPages || 1}
+            </div>
+            <Button 
+              variant="outline" 
+              disabled={page >= totalPages} 
+              onClick={() => setPage(p => p + 1)}
+            >
+              {t("common.pagination.next")} <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <AttendanceImportDialog 
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        title={t("attendance_logs.modal.import_title")}
+        endpoint="/attendance/logs/upload"
+        targetType="log"
+      />
+    </div>
+  );
+}
 
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 

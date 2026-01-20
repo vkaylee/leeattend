@@ -9,10 +9,12 @@ import {
   ChevronRight, 
   Clock, 
   Info, 
-  AlertCircle 
+  AlertCircle,
+  ChevronDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as Popover from "@radix-ui/react-popover";
+import { MonthYearPicker } from "@/components/common/MonthYearPicker";
 
 export default function MyAttendancePage() {
   const { t } = useTranslation();
@@ -23,6 +25,10 @@ export default function MyAttendancePage() {
     start_date: format(startOfMonth(currentMonth), "yyyy-MM-dd"),
     end_date: format(endOfMonth(currentMonth), "yyyy-MM-dd"),
   });
+
+  const handleMonthYearChange = (month: number, year: number) => {
+    setCurrentMonth(new Date(year, month - 1, 1));
+  };
 
   const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
   const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
@@ -39,16 +45,36 @@ export default function MyAttendancePage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-1 bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
           <button 
             onClick={handlePrevMonth}
             className="p-2 hover:bg-slate-50 rounded-xl transition-colors text-slate-500"
           >
             <ChevronLeft size={20} />
           </button>
-          <div className="px-4 font-bold text-slate-700 min-w-[140px] text-center">
-            {format(currentMonth, "MMMM yyyy")}
-          </div>
+          
+          <Popover.Root>
+            <Popover.Trigger asChild>
+              <button className="px-4 py-2 font-bold text-slate-700 hover:bg-slate-50 rounded-xl transition-colors flex items-center gap-2 min-w-[140px] justify-center">
+                {format(currentMonth, "MMMM yyyy")}
+                <ChevronDown size={14} className="text-slate-400" />
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content 
+                className="z-50 animate-in zoom-in-95 slide-in-from-top-2"
+                sideOffset={5}
+                align="center"
+              >
+                <MonthYearPicker 
+                  month={currentMonth.getMonth() + 1}
+                  year={currentMonth.getFullYear()}
+                  onChange={handleMonthYearChange}
+                />
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
+
           <button 
             onClick={handleNextMonth}
             className="p-2 hover:bg-slate-50 rounded-xl transition-colors text-slate-500"
@@ -57,6 +83,7 @@ export default function MyAttendancePage() {
           </button>
         </div>
       </div>
+      {/* ... rest of the file remains same */}
 
       <div className="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm">
         {isLoading ? (

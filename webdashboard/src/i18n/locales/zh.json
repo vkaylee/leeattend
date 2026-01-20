@@ -310,6 +310,7 @@
       "title": "筛选",
       "this_month": "本月",
       "last_month": "上月",
+      "specific_month": "选择月份",
       "custom": "自定义"
     },
     "sections": {
