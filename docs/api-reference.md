@@ -676,6 +676,13 @@ Tính toán phiếu lương cho một nhân viên cụ thể.
 - **Query Params**: `?year=2026&month=1`
 - **Response (200)**: `PayslipResponse`
 
+#### GET /workspaces/:ws_id/payroll/payslips (New)
+Lấy danh sách toàn bộ phiếu lương của workspace trong một kỳ cụ thể (Tháng/Năm).
+- **Query Params**:
+    - `year`: number (ví dụ: 2026)
+    - `month`: number (1-12)
+- **Response (200)**: `Array<Payslip>`
+
 #### POST /workspaces/:ws_id/payroll/calculate-batch (New)
 Kích hoạt tính toán lương hàng loạt cho nhiều nhân viên cùng lúc. Xử lý song song để tối ưu hiệu năng.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
