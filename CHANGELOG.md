@@ -5,6 +5,20 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Schedule Traceability System**:
+    - Backend: Enhanced `RuleEvaluator` to track rule outcomes and decision logic for every shift assignment.
+    - Frontend: Implemented `PriorityLegend` and `ScheduleTracePopover` to visualize why a specific shift was assigned (e.g., Roster Override vs. Pattern).
+    - Added smart intervention hints for scheduling conflicts and rule violations.
+- **Employee Self-Service (ESS) Phase 3**:
+    - **My Attendance Page**: New dedicated view for employees to track their own attendance history and pairing results.
+    - **Traceability Visualization**: Integrated traceability metadata into the ESS portal, allowing employees to see how their work units were calculated.
+- **Settings Hub Consolidation**:
+    - Centralized navigation for all workspace configurations under `/workspace/settings`.
+    - Merged Departments, Members, and Role management into a unified "People" settings module.
+    - Standardized sub-pages for General, Time, Payroll, and Connectivity settings.
+- **FSM Attendance Pairing Strategy**:
+    - Re-implemented and optimized the **Finite State Machine (FSM)** pairing algorithm to handle complex punch sequences with explicit status intent.
+    - Added BSON-based `generation_metadata` to time entries for deep auditability of pairing decisions.
 - **Robust i18n Testing Suite**:
     - Enhanced `translation-usage.test.ts` with advanced detection for missing keys, untranslated keys (value equals key path), and hardcoded JSX strings.
     - Implemented stricter validation for locale file synchronization to ensure 100% key parity across `en.json`, `vi.json`, and `zh.json`.
@@ -18,73 +32,36 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - Updated `App.tsx` and `PeopleSettings.tsx` to use leaf-node translation keys instead of object paths for better reliability.
 - **Improved E2E Test Stability**:
     - Increased Playwright timeouts to 120s in `playwright.config.ts` and individual specs to handle slow CI/CD environments.
-    - Updated E2E locators in `members-ui`, `sidebar-navigation`, and `stability-regression` to match recent UI refactors.
+    - Updated E2E locators in `members-ui`, `sidebar-navigation`, and `stability-regression` to match recent UI refactors (Settings Hub).
+    - Fixed shared-state interference in `change-password.spec.ts` by adding a password reset teardown.
 
 ### Fixed
 - **Locale Desynchronization**: Resolved numerous missing translation keys in `vi.json` and `zh.json` identified by the new testing suite.
 - **Settings Page Rendering**: Refactored `GeneralSettings.tsx` and `TimeSettings.tsx` into container/presentational components to fix ESLint cascading render warnings.
 - **App Layout**: Fixed broken imports for `AssignmentRulesPage` and `WorkspaceSettingsPage`.
 - **JSON Quality**: Fixed invalid JSON syntax (trailing commas) and synchronized key structures across all locale files.
+- **Attendance Pairing Engine**:
+    - Resolved "Log Stealing" bug where 36-hour search windows caused overlaps between adjacent days.
+    - Implemented a **16-Hour Gap Limit** (960 minutes) across pairing strategies to prevent aggressive pairing of punches across multi-day gaps.
+    - Added "Missing Punch Out (Gap)" status when the duration limit is exceeded to improve audit clarity.
 
-    - Simplified the pairing architecture by retaining only the robust **AnchorFirstStrategy** (First-In / Last-Out).
-    - Deprecated and removed complex strategies including `Sequential`, `DP Pattern`, and `FSM` to improve system reliability and maintainability.
-    - Updated the maximum allowed gap between punches from 16 hours to **12 hours** (720 minutes) across the entire system.
-    - Removed internal fallback logic in `PairingService` to ensure consistent algorithm application through the central factory.
+## [0.2.1] - 2026-01-18
 
 ### Added
 - **Attendance Pairing Traceability**:
     - Added `generation_metadata` (JSONB) to `time_entries` table to track the pairing algorithm and source logs.
     - Implemented a "Debug Mode" in Attendance Reports to visualize pairing metadata and BSON source data directly in the UI.
-    - Integrated report traceability into the global **Debug Suite** for developers.
 - **Manual Attendance Reprocessing**:
-    - New API endpoint `POST /api/workspaces/:ws_id/attendance/reprocess/:employee_id` to trigger manual pairing recalculation for a specific date range.
-    - Added a "Recalculate" button in the Attendance Report UI with confirmation dialogs.
-
-### Fixed
-- **Attendance Pairing Engine**:
-    - Resolved "Log Stealing" bug where 36-hour search windows caused overlaps between adjacent days.
-    - Implemented a **16-Hour Gap Limit** (960 minutes) across **all** pairing strategies (`Sequential`, `AnchorFirst`, `Fsm`, and fallback `chronological`) to prevent aggressive pairing of punches across multi-day gaps.
-    - Added "Missing Punch Out (Gap)" status when the duration limit is exceeded to improve audit clarity.
-    - Relaxed identity deduplication to allow rapid double-punches (different timestamps) while still preventing exact duplicate log entries.
-    - Fixed a Clippy linting error (`manual-contains`) in `pairing_service.rs` for better performance.
-
-### Added
+    - New API endpoint `POST /api/workspaces/:ws_id/attendance/reprocess/:employee_id` to trigger manual pairing recalculation.
 - **Hierarchical 3-tier Temporal Payroll**:
     - New schema for versioned payroll settings at Individual, Department, and Workspace levels.
     - `PolicyResolver` domain service for point-in-time rule resolution.
     - Multi-segment payroll calculation with proration support for mid-month changes.
-    - Reusable `TemporalConfigTable` React component for historical setting management.
-    - Persistence of `applied_hours_per_day` in payslip segments for auditability.
-- **Advanced Debug Suite**:
-    - Floating Developer Toolbar for quick access to debug features.
-    - **User Impersonation**: Switch roles (Owner/Admin/Member) or specific users in one click via `X-Debug-Impersonate-Id`.
-    - **Time Travel**: Simulate any system date via `X-Debug-Mock-Date` to test future/past payroll logic.
-    - **Debug API Directory**: Endpoint `/api/debug/users` to list available test identities.
 
 ### Changed
 - Increased E2E test stability by raising DB pool `acquire_timeout` to 30s and Playwright navigation timeouts to 60s.
-- Optimized sidebar navigation in E2E tests to handle pre-expanded sections and prevent accidental collapses.
-- Switched E2E test URL matching to more flexible partial matching to reduce environment-specific flakiness.
-- Synchronized i18n keys for working patterns (`delete_success`, `delete_error`, `confirm_delete`) across en, vi, and zh locales.
+- Optimized sidebar navigation in E2E tests to handle pre-expanded sections.
 - Updated `PayrollService` to use the new hierarchical resolver instead of legacy fixed fields.
-
-### Fixed
-- **Department Transfer**: Fixed a bug where employee department transfers were not completing due to API return type mismatch (JSON vs Status).
-- **Security Audit**: Added missing RBAC checks to the `transfer_employee` handler to ensure only Admins/Owners can move personnel.
-- **Frontend State Leak**: Resolved an issue in `EmployeesPage` where the department selection state persisted between modal sessions.
-- **TypeScript & Linting**: Fixed invalid i18next `t()` usage in `WorkingPatternsPage.tsx` and resolved `react-refresh` component export warnings.
-
-### Added
-- **3-Tier Temporal Payroll Settings**: Implemented a hierarchical versioning system for "Standard Working Days" and "Hours per Day" (Individual > Department > Workspace).
-- **Point-in-Time Policy Resolver**: New logic to resolve payroll settings based on the payroll period's effective date.
-- **Temporal Configuration UI**: Added `TemporalConfigTable` for managing historical and future configuration changes across Workspace, Departments, and Employee profiles.
-- **Payroll Segmentation**: The payroll engine now automatically splits calculations into segments when settings (salary, department, or std-days) change mid-month.
-- **Global Settings History**: Admins can now view and schedule changes to workspace-wide payroll configurations.
-
-### Changed
-- Refactored `PayrollService` to support multi-segment calculations and hierarchical policy resolution.
-- Updated `PayslipSegment` to record `applied_hours_per_day` for enhanced auditability.
-- Synchronized i18n keys for temporal settings across English, Vietnamese, and Chinese locales.
 
 ## [0.2.0] - 2026-01-15
 

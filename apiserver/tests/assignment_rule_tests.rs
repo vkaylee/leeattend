@@ -56,7 +56,7 @@ async fn test_rule_based_pattern_resolution() {
 
     // 4. Verify Resolution
     let date = NaiveDate::from_ymd_opt(2026, 1, 18).unwrap(); // Sunday
-    let resolved_shift = roster_repository::get_effective_shift(&pool, emp_id, date)
+    let (resolved_shift, _) = roster_repository::get_effective_shift(&pool, emp_id, date)
         .await
         .unwrap();
 
@@ -137,7 +137,7 @@ async fn test_rule_priority_and_overrides() {
         .await;
 
     let date = NaiveDate::from_ymd_opt(2026, 1, 18).unwrap();
-    let resolved = roster_repository::get_effective_shift(&pool, emp_id, date)
+    let (resolved, _) = roster_repository::get_effective_shift(&pool, emp_id, date)
         .await
         .unwrap();
 

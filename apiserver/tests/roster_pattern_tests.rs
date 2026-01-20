@@ -84,7 +84,7 @@ async fn test_roster_pattern_resolution() {
     let monday = NaiveDate::from_ymd_opt(2026, 1, 5).unwrap();
     assert_eq!(monday.weekday().number_from_monday(), 1); // Extra check
 
-    let shift_mon = roster_repository::get_effective_shift(&pool, employee_id, monday)
+    let (shift_mon, _) = roster_repository::get_effective_shift(&pool, employee_id, monday)
         .await
         .unwrap();
     assert_eq!(
@@ -95,7 +95,7 @@ async fn test_roster_pattern_resolution() {
 
     // 2026-01-11 is a Sunday
     let sunday = NaiveDate::from_ymd_opt(2026, 1, 11).unwrap();
-    let shift_sun = roster_repository::get_effective_shift(&pool, employee_id, sunday)
+    let (shift_sun, _) = roster_repository::get_effective_shift(&pool, employee_id, sunday)
         .await
         .unwrap();
     assert_eq!(shift_sun, None, "Sunday should be Day Off (None)");
@@ -128,7 +128,7 @@ async fn test_roster_pattern_resolution() {
     .await
     .unwrap();
 
-    let shift_overridden = roster_repository::get_effective_shift(&pool, employee_id, monday)
+    let (shift_overridden, _) = roster_repository::get_effective_shift(&pool, employee_id, monday)
         .await
         .unwrap();
     assert_eq!(
@@ -187,7 +187,7 @@ async fn test_pattern_overrides_fixed() {
 
     // 3. Verify Pattern wins
     let monday = NaiveDate::from_ymd_opt(2026, 1, 5).unwrap();
-    let effective = roster_repository::get_effective_shift(&pool, employee_id, monday)
+    let (effective, _) = roster_repository::get_effective_shift(&pool, employee_id, monday)
         .await
         .unwrap();
     assert_eq!(
@@ -258,7 +258,7 @@ async fn test_department_pattern_resolution() {
     let monday = NaiveDate::from_ymd_opt(2026, 1, 5).unwrap();
 
     // 4. Verify inheritance from Department
-    let effective = roster_repository::get_effective_shift(&pool, employee_id, monday)
+    let (effective, _) = roster_repository::get_effective_shift(&pool, employee_id, monday)
         .await
         .unwrap();
     assert_eq!(
@@ -288,7 +288,7 @@ async fn test_department_pattern_resolution() {
     .unwrap();
 
     // 6. Verify Individual wins
-    let effective_overridden = roster_repository::get_effective_shift(&pool, employee_id, monday)
+    let (effective_overridden, _) = roster_repository::get_effective_shift(&pool, employee_id, monday)
         .await
         .unwrap();
     assert_eq!(

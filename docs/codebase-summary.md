@@ -74,12 +74,13 @@ leeattend/
         - **Multi-Select Workflow**: Support for building complex filters using a dismissal chip-based UI, allowing users to build a "basket" of employees for targeted reporting.
     - **Assignment Rule Engine (Enterprise)**: Advanced scheduling automation based on flexible conditions.
         - **Condition Evaluation**: `rule_evaluator.rs` resolves complex logic (Day of week, Department, Location) to determine the correct shift pattern for an employee.
+        - **Schedule Traceability (New)**: The engine now records the "why" behind every assignment. Each generated schedule entry includes a `traceability` object identifying the matching rule, evaluation timestamp, and decision path.
         - **Priority Logic**: Rules are evaluated in descending order of priority, allowing global defaults to be overridden by department or individual-specific rules.
     - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections. Supports **Robust Asynchronous Batch Import** (Excel/CSV) with auto-recovery and real-time progress tracking.
     - **Attendance Persistence Layer**: 
         - **Raw Event Store**: Dedicated `raw_attendance_logs` table for immutable original punch data from hardware and imports.
         - **Pairing Engine (Strategy Pattern)**: `PairingService` handles the conversion of flat events into logical sessions using a pluggable strategy architecture:
-            - **Primary Algorithm**: Currently exclusively uses `AnchorFirstStrategy` (First-In / Last-Out matching) for maximum reliability and simplicity. Other strategies (DP Pattern, Sequential, FSM) have been deprecated to streamline the core logic.
+            - **Algorithms**: Supports multiple strategies including **AnchorFirstStrategy** (Primary) and **FSMStrategy** (Finite State Machine for explicit intent).
             - **12-Hour Session Limit**: Enforced a 720-minute (12h) maximum gap between punches across the system. Exceeding this limit automatically splits logs into separate "Missing Out" sessions to prevent invalid multi-day pairings.
             - **Identity Deduplication**: Relaxed identity deduplication to only skip logs with the exact same timestamp, allowing rapid double-punches (e.g., 1s apart) which are common in retail environments.
             - **Morning Lookback (Overnight support)**: Backend automatically reprocesses the previous day's attendance if a log is received before 12:00 PM.
@@ -110,6 +111,7 @@ leeattend/
         - **Emergency Contact Management**: Self-service tools for maintaining up-to-date emergency notification information.
         - **Document Repository**: Infrastructure for storing and accessing employment-related documents (IDs, contracts).
         - **Personal Insights**: On-demand viewing of payslips, attendance history, and real-time leave balances.
+        - **My Attendance (Phase 3)**: New page for employees to visualize their attendance sessions and pairing traceability metadata.
     - **API Standardization Framework**: Mandatory security and stability layer for all outbound requests.
         - **Fetch Wrapper**: Centralized `apiFetch` utility (`lib/api/helpers.ts`) implemented with a strict 10s timeout using `AbortController`.
         - **Header Injection**: Automatically attaches `Authorization` (JWT), `X-Workspace-Id`, and `Content-Type: application/json` to every call.
@@ -137,4 +139,11 @@ leeattend/
         - **Developer Toolbar**: Floating UI component in the dashboard providing quick access to role switching, date simulation, and a user directory for rapid testing.
 
 2.  **Web Dashboard (React/Vite)**:
+    - **Modular Components**:
+        - **PriorityLegend**: Visual guide for scheduling sources (Roster, Pattern, Fixed).
+        - **ScheduleTracePopover**: Interactive tooltip showing the evaluation logic for a specific shift.
+        - **SettingsLayout**: Centralized container for all Settings Hub sub-modules.
+    - **ESS Features**:
+        - **MyAttendancePage**: Specialized dashboard for employee self-monitoring.
+
 ...

@@ -65,8 +65,6 @@ import AttendanceAdjustmentsPage from "./pages/AttendanceAdjustmentsPage";
 import AttendanceLogsPage from "./pages/AttendanceLogsPage";
 import MyProfilePage from "./pages/ess/MyProfilePage";
 import MyAttendancePage from "./pages/ess/MyAttendancePage";
-import { AuthGuard } from "./components/AuthGuard";
-import { WorkspaceGuard } from "./components/WorkspaceGuard";
 import { useWorkspaces } from "./hooks/use-workspace";
 import { getCurrentWorkspaceId } from "./lib/api";
 import { useTheme } from "./hooks/use-theme";

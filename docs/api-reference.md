@@ -83,7 +83,7 @@ Quản lý không gian làm việc và cấu hình hệ thống.
   "timezone": "Asia/Ho_Chi_Minh", // IANA Timezone ID
   "default_language": "vi", // vi, en, zh
   "theme_primary_color": "#7c3aed", // HEX color for UI branding
-  "pairing_algorithm": "anchor_first", // anchor_first (Primary) - Note: Other algorithms deprecated.
+  "pairing_algorithm": "anchor_first", // anchor_first (Primary), fsm (Finite State Machine)
   "created_at": "datetime"
 }
 ```
@@ -114,7 +114,7 @@ Cập nhật thông tin hoặc cấu hình hệ thống của workspace.
     "timezone": "Asia/Ho_Chi_Minh",
     "default_language": "vi|en|zh",
     "theme_primary_color": "#059669",
-    "pairing_algorithm": "anchor_first"
+    "pairing_algorithm": "anchor_first|fsm"
   }
   ```
 - **Response (200)**: `Workspace` (updated)
@@ -128,6 +128,7 @@ Hệ thống quản lý thành viên và phân quyền trong tổ chức. Một 
 #### GET /workspaces/:ws_id/members
 Lấy danh sách tất cả thành viên trong workspace.
 - **Response (200)**: `Array<WorkspaceMember>`
+- **UI Note**: Trong WebDashboard, trang này đã được hợp nhất vào `Settings > People`.
 
 #### POST /workspaces/:ws_id/members
 Mời hoặc thêm thành viên mới vào workspace.
@@ -185,6 +186,7 @@ Thu hồi một role phụ trước thời hạn.
 ### 4. Device Management (CRUD)
 
 Quản lý thiết bị phần cứng.
+- **UI Note**: Trong WebDashboard, trang này đã được hợp nhất vào `Settings > Connectivity`.
 
 #### GET /devices
 Lấy danh sách tất cả các thiết bị trong workspace hiện tại (Xác định qua header `X-Workspace-Id`).
@@ -200,6 +202,7 @@ Thêm thiết bị mới vào workspace.
 ### 4. Agent Management
 
 Quản lý các Edge Agents.
+- **UI Note**: Trong WebDashboard, trang này đã được hợp nhất vào `Settings > Connectivity`.
 
 #### GET /authorized-agents
 Lấy danh sách Agent thuộc workspace hiện tại (Xác định qua header `X-Workspace-Id`).
@@ -239,6 +242,7 @@ Phê duyệt (Trust) hoặc Thu hồi quyền của một Agent. Khi thu hồi, 
 ### 5. Employee Management
 
 Quản lý hồ sơ nhân viên trong tổ chức.
+- **UI Note**: Trong WebDashboard, trang này đã được hợp nhất vào `Settings > People`.
 
 #### GET /workspaces/:ws_id/employees
 Lấy danh sách tất cả nhân viên.
@@ -424,6 +428,7 @@ Thực hiện điều chỉnh số dư phép thủ công cho nhân viên.
 ### 8. Dynamic Leave Policies (New)
 
 Quản lý cấu hình cộng phép động (Dynamic Accrual) và phân bổ chính sách theo thời gian.
+- **UI Note**: Trong WebDashboard, trang này đã được hợp nhất vào `Settings > Time`.
 
 #### POST /workspaces/:ws_id/leave/policies
 Tạo một định nghĩa chính sách mới (Rule Definition).
@@ -531,6 +536,23 @@ Lấy danh sách các phiên làm việc (sessions) đã được ghép cặp.
     - `limit`: number (mặc định 20)
     - `page`: number (mặc định 1)
 - **Response (200)**: `Array<TimeEntry>`
+  ```json
+  [
+    {
+      "id": "uuid",
+      "employee_id": "uuid",
+      "punch_in": "2026-01-14T08:00:00Z",
+      "punch_out": "2026-01-14T17:00:00Z",
+      "work_units": 8.0,
+      "generation_metadata": {
+        "algorithm": "anchor_first",
+        "source_logs": ["log-uuid-1", "log-uuid-2"],
+        "strategy_params": { "gap_limit_minutes": 720 }
+      },
+      "created_at": "datetime"
+    }
+  ]
+  ```
 
 #### GET /workspaces/:ws_id/attendance/raw-logs (New)
 Lấy danh sách nhật ký quẹt thẻ thô (nguyên bản) từ thiết bị hoặc file import.
@@ -562,6 +584,7 @@ Kích hoạt tính toán lại (reprocess) dữ liệu chấm công cho một nh
 ### 11. Payroll & Shifts
 
 Quản lý lương, ca làm việc và báo cáo công. Hệ thống hỗ trợ cấu hình lương động dựa trên các thành phần thu nhập (Components) và chính sách công chuẩn của từng tổ chức.
+- **UI Note**: Trong WebDashboard, cài đặt lương đã được hợp nhất vào `Settings > Payroll`.
 
 #### Payroll Settings Model
 Lưu cấu hình tính toán lương cấp Workspace.
@@ -590,11 +613,21 @@ Lưu thông tin chi tiết phiếu lương hàng tháng.
   "net_pay_amount": "decimal_string",
   "standard_units": 160, // Số Work Unit chuẩn (Số nguyên)
   "overtime_units": 10,  // Số Work Unit tăng ca (Số nguyên)
+  "segments": [
+    {
+      "period_start": "YYYY-MM-DD",
+      "period_end": "YYYY-MM-DD",
+      "standard_days": 26.0,
+      "hours_per_day": 8.0,
+      "base_salary": "decimal_string"
+    }
+  ],
   "status": "draft|published|paid",
   "created_at": "datetime",
   "updated_at": "datetime"
 }
 ```
+- **Note**: `segments` chứa thông tin chi tiết về việc chia nhỏ kỳ lương khi có thay đổi chính sách (Proration).
 
 #### GET /workspaces/:ws_id/payroll-settings
 Lấy cấu hình lương hiện tại của workspace.
@@ -742,6 +775,7 @@ Xuất báo cáo chấm công của workspace.
 ### 12. Departments & Rostering (New)
 
 Quản lý cơ cấu tổ chức và lịch trình làm việc linh hoạt.
+- **UI Note**: Trong WebDashboard, trang này đã được hợp nhất vào `Settings > People`.
 
 #### GET /workspaces/:ws_id/departments
 Lấy danh sách các phòng ban.
@@ -803,6 +837,11 @@ Tính toán lịch biểu hiệu lực (Effective Schedule) cho tất cả nhân
           "date": "2026-01-10",
           "shift_id": "uuid-or-null",
           "source": "roster|pattern|department_pattern|fixed|department_fixed|none",
+          "traceability": {
+            "rule_id": "uuid-or-null",
+            "evaluated_at": "datetime",
+            "decision_path": "manual_override -> pattern -> default"
+          },
           "shift_name": "Morning Shift",
           "start_time": "08:00:00",
           "end_time": "17:00:00",
@@ -843,17 +882,12 @@ Cập nhật hoặc gán ca làm việc cho một ngày cụ thể (Upsert).
   ```
 - **Response (200 OK)**
 
-        .route(
-            "/workspaces/:ws_id/shifts/:shift_id",
-            put(handlers::update_shift),
-        )
-        .route("/workspaces/:ws_id/shifts/assign", post(handlers::assign_shift));
-
 ---
 
 ### 13. Working Patterns (New)
 
 Quản lý các mẫu lịch làm việc định kỳ (Templates) để gán cho hàng loạt nhân viên.
+- **UI Note**: Trong WebDashboard, trang này đã được hợp nhất vào `Settings > Time`.
 
 #### Working Pattern Model
 ```json
@@ -976,6 +1010,7 @@ Lấy danh sách các tài liệu cá nhân đã tải lên (CCCD, Hợp đồng
 Xem lịch sử chấm công cá nhân.
 - **Query Params**: `?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
 - **Response (200)**: `Array<TimeEntry>`
+- **Note**: Bao gồm `generation_metadata` để nhân viên tự đối soát cách tính công.
 
 #### GET /ess/leave/balances
 Xem số dư phép hiện tại trong năm.
@@ -1024,6 +1059,7 @@ Tự động đăng nhập với tư cách Superuser (admin@leeattend.com).
 ### 15. Assignment Rules (New)
 
 Quản lý các quy tắc gán ca tự động dựa trên điều kiện (Ngày trong tuần, Vị trí, Phòng ban).
+- **UI Note**: Trong WebDashboard, trang này đã được hợp nhất vào `Settings > Time`.
 
 #### Assignment Rule Model
 ```json

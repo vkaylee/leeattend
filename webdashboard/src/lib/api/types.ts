@@ -118,6 +118,7 @@ export interface TimeEntry {
   is_break_overtime: boolean;
   entry_type: string;
   note?: string;
+  generation_metadata?: any;
   created_at: string;
   updated_at: string;
 }

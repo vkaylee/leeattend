@@ -304,15 +304,17 @@
       "last_month": "Last Month",
       "custom": "Custom"
     },
+    "my_profile": "My Profile",
+    "my_attendance": "My Attendance",
+    "completed": "Completed",
+    "pending": "Pending",
     "sections": {
       "organization": "Organization",
       "time_leave": "Time & Leave",
       "payroll_shifts": "Payroll & Shifts",
       "system": "System",
-      "self_service": "Self Service"
+      "self_service": "Self Service (ESS)"
     },
-    "my_profile": "My Profile",
-    "my_attendance": "My Attendance",
     "my_leave": "My Leave",
     "my_documents": "My Documents",
     "my_payslips": "My Payslips",

@@ -313,6 +313,8 @@
     },
     "my_profile": "我的个人资料",
     "my_attendance": "我的出勤",
+    "completed": "已完成",
+    "pending": "待处理",
     "my_leave": "我的请假",
     "my_documents": "我的文件",
     "my_payslips": "我的工资单",

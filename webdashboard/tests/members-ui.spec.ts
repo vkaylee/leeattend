@@ -24,16 +24,14 @@ test.describe("Members UI", () => {
 
     await expect(page.getByRole('heading', { level: 1, name: /People|Nhân sự/ })).toBeVisible();
 
-    // 4. Click Invite Member button
-    await page.getByTestId('invite-member-trigger').click();
+    // 4. Verify Invite Member Section is visible
     await expect(page.getByRole('heading', { level: 2, name: /Invite Member|Mời thành viên/i })).toBeVisible();
+    
+    // 5. Check if the form elements are there
+    await expect(page.getByPlaceholder('dong-nghiep@congty.com')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Invite Member|Mời thành viên/i })).toBeVisible();
 
-    // 5. Close the dialog using X icon (which should be findable by role)
-    await page.getByRole('dialog').getByRole('button').filter({ has: page.locator('svg.lucide-x') }).first().click();
-
-    // 6. Verify modal is closed
-    await expect(
-      page.getByRole('heading', { level: 2, name: /Invite Member/i }),
-    ).not.toBeVisible();
+    // 6. Verify Members List is also present
+    await expect(page.getByRole('heading', { level: 2, name: /Members List|Danh sách thành viên/i })).toBeVisible();
   });
 });

@@ -59,7 +59,10 @@ export default function DashboardPage() {
     <div className="space-y-10">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+          <h1 
+            data-testid="dashboard-title"
+            className="text-4xl font-black text-slate-900 tracking-tight"
+          >
             {t("dashboard.title")}
           </h1>
           <p className="text-slate-500 mt-2 text-lg">

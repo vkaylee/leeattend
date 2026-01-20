@@ -18,12 +18,13 @@ test.describe('Leave Policy Assignment Integration', () => {
     console.log('Waiting for Dashboard heading...');
     await expect(page.getByRole('heading', { level: 1, name: /Dashboard|Bảng điều khiển/i })).toBeVisible({ timeout: 15000 });
 
-    // 2. Create a Department via UI
-    console.log('Navigating to /departments...');
-    // If we are on dashboard, sidebar might be hidden on mobile or needs navigation
-    await page.goto('/departments');
+    // 2. Create a Department via Settings -> People
+    console.log('Navigating to /workspace/settings/people for Department creation...');
+    await page.goto('/workspace/settings/people');
     await page.waitForLoadState('networkidle');
-    // The button might be translated
+    
+    // In PeopleSettings, DepartmentsPage is embedded. 
+    // We need to find the "Add" button inside the departments section.
     const addDeptBtn = page.getByRole('button').filter({ hasText: /Thêm|Add/i }).first();
     await expect(addDeptBtn).toBeVisible({ timeout: 30000 });
     await addDeptBtn.click();
@@ -34,7 +35,7 @@ test.describe('Leave Policy Assignment Integration', () => {
     await expect(page.getByText('Engineering Team').first()).toBeVisible();
     console.log('Department created.');
 
-    // 3. Create an Employee via UI
+    // 3. Create an Employee via /employees
     console.log('Navigating to /employees...');
     await page.goto('/employees');
     const addEmpBtn = page.getByTestId('add-employee-btn');
@@ -51,14 +52,9 @@ test.describe('Leave Policy Assignment Integration', () => {
     await expect(page.getByRole('row', { name: 'Alice Integrator' })).toBeVisible();
     console.log('Employee created.');
 
-    // 2. Navigate to Leave Requests via Sidebar
-    console.log('Navigating to Leave Requests via Sidebar...');
-    const leaveRequestsLink = page.getByTestId('sidebar-link-leave-requests');
-    if (!await leaveRequestsLink.isVisible()) {
-      await page.getByTestId('sidebar-section-time').click();
-    }
-    await leaveRequestsLink.click({ force: true });
-
+    // 4. Navigate to Leave Requests
+    console.log('Navigating to Leave Requests...');
+    await page.goto('/leave-requests');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Yêu cầu nghỉ phép|Leave Requests/i, { timeout: 15000 });
 
     // 3. Switch to Policies Tab

@@ -140,9 +140,16 @@ Pattern dùng cho các bảng dữ liệu lớn (Roster, Logs):
 Để đảm bảo trải nghiệm tìm kiếm nhất quán trên toàn hệ thống:
 - **Component**: Luôn sử dụng Combobox `EmployeeSearch` tích hợp sẵn.
 - **Search-as-you-type**: Hiển thị kết quả ngay khi người dùng nhập liệu (sau 400ms debounce).
-- **Rich Results**: Hiển thị đầy đủ Họ tên kèm Mã nhân viên (Employee ID) để tránh nhầm lẫn.
+- **Rich Results**: Hiển thị đầy đủ Họ tên kèm Mã nhân viên (Employee ID) để tránh nhaming lẫn.
 - **Persistent Selection**: Khi một nhân viên đã được chọn, nhãn (label) của họ phải luôn hiển thị rõ ràng ngay cả khi kết quả tìm kiếm đã thay đổi.
 - **Multi-select basket**: Đối với các báo cáo, cho phép chọn nhiều nhân viên bằng cách hiển thị các "chips" (thẻ) có thể xóa được dưới thanh tìm kiếm.
+
+### 8.4. Settings Hub (Trung tâm cấu hình)
+Hệ thống sử dụng một mô hình quản lý tập trung cho toàn bộ cấu hình Workspace:
+- **Centralized Navigation**: Một điểm truy cập duy nhất tại Sidebar dẫn đến trang tổng quan Settings.
+- **Categorized Card Layout**: Các nhóm cài đặt (People, Payroll, Connectivity, v.v.) được hiển thị dưới dạng các Card lớn có Icon đại diện, tiêu đề và mô tả ngắn gọn.
+- **Sidebar-driven Detail View**: Khi vào một nhóm cài đặt cụ thể, sử dụng layout 2 cột: Sidebar trái chứa menu danh mục con, vùng bên phải hiển thị form cấu hình chi tiết.
+- **Consistent Forms**: Mọi form cài đặt phải sử dụng cùng một kiểu Save/Cancel button đặt ở góc dưới bên phải hoặc Toolbar cố định.
 
 ---
 

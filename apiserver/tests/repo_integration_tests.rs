@@ -53,14 +53,14 @@ async fn test_get_effective_shift_priority_integrated() {
         .await
         .unwrap();
 
-    let res = roster_repository::get_effective_shift(&pool, emp_id, date)
+    let (res, _) = roster_repository::get_effective_shift(&pool, emp_id, date)
         .await
         .unwrap();
     assert_eq!(res, Some(s_dept));
 
     // 2. Fixed Overrides Dept
     sqlx::query("INSERT INTO employee_shifts (id, employee_id, shift_id, start_date) VALUES ($1, $2, $3, $4)").bind(Uuid::new_v4()).bind(emp_id).bind(s_fixed).bind(date).execute(&pool).await.unwrap();
-    let res = roster_repository::get_effective_shift(&pool, emp_id, date)
+    let (res, _) = roster_repository::get_effective_shift(&pool, emp_id, date)
         .await
         .unwrap();
     assert_eq!(res, Some(s_fixed));
@@ -76,7 +76,7 @@ async fn test_get_effective_shift_priority_integrated() {
     .execute(&pool)
     .await
     .unwrap();
-    let res = roster_repository::get_effective_shift(&pool, emp_id, date)
+    let (res, _) = roster_repository::get_effective_shift(&pool, emp_id, date)
         .await
         .unwrap();
     assert_eq!(res, Some(s_roster));

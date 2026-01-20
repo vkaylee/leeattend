@@ -15,22 +15,26 @@ Hệ thống xử lý dữ liệu quẹt thẻ (punch) theo mô hình **Event-So
 - **Source Tracking**: Mỗi bản ghi lưu rõ nguồn (`device`, `import`, `manual`) và ID thiết bị tương ứng.
 
 #### 10.2. Pairing Engine (Strategy Pattern)
-Dịch vụ `PairingService` thực hiện nhiệm vụ chuyển đổi luồng sự kiện phẳng (flat events) thành các phiên làm việc (sessions) thông qua thuật toán ghép cặp (pairing algorithm). Hệ thống hiện tại đã được tinh gọn để tập trung vào một chiến lược duy nhất đạt độ tin cậy cao nhất:
+Dịch vụ `PairingService` thực hiện nhiệm vụ chuyển đổi luồng sự kiện phẳng (flat events) thành các phiên làm việc (sessions) thông qua thuật toán ghép cặp (pairing algorithm) thông qua kiến trúc pluggable:
 
-- **Primary Algorithm: Anchor First**: Thuật toán lấy bản ghi đầu tiên (In) và cuối cùng (Out) trong một cửa sổ thời gian làm mốc (Anchors). Đây là giải pháp tối ưu cho hầu hết các môi trường sản xuất và văn phòng, giúp giảm thiểu sai sót do quẹt thẻ dư thừa hoặc quên quẹt giữa ca.
-- **12-Hour Session Limit**: Hệ thống áp đặt giới hạn cứng 720 phút (12 giờ) cho một phiên làm việc. Nếu khoảng cách giữa hai bản ghi vượt quá giới hạn này, chúng sẽ tự động được tách thành hai phiên "Missing Out" riêng biệt để tránh việc ghép cặp sai giữa các ngày khác nhau.
-- **Identity Deduplication (Identity-based)**: Tối ưu hóa việc lọc nhiễu bằng cách chỉ bỏ qua các lượt quẹt thẻ có cùng mốc thời gian chính xác (timestamp), cho phép ghi nhận các lượt quẹt nhanh liên tiếp (ví dụ cách nhau 1 giây).
-- **Morning Lookback (Overnight support)**: Tự động tính toán lại dữ liệu của ngày hôm trước nếu nhận được log vào buổi sáng (trước 12:00 PM), hỗ trợ tốt cho các ca làm việc xuyên đêm (Overnight shifts).
-- **Metadata Awareness**: Engine sử dụng thông tin `punch_type` từ thiết bị (nếu có) để xác định ý định của người dùng, giúp việc ghép cặp chính xác hơn khi có dữ liệu từ các máy chấm công hỗ trợ phím chức năng.
-- **Deprecated Strategies**: Các chiến lược phức tạp khác như Quy hoạch động (DP), Ghép cặp tuần tự (Sequential) và Máy trạng thái (FSM) đã được loại bỏ để đơn giản hóa vận hành và bảo trì hệ thống.
+- **Primary Algorithm: Anchor First**: Thuật toán lấy bản ghi đầu tiên (In) và cuối cùng (Out) trong một cửa sổ thời gian làm mốc (Anchors). Đây là giải pháp tối ưu cho hầu hết các môi trường sản xuất và văn phòng.
+- **Explicit Intent: FSM (Finite State Machine)**: Chiến lược máy trạng thái được khôi phục và tối ưu hóa để xử lý các lượt quẹt thẻ có kèm mã trạng thái (Punch Status) từ thiết bị, cho phép ghép cặp chính xác dựa trên ý định thực tế của nhân viên.
+- **12-Hour Session Limit**: Hệ thống áp đặt giới hạn cứng 720 phút (12 giờ) cho một phiên làm việc. Nếu khoảng cách giữa hai bản ghi vượt quá giới hạn này, chúng sẽ tự động được tách thành hai phiên "Missing Out" riêng biệt.
+- **Identity Deduplication (Identity-based)**: Tối ưu hóa việc lọc nhiễu bằng cách chỉ bỏ qua các lượt quẹt thẻ có cùng mốc thời gian chính xác (timestamp).
+- **Morning Lookback (Overnight support)**: Tự động tính toán lại dữ liệu của ngày hôm trước nếu nhận được log vào buổi sáng (trước 12:00 PM).
+- **Pairing Traceability**: Mỗi `TimeEntry` được tạo ra đều lưu trữ `generation_metadata` (JSONB) chứa ID của các log nguồn và tên thuật toán được sử dụng, phục vụ công tác đối soát.
 
-#### 10.3. Strict Import Validation
-Quy trình nhập dữ liệu từ file được thực thi với tiêu chuẩn cao nhất về độ chính xác:
-- **Workspace-Aware Parsing**: Engine phân tích ngày tháng nghiêm ngặt dựa trên cài đặt của từng Workspace (`DD/MM/YYYY`, `MM/DD/YYYY`, v.v.). Không tự động "đoán" định dạng để tránh sai lệch dữ liệu.
-- **Instructional Feedback**: Khi có dòng lỗi, hệ thống cung cấp thông báo chi tiết: **Số dòng**, **Mã nhân viên**, **Giá trị sai thực tế** và **Định dạng mong đợi** để người dùng sửa file nhanh nhất.
+#### 10.3. Schedule Traceability (New)
+Hệ thống tính toán lịch biểu tự động hiện tích hợp khả năng truy vết nguồn gốc (Traceability):
+- **Decision Engine**: `RuleEvaluator` không chỉ trả về ca làm việc mà còn ghi lại toàn bộ quá trình đánh giá: quy tắc nào khớp, mức độ ưu tiên, và thời điểm đánh giá.
+- **Conflict Resolution**: Khi có nhiều quy tắc cùng khớp, hệ thống ghi lại lý do tại sao một quy tắc cụ thể được chọn (ví dụ: Priority cao hơn hoặc Manual Override).
+- **Frontend Visualization**: Dashboard hiển thị các "Trace Hints" giúp người quản trị hiểu ngay lập tức tại sao nhân viên A lại có ca làm việc X vào ngày Y.
+
+#### 10.4. Strict Import Validation
+...
 
 ### 11. Hierarchical Leave Policy Assignment
-Hệ thống gán chính sách nghỉ phép được thiết kế theo mô hình phân cấp linh hoạt, cho phép áp dụng các quy tắc cộng phép khác nhau cho từng nhóm đối tượng:
+...
 
 #### 11.1. Phân cấp ưu tiên (Hierarchy)
 Khi tính toán cộng phép cho một nhân viên tại một thời điểm nhất định, hệ thống sẽ tìm kiếm chính sách có hiệu lực theo thứ tự ưu tiên giảm dần:

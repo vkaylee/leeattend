@@ -155,7 +155,7 @@ async fn test_delete_roster_reverts_to_default() {
     .unwrap();
 
     // Verify current effective is Roster
-    let effective = roster_repository::get_effective_shift(&factory.pool, employee_id, date)
+    let (effective, _) = roster_repository::get_effective_shift(&factory.pool, employee_id, date)
         .await
         .unwrap();
     assert_eq!(effective, Some(roster_shift_id));
@@ -180,7 +180,7 @@ async fn test_delete_roster_reverts_to_default() {
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
 
     // 4. Verify effective is now Fixed
-    let effective_after = roster_repository::get_effective_shift(&factory.pool, employee_id, date)
+    let (effective_after, _) = roster_repository::get_effective_shift(&factory.pool, employee_id, date)
         .await
         .unwrap();
     assert_eq!(effective_after, Some(fixed_shift_id));

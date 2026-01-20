@@ -2,17 +2,21 @@ import { test, expect } from './worker-orchestrator';
 
 test.describe('Sidebar Navigation', () => {
   test('should have "Time & Leave" section expanded by default', async ({ page }) => {
-    // 1. Go to login page
-    await page.goto('/');
+    // 1. Go to login page directly
+    await page.goto('/login');
     
-    // 2. Click Fast Login to bypass auth quickly
-    await page.getByTestId('fast-login-btn').click();
+    // 2. Wait for login page to be ready
+    const fastLoginBtn = page.getByTestId('fast-login-btn');
+    await expect(fastLoginBtn).toBeVisible({ timeout: 30000 });
+    
+    // 3. Click Fast Login
+    await fastLoginBtn.click();
 
-    // 3. Wait for dashboard to load
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 30000 });
+    // 4. Wait for dashboard to load
+    await expect(page.getByTestId('dashboard-title')).toBeVisible({ timeout: 30000 });
     await expect(page).toHaveURL('/');
     
-    // 4. Check if "Time & Leave" section is visible and expanded
+    // 5. Check if "Time & Leave" section is visible and expanded
     const sectionTitle = page.getByTestId('sidebar-section-time');
     await expect(sectionTitle).toBeVisible();
 
@@ -20,14 +24,22 @@ test.describe('Sidebar Navigation', () => {
     const timeTrackingLink = page.getByTestId('sidebar-link-time-tracking');
     await expect(timeTrackingLink).toBeVisible();
     
-    // 5. Verify "Organization" section is NOT expanded by default (max-h-0)
+    // 6. Verify "Organization" section is NOT expanded by default (max-h-0)
     const employeesLink = page.getByTestId('sidebar-link-employees');
     await expect(employeesLink).not.toBeVisible();
   });
 
   test('should expand one section and collapse others when clicked', async ({ page }) => {
-    await page.goto('/');
-    await page.getByTestId('fast-login-btn').click();
+    await page.goto('/login');
+    
+    // Wait for login page to be ready
+    const fastLoginBtn = page.getByTestId('fast-login-btn');
+    await expect(fastLoginBtn).toBeVisible({ timeout: 30000 });
+    
+    await fastLoginBtn.click();
+    
+    // Wait for dashboard to load properly
+    await expect(page.getByTestId('dashboard-title')).toBeVisible({ timeout: 30000 });
     await expect(page).toHaveURL('/');
 
     // Initially "Time & Leave" is expanded, "Organization" is collapsed

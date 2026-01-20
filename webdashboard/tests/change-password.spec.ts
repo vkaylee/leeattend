@@ -56,6 +56,16 @@ test.describe("Change Password Flow", () => {
     await page.getByTestId('login-submit-btn').click();
 
     await expect(page).toHaveURL("/", { timeout: 15000 });
-    console.log("Test passed!");
+    
+    // --- RESET PASSWORD BACK TO admin123 for other tests ---
+    console.log("Resetting password back to admin123...");
+    await page.goto("/profile");
+    await page.getByTestId('current-password-input').fill('newadmin123');
+    await page.getByTestId('new-password-input').fill('admin123');
+    await page.getByTestId('confirm-password-input').fill('admin123');
+    await page.getByTestId('update-password-btn').click();
+    await expect(page).toHaveURL("/login", { timeout: 15000 });
+    
+    console.log("Test passed and password reset!");
   });
 });
