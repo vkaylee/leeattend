@@ -77,67 +77,18 @@ leeattend/
         - **Schedule Traceability (New)**: The engine now records the "why" behind every assignment. Each generated schedule entry includes a `traceability` object identifying the matching rule, evaluation timestamp, and decision path.
         - **Priority Logic**: Rules are evaluated in descending order of priority, allowing global defaults to be overridden by department or individual-specific rules.
     - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections. Supports **Robust Asynchronous Batch Import** (Excel/CSV) with auto-recovery and real-time progress tracking.
-    - **Attendance Persistence Layer**: 
-        - **Raw Event Store**: Dedicated `raw_attendance_logs` table for immutable original punch data from hardware and imports.
-        - **Pairing Engine (Strategy Pattern)**: `PairingService` handles the conversion of flat events into logical sessions using a pluggable strategy architecture:
-            - **Algorithms**: Supports multiple strategies including **AnchorFirstStrategy** (Primary) and **FSMStrategy** (Finite State Machine for explicit intent).
-            - **12-Hour Session Limit**: Enforced a 720-minute (12h) maximum gap between punches across the system. Exceeding this limit automatically splits logs into separate "Missing Out" sessions to prevent invalid multi-day pairings.
-            - **Identity Deduplication**: Relaxed identity deduplication to only skip logs with the exact same timestamp, allowing rapid double-punches (e.g., 1s apart) which are common in retail environments.
-            - **Morning Lookback (Overnight support)**: Backend automatically reprocesses the previous day's attendance if a log is received before 12:00 PM.
-            - **Pairing Traceability**: Time entries now persist `generation_metadata` (JSONB) including the algorithm name and the IDs of source `raw_attendance_logs`.
-            - **Traceability UI (BSON Detail)**: Integrated a "Debug Mode" in Attendance Reports that visualizes the pairing metadata and raw source data for auditability.
-            - **Manual Reprocessing API**: Dedicated endpoint `POST /attendance/reprocess/:employee_id` allows admins to trigger recalculations for specific date ranges after shift or algorithm changes.
-            - **Metadata-Aware**: Algorithms use the `LogEvent` structure to access `punch_type` information (Status) from devices, enabling explicit intent-based pairing.
-        - **Accurate Calculation Engine**: `AttendanceCalculator` implements a high-precision **Integer Work Unit (WU)** strategy:
-            - **Atomic Integer Units**: All internal calculations (Standard, OT) are performed in strictly integer units. Fractional units (e.g., 1.5 units) are physically impossible in the data layer.
-            - **Unit-Based Rounding**: Uses workspace-specific `work_unit_minutes` (e.g., 15, 30, 60m) to convert raw minutes to units using configurable policies (`Floor`, `Ceil`, `Round`).
-            - **Standard Clamping**: Work is capped within `[ShiftStart, ShiftEnd]`. Early arrivals (e.g., 07:25 for 07:30) are correctly handled as `max(In, Start)`.
-            - **Bucket Logic**: Separation of Standard Units and Overtime Units.
-            - **Early OT Filter**: Policy-based filtering of early arrivals via `allow_early_ot` toggle.
-            - **Historical Integrity (Snapshotting)**: Payslips store immutable unit counts (`standard_units`, `overtime_units`) at the moment of calculation, ensuring that future changes to workspace unit settings do not affect past payroll records.
-        - **Strict Validation**: High-fidelity file parsing that enforces workspace settings and provides line-by-line detailed error context.
-    - **Dynamic Payroll System (Component-Based)**: Flexible architecture for multi-tenant salary calculation.
-        - **Salary Component Directory**: Allows defining custom income types (Meal, Gas, Seniority) with configurable taxability and "Base for OT" flags.
-        - **Flexible Standard Day Policy**: Support for diverse company cultures via `Fixed` (e.g., always 26 days) or `Actual Month` (calendar-based) standard day modes.
-        - **Multi-Segment Calculation**: The `PayrollService` employs a sophisticated segmentation engine that detects "Change Points" (e.g., salary updates, department transfers) within a payroll period.
-            - **Prorated Accuracy**: Each segment is calculated independently with its own configuration (Standard Days, Hours per Day, Base Salary), ensuring mathematically precise prorating.
-            - **Granular Snapshots**: All calculation parameters for every segment are persisted in the `payslip_segments` table, creating an immutable audit trail of exactly *how* the total was derived, including `applied_hours_per_day`.
-        - **3-Tier Policy Resolver**: A domain service (`PolicyResolver`) responsible for resolving the active configuration at any given date, respecting the hierarchy: **Individual Override > Department Override > Workspace Global**.
-        - **Temporal Configuration UI**: Reusable `TemporalConfigTable` component manages versioned history of "Standard Days" and "Hours per Day" across all three tiers, supporting point-in-time lookup for 100% payroll accuracy.
-        - **Dynamic Hourly Rate Engine**: Automatically derives OT unit rates based on the segment-specific `hours_per_day` and the sum of all "Base for OT" components.
-        - **Historical Tracking**: Time-series storage of component assignments and work-day configurations ensuring payroll integrity even when settings change mid-period.
-    - **Employee Self-Service (ESS) Portal**: Dedicated subsystem for employee empowerment and data autonomy.
-        - **Secure Personal Access**: Direct access to personal data (Profile, Contacts, Documents) without requiring workspace administrative roles.
-        - **Emergency Contact Management**: Self-service tools for maintaining up-to-date emergency notification information.
-        - **Document Repository**: Infrastructure for storing and accessing employment-related documents (IDs, contracts).
-        - **Personal Insights**: On-demand viewing of payslips, attendance history, and real-time leave balances.
-        - **My Attendance (Phase 3)**: New page for employees to visualize their attendance sessions and pairing traceability metadata.
-    - **API Standardization Framework**: Mandatory security and stability layer for all outbound requests.
-        - **Fetch Wrapper**: Centralized `apiFetch` utility (`lib/api/helpers.ts`) implemented with a strict 10s timeout using `AbortController`.
-        - **Header Injection**: Automatically attaches `Authorization` (JWT), `X-Workspace-Id`, and `Content-Type: application/json` to every call.
-        - **Regression Enforcement**: Automated `standardization.test.ts` suite that scans the API layer to forbid direct use of `window.fetch`.
-    - **Time Tracking**: Core logic for punch in/out, shift calculation, and payroll-ready duration processing.
-        - **Attendance Calculator**: Centralized Domain Service (`attendance_calculator.rs`) implementing pure business logic for:
-            - **Grace Period**: Logic "châm chước" đi trễ (ví dụ: cho phép trễ 15p).
-            - **Break Deduction**: Tự động trừ giờ nghỉ trưa hoặc trừ theo thực tế.
-            - **Work Unit Calculation**: Quy đổi từ phút thực tế sang số Work Unit (Số nguyên) và áp dụng quy tắc làm tròn (Floor/Ceil/Round) theo cấu hình Workspace (15m/30m/60m).
-            - **Flexible Adjustments**: Support for authorized adjustments (e.g., Early Leave for Childcare) via `working_conditions`. Can be configured as Paid or Unpaid time.
-        - **Overtime Engine**: Priority-based calculation logic supporting worked-through breaks and daily OT thresholds. Result is converted to integer Units.
-        - **Leave Management**: Tracking of annual leave entitlements, carry-over balances, and usage history.
-        - **Admin Management & Auditing**: High-level workspace overview of all employee balances. Merged history stream of auto-accruals, usage, and manual corrections.
-        - **Dynamic Accrual Engine**: Automated leave balance calculation based on configurable rules (Monthly/Quarterly/Yearly) and Seniority Bonuses.
-        - **Hierarchical Assignment Engine**: Flexible policy distribution system supporting Workspace, Department, and Employee levels.
-            - **Priority Logic**: Strictly enforces Employee > Department > Workspace override order.
-            - **Transactional Auto-Close**: Seamlessly manages policy transitions by automatically closing previous assignments when a new one is created for the same category.
-            - **Multi-Category Support**: Added `leave_type` field to definitions to allow distinct accrual rules for different leave categories (Vacation, Sick, etc.).
-        - **Resilience**: **PortFileGuard** ensures robust resource cleanup (port files) even during unexpected shutdowns or panics.
-    - **Advanced Deserialization**: Implemented `serde_helpers` to accurately distinguish between missing fields and explicit `null` values in partial update APIs (e.g., clearing a department's default pattern).
-    - **Advanced Debug Suite (Development Only)**:
-        - **Impersonation Support**: Integrated `X-Debug-Impersonate-Id` support in the authentication layer, allowing developers to act as any user without credentials.
-        - **Time Travel Simulator**: Context-aware `X-Debug-Mock-Date` header allows simulating any system date, enabling precise testing of temporal proration and future policy changes.
-        - **Debug Utilities**: Lightweight `DebugContext` extractor (`utils/debug.rs`) provides safe access to mock parameters across all API handlers.
-        - **Developer Toolbar**: Floating UI component in the dashboard providing quick access to role switching, date simulation, and a user directory for rapid testing.
-
+        - **Repositories**:
+            - **RosterRepository**: Manages shift rosters and implements the core schedule resolution logic (`get_effective_shift`) with traceability.
+            - **PayrollRepository**: Handles salary components, payslip generation, and segment storage.
+            - **TimeEntryRepository**: Stores raw punches and paired time entries with BSON metadata.
+            - **AgentRepository**: Manages authorized agents and device trust.
+        - **Services**:
+            - **RuleEvaluator**: Determines the "winning" assignment rule based on priority (P100 Roster > P80 Pattern > P60 Rule > P40 Dept Pattern > P20 Fixed > P10 Dept Fixed).
+            - **PairingService**: Core engine for converting raw punches into time entries using FSM or Anchor strategies.
+            - **PayrollService**: Orchestrates multi-segment payroll calculation and tax logic.
+        - **Tests**:
+            - **fallback_system_tests.rs**: Comprehensive verification of the schedule priority hierarchy (P100-P10).
+            - **schedule_traceability_tests.rs**: Validates that trace metadata is correctly generated for every assignment decision.
 2.  **Web Dashboard (React/Vite)**:
     - **Modular Components**:
         - **PriorityLegend**: Vertical "Metro Map" style visual guide for scheduling sources (Roster, Pattern, Fixed), showing hierarchy and fallback logic.
