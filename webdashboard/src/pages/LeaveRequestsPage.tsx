@@ -31,6 +31,8 @@ import { useToast } from "@/components/Toast";
 import { AssignPolicyModal } from "@/components/leave/AssignPolicyModal";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 
+type TabType = "pending" | "approved" | "rejected" | "policies";
+
 export default function LeaveRequestsPage() {
   const { t } = useTranslation();
   const toast = useToast();
@@ -41,7 +43,7 @@ export default function LeaveRequestsPage() {
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<LeavePolicy | null>(null);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>("pending");
+  const [activeTab, setActiveTab] = useState<TabType>("pending");
   const [accrualStrategy, setAccrualStrategy] = useState<string>("monthly");
   const [selectedEmpId, setSelectedEmpId] = useState<string>("");
   const [leaveType, setLeaveType] = useState<string>("vacation");
@@ -183,176 +185,256 @@ export default function LeaveRequestsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{t("leave_requests.title")}</h1>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{t("leave_requests.title")}</h1>
           <p className="text-slate-500 mt-1">{t("leave_requests.subtitle")}</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          data-testid="create-leave-btn"
-          className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 font-bold"
-        >
-          <Plus className="w-5 h-5" />
-          {t("leave_requests.create_btn")}
+        <div className="flex items-center gap-3">
+          <button onClick={() => setIsModalOpen(true)} className="bg-primary-600 hover:bg-primary-700 text-white font-black px-6 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg shadow-primary-100 transition-all active:scale-95">
+            <Plus className="w-5 h-5" />
+            <span className="text-xs uppercase tracking-widest">{t("leave_requests.create_btn")}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs Navigation */}
+      <div className="flex items-center gap-1 bg-slate-100/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50">
+        <button onClick={() => setActiveTab("pending")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'pending' ? 'bg-white text-amber-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>
+          <Clock size={14} /> {t("common.status_pending")}
+        </button>
+        <button onClick={() => setActiveTab("approved")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'approved' ? 'bg-white text-emerald-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>
+          <CheckCircle2 size={14} /> {t("common.status_approved")}
+        </button>
+        <button onClick={() => setActiveTab("rejected")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'rejected' ? 'bg-white text-rose-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>
+          <XCircle size={14} /> {t("common.status_rejected")}
+        </button>
+        <button onClick={() => setActiveTab("policies")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'policies' ? 'bg-white text-primary-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>
+          <ShieldCheck size={14} /> {t("leave_requests.tabs.policies")}
         </button>
       </div>
 
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-      {/* Tabs */}
-      <div className="flex gap-2 p-1 bg-slate-100 w-fit rounded-2xl">
-        {['pending', 'approved', 'rejected', 'all', 'policies'].map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            data-testid={`leave-tab-${tab}`}
-            className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${activeTab === tab ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            {tab === 'pending' ? t("common.status_pending") : 
-             tab === 'approved' ? t("common.status_approved") : 
-             tab === 'rejected' ? t("common.status_rejected") : 
-             tab === 'all' ? t("common.all") : t("leave_requests.tabs.policies")}
-          </button>
-        ))}
-      </div>
+              {activeTab === "policies" ? (
 
-      {activeTab === "policies" ? (
-        <div className="space-y-6">
-          <div className="flex justify-end gap-3">
-            <button 
-              onClick={() => setIsAssignModalOpen(true)}
-              data-testid="assign-policy-btn"
-              className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:bg-slate-50 transition-all font-bold text-sm"
-            >
-              <UserPlus className="w-4 h-4" />
-              {t("leave_requests.policy.assign_btn")}
-            </button>
-            <button 
-              onClick={() => setIsPolicyModalOpen(true)}
-              data-testid="add-policy-btn"
-              className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-slate-800 transition-all font-bold text-sm shadow-lg shadow-slate-100"
-            >
-              <Plus className="w-4 h-4" />
-              {t("leave_requests.policy.add_btn")}
-            </button>
-          </div>
-          <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("leave_requests.policy.table.name")}</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("leave_requests.policy.table.type")}</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("leave_requests.policy.table.entitlement")}</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("leave_requests.policy.table.strategy")}</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("leave_requests.policy.table.carry_over")}</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">{t("common.actions")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {policies.length === 0 ? (
-                  <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500 italic">{t("leave_requests.policy.messages.no_policies")}</td></tr>
-                ) : policies.map((policy) => (
-                  <tr key={policy.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-900">{policy.name}</td>
-                    <td className="px-6 py-4 capitalize text-slate-600">{policy.leave_type || 'vacation'}</td>
-                    <td className="px-6 py-4 text-slate-600 font-bold">{calculateAnnualEntitlement(policy)} {t("common.days")}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      {t(`leave_requests.policy.strategies.${getAccrualStrategy(policy)}`)}
-                    </td>
-                    <td className="px-6 py-4 text-slate-600">{policy.rule_config.carry_over_limit || 0} {t("common.days")}</td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button 
-                          onClick={() => {
-                            setEditingPolicy(policy);
-                            setPolicyType(policy.leave_type || 'vacation');
-                            setAccrualStrategy(getAccrualStrategy(policy));
-                            setIsPolicyModalOpen(true);
-                          }}
-                          className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => {
-                            if (confirm(t("leave_requests.policy.messages.confirm_delete"))) {
-                              deletePolicyMutation.mutate(policy.id);
-                            }
-                          }}
-                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("common.employee")}</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("common.type")}</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("common.time")}</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("common.reason")}</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">{t("common.status")}</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">{t("common.actions")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {requestsLoading ? (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">{t("common.loading")}</td></tr>
-              ) : requests.length === 0 ? (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500 italic">{t("leave_requests.messages.no_requests")}</td></tr>
-              ) : requests.map((req) => {
-                const emp = employees.find(e => e.id === req.employee_id);
-                return (
-                  <tr key={req.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-slate-900">{emp ? `${emp.first_name} ${emp.last_name}` : 'N/A'}</div>
-                    </td>
-                    <td className="px-6 py-4 capitalize text-slate-600">{req.leave_type}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      {formatDate(req.start_date)} - {formatDate(req.end_date)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-500 max-w-xs truncate">{req.reason || '-'}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${getStatusStyle(req.status)}`}>
-                        {req.status === 'pending' ? t("common.status_pending") : req.status === 'approved' ? t("common.status_approved") : t("common.status_rejected")}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {req.status === 'pending' && (
-                        <div className="flex justify-end gap-2">
-                          <button 
-                            onClick={() => approveMutation.mutate({ id: req.id, status: 'approved' })}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all"
-                            title={t("common.approve")}
-                          >
-                            <CheckCircle2 className="w-5 h-5" />
-                          </button>
-                          <button 
-                            onClick={() => approveMutation.mutate({ id: req.id, status: 'rejected' })}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                            title={t("common.reject")}
-                          >
-                            <XCircle className="w-5 h-5" />
-                          </button>
+                <div className="space-y-6">
+
+                  <div className="flex justify-end gap-3">
+
+                    <button onClick={() => setIsAssignModalOpen(true)} className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-2xl hover:bg-slate-50 transition-all font-black text-[10px] uppercase tracking-widest shadow-sm">
+
+                      <UserPlus className="w-4 h-4" /> {t("leave_requests.policy.assign_btn")}
+
+                    </button>
+
+                    <button onClick={() => { setEditingPolicy(null); setIsPolicyModalOpen(true); }} className="flex items-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl hover:bg-primary-700 transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-100">
+
+                      <Plus className="w-4 h-4" /> {t("leave_requests.policy.add_btn")}
+
+                    </button>
+
+                  </div>
+
+                  <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm">
+
+                    <table className="w-full text-left">
+
+                      <thead>
+
+                        <tr className="bg-slate-50/50 border-b border-slate-100">
+
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("leave_requests.policy.table.name")}</th>
+
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("leave_requests.policy.table.type")}</th>
+
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("leave_requests.policy.table.entitlement")}</th>
+
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("leave_requests.policy.table.strategy")}</th>
+
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("common.actions")}</th>
+
+                        </tr>
+
+                      </thead>
+
+                      <tbody className="divide-y divide-slate-50">
+
+                        {policiesLoading ? (
+
+                          <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-bold italic">{t("common.loading")}</td></tr>
+
+                        ) : policies.length === 0 ? (
+
+                          <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-bold italic">{t("leave_requests.policy.messages.no_policies")}</td></tr>
+
+                        ) : policies.map((policy) => (
+
+                          <tr key={policy.id} className="hover:bg-slate-50/50 transition-colors group">
+
+                            <td className="px-6 py-5 font-black text-slate-900 text-sm tracking-tight">{policy.name}</td>
+
+                            <td className="px-6 py-5 capitalize text-slate-500 font-bold text-xs">{policy.leave_type || 'vacation'}</td>
+
+                            <td className="px-6 py-5 text-primary-600 font-black text-sm font-mono">{calculateAnnualEntitlement(policy)} {t("common.days_short")}</td>
+
+                            <td className="px-6 py-5 text-slate-500 font-bold text-[10px] uppercase tracking-widest">{t(`leave_requests.policy.strategies.${getAccrualStrategy(policy)}`)}</td>
+
+                            <td className="px-6 py-5 text-right">
+
+                              <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+
+                                <button onClick={() => { setEditingPolicy(policy); setPolicyType(policy.leave_type || 'vacation'); setAccrualStrategy(getAccrualStrategy(policy)); setIsPolicyModalOpen(true); }} className="p-2.5 bg-white text-slate-400 hover:text-primary-600 rounded-xl shadow-md border border-slate-100"><Edit2 className="w-4 h-4" /></button>
+
+                                <button onClick={() => { if (confirm(t("leave_requests.policy.messages.confirm_delete"))) deletePolicyMutation.mutate(policy.id); }} className="p-2.5 bg-white text-slate-400 hover:text-rose-600 rounded-xl shadow-md border border-slate-100"><Trash2 className="w-4 h-4" /></button>
+
+                              </div>
+
+                            </td>
+
+                          </tr>
+
+                        ))}
+
+                      </tbody>
+
+                    </table>
+
+                  </div>
+
+                </div>
+
+                      ) : (
+
+                        /* REQUESTS TABLE */
+
+                        <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm">
+
+                          <table className="w-full text-left">
+
+                            <thead>
+
+                              <tr className="bg-slate-50/50 border-b border-slate-100">
+
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.employee")}</th>
+
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.type")}</th>
+
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.time")}</th>
+
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("common.status")}</th>
+
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("common.actions")}</th>
+
+                              </tr>
+
+                            </thead>
+
+                            <tbody className="divide-y divide-slate-50">
+
+                              {requestsLoading ? (
+
+                                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-bold italic">{t("common.loading")}</td></tr>
+
+                              ) : requests.length === 0 ? (
+
+                                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-bold italic">{t("leave_requests.messages.no_requests")}</td></tr>
+
+                              ) : requests.map((req) => {
+
+                                const emp = employees.find(e => e.id === req.employee_id);
+
+                                return (
+
+                                  <tr key={req.id} className="hover:bg-slate-50/50 transition-colors group">
+
+                                    <td className="px-6 py-5">
+
+                                      <div className="flex items-center gap-3">
+
+                                        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 font-black text-xs">{emp?.last_name[0]}</div>
+
+                                        <div>
+
+                                          <div className="font-black text-slate-900 text-sm tracking-tight">{emp ? `${emp.first_name} ${emp.last_name}` : 'N/A'}</div>
+
+                                          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{emp?.employee_id_number}</div>
+
+                                        </div>
+
+                                      </div>
+
+                                    </td>
+
+                                    <td className="px-6 py-5">
+
+                                      <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter border border-slate-200">{req.leave_type}</span>
+
+                                    </td>
+
+                                    <td className="px-6 py-5">
+
+                                      <div className="flex flex-col">
+
+                                        <div className="text-xs font-black text-slate-700">{formatDate(req.start_date)} - {formatDate(req.end_date)}</div>
+
+                                        <div className="text-[10px] text-slate-400 font-bold line-clamp-1 max-w-[200px]">{req.reason || t("common.no_description")}</div>
+
+                                      </div>
+
+                                    </td>
+
+                                    <td className="px-6 py-5">
+
+                                      <span className={cn("px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest", 
+
+                                        req.status === 'pending' ? "bg-amber-50 text-amber-600 border border-amber-100" : 
+
+                                        req.status === 'approved' ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : 
+
+                                        "bg-rose-50 text-rose-600 border border-rose-100"
+
+                                      )}>
+
+                                        {req.status === 'pending' ? t("common.status_pending") : req.status === 'approved' ? t("common.status_approved") : t("common.status_rejected")}
+
+                                      </span>
+
+                                    </td>
+
+                                    <td className="px-6 py-5 text-right">
+
+                                      {req.status === 'pending' && (
+
+                                        <div className="flex justify-end gap-2">
+
+                                          <button onClick={() => approveMutation.mutate({ id: req.id, status: 'approved' })} className="p-2.5 bg-white text-emerald-600 hover:bg-emerald-50 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90" title={t("common.approve")}><CheckCircle2 className="w-5 h-5" /></button>
+
+                                          <button onClick={() => approveMutation.mutate({ id: req.id, status: 'rejected' })} className="p-2.5 bg-white text-rose-600 hover:bg-rose-50 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90" title={t("common.reject")}><XCircle className="w-5 h-5" /></button>
+
+                                        </div>
+
+                                      )}
+
+                                    </td>
+
+                                  </tr>
+
+                                );
+
+                              })}
+
+                            </tbody>
+
+                          </table>
+
                         </div>
+
                       )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+
+                    </div>
+
+              
 
       {/* Modals remain below */}
       {/* Submit Modal */}
