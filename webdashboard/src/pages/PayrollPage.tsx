@@ -34,6 +34,7 @@ import AdjustmentDrawer from "@/components/payroll/AdjustmentDrawer";
 import BatchCalculationModal from "@/components/payroll/BatchCalculationModal";
 import PayrollSummaryTable from "@/components/payroll/PayrollSummaryTable";
 import PayrollDetailDrawer from "@/components/payroll/PayrollDetailDrawer";
+import { MonthYearPicker } from "@/components/common/MonthYearPicker";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import {
@@ -187,67 +188,16 @@ export default function PayrollPage() {
                     </span>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-64 p-2" align="center">
-                    <DropdownMenuLabel className="text-center text-xs text-slate-400 mb-2">Chọn kỳ lương</DropdownMenuLabel>
-                    
-                    <div className="flex items-center justify-between mb-4 px-2">
-                       <button 
-                          onClick={(e) => { e.preventDefault(); setCalcYear(y => y - 1); }} 
-                          className="p-1 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-900 transition-colors"
-                       >
-                          <ArrowLeft size={16} />
-                       </button>
-                       <span className="font-bold text-sm text-slate-900">{calcYear}</span>
-                       <button 
-                          onClick={(e) => { e.preventDefault(); setCalcYear(y => y + 1); }} 
-                          className="p-1 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-900 transition-colors"
-                       >
-                          <ArrowRight size={16} />
-                       </button>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-1 mb-2">
-                       {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                          <DropdownMenuItem
-                             key={m}
-                             onClick={() => { setCalcMonth(m); }}
-                             className={cn(
-                                "justify-center text-xs font-bold py-2 rounded-lg cursor-pointer",
-                                calcMonth === m 
-                                  ? "bg-slate-900 text-white focus:bg-slate-900 focus:text-white" 
-                                  : "text-slate-600 focus:bg-slate-100"
-                             )}
-                          >
-                             Tháng {m}
-                          </DropdownMenuItem>
-                       ))}
-                    </div>
-                    
-                    <DropdownMenuSeparator className="my-2" />
-                    
-                    <div className="flex flex-col gap-1">
-                       <DropdownMenuItem
-                          onClick={() => {
-                              const d = new Date();
-                              setCalcYear(d.getFullYear());
-                              setCalcMonth(d.getMonth() + 1);
-                          }}
-                          className="text-xs font-bold text-slate-500 focus:text-slate-900 py-2 rounded-lg cursor-pointer"
-                       >
-                          Tháng này (Current)
-                       </DropdownMenuItem>
-                       <DropdownMenuItem
-                          onClick={() => {
-                              const d = new Date();
-                              d.setMonth(d.getMonth() - 1);
-                              setCalcYear(d.getFullYear());
-                              setCalcMonth(d.getMonth() + 1);
-                          }}
-                          className="text-xs font-bold text-slate-500 focus:text-slate-900 py-2 rounded-lg cursor-pointer"
-                       >
-                          Tháng trước (Last Month)
-                       </DropdownMenuItem>
-                    </div>
+                <DropdownMenuContent className="w-72 p-4" align="center">
+                    <DropdownMenuLabel className="text-center text-xs text-slate-400 mb-4">Chọn kỳ lương</DropdownMenuLabel>
+                    <MonthYearPicker 
+                        month={calcMonth}
+                        year={calcYear}
+                        onChange={(m, y) => {
+                            setCalcMonth(m);
+                            setCalcYear(y);
+                        }}
+                    />
                 </DropdownMenuContent>
               </DropdownMenu>
 

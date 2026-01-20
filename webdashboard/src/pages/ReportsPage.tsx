@@ -1,8 +1,24 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileBarChart, Download, Calendar, Search, List, TableProperties, Clock, User as UserIcon, CalendarDays, Info, RefreshCw, Bug, ChevronDown, ChevronUp } from "lucide-react";
-import { format } from "date-fns";
+import { 
+  FileBarChart, 
+  Download, 
+  Calendar, 
+  Search, 
+  List, 
+  TableProperties, 
+  Clock, 
+  User as UserIcon, 
+  CalendarDays, 
+  Info, 
+  RefreshCw, 
+  Bug, 
+  ChevronDown, 
+  ChevronUp,
+  CalendarRange
+} from "lucide-react";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import {
   fetchAttendanceReport,
   getCurrentWorkspaceId,
@@ -16,6 +32,12 @@ import { formatUnitsToHours } from "@/lib/utils/attendance";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import Modal from "@/components/ui/Modal";
 import { useDebug } from "@/context/DebugContext";
+import { MonthYearPicker } from "@/components/common/MonthYearPicker";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function ReportsPage() {
   const { t } = useTranslation();
@@ -41,8 +63,13 @@ export default function ReportsPage() {
     return { start: firstDay, end: lastDay };
   };
 
-  const [filterMode, setFilterMode] = useState<"this_month" | "last_month" | "custom">("last_month");
+  const [filterMode, setFilterMode] = useState<"this_month" | "last_month" | "custom" | "specific_month">("last_month");
   const [dateRange, setDateRange] = useState(getMonthRange(-1));
+  const [specificMonth, setSpecificMonth] = useState({ 
+    month: new Date().getMonth() === 0 ? 12 : new Date().getMonth(), 
+    year: new Date().getMonth() === 0 ? new Date().getFullYear() - 1 : new Date().getFullYear() 
+  });
+  
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [reportType, setReportType] = useState<"summary" | "daily">("summary");
   const [expandedDebugRows, setExpandedDebugRows] = useState<Set<string>>(new Set());
@@ -54,13 +81,21 @@ export default function ReportsPage() {
     date: string;
   } | null>(null);
 
-  const handleFilterModeChange = (mode: "this_month" | "last_month" | "custom") => {
+  const handleFilterModeChange = (mode: "this_month" | "last_month" | "custom" | "specific_month") => {
     setFilterMode(mode);
     if (mode === "this_month") {
       setDateRange(getMonthRange(0));
     } else if (mode === "last_month") {
       setDateRange(getMonthRange(-1));
     }
+  };
+
+  const handleSpecificMonthChange = (m: number, y: number) => {
+    setSpecificMonth({ month: m, year: y });
+    setFilterMode("specific_month");
+    const start = format(new Date(y, m - 1, 1), 'yyyy-MM-dd');
+    const end = format(endOfMonth(new Date(y, m - 1, 1)), 'yyyy-MM-dd');
+    setDateRange({ start, end });
   };
 
   const toggleExpandRow = (rowKey: string) => {
@@ -195,6 +230,27 @@ export default function ReportsPage() {
             >
               {t("common.filters.last_month")}
             </button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                    filterMode === "specific_month" ? "bg-white shadow-sm text-primary-600" : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <CalendarRange className="w-4 h-4" />
+                  {filterMode === "specific_month" ? `T${specificMonth.month}/${specificMonth.year}` : t("common.filters.specific_month", { defaultValue: "Chọn tháng" })}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-72 p-4" align="start">
+                 <MonthYearPicker 
+                    month={specificMonth.month}
+                    year={specificMonth.year}
+                    onChange={handleSpecificMonthChange}
+                 />
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <button
               onClick={() => handleFilterModeChange("custom")}
               className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${

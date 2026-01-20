@@ -6,15 +6,13 @@ import {
   AlertCircle, 
   Loader2, 
   User,
-  X,
-  ChevronLeft,
-  ChevronRight
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { calculateBatchPayslips } from "@/lib/api/payroll";
 import { BatchCalculateResult } from "@/lib/api/types";
 import { useToast } from "@/components/Toast";
+import { MonthYearPicker } from "@/components/common/MonthYearPicker";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -109,69 +107,16 @@ export default function BatchCalculationModal({
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Kỳ lương (Pay Period)</label>
-              </div>
-              
-              <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100 space-y-4">
-                  {/* Year Selector */}
-                  <div className="flex items-center justify-between bg-white p-2 rounded-xl shadow-sm border border-slate-100">
-                       <button onClick={() => setCalcYear(y => y - 1)} className="p-2 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-slate-900 transition-colors">
-                          <ChevronLeft className="w-5 h-5" />
-                       </button>
-                       <span className="text-lg font-black text-slate-900">{calcYear}</span>
-                       <button onClick={() => setCalcYear(y => y + 1)} className="p-2 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-slate-900 transition-colors">
-                          <ChevronRight className="w-5 h-5" />
-                       </button>
-                  </div>
-
-                  {/* Month Grid */}
-                  <div className="grid grid-cols-4 gap-2">
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                          <button
-                              key={m}
-                              onClick={() => setCalcMonth(m)}
-                              className={cn(
-                                  "py-2 rounded-xl text-sm font-bold transition-all",
-                                  calcMonth === m
-                                      ? "bg-slate-900 text-white shadow-md shadow-slate-200 scale-105"
-                                      : "bg-white text-slate-500 hover:bg-white hover:text-slate-900 border border-slate-100"
-                              )}
-                          >
-                              {m}
-                          </button>
-                      ))}
-                  </div>
-                  
-                  {/* Shortcuts */}
-                  <div className="flex gap-2 pt-2 border-t border-slate-200/50">
-                      <button 
-                          onClick={() => {
-                              const d = new Date();
-                              d.setMonth(d.getMonth() - 1);
-                              setCalcYear(d.getFullYear());
-                              setCalcMonth(d.getMonth() + 1);
-                          }}
-                          className={cn(
-                             "flex-1 py-2 rounded-xl border text-xs font-bold transition-all",
-                             (calcMonth === (new Date().getMonth()) && calcYear === new Date().getFullYear()) // Crude check for last month visual active state if exact logic matches
-                             ? "bg-white text-slate-500 hover:text-slate-900 border-slate-200"
-                             : "bg-white text-slate-500 hover:text-slate-900 border-slate-200"
-                          )}
-                      >
-                          Tháng trước
-                      </button>
-                       <button 
-                          onClick={() => {
-                              const d = new Date();
-                              setCalcYear(d.getFullYear());
-                              setCalcMonth(d.getMonth() + 1);
-                          }}
-                          className="flex-1 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-500 hover:text-slate-900 hover:border-slate-300 transition-all"
-                      >
-                          Tháng này
-                      </button>
-                  </div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Kỳ lương (Pay Period)</label>
+              <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100">
+                <MonthYearPicker
+                  month={calcMonth}
+                  year={calcYear}
+                  onChange={(m, y) => {
+                    setCalcMonth(m);
+                    setCalcYear(y);
+                  }}
+                />
               </div>
             </div>
 
