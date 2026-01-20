@@ -518,6 +518,17 @@
       "confirm_delete": "Bạn có chắc chắn muốn xóa liên hệ này?",
       "delete_success": "Xóa liên hệ thành công",
       "delete_error": "Lỗi khi xóa liên hệ"
+    },
+    "attendance": {
+      "title": "Chấm công của tôi",
+      "subtitle": "Xem lịch sử ra vào hàng ngày của bạn.",
+      "date": "Ngày",
+      "check_in": "Giờ vào",
+      "check_out": "Giờ ra",
+      "duration": "Thời lượng",
+      "status": "Trạng thái",
+      "generation_info": "Thông tin xử lý (Truy vết)",
+      "no_data": "Không tìm thấy dữ liệu chấm công cho tháng này."
     }
   },
   "leave_balances": {

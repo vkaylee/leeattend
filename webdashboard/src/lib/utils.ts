@@ -1,4 +1,10 @@
 import { format, parse } from "date-fns";
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 export function isAgentOnline(lastSeenAt: string | null | undefined): boolean {
   if (!lastSeenAt) return false;

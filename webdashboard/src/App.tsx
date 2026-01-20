@@ -64,6 +64,9 @@ import WorkspaceGuard from "./components/WorkspaceGuard";
 import AttendanceAdjustmentsPage from "./pages/AttendanceAdjustmentsPage";
 import AttendanceLogsPage from "./pages/AttendanceLogsPage";
 import MyProfilePage from "./pages/ess/MyProfilePage";
+import MyAttendancePage from "./pages/ess/MyAttendancePage";
+import { AuthGuard } from "./components/AuthGuard";
+import { WorkspaceGuard } from "./components/WorkspaceGuard";
 import { useWorkspaces } from "./hooks/use-workspace";
 import { getCurrentWorkspaceId } from "./lib/api";
 import { useTheme } from "./hooks/use-theme";
@@ -470,6 +473,16 @@ function Layout() {
                 <Briefcase className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span className="font-semibold text-sm">{t("common.my_profile")}</span>
               </Link>
+              <Link
+                to="/ess/attendance"
+                data-testid="sidebar-link-ess-attendance"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/ess/attendance" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
+                }`}
+              >
+                <CalendarDays className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">{t("ess.attendance.title")}</span>
+              </Link>
             </div>
           </div>
         </nav>
@@ -633,6 +646,7 @@ function App() {
                   <Route path="/profile" element={<ProfilePage />} />
                   {/* ESS Routes */}
                   <Route path="/ess/profile" element={<MyProfilePage />} />
+                  <Route path="/ess/attendance" element={<MyAttendancePage />} />
                 </Route>
               </Route>
             </Route>

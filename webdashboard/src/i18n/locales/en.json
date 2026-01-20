@@ -520,6 +520,17 @@
       "confirm_delete": "Are you sure you want to delete this contact?",
       "delete_success": "Contact deleted successfully",
       "delete_error": "Failed to delete contact"
+    },
+    "attendance": {
+      "title": "My Attendance",
+      "subtitle": "View your daily check-in and check-out history.",
+      "date": "Date",
+      "check_in": "Check In",
+      "check_out": "Check Out",
+      "duration": "Duration",
+      "status": "Status",
+      "generation_info": "Processing Info (Traceability)",
+      "no_data": "No attendance records found for this month."
     }
   },
   "leave_balances": {

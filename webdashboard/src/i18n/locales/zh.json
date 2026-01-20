@@ -516,8 +516,19 @@
       "add_success": "联系人添加成功",
       "add_error": "添加联系人失败",
       "confirm_delete": "您确定要删除此联系人吗？",
-      "delete_success": "联系人已删除",
+      "delete_success": "联系人删除成功",
       "delete_error": "删除联系人失败"
+    },
+    "attendance": {
+      "title": "我的考勤",
+      "subtitle": "查看您的每日签到和签退记录。",
+      "date": "日期",
+      "check_in": "签到",
+      "check_out": "签退",
+      "duration": "时长",
+      "status": "状态",
+      "generation_info": "处理信息 (可追溯性)",
+      "no_data": "本月未找到考勤记录。"
     }
   },
   "leave_balances": {
