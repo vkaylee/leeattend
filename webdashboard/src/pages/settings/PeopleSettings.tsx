@@ -10,198 +10,215 @@ import DepartmentsPage from "@/pages/DepartmentsPage";
 type TabType = "members" | "departments";
 
 export default function PeopleSettings() {
+
   const { t } = useTranslation();
+
   const { members, isLoading, addMember, isAdding } = useWorkspaceMembers();
+
   const toast = useToast();
+
   const [activeTab, setActiveTab] = useState<TabType>("members");
+
   const [newMemberEmail, setNewMemberEmail] = useState("");
+
   const [newMemberRole, setNewMemberRole] = useState<"admin" | "member">("member");
+
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
 
+
+
   async function handleInvite(e: React.FormEvent) {
+
     e.preventDefault();
+
     try {
+
       await addMember({ email: newMemberEmail, role: newMemberRole });
+
       toast.success(`${t("common.workspace_settings.invite_member")} ${newMemberEmail}`);
+
       setNewMemberEmail("");
-    } catch (e) {
-      toast.error(t("common.error"));
-    }
+
+    } catch (e) { }
+
   }
 
+
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            {t("common.settings.categories.people")}
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">
-            {t("common.settings.categories.people_desc")}
-          </p>
+
+    <div className="space-y-8 animate-in fade-in duration-500">
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
+
+        <div className="flex items-center gap-4">
+
+          <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 flex items-center justify-center text-primary-600 shadow-sm border border-primary-100/50"><Users size={24} /></div>
+
+          <div>
+
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 leading-tight">{t("common.settings.categories.people")}</h1>
+
+            <p className="text-slate-500 mt-1 font-medium">{t("common.settings.categories.people_desc")}</p>
+
+          </div>
+
         </div>
+
       </div>
 
-      {/* Tabs Navigation */}
-      <div className="flex items-center gap-1 bg-slate-100/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50">
-        <button
-          onClick={() => setActiveTab("members")}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all ${
-            activeTab === "members"
-              ? "bg-white text-primary-600 shadow-sm border border-slate-100"
-              : "text-slate-500 hover:text-slate-700"
-          }`}
-        >
-          <Users size={14} /> {t("common.settings.tabs.members", "Members")}
-        </button>
-        <button
-          onClick={() => setActiveTab("departments")}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all ${
-            activeTab === "departments"
-              ? "bg-white text-primary-600 shadow-sm border border-slate-100"
-              : "text-slate-500 hover:text-slate-700"
-          }`}
-        >
-          <Building2 size={14} /> {t("common.settings.tabs.departments", "Departments")}
-        </button>
+
+
+      <div className="flex bg-slate-100/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50 shadow-inner">
+
+        <button onClick={() => setActiveTab("members")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'members' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Users size={14} /> {t("common.settings.tabs.members")}</button>
+
+        <button onClick={() => setActiveTab("departments")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'departments' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Building2 size={14} /> {t("common.settings.tabs.departments")}</button>
+
       </div>
 
-      <div className="animate-in fade-in duration-500">
+
+
+      <div className="animate-in slide-in-from-bottom-4 duration-500">
+
         {activeTab === "members" && (
-          <div className="grid grid-cols-1 gap-8">
-            {/* Invite Section */}
-            <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
-              <h2 className="text-lg font-bold mb-6 flex items-center gap-2 text-slate-800">
-                <UserPlus className="w-5 h-5 text-primary-500" />
-                {t("common.workspace_settings.invite_member")}
-              </h2>
-              <form onSubmit={handleInvite} className="flex flex-wrap gap-4">
-                <div className="flex-1 min-w-[240px] space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                    {t("common.email")}
-                  </label>
-                  <div className="relative">
-                    <input
-                      required
-                      type="email"
-                      placeholder="dong-nghiep@congty.com"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all pr-10 font-bold"
-                      value={newMemberEmail}
-                      onChange={(e) => setNewMemberEmail(e.target.value)}
-                    />
-                    <Mail className="absolute right-3 top-3.5 w-4 h-4 text-slate-300" />
+
+          <div className="space-y-8">
+
+            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-10">
+
+              <div className="flex items-center gap-3 border-b border-slate-50 pb-6"><UserPlus className="w-6 h-6 text-primary-500" /><h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">{t("common.workspace_settings.invite_member")}</h2></div>
+
+              <form onSubmit={handleInvite} className="flex flex-wrap gap-6 items-end">
+
+                <div className="flex-1 min-w-[280px] space-y-3">
+
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.email")}</label>
+
+                  <div className="relative group">
+
+                    <input required type="email" placeholder="dong-nghiep@congty.com" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all pr-14 font-black uppercase tracking-tight" value={newMemberEmail} onChange={(e) => setNewMemberEmail(e.target.value)} />
+
+                    <Mail className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-primary-500 transition-colors" />
+
                   </div>
+
                 </div>
-                <div className="w-56 space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                    {t("common.role")}
-                  </label>
-                  <Combobox
-                    options={[
-                      { value: "member", label: t("common.members.roles.member"), description: t("common.members.roles.member_desc") },
-                      { value: "admin", label: t("common.members.roles.admin"), description: t("common.members.roles.admin_desc") },
-                    ]}
-                    value={newMemberRole}
-                    onChange={(val) => setNewMemberRole(val as any)}
-                    className="bg-slate-50 border-slate-200"
-                  />
+
+                <div className="w-64 space-y-3">
+
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.role")}</label>
+
+                  <Combobox options={[{ value: "member", label: t("common.members.roles.member").toUpperCase(), description: t("common.members.roles.member_desc") }, { value: "admin", label: t("common.members.roles.admin").toUpperCase(), description: t("common.members.roles.admin_desc") }]} value={newMemberRole} onChange={(val) => setNewMemberRole(val as any)} className="bg-slate-50 border-slate-100 h-14" />
+
                 </div>
-                <div className="flex items-end">
-                  <button
-                    type="submit"
-                    disabled={isAdding}
-                    className="bg-primary-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 h-[50px] disabled:opacity-50"
-                  >
-                    {isAdding ? t("common.inviting") : t("common.workspace_settings.invite_member")}
-                  </button>
-                </div>
+
+                <button type="submit" disabled={isAdding} className="bg-primary-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95 disabled:opacity-50 h-[56px]">{isAdding ? t("common.inviting").toUpperCase() : t("common.workspace_settings.invite_member").toUpperCase()}</button>
+
               </form>
+
             </div>
 
-            {/* Members List */}
-            <div className="bg-white rounded-[32px] border border-slate-100 overflow-hidden shadow-sm">
-              <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
-                <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
-                  <Users className="w-5 h-5 text-slate-400" />
-                  {t("common.workspace_settings.members_list")}
-                </h2>
-                <div className="flex items-center gap-2 px-3 py-1 bg-white border border-slate-100 rounded-lg shadow-sm">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                    {members.length} {t("members.title")}
-                  </span>
-                </div>
+
+
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
+
+              <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/30 px-10">
+
+                <div className="flex items-center gap-3"><Users className="w-6 h-6 text-slate-400" /><h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">{t("common.workspace_settings.members_list")}</h2></div>
+
+                <span className="text-[10px] font-black text-primary-600 bg-primary-50 px-4 py-1.5 rounded-full border border-primary-100 shadow-sm uppercase tracking-widest">{members.length} {t("members.title").toUpperCase()}</span>
+
               </div>
+
+
 
               <div className="divide-y divide-slate-50">
+
                 {isLoading ? (
-                  <div className="p-12 text-center text-slate-400 font-medium italic">
-                    {t("common.loading")}
-                  </div>
+
+                  <div className="p-20 text-center"><div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>
+
                 ) : (
+
                   members.map((member) => (
-                    <div
-                      key={member.user_id}
-                      className="p-6 flex items-center justify-between hover:bg-slate-50/50 transition-colors group"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold shadow-sm transition-all ${
-                          member.role === 'owner' ? 'bg-primary-600 text-white shadow-primary-100' : 
-                          member.role === 'admin' ? 'bg-primary-600 text-white shadow-primary-100' : 'bg-slate-100 text-slate-500'
-                        }`}>
-                          {member.full_name ? member.full_name[0] : <Users className="w-5 h-5" />}
-                        </div>
+
+                    <div key={member.user_id} className="p-8 px-10 flex items-center justify-between hover:bg-slate-50/50 transition-all group">
+
+                      <div className="flex items-center gap-5">
+
+                        <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg shadow-inner border transition-all uppercase", 
+
+                          member.role === 'owner' || member.role === 'admin' ? 'bg-primary-600 text-white border-primary-500 shadow-primary-100' : 'bg-slate-100 text-slate-400 border-slate-100 group-hover:bg-white group-hover:text-primary-600 group-hover:border-primary-100'
+
+                        )}>{member.full_name ? member.full_name[0] : <Users size={20} />}</div>
+
                         <div>
-                          <p className="font-bold text-slate-900 flex items-center gap-2">
+
+                          <div className="font-black text-slate-900 text-sm uppercase tracking-tight flex items-center gap-3">
+
                             {member.full_name || member.email}
-                            {member.role === "owner" && <span className="text-[10px] bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded font-black uppercase tracking-tighter border border-primary-100">{t("common.workspace_settings.founder")}</span>}
-                          </p>
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+
+                            {member.role === "owner" && <span className="text-[9px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full font-black uppercase tracking-widest border border-amber-100 shadow-sm">{t("common.workspace_settings.founder")}</span>}
+
+                          </div>
+
+                          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 mt-1 opacity-70">
+
                             {member.role === 'admin' ? t("common.members.roles.admin") : member.role === 'owner' ? t("common.members.roles.owner") : t("common.members.roles.member")}
+
                           </p>
+
                         </div>
+
                       </div>
 
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => {
-                            setSelectedUserId(member.user_id);
-                            setIsRoleModalOpen(true);
-                          }}
-                          className="p-2.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
-                          title={t("common.members.table.manage_roles")}
-                        >
-                          <Settings2 className="w-5 h-5" />
-                        </button>
+
+
+                      <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300">
+
+                        <button onClick={() => { setSelectedUserId(member.user_id); setIsRoleModalOpen(true); }} className="p-2.5 bg-white text-slate-400 hover:text-primary-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90" title={t("common.members.table.manage_roles")}><Settings2 size={18} /></button>
 
                         {member.role !== "owner" && (
-                          <button className="p-2.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all" title={t("common.members.table.remove_member")}>
-                            <Trash2 className="w-5 h-5" />
-                          </button>
+
+                          <button className="p-2.5 bg-white text-slate-400 hover:text-rose-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90" title={t("common.members.table.remove_member")}><Trash2 size={18} /></button>
+
                         )}
+
                       </div>
+
                     </div>
+
                   ))
+
                 )}
+
               </div>
+
             </div>
+
           </div>
+
         )}
+
+
 
         {activeTab === "departments" && (
-          <div className="bg-white rounded-[32px] border border-slate-100 overflow-hidden shadow-sm">
-            <div className="p-1">
-              <DepartmentsPage />
-            </div>
-          </div>
+
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm p-4"><DepartmentsPage /></div>
+
         )}
+
       </div>
 
-      <RoleManagementModal
-        userId={selectedUserId}
-        isOpen={isRoleModalOpen}
-        onClose={() => setIsRoleModalOpen(false)}
-      />
+
+
+      <RoleManagementModal userId={selectedUserId} isOpen={isRoleModalOpen} onClose={() => setIsRoleModalOpen(false)} />
+
     </div>
+
   );
+
 }
