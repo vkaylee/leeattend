@@ -10,6 +10,7 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - Backend: Added `POST /api/workspaces/:ws_id/payroll/calculate-batch` endpoint and `GET /api/workspaces/:ws_id/payroll/payslips`.
     - Frontend: Refactored `PayrollPage` to a professional **Full-width Data Grid** layout, replacing the cramped 2-column sidebar.
     - Frontend: Implemented **PayrollDetailDrawer** (Slide-out) for granular auditability and traceability without losing main table context.
+    - Frontend: Refactored **PayrollTable** segments to a **Vertical Timeline** layout, optimizing space for future complex components (Bonus/Penalty/Adjustments).
     - Frontend: Integrated a **Period Selector** (Month/Year) into the header for organization-wide payroll management.
     - Frontend: Created `BatchCalculationModal` with real-time progress tracking and summary of success/error results.
     - Added comprehensive integration tests for the batch calculation engine.

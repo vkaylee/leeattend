@@ -97,6 +97,7 @@ leeattend/
         - **HierarchyLegend**: Generic "Vertical Metro Map" component for visualizing hierarchical decision paths and priorities.
         - **PriorityLegend**: Shift-specific scheduling source guide, refactored to use `HierarchyLegend`.
         - **PayrollPriorityLegend**: Visualizes the 3-tier payroll policy resolution (Individual > Dept > Workspace).
+        - **PayrollTable**: Displays detailed payslips using a **Vertical Timeline** structure, optimized for complex proration segments and multiple earning/deduction components.
         - **BatchCalculationModal**: Unified interface for triggering and monitoring payroll calculations for multiple employees.
         - **ScheduleTracePopover**: Interactive tooltip showing the evaluation logic for a specific shift.
         - **SettingsLayout**: Centralized container for all Settings Hub sub-modules.
