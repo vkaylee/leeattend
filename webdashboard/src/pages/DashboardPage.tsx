@@ -196,16 +196,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-      {error && (
-        <div className="bg-rose-50 border border-rose-100 p-6 rounded-3xl flex items-center gap-4 text-rose-700 animate-in slide-in-from-top-4 duration-500">
-          <ShieldAlert className="w-7 h-7 flex-shrink-0" />
-          <div>
-            <p className="font-bold text-lg">{t("dashboard.connection_error")}</p>
-            <p className="opacity-90">{t("dashboard.connection_error_desc")}</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}

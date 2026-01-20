@@ -459,40 +459,33 @@ export default function EmployeesPage() {
       {/* Transfer Modal */}
       <Modal
         isOpen={isTransferModalOpen}
-        onClose={() => {
-          setIsTransferModalOpen(false);
-          setSelectedDeptId("");
-        }}
+        onClose={() => { setIsTransferModalOpen(false); setSelectedDeptId(""); }}
         title={t("employees.transfer.title")}
         subtitle={t("employees.transfer.subtitle")}
-        icon={<Building2 className="w-6 h-6" />}
+        icon={<Building2 size={24} />}
       >
-        <form onSubmit={handleTransferSubmit} className="space-y-5">
+        <form onSubmit={handleTransferSubmit} className="space-y-8 pt-4">
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("employees.transfer.new_dept")}</label>
             <Combobox
-              options={departments?.map(d => ({
-                value: d.id,
-                label: d.name,
-                icon: <Building2 className="w-4 h-4" />
-              })) || []}
+              options={departments?.map(d => ({ value: d.id, label: d.name, icon: <Building2 size={14} /> })) || []}
               value={selectedDeptId}
               onChange={setSelectedDeptId}
               placeholder={t("employees.transfer.select_dept")}
-              className="bg-slate-50 border-slate-200"
+              className="bg-slate-50 border-slate-100"
             />
           </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">{t("employees.transfer.effective_date")}</label>
-            <input type="date" name="effective_date" required defaultValue={format(new Date(), 'yyyy-MM-dd')} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" />
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("employees.transfer.effective_date")}</label>
+            <input type="date" name="effective_date" required defaultValue={format(new Date(), 'yyyy-MM-dd')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight" />
           </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">{t("employees.transfer.notes")}</label>
-            <textarea name="notes" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none h-24 resize-none" />
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("employees.transfer.notes")}</label>
+            <textarea name="notes" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-medium text-sm h-28 resize-none" placeholder={t("employees.transfer.notes_placeholder")} />
           </div>
-          <div className="grid grid-cols-2 gap-4 pt-4">
-            <button type="button" onClick={() => setIsTransferModalOpen(false)} className="px-6 py-3 border border-slate-200 text-slate-600 font-bold rounded-2xl">{t("employees.transfer.cancel")}</button>
-            <button type="submit" data-testid="submit-transfer-btn" className="px-6 py-3 bg-slate-900 text-white font-bold rounded-2xl shadow-lg shadow-slate-100 hover:bg-slate-800">{t("employees.transfer.submit")}</button>
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <button type="button" onClick={() => setIsTransferModalOpen(false)} className="px-8 py-4 bg-white border border-slate-100 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">{t("common.cancel")}</button>
+            <button type="submit" data-testid="submit-transfer-btn" className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200 active:scale-95">{t("employees.transfer.submit")}</button>
           </div>
         </form>
       </Modal>
@@ -503,22 +496,22 @@ export default function EmployeesPage() {
         onClose={() => setIsHistoryModalOpen(false)}
         title={t("employees.history.title")}
         subtitle={t("employees.history.subtitle")}
-        icon={<HistoryIcon className="w-6 h-6" />}
+        icon={<HistoryIcon size={24} />}
         maxWidth="lg"
       >
-        <div className="space-y-4">
+        <div className="space-y-4 pt-4">
           {employmentHistory?.map((period) => (
-            <div key={period.id} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-              <div className="flex justify-between items-start">
+            <div key={period.id} className="p-6 bg-slate-50 border border-slate-100 rounded-[2rem] shadow-inner group hover:bg-white transition-all">
+              <div className="flex justify-between items-center">
                 <div>
-                  <div className="font-bold text-slate-900 flex items-center gap-2">
+                  <div className="font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
                     {period.is_rehire ? t("employees.history.rehire_period") : t("employees.history.first_period")}
                     {!period.termination_date && (
-                      <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[9px] font-bold rounded-full uppercase">{t("employees.history.currently_working")}</span>
+                      <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[8px] font-black rounded-lg uppercase tracking-widest border border-emerald-100">{t("employees.history.currently_working")}</span>
                     )}
                   </div>
-                  <div className="text-sm text-slate-500 mt-1">
-                    {t("employees.history.period_range", { start: formatDate(period.hire_date), end: period.termination_date ? formatDate(period.termination_date) : t("employees.history.present") })}
+                  <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-2 flex items-center gap-2">
+                    <Calendar size={12} /> {t("employees.history.period_range", { start: formatDate(period.hire_date), end: period.termination_date ? formatDate(period.termination_date) : t("employees.history.present") })}
                   </div>
                 </div>
               </div>
@@ -526,12 +519,12 @@ export default function EmployeesPage() {
           ))}
         </div>
         
-        <div className="mt-8">
+        <div className="mt-8 pt-6 border-t border-slate-50 flex justify-end">
           <button 
             onClick={() => setIsHistoryModalOpen(false)}
-            className="w-full py-3 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all"
+            className="px-10 py-3.5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200 active:scale-95"
           >
-            {t("employees.history.close")}
+            {t("common.close")}
           </button>
         </div>
       </Modal>
@@ -542,28 +535,30 @@ export default function EmployeesPage() {
         onClose={() => setIsRehireModalOpen(false)}
         title={t("employees.rehire.title")}
         subtitle={t("employees.rehire.subtitle")}
-        icon={<UserPlus className="w-6 h-6" />}
+        icon={<UserPlus size={24} />}
       >
-        <p className="text-slate-500 mb-6 font-medium">{t("employees.rehire.confirm_msg")}</p>
-        
-        <form onSubmit={handleRehireSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">{t("employees.rehire.rehire_date")}</label>
-            <input 
-              type="date" 
-              name="hire_date" 
-              required 
-              defaultValue={format(new Date(), 'yyyy-MM-dd')} 
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none" 
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4 pt-4">
-            <button type="button" onClick={() => setIsRehireModalOpen(false)} className="px-6 py-3 border border-slate-200 text-slate-600 font-bold rounded-2xl">{t("employees.rehire.cancel")}</button>
-            <button type="submit" data-testid="confirm-rehire-btn" disabled={rehireMutation.isPending} className="px-6 py-3 bg-primary-600 text-white font-bold rounded-2xl shadow-lg shadow-primary-100 hover:bg-primary-700 disabled:opacity-50">
-              {rehireMutation.isPending ? t("employees.rehire.processing") : t("employees.rehire.confirm")}
-            </button>
-          </div>
-        </form>
+        <div className="space-y-8 pt-4">
+          <p className="text-sm font-bold text-slate-600 leading-relaxed px-1">{t("employees.rehire.confirm_msg")}</p>
+          
+          <form onSubmit={handleRehireSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("employees.rehire.rehire_date")}</label>
+              <input 
+                type="date" 
+                name="hire_date" 
+                required 
+                defaultValue={format(new Date(), 'yyyy-MM-dd')} 
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight" 
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4 pt-2">
+              <button type="button" onClick={() => setIsRehireModalOpen(false)} className="px-8 py-4 bg-white border border-slate-100 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">{t("common.cancel")}</button>
+              <button type="submit" data-testid="confirm-rehire-btn" disabled={rehireMutation.isPending} className="px-8 py-4 bg-primary-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95 disabled:opacity-50">
+                {rehireMutation.isPending ? t("employees.rehire.processing").toUpperCase() : t("employees.rehire.confirm")}
+              </button>
+            </div>
+          </form>
+        </div>
       </Modal>
     </div>
   );
