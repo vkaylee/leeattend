@@ -48,12 +48,12 @@ export default function WorkingPatternsPage() {
   // Bulk Assign State
   const [selectedPatternId, setSelectedPatternId] = useState<string>("");
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
-  const [assignStartDate, setAssignStartDate] = useState(format(startOfToday(), "yyyy-MM-dd"));
+  const [assignStartDate, setAssignStartDate] = useState(format(startOfToday(), "yyyy-MM-01"));
 
   // Weekly grid state: 0=Sun, 1=Mon, ..., 6=Sat. Value = shift_id or null (off)
   const [weeklyGrid, setWeeklyGrid] = useState<(string | null)[]>(Array(7).fill(null));
 
-  const { data: patterns } = useQuery({
+  const { data: patterns, isLoading } = useQuery({
     queryKey: ["working-patterns", wsId],
     queryFn: () => fetchWorkingPatterns(wsId),
     enabled: !!wsId,
@@ -71,7 +71,7 @@ export default function WorkingPatternsPage() {
     enabled: !!wsId && isBulkModalOpen,
   });
 
-  // Fetch details for expanded view (optional, or just show summary)
+  // Fetch details for expanded view
   const [expandedPatternId, setExpandedPatternId] = useState<string | null>(null);
   
   const { data: patternDetails } = useQuery({
@@ -111,14 +111,14 @@ export default function WorkingPatternsPage() {
   const deleteMutation = useMutation({
     mutationFn: (patternId: string) => deleteWorkingPattern(wsId, patternId),
     onSuccess: () => {
-      toast.success(t("patterns.messages.delete_success", "Pattern deleted successfully"));
+      toast.success(t("patterns.messages.delete_success"));
       queryClient.invalidateQueries({ queryKey: ["working-patterns"] });
     },
-    onError: (error: any) => toast.error(error.message, t("patterns.messages.delete_error", "Failed to delete pattern"))
+    onError: (error: any) => toast.error(error.message)
   });
 
   const handleDelete = (pattern: WorkingPattern) => {
-    if (confirm(t("patterns.confirm_delete", { name: pattern.name, defaultValue: `Are you sure you want to delete "${pattern.name}"?` }))) {
+    if (confirm(t("patterns.confirm_delete", { name: pattern.name }))) {
       deleteMutation.mutate(pattern.id);
     }
   };
@@ -128,183 +128,149 @@ export default function WorkingPatternsPage() {
       toast.warning(t("patterns.validation_name_required"));
       return;
     }
-
-    const details = weeklyGrid.map((shiftId, idx) => ({
-      day_of_week: idx,
-      shift_id: shiftId
-    }));
-
-    createMutation.mutate({
-      name: newPatternName,
-      description: newPatternDesc,
-      details
-    });
+    const details = weeklyGrid.map((shiftId, idx) => ({ day_of_week: idx, shift_id: shiftId }));
+    createMutation.mutate({ name: newPatternName, description: newPatternDesc, details });
   };
 
   const handleBulkAssign = () => {
-    if (!selectedPatternId) {
-      toast.warning(t("patterns.validation_pattern_required"));
-      return;
-    }
-    if (selectedEmployeeIds.length === 0) {
-      toast.warning(t("patterns.validation_employees_required"));
-      return;
-    }
-
-    bulkAssignMutation.mutate({
-      employee_ids: selectedEmployeeIds,
-      pattern_id: selectedPatternId,
-      start_date: assignStartDate,
-    });
+    if (!selectedPatternId || selectedEmployeeIds.length === 0) return;
+    bulkAssignMutation.mutate({ employee_ids: selectedEmployeeIds, pattern_id: selectedPatternId, start_date: assignStartDate });
   };
 
-  const daysOfWeek = [
-    t("days.sunday"),
-    t("days.monday"),
-    t("days.tuesday"),
-    t("days.wednesday"),
-    t("days.thursday"),
-    t("days.friday"),
-    t("days.saturday")
+  const daysOfWeekShort = [
+    t("days.sunday_short", "CN"), t("days.monday_short", "T2"), t("days.tuesday_short", "T3"),
+    t("days.wednesday_short", "T4"), t("days.thursday_short", "T5"), t("days.friday_short", "T6"), t("days.saturday_short", "T7")
   ];
 
-  // Helper to pre-fill grid for "Office Standard" (Mon-Fri)
   const prefillStandard = () => {
     if (!shifts || shifts.length === 0) return;
-    const defaultShift = shifts[0].id; // Pick first shift as default
+    const defaultShift = shifts[0].id;
     const newGrid = [...weeklyGrid];
-    // Set Mon(1) to Fri(5)
     for (let i = 1; i <= 5; i++) newGrid[i] = defaultShift;
-    // Sat(6), Sun(0) remain null
     setWeeklyGrid(newGrid);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Link to="/shifts" className="text-slate-400 hover:text-primary-600 transition-colors">
-              <ArrowLeft size={20} />
-            </Link>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{t("patterns.title")}</h1>
+      <div className="flex justify-between items-center px-2">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary-50 flex items-center justify-center text-primary-600 shadow-sm border border-primary-100/50">
+            <CalendarDays size={20} />
           </div>
-          <p className="text-slate-500">{t("patterns.subtitle")}</p>
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 tracking-tight">{t("patterns.title")}</h3>
+            <p className="text-xs text-slate-500 font-medium">{t("patterns.subtitle")}</p>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Link 
-            to="/assignment-rules"
-            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-black px-6 py-3 rounded-2xl flex items-center gap-2 shadow-sm transition-all active:scale-95 text-xs uppercase tracking-widest"
-          >
-            <Settings2 size={16} /> {t("rules.title", "Auto-Assignment")}
-          </Link>
+        <div className="flex gap-3">
           <button 
             onClick={() => setIsBulkModalOpen(true)}
-            className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-black px-6 py-3 rounded-2xl flex items-center gap-2 shadow-sm transition-all active:scale-95 text-xs uppercase tracking-widest"
+            className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-5 py-2.5 rounded-2xl transition-all shadow-sm font-black text-[10px] uppercase tracking-widest active:scale-95"
           >
-            <Users size={16} /> {t("patterns.bulk_assign_btn")}
+            <Users size={14} /> {t("patterns.bulk_assign_btn")}
           </button>
           <button 
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-primary-600 hover:bg-primary-700 text-white font-black px-6 py-3 rounded-2xl flex items-center gap-2 shadow-lg shadow-primary-100 transition-all active:scale-95 text-xs uppercase tracking-widest"
+            className="flex items-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 font-black text-[10px] uppercase tracking-widest active:scale-95"
           >
-            <Plus size={16} /> {t("patterns.create_btn")}
+            <Plus size={14} /> {t("patterns.create_btn")}
           </button>
         </div>
       </div>
 
       {/* Grid of Patterns */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {patterns?.map(pattern => (
-          <div key={pattern.id} className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all group">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center">
-                  <CalendarDays size={24} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg text-slate-900 leading-tight">{pattern.name}</h3>
-                  <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{pattern.description || t("common.no_description")}</p>
-                </div>
+        {isLoading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-white border border-slate-100 p-8 rounded-[32px] shadow-sm animate-pulse">
+              <div className="w-14 h-14 bg-slate-100 rounded-2xl mb-6" />
+              <div className="h-6 bg-slate-100 rounded-lg w-2/3 mb-4" />
+              <div className="h-12 bg-slate-50 rounded-xl w-full" />
+            </div>
+          ))
+        ) : patterns?.length === 0 ? (
+          <div className="col-span-full py-24 text-center border-2 border-dashed border-slate-100 rounded-[40px] bg-slate-50/30 flex flex-col items-center">
+            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+              <CalendarDays size={32} className="text-slate-300" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900">{t("patterns.empty_title")}</h3>
+            <p className="text-slate-400 text-sm max-w-xs mt-1">{t("patterns.empty_desc")}</p>
+          </div>
+        ) : patterns?.map(pattern => (
+          <div key={pattern.id} className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm hover:shadow-xl hover:shadow-primary-100/20 hover:scale-[1.02] transition-all group relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 right-0 p-6 flex gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
+              <button 
+                onClick={() => handleDelete(pattern)}
+                className="p-2.5 bg-white text-slate-400 hover:text-rose-600 rounded-xl transition-all shadow-md border border-slate-100"
+                title={t("common.delete")}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center shadow-inner border border-purple-100/50">
+                <CalendarDays size={28} />
               </div>
-              <div className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${pattern.is_active ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-50 text-slate-400'}`}>
-                {pattern.is_active ? t("common.active") : t("common.inactive")}
+              <div>
+                <h3 className="font-black text-xl text-slate-900 leading-tight uppercase tracking-tight">{pattern.name}</h3>
+                <div className={`mt-1.5 px-2 py-0.5 w-fit rounded-lg text-[9px] font-black uppercase tracking-widest ${pattern.is_active ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-400'}`}>
+                  {pattern.is_active ? t("common.active") : t("common.inactive")}
+                </div>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest border-b border-slate-50 pb-2">
-                <span>{t("patterns.weekly_schedule")}</span>
+            <p className="text-slate-500 text-xs mb-8 line-clamp-2 min-h-[2.5rem] font-bold leading-relaxed opacity-70">
+              {pattern.description || t("common.no_description")}
+            </p>
+
+            <div className="mt-auto space-y-4 pt-6 border-t border-slate-50">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t("patterns.weekly_schedule")}</span>
                 <button 
                    onClick={() => setExpandedPatternId(expandedPatternId === pattern.id ? null : pattern.id)}
-                   className="text-primary-600 hover:text-primary-700"
+                   className="text-[10px] font-black uppercase tracking-widest text-primary-600 hover:text-primary-700 transition-colors"
                 >
                   {expandedPatternId === pattern.id ? t("common.collapse") : t("common.expand")}
                 </button>
               </div>
               
               {expandedPatternId === pattern.id && patternDetails ? (
-                <div className="space-y-2 animate-in slide-in-from-top-2">
+                <div className="space-y-2 animate-in slide-in-from-top-2 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                   {patternDetails.map(detail => {
                     const shift = shifts?.find(s => s.id === detail.shift_id);
                     return (
-                      <div key={detail.day_of_week} className="flex items-center justify-between text-xs py-1">
-                        <span className="font-bold text-slate-600 w-24">{daysOfWeek[detail.day_of_week]}</span>
+                      <div key={detail.day_of_week} className="flex items-center justify-between text-[10px] py-1">
+                        <span className="font-black text-slate-500 w-20">{daysOfWeekShort[detail.day_of_week]}</span>
                         {shift ? (
-                          <div className="flex items-center gap-2 flex-1">
-                            <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase truncate max-w-[100px]">{shift.name}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">{formatTime(shift.start_time)}-{formatTime(shift.end_time)}</span>
+                          <div className="flex items-center gap-2 flex-1 justify-end">
+                            <span className="bg-white text-primary-700 px-2 py-0.5 rounded-md font-black border border-primary-100 truncate max-w-[120px] shadow-sm">{shift.name}</span>
+                            <span className="text-[9px] text-slate-400 font-mono font-bold">{formatTime(shift.start_time)}-{formatTime(shift.end_time)}</span>
                           </div>
                         ) : (
-                          <span className="text-slate-300 font-bold text-[10px] uppercase tracking-widest">{t("shifts.off_day")}</span>
+                          <span className="text-slate-300 font-black tracking-widest italic">{t("shifts.off_day")}</span>
                         )}
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                 <div className="flex gap-1">
-                    {/* Tiny visual preview of the week */}
+                 <div className="flex gap-1.5 px-1">
+                    {/* Visual Dots Preview */}
                     {Array.from({ length: 7 }).map((_, i) => (
-                      <div key={i} className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                         {/* We don't have details here unless expanded, so this is just a placeholder visual 
-                             In a real app, we might include summary in the main list fetch 
-                         */}
-                         <div className="w-full h-full bg-slate-200" /> 
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+                        <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden shadow-inner">
+                           <div className={`w-full h-full ${i >= 1 && i <= 5 ? 'bg-primary-400' : 'bg-slate-200'}`} /> 
+                        </div>
+                        <span className="text-[8px] font-black text-slate-300">{daysOfWeekShort[i]}</span>
                       </div>
                     ))}
                  </div>
               )}
             </div>
-            
-            <div className="mt-6 pt-4 border-t border-slate-50 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-               <button 
-                 onClick={() => handleDelete(pattern)}
-                 disabled={deleteMutation.isPending}
-                 className="p-2 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-xl transition-all disabled:opacity-50"
-               >
-                 <Trash2 size={16} />
-               </button>
-            </div>
           </div>
         ))}
-
-        {/* Create Card (Empty State) */}
-        {(!patterns || patterns.length === 0) && (
-          <button 
-            onClick={() => setIsCreateModalOpen(true)}
-            className="border-2 border-dashed border-slate-200 rounded-[32px] p-8 flex flex-col items-center justify-center text-center gap-4 hover:border-primary-300 hover:bg-primary-50/10 transition-all group min-h-[200px]"
-          >
-            <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 group-hover:bg-primary-50 group-hover:text-primary-500 transition-colors">
-              <CalendarDays size={28} />
-            </div>
-            <div>
-              <h3 className="font-bold text-lg text-slate-900">{t("patterns.empty_title")}</h3>
-              <p className="text-sm text-slate-500">{t("patterns.empty_desc")}</p>
-            </div>
-          </button>
-        )}
       </div>
 
       {/* Create Modal */}
