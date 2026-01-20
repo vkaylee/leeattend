@@ -54,33 +54,40 @@ describe("PayrollTable", () => {
     render(
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <PayrollTable payslips={mockPayslips} isLoading={false} />
+          <PayrollTable 
+            payslips={mockPayslips} 
+            isLoading={false} 
+            adjustments={[]}
+            onResolveAdjustments={() => {}}
+          />
         </BrowserRouter>
       </QueryClientProvider>
     );
 
-    expect(screen.getByTestId("payslip-row-slip-1")).toBeDefined();
+    expect(screen.getByTestId("payslip-card-slip-1")).toBeDefined();
     expect(screen.getByText(/10.500.000/)).toBeDefined();
   });
 
-  it("expands row to show segments when toggle is clicked", async () => {
+  it("expands card to show segments when clicked", () => {
     render(
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <PayrollTable payslips={mockPayslips} isLoading={false} />
+          <PayrollTable 
+            payslips={mockPayslips} 
+            isLoading={false} 
+            adjustments={[]}
+            onResolveAdjustments={() => {}}
+          />
         </BrowserRouter>
       </QueryClientProvider>
     );
 
-    // Initial state: segments not visible
-    expect(screen.queryByTestId("segments-detail-slip-1")).toBeNull();
-
-    // Click toggle button using data-testid
-    const toggleBtn = screen.getByTestId("toggle-segments-slip-1");
+    // Click toggle summary bar
+    const toggleBtn = screen.getByTestId("toggle-card-slip-1");
     fireEvent.click(toggleBtn);
 
     // Now segments should be visible
-    expect(screen.getByTestId("segments-detail-slip-1")).toBeDefined();
+    expect(screen.getByText("Giai đoạn 1")).toBeDefined();
     expect(screen.getByText("Salary Change")).toBeDefined();
     expect(screen.getByText("12.000.000")).toBeDefined();
   });
@@ -102,11 +109,15 @@ describe("PayrollTable", () => {
             payslips={mockPayslips} 
             isLoading={false} 
             adjustments={mockAdjustments} 
+            onResolveAdjustments={() => {}}
           />
         </BrowserRouter>
       </QueryClientProvider>
     );
 
-    expect(screen.getByTestId("pending-adj-badge-slip-1")).toBeDefined();
+    // Card needs to be expanded to see the banner in the new UI
+    fireEvent.click(screen.getByTestId("toggle-card-slip-1"));
+
+    expect(screen.getByTestId("pending-adj-banner-slip-1")).toBeDefined();
   });
 });

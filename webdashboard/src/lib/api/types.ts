@@ -261,6 +261,7 @@ export interface PayrollSegment {
   department_id?: string;
   applied_base_salary: number;
   applied_std_days: number;
+  applied_hours_per_day: number;
   actual_work_days: number;
   paid_work_days: number;
   amount: number;
