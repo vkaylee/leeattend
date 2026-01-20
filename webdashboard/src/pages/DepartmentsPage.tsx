@@ -90,84 +90,97 @@ export default function DepartmentsPage() {
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (editingDept) {
-        setSelectedManagerId(editingDept.manager_id || "");
-        setSelectedPatternId(editingDept.default_working_pattern_id || "");
-      } else {
-        setSelectedManagerId("");
-        setSelectedPatternId("");
-      }
-    }, 0);
-    return () => clearTimeout(timer);
+    if (editingDept) {
+      setSelectedManagerId(editingDept.manager_id || "");
+      setSelectedPatternId(editingDept.default_working_pattern_id || "");
+    } else {
+      setSelectedManagerId("");
+      setSelectedPatternId("");
+    }
   }, [editingDept]);
 
   if (!wsId) return <div className="p-8 text-center">{t("common.select_workspace")}</div>;
 
   return (
-    <div className="p-8 space-y-8 animate-enter">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{t("departments.title")}</h1>
-          <p className="text-slate-500 mt-1">{t("departments.subtitle")}</p>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex justify-between items-center px-2">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary-50 flex items-center justify-center text-primary-600 shadow-sm border border-primary-100/50">
+            <Building2 size={20} />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 tracking-tight">{t("departments.title")}</h3>
+            <p className="text-xs text-slate-500 font-medium">{t("departments.subtitle")}</p>
+          </div>
         </div>
         <button 
           onClick={() => { setEditingDept(null); setIsModalOpen(true); }}
           data-testid="add-dept-btn"
-          className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 font-bold"
+          className="flex items-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 font-black text-[10px] uppercase tracking-widest active:scale-95"
         >
-          <Plus className="w-5 h-5" />
+          <Plus size={14} />
           {t("departments.add_btn")}
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoading ? (
-          <div className="col-span-full py-20 text-center text-slate-400 font-medium italic">{t("common.loading")}</div>
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-white border border-slate-100 p-8 rounded-[32px] shadow-sm animate-pulse">
+              <div className="w-14 h-14 bg-slate-100 rounded-2xl mb-6" />
+              <div className="h-6 bg-slate-100 rounded-lg w-2/3 mb-4" />
+              <div className="h-4 bg-slate-50 rounded-lg w-full mb-8" />
+              <div className="h-12 bg-slate-50 rounded-xl w-full" />
+            </div>
+          ))
         ) : departments.length === 0 ? (
-          <div className="col-span-full py-20 text-center text-slate-400 font-medium border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50/30">
-            {t("departments.messages.no_departments")}
+          <div className="col-span-full py-24 text-center border-2 border-dashed border-slate-100 rounded-[40px] bg-slate-50/30 flex flex-col items-center">
+            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+              <Building2 size={32} className="text-slate-300" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900">{t("departments.messages.no_departments")}</h3>
+            <p className="text-slate-400 text-sm max-w-xs mt-1">{t("departments.messages.empty_desc", { defaultValue: "Bắt đầu bằng cách tạo phòng ban đầu tiên cho tổ chức của bạn." })}</p>
           </div>
         ) : departments.map((dept) => (
-          <div key={dept.id} className="bg-white border border-slate-50 p-8 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all group relative overflow-hidden">
+          <div key={dept.id} className="bg-white border border-slate-100 p-8 rounded-[32px] shadow-sm hover:shadow-xl hover:shadow-primary-100/20 hover:scale-[1.02] transition-all group relative overflow-hidden">
             <div className="absolute top-0 right-0 p-6 flex gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
               <button 
                 onClick={() => { setEditingDept(dept); setIsConfigModalOpen(true); }}
-                className="p-2.5 bg-slate-50 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all shadow-sm"
-                title={t("payroll.settings.title", "Cấu hình lương")}
+                className="p-2.5 bg-white text-slate-400 hover:text-emerald-600 rounded-xl transition-all shadow-md border border-slate-100"
+                title={t("payroll.settings.title")}
               >
                 <Calculator className="w-4 h-4" />
               </button>
               <button 
                 onClick={() => { setEditingDept(dept); setIsModalOpen(true); }}
-                className="p-2.5 bg-slate-50 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all shadow-sm"
+                className="p-2.5 bg-white text-slate-400 hover:text-primary-600 rounded-xl transition-all shadow-md border border-slate-100"
                 title={t("common.edit")}
               >
                 <Edit2 className="w-4 h-4" />
               </button>
               <button 
                 onClick={() => { if(confirm(t("departments.messages.confirm_delete"))) deleteMutation.mutate(dept.id); }}
-                className="p-2.5 bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all shadow-sm"
+                className="p-2.5 bg-white text-slate-400 hover:text-rose-600 rounded-xl transition-all shadow-md border border-slate-100"
                 title={t("common.delete")}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="bg-primary-50 w-14 h-14 rounded-2xl flex items-center justify-center text-primary-600 mb-6 shadow-inner">
+            <div className="bg-primary-50 w-14 h-14 rounded-2xl flex items-center justify-center text-primary-600 mb-6 shadow-inner border border-primary-100/50">
               <Building2 className="w-7 h-7" />
             </div>
             
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-2 uppercase">{dept.name}</h2>
-            <p className="text-slate-500 text-sm mb-8 line-clamp-2 min-h-[2.5rem] font-medium leading-relaxed">{dept.description || t("common.no_description")}</p>
+            <h2 className="text-xl font-black text-slate-900 tracking-tight mb-2 uppercase">{dept.name}</h2>
+            <p className="text-slate-500 text-xs mb-8 line-clamp-2 min-h-[2rem] font-bold leading-relaxed opacity-70">{dept.description || t("common.no_description")}</p>
             
             <div className="pt-6 border-t border-slate-50 flex flex-col gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
+                <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shadow-inner">
                   <UserCircle className="w-4 h-4" />
                 </div>
                 <div className="text-xs">
-                  <span className="block text-slate-400 font-bold uppercase tracking-widest text-[9px]">{t("departments.manager_label")}</span>
+                  <span className="block text-slate-400 font-black uppercase tracking-widest text-[8px]">{t("departments.manager_label")}</span>
                   <span className="font-bold text-slate-700">
                     {users.find(u => u.id === dept.manager_id)?.full_name || t("departments.not_assigned")}
                   </span>
@@ -175,11 +188,11 @@ export default function DepartmentsPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
+                <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shadow-inner">
                   <CalendarDays className="w-4 h-4" />
                 </div>
                 <div className="text-xs">
-                  <span className="block text-slate-400 font-bold uppercase tracking-widest text-[9px]">{t("departments.default_pattern_label")}</span>
+                  <span className="block text-slate-400 font-black uppercase tracking-widest text-[8px]">{t("departments.default_pattern_label")}</span>
                   <span className="font-bold text-slate-700">
                     {patterns.find(p => p.id === dept.default_working_pattern_id)?.name || t("departments.not_assigned")}
                   </span>
