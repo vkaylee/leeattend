@@ -39,16 +39,18 @@ import Modal from "@/components/ui/Modal";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
 
+type DetailTabType = "profile" | "salary" | "history";
+
 export default function EmployeesPage() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId() || "";
-  console.log("[EmployeesPage] Rendered with wsId:", wsId);
   const queryClient = useQueryClient();
   const { formatDate } = useDateTimeFormatter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeDetailTab, setActiveDetailTab] = useState<DetailTabType>("profile");
   
   // States for sub-modals
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -87,6 +89,7 @@ export default function EmployeesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
       setIsModalOpen(false);
+      toast.success(t("common.success"));
     },
   });
 
@@ -97,6 +100,7 @@ export default function EmployeesPage() {
       queryClient.invalidateQueries({ queryKey: ["employees", wsId] });
       setIsModalOpen(false);
       setEditingEmployee(null);
+      toast.success(t("common.success"));
     },
   });
 
@@ -106,6 +110,7 @@ export default function EmployeesPage() {
       queryClient.invalidateQueries({ queryKey: ["deptHistory", selectedEmployee?.id] });
       setIsTransferModalOpen(false);
       setSelectedDeptId("");
+      toast.success(t("common.success"));
     },
   });
 
@@ -116,8 +121,11 @@ export default function EmployeesPage() {
       queryClient.invalidateQueries({ queryKey: ["employmentHistory", selectedEmployee?.id] });
       setSelectedEmployee(updatedEmp);
       setIsRehireModalOpen(false);
+      toast.success(t("common.success"));
     },
   });
+
+  const toast = useToast();
 
   const filteredEmployees = employees.filter(emp => 
     `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -162,77 +170,56 @@ export default function EmployeesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-full items-center justify-center py-20">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-[calc(100vh-10rem)] gap-8 overflow-hidden animate-enter">
+    <div className="flex h-[calc(100vh-10rem)] gap-8 overflow-hidden animate-in fade-in duration-700">
       {/* Left List */}
-      <div className={`flex-1 flex flex-col gap-8 overflow-hidden transition-all duration-500 ${selectedEmployee ? 'max-w-[55%]' : 'max-w-full'}`}>
+      <div className={`flex-1 flex flex-col gap-6 overflow-hidden transition-all duration-500 ${selectedEmployee ? 'max-w-[50%]' : 'max-w-full'}`}>
         <div className="flex justify-between items-center shrink-0">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{t("employees.title")}</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">{t("employees.title")}</h1>
             <p className="text-slate-500 mt-1">{t("employees.subtitle")}</p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="w-72">
-              <EmployeeSearch
-                workspaceId={wsId}
-                testId="employee-search"
-                value={selectedEmployee?.id}
-                onChange={(id) => {
-                  const emp = employees.find(e => e.id === id);
-                  if (emp) setSelectedEmployee(emp);
-                }}
-                placeholder={t("employees.search_placeholder")}
-              />
-            </div>
-            <button 
-              onClick={() => { setEditingEmployee(null); setIsModalOpen(true); }}
-              data-testid="add-employee-btn"
-              className="flex items-center gap-2 bg-primary-600 text-white px-6 py-3 rounded-2xl hover:bg-primary-700 hover:scale-105 transition-all shadow-xl shadow-primary-200 active:scale-95 font-bold shrink-0"
-            >
-              <UserPlus className="w-5 h-5" />
-              {t("employees.add_btn")}
-            </button>
-          </div>
+          <button 
+            onClick={() => { setEditingEmployee(null); setIsModalOpen(true); }}
+            className="flex items-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 active:scale-95 font-black text-[10px] uppercase tracking-widest"
+          >
+            <UserPlus className="w-5 h-5" />
+            {t("employees.add_btn")}
+          </button>
         </div>
 
         <div className="relative shrink-0 group">
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 group-focus-within:text-primary-500 transition-colors" />
           <input 
             type="text" 
-            placeholder={t("common.filter_by_name", "Filter table...")}
-            data-testid="employee-list-search"
-            className="w-full pl-14 pr-6 py-4 bg-white border border-slate-100 rounded-[1.5rem] shadow-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all text-lg"
+            placeholder={t("employees.search_placeholder")}
+            className="w-full pl-14 pr-6 py-4 bg-white border border-slate-200 rounded-[1.5rem] shadow-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all font-bold text-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="bg-white border border-slate-50 rounded-[2rem] flex-1 overflow-auto shadow-sm">
-          <table className="w-full text-left border-separate border-spacing-0">
-            <thead className="bg-slate-50/50 sticky top-0 backdrop-blur-md z-10">
+        <div className="bg-white border border-slate-200 rounded-[2rem] flex-1 overflow-auto shadow-sm">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-slate-50/50 sticky top-0 backdrop-blur-md z-10 border-b border-slate-100">
               <tr>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">{t("employees.table.name")}</th>
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">{t("employees.table.id")}</th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("employees.table.name")}</th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("employees.table.id")}</th>
                 {!selectedEmployee && (
-                  <>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">{t("employees.table.hire_date")}</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">{t("employees.table.status")}</th>
-                  </>
+                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("employees.table.status")}</th>
                 )}
-                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 text-right">{t("employees.table.actions")}</th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {isLoading ? (
-                <tr><td colSpan={5} className="px-8 py-20 text-center text-slate-400 font-medium">{t("employees.table.loading")}</td></tr>
-              ) : filteredEmployees.length === 0 ? (
-                <tr><td colSpan={5} className="px-8 py-20 text-center text-slate-400 font-medium">{t("employees.table.no_data")}</td></tr>
+              {filteredEmployees.length === 0 ? (
+                <tr><td colSpan={5} className="px-8 py-20 text-center text-slate-400 font-bold italic">{t("employees.table.no_data")}</td></tr>
               ) : filteredEmployees.map((emp) => (
                 <tr 
                   key={emp.id} 
@@ -241,27 +228,22 @@ export default function EmployeesPage() {
                 >
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-primary-100 group-hover:text-primary-600 transition-all duration-300">
-                        <UserCircle className="w-7 h-7" />
+                      <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-primary-100 group-hover:text-primary-600 transition-all duration-300 font-black">
+                        {emp.last_name[0]}
                       </div>
-                      <div className="font-bold text-slate-900 text-lg">{emp.first_name} {emp.last_name}</div>
+                      <div className="font-black text-slate-900 text-sm">{emp.first_name} {emp.last_name}</div>
                     </div>
                   </td>
-                  <td className="px-8 py-5 font-mono text-sm text-slate-500">{emp.employee_id_number}</td>
+                  <td className="px-8 py-5 font-mono text-xs font-bold text-slate-500">{emp.employee_id_number}</td>
                   {!selectedEmployee && (
-                    <>
-                      <td className="px-8 py-5 text-slate-600 text-sm font-medium">{formatDate(emp.hire_date)}</td>
-                      <td className="px-8 py-5">
-                        <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${emp.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                          {emp.is_active ? t("employees.table.active") : t("employees.table.terminated")}
-                        </span>
-                      </td>
-                    </>
+                    <td className="px-8 py-5">
+                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter border ${emp.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+                        {emp.is_active ? t("employees.table.active") : t("employees.table.terminated")}
+                      </span>
+                    </td>
                   )}
                   <td className="px-8 py-5 text-right">
-                    <div className="bg-slate-50 w-10 h-10 rounded-xl flex items-center justify-center ml-auto group-hover:bg-primary-100 transition-colors">
-                      <ChevronRight className={`w-5 h-5 text-slate-300 transition-transform ${selectedEmployee?.id === emp.id ? 'translate-x-1 text-primary-500' : 'group-hover:text-primary-400'}`} />
-                    </div>
+                    <ChevronRight className={`w-5 h-5 text-slate-300 transition-transform ${selectedEmployee?.id === emp.id ? 'translate-x-1 text-primary-500' : 'group-hover:text-primary-400'}`} />
                   </td>
                 </tr>
               ))}
@@ -272,141 +254,162 @@ export default function EmployeesPage() {
 
       {/* Right Detail Panel */}
       {selectedEmployee && (
-        <div className="w-[45%] bg-white border border-slate-50 rounded-[2.5rem] flex flex-col shadow-2xl shadow-slate-200/50 overflow-hidden animate-in slide-in-from-right duration-500">
+        <div className="w-[50%] bg-white border border-slate-200 rounded-[2.5rem] flex flex-col shadow-2xl shadow-slate-200/50 overflow-hidden animate-in slide-in-from-right duration-500">
           <div className="p-8 border-b border-slate-50 bg-slate-50/30">
-            <div className="flex justify-between items-start mb-8">
+            <div className="flex justify-between items-start mb-6">
               <div className="flex items-center gap-5">
-                <div className="w-20 h-20 bg-primary-100 text-primary-600 rounded-[2rem] flex items-center justify-center shadow-inner">
-                  <UserCircle className="w-12 h-12" />
+                <div className="w-16 h-16 bg-primary-600 text-white rounded-[1.5rem] flex items-center justify-center font-black text-2xl shadow-lg shadow-primary-100">
+                  {selectedEmployee.last_name[0]}
                 </div>
                 <div>
-                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">{selectedEmployee.first_name} {selectedEmployee.last_name}</h2>
-                  <p className="text-primary-500 font-mono text-sm font-bold mt-1 tracking-wider">{selectedEmployee.employee_id_number}</p>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">{selectedEmployee.first_name} {selectedEmployee.last_name}</h2>
+                  <p className="text-primary-600 font-mono text-xs font-black mt-1 tracking-widest uppercase">{selectedEmployee.employee_id_number}</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedEmployee(null)} className="p-3 hover:bg-white rounded-2xl transition-all shadow-sm active:scale-90">
-                <X className="w-6 h-6 text-slate-400" />
+              <button onClick={() => setSelectedEmployee(null)} className="p-2.5 hover:bg-white rounded-xl transition-all shadow-sm active:scale-90 border border-slate-100">
+                <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* Tabs inside Detail Panel */}
+            <div className="flex items-center gap-1 bg-white/50 p-1 rounded-2xl w-fit border border-slate-200/50">
               <button 
-                onClick={() => { setEditingEmployee(selectedEmployee); setIsModalOpen(true); }}
-                data-testid="edit-employee-btn"
-                className="flex items-center justify-center gap-2 py-3.5 bg-white border border-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 hover:border-primary-200 transition-all text-sm shadow-sm"
+                onClick={() => setActiveDetailTab("profile")}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  activeDetailTab === 'profile' ? 'bg-white text-primary-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'
+                }`}
               >
-                <Edit2 className="w-4 h-4" />
-                {t("employees.details.edit_profile")}
+                {t("common.profile")}
               </button>
-              {selectedEmployee.is_active ? (
-                <button 
-                  onClick={() => {
-                    const confirmTerm = window.confirm(t("employees.details.terminate_confirm"));
-                    if (confirmTerm) {
-                      updateMutation.mutate({ id: selectedEmployee.id, employee: { is_active: false, termination_date: format(new Date(), 'yyyy-MM-dd') } });
-                    }
-                  }}
-                  data-testid="terminate-employee-btn"
-                  className="flex items-center justify-center gap-2 py-3.5 bg-rose-50 text-rose-600 font-bold rounded-2xl hover:bg-rose-100 transition-all text-sm"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  {t("employees.details.terminate")}
-                </button>
-              ) : (
-                <button 
-                  onClick={() => setIsRehireModalOpen(true)}
-                  data-testid="rehire-employee-btn"
-                  className="flex items-center justify-center gap-2 py-3.5 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all text-sm shadow-xl shadow-primary-200"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  {t("employees.details.rehire")}
-                </button>
-              )}
+              <button 
+                onClick={() => setActiveDetailTab("salary")}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  activeDetailTab === 'salary' ? 'bg-white text-primary-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {t("employees.details.salary_benefits")}
+              </button>
+              <button 
+                onClick={() => setActiveDetailTab("history")}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  activeDetailTab === 'history' ? 'bg-white text-primary-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {t("employees.details.work_history")}
+              </button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-hide">
-            {/* Department History */}
-            <section className="space-y-5">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3 font-black text-slate-900 uppercase tracking-widest text-xs">
-                  <Building2 className="w-5 h-5 text-primary-500" />
-                  <span>{t("employees.details.current_dept")}</span>
+          <div className="flex-1 overflow-y-auto p-8 space-y-8 animate-in fade-in duration-500">
+            {activeDetailTab === "profile" && (
+              <div className="space-y-8 animate-in slide-in-from-bottom-2">
+                {/* Actions Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                  <button 
+                    onClick={() => { setEditingEmployee(selectedEmployee); setIsModalOpen(true); }}
+                    className="flex items-center justify-center gap-2 py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 transition-all text-xs shadow-sm"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    {t("employees.details.edit_profile")}
+                  </button>
+                  {selectedEmployee.is_active ? (
+                    <button 
+                      onClick={() => {
+                        if (window.confirm(t("employees.details.terminate_confirm"))) {
+                          updateMutation.mutate({ id: selectedEmployee.id, employee: { is_active: false, termination_date: format(new Date(), 'yyyy-MM-dd') } });
+                        }
+                      }}
+                      className="flex items-center justify-center gap-2 py-3 bg-rose-50 text-rose-600 font-bold rounded-2xl hover:bg-rose-100 transition-all text-xs"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      {t("employees.details.terminate")}
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => setIsRehireModalOpen(true)}
+                      className="flex items-center justify-center gap-2 py-3 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all text-xs shadow-xl shadow-primary-200"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      {t("employees.details.rehire")}
+                    </button>
+                  )}
                 </div>
-                <button 
-                  onClick={() => {
-                    setSelectedDeptId(deptHistory?.[0]?.department_id || "");
-                    setIsTransferModalOpen(true);
-                  }}
-                  data-testid="transfer-employee-btn"
-                  className="text-xs font-bold text-primary-600 hover:underline flex items-center gap-1.5 bg-primary-50 px-3 py-1.5 rounded-xl transition-colors"
-                >
-                  <ArrowRightLeft className="w-3.5 h-3.5" />
-                  {t("employees.details.transfer")}
-                </button>
-              </div>
-              
-              <div className="bg-slate-50/50 rounded-3xl p-6 border border-slate-50 group hover:border-primary-100 transition-all">
-                {deptHistory && deptHistory.length > 0 ? (
-                  <div>
-                    <div className="font-extrabold text-slate-900 text-xl tracking-tight">
-                      {departments?.find(d => d.id === deptHistory[0].department_id)?.name}
-                    </div>
-                    <div className="text-xs text-slate-400 mt-2 font-bold uppercase tracking-wider flex items-center gap-2">
-                       <Calendar className="w-3.5 h-3.5" />
-                       {t("employees.transfer.effective_date")}: {formatDate(deptHistory[0].effective_date)}
-                    </div>
+
+                {/* Current Dept */}
+                <section className="space-y-4">
+                  <div className="flex justify-between items-center px-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <Building2 size={12} /> {t("employees.details.current_dept")}
+                    </span>
+                    <button 
+                      onClick={() => {
+                        setSelectedDeptId(deptHistory?.[0]?.department_id || "");
+                        setIsTransferModalOpen(true);
+                      }}
+                      className="text-[10px] font-black text-primary-600 uppercase tracking-tighter hover:underline"
+                    >
+                      {t("employees.details.transfer")}
+                    </button>
                   </div>
-                ) : (
-                  <div className="text-sm text-slate-400 italic font-medium">{t("employees.details.not_assigned_dept")}</div>
-                )}
-              </div>
-            </section>
-
-            {/* Salary Configuration (Unified) */}
-            <section className="space-y-5">
-              <div className="flex items-center gap-3 font-black text-slate-900 uppercase tracking-widest text-xs">
-                <Banknote className="w-5 h-5 text-emerald-500" />
-                <span>{t("employees.details.salary_benefits")}</span>
-              </div>
-              <EmployeeSalaryConfig wsId={wsId} employeeId={selectedEmployee.id} />
-            </section>
-
-            {/* Timeline/Activity */}
-            <section className="space-y-6">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3 font-black text-slate-900 uppercase tracking-widest text-xs">
-                  <HistoryIcon className="w-5 h-5 text-slate-400" />
-                  <span>{t("employees.details.work_history")}</span>
-                </div>
-                <button 
-                  onClick={() => setIsHistoryModalOpen(true)}
-                  className="text-[10px] font-black text-slate-400 hover:text-primary-600 uppercase tracking-widest transition-colors"
-                >
-                  {t("employees.details.view_details")}
-                </button>
-              </div>
-              <div className="relative pl-8 space-y-8 before:absolute before:left-3 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
-                {employmentHistory?.map((period, idx) => (
-                  <React.Fragment key={period.id}>
-                    {period.termination_date && (
-                      <div className="relative animate-in fade-in slide-in-from-left duration-300">
-                        <div className="absolute -left-[1.65rem] top-1.5 w-4 h-4 rounded-full bg-rose-500 border-[3px] border-white shadow-md ring-4 ring-rose-50"></div>
-                        <div className="text-sm font-black text-slate-800 uppercase tracking-tight">{t("employees.table.terminated")}</div>
-                        <div className="text-xs text-slate-500 mt-1 font-bold">{formatDate(period.termination_date)}</div>
+                  
+                  <div className="bg-slate-50 border border-slate-100 p-6 rounded-[2rem] group hover:border-primary-200 transition-all">
+                    {deptHistory && deptHistory.length > 0 ? (
+                      <div>
+                        <div className="font-black text-slate-900 text-xl tracking-tight uppercase">
+                          {departments?.find(d => d.id === deptHistory[0].department_id)?.name}
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-2 font-black uppercase tracking-widest flex items-center gap-2">
+                           <Calendar className="w-3.5 h-3.5" />
+                           {t("employees.transfer.effective_date")}: {formatDate(deptHistory[0].effective_date)}
+                        </div>
                       </div>
+                    ) : (
+                      <div className="text-sm text-slate-400 italic font-bold">{t("employees.details.not_assigned_dept")}</div>
                     )}
-                    <div className="relative animate-in fade-in slide-in-from-left duration-300">
-                      <div className={`absolute -left-[1.65rem] top-1.5 w-4 h-4 rounded-full border-[3px] border-white shadow-md ring-4 ${idx === 0 && !period.termination_date ? 'bg-emerald-500 ring-emerald-50' : 'bg-primary-500 ring-primary-50'}`}></div>
-                      <div className="text-sm font-black text-slate-800 uppercase tracking-tight">
-                        {period.is_rehire ? t("employees.details.returned") : t("employees.details.joined")}
-                      </div>
-                      <div className="text-xs text-slate-500 mt-1 font-bold">{formatDate(period.hire_date)}</div>
-                    </div>
-                  </React.Fragment>
-                ))}
+                  </div>
+                </section>
+
+                <section className="space-y-4">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
+                    <Calendar size={12} /> {t("employees.table.hire_date")}
+                  </span>
+                  <div className="bg-slate-50 border border-slate-100 p-6 rounded-[2rem] font-black text-slate-700 text-lg">
+                    {formatDate(selectedEmployee.hire_date)}
+                  </div>
+                </section>
               </div>
-            </section>
+            )}
+
+            {activeDetailTab === "salary" && (
+              <div className="animate-in slide-in-from-bottom-2">
+                <EmployeeSalaryConfig wsId={wsId} employeeId={selectedEmployee.id} />
+              </div>
+            )}
+
+            {activeDetailTab === "history" && (
+              <div className="space-y-10 animate-in slide-in-from-bottom-2">
+                <div className="relative pl-8 space-y-8 before:absolute before:left-3 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
+                  {employmentHistory?.map((period, idx) => (
+                    <React.Fragment key={period.id}>
+                      {period.termination_date && (
+                        <div className="relative animate-in fade-in slide-in-from-left duration-300">
+                          <div className="absolute -left-[1.65rem] top-1.5 w-4 h-4 rounded-full bg-rose-500 border-[3px] border-white shadow-md ring-4 ring-rose-50"></div>
+                          <div className="text-sm font-black text-slate-800 uppercase tracking-tight">{t("employees.table.terminated")}</div>
+                          <div className="text-xs text-slate-500 mt-1 font-bold">{formatDate(period.termination_date)}</div>
+                        </div>
+                      )}
+                      <div className="relative animate-in fade-in slide-in-from-left duration-300">
+                        <div className={`absolute -left-[1.65rem] top-1.5 w-4 h-4 rounded-full border-[3px] border-white shadow-md ring-4 ${idx === 0 && !period.termination_date ? 'bg-emerald-500 ring-emerald-50' : 'bg-primary-500 ring-primary-50'}`}></div>
+                        <div className="text-sm font-black text-slate-800 uppercase tracking-tight">
+                          {period.is_rehire ? t("employees.details.returned") : t("employees.details.joined")}
+                        </div>
+                        <div className="text-xs text-slate-500 mt-1 font-bold">{formatDate(period.hire_date)}</div>
+                      </div>
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
