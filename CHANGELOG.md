@@ -5,6 +5,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Improved Date Selection UX**:
+    - Frontend: Implemented a new **MonthYearPicker** reusable component with a modern grid layout and quick shortcuts (Last Month, This Month).
+    - Frontend: Replaced manual number inputs with the new `MonthYearPicker` in `BatchCalculationModal` and `PayrollPage`.
+    - Frontend: Added a new "Specific Month" (`specific_month`) filter mode to `ReportsPage` for faster navigation to historical data.
+    - Frontend: Added unit tests for `MonthYearPicker` verifying year navigation and shortcut logic.
 - **Batch Payroll Calculation**:
     - Backend: Implemented `calculate_batch_payslips` in `PayrollService` utilizing async parallel processing for high performance.
     - Backend: Added `POST /api/workspaces/:ws_id/payroll/calculate-batch` endpoint and `GET /api/workspaces/:ws_id/payroll/payslips`.

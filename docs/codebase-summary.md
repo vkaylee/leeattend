@@ -94,6 +94,7 @@ leeattend/
             - **payroll_batch_tests.rs**: Ensures reliable parallel calculation for multiple employees simultaneously.
 2.  **Web Dashboard (React/Vite)**:
     - **Modular Components**:
+        - **MonthYearPicker**: High-fidelity month and year selection grid with quick shortcuts, used in Payroll and Reports for efficient period navigation.
         - **HierarchyLegend**: Generic "Vertical Metro Map" component for visualizing hierarchical decision paths and priorities.
         - **PriorityLegend**: Shift-specific scheduling source guide, refactored to use `HierarchyLegend`.
         - **PayrollPriorityLegend**: Visualizes the 3-tier payroll policy resolution (Individual > Dept > Workspace).

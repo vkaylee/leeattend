@@ -151,6 +151,13 @@ Hệ thống sử dụng một mô hình quản lý tập trung cho toàn bộ c
 - **Sidebar-driven Detail View**: Khi vào một nhóm cài đặt cụ thể, sử dụng layout 2 cột: Sidebar trái chứa menu danh mục con, vùng bên phải hiển thị form cấu hình chi tiết.
 - **Consistent Forms**: Mọi form cài đặt phải sử dụng cùng một kiểu Save/Cancel button đặt ở góc dưới bên phải hoặc Toolbar cố định.
 
+### 8.5. Date & Period Selection (Chọn ngày và Kỳ lương)
+Để tối ưu hóa thao tác người dùng khi làm việc với các dữ liệu theo chu kỳ (Lương, Báo cáo):
+- **Component**: Luôn sử dụng `MonthYearPicker` cho các trường chọn Tháng/Năm.
+- **Visual**: Ưu tiên hiển thị lưới 12 tháng (`3x4` hoặc `4x3`) để chọn nhanh bằng 1 lần click thay vì dùng dropdown list dài.
+- **Defaulting Strategy**: Đối với các nghiệp vụ kết thúc kỳ (Tính lương, Xem báo cáo tháng), mặc định luôn chọn **Tháng trước** (`Last Month`) thay vì tháng hiện tại, vì đây là khoảng thời gian người dùng thường xuyên thao tác nhất.
+- **Shortcuts**: Luôn cung cấp các nút chọn nhanh "Tháng này" và "Tháng trước" để reset bộ lọc ngay lập tức.
+
 ---
 
 ---
