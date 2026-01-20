@@ -172,28 +172,28 @@ export default function DepartmentsPage() {
             </div>
             
             <h2 className="text-xl font-black text-slate-900 tracking-tight mb-2 uppercase">{dept.name}</h2>
-            <p className="text-slate-500 text-xs mb-8 line-clamp-2 min-h-[2rem] font-bold leading-relaxed opacity-70">{dept.description || t("common.no_description")}</p>
+            <p className="text-slate-500 text-xs mb-8 line-clamp-2 min-h-[2.5rem] font-bold leading-relaxed opacity-70 italic">{dept.description || t("common.no_description")}</p>
             
-            <div className="pt-6 border-t border-slate-50 flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shadow-inner">
-                  <UserCircle className="w-4 h-4" />
+            <div className="pt-6 border-t border-slate-50 flex flex-col gap-5">
+              <div className="flex items-center gap-4">
+                <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shadow-inner group-hover:text-primary-500 group-hover:bg-primary-50 group-hover:border-primary-100 transition-all">
+                  <UserCircle size={18} />
                 </div>
-                <div className="text-xs">
-                  <span className="block text-slate-400 font-black uppercase tracking-widest text-[8px]">{t("departments.manager_label")}</span>
-                  <span className="font-bold text-slate-700">
+                <div>
+                  <span className="block text-slate-400 font-black uppercase tracking-widest text-[9px] mb-0.5">{t("departments.manager_label")}</span>
+                  <span className="font-black text-slate-800 text-xs uppercase tracking-tight">
                     {users.find(u => u.id === dept.manager_id)?.full_name || t("departments.not_assigned")}
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shadow-inner">
-                  <CalendarDays className="w-4 h-4" />
+              <div className="flex items-center gap-4">
+                <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shadow-inner group-hover:text-primary-500 group-hover:bg-primary-50 group-hover:border-primary-100 transition-all">
+                  <CalendarDays size={18} />
                 </div>
-                <div className="text-xs">
-                  <span className="block text-slate-400 font-black uppercase tracking-widest text-[8px]">{t("departments.default_pattern_label")}</span>
-                  <span className="font-bold text-slate-700">
+                <div>
+                  <span className="block text-slate-400 font-black uppercase tracking-widest text-[9px] mb-0.5">{t("departments.default_pattern_label")}</span>
+                  <span className="font-black text-slate-800 text-xs uppercase tracking-tight">
                     {patterns.find(p => p.id === dept.default_working_pattern_id)?.name || t("departments.not_assigned")}
                   </span>
                 </div>
@@ -207,23 +207,24 @@ export default function DepartmentsPage() {
       <Modal
         isOpen={isConfigModalOpen && !!editingDept}
         onClose={() => setIsConfigModalOpen(false)}
-        title={t("payroll.settings.dept_title", "Cấu hình lương phòng ban")}
+        title={t("payroll.settings.dept_title")}
         subtitle={editingDept?.name}
-        icon={<Calculator className="w-6 h-6" />}
+        icon={<Calculator size={24} />}
+        maxWidth="2xl"
       >
-        <div className="space-y-6">
+        <div className="space-y-8 pt-4">
           <TemporalConfigTable 
-            title={t("payroll.settings.std_days_history", "Lịch sử công chuẩn")}
+            title={t("payroll.settings.std_days_history")}
             records={deptConfigs}
             isLoading={isConfigsLoading}
             onSave={async (data) => {
               await saveConfigMutation.mutateAsync(data);
             }}
           />
-          <div className="pt-4 flex justify-end">
+          <div className="pt-6 border-t border-slate-50 flex justify-end">
             <button 
               onClick={() => setIsConfigModalOpen(false)}
-              className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg"
+              className="px-10 py-3.5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200 active:scale-95"
             >
               {t("common.close")}
             </button>
@@ -236,77 +237,80 @@ export default function DepartmentsPage() {
         onClose={() => setIsModalOpen(false)}
         title={editingDept ? t("departments.modal.edit_title") : t("departments.modal.add_title")}
         subtitle={t("departments.modal.subtitle")}
-        icon={<LayoutGrid className="w-6 h-6" />}
+        icon={<LayoutGrid size={24} />}
+        maxWidth="lg"
       >
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8 pt-4">
           <div className="space-y-2">
-            <label htmlFor="dept-name" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">{t("departments.form.name_label")}</label>
+            <label htmlFor="dept-name" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("departments.form.name_label")}</label>
             <input 
               id="dept-name"
               name="name" 
               required 
               defaultValue={editingDept?.name} 
-              className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 outline-none transition-all font-bold" 
+              className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight" 
               placeholder={t("departments.form.name_placeholder")}
             />
           </div>
           
           <div className="space-y-2">
-            <label htmlFor="dept-desc" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">{t("common.description")}</label>
+            <label htmlFor="dept-desc" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.description")}</label>
             <textarea 
               id="dept-desc"
               name="description" 
               defaultValue={editingDept?.description} 
-              className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 outline-none transition-all font-medium h-24 resize-none" 
+              className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-medium text-sm h-28 resize-none" 
               placeholder={t("departments.form.desc_placeholder")}
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="dept-manager" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">{t("departments.manager_label")}</label>
-            <Combobox
-              id="dept-manager"
-              options={users.map(u => ({
-                value: u.id,
-                label: u.full_name || u.email,
-                icon: <UserCircle className="w-4 h-4" />
-              }))}
-              value={selectedManagerId}
-              onChange={setSelectedManagerId}
-              placeholder={t("departments.form.manager_placeholder")}
-              className="bg-slate-50 border-slate-100"
-            />
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label htmlFor="dept-manager" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("departments.manager_label")}</label>
+              <Combobox
+                id="dept-manager"
+                options={users.map(u => ({
+                  value: u.id,
+                  label: u.full_name || u.email,
+                  icon: <UserCircle className="w-4 h-4" />
+                }))}
+                value={selectedManagerId}
+                onChange={setSelectedManagerId}
+                placeholder={t("departments.form.manager_placeholder")}
+                className="bg-slate-50 border-slate-100"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <label htmlFor="dept-pattern" className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">{t("departments.default_pattern_label")}</label>
-            <Combobox
-              id="dept-pattern"
-              data-testid="dept-pattern"
-              options={patterns.map(p => ({
-                value: p.id,
-                label: p.name,
-                icon: <CalendarDays className="w-4 h-4" />
-              }))}
-              value={selectedPatternId}
-              onChange={setSelectedPatternId}
-              placeholder={t("departments.form.pattern_placeholder")}
-              className="bg-slate-50 border-slate-100"
-            />
+            <div className="space-y-2">
+              <label htmlFor="dept-pattern" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("departments.default_pattern_label")}</label>
+              <Combobox
+                id="dept-pattern"
+                data-testid="dept-pattern"
+                options={patterns.map(p => ({
+                  value: p.id,
+                  label: p.name,
+                  icon: <CalendarDays className="w-4 h-4" />
+                }))}
+                value={selectedPatternId}
+                onChange={setSelectedPatternId}
+                placeholder={t("departments.form.pattern_placeholder")}
+                className="bg-slate-50 border-slate-100"
+              />
+            </div>
           </div>
 
           <div className="pt-6 grid grid-cols-2 gap-5">
             <button 
               type="button" 
               onClick={() => setIsModalOpen(false)} 
-              className="px-8 py-4 border border-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all"
+              className="px-8 py-4 border border-slate-100 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all"
             >
               {t("common.cancel")}
             </button>
             <button 
               type="submit" 
               data-testid="save-dept-btn"
-              className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 hover:scale-[1.02] active:scale-95"
+              className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200 active:scale-95"
             >
               {editingDept ? t("common.update") : t("departments.modal.submit_btn")}
             </button>

@@ -275,15 +275,16 @@ export default function TimeTrackingPage() {
         onClose={() => setIsAdjustmentModalOpen(false)}
         title={adjustmentData.timeEntryId ? t("time_tracking.modal.edit_title") : t("time_tracking.modal.new_title")}
         subtitle={t("time_tracking.modal.subtitle")}
-        icon={<History className="w-6 h-6" />}
+        icon={<History size={24} />}
+        maxWidth="md"
       >
-        <form onSubmit={handleAdjustSubmit} className="space-y-6">
+        <form onSubmit={handleAdjustSubmit} className="space-y-8 pt-4">
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.work_day")}</label>
             <input 
               type="date" 
               required
-              className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold"
+              className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight"
               value={adjustmentData.date}
               onChange={e => setAdjustmentData({...adjustmentData, date: e.target.value})}
             />
@@ -295,7 +296,7 @@ export default function TimeTrackingPage() {
               <input 
                 type="time" 
                 required
-                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold"
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono font-black text-sm text-center"
                 value={adjustmentData.punchIn}
                 onChange={e => setAdjustmentData({...adjustmentData, punchIn: e.target.value})}
               />
@@ -305,14 +306,14 @@ export default function TimeTrackingPage() {
               <input 
                 type="time" 
                 required
-                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-bold"
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono font-black text-sm text-center"
                 value={adjustmentData.punchOut}
                 onChange={e => setAdjustmentData({...adjustmentData, punchOut: e.target.value})}
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-4 py-2">
+          <div className="flex items-center gap-4 py-2 bg-slate-50/50 p-4 rounded-[1.5rem] border border-slate-100 shadow-inner">
             <input 
               type="checkbox" 
               id="is_break_overtime"
@@ -320,7 +321,7 @@ export default function TimeTrackingPage() {
               checked={adjustmentData.isBreakOvertime}
               onChange={e => setAdjustmentData({...adjustmentData, isBreakOvertime: e.target.checked})}
             />
-            <label htmlFor="is_break_overtime" className="text-sm font-black text-slate-700 uppercase tracking-widest cursor-pointer">{t("attendance_confirm.ot_label")}</label>
+            <label htmlFor="is_break_overtime" className="text-xs font-black text-slate-700 uppercase tracking-widest cursor-pointer leading-tight">{t("attendance_confirm.ot_label")}</label>
           </div>
 
           <div className="space-y-2">
@@ -328,28 +329,20 @@ export default function TimeTrackingPage() {
             <textarea 
               required
               placeholder={t("time_tracking.modal.reason_placeholder")}
-              className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 outline-none transition-all font-medium h-24 resize-none"
+              className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-medium text-sm h-28 resize-none"
               value={adjustmentData.reason}
               onChange={e => setAdjustmentData({...adjustmentData, reason: e.target.value})}
             />
           </div>
 
           <div className="pt-6 grid grid-cols-2 gap-5">
-            <button type="button" onClick={() => setIsAdjustmentModalOpen(false)} className="px-8 py-4 border border-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all">{t("common.cancel")}</button>
-            <button type="submit" disabled={adjustMutation.isPending} className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200">
-              {adjustMutation.isPending ? t("common.sending") : t("common.submit_request")}
+            <button type="button" onClick={() => setIsAdjustmentModalOpen(false)} className="px-8 py-4 border border-slate-100 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">{t("common.cancel")}</button>
+            <button type="submit" disabled={adjustMutation.isPending} className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200 active:scale-95 disabled:opacity-50">
+              {adjustMutation.isPending ? t("common.sending").toUpperCase() : t("common.submit_request")}
             </button>
           </div>
         </form>
       </Modal>
-
-
-      {!selectedEmployeeId && (
-        <div className="flex flex-col items-center justify-center py-32 text-slate-400 border-2 border-dashed border-slate-200 rounded-[40px] bg-slate-50/30">
-          <AlertCircle className="w-16 h-16 mb-6 opacity-10" />
-          <p className="font-black text-xs uppercase tracking-widest text-slate-300">{t("time_tracking.empty_state_desc")}</p>
-        </div>
-      )}
     </div>
   );
 }
