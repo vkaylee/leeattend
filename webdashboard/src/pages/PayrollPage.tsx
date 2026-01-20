@@ -36,6 +36,14 @@ import PayrollSummaryTable from "@/components/payroll/PayrollSummaryTable";
 import PayrollDetailDrawer from "@/components/payroll/PayrollDetailDrawer";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -54,8 +62,17 @@ export default function PayrollPage() {
   const [isAdjustmentDrawerOpen, setIsAdjustmentDrawerOpen] = useState(false);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
   
-  const [calcYear, setCalcYear] = useState(new Date().getFullYear());
-  const [calcMonth, setCalcMonth] = useState(new Date().getMonth() + 1);
+  // Default to last month
+  const [calcYear, setCalcYear] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return d.getFullYear();
+  });
+  const [calcMonth, setCalcMonth] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return d.getMonth() + 1;
+  });
 
   const { data: employees = [], isLoading: empsLoading } = useQuery({
     queryKey: ["employees", wsId],
@@ -160,12 +177,80 @@ export default function PayrollPage() {
               >
                 <ArrowLeft size={18} />
               </button>
-              <div className="px-6 flex flex-col items-center min-w-[140px]">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Kỳ lương</span>
-                <span className="text-sm font-bold text-slate-900">
-                  Tháng {calcMonth}, {calcYear}
-                </span>
-              </div>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="px-6 flex flex-col items-center min-w-[140px] cursor-pointer hover:bg-slate-50 rounded-xl transition-colors py-1 group outline-none">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-primary-500 transition-colors">Kỳ lương</span>
+                    <span className="text-sm font-bold text-slate-900 group-hover:text-primary-600 transition-colors">
+                      Tháng {calcMonth}, {calcYear}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-64 p-2" align="center">
+                    <DropdownMenuLabel className="text-center text-xs text-slate-400 mb-2">Chọn kỳ lương</DropdownMenuLabel>
+                    
+                    <div className="flex items-center justify-between mb-4 px-2">
+                       <button 
+                          onClick={(e) => { e.preventDefault(); setCalcYear(y => y - 1); }} 
+                          className="p-1 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-900 transition-colors"
+                       >
+                          <ArrowLeft size={16} />
+                       </button>
+                       <span className="font-bold text-sm text-slate-900">{calcYear}</span>
+                       <button 
+                          onClick={(e) => { e.preventDefault(); setCalcYear(y => y + 1); }} 
+                          className="p-1 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-900 transition-colors"
+                       >
+                          <ArrowRight size={16} />
+                       </button>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-1 mb-2">
+                       {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                          <DropdownMenuItem
+                             key={m}
+                             onClick={() => { setCalcMonth(m); }}
+                             className={cn(
+                                "justify-center text-xs font-bold py-2 rounded-lg cursor-pointer",
+                                calcMonth === m 
+                                  ? "bg-slate-900 text-white focus:bg-slate-900 focus:text-white" 
+                                  : "text-slate-600 focus:bg-slate-100"
+                             )}
+                          >
+                             Tháng {m}
+                          </DropdownMenuItem>
+                       ))}
+                    </div>
+                    
+                    <DropdownMenuSeparator className="my-2" />
+                    
+                    <div className="flex flex-col gap-1">
+                       <DropdownMenuItem
+                          onClick={() => {
+                              const d = new Date();
+                              setCalcYear(d.getFullYear());
+                              setCalcMonth(d.getMonth() + 1);
+                          }}
+                          className="text-xs font-bold text-slate-500 focus:text-slate-900 py-2 rounded-lg cursor-pointer"
+                       >
+                          Tháng này (Current)
+                       </DropdownMenuItem>
+                       <DropdownMenuItem
+                          onClick={() => {
+                              const d = new Date();
+                              d.setMonth(d.getMonth() - 1);
+                              setCalcYear(d.getFullYear());
+                              setCalcMonth(d.getMonth() + 1);
+                          }}
+                          className="text-xs font-bold text-slate-500 focus:text-slate-900 py-2 rounded-lg cursor-pointer"
+                       >
+                          Tháng trước (Last Month)
+                       </DropdownMenuItem>
+                    </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <button 
                 onClick={() => changeMonth(1)}
                 className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-primary-600 hover:bg-white hover:shadow-sm rounded-xl transition-all"
@@ -241,5 +326,3 @@ export default function PayrollPage() {
     </div>
   );
 }
-
-

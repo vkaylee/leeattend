@@ -41,8 +41,8 @@ export default function ReportsPage() {
     return { start: firstDay, end: lastDay };
   };
 
-  const [filterMode, setFilterMode] = useState<"this_month" | "last_month" | "custom">("this_month");
-  const [dateRange, setDateRange] = useState(getMonthRange(0));
+  const [filterMode, setFilterMode] = useState<"this_month" | "last_month" | "custom">("last_month");
+  const [dateRange, setDateRange] = useState(getMonthRange(-1));
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [reportType, setReportType] = useState<"summary" | "daily">("summary");
   const [expandedDebugRows, setExpandedDebugRows] = useState<Set<string>>(new Set());

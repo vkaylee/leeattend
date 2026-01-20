@@ -48,7 +48,7 @@ const mockPayslips: Payslip[] = [
     net_pay_amount: "10500000",
     standard_units: 200,
     overtime_units: 10,
-    status: "finalized",
+    status: "published",
     created_at: "",
     updated_at: ""
   }
