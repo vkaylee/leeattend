@@ -126,20 +126,21 @@ export function EmployeeSearch({
   return (
     <div className={`space-y-2 ${className}`}>
       {multiple && selectedIds.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 px-1">
           {selectedIds.map(id => {
             const meta = selectedMeta.find(m => m.id === id);
             return (
               <span 
                 key={id}
-                className="inline-flex items-center gap-1.5 bg-primary-50 text-primary-700 px-3 py-1.5 rounded-full text-xs font-bold border border-primary-100 animate-in fade-in zoom-in duration-200"
+                className="inline-flex items-center gap-2 bg-white text-primary-600 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-tight border border-primary-100 shadow-sm animate-in fade-in zoom-in-95 duration-300"
               >
+                <User size={12} className="opacity-50" />
                 {meta ? `${meta.first_name} ${meta.last_name}` : id.slice(0, 8)}
                 <button 
                   onClick={() => handleRemove(id)}
-                  className="hover:bg-primary-200 rounded-full p-0.5 transition-colors"
+                  className="hover:bg-rose-50 hover:text-rose-600 rounded-lg p-1 transition-all active:scale-90"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </span>
             );
