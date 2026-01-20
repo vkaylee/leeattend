@@ -39,15 +39,12 @@ export default function BatchCalculationModal({
   const queryClient = useQueryClient();
   const toast = useToast();
   
-  // Default to last month
   const [calcYear, setCalcYear] = useState(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - 1);
+    const d = new Date(); d.setMonth(d.getMonth() - 1);
     return d.getFullYear();
   });
   const [calcMonth, setCalcMonth] = useState(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - 1);
+    const d = new Date(); d.setMonth(d.getMonth() - 1);
     return d.getMonth() + 1;
   });
   
@@ -55,130 +52,91 @@ export default function BatchCalculationModal({
 
   const batchMutation = useMutation({
     mutationFn: (data: { year: number; month: number }) => 
-      calculateBatchPayslips(workspaceId, { 
-        employee_ids: employeeIds, 
-        year: data.year, 
-        month: data.month 
-      }),
+      calculateBatchPayslips(workspaceId, { employee_ids: employeeIds, year: data.year, month: data.month }),
     onSuccess: (data) => {
       setResults(data.results);
       queryClient.invalidateQueries({ queryKey: ["payslips"] });
       toast.success(t("payroll.messages.calculate_success"));
     },
-    onError: (e: any) => toast.error(e.message, t("payroll.messages.calculate_error"))
   });
 
-  const handleCalculate = () => {
-    batchMutation.mutate({ year: calcYear, month: calcMonth });
-  };
-
-  const resetAndClose = () => {
-    setResults(null);
-    batchMutation.reset();
-    onClose();
-  };
+  const handleCalculate = () => { batchMutation.mutate({ year: calcYear, month: calcMonth }); };
+  const resetAndClose = () => { setResults(null); batchMutation.reset(); onClose(); };
 
   const successCount = results?.filter(r => r.status === "success").length || 0;
   const errorCount = (results?.length || 0) - successCount;
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={batchMutation.isPending ? () => {} : resetAndClose}
-      title={t("payroll.modal.title")}
-      subtitle={t("payroll.modal.subtitle")}
-      icon={<Calculator className="w-6 h-6" />}
-    >
-      <div className="space-y-6">
+    <Modal isOpen={isOpen} onClose={batchMutation.isPending ? () => {} : resetAndClose} title={t("payroll.modal.title")} subtitle={t("payroll.modal.subtitle")} icon={<Calculator size={24} />} maxWidth="lg">
+      <div className="space-y-8 pt-4 animate-in fade-in duration-500">
         {!results && !batchMutation.isPending && (
-          <>
-            <div className="bg-primary-50 p-6 rounded-3xl border border-primary-100 flex items-center gap-4">
-              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-primary-600 shadow-sm border border-primary-100">
-                <User className="w-7 h-7" />
+          <div className="space-y-8 animate-in fade-in duration-500">
+            <div className="bg-primary-50/50 p-8 rounded-[2.5rem] border border-primary-100/50 flex items-center gap-6 shadow-inner">
+              <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center text-primary-600 shadow-sm border border-primary-100">
+                <User size={32} />
               </div>
               <div>
-                <p className="text-[10px] font-black text-primary-400 uppercase tracking-widest leading-none mb-1">
-                  {t("common.employee")}
-                </p>
-                <p className="text-lg font-black text-slate-900 tracking-tight">
+                <p className="text-[10px] font-black text-primary-400 uppercase tracking-[0.2em] mb-1 opacity-70">{t("common.employees")}</p>
+                <p className="text-2xl font-black text-slate-900 tracking-tight uppercase">
                   {employeeIds.length} {t("common.people")}
                 </p>
               </div>
             </div>
 
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Kỳ lương (Pay Period)</label>
-              <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100">
-                <MonthYearPicker
-                  month={calcMonth}
-                  year={calcYear}
-                  onChange={(m, y) => {
-                    setCalcMonth(m);
-                    setCalcYear(y);
-                  }}
-                />
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("payroll.table.period")}</label>
+              <div className="bg-slate-50 border border-slate-100 p-2 rounded-[2rem] shadow-inner">
+                <MonthYearPicker month={calcMonth} year={calcYear} onChange={(m, y) => { setCalcMonth(m); setCalcYear(y); }} />
               </div>
             </div>
 
             <div className="pt-4 grid grid-cols-2 gap-5">
-              <button type="button" onClick={onClose} className="px-8 py-4 border border-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all">{t("common.cancel")}</button>
-              <button 
-                onClick={handleCalculate}
-                className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2"
-              >
-                {t("payroll.modal.submit")}
-              </button>
+              <button type="button" onClick={onClose} className="px-8 py-4 bg-white border border-slate-200 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">{t("common.cancel")}</button>
+              <button onClick={handleCalculate} className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200 active:scale-95">{t("payroll.modal.submit")}</button>
             </div>
-          </>
+          </div>
         )}
 
         {batchMutation.isPending && (
-          <div className="py-12 flex flex-col items-center justify-center text-center">
-            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 relative">
-              <Loader2 className="w-10 h-10 text-primary-600 animate-spin" />
-              <div className="absolute inset-0 border-4 border-primary-100 border-t-transparent rounded-full" />
+          <div className="py-20 flex flex-col items-center justify-center text-center animate-in zoom-in-95 duration-500">
+            <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-8 relative shadow-inner">
+              <Loader2 className="w-12 h-12 text-primary-600 animate-spin" />
+              <div className="absolute inset-0 border-4 border-primary-100 border-t-transparent rounded-full opacity-50" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">
-              {t("common.processing")}
-            </h3>
-            <p className="text-slate-500 text-sm max-w-xs">
+            <h3 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tight">{t("common.processing")}</h3>
+            <p className="text-slate-400 text-sm font-medium max-w-xs leading-relaxed">
               Calculating payroll for {employeeIds.length} employees. This may take a moment...
             </p>
           </div>
         )}
 
         {results && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
-                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Success</p>
-                <p className="text-2xl font-black text-emerald-700">{successCount}</p>
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="grid grid-cols-2 gap-6">
+              <div className="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-100 shadow-inner">
+                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1 opacity-70">Success</p>
+                <p className="text-3xl font-black text-emerald-700 font-mono tracking-tighter">{successCount}</p>
               </div>
-              <div className="bg-rose-50 p-4 rounded-2xl border border-rose-100">
-                <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-1">Errors</p>
-                <p className="text-2xl font-black text-rose-700">{errorCount}</p>
+              <div className="bg-rose-50/50 p-6 rounded-[2rem] border border-rose-100 shadow-inner">
+                <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-1 opacity-70">Errors</p>
+                <p className="text-3xl font-black text-rose-700 font-mono tracking-tighter">{errorCount}</p>
               </div>
             </div>
 
-            <div className="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+            <div className="max-h-72 overflow-y-auto space-y-3 pr-2 custom-scrollbar p-1">
               {results.map(res => (
-                <div key={res.employee_id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center",
-                      res.status === 'success' ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"
-                    )}>
-                      {res.status === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                <div key={res.employee_id} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl hover:shadow-md transition-all group">
+                  <div className="flex items-center gap-4">
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shadow-inner border", res.status === 'success' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100")}>
+                      {res.status === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-slate-900">{employeeNames[res.employee_id] || res.employee_id}</p>
-                      {res.error_message && (
-                        <p className="text-[10px] text-rose-500 truncate max-w-[200px]">{res.error_message}</p>
-                      )}
+                      <p className="font-black text-slate-900 text-sm tracking-tight uppercase">{employeeNames[res.employee_id] || res.employee_id}</p>
+                      {res.error_message && <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest mt-0.5 opacity-80">{res.error_message}</p>}
                     </div>
                   </div>
                   {res.status === 'success' && res.payslip && (
-                    <span className="text-[10px] font-black text-slate-400">
+                    <span className="text-sm font-black text-primary-600 font-mono tracking-tighter">
                       {new Intl.NumberFormat('vi-VN').format(parseFloat(res.payslip.net_pay_amount))}
                     </span>
                   )}
@@ -186,12 +144,9 @@ export default function BatchCalculationModal({
               ))}
             </div>
 
-            <button 
-              onClick={resetAndClose}
-              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all"
-            >
-              {t("common.close")}
-            </button>
+            <div className="pt-4 border-t border-slate-50">
+              <button onClick={resetAndClose} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200 active:scale-95">{t("common.close")}</button>
+            </div>
           </div>
         )}
       </div>
