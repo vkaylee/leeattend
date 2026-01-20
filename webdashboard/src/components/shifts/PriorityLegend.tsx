@@ -36,25 +36,50 @@ export const PriorityLegend: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div className="px-6 pb-4 animate-in slide-in-from-top-2 duration-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3 pt-2 border-t border-slate-50">
+        <div className="px-6 pb-6 pt-2 animate-in slide-in-from-top-2 duration-200">
+          <div className="relative flex flex-col gap-0 pl-2">
+            {/* Vertical Line */}
+            <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-slate-100" />
+
             {priorities.map((p, idx) => (
-              <div key={idx} className="flex items-center justify-between group">
-                <div className="flex items-center gap-2">
-                  <div className={`w-1.5 h-1.5 rounded-full ${p.color}`} />
-                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">
-                    {p.label}
-                  </span>
+              <div key={idx} className="relative flex items-start gap-4 pb-4 last:pb-0 group">
+                {/* Node */}
+                <div className="relative z-10 mt-1">
+                  <div className={`w-3 h-3 rounded-full border-2 border-white ring-2 ring-slate-50 ${p.color} transition-transform group-hover:scale-125 duration-200`} />
                 </div>
-                <span className="text-[9px] font-black text-slate-300 group-hover:text-slate-500 transition-colors">
-                  P{p.priority}
-                </span>
+
+                {/* Content */}
+                <div className="flex flex-col flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black text-slate-700 uppercase tracking-tight">
+                      {p.label}
+                    </span>
+                    <span className="text-[9px] font-black text-slate-300 group-hover:text-slate-500 transition-colors bg-slate-50 px-1.5 py-0.5 rounded">
+                      P{p.priority}
+                    </span>
+                  </div>
+                  
+                  {idx === 0 && (
+                    <span className="text-[9px] font-bold text-blue-500 uppercase tracking-widest mt-0.5">
+                      {t("shifts.traceability.highest_priority")}
+                    </span>
+                  )}
+                  {idx === priorities.length - 1 && (
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                      {t("shifts.traceability.lowest_priority")}
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
-          <p className="mt-4 text-[9px] text-slate-400 font-medium italic leading-relaxed">
-            * {t("shifts.traceability.title")}: Rules with higher priority numbers will override lower ones. Manual changes (Roster) always have the final say.
-          </p>
+
+          <div className="mt-6 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
+            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+              <span className="font-black text-blue-600 uppercase mr-1">{t("common.note")}:</span>
+              {t("shifts.traceability.hierarchy_explanation", "Rules are evaluated from top to bottom. Higher nodes override lower nodes.")}
+            </p>
+          </div>
         </div>
       )}
     </div>

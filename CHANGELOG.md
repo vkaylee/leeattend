@@ -27,6 +27,9 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - Localized table headers and status labels in the `PayrollTable` component.
 
 ### Changed
+- **UI/UX Refinement**:
+    - Updated `PriorityLegend` to use a **Vertical Metro Map** style, providing a clearer visualization of the priority hierarchy and fallback logic.
+    - Standardized `PriorityLegend` colors and labels across English and Vietnamese locales.
 - **Refactored Settings Hub i18n**:
     - Standardized translation keys for Settings categories (General, People, Time, Payroll, Connectivity) to resolve "Missing Key" warnings.
     - Updated `App.tsx` and `PeopleSettings.tsx` to use leaf-node translation keys instead of object paths for better reliability.

@@ -92,8 +92,9 @@
     "attendance": "考勤",
     "leave": "休假",
     "attendance_confirm": "考勤确认",
-    "reports": "报告",
-    "shifts": "排班管理",
+    "reports": "报表",
+    "shifts": "班次与排班",
+    "note": "备注",
     "payroll": {
       "settings": {
         "global_history": "全局配置历史",
@@ -1323,7 +1324,10 @@
       "p20_fixed": "固定分配",
       "p10_dept_fixed": "部门默认",
       "override_hint": "想要覆盖此逻辑？请为此日期分配手动排班（优先级 100）。",
-      "highest_priority_hint": "这是手动排班，具有最高优先级。"
+      "highest_priority_hint": "这是手动排班，具有最高优先级。",
+      "highest_priority": "最高优先级",
+      "lowest_priority": "默认回退",
+      "hierarchy_explanation": "规则自上而下评估。较高的节点会覆盖较低的节点。"
     }
   },
   "days": {

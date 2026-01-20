@@ -140,7 +140,7 @@ leeattend/
 
 2.  **Web Dashboard (React/Vite)**:
     - **Modular Components**:
-        - **PriorityLegend**: Visual guide for scheduling sources (Roster, Pattern, Fixed).
+        - **PriorityLegend**: Vertical "Metro Map" style visual guide for scheduling sources (Roster, Pattern, Fixed), showing hierarchy and fallback logic.
         - **ScheduleTracePopover**: Interactive tooltip showing the evaluation logic for a specific shift.
         - **SettingsLayout**: Centralized container for all Settings Hub sub-modules.
     - **ESS Features**:

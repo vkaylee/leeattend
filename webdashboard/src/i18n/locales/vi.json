@@ -93,7 +93,8 @@
     "leave": "Nghỉ phép",
     "attendance_confirm": "Xác nhận công",
     "reports": "Báo cáo",
-    "shifts": "Lịch trình & Ca",
+    "shifts": "Ca làm & Lịch trực",
+    "note": "Ghi chú",
     "payroll": {
       "settings": {
         "global_history": "Lịch sử cấu hình toàn hệ thống",
@@ -1323,7 +1324,10 @@
       "p20_fixed": "Gán ca cố định",
       "p10_dept_fixed": "Mặc định phòng ban",
       "override_hint": "Bạn muốn ghi đè logic này? Hãy gán Lịch trực thủ công cho ngày này (Ưu tiên 100).",
-      "highest_priority_hint": "Đây là lịch trực thủ công và có mức ưu tiên cao nhất."
+      "highest_priority_hint": "Đây là lịch trực thủ công và có mức ưu tiên cao nhất.",
+      "highest_priority": "Ưu tiên cao nhất",
+      "lowest_priority": "Mặc định hệ thống",
+      "hierarchy_explanation": "Các quy tắc được đánh giá từ trên xuống dưới. Các nút cao hơn sẽ ghi đè các nút thấp hơn."
     }
   },
   "days": {

@@ -28,5 +28,9 @@ describe("PriorityLegend", () => {
     // Should show items
     expect(screen.getByText("shifts.traceability.p100_manual")).toBeDefined();
     expect(screen.getByText("shifts.traceability.p10_dept_fixed")).toBeDefined();
+    
+    // Check for new labels
+    expect(screen.getByText("shifts.traceability.highest_priority")).toBeDefined();
+    expect(screen.getByText("shifts.traceability.lowest_priority")).toBeDefined();
   });
 });

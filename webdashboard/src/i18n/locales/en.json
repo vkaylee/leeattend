@@ -94,6 +94,7 @@
     "attendance_confirm": "Attendance Confirm",
     "reports": "Reports",
     "shifts": "Shifts & Rosters",
+    "note": "Note",
     "payroll": {
       "settings": {
         "global_history": "Global Configuration History",
@@ -1325,7 +1326,10 @@
       "p20_fixed": "Fixed Assignment",
       "p10_dept_fixed": "Department Default",
       "override_hint": "Want to override this? Assign a manual Roster for this day (Priority 100).",
-      "highest_priority_hint": "This is a manual roster and has the highest priority."
+      "highest_priority_hint": "This is a manual roster and has the highest priority.",
+      "highest_priority": "Highest Priority",
+      "lowest_priority": "Default Fallback",
+      "hierarchy_explanation": "Rules are evaluated from top to bottom. Higher nodes override lower nodes."
     }
   },
   "days": {
