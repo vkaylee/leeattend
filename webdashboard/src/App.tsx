@@ -353,6 +353,26 @@ function Layout() {
                 <span className="font-semibold text-sm">{t("common.shifts")}</span>
               </Link>
               <Link
+                to="/working-patterns"
+                data-testid="sidebar-link-working-patterns"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/working-patterns" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
+                }`}
+              >
+                <ListOrdered className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">{t("patterns.title")}</span>
+              </Link>
+              <Link
+                to="/assignment-rules"
+                data-testid="sidebar-link-assignment-rules"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                  location.pathname === "/assignment-rules" ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-primary-50 hover:text-primary-600"
+                }`}
+              >
+                <Settings2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-sm">{t("rules.title", "Auto-Assignment")}</span>
+              </Link>
+              <Link
                 to="/payroll"
                 data-testid="sidebar-link-payroll"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
@@ -596,6 +616,8 @@ function App() {
                   <Route path="/attendance-adjustments" element={<AttendanceAdjustmentsPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/shifts" element={<ShiftsPage />} />
+                  <Route path="/working-patterns" element={<WorkingPatternsPage />} />
+                  <Route path="/assignment-rules" element={<AssignmentRulesPage />} />
                   <Route path="/payroll" element={<PayrollPage />} />
                   
                   {/* Settings Hub */}
