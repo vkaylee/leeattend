@@ -58,21 +58,28 @@ export default function WorkspaceSwitcher() {
         value: ws.id,
         label: ws.name,
         icon: (
-          <div className="bg-primary-50 p-1.5 rounded-lg border border-primary-100">
-            <Briefcase className="w-3.5 h-3.5 text-primary-600" />
+          <div className="bg-primary-50 p-2 rounded-xl border border-primary-100 shadow-inner">
+            <Briefcase className="w-4 h-4 text-primary-600" />
           </div>
         ),
-        description: ws.id.substring(0, 8)
+        description: (
+          <div className="flex items-center gap-1.5 mt-0.5 opacity-60">
+            <span className="text-[9px] font-black uppercase tracking-widest leading-none">ID:</span>
+            <span className="text-[9px] font-mono font-bold leading-none">{ws.id.substring(0, 8)}</span>
+          </div>
+        )
       })),
       {
         value: "ADD_NEW",
         label: t("common.create_workspace"),
         icon: (
-          <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100">
-            <Plus className="w-3.5 h-3.5 text-slate-500" />
+          <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 shadow-inner">
+            <Plus className="w-4 h-4 text-slate-400" />
           </div>
         ),
-        description: t("common.add_office_branch")
+        description: (
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5 italic">{t("common.add_office_branch")}</p>
+        )
       }
     ];
 
@@ -84,7 +91,7 @@ export default function WorkspaceSwitcher() {
           onChange={handleSwitch}
           placeholder={t("common.select_workspace")}
           searchPlaceholder={t("common.search_placeholder")}
-          className="h-10 bg-slate-50/50 border-slate-100 hover:bg-white hover:border-primary-200 transition-all rounded-xl text-sm font-semibold text-slate-700"
+          className="h-12 bg-slate-50/50 border-slate-100 hover:bg-white hover:border-primary-200 transition-all rounded-[1.25rem] text-sm font-black text-slate-700 uppercase tracking-tight shadow-inner"
         />
 
         <CreateWorkspaceDialog
