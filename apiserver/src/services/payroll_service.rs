@@ -250,4 +250,38 @@ impl PayrollService {
 
         Ok(created_payslip)
     }
+
+    pub async fn calculate_batch_payslips(
+        pool: &PgPool,
+        employee_ids: Vec<Uuid>,
+        workspace_id: Uuid,
+        year: i32,
+        month: u32,
+    ) -> crate::models::BatchCalculatePayrollResponse {
+        use futures_util::future::join_all;
+
+        let mut tasks = Vec::new();
+        for emp_id in employee_ids {
+            let pool_clone = pool.clone();
+            tasks.push(async move {
+                match Self::calculate_monthly_payslip(&pool_clone, emp_id, workspace_id, year, month).await {
+                    Ok(payslip) => crate::models::BatchCalculateResult {
+                        employee_id: emp_id,
+                        status: "success".to_string(),
+                        payslip: Some(payslip),
+                        error_message: None,
+                    },
+                    Err(status) => crate::models::BatchCalculateResult {
+                        employee_id: emp_id,
+                        status: "error".to_string(),
+                        payslip: None,
+                        error_message: Some(format!("HTTP Error: {}", status)),
+                    },
+                }
+            });
+        }
+
+        let results = join_all(tasks).await;
+        crate::models::BatchCalculatePayrollResponse { results }
+    }
 }

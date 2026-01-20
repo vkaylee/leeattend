@@ -86,16 +86,18 @@ leeattend/
             - **RuleEvaluator**: Determines the "winning" assignment rule based on priority (P100 Roster > P80 Pattern > P60 Rule > P40 Dept Pattern > P20 Fixed > P10 Dept Fixed).
             - **PolicyResolver**: Hierarchical configuration resolution (Individual > Department > Workspace) with full traceability for payroll parameters (Standard Days, Hours/Day).
             - **PairingService**: Core engine for converting raw punches into time entries using FSM or Anchor strategies.
-            - **PayrollService**: Orchestrates multi-segment payroll calculation and tax logic.
+            - **PayrollService**: Orchestrates multi-segment payroll calculation, tax logic, and high-performance batch processing for large teams.
         - **Tests**:
             - **fallback_system_tests.rs**: Comprehensive verification of the schedule priority hierarchy (P100-P10).
             - **schedule_traceability_tests.rs**: Validates that trace metadata is correctly generated for every assignment decision.
             - **payroll_traceability_tests.rs**: Verifies the hierarchical resolution and source tracking for payroll "Standard Days".
+            - **payroll_batch_tests.rs**: Ensures reliable parallel calculation for multiple employees simultaneously.
 2.  **Web Dashboard (React/Vite)**:
     - **Modular Components**:
         - **HierarchyLegend**: Generic "Vertical Metro Map" component for visualizing hierarchical decision paths and priorities.
         - **PriorityLegend**: Shift-specific scheduling source guide, refactored to use `HierarchyLegend`.
         - **PayrollPriorityLegend**: Visualizes the 3-tier payroll policy resolution (Individual > Dept > Workspace).
+        - **BatchCalculationModal**: Unified interface for triggering and monitoring payroll calculations for multiple employees.
         - **ScheduleTracePopover**: Interactive tooltip showing the evaluation logic for a specific shift.
         - **SettingsLayout**: Centralized container for all Settings Hub sub-modules.
     - **ESS Features**:

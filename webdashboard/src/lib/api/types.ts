@@ -285,6 +285,23 @@ export interface Payslip {
   updated_at: string;
 }
 
+export interface BatchCalculatePayrollRequest {
+  employee_ids: string[];
+  year: number;
+  month: number;
+}
+
+export interface BatchCalculateResult {
+  employee_id: string;
+  status: "success" | "error";
+  payslip?: Payslip;
+  error_message?: string;
+}
+
+export interface BatchCalculatePayrollResponse {
+  results: BatchCalculateResult[];
+}
+
 // --- Department Models ---
 
 export interface Department {

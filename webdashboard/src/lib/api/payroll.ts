@@ -74,6 +74,33 @@ export async function calculate_payroll(
   return response.json();
 }
 
+export async function calculateBatchPayslips(
+  wsId: string,
+  data: { employee_ids: string[]; year: number; month: number }
+): Promise<{ results: any[] }> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/payroll/calculate-batch`,
+    { 
+      method: "POST",
+      body: JSON.stringify(data)
+    }
+  );
+  if (!response.ok) throw new Error("Failed to calculate batch payroll");
+  return response.json();
+}
+
+export async function fetchWorkspacePayslips(
+  wsId: string,
+  year: number,
+  month: number
+): Promise<Payslip[]> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/payroll/payslips?year=${year}&month=${month}`
+  );
+  if (!response.ok) throw new Error("Failed to fetch workspace payslips");
+  return response.json();
+}
+
 export async function fetchEmployeePayslips(wsId: string, employeeId: string): Promise<Payslip[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/payslips`);
   if (!response.ok) throw new Error("Failed to fetch payslips");

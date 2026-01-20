@@ -214,6 +214,27 @@ pub async fn get_payslips_by_employee(
     .await
 }
 
+pub async fn get_payslips_by_workspace_period(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    period_start: NaiveDate,
+    period_end: NaiveDate,
+) -> Result<Vec<Payslip>, sqlx::Error> {
+    query_as!(
+        Payslip,
+        r#"SELECT p.id, p.employee_id, p.period_start, p.period_end, p.base_pay_amount, p.overtime_pay_amount, p.deductions_amount, p.net_pay_amount, p.standard_units, p.overtime_units, p.status, p.created_at as "created_at!", p.updated_at as "updated_at!" 
+           FROM payslips p
+           JOIN employees e ON e.id = p.employee_id
+           WHERE e.workspace_id = $1 AND p.period_start = $2 AND p.period_end = $3
+           ORDER BY p.created_at DESC"#,
+        workspace_id,
+        period_start,
+        period_end
+    )
+    .fetch_all(pool)
+    .await
+}
+
 pub async fn get_salary_components_history(
     pool: &PgPool,
     employee_id: Uuid,

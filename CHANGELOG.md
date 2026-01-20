@@ -5,6 +5,12 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Batch Payroll Calculation**:
+    - Backend: Implemented `calculate_batch_payslips` in `PayrollService` utilizing async parallel processing for high performance.
+    - Backend: Added `POST /api/workspaces/:ws_id/payroll/calculate-batch` endpoint.
+    - Frontend: Enhanced `PayrollPage` with a multi-selection sidebar, including "Select All" and individual checkboxes.
+    - Frontend: Created `BatchCalculationModal` with real-time progress tracking and summary of success/error results.
+    - Added comprehensive integration tests for the batch calculation engine.
 - **Payroll Standard Days Traceability**:
     - Backend: Enhanced `PolicyResolver` and `PayrollService` to track and persist the source of standard working days (Individual > Department > Workspace).
     - Backend: Added `std_days_source` column to `payslip_segments` for granular auditability.

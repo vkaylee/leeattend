@@ -667,6 +667,46 @@ Thiết lập hoặc cập nhật đặc cách ngày công/giờ công cho phòn
   ```
 - **Response (201)**: `DepartmentPayrollConfig` object
 
+#### GET /workspaces/:ws_id/employees/:id/payslips
+Lấy danh sách các phiếu lương của một nhân viên cụ thể.
+- **Response (200)**: `Array<PayslipResponse>`
+
+#### POST /workspaces/:ws_id/employees/:id/calculate-payroll (New)
+Tính toán phiếu lương cho một nhân viên cụ thể.
+- **Query Params**: `?year=2026&month=1`
+- **Response (200)**: `PayslipResponse`
+
+#### POST /workspaces/:ws_id/payroll/calculate-batch (New)
+Kích hoạt tính toán lương hàng loạt cho nhiều nhân viên cùng lúc. Xử lý song song để tối ưu hiệu năng.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**:
+  ```json
+  {
+    "employee_ids": ["uuid-1", "uuid-2", "..."],
+    "year": 2026,
+    "month": 1
+  }
+  ```
+- **Response (200)**: 
+  ```json
+  {
+    "results": [
+      {
+        "employee_id": "uuid-1",
+        "status": "success",
+        "payslip": { ... },
+        "error_message": null
+      },
+      {
+        "employee_id": "uuid-2",
+        "status": "error",
+        "payslip": null,
+        "error_message": "HTTP Error: 404 Not Found"
+      }
+    ]
+  }
+  ```
+
 #### GET /workspaces/:ws_id/employees/:id/payroll-config (New)
 Lấy lịch sử đặc cách lương cá nhân của nhân viên.
 - **Response (200)**: `Array<EmployeePayrollConfig>`

@@ -697,6 +697,33 @@ pub struct Payslip {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PayslipResponse {
+    #[serde(flatten)]
+    pub payslip: Payslip,
+    pub segments: Vec<PayslipSegment>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BatchCalculatePayrollRequest {
+    pub employee_ids: Vec<Uuid>,
+    pub year: i32,
+    pub month: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BatchCalculateResult {
+    pub employee_id: Uuid,
+    pub status: String, // "success" or "error"
+    pub payslip: Option<Payslip>,
+    pub error_message: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BatchCalculatePayrollResponse {
+    pub results: Vec<BatchCalculateResult>,
+}
+
 // --- Department Models ---
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]

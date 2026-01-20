@@ -10,8 +10,8 @@ use uuid::Uuid;
 
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    AssignSalaryComponentRequest, CreateSalaryComponentRequest, Payslip, PayslipSegment,
-    UpdatePayrollSettingsRequest,
+    AssignSalaryComponentRequest, BatchCalculatePayrollRequest, CreateSalaryComponentRequest,
+    Payslip, PayslipSegment, UpdatePayrollSettingsRequest,
 };
 use crate::AppState;
 
@@ -306,6 +306,50 @@ pub struct PayslipSegmentResponse {
     pub segment: PayslipSegment,
     // Add computed/default reason if needed
     pub reason: String,
+}
+
+pub async fn calculate_batch_payroll(
+    Path(workspace_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    MemberContext { .. }: MemberContext,
+    Json(req): Json<BatchCalculatePayrollRequest>,
+) -> impl IntoResponse {
+    let response = crate::services::payroll_service::PayrollService::calculate_batch_payslips(
+        &state.db,
+        req.employee_ids,
+        workspace_id,
+        req.year,
+        req.month,
+    )
+    .await;
+    Json(response).into_response()
+}
+
+pub async fn get_workspace_payslips(
+    Path(workspace_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    MemberContext { .. }: MemberContext,
+    Query(query): Query<PayrollQuery>,
+) -> impl IntoResponse {
+    let start_date = chrono::NaiveDate::from_ymd_opt(query.year, query.month, 1).unwrap();
+    let next_month = if query.month == 12 {
+        chrono::NaiveDate::from_ymd_opt(query.year + 1, 1, 1).unwrap()
+    } else {
+        chrono::NaiveDate::from_ymd_opt(query.year, query.month + 1, 1).unwrap()
+    };
+    let end_date = next_month.pred_opt().unwrap();
+
+    match crate::repositories::payroll_repository::get_payslips_by_workspace_period(
+        &state.db,
+        workspace_id,
+        start_date,
+        end_date,
+    )
+    .await
+    {
+        Ok(payslips) => Json(payslips).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
 }
 
 pub async fn calculate_payroll(

@@ -384,6 +384,14 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             post(handlers::calculate_payroll),
         )
         .route(
+            "/workspaces/:ws_id/payroll/calculate-batch",
+            post(handlers::calculate_batch_payroll),
+        )
+        .route(
+            "/workspaces/:ws_id/payroll/payslips",
+            get(handlers::get_workspace_payslips),
+        )
+        .route(
             "/workspaces/:ws_id/employees/:id/payroll-config",
             post(handlers::set_employee_payroll_config).get(handlers::get_employee_payroll_configs),
         )
