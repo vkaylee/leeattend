@@ -30,6 +30,7 @@ leeattend/
 │   └── tests/         # Integration tests with TestFactory
 ├── webdashboard/      # React (Vite) Admin UI
 │   ├── src/
+│   │   ├── AppRoutes.tsx # Centralized Route Definitions
 │   │   ├── components/ # UI Components (Modals, Switchers)
 │   │   ├── hooks/      # React Query hooks (Domain state)
 │   │   ├── i18n/       # Internationalization (locales, config)
@@ -94,6 +95,7 @@ leeattend/
             - **payroll_batch_tests.rs**: Ensures reliable parallel calculation for multiple employees simultaneously.
 3.  **Admin Dashboard (React/Vite)**:
     - **Premium UI Aesthetics**: Modern "Metro-style" interface using Tailwind CSS v4 and glassmorphism.
+    - **Decoupled Routing**: Routes are defined in a standalone `AppRoutes.tsx` component, separating navigation logic from the main application shell (`App.tsx`) to enable isolated integration testing via `MemoryRouter`.
     - **Global Modernization**: All administrative pages (Departments, Shifts, Reports, Payroll) follow a consistent card-based layout with high-precision information density.
     - **Payroll Management**: Integrated full-width data grid with sliding detail drawers for granular traceability.
     - **Internationalization**: Full support for English, Vietnamese, and Chinese with centralized i18n management.

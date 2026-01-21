@@ -5,6 +5,9 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Frontend Routing Architecture**:
+    - Decoupled routing logic into a standalone `AppRoutes.tsx` component to support isolated integration testing.
+    - Added comprehensive **Page Rendering Tests** (`PageRendering.test.tsx`) to verify core pages (Dashboard, Employees, Leave Balances) render without crashing.
 - **Attendance Pairing Strategy Enhancement**:
     - Backend: Extended `AnchorFirstStrategy` limit from 12 to 16 hours to support longer employee shifts.
     - Backend: Updated pairing strategy unit tests to verify the 16-hour window and edge cases.
@@ -24,6 +27,10 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - Frontend: Updated existing integration tests to match the new modernized UI structures.
 
 ### Changed
+- **Legacy Code Removal**:
+    - Removed `TimeTrackingPage.tsx` and legacy `/time-tracking` route, fully replacing it with the new `AttendanceLogsPage` and ESS portal.
+    - Updated Dashboard navigation to point to `/attendance-logs` instead of the deprecated time tracking page.
+    - Cleaned up redundant navigation links in `Sidebar.tsx` and `Navbar.tsx`.
 - **Codebase Maintenance**:
     - Documentation: Added comprehensive test audit reports and Phase 1 implementation summaries.
     - Configuration: Updated `.gitignore` to exclude large generated artifacts.
@@ -72,6 +79,7 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - Fixed shared-state interference in `change-password.spec.ts` by adding a password reset teardown.
 
 ### Fixed
+- **UI Navigation**: Resolved a blank page issue at `/workspace/leave/balances` by adding the missing route definition in `AppRoutes.tsx`.
 - **Locale Desynchronization**: Resolved numerous missing translation keys in `vi.json` and `zh.json` identified by the new testing suite.
 - **Settings Page Rendering**: Refactored `GeneralSettings.tsx` and `TimeSettings.tsx` into container/presentational components to fix ESLint cascading render warnings.
 - **App Layout**: Fixed broken imports for `AssignmentRulesPage` and `WorkspaceSettingsPage`.
