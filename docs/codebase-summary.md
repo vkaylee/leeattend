@@ -92,22 +92,17 @@ leeattend/
             - **schedule_traceability_tests.rs**: Validates that trace metadata is correctly generated for every assignment decision.
             - **payroll_traceability_tests.rs**: Verifies the hierarchical resolution and source tracking for payroll "Standard Days".
             - **payroll_batch_tests.rs**: Ensures reliable parallel calculation for multiple employees simultaneously.
-2.  **Web Dashboard (React/Vite)**:
-    - **Modular Components**:
-        - **MonthYearPicker**: High-fidelity month and year selection grid with quick shortcuts, used in Payroll and Reports for efficient period navigation.
-        - **HierarchyLegend**: Generic "Vertical Metro Map" component for visualizing hierarchical decision paths and priorities.
-        - **PriorityLegend**: Shift-specific scheduling source guide, refactored to use `HierarchyLegend`.
-        - **PayrollPriorityLegend**: Visualizes the 3-tier payroll policy resolution (Individual > Dept > Workspace).
-        - **PayrollTable**: Displays detailed payslips using a **Vertical Timeline** structure, optimized for complex proration segments and multiple earning/deduction components.
-        - **BatchCalculationModal**: Unified interface for triggering and monitoring payroll calculations for multiple employees.
-        - **ScheduleTracePopover**: Interactive tooltip showing the evaluation logic for a specific shift.
-        - **SettingsLayout**: Centralized container for all Settings Hub sub-modules.
-    - **ESS Features**:
-        - **MyAttendancePage**: Specialized dashboard for employee self-monitoring.
-        - **MyClockPage**: Refactored ESS self-clock interface with component-based architecture (Phase 1: Time-Tracking Refactor).
-            - **PunchCard Component**: Displays active work session, punch buttons (Start Work, Start Break, Punch Out), and adjustment request link.
-            - **TimeEntryRow Component**: Reusable table row for displaying individual time entries with formatted dates/times and optional adjustment button.
-            - **AdjustmentRequestModal Component**: Modal for submitting attendance correction requests with date, time, and reason fields.
-        - **Time Entries API** (`fetchMyTimeEntries`): Fetches employee's time entries within a date range with 30s auto-refresh for real-time status updates.
+3.  **Admin Dashboard (React/Vite)**:
+    - **Premium UI Aesthetics**: Modern "Metro-style" interface using Tailwind CSS v4 and glassmorphism.
+    - **Global Modernization**: All administrative pages (Departments, Shifts, Reports, Payroll) follow a consistent card-based layout with high-precision information density.
+    - **Payroll Management**: Integrated full-width data grid with sliding detail drawers for granular traceability.
+    - **Internationalization**: Full support for English, Vietnamese, and Chinese with centralized i18n management.
+
+4.  **Employee Self-Service (ESS)**:
+    - **Dedicated Portal**: Streamlined interface for employees to manage their own data.
+    - **Time Tracking**: Real-time clock-in/out via `PunchCard` component with integrated location/status detection.
+    - **Attendance & Profile**: Interactive attendance history and profile management with traceability metadata.
+    - **Shared Components**: Leverages core design system for visual consistency between Admin and ESS roles.
+
 
 ...

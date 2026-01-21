@@ -19,7 +19,7 @@ Dịch vụ `PairingService` thực hiện nhiệm vụ chuyển đổi luồng 
 
 - **Primary Algorithm: Anchor First**: Thuật toán lấy bản ghi đầu tiên (In) và cuối cùng (Out) trong một cửa sổ thời gian làm mốc (Anchors). Đây là giải pháp tối ưu cho hầu hết các môi trường sản xuất và văn phòng.
 - **Explicit Intent: FSM (Finite State Machine)**: Chiến lược máy trạng thái được khôi phục và tối ưu hóa để xử lý các lượt quẹt thẻ có kèm mã trạng thái (Punch Status) từ thiết bị, cho phép ghép cặp chính xác dựa trên ý định thực tế của nhân viên.
-- **12-Hour Session Limit**: Hệ thống áp đặt giới hạn cứng 720 phút (12 giờ) cho một phiên làm việc. Nếu khoảng cách giữa hai bản ghi vượt quá giới hạn này, chúng sẽ tự động được tách thành hai phiên "Missing Out" riêng biệt.
+- **16-Hour Session Limit**: Hệ thống áp đặt giới hạn 960 phút (16 giờ) cho một phiên làm việc trong chiến lược Anchor-First. Điều này cho phép bao phủ các ca làm việc kéo dài hơn trong ngày mà không bị tự động tách thành hai phiên riêng biệt. Nếu khoảng cách vượt quá 16 giờ, hệ thống sẽ coi đó là các phiên làm việc độc lập.
 - **Identity Deduplication (Identity-based)**: Tối ưu hóa việc lọc nhiễu bằng cách chỉ bỏ qua các lượt quẹt thẻ có cùng mốc thời gian chính xác (timestamp).
 - **Morning Lookback (Overnight support)**: Tự động tính toán lại dữ liệu của ngày hôm trước nếu nhận được log vào buổi sáng (trước 12:00 PM).
 - **Pairing Traceability**: Mỗi `TimeEntry` được tạo ra đều lưu trữ `generation_metadata` (JSONB) chứa ID của các log nguồn và tên thuật toán được sử dụng, phục vụ công tác đối soát.

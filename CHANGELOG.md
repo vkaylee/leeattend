@@ -5,19 +5,31 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
-- **Improved Date Selection UX**:
-    - Frontend: Implemented a new **MonthYearPicker** reusable component with a modern grid layout and quick shortcuts (Last Month, This Month).
-    - Frontend: Replaced manual number inputs with the new `MonthYearPicker` in `BatchCalculationModal` and `PayrollPage`.
-    - Frontend: Added a new "Specific Month" (`specific_month`) filter mode to `ReportsPage` for faster navigation to historical data.
-    - Frontend: Added unit tests for `MonthYearPicker` verifying year navigation and shortcut logic.
-- **Batch Payroll Calculation**:
-    - Backend: Implemented `calculate_batch_payslips` in `PayrollService` utilizing async parallel processing for high performance.
-    - Backend: Added `POST /api/workspaces/:ws_id/payroll/calculate-batch` endpoint and `GET /api/workspaces/:ws_id/payroll/payslips`.
-    - Frontend: Refactored `PayrollPage` to a professional **Full-width Data Grid** layout, replacing the cramped 2-column sidebar.
-    - Frontend: Implemented **PayrollDetailDrawer** (Slide-out) for granular auditability and traceability without losing main table context.
-    - Frontend: Refactored **PayrollTable** segments to a **Vertical Timeline** layout, optimizing space for future complex components (Bonus/Penalty/Adjustments).
-    - Frontend: Integrated a **Period Selector** (Month/Year) into the header for organization-wide payroll management.
-    - Frontend: Created `BatchCalculationModal` with real-time progress tracking and summary of success/error results.
+- **Attendance Pairing Strategy Enhancement**:
+    - Backend: Extended `AnchorFirstStrategy` limit from 12 to 16 hours to support longer employee shifts.
+    - Backend: Updated pairing strategy unit tests to verify the 16-hour window and edge cases.
+- **ESS Phase 1 Completion**:
+    - Frontend: Implemented **PunchCard** component for clock-in/out with real-time status and error handling.
+    - Frontend: Added **TimeEntryRow** and **AdjustmentRequestModal** for employee self-service time tracking.
+    - Frontend: Added direct access to ESS Clock page in the main Sidebar.
+    - Frontend: Modernized `MyAttendancePage` and `MyProfilePage` with premium UI aesthetics.
+- **Global UI Modernization (Premium Pass)**:
+    - Frontend: Modernized all administrative pages (Departments, Shifts, Working Patterns, Reports, Agents, Devices) with premium card layouts and glassmorphism elements.
+    - Frontend: Refined common UI components (`Modal`, `Sheet`, `Combobox`, `Navbar`) for consistent "Metro-style" aesthetic.
+    - Frontend: Modernized Payroll interface, including `PayrollTable`, `AdjustmentDrawer`, and `BatchCalculationModal`.
+    - Frontend: Improved I18n labels for workspace settings and theme configuration across all supported languages (EN, VI, ZH).
+- **Test Suite Enhancements**:
+    - Frontend: Added `MembersPage.test.tsx` for comprehensive member management testing.
+    - Frontend: Implemented `use-debounce` mock to improve Vitest execution stability.
+    - Frontend: Updated existing integration tests to match the new modernized UI structures.
+
+### Changed
+- **Codebase Maintenance**:
+    - Documentation: Added comprehensive test audit reports and Phase 1 implementation summaries.
+    - Configuration: Updated `.gitignore` to exclude large generated artifacts.
+    - Cleaned up accidental temporary directories from the workspace.
+
+## [2026.01.21] - Previous Release Notes... (omitted)
     - Added comprehensive integration tests for the batch calculation engine.
 - **Payroll Standard Days Traceability**:
     - Backend: Enhanced `PolicyResolver` and `PayrollService` to track and persist the source of standard working days (Individual > Department > Workspace).
