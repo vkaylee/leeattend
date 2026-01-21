@@ -178,6 +178,13 @@ export async function uploadAttendanceExcel(
   return uploadAttendance(wsId, file, "/attendance/upload");
 }
 
+export async function uploadEmployees(
+  wsId: string,
+  file: File
+): Promise<{ job_id: string }> {
+  return uploadAttendance(wsId, file, "/employees/upload");
+}
+
 export async function uploadAttendance(
   wsId: string,
   file: File,

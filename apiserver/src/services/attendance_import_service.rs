@@ -1,6 +1,6 @@
 use axum::http::StatusCode;
 use calamine::{Data, DataType, Reader, Xls, Xlsx};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use sqlx::PgPool;
 use std::collections::HashSet;
@@ -9,8 +9,8 @@ use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::models::{
-    AdjustmentStatus, AttendanceImportJob, CreateAttendanceAdjustmentRequest, ImportJobStatus,
-    LogSource, RawAttendanceLog,
+    AdjustmentStatus, AttendanceImportJob, CreateAttendanceAdjustmentRequest, Employee,
+    ImportJobStatus, LogSource, RawAttendanceLog,
 };
 use crate::repositories::{
     employee_repository, import_job_repository, raw_attendance_log_repository,
@@ -21,7 +21,14 @@ use crate::services::pairing_service::PairingService;
 struct PendingRow {
     emp_id_number: String,
     punch_time: DateTime<Utc>,
-    // line_number is useful for debugging but not strictly needed for processing if we validate upfront
+    line_number: usize,
+}
+
+struct PendingEmployee {
+    id_number: String,
+    first_name: String,
+    last_name: String,
+    hire_date: NaiveDate,
     line_number: usize,
 }
 
@@ -99,9 +106,13 @@ impl AttendanceImportService {
             }
         };
 
-        let date_format = workspace.date_format;
-        let time_format = workspace.time_format;
-        let timezone = workspace.timezone;
+        let date_format = workspace.date_format.clone();
+        let time_format = workspace.time_format.clone();
+        let timezone = workspace.timezone.clone();
+
+        if job.target_type == "employee" {
+            return Self::process_employee_job(pool, job_id, &job).await;
+        }
 
         let file_path = match &job.file_path {
             Some(p) => p,
@@ -339,6 +350,225 @@ impl AttendanceImportService {
             "Import job {} ({}) finished with status {}",
             job_id, job.target_type, status
         );
+        Ok(())
+    }
+
+    async fn process_employee_job(
+        pool: PgPool,
+        job_id: Uuid,
+        job: &AttendanceImportJob,
+    ) -> Result<(), ()> {
+        let file_path = match &job.file_path {
+            Some(p) => p,
+            None => return Err(()),
+        };
+
+        let file_bytes = match tokio::fs::read(file_path).await {
+            Ok(b) => b,
+            Err(e) => {
+                error!("READ_FILE_ERROR for job {}: {:?}", job_id, e);
+                let _ = import_job_repository::update_job_progress(
+                    &pool,
+                    job_id,
+                    0,
+                    ImportJobStatus::Failed,
+                    Some(format!("Could not read file: {:?}", e)),
+                )
+                .await;
+                return Err(());
+            }
+        };
+
+        let mut errors = Vec::new();
+        let mut pending_employees: Vec<PendingEmployee> = Vec::new();
+
+        // 1. PARSE PHASE
+        let mut is_excel = false;
+        if let Ok(mut reader) = Xlsx::new(Cursor::new(&file_bytes)) {
+            if let Some(Ok(range)) = reader.worksheet_range_at(0) {
+                is_excel = true;
+                Self::parse_employee_excel_range(range, &mut pending_employees, &mut errors);
+            }
+        } else if let Ok(mut reader) = Xls::new(Cursor::new(&file_bytes)) {
+            if let Some(Ok(range)) = reader.worksheet_range_at(0) {
+                is_excel = true;
+                Self::parse_employee_excel_range(range, &mut pending_employees, &mut errors);
+            }
+        }
+
+        if !is_excel {
+            let mut reader = csv::ReaderBuilder::new()
+                .has_headers(true)
+                .from_reader(Cursor::new(&file_bytes));
+            for (idx, record) in reader.records().flatten().enumerate() {
+                let current_line = idx + 2;
+                let id_number = record.get(0).unwrap_or("").trim().to_string();
+                let first_name = record.get(1).unwrap_or("").trim().to_string();
+                let last_name = record.get(2).unwrap_or("").trim().to_string();
+                let hire_date_str = record.get(3).unwrap_or("").trim();
+
+                if id_number.is_empty() || first_name.is_empty() || last_name.is_empty() {
+                    errors.push(format!(
+                        "Dòng {}: Thiếu ID, Họ hoặc Tên nhân viên",
+                        current_line
+                    ));
+                    continue;
+                }
+
+                let hire_date = if hire_date_str.is_empty() {
+                    Utc::now().with_timezone(&Tz::Asia__Ho_Chi_Minh).date_naive()
+                } else {
+                    // Try some common formats
+                    NaiveDate::parse_from_str(hire_date_str, "%Y-%m-%d")
+                        .or_else(|_| NaiveDate::parse_from_str(hire_date_str, "%d/%m/%Y"))
+                        .or_else(|_| NaiveDate::parse_from_str(hire_date_str, "%m/%d/%Y"))
+                        .unwrap_or_else(|_| {
+                            Utc::now().with_timezone(&Tz::Asia__Ho_Chi_Minh).date_naive()
+                        })
+                };
+
+                pending_employees.push(PendingEmployee {
+                    id_number,
+                    first_name,
+                    last_name,
+                    hire_date,
+                    line_number: current_line,
+                });
+            }
+        }
+
+        let total_rows = pending_employees.len() as i32 + errors.len() as i32;
+        let _ = sqlx::query("UPDATE attendance_import_jobs SET total_rows = $1 WHERE id = $2")
+            .bind(total_rows)
+            .bind(job_id)
+            .execute(&pool)
+            .await;
+
+        if !errors.is_empty() {
+            let _ = import_job_repository::update_job_progress(
+                &pool,
+                job_id,
+                0,
+                ImportJobStatus::Failed,
+                Some(errors.join("\n")),
+            )
+            .await;
+            let _ = tokio::fs::remove_file(file_path).await;
+            return Err(());
+        }
+
+        // 2. VALIDATION PHASE (Duplicate ID check)
+        let id_numbers: Vec<String> = pending_employees.iter().map(|e| e.id_number.clone()).collect();
+        match employee_repository::get_existing_employee_ids_by_numbers(&pool, job.workspace_id, &id_numbers).await {
+            Ok(existing) => {
+                if !existing.is_empty() {
+                    let err_msg = format!("Các ID nhân viên sau đã tồn tại: {}", existing.join(", "));
+                    let _ = import_job_repository::update_job_progress(&pool, job_id, 0, ImportJobStatus::Failed, Some(err_msg)).await;
+                    let _ = tokio::fs::remove_file(file_path).await;
+                    return Err(());
+                }
+            },
+            Err(_) => {
+                let _ = import_job_repository::update_job_progress(&pool, job_id, 0, ImportJobStatus::Failed, Some("Lỗi kiểm tra trùng lặp".to_string())).await;
+                return Err(());
+            }
+        }
+
+        // 3. PROCESSING PHASE
+        let mut processed_rows = 0;
+        for emp in pending_employees {
+            match Self::process_employee_import_row(&pool, job, &emp).await {
+                Ok(_) => {
+                    processed_rows += 1;
+                    if processed_rows % 10 == 0 {
+                        let _ = import_job_repository::update_job_progress(&pool, job_id, processed_rows, ImportJobStatus::Processing, None).await;
+                    }
+                },
+                Err(e) => {
+                    errors.push(format!("Dòng {} (ID {}): Lỗi khi lưu vào DB: {}", emp.line_number, emp.id_number, e));
+                }
+            }
+        }
+
+        let status = if !errors.is_empty() { ImportJobStatus::Failed } else { ImportJobStatus::Completed };
+        let _ = import_job_repository::update_job_progress(&pool, job_id, processed_rows, status, if errors.is_empty() { None } else { Some(errors.join("\n")) }).await;
+        let _ = tokio::fs::remove_file(file_path).await;
+        
+        Ok(())
+    }
+
+    fn parse_employee_excel_range(
+        range: calamine::Range<Data>,
+        pending: &mut Vec<PendingEmployee>,
+        errors: &mut Vec<String>,
+    ) {
+        for (idx, row) in range.rows().skip(1).enumerate() {
+            let current_line = idx + 2;
+            let id_number = match row.get(0) {
+                Some(Data::String(s)) => s.trim().to_string(),
+                Some(Data::Float(f)) => f.to_string(),
+                Some(Data::Int(i)) => i.to_string(),
+                _ => { errors.push(format!("Dòng {}: Thiếu ID nhân viên", current_line)); continue; }
+            };
+            let first_name = match row.get(1) {
+                Some(Data::String(s)) => s.trim().to_string(),
+                _ => { errors.push(format!("Dòng {}: Thiếu Tên nhân viên", current_line)); continue; }
+            };
+            let last_name = match row.get(2) {
+                Some(Data::String(s)) => s.trim().to_string(),
+                _ => { errors.push(format!("Dòng {}: Thiếu Họ nhân viên", current_line)); continue; }
+            };
+            let hire_date = match row.get(3) {
+                Some(Data::String(s)) => {
+                    NaiveDate::parse_from_str(s.trim(), "%Y-%m-%d")
+                        .or_else(|_| NaiveDate::parse_from_str(s.trim(), "%d/%m/%Y"))
+                        .or_else(|_| NaiveDate::parse_from_str(s.trim(), "%m/%d/%Y"))
+                        .unwrap_or_else(|_| Utc::now().with_timezone(&Tz::Asia__Ho_Chi_Minh).date_naive())
+                },
+                Some(cell_data) => {
+                    cell_data.as_datetime().map(|ndt| ndt.date()).unwrap_or_else(|| Utc::now().with_timezone(&Tz::Asia__Ho_Chi_Minh).date_naive())
+                },
+                _ => Utc::now().with_timezone(&Tz::Asia__Ho_Chi_Minh).date_naive()
+            };
+
+            pending.push(PendingEmployee {
+                id_number,
+                first_name,
+                last_name,
+                hire_date,
+                line_number: current_line,
+            });
+        }
+    }
+
+    async fn process_employee_import_row(
+        pool: &PgPool,
+        job: &AttendanceImportJob,
+        emp: &PendingEmployee,
+    ) -> Result<(), String> {
+        let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
+
+        let employee = Employee {
+            id: Uuid::new_v4(),
+            workspace_id: job.workspace_id,
+            user_id: None,
+            first_name: emp.first_name.clone(),
+            last_name: emp.last_name.clone(),
+            employee_id_number: emp.id_number.clone(),
+            hire_date: emp.hire_date,
+            termination_date: None,
+            tags: Vec::new(),
+            is_active: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        employee_repository::create_employee_tx(&mut tx, &employee)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        tx.commit().await.map_err(|e| e.to_string())?;
+
         Ok(())
     }
 

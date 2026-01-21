@@ -230,6 +230,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         )
         // Employee Management
         .route(
+            "/workspaces/:ws_id/employees/upload",
+            post(handlers::upload_employee_excel),
+        )
+        .route(
             "/workspaces/:ws_id/employees",
             get(handlers::get_employees).post(handlers::create_employee),
         )

@@ -775,7 +775,14 @@
       "submit": "Update Salary"
     },
     "select_workspace": "Please select a Workspace",
-    "hire_date": "Hire Date"
+    "hire_date": "Hire Date",
+    "bulk_import_title": "Bulk Employee Import",
+    "import_req": {
+      "col_a": "Column A: Employee ID (Required)",
+      "col_b": "Column B: First Name (Required)",
+      "col_c": "Column C: Last Name (Required)",
+      "col_d": "Column D: Hire Date (Optional, YYYY-MM-DD)"
+    }
   },
   "departments": {
     "title": "Departments",

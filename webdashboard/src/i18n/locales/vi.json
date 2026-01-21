@@ -774,8 +774,15 @@
       "cancel": "Hủy",
       "submit": "Cập nhật lương"
     },
-    "select_workspace": "Vui lòng chọn Workspace",
-    "hire_date": "Ngày vào làm"
+    "select_workspace": "Vui lòng chọn Không gian làm việc",
+    "hire_date": "Ngày vào làm",
+    "bulk_import_title": "Nhập nhân viên hàng loạt",
+    "import_req": {
+      "col_a": "Cột A: Mã nhân viên (Bắt buộc)",
+      "col_b": "Cột B: Tên (Bắt buộc)",
+      "col_c": "Cột C: Họ (Bắt buộc)",
+      "col_d": "Cột D: Ngày vào làm (Tùy chọn, DD/MM/YYYY)"
+    }
   },
   "departments": {
     "title": "Phòng ban",

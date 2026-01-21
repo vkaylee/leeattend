@@ -11,10 +11,18 @@ interface AttendanceImportDialogProps {
   onClose: () => void;
   endpoint: string; // e.g., "/attendance/upload" or "/attendance/logs/upload"
   title: string;
-  targetType: string; // "adjustment" or "log"
+  targetType: string; // "adjustment", "log", or "employee"
+  customRequirements?: string[];
 }
 
-export default function AttendanceImportDialog({ isOpen, onClose, endpoint, title, targetType }: AttendanceImportDialogProps) {
+export default function AttendanceImportDialog({ 
+  isOpen, 
+  onClose, 
+  endpoint, 
+  title, 
+  targetType,
+  customRequirements
+}: AttendanceImportDialogProps) {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
   const queryClient = useQueryClient();
@@ -100,10 +108,18 @@ export default function AttendanceImportDialog({ isOpen, onClose, endpoint, titl
             <div className="text-xs text-primary-900 leading-relaxed font-medium pt-1">
               <p className="font-black uppercase tracking-[0.2em] mb-3 text-primary-950 opacity-80">{t("attendance_import.file_requirements.title")}</p>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 opacity-70 font-bold uppercase tracking-tight">
-                <li className="flex items-center gap-2.5"><div className="w-1.5 h-1.5 bg-primary-400 rounded-full" /> {t("attendance_import.file_requirements.col_a")}</li>
-                <li className="flex items-center gap-2.5"><div className="w-1.5 h-1.5 bg-primary-400 rounded-full" /> {t("attendance_import.file_requirements.col_b")}</li>
-                <li className="flex items-center gap-2.5"><div className="w-1.5 h-1.5 bg-primary-400 rounded-full" /> {t("attendance_import.file_requirements.col_c")}</li>
-                <li className="flex items-center gap-2.5"><div className="w-1.5 h-1.5 bg-primary-400 rounded-full" /> {t("attendance_import.file_requirements.formats")}</li>
+                {customRequirements ? (
+                  customRequirements.map((req, i) => (
+                    <li key={i} className="flex items-center gap-2.5"><div className="w-1.5 h-1.5 bg-primary-400 rounded-full" /> {req}</li>
+                  ))
+                ) : (
+                  <>
+                    <li className="flex items-center gap-2.5"><div className="w-1.5 h-1.5 bg-primary-400 rounded-full" /> {t("attendance_import.file_requirements.col_a")}</li>
+                    <li className="flex items-center gap-2.5"><div className="w-1.5 h-1.5 bg-primary-400 rounded-full" /> {t("attendance_import.file_requirements.col_b")}</li>
+                    <li className="flex items-center gap-2.5"><div className="w-1.5 h-1.5 bg-primary-400 rounded-full" /> {t("attendance_import.file_requirements.col_c")}</li>
+                    <li className="flex items-center gap-2.5"><div className="w-1.5 h-1.5 bg-primary-400 rounded-full" /> {t("attendance_import.file_requirements.formats")}</li>
+                  </>
+                )}
               </ul>
             </div>
           </div>
