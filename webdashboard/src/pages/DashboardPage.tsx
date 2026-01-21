@@ -92,7 +92,7 @@ export default function DashboardPage() {
                     <span className="text-primary-200 text-xs font-black uppercase tracking-[0.3em] mb-6">{t("dashboard.hr.payroll")}</span>
                     <h3 className="text-5xl font-black mb-8 tracking-tighter leading-[1.1] uppercase">{t("dashboard.hr.payroll_title")}</h3>
                     <p className="text-primary-100 mb-12 text-lg leading-relaxed max-w-sm font-bold uppercase tracking-tight opacity-80">{t("dashboard.hr.payroll_desc")}</p>
-                    <Link to="/time-tracking" className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all inline-flex items-center gap-4 hover:gap-6 shadow-2xl shadow-black/20 active:scale-95">
+                    <Link to="/attendance-logs" className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all inline-flex items-center gap-4 hover:gap-6 shadow-2xl shadow-black/20 active:scale-95">
                       {t("dashboard.hr.payroll_btn").toUpperCase()} <ArrowRight size={20} />
                     </Link>
                   </div>

@@ -576,6 +576,31 @@
       "no_data": "No attendance data found for this month."
     }
   },
+  "time_tracking": {
+    "title": "Time Tracking",
+    "subtitle": "Track your work hours and breaks.",
+    "modal": {
+      "edit_title": "Edit Time Entry",
+      "new_title": "New Adjustment Request",
+      "reason_label": "Reason for adjustment",
+      "reason_placeholder": "Why are you requesting this change?",
+      "subtitle": "Request changes to your clock-in/out times."
+    },
+    "actions": {
+      "punch_out": "Clock Out",
+      "return_to_work": "End Break",
+      "start_break": "Start Break",
+      "start_work": "Clock In"
+    },
+    "forgot_punch": "Forgot to clock in/out?",
+    "status": {
+      "break_start_at": "Break started at",
+      "off_duty": "Off Duty",
+      "on_break": "On Break",
+      "shift_start_at": "Shift started at",
+      "working": "Working"
+    }
+  },
   "leave_balances": {
     "title": "Leave Balances",
     "subtitle": "Manage employee leave entitlements for the year.",

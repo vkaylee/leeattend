@@ -566,14 +566,39 @@
     },
     "attendance": {
       "title": "Chấm công của tôi",
-      "subtitle": "Xem lịch sử ra vào hàng ngày của bạn.",
+      "subtitle": "Xem lịch sử vào/ra hàng ngày của bạn.",
       "date": "Ngày",
       "check_in": "Giờ vào",
       "check_out": "Giờ ra",
       "duration": "Thời lượng",
       "status": "Trạng thái",
-      "generation_info": "Thông tin xử lý (Truy vết)",
+      "generation_info": "Thông tin xử lý (Truy xuất nguồn gốc)",
       "no_data": "Không tìm thấy dữ liệu chấm công cho tháng này."
+    }
+  },
+  "time_tracking": {
+    "title": "Chấm công",
+    "subtitle": "Theo dõi thời gian làm việc và nghỉ giải lao.",
+    "modal": {
+      "edit_title": "Sửa lượt chấm công",
+      "new_title": "Yêu cầu điều chỉnh mới",
+      "reason_label": "Lý do điều chỉnh",
+      "reason_placeholder": "Tại sao bạn yêu cầu thay đổi này?",
+      "subtitle": "Yêu cầu thay đổi thời gian vào/ra của bạn."
+    },
+    "actions": {
+      "punch_out": "Giờ ra",
+      "return_to_work": "Kết thúc nghỉ",
+      "start_break": "Bắt đầu nghỉ",
+      "start_work": "Giờ vào"
+    },
+    "forgot_punch": "Quên quẹt thẻ?",
+    "status": {
+      "break_start_at": "Bắt đầu nghỉ lúc",
+      "off_duty": "Đang nghỉ",
+      "on_break": "Đang nghỉ giải lao",
+      "shift_start_at": "Bắt đầu ca lúc",
+      "working": "Đang làm việc"
     }
   },
   "leave_balances": {

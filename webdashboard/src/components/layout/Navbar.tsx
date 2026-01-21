@@ -16,13 +16,15 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar }: NavbarPr
   const getPageName = (path: string) => {
     const map: Record<string, string> = {
       "/": t("common.dashboard"), "/members": t("members.title"), "/employees": t("common.employees"), "/departments": t("common.departments"),
-      "/time-tracking": t("common.time_tracking"), "/attendance-logs": t("common.logs"), "/leave-requests": t("leave_requests.title"),
+      "/attendance-logs": t("common.logs"), "/leave-requests": t("leave_requests.title"),
       "/leave-balances": t("common.leave_balances"), "/attendance-adjustments": t("common.attendance_confirm"), "/reports": t("common.reports"),
+      "/workspace/leave/balances": t("common.leave_balances"), "/workspace/reports": t("common.reports"),
       "/shifts": t("common.shifts"), "/working-patterns": t("patterns.title"), "/assignment-rules": t("rules.title"), "/payroll": t("payroll.title"),
       "/agents": t("agents.title"), "/devices": t("common.devices"), "/workspace/settings": t("settings.title"), "/workspace/settings/general": t("settings.categories.general"),
       "/workspace/settings/people": t("settings.categories.people"), "/workspace/settings/time": t("settings.categories.time"),
       "/workspace/settings/payroll": t("settings.categories.payroll"), "/workspace/settings/connectivity": t("settings.categories.connectivity"),
       "/profile": t("common.profile"), "/ess/profile": t("common.my_profile"), "/ess/attendance": t("ess.attendance.title"),
+      "/ess/clock": t("ess.clock.title"),
     };
     return map[path] || path.split('/').pop()?.replace(/-/g, ' ') || "";
   };
