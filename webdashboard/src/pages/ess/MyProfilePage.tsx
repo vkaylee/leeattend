@@ -15,8 +15,10 @@ import {
   Trash2,
   Save,
   AlertCircle,
+  ShieldCheck,
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
+import { cn } from "@/lib/utils";
 
 type TabType = "personal" | "banking" | "emergency";
 
@@ -38,6 +40,7 @@ export default function MyProfilePage() {
 
   useEffect(() => {
     if (profile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         phone: profile.phone || "", address: profile.address || "", date_of_birth: profile.date_of_birth || "",
         gender: profile.gender || "", national_id: profile.national_id || "", bank_name: profile.bank_name || "",
@@ -51,7 +54,7 @@ export default function MyProfilePage() {
     try {
       await updateProfile(formData);
       toast.success(t("ess.profile.update_success"));
-    } catch (err) { }
+    } catch (err) { console.error(err); }
   }
 
   async function handleAddContact(e: React.FormEvent) {
@@ -61,7 +64,7 @@ export default function MyProfilePage() {
       setNewContact({ contact_name: "", relationship: "", phone: "", is_primary: false });
       setIsContactModalOpen(false);
       toast.success(t("ess.emergency_contact.add_success"));
-    } catch (err) { }
+    } catch (err) { console.error(err); }
   }
 
   async function handleDeleteContact(contactId: string) {
@@ -69,7 +72,7 @@ export default function MyProfilePage() {
     try {
       await deleteContact(contactId);
       toast.success(t("ess.emergency_contact.delete_success"));
-    } catch (err) { }
+    } catch (err) { console.error(err); }
   }
 
   if (isLoading) return <div className="p-20 text-center"><div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>;

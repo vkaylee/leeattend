@@ -74,6 +74,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
       { to: "/workspace/settings/connectivity", icon: Share2, label: t("settings.categories.connectivity") }
     ]},
     { section: "ess", label: t("common.sections.self_service"), items: [
+      { to: "/ess/clock", icon: Clock, label: t("ess.clock.title") },
       { to: "/ess/profile", icon: Briefcase, label: t("common.my_profile") },
       { to: "/ess/attendance", icon: CalendarDays, label: t("ess.attendance.title") }
     ]}

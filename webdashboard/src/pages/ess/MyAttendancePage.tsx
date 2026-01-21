@@ -3,16 +3,17 @@ import { useTranslation } from "react-i18next";
 import { useMyAttendance } from "@/hooks/use-ess";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { startOfMonth, endOfMonth, format, subMonths, addMonths } from "date-fns";
-import { 
-  Calendar, 
-  ChevronLeft, 
-  ChevronRight, 
+import {
+  CalendarDays, 
   Clock, 
-  Info, 
-  AlertCircle,
-  ChevronDown
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+  MapPin, 
+  ChevronLeft, 
+  ChevronRight,
+  Info,
+  Calendar,
+  Activity,
+  History
+} from "lucide-react";import { cn } from "@/lib/utils";
 import * as Popover from "@radix-ui/react-popover";
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
 
@@ -285,12 +286,6 @@ export default function MyAttendancePage() {
         )}
 
       </div>
-
-    </div>
-
-  );
-
-}
 
     </div>
   );
