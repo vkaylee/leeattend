@@ -20,6 +20,7 @@
       "invite_member": "Mời thành viên",
       "members_list": "Danh sách thành viên",
       "founder": "Người sáng lập",
+      "theme_desc": "Tùy chỉnh giao diện không gian làm việc của bạn.",
       "work_unit_options": {
         "1min": "1 phút",
         "1min_desc": "Mặc định, độ chính xác cao nhất",
@@ -95,6 +96,17 @@
     "reports": "Báo cáo",
     "shifts": "Ca làm & Lịch trực",
     "note": "Ghi chú",
+    "never": "Chưa bao giờ",
+    "from_start": "Từ đầu",
+    "day_short": "ngày",
+    "days_short": "ngày",
+    "month_short": "Tháng",
+    "expired": "Đã hết hạn",
+    "upcoming": "Sắp tới",
+    "segment": "Dòng lương",
+    "no_records_found": "Không tìm thấy bản ghi nào.",
+    "no_profile": "Không tìm thấy hồ sơ.",
+    "select_month": "Chọn tháng",
     "payroll": {
       "settings": {
         "global_history": "Lịch sử cấu hình toàn hệ thống",
@@ -321,7 +333,8 @@
       "title": "Bộ lọc",
       "this_month": "Tháng này",
       "last_month": "Tháng trước",
-      "custom": "Tùy chỉnh"
+      "custom": "Tùy chỉnh",
+      "specific_month": "Chọn tháng..."
     },
     "sections": {
       "organization": "Tổ chức",
@@ -365,7 +378,8 @@
     "no": "Không",
     "base_for_ot": "Tính OT",
     "add_new": "Thêm mới",
-    "search_employee": "Tìm kiếm nhân viên..."
+    "search_employee": "Tìm kiếm nhân viên...",
+    "no_notes": "Không có ghi chú."
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -538,7 +552,18 @@
       "add_error": "Lỗi khi thêm liên hệ",
       "confirm_delete": "Bạn có chắc chắn muốn xóa liên hệ này?",
       "delete_success": "Xóa liên hệ thành công",
-      "delete_error": "Lỗi khi xóa liên hệ"
+      "delete_error": "Lỗi khi xóa liên hệ",
+      "subtitle": "Người thân cần báo tin khi có sự cố."
+    },
+    "clock": {
+      "title": "Đồng Hồ Chấm Công",
+      "subtitle": "Chấm công vào ra và nghỉ giải lao",
+      "punch_in_success": "Chấm công thành công",
+      "punch_out_success": "Chấm công ra thành công",
+      "break_start_success": "Bắt đầu giải lao",
+      "adjustment_requested": "Yêu cầu điều chỉnh đã gửi",
+      "no_entries": "Không có bản ghi chấm công gần đây",
+      "recent_history": "Hoạt Động Gần Đây (7 Ngày)"
     },
     "attendance": {
       "title": "Chấm công của tôi",
@@ -692,7 +717,8 @@
       "effective_date": "Ngày hiệu lực",
       "notes": "Ghi chú",
       "cancel": "Hủy",
-      "submit": "Điều chuyển"
+      "submit": "Điều chuyển",
+      "notes_placeholder": "Nhập ghi chú điều chuyển (VD: Chuyển vị trí từ Dev sang Lead)..."
     },
     "history": {
       "title": "Lịch sử công tác",
@@ -724,7 +750,8 @@
       "cancel": "Hủy",
       "submit": "Cập nhật lương"
     },
-    "select_workspace": "Vui lòng chọn Workspace"
+    "select_workspace": "Vui lòng chọn Workspace",
+    "hire_date": "Ngày vào làm"
   },
   "departments": {
     "title": "Phòng ban",
@@ -735,7 +762,8 @@
     "default_pattern_label": "Lịch làm việc mặc định",
     "messages": {
       "no_departments": "Chưa có phòng ban nào được tạo.",
-      "confirm_delete": "Xóa phòng ban này?"
+      "confirm_delete": "Xóa phòng ban này?",
+      "empty_desc": "Tổ chức chưa có phòng ban nào. Hãy bắt đầu bằng cách tạo cấu hình đầu tiên."
     },
     "form": {
       "name_label": "Tên phòng ban",
@@ -766,7 +794,8 @@
       "request_time": "Yêu cầu (Vào - Ra)"
     },
     "messages": {
-      "no_requests": "Chưa có yêu cầu nào."
+      "no_requests": "Chưa có yêu cầu nào.",
+      "no_data": "Hiện tại chưa có yêu cầu điều chỉnh công nào cần xử lý."
     },
     "modal": {
       "import_title": "Nhập dữ liệu chấm công từ file"
@@ -817,6 +846,12 @@
   "agents": {
     "title": "Quản lý Agent",
     "subtitle": "Phê duyệt và kiểm soát các điểm kết nối Edge Agent",
+    "add_btn": "Khai báo Agent",
+    "add_form_title": "Thiết lập Agent mới",
+    "save_btn": "Lưu Agent",
+    "id_label": "Mã Agent",
+    "name_label": "Tên Chi nhánh",
+    "token_label": "Token bảo mật",
     "status": {
       "trusted": "Đã duyệt",
       "pending": "Chờ duyệt",
@@ -829,19 +864,14 @@
       "show_archived": "Hiện lưu trữ",
       "declare_agent": "Khai báo Agent"
     },
-    "form": {
-      "new_title": "Khai báo Agent mới",
-      "id_label": "Agent ID (Duy nhất)",
-      "id_placeholder": "Ví dụ: BRANCH_HN_01",
-      "name_label": "Tên Chi nhánh/Vị trí",
-      "name_placeholder": "Ví dụ: Văn phòng Hà Nội",
-      "token_label": "Mã Token bảo mật",
-      "token_placeholder": "Mật mã kết nối"
-    },
     "table": {
       "identifier": "Định danh",
       "token": "Token",
-      "last_ip": "IP cuối"
+      "last_ip": "IP cuối",
+      "agent": "Tên Agent",
+      "status": "Trạng thái",
+      "last_seen": "Kết nối cuối",
+      "no_agents": "Chưa có Agent nào."
     },
     "edit_modal": {
       "title": "Chỉnh sửa Agent",
@@ -866,12 +896,16 @@
       "confirm_delete": "Bạn có chắc chắn muốn xóa Agent {{name}} ({{id}})? \nThao tác này sẽ ngắt kết nối và ẩn Agent khỏi hệ thống.",
       "delete_success": "Đã xóa Agent {{name}}.",
       "delete_error": "Lỗi khi xóa Agent.",
-      "no_agents": "Chưa có Agent nào được khai báo."
+      "no_agents": "Chưa có Agent nào được khai báo.",
+      "update_success": "Cập nhật Agent {{name}} thành công."
     }
   },
   "devices": {
     "title": "Quản lý thiết bị",
     "add_btn": "Thêm thiết bị",
+    "messages": {
+      "empty_desc": "Hệ thống chưa ghi nhận thiết bị IoT nào. Hãy kết nối máy chấm công để bắt đầu."
+    },
     "toast": {
       "add_success": "Đã thêm thiết bị \"{{name}}\" thành công.",
       "add_error": "Lỗi khi thêm thiết bị. Vui lòng kiểm tra lại địa chỉ IP.",
@@ -931,6 +965,7 @@
     "preferred_language": "Ngôn ngữ ưu tiên",
     "follow_workspace": "Theo cài đặt Workspace",
     "bio": "Tiểu sử",
+    "bio_placeholder": "Giới thiệu ngắn về bản thân bạn...",
     "personalization": {
       "title": "Cá nhân hóa",
       "subtitle": "Tùy chỉnh màu sắc giao diện cá nhân",
@@ -1031,7 +1066,10 @@
       "hierarchy_explanation": "Cấu hình lương được ưu tiên theo thứ tự: Cá nhân > Phòng ban > Workspace.",
       "individual_policy": "Chính sách cá nhân",
       "department_policy": "Chính sách phòng ban",
-      "workspace_default": "Mặc định Workspace"
+      "workspace_default": "Mặc định Workspace",
+      "pending_adjustments": "Có yêu cầu hiệu chỉnh",
+      "recalc_needed": "Cần tính toán lại",
+      "view_adjustments": "Xem hiệu chỉnh"
     },
     "title": "Tính lương",
     "subtitle": "Quản lý thu nhập và phiếu lương",
@@ -1078,10 +1116,17 @@
       "dept_title": "Cấu hình lương phòng ban",
       "global_history": "Lịch sử cấu hình toàn hệ thống",
       "std_days_history": "Lịch sử công chuẩn",
-      "std_days_override": "Đặc cách ngày công chuẩn"
+      "std_days_override": "Đặc cách ngày công chuẩn",
+      "policy_desc": "Quản lý đơn vị công chuẩn và sự thay đổi theo thời gian.",
+      "add_version": "Tạo phiên bản chính sách mới",
+      "date_warning": "Lưu ý: Ngày có hiệu lực quyết định các kỳ lương bị ảnh hưởng. Các thay đổi sẽ tự động áp dụng từ ngày này.",
+      "status": "Trạng thái",
+      "virtual": "Mặc định hệ thống"
     },
     "components": {
       "title": "Danh mục thành phần lương",
+      "subtitle": "Định nghĩa các khoản thu nhập và khấu trừ.",
+      "form_subtitle": "Thông số thành phần",
       "add_new": "Thêm thành phần lương",
       "no_components": "Chưa có thành phần lương nào",
       "use_for_ot": "Tính OT",
@@ -1099,10 +1144,13 @@
       "title": "Cấu hình lương nhân viên",
       "tab_title": "Cấu hình lương",
       "add_btn": "Thêm khoản lương",
+      "effective_note_title": "Lưu ý về hiệu lực",
+      "salary_items_subtitle": "Danh sách các khoản thu nhập của nhân viên.",
       "effective_note": "Lưu ý: Nếu có nhiều bản ghi cho cùng một khoản lương, bản ghi có ngày hiệu lực mới nhất (và gần nhất với ngày tính lương) sẽ được sử dụng.",
       "item_type": "Loại khoản lương",
       "no_config": "Chưa có cấu hình lương",
-      "salary_item": "Khoản lương"
+      "salary_item": "Khoản lương",
+      "add_new_title": "Thêm cấu hình mới"
     },
     "modal": {
       "title": "Tính lương tháng",
@@ -1179,16 +1227,25 @@
     "create_first": "Tạo mẫu đầu tiên",
     "weekly_schedule": "Lịch tuần",
     "select_pattern": "Chọn mẫu lịch",
+    "view_details": "Chi tiết mẫu",
     "form": {
       "name": "Tên mẫu",
       "description": "Mô tả",
       "select_pattern": "Chọn mẫu lịch",
+      "select_pattern_label": "Chọn mẫu lịch",
       "select_pattern_placeholder": "Chọn một mẫu...",
       "start_date": "Ngày bắt đầu hiệu lực",
+      "start_date_label": "Ngày bắt đầu",
+      "start_date_note": "Lịch sẽ tự động lặp lại từ ngày này.",
       "select_employees": "Chọn nhân viên",
+      "select_employees_label": "Nhân viên áp dụng",
       "select_employees_placeholder": "Tìm kiếm và chọn...",
       "name_placeholder": "VD: Giờ hành chính, Xoay ca đêm",
-      "desc_placeholder": "Mô tả tùy chọn"
+      "name_label": "Tên mẫu lịch",
+      "desc_placeholder": "Mô tả tùy chọn",
+      "desc_label": "Mô tả ngắn",
+      "weekly_grid_title": "Lưới lịch tuần",
+      "prefill_standard": "Điền mẫu hành chính"
     },
     "weekly_config": "Cấu hình tuần",
     "actions": {
@@ -1208,6 +1265,13 @@
     "bulk_assign_btn": "Gán hàng loạt",
     "bulk_assign_title": "Gán lịch hàng loạt",
     "bulk_assign_subtitle": "Gán mẫu lịch cho nhiều nhân viên cùng lúc",
+    "modal": {
+      "create_title": "Tạo chu kỳ mới",
+      "subtitle": "Thiết lập lịch tuần hoàn",
+      "submit_btn": "Lưu mẫu",
+      "assign_btn": "Xác nhận gán",
+      "bulk_subtitle": "Phân bổ lịch trình"
+    },
     "validation_pattern_required": "Vui lòng chọn mẫu lịch.",
     "validation_employees_required": "Vui lòng chọn ít nhất một nhân viên.",
     "bulk_assign_submit": "Xác nhận gán"
@@ -1362,7 +1426,14 @@
     "wednesday": "Thứ Tư",
     "thursday": "Thứ Năm",
     "friday": "Thứ Sáu",
-    "saturday": "Thứ Bảy"
+    "saturday": "Thứ Bảy",
+    "monday_short": "T2",
+    "tuesday_short": "T3",
+    "wednesday_short": "T4",
+    "thursday_short": "T5",
+    "friday_short": "T6",
+    "saturday_short": "T7",
+    "sunday_short": "CN"
   },
   "debug_tools": {
     "title": "Debug Tools (Chỉ dành cho Dev)",

@@ -2,65 +2,66 @@
   "common": {
     "dashboard": "仪表板",
     "workspace_settings": {
-      "title": "工作区设置",
-      "description": "描述",
-      "general_config": "通用配置",
+      "title": "工作空间设置",
+      "description": "管理工作空间配置、人员和外观。",
+      "general_config": "常规配置",
       "payroll_config": "薪资配置",
       "attendance_config": "考勤配置",
       "save_config": "保存配置",
-      "work_unit": "计薪单位 (Work Unit)",
+      "work_unit": "工作单位",
       "rounding_policy": "舍入规则",
       "date_format": "日期格式",
       "time_format": "时间格式",
       "timezone": "系统时区",
       "default_language": "默认语言",
       "pairing_algorithm": "匹配算法",
-      "theme_config": "界面配置",
-      "primary_color": "主题颜色",
+      "theme_config": "主题配置",
+      "primary_color": "主色调",
       "invite_member": "邀请成员",
       "members_list": "成员列表",
       "founder": "创始人",
+      "theme_desc": "自定义您的工作空间外观。",
       "work_unit_options": {
         "1min": "1 分钟",
         "1min_desc": "默认，最高精度",
         "15min": "15 分钟",
-        "15min_desc": "0.25 小时块",
+        "15min_desc": "0.25小时块",
         "30min": "30 分钟",
-        "30min_desc": "0.5 小时块",
+        "30min_desc": "0.5小时块",
         "60min": "60 分钟",
-        "60min_desc": "1 小时块"
+        "60min_desc": "1小时块"
       },
       "rounding_options": {
         "none": "不舍入",
         "floor": "向下取整 (Floor)",
         "ceil": "向上取整 (Ceil)",
-        "round": "就近舍入 (Round)"
+        "round": "最近舍入 (Round)"
       },
       "date_format_options": {
-        "vn": "越南式 (例如: 31/12/2025)",
-        "us": "美式 (例如: 12/31/2025)",
-        "iso": "ISO 格式 (例如: 2025-12-31)"
+        "vn": "越南格式 (例: 31/12/2025)",
+        "us": "美国格式 (例: 12/31/2025)",
+        "iso": "ISO 格式 (例: 2025-12-31)"
       },
       "time_format_options": {
-        "24h": "24 小时制",
-        "12h": "12 小时制",
+        "24h": "24 小时",
+        "12h": "12 小时",
         "example_24h": "例如: 14:30",
         "example_12h": "例如: 02:30 PM"
       },
       "timezone_options": {
-        "vn": "越南式 (例如: 31/12/2025)",
+        "vn": "越南 (UTC+7)",
         "th": "泰国 (UTC+7)",
         "utc": "协调世界时 (UTC)"
       },
       "algorithm_options": {
-        "dp_pattern": "模式匹配 (DP)",
-        "dp_pattern_desc": "最适合固定班次 and 休息时间. 智能配对。",
-        "anchor_first": "首尾配对 (Anchor)",
-        "anchor_first_desc": "最简单. 仅使用当天的第一个和最后一个记录。",
-        "sequential": "顺序配对 (零售)",
-        "sequential_desc": "配对记录 1+2、3+4 等. 最适合分段班次 and 高频打卡。",
-        "fsm": "基于状态 (FSM)",
-        "fsm_desc": "使用设备的显式进/出状态. 高端硬件的最高精度。"
+        "dp_pattern": "动态模式 (DP)",
+        "dp_pattern_desc": "最适合带休息的固定班次。智能匹配。",
+        "anchor_first": "锚点匹配 (首尾)",
+        "anchor_first_desc": "最简单。仅获取当天的第一条和最后一条记录。",
+        "sequential": "顺序匹配 (Retail)",
+        "sequential_desc": "按顺序匹配打卡记录。最适合非固定班次。",
+        "fsm": "状态机 (FSM)",
+        "fsm_desc": "直接使用设备的出入状态。高端硬件的最高精度。"
       }
     },
     "members": {
@@ -82,49 +83,65 @@
     "logs": "日志",
     "leave_requests": {
       "policy": {
-        "edit_title": "编辑制度",
-        "title": "休假制度",
-        "save_btn": "保存制度"
+        "edit_title": "编辑政策",
+        "title": "休假政策",
+        "save_btn": "保存政策"
       }
     },
     "leave_balances": "休假余额",
     "profile": "个人资料",
-    "attendance": "考勤",
+    "attendance": "出勤",
     "leave": "休假",
-    "attendance_confirm": "考勤确认",
-    "reports": "报表",
-    "shifts": "班次与排班",
+    "attendance_confirm": "出勤确认",
+    "reports": "报告",
+    "shifts": "排班管理",
     "note": "备注",
+    "never": "从未",
+    "from_start": "从开始",
+    "day_short": "天",
+    "days_short": "天",
+    "month_short": "月",
+    "expired": "已过期",
+    "upcoming": "即将到来",
+    "segment": "薪资段",
+    "no_records_found": "未找到记录。",
+    "no_profile": "未找到个人资料。",
+    "select_month": "选择月份",
     "payroll": {
       "settings": {
-        "global_history": "全局配置历史",
+        "global_history": "全系统配置历史",
         "title": "标准工作日配置",
         "effective_date": "生效日期",
-        "working_day_mode": "计工模式",
+        "working_day_mode": "工作日模式",
         "mode_fixed": "固定天数",
-        "mode_fixed_desc": "例如：每月始终计算为 26 天",
+        "mode_fixed_desc": "例如: 始终按每月26天计算",
         "mode_actual": "实际日历",
-        "mode_actual_desc": "总天数减去休息日（周六/周日）",
-        "fixed_days": "固定标准天数",
+        "mode_actual_desc": "总天数减去周末",
+        "fixed_days": "固定工作天数",
         "days_per_week": "每周工作天数",
-        "5days": "5 天 (周六、日休息)",
+        "5days": "5 天 (周六日休息)",
         "6days": "6 天 (周日休息)",
-        "7days": "7 天 (无休息日)",
-        "hours_per_day": "标准日工作时长",
-        "note_title": "关于时薪计算的说明",
-        "note_desc": "加班时薪 = (基本工资总额) / (标准天数 × 标准日时长)。"
+        "7days": "7 天 (不休息)",
+        "hours_per_day": "标准每天工时",
+        "note_title": "时薪计算说明",
+        "note_desc": "加班时薪 = (总基本工资和固定津贴) / (标准工作日 × 标准每天工时)。",
+        "policy_desc": "管理标准工作单位及其随时间的变化。",
+        "add_version": "创建新政策版本",
+        "date_warning": "注意：生效日期决定受影响的薪资周期。更改将从此日期起自动应用。",
+        "virtual": "系统默认",
+        "status": "状态"
       },
       "table": {
-        "net_pay": "净薪资",
+        "net_pay": "实发工资",
         "status": "状态",
         "loading_payslips": "正在加载工资单...",
         "no_payslips": "未找到工资单",
-        "period": "计薪周期",
+        "period": "期间",
         "base_pay": "基本工资",
         "overtime": "加班费",
         "reason": "原因",
         "basis": "依据",
-        "std_days": "标准天数",
+        "std_days": "标工",
         "actual": "实际",
         "amount": "金额"
       },
@@ -133,81 +150,81 @@
         "finalized": "已结算"
       },
       "segments": {
-        "title": "薪资条细目 (Segments)"
+        "title": "工资段详情"
       },
       "employee_config": {
-        "tab_title": "薪资配置"
+        "tab_title": "工资配置"
       }
     },
     "agents": {
       "edit_modal": {
         "messages": {
-          "update_error": "更新代理出错。"
+          "update_error": "更新代理时出错。"
         },
         "title": "编辑代理",
         "subtitle": "连接管理",
         "id_label": "代理 ID (只读)",
         "name_label": "分支机构/位置名称",
-        "name_placeholder": "例如：北京办公室",
-        "token_label": "Secret Token",
+        "name_placeholder": "例：河内办公室",
+        "token_label": "安全令牌",
         "token_placeholder": "连接密码"
       },
       "status": {
-        "trusted": "已信任",
+        "trusted": "已批准",
         "pending": "待处理"
       }
     },
     "devices": "设备",
     "settings": {
       "categories": {
-        "connectivity": "连接",
+        "connectivity": "连接性",
         "connectivity_desc": "管理设备连接和网络设置。",
         "general": "常规",
-        "payroll": "工资",
-        "payroll_desc": "管理标准工作日和时薪公式。",
-        "people": "人事",
+        "payroll": "薪资",
+        "payroll_desc": "管理标准工作日和薪资公式。",
+        "people": "人员",
         "people_desc": "管理员工、部门和角色。",
-        "time": "时间与出勤",
+        "time": "时间与考勤",
         "time_desc": "配置班次、排班和考勤规则。"
       },
       "tabs": {
-        "general": "常规设置",
+        "general": "常规配置",
         "patterns": "工作模式",
         "rules": "自动分配规则",
-        "payroll_policy": "工资政策",
-        "salary_components": "工资构成",
-        "members": "成员管理",
-        "departments": "组织架构",
+        "payroll_policy": "薪资政策",
+        "salary_components": "薪资组成部分",
+        "members": "成员",
+        "departments": "部门",
         "localization": "本地化",
-        "appearance": "外观界面",
-        "agents": "连接代理",
-        "devices": "考勤设备"
+        "appearance": "外观",
+        "agents": "连接的应用程序",
+        "devices": "物联网设备"
       }
     },
-    "logout": "注销",
-    "switch_workspace": "切换工作区",
+    "logout": "退出登录",
+    "switch_workspace": "切换工作空间",
     "admin": "管理员",
-    "workspace_owner": "工作区所有者",
-    "office_branch": "办公室 / 分支机构",
-    "select_workspace_desc": "选择您想要操作的办公室或分支机构。",
-    "create_workspace": "创建工作区",
-    "add_office_branch": "添加办公室/分支机构",
-    "select_workspace": "选择工作区",
+    "workspace_owner": "所有者",
+    "office_branch": "办公室/分公司",
+    "select_workspace_desc": "选择您想工作的办公室或分公司。",
+    "create_workspace": "创建工作空间",
+    "add_office_branch": "添加办公室/分公司",
+    "select_workspace": "选择工作空间",
     "search_placeholder": "搜索...",
     "close": "关闭",
     "add": "添加",
-    "loading": "正在加载...",
+    "loading": "正在加载数据...",
     "creating": "正在创建...",
     "inviting": "正在邀请...",
-    "loading_workspace": "正在加载工作区...",
+    "loading_workspace": "正在加载工作空间...",
     "system_connection_error": "系统连接错误",
     "retry": "重试",
-    "create_workspace_error": "无法创建工作区. 请重试。",
+    "create_workspace_error": "无法创建工作空间。请再试一次。",
     "success": "成功",
     "error": "错误",
     "leeattend_system": "LeeAttend 系统",
     "org_name_label": "组织/项目名称",
-    "org_name_placeholder": "例如：ABC 公司，自由职业团队...",
+    "org_name_placeholder": "例：ABC 公司、自由职业团队...",
     "employee": "员工",
     "all_employees": "所有员工",
     "from_date": "开始日期",
@@ -219,72 +236,72 @@
     "month": "月",
     "total": "总计",
     "save": "保存",
-    "info": "通知",
+    "info": "信息",
     "warning": "警告",
     "remove": "移除",
     "combobox": {
-      "placeholder": "请选择一项...",
+      "placeholder": "选择一个项目...",
       "search": "搜索...",
       "no_results": "未找到结果。"
     },
     "cancel": "取消",
-    "processing": "处理中...",
+    "processing": "正在处理...",
     "shift": "班次",
     "status": "状态",
     "date": "日期",
     "notes": "备注",
     "reason": "原因",
-    "approve": "通过",
+    "approve": "批准",
     "reject": "拒绝",
     "days": "天",
     "break": "休息",
-    "feature_coming_soon": "该功能即将推出",
+    "feature_coming_soon": "此功能即将推出",
     "people": "人",
     "week": "周",
     "time": "时间",
     "shift_name": "班次名称",
-    "no_history": "未找到历史记录",
+    "no_history": "无历史数据",
     "system": "系统",
     "type": "类型",
     "all": "全部",
-    "status_pending": "待审批",
-    "status_approved": "已通过",
+    "status_pending": "待处理",
+    "status_approved": "已批准",
     "status_rejected": "已拒绝",
     "select_employee": "选择员工...",
     "select_department": "选择部门...",
     "effective_from": "生效日期",
-    "indefinite": "长期有效",
+    "indefinite": "无限期",
     "definite": "有期限",
     "minutes": "分钟",
     "edit": "编辑",
     "delete": "删除",
     "update": "更新",
     "description": "描述",
-    "no_description": "暂无描述。",
+    "no_description": "无描述。",
     "start": "开始",
     "end": "结束",
     "in": "进",
     "out": "出",
-    "adjust": "修正",
+    "adjust": "调整",
     "work_day": "工作日",
-    "punch_in": "上班时间",
-    "punch_out": "下班时间",
+    "punch_in": "上班打卡",
+    "punch_out": "下班打卡",
     "sending": "正在发送...",
     "saving": "正在保存...",
     "save_changes": "保存更改",
     "user": "用户",
     "role": "角色",
-    "no_name": "未命名",
+    "no_name": "无名称",
     "status_active": "活跃",
-    "status_inactive": "已禁用",
+    "status_inactive": "非活跃",
     "system_error": "系统错误",
     "restore": "恢复",
     "online": "在线",
     "offline": "离线",
-    "trust": "批准",
+    "trust": "信任",
     "revoke": "撤销",
-    "submit_request": "提交申请",
-    "schedule": "排班",
+    "submit_request": "提交请求",
+    "schedule": "日程",
     "payroll_and_contracts": "薪资与合同",
     "deleting": "正在删除...",
     "source": "来源",
@@ -293,22 +310,22 @@
       "en": "English",
       "zh": "中文"
     },
-    "primary_color": "主题颜色",
+    "primary_color": "主色调",
     "colors": {
-      "violet": "紫色",
+      "violet": "紫罗兰色",
       "indigo": "靛蓝色",
       "blue": "蓝色",
-      "emerald": "翡翠绿",
+      "emerald": "祖母绿色",
       "amber": "琥珀色",
-      "rose": "玫瑰红",
-      "slate": "石板灰",
+      "rose": "玫瑰色",
+      "slate": "石板灰色",
       "black": "黑色"
     },
     "pagination": {
       "showing": "显示",
-      "out_of": "/",
-      "records": "条记录",
-      "page": "页码",
+      "out_of": "之",
+      "records": "记录",
+      "page": "页",
       "prev": "上一页",
       "next": "下一页"
     },
@@ -316,41 +333,41 @@
       "title": "筛选",
       "this_month": "本月",
       "last_month": "上月",
-      "specific_month": "选择月份",
-      "custom": "自定义"
+      "custom": "自定义",
+      "specific_month": "选择月份..."
     },
     "sections": {
-      "organization": "组织架构",
-      "time_leave": "考勤休假",
-      "payroll_shifts": "薪资排班",
-      "system": "系统设置",
+      "organization": "组织",
+      "time_leave": "时间与请假",
+      "payroll_shifts": "薪资与班次",
+      "system": "系统",
       "self_service": "自助服务"
     },
     "my_profile": "我的个人资料",
     "my_attendance": "我的出勤",
     "completed": "已完成",
     "pending": "待处理",
-    "my_leave": "我的请假",
-    "my_documents": "我的文件",
+    "my_leave": "我的休假",
+    "my_documents": "我的文档",
     "my_payslips": "我的工资单",
     "department": "部门",
     "all_departments": "所有部门",
     "tags": "标签",
     "filter_by_name": "按名称筛选...",
     "name": "名称",
-    "quick_actions": "快速操作",
+    "quick_actions": "快捷操作",
     "work": "工作",
-    "inactive": "已禁用",
+    "inactive": "非活跃",
     "active": "活跃",
     "collapse": "折叠",
     "expand": "展开",
     "select_all": "全选",
     "deselect_all": "取消全选",
     "adding": "正在添加...",
-    "employee_id": "员工工号",
+    "employee_id": "员工 ID",
     "hire_date": "入职日期",
     "confirm_delete": "您确定要删除此项吗？",
-    "did_you_know": "您知道吗？",
+    "did_you_know": "你知道吗？",
     "create": "创建",
     "end_date": "结束日期",
     "select": "选择",
@@ -359,30 +376,31 @@
     "effective_date": "生效日期",
     "yes": "是",
     "no": "否",
-    "base_for_ot": "作为加班费基数",
-    "add_new": "添加",
-    "search_employee": "搜索员工..."
+    "base_for_ot": "加班基数",
+    "add_new": "添加新项",
+    "search_employee": "搜索员工...",
+    "no_notes": "无备注。"
   },
   "dashboard": {
     "title": "仪表板",
-    "welcome": "欢迎回来！这是您工作区的活动摘要。",
+    "welcome": "欢迎回来！这是您的工作空间活动摘要。",
     "tabs": {
-      "hr": "人事与薪酬",
+      "hr": "人事与薪资",
       "system": "系统状态"
     },
     "hr": {
-      "total_employees": "总员工数",
+      "total_employees": "员工总数",
       "present_today": "今日出勤",
-      "pending_requests": "待处理申请",
-      "estimated_payroll": "预估薪资总额",
-      "hr_management": "人力资源管理",
-      "hr_management_title": "集中化员工管理",
-      "hr_management_desc": "追踪整个团队的合同、保险、工作历史和薪资。",
+      "pending_requests": "待处理请求",
+      "estimated_payroll": "预计薪资总额",
+      "hr_management": "人事管理",
+      "hr_management_title": "集中式员工管理",
+      "hr_management_desc": "跟踪整个团队的合同、保险、工作历史和薪资。",
       "hr_management_btn": "打开员工列表",
       "payroll": "考勤与薪资",
-      "payroll_title": "时间表与自动薪资",
-      "payroll_desc": "同步实时考勤数据，在几秒钟内生成准确的工资单。",
-      "payroll_btn": "查看时间表"
+      "payroll_title": "自动化考勤表和薪资",
+      "payroll_desc": "实时同步考勤数据，几秒钟内生成准确的薪资。",
+      "payroll_btn": "查看考勤表"
     },
     "system": {
       "total_agents": "代理总数",
@@ -391,34 +409,34 @@
       "active_devices": "活跃设备",
       "edge_agents": "边缘代理",
       "live_data": "实时数据",
-      "seen": "最近显示",
+      "seen": "最近在线",
       "connected": "已连接",
       "disconnected": "已断开",
-      "no_agents": "尚未连接任何代理",
-      "quick_actions": "快速操作",
+      "no_agents": "未连接代理",
+      "quick_actions": "快捷操作",
       "device_management": "设备管理",
-      "device_management_desc": "在分支机构添加或移除考勤机。系统将自动同步。",
+      "device_management_desc": "在分支机构添加或移除考勤机。系统自动同步。",
       "device_management_btn": "打开管理器"
     },
     "connection_error": "连接错误",
     "connection_error_desc": "无法连接到 API 服务器或数据无效。"
   },
   "workspace_settings": {
-    "title": "工作区设置",
-    "description": "管理工作区配置、成员和外观。",
-    "general_config": "通用配置",
+    "title": "工作空间设置",
+    "description": "管理配置、人员和工作空间外观。",
+    "general_config": "常规配置",
     "payroll_config": "薪资配置",
     "attendance_config": "考勤配置",
     "save_config": "保存配置",
-    "work_unit": "计薪单位 (Work Unit)",
+    "work_unit": "工作单位",
     "rounding_policy": "舍入规则",
     "date_format": "日期格式",
     "time_format": "时间格式",
     "timezone": "系统时区",
     "default_language": "默认语言",
     "pairing_algorithm": "匹配算法",
-    "theme_config": "界面配置",
-    "primary_color": "主题颜色",
+    "theme_config": "主题配置",
+    "primary_color": "主色调",
     "invite_member": "邀请成员",
     "members_list": "成员列表",
     "founder": "创始人",
@@ -426,26 +444,26 @@
       "1min": "1 分钟",
       "1min_desc": "默认，最高精度",
       "15min": "15 分钟",
-      "15min_desc": "0.25 小时块",
+      "15min_desc": "0.25小时块",
       "30min": "30 分钟",
-      "30min_desc": "0.5 小时块",
+      "30min_desc": "0.5小时块",
       "60min": "60 分钟",
-      "60min_desc": "1 小时块"
+      "60min_desc": "1小时块"
     },
     "rounding_options": {
       "none": "不舍入",
       "floor": "向下取整 (Floor)",
       "ceil": "向上取整 (Ceil)",
-      "round": "就近舍入 (Round)"
+      "round": "最近舍入 (Round)"
     },
     "date_format_options": {
-      "vn": "越南式 (例如: 31/12/2025)",
-      "us": "美式 (例如: 12/31/2025)",
-      "iso": "ISO 格式 (例如: 2025-12-31)"
+      "vn": "越南格式 (例: 31/12/2025)",
+      "us": "美国格式 (例: 12/31/2025)",
+      "iso": "ISO 格式 (例: 2025-12-31)"
     },
     "time_format_options": {
-      "24h": "24 小时制",
-      "12h": "12 小时制",
+      "24h": "24 小时",
+      "12h": "12 小时",
       "example_24h": "例如: 14:30",
       "example_12h": "例如: 02:30 PM"
     },
@@ -455,65 +473,65 @@
       "utc": "协调世界时 (UTC)"
     },
     "algorithm_options": {
-      "dp_pattern": "模式匹配 (DP)",
-      "dp_pattern_desc": "最适合固定班次 and 休息时间. 智能配对。",
-      "anchor_first": "首尾配对 (Anchor)",
-      "anchor_first_desc": "最简单. 仅使用当天的第一个和最后一个记录。",
-      "sequential": "顺序配对 (零售)",
-      "sequential_desc": "配对记录 1+2、3+4 等. 最适合分段班次 and 高频打卡。",
-      "fsm": "基于状态 (FSM)",
-      "fsm_desc": "使用设备的显式进/出状态. 高端硬件的最高精度。"
+      "dp_pattern": "动态模式 (DP)",
+      "dp_pattern_desc": "最适合带休息的固定班次。智能匹配。",
+      "anchor_first": "锚点匹配 (首尾)",
+      "anchor_first_desc": "最简单。仅获取当天的第一条和最后一条记录。",
+      "sequential": "顺序匹配 (Retail)",
+      "sequential_desc": "按顺序匹配打卡记录。最适合非固定班次。",
+      "fsm": "状态机 (FSM)",
+      "fsm_desc": "直接使用设备的出入状态。高端硬件的最高精度。"
     }
   },
   "auth": {
     "slogan": "人力资源管理系统 4.0",
-    "login_error": "邮箱或密码错误",
+    "login_error": "电子邮件或密码不正确",
     "connection_error": "服务器连接错误",
     "fast_login": "⚡ 快速登录",
-    "or_use_account": "或使用您的账号",
-    "email": "邮箱",
+    "or_use_account": "或者使用账号",
+    "email": "电子邮件",
     "password": "密码",
-    "processing": "处理中...",
+    "processing": "正在处理...",
     "login_btn": "登录系统",
     "no_account": "还没有账号？",
     "register_now": "立即注册",
     "display_name": "显示名称",
     "confirm_password": "确认密码",
-    "already_have_account": "已有账号？",
+    "already_have_account": "已经有账号？",
     "login": "登录",
     "register_title": "创建新账号",
     "register_btn": "注册账号",
     "password_mismatch": "密码不匹配",
-    "password_too_short": "密码至少需要 6 个字符",
-    "registration_failed": "注册失败. 请重试。",
+    "password_too_short": "密码必须至少为 6 个字符",
+    "registration_failed": "注册失败。请再试一次。",
     "creating_account": "正在创建账号...",
-    "checking_security": "正在检查安全设置...",
+    "checking_security": "正在进行安全检查...",
     "session_expired": "会话已过期，正在重定向...",
-    "user_not_found": "未找到用户信息..."
+    "user_not_found": "未找到用户..."
   },
   "ess": {
     "my_profile": "我的个人资料",
-    "no_employee_linked": "未绑定员工",
-    "contact_hr": "请联系人力资源部将您的用户账户与员工档案进行绑定。",
+    "no_employee_linked": "未关联员工",
+    "contact_hr": "请联系人事部门将您的账号与员工档案关联。",
     "personal_info": "个人信息",
-    "phone": "电话",
+    "phone": "电话号码",
     "date_of_birth": "出生日期",
     "gender": "性别",
     "gender_male": "男",
     "gender_female": "女",
     "gender_other": "其他",
-    "national_id": "身份证 / 护照",
+    "national_id": "身份证号",
     "address": "地址",
-    "address_placeholder": "请输入您当前的居住地址",
+    "address_placeholder": "输入您的当前居住地址",
     "bank_details": "银行账户信息",
     "bank_name": "银行名称",
-    "account_number": "银行账号",
-    "bank_branch": "支行名称",
-    "branch_placeholder": "请输入支行名称",
+    "account_number": "账号",
+    "bank_branch": "分行名称",
+    "branch_placeholder": "输入银行分行",
     "emergency_contacts": "紧急联系人",
     "add_contact": "添加联系人",
     "no_emergency_contacts": "未找到紧急联系人。",
-    "primary": "主要",
+    "primary": "首选",
     "add_emergency_contact": "添加紧急联系人",
     "contact_name": "联系人姓名",
     "relationship": "关系",
@@ -523,61 +541,72 @@
     "relationship_child": "子女",
     "relationship_friend": "朋友",
     "relationship_other": "其他",
-    "set_as_primary": "设为主要联系人",
+    "set_as_primary": "设为首选",
     "profile": {
-      "subtitle": "查看并管理您的个人信息。",
+      "subtitle": "查看和管理您的个人信息。",
       "update_success": "个人资料更新成功",
-      "update_error": "更新个人资料失败"
+      "update_error": "更新个人资料时出错"
     },
     "emergency_contact": {
       "add_success": "联系人添加成功",
-      "add_error": "添加联系人失败",
+      "add_error": "添加联系人时出错",
       "confirm_delete": "您确定要删除此联系人吗？",
-      "delete_success": "联系人删除成功",
-      "delete_error": "删除联系人失败"
+      "delete_success": "联系人已删除",
+      "delete_error": "删除联系人时出错",
+      "subtitle": "紧急情况下的联系人。"
+    },
+    "clock": {
+      "title": "打卡钟",
+      "subtitle": "上下班和休息打卡",
+      "punch_in_success": "打卡成功",
+      "punch_out_success": "下班打卡成功",
+      "break_start_success": "开始休息",
+      "adjustment_requested": "调整请求已提交",
+      "no_entries": "没有最近的打卡记录",
+      "recent_history": "最近活动（最近7天）"
     },
     "attendance": {
       "title": "我的考勤",
-      "subtitle": "查看您的每日签到和签退记录。",
+      "subtitle": "查看您的每日打卡记录。",
       "date": "日期",
-      "check_in": "签到",
-      "check_out": "签退",
+      "check_in": "上班打卡",
+      "check_out": "下班打卡",
       "duration": "时长",
       "status": "状态",
       "generation_info": "处理信息 (可追溯性)",
-      "no_data": "本月未找到考勤记录。"
+      "no_data": "本月没有考勤数据。"
     }
   },
   "leave_balances": {
     "title": "休假余额",
-    "subtitle": "管理员工年度休假额度。",
-    "summary_table": "余额汇总表",
+    "subtitle": "管理员工当年的休假权利。",
+    "summary_table": "余额摘要表",
     "table": {
       "base": "基础",
       "accrued": "累计",
-      "carried_over": "上年结转",
-      "used": "已使用",
+      "carried_over": "结转",
+      "used": "已用",
       "remaining": "剩余",
-      "usage": "使用率",
-      "accrued_info": "包括定期累积和手动调整。",
+      "usage": "使用情况",
+      "accrued_info": "包括定期累计和手动调整。",
       "history_tooltip": "历史与调整"
     },
     "history": {
       "title": "休假历史",
-      "subtitle": "查看详细历史并调整休假余额。",
-      "tab_history": "历史记录",
+      "subtitle": "查看详细历史记录并调整休假余额。",
+      "tab_history": "历史",
       "tab_adjust": "手动调整",
       "no_history": "未找到历史记录。",
       "action_label": "操作",
       "add": "增加",
-      "deduct": "减少",
-      "amount_placeholder": "例如: 1.0",
+      "deduct": "扣除",
+      "amount_placeholder": "例: 1.0",
       "reason_label": "原因 (审计必需)",
-      "reason_placeholder": "请说明进行此调整的原因...",
+      "reason_placeholder": "解释此项调整的原因...",
       "confirm_btn": "确认调整",
       "messages": {
         "adjust_success": "余额调整成功",
-        "adjust_error": "调整余额失败"
+        "adjust_error": "调整余额时出错"
       },
       "validation": {
         "invalid_amount": "金额无效"
@@ -585,8 +614,8 @@
     }
   },
   "members": {
-    "title": "成员与权限",
-    "subtitle": "管理系统内的访问权限并分配角色。",
+    "title": "成员与角色",
+    "subtitle": "管理系统内的访问权限和角色。",
     "roles": {
       "admin": "管理员",
       "member": "成员",
@@ -594,150 +623,153 @@
       "owner_desc": "创始人，最高权限",
       "admin_desc": "系统管理员",
       "member_desc": "普通成员",
-      "modal_title": "权限管理",
-      "modal_subtitle": "人员权限分配",
-      "primary_role_label": "主要角色 (永久)",
-      "extra_roles_label": "附加角色 (临时)",
-      "expires_at": "过期时间",
-      "no_extra_roles": "未分配附加角色。",
+      "modal_title": "管理角色",
+      "modal_subtitle": "人员权限",
+      "primary_role_label": "主角色 (永久)",
+      "extra_roles_label": "额外角色 (临时)",
+      "expires_at": "到期时间",
+      "no_extra_roles": "未分配额外角色。",
       "assign_new_title": "分配新角色",
       "expiry_date_label": "到期日期",
       "assign_btn": "分配角色",
-      "confirm_change_primary": "您确定要将主要角色更改为 {{role}} 吗？",
+      "confirm_change_primary": "您确定要将主角色更改为 {{role}} 吗？",
       "confirm_revoke": "您确定要撤销此角色吗？",
       "messages": {
-        "update_primary_error": "更新主要角色出错。",
-        "assign_error": "分配角色出错。",
-        "revoke_error": "撤销角色出错。"
+        "update_primary_error": "更新主角色时出错。",
+        "assign_error": "分配角色时出错。",
+        "revoke_error": "撤销角色时出错。"
       }
     },
     "table": {
-      "confirm_remove": "您确定要移除该成员吗？",
-      "manage_roles": "管理权限",
+      "confirm_remove": "您确定要移除此成员吗？",
+      "manage_roles": "管理角色",
       "remove_member": "移除成员",
       "messages": {
         "remove_error": "移除成员时出错。",
-        "no_members": "该工作区未找到任何成员。"
+        "no_members": "在此工作空间中未找到成员。"
       }
     },
     "invite": {
       "title": "邀请成员",
-      "subtitle": "人力资源管理",
-      "email_label": "电子邮箱地址",
-      "role_label": "分配角色",
+      "subtitle": "人员管理",
+      "email_label": "电子邮件地址",
+      "role_label": "要分配的角色",
       "submit_btn": "发送邀请",
-      "error_message": "无法邀请成员. 请检查电子邮箱地址。"
+      "error_message": "无法邀请成员。请检查电子邮件。"
     }
   },
   "employees": {
     "title": "员工",
-    "subtitle": "全系统员工档案与工作历史管理",
+    "subtitle": "跨系统管理个人档案和工作历史",
     "add_btn": "添加员工",
-    "search_placeholder": "按姓名或工号搜索...",
+    "search_placeholder": "按名称或 ID 搜索...",
     "search": {
       "placeholder": "选择员工...",
-      "input_placeholder": "按姓名或 ID 搜索...",
+      "input_placeholder": "按名称或 ID 搜索...",
       "no_results": "未找到员工。"
     },
     "table": {
-      "name": "姓名",
-      "id": "工号",
+      "name": "全名",
+      "id": "ID",
       "hire_date": "入职日期",
       "status": "状态",
       "actions": "操作",
       "loading": "正在加载数据...",
-      "no_data": "暂无数据。",
-      "active": "在职",
-      "terminated": "离职"
+      "no_data": "无可用数据。",
+      "active": "活跃",
+      "terminated": "已离职"
     },
     "details": {
       "edit_profile": "编辑档案",
-      "terminate": "办理离职",
+      "terminate": "离职",
       "rehire": "重新入职",
-      "terminate_confirm": "您确定要办理该员工的离职吗？",
+      "terminate_confirm": "您确定要让该员工离职吗？",
       "current_dept": "当前部门",
-      "transfer": "部门调动",
+      "transfer": "调动",
       "not_assigned_dept": "未分配部门",
       "salary_benefits": "薪资与福利",
       "update": "更新",
       "current": "当前",
-      "no_salary_history": "暂无薪资历史",
+      "no_salary_history": "无薪资历史",
       "work_history": "工作历史",
       "view_details": "查看详情 →",
-      "joined": "入职",
-      "returned": "重回岗位"
+      "joined": "入职公司",
+      "returned": "返回工作岗位"
     },
     "form": {
       "add_title": "添加员工",
       "edit_title": "编辑档案",
-      "subtitle": "人事档案",
+      "subtitle": "人员档案",
       "last_name": "姓",
       "first_name": "名",
       "employee_id": "员工 ID",
       "hire_date": "入职日期",
-      "is_active": "激活状态",
+      "is_active": "活跃",
       "cancel": "取消",
       "save": "保存档案",
       "update": "更新"
     },
     "transfer": {
       "title": "部门调动",
-      "subtitle": "岗位管理",
+      "subtitle": "职位管理",
       "new_dept": "新部门",
       "select_dept": "选择部门...",
       "effective_date": "生效日期",
       "notes": "备注",
       "cancel": "取消",
-      "submit": "调动"
+      "submit": "调动",
+      "notes_placeholder": "输入调动备注 (例: 职位从开发更改为组长)..."
     },
     "history": {
       "title": "工作历史",
-      "subtitle": "人事数据",
-      "rehire_period": "再就业阶段",
-      "first_period": "初始阶段",
-      "currently_working": "在职中",
+      "subtitle": "人员数据",
+      "rehire_period": "重新入职期间",
+      "first_period": "第一期间",
+      "currently_working": "目前正在工作",
       "period_range": "从 {{start}} 到 {{end}}",
-      "present": "至今",
+      "present": "(至今)",
       "close": "关闭"
     },
     "rehire": {
-      "title": "重新录用",
+      "title": "员工重新入职",
       "subtitle": "激活档案",
-      "confirm_msg": "确认员工开始 new 工作阶段的日期",
+      "confirm_msg": "确认员工开始新工作期间的日期",
       "rehire_date": "重新入职日期",
       "cancel": "取消",
       "confirm": "确认",
-      "processing": "处理中..."
+      "processing": "正在处理..."
     },
     "salary": {
       "title": "更新薪资",
       "subtitle": "薪酬管理",
-      "base_salary": "基本薪资",
-      "type": "计薪方式",
+      "base_salary": "基本工资",
+      "type": "薪资类型",
       "monthly": "月薪",
       "hourly": "时薪",
       "effective_date": "生效日期",
       "cancel": "取消",
       "submit": "更新薪资"
     },
-    "select_workspace": "请选择工作区"
+    "select_workspace": "请选择一个工作空间",
+    "hire_date": "入职日期"
   },
   "departments": {
     "title": "部门",
-    "subtitle": "管理组织结构和层级",
+    "subtitle": "管理组织结构和管理层级",
     "add_btn": "添加部门",
-    "manager_label": "部门经理",
+    "manager_label": "经理",
     "not_assigned": "未分配",
     "default_pattern_label": "默认工作模式",
     "messages": {
-      "no_departments": "尚未创建任何部门。",
-      "confirm_delete": "删除此部门？"
+      "no_departments": "尚未创建部门。",
+      "confirm_delete": "删除此部门？",
+      "empty_desc": "组织中没有部门。从创建第一个部门开始。"
     },
     "form": {
       "name_label": "部门名称",
-      "name_placeholder": "例如：技术部、人事部...",
+      "name_placeholder": "例：技术部、人事部...",
       "desc_placeholder": "输入部门职能的简短描述...",
-      "manager_placeholder": "选择一名经理...",
+      "manager_placeholder": "选择经理...",
       "pattern_placeholder": "选择默认工作模式..."
     },
     "modal": {
@@ -748,133 +780,139 @@
     }
   },
   "attendance_confirm": {
-    "title": "考勤确认",
-    "subtitle": "审批员工的考勤调整/补卡申请。",
+    "title": "出勤确认",
+    "subtitle": "批准来自员工的调整/补充考勤请求。",
     "excel_template": "Excel 模板",
     "import_excel": "导入 Excel",
-    "ot_label": "加班",
+    "ot_label": "午餐期间工作",
     "status": {
-      "approved": "已通过",
+      "approved": "已批准",
       "rejected": "已拒绝",
-      "pending": "待审批"
+      "pending": "待处理"
     },
     "table": {
-      "request_time": "申请 (进入 - 离开)"
+      "request_time": "请求 (进 - 出)"
     },
     "messages": {
-      "no_requests": "暂无申请。"
+      "no_requests": "暂无请求。",
+      "no_data": "当前没有需要处理的考勤调整请求。"
     },
     "modal": {
-      "import_title": "从文件导入考勤数据"
+      "import_title": "从文件导入出勤数据"
     }
   },
   "attendance_logs": {
     "title": "打卡日志",
-    "subtitle": "来自考勤机和其他来源的原始数据。",
+    "subtitle": "来自考勤机和打卡源的原始数据。",
     "export_btn": "导出数据",
-    "import_btn": "导入日志",
+    "import_btn": "导入数据",
     "status": {
       "recorded": "已记录"
     },
     "messages": {
       "loading": "正在加载日志...",
-      "no_data": "未找到打卡数据。"
+      "no_data": "未找到打卡日志。"
     },
     "modal": {
-      "import_title": "从文件导入日志"
+      "import_title": "从文件导入打卡日志"
     }
   },
   "attendance_import": {
     "subtitle": "批量数据导入",
     "rows_processed": "行已处理",
     "error_list_title": "详细错误列表：",
-    "select_another_file": "选择其他文件",
-    "upload_prompt": "点击或将文件拖拽至此处",
+    "select_another_file": "选择另一个文件",
+    "upload_prompt": "点击或将文件拖到此处",
     "upload_limit": "Excel 或 CSV (最大 10MB)",
     "start_import": "开始导入",
     "status": {
       "processing": "正在处理数据...",
       "completed": "已完成！",
       "failed": "发生错误",
-      "pending": "等待中...",
+      "pending": "待处理...",
       "uploading": "正在上传..."
     },
     "file_requirements": {
       "title": "文件格式要求：",
-      "col_a": "A 列：员工工号 (Employee ID)",
+      "col_a": "A 列：员工 ID",
       "col_b": "B 列：员工姓名 (可选)",
       "col_c": "C 列：打卡时间 (DD/MM/YYYY HH:mm)",
       "formats": "支持 .xlsx, .xls 和 .csv 文件"
     },
     "messages": {
-      "upload_error": "上传文件出错"
+      "upload_error": "上传文件时出错"
     }
   },
   "agents": {
     "title": "代理管理",
     "subtitle": "批准并控制边缘代理连接点",
+    "add_btn": "申报代理",
+    "add_form_title": "设置新代理",
+    "save_btn": "保存代理",
+    "id_label": "代理 ID",
+    "name_label": "分支机构名称",
+    "token_label": "安全令牌",
     "status": {
-      "trusted": "已信任",
+      "trusted": "已批准",
       "pending": "待处理",
       "closed": "已关闭"
     },
     "actions": {
-      "hide_inactive": "隐藏已关闭代理",
-      "show_inactive": "显示已关闭代理",
-      "showing_archived": "正在显示已存档",
-      "show_archived": "显示已存档",
-      "declare_agent": "声明代理"
-    },
-    "form": {
-      "new_title": "声明新代理",
-      "id_label": "代理 ID (唯一)",
-      "id_placeholder": "例如：BRANCH_BJ_01",
-      "name_label": "分支机构/位置名称",
-      "name_placeholder": "例如：北京办公室",
-      "token_label": "Secret Token",
-      "token_placeholder": "连接密码"
+      "hide_inactive": "隐藏已关闭的代理",
+      "show_inactive": "显示已关闭的代理",
+      "showing_archived": "正在显示归档",
+      "show_archived": "显示归档",
+      "declare_agent": "申报代理"
     },
     "table": {
       "identifier": "标识符",
-      "token": "Token",
-      "last_ip": "最后 IP"
+      "token": "令牌",
+      "last_ip": "最后 IP",
+      "agent": "代理名称",
+      "status": "状态",
+      "last_seen": "最后在线",
+      "no_agents": "未找到代理。"
     },
     "edit_modal": {
       "title": "编辑代理",
       "subtitle": "连接管理",
       "id_label": "代理 ID (只读)",
       "name_label": "分支机构/位置名称",
-      "name_placeholder": "例如：北京办公室",
-      "token_label": "Secret Token",
+      "name_placeholder": "例：河内办公室",
+      "token_label": "安全令牌",
       "token_placeholder": "连接密码",
       "messages": {
-        "update_error": "更新代理出错。"
+        "update_error": "更新代理时出错。"
       }
     },
     "messages": {
-      "restore_success": "已恢复代理 {{name}}",
+      "restore_success": "代理 {{name}} 已恢复",
       "restore_error": "恢复代理时出错。",
-      "add_success": "已成功声明新代理。",
-      "add_error": "添加代理时出错. ID 可能已存在。",
-      "confirm_trust": "您确定要为代理 {{id}} 执行 {{action}} 操作吗？",
-      "trust_success": "已成功对代理执行 {{action}} 操作。",
+      "add_success": "代理申报成功。",
+      "add_error": "添加代理时出错。ID 可能已存在。",
+      "confirm_trust": "您确定要为代理 {{id}} {{action}} 吗？",
+      "trust_success": "代理 {{action}} 成功。",
       "update_status_error": "更新状态时出错。",
-      "confirm_delete": "您确定要删除代理 {{name}} ({{id}}) 吗？\n这将断开连接并从系统中隐藏代理。",
-      "delete_success": "已删除代理 {{name}}。",
+      "confirm_delete": "您确定要删除代理 {{name}} ({{id}}) 吗？\n这将断开连接并在系统中隐藏该代理。",
+      "delete_success": "代理 {{name}} 已删除。",
       "delete_error": "删除代理时出错。",
-      "no_agents": "尚未声明任何代理。"
+      "no_agents": "尚未申报代理。",
+      "update_success": "代理 {{name}} 更新成功。"
     }
   },
   "devices": {
     "title": "设备管理",
     "add_btn": "添加设备",
+    "messages": {
+      "empty_desc": "尚未记录任何物联网设备。连接考勤机以开始。"
+    },
     "toast": {
-      "add_success": "已成功添加设备 \"{{name}}\".",
-      "add_error": "添加设备时出错. 请检查 IP 地址。",
-      "update_success": "已成功更新设备 \"{{name}}\".",
+      "add_success": "设备 \"{{name}}\" 添加成功。",
+      "add_error": "添加设备时出错。请检查 IP 地址。",
+      "update_success": "设备 \"{{name}}\" 更新成功。",
       "update_error": "更新设备时出错。",
       "delete_confirm": "您确定要删除此设备吗？",
-      "delete_success": "已从系统中删除设备。",
+      "delete_success": "设备已从系统中移除。",
       "delete_error": "删除设备时出错。"
     },
     "form": {
@@ -882,172 +920,176 @@
       "new_device": "新设备",
       "edit_device": "编辑设备",
       "name": "设备名称",
-      "name_placeholder": "例如：前门考勤机",
+      "name_placeholder": "例：正门考勤机",
       "agent": "选择代理",
       "select_agent": "选择一个代理...",
       "ip": "IP 地址",
       "port": "端口",
       "save": "保存",
       "clock_name": "考勤机名称",
-      "clock_name_placeholder": "例如：主厅考勤机...",
+      "clock_name_placeholder": "例：走廊考勤机...",
       "managed_by": "由代理管理",
-      "ip_local": "IP 地址（本地）",
+      "ip_local": "本地 IP 地址",
       "cancel": "取消",
       "save_device": "保存设备",
       "update_device": "更新"
     },
     "table": {
       "device": "设备",
-      "managed_by": "管理者",
+      "managed_by": "管理方",
       "connection": "连接",
       "active": "活跃",
       "disabled": "已禁用",
       "actions": "操作",
       "edit": "编辑",
       "sync_time": "同步时间",
-      "advanced": "高级设置",
+      "advanced": "高级配置",
       "delete": "删除设备",
-      "no_data": "尚未设置任何设备。"
+      "no_data": "尚未设置设备。"
     }
   },
   "onboarding": {
-    "welcome_title": "欢迎使用！",
-    "welcome_subtitle": "让我们创建您的第一个组织 (工作区)",
+    "welcome_title": "欢迎！",
+    "welcome_subtitle": "让我们创建您的第一个组织 (工作空间)",
     "org_name_label": "组织名称",
-    "org_name_placeholder": "例如：ABC 公司，LeeAttend 团队...",
+    "org_name_placeholder": "例：ABC 公司、LeeAttend 团队...",
     "start_now_btn": "立即开始",
-    "workspace_desc": "工作区是独立的工作环境，可帮助您集中管理设备和成员。",
+    "workspace_desc": "工作空间是一个独立的运行环境，可帮助您在一个地方管理设备和成员。",
     "messages": {
-      "create_error": "无法创建工作区. 请重试。"
+      "create_error": "无法创建工作空间。请再试一次。"
     }
   },
   "profile": {
-    "subtitle": "管理您的个人信息和账号设置",
+    "subtitle": "管理个人信息和账号设置",
     "join_date": "加入日期",
     "preferred_language": "首选语言",
-    "follow_workspace": "跟随工作区设置",
-    "bio": "个人简介 (Bio)",
+    "follow_workspace": "跟随工作空间设置",
+    "bio": "个人简介",
+    "bio_placeholder": "简短的自我介绍...",
     "personalization": {
-      "title": "个性化设置",
-      "subtitle": "自定义您的个人界面颜色",
-      "use_workspace_default": "使用工作区默认设置",
-      "note": "* 此更改仅在此浏览器中对您生效。"
+      "title": "个性化",
+      "subtitle": "自定义您的个人 UI 颜色",
+      "use_workspace_default": "使用工作空间默认设置",
+      "note": "* 此更改仅适用于您当前使用的浏览器。"
     },
     "security": {
-      "title": "安全设置",
-      "subtitle": "修改您的登录密码",
+      "title": "安全",
+      "subtitle": "修改账号密码",
       "current_password": "当前密码",
       "new_password": "新密码",
       "confirm_password": "确认新密码",
       "submit_btn": "更新密码",
       "messages": {
-        "confirm_mismatch": "新密码确认不匹配。",
-        "password_changed": "密码已修改. 请重新登录。",
+        "confirm_mismatch": "确认密码不匹配。",
+        "password_changed": "密码已修改。请重新登录。",
         "change_error": "修改密码时出错。"
       }
     }
   },
   "leave_requests": {
     "title": "请假申请",
-    "subtitle": "审批并管理员工休假",
+    "subtitle": "审批和管理人员缺勤",
     "create_btn": "创建申请",
     "remaining": "剩余",
     "tabs": {
-      "policies": "制度"
+      "policies": "政策"
     },
     "types": {
       "vacation": "年假",
       "sick": "病假",
-      "vacation_full": "带薪年假",
+      "vacation_full": "年假",
       "sick_full": "病假",
       "personal": "事假"
     },
     "policy": {
-      "title": "休假制度",
-      "title_single": "制度",
-      "subtitle": "配额配置",
-      "assign_btn": "分配制度",
-      "add_btn": "添加制度",
-      "assign_title": "分配制度",
+      "title": "休假政策",
+      "title_single": "政策",
+      "subtitle": "权利配置",
+      "assign_btn": "分配政策",
+      "add_btn": "添加政策",
+      "assign_title": "分配政策",
       "assign_subtitle": "人员分配",
-      "save_btn": "保存制度",
+      "save_btn": "保存政策",
       "assign_now_btn": "立即分配",
-      "name_placeholder": "例如：标准年假制度",
-      "select_placeholder": "选择制度...",
+      "name_placeholder": "例：标准年假",
+      "select_placeholder": "选择政策...",
       "table": {
-        "name": "制度名称",
+        "name": "政策名称",
         "type": "休假类型",
-        "entitlement": "年度配额",
-        "strategy": "发放策略",
-        "carry_over": "结转额度"
+        "entitlement": "每年权利",
+        "strategy": "策略",
+        "carry_over": "结转天数"
       },
       "strategies": {
-        "monthly": "按月累积",
+        "monthly": "按月累计",
         "monthly_desc": "每月初发放天数",
-        "quarterly": "按季度累积",
+        "quarterly": "按季度累计",
         "quarterly_desc": "每季度初发放天数",
-        "yearly": "按年累积",
-        "yearly_desc": "年初发放全额配额",
-        "lump_sum": "年度发放",
-        "lump_sum_desc": "年初一次性发放全部配额"
+        "yearly": "按年累计",
+        "yearly_desc": "年初发放全年权利",
+        "lump_sum": "一次性发放",
+        "lump_sum_desc": "年初发放全年权利"
       },
       "assignee_types": {
-        "workspace": "全公司 (All)",
-        "workspace_desc": "应用于工作区内的所有员工",
+        "workspace": "全系统 (全部)",
+        "workspace_desc": "适用于工作空间中的所有员工",
         "department": "按部门",
-        "department_desc": "应用于特定部门",
+        "department_desc": "适用于特定部门",
         "employee": "个人员工",
-        "employee_desc": "应用于单个选定员工"
+        "employee_desc": "仅适用于所选的一名员工"
       },
-      "edit_title": "编辑制度",
-      "carry_over_limit": "结转上限",
+      "edit_title": "编辑政策",
+      "carry_over_limit": "结转限制",
       "messages": {
-        "no_policies": "未找到休假制度。",
-        "create_success": "成功创建休假制度！",
-        "update_success": "成功更新休假制度！",
-        "delete_success": "成功删除休假制度！",
-        "assign_success": "成功分配休假制度！",
-        "confirm_delete": "您确定要删除此休假制度吗？"
+        "no_policies": "未找到政策。",
+        "create_success": "政策创建成功！",
+        "update_success": "政策更新成功！",
+        "delete_success": "政策删除成功！",
+        "assign_success": "政策分配成功！",
+        "confirm_delete": "您确定要删除此政策吗？"
       }
     },
     "modal": {
       "submit_title": "提交请假申请",
       "submit_subtitle": "缺勤管理",
-      "reason_placeholder": "请输入请假原因...",
+      "reason_placeholder": "输入请假原因...",
       "submit_btn": "提交申请"
     },
     "messages": {
-      "accrual_success": "配额计算成功！",
-      "no_requests": "暂无申请。"
+      "accrual_success": "休假累计运行成功！",
+      "no_requests": "未找到请求。"
     }
   },
   "payroll": {
     "traceability": {
-      "hierarchy_title": "制度层级",
-      "hierarchy_explanation": "薪资设置按以下顺序解析：个人 > 部门 > 工作区。",
-      "individual_policy": "个人制度",
-      "department_policy": "部门制度",
-      "workspace_default": "工作区默认"
+      "hierarchy_title": "配置优先级层级",
+      "hierarchy_explanation": "薪资配置优先级：个人 > 部门 > 工作空间。",
+      "individual_policy": "个人政策",
+      "department_policy": "部门政策",
+      "workspace_default": "工作空间默认",
+      "pending_adjustments": "有待处理的调整",
+      "recalc_needed": "需要重新计算",
+      "view_adjustments": "查看调整"
     },
-    "title": "薪资计算",
-    "subtitle": "管理收入与工资单",
+    "title": "薪资",
+    "subtitle": "管理收入和工资单",
     "search_placeholder": "搜索员工...",
-    "employee_profile": "员工薪资档案",
+    "employee_profile": "人员薪资档案",
     "calculate_btn": "计算新薪资",
     "history_title": "工资单历史",
     "empty_state": {
-      "title": "选择人员以管理薪资",
+      "title": "选择人员以继续",
       "desc": "查看工资单历史或为员工计算新的月度薪资。"
     },
     "table": {
-      "period": "计薪周期",
-      "base_pay": "基本薪资",
+      "period": "期间",
+      "base_pay": "基本工资",
       "overtime": "加班费",
-      "deductions": "扣除额",
-      "net_pay": "实发薪资",
+      "deductions": "扣款",
+      "net_pay": "净工资",
       "status": "状态",
       "loading_payslips": "正在加载工资单...",
-      "no_payslips": "未找到工资单"
+      "no_payslips": "暂无工资单"
     },
     "status": {
       "paid": "已支付",
@@ -1055,78 +1097,88 @@
     },
     "settings": {
       "title": "标准工作日配置",
-      "working_day_mode": "计工模式",
+      "working_day_mode": "工作日模式",
       "mode_fixed": "固定天数",
-      "mode_fixed_desc": "例如：每月始终计算为 26 天",
+      "mode_fixed_desc": "例: 始终按每月26天计算",
       "mode_actual": "实际日历",
-      "mode_actual_desc": "总天数减去休息日（周六/周日）",
-      "fixed_days": "固定标准天数",
+      "mode_actual_desc": "总天数减去周末",
+      "fixed_days": "固定工作天数",
       "days_per_week": "每周工作天数",
-      "5days": "5 天 (周六、日休息)",
+      "5days": "5 天 (周六日休息)",
       "6days": "6 天 (周日休息)",
-      "7days": "7 天 (无休息日)",
-      "hours_per_day": "标准日工作时长",
-      "note_title": "关于时薪计算的说明",
-      "note_desc": "加班时薪 = (基本工资总额) / (标准天数 × 标准日时长)。",
+      "7days": "7 天 (不休息)",
+      "hours_per_day": "标准每天工时",
+      "note_title": "时薪说明",
+      "note_desc": "加班时薪 = (总基本工资) / (标准工作日 × 标准每天工时)。",
       "effective_date": "生效日期",
       "std_days": "标准工作日",
-      "no_history": "未找到历史配置",
+      "no_history": "无配置历史",
       "dept_title": "部门薪资配置",
-      "global_history": "全局配置历史",
-      "std_days_history": "标准工作日历史",
-      "std_days_override": "个人工日特例"
+      "global_history": "系统范围内配置历史",
+      "std_days_history": "标准天数历史",
+      "std_days_override": "标准天数覆盖",
+      "policy_desc": "管理标准工作单位及其随时间的变化。",
+      "add_version": "创建新政策版本",
+      "date_warning": "注意：生效日期决定受影响的薪资周期。更改将从此日期起自动应用。",
+      "status": "状态",
+      "virtual": "系统默认"
     },
     "components": {
-      "title": "薪资项目目录",
-      "add_new": "添加薪资项目",
-      "no_components": "未找到薪资项目",
-      "use_for_ot": "计入加班费",
-      "no_ot": "不计加班费",
+      "title": "薪资组成部分目录",
+      "subtitle": "定义收入和扣款项目。",
+      "form_subtitle": "组成部分参数",
+      "add_new": "添加组成部分",
+      "no_components": "暂无组成部分",
+      "use_for_ot": "用于加班",
+      "no_ot": "不用于加班",
       "taxable": "应纳税",
       "tax_exempt": "免税",
-      "name_placeholder": "例如：餐补",
+      "name_placeholder": "例：餐费补贴",
       "code_label": "代码",
-      "ot_base_label": "作为加班费计算基数",
-      "ot_base_desc": "计算加班费时，系统将汇总这些项目以得出时薪。",
-      "taxable_label": "应纳税所得额项目",
-      "taxable_desc": "此项目将包含在总应纳税所得额计算中。"
+      "ot_base_label": "作为加班基数",
+      "ot_base_desc": "系统汇总这些项目以计算时薪。",
+      "taxable_label": "应纳税收入项目",
+      "taxable_desc": "该项目将计入个人所得税计算。"
     },
     "employee_config": {
       "title": "员工薪资配置",
       "tab_title": "薪资配置",
-      "add_btn": "添加薪资项",
-      "effective_note": "注意：如果同一薪资项存在多条记录，将使用最新且最接近计薪日期的记录。",
-      "item_type": "薪资项类型",
+      "add_btn": "添加薪资项目",
+      "effective_note_title": "生效说明",
+      "salary_items_subtitle": "员工收入项目列表。",
+      "effective_note": "注意：如果同一项目存在多个记录，将使用生效日期最新（且最接近计算日期）的一个。",
+      "item_type": "薪资项目类型",
       "no_config": "未找到薪资配置",
-      "salary_item": "薪资项目"
+      "salary_item": "薪资项目",
+      "add_new_title": "添加新配置"
     },
     "modal": {
-      "title": "月度工资",
-      "subtitle": "数据处理",
+      "title": "计算月度薪资",
+      "subtitle": "处理数据中",
       "submit": "开始计算"
     },
     "messages": {
       "calculate_success": "薪资计算成功。",
-      "calculate_error": "计算出错"
+      "calculate_error": "计算错误"
     },
     "adjustments": {
-      "title": "考勤修正",
-      "resolved_success": "修正已处理",
-      "resolved_error": "处理修正时出错",
-      "all_clear": "所有申请已处理！"
+      "title": "考勤调整",
+      "resolved_success": "调整处理成功",
+      "resolved_error": "处理调整时出错",
+      "all_clear": "所有请求已处理！"
     },
     "segments": {
-      "title": "薪资条细目 (Segments)"
+      "title": "薪资段详情"
     }
   },
   "reports": {
     "title": "考勤报告",
-    "subtitle": "查看并导出员工考勤数据。",
+    "subtitle": "查看和导出员工考勤数据报告。",
     "export_excel": "导出 Excel",
     "search_placeholder": "按员工姓名搜索...",
     "no_shift": "无班次",
     "tabs": {
-      "summary": "月度汇总",
+      "summary": "月度摘要",
       "daily": "每日详情"
     },
     "status": {
@@ -1137,218 +1189,234 @@
     },
     "table": {
       "total_hours": "总工时",
-      "leave_days": "请假天数",
-      "hours": "工作小时",
-      "units": "工分单位"
+      "leave_days": "休假天数",
+      "hours": "小时",
+      "units": "单位"
     },
     "quick_stats": {
       "title": "快速统计",
       "total_hours": "总工时",
-      "total_units": "总工分单位"
+      "total_units": "总单位"
     },
     "messages": {
       "generating": "正在生成报告...",
-      "no_data": "该时间段内无数据。"
+      "no_data": "该期间内未找到数据。"
     },
     "reprocess": {
       "button": "重新计算",
-      "processing": "处理中...",
-      "tooltip": "重新计算当天的考勤数据",
-      "confirm_title": "重新计算考勤数据？",
-      "confirm_message": "系统将使用最新的配对算法和班次设置为 {{employee}} 重新计算 {{date}} 的考勤数据。",
+      "processing": "正在处理...",
+      "tooltip": "重新计算当天的考勤",
+      "confirm_title": "重新计算考勤？",
+      "confirm_message": "系统将使用最新的匹配算法和班次设置重新计算员工 {{employee}} 在 {{date}} 的考勤。",
       "confirm": "重新计算",
-      "error": "无法重新计算考勤数据。请重试。"
+      "error": "无法重新计算考勤。请再试一次。"
     },
-    "debug_mode_on": "调试模式：开启",
-    "debug_mode_off": "调试模式：关闭"
+    "debug_mode_on": "调试：开启",
+    "debug_mode_off": "调试：关闭"
   },
   "patterns": {
     "title": "工作模式",
-    "subtitle": "管理员工的每周循环排班",
+    "subtitle": "管理员工的循环工作日程",
     "manage_btn": "管理模式",
     "create_btn": "创建模式",
     "create_title": "创建工作模式",
-    "create_subtitle": "定义每周模板",
+    "create_subtitle": "定义每周模式",
     "create_submit": "创建模式",
     "empty_title": "暂无模式",
-    "empty_desc": "创建一个模式以便快速为员工分配循环班次。",
+    "empty_desc": "创建一个模式，以便快速为员工分配循环班次。",
     "create_first": "创建第一个模式",
-    "weekly_schedule": "每周排班",
-    "select_pattern": "选择工作模式",
+    "weekly_schedule": "每周日程",
+    "select_pattern": "选择模式",
+    "view_details": "模式详情",
     "form": {
       "name": "模式名称",
       "description": "描述",
-      "select_pattern": "选择工作模式",
+      "select_pattern": "选择模式",
+      "select_pattern_label": "选择模式",
       "select_pattern_placeholder": "选择一个模式...",
       "start_date": "生效开始日期",
+      "start_date_label": "开始日期",
+      "start_date_note": "日程将从该日期起自动重复。",
       "select_employees": "选择员工",
+      "select_employees_label": "应用的员工",
       "select_employees_placeholder": "搜索并选择...",
-      "name_placeholder": "例如：标准办公室，夜班轮换",
-      "desc_placeholder": "可选描述"
+      "name_placeholder": "例：办公室工时、夜班轮换",
+      "name_label": "模式名称",
+      "desc_placeholder": "可选描述",
+      "desc_label": "简短描述",
+      "weekly_grid_title": "每周日程网格",
+      "prefill_standard": "填充标准模式"
     },
     "weekly_config": "每周配置",
     "actions": {
-      "prefill_standard": "快速填充：标准 (周一至周五)"
+      "prefill_standard": "快速填充：办公室 (周一至周五)"
     },
     "validation_name_required": "请输入模式名称。",
     "messages": {
-      "create_success": "工作模式创建成功.",
-      "create_error": "创建工作模式失败.",
-      "delete_success": "工作模式删除成功.",
-      "delete_error": "删除工作模式失败.",
-      "bulk_assign_success_count": "成功为 {{count}} 名员工分配模式.",
-      "bulk_assign_conflict": "部分员工已有工作模式，系统将覆盖原记录.",
-      "bulk_assign_error": "批量分配时出错."
+      "create_success": "工作模式创建成功。",
+      "create_error": "创建工作模式时出错。",
+      "delete_success": "工作模式删除成功。",
+      "delete_error": "删除工作模式时出错。",
+      "bulk_assign_success_count": "已为 {{count}} 名员工分配模式。",
+      "bulk_assign_conflict": "部分员工已有日程，系统将覆盖。",
+      "bulk_assign_error": "批量分配时出错。"
     },
-    "confirm_delete": "确定要删除模式 \"{{name}}\" 吗？",
+    "confirm_delete": "您确定要删除模式 \"{{name}}\" 吗？",
     "bulk_assign_btn": "批量分配",
-    "bulk_assign_title": "批量分配",
-    "bulk_assign_subtitle": "同时为多名员工分配模式",
-    "validation_pattern_required": "请选择工作模式.",
-    "validation_employees_required": "请至少选择一名员工.",
+    "bulk_assign_title": "批量分配模式",
+    "bulk_assign_subtitle": "同时为多名员工分配工作模式",
+    "modal": {
+      "create_title": "创建新轮换",
+      "subtitle": "设置循环日程",
+      "submit_btn": "保存模式",
+      "assign_btn": "确认分配",
+      "bulk_subtitle": "日程分配"
+    },
+    "validation_pattern_required": "请选择一个模式。",
+    "validation_employees_required": "请选择至少一名员工。",
     "bulk_assign_submit": "确认分配"
   },
   "rules": {
     "title": "自动分配规则",
-    "subtitle": "根据条件自动为员工分配工作模式",
+    "subtitle": "根据条件自动为员工分配模式",
     "create_btn": "添加规则",
     "table": {
       "priority": "优先级",
       "name": "规则名称",
-      "pattern": "分配模式",
-      "conditions": "匹配条件"
+      "pattern": "分配的模式",
+      "conditions": "条件"
     },
-    "match_all": "全局 (匹配所有)",
-    "empty_list": "尚未定义分配规则",
-    "info_priority": "规则按优先级 from 高 to 低评估. 第一个匹配员工属性的规则将被应用. 全局规则应具有最低优先级。",
+    "match_all": "工作空间范围内 (匹配全部)",
+    "empty_list": "暂无分配规则",
+    "info_priority": "规则按从高到低的优先级进行评估。第一个匹配员工的规则将被应用。常规规则应具有最低优先级。",
     "edit_title": "编辑规则",
     "create_title": "创建新规则",
-    "form_subtitle": "定义何时应用此工作模式",
+    "form_subtitle": "定义何时应应用此模式",
     "form": {
       "name": "规则名称",
-      "priority": "优先级 (数值越大越优先)",
+      "priority": "优先级 (越高越强)",
       "pattern": "选择模式",
-      "name_placeholder": "例如：工厂工人晚班",
-      "tags_placeholder": "晚班, 北京, VVIP"
+      "name_placeholder": "例：技术支持夜班",
+      "tags_placeholder": "夜班, 河内, VVIP"
     },
     "conditions_title": "匹配条件",
-    "condition_help": "留空以匹配所有员工（在其他条件范围内）。",
+    "condition_help": "留空以匹配所有员工 (在其他条件范围内)。",
     "messages": {
       "create_success": "规则创建成功",
       "update_success": "规则更新成功",
       "delete_success": "规则已删除"
     },
     "validation": {
-      "required_fields": "名称和模式为必填项"
+      "required_fields": "名称和模式是必填项"
     }
   },
   "shifts": {
     "title": "排班系统",
-    "subtitle": "管理灵活和固定的工作班次",
+    "subtitle": "管理灵活和固定的班次",
     "create_btn": "创建班次",
-    "current_week_roster": "本周排班表",
+    "current_week_roster": "当前周排班表",
     "days_selected": "已选择 {{count}} 天",
-    "assign_selected_btn": "为所选日期分配班次",
-    "off_day": "休假",
+    "assign_selected_btn": "为选中项分配班次",
+    "off_day": "休息",
     "history_title": "班次分配历史",
-    "fixed_assignment_subtitle": "分配固定或长期排班",
-    "select_default_shift": "选择默认工作班次",
+    "fixed_assignment_subtitle": "分配固定或长期日程",
+    "select_default_shift": "选择默认班次",
     "assign_btn": "分配班次",
-    "directory_title": "班次目录",
+    "directory_title": "班次类型目录",
     "auto_deduct": "自动扣除",
-    "set_off_day": "设置为休假",
+    "set_off_day": "设为休息",
     "days_count": "已选择 {{count}} 天",
     "empty_state": {
       "title": "选择人员以继续",
-      "desc": "请从左侧列表中选择一名员工开始排班。"
+      "desc": "请从左侧列表选择一名员工以开始排班。"
     },
     "tabs": {
-      "weekly_roster": "周排班表",
+      "weekly_roster": "每周排班",
       "fixed_assignments": "固定分配",
-      "directory": "班次目录"
+      "directory": "目录"
     },
     "actions": {
       "copy_previous": "复制上周",
-      "assign_all_week": "分配本周所有天",
-      "clear_week": "清空本周"
+      "assign_all_week": "全周分配",
+      "clear_week": "清除本周"
     },
     "types": {
       "flexible": "灵活",
       "fixed": "固定"
     },
     "table": {
-      "assignment_type": "类型",
+      "assignment_type": "分配类型",
       "range": "范围",
-      "shift_name": "班次名称",
+      "shift_name": "班次类型名称",
       "time_range": "时间范围",
       "break_time": "休息时间"
     },
     "modal": {
       "setup_title": "班次设置",
-      "setup_subtitle": "声明工作班次参数",
+      "setup_subtitle": "声明班次参数",
       "edit_subtitle": "更新配置或更改时间",
-      "name_placeholder": "行政、早班、分段班次...",
-      "start_time": "开始时间",
-      "end_time": "结束时间",
+      "name_placeholder": "办公室、早班、分时段班次...",
+      "start_time": "上班打卡",
+      "end_time": "下班打卡",
       "break_config": "休息配置",
       "break_start": "休息开始",
       "break_end": "休息结束",
       "auto_deduct_label": "自动扣除休息时间",
       "break_duration": "休息时长",
-      "save_shift_btn": "保存班次",
+      "save_shift_btn": "保存班次类型",
       "update_config_btn": "更新配置",
       "break_label": "休息",
-      "correction_label": "数据修正",
-      "correction_desc": "信息将 directly 覆盖当前记录。",
+      "correction_label": "修正 (修复条目错误)",
+      "correction_desc": "信息将直接覆盖现有记录。",
       "correction_warning": "警告：可能会更改过去的考勤数据。",
       "effective_date_label": "生效日期",
-      "effective_date_desc": "系统将创建一个 new 版本，并从所选日期起将所有员工切换到该班次。",
-      "select_shift_title": "选择工作班次",
-      "select_shift_subtitle": "为 {{count}} 个选定的日期选择班次",
-      "mark_as_off": "将选定的日期标记为休息日",
+      "effective_date_desc": "系统将创建一个新版本并从所选日期起迁移员工。",
+      "select_shift_title": "选择班次",
+      "select_shift_subtitle": "为选中的 {{count}} 天选择班次",
+      "mark_as_off": "将选中日期标记为休息",
       "assign_to_days": "分配给 {{days}}"
     },
     "messages": {
-      "assign_success": "已成功为员工分配班次。",
-      "assign_error": "分配出错",
-      "update_roster_success": "排班表 updated 成功。",
-      "update_roster_error": "更新出错",
-      "bulk_update_success": "批量排班表 updated 成功。",
-      "bulk_update_error": "批量更新出错",
-      "remove_override_success": "已移除覆盖，恢复为默认排班。",
-      "remove_override_error": "移除覆盖时出错",
-      "create_shift_success": "班次类型 \"{{name}}\" 已创建。",
-      "create_shift_error": "创建班次时出错",
-      "update_shift_success": "班次配置更新成功。",
-      "update_shift_error": "更新出错",
-      "validation_missing_fields": "请选择员工、班次 and 开始日期。",
+      "assign_success": "员工班次分配成功。",
+      "assign_error": "分配错误",
+      "update_roster_success": "排班表已更新。",
+      "update_roster_error": "更新排班表时出错",
+      "bulk_update_success": "批量排班表已更新。",
+      "bulk_update_error": "批量更新时出错",
+      "remove_override_success": "已移除覆盖，恢复默认设置。",
+      "remove_override_error": "移除排班表时出错",
+      "create_shift_success": "班次类型 \"{{name}}\" 已初始化。",
+      "create_shift_error": "创建班次错误",
+      "update_shift_success": "班次配置已更新。",
+      "update_shift_error": "更新班次错误",
+      "validation_missing_fields": "请选择员工、班次和开始日期。",
       "no_previous_data": "未找到上周数据。",
-      "copy_error": "复制出错",
-      "validation_shift_name_time": "班次名称 and 工作时间不能为空。",
-      "validation_break_times": "请输入休息开始 and 结束时间。",
-      "no_shifts": "系统中未找到班次类型。"
+      "copy_error": "复制错误",
+      "validation_shift_name_time": "班次名称和工作时间不能为空。",
+      "validation_break_times": "请输入休息开始和结束时间。",
+      "no_shifts": "系统中无班次类型。"
     },
     "traceability": {
-      "title": "逻辑追溯",
-      "applied": "已应用逻辑",
-      "overridden": "已覆盖的规则",
-      "show_overridden": "显示已覆盖的规则",
+      "title": "逻辑可追溯性",
+      "applied": "应用的逻辑",
+      "overridden": "覆盖的规则",
+      "show_overridden": "显示覆盖的规则",
       "priority": "优先级",
       "reason": "原因",
       "source": "来源",
       "winner": "胜出规则",
       "priority_hierarchy": "优先级层级",
-      "p100_manual": "手动排班 (直接分配)",
-      "p80_pattern": "个人排班周期",
-      "p60_rules": "动态规则",
-      "p40_dept_pattern": "部门排班周期",
+      "p100_manual": "手动排班",
+      "p80_pattern": "个人模式",
+      "p60_rules": "自动规则",
+      "p40_dept_pattern": "部门模式",
       "p20_fixed": "固定分配",
       "p10_dept_fixed": "部门默认",
-      "override_hint": "想要覆盖此逻辑？请为此日期分配手动排班（优先级 100）。",
+      "override_hint": "想覆盖此逻辑？为此天分配手动排班 (优先级 100)。",
       "highest_priority_hint": "这是手动排班，具有最高优先级。",
       "highest_priority": "最高优先级",
-      "lowest_priority": "默认回退",
-      "hierarchy_explanation": "规则自上而下评估。较高的节点会覆盖较低的节点。"
+      "lowest_priority": "系统默认",
+      "hierarchy_explanation": "规则从上到下评估。上方节点覆盖下方节点。"
     }
   },
   "days": {
@@ -1358,75 +1426,82 @@
     "wednesday": "星期三",
     "thursday": "星期四",
     "friday": "星期五",
-    "saturday": "星期六"
+    "saturday": "星期六",
+    "monday_short": "一",
+    "tuesday_short": "二",
+    "wednesday_short": "三",
+    "thursday_short": "四",
+    "friday_short": "五",
+    "saturday_short": "六",
+    "sunday_short": "日"
   },
   "debug_tools": {
     "title": "调试工具 (仅限开发人员)",
-    "subtitle": "快速清理数据以支持测试。",
+    "subtitle": "用于测试支持的快速数据清除工具。",
     "warning": "警告：删除的数据无法恢复！",
-    "full_reset_label": "完全重置 (慎用！)",
-    "click_to_clear": "点击清理",
+    "full_reset_label": "全部重置 (小心！)",
+    "click_to_clear": "点击清除",
     "messages": {
-      "confirm_clear": "您确定要删除此工作区的所有 [{{label}}] 数据吗？此操作无法撤销。",
-      "clear_success": "成功删除 [{{label}}] 数据。",
-      "clear_error": "删除数据时出错："
+      "confirm_clear": "您确定要清除此工作空间的所有 [{{label}}] 数据吗？此操作无法撤销。",
+      "clear_success": "[{{label}}] 数据清除成功。",
+      "clear_error": "清除数据时出错："
     }
   },
   "time_tracking": {
-    "title": "考勤管理",
-    "subtitle": "记录员工的出勤和休息时间。",
-    "select_employee_label": "选择员工进行考勤",
-    "search_placeholder": "按姓名或员工 ID 搜索...",
-    "type_search_placeholder": "输入姓名或员工 ID...",
-    "forgot_punch": "忘记打卡？发送申请 →",
-    "recent_history": "最近记录 (7 天)",
+    "title": "考勤",
+    "subtitle": "记录人员的工作和休息时间。",
+    "select_employee_label": "选择员工打卡",
+    "search_placeholder": "按名称或 ID 搜索...",
+    "type_search_placeholder": "输入名称或 ID...",
+    "forgot_punch": "忘记打卡？提交请求 →",
+    "recent_history": "最近历史 (7 天)",
     "empty_state_desc": "选择人员以开始考勤",
     "status": {
       "on_break": "休息中",
       "working": "工作中",
-      "off_duty": "未上班",
-      "break_start_at": "休息开始时间",
-      "shift_start_at": "上班开始时间"
+      "off_duty": "下班",
+      "break_start_at": "休息开始于",
+      "shift_start_at": "班次开始于"
     },
     "actions": {
       "return_to_work": "返回工作",
-      "start_break": "开始休息 (Break)",
-      "punch_out": "结束工作 (Punch Out)",
+      "start_break": "开始休息",
+      "punch_out": "下班打卡",
       "start_work": "开始工作"
     },
     "messages": {
-      "punch_in_break": "开始休息",
-      "punch_in_work": "开始班次",
+      "punch_in_break": "正在开始休息",
+      "punch_in_work": "正在开始工作班次",
       "punch_success": "{{type}} 成功。",
-      "punch_error": "无法进行考勤操作. 请重试。",
-      "punch_out_break": "已返回工作岗位。",
+      "punch_error": "无法打卡。请再试一次。",
+      "punch_out_break": "已返回工作。",
       "punch_out_work": "已结束工作班次。",
-      "punch_out_error": "下班打卡失败。",
-      "adjustment_success": "考勤修正申请已发送至管理员。",
-      "adjustment_error": "发送申请时出错。",
-      "no_data": "未找到考勤记录。"
+      "punch_out_error": "无法下班打卡。",
+      "adjustment_success": "调整请求已发送给管理员。",
+      "adjustment_error": "发送请求时出错。",
+      "no_data": "暂无考勤数据。"
     },
     "modal": {
-      "edit_title": "编辑考勤记录",
-      "new_title": "新考勤申请",
-      "subtitle": "调整数据",
+      "edit_title": "编辑考勤",
+      "new_title": "新调整请求",
+      "subtitle": "数据调整",
       "reason_label": "调整原因",
-      "reason_placeholder": "例如：忘记打卡、出差..."
+      "reason_placeholder": "例：忘记打卡、出差..."
     }
   },
   "settings": {
     "title": "设置中心",
     "categories": {
       "general": "常规",
-      "people": "人事",
-      "time": "时间与出勤",
-      "payroll": "工资单",
-      "connectivity": "连接",
-      "general_desc": "配置核心工作区身份和偏好。",
+      "people": "人员",
+      "time": "时间与考勤",
+      "payroll": "薪资",
+      "connectivity": "连接性",
+      "general_desc": "品牌塑造和基本工作空间选项。",
       "people_desc": "管理员工、部门和角色。",
       "time_desc": "配置班次、排班和考勤规则。",
-      "payroll_desc": "管理标准工作日和时薪公式。",
-      "connectivity_desc": "管理设备连接和网络设置。"
+      "payroll_desc": "管理标准工作日和公式。",
+      "connectivity_desc": "管理设备连接和网络。"
     },
     "navigation": "导航",
     "admin_only": "仅限管理员"
