@@ -77,13 +77,15 @@ leeattend/
         - **Condition Evaluation**: `rule_evaluator.rs` resolves complex logic (Day of week, Department, Location) to determine the correct shift pattern for an employee.
         - **Schedule Traceability (New)**: The engine now records the "why" behind every assignment. Each generated schedule entry includes a `traceability` object identifying the matching rule, evaluation timestamp, and decision path.
         - **Priority Logic**: Rules are evaluated in descending order of priority, allowing global defaults to be overridden by department or individual-specific rules.
-    - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections. Supports **Robust Asynchronous Batch Import** (Excel/CSV) with auto-recovery and real-time progress tracking.
+    - **Adjustment Engine**: Workflow for attendance confirmation and manual record corrections. Supports **Robust Asynchronous Batch Import** (Excel/CSV) with auto-recovery, duplicate skipping (Silent Skip), and real-time progress tracking.
         - **Repositories**:
             - **RosterRepository**: Manages shift rosters and implements the core schedule resolution logic (`get_effective_shift`) with traceability.
+            - **EmployeeRepository**: Handles employee CRUD, history, and optimized bulk creation with duplicate handling (`create_employee_tx_skip_duplicates`).
             - **PayrollRepository**: Handles salary components, payslip generation, and segment storage.
             - **TimeEntryRepository**: Stores raw punches and paired time entries with BSON metadata.
             - **AgentRepository**: Manages authorized agents and device trust.
         - **Services**:
+            - **AttendanceImportService**: Manages asynchronous file processing, validation, and silent-skipping of duplicate records.
             - **RuleEvaluator**: Determines the "winning" assignment rule based on priority (P100 Roster > P80 Pattern > P60 Rule > P40 Dept Pattern > P20 Fixed > P10 Dept Fixed).
             - **PolicyResolver**: Hierarchical configuration resolution (Individual > Department > Workspace) with full traceability for payroll parameters (Standard Days, Hours/Day).
             - **PairingService**: Core engine for converting raw punches into time entries using FSM or Anchor strategies.

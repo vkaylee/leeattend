@@ -1,243 +1,306 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { fetchWorkspaceLeaveBalances, getCurrentWorkspaceId, WorkspaceLeaveBalance } from "@/lib/api";
-import { Search, Filter, History, Info } from "lucide-react";
+import { fetchWorkspaceLeaveBalances, getCurrentWorkspaceId, triggerAccrualRun, WorkspaceLeaveBalance } from "@/lib/api";
+import { Search, Filter, History, PlayCircle, Eye } from "lucide-react";
 import { LeaveHistoryModal } from "@/components/leave/LeaveHistoryModal";
+import { LeaveBalanceDetailModal } from "@/components/leave/LeaveBalanceDetailModal";
+import { useToast } from "@/components/Toast";
 import { cn } from "@/lib/utils";
 
 export default function LeaveBalancesPage() {
-
   const { t } = useTranslation();
-
+  const toast = useToast();
+  const queryClient = useQueryClient();
   const wsId = getCurrentWorkspaceId();
-
   const [searchTerm, setSearchTerm] = useState("");
-
   const [selectedEmployee, setSelectedEmployee] = useState<{ id: string, name: string } | null>(null);
-
-
+  const [selectedBalance, setSelectedBalance] = useState<WorkspaceLeaveBalance | null>(null);
 
   const { data: balances, isLoading } = useQuery({ queryKey: ["workspace-leave-balances", wsId], queryFn: () => fetchWorkspaceLeaveBalances(wsId!), enabled: !!wsId });
 
+  const accrualMutation = useMutation({
+    mutationFn: () => triggerAccrualRun(wsId!, { date: new Date().toISOString().split('T')[0] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
+      toast.success(t("common.success"));
+    },
+    onError: () => toast.error(t("common.error"))
+  });
 
-
-  const filteredBalances = balances?.filter(b => 
-
+  const filteredBalances = balances?.filter(b =>
     b.employee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-
     b.leave_type.toLowerCase().includes(searchTerm.toLowerCase())
-
   );
 
-
-
   return (
-
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
-
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
-
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
         <div className="space-y-1">
-
-          <h1 className="text-4xl font-black tracking-tighter text-slate-900 uppercase leading-none">{t("leave_balances.title")}</h1>
-
+          <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-slate-900 uppercase leading-none">{t("leave_balances.title")}</h1>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("leave_balances.subtitle")}</p>
-
         </div>
-
+        <button
+          onClick={() => {
+            if (confirm(t("leave_balances.confirm_accrual"))) {
+              accrualMutation.mutate();
+            }
+          }}
+          disabled={accrualMutation.isPending}
+          className="bg-slate-900 hover:bg-black text-white font-black px-6 md:px-8 py-3.5 md:py-3 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-slate-200 transition-all active:scale-95 text-xs uppercase tracking-widest disabled:opacity-50 min-h-[44px] w-full md:w-auto"
+        >
+          <PlayCircle size={18} /> <span className="whitespace-nowrap">{accrualMutation.isPending ? t("common.processing").toUpperCase() : t("leave_balances.run_accrual", "Cập nhật số dư").toUpperCase()}</span>
+        </button>
       </div>
 
-
-
-      <div className="bg-white border border-slate-100 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700">
-
-        <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-50/30 px-10">
-
-          <div className="flex items-center gap-3"><Filter className="w-5 h-5 text-primary-600" /><h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">{t("leave_balances.summary_table")}</h2></div>
+      <div className="bg-white border border-slate-100 rounded-3xl md:rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700">
+        <div className="p-5 md:p-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-5 md:gap-6 bg-slate-50/30">
+          <div className="flex items-center gap-3">
+            <Filter className="w-5 h-5 text-primary-600" />
+            <h2 className="text-lg md:text-xl font-black text-slate-800 tracking-tight uppercase">{t("leave_balances.summary_table")}</h2>
+          </div>
 
           <div className="relative group w-full md:w-80">
-
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary-500 transition-colors" size={18} />
-
-            <input type="text" placeholder={t("common.search_placeholder")} className="w-full pl-14 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-
+            <Search className="absolute left-4 md:left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary-500 transition-colors" size={18} />
+            <input
+              type="text"
+              placeholder={t("common.search_placeholder")}
+              className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight shadow-sm min-h-[44px]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-
         </div>
 
-
-
-        <div className="overflow-x-auto">
-
+        {/* Desktop Table View (≥1024px) - Simplified 5 Columns */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
-
             <thead>
-
               <tr className="bg-slate-50/50 border-b border-slate-100">
-
-                <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{t("common.employee")}</th>
-
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{t("common.type")}</th>
-
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-right">{t("leave_balances.table.base")}</th>
-
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-right">{t("leave_balances.table.accrued")}</th>
-
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-right">{t("leave_balances.table.carried_over")}</th>
-
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-right">{t("leave_balances.table.used")}</th>
-
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-right">{t("leave_balances.table.remaining")}</th>
-
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{t("leave_balances.table.usage")}</th>
-
-                <th className="px-10 py-6 border-b border-slate-100"></th>
-
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t("common.employee")}</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t("common.type")}</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">{t("leave_balances.table.remaining")}</th>
+                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t("leave_balances.table.usage")}</th>
+                <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t("common.actions", "Actions")}</th>
               </tr>
-
             </thead>
-
             <tbody className="divide-y divide-slate-50">
-
               {isLoading ? (
-
-                <tr><td colSpan={9} className="px-10 py-20 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</td></tr>
-
+                <tr><td colSpan={5} className="px-6 py-20 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</td></tr>
               ) : filteredBalances?.length === 0 ? (
-
-                <tr><td colSpan={9} className="px-10 py-32 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</td></tr>
-
+                <tr><td colSpan={5} className="px-6 py-32 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</td></tr>
               ) : filteredBalances?.map((balance, idx) => (
-
-                <BalanceRow key={`${balance.employee_id}-${balance.leave_type}-${idx}`} balance={balance} onViewHistory={() => setSelectedEmployee({ id: balance.employee_id, name: balance.employee_name })} />
-
+                <DesktopBalanceRow
+                  key={`${balance.employee_id}-${balance.leave_type}-${idx}`}
+                  balance={balance}
+                  onViewDetails={() => setSelectedBalance(balance)}
+                  onViewHistory={() => setSelectedEmployee({ id: balance.employee_id, name: balance.employee_name })}
+                />
               ))}
-
             </tbody>
-
           </table>
-
         </div>
 
+        {/* Tablet/Mobile Card View (<1024px) - Simplified */}
+        <div className="lg:hidden divide-y divide-slate-100">
+          {isLoading ? (
+            <div className="px-5 py-20 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</div>
+          ) : filteredBalances?.length === 0 ? (
+            <div className="px-5 py-32 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</div>
+          ) : filteredBalances?.map((balance, idx) => (
+            <MobileBalanceCard
+              key={`${balance.employee_id}-${balance.leave_type}-${idx}`}
+              balance={balance}
+              onViewDetails={() => setSelectedBalance(balance)}
+              onViewHistory={() => setSelectedEmployee({ id: balance.employee_id, name: balance.employee_name })}
+            />
+          ))}
+        </div>
       </div>
 
-
-
       {selectedEmployee && (
-
         <LeaveHistoryModal wsId={wsId!} employeeId={selectedEmployee.id} employeeName={selectedEmployee.name} isOpen={!!selectedEmployee} onClose={() => setSelectedEmployee(null)} />
-
       )}
 
+      {selectedBalance && (
+        <LeaveBalanceDetailModal balance={selectedBalance} isOpen={!!selectedBalance} onClose={() => setSelectedBalance(null)} />
+      )}
     </div>
-
   );
-
 }
 
-
-
-function BalanceRow({ balance, onViewHistory }: { balance: WorkspaceLeaveBalance, onViewHistory: () => void }) {
-
+// Desktop table row component (≥1024px) - Simplified to essential info only
+function DesktopBalanceRow({ balance, onViewDetails, onViewHistory }: {
+  balance: WorkspaceLeaveBalance;
+  onViewDetails: () => void;
+  onViewHistory: () => void;
+}) {
   const { t } = useTranslation();
-
   const totalEntitled = balance.entitlement + balance.accrued_amount + balance.carried_over;
-
   const usagePercent = Math.round((balance.used / (totalEntitled || 1)) * 100);
 
+  return (
+    <tr className="hover:bg-slate-50/50 transition-all group cursor-pointer" onClick={onViewDetails}>
+      {/* Employee Name with Avatar */}
+      <td className="px-6 py-6">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600 font-black text-sm shadow-inner border border-primary-100/50 uppercase group-hover:scale-110 transition-transform flex-shrink-0">
+            {balance.employee_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+          </div>
+          <div className="font-black text-slate-900 text-base tracking-tight uppercase leading-tight">
+            {balance.employee_name}
+          </div>
+        </div>
+      </td>
 
+      {/* Leave Type Badge */}
+      <td className="px-5 py-6">
+        <span className="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-xl text-xs font-black uppercase tracking-wider border border-slate-200 shadow-sm inline-block">
+          {balance.leave_type}
+        </span>
+      </td>
+
+      {/* Remaining Balance - Hero Metric */}
+      <td className="px-5 py-6 text-right">
+        <div className="flex items-center justify-end gap-2">
+          <span className={cn(
+            "text-2xl font-black px-4 py-2 rounded-xl font-mono shadow-inner border transition-all uppercase tracking-tighter",
+            balance.remaining > 0
+              ? "text-emerald-600 bg-emerald-50 border-emerald-100"
+              : "text-slate-400 bg-slate-100 border-slate-200 opacity-60"
+          )}>
+            {balance.remaining}
+          </span>
+          <span className="text-xs font-bold text-slate-400 uppercase">
+            {t("common.days_short", "days")}
+          </span>
+        </div>
+      </td>
+
+      {/* Usage Progress Bar */}
+      <td className="px-5 py-6">
+        <div className="flex items-center gap-3">
+          <div className="w-32 h-4 bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200/50">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-1000 shadow-sm",
+                usagePercent > 80 ? "bg-rose-500 shadow-rose-200" :
+                usagePercent > 50 ? "bg-amber-500 shadow-amber-200" :
+                "bg-primary-600 shadow-primary-200"
+              )}
+              style={{ width: `${Math.min(100, usagePercent)}%` }}
+            />
+          </div>
+          <span className="text-xs font-black text-slate-500 font-mono tracking-tighter min-w-[3ch]">
+            {usagePercent}%
+          </span>
+        </div>
+      </td>
+
+      {/* Action Buttons */}
+      <td className="px-6 py-6 text-right" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+          <button
+            onClick={onViewDetails}
+            className="p-2.5 bg-primary-50 text-primary-600 hover:bg-primary-100 rounded-xl border border-primary-200 transition-all active:scale-90 min-w-[44px] min-h-[44px]"
+            title={t("leave_balances.view_details", "View Details")}
+          >
+            <Eye className="h-5 w-5" />
+          </button>
+          <button
+            onClick={onViewHistory}
+            className="p-2.5 bg-slate-50 text-slate-500 hover:bg-slate-100 rounded-xl border border-slate-200 transition-all active:scale-90 min-w-[44px] min-h-[44px]"
+            title={t("leave_balances.table.history_tooltip")}
+          >
+            <History className="h-5 w-5" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// Mobile card component (<1024px) - Simplified, essential info only
+function MobileBalanceCard({ balance, onViewDetails, onViewHistory }: {
+  balance: WorkspaceLeaveBalance;
+  onViewDetails: () => void;
+  onViewHistory: () => void;
+}) {
+  const { t } = useTranslation();
+  const totalEntitled = balance.entitlement + balance.accrued_amount + balance.carried_over;
+  const usagePercent = Math.round((balance.used / (totalEntitled || 1)) * 100);
 
   return (
-
-    <tr className="hover:bg-slate-50/50 transition-all group">
-
-      <td className="px-10 py-6">
-
-        <div className="flex items-center gap-5">
-
-          <div className="w-14 h-14 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 font-black text-lg shadow-inner border border-primary-100/50 uppercase group-hover:scale-110 transition-transform">
-
-            {balance.employee_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-
-          </div>
-
-          <div><div className="font-black text-slate-900 text-sm tracking-tight uppercase leading-none">{balance.employee_name}</div></div>
-
+    <div className="p-5 space-y-5 bg-white hover:bg-slate-50/30 transition-all">
+      {/* Header: Employee Avatar + Name + Leave Type */}
+      <div className="flex items-center gap-3">
+        <div className="w-14 h-14 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 font-black text-base shadow-inner border border-primary-100/50 uppercase flex-shrink-0">
+          {balance.employee_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
         </div>
-
-      </td>
-
-      <td className="px-8 py-6">
-
-        <span className="px-3 py-1 bg-slate-50 text-slate-500 rounded-lg text-[10px] font-black uppercase tracking-widest border border-slate-100 shadow-sm">
-
-          {balance.leave_type}
-
-        </span>
-
-      </td>
-
-      <td className="px-8 py-6 text-right font-mono text-sm font-black text-slate-500">{balance.entitlement}</td>
-
-      <td className="px-8 py-6 text-right font-mono text-sm font-black text-primary-600">
-
-        <div className="flex items-center justify-end gap-2 group/info relative">
-
-          {balance.accrued_amount}
-
-          {balance.accrued_amount > 0 && <Info className="h-3.5 w-3.5 text-slate-200 group-hover/info:text-primary-400 transition-colors cursor-help" />}
-
-          <div className="absolute bottom-full right-0 mb-3 w-64 p-4 bg-slate-900 text-white text-[10px] font-bold leading-relaxed rounded-[1.5rem] opacity-0 group-hover/info:opacity-100 transition-all duration-300 pointer-events-none z-10 shadow-premium-2xl border border-white/10 translate-y-2 group-hover/info:translate-y-0">
-
-            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/10 text-primary-400"><Info size={12} /><span className="uppercase tracking-[0.2em] font-black">Accrual Details</span></div>
-
-            {t("leave_balances.table.accrued_info")}
-
+        <div className="flex-1 min-w-0">
+          <div className="font-black text-slate-900 text-base tracking-tight uppercase leading-tight truncate">
+            {balance.employee_name}
           </div>
-
+          <span className="inline-block mt-1.5 px-3 py-1.5 bg-slate-50 text-slate-600 rounded-xl text-xs font-black uppercase tracking-wider border border-slate-200 shadow-sm">
+            {balance.leave_type}
+          </span>
         </div>
+      </div>
 
-      </td>
-
-      <td className="px-8 py-6 text-right font-mono text-sm font-black text-slate-400">{balance.carried_over}</td>
-
-      <td className="px-8 py-6 text-right font-mono text-sm font-black text-rose-500">{balance.used}</td>
-
-      <td className="px-8 py-6 text-right">
-
-        <span className={cn("text-sm font-black px-3 py-1.5 rounded-xl font-mono shadow-inner border border-transparent transition-all uppercase tracking-tighter", balance.remaining > 0 ? "text-emerald-600 bg-emerald-50 border-emerald-100" : "text-slate-400 bg-slate-100 border-slate-200 opacity-60")}>
-
-          {balance.remaining}
-
-        </span>
-
-      </td>
-
-      <td className="px-8 py-6">
-
-        <div className="flex items-center gap-4">
-
-          <div className="w-24 h-3 bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200/50">
-
-            <div className={cn("h-full rounded-full transition-all duration-1000 shadow-sm", usagePercent > 80 ? "bg-rose-500 shadow-rose-200" : usagePercent > 50 ? "bg-amber-500 shadow-amber-200" : "bg-primary-600 shadow-primary-200")} style={{ width: `${Math.min(100, usagePercent)}%` }} />
-
-          </div>
-
-          <span className="text-[10px] font-black text-slate-400 font-mono tracking-tighter w-8">{usagePercent}%</span>
-
+      {/* Hero Metric: Remaining Balance */}
+      <div className="bg-gradient-to-br from-primary-50/50 to-transparent rounded-2xl p-5 border border-primary-100/30">
+        <div className="text-[10px] font-black text-primary-600 uppercase tracking-[0.2em] mb-2">
+          {t("leave_balances.table.remaining")}
         </div>
+        <div className="flex items-baseline gap-2">
+          <span className={cn(
+            "text-5xl font-black font-mono tracking-tighter",
+            balance.remaining > 0 ? "text-emerald-600" : "text-slate-400"
+          )}>
+            {balance.remaining}
+          </span>
+          <span className="text-sm font-bold text-slate-400 uppercase">
+            {t("common.days_short", "days")}
+          </span>
+        </div>
+      </div>
 
-      </td>
+      {/* Usage Progress Bar */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-[10px] font-black text-slate-500 uppercase tracking-wider">
+          <span>{t("leave_balances.table.usage")}</span>
+          <span className="font-mono">{usagePercent}%</span>
+        </div>
+        <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200/50">
+          <div
+            className={cn(
+              "h-full rounded-full transition-all duration-1000 shadow-sm",
+              usagePercent > 80 ? "bg-rose-500 shadow-rose-200" :
+              usagePercent > 50 ? "bg-amber-500 shadow-amber-200" :
+              "bg-primary-600 shadow-primary-200"
+            )}
+            style={{ width: `${Math.min(100, usagePercent)}%` }}
+          />
+        </div>
+      </div>
 
-      <td className="px-10 py-6 text-right">
-
-        <button onClick={onViewHistory} className="p-3 bg-white text-slate-300 hover:text-primary-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0" title={t("leave_balances.table.history_tooltip")}><History className="h-5 w-5" /></button>
-
-      </td>
-
-    </tr>
-
+      {/* Action Buttons */}
+      <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
+        <button
+          onClick={onViewDetails}
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-black uppercase tracking-wider text-xs rounded-xl transition-all active:scale-95 shadow-lg shadow-primary-200 min-h-[44px]"
+        >
+          <Eye className="h-5 w-5" />
+          <span>{t("leave_balances.view_details", "View Details")}</span>
+        </button>
+        <button
+          onClick={onViewHistory}
+          className="p-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all active:scale-95 min-w-[44px] min-h-[44px] flex-shrink-0"
+          title={t("leave_balances.table.history_tooltip")}
+        >
+          <History className="h-5 w-5" />
+        </button>
+      </div>
+    </div>
   );
-
 }

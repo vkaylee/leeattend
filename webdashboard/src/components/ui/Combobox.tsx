@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 interface ComboboxOption {
   value: string;
   label: string;
-  description?: string;
+  description?: React.ReactNode;
   icon?: React.ReactNode;
 }
 
@@ -79,7 +79,7 @@ export function Combobox({
                 {options.map((option) => (
                   <Command.Item
                     key={option.value}
-                    value={`${option.label} ${option.description || ""} ${option.value}`}
+                    value={`${option.label} ${typeof option.description === 'string' ? option.description : ""} ${option.value}`}
                     data-testid={testId ? `${testId}-option-${option.value}` : `combo-option-${option.value}`}
                     onSelect={() => { onChange(option.value); setOpen(false); }}
                     className={cn(

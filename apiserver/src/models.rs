@@ -501,6 +501,8 @@ pub struct WorkspaceLeaveBalance {
     pub carried_over: i32,
     pub used: i32,
     pub remaining: f64,
+    pub policy_name: Option<String>,
+    pub assignment_type: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

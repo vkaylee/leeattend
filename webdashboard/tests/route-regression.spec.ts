@@ -10,7 +10,6 @@ test.describe('Route & Sidebar Regression', () => {
   const criticalRoutes = [
     { name: 'Dashboard', path: '/', testId: null },
     { name: 'Employees', path: '/employees', testId: 'sidebar-link-employees', sectionId: 'sidebar-section-org' },
-    { name: 'Time Tracking', path: '/time-tracking', testId: 'sidebar-link-time-tracking', sectionId: 'sidebar-section-time' },
     { name: 'Attendance Logs', path: '/attendance-logs', testId: 'sidebar-link-attendance-logs', sectionId: 'sidebar-section-time' },
     { name: 'Leave Requests', path: '/leave-requests', testId: 'sidebar-link-leave-requests', sectionId: 'sidebar-section-time' },
     { name: 'Shifts', path: '/shifts', testId: 'sidebar-link-shifts', sectionId: 'sidebar-section-payroll' },

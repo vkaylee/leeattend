@@ -166,6 +166,8 @@ export interface WorkspaceLeaveBalance {
   carried_over: number;
   used: number;
   remaining: number;
+  policy_name?: string;
+  assignment_type?: string;
 }
 
 export interface AttendanceAdjustmentRequest {
@@ -181,6 +183,7 @@ export interface AttendanceAdjustmentRequest {
   approved_by_user_id?: string;
   created_at: string;
   updated_at: string;
+  requested_date: string;
 }
 
 export interface AttendanceSummary {

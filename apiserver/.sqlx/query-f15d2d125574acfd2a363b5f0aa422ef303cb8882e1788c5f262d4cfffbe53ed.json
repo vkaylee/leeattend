@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT \n            e.id as \"employee_id!\",\n            (e.first_name || ' ' || e.last_name) as \"employee_name!\",\n            COALESCE(lb.leave_type, 'vacation') as \"leave_type!\",\n            COALESCE(lb.entitlement, 0) as \"entitlement!\",\n            COALESCE(lb.accrued_amount::FLOAT8, 0.0) as \"accrued_amount!\",\n            COALESCE(lb.carried_over, 0) as \"carried_over!\",\n            COALESCE(\n                (\n                    SELECT SUM(end_date - start_date + 1)\n                    FROM leave_requests\n                    WHERE employee_id = e.id \n                    AND leave_type = COALESCE(lb.leave_type, 'vacation')\n                    AND status = 'approved'\n                    AND EXTRACT(YEAR FROM start_date) = $2\n                ), \n                0\n            )::INT as \"used!\",\n            (\n                COALESCE(lb.entitlement, 0) + COALESCE(lb.accrued_amount, 0) + COALESCE(lb.carried_over, 0) - COALESCE(\n                    (\n                        SELECT SUM(end_date - start_date + 1)\n                        FROM leave_requests\n                        WHERE employee_id = e.id \n                        AND leave_type = COALESCE(lb.leave_type, 'vacation')\n                        AND status = 'approved'\n                        AND EXTRACT(YEAR FROM start_date) = $2\n                    ), \n                    0\n                )\n            )::FLOAT8 as \"remaining!\",\n            (\n                SELECT d.name \n                FROM leave_policy_assignments a\n                JOIN leave_policy_definitions d ON a.policy_id = d.id\n                WHERE a.workspace_id = $1\n                  AND d.leave_type = COALESCE(lb.leave_type, 'vacation')\n                  AND (\n                    (a.assignee_type = 'employee' AND a.assignee_id = e.id) OR\n                    (a.assignee_type = 'department' AND a.assignee_id = (SELECT department_id FROM employee_department_history WHERE employee_id = e.id ORDER BY effective_date DESC LIMIT 1)) OR\n                    (a.assignee_type = 'workspace')\n                  )\n                  AND a.effective_from <= NOW()\n                  AND (a.effective_to IS NULL OR a.effective_to > NOW())\n                ORDER BY \n                  CASE a.assignee_type \n                    WHEN 'employee' THEN 1 \n                    WHEN 'department' THEN 2 \n                    WHEN 'workspace' THEN 3 \n                  END ASC\n                LIMIT 1\n            ) as \"policy_name\",\n            (\n                SELECT a.assignee_type \n                FROM leave_policy_assignments a\n                JOIN leave_policy_definitions d ON a.policy_id = d.id\n                WHERE a.workspace_id = $1\n                  AND d.leave_type = COALESCE(lb.leave_type, 'vacation')\n                  AND (\n                    (a.assignee_type = 'employee' AND a.assignee_id = e.id) OR\n                    (a.assignee_type = 'department' AND a.assignee_id = (SELECT department_id FROM employee_department_history WHERE employee_id = e.id ORDER BY effective_date DESC LIMIT 1)) OR\n                    (a.assignee_type = 'workspace')\n                  )\n                  AND a.effective_from <= NOW()\n                  AND (a.effective_to IS NULL OR a.effective_to > NOW())\n                ORDER BY \n                  CASE a.assignee_type \n                    WHEN 'employee' THEN 1 \n                    WHEN 'department' THEN 2 \n                    WHEN 'workspace' THEN 3 \n                  END ASC\n                LIMIT 1\n            ) as \"assignment_type\"\n        FROM employees e\n        LEFT JOIN leave_balances lb ON e.id = lb.employee_id AND lb.year = $2\n        WHERE e.workspace_id = $1 AND e.is_active = TRUE\n        ORDER BY e.first_name, e.last_name, lb.leave_type\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "employee_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "employee_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "leave_type!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "entitlement!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "accrued_amount!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 5,
+        "name": "carried_over!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "used!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "remaining!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 8,
+        "name": "policy_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "assignment_type",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "f15d2d125574acfd2a363b5f0aa422ef303cb8882e1788c5f262d4cfffbe53ed"
+}

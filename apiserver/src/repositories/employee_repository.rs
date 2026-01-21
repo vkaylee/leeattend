@@ -36,6 +36,43 @@ pub async fn create_employee_tx(
     Ok(())
 }
 
+pub async fn create_employee_tx_skip_duplicates(
+    tx: &mut Transaction<'_, Postgres>,
+    employee: &Employee,
+) -> Result<bool, sqlx::Error> {
+    let result = query!(
+        "INSERT INTO employees (id, workspace_id, user_id, first_name, last_name, employee_id_number, tags, is_active, created_at, updated_at) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         ON CONFLICT (employee_id_number) DO NOTHING",
+        employee.id,
+        employee.workspace_id,
+        employee.user_id,
+        employee.first_name,
+        employee.last_name,
+        employee.employee_id_number,
+        &employee.tags,
+        employee.is_active,
+        employee.created_at,
+        employee.updated_at,
+    )
+    .execute(&mut **tx)
+    .await?;
+
+    if result.rows_affected() > 0 {
+        query!(
+            "INSERT INTO employment_periods (employee_id, hire_date, termination_date) VALUES ($1, $2, $3)",
+            employee.id,
+            employee.hire_date,
+            employee.termination_date
+        )
+        .execute(&mut **tx)
+        .await?;
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
 const EMPLOYEE_SELECT_QUERY: &str = r#"
     SELECT 
         e.id, e.workspace_id, e.user_id, e.first_name, e.last_name, e.employee_id_number, 

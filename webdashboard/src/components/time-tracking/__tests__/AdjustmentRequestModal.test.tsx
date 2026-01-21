@@ -1,7 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AdjustmentRequestModal } from "../AdjustmentRequestModal";
+import { TimeEntry } from "@/lib/api/types";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ToastProvider } from "../../Toast";
+import React from "react";
 
 const mockTranslation = {
   "time_tracking.modal.new_title": "Request Time Adjustment",
@@ -87,15 +91,18 @@ describe("AdjustmentRequestModal", () => {
   });
 
   it("renders with edit title when timeEntry provided", () => {
-    const timeEntry = {
-      id: "1",
-      punch_in_time: "2024-01-21T08:00:00Z",
-      punch_out_time: "2024-01-21T17:00:00Z",
-      entry_type: "work",
+    const mockEntry: TimeEntry = { 
+      id: "entry-1", 
+      employee_id: "emp-1",
+      punch_in_time: "2024-01-01T08:00:00Z", 
+      punch_out_time: "2024-01-01T17:00:00Z", 
+      entry_type: "work", 
       is_break_overtime: false,
+      created_at: "2024-01-01T08:00:00Z",
+      updated_at: "2024-01-01T17:00:00Z"
     };
 
-    render(<AdjustmentRequestModal {...defaultProps} timeEntry={timeEntry} />);
+    render(<AdjustmentRequestModal {...defaultProps} timeEntry={mockEntry} />);
 
     expect(screen.getByText("Edit Time Adjustment")).toBeInTheDocument();
   });

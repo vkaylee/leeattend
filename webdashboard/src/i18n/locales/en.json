@@ -272,6 +272,9 @@
     "indefinite": "Indefinite",
     "definite": "Definite",
     "minutes": "minutes",
+    "none": "None",
+    "show_details": "Show Details",
+    "hide_details": "Hide Details",
     "edit": "Edit",
     "delete": "Delete",
     "update": "Update",
@@ -360,6 +363,8 @@
     "active": "Active",
     "collapse": "Collapse",
     "expand": "Expand",
+    "collapse_sidebar": "Collapse Sidebar",
+    "expand_sidebar": "Expand Sidebar",
     "select_all": "Select All",
     "deselect_all": "Deselect All",
     "adding": "Adding...",
@@ -377,6 +382,8 @@
     "no": "No",
     "base_for_ot": "OT Base",
     "add_new": "Add New",
+    "import": "Import Data",
+    "save": "Save",
     "search_employee": "Search employees...",
     "no_notes": "No notes."
   },
@@ -601,21 +608,37 @@
       "working": "Working"
     }
   },
-  "leave_balances": {
-    "title": "Leave Balances",
-    "subtitle": "Manage employee leave entitlements for the year.",
-    "summary_table": "Balance Summary Table",
-    "table": {
-      "base": "Base",
-      "accrued": "Accrued",
-      "carried_over": "Carried Over",
-      "used": "Used",
-      "remaining": "Remaining",
-      "usage": "Usage",
-      "accrued_info": "Includes regular accruals and manual adjustments.",
-      "history_tooltip": "History & Adjustments"
-    },
-    "history": {
+    "leave_balances": {
+      "title": "Leave Balances",
+      "subtitle": "Track employee leave entitlements and usage",
+      "summary_table": "Balance Summary",
+      "run_accrual": "Update Balances",
+      "confirm_accrual": "Are you sure you want to run accrual calculation for today? System will automatically add leave based on assigned policies.",
+      "view_details": "View Details",
+      "table": {
+        "base": "Base Entitlement",
+        "accrued": "Accrued",
+        "carried_over": "Carried Over",
+        "used": "Used",
+        "remaining": "Remaining",
+        "usage": "Usage",
+        "history_tooltip": "View balance history",
+        "accrued_info": "Days automatically added based on the company's accrual policy (monthly/quarterly/yearly).",
+        "policy": "Policy"
+      },
+      "detail": {
+        "breakdown": "Balance Breakdown",
+        "calculation": "Calculation",
+        "policy_info": "Policy Information",
+        "accrual_info_title": "Accrual Info",
+        "used": "used"
+      },
+      "assignment_types": {
+        "employee": "Individual",
+        "department": "Department",
+        "workspace": "Workspace"
+      },
+      "history": {
       "title": "Leave History",
       "subtitle": "View detailed history and adjust leave balances.",
       "tab_history": "History",
@@ -777,6 +800,7 @@
     "select_workspace": "Please select a Workspace",
     "hire_date": "Hire Date",
     "bulk_import_title": "Bulk Employee Import",
+    "bulk_import_btn": "Import from File",
     "import_req": {
       "col_a": "Column A: Employee ID (Required)",
       "col_b": "Column B: First Name (Required)",
@@ -1032,11 +1056,12 @@
       "sick_full": "Sick Leave",
       "personal": "Personal Business"
     },
-    "policy": {
-      "title": "Leave Policies",
-      "title_single": "Policy",
-      "subtitle": "Entitlement Config",
-      "assign_btn": "Assign Policy",
+      "policy": {
+        "title": "Leave Policy",
+        "title_single": "Policy",
+        "subtitle": "Configure leave entitlements and accrual rules",
+        "policy_note": "Note: Policy changes are not retroactive. Past accruals remain unchanged; changes only apply to future balance updates.",
+        "assign_btn": "Assign Policy",
       "add_btn": "Add Policy",
       "assign_title": "Assign Policy",
       "assign_subtitle": "Personnel Allocation",

@@ -67,37 +67,79 @@ pub async fn get_workspace_balances(
         SELECT 
             e.id as "employee_id!",
             (e.first_name || ' ' || e.last_name) as "employee_name!",
-            lb.leave_type as "leave_type!",
-            lb.entitlement as "entitlement!",
-            lb.accrued_amount::FLOAT8 as "accrued_amount!",
-            lb.carried_over as "carried_over!",
+            COALESCE(lb.leave_type, 'vacation') as "leave_type!",
+            COALESCE(lb.entitlement, 0) as "entitlement!",
+            COALESCE(lb.accrued_amount::FLOAT8, 0.0) as "accrued_amount!",
+            COALESCE(lb.carried_over, 0) as "carried_over!",
             COALESCE(
                 (
                     SELECT SUM(end_date - start_date + 1)
                     FROM leave_requests
-                    WHERE employee_id = lb.employee_id 
-                    AND leave_type = lb.leave_type
+                    WHERE employee_id = e.id 
+                    AND leave_type = COALESCE(lb.leave_type, 'vacation')
                     AND status = 'approved'
-                    AND EXTRACT(YEAR FROM start_date) = lb.year
+                    AND EXTRACT(YEAR FROM start_date) = $2
                 ), 
                 0
             )::INT as "used!",
             (
-                lb.entitlement + lb.accrued_amount + lb.carried_over - COALESCE(
+                COALESCE(lb.entitlement, 0) + COALESCE(lb.accrued_amount, 0) + COALESCE(lb.carried_over, 0) - COALESCE(
                     (
                         SELECT SUM(end_date - start_date + 1)
                         FROM leave_requests
-                        WHERE employee_id = lb.employee_id 
-                        AND leave_type = lb.leave_type
+                        WHERE employee_id = e.id 
+                        AND leave_type = COALESCE(lb.leave_type, 'vacation')
                         AND status = 'approved'
-                        AND EXTRACT(YEAR FROM start_date) = lb.year
+                        AND EXTRACT(YEAR FROM start_date) = $2
                     ), 
                     0
                 )
-            )::FLOAT8 as "remaining!"
+            )::FLOAT8 as "remaining!",
+            (
+                SELECT d.name 
+                FROM leave_policy_assignments a
+                JOIN leave_policy_definitions d ON a.policy_id = d.id
+                WHERE a.workspace_id = $1
+                  AND d.leave_type = COALESCE(lb.leave_type, 'vacation')
+                  AND (
+                    (a.assignee_type = 'employee' AND a.assignee_id = e.id) OR
+                    (a.assignee_type = 'department' AND a.assignee_id = (SELECT department_id FROM employee_department_history WHERE employee_id = e.id ORDER BY effective_date DESC LIMIT 1)) OR
+                    (a.assignee_type = 'workspace')
+                  )
+                  AND a.effective_from <= NOW()
+                  AND (a.effective_to IS NULL OR a.effective_to > NOW())
+                ORDER BY 
+                  CASE a.assignee_type 
+                    WHEN 'employee' THEN 1 
+                    WHEN 'department' THEN 2 
+                    WHEN 'workspace' THEN 3 
+                  END ASC
+                LIMIT 1
+            ) as "policy_name",
+            (
+                SELECT a.assignee_type 
+                FROM leave_policy_assignments a
+                JOIN leave_policy_definitions d ON a.policy_id = d.id
+                WHERE a.workspace_id = $1
+                  AND d.leave_type = COALESCE(lb.leave_type, 'vacation')
+                  AND (
+                    (a.assignee_type = 'employee' AND a.assignee_id = e.id) OR
+                    (a.assignee_type = 'department' AND a.assignee_id = (SELECT department_id FROM employee_department_history WHERE employee_id = e.id ORDER BY effective_date DESC LIMIT 1)) OR
+                    (a.assignee_type = 'workspace')
+                  )
+                  AND a.effective_from <= NOW()
+                  AND (a.effective_to IS NULL OR a.effective_to > NOW())
+                ORDER BY 
+                  CASE a.assignee_type 
+                    WHEN 'employee' THEN 1 
+                    WHEN 'department' THEN 2 
+                    WHEN 'workspace' THEN 3 
+                  END ASC
+                LIMIT 1
+            ) as "assignment_type"
         FROM employees e
-        JOIN leave_balances lb ON e.id = lb.employee_id
-        WHERE e.workspace_id = $1 AND lb.year = $2 AND e.is_active = TRUE
+        LEFT JOIN leave_balances lb ON e.id = lb.employee_id AND lb.year = $2
+        WHERE e.workspace_id = $1 AND e.is_active = TRUE
         ORDER BY e.first_name, e.last_name, lb.leave_type
         "#,
         workspace_id,

@@ -54,7 +54,7 @@ async fn test_find_active_policy_priority() {
         .unwrap();
 
     // Verify global is active
-    let found = leave_policy_repository::find_active_policy_for_employee(
+    let found = leave_policy_repository::find_active_assignment_for_employee(
         &pool,
         ws_id,
         emp_id,
@@ -63,7 +63,7 @@ async fn test_find_active_policy_priority() {
     )
     .await
     .unwrap();
-    assert_eq!(found.unwrap().id, global_policy.id);
+    assert_eq!(found.unwrap().0.id, global_policy.id);
 
     // 2. Create Dept Policy
     let dept_policy = leave_policy_repository::create_policy_definition(
@@ -92,7 +92,7 @@ async fn test_find_active_policy_priority() {
         .unwrap();
 
     // Verify dept takes priority over global
-    let found = leave_policy_repository::find_active_policy_for_employee(
+    let found = leave_policy_repository::find_active_assignment_for_employee(
         &pool,
         ws_id,
         emp_id,
@@ -101,7 +101,7 @@ async fn test_find_active_policy_priority() {
     )
     .await
     .unwrap();
-    assert_eq!(found.unwrap().id, dept_policy.id);
+    assert_eq!(found.unwrap().0.id, dept_policy.id);
 
     // 3. Create Employee Policy
     let emp_policy = leave_policy_repository::create_policy_definition(
@@ -130,7 +130,7 @@ async fn test_find_active_policy_priority() {
         .unwrap();
 
     // Verify employee takes priority over all
-    let found = leave_policy_repository::find_active_policy_for_employee(
+    let found = leave_policy_repository::find_active_assignment_for_employee(
         &pool,
         ws_id,
         emp_id,
@@ -139,12 +139,12 @@ async fn test_find_active_policy_priority() {
     )
     .await
     .unwrap();
-    assert_eq!(found.unwrap().id, emp_policy.id);
+    assert_eq!(found.unwrap().0.id, emp_policy.id);
 
     // 4. No policy found (use a fresh workspace)
     let ws_id_2 = factory.workspace().create().await;
     let other_emp = factory.employee().with_workspace(ws_id_2).create().await;
-    let found = leave_policy_repository::find_active_policy_for_employee(
+    let found = leave_policy_repository::find_active_assignment_for_employee(
         &pool,
         ws_id_2,
         other_emp,

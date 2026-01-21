@@ -75,17 +75,19 @@ async fn test_accrual_scenarios() {
         .await;
 
     // 4. Run Accrual for Feb 1, 2026
-    // Should match Policy A: 1.0
+    // Should catch up Jan 1st and Feb 1st: Total 2 logs
     let logs = LeaveAccrualService::process_workspace_accruals(
         &pool,
         ws_id,
         NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+        false,
     )
     .await
     .unwrap();
 
-    assert_eq!(logs.len(), 1);
-    assert_eq!(logs[0].amount.to_string(), "1.00");
+    assert_eq!(logs.len(), 2);
+    assert_eq!(logs[0].amount.to_string(), "1.00"); // Jan 1st
+    assert_eq!(logs[1].amount.to_string(), "1.00"); // Feb 1st
 
     // 5. Assign Policy B (Effective Mar 1, 2026 -> Apr 1, 2026)
     factory
@@ -107,6 +109,7 @@ async fn test_accrual_scenarios() {
         &pool,
         ws_id,
         NaiveDate::from_ymd_opt(2026, 3, 1).unwrap(),
+        false,
     )
     .await
     .unwrap();
@@ -122,8 +125,8 @@ async fn test_accrual_scenarios() {
             .await
             .unwrap();
 
-    // 1.0 (Feb) + 2.0 (Mar) = 3.0
-    assert_eq!(balance.to_string(), "3.00");
+    // 1.0 (Jan) + 1.0 (Feb) + 2.0 (Mar) = 4.0
+    assert_eq!(balance.to_string(), "4.00");
 
     // 7. Test Quarterly Policy
     let policy_quarterly = factory
@@ -155,6 +158,7 @@ async fn test_accrual_scenarios() {
         &pool,
         ws_id,
         NaiveDate::from_ymd_opt(2026, 4, 1).unwrap(),
+        false,
     )
     .await
     .unwrap();
@@ -169,6 +173,7 @@ async fn test_accrual_scenarios() {
         &pool,
         ws_id,
         NaiveDate::from_ymd_opt(2026, 5, 1).unwrap(),
+        false,
     )
     .await
     .unwrap();
@@ -224,6 +229,7 @@ async fn test_accrual_creates_balance_if_missing() {
         &pool,
         ws_id,
         NaiveDate::from_ymd_opt(2027, 1, 1).unwrap(),
+        false,
     )
     .await
     .unwrap();

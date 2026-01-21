@@ -45,8 +45,7 @@ fn create_multipart_body(filename: &str, content: &str) -> (String, Vec<u8>) {
     let boundary = "boundary123";
     let mut body = Vec::new();
 
-    body.extend_from_slice(format!("--{}
-", boundary).as_bytes());
+    body.extend_from_slice(format!("--{}\r\n", boundary).as_bytes());
     body.extend_from_slice(
         format!(
             "Content-Disposition: form-data; name=\"file\"; filename=\"{}\"\r\n\r\n",
@@ -125,17 +124,22 @@ async fn test_upload_employee_csv_api() {
 }
 
 #[tokio::test]
-async fn test_upload_employee_duplicate_id_fails() {
+async fn test_upload_employee_duplicate_id_skips() {
     let (_test_db, factory, app) = setup_app().await;
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     
-    // Create existing employee
-    factory.employee().with_workspace(ws_id).with_employee_id_number("DUP001").create().await;
+    // Create existing employee with ID "DUP001" and name "Old Name"
+    factory.employee()
+        .with_workspace(ws_id)
+        .with_employee_id_number("DUP001")
+        .with_first_name("Old")
+        .with_last_name("Name")
+        .create().await;
     
-    // CSV with same ID
-    let csv_content = "ID,FirstName,LastName,HireDate\nDUP001,New,John,2026-01-01";
+    // CSV with same ID "DUP001" (different name) and a new employee "NEW002"
+    let csv_content = "ID,FirstName,LastName,HireDate\nDUP001,New,John,2026-01-01\nNEW002,Alice,Wonder,2026-02-01";
     let (content_type, body) = create_multipart_body("employees.csv", &csv_content);
 
     let response = app
@@ -158,17 +162,35 @@ async fn test_upload_employee_duplicate_id_fails() {
     let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
     let job_uuid = Uuid::parse_str(json["job_id"].as_str().unwrap()).unwrap();
 
-    let mut failed = false;
-    let mut error_msg = String::new();
+    let mut completed = false;
+    let mut final_log = String::new();
+    
     for _ in 0..30 {
         sleep(Duration::from_millis(200)).await;
         let job = apiserver::repositories::import_job_repository::get_job_by_id(&factory.pool, job_uuid).await.unwrap().unwrap();
-        if job.status == ImportJobStatus::Failed {
-            failed = true;
-            error_msg = job.error_log.unwrap_or_default();
+        if job.status == ImportJobStatus::Completed {
+            completed = true;
+            final_log = job.error_log.unwrap_or_default();
+            
+            // Check that processed_rows reflects only the NEW inserted row (1)
+            // Wait, logic says `processed_rows` increments for insert, `skipped_rows` for skip.
+            // But DB only stores `processed_rows`. We used `processed_rows` for successful inserts.
+            assert_eq!(job.processed_rows, 1, "Should only process 1 new row");
             break;
+        } else if job.status == ImportJobStatus::Failed {
+            panic!("Job failed unexpectedly: {:?}", job.error_log);
         }
     }
-    assert!(failed, "Job should have failed due to duplicate ID");
-    assert!(error_msg.contains("đã tồn tại"));
+    
+    assert!(completed, "Job should have completed");
+    assert!(final_log.contains("Đã bỏ qua 1 nhân viên trùng mã"), "Log should mention skipped rows");
+
+    // Verify "DUP001" is NOT updated
+    let emp_dup = apiserver::repositories::employee_repository::get_employee_by_id_number(&factory.pool, "DUP001", ws_id).await.unwrap().unwrap();
+    assert_eq!(emp_dup.first_name, "Old");
+    assert_eq!(emp_dup.last_name, "Name");
+
+    // Verify "NEW002" IS created
+    let emp_new = apiserver::repositories::employee_repository::get_employee_by_id_number(&factory.pool, "NEW002", ws_id).await.unwrap();
+    assert!(emp_new.is_some());
 }

@@ -272,6 +272,9 @@
     "indefinite": "无限期",
     "definite": "有期限",
     "minutes": "分钟",
+    "none": "无",
+    "show_details": "显示详情",
+    "hide_details": "隐藏详情",
     "edit": "编辑",
     "delete": "删除",
     "update": "更新",
@@ -360,6 +363,8 @@
     "active": "活跃",
     "collapse": "折叠",
     "expand": "展开",
+    "collapse_sidebar": "收起侧边栏",
+    "expand_sidebar": "展开侧边栏",
     "select_all": "全选",
     "deselect_all": "取消全选",
     "adding": "正在添加...",
@@ -377,6 +382,7 @@
     "no": "否",
     "base_for_ot": "加班基数",
     "add_new": "添加新项",
+    "import": "导入数据",
     "search_employee": "搜索员工...",
     "no_notes": "无备注。"
   },
@@ -605,17 +611,33 @@
     "title": "休假余额",
     "subtitle": "管理员工当年的休假权利。",
     "summary_table": "余额摘要表",
-    "table": {
-      "base": "基础",
-      "accrued": "累计",
-      "carried_over": "结转",
-      "used": "已用",
-      "remaining": "剩余",
-      "usage": "使用情况",
-      "accrued_info": "包括定期累计和手动调整。",
-      "history_tooltip": "历史与调整"
-    },
-    "history": {
+    "run_accrual": "更新余额",
+    "confirm_accrual": "您确定要运行今天的累计计算吗？系统将根据分配的政策自动添加假期。",
+    "view_details": "查看详情",
+          "table": {
+            "base": "基础额度",
+            "accrued": "累计",
+            "carried_over": "结转",
+            "used": "已用",
+            "remaining": "剩余",
+            "usage": "使用率",
+            "history_tooltip": "查看余额历史",
+            "accrued_info": "根据公司的累计政策（月/季/年）自动添加的天数。",
+            "policy": "政策"
+          },
+          "detail": {
+            "breakdown": "余额明细",
+            "calculation": "计算方式",
+            "policy_info": "政策信息",
+            "accrual_info_title": "累计信息",
+            "used": "已使用"
+          },
+          "assignment_types": {
+            "employee": "个人",
+            "department": "部门",
+            "workspace": "全局"
+          },
+          "history": {
       "title": "休假历史",
       "subtitle": "查看详细历史记录并调整休假余额。",
       "tab_history": "历史",
@@ -777,6 +799,7 @@
     "select_workspace": "请选择工作区",
     "hire_date": "入职日期",
     "bulk_import_title": "批量导入员工",
+    "bulk_import_btn": "从文件导入",
     "import_req": {
       "col_a": "A列：员工ID（必填）",
       "col_b": "B列：名字（必填）",
@@ -1032,11 +1055,13 @@
       "sick_full": "病假",
       "personal": "事假"
     },
-    "policy": {
-      "title": "休假政策",
-      "title_single": "政策",
-      "subtitle": "权利配置",
-      "assign_btn": "分配政策",
+          "policy": {
+            "title": "休假政策",
+            "title_single": "政策",
+            "subtitle": "配置休假额度和累计规则",
+            "policy_note": "注意：政策更改不具有追溯力。过去的累计保持不变；更改仅适用于未来的余额更新。",
+            "assign_btn": "分配政策",
+    
       "add_btn": "添加政策",
       "assign_title": "分配政策",
       "assign_subtitle": "人员分配",

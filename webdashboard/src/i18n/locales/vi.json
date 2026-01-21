@@ -272,6 +272,9 @@
     "indefinite": "Vô thời hạn",
     "definite": "Có thời hạn",
     "minutes": "phút",
+    "none": "Không có",
+    "show_details": "Xem chi tiết",
+    "hide_details": "Thu gọn",
     "edit": "Chỉnh sửa",
     "delete": "Xóa",
     "update": "Cập nhật",
@@ -360,6 +363,8 @@
     "active": "Hiện tại",
     "collapse": "Thu gọn",
     "expand": "Mở rộng",
+    "collapse_sidebar": "Thu gọn menu",
+    "expand_sidebar": "Mở rộng menu",
     "select_all": "Chọn tất cả",
     "deselect_all": "Bỏ chọn tất cả",
     "adding": "Đang thêm...",
@@ -377,6 +382,8 @@
     "no": "Không",
     "base_for_ot": "Tính OT",
     "add_new": "Thêm mới",
+    "import": "Nhập dữ liệu",
+    "save": "Lưu lại",
     "search_employee": "Tìm kiếm nhân viên...",
     "no_notes": "Không có ghi chú."
   },
@@ -601,21 +608,37 @@
       "working": "Đang làm việc"
     }
   },
-  "leave_balances": {
-    "title": "Số dư nghỉ phép",
-    "subtitle": "Quản lý định mức nghỉ phép của nhân viên trong năm.",
-    "summary_table": "Bảng tổng hợp số dư",
-    "table": {
-      "base": "Gốc",
-      "accrued": "Tích lũy",
-      "carried_over": "Chuyển từ năm trước",
-      "used": "Đã dùng",
-      "remaining": "Còn lại",
-      "usage": "Sử dụng",
-      "accrued_info": "Bao gồm số ngày tích lũy định kỳ và các điều chỉnh thủ công.",
-      "history_tooltip": "Lịch sử & Điều chỉnh"
-    },
-    "history": {
+    "leave_balances": {
+      "title": "Số dư nghỉ phép",
+      "subtitle": "Theo dõi định mức và sử dụng phép của nhân sự",
+      "summary_table": "Bảng tổng hợp số dư",
+      "run_accrual": "Cập nhật số dư",
+      "confirm_accrual": "Bạn có chắc chắn muốn chạy tính toán tích lũy cho hôm nay? Hệ thống sẽ tự động cộng thêm phép dựa trên chính sách đã gán.",
+      "view_details": "Xem Chi tiết",
+        "table": {
+        "base": "Định mức",
+        "accrued": "Tích lũy",
+        "carried_over": "Chuyển từ năm trước",
+        "used": "Đã dùng",
+        "remaining": "Còn lại",
+        "usage": "Tỷ lệ sử dụng",
+        "history_tooltip": "Xem lịch sử biến động",
+        "accrued_info": "Số ngày phép được cộng thêm tự động dựa trên chính sách tích lũy của công ty (theo tháng/quý/năm).",
+        "policy": "Chính sách"
+      },
+      "detail": {
+        "breakdown": "Chi tiết số dư",
+        "calculation": "Cách tính",
+        "policy_info": "Thông tin chính sách",
+        "accrual_info_title": "Thông tin tích lũy",
+        "used": "đã sử dụng"
+      },
+      "assignment_types": {
+        "employee": "Cá nhân",
+        "department": "Phòng ban",
+        "workspace": "Toàn cục"
+      },
+      "history": {
       "title": "Lịch sử nghỉ phép",
       "subtitle": "Xem lịch sử chi tiết và điều chỉnh số dư nghỉ phép.",
       "tab_history": "Lịch sử",
@@ -777,6 +800,7 @@
     "select_workspace": "Vui lòng chọn Không gian làm việc",
     "hire_date": "Ngày vào làm",
     "bulk_import_title": "Nhập nhân viên hàng loạt",
+    "bulk_import_btn": "Nhập từ File",
     "import_req": {
       "col_a": "Cột A: Mã nhân viên (Bắt buộc)",
       "col_b": "Cột B: Tên (Bắt buộc)",
@@ -1032,11 +1056,13 @@
       "sick_full": "Nghỉ ốm",
       "personal": "Việc riêng"
     },
-    "policy": {
-      "title": "Chính sách nghỉ phép",
-      "title_single": "Chính sách",
-      "subtitle": "Cấu hình định mức",
-      "assign_btn": "Gán chính sách",
+          "policy": {
+            "title": "Chính sách nghỉ phép",
+            "title_single": "Chính sách",
+            "subtitle": "Cấu hình định mức nghỉ phép và quy tắc tích lũy",
+            "policy_note": "Lưu ý: Các thay đổi về chính sách không có tính hồi tố. Kết quả tích lũy trong quá khứ sẽ được giữ nguyên, thay đổi chỉ áp dụng cho các lần cập nhật số dư trong tương lai.",
+            "assign_btn": "Gán chính sách",
+    
       "add_btn": "Thêm chính sách",
       "assign_title": "Gán chính sách",
       "assign_subtitle": "Phân bổ nhân sự",

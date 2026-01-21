@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { PunchCard } from "../PunchCard";
@@ -73,9 +73,13 @@ describe("PunchCard", () => {
   it("renders working status with active entry", () => {
     const activeEntry = {
       id: "1",
+      employee_id: "emp-1",
       punch_in_time: "2024-01-21T08:00:00Z",
-      punch_out_time: null,
+      punch_out_time: undefined,
       entry_type: "work",
+      is_break_overtime: false,
+      created_at: "2024-01-21T08:00:00Z",
+      updated_at: "2024-01-21T08:00:00Z"
     };
 
     render(<PunchCard {...defaultProps} activeEntry={activeEntry} />);
@@ -90,9 +94,13 @@ describe("PunchCard", () => {
     const user = userEvent.setup();
     const activeEntry = {
       id: "1",
+      employee_id: "emp-1",
       punch_in_time: "2024-01-21T08:00:00Z",
-      punch_out_time: null,
+      punch_out_time: undefined,
       entry_type: "work",
+      is_break_overtime: false,
+      created_at: "2024-01-21T08:00:00Z",
+      updated_at: "2024-01-21T08:00:00Z"
     };
 
     render(<PunchCard {...defaultProps} activeEntry={activeEntry} />);
@@ -109,9 +117,13 @@ describe("PunchCard", () => {
     const user = userEvent.setup();
     const activeEntry = {
       id: "1",
+      employee_id: "emp-1",
       punch_in_time: "2024-01-21T08:00:00Z",
-      punch_out_time: null,
+      punch_out_time: undefined,
       entry_type: "work",
+      is_break_overtime: false,
+      created_at: "2024-01-21T08:00:00Z",
+      updated_at: "2024-01-21T08:00:00Z"
     };
 
     render(<PunchCard {...defaultProps} activeEntry={activeEntry} />);
@@ -127,9 +139,13 @@ describe("PunchCard", () => {
   it("renders on-break status", () => {
     const activeEntry = {
       id: "1",
+      employee_id: "emp-1",
       punch_in_time: "2024-01-21T08:00:00Z",
-      punch_out_time: null,
+      punch_out_time: undefined,
       entry_type: "break",
+      is_break_overtime: false,
+      created_at: "2024-01-21T08:00:00Z",
+      updated_at: "2024-01-21T08:00:00Z"
     };
 
     render(<PunchCard {...defaultProps} activeEntry={activeEntry} isOnBreak={true} />);
@@ -143,9 +159,13 @@ describe("PunchCard", () => {
     const user = userEvent.setup();
     const activeEntry = {
       id: "1",
+      employee_id: "emp-1",
       punch_in_time: "2024-01-21T08:00:00Z",
-      punch_out_time: null,
+      punch_out_time: undefined,
       entry_type: "break",
+      is_break_overtime: false,
+      created_at: "2024-01-21T08:00:00Z",
+      updated_at: "2024-01-21T08:00:00Z"
     };
 
     render(<PunchCard {...defaultProps} activeEntry={activeEntry} isOnBreak={true} />);

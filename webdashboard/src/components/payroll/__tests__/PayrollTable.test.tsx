@@ -22,11 +22,14 @@ describe("PayrollTable", () => {
       overtime_pay_amount: "500000",
       deductions_amount: "0",
       net_pay_amount: "10500000",
-      status: "finalized",
+      status: "published",
       standard_units: 200,
       overtime_units: 10,
+      created_at: "2026-02-01T00:00:00Z",
+      updated_at: "2026-02-01T00:00:00Z",
       segments: [
         {
+          id: "seg-1",
           start_date: "2026-01-01",
           end_date: "2026-01-31",
           reason: "Salary Change",

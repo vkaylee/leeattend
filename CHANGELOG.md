@@ -5,6 +5,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Employee Bulk Import Improvements**:
+    - **"Silent Skip" Logic**: Enhanced import backend to automatically skip duplicate employee IDs (using `ON CONFLICT DO NOTHING`) instead of failing the entire batch.
+    - **Progress Feedback**: Import job status now correctly distinguishes between inserted rows and skipped rows.
+    - **UI Enhancements**: Replaced generic "Add New" button with a dedicated "Import from File" button (Upload icon) on the Employees page.
+    - **Localization**: Added specific translation keys for import actions across EN, VI, ZH.
 - **Frontend Routing Architecture**:
     - Decoupled routing logic into a standalone `AppRoutes.tsx` component to support isolated integration testing.
     - Added comprehensive **Page Rendering Tests** (`PageRendering.test.tsx`) to verify core pages (Dashboard, Employees, Leave Balances) render without crashing.
@@ -35,6 +40,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - Documentation: Added comprehensive test audit reports and Phase 1 implementation summaries.
     - Configuration: Updated `.gitignore` to exclude large generated artifacts.
     - Cleaned up accidental temporary directories from the workspace.
+
+### Fixed
+- **Leave Balance Re-calculation**: Resolved an issue where manual "Update Balance" triggers would not reflect policy changes for past dates. The system now forces a re-calculation and updates balances if the accrual amount differs.
+- **TypeScript & Linting**: Fixed multiple type errors in `PayrollTable`, `PunchCard`, and `Sidebar` components to ensure a clean build.
+- **Test Stability**: Fixed flaky E2E tests by adjusting timeouts and ensuring proper environment teardown.
 
 ## [2026.01.21] - Previous Release Notes... (omitted)
     - Added comprehensive integration tests for the batch calculation engine.

@@ -172,20 +172,18 @@ pub async fn create_policy_assignment(
     Ok(saved)
 }
 
-/// Finds the active policy definition for a specific entity (Employee, Dept, Workspace) on a given date.
-/// It respects the hierarchy: Employee > Department > Workspace (Global).
-pub async fn find_active_policy_for_employee(
+/// Finds the active policy definition and its assignment ID for a specific entity on a given date.
+pub async fn find_active_assignment_for_employee(
     pool: &PgPool,
     workspace_id: Uuid,
     employee_id: Uuid,
     department_id: Option<Uuid>,
     date: NaiveDate,
-) -> Result<Option<LeavePolicyDefinition>, sqlx::Error> {
+) -> Result<Option<(LeavePolicyDefinition, Uuid)>, sqlx::Error> {
     // Priority 1: Employee specific assignment
-    let employee_policy = sqlx::query_as!(
-        LeavePolicyDefinition,
+    let employee_result = sqlx::query!(
         r#"
-        SELECT d.id, d.workspace_id, d.name, d.description, d.leave_type, d.rule_config as "rule_config: sqlx::types::Json<LeavePolicyConfig>", d.created_at as "created_at!", d.updated_at as "updated_at!"
+        SELECT d.id, d.workspace_id, d.name, d.description, d.leave_type, d.rule_config as "rule_config: sqlx::types::Json<LeavePolicyConfig>", d.created_at as "created_at!", d.updated_at as "updated_at!", a.id as "assignment_id!"
         FROM leave_policy_assignments a
         JOIN leave_policy_definitions d ON a.policy_id = d.id
         WHERE a.workspace_id = $1
@@ -202,16 +200,25 @@ pub async fn find_active_policy_for_employee(
     .fetch_optional(pool)
     .await?;
 
-    if let Some(p) = employee_policy {
-        return Ok(Some(p));
+    if let Some(r) = employee_result {
+        let def = LeavePolicyDefinition {
+            id: r.id,
+            workspace_id: r.workspace_id,
+            name: r.name,
+            description: r.description,
+            leave_type: r.leave_type,
+            rule_config: r.rule_config,
+            created_at: r.created_at,
+            updated_at: r.updated_at,
+        };
+        return Ok(Some((def, r.assignment_id)));
     }
 
     // Priority 2: Department assignment
     if let Some(dept_id) = department_id {
-        let dept_policy = sqlx::query_as!(
-            LeavePolicyDefinition,
+        let dept_result = sqlx::query!(
             r#"
-            SELECT d.id, d.workspace_id, d.name, d.description, d.leave_type, d.rule_config as "rule_config: sqlx::types::Json<LeavePolicyConfig>", d.created_at as "created_at!", d.updated_at as "updated_at!"
+            SELECT d.id, d.workspace_id, d.name, d.description, d.leave_type, d.rule_config as "rule_config: sqlx::types::Json<LeavePolicyConfig>", d.created_at as "created_at!", d.updated_at as "updated_at!", a.id as "assignment_id!"
             FROM leave_policy_assignments a
             JOIN leave_policy_definitions d ON a.policy_id = d.id
             WHERE a.workspace_id = $1
@@ -228,16 +235,25 @@ pub async fn find_active_policy_for_employee(
         .fetch_optional(pool)
         .await?;
 
-        if let Some(p) = dept_policy {
-            return Ok(Some(p));
+        if let Some(r) = dept_result {
+            let def = LeavePolicyDefinition {
+                id: r.id,
+                workspace_id: r.workspace_id,
+                name: r.name,
+                description: r.description,
+                leave_type: r.leave_type,
+                rule_config: r.rule_config,
+                created_at: r.created_at,
+                updated_at: r.updated_at,
+            };
+            return Ok(Some((def, r.assignment_id)));
         }
     }
 
     // Priority 3: Global Workspace assignment
-    let global_policy = sqlx::query_as!(
-        LeavePolicyDefinition,
+    let global_result = sqlx::query!(
         r#"
-        SELECT d.id, d.workspace_id, d.name, d.description, d.leave_type, d.rule_config as "rule_config: sqlx::types::Json<LeavePolicyConfig>", d.created_at as "created_at!", d.updated_at as "updated_at!"
+        SELECT d.id, d.workspace_id, d.name, d.description, d.leave_type, d.rule_config as "rule_config: sqlx::types::Json<LeavePolicyConfig>", d.created_at as "created_at!", d.updated_at as "updated_at!", a.id as "assignment_id!"
         FROM leave_policy_assignments a
         JOIN leave_policy_definitions d ON a.policy_id = d.id
         WHERE a.workspace_id = $1
@@ -252,5 +268,19 @@ pub async fn find_active_policy_for_employee(
     .fetch_optional(pool)
     .await?;
 
-    Ok(global_policy)
+    if let Some(r) = global_result {
+        let def = LeavePolicyDefinition {
+            id: r.id,
+            workspace_id: r.workspace_id,
+            name: r.name,
+            description: r.description,
+            leave_type: r.leave_type,
+            rule_config: r.rule_config,
+            created_at: r.created_at,
+            updated_at: r.updated_at,
+        };
+        return Ok(Some((def, r.assignment_id)));
+    }
+
+    Ok(None)
 }

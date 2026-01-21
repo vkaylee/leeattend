@@ -98,22 +98,20 @@ impl LeaveAccrualService {
         pool: &PgPool,
         workspace_id: Uuid,
         date: NaiveDate,
+        force: bool,
     ) -> Result<Vec<LeaveAccrualLog>, sqlx::Error> {
         // 1. Get all active employees
         let employees = employee_repository::get_active_employees(pool, workspace_id).await?;
-        let mut logs = Vec::new();
+        let mut all_logs = Vec::new();
 
         for emp in employees {
             // 2. Resolve policy for employee
-            // Note: `employee_repository::get_active_employees` returns `Employee` struct.
-            // It doesn't have department_id directly.
-            // We need to fetch it.
             let dept_hist = department_repository::get_current_department(pool, emp.id)
                 .await
                 .ok()
                 .flatten();
 
-            if let Some(policy) = leave_policy_repository::find_active_policy_for_employee(
+            if let Some((policy, assignment_id)) = leave_policy_repository::find_active_assignment_for_employee(
                 pool,
                 workspace_id,
                 emp.id,
@@ -124,64 +122,123 @@ impl LeaveAccrualService {
             {
                 let config = &policy.rule_config.0;
 
-                // 3. Check if accrual should run today
-                if Self::should_run_accrual(&config.frequency, &config.accrual_timing, date) {
-                    // 4. Calculate total seniority
-                    let periods = employee_repository::get_employment_history(pool, emp.id).await?;
-                    let years_service = Self::calculate_total_seniority(&periods, date);
+                // --- SMART CATCH-UP LOGIC ---
+                // We iterate from the start of the policy assignment up to the target date.
+                // This ensures that if a policy was assigned retroactively, we backfill missing days.
+                
+                // Fetch the assignment record to get the true effective_from
+                let assignment = sqlx::query!(
+                    "SELECT effective_from FROM leave_policy_assignments WHERE id = $1",
+                    assignment_id
+                ).fetch_one(pool).await?;
 
-                    // 5. Calculate amount
-                    let amount = Self::calculate_accrual_amount(config, years_service, date);
+                let mut current_check_date = assignment.effective_from;
+                
+                while current_check_date <= date {
+                    // Check if accrual should run on THIS specific date in the past/present
+                    if Self::should_run_accrual(&config.frequency, &config.accrual_timing, current_check_date) {
+                        
+                        let periods = employee_repository::get_employment_history(pool, emp.id).await?;
+                        let years_service = Self::calculate_total_seniority(&periods, current_check_date);
+                        let amount = Self::calculate_accrual_amount(config, years_service, current_check_date);
 
-                    if amount > 0.0 {
-                        use rust_decimal::prelude::FromPrimitive;
-                        let decimal_amount =
-                            rust_decimal::Decimal::from_f64(amount).unwrap_or_default();
+                        if amount > 0.0 {
+                            use rust_decimal::prelude::FromPrimitive;
+                            let decimal_amount = rust_decimal::Decimal::from_f64(amount).unwrap_or_default();
 
-                        // 5. Update DB (Transactionally)
-                        // Create Accrual Log
-                        let log = sqlx::query_as!(
-                            LeaveAccrualLog,
-                            r#"
-                            INSERT INTO leave_accrual_logs (workspace_id, employee_id, policy_assignment_id, accrual_date, amount, leave_type)
-                            VALUES ($1, $2, NULL, $3, $4, 'vacation')
-                            ON CONFLICT (employee_id, leave_type, accrual_date) DO NOTHING
-                            RETURNING id, workspace_id, employee_id, policy_assignment_id, accrual_date, amount, leave_type, notes, created_at as "created_at!"
-                            "#,
-                            workspace_id,
-                            emp.id,
-                            date,
-                            decimal_amount
-                        )
-                        .fetch_optional(pool) // Optional because ON CONFLICT DO NOTHING
-                        .await?;
-
-                        if let Some(l) = log {
-                            // Update Balance with UPSERT
-                            sqlx::query!(
+                            // Check if a log already exists for this date/type/employee
+                            let existing_log = sqlx::query!(
                                 r#"
-                                INSERT INTO leave_balances (employee_id, year, leave_type, entitlement, accrued_amount, carried_over)
-                                VALUES ($1, $2, 'vacation', 0, $3, 0)
-                                ON CONFLICT (employee_id, leave_type, year)
-                                DO UPDATE SET 
-                                    accrued_amount = leave_balances.accrued_amount + EXCLUDED.accrued_amount,
-                                    updated_at = NOW()
+                                SELECT id, amount FROM leave_accrual_logs 
+                                WHERE employee_id = $1 AND leave_type = $2 AND accrual_date = $3
                                 "#,
-                                emp.id,
-                                date.year(),
-                                decimal_amount
-                            )
-                            .execute(pool)
-                            .await?;
+                                emp.id, policy.leave_type, current_check_date
+                            ).fetch_optional(pool).await?;
 
-                            logs.push(l);
+                            if let Some(old_log) = existing_log {
+                                // If force is true and amount has changed, RE-CALCULATE
+                                if force && old_log.amount != decimal_amount {
+                                    let diff = decimal_amount - old_log.amount;
+
+                                    // 1. Update the log entry
+                                    let updated_log = sqlx::query_as!(
+                                        LeaveAccrualLog,
+                                        r#"
+                                        UPDATE leave_accrual_logs 
+                                        SET amount = $1, notes = COALESCE(notes, '') || ' (Re-calculated)'
+                                        WHERE id = $2
+                                        RETURNING id, workspace_id, employee_id, policy_assignment_id, accrual_date, amount, leave_type, notes, created_at as "created_at!"
+                                        "#,
+                                        decimal_amount, old_log.id
+                                    ).fetch_one(pool).await?;
+
+                                    // 2. Adjust the balance entry (add the difference)
+                                    sqlx::query!(
+                                        r#"
+                                        UPDATE leave_balances 
+                                        SET accrued_amount = accrued_amount + $3, updated_at = NOW()
+                                        WHERE employee_id = $1 AND year = $2 AND leave_type = $4
+                                        "#,
+                                        emp.id, current_check_date.year(), diff, policy.leave_type
+                                    ).execute(pool).await?;
+
+                                    all_logs.push(updated_log);
+                                }
+                            } else {
+                                // No log exists, perform original insertion logic
+                                let log = sqlx::query_as!(
+                                    LeaveAccrualLog,
+                                    r#"
+                                    INSERT INTO leave_accrual_logs (workspace_id, employee_id, policy_assignment_id, accrual_date, amount, leave_type)
+                                    VALUES ($1, $2, $4, $3, $5, $6)
+                                    ON CONFLICT (employee_id, leave_type, accrual_date) DO NOTHING
+                                    RETURNING id, workspace_id, employee_id, policy_assignment_id, accrual_date, amount, leave_type, notes, created_at as "created_at!"
+                                    "#,
+                                    workspace_id,
+                                    emp.id,
+                                    current_check_date,
+                                    Some(assignment_id),
+                                    decimal_amount,
+                                    policy.leave_type
+                                )
+                                .fetch_optional(pool)
+                                .await?;
+
+                                if let Some(l) = log {
+                                    // Update Balance for the year of THIS check date
+                                    sqlx::query!(
+                                        r#"
+                                        INSERT INTO leave_balances (employee_id, year, leave_type, entitlement, accrued_amount, carried_over)
+                                        VALUES ($1, $2, $3, 0, $4, 0)
+                                        ON CONFLICT (employee_id, leave_type, year)
+                                        DO UPDATE SET 
+                                            accrued_amount = leave_balances.accrued_amount + EXCLUDED.accrued_amount,
+                                            updated_at = NOW()
+                                        "#,
+                                        emp.id,
+                                        current_check_date.year(),
+                                        policy.leave_type,
+                                        decimal_amount
+                                    )
+                                    .execute(pool).await?;
+
+                                    all_logs.push(l);
+                                }
+                            }
                         }
+                    }
+
+                    // Move to next day
+                    if let Some(next) = current_check_date.succ_opt() {
+                        current_check_date = next;
+                    } else {
+                        break;
                     }
                 }
             }
         }
 
-        Ok(logs)
+        Ok(all_logs)
     }
 }
 

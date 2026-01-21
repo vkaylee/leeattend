@@ -151,7 +151,24 @@ export default function AttendanceAdjustmentsPage() {
         </div>
       </div>
 
-      <AttendanceImportDialog isOpen={isImportDialogOpen} onClose={() => setIsImportDialogOpen(false)} />
-    </div>
-  );
-}
+            <AttendanceImportDialog 
+
+              isOpen={isImportDialogOpen} 
+
+              onClose={() => setIsImportDialogOpen(false)} 
+
+              title={t("attendance_confirm.import_excel")}
+
+              endpoint="/attendance-adjustments/upload"
+
+              targetType="adjustment"
+
+            />
+
+          </div>
+
+        );
+
+      }
+
+      

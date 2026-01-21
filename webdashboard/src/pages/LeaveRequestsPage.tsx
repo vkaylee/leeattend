@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays, Calendar, CheckCircle2, XCircle, Send, Plus, X, Settings2, PlayCircle,
   UserPlus, FileText, ShieldCheck, UserCircle, Edit2, Trash2, Clock, MessageSquare,
-  FileDown, Upload, Check
+  FileDown, Upload, Check, Info
 } from "lucide-react";
 import {
   fetchEmployees,
@@ -113,6 +113,12 @@ export default function LeaveRequestsPage() {
       <div className="animate-in slide-in-from-bottom-8 duration-700">
         {activeTab === "policies" ? (
           <div className="space-y-8">
+            <div className="bg-primary-50/50 border border-primary-100 rounded-3xl p-6 flex items-start gap-4 mx-2">
+              <Info className="w-5 h-5 text-primary-600 mt-1 shrink-0" />
+              <p className="text-[11px] font-bold text-primary-900/70 leading-relaxed uppercase tracking-wider">
+                {t("leave_requests.policy.policy_note")}
+              </p>
+            </div>
             <div className="flex justify-end gap-4 px-2">
               <button onClick={() => setIsAssignModalOpen(true)} className="flex items-center gap-3 bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-2xl hover:bg-slate-50 transition-all font-black text-[10px] uppercase tracking-widest shadow-md"><UserPlus size={16} /> {t("leave_requests.policy.assign_btn").toUpperCase()}</button>
               <button onClick={() => { setEditingPolicy(null); setPolicyType('vacation'); setAccrualStrategy('monthly'); setIsPolicyModalOpen(true); }} className="flex items-center gap-3 bg-slate-900 text-white px-8 py-2.5 rounded-2xl hover:bg-black transition-all font-black text-[10px] uppercase tracking-widest shadow-xl shadow-slate-200 active:scale-95"><Plus size={16} /> {t("leave_requests.policy.add_btn").toUpperCase()}</button>

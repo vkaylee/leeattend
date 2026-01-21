@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT d.id, d.workspace_id, d.name, d.description, d.leave_type, d.rule_config as \"rule_config: sqlx::types::Json<LeavePolicyConfig>\", d.created_at as \"created_at!\", d.updated_at as \"updated_at!\"\n        FROM leave_policy_assignments a\n        JOIN leave_policy_definitions d ON a.policy_id = d.id\n        WHERE a.workspace_id = $1\n          AND a.assignee_type = 'workspace'\n          AND a.effective_from <= $2\n          AND (a.effective_to IS NULL OR a.effective_to > $2)\n        LIMIT 1\n        ",
+  "query": "\n            SELECT d.id, d.workspace_id, d.name, d.description, d.leave_type, d.rule_config as \"rule_config: sqlx::types::Json<LeavePolicyConfig>\", d.created_at as \"created_at!\", d.updated_at as \"updated_at!\", a.id as \"assignment_id!\"\n            FROM leave_policy_assignments a\n            JOIN leave_policy_definitions d ON a.policy_id = d.id\n            WHERE a.workspace_id = $1\n              AND a.assignee_type = 'department'\n              AND a.assignee_id = $2\n              AND a.effective_from <= $3\n              AND (a.effective_to IS NULL OR a.effective_to > $3)\n            LIMIT 1\n            ",
   "describe": {
     "columns": [
       {
@@ -42,10 +42,16 @@
         "ordinal": 7,
         "name": "updated_at!",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "assignment_id!",
+        "type_info": "Uuid"
       }
     ],
     "parameters": {
       "Left": [
+        "Uuid",
         "Uuid",
         "Date"
       ]
@@ -58,8 +64,9 @@
       false,
       false,
       true,
-      true
+      true,
+      false
     ]
   },
-  "hash": "43cf8a5d60b684839c5eeeb0209388fee80bdc44e7a9764598a4efbb2ef4895c"
+  "hash": "c6a1348dff7d592a209556c14f17cc89bbcb3eda773df08bc10e71ed57ec5685"
 }

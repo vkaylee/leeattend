@@ -503,15 +503,17 @@ Lấy danh sách các yêu cầu điều chỉnh trong workspace.
 - **Query Params**: `?status=pending|approved|rejected`
 - **Response (200)**: `Array<AttendanceAdjustmentRequest>`
 
-#### POST /workspaces/:ws_id/attendance/upload
+#### POST /workspaces/:ws_id/employees/upload (Updated)
 Upload file Excel (.xlsx, .xls) hoặc CSV. Trả về Job ID để theo dõi tiến độ bất đồng bộ.
-- **Strict Validation**: Import sẽ bị từ chối ngay lập tức nếu file chứa bất kỳ Mã nhân viên (Employee ID Number) nào không tồn tại trong hệ thống.
+- **Silent Skip**: Hệ thống sẽ tự động bỏ qua các bản ghi có mã nhân viên (Employee ID) đã tồn tại mà không làm gián đoạn quá trình nhập liệu.
+- **Job Status**: Trường `processed_rows` trong Job Status sẽ chỉ đếm số lượng bản ghi *thực sự được thêm mới*. Log lỗi sẽ ghi nhận số lượng bản ghi bị bỏ qua.
 - **Request**: `multipart/form-data` (file)
 - **Response (200)**: `{ "job_id": "uuid" }`
-- **Error Behavior**: Nếu Job failed do validation, `error_log` trong Job Status sẽ chứa danh sách các Employee ID bị thiếu:
-  ```text
-  Found 2 unknown employees: ID123, ID456
-  ```
+
+#### POST /workspaces/:ws_id/attendance/upload
+Upload file Excel (.xlsx, .xls) hoặc CSV. Trả về Job ID để theo dõi tiến độ bất đồng bộ.
+- **Request**: `multipart/form-data` (file)
+- **Response (200)**: `{ "job_id": "uuid" }`
 
 #### GET /workspaces/:ws_id/attendance/import-jobs/latest
 Lấy thông tin Job import gần nhất của workspace.

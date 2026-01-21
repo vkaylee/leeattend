@@ -296,7 +296,7 @@ pub async fn trigger_accrual_run(
         }
     };
 
-    match LeaveAccrualService::process_workspace_accruals(&state.db, workspace_id, date).await {
+    match LeaveAccrualService::process_workspace_accruals(&state.db, workspace_id, date, true).await {
         Ok(logs) => (StatusCode::OK, Json(logs)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }

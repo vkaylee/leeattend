@@ -1,7 +1,9 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TimeEntryRow } from "../TimeEntryRow";
+import { TimeEntry } from "@/lib/api/types";
+import React from "react";
 
 const mockTranslation = {
   "common.break": "Break",
@@ -29,23 +31,35 @@ describe("TimeEntryRow", () => {
 
   const workEntry = {
     id: "1",
+    employee_id: "emp-1",
     punch_in_time: "2024-01-21T08:00:00Z",
     punch_out_time: "2024-01-21T17:00:00Z",
     entry_type: "work",
+    is_break_overtime: false,
+    created_at: "2024-01-21T08:00:00Z",
+    updated_at: "2024-01-21T17:00:00Z"
   };
 
   const breakEntry = {
     id: "2",
+    employee_id: "emp-1",
     punch_in_time: "2024-01-21T12:00:00Z",
     punch_out_time: "2024-01-21T12:30:00Z",
     entry_type: "break",
+    is_break_overtime: false,
+    created_at: "2024-01-21T12:00:00Z",
+    updated_at: "2024-01-21T12:30:00Z"
   };
 
-  const activeEntry = {
+  const activeEntry: TimeEntry = {
     id: "3",
+    employee_id: "emp-1",
     punch_in_time: "2024-01-21T08:00:00Z",
-    punch_out_time: null,
+    punch_out_time: undefined,
     entry_type: "work",
+    is_break_overtime: false,
+    created_at: "2024-01-21T08:00:00Z",
+    updated_at: "2024-01-21T08:00:00Z"
   };
 
   beforeEach(() => {

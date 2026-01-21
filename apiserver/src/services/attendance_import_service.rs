@@ -457,30 +457,25 @@ impl AttendanceImportService {
             return Err(());
         }
 
-        // 2. VALIDATION PHASE (Duplicate ID check)
-        let id_numbers: Vec<String> = pending_employees.iter().map(|e| e.id_number.clone()).collect();
-        match employee_repository::get_existing_employee_ids_by_numbers(&pool, job.workspace_id, &id_numbers).await {
-            Ok(existing) => {
-                if !existing.is_empty() {
-                    let err_msg = format!("Các ID nhân viên sau đã tồn tại: {}", existing.join(", "));
-                    let _ = import_job_repository::update_job_progress(&pool, job_id, 0, ImportJobStatus::Failed, Some(err_msg)).await;
-                    let _ = tokio::fs::remove_file(file_path).await;
-                    return Err(());
-                }
-            },
-            Err(_) => {
-                let _ = import_job_repository::update_job_progress(&pool, job_id, 0, ImportJobStatus::Failed, Some("Lỗi kiểm tra trùng lặp".to_string())).await;
-                return Err(());
-            }
-        }
+        // 2. VALIDATION PHASE (Duplicate ID check) -> REMOVED strict failure. 
+        // We will skip duplicates during processing.
+        // let id_numbers: Vec<String> = pending_employees.iter().map(|e| e.id_number.clone()).collect();
+        // match employee_repository::get_existing_employee_ids_by_numbers(&pool, job.workspace_id, &id_numbers).await { ... }
 
         // 3. PROCESSING PHASE
         let mut processed_rows = 0;
+        let mut skipped_rows = 0;
+        
         for emp in pending_employees {
             match Self::process_employee_import_row(&pool, job, &emp).await {
-                Ok(_) => {
-                    processed_rows += 1;
-                    if processed_rows % 10 == 0 {
+                Ok(inserted) => {
+                    if inserted {
+                        processed_rows += 1;
+                    } else {
+                        skipped_rows += 1;
+                    }
+                    
+                    if (processed_rows + skipped_rows) % 10 == 0 {
                         let _ = import_job_repository::update_job_progress(&pool, job_id, processed_rows, ImportJobStatus::Processing, None).await;
                     }
                 },
@@ -491,7 +486,17 @@ impl AttendanceImportService {
         }
 
         let status = if !errors.is_empty() { ImportJobStatus::Failed } else { ImportJobStatus::Completed };
-        let _ = import_job_repository::update_job_progress(&pool, job_id, processed_rows, status, if errors.is_empty() { None } else { Some(errors.join("\n")) }).await;
+        
+        let mut final_log = if errors.is_empty() { None } else { Some(errors.join("\n")) };
+        if skipped_rows > 0 {
+             let skip_msg = format!("Đã bỏ qua {} nhân viên trùng mã.", skipped_rows);
+             final_log = Some(match final_log {
+                 Some(log) => format!("{}\n{}", log, skip_msg),
+                 None => skip_msg
+             });
+        }
+
+        let _ = import_job_repository::update_job_progress(&pool, job_id, processed_rows, status, final_log).await;
         let _ = tokio::fs::remove_file(file_path).await;
         
         Ok(())
@@ -504,7 +509,7 @@ impl AttendanceImportService {
     ) {
         for (idx, row) in range.rows().skip(1).enumerate() {
             let current_line = idx + 2;
-            let id_number = match row.get(0) {
+            let id_number = match row.first() {
                 Some(Data::String(s)) => s.trim().to_string(),
                 Some(Data::Float(f)) => f.to_string(),
                 Some(Data::Int(i)) => i.to_string(),
@@ -545,7 +550,7 @@ impl AttendanceImportService {
         pool: &PgPool,
         job: &AttendanceImportJob,
         emp: &PendingEmployee,
-    ) -> Result<(), String> {
+    ) -> Result<bool, String> {
         let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
 
         let employee = Employee {
@@ -563,13 +568,13 @@ impl AttendanceImportService {
             updated_at: Utc::now(),
         };
 
-        employee_repository::create_employee_tx(&mut tx, &employee)
+        let inserted = employee_repository::create_employee_tx_skip_duplicates(&mut tx, &employee)
             .await
             .map_err(|e| e.to_string())?;
 
         tx.commit().await.map_err(|e| e.to_string())?;
 
-        Ok(())
+        Ok(inserted)
     }
 
     fn parse_excel_range(

@@ -19,6 +19,10 @@ export default function MainLayout() {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showSwitcher, setShowSwitcher] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebar-collapsed');
+    return saved === 'true';
+  });
 
   const getInitialOpenSections = () => {
     const path = location.pathname;
@@ -46,6 +50,14 @@ export default function MainLayout() {
       ess: false,
       [section]: !prev[section]
     }));
+  };
+
+  const toggleCollapsed = () => {
+    setIsCollapsed(prev => {
+      const newValue = !prev;
+      localStorage.setItem('sidebar-collapsed', String(newValue));
+      return newValue;
+    });
   };
 
   useEffect(() => {
@@ -83,18 +95,21 @@ export default function MainLayout() {
         />
       )}
 
-      <Sidebar 
-        isOpen={isSidebarOpen} 
+      <Sidebar
+        isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         openSections={openSections}
         toggleSection={toggleSection}
         onShowSwitcher={() => setShowSwitcher(true)}
+        isCollapsed={isCollapsed}
       />
 
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden relative">
-        <Navbar 
-          currentWorkspaceName={currentWorkspace?.name || "Workspace"} 
-          onOpenSidebar={() => setIsSidebarOpen(true)} 
+        <Navbar
+          currentWorkspaceName={currentWorkspace?.name || "Workspace"}
+          onOpenSidebar={() => setIsSidebarOpen(true)}
+          isCollapsed={isCollapsed}
+          onToggleCollapsed={toggleCollapsed}
         />
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 relative scroll-smooth">

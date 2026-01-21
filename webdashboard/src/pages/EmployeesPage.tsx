@@ -18,7 +18,8 @@ import {
   Banknote,
   History as HistoryIcon,
   Check,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Upload
 } from "lucide-react";
 
 import { 
@@ -124,7 +125,7 @@ export default function EmployeesPage() {
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1.5 opacity-70">{t("employees.subtitle")}</p>
           </div>
           <div className="flex items-center gap-4">
-            <button onClick={() => setIsImportDialogOpen(true)} className="flex items-center gap-3 bg-white border border-slate-200 text-slate-700 px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm active:scale-95"><Plus size={18} /> {t("common.add_new").toUpperCase()}</button>
+            <button onClick={() => setIsImportDialogOpen(true)} className="flex items-center gap-3 bg-white border border-slate-200 text-slate-700 px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm active:scale-95"><Upload size={18} /> {t("employees.bulk_import_btn").toUpperCase()}</button>
             <button onClick={() => { setEditingEmployee(null); setIsModalOpen(true); }} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95"><UserPlus size={18} /> {t("employees.add_btn").toUpperCase()}</button>
           </div>
         </div>
