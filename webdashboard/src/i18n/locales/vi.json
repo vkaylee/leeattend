@@ -79,7 +79,6 @@
     },
     "employees": "Nhân viên",
     "departments": "Phòng ban",
-    "time_tracking": "Chấm công",
     "logs": "Nhật ký",
     "leave_requests": {
       "policy": {
@@ -1445,48 +1444,6 @@
       "confirm_clear": "Bạn có chắc chắn muốn xóa TOÀN BỘ dữ liệu [{{label}}] của Workspace này không? Thao tác này không thể hoàn tác.",
       "clear_success": "Đã xóa dữ liệu [{{label}}] thành công.",
       "clear_error": "Lỗi khi xóa dữ liệu:"
-    }
-  },
-  "time_tracking": {
-    "title": "Chấm công",
-    "subtitle": "Ghi nhận giờ làm việc và nghỉ ngơi của nhân sự.",
-    "select_employee_label": "Chọn nhân viên để chấm công",
-    "search_placeholder": "Tìm theo tên hoặc mã nhân viên...",
-    "type_search_placeholder": "Gõ tên hoặc mã nhân viên...",
-    "forgot_punch": "Quên chấm công? Gửi xác nhận →",
-    "recent_history": "Lịch sử gần đây (7 ngày)",
-    "empty_state_desc": "Chọn nhân sự để bắt đầu chấm công",
-    "status": {
-      "on_break": "Đang nghỉ giải lao",
-      "working": "Đang làm việc",
-      "off_duty": "Chưa vào ca",
-      "break_start_at": "Bắt đầu nghỉ lúc",
-      "shift_start_at": "Bắt đầu ca lúc"
-    },
-    "actions": {
-      "return_to_work": "Quay lại làm việc",
-      "start_break": "Bắt đầu nghỉ (Break)",
-      "punch_out": "Kết thúc ca (Punch Out)",
-      "start_work": "Bắt đầu làm việc"
-    },
-    "messages": {
-      "punch_in_break": "Bắt đầu nghỉ",
-      "punch_in_work": "Bắt đầu ca làm việc",
-      "punch_success": "{{type}} thành công.",
-      "punch_error": "Không thể chấm công. Vui lòng thử lại.",
-      "punch_out_break": "Đã quay lại làm việc.",
-      "punch_out_work": "Đã kết thúc ca làm việc.",
-      "punch_out_error": "Không thể chấm công ra.",
-      "adjustment_success": "Yêu cầu xác nhận công đã được gửi tới quản trị viên.",
-      "adjustment_error": "Lỗi khi gửi yêu cầu.",
-      "no_data": "Chưa có dữ liệu chấm công."
-    },
-    "modal": {
-      "edit_title": "Chỉnh sửa công",
-      "new_title": "Xác nhận công mới",
-      "subtitle": "Điều chỉnh dữ liệu",
-      "reason_label": "Lý do điều chỉnh",
-      "reason_placeholder": "VD: Quên quẹt thẻ, đi công tác..."
     }
   },
   "settings": {

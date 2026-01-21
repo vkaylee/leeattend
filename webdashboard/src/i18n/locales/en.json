@@ -79,7 +79,6 @@
     },
     "employees": "Employees",
     "departments": "Departments",
-    "time_tracking": "Time Tracking",
     "logs": "Logs",
     "leave_requests": {
       "policy": {
@@ -1445,48 +1444,6 @@
       "confirm_clear": "Are you sure you want to clear ALL [{{label}}] data for this Workspace? This cannot be undone.",
       "clear_success": "Cleared [{{label}}] data successfully.",
       "clear_error": "Error clearing data:"
-    }
-  },
-  "time_tracking": {
-    "title": "Attendance",
-    "subtitle": "Record work and break hours for personnel.",
-    "select_employee_label": "Select employee to punch",
-    "search_placeholder": "Search by name or ID...",
-    "type_search_placeholder": "Type name or ID...",
-    "forgot_punch": "Forgot to punch? Submit request →",
-    "recent_history": "Recent History (7 days)",
-    "empty_state_desc": "Select personnel to start attendance",
-    "status": {
-      "on_break": "On Break",
-      "working": "Working",
-      "off_duty": "Off Duty",
-      "break_start_at": "Break started at",
-      "shift_start_at": "Shift started at"
-    },
-    "actions": {
-      "return_to_work": "Return to Work",
-      "start_break": "Start Break",
-      "punch_out": "Punch Out",
-      "start_work": "Start Work"
-    },
-    "messages": {
-      "punch_in_break": "Starting break",
-      "punch_in_work": "Starting work shift",
-      "punch_success": "{{type}} successful.",
-      "punch_error": "Could not punch. Please try again.",
-      "punch_out_break": "Returned to work.",
-      "punch_out_work": "Ended work shift.",
-      "punch_out_error": "Could not punch out.",
-      "adjustment_success": "Adjustment request sent to administrator.",
-      "adjustment_error": "Error sending request.",
-      "no_data": "No attendance data yet."
-    },
-    "modal": {
-      "edit_title": "Edit Attendance",
-      "new_title": "New Adjustment Request",
-      "subtitle": "Data Adjustment",
-      "reason_label": "Adjustment Reason",
-      "reason_placeholder": "Ex: Forgot punch, Business trip..."
     }
   },
   "settings": {

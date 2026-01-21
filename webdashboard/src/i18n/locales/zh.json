@@ -79,7 +79,6 @@
     },
     "employees": "员工",
     "departments": "部门",
-    "time_tracking": "考勤管理",
     "logs": "日志",
     "leave_requests": {
       "policy": {
@@ -1445,48 +1444,6 @@
       "confirm_clear": "您确定要清除此工作空间的所有 [{{label}}] 数据吗？此操作无法撤销。",
       "clear_success": "[{{label}}] 数据清除成功。",
       "clear_error": "清除数据时出错："
-    }
-  },
-  "time_tracking": {
-    "title": "考勤",
-    "subtitle": "记录人员的工作和休息时间。",
-    "select_employee_label": "选择员工打卡",
-    "search_placeholder": "按名称或 ID 搜索...",
-    "type_search_placeholder": "输入名称或 ID...",
-    "forgot_punch": "忘记打卡？提交请求 →",
-    "recent_history": "最近历史 (7 天)",
-    "empty_state_desc": "选择人员以开始考勤",
-    "status": {
-      "on_break": "休息中",
-      "working": "工作中",
-      "off_duty": "下班",
-      "break_start_at": "休息开始于",
-      "shift_start_at": "班次开始于"
-    },
-    "actions": {
-      "return_to_work": "返回工作",
-      "start_break": "开始休息",
-      "punch_out": "下班打卡",
-      "start_work": "开始工作"
-    },
-    "messages": {
-      "punch_in_break": "正在开始休息",
-      "punch_in_work": "正在开始工作班次",
-      "punch_success": "{{type}} 成功。",
-      "punch_error": "无法打卡。请再试一次。",
-      "punch_out_break": "已返回工作。",
-      "punch_out_work": "已结束工作班次。",
-      "punch_out_error": "无法下班打卡。",
-      "adjustment_success": "调整请求已发送给管理员。",
-      "adjustment_error": "发送请求时出错。",
-      "no_data": "暂无考勤数据。"
-    },
-    "modal": {
-      "edit_title": "编辑考勤",
-      "new_title": "新调整请求",
-      "subtitle": "数据调整",
-      "reason_label": "调整原因",
-      "reason_placeholder": "例：忘记打卡、出差..."
     }
   },
   "settings": {

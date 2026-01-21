@@ -10,7 +10,6 @@ import RegisterPage from "./pages/RegisterPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import EmployeesPage from "./pages/EmployeesPage"; 
 import DepartmentsPage from "./pages/DepartmentsPage";
-import TimeTrackingPage from "./pages/TimeTrackingPage";
 import LeaveRequestsPage from "./pages/LeaveRequestsPage";
 import LeaveBalancesPage from "./pages/LeaveBalancesPage";
 import ReportsPage from "./pages/ReportsPage";
@@ -68,7 +67,8 @@ function App() {
                   <Route path="/members" element={<MembersPage />} />
                   <Route path="/agents" element={<AgentsPage />} />
                   <Route path="/devices" element={<DevicesPage />} />
-                  <Route path="/time-tracking" element={<TimeTrackingPage />} />
+                  <Route path="/workspace/reports" element={<ReportsPage />} />
+                  <Route path="/workspace/payroll" element={<PayrollPage />} />
                   <Route path="/attendance-logs" element={<AttendanceLogsPage />} />
                   <Route path="/leave-requests" element={<LeaveRequestsPage />} />
                   <Route path="/leave-balances" element={<LeaveBalancesPage />} />

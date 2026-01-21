@@ -53,9 +53,8 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
       { to: "/members", icon: Users, label: t("members.title") }
     ]},
     { section: "time", label: t("common.sections.time_leave"), items: [
-      { to: "/time-tracking", icon: Clock, label: t("common.time_tracking") },
-      { to: "/attendance-logs", icon: ListOrdered, label: t("common.logs") },
-      { to: "/leave-requests", icon: CalendarDays, label: t("leave_requests.title") },
+      { to: "/workspace/leave/balances", icon: Scale, label: t("common.leave_balances") },
+      { to: "/workspace/reports", icon: BarChart3, label: t("common.reports") },
       { to: "/leave-balances", icon: Banknote, label: t("common.leave_balances") },
       { to: "/attendance-adjustments", icon: History, label: t("common.attendance_confirm") },
       { to: "/reports", icon: FileBarChart, label: t("common.reports") }
