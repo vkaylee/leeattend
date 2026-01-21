@@ -122,6 +122,52 @@ async fn my_feature_test() {
 - Use `ZKService_mock.py` for external hardware simulation.
 
 
+### ⏱️ Time-Tracking Component Architecture
+
+#### Component Structure
+Time-tracking functionality is organized into modular, reusable components under `src/components/time-tracking/`:
+
+1. **PunchCard.tsx**: Primary UI for active time session
+   - Props: `activeEntry`, `isOnBreak`, `userName`, `onPunchIn`, `onPunchOut`, `onRequestAdjustment`, `isPunching`
+   - Displays: Status indicator, punch timestamps, action buttons (Punch In/Out, Start/End Break)
+   - No internal state: Receives state and callbacks from parent hook
+
+2. **TimeEntryRow.tsx**: Reusable table row for time entry display
+   - Props: `entry` (TimeEntry), `onAdjust?` (callback), `showAdjustButton?` (boolean)
+   - Displays: Entry date, type badge (Work/Break), punch-in/out times with status indicator
+   - Supports optional adjustment button with hover reveal pattern
+
+3. **AdjustmentRequestModal.tsx**: Form for submitting attendance corrections
+   - Props: `isOpen`, `onClose`, `onSubmit`, `timezone`
+   - Features: Date picker, time inputs, reason textarea, UTC conversion helper
+   - Validates punch-in before punch-out chronologically
+
+#### Hook Integration
+- **useMyClock()**: Central state management for clock operations
+   - Fetches 7-day time entries with 30s auto-refresh (prevents stale status)
+   - Exposes: `entries[]`, `activeEntry`, `isOnBreak`, `punchIn()`, `punchOut()` methods
+   - Auto-invalidates React Query on punch mutations for UI sync
+
+#### Data Flow
+```
+MyClockPage (Page)
+  ↓
+useMyClock() hook → React Query (30s refresh)
+  ↓
+PunchCard + TimeEntryRow (UI Components)
+  ↓
+AdjustmentRequestModal (Form)
+  ↓
+submitAttendanceAdjustment() API
+```
+
+#### Reusability Patterns
+- **PunchCard**: Can be embedded in admin dashboards to display employee clock status
+- **TimeEntryRow**: Used in reports and activity feeds for consistent time entry rendering
+- **AdjustmentRequestModal**: Can be triggered from admin interfaces or automated alert systems
+
+---
+
 ### 🔢 Hệ thống Đơn vị công (Integer Work Unit - WU)
 
 Để đảm bảo tính chính xác tuyệt đối (không sai số floating-point) và bảo toàn dữ liệu lịch sử, hệ thống tuân thủ các nguyên tắc sau:

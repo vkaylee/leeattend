@@ -83,6 +83,14 @@ Hệ thống cung cấp một phân hệ dành riêng cho nhân viên để tự
 - **Live Attendance History**: Nhân viên có thể theo dõi lịch sử quẹt thẻ và các phiên làm việc đã được ghép cặp để phát hiện sớm các sai sót.
 - **Real-time Leave Balances**: Hệ thống hiển thị số dư phép được tính toán theo thời gian thực (bao gồm cả phép cộng dồn theo thâm niên), giúp nhân viên chủ động lập kế hoạch nghỉ ngơi.
 
+#### 13.4. Self-Service Clock Interface (Phase 1: Time-Tracking Refactor)
+- **MyClockPage**: Centralized ESS punch interface with component-based architecture:
+    - **Punch Card Display**: Shows active session status (Working/On Break/Off Duty) with large, prominent punch buttons and real-time session start time.
+    - **Quick History Timeline**: Displays last 7 days of time entries in tabular format with date, entry type (Work/Break), punch-in time, and punch-out status.
+    - **Adjustment Request Workflow**: Single-click access to request attendance corrections with reason and new punch times.
+- **Real-time Updates**: 30-second auto-refresh via React Query to maintain synchronized clock status across sessions.
+- **Component Reusability**: Extracted time-tracking UI components (`PunchCard`, `TimeEntryRow`, `AdjustmentRequestModal`) for use in future admin dashboards and reports.
+
 ### 14. Dynamic Payroll System V2
 LeeAttend implements a robust, professional-grade payroll engine designed for complex enterprise requirements:
 

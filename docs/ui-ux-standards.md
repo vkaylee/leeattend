@@ -178,3 +178,61 @@ Nguyên tắc hiển thị nguồn gốc dữ liệu mà không làm rối ngư�
 - **Detail Level**: Sử dụng cơ chế **Expandable Rows**. Khi nhấn vào icon Debug, một vùng nội dung mới sẽ mở ra bên dưới dòng hiện tại.
 - **Visual Style**: Sử dụng Terminal-style box (nền `slate-900`, chữ `emerald-400`, font `mono`) để hiển thị JSON metadata thô.
 - **Activation**: Chỉ hiển thị cột Debug và các thành phần liên quan khi "Global Debug Mode" được kích hoạt từ Developer Toolbar.
+
+---
+
+## 11. Time-Tracking UI Components (Phase 1)
+
+Thiết kế dành cho giao diện chấm công (Clock) và quản lý thời gian làm việc.
+
+### 11.1. PunchCard Component
+**Purpose**: Primary interface for active time session display and punch actions.
+
+**Visual Hierarchy**:
+- Large status indicator (24x24 icon in rounded container with contextual color)
+- Employee name (bold, 2xl font)
+- Status badge (Working/On Break/Off Duty) with animated dot
+- Current session timestamp in monospace font (when active)
+- Action buttons with distinct colors:
+  - `bg-primary-600` for "Start Work"
+  - `bg-amber-500` for "Start Break"
+  - `bg-emerald-600` for "Return to Work"
+  - `bg-rose-600` for "Punch Out"
+- Subtle "Forgot to punch?" link at bottom
+
+**Container**: Rounded white card (`rounded-[40px]`) with shadow and decorative background icon.
+
+### 11.2. TimeEntryRow Component
+**Purpose**: Standardized table row for displaying individual time entry records.
+
+**Columns**:
+1. **Date + Type Badge**: Entry date with colored badge (Amber for Break, Primary for Work)
+2. **Punch In Time**: Monospace formatted time
+3. **Punch Out Time**: Either formatted time or animated status badge if session ongoing
+4. **Adjust Button** (optional): Appears on hover, opens adjustment modal
+
+**Row Styling**: Light hover effect (`hover:bg-slate-50/50`), smooth transitions, grouped "group" container for hover-reveal buttons.
+
+### 11.3. AdjustmentRequestModal Component
+**Purpose**: Form for submitting attendance corrections with validation.
+
+**Form Fields**:
+- Date picker (single date selection)
+- Punch In time input (HH:MM format)
+- Punch Out time input (HH:MM format)
+- Reason textarea (multi-line, required)
+- Submit/Cancel buttons
+
+**Validation**:
+- Punch In must be before Punch Out
+- Both times required
+- Reason required (min 10 chars recommended)
+- UTC conversion applied based on workspace timezone
+
+**Modal Styling**: Standard modal with backdrop blur, high z-index, fade-in animation.
+
+### 11.4. Real-time Status Updates
+**Behavior**: 30-second auto-refresh via React Query to maintain synchronized clock status.
+- Smooth UI updates without disrupting user interaction
+- Active entry indicator updates on server changes
+- Prevents manual refresh fatigue

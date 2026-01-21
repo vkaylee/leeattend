@@ -4,6 +4,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 import {
   fetchMyProfile,
   updateMyProfile,
@@ -15,6 +16,10 @@ import {
   fetchMyAttendance,
   fetchEssLeaveBalances,
   fetchEssLeaveRequests,
+  fetchMyTimeEntries,
+  punchInMySelf,
+  punchOutMySelf,
+  getCurrentWorkspaceId,
   UpdateProfileRequest,
   CreateEmergencyContactRequest,
   AttendanceParams,
@@ -29,6 +34,7 @@ export const essKeys = {
   payslips: () => [...essKeys.all, "payslips"] as const,
   attendance: (params?: AttendanceParams) =>
     [...essKeys.all, "attendance", params] as const,
+  clockEntries: () => [...essKeys.all, "clock-entries"] as const,
   leaveBalances: () => [...essKeys.all, "leave-balances"] as const,
   leaveRequests: () => [...essKeys.all, "leave-requests"] as const,
 };
@@ -179,5 +185,60 @@ export function useMyLeave() {
     error: balancesQuery.error || requestsQuery.error,
     refetchBalances: balancesQuery.refetch,
     refetchRequests: requestsQuery.refetch,
+  };
+}
+
+// --- Clock Hook ---
+
+export function useMyClock() {
+  const queryClient = useQueryClient();
+  const wsId = getCurrentWorkspaceId();
+
+  // Fetch current user's time entries (today + 7 days)
+  const { startDate, endDate } = useMemo(() => {
+    const now = new Date();
+    const endDate = now.toISOString();
+    const startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    return { startDate, endDate };
+  }, []);
+
+  const entriesQuery = useQuery({
+    queryKey: essKeys.clockEntries(),
+    queryFn: () => fetchMyTimeEntries({ start_date: startDate, end_date: endDate }),
+    refetchInterval: 30000, // Refresh every 30s for real-time status
+  });
+
+  const activeEntry = entriesQuery.data?.find((e) => !e.punch_out_time);
+  const isOnBreak = activeEntry?.entry_type === "break";
+
+  const punchInMutation = useMutation({
+    mutationFn: (data: { entry_type: "work" | "break"; note?: string }) =>
+      punchInMySelf(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.clockEntries() });
+      queryClient.invalidateQueries({ queryKey: essKeys.attendance() });
+    },
+  });
+
+  const punchOutMutation = useMutation({
+    mutationFn: (data?: { note?: string }) => punchOutMySelf(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: essKeys.clockEntries() });
+      queryClient.invalidateQueries({ queryKey: essKeys.attendance() });
+    },
+  });
+
+  return {
+    entries: entriesQuery.data || [],
+    activeEntry,
+    isOnBreak,
+    isLoading: entriesQuery.isLoading,
+    isError: entriesQuery.isError,
+    error: entriesQuery.error,
+    refetch: entriesQuery.refetch,
+
+    punchIn: punchInMutation.mutateAsync,
+    punchOut: punchOutMutation.mutateAsync,
+    isPunching: punchInMutation.isPending || punchOutMutation.isPending,
   };
 }

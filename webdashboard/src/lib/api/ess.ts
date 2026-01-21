@@ -117,6 +117,51 @@ export async function fetchMyAttendance(
   return response.json();
 }
 
+// --- Time Clock ---
+
+export async function fetchMyTimeEntries(
+  params?: { start_date?: string; end_date?: string }
+): Promise<TimeEntry[]> {
+  const searchParams = new URLSearchParams();
+  if (params?.start_date) searchParams.set("start_date", params.start_date);
+  if (params?.end_date) searchParams.set("end_date", params.end_date);
+
+  const query = searchParams.toString();
+  const url = `${API_BASE_URL}/ess/time-entries${query ? `?${query}` : ""}`;
+
+  const response = await apiFetch(url);
+  if (!response.ok) throw new Error("Failed to fetch time entries");
+  return response.json();
+}
+
+export async function punchInMySelf(
+  data: { entry_type: "work" | "break"; note?: string }
+): Promise<TimeEntry> {
+  const response = await apiFetch(`${API_BASE_URL}/ess/punch-in`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || "Failed to punch in");
+  }
+  return response.json();
+}
+
+export async function punchOutMySelf(
+  data?: { note?: string }
+): Promise<TimeEntry> {
+  const response = await apiFetch(`${API_BASE_URL}/ess/punch-out`, {
+    method: "POST",
+    body: JSON.stringify(data || {}),
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || "Failed to punch out");
+  }
+  return response.json();
+}
+
 // --- Leave ---
 
 export async function fetchEssLeaveBalances(): Promise<EmployeeLeaveBalance[]> {

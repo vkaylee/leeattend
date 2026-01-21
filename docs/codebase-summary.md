@@ -104,5 +104,10 @@ leeattend/
         - **SettingsLayout**: Centralized container for all Settings Hub sub-modules.
     - **ESS Features**:
         - **MyAttendancePage**: Specialized dashboard for employee self-monitoring.
+        - **MyClockPage**: Refactored ESS self-clock interface with component-based architecture (Phase 1: Time-Tracking Refactor).
+            - **PunchCard Component**: Displays active work session, punch buttons (Start Work, Start Break, Punch Out), and adjustment request link.
+            - **TimeEntryRow Component**: Reusable table row for displaying individual time entries with formatted dates/times and optional adjustment button.
+            - **AdjustmentRequestModal Component**: Modal for submitting attendance correction requests with date, time, and reason fields.
+        - **Time Entries API** (`fetchMyTimeEntries`): Fetches employee's time entries within a date range with 30s auto-refresh for real-time status updates.
 
 ...
