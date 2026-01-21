@@ -1,12 +1,7 @@
 import React from "react";
 import { PayrollSegment } from "@/lib/api/types";
 import { differenceInDays, parseISO, startOfDay, endOfDay } from "date-fns";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface SegmentVisualizerProps {
   segments: PayrollSegment[];

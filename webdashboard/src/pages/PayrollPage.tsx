@@ -2,19 +2,20 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
-  Banknote, 
   Calculator, 
-  ChevronRight, 
-  History, 
+  ArrowLeft, 
+  ArrowRight, 
   Search, 
-  UserCircle,
-  X,
-  Check,
-  CalendarDays,
-  ArrowRight,
-  ArrowLeft,
-  Filter
+  User as UserIcon,
+  ChevronRight,
+  Info,
+  Banknote,
+  Calendar,
+  Filter,
+  MoreVertical
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { 
   fetchEmployees, 
   fetchEmployeePayslips, 
@@ -25,7 +26,6 @@ import {
   Employee,
 } from "../lib/api";
 import { useToast } from "../components/Toast";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import Modal from "@/components/ui/Modal";
 import EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
@@ -35,8 +35,6 @@ import BatchCalculationModal from "@/components/payroll/BatchCalculationModal";
 import PayrollSummaryTable from "@/components/payroll/PayrollSummaryTable";
 import PayrollDetailDrawer from "@/components/payroll/PayrollDetailDrawer";
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,10 +43,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 export default function PayrollPage() {
   const { t } = useTranslation();
@@ -180,7 +174,10 @@ export default function PayrollPage() {
            <div className="h-10 w-px bg-slate-100" />
 
            <button 
-            onClick={() => setIsBatchCalcModalOpen(true)}
+            data-testid="calculate-batch-btn"
+            onClick={() => {
+              setIsBatchCalcModalOpen(true);
+            }}
             disabled={selectedIds.size === 0}
             className={cn(
               "flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95",
@@ -194,22 +191,6 @@ export default function PayrollPage() {
            </button>
         </div>
       </header>
-
-      {/* Main Grid Section */}
-      <div className="flex-1 min-h-0">
-        <PayrollSummaryTable 
-          employees={employees}
-          payslips={workspacePayslips}
-          isLoading={empsLoading || workspacePayslipsLoading}
-          selectedIds={selectedIds}
-          onToggleSelect={toggleSelect}
-          onToggleSelectAll={toggleSelectAll}
-          onViewDetail={handleViewDetail}
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-        />
-      </div>
-      {/* Drawers and Modals... */}
 
       {/* Main Grid Section */}
       <div className="flex-1 min-h-0">

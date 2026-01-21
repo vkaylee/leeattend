@@ -10,12 +10,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import { Employee, Payslip } from "@/lib/api/types";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface PayrollSummaryTableProps {
   employees: Employee[];
@@ -91,7 +86,11 @@ export default function PayrollSummaryTable({
               return (
                 <tr key={emp.id} className={cn("group transition-all hover:bg-slate-50/50 cursor-pointer", isSelected ? "bg-primary-50/30" : "")} onClick={() => onViewDetail(emp)}>
                   <td className="px-10 py-6" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => onToggleSelect(emp.id)} className={cn("w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all", isSelected ? "bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-100" : "border-slate-200 bg-white group-hover:border-primary-300")}>
+                    <button 
+                      data-testid={`select-employee-${emp.id}`}
+                      onClick={() => onToggleSelect(emp.id)} 
+                      className={cn("w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all", isSelected ? "bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-100" : "border-slate-200 bg-white group-hover:border-primary-300")}
+                    >
                       {isSelected && <Check size={14} strokeWidth={4} />}
                     </button>
                   </td>

@@ -9,16 +9,11 @@ import {
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { calculateBatchPayslips } from "@/lib/api/payroll";
+import { calculateBatchPayslips } from "@/lib/api";
 import { BatchCalculateResult } from "@/lib/api/types";
 import { useToast } from "@/components/Toast";
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface BatchCalculationModalProps {
   isOpen: boolean;
@@ -67,7 +62,15 @@ export default function BatchCalculationModal({
   const errorCount = (results?.length || 0) - successCount;
 
   return (
-    <Modal isOpen={isOpen} onClose={batchMutation.isPending ? () => {} : resetAndClose} title={t("payroll.modal.title")} subtitle={t("payroll.modal.subtitle")} icon={<Calculator size={24} />} maxWidth="lg">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={batchMutation.isPending ? () => {} : resetAndClose} 
+      title={t("payroll.modal.title")} 
+      subtitle={t("payroll.modal.subtitle")} 
+      icon={<Calculator size={24} />} 
+      maxWidth="lg"
+      testId="batch-calc-modal"
+    >
       <div className="space-y-8 pt-4 animate-in fade-in duration-500">
         {!results && !batchMutation.isPending && (
           <div className="space-y-8 animate-in fade-in duration-500">
@@ -92,7 +95,13 @@ export default function BatchCalculationModal({
 
             <div className="pt-4 grid grid-cols-2 gap-5">
               <button type="button" onClick={onClose} className="px-8 py-4 bg-white border border-slate-200 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">{t("common.cancel")}</button>
-              <button onClick={handleCalculate} className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200 active:scale-95">{t("payroll.modal.submit")}</button>
+              <button 
+                data-testid="batch-calc-submit-btn"
+                onClick={handleCalculate} 
+                className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200 active:scale-95"
+              >
+                {t("payroll.modal.submit")}
+              </button>
             </div>
           </div>
         )}

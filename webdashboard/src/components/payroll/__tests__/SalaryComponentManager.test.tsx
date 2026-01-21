@@ -2,29 +2,29 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import SalaryComponentManager from "../SalaryComponentManager";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ToastProvider } from "@/components/Toast";
 import * as api from "@/lib/api/payroll";
+import React from "react";
 
+// Mock API
 vi.mock("@/lib/api/payroll", () => ({
   fetchSalaryComponents: vi.fn(),
   createSalaryComponent: vi.fn(),
 }));
 
-vi.mock("@/components/Toast", () => ({
-  useToast: () => ({
-    success: vi.fn(),
-    error: vi.fn(),
+// Standard override for i18n
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+    i18n: {
+      changeLanguage: () => Promise.resolve(),
+      language: 'en',
+    },
   }),
 }));
 
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: false } },
-});
-
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-);
-
 describe("SalaryComponentManager", () => {
+  let queryClient: QueryClient;
   const mockWsId = "ws-123";
   const mockComponents = [
     { id: "1", name: "Lương cơ bản", code: "BASE", is_base_for_ot: true, is_taxable: true },
@@ -32,31 +32,43 @@ describe("SalaryComponentManager", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
+    });
     (api.fetchSalaryComponents as any).mockResolvedValue(mockComponents);
   });
 
-  it("renders list of components", async () => {
-    render(<SalaryComponentManager wsId={mockWsId} />, { wrapper });
+  const renderWithProviders = (ui: React.ReactElement) => {
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          {ui}
+        </ToastProvider>
+      </QueryClientProvider>
+    );
+  };
 
-    await waitFor(() => {
-      expect(screen.getByText("Lương cơ bản")).toBeInTheDocument();
-      expect(screen.getByText("BASE")).toBeInTheDocument();
-    });
+  it("renders list of components", async () => {
+    renderWithProviders(<SalaryComponentManager wsId={mockWsId} />);
+
+    expect(await screen.findByText(/Lương cơ bản/i)).toBeInTheDocument();
+    expect(screen.getByText(/BASE/i)).toBeInTheDocument();
   });
 
   it("opens modal and submits new component", async () => {
     (api.createSalaryComponent as any).mockResolvedValue({ id: "2" });
-    render(<SalaryComponentManager wsId={mockWsId} />, { wrapper });
+    renderWithProviders(<SalaryComponentManager wsId={mockWsId} />);
 
-    const addBtn = screen.getByText("Thêm");
+    const addBtn = screen.getByText(/common.add/i);
     fireEvent.click(addBtn);
 
-    expect(screen.getByPlaceholderText(/Phụ cấp ăn trưa/i)).toBeInTheDocument();
+    const nameInput = await screen.findByLabelText(/common.name/i);
+    fireEvent.change(nameInput, { target: { value: "Gas" } });
+    
+    const codeInput = screen.getByLabelText(/payroll.components.code_label/i);
+    fireEvent.change(codeInput, { target: { value: "GAS" } });
 
-    fireEvent.change(screen.getByPlaceholderText(/Phụ cấp ăn trưa/i), { target: { value: "Gas" } });
-    fireEvent.change(screen.getByPlaceholderText("MEAL"), { target: { value: "GAS" } });
-
-    const saveBtn = screen.getByText("Lưu");
+    const saveBtn = await screen.findByRole("button", { name: /common.save/i });
     fireEvent.click(saveBtn);
 
     await waitFor(() => {

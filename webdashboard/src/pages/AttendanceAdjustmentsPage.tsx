@@ -1,3 +1,29 @@
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  FileDown, 
+  Upload, 
+  User as UserIcon,
+  Search,
+  Check,
+  X,
+  AlertCircle
+} from "lucide-react";
+import { 
+  fetchWorkspaceAttendanceAdjustments, 
+  fetchEmployees, 
+  approveAttendanceAdjustment, 
+  getCurrentWorkspaceId 
+} from "../lib/api";
+import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useToast } from "@/components/Toast";
+import { cn } from "@/lib/utils";
+import AttendanceImportDialog from "@/components/AttendanceImportDialog";
+
 type TabType = "pending" | "approved" | "rejected";
 
 export default function AttendanceAdjustmentsPage() {
@@ -9,12 +35,24 @@ export default function AttendanceAdjustmentsPage() {
   const [activeTab, setActiveTab] = useState<TabType>("pending");
   const toast = useToast();
 
-  const { data: requests = [], isLoading } = useQuery({ queryKey: ["attendance-adjustments", wsId, activeTab], queryFn: () => fetchWorkspaceAttendanceAdjustments(wsId!, activeTab), enabled: !!wsId });
-  const { data: employees = [] } = useQuery({ queryKey: ["employees", wsId], queryFn: () => fetchEmployees(wsId!), enabled: !!wsId });
+  const { data: requests = [], isLoading } = useQuery({ 
+    queryKey: ["attendance-adjustments", wsId, activeTab], 
+    queryFn: () => fetchWorkspaceAttendanceAdjustments(wsId!, activeTab), 
+    enabled: !!wsId 
+  });
+  const { data: employees = [] } = useQuery({ 
+    queryKey: ["employees", wsId], 
+    queryFn: () => fetchEmployees(wsId!), 
+    enabled: !!wsId 
+  });
 
   const approveMutation = useMutation({
     mutationFn: (data: { id: string; status: string }) => approveAttendanceAdjustment(wsId!, data.id, { status: data.status }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] }); queryClient.invalidateQueries({ queryKey: ["time-history"] }); toast.success(t("common.success")); },
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] }); 
+      queryClient.invalidateQueries({ queryKey: ["time-history"] }); 
+      toast.success(t("common.success")); 
+    },
   });
 
   const downloadTemplate = () => {
@@ -53,8 +91,8 @@ export default function AttendanceAdjustmentsPage() {
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{t("common.employee")}</th>
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{t("attendance_confirm.table.request_time")}</th>
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{t("common.reason")}</th>
+                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-center">{t("common.time")}</th>
+                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{t("common.notes")}</th>
                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-center">{t("common.status")}</th>
                 <th className="px-10 py-6 border-b border-slate-100"></th>
               </tr>
@@ -63,45 +101,46 @@ export default function AttendanceAdjustmentsPage() {
               {isLoading ? (
                 <tr><td colSpan={5} className="px-10 py-20 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</td></tr>
               ) : requests.length === 0 ? (
-                <tr><td colSpan={5} className="px-10 py-32 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_confirm.messages.no_requests")}</td></tr>
-              ) : requests.map((req: any) => (
+                <tr><td colSpan={5} className="px-10 py-32 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 flex flex-col items-center gap-4">
+                  <Clock size={40} className="text-slate-200" />
+                  {t("attendance_confirm.messages.no_data")}
+                </td></tr>
+              ) : requests.map((req) => (
                 <tr key={req.id} className="hover:bg-slate-50/50 transition-all group">
                   <td className="px-10 py-6">
-                    <div className="flex items-center gap-5">
-                      <div className="w-14 h-14 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 font-black text-xl shadow-inner border border-primary-100/50 uppercase group-hover:scale-110 transition-transform">{getEmployeeName(req.employee_id).charAt(0)}</div>
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-primary-50 flex items-center justify-center text-primary-600 font-black shadow-inner border border-primary-100/50 overflow-hidden">
+                        <UserIcon size={20} />
+                      </div>
                       <div>
-                        <div className="font-black text-slate-900 text-sm tracking-tight uppercase leading-none mb-1.5">{getEmployeeName(req.employee_id)}</div>
-                        <div className="text-[10px] text-slate-400 font-mono font-bold uppercase tracking-widest opacity-70">{getEmployeeID(req.employee_id)}</div>
+                        <div className="font-black text-slate-900 text-sm tracking-tight uppercase leading-none mb-1">{getEmployeeName(req.employee_id)}</div>
+                        <div className="text-[10px] text-slate-400 font-mono font-bold uppercase opacity-70">ID: {getEmployeeID(req.employee_id)}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-8 py-6">
-                    <div className="text-xs font-black text-slate-700 uppercase tracking-tight mb-1.5">{formatDate(req.requested_punch_in_time)}</div>
-                    <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-slate-50 rounded-lg border border-slate-100 shadow-inner">
-                      <Clock size={12} className="text-slate-300" />
-                      <span className="text-[10px] font-black font-mono text-slate-500 uppercase tracking-tighter">{formatTime(req.requested_punch_in_time)} — {req.requested_punch_out_time ? formatTime(req.requested_punch_out_time) : "--:--"}</span>
+                  <td className="px-8 py-6 text-center">
+                    <div className="inline-flex flex-col items-center bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 shadow-inner">
+                      <div className="text-xs font-black text-slate-700 uppercase tracking-tighter">{formatDate(req.requested_punch_in_time)}</div>
+                      <div className="text-[10px] font-mono font-bold text-primary-600 mt-1">{formatTime(req.requested_punch_in_time)} — {req.requested_punch_out_time ? formatTime(req.requested_punch_out_time) : "???"}</div>
                     </div>
-                    {req.is_break_overtime && <div className="mt-2"><span className="px-2 py-0.5 bg-primary-600 text-white rounded-full text-[8px] font-black uppercase tracking-widest shadow-lg shadow-primary-500/20">{t("attendance_confirm.ot_label")}</span></div>}
                   </td>
-                  <td className="px-8 py-6 max-w-sm">
-                    <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 shadow-inner group-hover:bg-white transition-colors">
-                      <p className="text-[10px] text-slate-500 font-bold leading-relaxed line-clamp-2 italic opacity-80 flex gap-2"><MessageSquare size={12} className="text-slate-300 mt-0.5 shrink-0" /> "{req.reason || t("common.no_description")}"</p>
-                    </div>
+                  <td className="px-8 py-6">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-tight line-clamp-2 italic opacity-70 leading-relaxed">{req.reason || t("common.no_notes")}</p>
                   </td>
                   <td className="px-8 py-6 text-center">
-                    <span className={cn("px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm inline-block", 
-                      req.status === 'pending' ? "bg-amber-50 text-amber-600 border-amber-100" : 
-                      req.status === 'approved' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : 
+                    <span className={cn("px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm", 
+                      req.status === "pending" ? "bg-amber-50 text-amber-600 border-amber-100" : 
+                      req.status === "approved" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : 
                       "bg-rose-50 text-rose-600 border-rose-100"
                     )}>
-                      {req.status === 'pending' ? t("common.status_pending").toUpperCase() : req.status === 'approved' ? t("common.status_approved").toUpperCase() : t("common.status_rejected").toUpperCase()}
+                      {t(`common.status_${req.status}`).toUpperCase()}
                     </span>
                   </td>
                   <td className="px-10 py-6 text-right">
                     {req.status === "pending" && (
-                      <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-                        <button onClick={() => approveMutation.mutate({ id: req.id, status: "rejected" })} className="p-3 bg-white text-rose-400 hover:text-rose-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90" title={t("common.reject")}><XCircle size={20} /></button>
-                        <button onClick={() => approveMutation.mutate({ id: req.id, status: "approved" })} className="p-3 bg-white text-emerald-400 hover:text-emerald-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90" title={t("common.approve")}><CheckCircle size={20} /></button>
+                      <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                        <button onClick={() => approveMutation.mutate({ id: req.id, status: "approved" })} className="p-3 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-100 transition-all active:scale-90" title={t("common.approve")}><Check size={18} /></button>
+                        <button onClick={() => approveMutation.mutate({ id: req.id, status: "rejected" })} className="p-3 bg-white text-rose-600 hover:bg-rose-50 rounded-xl shadow-md border border-rose-100 transition-all active:scale-90" title={t("common.reject")}><X size={18} /></button>
                       </div>
                     )}
                   </td>
@@ -112,7 +151,7 @@ export default function AttendanceAdjustmentsPage() {
         </div>
       </div>
 
-      <AttendanceImportDialog isOpen={isImportDialogOpen} onClose={() => setIsImportDialogOpen(false)} title={t("attendance_confirm.modal.import_title")} endpoint="/attendance/upload" targetType="adjustment" />
+      <AttendanceImportDialog isOpen={isImportDialogOpen} onClose={() => setIsImportDialogOpen(false)} />
     </div>
   );
 }

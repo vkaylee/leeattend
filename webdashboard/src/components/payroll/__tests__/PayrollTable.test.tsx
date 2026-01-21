@@ -3,83 +3,77 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import PayrollTable from "../PayrollTable";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ToastProvider } from "../../Toast";
+import { Payslip } from "@/lib/api/types";
+import React from "react";
 
-const mockPayslips: any[] = [
-  {
-    id: "slip-1",
-    period_start: "2026-01-01",
-    period_end: "2026-01-31",
-    base_pay_amount: "10000000",
-    overtime_pay_amount: "500000",
-    deductions_amount: "0",
-    net_pay_amount: "10500000",
-    status: "finalized",
-    segments: [
-      {
-        start_date: "2026-01-01",
-        end_date: "2026-01-15",
-        reason: "Standard",
-        applied_base_salary: 10000000,
-        applied_std_days: 26,
-        actual_work_days: 13,
-        amount: 5000000
-      },
-      {
-        start_date: "2026-01-16",
-        end_date: "2026-01-31",
-        reason: "Salary Change",
-        applied_base_salary: 12000000,
-        applied_std_days: 26,
-        actual_work_days: 13,
-        amount: 6000000
-      }
-    ]
-  }
-];
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 0 } },
+});
 
 describe("PayrollTable", () => {
-  let queryClient: QueryClient;
+  const mockPayslips: Payslip[] = [
+    {
+      id: "slip-1",
+      employee_id: "emp-1",
+      period_start: "2026-01-01",
+      period_end: "2026-01-31",
+      base_pay_amount: "10000000",
+      overtime_pay_amount: "500000",
+      deductions_amount: "0",
+      net_pay_amount: "10500000",
+      status: "finalized",
+      standard_units: 200,
+      overtime_units: 10,
+      segments: [
+        {
+          start_date: "2026-01-01",
+          end_date: "2026-01-31",
+          reason: "Salary Change",
+          applied_base_salary: 12000000,
+          applied_std_days: 26,
+          applied_hours_per_day: 8,
+          actual_work_days: 22,
+          paid_work_days: 22,
+          amount: 12000000
+        }
+      ]
+    }
+  ];
 
-  beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: {
-          retry: false,
-        },
-      },
-    });
-  });
-
-  it("renders payslip summary rows", () => {
-    render(
+  const renderWithProviders = (ui: React.ReactElement) => {
+    return render(
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <PayrollTable 
-            payslips={mockPayslips} 
-            isLoading={false} 
-            adjustments={[]}
-            onResolveAdjustments={() => {}}
-          />
-        </BrowserRouter>
+        <ToastProvider>
+          {ui}
+        </ToastProvider>
       </QueryClientProvider>
+    );
+  };
+
+  it("renders payslip summary rows", async () => {
+    renderWithProviders(
+      <PayrollTable 
+        payslips={mockPayslips} 
+        isLoading={false} 
+        adjustments={[]} 
+        onResolveAdjustments={vi.fn()} 
+      />
     );
 
     expect(screen.getByTestId("payslip-card-slip-1")).toBeDefined();
-    expect(screen.getByText(/10.500.000/)).toBeDefined();
+    expect(screen.getByText(/10[.,]500[.,]000/)).toBeDefined();
+    expect(screen.getByText(/ĐÃ CHỐT/i)).toBeDefined();
   });
 
-  it("expands card to show segments when clicked", () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <PayrollTable 
-            payslips={mockPayslips} 
-            isLoading={false} 
-            adjustments={[]}
-            onResolveAdjustments={() => {}}
-          />
-        </BrowserRouter>
-      </QueryClientProvider>
+  it("expands card to show segments when clicked", async () => {
+    renderWithProviders(
+      <PayrollTable 
+        payslips={mockPayslips} 
+        isLoading={false} 
+        adjustments={[]} 
+        onResolveAdjustments={vi.fn()} 
+      />
     );
 
     // Click toggle summary bar
@@ -87,32 +81,28 @@ describe("PayrollTable", () => {
     fireEvent.click(toggleBtn);
 
     // Now segments should be visible
-    expect(screen.getByText("Giai đoạn 1")).toBeDefined();
-    expect(screen.getByText("Salary Change")).toBeDefined();
-    expect(screen.getByText("12.000.000")).toBeDefined();
+    expect(screen.getByText(/Dòng lương/i)).toBeDefined();
+    expect(screen.getByText(/Salary Change/i)).toBeDefined();
+    expect(screen.getAllByText(/12[.,]000[.,]000/)[0]).toBeDefined();
   });
 
-  it("shows pending adjustments indicator when adjustments are present", () => {
-    const mockAdjustments: any[] = [
+  it("shows pending adjustments indicator when adjustments are present", async () => {
+    const mockAdjustments = [
       {
         id: "adj-1",
         employee_id: "emp-1",
-        requested_punch_in_time: "2026-01-10T08:00:00Z",
+        requested_date: "2026-01-15",
         status: "pending"
       }
     ];
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <PayrollTable 
-            payslips={mockPayslips} 
-            isLoading={false} 
-            adjustments={mockAdjustments} 
-            onResolveAdjustments={() => {}}
-          />
-        </BrowserRouter>
-      </QueryClientProvider>
+    renderWithProviders(
+      <PayrollTable 
+        payslips={mockPayslips} 
+        isLoading={false} 
+        adjustments={mockAdjustments as any} 
+        onResolveAdjustments={vi.fn()} 
+      />
     );
 
     // Card needs to be expanded to see the banner in the new UI

@@ -1,22 +1,12 @@
 import React from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import Sheet from "../ui/Sheet";
-import { 
-  fetchWorkspaceAttendanceAdjustments, 
-  approveAttendanceAdjustment, 
-  getCurrentWorkspaceId,
-  AttendanceAdjustmentRequest
-} from "@/lib/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowRight, MessageSquare, Clock, X, Calendar, CheckCircle2 } from "lucide-react";
+import { fetchWorkspaceAttendanceAdjustments, approveAttendanceAdjustment, getCurrentWorkspaceId } from "@/lib/api";
 import { useToast } from "../Toast";
-import { Check, X, Clock, Calendar, ArrowRight } from "lucide-react";
+import Sheet from "../ui/Sheet";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
 
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 interface AdjustmentDrawerProps {
   isOpen: boolean;
@@ -69,7 +59,7 @@ export default function AdjustmentDrawer({
           <div className="p-12 text-center text-slate-400 font-bold italic uppercase tracking-widest text-[10px] opacity-50">{t("common.loading")}</div>
         ) : employeeAdjustments.length === 0 ? (
           <div className="p-16 text-center border-2 border-dashed border-slate-100 rounded-[2.5rem] bg-slate-50/30 flex flex-col items-center">
-            <div className="bg-white w-16 h-16 rounded-3xl flex items-center justify-center shadow-sm mb-4 border border-slate-100"><Check className="w-8 h-8 text-emerald-400" /></div>
+            <div className="bg-white w-16 h-16 rounded-3xl flex items-center justify-center shadow-sm mb-4 border border-slate-100"><CheckCircle2 className="w-8 h-8 text-emerald-400" /></div>
             <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight">{t("payroll.adjustments.all_clear")}</h3>
             <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1 opacity-50">No pending adjustments.</p>
           </div>

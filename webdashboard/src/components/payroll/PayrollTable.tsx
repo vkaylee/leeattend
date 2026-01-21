@@ -19,12 +19,7 @@ import {
 import { Payslip, AttendanceAdjustmentRequest, PayrollSegment } from "@/lib/api/types";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { PayrollPriorityLegend } from "./PayrollPriorityLegend";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface PayrollTableProps {
   payslips: Payslip[];
@@ -48,9 +43,10 @@ export default function PayrollTable({
   if (payslips.length === 0) {
     return (
       <div className="py-24 text-center border-2 border-dashed border-slate-100 rounded-[2.5rem] bg-slate-50/30 flex flex-col items-center">
-        <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center shadow-sm mb-4 border border-slate-100"><History className="text-slate-200 w-10 h-10" /></div>
-        <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight">{t("common.payroll.table.no_payslips")}</h3>
-        <p className="text-slate-400 text-xs font-black uppercase tracking-widest mt-1 opacity-50">{t("common.no_records_found")}</p>
+        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-6 border border-slate-100">
+          <History size={32} className="text-slate-200" />
+        </div>
+        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{t("common.payroll.table.no_payslips")}</p>
       </div>
     );
   }
@@ -59,16 +55,15 @@ export default function PayrollTable({
     <div className="flex flex-col gap-6 animate-in fade-in duration-700">
       {payslips.map((slip) => {
         const isExpanded = expandedId === slip.id;
-        const slipStart = new Date(slip.period_start);
-        const slipEnd = new Date(slip.period_end);
-        const hasPendingAdjustments = adjustments.some(adj => {
-          const adjDate = new Date(adj.requested_punch_in_time);
-          return adjDate >= slipStart && adjDate <= slipEnd;
-        });
+        const slipAdjustments = adjustments.filter(adj => 
+          adj.employee_id === slip.employee_id && 
+          new Date(adj.requested_date) >= new Date(slip.period_start) &&
+          new Date(adj.requested_date) <= new Date(slip.period_end)
+        );
 
         return (
-          <div key={slip.id} className={cn("group bg-white border transition-all duration-500 overflow-hidden", isExpanded ? "border-primary-200 rounded-[2.5rem] shadow-2xl shadow-primary-100/20" : "border-slate-100 hover:border-primary-100 rounded-[2rem] shadow-sm hover:shadow-lg hover:shadow-primary-100/10")}>
-            <div className={cn("p-8 flex items-center justify-between cursor-pointer transition-colors", isExpanded ? "bg-primary-50/30" : "hover:bg-slate-50/50")} onClick={() => setExpandedId(isExpanded ? null : slip.id)}>
+          <div key={slip.id} data-testid={`payslip-card-${slip.id}`} className={cn("group bg-white border transition-all duration-500 overflow-hidden", isExpanded ? "border-primary-200 rounded-[2.5rem] shadow-2xl shadow-primary-100/20" : "border-slate-100 hover:border-primary-100 rounded-[2rem] shadow-sm hover:shadow-lg hover:shadow-primary-100/10")}>
+            <div data-testid={`toggle-card-${slip.id}`} className={cn("p-8 flex items-center justify-between cursor-pointer transition-colors", isExpanded ? "bg-primary-50/30" : "hover:bg-slate-50/50")} onClick={() => setExpandedId(isExpanded ? null : slip.id)}>
               <div className="flex items-center gap-8">
                 <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-inner border", isExpanded ? "bg-primary-600 text-white border-primary-500" : "bg-slate-50 text-slate-400 border-slate-100 group-hover:bg-white group-hover:text-primary-600 group-hover:border-primary-100")}>
                   <Calendar size={24} />
@@ -97,8 +92,9 @@ export default function PayrollTable({
             {isExpanded && (
               <div className="px-8 pb-10 animate-in fade-in slide-in-from-top-4 duration-500">
                 <div className="h-px bg-gradient-to-r from-transparent via-slate-100 to-transparent mb-10" />
-                {hasPendingAdjustments && (
-                  <div className="mb-10 p-6 bg-amber-50/50 border-2 border-amber-100 rounded-[2rem] flex items-center justify-between shadow-inner">
+                
+                {slipAdjustments.length > 0 && (
+                  <div data-testid={`pending-adj-banner-${slip.id}`} className="px-10 py-6 bg-amber-50 border-y border-amber-100/50 flex items-center justify-between animate-in slide-in-from-top-4 duration-500 mb-8 rounded-2xl">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-amber-500 shadow-sm border border-amber-100"><AlertTriangle size={24} /></div>
                       <div>
@@ -112,7 +108,14 @@ export default function PayrollTable({
 
                 <div className="space-y-8 relative">
                   <div className="absolute left-[27px] top-6 bottom-6 w-0.5 bg-slate-100" />
-                  {slip.segments?.map((seg, idx) => (<SegmentCard key={idx} segment={seg} index={idx} isLast={idx === (slip.segments?.length || 0) - 1} />))}
+                  {slip.segments?.map((seg, idx) => (
+                    <SegmentCard 
+                      key={idx} 
+                      segment={seg} 
+                      index={idx} 
+                      isLast={idx === (slip.segments?.length || 0) - 1} 
+                    />
+                  ))}
                 </div>
 
                 <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 pt-10 border-t border-slate-50">
@@ -204,7 +207,6 @@ function SegmentCard({ segment, index }: { segment: PayrollSegment, index: numbe
               </div>
               <Calculator className="absolute -right-4 -bottom-4 w-20 h-20 text-white opacity-5 -rotate-12 transition-transform group-hover/out:rotate-0 duration-700" />
             </div>
-            <div className="flex items-center gap-2 px-2"><CheckCircle2 size={12} className="text-emerald-500" /><span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Logic: (Salary / Std. Days) * Paid Days</span></div>
           </div>
         </div>
       </div>

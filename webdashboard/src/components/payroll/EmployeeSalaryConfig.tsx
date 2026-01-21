@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Plus, 
@@ -27,6 +27,7 @@ import { Combobox } from "@/components/ui/Combobox";
 import { format } from "date-fns";
 import TemporalConfigTable from "../common/TemporalConfigTable";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { cn } from "@/lib/utils";
 
 interface Props {
   wsId: string;
@@ -95,8 +96,8 @@ export default function EmployeeSalaryConfig({ wsId, employeeId }: Props) {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("payroll.employee_config.item_type")}</label>
-              <Combobox options={definitions.map(d => ({ value: d.id, label: d.name, description: d.code }))} value={selectedCompId} onChange={setSelectedCompId} className="bg-slate-50 border-slate-100 h-14" />
+              <label htmlFor="salary-comp-select" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("payroll.employee_config.item_type")}</label>
+              <Combobox id="salary-comp-select" options={definitions.map(d => ({ value: d.id, label: d.name, description: d.code }))} value={selectedCompId} onChange={setSelectedCompId} className="bg-slate-50 border-slate-100 h-14" />
             </div>
             <div className="space-y-3">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.amount")} ({t("common.currency")})</label>

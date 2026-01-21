@@ -12,12 +12,7 @@ import {
 import { Employee, Payslip, AttendanceAdjustmentRequest } from "@/lib/api/types";
 import PayrollTable from "./PayrollTable";
 import EmployeeSalaryConfig from "./EmployeeSalaryConfig";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface PayrollDetailDrawerProps {
   isOpen: boolean;
@@ -150,11 +145,6 @@ export default function PayrollDetailDrawer({
               </div>
             )}
           </main>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
-}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
