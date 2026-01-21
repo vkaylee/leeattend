@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, Trash2, Calendar, History, Save, Calculator, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { cn } from "@/lib/utils";
 
 interface ConfigRecord {
   id?: string;
@@ -34,7 +35,7 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
     setIsAdding(false);
   };
 
-  let displayRecords = [...records];
+  const displayRecords = [...records];
   if (displayRecords.length === 0 && !isLoading) {
     displayRecords.push({ std_working_days: 26, hours_per_day: 8, effective_date: "1970-01-01", is_virtual: true });
   }

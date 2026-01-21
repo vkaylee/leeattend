@@ -18,6 +18,7 @@ import { useAgentsStatus } from "@/hooks/use-agents";
 import { useDevices } from "@/hooks/use-devices";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useDashboardStats } from "@/hooks/use-dashboard";
+import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { t, i18n } = useTranslation();

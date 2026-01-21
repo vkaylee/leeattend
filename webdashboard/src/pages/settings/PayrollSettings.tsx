@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Coins, Calculator, FileText, Blocks } from "lucide-react";
+import { cn } from "@/lib/utils";
 import SalaryComponentManager from "@/components/payroll/SalaryComponentManager";
 import PayrollSettingsSection from "@/components/payroll/PayrollSettingsSection";
 import { getCurrentWorkspaceId } from "@/lib/api";

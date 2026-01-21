@@ -28,7 +28,7 @@ export default function RoleManagementModal({
   async function handleUpdatePrimary(role: string) {
     if (role === primaryRole) return;
     if (!confirm(t("members.roles.confirm_change_primary", { role: role.toUpperCase() }))) return;
-    try { await updatePrimaryRole(role); } catch (e: any) { }
+    try { await updatePrimaryRole(role); } catch (e: any) { console.error(e); }
   }
 
   async function handleAssign(e: React.FormEvent) {
@@ -37,12 +37,12 @@ export default function RoleManagementModal({
       const isoExpiresAt = new Date(expiresAt).toISOString();
       await assignRole({ role: newRole, expiresAt: isoExpiresAt });
       setExpiresAt("");
-    } catch (e) { }
+    } catch (e) { console.error(e); }
   }
 
   async function handleRevoke(roleId: string) {
     if (!confirm(t("members.roles.confirm_revoke"))) return;
-    try { await revokeRole(roleId); } catch (e) { }
+    try { await revokeRole(roleId); } catch (e) { console.error(e); }
   }
 
   if (!isOpen) return null;

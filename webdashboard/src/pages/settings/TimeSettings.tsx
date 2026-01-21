@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Clock, Calculator, Save, ShieldAlert, Settings2, Shield, LayoutGrid, List, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/components/Toast";
 import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace } from "@/lib/api";
 import { Combobox } from "@/components/ui/Combobox";

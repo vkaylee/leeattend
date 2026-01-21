@@ -6,6 +6,7 @@ import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace } fro
 import { Combobox } from "@/components/ui/Combobox";
 import { useTheme } from "@/hooks/use-theme";
 import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
 
 type TabType = "localization" | "appearance";
 

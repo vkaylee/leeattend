@@ -58,7 +58,8 @@ describe("AgentEditModal", () => {
     expect(screen.getByText("Chỉnh sửa Agent")).toBeInTheDocument();
     expect(await screen.findByDisplayValue("Test Agent")).toBeInTheDocument();
     expect(screen.getByDisplayValue("secret123")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("TEST_001")).toBeDisabled();
+    // Agent ID is now a div, not an input value
+    expect(screen.getByText("TEST_001")).toBeInTheDocument();
   });
 
   it("calls updateAgent and onSave when form is submitted", async () => {
@@ -98,7 +99,7 @@ describe("AgentEditModal", () => {
     const nameInput = await screen.findByDisplayValue("Test Agent");
     fireEvent.change(nameInput, { target: { value: "New Name" } });
 
-    const saveButton = screen.getByText("Lưu thay đổi");
+    const saveButton = screen.getByText(/LƯU THAY ĐỔI/i);
     fireEvent.click(saveButton);
 
     await waitFor(() => {

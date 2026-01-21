@@ -36,25 +36,57 @@ global.ResizeObserver = class ResizeObserver {
 };
 
 // Mock Combobox to be a simple select for existing tests to work
+
 vi.mock("@/components/ui/Combobox", () => ({
+
   Combobox: ({ 
+
     options, 
+
     value, 
+
     onChange, 
+
     id, 
+
     "data-testid": testId 
+
   }: any) => (
+
     <select
+
       id={id}
+
       data-testid={testId}
+
       value={value}
+
       onChange={(e) => onChange(e.target.value)}
+
     >
+
+      <option value="">Select...</option>
+
       {options.map((opt: any) => (
-        <option key={opt.value} value={opt.value}>
+
+        <option 
+
+          key={opt.value} 
+
+          value={opt.value}
+
+          data-testid={testId ? `${testId}-option-${opt.value}` : `combo-option-${opt.value}`}
+
+        >
+
           {opt.label}
+
         </option>
+
       ))}
+
     </select>
+
   ),
+
 }));

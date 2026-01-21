@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { fetchWorkspaceLeaveBalances, getCurrentWorkspaceId, WorkspaceLeaveBalance } from "@/lib/api";
 import { Search, Filter, History, Info } from "lucide-react";
 import { LeaveHistoryModal } from "@/components/leave/LeaveHistoryModal";
+import { cn } from "@/lib/utils";
 
 export default function LeaveBalancesPage() {
 

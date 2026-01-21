@@ -1,12 +1,7 @@
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface ModalProps {
   isOpen: boolean;
@@ -17,6 +12,7 @@ interface ModalProps {
   children: React.ReactNode;
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl";
   className?: string;
+  testId?: string;
 }
 
 const maxWidthMap = {
@@ -38,6 +34,7 @@ export default function Modal({
   children,
   maxWidth = "md",
   className,
+  testId,
 }: ModalProps) {
   // Prevent scrolling when modal is open
   useEffect(() => {
@@ -54,7 +51,7 @@ export default function Modal({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onClick={onClose} data-testid={testId}>
       <div 
         role="dialog"
         aria-modal="true"

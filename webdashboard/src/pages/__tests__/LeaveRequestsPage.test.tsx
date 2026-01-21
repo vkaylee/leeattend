@@ -53,7 +53,7 @@ describe("LeaveRequestsPage", () => {
     });
     (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
     (api.fetchEmployees as any).mockResolvedValue([
-      { id: "emp-1", first_name: "John", last_name: "Doe" }
+      { id: "emp-1", first_name: "John", last_name: "Doe", hire_date: "2025-01-01" }
     ]);
     (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([]);
     (api.fetchEmployeeLeaveBalances as any).mockResolvedValue([]);
@@ -91,8 +91,8 @@ describe("LeaveRequestsPage", () => {
     );
 
     expect(await screen.findByText("John Doe")).toBeDefined();
-    expect(screen.getByText("vacation")).toBeDefined();
-    expect(screen.getAllByText("Chờ duyệt").length).toBeGreaterThan(0);
+    expect(screen.getByText(/vacation/i)).toBeDefined();
+    expect(screen.getAllByText(/Chờ duyệt/i).length).toBeGreaterThan(0);
   });
 
   it("handles submitting a new leave request", async () => {
@@ -117,28 +117,28 @@ describe("LeaveRequestsPage", () => {
       </QueryClientProvider>
     );
 
-    await user.click(screen.getByText("Tạo yêu cầu"));
+    await user.click(screen.getByText(/Tạo yêu cầu/i));
 
     // Select employee
-    const empSelect = await screen.findByLabelText("Nhân viên");
+    const empSelect = await screen.findByLabelText(/Nhân viên/i);
     fireEvent.change(empSelect, { target: { value: "emp-1" } });
 
     // Wait for the balances to appear.
-    expect(await screen.findByText(/Còn/)).toBeDefined();
+    expect(await screen.findByText(/Còn/i)).toBeDefined();
     expect(screen.getByText("10")).toBeDefined();
 
-    await user.selectOptions(screen.getByLabelText("Loại"), "vacation");
+    await user.selectOptions(screen.getByLabelText(/Loại/i), "vacation");
     
     // Fill dates
-    const startDate = screen.getByLabelText("Từ ngày");
-    fireEvent.change(startDate, { target: { value: "2026-01-01" } }); // user.type is tricky with type="date"
-    const endDate = screen.getByLabelText("Đến ngày");
+    const startDate = screen.getByLabelText(/Từ ngày/i);
+    fireEvent.change(startDate, { target: { value: "2026-01-01" } });
+    const endDate = screen.getByLabelText(/Đến ngày/i);
     fireEvent.change(endDate, { target: { value: "2026-01-02" } });
     
-    const reasonInput = screen.getByPlaceholderText("Nhập lý do nghỉ...");
+    const reasonInput = screen.getByPlaceholderText(/Nhập lý do nghỉ/i);
     await user.type(reasonInput, "Vacation time");
 
-    await user.click(screen.getByText("Gửi yêu cầu"));
+    await user.click(screen.getByRole("button", { name: /Gửi yêu cầu/i }));
 
     await waitFor(() => {
       expect(api.submitLeaveRequest).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
@@ -166,14 +166,14 @@ describe("LeaveRequestsPage", () => {
       </QueryClientProvider>
     );
 
-    const approveBtn = await screen.findByTitle("Phê duyệt");
+    const approveBtn = await screen.findByTitle(/phê duyệt/i);
     await user.click(approveBtn);
 
     await waitFor(() => {
       expect(api.approveLeaveRequest).toHaveBeenCalledWith("test-ws-id", "req-1", { status: "approved" });
     });
 
-    const rejectBtn = screen.getByTitle("Từ chối");
+    const rejectBtn = await screen.findByTitle(/từ chối/i);
     await user.click(rejectBtn);
 
     await waitFor(() => {
@@ -198,15 +198,15 @@ describe("LeaveRequestsPage", () => {
       </QueryClientProvider>
     );
 
-    await user.click(screen.getByText("Chính sách"));
+    await user.click(screen.getByText(/Chính sách/i));
 
     expect(await screen.findByText("Standard Policy")).toBeDefined();
 
     // Create policy
-    await user.click(screen.getByText("Thêm chính sách"));
-    const nameInput = await screen.findByLabelText("Tên chính sách");
+    await user.click(screen.getByText(/Thêm chính sách/i));
+    const nameInput = await screen.findByLabelText(/Tên chính sách/i);
     await user.type(nameInput, "New Policy");
-    await user.click(screen.getByText("Lưu chính sách"));
+    await user.click(screen.getByTestId("save-policy-btn"));
 
     await waitFor(() => {
       expect(api.createLeavePolicy).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({ name: "New Policy" }));
@@ -230,18 +230,17 @@ describe("LeaveRequestsPage", () => {
       </QueryClientProvider>
     );
 
-    await user.click(screen.getByText("Chính sách"));
+    await user.click(screen.getByText(/Chính sách/i));
     expect(await screen.findByText("Old Policy")).toBeDefined();
 
-    const row = screen.getByText("Old Policy").closest("tr");
-    const editBtn = row!.querySelector('button');
-    await user.click(editBtn!);
+    const editBtn = await screen.findByTitle(/sửa/i);
+    await user.click(editBtn);
 
-    expect(await screen.findByText("Sửa chính sách")).toBeDefined();
-    const nameInput = screen.getByLabelText("Tên chính sách");
+    expect(await screen.findByText(/Sửa chính sách/i)).toBeDefined();
+    const nameInput = screen.getByLabelText(/Tên chính sách/i);
     await user.clear(nameInput);
     await user.type(nameInput, "Updated Policy");
-    await user.click(screen.getByText("Lưu thay đổi"));
+    await user.click(screen.getByTestId("save-policy-btn"));
 
     await waitFor(() => {
       expect(api.updateLeavePolicy).toHaveBeenCalledWith("test-ws-id", "pol-1", expect.objectContaining({ name: "Updated Policy" }));
@@ -266,11 +265,10 @@ describe("LeaveRequestsPage", () => {
       </QueryClientProvider>
     );
 
-    await user.click(screen.getByText("Chính sách"));
+    await user.click(screen.getByText(/Chính sách/i));
     expect(await screen.findByText("To Be Deleted")).toBeDefined();
 
-    const row = screen.getByText("To Be Deleted").closest("tr");
-    const deleteBtn = row!.querySelectorAll('button')[1]; // Second button in actions is Delete
+    const deleteBtn = await screen.findByTitle(/xóa/i);
     await user.click(deleteBtn);
 
     expect(window.confirm).toHaveBeenCalled();
@@ -296,136 +294,52 @@ describe("LeaveRequestsPage", () => {
       </QueryClientProvider>
     );
 
-    await user.click(screen.getByText("Chính sách"));
+    await user.click(screen.getByText(/Chính sách/i));
     
     // Wait for policy list to be updated
     expect(await screen.findByText("Standard")).toBeDefined();
 
-    await user.click(screen.getByText("Gán chính sách"));
+    await user.click(screen.getByText(/Gán chính sách/i));
 
-    const empSelects = await screen.findAllByLabelText("Nhân viên");
+    const empSelects = await screen.findAllByLabelText(/Nhân viên/i);
     const empSelect = empSelects.find(el => el.id === 'assign-emp') || empSelects[0];
     await user.selectOptions(empSelect, "emp-1");
     
-    const policySelect = await screen.findByLabelText("Chính sách");
+    const policySelect = await screen.findByLabelText(/Chính sách/i);
     await user.selectOptions(policySelect, "pol-1");
     
-    await user.click(screen.getByText("Gán ngay"));
+    await user.click(screen.getByText(/Gán ngay/i));
 
-        await waitFor(() => {
+    await waitFor(() => {
+      expect(api.assignLeavePolicy).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+        assignee_type: "employee",
+        assignee_id: "emp-1",
+        policy_id: "pol-1"
+      }));
+    });
+  });
 
-          expect(api.assignLeavePolicy).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
+  it("fetches leave policies on mount regardless of the active tab", async () => {
+    (api.fetchLeavePolicies as any).mockResolvedValue([
+      { id: "pol-1", name: "Standard Vacation", leave_type: "vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period" } }
+    ]);
 
-            assignee_type: "employee",
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <BrowserRouter>
+            <LeaveRequestsPage />
+          </BrowserRouter>
+        </ToastProvider>
+      </QueryClientProvider>
+    );
 
-            assignee_id: "emp-1",
+    // Initial tab is "Chờ duyệt"
+    expect(screen.getAllByText(/Chờ duyệt/i).length).toBeGreaterThan(0);
 
-            policy_id: "pol-1"
-
-          }));
-
-        });
-
-      });
-
-    
-
-        it("fetches leave policies on mount regardless of the active tab", async () => {
-
-    
-
-          (api.fetchLeavePolicies as any).mockResolvedValue([
-
-    
-
-            { id: "pol-1", name: "Standard Vacation", leave_type: "vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period" } }
-
-    
-
-          ]);
-
-    
-
-      
-
-    
-
-          render(
-
-    
-
-            <QueryClientProvider client={queryClient}>
-
-    
-
-              <ToastProvider>
-
-    
-
-                <BrowserRouter>
-
-    
-
-                  <LeaveRequestsPage />
-
-    
-
-                </BrowserRouter>
-
-    
-
-              </ToastProvider>
-
-    
-
-            </QueryClientProvider>
-
-    
-
-          );
-
-    
-
-      
-
-    
-
-          // Initial tab is "Chờ duyệt"
-
-    
-
-          expect(screen.getByText("Chờ duyệt")).toBeDefined();
-
-    
-
-      
-
-    
-
-          // Verify fetchLeavePolicies was called
-
-    
-
-          await waitFor(() => {
-
-    
-
-            expect(api.fetchLeavePolicies).toHaveBeenCalledWith("test-ws-id");
-
-    
-
-          });
-
-    
-
-        });
-
-    
-
-      });
-
-    
-
-      
-
-    
+    // Verify fetchLeavePolicies was called
+    await waitFor(() => {
+      expect(api.fetchLeavePolicies).toHaveBeenCalledWith("test-ws-id");
+    });
+  });
+});

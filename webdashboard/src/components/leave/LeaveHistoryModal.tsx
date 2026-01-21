@@ -7,6 +7,7 @@ import { useToast } from "../Toast";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import Modal from "../ui/Modal";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface LeaveHistoryModalProps {
   wsId: string;
@@ -131,8 +132,6 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
         )}
       </div>
     </Modal>
-  );
-}
   );
 }
 

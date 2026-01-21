@@ -49,7 +49,7 @@ export default function DevicesPage() {
       await createDevice(newDevice);
       toast.success(t("devices.toast.add_success", { name: newDevice.name }));
       setShowAddForm(false); setNewDevice({ name: "", agent_id: "", ip: "", port: 4370 });
-    } catch (e) { }
+    } catch (e) { console.error(e); }
   }
 
   async function handleUpdate(e: React.FormEvent) {
@@ -58,7 +58,7 @@ export default function DevicesPage() {
       await updateDevice(editingDevice.id, { name: editingDevice.name, agent_id: editingDevice.agent_id, ip: editingDevice.ip, port: editingDevice.port, is_enabled: editingDevice.is_enabled });
       toast.success(t("devices.toast.update_success", { name: editingDevice.name }));
       setEditingDevice(null);
-    } catch (e) { }
+    } catch (e) { console.error(e); }
   }
 
   async function handleDelete(id: string) {
@@ -66,7 +66,7 @@ export default function DevicesPage() {
     try {
       await deleteDevice(id);
       toast.success(t("devices.toast.delete_success"));
-    } catch (e) { }
+    } catch (e) { console.error(e); }
   }
 
   const loading = devicesLoading || agentsLoading;
@@ -193,10 +193,6 @@ export default function DevicesPage() {
           </div>
         </form>
       </Modal>
-    </div>
-  );
-}
-      </div>
     </div>
   );
 }

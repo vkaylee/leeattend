@@ -1,7 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
-import { Menu, ChevronRight as BreadcrumbSeparator } from "lucide-react";
+import { Menu, ChevronRight as BreadcrumbSeparator, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavbarProps {

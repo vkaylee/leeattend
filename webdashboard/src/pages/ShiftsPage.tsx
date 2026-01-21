@@ -42,6 +42,14 @@ import { useToast } from "../components/Toast";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { format, addDays } from "date-fns";
 import { vi, enUS, zhCN } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+
+const dateLocales: Record<string, any> = {
+  vi: vi,
+  en: enUS,
+  zh: zhCN,
+};
+
 import { Combobox } from "@/components/ui/Combobox";
 import { MousePointer2, Copy, Trash, Calendar as CalendarIcon } from "lucide-react";
 import Modal from "@/components/ui/Modal";
@@ -339,7 +347,7 @@ export default function ShiftsPage() {
         {activeTab !== "directory" && (
           <div className="max-w-md mb-8">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">{t("common.employees")}</label>
-            <Combobox options={employeeOptions} value={selectedEmployee?.id} onChange={(id) => setSelectedEmployee(employees?.find(e => e.id === id) || null)} placeholder={t("shifts.empty_state.title")} searchPlaceholder={t("common.search_employee")} className="bg-white border-slate-200 shadow-sm h-12 rounded-[20px]" />
+            <Combobox data-testid="employee-select" options={employeeOptions} value={selectedEmployee?.id} onChange={(id) => setSelectedEmployee(employees?.find(e => e.id === id) || null)} placeholder={t("shifts.empty_state.title")} searchPlaceholder={t("common.search_employee")} className="bg-white border-slate-200 shadow-sm h-12 rounded-[20px]" />
           </div>
         )}
 

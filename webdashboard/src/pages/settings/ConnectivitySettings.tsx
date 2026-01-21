@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HardDrive, Share2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import AgentsPage from "@/pages/AgentsPage";
 import DevicesPage from "@/pages/DevicesPage";
 

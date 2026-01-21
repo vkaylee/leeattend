@@ -1,38 +1,4 @@
-import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Link,
-  Outlet,
-  useLocation,
-} from "react-router-dom";
-import {
-  LayoutDashboard,
-  Cpu,
-  History,
-  Settings,
-  Settings2,
-  UserCheck,
-  UserCircle,
-  Users,
-  Clock,
-  CalendarDays,
-  FileBarChart,
-  UserRound,
-  Banknote,
-  CalendarRange,
-  Building2,
-  Menu,
-  X,
-  LogOut,
-  ListOrdered,
-  ChevronDown,
-  ChevronRight,
-  ChevronRight as BreadcrumbSeparator,
-  Briefcase,
-} from "lucide-react"; 
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import DashboardPage from "./pages/DashboardPage";
 import AgentsPage from "./pages/AgentsPage";
@@ -58,62 +24,13 @@ import PeopleSettings from "./pages/settings/PeopleSettings";
 import TimeSettings from "./pages/settings/TimeSettings";
 import PayrollSettings from "./pages/settings/PayrollSettings";
 import ConnectivitySettings from "./pages/settings/ConnectivitySettings";
-import WorkspaceSwitcher from "./components/WorkspaceSwitcher";
 import AuthGuard from "./components/AuthGuard";
 import WorkspaceGuard from "./components/WorkspaceGuard";
 import AttendanceAdjustmentsPage from "./pages/AttendanceAdjustmentsPage";
 import AttendanceLogsPage from "./pages/AttendanceLogsPage";
 import MyProfilePage from "./pages/ess/MyProfilePage";
 import MyAttendancePage from "./pages/ess/MyAttendancePage";
-import { useWorkspaces } from "./hooks/use-workspace";
-import { getCurrentWorkspaceId } from "./lib/api";
-import { useTheme } from "./hooks/use-theme";
-import { useI18nSync } from "./hooks/use-i18n-sync";
-
-import { DebugProvider } from "./context/DebugContext";
-import { DebugToolbar } from "./components/debug/DebugToolbar";
-
-console.log("🚀 [LeeAttend] Bundle initialized at:", new Date().toISOString());
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 1000 * 60 * 5, // 5 minutes
-    },
-  },
-});
-
-import DashboardPage from "./pages/DashboardPage";
-import AgentsPage from "./pages/AgentsPage";
-import DevicesPage from "./pages/DevicesPage";
-import MembersPage from "./pages/MembersPage";
-import ProfilePage from "./pages/ProfilePage";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import OnboardingPage from "./pages/OnboardingPage";
-import EmployeesPage from "./pages/EmployeesPage"; 
-import DepartmentsPage from "./pages/DepartmentsPage";
-import TimeTrackingPage from "./pages/TimeTrackingPage";
-import LeaveRequestsPage from "./pages/LeaveRequestsPage";
-import LeaveBalancesPage from "./pages/LeaveBalancesPage";
-import ReportsPage from "./pages/ReportsPage";
-import PayrollPage from "./pages/PayrollPage";
-import ShiftsPage from "./pages/ShiftsPage";
-import WorkingPatternsPage from "./pages/WorkingPatternsPage";
-import AssignmentRulesPage from "./pages/AssignmentRulesPage";
-import SettingsLayout from "./pages/settings/SettingsLayout";
-import GeneralSettings from "./pages/settings/GeneralSettings";
-import PeopleSettings from "./pages/settings/PeopleSettings";
-import TimeSettings from "./pages/settings/TimeSettings";
-import PayrollSettings from "./pages/settings/PayrollSettings";
-import ConnectivitySettings from "./pages/settings/ConnectivitySettings";
-import AuthGuard from "./components/AuthGuard";
-import WorkspaceGuard from "./components/WorkspaceGuard";
-import AttendanceAdjustmentsPage from "./pages/AttendanceAdjustmentsPage";
-import AttendanceLogsPage from "./pages/AttendanceLogsPage";
-import MyProfilePage from "./pages/ess/MyProfilePage";
-import MyAttendancePage from "./pages/ess/MyAttendancePage";
+import MyClockPage from "./pages/ess/MyClockPage";
 import MainLayout from "./components/layout/MainLayout";
 
 import { DebugProvider } from "./context/DebugContext";
@@ -147,6 +64,10 @@ function App() {
                 <Route element={<MainLayout />}>
                   <Route path="/" element={<DashboardPage />} />
                   <Route path="/employees" element={<EmployeesPage />} />
+                  <Route path="/departments" element={<DepartmentsPage />} />
+                  <Route path="/members" element={<MembersPage />} />
+                  <Route path="/agents" element={<AgentsPage />} />
+                  <Route path="/devices" element={<DevicesPage />} />
                   <Route path="/time-tracking" element={<TimeTrackingPage />} />
                   <Route path="/attendance-logs" element={<AttendanceLogsPage />} />
                   <Route path="/leave-requests" element={<LeaveRequestsPage />} />
@@ -170,59 +91,7 @@ function App() {
 
                   <Route path="/profile" element={<ProfilePage />} />
                   {/* ESS Routes */}
-                  <Route path="/ess/profile" element={<MyProfilePage />} />
-                  <Route path="/ess/attendance" element={<MyAttendancePage />} />
-                </Route>
-              </Route>
-            </Route>
-          </Routes>
-        </Router>
-        <DebugToolbar />
-      </DebugProvider>
-    </QueryClientProvider>
-  );
-}
-
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <DebugProvider>
-        <Router>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-
-            {/* Protected routes */}
-            <Route element={<AuthGuard />}>
-              <Route path="/onboarding" element={<OnboardingPage />} />
-              <Route element={<WorkspaceGuard />}>
-                <Route element={<Layout />}>
-                  <Route path="/" element={<DashboardPage />} />
-                  <Route path="/employees" element={<EmployeesPage />} />
-                  <Route path="/time-tracking" element={<TimeTrackingPage />} />
-                  <Route path="/attendance-logs" element={<AttendanceLogsPage />} />
-                  <Route path="/leave-requests" element={<LeaveRequestsPage />} />
-                  <Route path="/leave-balances" element={<LeaveBalancesPage />} />
-                  <Route path="/attendance-adjustments" element={<AttendanceAdjustmentsPage />} />
-                  <Route path="/reports" element={<ReportsPage />} />
-                  <Route path="/shifts" element={<ShiftsPage />} />
-                  <Route path="/working-patterns" element={<WorkingPatternsPage />} />
-                  <Route path="/assignment-rules" element={<AssignmentRulesPage />} />
-                  <Route path="/payroll" element={<PayrollPage />} />
-                  
-                  {/* Settings Hub */}
-                  <Route path="/workspace/settings" element={<SettingsLayout />}>
-                    <Route index element={<GeneralSettings />} />
-                    <Route path="general" element={<GeneralSettings />} />
-                    <Route path="people" element={<PeopleSettings />} />
-                    <Route path="time" element={<TimeSettings />} />
-                    <Route path="payroll" element={<PayrollSettings />} />
-                    <Route path="connectivity" element={<ConnectivitySettings />} />
-                  </Route>
-
-                  <Route path="/profile" element={<ProfilePage />} />
-                  {/* ESS Routes */}
+                  <Route path="/ess/clock" element={<MyClockPage />} />
                   <Route path="/ess/profile" element={<MyProfilePage />} />
                   <Route path="/ess/attendance" element={<MyAttendancePage />} />
                 </Route>

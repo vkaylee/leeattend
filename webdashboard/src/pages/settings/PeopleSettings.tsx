@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Users, UserPlus, Mail, Settings2, Trash2, Building2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useWorkspaceMembers } from "@/hooks/use-workspace";
 import { useToast } from "@/components/Toast";
 import { Combobox } from "@/components/ui/Combobox";
@@ -41,7 +42,7 @@ export default function PeopleSettings() {
 
       setNewMemberEmail("");
 
-    } catch (e) { }
+    } catch (e) { console.error(e); }
 
   }
 

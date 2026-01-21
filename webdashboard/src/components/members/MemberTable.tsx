@@ -11,6 +11,7 @@ import {
 import { WorkspaceMember } from "@/lib/api";
 import { useWorkspaceMembers } from "@/hooks/use-workspace";
 import RoleManagementModal from "@/components/RoleManagementModal";
+import { cn } from "@/lib/utils";
 
 export default function MemberTable() {
   const { t } = useTranslation();
@@ -19,7 +20,7 @@ export default function MemberTable() {
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
 
   const handleManageRoles = (userId: string) => { setSelectedUserId(userId); setIsRoleModalOpen(true); };
-  const handleRemoveMember = async (userId: string) => { if (!confirm(t("members.table.confirm_remove"))) return; try { await removeMember(userId); } catch (e: any) { } };
+  const handleRemoveMember = async (userId: string) => { if (!confirm(t("members.table.confirm_remove"))) return; try { await removeMember(userId); } catch (e: any) { console.error(e); } };
 
   if (isLoading) return <div className="flex justify-center py-32"><div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent shadow-xl"></div></div>;
 

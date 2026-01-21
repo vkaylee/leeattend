@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import DepartmentsPage from "../DepartmentsPage";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ToastProvider } from "../../components/Toast";
 import * as api from "../../lib/api";
 import React from "react";
 
@@ -16,6 +17,8 @@ vi.mock("../../lib/api", () => ({
   getCurrentWorkspaceId: vi.fn(),
   fetchUsers: vi.fn(),
   fetchWorkingPatterns: vi.fn(),
+  fetchDepartmentPayrollConfigs: vi.fn(),
+  setDepartmentPayrollConfig: vi.fn(),
 }));
 
 // Override i18n for this test to return keys
@@ -55,28 +58,26 @@ describe("DepartmentsPage", () => {
     ]);
   });
 
-  it("renders without workspace selected", () => {
-    (api.getCurrentWorkspaceId as any).mockReturnValue(null);
-    render(
+  const renderWithProviders = (ui: React.ReactElement) => {
+    return render(
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <DepartmentsPage />
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            {ui}
+          </BrowserRouter>
+        </ToastProvider>
       </QueryClientProvider>
     );
+  };
 
+  it("renders without workspace selected", () => {
+    (api.getCurrentWorkspaceId as any).mockReturnValue(null);
+    renderWithProviders(<DepartmentsPage />);
     expect(screen.getByText("common.select_workspace")).toBeDefined();
   });
 
   it("renders departments list", async () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <DepartmentsPage />
-        </BrowserRouter>
-      </QueryClientProvider>
-    );
-
+    renderWithProviders(<DepartmentsPage />);
     expect(await screen.findByText("Engineering")).toBeDefined();
     expect(screen.getByText("Tech stuff")).toBeDefined();
     expect(screen.getByText("Manager One")).toBeDefined();
@@ -86,27 +87,21 @@ describe("DepartmentsPage", () => {
     const user = userEvent.setup();
     (api.createDepartment as any).mockResolvedValue({ id: "new-dept", name: "HR" });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <DepartmentsPage />
-        </BrowserRouter>
-      </QueryClientProvider>
-    );
+    renderWithProviders(<DepartmentsPage />);
 
-    await user.click(screen.getByText("departments.add_btn"));
+    await user.click(screen.getByText(/departments.add_btn/i));
 
     // Wait for modal to be visible
-    expect(await screen.findByText("departments.modal.add_title")).toBeDefined();
+    expect(await screen.findByText(/departments.modal.add_title/i)).toBeDefined();
 
-    const nameInput = await screen.findByLabelText("departments.form.name_label");
+    const nameInput = await screen.findByLabelText(/departments.form.name_label/i);
     await user.type(nameInput, "Human Resources");
     
     // Select pattern via mock select (which is what Combobox is in tests)
     const mockSelect = await screen.findByTestId("dept-pattern");
     await user.selectOptions(mockSelect, "pat-1");
 
-    await user.click(screen.getByText("departments.modal.submit_btn"));
+    await user.click(screen.getByText(/departments.modal.submit_btn/i));
 
     await waitFor(() => {
       expect(api.createDepartment).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
@@ -120,47 +115,20 @@ describe("DepartmentsPage", () => {
     const user = userEvent.setup();
     (api.updateDepartment as any).mockResolvedValue({ id: "dept-1", name: "Engineering Updated" });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <DepartmentsPage />
-        </BrowserRouter>
-      </QueryClientProvider>
-    );
-
-    // Find the edit button (it's in the group that shows on hover, but in test it's always there)
-    // There's only one department in beforeEach
-    const editButtons = await screen.findAllByRole("button");
-    // The edit button has an Edit2 icon. We might need a better way to find it.
-    // Let's use the icon class or just find by index if we know the structure.
-    // In our component, it's the first button in the absolute positioned div.
+    renderWithProviders(<DepartmentsPage />);
     
-    // Actually, let's find it by clicking the one that has the Edit2 icon logic if possible, 
-    // or just rely on the fact that it's the first button in the card actions.
-    
-    // Re-reading component:
-    /*
-    <button 
-      onClick={() => { setEditingDept(dept); setIsModalOpen(true); }}
-      className="..."
-    >
-      <Edit2 className="w-4 h-4" />
-    </button>
-    */
-    
+    // Wait for data to load
     await screen.findByText("Engineering");
 
-    // In our component, it's the first button in the absolute positioned div.
-    const editBtn = document.querySelector(".lucide-pen")?.parentElement;
-    if (!editBtn) throw new Error("Edit button not found");
-    
+    // Use title which we added during modernization
+    const editBtn = await screen.findByTitle(/common.edit/i);
     await user.click(editBtn);
 
-    const nameInput = await screen.findByLabelText("departments.form.name_label");
+    const nameInput = await screen.findByLabelText(/departments.form.name_label/i);
     await user.clear(nameInput);
     await user.type(nameInput, "Software Engineering");
 
-    await user.click(screen.getByText("common.update"));
+    await user.click(screen.getByText(/common.update/i));
 
     await waitFor(() => {
       expect(api.updateDepartment).toHaveBeenCalledWith("test-ws-id", "dept-1", expect.objectContaining({
@@ -174,19 +142,11 @@ describe("DepartmentsPage", () => {
     (api.deleteDepartment as any).mockResolvedValue({});
     vi.spyOn(window, "confirm").mockReturnValue(true);
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <DepartmentsPage />
-        </BrowserRouter>
-      </QueryClientProvider>
-    );
+    renderWithProviders(<DepartmentsPage />);
 
     await screen.findByText("Engineering");
     
-    const deleteBtn = document.querySelector(".lucide-trash-2")?.parentElement;
-    if (!deleteBtn) throw new Error("Delete button not found");
-    
+    const deleteBtn = await screen.findByTitle(/common.delete/i);
     await user.click(deleteBtn);
 
     expect(window.confirm).toHaveBeenCalled();

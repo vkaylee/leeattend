@@ -1,12 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { X, Menu } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface SheetProps {
   isOpen: boolean;
@@ -31,6 +26,7 @@ export default function Sheet({
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsVisible(true);
       document.body.style.overflow = "hidden";
     } else {

@@ -16,17 +16,13 @@ import {
   HardDrive,
   User,
   Users,
-  ChevronDown
+  ChevronDown,
+  CalendarRange
 } from "lucide-react";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { cn } from "@/lib/utils";
 import AttendanceImportDialog from "@/components/AttendanceImportDialog";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 // Simplified UI Components inline
 const Badge = ({ children, variant = "default", className }: { children: React.ReactNode, variant?: "default" | "secondary" | "outline" | "destructive", className?: string }) => {

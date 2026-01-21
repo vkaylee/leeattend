@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import Modal from "../components/ui/Modal";
 import { toUTCISO } from "../lib/datetime";
+import { cn } from "@/lib/utils";
 
 export default function TimeTrackingPage() {
   const { t } = useTranslation();
@@ -54,7 +55,7 @@ export default function TimeTrackingPage() {
   const { startDate, endDate } = React.useMemo(() => {
     const now = new Date();
     const end = now.toISOString();
-    const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
     return { startDate: start, endDate: end };
   }, []);
 
@@ -123,13 +124,12 @@ export default function TimeTrackingPage() {
         </label>
         <div className="max-w-xl">
           <EmployeeSearch
-            workspaceId={wsId!}
+            testId="employee-select"
             value={selectedEmployeeId}
             onChange={setSelectedEmployeeId}
-            placeholder={t("time_tracking.search_placeholder")}
-            className="h-14 rounded-2xl bg-slate-50/50 hover:bg-white border-slate-200 focus:ring-primary-500/10 transition-all font-bold text-sm"
           />
         </div>
+
       </div>
 
       {selectedEmployee ? (

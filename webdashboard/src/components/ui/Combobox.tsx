@@ -3,12 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Command } from "cmdk";
 import { Search, Check, ChevronDown } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface ComboboxOption {
   value: string;

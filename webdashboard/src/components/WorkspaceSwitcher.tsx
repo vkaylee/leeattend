@@ -21,6 +21,7 @@ export default function WorkspaceSwitcher() {
       const currentId = getCurrentWorkspaceId();
       const current = workspaces.find((ws) => ws.id === currentId) || workspaces[0];
       if (current) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setActiveWorkspace(current);
         if (!currentId) setCurrentWorkspaceId(current.id);
       }

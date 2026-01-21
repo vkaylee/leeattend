@@ -140,9 +140,9 @@ export default function LeaveRequestsPage() {
                       <td className="px-8 py-6 text-right text-primary-600 font-black text-base font-mono tracking-tighter">{calculateAnnualEntitlement(policy)} {t("common.days_short")}</td>
                       <td className="px-8 py-6 text-right text-slate-400 font-black text-[10px] uppercase tracking-[0.2em] opacity-70">{t(`leave_requests.policy.strategies.${getAccrualStrategy(policy)}`)}</td>
                       <td className="px-10 py-6 text-right">
-                        <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-                          <button onClick={() => { setEditingPolicy(policy); setPolicyType(policy.leave_type || 'vacation'); setAccrualStrategy(getAccrualStrategy(policy)); setIsPolicyModalOpen(true); }} className="p-2.5 bg-white text-slate-400 hover:text-primary-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90"><Edit2 size={18} /></button>
-                          <button onClick={() => { if (confirm(t("leave_requests.policy.messages.confirm_delete"))) deletePolicyMutation.mutate(policy.id); }} className="p-2.5 bg-white text-slate-400 hover:text-rose-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90"><Trash2 size={18} /></button>
+                        <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-y-0 group-hover:opacity-100">
+                          <button onClick={() => { setEditingPolicy(policy); setPolicyType(policy.leave_type || 'vacation'); setAccrualStrategy(getAccrualStrategy(policy)); setIsPolicyModalOpen(true); }} className="p-2.5 bg-white text-slate-400 hover:text-primary-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90" title={t("common.edit")}><Edit2 size={18} /></button>
+                          <button onClick={() => { if (confirm(t("leave_requests.policy.messages.confirm_delete"))) deletePolicyMutation.mutate(policy.id); }} className="p-2.5 bg-white text-slate-400 hover:text-rose-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90" title={t("common.delete")}><Trash2 size={18} /></button>
                         </div>
                       </td>
                     </tr>

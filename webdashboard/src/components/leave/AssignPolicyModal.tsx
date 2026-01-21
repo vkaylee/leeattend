@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserCircle, FileText, ShieldCheck, CalendarDays } from "lucide-react";
+import { UserCircle, FileText, ShieldCheck, CalendarDays, Building2 } from "lucide-react";
 import {
   fetchEmployees,
   fetchDepartments,

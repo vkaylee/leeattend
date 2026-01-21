@@ -1,12 +1,7 @@
 import React from "react";
+import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, ChevronRight, ArrowLeft, ArrowRight } from "lucide-react";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface MonthYearPickerProps {
   month: number;

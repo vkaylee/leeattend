@@ -1,44 +1,10 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchLatestImportJob, fetchImportJobStatus, getCurrentWorkspaceId, uploadAttendance } from "@/lib/api";
-import { 
-  Upload,
-  AlertCircle,
-  CheckCircle2,
-  Loader2,
-  FileText
-} from "lucide-react";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { Upload, FileText, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { uploadAttendance, fetchLatestImportJob, fetchImportJobStatus, getCurrentWorkspaceId } from "@/lib/api";
 import Modal from "./ui/Modal";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-// Minimal Button for the dialog
-const Button = ({ children, variant = "default", className, disabled, onClick, type = "button" }: { children: React.ReactNode, variant?: string, className?: string, disabled?: boolean, onClick?: () => void, type?: "button" | "submit" }) => {
-  const variants: Record<string, string> = {
-    default: "bg-slate-900 text-white hover:bg-slate-800 shadow-sm",
-    outline: "border border-slate-200 bg-white hover:bg-slate-50 text-slate-700",
-    ghost: "hover:bg-slate-100 text-slate-600",
-  };
-  return (
-    <button 
-      type={type}
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-bold transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none",
-        variants[variant || "default"],
-        className
-      )}
-    >
-      {children}
-    </button>
-  );
-};
+import { cn } from "@/lib/utils";
 
 interface AttendanceImportDialogProps {
   isOpen: boolean;
@@ -81,8 +47,7 @@ export default function AttendanceImportDialog({ isOpen, onClose, endpoint, titl
       const result = await uploadAttendance(wsId, file, endpoint);
       setActiveJobId(result.job_id); setFile(null);
       queryClient.invalidateQueries({ queryKey: ["latest-import-job"] });
-    } catch (error) {
-    } finally { setUploading(false); }
+    } catch (error) { console.error(error); } finally { setUploading(false); }
   };
 
   const isFinished = jobStatus?.status === "completed" || jobStatus?.status === "failed";
@@ -116,7 +81,7 @@ export default function AttendanceImportDialog({ isOpen, onClose, endpoint, titl
             <div className="bg-slate-900 rounded-[2.5rem] p-10 border border-white/5 shadow-2xl shadow-rose-900/20 relative overflow-hidden">
               <h4 className="text-[10px] font-black text-rose-400 mb-6 flex items-center gap-3 uppercase tracking-[0.25em]"><AlertCircle size={16} /> {t("attendance_import.error_list_title")}</h4>
               <div className="space-y-4 max-h-64 overflow-y-auto pr-2 custom-scrollbar relative z-10">
-                {jobStatus.error_log.split("\n").map((err, i) => (<div key={i} className="text-[11px] bg-white/5 p-4 rounded-xl border border-white/5 text-slate-300 font-mono leading-relaxed group hover:bg-white/10 transition-colors"><span className="text-rose-500/50 mr-2 font-black uppercase">ERR:</span> {err}</div>))}
+                {jobStatus.error_log.split("\n").map((err: string, i: number) => (<div key={i} className="text-[11px] bg-white/5 p-4 rounded-xl border border-white/5 text-slate-300 font-mono leading-relaxed group hover:bg-white/10 transition-colors"><span className="text-rose-500/50 mr-2 font-black uppercase">ERR:</span> {err}</div>))}
               </div>
               <div className="absolute -right-8 -bottom-8 w-32 h-32 text-rose-500 opacity-5 -rotate-12 pointer-events-none"><AlertCircle size={128} /></div>
             </div>
@@ -171,8 +136,4 @@ export default function AttendanceImportDialog({ isOpen, onClose, endpoint, titl
       )}
     </Modal>
   );
-}
-
-  );
-
 }

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LayoutDashboard, Plus } from "lucide-react";
+import { LayoutDashboard, Plus, Loader2 } from "lucide-react";
 import { useWorkspaces } from "@/hooks/use-workspace";
 import { setCurrentWorkspaceId } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
@@ -19,8 +19,7 @@ export default function OnboardingPage() {
     try {
       const ws = await createWorkspace({ name });
       setCurrentWorkspaceId(ws.id); navigate("/", { replace: true });
-    } catch (error) {
-    } finally { setIsSubmitting(false); }
+    } catch (error) { console.error(error); } finally { setIsSubmitting(false); }
   };
 
   return (

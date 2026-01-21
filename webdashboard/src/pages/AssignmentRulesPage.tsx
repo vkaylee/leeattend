@@ -9,7 +9,9 @@ import {
   Filter,
   Check,
   X,
-  AlertCircle
+  AlertCircle,
+  Building2,
+  Zap
 } from "lucide-react";
 import { 
   fetchAssignmentRules, 
@@ -133,46 +135,6 @@ export default function AssignmentRulesPage() {
           <p className="opacity-70 font-bold uppercase tracking-tight">{t("rules.info_priority")}</p>
         </div>
       </div>
-
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={editingRule ? t("rules.edit_title") : t("rules.create_title")} subtitle={t("rules.form_subtitle")} icon={<Zap size={24} />} maxWidth="2xl">
-        <div className="space-y-10 pt-4 animate-in fade-in duration-500">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-3 px-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("rules.form.name")}</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("rules.form.name_placeholder")} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 font-black text-sm text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all uppercase tracking-tight shadow-sm" /></div>
-            <div className="space-y-3 px-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("rules.form.priority")}</label><input type="number" value={priority} onChange={(e) => setPriority(parseInt(e.target.value))} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 font-mono font-black text-sm text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all text-center shadow-sm" /></div>
-          </div>
-
-          <div className="space-y-3 px-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("rules.form.pattern")}</label>
-            <select value={patternId} onChange={(e) => setPatternId(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 font-black text-sm text-slate-900 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all uppercase tracking-tight shadow-sm appearance-none cursor-pointer">
-              <option value="">{t("patterns.form.select_pattern_placeholder").toUpperCase()}</option>
-              {patterns?.map(p => (<option key={p.id} value={p.id}>{p.name.toUpperCase()}</option>))}
-            </select>
-          </div>
-
-          <div className="bg-slate-50 rounded-[2.5rem] p-10 border border-slate-100 shadow-inner space-y-8">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-3"><Filter size={16} className="text-primary-500" /> {t("rules.conditions_title")}</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t("common.department")}</label>
-                <select value={conditions.department_id || ""} onChange={(e) => setConditions({ ...conditions, department_id: e.target.value || undefined })} className="w-full bg-white border border-slate-200 rounded-xl px-5 py-3.5 font-black text-xs uppercase tracking-widest shadow-sm outline-none focus:ring-4 focus:ring-primary-500/10 appearance-none cursor-pointer"><option value="">{t("common.all_departments").toUpperCase()}</option>{departments?.map(d => (<option key={d.id} value={d.id}>{d.name.toUpperCase()}</option>))}</select>
-              </div>
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t("common.tags")}</label>
-                <input type="text" value={conditions.tags?.join(", ") || ""} onChange={(e) => { const tags = e.target.value.split(",").map(t => t.trim()).filter(t => t !== ""); setConditions({ ...conditions, tags: tags.length > 0 ? tags : undefined }); }} placeholder={t("rules.form.tags_placeholder")} className="w-full bg-white border border-slate-200 rounded-xl px-5 py-3.5 font-black text-xs uppercase tracking-widest shadow-sm outline-none focus:ring-4 focus:ring-primary-500/10" />
-              </div>
-            </div>
-            <p className="text-[10px] text-slate-400 italic font-bold uppercase tracking-tight px-1 opacity-70 leading-relaxed">{t("rules.condition_help")}</p>
-          </div>
-
-          <div className="flex gap-6 pt-4 border-t border-slate-50">
-            <button onClick={closeModal} className="flex-1 px-8 py-4 bg-white border border-slate-200 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all active:scale-95">{t("common.cancel").toUpperCase()}</button>
-            <button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending} className="flex-[1.5] bg-primary-600 hover:bg-primary-700 text-white font-black px-8 py-4 rounded-2xl flex items-center justify-center gap-4 transition-all active:scale-95 disabled:opacity-50 shadow-2xl shadow-primary-100 text-xs uppercase tracking-widest"><Check size={20} /> {editingRule ? t("common.save_changes").toUpperCase() : t("common.create").toUpperCase()}</button>
-          </div>
-        </div>
-      </Modal>
-    </div>
-  );
-}
 
       {/* Create/Edit Modal */}
       <Modal

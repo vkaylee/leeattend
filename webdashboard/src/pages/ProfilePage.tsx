@@ -37,6 +37,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         full_name: user.full_name || "", avatar_url: user.avatar_url || "",
         bio: user.bio || "", preferred_language: user.preferred_language || "",
@@ -49,7 +50,7 @@ export default function ProfilePage() {
     try {
       await updateProfile(formData);
       toast.success(t("common.success"));
-    } catch (e) { }
+    } catch (e) { console.error(e); }
   }
 
   if (isLoading) return <div className="p-20 text-center"><div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>;

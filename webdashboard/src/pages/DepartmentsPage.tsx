@@ -55,7 +55,16 @@ export default function DepartmentsPage() {
     if (editingDept) { updateMutation.mutate(data); } else { createMutation.mutate(data); }
   };
 
-  useEffect(() => { if (editingDept) { setSelectedManagerId(editingDept.manager_id || ""); setSelectedPatternId(editingDept.default_working_pattern_id || ""); } else { setSelectedManagerId(""); setSelectedPatternId(""); } }, [editingDept]);
+  useEffect(() => {
+    if (editingDept) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedManagerId(editingDept.manager_id || "");
+      setSelectedPatternId(editingDept.default_working_pattern_id || "");
+    } else {
+      setSelectedManagerId("");
+      setSelectedPatternId("");
+    }
+  }, [editingDept]);
 
   if (!wsId) return <div className="p-12 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
 
