@@ -56,9 +56,9 @@ impl PairingStrategy for AnchorFirstStrategy {
         let first = &logs[0];
         let mut last_idx = 0;
 
-        // Find the furthest log that is within 12 hours (720 minutes) of the first log
+        // Find the furthest log that is within 16 hours (960 minutes) of the first log
         for (i, log) in logs.iter().enumerate().skip(1) {
-            if log.minutes - first.minutes <= 720 {
+            if log.minutes - first.minutes <= 960 {
                 last_idx = i;
             } else {
                 // Once we hit a log too far away, we stop for AnchorFirst
@@ -142,16 +142,16 @@ mod tests {
     }
 
     #[test]
-    fn test_anchor_12h_limit() {
+    fn test_anchor_16h_limit() {
         let strategy = AnchorFirstStrategy;
-        
+
         // Log 1: 08:00 (480)
-        // Log 2: 21:00 (1260) -> 13h gap (780 mins). Should NOT pair.
+        // Log 2: 01:00 next day (1500) -> 17h gap (1020 mins). Should NOT pair.
         let logs = vec![
             LogEvent { id: Uuid::new_v4(), minutes: 480, punch_type: None },
-            LogEvent { id: Uuid::new_v4(), minutes: 1260, punch_type: None },
+            LogEvent { id: Uuid::new_v4(), minutes: 1500, punch_type: None },
         ];
-        
+
         let sessions = strategy.pair(&logs, None);
         assert_eq!(sessions.len(), 1);
         assert!(sessions[0].end_minutes.is_none());
