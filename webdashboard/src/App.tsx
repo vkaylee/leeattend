@@ -72,6 +72,7 @@ function App() {
                   <Route path="/attendance-logs" element={<AttendanceLogsPage />} />
                   <Route path="/leave-requests" element={<LeaveRequestsPage />} />
                   <Route path="/leave-balances" element={<LeaveBalancesPage />} />
+                  <Route path="/workspace/leave/balances" element={<LeaveBalancesPage />} />
                   <Route path="/attendance-adjustments" element={<AttendanceAdjustmentsPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/shifts" element={<ShiftsPage />} />

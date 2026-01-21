@@ -11,7 +11,6 @@ import {
   Users,
   Clock,
   CalendarDays,
-  FileBarChart,
   UserRound,
   Banknote,
   CalendarRange,
@@ -56,10 +55,8 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
     ]},
     { section: "time", label: t("common.sections.time_leave"), items: [
       { to: "/workspace/leave/balances", icon: Scale, label: t("common.leave_balances") },
-      { to: "/workspace/reports", icon: BarChart3, label: t("common.reports") },
-      { to: "/leave-balances", icon: Banknote, label: t("common.leave_balances") },
       { to: "/attendance-adjustments", icon: History, label: t("common.attendance_confirm") },
-      { to: "/reports", icon: FileBarChart, label: t("common.reports") }
+      { to: "/workspace/reports", icon: BarChart3, label: t("common.reports") }
     ]},
     { section: "payroll", label: t("common.sections.payroll_shifts"), items: [
       { to: "/shifts", icon: CalendarRange, label: t("common.shifts") },
