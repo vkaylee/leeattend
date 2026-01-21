@@ -27,7 +27,9 @@ import {
   Palette,
   ShieldCheck,
   Share2,
-  HardDrive
+  HardDrive,
+  Scale,
+  BarChart3
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
