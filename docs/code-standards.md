@@ -76,6 +76,9 @@ For E2E stability and performance, we adhere to the **Isolated Parallel Environm
 2. **Pre-compiled Binary**: E2E workers thực thi file binary backend đã được build sẵn thay vì dùng `cargo run` để tránh xung đột file lock của Rust compiler.
 3. **Hybrid Locators (Priority Order)**: 
     - **Level 1: Data-TestID (Primary Strategy)**: BẮT BUỘC sử dụng `page.getByTestId('sidebar-link-members')` cho các thành phần điều hướng, hành động chính và tiêu đề trang. Đây là cách duy nhất đảm bảo test không bị fail khi thay đổi ngôn ngữ (i18n) hoặc refactor CSS.
+        - **Standard Naming Convention**: `[context]-[sub-element]-[type/action]`
+        - **Examples**: `sidebar-link-employees`, `login-email-input`, `employees-btn-edit`, `employees-row-123`.
+        - **Format**: Luôn sử dụng `kebab-case`. Tránh gán ID động trừ khi cần xác định cụ thể một bản ghi (dùng DB ID).
     - **Level 2: Semantic Attributes**: Sử dụng `page.locator('input[name="email"]')` hoặc `getByPlaceholder`.
     - **Level 3: Stable Roles**: Sử dụng `getByRole('button', { name: 'submit' })` nếu attribute `type="submit"` ổn định.
     - **Avoid**: Tuyệt đối tránh sử dụng `getByText(/Regex/i)` cho các element quan trọng vì nội dung dịch (copy) thay đổi thường xuyên sẽ làm gãy test.

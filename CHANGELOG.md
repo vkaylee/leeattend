@@ -84,9 +84,10 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ### Fixed
 - **E2E Test Stabilization**:
+    - **TestID Standardization**: Standardized `data-testid` attributes across core pages (Auth, Employees, Sidebar) using a strict `[context]-[element]-[type]` naming convention (e.g., `sidebar-link-employees`, `login-email-input`).
     - **Language-Agnostic Locators**: Implemented `data-testid` across all critical pages (Employees, Shifts, Attendance Logs, Settings) to ensure tests pass regardless of UI language (VI/EN/ZH).
     - **Navigation Resilience**: Refactored `route-regression.spec.ts` to use direct navigation (`page.goto`), bypassing flakiness from sidebar animations and layout shifts.
-    - **Integration Test Reliability**: Refactored `EmployeeSearchIntegration.test.ts` to use stable test IDs, ensuring consistent verification of search results.
+    - **Integration Test Reliability**: Refactored `EmployeeSearchIntegration.test.ts` and `login-success.spec.ts` to use stable, standardized test IDs, ensuring consistent verification.
     - **CI Performance**: Optimized `worker-orchestrator.ts` and `playwright.config.ts` to support isolated storage states and parallel execution with reduced system load.
 - **Postgres Migration Syntax**: Resolved syntax errors in integration tests by standardizing on Postgres-compatible SQL (e.g., using `TIMESTAMPTZ` and `TRUE`/`FALSE`).
 - **Employee Name Refactor**: Updated API tests to use `full_name` instead of deprecated `first_name` and `last_name` fields, aligning test expectations with the current data model.
