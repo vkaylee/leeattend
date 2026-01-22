@@ -6,20 +6,17 @@ test.describe("Change Password Flow", () => {
     test.slow(); // Increases timeout for this test
     // 1. Initial Login
     await page.goto(`${baseURL}/login`);
-    await page.fill(
-      'input[name="email"]',
-      "admin@leeattend.com",
-    );
+    await page.getByTestId('login-email-input').fill("admin@leeattend.com");
 
     let currentPwd = "admin123";
-    await page.fill('input[name="password"]', currentPwd);
+    await page.getByTestId('login-password-input').fill(currentPwd);
     await page.getByTestId('login-submit-btn').click();
 
     await page.waitForTimeout(3000);
     if (page.url().includes("/login")) {
       console.log("admin123 failed, trying newadmin123");
       currentPwd = "newadmin123";
-      await page.fill('input[name="password"]', currentPwd);
+      await page.getByTestId('login-password-input').fill(currentPwd);
       await page.getByTestId('login-submit-btn').click();
     }
 
@@ -48,11 +45,8 @@ test.describe("Change Password Flow", () => {
     await expect(page).toHaveURL("/login", { timeout: 15000 });
 
     // Thử login với mật khẩu mới
-    await page.fill(
-      'input[name="email"]',
-      "admin@leeattend.com",
-    );
-    await page.fill('input[name="password"]', nextPwd);
+    await page.getByTestId('login-email-input').fill("admin@leeattend.com");
+    await page.getByTestId('login-password-input').fill(nextPwd);
     await page.getByTestId('login-submit-btn').click();
 
     await expect(page).toHaveURL("/", { timeout: 15000 });

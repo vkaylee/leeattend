@@ -150,7 +150,7 @@ export default function EmployeesPage() {
               {filteredEmployees.length === 0 ? (
                 <tr><td colSpan={5} className="px-8 py-32 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("employees.table.no_data")}</td></tr>
               ) : filteredEmployees.map((emp) => (
-                <tr key={emp.id} onClick={() => setSelectedEmployee(emp)} className={cn("cursor-pointer transition-all group relative", selectedEmployee?.id === emp.id ? "bg-primary-50/50" : "hover:bg-slate-50/50")}>
+                <tr key={emp.id} data-testid={`employees-row-${emp.id}`} onClick={() => setSelectedEmployee(emp)} className={cn("cursor-pointer transition-all group relative", selectedEmployee?.id === emp.id ? "bg-primary-50/50" : "hover:bg-slate-50/50")}>
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-5">
                       <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm shadow-inner border transition-all uppercase", selectedEmployee?.id === emp.id ? "bg-primary-600 text-white border-primary-500" : "bg-slate-100 text-slate-400 border-slate-100 group-hover:bg-white group-hover:text-primary-600 group-hover:border-primary-100")}>{emp.full_name[0]}</div>
@@ -199,7 +199,7 @@ export default function EmployeesPage() {
                 { id: "policies", label: t("employees.details.special_policies") },
                 { id: "history", label: t("employees.details.work_history") } 
               ].map(tab => (
-                <button key={tab.id} onClick={() => setActiveDetailTab(tab.id as DetailTabType)} className={cn("px-8 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all", activeDetailTab === tab.id ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}>{tab.label.toUpperCase()}</button>
+                <button key={tab.id} data-testid={`employees-tab-${tab.id}`} onClick={() => setActiveDetailTab(tab.id as DetailTabType)} className={cn("px-8 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all", activeDetailTab === tab.id ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}>{tab.label.toUpperCase()}</button>
               ))}
             </div>
           </div>
@@ -209,11 +209,11 @@ export default function EmployeesPage() {
               // ... existing profile content ...
               <div className="space-y-10 animate-in slide-in-from-bottom-4 duration-500">
                 <div className="grid grid-cols-2 gap-6">
-                  <button onClick={() => { setEditingEmployee(selectedEmployee); setIsModalOpen(true); }} className="flex items-center justify-center gap-3 py-4 bg-white border border-slate-200 text-slate-700 font-black rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all text-xs uppercase tracking-widest shadow-sm active:scale-95"><Edit2 size={18} /> {t("employees.details.edit_profile").toUpperCase()}</button>
+                  <button data-testid="employees-btn-edit" onClick={() => { setEditingEmployee(selectedEmployee); setIsModalOpen(true); }} className="flex items-center justify-center gap-3 py-4 bg-white border border-slate-200 text-slate-700 font-black rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all text-xs uppercase tracking-widest shadow-sm active:scale-95"><Edit2 size={18} /> {t("employees.details.edit_profile").toUpperCase()}</button>
                   {selectedEmployee.is_active ? (
-                    <button onClick={() => { if (window.confirm(t("employees.details.terminate_confirm"))) { updateMutation.mutate({ id: selectedEmployee.id, employee: { is_active: false, termination_date: format(new Date(), 'yyyy-MM-dd') } }); } }} className="flex items-center justify-center gap-3 py-4 bg-rose-50 text-rose-600 font-black rounded-2xl hover:bg-rose-100 transition-all text-xs uppercase tracking-widest active:scale-95 shadow-sm shadow-rose-900/5"><Trash2 size={18} /> {t("employees.details.terminate").toUpperCase()}</button>
+                    <button data-testid="employees-btn-terminate" onClick={() => { if (window.confirm(t("employees.details.terminate_confirm"))) { updateMutation.mutate({ id: selectedEmployee.id, employee: { is_active: false, termination_date: format(new Date(), 'yyyy-MM-dd') } }); } }} className="flex items-center justify-center gap-3 py-4 bg-rose-50 text-rose-600 font-black rounded-2xl hover:bg-rose-100 transition-all text-xs uppercase tracking-widest active:scale-95 shadow-sm shadow-rose-900/5"><Trash2 size={18} /> {t("employees.details.terminate").toUpperCase()}</button>
                   ) : (
-                    <button onClick={() => setIsRehireModalOpen(true)} className="flex items-center justify-center gap-3 py-4 bg-primary-600 text-white font-black rounded-2xl hover:bg-primary-700 transition-all text-xs uppercase tracking-widest shadow-xl shadow-primary-100 active:scale-95"><UserPlus size={18} /> {t("employees.details.rehire").toUpperCase()}</button>
+                    <button data-testid="employees-btn-rehire" onClick={() => setIsRehireModalOpen(true)} className="flex items-center justify-center gap-3 py-4 bg-primary-600 text-white font-black rounded-2xl hover:bg-primary-700 transition-all text-xs uppercase tracking-widest shadow-xl shadow-primary-100 active:scale-95"><UserPlus size={18} /> {t("employees.details.rehire").toUpperCase()}</button>
                   )}
                 </div>
 
@@ -288,12 +288,12 @@ export default function EmployeesPage() {
         <form onSubmit={handleSubmit} className="space-y-8 pt-4 animate-in fade-in duration-500">
           <div className="space-y-3 px-1">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("employees.form.full_name")}</label>
-            <input name="full_name" required defaultValue={editingEmployee?.full_name} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight shadow-sm" />
+            <input name="full_name" data-testid="employees-form-name-input" required defaultValue={editingEmployee?.full_name} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight shadow-sm" />
           </div>
-          <div className="space-y-3 px-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("employees.form.employee_id")}</label><input name="employee_id_number" required defaultValue={editingEmployee?.employee_id_number} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono font-black text-sm tracking-widest uppercase shadow-sm" /></div>
-          <div className="space-y-3 px-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("employees.form.hire_date")}</label><input type="date" name="hire_date" required defaultValue={editingEmployee?.hire_date} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm shadow-sm" /></div>
+          <div className="space-y-3 px-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("employees.form.employee_id")}</label><input name="employee_id_number" data-testid="employees-form-id-input" required defaultValue={editingEmployee?.employee_id_number} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono font-black text-sm tracking-widest uppercase shadow-sm" /></div>
+          <div className="space-y-3 px-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("employees.form.hire_date")}</label><input type="date" name="hire_date" data-testid="employees-form-hire-date-input" required defaultValue={editingEmployee?.hire_date} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm shadow-sm" /></div>
           <div className="flex items-center gap-4 py-2 px-2 group cursor-pointer">
-            <input type="checkbox" name="is_active" id="is_active" defaultChecked={editingEmployee ? editingEmployee.is_active : true} className="w-7 h-7 text-primary-600 rounded-xl border-slate-200 focus:ring-primary-500 transition-all cursor-pointer shadow-inner" />
+            <input type="checkbox" name="is_active" id="is_active" data-testid="employees-form-active-checkbox" defaultChecked={editingEmployee ? editingEmployee.is_active : true} className="w-7 h-7 text-primary-600 rounded-xl border-slate-200 focus:ring-primary-500 transition-all cursor-pointer shadow-inner" />
             <label htmlFor="is_active" className="text-sm font-black text-slate-700 uppercase tracking-widest cursor-pointer group-hover:text-primary-600 transition-colors">{t("employees.form.is_active")}</label>
           </div>
           <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50">

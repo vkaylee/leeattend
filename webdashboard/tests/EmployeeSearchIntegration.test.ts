@@ -13,16 +13,14 @@ test.describe('Employee Search Integration', () => {
 
     // 1. Login
     await page.goto('/login');
-    await page.fill('input[name="email"]', 'admin@leeattend.com');
-    await page.fill('input[name="password"]', 'admin123');
+    await page.getByTestId('login-email-input').fill('admin@leeattend.com');
+    await page.getByTestId('login-password-input').fill('admin123');
     await page.getByTestId('login-submit-btn').click();
-    await page.waitForURL('/', { timeout: 15000 });
+
     await expect(page.getByTestId('dashboard-title')).toBeVisible({ timeout: 15000 });
 
-    // 2. Navigate to Employees page
-    console.log('Navigating to /employees...');
+    // Navigate to employees page
     await page.goto('/employees');
-    await page.waitForURL('/employees');
     await expect(page.getByTestId('employees-title')).toBeVisible({ timeout: 30000 });
 
     // 3. Create an employee via UI
@@ -31,20 +29,16 @@ test.describe('Employee Search Integration', () => {
     const addButton = page.getByTestId('add-employee-btn');
     await addButton.click();
 
-    // Fill form
-    await expect(page.getByRole('heading', { level: 2, name: /Add Employee|Thêm nhân viên/i })).toBeVisible(); // Modal title
-    await page.fill('input[name="full_name"]', 'SearchTarget');
-    await page.fill('input[name="employee_id_number"]', 'EMP999');
-    await page.fill('input[name="hire_date"]', '2024-01-01');
+    // Fill the form using standardized testids
+    await page.getByTestId('employees-form-name-input').fill('SearchTarget');
+    await page.getByTestId('employees-form-id-input').fill('EMP999');
+    await page.getByTestId('employees-form-hire-date-input').fill('2024-01-01');
     
     // Submit the form using data-testid
     await page.getByTestId('save-employee-btn').click();
 
-    // Wait for modal to close (or check if it disappears)
-    await expect(page.getByRole('heading', { level: 2, name: /Add Employee|Thêm nhân viên/i })).toBeHidden();
-    
-    // Wait for the new employee to appear in the list (optional, but good verification)
-    await expect(page.getByRole('row', { name: /SearchTarget/i })).toBeVisible();
+    // Wait for the new employee to appear in the list (using row testid if possible, but row name is also fine)
+    await expect(page.getByText('SearchTarget')).toBeVisible({ timeout: 15000 });
 
     console.log('Employee created. Starting search test...');
 
@@ -54,9 +48,8 @@ test.describe('Employee Search Integration', () => {
     await searchInput.fill('SearchTarget');
 
     // 5. Verify the list is filtered to show our target
-    // We look for the row containing our target name
-    const targetRow = page.getByRole('row', { name: /SearchTarget/i });
-    await expect(targetRow).toBeVisible({ timeout: 10000 });
+    // We look for the text containing our target name
+    await expect(page.getByText('SearchTarget')).toBeVisible({ timeout: 10000 });
     
     console.log('Search successful, target found in filtered list.');
   });

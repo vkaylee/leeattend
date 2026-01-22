@@ -79,13 +79,13 @@ export default function LoginPage() {
               <div className="space-y-3 px-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 opacity-70">{t("auth.email")}</label>
                 <div className="relative group">
-                  <input id="email-address" name="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="block w-full px-6 py-4.5 bg-slate-50 border border-slate-100 text-slate-900 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white transition-all font-black placeholder:text-slate-300 text-sm uppercase tracking-tight shadow-inner" placeholder="admin@leeattend.com" />
+                  <input id="email-address" data-testid="login-email-input" name="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="block w-full px-6 py-4.5 bg-slate-50 border border-slate-100 text-slate-900 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white transition-all font-black placeholder:text-slate-300 text-sm uppercase tracking-tight shadow-inner" placeholder="admin@leeattend.com" />
                 </div>
               </div>
               <div className="space-y-3 px-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 opacity-70">{t("auth.password")}</label>
                 <div className="relative group">
-                  <input id="password" name="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="block w-full px-6 py-4.5 bg-slate-50 border border-slate-100 text-slate-900 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white transition-all font-black placeholder:text-slate-300 text-sm tracking-[0.3em] shadow-inner" placeholder="••••••••" />
+                  <input id="password" data-testid="login-password-input" name="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="block w-full px-6 py-4.5 bg-slate-50 border border-slate-100 text-slate-900 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white transition-all font-black placeholder:text-slate-300 text-sm tracking-[0.3em] shadow-inner" placeholder="••••••••" />
                 </div>
               </div>
             </div>

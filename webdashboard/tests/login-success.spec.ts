@@ -7,8 +7,8 @@ test.describe('Login Success Flow', () => {
     await page.goto(`${workerWebUrl}/login`);
 
     // 2. Fill in the login form
-    await page.fill('input[name="email"]', 'admin@leeattend.com');
-    await page.fill('input[name="password"]', 'admin123');
+    await page.getByTestId('login-email-input').fill('admin@leeattend.com');
+    await page.getByTestId('login-password-input').fill('admin123');
 
     // 3. Click the login button
     // The button has text "Đăng nhập" in Vietnamese (from i18n)
@@ -23,7 +23,7 @@ test.describe('Login Success Flow', () => {
 
     // 5. Verify Sidebar or some home page element is visible
     // We check for the Dashboard heading which should be present in English
-    await expect(page.getByRole('heading', { level: 1, name: /Dashboard/i })).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId('dashboard-title')).toBeVisible({ timeout: 30000 });
     
     // Check if we are actually logged in by looking for a logout button or profile info
     // Usually there's a sidebar with menu items
@@ -33,8 +33,8 @@ test.describe('Login Success Flow', () => {
   test('should show error message with invalid credentials', async ({ page, workerWebUrl }) => {
     await page.goto(`${workerWebUrl}/login`);
 
-    await page.fill('input[name="email"]', 'wrong@example.com');
-    await page.fill('input[name="password"]', 'wrongpass');
+    await page.getByTestId('login-email-input').fill('wrong@example.com');
+    await page.getByTestId('login-password-input').fill('wrongpass');
 
     await page.getByTestId('login-submit-btn').click();
 

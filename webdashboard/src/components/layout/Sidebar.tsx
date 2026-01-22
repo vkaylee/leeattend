@@ -60,7 +60,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
   const handleLogout = () => { localStorage.clear(); window.location.href = "/login"; };
 
   const menuItems = [
-    { to: "/", icon: LayoutDashboard, label: t("common.dashboard"), exact: true },
+    { to: "/", icon: LayoutDashboard, label: t("common.dashboard"), exact: true, testId: "sidebar-link-dashboard" },
     { section: "org", sectionIcon: Folder, label: t("common.sections.organization"), testId: "sidebar-section-org", items: [
       { to: "/employees", icon: UserRound, label: t("common.employees"), testId: "sidebar-link-employees" },
       { to: "/departments", icon: Building2, label: t("common.departments"), testId: "sidebar-link-departments" },
@@ -125,6 +125,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
               <Link
                 key={idx}
                 to={group.to!}
+                data-testid={group.testId}
                 title={isCollapsed ? group.label : undefined}
                 className={cn(
                   "flex items-center gap-4 rounded-2xl transition-all duration-500 group relative mb-2",
@@ -193,6 +194,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
       <div className={cn("border-t border-slate-50 space-y-2 bg-slate-50/20 transition-all duration-500", isCollapsed ? "lg:p-2 p-8" : "p-8")}>
         <Link
           to="/profile"
+          data-testid="sidebar-link-profile"
           title={isCollapsed ? t("common.profile") : undefined}
           className={cn(
             "flex items-center gap-4 rounded-2xl transition-all group",
@@ -205,6 +207,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
         </Link>
         <button
           onClick={onShowSwitcher}
+          data-testid="sidebar-btn-switcher"
           title={isCollapsed ? t("common.switch_workspace") : undefined}
           className={cn(
             "w-full flex items-center gap-4 text-slate-500 hover:bg-white hover:text-primary-600 hover:shadow-xl hover:scale-[1.02] rounded-2xl transition-all group font-black text-xs uppercase tracking-widest border border-transparent hover:border-slate-100 active:scale-95",
@@ -216,6 +219,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
         </button>
         <button
           onClick={handleLogout}
+          data-testid="sidebar-btn-logout"
           title={isCollapsed ? t("common.logout") : undefined}
           className={cn(
             "w-full flex items-center gap-4 text-rose-500 hover:bg-rose-50 rounded-2xl transition-all group font-black text-xs uppercase tracking-widest active:scale-95",
