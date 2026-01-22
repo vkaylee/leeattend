@@ -210,6 +210,8 @@ export default function ShiftsPage() {
       setNewBreakStart("");
       setNewBreakEnd("");
       setIsFixedBreak(false);
+      setIsCreateModalOpen(false);
+      setActiveTab("directory");
       queryClient.invalidateQueries({ queryKey: ["shifts", wsId] });
     },
     onError: (error: any) => toast.error(error.message, t("shifts.messages.create_shift_error"))
