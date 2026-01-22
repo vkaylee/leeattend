@@ -241,14 +241,14 @@ impl AttendanceImportService {
             return Err(());
         }
 
-        // 2. VALIDATION PHASE (Strict)
+        // 2. VALIDATION PHASE (Soft Validation)
         let unique_emp_ids: HashSet<String> = pending_rows
             .iter()
             .map(|r| r.emp_id_number.clone())
             .collect();
         let unique_emp_ids_vec: Vec<String> = unique_emp_ids.iter().cloned().collect();
 
-        match employee_repository::get_existing_employee_ids_by_numbers(
+        let known_emp_ids: HashSet<String> = match employee_repository::get_existing_employee_ids_by_numbers(
             &pool,
             job.workspace_id,
             &unique_emp_ids_vec,
@@ -256,27 +256,18 @@ impl AttendanceImportService {
         .await
         {
             Ok(existing_ids) => {
-                let existing_set: HashSet<String> = existing_ids.into_iter().collect();
+                let known: HashSet<String> = existing_ids.into_iter().collect();
                 let missing_ids: Vec<String> =
-                    unique_emp_ids.difference(&existing_set).cloned().collect();
+                    unique_emp_ids.difference(&known).cloned().collect();
 
                 if !missing_ids.is_empty() {
-                    let err_msg = format!(
-                        "Found {} unknown employees: {}",
+                    errors.push(format!(
+                        "Bỏ qua {} mã nhân viên không tồn tại: {}",
                         missing_ids.len(),
                         missing_ids.join(", ")
-                    );
-                    let _ = import_job_repository::update_job_progress(
-                        &pool,
-                        job_id,
-                        0,
-                        ImportJobStatus::Failed,
-                        Some(err_msg),
-                    )
-                    .await;
-                    let _ = tokio::fs::remove_file(file_path).await;
-                    return Err(());
+                    ));
                 }
+                known
             }
             Err(e) => {
                 error!("VALIDATION_ERROR: {:?}", e);
@@ -288,25 +279,31 @@ impl AttendanceImportService {
                     Some("Database error during validation".to_string()),
                 )
                 .await;
+                let _ = tokio::fs::remove_file(file_path).await;
                 return Err(());
             }
-        }
+        };
 
         // 3. PROCESSING PHASE
-        // If we are resuming, skip already processed rows?
-        // With strict validation, we might just re-process everything that hasn't been saved?
-        // But if `processed_rows` > 0, it means we did some.
-        // The loop below will try to process all pending_rows.
-        // We should skip the first `processed_rows` if the order is deterministic.
-        // Since `pending_rows` is built sequentially from file, it is deterministic.
-
+        let mut skipped_rows = 0;
         let rows_to_process = pending_rows.into_iter().skip(processed_rows as usize);
 
         for row in rows_to_process {
+            // Only process if employee is known
+            if !known_emp_ids.contains(&row.emp_id_number) {
+                skipped_rows += 1;
+                continue;
+            }
+
             match Self::process_import_row(&pool, &job, &row.emp_id_number, row.punch_time).await {
-                Ok(c) => {
-                    processed_rows += c as i32;
-                    if processed_rows % 10 == 0 {
+                Ok(inserted) => {
+                    if inserted > 0 {
+                        processed_rows += 1;
+                    } else {
+                        skipped_rows += 1;
+                    }
+                    
+                    if (processed_rows + skipped_rows) % 10 == 0 {
                         let _ = import_job_repository::update_job_progress(
                             &pool,
                             job_id,
@@ -327,11 +324,16 @@ impl AttendanceImportService {
             }
         }
 
-        let status = if !errors.is_empty() {
-            ImportJobStatus::Failed
-        } else {
+        if skipped_rows > 0 {
+            errors.push(format!("Đã bỏ qua {} dòng (trùng lặp hoặc NV không tồn tại).", skipped_rows));
+        }
+
+        let status = if processed_rows > 0 || errors.is_empty() {
             ImportJobStatus::Completed
+        } else {
+            ImportJobStatus::Failed
         };
+
         let error_log = if errors.is_empty() {
             None
         } else {
@@ -681,21 +683,24 @@ impl AttendanceImportService {
                 created_at: Utc::now(),
             };
 
-            raw_attendance_log_repository::create_raw_log(pool, &raw_log)
+            let inserted = raw_attendance_log_repository::create_raw_log(pool, &raw_log)
                 .await
                 .map_err(|e| {
                     error!("CREATE_RAW_LOG_ERROR: {:?}", e);
                     StatusCode::INTERNAL_SERVER_ERROR
                 })?;
 
-            // 2. Trigger Pairing Logic
-            if let Err(e) = PairingService::process_new_raw_log(pool, &raw_log).await {
-                error!("PAIRING_ERROR for log {}: {:?}", raw_log.id, e);
-                // Return error to propagate
-                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            if inserted {
+                // 2. Trigger Pairing Logic
+                if let Err(e) = PairingService::process_new_raw_log(pool, &raw_log).await {
+                    error!("PAIRING_ERROR for log {}: {:?}", raw_log.id, e);
+                    // Return error to propagate
+                    return Err(StatusCode::INTERNAL_SERVER_ERROR);
+                }
+                Ok(1)
+            } else {
+                Ok(0)
             }
-
-            Ok(1)
         } else {
             let req = CreateAttendanceAdjustmentRequest {
                 employee_id: employee.id,

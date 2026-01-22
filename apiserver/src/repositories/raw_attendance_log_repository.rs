@@ -3,9 +3,11 @@ use chrono::{DateTime, Utc};
 use sqlx::{query, query_as, PgPool};
 use uuid::Uuid;
 
-pub async fn create_raw_log(pool: &PgPool, log: &RawAttendanceLog) -> Result<(), sqlx::Error> {
-    query(
-        "INSERT INTO raw_attendance_logs (id, workspace_id, employee_id, punch_time, source, device_id, raw_data, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
+pub async fn create_raw_log(pool: &PgPool, log: &RawAttendanceLog) -> Result<bool, sqlx::Error> {
+    let result = query(
+        "INSERT INTO raw_attendance_logs (id, workspace_id, employee_id, punch_time, source, device_id, raw_data, created_at) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (workspace_id, employee_id, punch_time) DO NOTHING"
     )
     .bind(log.id)
     .bind(log.workspace_id)
@@ -17,7 +19,8 @@ pub async fn create_raw_log(pool: &PgPool, log: &RawAttendanceLog) -> Result<(),
     .bind(log.created_at)
     .execute(pool)
     .await?;
-    Ok(())
+
+    Ok(result.rows_affected() > 0)
 }
 
 pub async fn get_raw_log_by_id(

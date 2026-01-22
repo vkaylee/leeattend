@@ -208,7 +208,7 @@ async fn test_import_fallback_logic() {
 }
 
 #[tokio::test]
-async fn test_import_strict_validation_failure() {
+async fn test_import_soft_validation_behavior() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
@@ -218,7 +218,7 @@ async fn test_import_strict_validation_failure() {
     // Create a temporary CSV file with UNKNOWN employee
     let storage_dir = "./storage/test_imports";
     fs::create_dir_all(storage_dir).await.unwrap();
-    let file_path = format!("{}/test_strict_fail.csv", storage_dir);
+    let file_path = format!("{}/test_soft_fail.csv", storage_dir);
     let csv_data = "empNo,empName,empDt\nUNKNOWN-001,Unknown,11/01/2026 08:30";
     fs::write(&file_path, csv_data).await.unwrap();
 
@@ -248,9 +248,9 @@ async fn test_import_strict_validation_failure() {
         }
     }
 
-    assert!(processed, "Job did not fail as expected");
+    assert!(processed, "Job did not fail as expected when 0 rows were processed");
     assert!(
-        error_msg.contains("Found 1 unknown employees"),
+        error_msg.contains("Bỏ qua 1 mã nhân viên không tồn tại"),
         "Error message mismatch: {}",
         error_msg
     );
@@ -263,6 +263,6 @@ async fn test_import_strict_validation_failure() {
     // Verify file is deleted
     assert!(
         !fs::try_exists(&file_path).await.unwrap(),
-        "File should be deleted after failure"
+        "File should be deleted after processing"
     );
 }
