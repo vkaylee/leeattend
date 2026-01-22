@@ -3,6 +3,9 @@ import { test as base, expect, WorkerInfo } from '@playwright/test';
 import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import { LoginPage } from './pom/LoginPage';
+import { Sidebar } from './pom/Sidebar';
+import { EmployeesPage } from './pom/EmployeesPage';
 
 export { expect };
 
@@ -10,6 +13,14 @@ export { expect };
 // Worker fixtures type definition
 type WorkerFixtures = {
   workerWebUrl: string;
+};
+
+// Test-scoped fixtures type definition
+type TestFixtures = {
+  loginPage: LoginPage;
+  sidebar: Sidebar;
+  employeesPage: EmployeesPage;
+  authPage: LoginPage; // Auto-authenticated page
 };
 
 const workerTest = base.extend<{}, WorkerFixtures>({
@@ -91,10 +102,29 @@ const workerTest = base.extend<{}, WorkerFixtures>({
 });
 
 // 2. Extend with test-scoped fixtures that depend on worker fixtures
-export const test = workerTest.extend<{ }>({
+export const test = workerTest.extend<TestFixtures>({
   // Override baseURL to use the dynamic one from worker scope
   baseURL: async ({ workerWebUrl }, use) => {
     await use(workerWebUrl);
+  },
+
+  // Page Objects
+  loginPage: async ({ page }, use) => {
+    await use(new LoginPage(page));
+  },
+  sidebar: async ({ page }, use) => {
+    await use(new Sidebar(page));
+  },
+  employeesPage: async ({ page }, use) => {
+    await use(new EmployeesPage(page));
+  },
+
+  // Fixture that automatically logs in
+  authPage: async ({ page, loginPage }, use) => {
+    await loginPage.goto();
+    await loginPage.fastLogin();
+    await expect(page.getByTestId('dashboard-title')).toBeVisible({ timeout: 30000 });
+    await use(loginPage);
   },
   
       // Force English via storageState
