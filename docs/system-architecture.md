@@ -104,6 +104,20 @@ Instead of a simple monthly calculation, the system employs a **Segmentation Eng
 - **Granular Audit Trail**: Every calculation detail for each segment is persisted in the `payslip_segments` table.
 - **History Protection**: Future changes to department settings or global policies will **never** alter the values of finalized payslips, as the calculation parameters are frozen in the snapshot.
 
+### 15. Special Attendance Policy Resolution
+Beyond the standard 3-tier payroll settings, the system implements a **Working Condition Overlay** system to handle individual employee privileges (e.g., Parental Leave, Breastfeeding Breaks).
+
+#### 15.1. Resolution Flow
+During attendance calculation, the `PolicyResolver` fetches all active `working_conditions` for the employee on the target date.
+1. **Fetch**: Query `working_conditions` where `start_date <= date` and `end_date >= date`.
+2. **Merge**: If multiple policies exist (e.g., a general "Early Leave" and a "Breastfeeding" privilege), the system merges them into a single `PolicyRules` object.
+3. **Generosity Principle**: When privileges overlap, the engine defaults to the most generous allowance (highest `minute_allowance`).
+
+#### 15.2. Impact on Calculation
+The resolved `PolicyRules` are passed to the `AttendanceCalculator`, affecting the resulting work buckets:
+- **`authorized_early_leave_minutes`**: If an employee leaves early but within this allowance, the "Early Leave" status is suppressed.
+- **`is_early_leave_paid`**: If true, the system "boosts" the standard work duration to cover the missing minutes, ensuring the employee receives full pay despite departing early.
+
 ### 📅 Temporal Policy Engine (3-Tier)
 
 The system uses a hierarchical resolution strategy to determine working conditions (Standard Days, Hours per Day) at any specific point in time.

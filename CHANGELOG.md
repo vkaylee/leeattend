@@ -5,6 +5,13 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Special Attendance Policies (Parental Support & privileges)**:
+    - **Dynamic Privileges**: Implemented a "Working Condition Overlay" system to handle individual employee attendance privileges (e.g., Early Leave for Childcare, Breastfeeding Breaks, Medical Recovery).
+    - **Policy Resolution**: Enhanced `PolicyResolver` to dynamically fetch and merge employee-specific privileges based on date validity.
+    - **Refactored Calculation Core**: Standardized `AttendanceCalculator` to use a `PolicyRules` context, improving code quality and enabling robust support for `authorized_early_leave_minutes` and `is_early_leave_paid`.
+    - **Management UI**: Added a dedicated "Policies" tab to the Employee Detail view for assigning and tracking special attendance regimes.
+    - **API Integration**: New endpoints for CRUD operations on employee working conditions (`GET/POST/DELETE .../employees/:id/conditions`).
+    - **Full Localization**: Added comprehensive translations for policies and privileges in English, Vietnamese, and Chinese.
 - **Leave Balance Pagination**:
     - **Performance**: Implemented server-side pagination for `GET /workspaces/:ws_id/leave/balances` to handle large employee datasets.
     - **Backend**: Updated repository and service layers to support `limit`, `offset`, and `q` (search) parameters.

@@ -112,6 +112,10 @@ leeattend/
 - **Early Arrival Policy**: Configurable strategy (`Block`, `Allow`, `Clamp`) to handle check-ins before shift start. Controlled by `early_arrival_strategy` in Workspace settings and `early_punch_in_grace_period_minutes` in Shift settings.
 - **Pagination**: Implemented for high-volume endpoints like Leave Balances (`/workspaces/:ws_id/leave/balances`) to improve performance with large employee datasets.
 - **Grace Period Config**: Explicit UI configuration for shift grace periods, critical for the new arrival policies.
+- **Special Attendance Policies**: Support for flexible employee-specific privileges such as "Parental Leave" (early leave for childcare) and "Breastfeeding Breaks".
+    - **PolicyResolver Integration**: Automatically applies privileged minutes (e.g., 60m paid early leave) during attendance calculation based on active `working_conditions`.
+    - **Refactored Calculator**: Standardized `AttendanceCalculator` to use a `PolicyRules` context, enabling cleaner extension for future business rules.
+    - **Management UI**: Dedicated "Policies" tab in employee details for assigning and tracking special attendance privileges.
 
 
 ...

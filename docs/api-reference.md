@@ -298,6 +298,42 @@ Thực hiện tái tuyển dụng (re-hire) một nhân viên đã nghỉ việc
   ```
 - **Response (200)**: `Employee` object (updated)
 
+#### GET /workspaces/:ws_id/employees/:id/conditions (New)
+Lấy danh sách các đặc cách/chế độ chấm công đặc biệt của nhân viên (ví dụ: nuôi con nhỏ, đi muộn có lương).
+- **Response (200)**: `Array<WorkingCondition>`
+  ```json
+  [
+    {
+      "id": "uuid",
+      "type": "EARLY_LEAVE", // EARLY_LEAVE, BREASTFEEDING, LATE_IN
+      "minute_allowance": 60,
+      "is_paid": true,
+      "start_date": "2026-01-01",
+      "end_date": null
+    }
+  ]
+  ```
+
+#### POST /workspaces/:ws_id/employees/:id/conditions (New)
+Gán một đặc cách chấm công mới cho nhân viên.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**:
+  ```json
+  {
+    "type": "EARLY_LEAVE",
+    "minute_allowance": 60,
+    "is_paid": true,
+    "start_date": "2026-01-01",
+    "end_date": "2026-12-31"
+  }
+  ```
+- **Response (201)**: `WorkingCondition` object
+
+#### DELETE /workspaces/:ws_id/employees/:id/conditions/:cond_id (New)
+Xóa một bản ghi đặc cách chấm công.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Response (204)**: No Content
+
 ---
 
 ### 6. Time Tracking
