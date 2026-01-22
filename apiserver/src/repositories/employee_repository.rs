@@ -3,6 +3,7 @@ use sqlx::{query, query_as, query_scalar, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::models::{Employee, EmploymentPeriod, WorkingCondition};
+use crate::utils::normalize_employee_id;
 
 pub async fn get_working_conditions(
     pool: &PgPool,
@@ -57,6 +58,7 @@ pub async fn create_employee_tx(
     tx: &mut Transaction<'_, Postgres>,
     employee: &Employee,
 ) -> Result<(), sqlx::Error> {
+    let normalized_id = normalize_employee_id(&employee.employee_id_number);
     sqlx::query(
         "INSERT INTO employees (id, workspace_id, user_id, full_name, employee_id_number, tags, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
     )
@@ -64,7 +66,7 @@ pub async fn create_employee_tx(
     .bind(employee.workspace_id)
     .bind(employee.user_id)
     .bind(&employee.full_name)
-    .bind(&employee.employee_id_number)
+    .bind(normalized_id)
     .bind(&employee.tags)
     .bind(employee.is_active)
     .bind(employee.created_at)
@@ -88,6 +90,7 @@ pub async fn create_employee_tx_skip_duplicates(
     tx: &mut Transaction<'_, Postgres>,
     employee: &Employee,
 ) -> Result<bool, sqlx::Error> {
+    let normalized_id = normalize_employee_id(&employee.employee_id_number);
     let result = sqlx::query(
         "INSERT INTO employees (id, workspace_id, user_id, full_name, employee_id_number, tags, is_active, created_at, updated_at) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -97,7 +100,7 @@ pub async fn create_employee_tx_skip_duplicates(
     .bind(employee.workspace_id)
     .bind(employee.user_id)
     .bind(&employee.full_name)
-    .bind(&employee.employee_id_number)
+    .bind(normalized_id)
     .bind(&employee.tags)
     .bind(employee.is_active)
     .bind(employee.created_at)
@@ -138,12 +141,13 @@ pub async fn get_employee_by_id_number(
     id_number: &str,
     workspace_id: Uuid,
 ) -> Result<Option<Employee>, sqlx::Error> {
+    let normalized_id = normalize_employee_id(id_number);
     let query = format!(
         "{} WHERE e.employee_id_number = $1 AND e.workspace_id = $2",
         EMPLOYEE_SELECT_QUERY
     );
     query_as::<_, Employee>(&query)
-        .bind(id_number)
+        .bind(normalized_id)
         .bind(workspace_id)
         .fetch_optional(pool)
         .await
@@ -206,6 +210,8 @@ pub async fn update_employee(
 ) -> Result<Option<Employee>, sqlx::Error> {
     let mut tx = pool.begin().await?;
 
+    let normalized_id = employee_id_number.as_ref().map(|id| normalize_employee_id(id));
+
     // Update base employee info
     sqlx::query(
         "UPDATE employees SET
@@ -221,7 +227,7 @@ pub async fn update_employee(
     .bind(workspace_id)
     .bind(user_id)
     .bind(full_name)
-    .bind(employee_id_number)
+    .bind(normalized_id)
     .bind(tags.as_deref())
     .bind(is_active)
     .bind(Utc::now())

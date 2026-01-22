@@ -1,11 +1,106 @@
-use chrono::{NaiveDate, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
+use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use rust_decimal::Decimal;
-use sqlx::{query_as, PgPool};
+use sqlx::{query_as, PgPool, Row};
 use uuid::Uuid;
 
 use crate::models::{
     EmployeeSalaryComponent, PayrollSettings, Payslip, PayslipSegment, SalaryComponentDefinition,
+    PayrollIncentivePolicy, IncentiveTier, IncentiveEvaluationResult,
 };
+
+pub async fn get_active_incentive_policies(
+    pool: &PgPool,
+    workspace_id: Uuid,
+) -> Result<Vec<PayrollIncentivePolicy>, sqlx::Error> {
+    let rows = sqlx::query(
+        r#"SELECT id, workspace_id, name, base_amount, payout_type, is_active, created_at
+           FROM payroll_incentive_policies 
+           WHERE workspace_id = $1 AND is_active = TRUE"#,
+    )
+    .bind(workspace_id)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows.into_iter().map(|row| {
+        PayrollIncentivePolicy {
+            id: row.get("id"),
+            workspace_id: row.get("workspace_id"),
+            name: row.get("name"),
+            base_amount: row.get("base_amount"),
+            payout_type: row.get("payout_type"),
+            is_active: row.get("is_active"),
+            created_at: DateTime::from_naive_utc_and_offset(row.get("created_at"), Utc),
+        }
+    }).collect())
+}
+
+pub async fn get_policy_tiers(
+    pool: &PgPool,
+    policy_id: Uuid,
+) -> Result<Vec<IncentiveTier>, sqlx::Error> {
+    let rows = sqlx::query(
+        r#"SELECT id, policy_id, priority, max_late_early_count, max_unpaid_leave_days, max_sick_leave_days, max_total_leave_days, payout_amount
+           FROM payroll_incentive_tiers 
+           WHERE policy_id = $1
+           ORDER BY priority ASC"#,
+    )
+    .bind(policy_id)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows.into_iter().map(|row| {
+        IncentiveTier {
+            id: row.get("id"),
+            policy_id: row.get("policy_id"),
+            priority: row.get("priority"),
+            max_late_early_count: row.get("max_late_early_count"),
+            max_unpaid_leave_days: row.get::<Option<f64>, _>("max_unpaid_leave_days"),
+            max_sick_leave_days: row.get::<Option<f64>, _>("max_sick_leave_days"),
+            max_total_leave_days: row.get::<Option<f64>, _>("max_total_leave_days"),
+            payout_amount: row.get::<f64, _>("payout_amount"),
+        }
+    }).collect())
+}
+
+pub async fn create_payslip_incentive(
+    pool: &PgPool,
+    payslip_id: Uuid,
+    result: &IncentiveEvaluationResult,
+) -> Result<(), sqlx::Error> {
+    let amount_f64 = result.amount.to_f64().unwrap_or_default();
+    sqlx::query(
+        r#"INSERT INTO payslip_incentives (payslip_id, policy_name, amount, tier_id)
+           VALUES ($1, $2, $3, $4)"#,
+    )
+    .bind(payslip_id)
+    .bind(&result.policy_name)
+    .bind(amount_f64)
+    .bind(result.tier_id)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+pub async fn get_payslip_incentives(
+    pool: &PgPool,
+    payslip_id: Uuid,
+) -> Result<Vec<IncentiveEvaluationResult>, sqlx::Error> {
+    let rows = sqlx::query(
+        r#"SELECT policy_name, amount, tier_id FROM payslip_incentives WHERE payslip_id = $1"#,
+    )
+    .bind(payslip_id)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows.into_iter().map(|row| {
+        IncentiveEvaluationResult {
+            policy_name: row.get("policy_name"),
+            amount: Decimal::from_f64(row.get("amount")).unwrap_or_default(),
+            tier_id: row.get("tier_id"),
+        }
+    }).collect())
+}
 
 pub async fn get_payroll_settings(
     pool: &PgPool,
@@ -309,7 +404,7 @@ pub async fn create_payslip_segment(
     amount: Decimal,
     std_days_source: Option<String>,
 ) -> Result<(), sqlx::Error> {
-    sqlx::query!(
+    sqlx::query(
         r#"
         INSERT INTO payslip_segments (
             payslip_id, start_date, end_date, department_id,
@@ -318,18 +413,18 @@ pub async fn create_payslip_segment(
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         "#,
-        payslip_id,
-        start_date,
-        end_date,
-        department_id,
-        applied_base_salary,
-        applied_std_days,
-        hours_per_day,
-        actual_work_days,
-        paid_work_days,
-        amount,
-        std_days_source
     )
+    .bind(payslip_id)
+    .bind(start_date)
+    .bind(end_date)
+    .bind(department_id)
+    .bind(applied_base_salary)
+    .bind(applied_std_days)
+    .bind(hours_per_day)
+    .bind(actual_work_days)
+    .bind(paid_work_days)
+    .bind(amount)
+    .bind(std_days_source)
     .execute(pool)
     .await?;
 
@@ -340,15 +435,13 @@ pub async fn get_payslip_segments(
     pool: &PgPool,
     payslip_id: Uuid,
 ) -> Result<Vec<PayslipSegment>, sqlx::Error> {
-    // Note: We don't have 'reason' column yet, so we select NULL as reason
-    query_as!(
-        PayslipSegment,
-        r#"SELECT id, payslip_id, start_date, end_date, department_id, applied_base_salary, applied_std_days, applied_hours_per_day, actual_work_days, paid_work_days, amount, NULL::text as reason, std_days_source
+    sqlx::query_as(
+        r#"SELECT id, payslip_id, start_date, end_date, department_id, applied_base_salary, applied_std_days, applied_hours_per_day, actual_work_days, paid_work_days, amount, NULL as reason, std_days_source
            FROM payslip_segments
            WHERE payslip_id = $1
            ORDER BY start_date ASC"#,
-        payslip_id
     )
+    .bind(payslip_id)
     .fetch_all(pool)
     .await
 }

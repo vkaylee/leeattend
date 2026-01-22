@@ -74,6 +74,7 @@ export default function PayrollSummaryTable({
               <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("employees.table.name")}</th>
               <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("common.payroll.table.base_pay")}</th>
               <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("common.payroll.table.overtime")}</th>
+              <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("common.payroll.table.bonus")}</th>
               <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t("common.payroll.table.net_pay")}</th>
               <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t("common.payroll.table.status")}</th>
               <th className="px-4 py-5 w-12 text-right pr-8"></th>
@@ -105,6 +106,11 @@ export default function PayrollSummaryTable({
                   </td>
                   <td className="px-4 py-6 text-right font-mono text-sm font-bold text-slate-500">{slip ? new Intl.NumberFormat('vi-VN').format(parseFloat(slip.base_pay_amount)) : "—"}</td>
                   <td className="px-4 py-6 text-right font-mono text-sm text-emerald-600 font-black">{slip && parseFloat(slip.overtime_pay_amount) > 0 ? `+${new Intl.NumberFormat('vi-VN').format(parseFloat(slip.overtime_pay_amount))}` : "—"}</td>
+                  <td className="px-4 py-6 text-right font-mono text-sm text-blue-600 font-black">
+                    {slip && slip.incentives && slip.incentives.length > 0 
+                      ? `+${new Intl.NumberFormat('vi-VN').format(slip.incentives.reduce((acc, i) => acc + parseFloat(i.amount), 0))}` 
+                      : "—"}
+                  </td>
                   <td className="px-4 py-6 text-right"><div className="font-black text-primary-600 text-base tracking-tighter font-mono">{slip ? new Intl.NumberFormat('vi-VN').format(parseFloat(slip.net_pay_amount)) : "—"}</div></td>
                   <td className="px-8 py-6 text-center">
                     {slip ? (

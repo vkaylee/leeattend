@@ -8,6 +8,7 @@ use std::io::Cursor;
 use tracing::{error, info};
 use uuid::Uuid;
 
+use crate::utils::normalize_employee_id;
 use crate::models::{
     AdjustmentStatus, AttendanceImportJob, CreateAttendanceAdjustmentRequest, Employee,
     ImportJobStatus, LogSource, RawAttendanceLog,
@@ -184,7 +185,8 @@ impl AttendanceImportService {
             // For CSV, we iterate records which are already data rows.
             for (idx, record) in records.into_iter().enumerate() {
                 let current_line = idx + 2; // +1 header, +1 for 1-based
-                let emp_id_number = record.get(0).unwrap_or("").trim().to_string();
+                let raw_emp_id = record.get(0).unwrap_or("").trim();
+                let emp_id_number = normalize_employee_id(raw_emp_id);
                 let emp_dt_str = record.get(2).unwrap_or("").trim();
 
                 if emp_id_number.is_empty() || emp_dt_str.is_empty() {
@@ -401,7 +403,8 @@ impl AttendanceImportService {
                 .from_reader(Cursor::new(&file_bytes));
             for (idx, record) in reader.records().flatten().enumerate() {
                 let current_line = idx + 2;
-                let id_number = record.get(0).unwrap_or("").trim().to_string();
+                let raw_id = record.get(0).unwrap_or("").trim();
+                let id_number = normalize_employee_id(raw_id);
                 let full_name = record.get(1).unwrap_or("").trim().to_string();
                 let hire_date_str = record.get(2).unwrap_or("").trim();
 
@@ -506,12 +509,13 @@ impl AttendanceImportService {
     ) {
         for (idx, row) in range.rows().skip(1).enumerate() {
             let current_line = idx + 2;
-            let id_number = match row.first() {
-                Some(Data::String(s)) => s.trim().to_string(),
+            let raw_id = match row.first() {
+                Some(Data::String(s)) => s.clone(),
                 Some(Data::Float(f)) => f.to_string(),
                 Some(Data::Int(i)) => i.to_string(),
                 _ => { errors.push(format!("Dòng {}: Thiếu ID nhân viên", current_line)); continue; }
             };
+            let id_number = normalize_employee_id(&raw_id);
             let full_name = match row.get(1) {
                 Some(Data::String(s)) => s.trim().to_string(),
                 _ => { errors.push(format!("Dòng {}: Thiếu Tên nhân viên", current_line)); continue; }
@@ -579,8 +583,8 @@ impl AttendanceImportService {
         // Skip header row (index 0)
         for (idx, row) in range.rows().skip(1).enumerate() {
             let current_line = idx + 2; // +1 for skip, +1 for 1-based indexing
-            let emp_id_number = match row.first() {
-                Some(Data::String(s)) => s.trim().to_string(),
+            let raw_id = match row.first() {
+                Some(Data::String(s)) => s.clone(),
                 Some(Data::Float(f)) => f.to_string(),
                 Some(Data::Int(i)) => i.to_string(),
                 _ => {
@@ -588,6 +592,7 @@ impl AttendanceImportService {
                     continue;
                 }
             };
+            let emp_id_number = normalize_employee_id(&raw_id);
 
             // Column 2 (index 2) is usually Time/Date
             let punch_time = match row.get(2) {

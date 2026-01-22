@@ -1,6 +1,6 @@
 use crate::models::{LeaveRequest, LeaveStatus};
-use chrono::Utc;
-use sqlx::{query, query_as, PgPool};
+use chrono::{Utc, NaiveDate};
+use sqlx::{query, query_as, PgPool, Row};
 use uuid::Uuid;
 
 pub async fn create_leave_request(
@@ -91,4 +91,83 @@ pub async fn get_workspace_leave_requests(
         .build_query_as::<LeaveRequest>()
         .fetch_all(pool)
         .await
+}
+
+pub struct LeaveBreakdown {
+    pub total_days: f64,
+    pub unpaid_days: f64,
+    pub sick_days: f64,
+}
+
+pub async fn get_approved_leave_breakdown(
+
+    pool: &PgPool,
+
+    employee_id: Uuid,
+
+    start_date: NaiveDate,
+
+    end_date: NaiveDate,
+
+) -> Result<LeaveBreakdown, sqlx::Error> {
+
+    let rows = sqlx::query(
+
+        r#"SELECT leave_type, SUM(end_date - start_date + 1) as days
+
+           FROM leave_requests
+
+           WHERE employee_id = 
+ 
+
+             AND status = 'approved'
+
+             AND start_date <= $3
+
+             AND end_date >= $2
+
+           GROUP BY leave_type"#,
+
+    )
+
+    .bind(employee_id)
+
+    .bind(start_date)
+
+    .bind(end_date)
+
+    .fetch_all(pool)
+
+    .await?;
+
+
+
+    let mut breakdown = LeaveBreakdown { total_days: 0.0, unpaid_days: 0.0, sick_days: 0.0 };
+
+    for row in rows {
+
+        let days: i64 = row.get("days");
+
+        let days_f = days as f64;
+
+        breakdown.total_days += days_f;
+
+        let leave_type: String = row.get("leave_type");
+
+        if leave_type == "unpaid" || leave_type == "personal" {
+
+            breakdown.unpaid_days += days_f;
+
+        } else if leave_type == "sick" {
+
+            breakdown.sick_days += days_f;
+
+        }
+
+    }
+
+
+
+    Ok(breakdown)
+
 }

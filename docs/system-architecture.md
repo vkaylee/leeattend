@@ -104,6 +104,13 @@ Instead of a simple monthly calculation, the system employs a **Segmentation Eng
 - **Granular Audit Trail**: Every calculation detail for each segment is persisted in the `payslip_segments` table.
 - **History Protection**: Future changes to department settings or global policies will **never** alter the values of finalized payslips, as the calculation parameters are frozen in the snapshot.
 
+#### 14.3. Variable Incentive Evaluation (New)
+The system supports complex, metric-driven bonuses (e.g., Diligence Bonus) through a dedicated evaluation engine.
+- **Incentive Context**: During payroll calculation, the engine aggregates a high-fidelity context including `total_late_early_count`, `unpaid_leave_days`, and `sick_leave_days`.
+- **Policy Matching**: The `PayrollEvaluator` matches this context against a prioritized list of `IncentiveTiers`. 
+- **Generosity Principle**: Tiers are sorted by priority. The engine selects the first matching tier (e.g., Tier 1 for 0 violations, Tier 2 for < 2 violations), rewarding the most diligent behavior.
+- **Persistence**: Calculated incentives are stored in `payslip_incentives`, preserving the exact tier and amount awarded for historical auditing.
+
 ### 15. Special Attendance Policy Resolution
 Beyond the standard 3-tier payroll settings, the system implements a **Working Condition Overlay** system to handle individual employee privileges (e.g., Parental Leave, Breastfeeding Breaks).
 

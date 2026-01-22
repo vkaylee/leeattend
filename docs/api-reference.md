@@ -828,6 +828,63 @@ Gán một khoản lương/phụ cấp mới cho nhân viên.
   }
   ```
 
+#### Payroll Incentive Policy Model
+Định nghĩa các chính sách thưởng biến đổi (ví dụ: Thưởng chuyên cần).
+```json
+{
+  "id": "uuid",
+  "workspace_id": "uuid",
+  "name": "Thưởng chuyên cần",
+  "base_amount": 300000,
+  "payout_type": "fixed", // "fixed" hoặc "percentage"
+  "is_active": true,
+  "tiers": [
+    {
+      "id": "uuid",
+      "priority": 1,
+      "max_late_early_count": 0,
+      "max_unpaid_leave_days": 0,
+      "max_sick_leave_days": 0,
+      "max_total_leave_days": 0,
+      "payout_amount": 300000
+    }
+  ]
+}
+```
+
+#### GET /workspaces/:ws_id/payroll/incentive-policies
+Lấy danh sách các chính sách thưởng của workspace.
+- **Response (200)**: `Array<PayrollIncentivePolicy>`
+
+#### POST /workspaces/:ws_id/payroll/incentive-policies
+Tạo chính sách thưởng mới kèm theo các bậc (tiers) điều kiện.
+- **Request**:
+  ```json
+  {
+    "name": "Chuyên cần Tháng",
+    "base_amount": 200000,
+    "payout_type": "fixed",
+    "tiers": [
+      {
+        "priority": 1,
+        "max_late_early_count": 0,
+        "max_total_leave_days": 0,
+        "payout_amount": 200000
+      },
+      {
+        "priority": 2,
+        "max_late_early_count": 2,
+        "max_total_leave_days": 1,
+        "payout_amount": 100000
+      }
+    ]
+  }
+  ```
+
+#### DELETE /workspaces/:ws_id/payroll/incentive-policies/:id
+Xóa chính sách thưởng.
+- **Response (204 OK)**
+
 #### GET /workspaces/:ws_id/shifts
 Lấy danh sách các ca làm việc đã định nghĩa (bao gồm cả các phiên bản cũ).
 - **Response (200)**: `Array<Shift>`

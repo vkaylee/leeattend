@@ -14,7 +14,8 @@ import {
   Calculator,
   ArrowDownRight,
   Calendar,
-  AlertTriangle
+  AlertTriangle,
+  Sparkles
 } from "lucide-react";
 import { Payslip, AttendanceAdjustmentRequest, PayrollSegment } from "@/lib/api/types";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
@@ -118,10 +119,38 @@ export default function PayrollTable({
                   ))}
                 </div>
 
-                <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 pt-10 border-t border-slate-50">
+                {slip.incentives && slip.incentives.length > 0 && (
+                  <div className="mt-12 space-y-6">
+                    <div className="flex items-center gap-3 px-2">
+                      <div className="w-1.5 h-6 bg-blue-600 rounded-full" />
+                      <span className="text-xs font-black text-slate-800 uppercase tracking-[0.25em]">{t("common.payroll.table.bonus")} Detail</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {slip.incentives.map((inc, i) => (
+                        <div key={i} className="flex items-center justify-between p-6 bg-blue-50/30 border border-blue-100/50 rounded-2xl">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-blue-600 shadow-sm border border-blue-100">
+                              <Sparkles size={18} />
+                            </div>
+                            <span className="text-xs font-black text-slate-700 uppercase tracking-tight">{inc.policy_name}</span>
+                          </div>
+                          <span className="text-sm font-black text-blue-600 font-mono tracking-tighter">+{new Intl.NumberFormat('vi-VN').format(parseFloat(inc.amount))}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6 pt-10 border-t border-slate-50">
                   {[
                     { label: t("common.payroll.table.base_pay"), value: slip.base_pay_amount, color: "text-slate-900" },
                     { label: t("common.payroll.table.overtime"), value: slip.overtime_pay_amount, color: "text-emerald-600", prefix: "+" },
+                    { 
+                      label: t("common.payroll.table.bonus"), 
+                      value: slip.incentives?.reduce((acc, i) => acc + parseFloat(i.amount), 0).toString() || "0", 
+                      color: "text-blue-600", 
+                      prefix: "+" 
+                    },
                     { label: "Deductions", value: slip.deductions_amount, color: "text-rose-600", prefix: "-" }
                   ].map((stat, i) => (
                     <div key={i} className="p-6 bg-slate-50 border border-slate-100 rounded-[2rem] shadow-inner flex flex-col gap-1">

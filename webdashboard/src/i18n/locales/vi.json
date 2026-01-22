@@ -149,6 +149,7 @@
         "period": "Kỳ lương",
         "base_pay": "Lương cơ bản",
         "overtime": "Tăng ca",
+        "bonus": "Khen thưởng",
         "reason": "Lý do",
         "basis": "Căn cứ",
         "std_days": "Công chuẩn",
@@ -203,6 +204,7 @@
         "rules": "Quy tắc gán tự động",
         "payroll_policy": "Chính sách lương",
         "salary_components": "Thành phần lương",
+        "incentives": "Thưởng & Ưu đãi",
         "members": "Thành viên",
         "departments": "Phòng ban",
         "localization": "Địa phương",
@@ -289,7 +291,9 @@
     "hide_details": "Thu gọn",
     "edit": "Chỉnh sửa",
     "delete": "Xóa",
+    "deleted": "Đã xóa thành công",
     "update": "Cập nhật",
+    "save_settings": "Lưu cài đặt",
     "description": "Mô tả",
     "no_description": "Không có mô tả.",
     "start": "Bắt đầu",
@@ -1173,6 +1177,7 @@
       "period": "Kỳ lương",
       "base_pay": "Lương cơ bản",
       "overtime": "Tăng ca",
+      "bonus": "Khen thưởng",
       "deductions": "Khấu trừ",
       "net_pay": "Thực nhận",
       "status": "Trạng thái",
@@ -1257,6 +1262,15 @@
     },
     "segments": {
       "title": "Chi tiết dòng lương (Segments)"
+    },
+    "incentives": {
+      "title": "Chính sách Thưởng & Ưu đãi",
+      "add_btn": "Thêm Chính sách",
+      "policy_name": "Tên Chính sách",
+      "base_amount": "Mức thưởng Gốc",
+      "tiers_config": "Cấu hình Bậc thưởng",
+      "name_required": "Vui lòng nhập tên chính sách",
+      "no_policies": "Chưa có chính sách thưởng nào"
     }
   },
   "reports": {

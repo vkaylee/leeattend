@@ -404,6 +404,14 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(handlers::get_workspace_payslips),
         )
         .route(
+            "/workspaces/:ws_id/payroll/incentive-policies",
+            get(handlers::get_incentive_policies).post(handlers::create_incentive_policy),
+        )
+        .route(
+            "/workspaces/:ws_id/payroll/incentive-policies/:policy_id",
+            delete(handlers::delete_incentive_policy),
+        )
+        .route(
             "/workspaces/:ws_id/employees/:id/payroll-config",
             post(handlers::set_employee_payroll_config).get(handlers::get_employee_payroll_configs),
         )

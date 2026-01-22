@@ -158,7 +158,7 @@ export default function PayrollPage() {
                   <button className="px-6 flex flex-col items-center min-w-[160px] cursor-pointer hover:bg-white hover:shadow-sm rounded-xl transition-all py-1.5 group outline-none border border-transparent hover:border-slate-100">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-primary-500 transition-colors">{t("payroll.table.period")}</span>
                     <span className="text-sm font-black text-slate-900 group-hover:text-primary-600 transition-colors uppercase tracking-tighter">
-                      {t("common.month")} {calcMonth}, {calcYear}
+                      {calcMonth} / {calcYear}
                     </span>
                   </button>
                 </DropdownMenuTrigger>

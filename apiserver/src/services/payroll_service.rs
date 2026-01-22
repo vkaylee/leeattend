@@ -9,9 +9,9 @@ use uuid::Uuid;
 
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{Payslip, PolicyRules};
-use crate::repositories::{department_repository, payroll_repository, roster_repository, shift_repository, time_entry_repository, SqlxWorkspaceRepository};
+use crate::repositories::{department_repository, payroll_repository, roster_repository, shift_repository, time_entry_repository, leave_request_repository, SqlxWorkspaceRepository};
 use crate::repositories::workspace_repository::WorkspaceRepository;
-use crate::services::AttendanceCalculator;
+use crate::services::{AttendanceCalculator, payroll_evaluator::{PayrollEvaluator, IncentiveContext}};
 
 
 pub struct PayrollService;
@@ -114,6 +114,7 @@ impl PayrollService {
         let mut total_base_pay = Decimal::ZERO;
         let mut total_std_units = 0;
         let mut total_ot_units = 0;
+        let mut total_late_early_count = 0;
         let mut segment_snapshots = Vec::new();
 
         // Prepare time entries grouped by date for faster access
@@ -214,6 +215,13 @@ impl PayrollService {
                                         );
                                         segment_std_units += std_u;
                                         segment_ot_units += ot_u;
+
+                                        // Violation detection for IncentiveContext
+                                        let is_late = punch_in > start + chrono::Duration::minutes(rules.grace_period_minutes as i64);
+                                        let is_early = punch_out < end;
+                                        if is_late || is_early {
+                                            total_late_early_count += 1;
+                                        }
                                     }
                                 }
                             } else {
@@ -252,10 +260,38 @@ impl PayrollService {
             hourly_rate * (Decimal::from(total_ot_units) * Decimal::from(workspace.work_unit_minutes) / Decimal::from(60)) * Decimal::from_f64(1.5).unwrap()
         } else { Decimal::ZERO };
 
+        // 7. Incentives Calculation
+        let active_policies = payroll_repository::get_active_incentive_policies(pool, workspace_id).await.unwrap_or_default();
+        let mut incentive_results = Vec::new();
+        let mut total_incentive_amount = Decimal::ZERO;
+
+        if !active_policies.is_empty() {
+            // Need a context for evaluation
+            let leave_breakdown = leave_request_repository::get_approved_leave_breakdown(pool, employee_id, start_date, end_date).await
+                .unwrap_or(leave_request_repository::LeaveBreakdown { total_days: 0.0, unpaid_days: 0.0, sick_days: 0.0 });
+
+            let context = IncentiveContext {
+                total_work_units: total_std_units,
+                total_leave_days: leave_breakdown.total_days,
+                unpaid_leave_days: leave_breakdown.unpaid_days,
+                sick_leave_days: leave_breakdown.sick_days,
+                late_early_count: total_late_early_count,
+            };
+
+            for policy in active_policies {
+                let tiers = payroll_repository::get_policy_tiers(pool, policy.id).await.unwrap_or_default();
+                let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &context);
+                if !res.amount.is_zero() {
+                    total_incentive_amount += res.amount;
+                    incentive_results.push(res);
+                }
+            }
+        }
+
         let payslip = Payslip {
             id: Uuid::new_v4(), employee_id, period_start: start_date, period_end: end_date,
             base_pay_amount: total_base_pay, overtime_pay_amount: total_overtime_pay,
-            deductions_amount: Decimal::ZERO, net_pay_amount: total_base_pay + total_overtime_pay,
+            deductions_amount: Decimal::ZERO, net_pay_amount: total_base_pay + total_overtime_pay + total_incentive_amount,
             standard_units: total_std_units, overtime_units: total_ot_units,
             status: "draft".to_string(), created_at: Utc::now(), updated_at: Utc::now(),
         };
@@ -266,6 +302,10 @@ impl PayrollService {
             payroll_repository::create_payslip_segment(
                 pool, created_payslip.id, start, end, dept, base, std, hours, actual, paid, amount, Some(source)
             ).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        }
+
+        for res in incentive_results {
+            let _ = payroll_repository::create_payslip_incentive(pool, created_payslip.id, &res).await;
         }
 
         Ok(created_payslip)

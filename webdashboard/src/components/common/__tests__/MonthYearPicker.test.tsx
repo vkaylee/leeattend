@@ -21,16 +21,17 @@ describe("MonthYearPicker", () => {
     render(<MonthYearPicker month={5} year={2026} onChange={onChange} />);
 
     expect(screen.getByText("2026")).toBeDefined();
-    // Check if 12 months are rendered
+    // Check if 12 months are rendered as numbers
     for (let i = 1; i <= 12; i++) {
-      expect(screen.getByText(`Tháng ${i}`)).toBeDefined();
+      expect(screen.getByText(i.toString())).toBeDefined();
     }
   });
 
   it("calls onChange when a month is clicked", () => {
     render(<MonthYearPicker month={5} year={2026} onChange={onChange} />);
 
-    fireEvent.click(screen.getByText("Tháng 10"));
+    // Select by aria-label since text is just "10"
+    fireEvent.click(screen.getByLabelText("Tháng 10"));
     expect(onChange).toHaveBeenCalledWith(10, 2026);
   });
 

@@ -149,6 +149,7 @@
         "period": "期间",
         "base_pay": "基本工资",
         "overtime": "加班费",
+        "bonus": "奖金",
         "reason": "原因",
         "basis": "依据",
         "std_days": "标工",
@@ -203,6 +204,7 @@
         "rules": "自动分配规则",
         "payroll_policy": "薪资政策",
         "salary_components": "薪资组成部分",
+        "incentives": "激励与奖金",
         "members": "成员",
         "departments": "部门",
         "localization": "本地化",
@@ -289,7 +291,9 @@
     "hide_details": "隐藏详情",
     "edit": "编辑",
     "delete": "删除",
+    "deleted": "成功删除",
     "update": "更新",
+    "save_settings": "保存设置",
     "description": "描述",
     "no_description": "无描述。",
     "start": "开始",
@@ -1172,6 +1176,7 @@
       "period": "期间",
       "base_pay": "基本工资",
       "overtime": "加班费",
+      "bonus": "奖金",
       "deductions": "扣款",
       "net_pay": "净工资",
       "status": "状态",
@@ -1256,6 +1261,15 @@
     },
     "segments": {
       "title": "薪资段详情"
+    },
+    "incentives": {
+      "title": "激励与奖金政策",
+      "add_btn": "新政策",
+      "policy_name": "政策名称",
+      "base_amount": "基本金额",
+      "tiers_config": "评估层级",
+      "name_required": "政策名称是必填项",
+      "no_policies": "没有激励政策"
     }
   },
   "reports": {

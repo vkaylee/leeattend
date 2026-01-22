@@ -5,6 +5,14 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Variable-based Payroll Incentive Engine (Diligence Bonus)**:
+    - **Tiered Evaluation System**: Implemented a flexible, priority-based evaluation engine in `PayrollEvaluator` to match attendance summaries against tiered thresholds.
+    - **Incentive Context**: Enhanced monthly payroll calculation to track detailed metrics including `total_late_early_count`, `unpaid_leave_days`, and `sick_leave_days`.
+    - **Policy Management UI**: Added `BonusPolicyManager` to Settings for configuring multi-threshold rules (e.g., "Full bonus if < 2 lates and 0 unpaid leave days").
+    - **Payslip Integration**: Incentives are now automatically computed, stored in `payslip_incentives`, and visualized in both the Admin Payroll table and the ESS portal.
+- **Employee ID Normalization**:
+    - **Automatic Cleanup**: Implemented `normalize_employee_id` to automatically trim whitespace and remove leading zeros from purely numeric IDs (e.g., "007" -> "7").
+    - **Data Consistency**: Enforced normalization across employee creation, bulk imports (XLSX), and updates to prevent duplicate records and linking errors.
 - **Special Attendance Policies (Parental Support & privileges)**:
     - **Dynamic Privileges**: Implemented a "Working Condition Overlay" system to handle individual employee attendance privileges (e.g., Early Leave for Childcare, Breastfeeding Breaks, Medical Recovery).
     - **Policy Resolution**: Enhanced `PolicyResolver` to dynamically fetch and merge employee-specific privileges based on date validity.

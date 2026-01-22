@@ -1,6 +1,27 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
-import { Payslip, PayrollSettings, SalaryComponentDefinition, EmployeeSalaryComponent } from "./types";
+import { Payslip, PayrollSettings, SalaryComponentDefinition, EmployeeSalaryComponent, PayrollIncentivePolicy } from "./types";
+
+export async function fetchIncentivePolicies(wsId: string): Promise<PayrollIncentivePolicy[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll/incentive-policies`);
+  if (!response.ok) throw new Error("Failed to fetch incentive policies");
+  return response.json();
+}
+
+export async function createIncentivePolicy(wsId: string, data: any): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll/incentive-policies`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to create incentive policy");
+}
+
+export async function deleteIncentivePolicy(wsId: string, policyId: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll/incentive-policies/${policyId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to delete incentive policy");
+}
 
 export async function fetchPayrollSettings(wsId: string): Promise<PayrollSettings> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll-settings`);

@@ -81,12 +81,13 @@ leeattend/
         - **Repositories**:
             - **RosterRepository**: Manages shift rosters and implements the core schedule resolution logic (`get_effective_shift`) with traceability.
             - **EmployeeRepository**: Handles employee CRUD, history, and optimized bulk creation with duplicate handling (`create_employee_tx_skip_duplicates`).
-            - **PayrollRepository**: Handles salary components, payslip generation, and segment storage.
+            - **PayrollRepository**: Handles salary components, payslip generation, segment storage, and **incentive policies/tiers**.
             - **TimeEntryRepository**: Stores raw punches and paired time entries with BSON metadata.
             - **AgentRepository**: Manages authorized agents and device trust.
         - **Services**:
             - **AttendanceImportService**: Manages asynchronous file processing, validation, and silent-skipping of duplicate records.
             - **RuleEvaluator**: Determines the "winning" assignment rule based on priority (P100 Roster > P80 Pattern > P60 Rule > P40 Dept Pattern > P20 Fixed > P10 Dept Fixed).
+            - **PayrollEvaluator (New)**: Matcher engine for tiered incentive policies (Diligence Bonus). Evaluates `IncentiveContext` (lates, leave types) against policy tiers.
             - **PolicyResolver**: Hierarchical configuration resolution (Individual > Department > Workspace) with full traceability for payroll parameters (Standard Days, Hours/Day).
             - **PairingService**: Core engine for converting raw punches into time entries using FSM or Anchor strategies.
             - **PayrollService**: Orchestrates multi-segment payroll calculation, tax logic, and high-performance batch processing for large teams.
@@ -116,6 +117,11 @@ leeattend/
     - **PolicyResolver Integration**: Automatically applies privileged minutes (e.g., 60m paid early leave) during attendance calculation based on active `working_conditions`.
     - **Refactored Calculator**: Standardized `AttendanceCalculator` to use a `PolicyRules` context, enabling cleaner extension for future business rules.
     - **Management UI**: Dedicated "Policies" tab in employee details for assigning and tracking special attendance privileges.
+- **Variable-based Payroll Incentive Engine**: A flexible system for calculating bonuses like the "Diligence Bonus" based on complex attendance metrics.
+    - **IncentiveContext**: Tracks `late_early_count`, `unpaid_leave_days`, and `sick_leave_days` per payslip period.
+    - **Tiered Evaluation**: Supports priority-based matching where employees earn higher payouts for fewer violations.
+    - **Management UI**: New `BonusPolicyManager` in Settings for configuring rules and tiers.
+- **Employee ID Normalization**: Standardized ID format (`normalize_employee_id`) that automatically trims whitespace and removes leading zeros for numeric IDs, ensuring cross-system consistency.
 
 
 ...

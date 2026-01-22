@@ -149,6 +149,7 @@
         "period": "Period",
         "base_pay": "Base Pay",
         "overtime": "Overtime",
+        "bonus": "Bonus",
         "reason": "Reason",
         "basis": "Basis",
         "std_days": "Std. Days",
@@ -203,6 +204,7 @@
         "rules": "Auto-assign Rules",
         "payroll_policy": "Payroll Policy",
         "salary_components": "Salary Components",
+        "incentives": "Incentives & Bonuses",
         "members": "Members",
         "departments": "Departments",
         "localization": "Localization",
@@ -290,7 +292,9 @@
     "hide_details": "Hide Details",
     "edit": "Edit",
     "delete": "Delete",
+    "deleted": "Deleted successfully",
     "update": "Update",
+    "save_settings": "Save Settings",
     "description": "Description",
     "no_description": "No description.",
     "start": "Start",
@@ -1173,6 +1177,7 @@
       "period": "Period",
       "base_pay": "Base Pay",
       "overtime": "Overtime",
+      "bonus": "Bonus",
       "deductions": "Deductions",
       "net_pay": "Net Pay",
       "status": "Status",
@@ -1257,6 +1262,15 @@
     },
     "segments": {
       "title": "Payroll Segments Detail"
+    },
+    "incentives": {
+      "title": "Incentive & Bonus Policies",
+      "add_btn": "New Policy",
+      "policy_name": "Policy Name",
+      "base_amount": "Base Amount",
+      "tiers_config": "Evaluation Tiers",
+      "name_required": "Policy name is required",
+      "no_policies": "No incentive policies"
     }
   },
   "reports": {

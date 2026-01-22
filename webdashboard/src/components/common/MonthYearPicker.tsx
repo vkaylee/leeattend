@@ -47,14 +47,15 @@ export function MonthYearPicker({
             key={m}
             type="button"
             onClick={() => handleMonthClick(m)}
+            aria-label={t("common.month_short", { defaultValue: `Tháng ${m}`, month: m })}
             className={cn(
-              "py-3.5 rounded-[1.25rem] text-[10px] font-black uppercase tracking-widest transition-all border",
+              "py-3.5 rounded-[1.25rem] text-sm font-black transition-all border",
               month === m
                 ? "bg-primary-600 text-white border-primary-600 shadow-lg shadow-primary-100 scale-105 z-10"
                 : "bg-white text-slate-500 hover:bg-primary-50 hover:text-primary-600 border-slate-100"
             )}
           >
-            {t("common.month_short", { defaultValue: `Tháng ${m}`, month: m })}
+            {m}
           </button>
         ))}
       </div>

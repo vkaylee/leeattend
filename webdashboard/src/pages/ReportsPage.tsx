@@ -275,17 +275,19 @@ export default function ReportsPage() {
 
             <div className="h-6 w-px bg-slate-200 mx-2 opacity-50" />
 
-            <DropdownMenu>
+                        <DropdownMenu>
 
-              <DropdownMenuTrigger asChild>
+                          <DropdownMenuTrigger asChild>
 
-                <button className={cn("flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", filterMode === "specific_month" ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}>
+                            <button className={cn("flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", filterMode === "specific_month" ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}>
 
-                  <CalendarRange size={14} /> {filterMode === "specific_month" ? `T${specificMonth.month}/${specificMonth.year}` : t("common.filters.specific_month").toUpperCase()}
+                              <CalendarRange size={14} /> {filterMode === "specific_month" ? `${specificMonth.month}/${specificMonth.year}` : t("common.filters.specific_month").toUpperCase()}
 
-                </button>
+                            </button>
 
-              </DropdownMenuTrigger>
+                          </DropdownMenuTrigger>
+
+            
 
               <DropdownMenuContent className="w-80 p-4 rounded-[2.5rem] shadow-premium-2xl border-slate-100 bg-white/95 backdrop-blur-xl" align="end" sideOffset={12}>
 

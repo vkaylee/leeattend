@@ -781,11 +781,74 @@ pub struct Payslip {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "VARCHAR", rename_all = "snake_case")]
+pub enum PayoutType {
+    Fixed,
+    Percentage,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct PayrollIncentivePolicy {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub name: String,
+    pub base_amount: f64,
+    pub payout_type: String, // String to match DB, can be parsed to PayoutType
+    pub is_active: bool,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct IncentiveTier {
+    pub id: Uuid,
+    pub policy_id: Uuid,
+    pub priority: i32,
+    pub max_late_early_count: Option<i32>,
+    pub max_unpaid_leave_days: Option<f64>,
+    pub max_sick_leave_days: Option<f64>,
+    pub max_total_leave_days: Option<f64>,
+    pub payout_amount: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct IncentiveEvaluationResult {
+    pub policy_name: String,
+    pub amount: rust_decimal::Decimal,
+    pub tier_id: Option<Uuid>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CreateIncentiveTierRequest {
+    pub priority: i32,
+    pub max_late_early_count: Option<i32>,
+    pub max_unpaid_leave_days: Option<f64>,
+    pub max_sick_leave_days: Option<f64>,
+    pub max_total_leave_days: Option<f64>,
+    pub payout_amount: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CreatePayrollIncentivePolicyRequest {
+    pub name: String,
+    pub base_amount: f64,
+    pub payout_type: String,
+    pub tiers: Vec<CreateIncentiveTierRequest>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PayrollIncentivePolicyResponse {
+    #[serde(flatten)]
+    pub policy: PayrollIncentivePolicy,
+    pub tiers: Vec<IncentiveTier>,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PayslipResponse {
     #[serde(flatten)]
     pub payslip: Payslip,
     pub segments: Vec<PayslipSegment>,
+    pub incentives: Vec<IncentiveEvaluationResult>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

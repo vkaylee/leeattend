@@ -288,6 +288,12 @@ export interface PayrollSegment {
   std_days_source?: "individual" | "department" | "workspace" | "system";
 }
 
+export interface IncentiveEvaluationResult {
+  policy_name: string;
+  amount: string;
+  tier_id?: string;
+}
+
 export interface Payslip {
   id: string;
   employee_id: string;
@@ -301,8 +307,31 @@ export interface Payslip {
   overtime_units: number;
   status: "draft" | "published" | "paid";
   segments?: PayrollSegment[];
+  incentives?: IncentiveEvaluationResult[];
   created_at: string;
   updated_at: string;
+}
+
+export interface IncentiveTier {
+  id: string;
+  policy_id: string;
+  priority: number;
+  max_late_early_count?: number;
+  max_unpaid_leave_days?: number;
+  max_sick_leave_days?: number;
+  max_total_leave_days?: number;
+  payout_amount: number;
+}
+
+export interface PayrollIncentivePolicy {
+  id: string;
+  workspace_id: string;
+  name: string;
+  base_amount: number;
+  payout_type: "fixed" | "percentage";
+  is_active: boolean;
+  tiers?: IncentiveTier[];
+  created_at: string;
 }
 
 export interface BatchCalculatePayrollRequest {
