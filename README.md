@@ -63,11 +63,15 @@ If you need to verify UI changes or fix loading issues:
 - [Deployment Guide](docs/deployment-guide.md)
 
 ## 🧪 Testing
-Run the unified test suite (Parallel Unit + Docker Integration):
+Run the unified test suite with automatic environment management:
 ```bash
-./run-tests.sh
+./run-tests.sh --all             # Run everything (Lint + Unit + Integration)
+./run-tests.sh --api [pattern]   # Run only API/Backend tests
+./run-tests.sh --web [pattern]   # Run only Web/Frontend/E2E tests
 ```
-Or run specific phases:
+*Note: Linting (Phase 0) is mandatory and runs before tests in all modes.*
+
+Manual execution (Internal scripts):
 ```bash
 ./scripts/test-lint.sh      # Phase 0
 ./scripts/test-unit.sh      # Phase 1

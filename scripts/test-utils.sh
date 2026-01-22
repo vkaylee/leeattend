@@ -40,25 +40,36 @@ show_log_sequential() {
 }
 
 # Core runner: Executes tasks in parallel but displays logs in real-time when it's their turn.
+# Usage: run_parallel_ordered "Phase Name" "FilterTag" "Job1|Dir|Cmd" "Job2|Dir|Cmd" ...
 run_parallel_ordered() {
     local phase_name="$1"
-    shift
+    local filter="${2:-}"
+    shift 2
     
     local pids=()
     local logs=()
     local names=()
     
     echo -e "\n${YELLOW}${BOLD}🚀 $phase_name (Parallel Execution)${NC}"
+    if [ -n "$filter" ]; then
+        echo -e "${BLUE}🔍 Filtering jobs matching: $filter${NC}"
+    fi
     
     for task in "$@"; do
         local name=$(echo "$task" | cut -d'|' -f2)
         local dir=$(echo "$task" | cut -d'|' -f3)
         local cmd=$(echo "$task" | cut -d'|' -f4-)
-        
-        # Resolve dir relative to PROJECT_ROOT if needed, or just assume it is relative to where script runs?
-        # The original script ran from root. These scripts might be in scripts/
-        # So we should ensure 'dir' is treated correctly.
-        # The original passed 'apiserver', 'agent-main' etc. which are in PROJECT_ROOT.
+
+        # Filtering logic
+        if [ -n "$filter" ]; then
+             # Use a temporary variable for the regex to avoid quoting issues in [[ =~ ]]
+             # We want to match if filter is a substring OR a regex match
+             if [[ "$name" =~ $filter ]] || [[ "$dir" =~ $filter ]]; then
+                 : # Match found
+             else
+                 continue
+             fi
+        fi
         
         local log_file="$LOG_DIR/${phase_name// /_}_$name.log"
         echo -e "  [${BLUE}START${NC}] $name"
@@ -69,6 +80,11 @@ run_parallel_ordered() {
         logs+=("$log_file")
         names+=("$name")
     done
+
+    if [ ${#pids[@]} -eq 0 ]; then
+        echo -e "${YELLOW}⚠️ No jobs matched the filter in this phase.${NC}"
+        return 0
+    fi
     
     for i in "${!pids[@]}"; do
         local pid="${pids[$i]}"

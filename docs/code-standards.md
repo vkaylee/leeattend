@@ -43,6 +43,32 @@ Sử dụng `Arc<dyn RepositoryTrait>` để inject vào Services. Khởi tạo 
 
 ## Testing Standards
 
+## 🧪 Unified Test Orchestrator (`run-tests.sh`)
+
+To ensure high-quality delivery and fast feedback loops, the project uses a unified test orchestrator. This tool handles environment setup (Postgres in Docker), parallel execution, and result aggregation.
+
+### 1. Usage & Modes
+Running `./run-tests.sh` without arguments displays the help menu. It supports three main modes:
+- `--all`: Runs the full suite (Lint -> Unit -> Integration/E2E).
+- `--api`: Focuses on backend components (`apiserver`, `agent-main`, `agent-zk-worker`).
+- `--web`: Focuses on frontend components (`webdashboard`, Playwright E2E).
+
+### 2. Selective Testing (Pattern Matching)
+You can append a **Pattern** as the second argument to run specific test files or cases:
+- `./run-tests.sh --api robustness`: Lints all API code, then runs only tests containing "robustness".
+- `./run-tests.sh --web attendance`: Lints all Web code, then runs only Playwright/Vitest tests containing "attendance".
+
+### 3. Execution Pipeline
+The orchestrator always follows this order:
+1. **Phase 0 (Linting)**: **Mandatory**. Runs even if a pattern is provided. Ensuring code standards is non-negotiable.
+2. **Phase 1 (Unit Tests)**: Fast, offline tests.
+3. **Phase 3 (Integration & E2E)**: Automatically invokes `./setup-test-env.sh` to spin up Docker containers, run migrations, and provide isolated databases.
+
+### 4. For AI Agents & CI
+- **Automated Verification**: Before considering a task complete, AI agents MUST run the relevant suite (e.g., `./run-tests.sh --api` after backend changes).
+- **Environment Management**: Do not attempt to manually start Postgres or run migrations for tests. Let `run-tests.sh` handle the lifecycle.
+- **Fail-Fast**: The runner will abort immediately if any task in a phase fails, facilitating quick debugging.
+
 ### 🚀 Mandatory Passing Tests
 - **Zero Tolerance**: Tất cả các bài kiểm tra (Unit tests, Integration tests, Frontend tests) **BẮT BUỘC** phải vượt qua (PASS) trước khi thực hiện bất kỳ lệnh commit hoặc merge nào. Code có test thất bại sẽ không được chấp nhận.
 - **Automated Linting (Phase 0)**: Hệ thống thực thi kiểm tra code quality tự động (Linting) ở bước đầu tiên của pipeline.
