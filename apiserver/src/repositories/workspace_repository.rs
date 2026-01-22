@@ -3,6 +3,13 @@ use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+pub async fn get_workspace_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Workspace>, sqlx::Error> {
+    sqlx::query_as::<_, Workspace>("SELECT * FROM workspaces WHERE id = $1")
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+}
+
 #[async_trait]
 pub trait WorkspaceRepository: Send + Sync {
     async fn create_workspace(&self, name: &str) -> Result<Workspace, String>;

@@ -641,6 +641,16 @@ export interface BulkAssignPatternRequest {
   end_date?: string | null;
 }
 
+export interface WorkingCondition {
+  id: string;
+  employee_id: string;
+  type: string;
+  minute_allowance: number;
+  is_paid: boolean;
+  start_date: string;
+  end_date?: string;
+}
+
 
 
 

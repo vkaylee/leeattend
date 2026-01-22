@@ -4,12 +4,17 @@ use chrono_tz::Tz;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{
-    AttendanceReportSort, AttendanceSummary, DailyAttendanceReport, PaginatedResponse,
+    AttendanceReportSort, DailyAttendanceReport, AttendanceSummary, PaginatedResponse, PolicyRules,
 };
-use crate::repositories::workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};
-use crate::repositories::{roster_repository, time_entry_repository};
+use crate::repositories::{
+    roster_repository, time_entry_repository,
+    SqlxWorkspaceRepository,
+};
+use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::services::AttendanceCalculator;
+
 
 pub struct ReportService;
 
@@ -27,7 +32,10 @@ impl ReportService {
         let workspace = workspace_repo
             .get_workspace_by_id(workspace_id)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .map_err(|e| {
+                tracing::error!("Error fetching workspace: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?
             .ok_or(StatusCode::NOT_FOUND)?;
 
         let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
@@ -110,22 +118,33 @@ impl ReportService {
                             end += chrono::Duration::days(1);
                         }
 
+                        let mut rules = PolicyResolver::resolve_attendance_rules(pool, emp_sched.employee_id, workspace.id, date)
+                            .await
+                            .unwrap_or(PolicyRules {
+                                grace_period_minutes: daily.early_punch_in_grace_period_minutes.unwrap_or(0),
+                                authorized_early_leave_minutes: 0,
+                                is_early_leave_paid: false,
+                                early_arrival_strategy: workspace.early_arrival_strategy,
+                                is_break_auto_deduct: daily.is_break_auto_deduct.unwrap_or(false),
+                                is_break_overtime: false,
+                                allow_early_ot: daily.allow_early_ot.unwrap_or(false),
+                            });
+                        
+                        // Override rules with shift-specific settings if they exist
+                        if let Some(gp) = daily.early_punch_in_grace_period_minutes { rules.grace_period_minutes = gp; }
+                        if let Some(bad) = daily.is_break_auto_deduct { rules.is_break_auto_deduct = bad; }
+                        if let Some(aeo) = daily.allow_early_ot { rules.allow_early_ot = aeo; }
+
                         let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(
                             punch_in,
                             punch_out,
                             Some(start),
                             Some(end),
                             daily.break_duration_minutes.unwrap_or(0),
-                            daily.early_punch_in_grace_period_minutes.unwrap_or(0),
-                            daily.is_break_auto_deduct.unwrap_or(false),
-                            false,
                             actual_break_minutes,
-                            daily.allow_early_ot.unwrap_or(false),
                             workspace.work_unit_minutes,
                             &workspace.rounding_policy,
-                            0,
-                            false,
-                            workspace.early_arrival_strategy,
+                            &rules,
                         );
 
                         total_payable_units = std_units + ot_units;
@@ -229,7 +248,10 @@ impl ReportService {
         let workspace = workspace_repo
             .get_workspace_by_id(workspace_id)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .map_err(|e| {
+                tracing::error!("Error fetching workspace: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?
             .ok_or(StatusCode::NOT_FOUND)?;
 
         let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);

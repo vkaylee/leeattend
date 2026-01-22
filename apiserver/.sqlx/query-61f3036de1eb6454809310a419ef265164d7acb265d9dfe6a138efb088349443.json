@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, employee_id, type as \"type_\", minute_allowance, is_paid, start_date, end_date\n           FROM working_conditions WHERE employee_id = $1 ORDER BY start_date DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "employee_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "type_",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "minute_allowance",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_paid",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 6,
+        "name": "end_date",
+        "type_info": "Date"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "61f3036de1eb6454809310a419ef265164d7acb265d9dfe6a138efb088349443"
+}

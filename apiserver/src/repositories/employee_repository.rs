@@ -2,7 +2,56 @@ use chrono::{NaiveDate, Utc};
 use sqlx::{query, query_as, query_scalar, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 
-use crate::models::{Employee, EmploymentPeriod};
+use crate::models::{Employee, EmploymentPeriod, WorkingCondition};
+
+pub async fn get_working_conditions(
+    pool: &PgPool,
+    employee_id: Uuid,
+) -> Result<Vec<WorkingCondition>, sqlx::Error> {
+    sqlx::query_as!(
+        WorkingCondition,
+        r#"SELECT id, employee_id, type as "type_", minute_allowance, is_paid, start_date, end_date
+           FROM working_conditions WHERE employee_id = $1 ORDER BY start_date DESC"#,
+        employee_id
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn create_working_condition(
+    pool: &PgPool,
+    condition: &WorkingCondition,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"INSERT INTO working_conditions (id, employee_id, type, minute_allowance, is_paid, start_date, end_date)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)"#,
+    )
+    .bind(condition.id)
+    .bind(condition.employee_id)
+    .bind(&condition.type_)
+    .bind(condition.minute_allowance)
+    .bind(condition.is_paid)
+    .bind(condition.start_date)
+    .bind(condition.end_date)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+pub async fn delete_working_condition(
+    pool: &PgPool,
+    id: Uuid,
+    employee_id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query(
+        "DELETE FROM working_conditions WHERE id = $1 AND employee_id = $2",
+    )
+    .bind(id)
+    .bind(employee_id)
+    .execute(pool)
+    .await?;
+    Ok(result.rows_affected() > 0)
+}
 
 pub async fn create_employee_tx(
     tx: &mut Transaction<'_, Postgres>,

@@ -246,6 +246,7 @@
     "month": "Tháng",
     "total": "Tổng số",
     "save": "Lưu",
+    "optional": "Tùy chọn",
     "info": "Thông báo",
     "warning": "Cảnh báo",
     "remove": "Gỡ bỏ",
@@ -747,6 +748,7 @@
       "transfer": "Điều chuyển",
       "not_assigned_dept": "Chưa được gán phòng ban",
       "salary_benefits": "Mức lương & Đãi ngộ",
+      "special_policies": "Chính sách đặc biệt",
       "update": "Cập nhật",
       "current": "Hiện tại",
       "no_salary_history": "Chưa có lịch sử lương",
@@ -796,6 +798,23 @@
       "cancel": "Hủy",
       "confirm": "Xác nhận",
       "processing": "Đang xử lý..."
+    },
+    "policies": {
+      "subtitle": "Quản lý đặc quyền chuyên biệt",
+      "add_btn": "Thêm chính sách",
+      "type": "Loại chính sách",
+      "allowance_mins": "Số phút ưu tiên",
+      "is_paid": "Có tính lương",
+      "start_date": "Ngày bắt đầu",
+      "end_date": "Ngày kết thúc",
+      "no_data": "Không có chính sách đặc biệt nào",
+      "paid_allowance": "Có lương",
+      "unpaid_allowance": "Không lương",
+      "types": {
+        "early_leave": "Về sớm",
+        "late_in": "Đi muộn",
+        "breastfeeding": "Chế độ nuôi con nhỏ"
+      }
     },
     "salary": {
       "title": "Cập nhật lương",

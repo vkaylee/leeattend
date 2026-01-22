@@ -8,13 +8,11 @@ use std::collections::{BTreeSet, HashMap};
 use uuid::Uuid;
 
 use crate::domain::policy::resolver::PolicyResolver;
-use crate::models::Payslip;
-use crate::repositories::{
-    department_repository, payroll_repository, roster_repository,
-    shift_repository, time_entry_repository,
-    workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository},
-};
+use crate::models::{Payslip, PolicyRules};
+use crate::repositories::{department_repository, payroll_repository, roster_repository, shift_repository, time_entry_repository, SqlxWorkspaceRepository};
+use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::services::AttendanceCalculator;
+
 
 pub struct PayrollService;
 
@@ -31,7 +29,10 @@ impl PayrollService {
         let workspace = workspace_repo
             .get_workspace_by_id(workspace_id)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .map_err(|e| {
+                tracing::error!("Error fetching workspace: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?
             .ok_or(StatusCode::NOT_FOUND)?;
 
         let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
@@ -185,13 +186,31 @@ impl PayrollService {
                                     let end_dt = tz.from_local_datetime(&current_date.and_time(s.end_time)).single();
                                     if let (Some(start), Some(mut end)) = (start_dt, end_dt) {
                                         if s.end_time < s.start_time { end += chrono::Duration::days(1); }
+
+                                        let mut rules = PolicyResolver::resolve_attendance_rules(pool, employee_id, workspace.id, current_date)
+                                            .await
+                                            .unwrap_or(PolicyRules {
+                                                grace_period_minutes: s.early_punch_in_grace_period_minutes,
+                                                authorized_early_leave_minutes: 0,
+                                                is_early_leave_paid: false,
+                                                early_arrival_strategy: workspace.early_arrival_strategy,
+                                                is_break_auto_deduct: s.is_break_auto_deduct,
+                                                is_break_overtime: entry.is_break_overtime,
+                                                allow_early_ot: s.allow_early_ot,
+                                            });
+                                        
+                                        // Override with shift data
+                                        rules.grace_period_minutes = s.early_punch_in_grace_period_minutes;
+                                        rules.is_break_auto_deduct = s.is_break_auto_deduct;
+                                        rules.is_break_overtime = entry.is_break_overtime;
+                                        rules.allow_early_ot = s.allow_early_ot;
+
                                         let (std_u, ot_u) = AttendanceCalculator::calculate_daily_units(
                                             punch_in, punch_out, Some(start), Some(end),
-                                            s.break_duration_minutes, s.early_punch_in_grace_period_minutes,
-                                            s.is_break_auto_deduct, entry.is_break_overtime,
-                                            actual_break_minutes, s.allow_early_ot,
-                                            workspace.work_unit_minutes, &workspace.rounding_policy, 0, false,
-                                            workspace.early_arrival_strategy
+                                            s.break_duration_minutes,
+                                            actual_break_minutes,
+                                            workspace.work_unit_minutes, &workspace.rounding_policy,
+                                            &rules
                                         );
                                         segment_std_units += std_u;
                                         segment_ot_units += ot_u;

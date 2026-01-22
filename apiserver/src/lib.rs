@@ -251,6 +251,14 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/employees/:id/rehire",
             post(handlers::rehire_employee),
         )
+        .route(
+            "/workspaces/:ws_id/employees/:id/conditions",
+            get(handlers::get_working_conditions).post(handlers::create_working_condition),
+        )
+        .route(
+            "/workspaces/:ws_id/employees/:id/conditions/:cond_id",
+            delete(handlers::delete_working_condition),
+        )
         // Time Tracking
         .route("/workspaces/:ws_id/time/punch-in", post(handlers::punch_in))
         .route(

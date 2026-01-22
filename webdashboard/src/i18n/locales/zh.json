@@ -246,6 +246,7 @@
     "month": "月",
     "total": "总计",
     "save": "保存",
+    "optional": "可选",
     "info": "信息",
     "warning": "警告",
     "remove": "移除",
@@ -746,6 +747,7 @@
       "transfer": "调动",
       "not_assigned_dept": "未分配部门",
       "salary_benefits": "薪资与福利",
+      "special_policies": "特殊政策",
       "update": "更新",
       "current": "当前",
       "no_salary_history": "无薪资历史",
@@ -795,6 +797,23 @@
       "cancel": "取消",
       "confirm": "确认",
       "processing": "正在处理..."
+    },
+    "policies": {
+      "subtitle": "出勤特权管理",
+      "add_btn": "添加政策",
+      "type": "政策类型",
+      "allowance_mins": "分钟津贴",
+      "is_paid": "有薪津贴",
+      "start_date": "开始日期",
+      "end_date": "结束日期",
+      "no_data": "未分配特殊政策",
+      "paid_allowance": "有薪",
+      "unpaid_allowance": "无薪",
+      "types": {
+        "early_leave": "早退",
+        "late_in": "迟到",
+        "breastfeeding": "哺乳假"
+      }
     },
     "salary": {
       "title": "更新薪资",

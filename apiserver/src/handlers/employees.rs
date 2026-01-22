@@ -8,9 +8,49 @@ use uuid::Uuid;
 
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    CreateEmployeeRequest, Employee, EmployeeDepartmentHistory, EmployeeSearchQuery,
+    CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmployeeDepartmentHistory, EmployeeSearchQuery,
     RehireEmployeeRequest, TransferEmployeeRequest, UpdateEmployeeRequest,
 };
+
+pub async fn get_working_conditions(
+    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> impl IntoResponse {
+    match EmployeeService::get_working_conditions(&state.db, id, workspace_id).await {
+        Ok(conditions) => Json(conditions).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn create_working_condition(
+    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+    Json(req): Json<CreateWorkingConditionRequest>,
+) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return (StatusCode::FORBIDDEN, "Only admins can manage policies").into_response();
+    }
+    match EmployeeService::create_working_condition(&state.db, id, ctx.workspace_id, req).await {
+        Ok(cond) => (StatusCode::CREATED, Json(cond)).into_response(),
+        Err(status) => status.into_response(),
+    }
+}
+
+pub async fn delete_working_condition(
+    Path((_ws_id, id, cond_id)): Path<(Uuid, Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+) -> impl IntoResponse {
+    if !ctx.is_admin_or_owner() {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    match EmployeeService::delete_working_condition(&state.db, id, ctx.workspace_id, cond_id).await {
+        Ok(_) => StatusCode::NO_CONTENT.into_response(),
+        Err(status) => status.into_response(),
+    }
+}
 use crate::services::employee_service::EmployeeService;
 use crate::AppState;
 

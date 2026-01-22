@@ -1,11 +1,39 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
-import { Employee, EmploymentPeriod, EmployeeDepartmentHistory } from "./types";
+import { Employee, EmploymentPeriod, EmployeeDepartmentHistory, WorkingCondition } from "./types";
 
 export async function fetchEmployees(wsId: string): Promise<Employee[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees`);
   if (!response.ok) throw new Error("Failed to fetch employees");
   return response.json();
+}
+
+// ... existing search, fetchEmployee, fetchEmploymentHistory, rehireEmployee ...
+
+export async function fetchWorkingConditions(wsId: string, employeeId: string): Promise<WorkingCondition[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/conditions`);
+  if (!response.ok) throw new Error("Failed to fetch working conditions");
+  return response.json();
+}
+
+export async function createWorkingCondition(
+  wsId: string,
+  employeeId: string,
+  condition: Partial<WorkingCondition>
+): Promise<WorkingCondition> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/conditions`, {
+    method: "POST",
+    body: JSON.stringify(condition),
+  });
+  if (!response.ok) throw new Error("Failed to create working condition");
+  return response.json();
+}
+
+export async function deleteWorkingCondition(wsId: string, employeeId: string, conditionId: string): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/conditions/${conditionId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to delete working condition");
 }
 
 export async function searchEmployees(wsId: string, query: string): Promise<Employee[]> {

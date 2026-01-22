@@ -4,14 +4,81 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::models::{
-    CreateEmployeeRequest, Employee, EmploymentPeriod, RehireEmployeeRequest, UpdateEmployeeRequest,
+    CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmploymentPeriod, RehireEmployeeRequest, UpdateEmployeeRequest, WorkingCondition,
 };
-use crate::repositories::employee_repository;
-use crate::repositories::user_repository;
+use crate::repositories::{employee_repository, user_repository};
 
 pub struct EmployeeService;
 
 impl EmployeeService {
+    pub async fn get_working_conditions(
+        pool: &PgPool,
+        employee_id: Uuid,
+        workspace_id: Uuid,
+    ) -> Result<Vec<WorkingCondition>, StatusCode> {
+        // Verify employee exists in workspace
+        let emp = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        employee_repository::get_working_conditions(pool, emp.id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
+    pub async fn create_working_condition(
+        pool: &PgPool,
+        employee_id: Uuid,
+        workspace_id: Uuid,
+        req: CreateWorkingConditionRequest,
+    ) -> Result<WorkingCondition, StatusCode> {
+        // Verify employee
+        let emp = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        let condition = WorkingCondition {
+            id: Uuid::new_v4(),
+            employee_id: emp.id,
+            type_: req.type_,
+            minute_allowance: req.minute_allowance,
+            is_paid: req.is_paid,
+            start_date: req.start_date,
+            end_date: req.end_date,
+        };
+
+        employee_repository::create_working_condition(pool, &condition)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        Ok(condition)
+    }
+
+    pub async fn delete_working_condition(
+        pool: &PgPool,
+        employee_id: Uuid,
+        workspace_id: Uuid,
+        condition_id: Uuid,
+    ) -> Result<(), StatusCode> {
+        // Verify employee
+        let emp = employee_repository::get_employee_by_id(pool, employee_id, workspace_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        let deleted = employee_repository::delete_working_condition(pool, condition_id, emp.id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        if !deleted {
+            return Err(StatusCode::NOT_FOUND);
+        }
+        Ok(())
+    }
+
+
     pub async fn create_employee(
         pool: &PgPool,
         workspace_id: Uuid,

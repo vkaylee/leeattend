@@ -246,6 +246,8 @@
     "month": "Month",
     "total": "Total",
     "save": "Save",
+    "optional": "Optional",
+
     "info": "Information",
     "warning": "Warning",
     "remove": "Remove",
@@ -747,6 +749,7 @@
       "transfer": "Transfer",
       "not_assigned_dept": "Not assigned to a department",
       "salary_benefits": "Salary & Benefits",
+      "special_policies": "Special Policies",
       "update": "Update",
       "current": "Current",
       "no_salary_history": "No salary history",
@@ -796,6 +799,23 @@
       "cancel": "Cancel",
       "confirm": "Confirm",
       "processing": "Processing..."
+    },
+    "policies": {
+      "subtitle": "Attendance Privilege Management",
+      "add_btn": "Add Policy",
+      "type": "Policy Type",
+      "allowance_mins": "Minute Allowance",
+      "is_paid": "Is Paid Allowance",
+      "start_date": "Start Date",
+      "end_date": "End Date",
+      "no_data": "No special policies assigned",
+      "paid_allowance": "Paid",
+      "unpaid_allowance": "Unpaid",
+      "types": {
+        "early_leave": "Early Leave",
+        "late_in": "Late In",
+        "breastfeeding": "Breastfeeding Break"
+      }
     },
     "salary": {
       "title": "Update Salary",

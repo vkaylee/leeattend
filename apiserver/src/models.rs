@@ -175,9 +175,7 @@ pub struct UpdateDeviceRequest {
     pub is_enabled: Option<bool>,
 }
 
-#[derive(
-    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
-)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display)]
 #[sqlx(type_name = "early_arrival_strategy_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum EarlyArrivalStrategy {
@@ -185,6 +183,47 @@ pub enum EarlyArrivalStrategy {
     Block,
     Clamp,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PolicyRules {
+    pub grace_period_minutes: i32,
+    pub authorized_early_leave_minutes: i32,
+    pub is_early_leave_paid: bool,
+    pub early_arrival_strategy: EarlyArrivalStrategy,
+    pub is_break_auto_deduct: bool,
+    pub is_break_overtime: bool,
+    pub allow_early_ot: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq, Eq)]
+#[sqlx(type_name = "VARCHAR", rename_all = "UPPERCASE")]
+pub enum WorkingConditionType {
+    EarlyLeave,
+    LateIn,
+    Breastfeeding,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct WorkingCondition {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    #[sqlx(rename = "type")]
+    pub type_: String, // Keep as string for now to match DB, but we can parse to enum
+    pub minute_allowance: i32,
+    pub is_paid: bool,
+    pub start_date: NaiveDate,
+    pub end_date: Option<NaiveDate>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CreateWorkingConditionRequest {
+    pub type_: String,
+    pub minute_allowance: i32,
+    pub is_paid: bool,
+    pub start_date: NaiveDate,
+    pub end_date: Option<NaiveDate>,
+}
+
 
 // --- Workspace Management Models ---
 

@@ -45,8 +45,9 @@ import { useToast } from "@/components/Toast";
 import { cn } from "@/lib/utils";
 
 import AttendanceImportDialog from "@/components/AttendanceImportDialog";
+import WorkingConditionConfig from "@/components/employees/WorkingConditionConfig";
 
-type DetailTabType = "profile" | "salary" | "history";
+type DetailTabType = "profile" | "salary" | "history" | "policies";
 
 export default function EmployeesPage() {
   const { t } = useTranslation();
@@ -192,7 +193,12 @@ export default function EmployeesPage() {
             </div>
 
             <div className="flex bg-white/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50 shadow-inner">
-              {[ { id: "profile", label: t("common.profile") }, { id: "salary", label: t("employees.details.salary_benefits") }, { id: "history", label: t("employees.details.work_history") } ].map(tab => (
+              {[ 
+                { id: "profile", label: t("common.profile") }, 
+                { id: "salary", label: t("employees.details.salary_benefits") }, 
+                { id: "policies", label: t("employees.details.special_policies") },
+                { id: "history", label: t("employees.details.work_history") } 
+              ].map(tab => (
                 <button key={tab.id} onClick={() => setActiveDetailTab(tab.id as DetailTabType)} className={cn("px-8 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all", activeDetailTab === tab.id ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}>{tab.label.toUpperCase()}</button>
               ))}
             </div>
@@ -200,6 +206,7 @@ export default function EmployeesPage() {
 
           <div className="flex-1 overflow-y-auto p-10 space-y-10 animate-in fade-in duration-500 custom-scrollbar scroll-smooth">
             {activeDetailTab === "profile" && (
+              // ... existing profile content ...
               <div className="space-y-10 animate-in slide-in-from-bottom-4 duration-500">
                 <div className="grid grid-cols-2 gap-6">
                   <button onClick={() => { setEditingEmployee(selectedEmployee); setIsModalOpen(true); }} className="flex items-center justify-center gap-3 py-4 bg-white border border-slate-200 text-slate-700 font-black rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all text-xs uppercase tracking-widest shadow-sm active:scale-95"><Edit2 size={18} /> {t("employees.details.edit_profile").toUpperCase()}</button>
@@ -236,6 +243,12 @@ export default function EmployeesPage() {
             {activeDetailTab === "salary" && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <EmployeeSalaryConfig wsId={wsId} employeeId={selectedEmployee.id} />
+              </div>
+            )}
+
+            {activeDetailTab === "policies" && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <WorkingConditionConfig wsId={wsId} employeeId={selectedEmployee.id} />
               </div>
             )}
 

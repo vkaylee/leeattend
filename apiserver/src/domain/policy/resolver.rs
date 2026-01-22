@@ -2,13 +2,7 @@ use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sqlx::PgPool;
 use uuid::Uuid;
-
-#[derive(Debug, Clone)]
-pub struct WorkingCondition {
-    pub type_: String,
-    pub minute_allowance: i32,
-    pub is_paid: bool,
-}
+use crate::models::{PolicyRules, WorkingCondition};
 
 #[derive(Debug, Clone)]
 pub struct StandardMonthConfig {
@@ -57,24 +51,6 @@ impl PolicyResolver {
                     source: "department".to_string(),
                 });
             }
-            
-            // Legacy Fallback
-            let dept_legacy = sqlx::query!(
-                "SELECT std_working_days FROM departments WHERE id = $1",
-                dept_id
-            )
-            .fetch_optional(pool)
-            .await?;
-
-            if let Some(row) = dept_legacy {
-                if let Some(days) = row.std_working_days {
-                    return Ok(StandardMonthConfig {
-                        std_working_days: days,
-                        hours_per_day: Decimal::from(8), // Default legacy hours
-                        source: "department".to_string(),
-                    });
-                }
-            }
         }
 
         // 3. Fallback to Workspace Settings (Temporal)
@@ -112,6 +88,54 @@ impl PolicyResolver {
         Ok(config.std_working_days)
     }
 
+    pub async fn resolve_attendance_rules(
+        pool: &PgPool,
+        employee_id: Uuid,
+        workspace_id: Uuid,
+        date: NaiveDate,
+    ) -> Result<PolicyRules, sqlx::Error> {
+        // 1. Get Workspace Defaults
+        let ws = crate::repositories::workspace_repository::get_workspace_by_id(pool, workspace_id)
+            .await?
+            .ok_or_else(|| sqlx::Error::RowNotFound)?;
+
+        // 2. Get Employee Special Conditions
+        let conditions = Self::resolve_working_conditions(pool, employee_id, date).await?;
+
+        // 3. Merge logic
+        let mut rules = PolicyRules {
+            grace_period_minutes: 15, // Default company grace
+            authorized_early_leave_minutes: 0,
+            is_early_leave_paid: false,
+            early_arrival_strategy: ws.early_arrival_strategy,
+            is_break_auto_deduct: true, // Default
+            is_break_overtime: false,
+            allow_early_ot: false,
+        };
+
+        for cond in conditions {
+            match cond.type_.as_str() {
+                "EARLY_LEAVE" => {
+                    // Take the most generous allowance
+                    if cond.minute_allowance > rules.authorized_early_leave_minutes {
+                        rules.authorized_early_leave_minutes = cond.minute_allowance;
+                        rules.is_early_leave_paid = cond.is_paid;
+                    }
+                }
+                "BREASTFEEDING" => {
+                    // Example: breastfeeding might also be 60m paid early leave
+                    if cond.minute_allowance > rules.authorized_early_leave_minutes {
+                        rules.authorized_early_leave_minutes = cond.minute_allowance;
+                        rules.is_early_leave_paid = true;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        Ok(rules)
+    }
+
     pub async fn resolve_working_conditions(
         pool: &PgPool,
         employee_id: Uuid,
@@ -120,7 +144,7 @@ impl PolicyResolver {
         let conditions = sqlx::query_as!(
             WorkingCondition,
             r#"
-            SELECT type as type_, minute_allowance, is_paid 
+            SELECT id, employee_id, type as "type_", minute_allowance, is_paid, start_date, end_date
             FROM working_conditions 
             WHERE employee_id = $1 
               AND start_date <= $2 
