@@ -113,7 +113,9 @@ async fn test_report_uses_workspace_timezone_boundary() {
         .unwrap();
 
     assert_eq!(res.status(), 200);
-    let summary: Vec<apiserver::models::AttendanceSummary> = res.json().await.unwrap();
+    let summary_res: apiserver::models::PaginatedResponse<apiserver::models::AttendanceSummary> =
+        res.json().await.unwrap();
+    let summary = summary_res.data;
 
     assert_eq!(summary.len(), 1, "Should return 1 summary row");
     assert_eq!(summary[0].employee_id, employee_id);

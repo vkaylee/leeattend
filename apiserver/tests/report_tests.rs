@@ -130,7 +130,9 @@ async fn test_get_daily_attendance_report_with_break_times() {
 
     // Assert
     assert_eq!(res.status(), 200);
-    let report: Vec<DailyAttendanceReport> = res.json().await.unwrap();
+    let report_res: apiserver::models::PaginatedResponse<DailyAttendanceReport> =
+        res.json().await.unwrap();
+    let report = report_res.data;
 
     assert_eq!(report.len(), 1);
     let entry = &report[0];
@@ -227,7 +229,9 @@ async fn test_get_daily_attendance_report_no_break_auto_deduct() {
 
     // Assert
     assert_eq!(res.status(), 200);
-    let report: Vec<DailyAttendanceReport> = res.json().await.unwrap();
+    let report_res: apiserver::models::PaginatedResponse<DailyAttendanceReport> =
+        res.json().await.unwrap();
+    let report = report_res.data;
 
     assert_eq!(report.len(), 1);
     let entry = &report[0];
@@ -302,7 +306,9 @@ async fn test_get_workspace_attendance_summary() {
 
     assert_eq!(res.status(), 200);
 
-    let summary: Vec<apiserver::models::AttendanceSummary> = res.json().await.unwrap();
+    let summary_res: apiserver::models::PaginatedResponse<apiserver::models::AttendanceSummary> =
+        res.json().await.unwrap();
+    let summary = summary_res.data;
 
     assert_eq!(summary.len(), 1);
 

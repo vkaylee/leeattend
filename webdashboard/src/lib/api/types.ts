@@ -186,6 +186,21 @@ export interface AttendanceAdjustmentRequest {
   requested_date: string;
 }
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export type AttendanceReportSort =
+  | "name_asc"
+  | "name_desc"
+  | "work_hours_asc"
+  | "work_hours_desc"
+  | "leave_days_asc"
+  | "leave_days_desc";
+
 export interface AttendanceSummary {
   employee_id: string;
   employee_name: string;

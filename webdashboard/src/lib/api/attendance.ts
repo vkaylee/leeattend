@@ -1,6 +1,15 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch, getCurrentWorkspaceId } from "./helpers";
-import { TimeEntry, AttendanceAdjustmentRequest, RawAttendanceLog, AttendanceImportJob } from "./types";
+import { 
+  TimeEntry, 
+  AttendanceAdjustmentRequest, 
+  RawAttendanceLog, 
+  AttendanceImportJob,
+  AttendanceSummary,
+  DailyAttendanceReport,
+  PaginatedResponse,
+  AttendanceReportSort
+} from "./types";
 
 export async function punchIn(
   wsId: string,
@@ -163,9 +172,25 @@ export async function fetchAttendanceReport(
   start: string,
   end: string,
   type: "summary" | "daily" = "summary",
+  page?: number,
+  limit?: number,
+  sort?: AttendanceReportSort,
+  employeeIds?: string[]
 ): Promise<any> {
+  const params = new URLSearchParams({
+    start_date: start,
+    end_date: end,
+    type,
+  });
+  if (page) params.append("page", page.toString());
+  if (limit) params.append("limit", limit.toString());
+  if (sort) params.append("sort", sort);
+  if (employeeIds && employeeIds.length > 0) {
+    params.append("employee_ids", employeeIds.join(","));
+  }
+
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/reports/attendance?start_date=${start}&end_date=${end}&type=${type}`,
+    `${API_BASE_URL}/workspaces/${wsId}/reports/attendance?${params.toString()}`,
   );
   if (!response.ok) throw new Error("Failed to fetch attendance report");
   return response.json();

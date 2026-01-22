@@ -4,7 +4,9 @@ use chrono_tz::Tz;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::{AttendanceSummary, DailyAttendanceReport};
+use crate::models::{
+    AttendanceReportSort, AttendanceSummary, DailyAttendanceReport, PaginatedResponse,
+};
 use crate::repositories::workspace_repository::{SqlxWorkspaceRepository, WorkspaceRepository};
 use crate::repositories::{roster_repository, time_entry_repository};
 use crate::services::AttendanceCalculator;
@@ -17,7 +19,9 @@ impl ReportService {
         workspace_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<Vec<DailyAttendanceReport>, StatusCode> {
+        page: Option<i64>,
+        limit: Option<i64>,
+    ) -> Result<PaginatedResponse<DailyAttendanceReport>, StatusCode> {
         // 0. Get Workspace Settings for Timezone & Rounding Logic
         let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
         let workspace = workspace_repo
@@ -184,15 +188,41 @@ impl ReportService {
             }
         }
 
-        Ok(reports)
+        // 3. Pagination
+        let total = reports.len();
+        let limit = limit.unwrap_or(20);
+        let page = page.unwrap_or(1);
+        let offset = ((page - 1) * limit) as usize;
+
+        let data = if offset >= total {
+            Vec::new()
+        } else {
+            reports
+                .into_iter()
+                .skip(offset)
+                .take(limit as usize)
+                .collect()
+        };
+
+        Ok(PaginatedResponse {
+            data,
+            total,
+            page,
+            limit,
+        })
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn get_workspace_attendance_summary(
         pool: &PgPool,
         workspace_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
-    ) -> Result<Vec<AttendanceSummary>, StatusCode> {
+        sort: Option<AttendanceReportSort>,
+        page: Option<i64>,
+        limit: Option<i64>,
+        employee_ids: Option<Vec<Uuid>>,
+    ) -> Result<PaginatedResponse<AttendanceSummary>, StatusCode> {
         // 0. Get Workspace Settings for Timezone
         let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
         let workspace = workspace_repo
@@ -224,12 +254,14 @@ impl ReportService {
             .ok_or(StatusCode::BAD_REQUEST)?
             .with_timezone(&Utc);
 
-        let summaries = sqlx::query!(
+        use sqlx::Row;
+
+        let summaries = sqlx::query(
             r#"
             SELECT 
                 e.id as employee_id,
                 e.first_name || ' ' || e.last_name as employee_name,
-                COALESCE(SUM(te.duration_minutes), 0)::float as total_minutes,
+                COALESCE(SUM(te.duration_minutes), 0)::double precision as total_minutes,
                 COALESCE((
                     SELECT SUM(lr.end_date - lr.start_date + 1)
                     FROM leave_requests lr
@@ -243,14 +275,16 @@ impl ReportService {
                 AND te.punch_in_time >= $4 
                 AND te.punch_in_time <= $5
             WHERE e.workspace_id = $1
+              AND ($6::uuid[] IS NULL OR e.id = ANY($6))
             GROUP BY e.id, e.first_name, e.last_name
             "#,
-            workspace_id,
-            start_date,
-            end_date,
-            start_dt,
-            end_dt
         )
+        .bind(workspace_id)
+        .bind(start_date)
+        .bind(end_date)
+        .bind(start_dt)
+        .bind(end_dt)
+        .bind(employee_ids.as_deref())
         .fetch_all(pool)
         .await
         .map_err(|e| {
@@ -258,23 +292,70 @@ impl ReportService {
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-        Ok(summaries
+        let mut results: Vec<AttendanceSummary> = summaries
             .into_iter()
             .map(|row| {
-                let total_minutes = row.total_minutes.unwrap_or(0.0) as i32;
+                let total_minutes: f64 = row.get("total_minutes");
                 let work_units = AttendanceCalculator::calculate_units(
-                    total_minutes,
+                    total_minutes as i32,
                     workspace.work_unit_minutes,
                     &workspace.rounding_policy,
                 );
 
                 AttendanceSummary {
-                    employee_id: row.employee_id,
-                    employee_name: row.employee_name.unwrap_or_default(),
+                    employee_id: row.get("employee_id"),
+                    employee_name: row.get::<Option<String>, _>("employee_name").unwrap_or_default(),
                     total_work_units: work_units,
-                    total_leave_days: row.total_leave_days.unwrap_or(0),
+                    total_leave_days: row.get::<Option<i64>, _>("total_leave_days").unwrap_or(0),
                 }
             })
-            .collect())
+            .collect();
+
+        // 2. Sorting
+        if let Some(s) = sort {
+            match s {
+                AttendanceReportSort::NameAsc => {
+                    results.sort_by(|a, b| a.employee_name.cmp(&b.employee_name))
+                }
+                AttendanceReportSort::NameDesc => {
+                    results.sort_by(|a, b| b.employee_name.cmp(&a.employee_name))
+                }
+                AttendanceReportSort::WorkHoursAsc => {
+                    results.sort_by(|a, b| a.total_work_units.cmp(&b.total_work_units))
+                }
+                AttendanceReportSort::WorkHoursDesc => {
+                    results.sort_by(|a, b| b.total_work_units.cmp(&a.total_work_units))
+                }
+                AttendanceReportSort::LeaveDaysAsc => {
+                    results.sort_by(|a, b| a.total_leave_days.cmp(&b.total_leave_days))
+                }
+                AttendanceReportSort::LeaveDaysDesc => {
+                    results.sort_by(|a, b| b.total_leave_days.cmp(&a.total_leave_days))
+                }
+            }
+        }
+
+        // 3. Pagination
+        let total = results.len();
+        let limit = limit.unwrap_or(20);
+        let page = page.unwrap_or(1);
+        let offset = ((page - 1) * limit) as usize;
+
+        let data = if offset >= total {
+            Vec::new()
+        } else {
+            results
+                .into_iter()
+                .skip(offset)
+                .take(limit as usize)
+                .collect()
+        };
+
+        Ok(PaginatedResponse {
+            data,
+            total,
+            page,
+            limit,
+        })
     }
 }

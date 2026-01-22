@@ -809,15 +809,28 @@ Tạo mới hoặc cập nhật một loại ca làm việc. Nếu cập nhật,
 - `effective_date`: (Chỉ dành cho update) Ngày bắt đầu hiệu lực của version mới. Mặc định là hôm nay.
 
 #### GET /workspaces/:ws_id/reports/attendance
-Xuất báo cáo chấm công của workspace.
+Xuất báo cáo chấm công của workspace. Hỗ trợ phân trang, sắp xếp và lọc nhân viên.
 - **Query Params**: 
-    - `start_date`: YYYY-MM-DD
-    - `end_date`: YYYY-MM-DD
+    - `start_date`: YYYY-MM-DD (Bắt buộc)
+    - `end_date`: YYYY-MM-DD (Bắt buộc)
     - `type`: `summary` (mặc định) hoặc `daily`
-- **Response (type=summary)**: Báo cáo tổng hợp số Work Unit, số ngày công theo từng nhân viên.
+    - `page`: number (mặc định 1)
+    - `limit`: number (mặc định 20)
+    - `sort`: string (`name_asc`, `name_desc`, `work_hours_asc`, `work_hours_desc`, `leave_days_asc`, `leave_days_desc`).
+    - `employee_ids`: chuỗi UUID phân cách bằng dấu phẩy (Lọc theo danh sách nhân viên).
+- **Response (200 OK)**: Trả về đối tượng `PaginatedResponse`.
+  ```json
+  {
+    "data": [...],
+    "total": 100,
+    "page": 1,
+    "limit": 20
+  }
+  ```
+- **Response Data (type=summary)**: Báo cáo tổng hợp số Work Unit, số ngày công theo từng nhân viên.
     - **Fields**: `employee_id`, `employee_name`, `total_work_units` (Số lượng đơn vị công nguyên), `total_leave_days`.
-- **Response (type=daily)**: Báo cáo chi tiết từng lượt quẹt thẻ (Work/Break) theo ngày của từng nhân viên.
-    - **Fields**: `employee_id`, `employee_name`, `date`, `scheduled_start`, `scheduled_end`, `break_duration_minutes`, `break_start`, `break_end`, `is_break_auto_deduct`, `actual_punch_in`, `actual_punch_out`, `work_units` (Số lượng đơn vị công nguyên sau khi làm tròn), `status`.
+- **Response Data (type=daily)**: Báo cáo chi tiết từng lượt quẹt thẻ (Work/Break) theo ngày của từng nhân viên.
+    - **Fields**: `employee_id`, `employee_name`, `date`, `scheduled_start`, `scheduled_end`, `break_duration_minutes`, `break_start`, `break_end`, `is_break_auto_deduct`, `actual_punch_in`, `actual_punch_out`, `work_units` (Số lượng đơn vị công nguyên sau khi làm tròn), `status`, `generation_metadata`.
 
 ---
 

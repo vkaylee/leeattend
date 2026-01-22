@@ -329,7 +329,8 @@
       "records": "records",
       "page": "Page",
       "prev": "Prev",
-      "next": "Next"
+      "next": "Next",
+      "rows_per_page": "Rows per page"
     },
     "filters": {
       "title": "Filters",

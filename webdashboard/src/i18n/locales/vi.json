@@ -329,7 +329,8 @@
       "records": "bản ghi",
       "page": "Trang",
       "prev": "Trước",
-      "next": "Sau"
+      "next": "Sau",
+      "rows_per_page": "Số dòng/trang"
     },
     "filters": {
       "title": "Bộ lọc",

@@ -5,6 +5,14 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Smart Pagination & Sorting for Attendance Reports**:
+    - **Dual Pagination**: Implemented top and bottom pagination controls for the Attendance Report table.
+    - **Smart Page Size**: The default number of rows per page now automatically adjusts to the number of days in the selected month (e.g., 28, 30, or 31).
+    - **Dynamic Sorting**: Added server-side sorting by Employee Name, Total Work Hours, and Total Leave Days (Ascending/Descending).
+    - **Server-side Filtering**: Integrated employee ID filtering into the backend reporting engine for better performance on large datasets.
+    - **Interactive UI**: Created a reusable `PaginationControls` component with quick-jump to page and adjustable page size selector.
+    - **Backend Architecture**: Added a generic `PaginatedResponse<T>` and `AttendanceReportSort` models to support consistent paginated APIs.
+    - **SQLX Resilience**: Migrated report queries to `sqlx::query` to avoid offline cache synchronization issues during rapid iteration.
 - **Employee Bulk Import Improvements**:
     - **"Silent Skip" Logic**: Enhanced import backend to automatically skip duplicate employee IDs (using `ON CONFLICT DO NOTHING`) instead of failing the entire batch.
     - **Progress Feedback**: Import job status now correctly distinguishes between inserted rows and skipped rows.

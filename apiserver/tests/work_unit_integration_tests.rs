@@ -100,15 +100,22 @@ async fn test_work_unit_integer_integrity_flow() {
 
     // 3. Verify Report Service returns 1 unit
     let reports = apiserver::services::report_service::ReportService::get_daily_attendance_report(
-        &pool, ws_id, test_date, test_date,
+        &pool,
+        ws_id,
+        test_date,
+        test_date,
+        None,
+        None,
     )
     .await
     .unwrap();
+    let reports_data = reports.data;
 
-    assert_eq!(reports.len(), 1);
+    // Assert
+    assert_eq!(reports_data.len(), 1);
     assert_eq!(
-        reports[0].work_units, 1,
-        "45 mins with 30m unit and Floor policy must result in exactly 1 unit"
+        reports_data[0].work_units, 1,
+        "Should have 1 work unit (1 minute)"
     );
 
     // 4. Verify Payroll Service uses 1 unit for calculation

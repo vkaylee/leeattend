@@ -544,6 +544,25 @@ pub struct ApproveAttendanceAdjustmentRequest {
     pub status: AdjustmentStatus,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PaginatedResponse<T> {
+    pub data: Vec<T>,
+    pub total: usize,
+    pub page: i64,
+    pub limit: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum AttendanceReportSort {
+    NameAsc,
+    NameDesc,
+    WorkHoursAsc,
+    WorkHoursDesc,
+    LeaveDaysAsc,
+    LeaveDaysDesc,
+}
+
 // --- Basic Reporting Models ---
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
