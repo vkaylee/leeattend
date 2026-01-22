@@ -1099,14 +1099,16 @@ Các công cụ hỗ trợ phát triển nhanh và dọn dẹp dữ liệu thử
 
 #### POST /api/dev/workspaces/:ws_id/clear
 Dọn dẹp nhanh dữ liệu theo nhóm trong một workspace.
-- **Query Params**: `?group=attendance|schedules|leave|payroll|full_reset`
+- **Query Params**: `?group=attendance|schedules|leave|payroll|employees|full_reset|seed`
 - **Mục đích**: Reset dữ liệu để thử nghiệm lại các kịch bản import/tính toán mà không làm ảnh hưởng đến cấu hình chung của workspace.
 - **Các nhóm dữ liệu**:
     - `attendance`: Xóa logs thô, time entries, yêu cầu điều chỉnh công và lịch sử import.
     - `schedules`: Xóa lịch biểu (rosters) và gán ca linh hoạt.
     - `leave`: Xóa đơn nghỉ phép, lịch sử cộng phép và số dư phép.
     - `payroll`: Xóa phiếu lương (payslips) và cấu hình lương nhân viên (salary components).
-    - `full_reset`: Xóa toàn bộ dữ liệu trên cộng với danh sách nhân viên, phòng ban, ca làm việc và chính sách phép. (Giữ lại thông tin Workspace và Members).
+    - `employees`: Xóa toàn bộ nhân viên và dữ liệu liên quan (lịch sử, chấm công, lương) nhưng giữ lại cấu hình Workspace (Phòng ban, Ca làm việc, Chính sách).
+    - `full_reset` (Factory Reset): Xóa toàn bộ dữ liệu vận hành và cấu hình, bao gồm nhân viên, phòng ban, ca làm việc, chính sách phép. Đưa Workspace về trạng thái rỗng hoàn toàn (Giữ lại thông tin Workspace và Members).
+    - `seed`: Tạo dữ liệu mẫu cho Workspace (2 Phòng ban: Engineering/HR, 1 Ca làm việc: Morning Shift, 5 Nhân viên mẫu).
 - **Response (200 OK)**
 
 #### GET /dev/super-user

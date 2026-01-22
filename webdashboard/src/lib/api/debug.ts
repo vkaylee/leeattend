@@ -1,6 +1,6 @@
 import { apiFetch } from "./helpers";
 
-export type ClearDbGroup = "attendance" | "payroll" | "rosters" | "full_reset";
+export type ClearDbGroup = "attendance" | "payroll" | "rosters" | "employees" | "full_reset" | "seed";
 
 export const debugApi = {
   getUsers: async () => {
@@ -15,10 +15,10 @@ export const debugApi = {
   },
 
   seedData: async (workspaceId: string, scenario: string) => {
-    // Note: We might implement seed logic in the future
-    return apiFetch(`/debug/workspaces/${workspaceId}/seed`, {
+    // We use the clear endpoint with group='seed' for now as it's a debug command
+    return apiFetch(`/debug/workspaces/${workspaceId}/clear`, {
       method: "POST",
-      body: JSON.stringify({ scenario }),
+      body: JSON.stringify({ group: "seed" }),
     });
   }
 };

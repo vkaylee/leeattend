@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useDebug } from "../../context/DebugContext";
-import { Terminal, User, Calendar, X, RefreshCcw, Power, Database, Trash2, UserPlus } from "lucide-react";
+import { Terminal, User, Calendar, X, RefreshCcw, Power, Database, Trash2, UserPlus, UserMinus } from "lucide-react";
 import { debugApi, ClearDbGroup } from "../../lib/api/debug";
 import { getCurrentWorkspaceId } from "../../lib/api/helpers";
 import { useQueryClient } from "@tanstack/react-query";
@@ -42,16 +42,20 @@ export const DebugToolbar: React.FC = () => {
 
   const handleClearDb = async (group: ClearDbGroup) => {
     if (!currentWorkspaceId) return alert("No workspace selected");
-    if (!confirm(`Are you sure you want to wipe ${group} data? This cannot be undone.`)) return;
+    
+    const actionVerb = group === "seed" ? "seed demo" : "wipe";
+    const warning = group === "full_reset" ? " This will delete EVERYTHING." : group === "employees" ? " This will delete all employees and their history." : "";
+    
+    if (!confirm(`Are you sure you want to ${actionVerb} ${group === "seed" ? "data" : group + " data"}?${warning}`)) return;
     
     setIsWiping(true);
     try {
       await debugApi.clearDb(currentWorkspaceId, group);
       // Invalidate all queries to refresh the UI
       queryClient.invalidateQueries();
-      alert(`${group} data wiped successfully.`);
+      alert(`${group === "seed" ? "Demo data seeded" : group + " data wiped"} successfully.`);
     } catch (err) {
-      alert("Wipe failed: " + (err as Error).message);
+      alert("Operation failed: " + (err as Error).message);
     } finally {
       setIsWiping(false);
     }
@@ -194,45 +198,66 @@ export const DebugToolbar: React.FC = () => {
 
         {activeTab === "database" && (
           <div className="space-y-3 animate-in fade-in duration-300">
-            <div className="grid grid-cols-2 gap-2">
+             {/* Data Operations */}
+            <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => handleClearDb("attendance")}
                 disabled={isWiping}
-                className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-red-900/40 border border-slate-700 p-2 rounded transition-colors group"
+                className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
+                title="Clear attendance logs and time entries"
               >
-                <Trash2 size={14} className="text-slate-400 group-hover:text-red-400" />
-                <span className="text-[9px] font-bold uppercase">Wipe Logs</span>
+                <Trash2 size={12} className="text-slate-400 group-hover:text-amber-400" />
+                <span className="text-[8px] font-bold uppercase">Logs</span>
               </button>
               <button
                 onClick={() => handleClearDb("payroll")}
                 disabled={isWiping}
-                className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-red-900/40 border border-slate-700 p-2 rounded transition-colors group"
+                className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
+                title="Clear payroll history"
               >
-                <Trash2 size={14} className="text-slate-400 group-hover:text-red-400" />
-                <span className="text-[9px] font-bold uppercase">Wipe Payroll</span>
+                <Trash2 size={12} className="text-slate-400 group-hover:text-amber-400" />
+                <span className="text-[8px] font-bold uppercase">Payroll</span>
               </button>
               <button
                 onClick={() => handleClearDb("rosters")}
                 disabled={isWiping}
-                className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-red-900/40 border border-slate-700 p-2 rounded transition-colors group"
+                className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
+                title="Clear schedules and rosters"
               >
-                <Trash2 size={14} className="text-slate-400 group-hover:text-red-400" />
-                <span className="text-[9px] font-bold uppercase">Wipe Rosters</span>
+                <Trash2 size={12} className="text-slate-400 group-hover:text-amber-400" />
+                <span className="text-[8px] font-bold uppercase">Rosters</span>
+              </button>
+            </div>
+
+            {/* Destructive Zone */}
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
+                <button
+                onClick={() => handleClearDb("employees")}
+                disabled={isWiping}
+                className="flex flex-col items-center gap-1 bg-red-900/10 hover:bg-red-900/30 border border-red-900/30 p-2 rounded transition-colors group"
+                title="Delete all employees and their data (keeps settings)"
+              >
+                <UserMinus size={14} className="text-red-400" />
+                <span className="text-[9px] font-bold uppercase text-red-200">Wipe Staff</span>
               </button>
               <button
                 onClick={() => handleClearDb("full_reset")}
                 disabled={isWiping}
                 className="flex flex-col items-center gap-1 bg-red-900/20 hover:bg-red-900/40 border border-red-900/50 p-2 rounded transition-colors group"
+                title="Delete EVERYTHING (Factory Reset)"
               >
                 <Trash2 size={14} className="text-red-400" />
-                <span className="text-[9px] font-bold uppercase text-red-200">Full Reset</span>
+                <span className="text-[9px] font-bold uppercase text-red-200">Factory Reset</span>
               </button>
             </div>
             
+            {/* Seeding */}
             <div className="pt-2 border-t border-slate-800">
                <button
+                onClick={() => handleClearDb("seed")}
                 disabled={isWiping}
                 className="w-full flex items-center justify-center gap-2 bg-green-900/20 hover:bg-green-900/40 border border-green-900/50 p-2 rounded text-[10px] font-bold text-green-200 transition-colors"
+                title="Create default departments, shifts, and employees"
               >
                 <UserPlus size={14} /> Quick Seed Demo Team
               </button>
@@ -265,3 +290,4 @@ export const DebugToolbar: React.FC = () => {
     </div>
   );
 };
+

@@ -5,6 +5,15 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Debug Toolbar Improvements**:
+    - **Backend**: Enhanced `clear_debug_db` handler with new capabilities:
+        - `employees`: Wipes all employee data (logs, payroll, history) while preserving workspace configuration (Departments, Shifts, Policies).
+        - `seed`: Automatically generates a demo environment with 2 Departments, 1 Shift, and 5 Employees.
+    - **Backend**: Hardened `full_reset` (Factory Reset) to ensure comprehensive cleanup of all workspace artifacts, including assignment rules and working patterns.
+    - **Frontend**: Redesigned `DebugToolbar` with a structured layout:
+        - **Data Operations**: Granular wipe for Attendance, Payroll, and Rosters.
+        - **Destructive Zone**: Explicit "Wipe Staff" and "Factory Reset" actions with safety confirmations.
+        - **Seeding**: One-click "Quick Seed Demo Team" for rapid testing setup.
 - **Smart Pagination & Sorting for Attendance Reports**:
     - **Dual Pagination**: Implemented top and bottom pagination controls for the Attendance Report table.
     - **Smart Page Size**: The default number of rows per page now automatically adjusts to the number of days in the selected month (e.g., 28, 30, or 31).
