@@ -108,5 +108,10 @@ leeattend/
     - **Attendance & Profile**: Interactive attendance history and profile management with traceability metadata.
     - **Shared Components**: Leverages core design system for visual consistency between Admin and ESS roles.
 
+### 6. New Features (Q1 2026)
+- **Early Arrival Policy**: Configurable strategy (`Block`, `Allow`, `Clamp`) to handle check-ins before shift start. Controlled by `early_arrival_strategy` in Workspace settings and `early_punch_in_grace_period_minutes` in Shift settings.
+- **Pagination**: Implemented for high-volume endpoints like Leave Balances (`/workspaces/:ws_id/leave/balances`) to improve performance with large employee datasets.
+- **Grace Period Config**: Explicit UI configuration for shift grace periods, critical for the new arrival policies.
+
 
 ...

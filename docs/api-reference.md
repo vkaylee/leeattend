@@ -114,7 +114,8 @@ Cập nhật thông tin hoặc cấu hình hệ thống của workspace.
     "timezone": "Asia/Ho_Chi_Minh",
     "default_language": "vi|en|zh",
     "theme_primary_color": "#059669",
-    "pairing_algorithm": "anchor_first|fsm"
+    "pairing_algorithm": "anchor_first|fsm", // dp_pattern, anchor_first, sequential, fsm
+    "early_arrival_strategy": "block" // block, allow, clamp
   }
   ```
 - **Response (200)**: `Workspace` (updated)
@@ -357,32 +358,35 @@ Phê duyệt hoặc từ chối đơn nghỉ phép.
 - **Response (200 OK)**
 
 #### GET /workspaces/:ws_id/leave/balances (New - Admin)
-Lấy bảng tổng hợp số dư phép của tất cả nhân viên trong workspace.
-- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
-- **Query Params**:
-  - `page` (optional): Page number (default: 1)
-  - `limit` (optional): Items per page (default: 20)
-  - `q` (optional): Search by employee name
-- **Response (200)**: 
-  ```json
-  {
-    "data": [
-      {
-        "employee_id": "uuid",
-        "employee_name": "Nguyen Van A",
-        "leave_type": "vacation",
-        "entitlement": 12,
-        "accrued_amount": 3.0,
-        "carried_over": 0,
-        "used": 2,
-        "remaining": 13.0
-      }
-    ],
-    "total": 50,
-    "page": 1,
-    "limit": 20
-  }
-  ```
+
+Get leave balances for all employees in the workspace. Supports pagination and searching by employee name.
+
+- **Query Parameters**:
+  - `page` (optional, default: 1): Page number.
+  - `limit` (optional, default: 20): Items per page.
+  - `q` (optional): Search term for employee name.
+- **Response (200)**: `PaginatedResponse<WorkspaceLeaveBalance>`
+```json
+{
+  "data": [
+    {
+      "employee_id": "uuid",
+      "employee_name": "Full Name",
+      "leave_type": "annual",
+      "entitlement": 12,
+      "accrued_amount": 10.5,
+      "carried_over": 0,
+      "used": 2,
+      "remaining": 8.5,
+      "policy_name": "Standard Policy",
+      "assignment_type": "employee"
+    }
+  ],
+  "total": 100,
+  "page": 1,
+  "limit": 20
+}
+```
 
 #### GET /workspaces/:ws_id/employees/:id/leave/balances
 Lấy thông tin hạn mức và số dư phép của một nhân viên cụ thể.
@@ -812,6 +816,7 @@ Tạo mới hoặc cập nhật một loại ca làm việc. Nếu cập nhật,
   "effective_date": "2026-01-16"
 }
 ```
+- `early_punch_in_grace_period_minutes`: Số phút cho phép vào sớm trước giờ ca mà không bị chặn hoặc không tính OT (tùy policy).
 - `allow_early_ot`: Nếu `true`, thời gian vào ca sớm hơn `start_time` (sau khi trừ grace period) sẽ được tính là Overtime.
 - `is_correction`: (Chỉ dành cho update) Nếu `true`, ghi đè trực tiếp lên bản ghi hiện tại thay vì tạo version mới.
 - `effective_date`: (Chỉ dành cho update) Ngày bắt đầu hiệu lực của version mới. Mặc định là hôm nay.
