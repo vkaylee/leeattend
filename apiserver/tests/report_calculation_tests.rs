@@ -2,7 +2,7 @@ mod common;
 
 use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
-use apiserver::models::DailyAttendanceReport;
+use apiserver::models::{DailyAttendanceReport, PaginatedResponse};
 use apiserver::AppState;
 use chrono::{Local, NaiveTime, TimeZone, Utc};
 use common::db::TestDatabase;
@@ -138,7 +138,10 @@ async fn test_report_calculation_grace_period_and_break() {
         .unwrap();
 
     assert_eq!(res.status(), 200);
-    let report: Vec<DailyAttendanceReport> = res.json().await.unwrap();
+    let report_res: PaginatedResponse<DailyAttendanceReport> = res.json().await.unwrap();
+    let report = report_res.data;
+
+    // Assert
 
     // Assert
     assert_eq!(report.len(), 1);
@@ -263,7 +266,10 @@ async fn test_report_calculation_rounding() {
         .unwrap();
 
     assert_eq!(res.status(), 200);
-    let report: Vec<DailyAttendanceReport> = res.json().await.unwrap();
+    let report_res: PaginatedResponse<DailyAttendanceReport> = res.json().await.unwrap();
+    let report = report_res.data;
+
+    // Assert
 
     assert_eq!(report.len(), 1);
     // Work 09:00 to 18:14 = 9h14m = 554m.

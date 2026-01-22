@@ -257,8 +257,7 @@ Tạo hồ sơ nhân viên mới.
   ```json
   {
     "user_id": "optional-uuid",
-    "first_name": "Nguyen",
-    "last_name": "Van A",
+    "full_name": "Nguyen Van A",
     "employee_id_number": "EMP001",
     "hire_date": "2026-01-01"
   }
@@ -892,8 +891,7 @@ Tính toán lịch biểu hiệu lực (Effective Schedule) cho tất cả nhân
   [
     {
       "employee_id": "uuid",
-      "first_name": "...",
-      "last_name": "...",
+      "full_name": "...",
       "schedules": [
         {
           "date": "2026-01-10",
@@ -1040,7 +1038,7 @@ Lấy toàn bộ thông tin hồ sơ cá nhân, bao gồm cả các giai đoạn
 - **Response (200)**: `MyProfileResponse`
   ```json
   {
-    "employee": { "id": "...", "first_name": "...", "hire_date": "..." },
+    "employee": { "id": "...", "full_name": "...", "hire_date": "..." },
     "profile": { "phone": "...", "address": "...", "bank_name": "..." },
     "emergency_contacts": [ ... ]
   }

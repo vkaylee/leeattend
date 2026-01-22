@@ -50,6 +50,9 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - Cleaned up accidental temporary directories from the workspace.
 
 ### Fixed
+- **Employee Name Refactor**: Updated API tests to use `full_name` instead of deprecated `first_name` and `last_name` fields, aligning test expectations with the current data model.
+- **Bulk Import Reliability**: Fixed a formatting bug in the multipart body construction for integration tests, ensuring consistent boundary handling for file uploads.
+- **Report Pagination Tests**: Updated integration tests to correctly handle the new `PaginatedResponse` structure returned by the attendance report API.
 - **Leave Balance Re-calculation**: Resolved an issue where manual "Update Balance" triggers would not reflect policy changes for past dates. The system now forces a re-calculation and updates balances if the accrual amount differs.
 - **TypeScript & Linting**: Fixed multiple type errors in `PayrollTable`, `PunchCard`, and `Sidebar` components to ensure a clean build.
 - **Test Stability**: Fixed flaky E2E tests by adjusting timeouts and ensuring proper environment teardown.

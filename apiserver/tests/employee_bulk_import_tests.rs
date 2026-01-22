@@ -67,7 +67,7 @@ async fn test_upload_employee_csv_api() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     
     // CSV with 2 employees
-    let csv_content = "ID,FirstName,LastName,HireDate\nEMP001,John,Doe,2026-01-01\nEMP002,Jane,Smith,2026-01-15";
+    let csv_content = "ID,FullName,HireDate\nEMP001,John Doe,2026-01-01\nEMP002,Jane Smith,2026-01-15";
     let (content_type, body) = create_multipart_body("employees.csv", &csv_content);
 
     let response = app
@@ -115,8 +115,7 @@ async fn test_upload_employee_csv_api() {
     let emp1 = apiserver::repositories::employee_repository::get_employee_by_id_number(&factory.pool, "EMP001", ws_id).await.unwrap();
     assert!(emp1.is_some());
     let emp1 = emp1.unwrap();
-    assert_eq!(emp1.first_name, "John");
-    assert_eq!(emp1.last_name, "Doe");
+    assert_eq!(emp1.full_name, "John Doe");
     assert_eq!(emp1.hire_date.to_string(), "2026-01-01");
 
     let emp2 = apiserver::repositories::employee_repository::get_employee_by_id_number(&factory.pool, "EMP002", ws_id).await.unwrap();
@@ -134,12 +133,11 @@ async fn test_upload_employee_duplicate_id_skips() {
     factory.employee()
         .with_workspace(ws_id)
         .with_employee_id_number("DUP001")
-        .with_first_name("Old")
-        .with_last_name("Name")
+        .with_full_name("Old Name")
         .create().await;
     
     // CSV with same ID "DUP001" (different name) and a new employee "NEW002"
-    let csv_content = "ID,FirstName,LastName,HireDate\nDUP001,New,John,2026-01-01\nNEW002,Alice,Wonder,2026-02-01";
+    let csv_content = "ID,FullName,HireDate\nDUP001,New John,2026-01-01\nNEW002,Alice Wonder,2026-02-01";
     let (content_type, body) = create_multipart_body("employees.csv", &csv_content);
 
     let response = app
@@ -173,8 +171,6 @@ async fn test_upload_employee_duplicate_id_skips() {
             final_log = job.error_log.unwrap_or_default();
             
             // Check that processed_rows reflects only the NEW inserted row (1)
-            // Wait, logic says `processed_rows` increments for insert, `skipped_rows` for skip.
-            // But DB only stores `processed_rows`. We used `processed_rows` for successful inserts.
             assert_eq!(job.processed_rows, 1, "Should only process 1 new row");
             break;
         } else if job.status == ImportJobStatus::Failed {
@@ -187,8 +183,7 @@ async fn test_upload_employee_duplicate_id_skips() {
 
     // Verify "DUP001" is NOT updated
     let emp_dup = apiserver::repositories::employee_repository::get_employee_by_id_number(&factory.pool, "DUP001", ws_id).await.unwrap().unwrap();
-    assert_eq!(emp_dup.first_name, "Old");
-    assert_eq!(emp_dup.last_name, "Name");
+    assert_eq!(emp_dup.full_name, "Old Name");
 
     // Verify "NEW002" IS created
     let emp_new = apiserver::repositories::employee_repository::get_employee_by_id_number(&factory.pool, "NEW002", ws_id).await.unwrap();
