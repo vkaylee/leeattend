@@ -172,7 +172,7 @@ impl ReportService {
                 reports.push(DailyAttendanceReport {
                     date,
                     employee_id: emp_sched.employee_id,
-                    employee_name: format!("{} {}", emp_sched.first_name, emp_sched.last_name),
+                    employee_name: emp_sched.full_name.clone(),
                     scheduled_start: daily.start_time,
                     scheduled_end: daily.end_time,
                     break_duration_minutes: daily.break_duration_minutes,
@@ -260,7 +260,7 @@ impl ReportService {
             r#"
             SELECT 
                 e.id as employee_id,
-                e.first_name || ' ' || e.last_name as employee_name,
+                e.full_name as employee_name,
                 COALESCE(SUM(te.duration_minutes), 0)::double precision as total_minutes,
                 COALESCE((
                     SELECT SUM(lr.end_date - lr.start_date + 1)
@@ -276,7 +276,7 @@ impl ReportService {
                 AND te.punch_in_time <= $5
             WHERE e.workspace_id = $1
               AND ($6::uuid[] IS NULL OR e.id = ANY($6))
-            GROUP BY e.id, e.first_name, e.last_name
+            GROUP BY e.id, e.full_name
             "#,
         )
         .bind(workspace_id)

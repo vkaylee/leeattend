@@ -102,14 +102,12 @@ describe("ShiftsPage - Shift Picker Modal", () => {
   const mockEmployees = [
     {
       id: "emp-1",
-      first_name: "John",
-      last_name: "Doe",
+      full_name: "John Doe",
       employee_id_number: "EMP001",
     },
     {
       id: "emp-2",
-      first_name: "Jane",
-      last_name: "Smith",
+      full_name: "Jane Smith",
       employee_id_number: "EMP002",
     },
   ];

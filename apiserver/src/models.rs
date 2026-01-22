@@ -323,8 +323,7 @@ pub struct Employee {
     pub id: Uuid,
     pub workspace_id: Uuid,
     pub user_id: Option<Uuid>,
-    pub first_name: String,
-    pub last_name: String,
+    pub full_name: String,
     pub employee_id_number: String,
     pub hire_date: NaiveDate, // Fetched from latest employment_period
     pub termination_date: Option<NaiveDate>, // Fetched from latest employment_period
@@ -379,8 +378,7 @@ pub struct RehireEmployeeRequest {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CreateEmployeeRequest {
     pub user_id: Option<Uuid>,
-    pub first_name: String,
-    pub last_name: String,
+    pub full_name: String,
     pub employee_id_number: String,
     pub hire_date: NaiveDate,
     pub tags: Option<Vec<String>>,
@@ -389,8 +387,7 @@ pub struct CreateEmployeeRequest {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UpdateEmployeeRequest {
     pub user_id: Option<Uuid>,
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
+    pub full_name: Option<String>,
     pub employee_id_number: Option<String>,
     pub hire_date: Option<NaiveDate>,
     pub termination_date: Option<NaiveDate>,
@@ -491,7 +488,7 @@ pub struct EmployeeLeaveBalance {
     pub remaining: f64,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct WorkspaceLeaveBalance {
     pub employee_id: Uuid,
     pub employee_name: String,
@@ -943,8 +940,7 @@ pub struct EffectiveSchedule {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EmployeeSchedule {
     pub employee_id: Uuid,
-    pub first_name: String,
-    pub last_name: String,
+    pub full_name: String,
     pub schedules: Vec<EffectiveSchedule>,
 }
 

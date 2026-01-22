@@ -120,7 +120,7 @@ export default function MyClockPage() {
           <PunchCard
             activeEntry={activeEntry}
             isOnBreak={isOnBreak}
-            userName={`${employee.first_name} ${employee.last_name}`}
+            userName={employee.full_name}
             onPunchIn={handlePunchIn}
             onPunchOut={handlePunchOut}
             onRequestAdjustment={() => setIsAdjustmentModalOpen(true)}

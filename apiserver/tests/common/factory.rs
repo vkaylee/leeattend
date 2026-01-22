@@ -248,8 +248,7 @@ pub struct EmployeeBuilder {
     pool: PgPool,
     workspace_id: Option<Uuid>,
     user_id: Option<Uuid>,
-    first_name: String,
-    last_name: String,
+    full_name: String,
     employee_id_number: String,
     hire_date: chrono::NaiveDate,
 }
@@ -262,8 +261,7 @@ impl EmployeeBuilder {
             pool,
             workspace_id: None,
             user_id: None,
-            first_name: "Test".to_string(),
-            last_name: "Employee".to_string(),
+            full_name: "Test Employee".to_string(),
             employee_id_number: format!("EMP-{}", &id[..8]),
             hire_date: chrono::Utc::now().date_naive(),
         }
@@ -288,14 +286,8 @@ impl EmployeeBuilder {
     }
 
     #[allow(dead_code)]
-    pub fn with_first_name(mut self, name: &str) -> Self {
-        self.first_name = name.to_string();
-        self
-    }
-
-    #[allow(dead_code)]
-    pub fn with_last_name(mut self, name: &str) -> Self {
-        self.last_name = name.to_string();
+    pub fn with_full_name(mut self, name: &str) -> Self {
+        self.full_name = name.to_string();
         self
     }
 
@@ -310,12 +302,11 @@ impl EmployeeBuilder {
             let mut tx = self.pool.begin().await.unwrap();
 
             let id: Uuid = sqlx::query_scalar(
-                "INSERT INTO employees (workspace_id, user_id, first_name, last_name, employee_id_number) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+                "INSERT INTO employees (workspace_id, user_id, full_name, employee_id_number) VALUES ($1, $2, $3, $4) RETURNING id",
             )
             .bind(self.workspace_id.expect("Workspace ID is required for Employee"))
             .bind(self.user_id)
-            .bind(self.first_name)
-            .bind(self.last_name)
+            .bind(self.full_name)
             .bind(self.employee_id_number)
             .fetch_one(&mut *tx)
             .await

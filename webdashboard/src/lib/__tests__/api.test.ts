@@ -97,13 +97,13 @@ describe("api.ts comprehensive tests", () => {
 
     it("createEmployee", async () => {
       mockSuccess({});
-      await api.createEmployee("ws-1", { first_name: "A" });
+      await api.createEmployee("ws-1", { full_name: "A" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees"), expect.objectContaining({ method: "POST" }));
     });
 
     it("updateEmployee", async () => {
       mockSuccess({});
-      await api.updateEmployee("ws-1", "e1", { first_name: "B" });
+      await api.updateEmployee("ws-1", "e1", { full_name: "B" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/employees/e1"), expect.objectContaining({ method: "PUT" }));
     });
 

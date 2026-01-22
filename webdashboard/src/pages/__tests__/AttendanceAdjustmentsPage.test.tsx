@@ -43,7 +43,7 @@ describe("AttendanceAdjustmentsPage", () => {
     });
     (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
     (api.fetchEmployees as any).mockResolvedValue([
-      { id: "emp-1", first_name: "John", last_name: "Doe", employee_id_number: "EMP001" }
+      { id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001" }
     ]);
     (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([
       { 

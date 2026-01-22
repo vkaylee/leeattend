@@ -329,7 +329,8 @@
       "records": "记录",
       "page": "页",
       "prev": "上一页",
-      "next": "下一页"
+      "next": "下一页",
+      "rows_per_page": "每页行数"
     },
     "filters": {
       "title": "筛选",
@@ -746,8 +747,7 @@
       "add_title": "添加员工",
       "edit_title": "编辑档案",
       "subtitle": "人员档案",
-      "last_name": "姓",
-      "first_name": "名",
+      "full_name": "全名",
       "employee_id": "员工 ID",
       "hire_date": "入职日期",
       "is_active": "活跃",
@@ -802,9 +802,8 @@
     "bulk_import_btn": "从文件导入",
     "import_req": {
       "col_a": "A列：员工ID（必填）",
-      "col_b": "B列：名字（必填）",
-      "col_c": "C列：姓氏（必填）",
-      "col_d": "D列：入职日期（可选，YYYY-MM-DD）"
+      "col_b": "B列：全名（必填）",
+      "col_c": "C列：入职日期（可选，YYYY-MM-DD）"
     }
   },
   "departments": {

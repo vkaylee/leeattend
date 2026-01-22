@@ -180,9 +180,9 @@ export default function LeaveRequestsPage() {
                     <tr key={req.id} className="hover:bg-slate-50/50 transition-all group">
                       <td className="px-10 py-6">
                         <div className="flex items-center gap-5">
-                          <div className="w-14 h-14 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 font-black text-xl shadow-inner border border-primary-100/50 uppercase group-hover:scale-110 transition-transform">{emp?.last_name[0]}</div>
+                          <div className="w-14 h-14 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 font-black text-xl shadow-inner border border-primary-100/50 uppercase group-hover:scale-110 transition-transform">{emp?.full_name[0]}</div>
                           <div>
-                            <div className="font-black text-slate-900 text-sm tracking-tight uppercase leading-none mb-1.5">{emp ? `${emp.first_name} ${emp.last_name}` : 'N/A'}</div>
+                            <div className="font-black text-slate-900 text-sm tracking-tight uppercase leading-none mb-1.5">{emp ? emp.full_name : 'N/A'}</div>
                             <div className="text-[10px] text-slate-400 font-mono font-bold uppercase tracking-widest opacity-70">{emp?.employee_id_number}</div>
                           </div>
                         </div>

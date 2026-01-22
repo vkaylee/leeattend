@@ -8,8 +8,7 @@ import { searchEmployees } from "../../lib/api";
 
 interface Employee {
   id: string;
-  first_name: string;
-  last_name: string;
+  full_name: string;
   employee_id_number: string;
 }
 
@@ -103,7 +102,7 @@ export function EmployeeSearch({
     .filter(emp => !multiple || !selectedIds.includes(emp.id)) 
     .map((emp) => ({
       value: emp.id,
-      label: `${emp.first_name} ${emp.last_name}`,
+      label: emp.full_name,
       description: emp.employee_id_number,
       icon: <User className="h-4 w-4 text-slate-400" />,
     }));
@@ -116,7 +115,7 @@ export function EmployeeSearch({
     .filter(m => !baseOptions.find(opt => opt.value === m.id))
     .map(m => ({
       value: m.id,
-      label: `${m.first_name} ${m.last_name}`,
+      label: m.full_name,
       description: m.employee_id_number,
       icon: <User className="h-4 w-4 text-slate-400" />,
     }));
@@ -135,7 +134,7 @@ export function EmployeeSearch({
                 className="inline-flex items-center gap-2 bg-white text-primary-600 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-tight border border-primary-100 shadow-sm animate-in fade-in zoom-in-95 duration-300"
               >
                 <User size={12} className="opacity-50" />
-                {meta ? `${meta.first_name} ${meta.last_name}` : id.slice(0, 8)}
+                {meta ? meta.full_name : id.slice(0, 8)}
                 <button 
                   onClick={() => handleRemove(id)}
                   className="hover:bg-rose-50 hover:text-rose-600 rounded-lg p-1 transition-all active:scale-90"

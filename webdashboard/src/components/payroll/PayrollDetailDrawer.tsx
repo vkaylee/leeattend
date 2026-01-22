@@ -49,11 +49,11 @@ export default function PayrollDetailDrawer({
           <header className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
             <div className="flex items-center gap-6">
               <div className="w-20 h-20 bg-primary-600 rounded-[2rem] flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-primary-100 rotate-3 hover:rotate-0 transition-transform duration-500">
-                {employee.last_name[0]}
+                {employee.full_name[0]}
               </div>
               <div className="space-y-1">
                 <Dialog.Title className="text-3xl font-black text-slate-900 tracking-tight uppercase">
-                  {employee.first_name} {employee.last_name}
+                  {employee.full_name}
                 </Dialog.Title>
                 <div className="flex items-center gap-3">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">

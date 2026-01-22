@@ -14,7 +14,7 @@ import i18n from "../../i18n/config";
 // Mock hooks
 vi.mock("@/hooks/use-profile", () => ({
   useProfile: () => ({
-    user: { id: "test-user", email: "test@example.com", first_name: "Test", last_name: "User", preferred_language: "en" },
+    user: { id: "test-user", email: "test@example.com", full_name: "Test User", preferred_language: "en" },
     isLoading: false,
     isError: false,
   }),
@@ -70,7 +70,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
     fetchEmployeeDepartmentHistory: vi.fn(() => Promise.resolve([])),
     fetchEmploymentHistory: vi.fn(() => Promise.resolve([])),
     fetchRawAttendanceLogs: vi.fn(() => Promise.resolve({ data: [], total: 0 })),
-    fetchMyEmployeeProfile: vi.fn(() => Promise.resolve({ id: "emp-1", first_name: "Test", last_name: "User" })),
+    fetchMyEmployeeProfile: vi.fn(() => Promise.resolve({ id: "emp-1", full_name: "Test User" })),
   };
 });
 

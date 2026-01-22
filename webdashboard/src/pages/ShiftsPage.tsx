@@ -306,8 +306,8 @@ export default function ShiftsPage() {
   };
 
   const employeeOptions = employees?.map(emp => ({
-    value: emp.id, label: `${emp.first_name} ${emp.last_name}`, description: emp.employee_id_number,
-    icon: <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">{emp.last_name[0]}</div>
+    value: emp.id, label: emp.full_name, description: emp.employee_id_number,
+    icon: <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">{emp.full_name[0]}</div>
   })) || [];
 
   return (
@@ -362,9 +362,9 @@ export default function ShiftsPage() {
           <div className="space-y-6">
             <div className="flex items-center justify-between bg-white p-4 rounded-[32px] border border-slate-200 shadow-sm">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center text-white text-lg font-black shadow-lg shadow-primary-100">{selectedEmployee!.last_name[0]}</div>
+                <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center text-white text-lg font-black shadow-lg shadow-primary-100">{selectedEmployee!.full_name[0]}</div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900 leading-tight">{selectedEmployee!.first_name} {selectedEmployee!.last_name}</h2>
+                  <h2 className="text-lg font-bold text-slate-900 leading-tight">{selectedEmployee!.full_name}</h2>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t("shifts.current_week_roster")}</p>
                 </div>
               </div>
@@ -434,9 +434,9 @@ export default function ShiftsPage() {
           /* TAB: ASSIGNMENTS (Patterns & Rules) */
           <div className="bg-white border border-slate-200 rounded-[40px] p-10 shadow-sm animate-in fade-in zoom-in-95 duration-300">
             <div className="flex items-center gap-6 mb-10 pb-10 border-b border-slate-50">
-              <div className="w-20 h-20 bg-primary-600 rounded-[28px] flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-primary-100">{selectedEmployee!.last_name[0]}</div>
+              <div className="w-20 h-20 bg-primary-600 rounded-[28px] flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-primary-100">{selectedEmployee!.full_name[0]}</div>
               <div>
-                <h2 className="text-2xl font-bold text-slate-900">{selectedEmployee!.first_name} {selectedEmployee!.last_name}</h2>
+                <h2 className="text-2xl font-bold text-slate-900">{selectedEmployee!.full_name}</h2>
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">{t("shifts.fixed_assignment_subtitle")}</p>
               </div>
             </div>

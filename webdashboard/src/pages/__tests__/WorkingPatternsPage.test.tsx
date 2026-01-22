@@ -86,8 +86,8 @@ describe("WorkingPatternsPage", () => {
       { id: "shift-1", name: "Morning", start_time: "08:00", end_time: "17:00" }
     ]);
     (api.fetchEmployees as any).mockResolvedValue([
-      { id: "emp-1", first_name: "John", last_name: "Doe" },
-      { id: "emp-2", first_name: "Jane", last_name: "Smith" }
+      { id: "emp-1", full_name: "John Doe" },
+      { id: "emp-2", full_name: "Jane Smith" }
     ]);
     (api.fetchPatternDetails as any).mockResolvedValue([]);
   });

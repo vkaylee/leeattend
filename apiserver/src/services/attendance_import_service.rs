@@ -26,8 +26,7 @@ struct PendingRow {
 
 struct PendingEmployee {
     id_number: String,
-    first_name: String,
-    last_name: String,
+    full_name: String,
     hire_date: NaiveDate,
     line_number: usize,
 }
@@ -403,13 +402,12 @@ impl AttendanceImportService {
             for (idx, record) in reader.records().flatten().enumerate() {
                 let current_line = idx + 2;
                 let id_number = record.get(0).unwrap_or("").trim().to_string();
-                let first_name = record.get(1).unwrap_or("").trim().to_string();
-                let last_name = record.get(2).unwrap_or("").trim().to_string();
-                let hire_date_str = record.get(3).unwrap_or("").trim();
+                let full_name = record.get(1).unwrap_or("").trim().to_string();
+                let hire_date_str = record.get(2).unwrap_or("").trim();
 
-                if id_number.is_empty() || first_name.is_empty() || last_name.is_empty() {
+                if id_number.is_empty() || full_name.is_empty() {
                     errors.push(format!(
-                        "Dòng {}: Thiếu ID, Họ hoặc Tên nhân viên",
+                        "Dòng {}: Thiếu ID hoặc Tên nhân viên",
                         current_line
                     ));
                     continue;
@@ -429,8 +427,7 @@ impl AttendanceImportService {
 
                 pending_employees.push(PendingEmployee {
                     id_number,
-                    first_name,
-                    last_name,
+                    full_name,
                     hire_date,
                     line_number: current_line,
                 });
@@ -515,15 +512,11 @@ impl AttendanceImportService {
                 Some(Data::Int(i)) => i.to_string(),
                 _ => { errors.push(format!("Dòng {}: Thiếu ID nhân viên", current_line)); continue; }
             };
-            let first_name = match row.get(1) {
+            let full_name = match row.get(1) {
                 Some(Data::String(s)) => s.trim().to_string(),
                 _ => { errors.push(format!("Dòng {}: Thiếu Tên nhân viên", current_line)); continue; }
             };
-            let last_name = match row.get(2) {
-                Some(Data::String(s)) => s.trim().to_string(),
-                _ => { errors.push(format!("Dòng {}: Thiếu Họ nhân viên", current_line)); continue; }
-            };
-            let hire_date = match row.get(3) {
+            let hire_date = match row.get(2) {
                 Some(Data::String(s)) => {
                     NaiveDate::parse_from_str(s.trim(), "%Y-%m-%d")
                         .or_else(|_| NaiveDate::parse_from_str(s.trim(), "%d/%m/%Y"))
@@ -538,8 +531,7 @@ impl AttendanceImportService {
 
             pending.push(PendingEmployee {
                 id_number,
-                first_name,
-                last_name,
+                full_name,
                 hire_date,
                 line_number: current_line,
             });
@@ -557,8 +549,7 @@ impl AttendanceImportService {
             id: Uuid::new_v4(),
             workspace_id: job.workspace_id,
             user_id: None,
-            first_name: emp.first_name.clone(),
-            last_name: emp.last_name.clone(),
+            full_name: emp.full_name.clone(),
             employee_id_number: emp.id_number.clone(),
             hire_date: emp.hire_date,
             termination_date: None,

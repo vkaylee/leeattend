@@ -44,7 +44,7 @@ export default function PayrollSummaryTable({
   }, [payslips]);
 
   const filteredEmployees = employees.filter(emp => 
-    `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.employee_id_number.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -96,9 +96,9 @@ export default function PayrollSummaryTable({
                   </td>
                   <td className="px-4 py-6">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-100 flex items-center justify-center font-black text-slate-400 group-hover:bg-primary-50 group-hover:text-primary-600 group-hover:border-primary-100 group-hover:shadow-md transition-all shadow-inner uppercase">{emp.last_name[0]}</div>
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-100 flex items-center justify-center font-black text-slate-400 group-hover:bg-primary-50 group-hover:text-primary-600 group-hover:border-primary-100 group-hover:shadow-md transition-all shadow-inner uppercase">{emp.full_name[0]}</div>
                       <div>
-                        <p className="font-black text-slate-900 text-sm tracking-tight uppercase leading-tight">{emp.first_name} {emp.last_name}</p>
+                        <p className="font-black text-slate-900 text-sm tracking-tight uppercase leading-tight">{emp.full_name}</p>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 opacity-70 tracking-tighter font-mono leading-none">{emp.employee_id_number}</p>
                       </div>
                     </div>

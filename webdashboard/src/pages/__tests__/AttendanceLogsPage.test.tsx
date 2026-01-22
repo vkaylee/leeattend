@@ -44,7 +44,7 @@ describe("AttendanceLogsPage", () => {
     (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
     (api.fetchWorkspace as any).mockResolvedValue({ id: "test-ws-id", name: "Test Workspace" });
     (api.fetchEmployees as any).mockResolvedValue([
-      { id: "emp-1", first_name: "John", last_name: "Doe" }
+      { id: "emp-1", full_name: "John Doe" }
     ]);
     (api.fetchRawAttendanceLogs as any).mockResolvedValue({
       data: [

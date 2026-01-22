@@ -53,7 +53,7 @@ describe("LeaveRequestsPage", () => {
     });
     (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
     (api.fetchEmployees as any).mockResolvedValue([
-      { id: "emp-1", first_name: "John", last_name: "Doe", hire_date: "2025-01-01" }
+      { id: "emp-1", full_name: "John Doe", hire_date: "2025-01-01" }
     ]);
     (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([]);
     (api.fetchEmployeeLeaveBalances as any).mockResolvedValue([]);

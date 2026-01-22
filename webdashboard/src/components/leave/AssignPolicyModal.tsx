@@ -68,7 +68,7 @@ export function AssignPolicyModal({ isOpen, onClose, wsId }: AssignPolicyModalPr
         {assigneeType === 'employee' && (
           <div className="space-y-2 animate-in slide-in-from-top-2">
             <label htmlFor="assign-emp" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.employee")}</label>
-            <Combobox id="assign-emp" options={employees.map(e => ({ value: e.id, label: `${e.first_name} ${e.last_name}`, description: e.employee_id_number, icon: <UserCircle size={14} /> }))} value={assignEmpId} onChange={setAssignEmpId} placeholder={employeesLoading ? t("common.loading") : t("common.select_employee")} className="bg-slate-50 border-slate-100 h-14" />
+            <Combobox id="assign-emp" options={employees.map(e => ({ value: e.id, label: e.full_name, description: e.employee_id_number, icon: <UserCircle size={14} /> }))} value={assignEmpId} onChange={setAssignEmpId} placeholder={employeesLoading ? t("common.loading") : t("common.select_employee")} className="bg-slate-50 border-slate-100 h-14" />
           </div>
         )}
 

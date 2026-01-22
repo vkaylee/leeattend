@@ -110,10 +110,10 @@ export default function MyProfilePage() {
           <div className="px-12 pb-10">
             <div className="relative -mt-16 mb-8 flex items-end gap-8">
               <div className="w-32 h-32 rounded-[2.5rem] border-[10px] border-white shadow-2xl bg-primary-50 flex items-center justify-center text-primary-600 font-black text-3xl uppercase shadow-inner rotate-3 group-hover/hero:rotate-0 transition-transform duration-700">
-                {employee.first_name[0]}{employee.last_name[0]}
+                {employee.full_name[0]}
               </div>
               <div className="mb-2">
-                <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-2">{employee.first_name} {employee.last_name}</h2>
+                <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-2">{employee.full_name}</h2>
                 <div className="flex flex-wrap gap-4 items-center">
                   <span className="text-[10px] font-black text-primary-600 bg-primary-50 px-3 py-1 rounded-full border border-primary-100 shadow-sm uppercase tracking-widest">{t("common.employee_id")}: {employee.employee_id_number}</span>
                   <div className="w-1.5 h-1.5 bg-slate-200 rounded-full" />

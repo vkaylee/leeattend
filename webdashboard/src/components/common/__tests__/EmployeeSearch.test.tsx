@@ -28,8 +28,8 @@ describe("EmployeeSearch Component", () => {
   });
 
   const mockEmployees = [
-    { id: "1", first_name: "John", last_name: "Doe", employee_id_number: "E001" },
-    { id: "2", first_name: "Jane", last_name: "Smith", employee_id_number: "E002" },
+    { id: "1", full_name: "John Doe", employee_id_number: "E001" },
+    { id: "2", full_name: "Jane Smith", employee_id_number: "E002" },
   ];
 
   it("calls onChange when an employee is selected", async () => {

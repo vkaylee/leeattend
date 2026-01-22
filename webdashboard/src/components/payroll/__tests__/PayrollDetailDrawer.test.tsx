@@ -15,8 +15,7 @@ vi.mock("react-i18next", () => ({
 
 const mockEmployee: Employee = {
   id: "emp-1",
-  first_name: "John",
-  last_name: "Doe",
+  full_name: "John Doe",
   employee_id_number: "EMP001",
   workspace_id: "ws-1",
   hire_date: "2024-01-01",

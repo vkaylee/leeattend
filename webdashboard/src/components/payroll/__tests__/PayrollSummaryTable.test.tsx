@@ -14,8 +14,7 @@ vi.mock("react-i18next", () => ({
 const mockEmployees: Employee[] = [
   {
     id: "emp-1",
-    first_name: "John",
-    last_name: "Doe",
+    full_name: "John Doe",
     employee_id_number: "EMP001",
     workspace_id: "ws-1",
     hire_date: "2024-01-01",
@@ -25,8 +24,7 @@ const mockEmployees: Employee[] = [
   },
   {
     id: "emp-2",
-    first_name: "Jane",
-    last_name: "Smith",
+    full_name: "Jane Smith",
     employee_id_number: "EMP002",
     workspace_id: "ws-1",
     hire_date: "2024-01-01",

@@ -748,8 +748,7 @@
       "add_title": "Thêm nhân viên",
       "edit_title": "Sửa hồ sơ",
       "subtitle": "Hồ sơ nhân sự",
-      "last_name": "Họ",
-      "first_name": "Tên",
+      "full_name": "Họ và tên",
       "employee_id": "Mã nhân viên",
       "hire_date": "Ngày vào làm",
       "is_active": "Đang hoạt động",
@@ -804,9 +803,8 @@
     "bulk_import_btn": "Nhập từ File",
     "import_req": {
       "col_a": "Cột A: Mã nhân viên (Bắt buộc)",
-      "col_b": "Cột B: Tên (Bắt buộc)",
-      "col_c": "Cột C: Họ (Bắt buộc)",
-      "col_d": "Cột D: Ngày vào làm (Tùy chọn, DD/MM/YYYY)"
+      "col_b": "Cột B: Họ và tên (Bắt buộc)",
+      "col_c": "Cột C: Ngày vào làm (Tùy chọn, DD/MM/YYYY)"
     }
   },
   "departments": {
@@ -1319,7 +1317,7 @@
       "bulk_assign_conflict": "Một số nhân viên đã có lịch làm việc, hệ thống sẽ ghi đè.",
       "bulk_assign_error": "Lỗi khi gán lịch hàng loạt."
     },
-    "confirm_delete": "Bạn có chắc chắn muốn xóa mẫu \"{{name}}\"?",
+    "confirm_delete": "Bạn có chắc chắn muốn xóa mẫu \"{{name}}\" ?",
     "bulk_assign_btn": "Gán hàng loạt",
     "bulk_assign_title": "Gán lịch hàng loạt",
     "bulk_assign_subtitle": "Gán mẫu lịch cho nhiều nhân viên cùng lúc",

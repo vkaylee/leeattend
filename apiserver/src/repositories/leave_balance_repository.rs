@@ -61,16 +61,14 @@ pub async fn get_workspace_balances(
     workspace_id: Uuid,
     year: i32,
 ) -> Result<Vec<WorkspaceLeaveBalance>, sqlx::Error> {
-    let balances = query_as!(
-        WorkspaceLeaveBalance,
-        r#"
+    let sql = r#"
         SELECT 
-            e.id as "employee_id!",
-            (e.first_name || ' ' || e.last_name) as "employee_name!",
-            COALESCE(lb.leave_type, 'vacation') as "leave_type!",
-            COALESCE(lb.entitlement, 0) as "entitlement!",
-            COALESCE(lb.accrued_amount::FLOAT8, 0.0) as "accrued_amount!",
-            COALESCE(lb.carried_over, 0) as "carried_over!",
+            e.id as employee_id,
+            e.full_name as employee_name,
+            COALESCE(lb.leave_type, 'vacation') as leave_type,
+            COALESCE(lb.entitlement, 0) as entitlement,
+            COALESCE(lb.accrued_amount::FLOAT8, 0.0) as accrued_amount,
+            COALESCE(lb.carried_over, 0) as carried_over,
             COALESCE(
                 (
                     SELECT SUM(end_date - start_date + 1)
@@ -81,7 +79,7 @@ pub async fn get_workspace_balances(
                     AND EXTRACT(YEAR FROM start_date) = $2
                 ), 
                 0
-            )::INT as "used!",
+            )::INT as used,
             (
                 COALESCE(lb.entitlement, 0) + COALESCE(lb.accrued_amount, 0) + COALESCE(lb.carried_over, 0) - COALESCE(
                     (
@@ -94,7 +92,7 @@ pub async fn get_workspace_balances(
                     ), 
                     0
                 )
-            )::FLOAT8 as "remaining!",
+            )::FLOAT8 as remaining,
             (
                 SELECT d.name 
                 FROM leave_policy_assignments a
@@ -115,7 +113,7 @@ pub async fn get_workspace_balances(
                     WHEN 'workspace' THEN 3 
                   END ASC
                 LIMIT 1
-            ) as "policy_name",
+            ) as policy_name,
             (
                 SELECT a.assignee_type 
                 FROM leave_policy_assignments a
@@ -136,19 +134,18 @@ pub async fn get_workspace_balances(
                     WHEN 'workspace' THEN 3 
                   END ASC
                 LIMIT 1
-            ) as "assignment_type"
+            ) as assignment_type
         FROM employees e
         LEFT JOIN leave_balances lb ON e.id = lb.employee_id AND lb.year = $2
         WHERE e.workspace_id = $1 AND e.is_active = TRUE
-        ORDER BY e.first_name, e.last_name, lb.leave_type
-        "#,
-        workspace_id,
-        year
-    )
-    .fetch_all(pool)
-    .await?;
+        ORDER BY e.full_name, lb.leave_type
+    "#;
 
-    Ok(balances)
+    sqlx::query_as::<_, WorkspaceLeaveBalance>(sql)
+        .bind(workspace_id)
+        .bind(year)
+        .fetch_all(pool)
+        .await
 }
 
 pub async fn upsert_leave_balance(

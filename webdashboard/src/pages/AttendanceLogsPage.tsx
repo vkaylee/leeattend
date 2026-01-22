@@ -106,7 +106,7 @@ export default function AttendanceLogsPage() {
     enabled: !!wsId,
   });
 
-  const getEmployeeName = (id: string) => { const emp = employees?.find(e => e.id === id); return emp ? `${emp.first_name} ${emp.last_name}` : t("common.system"); };
+  const getEmployeeName = (id: string) => { const emp = employees?.find(e => e.id === id); return emp ? emp.full_name : t("common.system"); };
   const getEmployeeID = (id: string) => { const emp = employees?.find(e => e.id === id); return emp ? emp.employee_id_number : ""; };
   const totalPages = Math.ceil((data?.total || 0) / limit);
 

@@ -53,8 +53,7 @@ async fn test_employee_crud_lifecycle() {
 
     // 2. Create Employee
     let employee_req = serde_json::json!({
-        "first_name": "John",
-        "last_name": "Doe",
+        "full_name": "John Doe",
         "employee_id_number": "EMP001",
         "hire_date": "2026-01-01",
         "is_active": true
@@ -82,7 +81,7 @@ async fn test_employee_crud_lifecycle() {
         .await
         .unwrap();
     let employee: Employee = serde_json::from_slice(&body).unwrap();
-    assert_eq!(employee.first_name, "John");
+    assert_eq!(employee.full_name, "John Doe");
 
     // 3. Get Employee
     let response = app
@@ -111,7 +110,7 @@ async fn test_employee_crud_lifecycle() {
 
     // 4. Update Employee
     let update_req = serde_json::json!({
-        "first_name": "Johnny"
+        "full_name": "Johnny Doe"
     });
 
     let response = app
@@ -139,7 +138,7 @@ async fn test_employee_crud_lifecycle() {
         .await
         .unwrap();
     let updated: Employee = serde_json::from_slice(&body).unwrap();
-    assert_eq!(updated.first_name, "Johnny");
+    assert_eq!(updated.full_name, "Johnny Doe");
 
     // 5. Delete Employee
     let response = app
@@ -190,8 +189,7 @@ async fn test_create_employee_invalid_user() {
 
     let employee_req = serde_json::json!({
         "user_id": uuid::Uuid::new_v4(), // Non-existent user
-        "first_name": "John",
-        "last_name": "Doe",
+        "full_name": "John Doe",
         "employee_id_number": "EMP002",
         "hire_date": "2026-01-01"
     });
@@ -250,8 +248,7 @@ async fn test_get_employees_search() {
     factory
         .employee()
         .with_workspace(ws_id)
-        .with_first_name("Alice")
-        .with_last_name("Wonder")
+        .with_full_name("Alice Wonder")
         .with_employee_id_number("ALICE001")
         .create()
         .await;
@@ -259,8 +256,7 @@ async fn test_get_employees_search() {
     factory
         .employee()
         .with_workspace(ws_id)
-        .with_first_name("Bob")
-        .with_last_name("Builder")
+        .with_full_name("Bob Builder")
         .with_employee_id_number("BOB999")
         .create()
         .await;
@@ -286,7 +282,7 @@ async fn test_get_employees_search() {
         .unwrap();
     let employees: Vec<Employee> = serde_json::from_slice(&body).unwrap();
     assert_eq!(employees.len(), 1);
-    assert_eq!(employees[0].first_name, "Alice");
+    assert_eq!(employees[0].full_name, "Alice Wonder");
 
     // Search by ID
     let response = app
@@ -309,7 +305,7 @@ async fn test_get_employees_search() {
         .unwrap();
     let employees: Vec<Employee> = serde_json::from_slice(&body).unwrap();
     assert_eq!(employees.len(), 1);
-    assert_eq!(employees[0].last_name, "Builder");
+    assert_eq!(employees[0].full_name, "Bob Builder");
 }
 
 #[tokio::test]

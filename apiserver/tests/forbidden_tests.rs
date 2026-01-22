@@ -56,8 +56,7 @@ async fn test_forbidden_operations_for_member() {
 
     // 1. Create Employee
     let emp_req = serde_json::json!({
-        "first_name": "X",
-        "last_name": "Y",
+        "full_name": "X Y",
         "employee_id_number": "X1",
         "hire_date": "2026-01-01"
     });

@@ -36,7 +36,7 @@ describe("PayrollPage", () => {
 
   it("renders employee list and summary table", async () => {
     (api.fetchEmployees as any).mockResolvedValue([
-      { id: "emp-1", first_name: "John", last_name: "Doe", employee_id_number: "EMP001", hire_date: "2025-01-01" }
+      { id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", hire_date: "2025-01-01" }
     ]);
     (api.fetchWorkspacePayslips as any).mockResolvedValue([]);
 
@@ -58,7 +58,7 @@ describe("PayrollPage", () => {
   it("shows detail drawer when an employee is clicked", async () => {
     const user = userEvent.setup();
     (api.fetchEmployees as any).mockResolvedValue([
-      { id: "emp-1", first_name: "John", last_name: "Doe", employee_id_number: "EMP001", hire_date: "2025-01-01" }
+      { id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", hire_date: "2025-01-01" }
     ]);
     (api.fetchEmployeePayslips as any).mockResolvedValue([
       { id: "ps-1", employee_id: "emp-1", period_start: "2025-12-01", period_end: "2025-12-31", base_pay_amount: "10000000", overtime_pay_amount: "400000", total_deductions: "0", net_pay_amount: "10400000", status: "paid" }
@@ -86,7 +86,7 @@ describe("PayrollPage", () => {
 
   it("opens calculation modal and triggers calculation", async () => {
     (api.fetchEmployees as any).mockResolvedValue([
-      { id: "emp-1", first_name: "John", last_name: "Doe", employee_id_number: "EMP001", hire_date: "2025-01-01" }
+      { id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", hire_date: "2025-01-01" }
     ]);
     (api.fetchWorkspacePayslips as any).mockResolvedValue([]);
     (api.calculateBatchPayslips as any).mockResolvedValue({ results: [{ employee_id: "emp-1", status: "success" }] });

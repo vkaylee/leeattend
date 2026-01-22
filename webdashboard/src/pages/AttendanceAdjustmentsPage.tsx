@@ -61,7 +61,7 @@ export default function AttendanceAdjustmentsPage() {
     const link = document.body.appendChild(document.createElement("a")); link.href = URL.createObjectURL(blob); link.download = "attendance_template.csv"; link.click(); document.body.removeChild(link);
   };
 
-  const getEmployeeName = (id: string) => { const emp = employees.find(e => e.id === id); return emp ? `${emp.first_name} ${emp.last_name}` : "Unknown"; };
+  const getEmployeeName = (id: string) => { const emp = employees.find(e => e.id === id); return emp ? emp.full_name : "Unknown"; };
   const getEmployeeID = (id: string) => { const emp = employees.find(e => e.id === id); return emp ? emp.employee_id_number : "N/A"; };
 
   if (!wsId) return <div className="p-12 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;

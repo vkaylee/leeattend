@@ -90,8 +90,7 @@ async fn test_get_my_profile_success() {
     let profile_response: MyProfileResponse = serde_json::from_slice(&body).unwrap();
 
     // Employee should be present
-    assert_eq!(profile_response.employee.first_name, "Test");
-    assert_eq!(profile_response.employee.last_name, "Employee");
+    assert_eq!(profile_response.employee.full_name, "Test Employee");
 
     // Profile may be None if not created yet
     assert!(profile_response.profile.is_none());

@@ -8,28 +8,27 @@ pub async fn create_employee_tx(
     tx: &mut Transaction<'_, Postgres>,
     employee: &Employee,
 ) -> Result<(), sqlx::Error> {
-    query!(
-        "INSERT INTO employees (id, workspace_id, user_id, first_name, last_name, employee_id_number, tags, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
-        employee.id,
-        employee.workspace_id,
-        employee.user_id,
-        employee.first_name,
-        employee.last_name,
-        employee.employee_id_number,
-        &employee.tags,
-        employee.is_active,
-        employee.created_at,
-        employee.updated_at,
+    sqlx::query(
+        "INSERT INTO employees (id, workspace_id, user_id, full_name, employee_id_number, tags, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
     )
+    .bind(employee.id)
+    .bind(employee.workspace_id)
+    .bind(employee.user_id)
+    .bind(&employee.full_name)
+    .bind(&employee.employee_id_number)
+    .bind(&employee.tags)
+    .bind(employee.is_active)
+    .bind(employee.created_at)
+    .bind(employee.updated_at)
     .execute(&mut **tx)
     .await?;
 
-    query!(
+    sqlx::query(
         "INSERT INTO employment_periods (employee_id, hire_date, termination_date) VALUES ($1, $2, $3)",
-        employee.id,
-        employee.hire_date,
-        employee.termination_date
     )
+    .bind(employee.id)
+    .bind(employee.hire_date)
+    .bind(employee.termination_date)
     .execute(&mut **tx)
     .await?;
 
@@ -40,31 +39,30 @@ pub async fn create_employee_tx_skip_duplicates(
     tx: &mut Transaction<'_, Postgres>,
     employee: &Employee,
 ) -> Result<bool, sqlx::Error> {
-    let result = query!(
-        "INSERT INTO employees (id, workspace_id, user_id, first_name, last_name, employee_id_number, tags, is_active, created_at, updated_at) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    let result = sqlx::query(
+        "INSERT INTO employees (id, workspace_id, user_id, full_name, employee_id_number, tags, is_active, created_at, updated_at) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          ON CONFLICT (employee_id_number) DO NOTHING",
-        employee.id,
-        employee.workspace_id,
-        employee.user_id,
-        employee.first_name,
-        employee.last_name,
-        employee.employee_id_number,
-        &employee.tags,
-        employee.is_active,
-        employee.created_at,
-        employee.updated_at,
     )
+    .bind(employee.id)
+    .bind(employee.workspace_id)
+    .bind(employee.user_id)
+    .bind(&employee.full_name)
+    .bind(&employee.employee_id_number)
+    .bind(&employee.tags)
+    .bind(employee.is_active)
+    .bind(employee.created_at)
+    .bind(employee.updated_at)
     .execute(&mut **tx)
     .await?;
 
     if result.rows_affected() > 0 {
-        query!(
+        sqlx::query(
             "INSERT INTO employment_periods (employee_id, hire_date, termination_date) VALUES ($1, $2, $3)",
-            employee.id,
-            employee.hire_date,
-            employee.termination_date
         )
+        .bind(employee.id)
+        .bind(employee.hire_date)
+        .bind(employee.termination_date)
         .execute(&mut **tx)
         .await?;
         Ok(true)
@@ -75,7 +73,7 @@ pub async fn create_employee_tx_skip_duplicates(
 
 const EMPLOYEE_SELECT_QUERY: &str = r#"
     SELECT 
-        e.id, e.workspace_id, e.user_id, e.first_name, e.last_name, e.employee_id_number, 
+        e.id, e.workspace_id, e.user_id, e.full_name, e.employee_id_number, 
         COALESCE(ep.hire_date, CURRENT_DATE) as hire_date, ep.termination_date, 
         e.tags, e.is_active, e.created_at, e.updated_at
     FROM employees e
@@ -127,11 +125,11 @@ pub async fn get_all_employees(
 
     if let Some(ref q) = search_query {
         if !q.trim().is_empty() {
-            sql.push_str(" AND (e.first_name ILIKE $2 OR e.last_name ILIKE $2 OR e.employee_id_number ILIKE $2 OR (e.first_name || ' ' || e.last_name) ILIKE $2)");
+            sql.push_str(" AND (e.full_name ILIKE $2 OR e.employee_id_number ILIKE $2)");
         }
     }
 
-    sql.push_str(" ORDER BY e.last_name, e.first_name");
+    sql.push_str(" ORDER BY e.full_name");
 
     let mut db_query = query_as::<_, Employee>(&sql).bind(workspace_id);
 
@@ -150,8 +148,7 @@ pub async fn update_employee(
     id: Uuid,
     workspace_id: Uuid,
     user_id: Option<Uuid>,
-    first_name: Option<String>,
-    last_name: Option<String>,
+    full_name: Option<String>,
     employee_id_number: Option<String>,
     hire_date: Option<NaiveDate>,
     termination_date: Option<NaiveDate>,
@@ -161,26 +158,24 @@ pub async fn update_employee(
     let mut tx = pool.begin().await?;
 
     // Update base employee info
-    query!(
+    sqlx::query(
         "UPDATE employees SET
             user_id = COALESCE($3, user_id),
-            first_name = COALESCE($4, first_name),
-            last_name = COALESCE($5, last_name),
-            employee_id_number = COALESCE($6, employee_id_number),
-            tags = COALESCE($7, tags),
-            is_active = COALESCE($8, is_active),
-            updated_at = $9
+            full_name = COALESCE($4, full_name),
+            employee_id_number = COALESCE($5, employee_id_number),
+            tags = COALESCE($6, tags),
+            is_active = COALESCE($7, is_active),
+            updated_at = $8
         WHERE id = $1 AND workspace_id = $2",
-        id,
-        workspace_id,
-        user_id,
-        first_name,
-        last_name,
-        employee_id_number,
-        tags.as_ref().map(|t| t.as_slice()),
-        is_active,
-        Utc::now()
     )
+    .bind(id)
+    .bind(workspace_id)
+    .bind(user_id)
+    .bind(full_name)
+    .bind(employee_id_number)
+    .bind(tags.as_deref())
+    .bind(is_active)
+    .bind(Utc::now())
     .execute(&mut *tx)
     .await?;
 
@@ -237,7 +232,7 @@ pub async fn get_active_employees(
     workspace_id: Uuid,
 ) -> Result<Vec<Employee>, sqlx::Error> {
     let query = format!(
-        "{} WHERE e.workspace_id = $1 AND e.is_active = true ORDER BY e.last_name, e.first_name",
+        "{} WHERE e.workspace_id = $1 AND e.is_active = true ORDER BY e.full_name",
         EMPLOYEE_SELECT_QUERY
     );
     query_as::<_, Employee>(&query)

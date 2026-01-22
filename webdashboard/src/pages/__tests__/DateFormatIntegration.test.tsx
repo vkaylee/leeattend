@@ -72,7 +72,7 @@ describe("Date Format Integration", () => {
   };
 
   it("renders dates in DD/MM/YYYY format when workspace setting is DD/MM/YYYY", async () => {
-    (api.fetchEmployees as any).mockResolvedValue([{ id: "emp-1", first_name: "John", last_name: "Doe" }]);
+    (api.fetchEmployees as any).mockResolvedValue([{ id: "emp-1", full_name: "John Doe" }]);
     (api.fetchWorkspace as any).mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC" });
     (api.fetchRawAttendanceLogs as any).mockResolvedValue({
       data: [{ id: "l-1", punch_time: "2026-01-15T08:00:00Z", device_id: "dev-1", source: "device", employee_id: "emp-1" }],
@@ -87,7 +87,7 @@ describe("Date Format Integration", () => {
   });
 
   it("renders dates in YYYY-MM-DD format when workspace setting is YYYY-MM-DD", async () => {
-    (api.fetchEmployees as any).mockResolvedValue([{ id: "emp-1", first_name: "John", last_name: "Doe" }]);
+    (api.fetchEmployees as any).mockResolvedValue([{ id: "emp-1", full_name: "John Doe" }]);
     (api.fetchWorkspace as any).mockResolvedValue({ date_format: "YYYY-MM-DD", timezone: "UTC" });
     (api.fetchRawAttendanceLogs as any).mockResolvedValue({
       data: [{ id: "l-1", punch_time: "2026-01-15T08:00:00Z", device_id: "dev-1", source: "device", employee_id: "emp-1" }],
@@ -102,7 +102,7 @@ describe("Date Format Integration", () => {
   });
 
   it("renders month/year correctly in PayrollPage", async () => {
-    (api.fetchEmployees as any).mockResolvedValue([{ id: "emp-1", first_name: "John", last_name: "Doe", hire_date: "2025-01-01" }]);
+    (api.fetchEmployees as any).mockResolvedValue([{ id: "emp-1", full_name: "John Doe", hire_date: "2025-01-01" }]);
     (api.fetchEmployeePayslips as any).mockResolvedValue([]);
     (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([]);
     (api.fetchWorkspace as any).mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC" });

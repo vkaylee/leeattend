@@ -98,8 +98,7 @@ export interface Employee {
   id: string;
   workspace_id: string;
   user_id?: string;
-  first_name: string;
-  last_name: string;
+  full_name: string;
   employee_id_number: string;
   department_name?: string;
   hire_date: string;
@@ -433,8 +432,7 @@ export interface EffectiveSchedule {
 
 export interface EmployeeSchedule {
   employee_id: string;
-  first_name: string;
-  last_name: string;
+  full_name: string;
   schedules: EffectiveSchedule[];
 }
 

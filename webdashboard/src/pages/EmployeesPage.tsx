@@ -93,13 +93,13 @@ export default function EmployeesPage() {
   const toast = useToast();
 
   const filteredEmployees = employees.filter(emp => 
-    `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.employee_id_number.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); const formData = new FormData(e.currentTarget);
-    const data = { first_name: formData.get("first_name") as string, last_name: formData.get("last_name") as string, employee_id_number: formData.get("employee_id_number") as string, hire_date: formData.get("hire_date") as string, is_active: formData.get("is_active") === "on" };
+    const data = { full_name: formData.get("full_name") as string, employee_id_number: formData.get("employee_id_number") as string, hire_date: formData.get("hire_date") as string, is_active: formData.get("is_active") === "on" };
     if (editingEmployee) updateMutation.mutate({ id: editingEmployee.id, employee: data });
     else createMutation.mutate(data);
   };
@@ -152,8 +152,8 @@ export default function EmployeesPage() {
                 <tr key={emp.id} onClick={() => setSelectedEmployee(emp)} className={cn("cursor-pointer transition-all group relative", selectedEmployee?.id === emp.id ? "bg-primary-50/50" : "hover:bg-slate-50/50")}>
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-5">
-                      <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm shadow-inner border transition-all uppercase", selectedEmployee?.id === emp.id ? "bg-primary-600 text-white border-primary-500" : "bg-slate-100 text-slate-400 border-slate-100 group-hover:bg-white group-hover:text-primary-600 group-hover:border-primary-100")}>{emp.last_name[0]}</div>
-                      <div className="font-black text-slate-900 text-sm tracking-tight uppercase leading-none">{emp.first_name} {emp.last_name}</div>
+                      <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm shadow-inner border transition-all uppercase", selectedEmployee?.id === emp.id ? "bg-primary-600 text-white border-primary-500" : "bg-slate-100 text-slate-400 border-slate-100 group-hover:bg-white group-hover:text-primary-600 group-hover:border-primary-100")}>{emp.full_name[0]}</div>
+                      <div className="font-black text-slate-900 text-sm tracking-tight uppercase leading-none">{emp.full_name}</div>
                     </div>
                   </td>
                   <td className="px-8 py-6 font-mono font-bold text-[11px] text-slate-400 uppercase tracking-tighter">{emp.employee_id_number}</td>
@@ -178,9 +178,9 @@ export default function EmployeesPage() {
           <div className="p-10 border-b border-slate-50 bg-slate-50/30">
             <div className="flex justify-between items-start mb-8">
               <div className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-primary-600 text-white rounded-[2rem] flex items-center justify-center font-black text-3xl shadow-xl shadow-primary-100 border-4 border-white rotate-3 group hover:rotate-0 transition-transform duration-500 uppercase">{selectedEmployee.last_name[0]}</div>
+                <div className="w-20 h-20 bg-primary-600 text-white rounded-[2rem] flex items-center justify-center font-black text-3xl shadow-xl shadow-primary-100 border-4 border-white rotate-3 group hover:rotate-0 transition-transform duration-500 uppercase">{selectedEmployee.full_name[0]}</div>
                 <div>
-                  <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-2">{selectedEmployee.first_name} {selectedEmployee.last_name}</h2>
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-2">{selectedEmployee.full_name}</h2>
                   <div className="flex items-center gap-3">
                     <span className="text-primary-600 font-mono text-xs font-black tracking-widest uppercase bg-white px-3 py-1 rounded-full border border-primary-100 shadow-sm">{selectedEmployee.employee_id_number}</span>
                     <div className="w-1.5 h-1.5 bg-slate-200 rounded-full" />
@@ -273,9 +273,9 @@ export default function EmployeesPage() {
       {/* Main Employee Form Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingEmployee ? t("employees.form.edit_title") : t("employees.form.add_title")} subtitle={t("employees.form.subtitle")} icon={<UserCircle size={24} />} maxWidth="lg">
         <form onSubmit={handleSubmit} className="space-y-8 pt-4 animate-in fade-in duration-500">
-          <div className="grid grid-cols-2 gap-8">
-            <div className="space-y-3 px-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("employees.form.last_name")}</label><input name="last_name" required defaultValue={editingEmployee?.last_name} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight shadow-sm" /></div>
-            <div className="space-y-3 px-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("employees.form.first_name")}</label><input name="first_name" required defaultValue={editingEmployee?.first_name} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight shadow-sm" /></div>
+          <div className="space-y-3 px-1">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("employees.form.full_name")}</label>
+            <input name="full_name" required defaultValue={editingEmployee?.full_name} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight shadow-sm" />
           </div>
           <div className="space-y-3 px-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("employees.form.employee_id")}</label><input name="employee_id_number" required defaultValue={editingEmployee?.employee_id_number} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono font-black text-sm tracking-widest uppercase shadow-sm" /></div>
           <div className="space-y-3 px-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("employees.form.hire_date")}</label><input type="date" name="hire_date" required defaultValue={editingEmployee?.hire_date} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm shadow-sm" /></div>
@@ -350,7 +350,6 @@ export default function EmployeesPage() {
           t("employees.import_req.col_a"),
           t("employees.import_req.col_b"),
           t("employees.import_req.col_c"),
-          t("employees.import_req.col_d"),
         ]}
       />
     </div>

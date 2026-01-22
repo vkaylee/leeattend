@@ -748,8 +748,7 @@
       "add_title": "Add Employee",
       "edit_title": "Edit Profile",
       "subtitle": "Personnel Profile",
-      "last_name": "Last Name",
-      "first_name": "First Name",
+      "full_name": "Full Name",
       "employee_id": "Employee ID",
       "hire_date": "Hire Date",
       "is_active": "Is Active",
@@ -804,9 +803,8 @@
     "bulk_import_btn": "Import from File",
     "import_req": {
       "col_a": "Column A: Employee ID (Required)",
-      "col_b": "Column B: First Name (Required)",
-      "col_c": "Column C: Last Name (Required)",
-      "col_d": "Column D: Hire Date (Optional, YYYY-MM-DD)"
+      "col_b": "Column B: Full Name (Required)",
+      "col_c": "Column C: Hire Date (Optional, YYYY-MM-DD)"
     }
   },
   "departments": {

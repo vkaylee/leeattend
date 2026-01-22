@@ -58,13 +58,13 @@ async fn test_batch_calculate_payroll() {
     // 2. Create 2 employees
     let emp1_id = factory.employee()
         .with_workspace(ws_id)
-        .with_first_name("Emp1")
+        .with_full_name("Emp1")
         .with_employee_id_number("E001")
         .create().await;
         
     let emp2_id = factory.employee()
         .with_workspace(ws_id)
-        .with_first_name("Emp2")
+        .with_full_name("Emp2")
         .with_employee_id_number("E002")
         .create().await;
 

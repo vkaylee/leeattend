@@ -98,7 +98,7 @@ export default function PayrollPage() {
 
   const toggleSelectAll = () => {
     const employeesToSelect = employees.filter(emp => 
-      `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       emp.employee_id_number.toLowerCase().includes(searchTerm.toLowerCase())
     );
     if (selectedIds.size === employeesToSelect.length) setSelectedIds(new Set());
@@ -119,7 +119,7 @@ export default function PayrollPage() {
 
   const employeeNames = React.useMemo(() => {
     const map: Record<string, string> = {};
-    employees.forEach(e => { map[e.id] = `${e.first_name} ${e.last_name}`; });
+    employees.forEach(e => { map[e.id] = e.full_name; });
     return map;
   }, [employees]);
 
@@ -225,7 +225,7 @@ export default function PayrollPage() {
           isOpen={isAdjustmentDrawerOpen}
           onClose={() => setIsAdjustmentDrawerOpen(false)}
           employeeId={selectedEmployee.id}
-          employeeName={`${selectedEmployee.first_name} ${selectedEmployee.last_name}`}
+          employeeName={selectedEmployee.full_name}
           onAdjustmentResolved={handleAdjustmentResolved}
         />
       )}
