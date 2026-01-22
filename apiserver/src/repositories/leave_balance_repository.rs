@@ -60,7 +60,28 @@ pub async fn get_workspace_balances(
     pool: &PgPool,
     workspace_id: Uuid,
     year: i32,
-) -> Result<Vec<WorkspaceLeaveBalance>, sqlx::Error> {
+    limit: i64,
+    offset: i64,
+    search: Option<String>,
+) -> Result<(Vec<WorkspaceLeaveBalance>, i64), sqlx::Error> {
+    let search_term = format!("%{}%", search.unwrap_or_default());
+
+    // 1. Get Total Count
+    let count_sql = r#"
+        SELECT COUNT(*)
+        FROM employees e
+        LEFT JOIN leave_balances lb ON e.id = lb.employee_id AND lb.year = $2
+        WHERE e.workspace_id = $1 AND e.is_active = TRUE
+          AND ($3 = '%%' OR e.full_name ILIKE $3 OR lb.leave_type ILIKE $3)
+    "#;
+    
+    let total: i64 = sqlx::query_scalar(count_sql)
+        .bind(workspace_id)
+        .bind(year)
+        .bind(&search_term)
+        .fetch_one(pool)
+        .await?;
+
     let sql = r#"
         SELECT 
             e.id as employee_id,
@@ -138,14 +159,21 @@ pub async fn get_workspace_balances(
         FROM employees e
         LEFT JOIN leave_balances lb ON e.id = lb.employee_id AND lb.year = $2
         WHERE e.workspace_id = $1 AND e.is_active = TRUE
+          AND ($3 = '%%' OR e.full_name ILIKE $3 OR lb.leave_type ILIKE $3)
         ORDER BY e.full_name, lb.leave_type
+        LIMIT $4 OFFSET $5
     "#;
 
-    sqlx::query_as::<_, WorkspaceLeaveBalance>(sql)
+    let data = sqlx::query_as::<_, WorkspaceLeaveBalance>(sql)
         .bind(workspace_id)
         .bind(year)
+        .bind(search_term)
+        .bind(limit)
+        .bind(offset)
         .fetch_all(pool)
-        .await
+        .await?;
+        
+    Ok((data, total))
 }
 
 pub async fn upsert_leave_balance(

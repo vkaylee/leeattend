@@ -187,6 +187,7 @@ pub async fn update_workspace(
         req.theme_primary_color,
         req.default_language,
         req.pairing_algorithm,
+        req.early_arrival_strategy,
     )
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;

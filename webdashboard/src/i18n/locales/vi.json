@@ -62,6 +62,15 @@
         "sequential_desc": "Ghép cặp log 1+2, 3+4, v.v. Tốt nhất cho ca gãy và quẹt thẻ nhiều lần.",
         "fsm": "Trạng thái (FSM)",
         "fsm_desc": "Sử dụng trạng thái Vào/Ra trực tiếp từ thiết bị. Độ chính xác cao nhất cho phần cứng cao cấp."
+      },
+      "early_arrival_strategy": "Quy tắc đến sớm",
+      "early_arrival_options": {
+        "allow": "Cho phép mọi lúc",
+        "allow_desc": "Tính OT đầy đủ từ lúc check-in (nếu ca cho phép OT sớm).",
+        "block": "Chặn chấm công sớm",
+        "block_desc": "Chỉ cho phép chấm công trong khoảng thời gian Grace Period của ca.",
+        "clamp": "Giới hạn OT sớm (Clamp)",
+        "clamp_desc": "Cho phép chấm công sớm nhưng chỉ tính OT tối đa theo Grace Period của ca."
       }
     },
     "members": {
@@ -92,6 +101,8 @@
     "attendance": "Chấm công",
     "leave": "Nghỉ phép",
     "attendance_confirm": "Xác nhận công",
+    "showing": "Hiển thị",
+    "of": "trong số",
     "reports": "Báo cáo",
     "shifts": "Ca làm & Lịch trực",
     "note": "Ghi chú",

@@ -5,6 +5,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Leave Balance Pagination**:
+    - **Performance**: Implemented server-side pagination for `GET /workspaces/:ws_id/leave/balances` to handle large employee datasets.
+    - **Backend**: Updated repository and service layers to support `limit`, `offset`, and `q` (search) parameters.
+    - **Frontend**: Refactored `LeaveBalancesPage` to use server-side state management with `PaginationControls` and debounced search.
+    - **API**: Introduced `PaginatedResponse<T>` standard for leave endpoints.
 - **Debug Toolbar Improvements**:
     - **Backend**: Enhanced `clear_debug_db` handler with new capabilities:
         - `employees`: Wipes all employee data (logs, payroll, history) while preserving workspace configuration (Departments, Shifts, Policies).

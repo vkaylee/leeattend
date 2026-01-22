@@ -49,33 +49,47 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
   const [workUnit, setWorkUnit] = useState(workspace.work_unit_minutes);
 
-  const [roundingPolicy, setRoundingPolicy] = useState(workspace.rounding_policy);
+    const [roundingPolicy, setRoundingPolicy] = useState(workspace.rounding_policy);
 
-  const [pairingAlgorithm, setPairingAlgorithm] = useState(workspace.pairing_algorithm || "dp_pattern");
+    const [pairingAlgorithm, setPairingAlgorithm] = useState(workspace.pairing_algorithm || "dp_pattern");
 
+    const [earlyArrivalStrategy, setEarlyArrivalStrategy] = useState(workspace.early_arrival_strategy || "block");
 
+  
 
-  const updateWsMutation = useMutation({
+    const updateWsMutation = useMutation({
 
-    mutationFn: (data: Partial<Workspace>) => updateWorkspace(wsId, data),
+      mutationFn: (data: Partial<Workspace>) => updateWorkspace(wsId, data),
 
-    onSuccess: () => {
+      onSuccess: () => {
 
-      toast.success(t("common.success"));
+        toast.success(t("common.success"));
 
-      queryClient.invalidateQueries({ queryKey: ["workspace", wsId] });
+        queryClient.invalidateQueries({ queryKey: ["workspace", wsId] });
 
-    },
+      },
 
-  });
+    });
 
+  
 
+    function handleSaveConfig() {
 
-  function handleSaveConfig() {
+      updateWsMutation.mutate({ 
 
-    updateWsMutation.mutate({ work_unit_minutes: workUnit, rounding_policy: roundingPolicy, pairing_algorithm: pairingAlgorithm });
+        work_unit_minutes: workUnit, 
 
-  }
+        rounding_policy: roundingPolicy, 
+
+        pairing_algorithm: pairingAlgorithm,
+
+        early_arrival_strategy: earlyArrivalStrategy as any
+
+      });
+
+    }
+
+  
 
 
 
@@ -147,15 +161,73 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
               </div>
 
-              <div className="space-y-3 md:col-span-2">
+                            <div className="space-y-3 md:col-span-2">
 
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.pairing_algorithm")}</label>
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.pairing_algorithm")}</label>
 
-                <Combobox options={[{ value: "dp_pattern", label: t("common.workspace_settings.algorithm_options.dp_pattern"), description: t("common.workspace_settings.algorithm_options.dp_pattern_desc"), icon: <Settings2 size={14} /> }, { value: "anchor_first", label: t("common.workspace_settings.algorithm_options.anchor_first"), description: t("common.workspace_settings.algorithm_options.anchor_first_desc"), icon: <Clock size={14} /> }, { value: "sequential", label: t("common.workspace_settings.algorithm_options.sequential"), description: t("common.workspace_settings.algorithm_options.sequential_desc"), icon: <Calculator size={14} /> }, { value: "fsm", label: t("common.workspace_settings.algorithm_options.fsm"), description: t("common.workspace_settings.algorithm_options.fsm_desc"), icon: <Shield size={14} /> }]} value={pairingAlgorithm} onChange={setPairingAlgorithm} className="bg-slate-50 border-slate-100 h-14" />
+                              <Combobox options={[{ value: "dp_pattern", label: t("common.workspace_settings.algorithm_options.dp_pattern"), description: t("common.workspace_settings.algorithm_options.dp_pattern_desc"), icon: <Settings2 size={14} /> }, { value: "anchor_first", label: t("common.workspace_settings.algorithm_options.anchor_first"), description: t("common.workspace_settings.algorithm_options.anchor_first_desc"), icon: <Clock size={14} /> }, { value: "sequential", label: t("common.workspace_settings.algorithm_options.sequential"), description: t("common.workspace_settings.algorithm_options.sequential_desc"), icon: <Calculator size={14} /> }, { value: "fsm", label: t("common.workspace_settings.algorithm_options.fsm"), description: t("common.workspace_settings.algorithm_options.fsm_desc"), icon: <Shield size={14} /> }]} value={pairingAlgorithm} onChange={setPairingAlgorithm} className="bg-slate-50 border-slate-100 h-14" />
 
-              </div>
+                            </div>
 
-            </div>
+              
+
+                                          <div className="space-y-3 md:col-span-2">
+
+              
+
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.early_arrival_strategy")}</label>
+
+              
+
+                                            <Combobox 
+
+              
+
+                                              options={[
+
+              
+
+                                                { value: "block", label: t("common.workspace_settings.early_arrival_options.block"), description: t("common.workspace_settings.early_arrival_options.block_desc"), icon: <ShieldAlert size={14} /> }, 
+
+              
+
+                                                { value: "allow", label: t("common.workspace_settings.early_arrival_options.allow"), description: t("common.workspace_settings.early_arrival_options.allow_desc"), icon: <Zap size={14} /> }, 
+
+              
+
+                                                { value: "clamp", label: t("common.workspace_settings.early_arrival_options.clamp"), description: t("common.workspace_settings.early_arrival_options.clamp_desc"), icon: <Settings2 size={14} /> }
+
+              
+
+                                              ]} 
+
+              
+
+                                              value={earlyArrivalStrategy} 
+
+              
+
+                                              onChange={(v) => setEarlyArrivalStrategy(v as any)} 
+
+              
+
+                                              className="bg-slate-50 border-slate-100 h-14" 
+
+              
+
+                                            />
+
+              
+
+                                          </div>
+
+              
+
+                            
+
+                          </div>
+
+              
 
           </div>
 

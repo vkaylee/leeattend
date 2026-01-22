@@ -58,10 +58,19 @@
         "dp_pattern_desc": "最适合带休息的固定班次。智能匹配。",
         "anchor_first": "锚点匹配 (首尾)",
         "anchor_first_desc": "最简单。仅获取当天的第一条和最后一条记录。",
-        "sequential": "顺序匹配 (Retail)",
-        "sequential_desc": "按顺序匹配打卡记录。最适合非固定班次。",
-        "fsm": "状态机 (FSM)",
-        "fsm_desc": "直接使用设备的出入状态。高端硬件的最高精度。"
+        "sequential": "Sequential (Retail)",
+        "sequential_desc": "Pairs logs 1+2, 3+4, etc. Best for broken shifts.",
+        "fsm": "Finite State Machine (FSM)",
+        "fsm_desc": "Uses direct In/Out states from devices. Highest precision for high-end hardware."
+      },
+      "early_arrival_strategy": "Early Arrival Policy",
+      "early_arrival_options": {
+        "allow": "Allow Always",
+        "allow_desc": "Count full OT from check-in time (if early OT is allowed).",
+        "block": "Block Early Punch-in",
+        "block_desc": "Only allow punching in within the shift's Grace Period.",
+        "clamp": "Clamp Early OT",
+        "clamp_desc": "Allow early punch-in but only count OT within the shift's Grace Period."
       }
     },
     "members": {
@@ -91,7 +100,9 @@
     "profile": "个人资料",
     "attendance": "出勤",
     "leave": "休假",
-    "attendance_confirm": "出勤确认",
+    "attendance_confirm": "确认考勤",
+    "showing": "显示",
+    "of": "共",
     "reports": "报告",
     "shifts": "排班管理",
     "note": "备注",

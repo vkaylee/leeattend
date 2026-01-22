@@ -21,10 +21,29 @@ impl LeaveService {
         pool: &PgPool,
         workspace_id: Uuid,
         year: i32,
-    ) -> Result<Vec<WorkspaceLeaveBalance>, StatusCode> {
-        leave_balance_repository::get_workspace_balances(pool, workspace_id, year)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+        params: crate::models::PaginationParams,
+    ) -> Result<crate::models::PaginatedResponse<WorkspaceLeaveBalance>, StatusCode> {
+        let limit = params.limit.unwrap_or(20).max(1);
+        let page = params.page.unwrap_or(1).max(1);
+        let offset = (page - 1) * limit;
+
+        let (data, total) = leave_balance_repository::get_workspace_balances(
+            pool,
+            workspace_id,
+            year,
+            limit,
+            offset,
+            params.q,
+        )
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        Ok(crate::models::PaginatedResponse {
+            data,
+            total: total as usize,
+            page,
+            limit,
+        })
     }
 
     pub async fn get_employee_leave_history(

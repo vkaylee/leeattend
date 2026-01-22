@@ -12,7 +12,8 @@ use crate::handlers::common::MemberContext;
 use crate::models::{
     AdjustBalanceRequest, ApproveLeaveRequest, AssignLeavePolicyRequest, CreateLeavePolicyRequest,
     EmployeeLeaveBalance, LeaveHistoryItem, LeavePolicyAssignment, LeaveRequest, LeaveStatus,
-    SubmitLeaveRequest, UpdateLeavePolicyRequest, WorkspaceLeaveBalance,
+    PaginatedResponse, PaginationParams, SubmitLeaveRequest, UpdateLeavePolicyRequest,
+    WorkspaceLeaveBalance,
 };
 use crate::repositories::leave_policy_repository;
 use crate::services::leave_accrual_service::LeaveAccrualService;
@@ -79,7 +80,8 @@ pub async fn get_workspace_leave_balances(
     Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-) -> Result<Json<Vec<WorkspaceLeaveBalance>>, StatusCode> {
+    Query(params): Query<PaginationParams>,
+) -> Result<Json<PaginatedResponse<WorkspaceLeaveBalance>>, StatusCode> {
     if !ctx.is_admin_or_owner() {
         return Err(StatusCode::FORBIDDEN);
     }
@@ -88,6 +90,7 @@ pub async fn get_workspace_leave_balances(
         &state.db,
         ctx.workspace_id,
         year,
+        params,
     )
     .await
     {

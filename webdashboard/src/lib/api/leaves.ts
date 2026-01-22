@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
-import { LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy } from "./types";
+import { LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, PaginatedResponse } from "./types";
 
 export async function submitLeaveRequest(
   wsId: string,
@@ -57,8 +57,14 @@ export async function fetchEmployeeLeaveBalances(
 
 export async function fetchWorkspaceLeaveBalances(
   wsId: string,
-): Promise<WorkspaceLeaveBalance[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/balances`);
+  params?: { page?: number; limit?: number; q?: string }
+): Promise<PaginatedResponse<WorkspaceLeaveBalance>> {
+  const query = new URLSearchParams();
+  if (params?.page) query.append("page", params.page.toString());
+  if (params?.limit) query.append("limit", params.limit.toString());
+  if (params?.q) query.append("q", params.q);
+
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/balances?${query.toString()}`);
   if (!response.ok) throw new Error("Failed to fetch workspace leave balances");
   return response.json();
 }

@@ -84,6 +84,13 @@ pub struct EmployeeSearchQuery {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PaginationParams {
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+    pub q: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GenericResponse {
     pub message: String,
 }
@@ -168,6 +175,17 @@ pub struct UpdateDeviceRequest {
     pub is_enabled: Option<bool>,
 }
 
+#[derive(
+    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
+)]
+#[sqlx(type_name = "early_arrival_strategy_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum EarlyArrivalStrategy {
+    Allow,
+    Block,
+    Clamp,
+}
+
 // --- Workspace Management Models ---
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
@@ -182,6 +200,7 @@ pub struct Workspace {
     pub theme_primary_color: String,
     pub default_language: String,
     pub pairing_algorithm: String,
+    pub early_arrival_strategy: EarlyArrivalStrategy,
     pub created_at: DateTime<Utc>,
 }
 
@@ -201,6 +220,7 @@ pub struct UpdateWorkspaceRequest {
     pub theme_primary_color: Option<String>,
     pub default_language: Option<String>,
     pub pairing_algorithm: Option<String>,
+    pub early_arrival_strategy: Option<EarlyArrivalStrategy>,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]

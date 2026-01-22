@@ -125,6 +125,7 @@ impl ReportService {
                             &workspace.rounding_policy,
                             0,
                             false,
+                            workspace.early_arrival_strategy,
                         );
 
                         total_payable_units = std_units + ot_units;

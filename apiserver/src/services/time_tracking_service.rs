@@ -73,7 +73,9 @@ impl TimeTrackingService {
                 let shift_start = today.and_time(start_time);
                 let earliest_punch = shift_start - chrono::Duration::minutes(grace_minutes as i64);
 
-                if local_now.naive_local() < earliest_punch {
+                if workspace.early_arrival_strategy == crate::models::EarlyArrivalStrategy::Block
+                    && local_now.naive_local() < earliest_punch
+                {
                     return Err(StatusCode::BAD_REQUEST);
                 }
             } else if entry_type == "break" && req.is_break_overtime.is_none() {

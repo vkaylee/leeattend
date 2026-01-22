@@ -28,6 +28,7 @@ export const workspaceFactory = (
     theme_primary_color: "#7c3aed",
     default_language: "en",
     pairing_algorithm: "sequential",
+    early_arrival_strategy: "block",
     created_at: new Date().toISOString(),
     ...overrides,
   };

@@ -105,7 +105,7 @@ describe("AssignPolicyModal", () => {
     renderModal(true);
 
     // Switch to Department type
-    const typeSelect = screen.getByLabelText(/Loại nghỉ|Type/i);
+    const typeSelect = screen.getByLabelText(/Loại phép|Type/i);
     await user.selectOptions(typeSelect, "department");
 
     // Look for department select

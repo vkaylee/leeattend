@@ -190,7 +190,8 @@ impl PayrollService {
                                             s.break_duration_minutes, s.early_punch_in_grace_period_minutes,
                                             s.is_break_auto_deduct, entry.is_break_overtime,
                                             actual_break_minutes, s.allow_early_ot,
-                                            workspace.work_unit_minutes, &workspace.rounding_policy, 0, false
+                                            workspace.work_unit_minutes, &workspace.rounding_policy, 0, false,
+                                            workspace.early_arrival_strategy
                                         );
                                         segment_std_units += std_u;
                                         segment_ot_units += ot_u;

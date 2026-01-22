@@ -1,3 +1,4 @@
+use crate::models::EarlyArrivalStrategy;
 use chrono::{DateTime, Datelike, Duration, NaiveDate, TimeZone, Weekday};
 
 #[derive(Debug, Default)]
@@ -25,6 +26,7 @@ impl AttendanceCalculator {
         allow_early_ot: bool,
         authorized_early_leave_minutes: i32,
         is_early_leave_paid: bool,
+        early_arrival_strategy: EarlyArrivalStrategy,
     ) -> WorkBuckets {
         let mut buckets = WorkBuckets::default();
 
@@ -42,14 +44,25 @@ impl AttendanceCalculator {
                 // Apply Grace Period to Shift Start for Early OT calculation
                 // If punch_in is within [start - grace, start], we treat it as 'start' for OT purposes.
                 // If punch_in is before 'start - grace', we count full OT from punch_in.
-                let mut effective_ot_start = start.clone();
+                let mut effective_ot_start = punch_in.clone();
                 if grace_period_minutes > 0 {
                     let grace_threshold =
                         start.clone() - Duration::minutes(grace_period_minutes as i64);
-                    if punch_in >= grace_threshold && punch_in < start {
-                        effective_ot_start = start.clone(); // Within grace, no OT
-                    } else if punch_in < grace_threshold {
-                        effective_ot_start = punch_in.clone(); // Before grace, full OT
+
+                    match early_arrival_strategy {
+                        EarlyArrivalStrategy::Block | EarlyArrivalStrategy::Allow => {
+                            // Current logic: If within grace, no OT. If outside grace, FULL OT.
+                            if punch_in >= grace_threshold && punch_in < start {
+                                effective_ot_start = start.clone(); // Within grace, no OT
+                            } else if punch_in < grace_threshold {
+                                effective_ot_start = punch_in.clone(); // Before grace, full OT
+                            }
+                        }
+                        EarlyArrivalStrategy::Clamp => {
+                            // Clamp logic: Only count OT from grace_threshold to start.
+                            // Anything before grace_threshold is IGNORED.
+                            effective_ot_start = DateTime::max(punch_in.clone(), grace_threshold);
+                        }
                     }
                 } else {
                     effective_ot_start = punch_in.clone();
@@ -166,6 +179,7 @@ impl AttendanceCalculator {
         rounding_policy: &str,
         authorized_early_leave_minutes: i32,
         is_early_leave_paid: bool,
+        early_arrival_strategy: EarlyArrivalStrategy,
     ) -> (i32, i32) {
         let buckets = Self::calculate_buckets(
             punch_in,
@@ -180,6 +194,7 @@ impl AttendanceCalculator {
             allow_early_ot,
             authorized_early_leave_minutes,
             is_early_leave_paid,
+            early_arrival_strategy,
         );
 
         // Apply rounding to standard time (Result in Units)
@@ -266,6 +281,7 @@ mod tests {
             false,
             0,
             false,
+            EarlyArrivalStrategy::Block,
         );
         assert_eq!(b1.standard_minutes, 510); // (17:00 - 07:30) - 60m = 8.5h = 510m
         assert_eq!(b1.early_ot_minutes, 0);
@@ -284,6 +300,7 @@ mod tests {
             true,
             0,
             false,
+            EarlyArrivalStrategy::Block,
         );
         assert_eq!(b2.standard_minutes, 510);
         assert_eq!(b2.early_ot_minutes, 5); // 07:25 to 07:30
@@ -302,6 +319,7 @@ mod tests {
             false,
             0,
             false,
+            EarlyArrivalStrategy::Block,
         );
         // (17:00 - 07:40) = 9h20m = 560m.
         // 560 - 60 (break) = 500m.
@@ -325,6 +343,7 @@ mod tests {
             true,
             0,
             false,
+            EarlyArrivalStrategy::Block,
         );
         assert_eq!(b4.early_ot_minutes, 0);
 
@@ -342,8 +361,29 @@ mod tests {
             true,
             0,
             false,
+            EarlyArrivalStrategy::Block,
         );
         assert_eq!(b5.early_ot_minutes, 45);
+
+        // Case 6: EarlyArrivalStrategy::Clamp
+        // Punch in 06:45, Grace 30m (starts 07:00).
+        // Should only count OT from 07:00 to 07:30 = 30m.
+        let b6 = AttendanceCalculator::calculate_buckets(
+            dt(6, 45),
+            dt(17, 0),
+            start,
+            end,
+            60,
+            30,
+            0,
+            true,
+            false,
+            true,
+            0,
+            false,
+            EarlyArrivalStrategy::Clamp,
+        );
+        assert_eq!(b6.early_ot_minutes, 30);
     }
 
     #[test]
@@ -370,7 +410,19 @@ mod tests {
             .unwrap();
 
         let b = AttendanceCalculator::calculate_buckets(
-            punch_in, punch_out, start, end, 0, 0, 0, false, false, true, 0, false,
+            punch_in,
+            punch_out,
+            start,
+            end,
+            0,
+            0,
+            0,
+            false,
+            false,
+            true,
+            0,
+            false,
+            EarlyArrivalStrategy::Allow,
         );
 
         assert_eq!(b.standard_minutes, 480);
@@ -403,6 +455,7 @@ mod tests {
             "floor",
             0,
             false,
+            EarlyArrivalStrategy::Block,
         );
         assert_eq!(std, 15);
     }
@@ -426,6 +479,7 @@ mod tests {
             true,
             0,
             false,
+            EarlyArrivalStrategy::Allow,
         );
         assert_eq!(b1.standard_minutes, 0);
         assert_eq!(b1.early_ot_minutes, 60);
@@ -445,6 +499,7 @@ mod tests {
             true,
             0,
             false,
+            EarlyArrivalStrategy::Allow,
         );
         assert_eq!(b2.standard_minutes, 0);
         assert_eq!(b2.early_ot_minutes, 0);
@@ -473,6 +528,7 @@ mod tests {
             "none",
             0,
             false,
+            EarlyArrivalStrategy::Block,
         );
         assert_eq!(std, 0);
     }
@@ -537,6 +593,7 @@ mod tests {
             true,
             0,
             false,
+            EarlyArrivalStrategy::Allow,
         );
         assert_eq!(b1.standard_minutes, 0);
         assert_eq!(b1.late_ot_minutes, 60);
@@ -555,6 +612,7 @@ mod tests {
             true,
             0,
             false,
+            EarlyArrivalStrategy::Allow,
         );
         assert_eq!(b2.standard_minutes, 0);
         assert_eq!(b2.early_ot_minutes, 60);
@@ -579,6 +637,7 @@ mod tests {
             true,
             0,
             false,
+            EarlyArrivalStrategy::Allow,
         );
         assert_eq!(b.standard_minutes, 0);
         assert_eq!(b.early_ot_minutes, 0);
@@ -601,6 +660,7 @@ mod tests {
             true,
             0,
             false,
+            EarlyArrivalStrategy::Allow,
         );
         assert_eq!(b.standard_minutes, 120);
         assert_eq!(b.early_ot_minutes, 0);
@@ -645,6 +705,7 @@ mod tests {
             true,
             0,
             false,
+            EarlyArrivalStrategy::Allow,
         );
 
         // Standard: intersection of [01:00, 07:00] and [22:00 Jan 1, 06:00 Jan 2]
@@ -664,26 +725,52 @@ mod tests {
         let start = Some(dt(8, 0));
         let end = Some(dt(17, 0));
 
-        // Arrive 08:01 (Late 1 min)
-        // Duration: 08:01 to 17:00 = 8h59m = 539m
-        // Net: 539 - 60 = 479m
-        // Floor(479, 30) = 15 units (7.5h) -> Lost 1 unit for being 1 min late.
-        let (std, _) = AttendanceCalculator::calculate_daily_units(
-            dt(8, 1),
-            dt(17, 0),
-            start,
-            end,
-            60,
-            0,
-            true,
-            false,
-            0,
-            false,
-            30,
-            "floor",
-            0,
-            false,
-        );
-        assert_eq!(std, 15);
-    }
-}
+                // Arrive 08:01 (Late 1 min)
+
+                // Duration: 08:01 to 17:00 = 8h59m = 539m
+
+                // Net: 539 - 60 = 479m
+
+                // Floor(479, 30) = 15 units (7.5h) -> Lost 1 unit for being 1 min late.
+
+                let (std, _) = AttendanceCalculator::calculate_daily_units(
+
+                    dt(8, 1),
+
+                    dt(17, 0),
+
+                    start,
+
+                    end,
+
+                    60,
+
+                    0,
+
+                    true,
+
+                    false,
+
+                    0,
+
+                    false,
+
+                    30,
+
+                    "floor",
+
+                    0,
+
+                    false,
+
+                    EarlyArrivalStrategy::Allow,
+
+                );
+
+                assert_eq!(std, 15);
+
+            }
+
+        }
+
+        

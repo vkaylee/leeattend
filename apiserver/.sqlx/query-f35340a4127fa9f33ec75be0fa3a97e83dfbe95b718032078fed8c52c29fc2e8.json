@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT DISTINCT(punch_in_time AT TIME ZONE $2)::date as \"date!\"\n            FROM time_entries\n            WHERE employee_id = $1 \n              AND punch_in_time >= $3 \n              AND punch_in_time <= $4\n              AND entry_type = 'work'\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "date!",
+        "type_info": "Date"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "f35340a4127fa9f33ec75be0fa3a97e83dfbe95b718032078fed8c52c29fc2e8"
+}

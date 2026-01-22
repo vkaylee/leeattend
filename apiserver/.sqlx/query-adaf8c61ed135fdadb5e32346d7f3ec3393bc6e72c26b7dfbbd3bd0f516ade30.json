@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT start_date, end_date\n            FROM leave_requests\n            WHERE employee_id = $1\n              AND status = 'approved'\n              AND start_date <= $3\n              AND end_date >= $2\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 1,
+        "name": "end_date",
+        "type_info": "Date"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "adaf8c61ed135fdadb5e32346d7f3ec3393bc6e72c26b7dfbbd3bd0f516ade30"
+}

@@ -359,20 +359,29 @@ Phê duyệt hoặc từ chối đơn nghỉ phép.
 #### GET /workspaces/:ws_id/leave/balances (New - Admin)
 Lấy bảng tổng hợp số dư phép của tất cả nhân viên trong workspace.
 - **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Query Params**:
+  - `page` (optional): Page number (default: 1)
+  - `limit` (optional): Items per page (default: 20)
+  - `q` (optional): Search by employee name
 - **Response (200)**: 
   ```json
-  [
-    {
-      "employee_id": "uuid",
-      "employee_name": "Nguyen Van A",
-      "leave_type": "vacation",
-      "entitlement": 12,
-      "accrued_amount": 3.0,
-      "carried_over": 0,
-      "used": 2,
-      "remaining": 13.0
-    }
-  ]
+  {
+    "data": [
+      {
+        "employee_id": "uuid",
+        "employee_name": "Nguyen Van A",
+        "leave_type": "vacation",
+        "entitlement": 12,
+        "accrued_amount": 3.0,
+        "carried_over": 0,
+        "used": 2,
+        "remaining": 13.0
+      }
+    ],
+    "total": 50,
+    "page": 1,
+    "limit": 20
+  }
   ```
 
 #### GET /workspaces/:ws_id/employees/:id/leave/balances

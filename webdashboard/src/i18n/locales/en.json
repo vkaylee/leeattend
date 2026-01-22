@@ -60,8 +60,17 @@
         "anchor_first_desc": "Simple. Only takes the first and last records of the day.",
         "sequential": "Sequential (Retail)",
         "sequential_desc": "Pairs logs 1+2, 3+4, etc. Best for broken shifts.",
-        "fsm": "State Machine (FSM)",
-        "fsm_desc": "Uses In/Out states directly from device. Highest accuracy for premium hardware."
+        "fsm": "Finite State Machine (FSM)",
+        "fsm_desc": "Uses direct In/Out states from devices. Highest precision for high-end hardware."
+      },
+      "early_arrival_strategy": "Early Arrival Policy",
+      "early_arrival_options": {
+        "allow": "Allow Always",
+        "allow_desc": "Count full OT from check-in time (if early OT is allowed).",
+        "block": "Block Early Punch-in",
+        "block_desc": "Only allow punching in within the shift's Grace Period.",
+        "clamp": "Clamp Early OT",
+        "clamp_desc": "Allow early punch-in but only count OT within the shift's Grace Period."
       }
     },
     "members": {
@@ -92,6 +101,8 @@
     "attendance": "Attendance",
     "leave": "Leave",
     "attendance_confirm": "Confirm Attendance",
+    "showing": "Showing",
+    "of": "of",
     "reports": "Reports",
     "shifts": "Shifts & Roster",
     "note": "Note",

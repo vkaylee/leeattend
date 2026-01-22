@@ -78,6 +78,7 @@ impl WorkspaceService {
         theme_primary_color: Option<String>,
         default_language: Option<String>,
         pairing_algorithm: Option<String>,
+        early_arrival_strategy: Option<crate::models::EarlyArrivalStrategy>,
     ) -> Result<Workspace, String> {
         let mut query = String::from("UPDATE workspaces SET ");
         let mut has_fields = false;
@@ -152,6 +153,14 @@ impl WorkspaceService {
             arg_idx += 1;
             has_fields = true;
         }
+        if early_arrival_strategy.is_some() {
+            if has_fields {
+                query.push_str(", ");
+            }
+            query.push_str(&format!("early_arrival_strategy = ${}", arg_idx));
+            arg_idx += 1;
+            has_fields = true;
+        }
 
         if !has_fields {
             return Err("No fields to update".to_string());
@@ -187,6 +196,9 @@ impl WorkspaceService {
         }
         if let Some(pa) = pairing_algorithm {
             q = q.bind(pa);
+        }
+        if let Some(eas) = early_arrival_strategy {
+            q = q.bind(eas);
         }
         q = q.bind(ws_id);
 

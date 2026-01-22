@@ -47,6 +47,7 @@ export interface Workspace {
   theme_primary_color: string;
   default_language: string;
   pairing_algorithm: string;
+  early_arrival_strategy: "allow" | "block" | "clamp";
   created_at: string;
 }
 
@@ -400,6 +401,13 @@ export interface LeavePolicy {
   updated_at: string;
 }
 
+export type AccrualFrequency = "monthly" | "quarterly" | "yearly";
+
+export interface SeniorityBonus {
+  min_years: number;
+  extra_days: number;
+}
+
 export interface LeavePolicyConfig {
   frequency: AccrualFrequency;
   accrual_amount: number;
@@ -408,6 +416,7 @@ export interface LeavePolicyConfig {
   max_balance?: number;
   reset_month?: number;
   min_work_days_threshold?: number;
+  carry_over_limit?: number;
 }
 
 export interface ScheduleTrace {

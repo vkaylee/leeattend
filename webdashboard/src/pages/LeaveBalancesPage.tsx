@@ -2,11 +2,12 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { fetchWorkspaceLeaveBalances, getCurrentWorkspaceId, triggerAccrualRun, WorkspaceLeaveBalance } from "@/lib/api";
-import { Search, Filter, History, PlayCircle, Eye } from "lucide-react";
+import { Search, Filter, History, PlayCircle, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { LeaveHistoryModal } from "@/components/leave/LeaveHistoryModal";
 import { LeaveBalanceDetailModal } from "@/components/leave/LeaveBalanceDetailModal";
 import { useToast } from "@/components/Toast";
 import { cn } from "@/lib/utils";
+import { useDebounce } from "@/hooks/use-debounce";
 
 export default function LeaveBalancesPage() {
   const { t } = useTranslation();
@@ -14,10 +15,19 @@ export default function LeaveBalancesPage() {
   const queryClient = useQueryClient();
   const wsId = getCurrentWorkspaceId();
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const limit = 20;
+  const debouncedSearch = useDebounce(searchTerm, 500);
+
   const [selectedEmployee, setSelectedEmployee] = useState<{ id: string, name: string } | null>(null);
   const [selectedBalance, setSelectedBalance] = useState<WorkspaceLeaveBalance | null>(null);
 
-  const { data: balances, isLoading } = useQuery({ queryKey: ["workspace-leave-balances", wsId], queryFn: () => fetchWorkspaceLeaveBalances(wsId!), enabled: !!wsId });
+  const { data: paginatedData, isLoading } = useQuery({ 
+    queryKey: ["workspace-leave-balances", wsId, page, debouncedSearch], 
+    queryFn: () => fetchWorkspaceLeaveBalances(wsId!, { page, limit, q: debouncedSearch }), 
+    enabled: !!wsId,
+    placeholderData: (previousData) => previousData
+  });
 
   const accrualMutation = useMutation({
     mutationFn: () => triggerAccrualRun(wsId!, { date: new Date().toISOString().split('T')[0] }),
@@ -28,10 +38,9 @@ export default function LeaveBalancesPage() {
     onError: () => toast.error(t("common.error"))
   });
 
-  const filteredBalances = balances?.filter(b =>
-    b.employee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    b.leave_type.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const balances = paginatedData?.data || [];
+  const totalItems = paginatedData?.total || 0;
+  const totalPages = Math.ceil(totalItems / limit);
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
@@ -58,6 +67,11 @@ export default function LeaveBalancesPage() {
           <div className="flex items-center gap-3">
             <Filter className="w-5 h-5 text-primary-600" />
             <h2 className="text-lg md:text-xl font-black text-slate-800 tracking-tight uppercase">{t("leave_balances.summary_table")}</h2>
+            {totalItems > 0 && (
+              <span className="px-2 py-0.5 bg-slate-200 text-slate-600 rounded-full text-xs font-bold">
+                {totalItems}
+              </span>
+            )}
           </div>
 
           <div className="relative group w-full md:w-80">
@@ -67,7 +81,10 @@ export default function LeaveBalancesPage() {
               placeholder={t("common.search_placeholder")}
               className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight shadow-sm min-h-[44px]"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(1); // Reset to page 1 on search
+              }}
             />
           </div>
         </div>
@@ -85,11 +102,11 @@ export default function LeaveBalancesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {isLoading ? (
+              {isLoading && !balances.length ? (
                 <tr><td colSpan={5} className="px-6 py-20 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</td></tr>
-              ) : filteredBalances?.length === 0 ? (
+              ) : balances.length === 0 ? (
                 <tr><td colSpan={5} className="px-6 py-32 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</td></tr>
-              ) : filteredBalances?.map((balance, idx) => (
+              ) : (balances as any[]).map((balance: any, idx: number) => (
                 <DesktopBalanceRow
                   key={`${balance.employee_id}-${balance.leave_type}-${idx}`}
                   balance={balance}
@@ -103,11 +120,11 @@ export default function LeaveBalancesPage() {
 
         {/* Tablet/Mobile Card View (<1024px) - Simplified */}
         <div className="lg:hidden divide-y divide-slate-100">
-          {isLoading ? (
+          {isLoading && !balances.length ? (
             <div className="px-5 py-20 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</div>
-          ) : filteredBalances?.length === 0 ? (
+          ) : balances.length === 0 ? (
             <div className="px-5 py-32 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</div>
-          ) : filteredBalances?.map((balance, idx) => (
+          ) : (balances as any[]).map((balance: any, idx: number) => (
             <MobileBalanceCard
               key={`${balance.employee_id}-${balance.leave_type}-${idx}`}
               balance={balance}
@@ -116,6 +133,59 @@ export default function LeaveBalancesPage() {
             />
           ))}
         </div>
+
+        {/* Pagination Controls */}
+        {totalItems > 0 && (
+          <div className="p-5 md:p-8 border-t border-slate-50 bg-slate-50/30 flex flex-col md:flex-row items-center justify-between gap-4">
+             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+               {t("common.showing")} <span className="text-slate-700">{(page - 1) * limit + 1}</span> - <span className="text-slate-700">{Math.min(page * limit, totalItems)}</span> {t("common.of")} <span className="text-slate-700">{totalItems}</span>
+             </div>
+             
+             <div className="flex items-center gap-2">
+               <button
+                 onClick={() => setPage(p => Math.max(1, p - 1))}
+                 disabled={page === 1}
+                 className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+               >
+                 <ChevronLeft className="w-4 h-4 text-slate-600" />
+               </button>
+               
+               <div className="flex items-center gap-1">
+                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    // Simple logic to show window around current page
+                    let p = i + 1;
+                    if (totalPages > 5) {
+                      if (page > 3) p = page - 2 + i;
+                      if (p > totalPages) p = totalPages - (4 - i);
+                    }
+                    
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p)}
+                        className={cn(
+                          "w-8 h-8 flex items-center justify-center rounded-xl text-xs font-black transition-all",
+                          page === p 
+                            ? "bg-slate-900 text-white shadow-md shadow-slate-200" 
+                            : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                        )}
+                      >
+                        {p}
+                      </button>
+                    );
+                 })}
+               </div>
+
+               <button
+                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                 disabled={page === totalPages}
+                 className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+               >
+                 <ChevronRight className="w-4 h-4 text-slate-600" />
+               </button>
+             </div>
+          </div>
+        )}
       </div>
 
       {selectedEmployee && (
