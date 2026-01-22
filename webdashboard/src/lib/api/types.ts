@@ -237,6 +237,7 @@ export interface Shift {
   break_start?: string;
   break_end?: string;
   is_break_auto_deduct?: boolean;
+  early_punch_in_grace_period_minutes?: number;
   created_at: string;
   updated_at: string;
 }

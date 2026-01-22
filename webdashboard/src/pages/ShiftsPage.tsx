@@ -94,6 +94,7 @@ export default function ShiftsPage() {
   const [newShiftStart, setNewShiftStart] = useState("08:00");
   const [newShiftEnd, setNewShiftEnd] = useState("17:00");
   const [newShiftBreak, setNewShiftBreak] = useState(60);
+  const [newShiftGrace, setNewShiftGrace] = useState(15);
   const [newBreakStart, setNewBreakStart] = useState("");
   const [newBreakEnd, setNewBreakEnd] = useState("");
   const [isFixedBreak, setIsFixedBreak] = useState(false);
@@ -101,8 +102,8 @@ export default function ShiftsPage() {
 
   // Edit Shift State
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
-  const [isEditCorrection, setIsEditCorrection] = useState(false);
-  const [editEffectiveDate, setEditEffectiveDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [isCorrection, setIsCorrection] = useState(false);
+  const [correctionEffectiveDate, setCorrectionEffectiveDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   // Queries
   const { data: employees } = useQuery({
@@ -201,15 +202,14 @@ export default function ShiftsPage() {
     mutationFn: (data: any) => createShift(wsId, data),
     onSuccess: () => {
       toast.success(t("shifts.messages.create_shift_success", { name: newShiftName }));
-      setIsCreateModalOpen(false);
       setNewShiftName("");
       setNewShiftStart("08:00");
       setNewShiftEnd("17:00");
       setNewShiftBreak(60);
+      setNewShiftGrace(15);
       setNewBreakStart("");
       setNewBreakEnd("");
       setIsFixedBreak(false);
-      setIsAutoDeduct(true);
       queryClient.invalidateQueries({ queryKey: ["shifts", wsId] });
     },
     onError: (error: any) => toast.error(error.message, t("shifts.messages.create_shift_error"))
@@ -270,9 +270,12 @@ export default function ShiftsPage() {
     createShiftMutation.mutate({
       name: newShiftName, start_time: newShiftStart + ":00", end_time: newShiftEnd + ":00",
       break_duration_minutes: newShiftBreak,
-      break_start: (isFixedBreak && newBreakStart) ? newBreakStart + ":00" : undefined,
-      break_end: (isFixedBreak && newBreakEnd) ? newBreakEnd + ":00" : undefined,
-      is_break_auto_deduct: isAutoDeduct,
+      early_punch_in_grace_period_minutes: newShiftGrace,
+      ...(isFixedBreak && newBreakStart && newBreakEnd ? {
+        break_start: newBreakStart + ":00",
+        break_end: newBreakEnd + ":00"
+      } : {}),
+      is_break_auto_deduct: isAutoDeduct
     });
   };
 
@@ -283,11 +286,17 @@ export default function ShiftsPage() {
       data: {
         name: newShiftName, start_time: newShiftStart, end_time: newShiftEnd,
         break_duration_minutes: newShiftBreak,
-        break_start: isFixedBreak ? newBreakStart : null,
-        break_end: isFixedBreak ? newBreakEnd : null,
+        early_punch_in_grace_period_minutes: newShiftGrace,
+        ...(isFixedBreak && newBreakStart && newBreakEnd ? {
+          break_start: newBreakStart,
+          break_end: newBreakEnd
+        } : {
+          break_start: null,
+          break_end: null
+        }),
         is_break_auto_deduct: isAutoDeduct,
-        is_correction: isEditCorrection,
-        effective_date: isEditCorrection ? undefined : editEffectiveDate
+        is_correction: isCorrection,
+        effective_date: isCorrection ? undefined : correctionEffectiveDate
       }
     });
   };
@@ -298,11 +307,13 @@ export default function ShiftsPage() {
     setNewShiftStart(shift.start_time.substring(0, 5));
     setNewShiftEnd(shift.end_time.substring(0, 5));
     setNewShiftBreak(shift.break_duration_minutes);
+    setNewShiftGrace(shift.early_punch_in_grace_period_minutes ?? 15);
     setNewBreakStart(shift.break_start?.substring(0, 5) || "");
     setNewBreakEnd(shift.break_end?.substring(0, 5) || "");
     setIsFixedBreak(!!shift.break_start);
     setIsAutoDeduct(shift.is_break_auto_deduct ?? true);
-    setIsEditCorrection(false);
+    setIsCorrection(false);
+    setCorrectionEffectiveDate(format(new Date(), 'yyyy-MM-dd'));
   };
 
   const employeeOptions = employees?.map(emp => ({
@@ -767,6 +778,26 @@ export default function ShiftsPage() {
                   {t("shifts.modal.auto_deduct_label")}
                 </label>
               </div>
+
+              {/* Grace Period */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">{t("shifts.grace_period")}</label>
+                  <div className="group relative">
+                    <Info size={12} className="text-slate-300 cursor-help" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-slate-800 text-white text-[10px] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                      {t("shifts.grace_period_desc")}
+                    </div>
+                  </div>
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  value={newShiftGrace}
+                  onChange={(e) => setNewShiftGrace(parseInt(e.target.value) || 0)}
+                  className="w-full bg-white border-none rounded-xl px-4 py-2.5 font-bold text-slate-900 focus:ring-2 focus:ring-primary-500 transition-all"
+                />
+              </div>
             </div>
 
             <div className="bg-amber-50 p-6 rounded-[32px] border border-amber-100 space-y-4">
@@ -784,8 +815,8 @@ export default function ShiftsPage() {
                 <input
                   type="checkbox"
                   id="is_correction"
-                  checked={isEditCorrection}
-                  onChange={(e) => setIsEditCorrection(e.target.checked)}
+                  checked={isCorrection}
+                  onChange={(e) => setIsCorrection(e.target.checked)}
                   className="w-5 h-5 rounded-lg border-amber-200 text-amber-600 focus:ring-amber-500"
                 />
                 <label htmlFor="is_correction" className="text-xs font-black text-amber-800 uppercase tracking-widest">
@@ -793,13 +824,13 @@ export default function ShiftsPage() {
                 </label>
               </div>
 
-              {!isEditCorrection && (
+              {!isCorrection && (
                 <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                   <label className="text-[10px] font-black text-amber-700 uppercase tracking-widest">{t("shifts.modal.effective_date_label")}</label>
                   <input
                     type="date"
-                    value={editEffectiveDate}
-                    onChange={(e) => setEditEffectiveDate(e.target.value)}
+                    value={correctionEffectiveDate}
+                    onChange={(e) => setCorrectionEffectiveDate(e.target.value)}
                     className="w-full bg-white border-amber-200 rounded-2xl px-5 py-3.5 font-bold text-slate-900 focus:ring-2 focus:ring-amber-500 transition-all"
                   />
                   <p className="text-[9px] font-bold text-amber-600 leading-tight italic px-1">
