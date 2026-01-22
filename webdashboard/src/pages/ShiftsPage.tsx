@@ -271,6 +271,7 @@ export default function ShiftsPage() {
       name: newShiftName, start_time: newShiftStart + ":00", end_time: newShiftEnd + ":00",
       break_duration_minutes: newShiftBreak,
       early_punch_in_grace_period_minutes: newShiftGrace,
+      break_is_overtime: false,
       ...(isFixedBreak && newBreakStart && newBreakEnd ? {
         break_start: newBreakStart + ":00",
         break_end: newBreakEnd + ":00"
@@ -287,6 +288,7 @@ export default function ShiftsPage() {
         name: newShiftName, start_time: newShiftStart, end_time: newShiftEnd,
         break_duration_minutes: newShiftBreak,
         early_punch_in_grace_period_minutes: newShiftGrace,
+        break_is_overtime: false,
         ...(isFixedBreak && newBreakStart && newBreakEnd ? {
           break_start: newBreakStart,
           break_end: newBreakEnd

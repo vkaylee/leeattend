@@ -670,7 +670,9 @@ pub struct CreateShiftRequest {
     pub break_end: Option<chrono::NaiveTime>,
     #[serde(default = "default_true")]
     pub is_break_auto_deduct: bool,
+    #[serde(default)]
     pub break_is_overtime: bool,
+    #[serde(default)]
     pub early_punch_in_grace_period_minutes: i32,
     #[serde(default)]
     pub allow_early_ot: bool,
@@ -682,10 +684,15 @@ pub struct UpdateShiftRequest {
     pub start_time: chrono::NaiveTime,
     pub end_time: chrono::NaiveTime,
     pub break_duration_minutes: i32,
+    #[serde(default)]
     pub break_start: Option<chrono::NaiveTime>,
+    #[serde(default)]
     pub break_end: Option<chrono::NaiveTime>,
+    #[serde(default = "default_true")]
     pub is_break_auto_deduct: bool,
+    #[serde(default)]
     pub break_is_overtime: bool,
+    #[serde(default)]
     pub early_punch_in_grace_period_minutes: i32,
     #[serde(default)]
     pub allow_early_ot: bool,

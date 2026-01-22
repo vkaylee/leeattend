@@ -1391,54 +1391,62 @@
     "select_default_shift": "选择默认班次",
     "assign_btn": "分配班次",
     "directory_title": "班次类型目录",
-    "auto_deduct": "自动扣除",
-    "set_off_day": "设为休息",
-    "days_count": "已选择 {{count}} 天",
-    "empty_state": {
-      "title": "选择人员以继续",
-      "desc": "请从左侧列表选择一名员工以开始排班。"
-    },
-    "tabs": {
-      "weekly_roster": "每周排班",
-      "fixed_assignments": "固定分配",
-      "directory": "目录"
-    },
-    "actions": {
-      "copy_previous": "复制上周",
-      "assign_all_week": "全周分配",
-      "clear_week": "清除本周"
-    },
-    "types": {
-      "flexible": "灵活",
-      "fixed": "固定"
-    },
-    "table": {
-      "assignment_type": "分配类型",
-      "range": "范围",
-      "shift_name": "班次类型名称",
-      "time_range": "时间范围",
-      "break_time": "休息时间"
-    },
-    "modal": {
-      "setup_title": "班次设置",
-      "setup_subtitle": "声明班次参数",
-      "edit_subtitle": "更新配置或更改时间",
-      "name_placeholder": "办公室、早班、分时段班次...",
-      "start_time": "上班打卡",
-      "end_time": "下班打卡",
-      "break_config": "休息配置",
-      "break_start": "休息开始",
-      "break_end": "休息结束",
-      "auto_deduct_label": "自动扣除休息时间",
-      "break_duration": "休息时长",
-    "save_shift_btn": "保存班次类型",
-    "grace_period": "Early Arrival Grace (min)",
-    "grace_period_desc": "If 'Block' policy is active, punches before this are blocked. If 'Clamp', OT starts here.",
-    "select_shift_title": "选择班次",
-      "select_shift_subtitle": "为选中的 {{count}} 天选择班次",
-      "mark_as_off": "将选中日期标记为休息",
-      "assign_to_days": "分配给 {{days}}"
-    },
+        "auto_deduct": "自动扣除",
+        "grace_period": "宽限期 (分钟)",
+        "grace_period_desc": "如果启用了“阻止”政策，则此时间之前的打卡将被阻止。如果启用了“钳位”，则加班从此处开始计算。",
+        "set_off_day": "设为休息",
+        "days_count": "已选择 {{count}} 天",
+        "empty_state": {
+          "title": "选择人员以继续",
+          "desc": "请从左侧列表选择一名员工以开始排班。"
+        },
+        "tabs": {
+          "weekly_roster": "每周排班",
+          "fixed_assignments": "固定分配",
+          "directory": "目录"
+        },
+        "actions": {
+          "copy_previous": "复制上周",
+          "assign_all_week": "全周分配",
+          "clear_week": "清除本周"
+        },
+        "types": {
+          "flexible": "灵活",
+          "fixed": "固定"
+        },
+        "table": {
+          "assignment_type": "分配类型",
+          "range": "范围",
+          "shift_name": "班次类型名称",
+          "time_range": "时间范围",
+          "break_time": "休息时间"
+        },
+        "modal": {
+          "setup_title": "班次设置",
+          "setup_subtitle": "声明班次参数",
+          "edit_subtitle": "更新配置或更改时间",
+          "name_placeholder": "办公室、早班、分时段班次...",
+          "start_time": "上班打卡",
+          "end_time": "下班打卡",
+          "break_config": "休息配置",
+          "break_start": "休息开始",
+          "break_end": "休息结束",
+          "auto_deduct_label": "自动扣除休息时间",
+          "break_duration": "休息时长",
+          "save_shift_btn": "保存班次类型",
+          "update_config_btn": "更新配置",
+          "correction_label": "数据修正",
+          "correction_desc": "修正将覆盖当前班次记录。仅用于修复输入错误。",
+          "correction_warning": "这是一个直接修正",
+          "effective_date_label": "生效日期",
+          "effective_date_desc": "新版本将从该日期起生效。",
+          "grace_period": "提前打卡宽限 (分钟)",
+          "grace_period_desc": "如果启用了“阻止”政策，则此时间之前的打卡将被阻止。如果启用了“钳位”，则加班从此处开始计算。",
+          "select_shift_title": "选择班次",
+          "select_shift_subtitle": "为选中的 {{count}} 天选择班次",
+          "mark_as_off": "将选中日期标记为休息",
+          "assign_to_days": "分配给 {{days}}"
+        },
     "messages": {
       "assign_success": "员工班次分配成功。",
       "assign_error": "分配错误",
