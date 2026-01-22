@@ -5,6 +5,22 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ## [Unreleased]
 
 ### Added
+- **Unified Test Orchestrator (`run-tests.sh`)**:
+    - **Selective Execution**: Added flags (`--all`, `--api`, `--web`) to target specific components, significantly reducing iteration time.
+    - **Pattern Matching**: Implemented support for an optional pattern argument to filter test cases across different runners (Cargo, Pytest, Playwright, Vitest).
+    - **Automated Environment**: The orchestrator now automatically manages the full test lifecycle, including Postgres Docker setup, isolated database creation, and migrations.
+    - **Resilient Filtering**: Improved internal shell scripts to handle complex regex patterns and gracefully manage "no tests found" scenarios (e.g., Pytest exit code 5).
+- **Robust Agent Configuration System**:
+    - **Smart Fallbacks**: Implemented a centralized `Config` struct in `agent-main` with intelligent fallbacks for `AGENT_ID`, `DATABASE_URL`, and `CENTRAL_SERVER_URL`.
+    - **Dynamic Path Resolution**: Added automatic detection for Python virtual environments (`venv` vs `venv_linux`), resolving path issues across different Linux distributions.
+    - **Environment Template**: Created `.env.template` for the agent to guide manual configuration and ensure standard defaults.
+    - **Console Awareness**: Added a colorful startup summary and explicit warnings when fallback values are being used instead of environment variables.
+- **Partial Attendance Import Success**:
+    - **Robust Batch Processing**: Enhanced `AttendanceImportService` to support "Partial Success," allowing valid records to be imported even if the batch contains duplicate logs or non-existent employee IDs.
+    - **Database Level Protection**: Added a unique constraint to `raw_attendance_logs` to prevent duplicate punches at the database level.
+    - **Comprehensive Testing**: Added a dedicated integration test (`attendance_partial_import.rs`) to verify the "Partial Success" behavior and error logging.
+
+### Added
 - **Variable-based Payroll Incentive Engine (Diligence Bonus)**:
     - **Tiered Evaluation System**: Implemented a flexible, priority-based evaluation engine in `PayrollEvaluator` to match attendance summaries against tiered thresholds.
     - **Incentive Context**: Enhanced monthly payroll calculation to track detailed metrics including `total_late_early_count`, `unpaid_leave_days`, and `sick_leave_days`.

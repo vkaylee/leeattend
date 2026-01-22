@@ -67,6 +67,7 @@ dependencies = [
  "sqlx",
  "strum",
  "strum_macros",
+ "tempfile",
  "tokio",
  "tokio-test",
  "tokio-tungstenite 0.26.2",

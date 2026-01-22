@@ -5,7 +5,6 @@ use agent::zk_client::ZKClient;
 use serde_json::json;
 use log::{info, error, warn};
 use dotenvy::dotenv;
-use std::env;
 
 mod database;
 mod central_client;
@@ -17,20 +16,26 @@ use central_client::CentralClient;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
-    env_logger::init();
+    
+    // Khởi tạo logger với mức mặc định là info nếu RUST_LOG trống
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     info!("🚀 Starting Rust Agent Orchestrator...");
 
-    // 1. Initialize Database
-    let db_url = env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite:attendance.db".to_string());
-    let db = Database::new(&db_url).await.expect("Failed to initialize database");
+    // 1. Load Configuration
+    let config = agent::config::Config::load();
+    config.show_summary();
 
-    // 2. Start Central Client
-    let server_url = env::var("CENTRAL_SERVER_URL").expect("CENTRAL_SERVER_URL must be set");
-    let agent_id = env::var("AGENT_ID").expect("AGENT_ID must be set");
-    let token = env::var("AGENT_TOKEN").expect("AGENT_TOKEN must be set");
+    // 2. Initialize Database
+    let db = Database::new(&config.database_url).await.expect("Failed to initialize database");
 
-    let (central_client, central_rx) = CentralClient::new(server_url, agent_id, token, db.clone());
+    // 3. Start Central Client
+    let (central_client, central_rx) = CentralClient::new(
+        config.central_server_url, 
+        config.agent_id, 
+        config.agent_token, 
+        db.clone()
+    );
     central_client.start(central_rx).await;
 
     // Supervisor Loop for Auto-Restart
@@ -59,12 +64,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                .spawn()?
         } else {
             info!("Packaged worker not found. Fallback to Dev Python script...");
-            let python_path = if cfg!(target_os = "windows") {
-                "../agent-zk-worker/venv/Scripts/python.exe"
-            } else {
-                "../agent-zk-worker/venv_linux/bin/python3"
-            };
-            Command::new(python_path)
+            Command::new(&config.python_path)
                 .arg("../agent-zk-worker/zk_worker.py")
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())

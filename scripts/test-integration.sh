@@ -5,8 +5,8 @@ source "$SOURCE_DIR/test-utils.sh"
 
 # Extract filter and optional pattern
 INPUT_FILTER="${1:-}"
-COMPONENT_FILTER=$(echo "$INPUT_FILTER" | cut -d' ' -f1)
-TEST_PATTERN=$(echo "$INPUT_FILTER" | cut -d' ' -f2-)
+COMPONENT_FILTER=$(echo "$INPUT_FILTER" | cut -d':' -f1)
+TEST_PATTERN=$(echo "$INPUT_FILTER" | cut -d':' -f2-)
 
 # If pattern is the same as filter (no space), then pattern is empty
 if [ "$COMPONENT_FILTER" == "$TEST_PATTERN" ]; then
@@ -27,5 +27,5 @@ if [ -n "$TEST_PATTERN" ]; then
 fi
 
 run_parallel_ordered "Phase 3 (Integration & E2E)" "$COMPONENT_FILTER" \
-    "1|apiserver-int|apiserver|timeout 120s cargo test $TEST_PATTERN --test '*' -- --test-threads $NUM_WORKERS" \
+    "1|apiserver-int|apiserver|timeout 120s cargo test --test '*' $TEST_PATTERN -- --test-threads $NUM_WORKERS" \
     "2|playwright-e2e|webdashboard|timeout 120s npx playwright test $PW_ARGS --workers $NUM_WORKERS"

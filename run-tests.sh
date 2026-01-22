@@ -101,8 +101,8 @@ echo -e "${BLUE}================================================================
 run_lint "$FILTER"
 
 # Unit & Integration sẽ nhận pattern để lọc test case
-run_unit "$FILTER $PATTERN"
-run_integration "$FILTER $PATTERN"
+run_unit "$FILTER:$PATTERN"
+run_integration "$FILTER:$PATTERN"
 
 echo -e "\n${BLUE}================================================================${NC}"
 echo -e "${GREEN}${BOLD}🎉 All tests for [$MODE] passed successfully!${NC}"

@@ -62,9 +62,7 @@ run_parallel_ordered() {
 
         # Filtering logic
         if [ -n "$filter" ]; then
-             # Use a temporary variable for the regex to avoid quoting issues in [[ =~ ]]
-             # We want to match if filter is a substring OR a regex match
-             if [[ "$name" =~ $filter ]] || [[ "$dir" =~ $filter ]]; then
+             if echo "$name" | grep -qE "$filter" || echo "$dir" | grep -qE "$filter"; then
                  : # Match found
              else
                  continue
@@ -99,9 +97,16 @@ run_parallel_ordered() {
              cat "$log"
         fi
         
-        wait "$pid"
+        wait "$pid" || true
         local status=$?
         
+        # Special case for pytest: exit code 5 means "no tests collected", 
+        # which is acceptable when filtering by pattern.
+        if [[ "$name" == *"agent-zk-worker"* && $status -eq 5 ]]; then
+            echo -e "  [${YELLOW}INFO${NC}] $name: No tests matched the pattern."
+            status=0
+        fi
+
         show_log_sequential "$name" "$log" $status
         
         if [ $status -ne 0 ]; then

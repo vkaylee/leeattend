@@ -5,8 +5,8 @@ source "$SOURCE_DIR/test-utils.sh"
 
 # Extract filter and optional pattern
 INPUT_FILTER="${1:-}"
-COMPONENT_FILTER=$(echo "$INPUT_FILTER" | cut -d' ' -f1)
-TEST_PATTERN=$(echo "$INPUT_FILTER" | cut -d' ' -f2-)
+COMPONENT_FILTER=$(echo "$INPUT_FILTER" | cut -d':' -f1)
+TEST_PATTERN=$(echo "$INPUT_FILTER" | cut -d':' -f2-)
 
 # If pattern is the same as filter (no space), then pattern is empty
 if [ "$COMPONENT_FILTER" == "$TEST_PATTERN" ]; then

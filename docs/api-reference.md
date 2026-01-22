@@ -558,8 +558,10 @@ Upload file Excel (.xlsx, .xls) hoặc CSV. Trả về Job ID để theo dõi ti
 - **Request**: `multipart/form-data` (file)
 - **Response (200)**: `{ "job_id": "uuid" }`
 
-#### POST /workspaces/:ws_id/attendance/upload
+#### POST /workspaces/:ws_id/attendance/upload (Updated)
 Upload file Excel (.xlsx, .xls) hoặc CSV. Trả về Job ID để theo dõi tiến độ bất đồng bộ.
+- **Partial Success (Robust Import)**: Hệ thống hỗ trợ nhập liệu một phần. Nếu bản ghi bị trùng lặp (trùng mã nhân viên và thời gian quẹt) hoặc mã nhân viên không tồn tại, hệ thống sẽ tự động bỏ qua và tiếp tục xử lý các bản ghi hợp lệ khác.
+- **Unique Constraint**: Dữ liệu được bảo vệ bằng ràng buộc duy nhất `(workspace_id, employee_id, punch_time)` để ngăn chặn log rác.
 - **Request**: `multipart/form-data` (file)
 - **Response (200)**: `{ "job_id": "uuid" }`
 

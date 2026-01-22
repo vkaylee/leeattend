@@ -34,6 +34,7 @@ warnings = "deny"
 http = "1.4.0"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 serial_test = "3.3.1"
+tempfile = "3.24.0"
 tokio-test = "0.4.5"
 tokio-tungstenite = { version = "0.26.2", features = ["rustls-tls-webpki-roots"] }
 tower = "0.5.2"
