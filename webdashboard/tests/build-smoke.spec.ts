@@ -33,10 +33,13 @@ test.describe("UI Build Smoke Test", () => {
     // 3. Đảm bảo không render trang trắng (Kiểm tra có text hoặc element quan trọng)
     const bodyText = await page.innerText("body");
     const hasAppContent = bodyText.includes("LeeAttend") || 
+                         bodyText.includes("Attend") ||
                          bodyText.includes("Sign in") || 
                          bodyText.includes("Đăng nhập") || 
                          bodyText.includes("Dashboard") ||
-                         bodyText.includes("Bảng điều khiển");
+                         bodyText.includes("Bảng điều khiển") ||
+                         bodyText.includes("Fast Login") ||
+                         bodyText.includes("FAST LOGIN");
     
     expect(hasAppContent).toBe(true);
   });

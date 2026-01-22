@@ -74,11 +74,11 @@ export default function DepartmentsPage() {
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 flex items-center justify-center text-primary-600 shadow-sm border border-primary-100/50"><Building2 size={24} /></div>
           <div>
-            <h3 className="text-2xl font-black tracking-tight text-slate-900 uppercase leading-none">{t("departments.title")}</h3>
+            <h3 data-testid="departments-title" className="text-2xl font-black tracking-tight text-slate-900 uppercase leading-none">{t("departments.title")}</h3>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1.5 opacity-70">{t("departments.subtitle")}</p>
           </div>
         </div>
-        <button onClick={() => { setEditingDept(null); setIsModalOpen(true); }} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95"><Plus size={18} /> {t("departments.add_btn").toUpperCase()}</button>
+        <button data-testid="add-dept-btn" onClick={() => { setEditingDept(null); setIsModalOpen(true); }} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95"><Plus size={18} /> {t("departments.add_btn").toUpperCase()}</button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

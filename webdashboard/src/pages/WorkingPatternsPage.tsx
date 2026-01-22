@@ -169,7 +169,7 @@ export default function WorkingPatternsPage() {
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 flex items-center justify-center text-primary-600 shadow-sm border border-primary-100/50"><CalendarDays size={24} /></div>
           <div>
-            <h3 className="text-2xl font-black tracking-tight text-slate-900 uppercase leading-none">{t("patterns.title")}</h3>
+            <h3 data-testid="patterns-title" className="text-2xl font-black tracking-tight text-slate-900 uppercase leading-none">{t("patterns.title")}</h3>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1.5 opacity-70">{t("patterns.subtitle")}</p>
           </div>
         </div>

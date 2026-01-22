@@ -96,6 +96,25 @@ export const test = workerTest.extend<{ }>({
   baseURL: async ({ workerWebUrl }, use) => {
     await use(workerWebUrl);
   },
+  
+      // Force English via storageState
+  
+      storageState: async ({}, use) => { // eslint-disable-line no-empty-pattern
+    await use({
+      cookies: [],
+      origins: [
+        {
+          origin: 'http://127.0.0.1',
+          localStorage: [
+            {
+              name: 'i18nextLng',
+              value: 'en',
+            },
+          ],
+        },
+      ],
+    });
+  },
 });
 
 async function waitForFile(filePath: string, timeout = 60000): Promise<string> {

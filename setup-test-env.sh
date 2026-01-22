@@ -15,6 +15,7 @@ mkdir -p "$LOG_DIR"
 
 # Common Variables
 export DATABASE_URL="postgres://test_user:test_password@localhost:5433/test_database"
+export CARGO_BUILD_JOBS=2
 CPU_CORES=$(nproc)
 export NUM_WORKERS=$(( CPU_CORES / 2 ))
 [ $NUM_WORKERS -lt 1 ] && export NUM_WORKERS=1

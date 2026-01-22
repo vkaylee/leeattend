@@ -21,7 +21,7 @@ test.describe('Sidebar Navigation', () => {
     await expect(sectionTitle).toBeVisible();
 
     // The links inside this section should be visible
-    const timeTrackingLink = page.getByTestId('sidebar-link-time-tracking');
+    const timeTrackingLink = page.getByTestId('sidebar-link-attendance-logs');
     await expect(timeTrackingLink).toBeVisible();
     
     // 6. Verify "Organization" section is NOT expanded by default (max-h-0)
@@ -43,7 +43,7 @@ test.describe('Sidebar Navigation', () => {
     await expect(page).toHaveURL('/');
 
     // Initially "Time & Leave" is expanded, "Organization" is collapsed
-    const timeTrackingLink = page.getByTestId('sidebar-link-time-tracking');
+    const timeTrackingLink = page.getByTestId('sidebar-link-attendance-logs');
     const employeesLink = page.getByTestId('sidebar-link-employees');
     
     await expect(timeTrackingLink).toBeVisible();

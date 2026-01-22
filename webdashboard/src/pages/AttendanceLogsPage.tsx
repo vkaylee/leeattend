@@ -114,7 +114,7 @@ export default function AttendanceLogsPage() {
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">{t("attendance_logs.title")}</h1>
+          <h1 data-testid="attendance-logs-title" className="text-3xl font-bold tracking-tight text-slate-900">{t("attendance_logs.title")}</h1>
           <p className="text-slate-500 mt-1 font-medium">{t("attendance_logs.subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
@@ -139,7 +139,7 @@ export default function AttendanceLogsPage() {
         </div>
 
         <div className="flex-1 max-w-md flex items-center gap-3 px-2">
-          <div className="flex-1"><EmployeeSearch workspaceId={wsId!} value={employeeId === "all" ? "" : employeeId} onChange={(val) => { setEmployeeId(val || "all"); setPage(1); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} /></div>
+          <div className="flex-1"><EmployeeSearch data-testid="employee-search" workspaceId={wsId!} value={employeeId === "all" ? "" : employeeId} onChange={(val) => { setEmployeeId(val || "all"); setPage(1); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} /></div>
           {employeeId !== "all" && <button onClick={() => { setEmployeeId("all"); setPage(1); }} className="p-2.5 bg-slate-100 text-slate-500 hover:text-primary-600 rounded-xl transition-all"><Users size={18} /></button>}
         </div>
       </div>

@@ -19,7 +19,7 @@ interface EmployeeSearchProps {
   placeholder?: string;
   className?: string;
   id?: string;
-  testId?: string;
+  "data-testid"?: string;
   multiple?: boolean;
 }
 
@@ -34,7 +34,7 @@ export function EmployeeSearch({
   placeholder,
   className,
   id,
-  testId,
+  "data-testid": testId,
   multiple = false,
 }: EmployeeSearchProps) {
   const { t } = useTranslation();

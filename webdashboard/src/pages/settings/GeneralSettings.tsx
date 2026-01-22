@@ -70,7 +70,7 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 flex items-center justify-center text-primary-600 shadow-sm border border-primary-100/50"><Settings2 size={24} /></div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 leading-tight">{t("common.settings.categories.general")}</h1>
+            <h1 data-testid="general-settings-title" className="text-3xl font-bold tracking-tight text-slate-900 leading-tight">{t("common.settings.categories.general")}</h1>
             <p className="text-slate-500 mt-1 font-medium">{t("common.workspace_settings.description")}</p>
           </div>
         </div>

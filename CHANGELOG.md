@@ -83,6 +83,12 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - Cleaned up accidental temporary directories from the workspace.
 
 ### Fixed
+- **E2E Test Stabilization**:
+    - **Language-Agnostic Locators**: Implemented `data-testid` across all critical pages (Employees, Shifts, Attendance Logs, Settings) to ensure tests pass regardless of UI language (VI/EN/ZH).
+    - **Navigation Resilience**: Refactored `route-regression.spec.ts` to use direct navigation (`page.goto`), bypassing flakiness from sidebar animations and layout shifts.
+    - **Integration Test Reliability**: Refactored `EmployeeSearchIntegration.test.ts` to use stable test IDs, ensuring consistent verification of search results.
+    - **CI Performance**: Optimized `worker-orchestrator.ts` and `playwright.config.ts` to support isolated storage states and parallel execution with reduced system load.
+- **Postgres Migration Syntax**: Resolved syntax errors in integration tests by standardizing on Postgres-compatible SQL (e.g., using `TIMESTAMPTZ` and `TRUE`/`FALSE`).
 - **Employee Name Refactor**: Updated API tests to use `full_name` instead of deprecated `first_name` and `last_name` fields, aligning test expectations with the current data model.
 - **Bulk Import Reliability**: Fixed a formatting bug in the multipart body construction for integration tests, ensuring consistent boundary handling for file uploads.
 - **Report Pagination Tests**: Updated integration tests to correctly handle the new `PaginatedResponse` structure returned by the attendance report API.

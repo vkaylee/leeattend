@@ -101,7 +101,7 @@ export default function LeaveRequestsPage() {
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col md:flex-row justify-between items-center gap-8 px-2">
         <div className="space-y-1">
-          <h1 className="text-4xl font-black tracking-tighter text-slate-900 uppercase leading-none">{t("leave_requests.title")}</h1>
+          <h1 data-testid="leave-requests-title" className="text-4xl font-black tracking-tighter text-slate-900 uppercase leading-none">{t("leave_requests.title")}</h1>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("leave_requests.subtitle")}</p>
         </div>
         <button onClick={() => { setIsModalOpen(true); setSelectedEmpId(""); }} className="bg-primary-600 hover:bg-primary-700 text-white font-black px-8 py-3 rounded-2xl flex items-center gap-3 shadow-xl shadow-primary-100 transition-all active:scale-95 text-xs uppercase tracking-widest">
@@ -110,10 +110,10 @@ export default function LeaveRequestsPage() {
       </div>
 
       <div className="flex bg-slate-100/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50 shadow-inner">
-        <button onClick={() => setActiveTab("pending")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'pending' ? "bg-white text-amber-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Clock size={14} /> {t("common.status_pending")}</button>
-        <button onClick={() => setActiveTab("approved")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'approved' ? "bg-white text-emerald-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><CheckCircle2 size={14} /> {t("common.status_approved")}</button>
-        <button onClick={() => setActiveTab("rejected")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'rejected' ? "bg-white text-rose-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><XCircle size={14} /> {t("common.status_rejected")}</button>
-        <button onClick={() => setActiveTab("policies")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'policies' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><ShieldCheck size={14} /> {t("leave_requests.tabs.policies")}</button>
+        <button data-testid="leave-tab-pending" onClick={() => setActiveTab("pending")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'pending' ? "bg-white text-amber-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Clock size={14} /> {t("common.status_pending")}</button>
+        <button data-testid="leave-tab-approved" onClick={() => setActiveTab("approved")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'approved' ? "bg-white text-emerald-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><CheckCircle2 size={14} /> {t("common.status_approved")}</button>
+        <button data-testid="leave-tab-rejected" onClick={() => setActiveTab("rejected")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'rejected' ? "bg-white text-rose-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><XCircle size={14} /> {t("common.status_rejected")}</button>
+        <button data-testid="leave-tab-policies" onClick={() => setActiveTab("policies")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'policies' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><ShieldCheck size={14} /> {t("leave_requests.tabs.policies")}</button>
       </div>
 
       <div className="animate-in slide-in-from-bottom-8 duration-700">
@@ -126,8 +126,8 @@ export default function LeaveRequestsPage() {
               </p>
             </div>
             <div className="flex justify-end gap-4 px-2">
-              <button onClick={() => setIsAssignModalOpen(true)} className="flex items-center gap-3 bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-2xl hover:bg-slate-50 transition-all font-black text-[10px] uppercase tracking-widest shadow-md"><UserPlus size={16} /> {t("leave_requests.policy.assign_btn").toUpperCase()}</button>
-              <button onClick={() => { setEditingPolicy(null); setPolicyType('vacation'); setAccrualStrategy('monthly'); setIsPolicyModalOpen(true); }} className="flex items-center gap-3 bg-slate-900 text-white px-8 py-2.5 rounded-2xl hover:bg-black transition-all font-black text-[10px] uppercase tracking-widest shadow-xl shadow-slate-200 active:scale-95"><Plus size={16} /> {t("leave_requests.policy.add_btn").toUpperCase()}</button>
+              <button data-testid="assign-policy-btn" onClick={() => setIsAssignModalOpen(true)} className="flex items-center gap-3 bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-2xl hover:bg-slate-50 transition-all font-black text-[10px] uppercase tracking-widest shadow-md"><UserPlus size={16} /> {t("leave_requests.policy.assign_btn").toUpperCase()}</button>
+              <button data-testid="add-policy-btn" onClick={() => { setEditingPolicy(null); setPolicyType('vacation'); setAccrualStrategy('monthly'); setIsPolicyModalOpen(true); }} className="flex items-center gap-3 bg-slate-900 text-white px-8 py-2.5 rounded-2xl hover:bg-black transition-all font-black text-[10px] uppercase tracking-widest shadow-xl shadow-slate-200 active:scale-95"><Plus size={16} /> {t("leave_requests.policy.add_btn").toUpperCase()}</button>
             </div>
             <div className="bg-white border border-slate-100 rounded-[3rem] overflow-hidden shadow-sm">
               <table className="w-full text-left border-collapse">
@@ -237,7 +237,7 @@ export default function LeaveRequestsPage() {
         <form onSubmit={handleSubmit} className="space-y-8 pt-4 animate-in fade-in duration-500">
           <div className="space-y-3 px-1">
             <label htmlFor="leave-emp" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.employee")}</label>
-            <EmployeeSearch id="leave-emp" workspaceId={wsId!} value={selectedEmpId} onChange={setSelectedEmpId} className="h-14 rounded-2xl bg-slate-50 border-slate-100 shadow-sm" />
+            <EmployeeSearch id="leave-emp" data-testid="employee-search" workspaceId={wsId!} value={selectedEmpId} onChange={setSelectedEmpId} className="h-14 rounded-2xl bg-slate-50 border-slate-100 shadow-sm" />
           </div>
           {selectedEmpId && balances.length > 0 && (
             <div className="bg-primary-50/50 p-8 rounded-[2.5rem] border border-primary-100/50 grid grid-cols-2 gap-8 shadow-inner animate-in zoom-in-95">

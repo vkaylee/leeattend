@@ -60,7 +60,7 @@ export default function PeopleSettings() {
 
           <div>
 
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 leading-tight">{t("common.settings.categories.people")}</h1>
+            <h1 data-testid="people-settings-title" className="text-3xl font-bold tracking-tight text-slate-900 leading-tight">{t("common.settings.categories.people")}</h1>
 
             <p className="text-slate-500 mt-1 font-medium">{t("common.settings.categories.people_desc")}</p>
 

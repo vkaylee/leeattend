@@ -145,7 +145,7 @@ export default function PayrollPage() {
       {/* Header with Stats and Actions */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">{t("payroll.title")}</h1>
+          <h1 data-testid="payroll-title" className="text-3xl font-bold tracking-tight text-slate-900">{t("payroll.title")}</h1>
           <p className="text-slate-500 mt-1 font-medium">{t("payroll.subtitle")}</p>
         </div>
 

@@ -122,18 +122,18 @@ export default function EmployeesPage() {
       <div className={cn("flex flex-col gap-8 overflow-hidden transition-all duration-500", selectedEmployee ? 'flex-1 max-w-[45%]' : 'w-full')}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
           <div className="space-y-1">
-            <h1 className="text-4xl font-black tracking-tighter text-slate-900 uppercase leading-none">{t("employees.title")}</h1>
+            <h1 data-testid="employees-title" className="text-4xl font-black tracking-tighter text-slate-900 uppercase leading-none">{t("employees.title")}</h1>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1.5 opacity-70">{t("employees.subtitle")}</p>
           </div>
           <div className="flex items-center gap-4">
-            <button onClick={() => setIsImportDialogOpen(true)} className="flex items-center gap-3 bg-white border border-slate-200 text-slate-700 px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm active:scale-95"><Upload size={18} /> {t("employees.bulk_import_btn").toUpperCase()}</button>
-            <button onClick={() => { setEditingEmployee(null); setIsModalOpen(true); }} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95"><UserPlus size={18} /> {t("employees.add_btn").toUpperCase()}</button>
+            <button data-testid="import-employee-btn" onClick={() => setIsImportDialogOpen(true)} className="flex items-center gap-3 bg-white border border-slate-200 text-slate-700 px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm active:scale-95"><Upload size={18} /> {t("employees.bulk_import_btn").toUpperCase()}</button>
+            <button data-testid="add-employee-btn" onClick={() => { setEditingEmployee(null); setIsModalOpen(true); }} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95"><UserPlus size={18} /> {t("employees.add_btn").toUpperCase()}</button>
           </div>
         </div>
 
         <div className="relative shrink-0 group px-1">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary-500 transition-colors" size={20} />
-          <input type="text" placeholder={t("employees.search_placeholder")} className="w-full pl-14 pr-8 py-4.5 bg-white border border-slate-100 rounded-[1.75rem] shadow-xl shadow-slate-900/5 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white transition-all font-black text-sm uppercase tracking-tight" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <input data-testid="employee-search" type="text" placeholder={t("employees.search_placeholder")} className="w-full pl-14 pr-8 py-4.5 bg-white border border-slate-100 rounded-[1.75rem] shadow-xl shadow-slate-900/5 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white transition-all font-black text-sm uppercase tracking-tight" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
 
         <div className="bg-white border border-slate-100 rounded-[2.5rem] flex-1 overflow-auto shadow-sm p-2">

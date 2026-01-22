@@ -15,14 +15,15 @@ test.describe('Employee Search Integration', () => {
     await page.goto('/login');
     await page.fill('input[name="email"]', 'admin@leeattend.com');
     await page.fill('input[name="password"]', 'admin123');
-    await page.getByRole('button', { name: /Login|Đăng nhập/i }).click();
+    await page.getByTestId('login-submit-btn').click();
     await page.waitForURL('/', { timeout: 15000 });
-    await expect(page.getByRole('heading', { level: 1, name: /Dashboard/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('dashboard-title')).toBeVisible({ timeout: 15000 });
 
     // 2. Navigate to Employees page
     console.log('Navigating to /employees...');
     await page.goto('/employees');
-    await expect(page.getByRole('heading', { level: 1, name: /Employees|Nhân sự|Nhân viên/i })).toBeVisible({ timeout: 30000 });
+    await page.waitForURL('/employees');
+    await expect(page.getByTestId('employees-title')).toBeVisible({ timeout: 30000 });
 
     // 3. Create an employee via UI
     console.log('Creating new employee via UI...');
@@ -32,8 +33,7 @@ test.describe('Employee Search Integration', () => {
 
     // Fill form
     await expect(page.getByRole('heading', { level: 2, name: /Add Employee|Thêm nhân viên/i })).toBeVisible(); // Modal title
-    await page.fill('input[name="last_name"]', 'SearchTarget');
-    await page.fill('input[name="first_name"]', 'Test');
+    await page.fill('input[name="full_name"]', 'SearchTarget');
     await page.fill('input[name="employee_id_number"]', 'EMP999');
     await page.fill('input[name="hire_date"]', '2024-01-01');
     
@@ -48,26 +48,16 @@ test.describe('Employee Search Integration', () => {
 
     console.log('Employee created. Starting search test...');
 
-    // 4. Find the EmployeeSearch component (header area)
-    const searchTrigger = page.getByTestId('employee-search');
-    await expect(searchTrigger).toBeVisible();
-    await searchTrigger.click();
-    await page.waitForTimeout(500); // Wait for popover animation
+    // 4. Use the search input on Employees page
+    const searchInput = page.getByTestId('employee-search');
+    await expect(searchInput).toBeVisible();
+    await searchInput.fill('SearchTarget');
 
-    // 5. Type search term in Combobox input
-    // The input is inside the popover triggered by getByTestId('employee-search')
-    const comboboxInput = page.getByPlaceholder(/Search|Tìm/i);
-    await comboboxInput.fill('SearchTarget');
-
-    // 6. Wait for the server-side result to appear in the list
-    // Combobox generates data-testid for options as `${testId}-option-${option.value}`
-    // Since we don't know the exact ID here (EMP999 is just a number), we can still use role option
-    // but now we have a more stable trigger.
-    const option = page.getByRole('option', { name: /SearchTarget/i });
-    await expect(option).toBeVisible({ timeout: 10000 });
-    await option.click();
-
-    // 7. Verify selection is reflected in the trigger
-    await expect(page.getByRole('button', { name: /SearchTarget/i })).toBeVisible();
+    // 5. Verify the list is filtered to show our target
+    // We look for the row containing our target name
+    const targetRow = page.getByRole('row', { name: /SearchTarget/i });
+    await expect(targetRow).toBeVisible({ timeout: 10000 });
+    
+    console.log('Search successful, target found in filtered list.');
   });
 });

@@ -76,7 +76,7 @@ export default function AssignmentRulesPage() {
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
         <div className="space-y-1">
-          <h1 className="text-4xl font-black tracking-tighter text-slate-900 uppercase leading-none">{t("rules.title")}</h1>
+          <h1 data-testid="assignment-rules-title" className="text-4xl font-black tracking-tighter text-slate-900 uppercase leading-none">{t("rules.title")}</h1>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("rules.subtitle")}</p>
         </div>
         <button onClick={openCreateModal} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95"><Plus size={18} /> {t("rules.create_btn").toUpperCase()}</button>

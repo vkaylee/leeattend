@@ -20,14 +20,10 @@ test.describe('Leave Policy Assignment Integration', () => {
 
     // 2. Create a Department via Settings -> People
     console.log('Navigating to /workspace/settings/people for Department creation...');
-    await page.goto('/workspace/settings/people');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/departments');
+    await expect(page.getByRole('heading', { level: 3, name: /Departments|Phòng ban/i })).toBeVisible({ timeout: 30000 });
     
-    // In PeopleSettings, DepartmentsPage is embedded. 
-    // We need to find the "Add" button inside the departments section.
-    const addDeptBtn = page.getByRole('button').filter({ hasText: /Thêm|Add/i }).first();
-    await expect(addDeptBtn).toBeVisible({ timeout: 30000 });
-    await addDeptBtn.click();
+    await page.getByTestId('add-dept-btn').click();
     
     await page.fill('input[name="name"]', 'Engineering Team');
     await page.fill('textarea[name="description"]', 'Test Department');
