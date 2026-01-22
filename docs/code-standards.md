@@ -74,7 +74,10 @@ For E2E stability and performance, we adhere to the **Isolated Parallel Environm
 
 1. **Multi-DB Isolation**: Mỗi worker E2E chạy trên một database Postgres hoàn toàn độc lập (`test_database_e2e_N`) được setup tự động bởi `run-tests.sh`.
 2. **Pre-compiled Binary**: E2E workers thực thi file binary backend đã được build sẵn thay vì dùng `cargo run` để tránh xung đột file lock của Rust compiler.
-3. **Hybrid Locators (Priority Order)**: 
+3. **Architecture (POM & Fixtures)**:
+    - **Page Object Model (POM)**: BẮT BUỘC đóng gói selector và hành động vào các class trong `tests/pom/` (ví dụ: `LoginPage`, `EmployeesPage`).
+    - **Custom Fixtures**: Sử dụng Playwright Fixtures để inject Page Objects vào test. Ưu tiên sử dụng `authPage` để tự động login cho các test yêu cầu quyền admin.
+4. **Hybrid Locators (Priority Order)**: 
     - **Level 1: Data-TestID (Primary Strategy)**: BẮT BUỘC sử dụng `page.getByTestId('sidebar-link-members')` cho các thành phần điều hướng, hành động chính và tiêu đề trang. Đây là cách duy nhất đảm bảo test không bị fail khi thay đổi ngôn ngữ (i18n) hoặc refactor CSS.
         - **Standard Naming Convention**: `[context]-[sub-element]-[type/action]`
         - **Examples**: `sidebar-link-employees`, `login-email-input`, `employees-btn-edit`, `employees-row-123`.
@@ -82,9 +85,9 @@ For E2E stability and performance, we adhere to the **Isolated Parallel Environm
     - **Level 2: Semantic Attributes**: Sử dụng `page.locator('input[name="email"]')` hoặc `getByPlaceholder`.
     - **Level 3: Stable Roles**: Sử dụng `getByRole('button', { name: 'submit' })` nếu attribute `type="submit"` ổn định.
     - **Avoid**: Tuyệt đối tránh sử dụng `getByText(/Regex/i)` cho các element quan trọng vì nội dung dịch (copy) thay đổi thường xuyên sẽ làm gãy test.
-4. **Navigation Reliability**: 
+5. **Navigation Reliability**: 
     - Ưu tiên sử dụng `page.goto('/target-path')` trong các test regression để bỏ qua các animation của sidebar hoặc menu lồng nhau, giúp test chạy nhanh và ổn định hơn.
-5. **Resilient Timeouts**: 
+6. **Resilient Timeouts**: 
     - **Global Test Timeout**: 15 giây (tối ưu để phát hiện lỗi nhanh).
     - **API Response Timeout**: 10 giây (centralized via `apiFetch`).
     - Các test phức tạp có thể sử dụng `test.slow()` để nhân 3 timeout mặc định.
