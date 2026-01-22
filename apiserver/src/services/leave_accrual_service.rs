@@ -1,6 +1,9 @@
 use crate::models::{AccrualFrequency, LeaveAccrualLog, LeavePolicyConfig};
-use crate::repositories::{department_repository, employee_repository, leave_policy_repository};
-use chrono::{Datelike, NaiveDate};
+use crate::repositories::{
+    department_repository, employee_repository, leave_policy_repository,
+};
+use chrono::{Datelike, NaiveDate, TimeZone, Utc};
+use chrono_tz::Tz;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -24,6 +27,85 @@ impl LeaveAccrualService {
         }
 
         amount
+    }
+
+    /// Helper to count "Qualifying Days" for performance-based accrual.
+    /// Qualifying Days = Days with 'work' entries + Approved Leave Days.
+    pub async fn count_qualifying_days(
+        pool: &PgPool,
+        employee_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+        tz: Tz,
+    ) -> Result<i32, sqlx::Error> {
+        use std::collections::HashSet;
+        let mut qualifying_days = HashSet::new();
+
+        // 1. Days with actual work entries
+        let start_dt = tz
+            .from_local_datetime(&start_date.and_hms_opt(0, 0, 0).unwrap())
+            .single()
+            .unwrap()
+            .with_timezone(&Utc);
+        let end_dt = tz
+            .from_local_datetime(&end_date.and_hms_opt(23, 59, 59).unwrap())
+            .single()
+            .unwrap()
+            .with_timezone(&Utc);
+
+        let work_days = sqlx::query!(
+            r#"
+            SELECT DISTINCT(punch_in_time AT TIME ZONE $2)::date as "date!"
+            FROM time_entries
+            WHERE employee_id = $1 
+              AND punch_in_time >= $3 
+              AND punch_in_time <= $4
+              AND entry_type = 'work'
+            "#,
+            employee_id,
+            tz.to_string(),
+            start_dt,
+            end_dt
+        )
+        .fetch_all(pool)
+        .await?;
+
+        for row in work_days {
+            qualifying_days.insert(row.date);
+        }
+
+        // 2. Approved Leave days
+        let leave_days = sqlx::query!(
+            r#"
+            SELECT start_date, end_date
+            FROM leave_requests
+            WHERE employee_id = $1
+              AND status = 'approved'
+              AND start_date <= $3
+              AND end_date >= $2
+            "#,
+            employee_id,
+            start_date,
+            end_date
+        )
+        .fetch_all(pool)
+        .await?;
+
+        for req in leave_days {
+            let overlap_start = std::cmp::max(req.start_date, start_date);
+            let overlap_end = std::cmp::min(req.end_date, end_date);
+            let mut curr = overlap_start;
+            while curr <= overlap_end {
+                qualifying_days.insert(curr);
+                if let Some(next) = curr.succ_opt() {
+                    curr = next;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        Ok(qualifying_days.len() as i32)
     }
 
     /// Helper to calculate full years of service across multiple periods
@@ -100,6 +182,15 @@ impl LeaveAccrualService {
         date: NaiveDate,
         force: bool,
     ) -> Result<Vec<LeaveAccrualLog>, sqlx::Error> {
+        // 0. Get Workspace settings for timezone
+        let workspace = sqlx::query!(
+            "SELECT timezone FROM workspaces WHERE id = $1",
+            workspace_id
+        )
+        .fetch_one(pool)
+        .await?;
+        let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
+
         // 1. Get all active employees
         let employees = employee_repository::get_active_employees(pool, workspace_id).await?;
         let mut all_logs = Vec::new();
@@ -140,7 +231,33 @@ impl LeaveAccrualService {
                         
                         let periods = employee_repository::get_employment_history(pool, emp.id).await?;
                         let years_service = Self::calculate_total_seniority(&periods, current_check_date);
-                        let amount = Self::calculate_accrual_amount(config, years_service, current_check_date);
+                        let mut amount = Self::calculate_accrual_amount(config, years_service, current_check_date);
+
+                        // --- PERFORMANCE THRESHOLD CHECK ---
+                        if let Some(threshold) = config.min_work_days_threshold {
+                            let (check_start, check_end) = match config.frequency {
+                                AccrualFrequency::Monthly => {
+                                    if config.accrual_timing == "start_of_period" {
+                                        let prev_month_date = if current_check_date.month() == 1 {
+                                            NaiveDate::from_ymd_opt(current_check_date.year() - 1, 12, 1).unwrap()
+                                        } else {
+                                            NaiveDate::from_ymd_opt(current_check_date.year(), current_check_date.month() - 1, 1).unwrap()
+                                        };
+                                        let end = NaiveDate::from_ymd_opt(current_check_date.year(), current_check_date.month(), 1).unwrap().pred_opt().unwrap();
+                                        (prev_month_date, end)
+                                    } else {
+                                        let start = NaiveDate::from_ymd_opt(current_check_date.year(), current_check_date.month(), 1).unwrap();
+                                        (start, current_check_date)
+                                    }
+                                }
+                                _ => (current_check_date, current_check_date),
+                            };
+
+                            let qualifying_days = Self::count_qualifying_days(pool, emp.id, check_start, check_end, tz).await?;
+                            if (qualifying_days as f64) < threshold {
+                                amount = 0.0;
+                            }
+                        }
 
                         if amount > 0.0 {
                             use rust_decimal::prelude::FromPrimitive;
@@ -265,6 +382,7 @@ mod tests {
             ],
             max_balance: None,
             reset_month: None,
+            min_work_days_threshold: None,
         };
 
         // 0 years service

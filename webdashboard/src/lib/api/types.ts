@@ -401,11 +401,13 @@ export interface LeavePolicy {
 }
 
 export interface LeavePolicyConfig {
-  frequency: "monthly" | "quarterly" | "yearly";
+  frequency: AccrualFrequency;
   accrual_amount: number;
   accrual_timing: "start_of_period" | "end_of_period";
-  carry_over_limit?: number;
+  seniority_bonus: SeniorityBonus[];
   max_balance?: number;
+  reset_month?: number;
+  min_work_days_threshold?: number;
 }
 
 export interface ScheduleTrace {

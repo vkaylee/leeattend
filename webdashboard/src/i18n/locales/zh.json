@@ -1070,11 +1070,13 @@
       "select_placeholder": "选择政策...",
       "table": {
         "name": "政策名称",
-        "type": "休假类型",
-        "entitlement": "每年权利",
-        "strategy": "策略",
-        "carry_over": "结转天数"
+        "type": "请假类型",
+        "entitlement": "年度额度",
+        "strategy": "累算策略",
+        "carry_over": "结转天数",
+        "min_work_days": "最低出勤天数"
       },
+      "min_work_days_desc": "获得当月带薪假所需的最低出勤天数",
       "strategies": {
         "monthly": "按月累计",
         "monthly_desc": "每月初发放天数",

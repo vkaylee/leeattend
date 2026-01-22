@@ -68,7 +68,7 @@ async fn test_upload_employee_csv_api() {
     
     // CSV with 2 employees
     let csv_content = "ID,FullName,HireDate\nEMP001,John Doe,2026-01-01\nEMP002,Jane Smith,2026-01-15";
-    let (content_type, body) = create_multipart_body("employees.csv", &csv_content);
+    let (content_type, body) = create_multipart_body("employees.csv", csv_content);
 
     let response = app
         .clone()
@@ -138,7 +138,7 @@ async fn test_upload_employee_duplicate_id_skips() {
     
     // CSV with same ID "DUP001" (different name) and a new employee "NEW002"
     let csv_content = "ID,FullName,HireDate\nDUP001,New John,2026-01-01\nNEW002,Alice Wonder,2026-02-01";
-    let (content_type, body) = create_multipart_body("employees.csv", &csv_content);
+    let (content_type, body) = create_multipart_body("employees.csv", csv_content);
 
     let response = app
         .clone()

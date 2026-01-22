@@ -1071,11 +1071,13 @@
       "select_placeholder": "Chọn chính sách...",
       "table": {
         "name": "Tên chính sách",
-        "type": "Loại nghỉ",
-        "entitlement": "Định mức/năm",
-        "strategy": "Chiến lược",
-        "carry_over": "Ngày phép chuyển tiếp"
+        "type": "Loại phép",
+        "entitlement": "Hạn mức/năm",
+        "strategy": "Cơ chế cộng",
+        "carry_over": "Ngày chuyển tiếp",
+        "min_work_days": "Ngày công tối thiểu"
       },
+      "min_work_days_desc": "Số ngày công cần thiết trong tháng để được cộng phép",
       "strategies": {
         "monthly": "Tích lũy hàng tháng",
         "monthly_desc": "Cấp ngày vào đầu mỗi tháng",

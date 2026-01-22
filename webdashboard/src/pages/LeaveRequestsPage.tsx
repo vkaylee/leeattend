@@ -85,7 +85,13 @@ export default function LeaveRequestsPage() {
 
   const handleCreatePolicy = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); const formData = new FormData(e.currentTarget);
-    const rule_config = { frequency: accrualStrategy as any, accrual_amount: Number(formData.get("annual_entitlement")) / (accrualStrategy === "monthly" ? 12 : accrualStrategy === "quarterly" ? 4 : 1), accrual_timing: "start_of_period", carry_over_limit: Number(formData.get("carry_over_limit")) };
+    const rule_config = { 
+      frequency: accrualStrategy as any, 
+      accrual_amount: Number(formData.get("annual_entitlement")) / (accrualStrategy === "monthly" ? 12 : accrualStrategy === "quarterly" ? 4 : 1), 
+      accrual_timing: "start_of_period", 
+      carry_over_limit: Number(formData.get("carry_over_limit")),
+      min_work_days_threshold: formData.get("min_work_days_threshold") ? Number(formData.get("min_work_days_threshold")) : undefined
+    };
     policyMutation.mutate({ name: formData.get("name") as string, leave_type: policyType, rule_config: rule_config as any });
   };
 
@@ -144,7 +150,14 @@ export default function LeaveRequestsPage() {
                       <td className="px-10 py-6 font-black text-slate-900 text-sm tracking-tight uppercase leading-none">{policy.name}</td>
                       <td className="px-8 py-6"><span className="px-3 py-1 bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-slate-100 shadow-sm">{policy.leave_type?.toUpperCase() || 'VACATION'}</span></td>
                       <td className="px-8 py-6 text-right text-primary-600 font-black text-base font-mono tracking-tighter">{calculateAnnualEntitlement(policy)} {t("common.days_short")}</td>
-                      <td className="px-8 py-6 text-right text-slate-400 font-black text-[10px] uppercase tracking-[0.2em] opacity-70">{t(`leave_requests.policy.strategies.${getAccrualStrategy(policy)}`)}</td>
+                      <td className="px-8 py-6 text-right text-slate-400 font-black text-[10px] uppercase tracking-[0.2em] opacity-70">
+                        {t(`leave_requests.policy.strategies.${getAccrualStrategy(policy)}`)}
+                        {policy.rule_config.min_work_days_threshold && (
+                          <div className="text-[8px] text-primary-500 mt-1 lowercase font-bold italic">
+                            ({policy.rule_config.min_work_days_threshold} {t("leave_requests.policy.table.min_work_days").toLowerCase()})
+                          </div>
+                        )}
+                      </td>
                       <td className="px-10 py-6 text-right">
                         <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-y-0 group-hover:opacity-100">
                           <button onClick={() => { setEditingPolicy(policy); setPolicyType(policy.leave_type || 'vacation'); setAccrualStrategy(getAccrualStrategy(policy)); setIsPolicyModalOpen(true); }} className="p-2.5 bg-white text-slate-400 hover:text-primary-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90" title={t("common.edit")}><Edit2 size={18} /></button>
@@ -270,6 +283,20 @@ export default function LeaveRequestsPage() {
             <div className="space-y-3 px-1"><label htmlFor="carry-over" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.carry_over_limit")}</label><input id="carry-over" type="number" name="carry_over_limit" required defaultValue={editingPolicy?.rule_config.carry_over_limit ?? 5} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm text-center font-mono shadow-sm" /></div>
           </div>
           <div className="space-y-3 px-1"><label htmlFor="accrual-strategy" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.table.strategy")}</label><Combobox id="accrual-strategy" options={[{ value: "monthly", label: t("leave_requests.policy.strategies.monthly").toUpperCase(), description: t("leave_requests.policy.strategies.monthly_desc") }, { value: "quarterly", label: t("leave_requests.policy.strategies.quarterly").toUpperCase(), description: t("leave_requests.policy.strategies.quarterly_desc") }, { value: "yearly", label: t("leave_requests.policy.strategies.yearly").toUpperCase(), description: t("leave_requests.policy.strategies.yearly_desc") }]} value={accrualStrategy} onChange={setAccrualStrategy} className="bg-slate-50 border-slate-100 h-14" /></div>
+          
+          <div className="space-y-3 px-1">
+            <label htmlFor="min-work-days" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+              {t("leave_requests.policy.table.min_work_days")}
+              <div className="group relative">
+                <Info size={12} className="text-slate-300 cursor-help" />
+                <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-slate-900 text-[10px] text-white rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-medium normal-case tracking-normal leading-relaxed">
+                  {t("leave_requests.policy.min_work_days_desc")}
+                </div>
+              </div>
+            </label>
+            <input id="min-work-days" type="number" name="min_work_days_threshold" step="0.5" defaultValue={editingPolicy?.rule_config.min_work_days_threshold} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm font-mono shadow-sm" placeholder="Ex: 14" />
+          </div>
+
           <div className="pt-6 grid grid-cols-2 gap-6 border-t border-slate-50">
             <button type="button" onClick={() => { setIsPolicyModalOpen(false); setEditingPolicy(null); }} className="px-8 py-4 bg-white border border-slate-200 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all active:scale-95">{t("common.cancel").toUpperCase()}</button>
             <button type="submit" data-testid="save-policy-btn" className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200 active:scale-95">{editingPolicy ? t("common.save_changes").toUpperCase() : t("common.leave_requests.policy.save_btn").toUpperCase()}</button>

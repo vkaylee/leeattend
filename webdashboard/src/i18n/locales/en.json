@@ -1073,8 +1073,10 @@
         "type": "Leave Type",
         "entitlement": "Entitlement/year",
         "strategy": "Strategy",
-        "carry_over": "Carry-over Days"
+        "carry_over": "Carry-over Days",
+        "min_work_days": "Min Work Days"
       },
+      "min_work_days_desc": "Minimum working days in a month to earn leave",
       "strategies": {
         "monthly": "Monthly Accrual",
         "monthly_desc": "Grants days at start of each month",

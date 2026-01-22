@@ -25,6 +25,7 @@ async fn test_find_active_policy_priority() {
         seniority_bonus: vec![],
         max_balance: None,
         reset_month: None,
+        min_work_days_threshold: None,
     };
 
     // 1. Create Global Policy

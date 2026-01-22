@@ -1086,6 +1086,7 @@ pub struct LeavePolicyConfig {
     pub seniority_bonus: Vec<SeniorityBonus>,
     pub max_balance: Option<f64>,
     pub reset_month: Option<i32>,
+    pub min_work_days_threshold: Option<f64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
