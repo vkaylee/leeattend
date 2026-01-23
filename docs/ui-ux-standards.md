@@ -226,7 +226,7 @@ Thiết kế dành cho giao diện chấm công (Clock) và quản lý thời gi
 **Validation**:
 - Punch In must be before Punch Out
 - Both times required
-- Reason required (min 10 chars recommended)
+- Reason required (min 10 chars required)
 - UTC conversion applied based on workspace timezone
 
 **Modal Styling**: Standard modal with backdrop blur, high z-index, fade-in animation.
@@ -236,3 +236,16 @@ Thiết kế dành cho giao diện chấm công (Clock) và quản lý thời gi
 - Smooth UI updates without disrupting user interaction
 - Active entry indicator updates on server changes
 - Prevents manual refresh fatigue
+
+### 11.5. Official Document UI
+**Purpose**: High-fidelity, print-optimized preview of legal or financial documents (e.g., Payslips, Employment Certificates).
+
+**Design Principles**:
+- **A4 Layout**: Fixed-width container (`max-w-[210mm]`) mimicking physical paper dimensions.
+- **Classic Typography**: High contrast, black text on white background, bold headings, and clean tables for maximum readability.
+- **Identity Elements**: Workspace logo/name, "Verified Document" badge with Shield icon, and system-generated footer with ISO timestamp.
+- **Print Optimization**: Extensive use of Tailwind `print:` modifiers to:
+    - Hide interactive action bars, buttons, and close icons.
+    - Remove screen-specific decorative elements (shadows, rounded corners of outer containers).
+    - Ensure font sizes are appropriate for 300DPI physical printing.
+- **Rendering Robustness**: Implements strict defensive checks for all data points to ensure the document layout remains consistent even if certain metadata (like Department or specific salary components) is missing.

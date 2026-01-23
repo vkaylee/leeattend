@@ -20,6 +20,8 @@ LeeAttend is a high-performance attendance and payroll system split into three p
     - **Framework**: React 18 (Vite, TypeScript)
     - **Styling**: Tailwind CSS v4 (Metro-style aesthetic)
     - **Key Features**: Page Object Model (POM) based E2E testing, hierarchical priority legends for schedule and payroll decision-making, and full Employee Self-Service (ESS) portal.
+    - **Official Payslip Document UI**: Professional, high-fidelity A4-ready preview modal using Radix-UI and Tailwind `print:` modifiers for precise PDF and physical output generation.
+    - **Rendering Stability**: Implements robust defensive coding and explicit numeric parsing for high-reliability financial data visualization.
 
 ## 🧪 Testing Infrastructure
 

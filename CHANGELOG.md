@@ -3,6 +3,14 @@
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 ## [Unreleased]
 ### Added
+- **Official Payslip Document UI**:
+    - Created a professional, print-ready "Official Payslip" document with a classic A4-style layout.
+    - Integrated a Radix-UI based `PayslipModal` for previewing and printing payslips directly from the browser.
+    - Added print-specific CSS optimizations (Tailwind `print:` modifiers) to ensure high-quality PDF/physical output.
+- **Unified Payslip Line Items (Backend & Frontend)**:
+    - **Backend**: Implemented `SalaryComponentWithDefinition` to include full metadata (name, code, tax status) in the payslip API response.
+    - **Frontend**: Updated `PayslipDocument` to provide a granular breakdown of earnings based on actual salary components assigned to the employee.
+    - **Prorated Calculation**: Implemented logic to calculate and display prorated amounts for salary components based on standard working days and actual paid days in the period.
 - **Strict Boolean Payroll Calculation**: Removed "magic string" checks (`BASE`, `Lương cơ bản`) in `PayrollService`. The engine now strictly relies on the `is_base_for_ot` flag from the database schema for identifying base salary components.
 - **Payroll Data Consistency Migration**: Added migration `20260123000000_ensure_base_salary_flags.sql` to backfill the `is_base_for_ot` flag for legacy salary components, ensuring backward compatibility with the new strict logic.
 - **Smart Payroll UI Pagination**: Fixed an issue where pagination state would reset incorrectly during navigation. Improved table stability and user feedback during large dataset browsing.
@@ -31,6 +39,10 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Database Level Protection**: Added a unique constraint to `raw_attendance_logs` to prevent duplicate punches at the database level.
     - **Comprehensive Testing**: Added a dedicated integration test (`attendance_partial_import.rs`) to verify the "Partial Success" behavior and error logging.
 ### Fixed
+- **Payslip Rendering Stability**:
+    - Implemented defensive coding in `PayslipDocument` to prevent crashes (blank screen) when encountering malformed or partial salary component data.
+    - Fixed a `TypeError` where numeric calculations on string-serialized decimals (from Rust) caused "toFixed is not a function" errors.
+    - Added unit and integration tests to verify robust error handling for payslip rendering.
 - **Payroll Transparency**: Added `standard_amount` to `IncentiveEvaluationResult` to track the reference value (e.g., Policy Base) alongside the actual payout, enabling "Standard vs Actual" comparison in Payslips.
 - **SQL Migration Syntax**: Fixed a syntax error in migration `20260123000000` where incorrectly escaped characters caused PostgreSQL failures.
 - **Chinese Locale Synchronization**: Added missing `payroll.selection` keys to `zh.json` to ensure consistency across all supported languages.
