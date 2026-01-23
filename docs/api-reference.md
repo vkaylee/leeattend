@@ -1486,3 +1486,52 @@ Dù không có HTTP server, Agent vẫn in thông tin hoạt động ra Console:
 [18:05:00] [OFFICE_01] ⚠️ WARN : Lỗi kết nối máy chấm công (ZKError). Thử lại sau 15.0s.
 [18:10:00] [OFFICE_01] ℹ️ INFO : Kết nối máy chấm công đã được phục hồi.
 ```
+--- 
+
+### 16. Overtime Policies (New)
+
+Quản lý các quy tắc tính lương tăng ca linh hoạt dựa trên khung giờ và ngày trong tuần.
+
+#### GET /workspaces/:ws_id/overtime/policies
+Lấy danh sách các định nghĩa chính sách tăng ca.
+- **Response (200)**: `Array<OvertimePolicy>`
+
+#### POST /workspaces/:ws_id/overtime/policies
+Tạo định nghĩa chính sách tăng ca mới.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**: `{ "name": "...", "description": "..." }` 
+- **Response (201)**: `OvertimePolicy` object
+
+#### GET /workspaces/:ws_id/overtime/policies/:policy_id
+Lấy chi tiết chính sách kèm danh sách các quy tắc (rules).
+- **Response (200)**: `[OvertimePolicy, Array<OvertimeRule>]`
+
+#### POST /workspaces/:ws_id/overtime/policies/:policy_id/rules
+Thêm quy tắc tính multiplier cho chính sách.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**:
+  ```json
+  {
+    "priority": 10,
+    "multiplier": 1.5,
+    "time_start": "18:00:00", // Optional
+    "time_end": "22:00:00",   // Optional
+    "days_of_week": 127,      // Bitmask (1=M, 2=T, 4=W, 8=T, 16=F, 32=S, 64=S)
+    "is_holiday": false
+  }
+  ```
+- **Response (201)**: `OvertimeRule` object
+
+#### POST /workspaces/:ws_id/overtime/assignments
+Gán chính sách tăng ca cho đối tượng (Global, Dept, Employee).
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**:
+  ```json
+  {
+    "assignee_type": "employee|department|workspace",
+    "assignee_id": "uuid-or-null",
+    "policy_id": "uuid",
+    "effective_from": "2026-01-23"
+  }
+  ```
+- **Response (200 OK)**
