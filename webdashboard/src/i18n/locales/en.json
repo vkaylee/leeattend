@@ -189,29 +189,29 @@
     "settings": {
       "tabs": {
         "overtime_policy": "Overtime Policy",
-        "devices": "物联网设备",
-        "localization": "本地化",
-        "agents": "连接的应用程序",
-        "rules": "自动分配规则",
-        "payroll_policy": "薪资政策",
-        "appearance": "外观",
-        "patterns": "工作模式",
-        "departments": "部门",
-        "salary_components": "薪资组成部分",
-        "members": "成员",
-        "incentives": "激励与奖金",
-        "general": "常规配置"
+        "devices": "IoT Devices",
+        "localization": "Localization",
+        "agents": "Connected Apps",
+        "rules": "Automation Rules",
+        "payroll_policy": "Payroll Policy",
+        "appearance": "Appearance",
+        "patterns": "Working Patterns",
+        "departments": "Departments",
+        "salary_components": "Salary Components",
+        "members": "Members",
+        "incentives": "Incentives & Bonuses",
+        "general": "General Config"
       },
       "categories": {
-        "payroll_desc": "管理标准工作日和薪资公式。",
-        "connectivity_desc": "管理设备连接和网络设置。",
-        "people": "人员",
-        "payroll": "薪资",
-        "time_desc": "配置班次、排班和考勤规则。",
-        "time": "时间与考勤",
-        "connectivity": "连接性",
-        "people_desc": "管理员工、部门和角色。",
-        "general": "常规"
+        "payroll_desc": "Manage standard working days and payroll formulas.",
+        "connectivity_desc": "Manage device connections and network settings.",
+        "people": "People",
+        "payroll": "Payroll",
+        "time_desc": "Configure shifts, scheduling, and attendance rules.",
+        "time": "Time & Attendance",
+        "connectivity": "Connectivity",
+        "people_desc": "Manage employees, departments, and roles.",
+        "general": "General"
       }
     },
     "logout": "Logout",
@@ -327,7 +327,7 @@
     "languages": {
       "vi": "Tiếng Việt",
       "en": "English",
-      "zh": "中文"
+      "zh": "Chinese"
     },
     "primary_color": "Primary Color",
     "colors": {

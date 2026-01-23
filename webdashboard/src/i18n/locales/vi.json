@@ -189,29 +189,29 @@
     "settings": {
       "tabs": {
         "overtime_policy": "Chính sách tăng ca",
-        "devices": "物联网设备",
-        "localization": "本地化",
-        "agents": "连接的应用程序",
-        "rules": "自动分配规则",
-        "payroll_policy": "薪资政策",
-        "appearance": "外观",
-        "patterns": "工作模式",
-        "departments": "部门",
-        "salary_components": "薪资组成部分",
-        "members": "成员",
-        "incentives": "激励与奖金",
-        "general": "常规配置"
+        "devices": "Thiết bị IoT",
+        "localization": "Bản địa hóa",
+        "agents": "Ứng dụng kết nối",
+        "rules": "Quy tắc tự động",
+        "payroll_policy": "Chính sách lương",
+        "appearance": "Giao diện",
+        "patterns": "Mẫu làm việc",
+        "departments": "Phòng ban",
+        "salary_components": "Thành phần lương",
+        "members": "Thành viên",
+        "incentives": "Phụ cấp & Thưởng",
+        "general": "Cấu hình chung"
       },
       "categories": {
-        "payroll_desc": "管理标准工作日和薪资公式。",
-        "connectivity_desc": "管理设备连接和网络设置。",
-        "people": "人员",
-        "payroll": "薪资",
-        "time_desc": "配置班次、排班和考勤规则。",
-        "time": "时间与考勤",
-        "connectivity": "连接性",
-        "people_desc": "管理员工、部门和角色。",
-        "general": "常规"
+        "payroll_desc": "Quản lý ngày công tiêu chuẩn và công thức tính lương.",
+        "connectivity_desc": "Quản lý kết nối thiết bị và cài đặt mạng.",
+        "people": "Nhân sự",
+        "payroll": "Lương",
+        "time_desc": "Cấu hình ca làm, phân ca và quy tắc chấm công.",
+        "time": "Thời gian & Chấm công",
+        "connectivity": "Kết nối",
+        "people_desc": "Quản lý nhân viên, phòng ban và vai trò.",
+        "general": "Chung"
       }
     },
     "logout": "Đăng xuất",
@@ -327,7 +327,7 @@
     "languages": {
       "vi": "Tiếng Việt",
       "en": "English",
-      "zh": "中文"
+      "zh": "Tiếng Trung"
     },
     "primary_color": "Màu chủ đạo",
     "colors": {
