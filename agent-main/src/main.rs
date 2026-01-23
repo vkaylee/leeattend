@@ -5,6 +5,7 @@ use agent::zk_client::ZKClient;
 use serde_json::json;
 use log::{info, error, warn};
 use dotenvy::dotenv;
+use tokio_util::sync::CancellationToken;
 
 mod database;
 mod central_client;
@@ -21,6 +22,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     info!("🚀 Starting Rust Agent Orchestrator...");
+
+    let cancel_token = CancellationToken::new();
+    let cloned_token = cancel_token.clone();
+
+    // Spawn signal handler
+    tokio::spawn(async move {
+        if tokio::signal::ctrl_c().await.is_ok() {
+            info!("Shutdown signal received (Ctrl+C).");
+            cloned_token.cancel();
+        }
+    });
 
     // 1. Load Configuration
     let config = agent::config::Config::load();
@@ -39,7 +51,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     central_client.start(central_rx).await;
 
     // Supervisor Loop for Auto-Restart
-    loop {
+    while !cancel_token.is_cancelled() {
         // 3. Start Python Worker (Sidecar)
         info!("Starting ZK Python Worker sidecar...");
         
@@ -71,8 +83,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .spawn()?
         };
 
-        // Wait for worker to boot
-        sleep(Duration::from_secs(3)).await;
+        // Wait for worker to boot, but respect cancellation
+        tokio::select! {
+            _ = sleep(Duration::from_secs(3)) => {},
+            _ = cancel_token.cancelled() => {
+                info!("Shutdown during worker boot.");
+                let _ = child.kill().await;
+                return Ok(());
+            }
+        }
 
         // 4. Connect to Sidecar
         let sidecar_addr = "127.0.0.1:5000";
@@ -80,21 +99,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         
         // Retry loop for sidecar connection
         let mut zk_client = loop {
-            match ZKClient::connect(sidecar_addr).await {
-                Ok(mut client) => {
-                    client.set_timeout(config.rpc_timeout_seconds);
-                    break client;
-                },
-                Err(e) => {
-                    error!("Failed to connect to sidecar: {}. Retrying in 2s...", e);
-                    sleep(Duration::from_secs(2)).await;
+            let connect_fut = ZKClient::connect(sidecar_addr);
+            tokio::select! {
+                res = connect_fut => {
+                    match res {
+                        Ok(mut client) => {
+                            client.set_timeout(config.rpc_timeout_seconds);
+                            break client;
+                        },
+                        Err(e) => {
+                            error!("Failed to connect to sidecar: {}. Retrying in 2s...", e);
+                        }
+                    }
+                }
+                _ = cancel_token.cancelled() => {
+                    info!("Shutdown during sidecar connection.");
+                    let _ = child.kill().await;
+                    return Ok(());
+                }
+            }
+            
+            tokio::select! {
+                _ = sleep(Duration::from_secs(2)) => {},
+                _ = cancel_token.cancelled() => {
+                    let _ = child.kill().await;
+                    return Ok(());
                 }
             }
         };
         info!("✅ Connected to Sidecar.");
 
         // 5. Main Control Loop
-        // Periodically fetch logs from devices in DB configuration
         let mut interval = tokio::time::interval(Duration::from_secs(60));
         let mut sync_push_interval = tokio::time::interval(Duration::from_secs(10));
         
@@ -123,14 +158,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 _ = interval.tick() => {
                     info!("Running periodic sync task...");
-                    
-                    // A. Get active devices from DB
                     let devices = db.get_active_devices().await.unwrap_or_default();
-                    
                     for dev in devices {
                         info!("Syncing device: {} ({})", dev.id, dev.ip);
-                        
-                        // B. Connect Device (RPC)
                         let connect_res = zk_client.call("zk.connect", json!({
                             "device_id": dev.id,
                             "ip": dev.ip,
@@ -138,17 +168,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         })).await;
                         
                         if connect_res.is_ok() {
-                            // C. Get Logs
                             match zk_client.call("zk.get_attendance", json!({"device_id": dev.id})).await {
                                 Ok(logs) => {
                                     if let Some(logs_arr) = logs.as_array() {
                                         info!("Fetched {} logs from {}", logs_arr.len(), dev.id);
-                                        // D. Save to DB
                                         for log in logs_arr {
-                                            // Parse log fields
                                             let user_id = log.get("user_id").and_then(|v| v.as_str()).unwrap_or("");
                                             let ts_str = log.get("timestamp").and_then(|v| v.as_str()).unwrap_or("");
-                                            
                                             if let Ok(ts) = chrono::NaiveDateTime::parse_from_str(ts_str, "%Y-%m-%d %H:%M:%S") {
                                                  let _ = db.save_raw_attendance(
                                                     &dev.id, 
@@ -169,21 +195,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 
-                // Check child process
                 status = child.wait() => {
                     error!("Sidecar exited: {:?}. Restarting...", status);
-                    break; // Break inner loop to restart worker
+                    break; 
                 }
                 
-                _ = tokio::signal::ctrl_c() => {
-                    info!("Shutdown signal received.");
+                _ = cancel_token.cancelled() => {
+                    info!("Shutdown signal received in main loop.");
                     let _ = child.kill().await;
-                    return Ok(()); // Return from main to exit app
+                    return Ok(());
                 }
             }
         }
         
-        warn!("Restarting worker in 5 seconds...");
-        sleep(Duration::from_secs(5)).await;
+        if !cancel_token.is_cancelled() {
+            warn!("Restarting worker in 5 seconds...");
+            tokio::select! {
+                _ = sleep(Duration::from_secs(5)) => {},
+                _ = cancel_token.cancelled() => break,
+            }
+        }
     }
+
+    info!("Agent Orchestrator shutdown complete.");
+    Ok(())
 }

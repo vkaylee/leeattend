@@ -15,6 +15,7 @@ LeeAttend is a high-performance attendance and payroll system split into three p
     - **Database**: SQLite (SQLx)
     - **Core Responsibility**: Lightweight process running at physical locations. It manages a Python sidecar (`agent-zk-worker`), buffers attendance logs in a local SQLite DB, and syncs data to the Central Server via a persistent WebSocket connection.
     - **Robust Config**: Features a centralized configuration system with smart fallbacks, environment template support, and configurable RPC timeouts.
+    - **Graceful Termination**: Implements `CancellationToken` (Rust) and `asyncio.Event` (Python) to ensure clean exits, sidecar cleanup, and hardware connection closing on termination signals.
 3.  **webdashboard (Admin & ESS Portal)**
     - **Framework**: React 18 (Vite, TypeScript)
     - **Styling**: Tailwind CSS v4 (Metro-style aesthetic)

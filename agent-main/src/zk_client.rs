@@ -59,7 +59,8 @@ impl ZKClient {
         };
 
         let mut request_bytes = serde_json::to_vec(&request)?;
-        request_bytes.push(b'\n');
+        request_bytes.push(b'\n'); // just 
+
         self.stream.write_all(&request_bytes).await?;
 
         let mut reader = BufReader::new(&mut self.stream);
@@ -161,27 +162,31 @@ mod tests {
 
     #[tokio::test]
     async fn test_zk_client_timeout() {
-        // Test that the client times out if server doesn't respond
-        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let addr = listener.local_addr().unwrap();
+        timeout(Duration::from_secs(5), async {
+            // Test that the client times out if server doesn't respond
+            let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let addr = listener.local_addr().unwrap();
 
-        tokio::spawn(async move {
-            let (mut socket, _) = listener.accept().await.unwrap();
-            let mut reader = BufReader::new(&mut socket);
-            let mut line = String::new();
-            // Server reads request but never responds
-            reader.read_line(&mut line).await.unwrap();
-            // Just sleep effectively forever (longer than client timeout)
-            sleep(Duration::from_secs(10)).await;
-        });
+            let _server = tokio::spawn(async move {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                let mut reader = BufReader::new(&mut socket);
+                let mut line = String::new();
+                // Server reads request but never responds
+                let _ = reader.read_line(&mut line).await;
+                // Just sleep effectively forever (longer than client timeout)
+                sleep(Duration::from_secs(10)).await;
+                // keep socket alive
+                let _ = socket.write_all(b" ").await;
+            });
 
-        let mut client = ZKClient::connect(&addr.to_string()).await.unwrap();
-        
-        // The client internal timeout is 5s. We wait slightly longer to ensure it triggers.
-        let result = client.call("test.timeout", json!({})).await;
+            let mut client = ZKClient::connect(&addr.to_string()).await.unwrap();
+            client.set_timeout(1); // Set short timeout for test
+            
+            let result = client.call("test.timeout", json!({})).await;
 
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert_eq!(err.kind(), io::ErrorKind::TimedOut);
+            assert!(result.is_err());
+            let err = result.unwrap_err();
+            assert_eq!(err.kind(), io::ErrorKind::TimedOut);
+        }).await.expect("Test failed to timeout correctly or other error");
     }
 }

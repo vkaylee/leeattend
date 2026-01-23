@@ -200,10 +200,15 @@ async def test_zk_worker_run():
         mock_server.serve_forever.assert_called_once()
 
 @pytest.mark.asyncio
+@pytest.mark.asyncio
 async def test_start_worker_execution(): # Renamed from test_main_py_execution
-    with patch('main.ZKWorker', autospec=True) as MockZKWorker:
+    with patch("main.ZKWorker", autospec=True) as MockZKWorker,          patch("asyncio.Event", autospec=True) as MockEvent:
         mock_worker_instance = MockZKWorker.return_value
         mock_worker_instance.run = AsyncMock()
+        
+        # Mock event to resolve immediately
+        mock_event_instance = MockEvent.return_value
+        mock_event_instance.wait = AsyncMock()
 
         # Call the new start_worker function
         await start_worker()
@@ -211,8 +216,6 @@ async def test_start_worker_execution(): # Renamed from test_main_py_execution
         MockZKWorker.assert_called_once()
         mock_worker_instance.run.assert_called_once()
 
-# Additional tests for zk_worker.py branches
-@pytest.mark.asyncio
 async def test_handle_rpc_zk_get_users(zk_worker_instance):
     reader = AsyncMock()
     writer = AsyncMock()

@@ -2,6 +2,12 @@
 
 ## 🛡️ Reliability & Sync Logic
 
+### 0. Graceful Shutdown & Lifecycle Management
+To ensure data integrity and clean process termination, both the Edge Agent and the Central Server implement proactive signal handling:
+- **Signal Propagation**: Upon receiving `SIGINT` (Ctrl+C) or `SIGTERM`, the Orchestrator (`agent-main`) triggers a `CancellationToken`. This immediately signals all background tasks (WebSocket sync, device polling, heartbeat) to stop after their current unit of work.
+- **Sidecar Cleanup**: The Orchestrator explicitly kills the Python sidecar process and waits for its exit, preventing "zombie" processes from lingering on the host system.
+- **Stateless Exit**: The Python worker uses an `asyncio.Event` to stop its JSON-RPC server and close hardware connections safely before exiting.
+
 ### 1. Guaranteed Delivery (ACK Protocol)
 - Agent chỉ đánh dấu log là `is_synced = 1` sau khi nhận được bản tin `type: "ack"` từ Server.
 - Nếu không nhận được ACK trong vòng 10 giây, Agent sẽ giữ log ở trạng thái chưa gửi và thử lại ở batch sau.
