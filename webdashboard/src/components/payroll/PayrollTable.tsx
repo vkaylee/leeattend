@@ -18,23 +18,32 @@ import {
   Sparkles
 } from "lucide-react";
 import { Payslip, AttendanceAdjustmentRequest, PayrollSegment } from "@/lib/api/types";
+import { Employee, Workspace } from "@/lib/api/types";
+import PayslipModal from "./PayslipModal";
+import { FileText } from "lucide-react";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { PayrollPriorityLegend } from "./PayrollPriorityLegend";
 import { cn } from "@/lib/utils";
 
 interface PayrollTableProps {
+  employee: Employee | null;
+  workspace: Workspace | null;
   payslips: Payslip[];
   isLoading: boolean;
   adjustments: AttendanceAdjustmentRequest[];
   onResolveAdjustments: () => void;
 }
 
-export default function PayrollTable({ 
+export default function PayrollTable({
+  employee,
+  workspace, 
   payslips, 
   isLoading, 
   adjustments,
   onResolveAdjustments
 }: PayrollTableProps) {
+  const [selectedPayslip, setSelectedPayslip] = useState<Payslip | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { t } = useTranslation();
   const { formatMonthYear } = useDateTimeFormatter();
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -79,6 +88,17 @@ export default function PayrollTable({
                 </div>
               </div>
 
+              <button 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  setSelectedPayslip(slip); 
+                  setIsModalOpen(true); 
+                }} 
+                className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-500 rounded-xl border border-slate-100 hover:bg-white hover:text-primary-600 hover:border-primary-200 hover:shadow-md transition-all active:scale-95 group/btn"
+              >
+                <FileText size={14} className="text-slate-300 group-hover/btn:text-primary-500 transition-colors" />
+                <span className="text-[9px] font-black uppercase tracking-widest">Official Payslip</span>
+              </button>
               <div className="flex items-center gap-10 pr-2">
                 <div className="text-right">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5 opacity-60">{t("common.payroll.table.net_pay")}</p>

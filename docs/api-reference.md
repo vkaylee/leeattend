@@ -674,12 +674,36 @@ Lưu thông tin chi tiết phiếu lương hàng tháng.
       "base_salary": "decimal_string"
     }
   ],
+  "salary_components": [
+    {
+      "component": {
+        "id": "uuid",
+        "employee_id": "uuid",
+        "component_definition_id": "uuid",
+        "amount": "decimal_string",
+        "effective_date": "YYYY-MM-DD",
+        "created_at": "datetime",
+        "updated_at": "datetime"
+      },
+      "definition": {
+        "id": "uuid",
+        "workspace_id": "uuid",
+        "name": "Basic Salary|Housing Allowance|...",
+        "code": "BASIC|HRA|...",
+        "is_base_for_ot": true,
+        "is_taxable": true,
+        "created_at": "datetime",
+        "updated_at": "datetime"
+      }
+    }
+  ],
   "status": "draft|published|paid",
   "created_at": "datetime",
   "updated_at": "datetime"
 }
 ```
 - **Note**: `segments` chứa thông tin chi tiết về việc chia nhỏ kỳ lương khi có thay đổi chính sách (Proration).
+- **Note**: `salary_components` chứa danh sách các thành phần lương (ví dụ: Lương cơ bản, Phụ cấp nhà ở, v.v.) được gán cho nhân viên. Mỗi thành phần bao gồm định nghĩa thành phần (component definition) với siêu dữ liệu như mã lương, loại thuế và cơ sở tính tăng ca. Khi không có thành phần lương nào, hệ thống sẽ sử dụng thông tin lương từ `segments` để tính toán.
 
 #### GET /workspaces/:ws_id/payroll-settings
 Lấy cấu hình lương hiện tại của workspace.

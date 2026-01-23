@@ -294,6 +294,32 @@ export interface IncentiveEvaluationResult {
   tier_id?: string;
 }
 
+export interface SalaryComponentDefinition {
+  id: string;
+  workspace_id: string;
+  name: string;
+  code: string;
+  is_base_for_ot: boolean;
+  is_taxable: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmployeeSalaryComponent {
+  id: string;
+  employee_id: string;
+  component_definition_id: string;
+  amount: string;
+  effective_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SalaryComponentWithDefinition {
+  component: EmployeeSalaryComponent;
+  definition: SalaryComponentDefinition;
+}
+
 export interface Payslip {
   id: string;
   employee_id: string;
@@ -308,6 +334,7 @@ export interface Payslip {
   status: "draft" | "published" | "paid";
   segments?: PayrollSegment[];
   incentives?: IncentiveEvaluationResult[];
+  salary_components?: SalaryComponentWithDefinition[];
   created_at: string;
   updated_at: string;
 }

@@ -14,7 +14,7 @@ use crate::models::{
     AssignSalaryComponentRequest, BatchCalculatePayrollRequest, CreateSalaryComponentRequest,
     Payslip, PayslipSegment, UpdatePayrollSettingsRequest, IncentiveEvaluationResult,
     PayrollIncentivePolicyResponse, CreatePayrollIncentivePolicyRequest,
-    PayrollIncentivePolicy,
+    PayrollIncentivePolicy, SalaryComponentWithDefinition,
 };
 
 pub async fn get_incentive_policies(
@@ -405,6 +405,7 @@ pub struct FullPayslipResponse {
     pub payslip: Payslip,
     pub segments: Vec<PayslipSegmentResponse>,
     pub incentives: Vec<IncentiveEvaluationResult>,
+    pub salary_components: Vec<SalaryComponentWithDefinition>,
 }
 
 pub async fn calculate_batch_payroll(
@@ -475,21 +476,37 @@ pub async fn calculate_payroll(
              let incentives = crate::repositories::payroll_repository::get_payslip_incentives(&state.db, payslip.id)
                 .await
                 .unwrap_or_default();
-             
+
+             // Fetch salary components at the period start date
+             let salary_components = crate::repositories::payroll_repository::get_employee_salary_components(
+                 &state.db,
+                 employee_id,
+                 payslip.period_start,
+             )
+             .await
+             .unwrap_or_default()
+             .into_iter()
+             .map(|(component, definition)| SalaryComponentWithDefinition {
+                 component,
+                 definition,
+             })
+             .collect();
+
              let response = FullPayslipResponse {
                  payslip,
                  segments: segments.into_iter().map(|s| {
                      // Determine reason logic
-                     let reason = if s.start_date.day() == 1 { "Standard".to_string() } 
+                     let reason = if s.start_date.day() == 1 { "Standard".to_string() }
                                   else if s.applied_base_salary > rust_decimal::Decimal::ZERO { "Salary Change".to_string() }
                                   else { "Adjustment".to_string() };
-                     
+
                      PayslipSegmentResponse {
                          segment: s,
                          reason
                      }
                  }).collect(),
                  incentives,
+                 salary_components,
              };
              Json(response).into_response()
         },
@@ -516,14 +533,29 @@ pub async fn get_employee_payslips(
                  let incentives = crate::repositories::payroll_repository::get_payslip_incentives(&state.db, p.id)
                     .await
                     .unwrap_or_default();
-                    
+
+                 // Fetch salary components at the period start date
+                 let salary_components = crate::repositories::payroll_repository::get_employee_salary_components(
+                     &state.db,
+                     employee_id,
+                     p.period_start,
+                 )
+                 .await
+                 .unwrap_or_default()
+                 .into_iter()
+                 .map(|(component, definition)| SalaryComponentWithDefinition {
+                     component,
+                     definition,
+                 })
+                 .collect();
+
                  responses.push(FullPayslipResponse {
                      payslip: p,
                      segments: segments.into_iter().map(|s| {
                          // Determine reason logic (simple heuristic)
                          // If it's the first segment and starts on 1st: Standard
                          // Else: Change
-                         let reason = if s.start_date.day() == 1 { "Standard".to_string() } 
+                         let reason = if s.start_date.day() == 1 { "Standard".to_string() }
                                       else { "Salary Change".to_string() }; // MVP heuristic
                          PayslipSegmentResponse {
                              segment: s,
@@ -531,6 +563,7 @@ pub async fn get_employee_payslips(
                          }
                      }).collect(),
                      incentives,
+                     salary_components,
                  });
             }
             Json(responses).into_response()

@@ -39,6 +39,36 @@ The project uses a **Unified Test Orchestrator (`run-tests.sh`)** to provide a c
 - **Traceability**: All pairing decisions (via FSM or Anchor-First algorithms) are documented in `generation_metadata` for auditing.
 
 - **Schedule Traceability Verification**: Dedicated integration tests (`schedule_traceability_tests.rs`) verify that every schedule assignment (Manual, Rule-based, or Default) accurately records its origin and reasoning metadata.
+
+## 💰 Payroll System Architecture
+
+### Multi-Layered Design
+The payroll engine is built on three complementary layers working in tandem:
+
+1. **Temporal Configuration Layer**:
+   - Hierarchical 3-tier policy resolution: Individual > Department > Workspace
+   - Point-in-time historical lookups preserve calculation accuracy
+   - Supports mid-period organizational changes (salary increases, transfers)
+
+2. **Segmentation & Proration Engine**:
+   - Automatically detects change points within pay periods
+   - Slices months into independent segments (e.g., 01-15 old salary, 16-31 new salary)
+   - Each segment maintains immutable snapshots in `payslip_segments`
+   - Ensures exact prorating when configuration changes occur mid-month
+
+3. **Granular Component Model** (New):
+   - **Component Definitions**: Workspace-level catalog of salary types (Basic, Housing Allowance, Meal Allowance, etc.)
+   - **Component Assignment**: Admins assign components to employees with effective dates for retroactive corrections
+   - **Flexible Calculation**: Components flagged with `is_base_for_ot` participate in overtime rate derivation
+   - **Payslip Detail**: Each payslip includes detailed `salary_components` breakdown showing prorated amounts per component
+   - **Backward Compatible**: Defaults to legacy segment-based display when components are absent
+
+### Key Features
+- **Incentive Tiers**: Complex metric-driven bonuses (Diligence Bonus) evaluated against leave/late metrics
+- **Immutable Audit Trail**: All calculation snapshots frozen in database (future policy changes don't alter historical payslips)
+- **Batch Processing**: Parallel payroll calculation for multiple employees
+- **Debug Context**: Time-travel debugging via `X-Debug-Mock-Date` header for testing historical scenarios
+
 ## 🌐 Localization (i18n)
 
 - **Parity**: Verified key parity across English (`en`), Vietnamese (`vi`), and Chinese (`zh`).

@@ -850,6 +850,7 @@ pub struct PayslipResponse {
     pub payslip: Payslip,
     pub segments: Vec<PayslipSegment>,
     pub incentives: Vec<IncentiveEvaluationResult>,
+    pub salary_components: Vec<SalaryComponentWithDefinition>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -1189,6 +1190,12 @@ pub struct AssignSalaryComponentRequest {
     pub component_definition_id: Uuid,
     pub amount: rust_decimal::Decimal,
     pub effective_date: NaiveDate,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SalaryComponentWithDefinition {
+    pub component: EmployeeSalaryComponent,
+    pub definition: SalaryComponentDefinition,
 }
 
 // --- Dynamic Leave Policy Models ---

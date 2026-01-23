@@ -113,9 +113,29 @@ Instead of a simple monthly calculation, the system employs a **Segmentation Eng
 #### 14.3. Variable Incentive Evaluation (New)
 The system supports complex, metric-driven bonuses (e.g., Diligence Bonus) through a dedicated evaluation engine.
 - **Incentive Context**: During payroll calculation, the engine aggregates a high-fidelity context including `total_late_early_count`, `unpaid_leave_days`, and `sick_leave_days`.
-- **Policy Matching**: The `PayrollEvaluator` matches this context against a prioritized list of `IncentiveTiers`. 
+- **Policy Matching**: The `PayrollEvaluator` matches this context against a prioritized list of `IncentiveTiers`.
 - **Generosity Principle**: Tiers are sorted by priority. The engine selects the first matching tier (e.g., Tier 1 for 0 violations, Tier 2 for < 2 violations), rewarding the most diligent behavior.
 - **Persistence**: Calculated incentives are stored in `payslip_incentives`, preserving the exact tier and amount awarded for historical auditing.
+
+#### 14.4. Granular Salary Components (New)
+The payroll system now supports flexible, granular salary component definitions replacing the simple monolithic "base salary" model.
+- **Component Definition**: Each workspace maintains a catalog of salary component types (`SalaryComponentDefinition`) with metadata:
+  - `name`: Human-readable name (e.g., "Basic Salary", "Housing Allowance", "Meal Allowance")
+  - `code`: Unique identifier (e.g., "BASIC", "HRA", "MEAL") for system integration
+  - `is_base_for_ot`: Boolean flag indicating if this component participates in overtime rate calculation
+  - `is_taxable`: Boolean flag for tax withholding logic
+- **Employee Assignment**: Admins assign components to employees via `EmployeeSalaryComponent` records with:
+  - `component_definition_id`: Reference to the component type
+  - `amount`: Monthly amount for this component
+  - `effective_date`: Point-in-time activation (enables retroactive corrections)
+- **Payslip Breakdown**: When generating payslips, the system includes detailed `salary_components` array in `PayslipResponse`, showing each component's:
+  - Definition metadata (name, code, tax/OT flags)
+  - Applied amount for the period
+  - Prorated calculation (accounting for partial months due to segmentation)
+- **Backward Compatibility**: If no components are assigned, the system defaults to displaying segments' legacy `base_salary` field, ensuring existing payroll data remains functional.
+- **Flexible Display**: The PayslipDocument component adapts presentation:
+  - Shows granular component breakdown when `salary_components` array is populated
+  - Falls back to segment-based display when components are absent
 
 ### 15. Special Attendance Policy Resolution
 Beyond the standard 3-tier payroll settings, the system implements a **Working Condition Overlay** system to handle individual employee privileges (e.g., Parental Leave, Breastfeeding Breaks).
