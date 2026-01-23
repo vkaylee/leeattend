@@ -26,6 +26,7 @@ impl ReportService {
         end_date: NaiveDate,
         page: Option<i64>,
         limit: Option<i64>,
+        employee_ids: Option<Vec<Uuid>>,
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, StatusCode> {
         // 0. Get Workspace Settings for Timezone & Rounding Logic
         let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
@@ -42,7 +43,7 @@ impl ReportService {
 
         // 1. Get all schedules for the range
         let schedules =
-            roster_repository::get_workspace_schedules(pool, workspace_id, start_date, end_date)
+            roster_repository::get_workspace_schedules(pool, workspace_id, start_date, end_date, employee_ids.as_ref())
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 

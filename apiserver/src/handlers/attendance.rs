@@ -636,6 +636,7 @@ pub async fn get_attendance_report(
             end_date,
             page,
             limit,
+            employee_ids,
         )
         .await
         {

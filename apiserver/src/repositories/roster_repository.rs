@@ -11,12 +11,14 @@ pub async fn get_workspace_schedules(
     workspace_id: Uuid,
     start_date: NaiveDate,
     end_date: NaiveDate,
+    employee_ids: Option<&Vec<Uuid>>,
 ) -> Result<Vec<EmployeeSchedule>, sqlx::Error> {
     // 1. Fetch Employees
     let employees = sqlx::query(
-        "SELECT id, full_name, employee_id_number, tags FROM employees WHERE workspace_id = $1 AND is_active = true",
+        "SELECT id, full_name, employee_id_number, tags FROM employees WHERE workspace_id = $1 AND is_active = true AND ($2::uuid[] IS NULL OR id = ANY($2))",
     )
     .bind(workspace_id)
+    .bind(employee_ids)
     .fetch_all(pool)
     .await?;
 

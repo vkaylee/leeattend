@@ -124,6 +124,7 @@ pub async fn get_workspace_schedules(
         workspace_id,
         start_date,
         end_date,
+        None,
     )
     .await
     .map_err(|e| {
