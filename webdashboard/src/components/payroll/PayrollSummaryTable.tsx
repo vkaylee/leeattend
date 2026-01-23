@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { 
   CheckCircle2, 
@@ -7,10 +7,12 @@ import {
   User,
   Calculator,
   Search,
-  ArrowRight
+  ArrowRight,
+  Info
 } from "lucide-react";
 import { Employee, Payslip } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
+import PaginationControls from "@/components/common/PaginationControls";
 
 interface PayrollSummaryTableProps {
   employees: Employee[];
@@ -18,7 +20,7 @@ interface PayrollSummaryTableProps {
   isLoading: boolean;
   selectedIds: Set<string>;
   onToggleSelect: (id: string) => void;
-  onToggleSelectAll: () => void;
+  onToggleSelectAll: (ids?: string[]) => void;
   onViewDetail: (employee: Employee) => void;
   searchTerm: string;
   onSearchChange: (val: string) => void;
@@ -36,6 +38,9 @@ export default function PayrollSummaryTable({
   onSearchChange
 }: PayrollSummaryTableProps) {
   const { t } = useTranslation();
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const payslipMap = React.useMemo(() => {
     const map: Record<string, Payslip> = {};
@@ -43,32 +48,99 @@ export default function PayrollSummaryTable({
     return map;
   }, [payslips]);
 
-  const filteredEmployees = employees.filter(emp => 
-    emp.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.employee_id_number.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredEmployees = React.useMemo(() => {
+    return employees.filter(emp => 
+      emp.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.employee_id_number.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [employees, searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const totalPages = Math.ceil(filteredEmployees.length / pageSize);
+  const paginatedEmployees = filteredEmployees.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
   );
 
-  const isAllSelected = filteredEmployees.length > 0 && selectedIds.size === filteredEmployees.length;
+  const currentPageIds = paginatedEmployees.map(e => e.id);
+  const isPageSelected = currentPageIds.length > 0 && currentPageIds.every(id => selectedIds.has(id));
+  const isAllFilteredSelected = filteredEmployees.length > 0 && filteredEmployees.every(e => selectedIds.has(e.id));
+
+  const handleSelectPage = () => {
+    if (isPageSelected) {
+      // Unselect only the current page items
+      currentPageIds.forEach(id => {
+        if (selectedIds.has(id)) onToggleSelect(id);
+      });
+    } else {
+      // Select only the current page items
+      currentPageIds.forEach(id => {
+        if (!selectedIds.has(id)) onToggleSelect(id);
+      });
+    }
+  };
+
+  const selectAllFiltered = () => {
+    onToggleSelectAll();
+  };
 
   if (isLoading) return <div className="bg-white border border-slate-100 rounded-[2.5rem] p-24 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 shadow-sm">{t("common.loading")}</div>;
 
   return (
     <div className="bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-sm flex flex-col h-full animate-in fade-in duration-700">
-      <div className="p-6 border-b border-slate-100 bg-slate-50/30 flex flex-col md:flex-row md:items-center justify-between gap-6 px-8">
-        <div className="relative group flex-1 max-w-lg">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-4.5 h-4.5 group-focus-within:text-primary-500 transition-colors" />
-          <input type="text" placeholder={t("payroll.search_placeholder")} className="w-full pl-14 pr-6 py-3.5 bg-white border border-slate-200 rounded-[1.5rem] outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all font-bold text-sm shadow-sm" value={searchTerm} onChange={(e) => onSearchChange(e.target.value)} />
+      <div className="p-6 border-b border-slate-100 bg-slate-50/30 flex flex-col xl:flex-row xl:items-center justify-between gap-6 px-8">
+        <div className="flex flex-col md:flex-row md:items-center gap-6 flex-1">
+          <div className="relative group flex-1 max-w-lg">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-4.5 h-4.5 group-focus-within:text-primary-500 transition-colors" />
+            <input type="text" placeholder={t("payroll.search_placeholder")} className="w-full pl-14 pr-6 py-3.5 bg-white border border-slate-200 rounded-[1.5rem] outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all font-bold text-sm shadow-sm" value={searchTerm} onChange={(e) => onSearchChange(e.target.value)} />
+          </div>
+          <div className="flex items-center gap-3"><span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">{filteredEmployees.length} {t("common.employees")}</span></div>
         </div>
-        <div className="flex items-center gap-3"><span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">{filteredEmployees.length} {t("common.employees")}</span></div>
+
+        <div className="flex items-center">
+          <PaginationControls 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            pageSize={pageSize}
+            totalItems={filteredEmployees.length}
+            onPageSizeChange={setPageSize}
+          />
+        </div>
       </div>
+
+      {selectedIds.size > 0 && (
+        <div className="bg-primary-50 px-8 py-3 border-b border-primary-100 flex items-center justify-between animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-3">
+             <Info size={16} className="text-primary-600" />
+             <p className="text-xs font-bold text-primary-900">
+               {selectedIds.size === filteredEmployees.length 
+                 ? t("payroll.selection.all_filtered_selected", { count: selectedIds.size, defaultValue: `All ${selectedIds.size} employees in this list are selected.` })
+                 : t("payroll.selection.count_selected", { count: selectedIds.size, defaultValue: `${selectedIds.size} employees selected.` })
+               }
+             </p>
+          </div>
+          {!isAllFilteredSelected && filteredEmployees.length > pageSize && (
+            <button 
+              onClick={selectAllFiltered}
+              className="text-xs font-black text-primary-600 uppercase tracking-widest hover:underline decoration-2 underline-offset-4"
+            >
+              {t("payroll.selection.select_all_filtered", { count: filteredEmployees.length, defaultValue: `Select all ${filteredEmployees.length} employees` })}
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="flex-1 overflow-auto scroll-smooth">
         <table className="w-full text-left border-collapse">
           <thead className="bg-slate-50/50 sticky top-0 backdrop-blur-md z-10 border-b border-slate-100">
             <tr>
               <th className="px-10 py-5 w-16">
-                <button onClick={onToggleSelectAll} className={cn("w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all", isAllSelected ? "bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-100" : "border-slate-200 bg-white hover:border-primary-300")}>
-                  {isAllSelected && <Check size={14} strokeWidth={4} />}
+                <button onClick={handleSelectPage} className={cn("w-6 h-6 rounded-xl border-2 flex items-center justify-center transition-all", isPageSelected ? "bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-100" : "border-slate-200 bg-white hover:border-primary-300")}>
+                  {isPageSelected && <Check size={14} strokeWidth={4} />}
                 </button>
               </th>
               <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("employees.table.name")}</th>
@@ -81,7 +153,7 @@ export default function PayrollSummaryTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {filteredEmployees.map(emp => {
+            {paginatedEmployees.map(emp => {
               const slip = payslipMap[emp.id];
               const isSelected = selectedIds.has(emp.id);
               return (
@@ -135,6 +207,17 @@ export default function PayrollSummaryTable({
             <p className="text-slate-400 text-sm mt-1 uppercase font-black tracking-widest opacity-50">{t("common.no_records_found")}</p>
           </div>
         )}
+      </div>
+
+      <div className="p-4 border-t border-slate-100 bg-slate-50/30 flex justify-center">
+        <PaginationControls 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          pageSize={pageSize}
+          totalItems={filteredEmployees.length}
+          onPageSizeChange={setPageSize}
+        />
       </div>
     </div>
   );

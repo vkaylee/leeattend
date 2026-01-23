@@ -1152,9 +1152,13 @@
       "no_requests": "No requests found."
     }
   },
-  "payroll": {
-    "traceability": {
-      "hierarchy_title": "Config Priority Hierarchy",
+      "payroll": {
+        "selection": {
+          "all_filtered_selected": "All {{count}} employees in this list are selected.",
+          "count_selected": "{{count}} employees selected.",
+          "select_all_filtered": "Select all {{count}} employees"
+        },
+        "traceability": {      "hierarchy_title": "Config Priority Hierarchy",
       "hierarchy_explanation": "Payroll config is prioritized: Individual > Department > Workspace.",
       "individual_policy": "Individual Policy",
       "department_policy": "Department Policy",

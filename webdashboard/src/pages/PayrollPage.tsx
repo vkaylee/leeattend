@@ -96,7 +96,19 @@ export default function PayrollPage() {
     ? allAdjustments.filter(adj => adj.employee_id === selectedEmployee.id)
     : [];
 
-  const toggleSelectAll = () => {
+  const toggleSelectAll = (ids?: string[]) => {
+    if (ids) {
+      const next = new Set(selectedIds);
+      const allIncluded = ids.every(id => next.has(id));
+      if (allIncluded) {
+        ids.forEach(id => next.delete(id));
+      } else {
+        ids.forEach(id => next.add(id));
+      }
+      setSelectedIds(next);
+      return;
+    }
+
     const employeesToSelect = employees.filter(emp => 
       emp.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       emp.employee_id_number.toLowerCase().includes(searchTerm.toLowerCase())

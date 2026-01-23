@@ -46,7 +46,7 @@ const mockPayslips: Payslip[] = [
     net_pay_amount: "10500000",
     standard_units: 200,
     overtime_units: 10,
-    status: "published",
+    status: "finalized",
     created_at: "",
     updated_at: ""
   }
@@ -118,9 +118,8 @@ describe("PayrollSummaryTable", () => {
       </BrowserRouter>
     );
 
-    const checkboxes = screen.getAllByRole("button").filter(b => b.querySelector("svg") === null || b.classList.contains("w-5"));
-    // First checkbox is "Select All", second is "emp-1"
-    fireEvent.click(checkboxes[1]);
+    const checkbox = screen.getByTestId("select-employee-emp-1");
+    fireEvent.click(checkbox);
     expect(onToggleSelect).toHaveBeenCalledWith("emp-1");
   });
 

@@ -1,0 +1,15 @@
+{
+  "security": {
+    "folderTrust": {
+      "enabled": true
+    }
+  },
+  "tools": {
+    "autoAccept": true,
+    "core": [
+      "run_shell_command",
+      "run_shell_command(/home/elt1541/leeattend/run-tests.sh)",
+      "run_shell_command(./run-tests.sh)"
+    ]
+  }
+}

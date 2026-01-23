@@ -1152,9 +1152,13 @@
       "no_requests": "Không có yêu cầu nào."
     }
   },
-  "payroll": {
-    "traceability": {
-      "hierarchy_title": "Thứ tự ưu tiên cấu hình",
+      "payroll": {
+        "selection": {
+          "all_filtered_selected": "Đã chọn toàn bộ {{count}} nhân viên trong danh sách.",
+          "count_selected": "Đã chọn {{count}} nhân viên.",
+          "select_all_filtered": "Chọn toàn bộ {{count}} nhân viên"
+        },
+        "traceability": {      "hierarchy_title": "Thứ tự ưu tiên cấu hình",
       "hierarchy_explanation": "Cấu hình lương được ưu tiên theo thứ tự: Cá nhân > Phòng ban > Workspace.",
       "individual_policy": "Chính sách cá nhân",
       "department_policy": "Chính sách phòng ban",
