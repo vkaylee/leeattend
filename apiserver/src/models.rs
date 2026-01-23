@@ -815,6 +815,7 @@ pub struct IncentiveTier {
 pub struct IncentiveEvaluationResult {
     pub policy_name: String,
     pub amount: rust_decimal::Decimal,
+    pub standard_amount: rust_decimal::Decimal,
     pub tier_id: Option<Uuid>,
 }
 

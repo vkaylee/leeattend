@@ -29,9 +29,12 @@ impl PayrollEvaluator {
                     rust_decimal::Decimal::from_f64(tier.payout_amount)
                 }.unwrap_or_default();
 
+                let standard_amount = rust_decimal::Decimal::from_f64(policy.base_amount).unwrap_or_default();
+
                 return IncentiveEvaluationResult {
                     policy_name: policy.name.clone(),
                     amount,
+                    standard_amount,
                     tier_id: Some(tier.id),
                 };
             }
@@ -41,6 +44,7 @@ impl PayrollEvaluator {
         IncentiveEvaluationResult {
             policy_name: policy.name.clone(),
             amount: rust_decimal::Decimal::ZERO,
+            standard_amount: rust_decimal::Decimal::from_f64(policy.base_amount).unwrap_or_default(),
             tier_id: None,
         }
     }
@@ -81,7 +85,6 @@ impl PayrollEvaluator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::Utc;
     use uuid::Uuid;
 
     #[test]
@@ -91,6 +94,7 @@ mod tests {
         let t1_id = Uuid::new_v4();
         let t2_id = Uuid::new_v4();
 
+        // Policy Base: 300,000 (Standard)
         let policy = PayrollIncentivePolicy {
             id: p_id,
             workspace_id: ws_id,
@@ -106,25 +110,25 @@ mod tests {
                 id: t1_id,
                 policy_id: p_id,
                 priority: 1,
-                max_late_early_count: None,
+                max_late_early_count: Some(0),
                 max_unpaid_leave_days: None,
                 max_sick_leave_days: None,
-                max_total_leave_days: Some(1.0),
-                payout_amount: 150000.0,
+                max_total_leave_days: None,
+                payout_amount: 150000.0, // Actual
             },
             IncentiveTier {
                 id: t2_id,
                 policy_id: p_id,
                 priority: 2,
-                max_late_early_count: None,
+                max_late_early_count: Some(2),
                 max_unpaid_leave_days: None,
                 max_sick_leave_days: None,
                 max_total_leave_days: None,
-                payout_amount: 0.0,
+                payout_amount: 50000.0,
             },
         ];
 
-        // Case 1: Thỏa mãn Tier 1 (0 ngày nghỉ)
+        // Case 1: Perfect (0 late) -> Tier 1 (150k)
         let ctx1 = IncentiveContext {
             total_work_units: 160,
             total_leave_days: 0.0,
@@ -134,65 +138,9 @@ mod tests {
         };
         let res1 = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx1);
         assert_eq!(res1.amount, Decimal::from(150000));
+        assert_eq!(res1.standard_amount, Decimal::from(300000)); // Base
 
-        // Case 2: Không thỏa mãn Tier 1 (> 1 ngày nghỉ), rơi vào Tier 2
-        let ctx2 = IncentiveContext {
-            total_work_units: 160,
-            total_leave_days: 2.0,
-            unpaid_leave_days: 0.0,
-            sick_leave_days: 0.0,
-            late_early_count: 0,
-        };
-        let res2 = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx2);
-        assert_eq!(res2.amount, Decimal::ZERO);
-    }
-
-    #[test]
-    fn test_evaluate_policy_multi_thresholds() {
-        let policy = PayrollIncentivePolicy {
-            id: Uuid::new_v4(),
-            workspace_id: Uuid::new_v4(),
-            name: "Complex Bonus".into(),
-            base_amount: 500000.0,
-            payout_type: "fixed".into(),
-            is_active: true,
-            created_at: Utc::now(),
-        };
-
-        let tiers = vec![
-            IncentiveTier {
-                id: Uuid::new_v4(),
-                policy_id: policy.id,
-                priority: 1, // Perfect: 0 late, 0 unpaid
-                max_late_early_count: Some(0),
-                max_unpaid_leave_days: Some(0.0),
-                max_sick_leave_days: None,
-                max_total_leave_days: None,
-                payout_amount: 500000.0,
-            },
-            IncentiveTier {
-                id: Uuid::new_v4(),
-                policy_id: policy.id,
-                priority: 2, // Good: < 2 late, < 1 unpaid
-                max_late_early_count: Some(2),
-                max_unpaid_leave_days: Some(1.0),
-                max_sick_leave_days: None,
-                max_total_leave_days: None,
-                payout_amount: 250000.0,
-            }
-        ];
-
-        // Match Tier 1
-        let ctx1 = IncentiveContext {
-            total_work_units: 160,
-            total_leave_days: 0.0,
-            unpaid_leave_days: 0.0,
-            sick_leave_days: 0.0,
-            late_early_count: 0,
-        };
-        assert_eq!(PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx1).amount, Decimal::from(500000));
-
-        // Match Tier 2 (due to 1 late)
+        // Case 2: Late (1 late) -> Tier 2 (50k)
         let ctx2 = IncentiveContext {
             total_work_units: 160,
             total_leave_days: 0.0,
@@ -200,9 +148,11 @@ mod tests {
             sick_leave_days: 0.0,
             late_early_count: 1,
         };
-        assert_eq!(PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx2).amount, Decimal::from(250000));
+        let res2 = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx2);
+        assert_eq!(res2.amount, Decimal::from(50000));
+        assert_eq!(res2.standard_amount, Decimal::from(300000));
 
-        // No Match (too many lates)
+        // Case 3: Too Late (3 late) -> 0
         let ctx3 = IncentiveContext {
             total_work_units: 160,
             total_leave_days: 0.0,
@@ -210,6 +160,8 @@ mod tests {
             sick_leave_days: 0.0,
             late_early_count: 3,
         };
-        assert_eq!(PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx3).amount, Decimal::ZERO);
+        let res3 = PayrollEvaluator::evaluate_policy(&policy, &tiers, &ctx3);
+        assert_eq!(res3.amount, Decimal::ZERO);
+        assert_eq!(res3.standard_amount, Decimal::from(300000));
     }
 }

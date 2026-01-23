@@ -69,14 +69,16 @@ pub async fn create_payslip_incentive(
     result: &IncentiveEvaluationResult,
 ) -> Result<(), sqlx::Error> {
     let amount_f64 = result.amount.to_f64().unwrap_or_default();
+    let standard_amount_f64 = result.standard_amount.to_f64().unwrap_or_default();
     sqlx::query(
-        r#"INSERT INTO payslip_incentives (payslip_id, policy_name, amount, tier_id)
-           VALUES ($1, $2, $3, $4)"#,
+        r#"INSERT INTO payslip_incentives (payslip_id, policy_name, amount, tier_id, standard_amount)
+           VALUES ($1, $2, $3, $4, $5)"#,
     )
     .bind(payslip_id)
     .bind(&result.policy_name)
     .bind(amount_f64)
     .bind(result.tier_id)
+    .bind(standard_amount_f64)
     .execute(pool)
     .await?;
     Ok(())
@@ -87,7 +89,7 @@ pub async fn get_payslip_incentives(
     payslip_id: Uuid,
 ) -> Result<Vec<IncentiveEvaluationResult>, sqlx::Error> {
     let rows = sqlx::query(
-        r#"SELECT policy_name, amount, tier_id FROM payslip_incentives WHERE payslip_id = $1"#,
+        r#"SELECT policy_name, amount, tier_id, standard_amount FROM payslip_incentives WHERE payslip_id = $1"#,
     )
     .bind(payslip_id)
     .fetch_all(pool)
@@ -97,6 +99,7 @@ pub async fn get_payslip_incentives(
         IncentiveEvaluationResult {
             policy_name: row.get("policy_name"),
             amount: Decimal::from_f64(row.get("amount")).unwrap_or_default(),
+            standard_amount: Decimal::from_f64(row.get("standard_amount")).unwrap_or_default(),
             tier_id: row.get("tier_id"),
         }
     }).collect())

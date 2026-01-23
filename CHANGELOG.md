@@ -31,6 +31,7 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Database Level Protection**: Added a unique constraint to `raw_attendance_logs` to prevent duplicate punches at the database level.
     - **Comprehensive Testing**: Added a dedicated integration test (`attendance_partial_import.rs`) to verify the "Partial Success" behavior and error logging.
 ### Fixed
+- **Payroll Transparency**: Added `standard_amount` to `IncentiveEvaluationResult` to track the reference value (e.g., Policy Base) alongside the actual payout, enabling "Standard vs Actual" comparison in Payslips.
 - **SQL Migration Syntax**: Fixed a syntax error in migration `20260123000000` where incorrectly escaped characters caused PostgreSQL failures.
 - **Chinese Locale Synchronization**: Added missing `payroll.selection` keys to `zh.json` to ensure consistency across all supported languages.
 - **Outdated Integration Tests**: Updated `schedule_traceability_tests.rs` and `work_unit_integration_tests.rs` to match the latest `ReportService` and `RosterRepository` function signatures.
