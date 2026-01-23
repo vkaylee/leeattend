@@ -5,6 +5,20 @@ use uuid::Uuid;
 use crate::models::{Employee, EmploymentPeriod, WorkingCondition};
 use crate::utils::normalize_employee_id;
 
+pub async fn find_by_number(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    employee_id_number: &str,
+) -> Result<Option<Employee>, sqlx::Error> {
+    let normalized_id = normalize_employee_id(employee_id_number);
+    let query = format!("{} WHERE e.workspace_id = $1 AND e.employee_id_number = $2", EMPLOYEE_SELECT_QUERY);
+    sqlx::query_as::<_, Employee>(&query)
+        .bind(workspace_id)
+        .bind(normalized_id)
+        .fetch_optional(pool)
+        .await
+}
+
 pub async fn get_working_conditions(
     pool: &PgPool,
     employee_id: Uuid,

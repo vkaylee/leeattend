@@ -31,7 +31,7 @@ async fn test_attendance_import_partial_success() {
     // Row 2: Invalid Employee (EMP999)
     // Row 3: Duplicate of Row 1 (Same employee, same time)
     let punch_time = Utc.with_ymd_and_hms(2026, 1, 22, 8, 0, 0).unwrap();
-    let punch_time_str = "2026-01-22 08:00:00";
+    let punch_time_str = punch_time.to_rfc3339();
     
     let csv_content = format!(
         "Employee ID,Name,Time\n\

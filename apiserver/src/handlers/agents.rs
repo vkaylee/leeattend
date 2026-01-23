@@ -11,6 +11,7 @@ use futures_util::{sink::SinkExt, stream::StreamExt};
 use serde::Deserialize;
 use std::sync::Arc;
 use tokio::sync::mpsc;
+use tracing::info;
 use uuid::Uuid;
 
 use crate::agent_manager::AgentCommand;
@@ -43,6 +44,10 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
     });
 
     let mut agent_id = String::new();
+    let mut workspace_id = Uuid::nil();
+    let mut ws_tz = "UTC".to_string();
+    let mut ws_date_fmt = "DD/MM/YYYY".to_string();
+    let mut ws_time_fmt = "24h".to_string();
     let state_clone = state.clone();
 
     let mut recv_task = tokio::spawn(async move {
@@ -51,6 +56,26 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 Message::Text(text) => {
                     if let Ok(v) = serde_json::from_str::<serde_json::Value>(&text) {
                         if v["type"] == "attendance" {
+                            if !agent_id.is_empty() && !workspace_id.is_nil() {
+                                if let (Some(device_id), Some(data)) = (v["device_id"].as_str(), v.get("data")) {
+                                    if let (Some(user_id_number), Some(punch_time_str)) = (data["user_id"].as_str(), data["timestamp"].as_str()) {
+                                        // Sử dụng Unified AttendanceLogService
+                                        let _ = crate::services::attendance_log_service::AttendanceLogService::process_log(
+                                            &state_clone.db,
+                                            workspace_id,
+                                            user_id_number,
+                                            punch_time_str,
+                                            crate::models::LogSource::Device,
+                                            Some(device_id.to_string()),
+                                            Some(data.clone()),
+                                            &ws_tz,
+                                            Some(&ws_date_fmt),
+                                            Some(&ws_time_fmt)
+                                        ).await;
+                                    }
+                                }
+                            }
+
                             if let Some(msg_id) = v["msg_id"].as_str() {
                                 let ack = serde_json::json!({
                                     "type": "ack",
@@ -88,8 +113,18 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                 (v["agent_id"].as_str(), v["token"].as_str())
                             {
                                 match state_clone.agent_service.authorize_agent(id, token).await {
-                                    Ok(Some(_agent)) => {
+                                    Ok(Some(agent)) => {
                                         agent_id = id.to_string();
+                                        workspace_id = agent.workspace_id;
+
+                                        // Fetch workspace config for timezone aware parsing
+                                        if let Ok(Some(ws)) = state_clone.workspace_repo.get_workspace_by_id(workspace_id).await {
+                                            ws_tz = ws.timezone;
+                                            ws_date_fmt = ws.date_format;
+                                            ws_time_fmt = ws.time_format;
+                                            info!("Agent {} authorized for workspace {} (Timezone: {})", agent_id, workspace_id, ws_tz);
+                                        }
+
                                         state_clone
                                             .agent_manager
                                             .add_agent(agent_id.clone(), tx.clone())

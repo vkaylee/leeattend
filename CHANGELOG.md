@@ -10,6 +10,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Pattern Matching**: Implemented support for an optional pattern argument to filter test cases across different runners (Cargo, Pytest, Playwright, Vitest).
     - **Automated Environment**: The orchestrator now automatically manages the full test lifecycle, including Postgres Docker setup, isolated database creation, and migrations.
     - **Resilient Filtering**: Improved internal shell scripts to handle complex regex patterns and gracefully manage "no tests found" scenarios (e.g., Pytest exit code 5).
+- **Unified Attendance Log Processing**:
+    - **`AttendanceLogService`**: Created a central service to handle log ingestion from all sources (Agent WebSocket and Manual Import).
+    - **Business Logic Parity**: Ensures employee mapping, timezone-aware parsing, and automatic pairing (FSM) are applied consistently.
+    - **Timezone-Aware Agent Logs**: The WebSocket handler now fetches workspace configuration during handshake to correctly parse "Naive" device timestamps into UTC.
+    - **Robust Testing**: Added `attendance_log_service_tests.rs` covering timezone conversion, duplicate prevention, and error handling.
 - **Robust Agent Configuration System**:
     - **Smart Fallbacks**: Implemented a centralized `Config` struct in `agent-main` with intelligent fallbacks for `AGENT_ID`, `DATABASE_URL`, and `CENTRAL_SERVER_URL`.
     - **Dynamic Path Resolution**: Added automatic detection for Python virtual environments (`venv` vs `venv_linux`), resolving path issues across different Linux distributions.

@@ -24,3 +24,4 @@ pub use leave_service::LeaveService;
 pub use report_service::ReportService;
 pub use time_tracking_service::TimeTrackingService;
 pub use workspace_service::WorkspaceService;
+pub mod attendance_log_service;

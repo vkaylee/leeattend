@@ -31,7 +31,9 @@ The project uses a **Unified Test Orchestrator (`run-tests.sh`)** to provide a c
 
 ## 📅 Attendance & Pairing Engine
 
-- **Robust Import**: Supports "Partial Success" during bulk XLSX/CSV uploads. Duplicate logs and invalid employee IDs are automatically skipped (`Silent Skip`) while valid records are committed.
+- **Unified Ingestion**: The `AttendanceLogService` serves as the single source of truth for processing logs from both real-time Edge Agents and manual XLSX/CSV imports.
+- **Timezone-Aware Parsing**: Naive timestamps from physical devices are automatically converted to UTC based on workspace-specific configuration (Timezone, Date/Time formats).
+- **Robust Import**: Supports "Partial Success" during bulk uploads. Duplicate logs and invalid employee IDs are automatically skipped (`Silent Skip`) while valid records are committed.
 - **Data Integrity**: Enforced by unique constraints on `(workspace_id, employee_id, punch_time)`.
 - **Traceability**: All pairing decisions (via FSM or Anchor-First algorithms) are documented in `generation_metadata` for auditing.
 

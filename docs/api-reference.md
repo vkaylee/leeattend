@@ -1432,18 +1432,23 @@ Agent định kỳ (mỗi 30s) gửi trạng thái chi tiết của các máy ch
 }
 ```
 
-### 3. Attendance Batch (Agent -> Server)
-Gửi dữ liệu chấm công theo lô (batch) để tối ưu hiệu năng.
+### 3. Attendance Log (Agent -> Server)
+Gửi dữ liệu chấm công thời gian thực.
+- **Timezone Awareness**: Server sẽ tự động chuyển đổi `timestamp` từ múi giờ địa phương của Workspace sang chuẩn UTC dựa trên cấu hình `timezone` của Workspace đó.
+- **Parsing Logic**: Hỗ trợ cả định dạng ISO-8601 và Naive (dựa trên `date_format` và `time_format` của Workspace).
+
 ```json
 {
   "type": "attendance",
   "msg_id": "uuid-v4",
   "agent_id": "AGENT_01",
-  "device_id": "BATCH",
-  "data": [
-    { "user_id": "101", "timestamp": "2026-01-07 18:00:00", "status": 1, "punch": 0 },
-    { "user_id": "102", "timestamp": "2026-01-07 18:01:00", "status": 1, "punch": 0 }
-  ]
+  "device_id": "DEV_01",
+  "data": {
+    "user_id": "101",
+    "timestamp": "2026-01-07 18:00:00",
+    "status": 1,
+    "punch": 0
+  }
 }
 ```
 

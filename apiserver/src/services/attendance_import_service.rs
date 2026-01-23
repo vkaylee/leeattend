@@ -11,13 +11,12 @@ use uuid::Uuid;
 use crate::utils::normalize_employee_id;
 use crate::models::{
     AdjustmentStatus, AttendanceImportJob, CreateAttendanceAdjustmentRequest, Employee,
-    ImportJobStatus, LogSource, RawAttendanceLog,
+    ImportJobStatus, LogSource,
 };
 use crate::repositories::{
-    employee_repository, import_job_repository, raw_attendance_log_repository,
+    employee_repository, import_job_repository,
 };
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
-use crate::services::pairing_service::PairingService;
 
 struct PendingRow {
     emp_id_number: String,
@@ -671,35 +670,22 @@ impl AttendanceImportService {
         };
 
         if job.target_type == "log" {
-            // 1. Save to Raw Attendance Logs
-            let raw_log = RawAttendanceLog {
-                id: Uuid::new_v4(),
-                workspace_id: job.workspace_id,
-                employee_id: employee.id,
-                punch_time: punch_time_utc,
-                source: LogSource::Import,
-                device_id: None,
-                raw_data: None,
-                created_at: Utc::now(),
-            };
-
-            let inserted = raw_attendance_log_repository::create_raw_log(pool, &raw_log)
-                .await
-                .map_err(|e| {
-                    error!("CREATE_RAW_LOG_ERROR: {:?}", e);
-                    StatusCode::INTERNAL_SERVER_ERROR
-                })?;
-
-            if inserted {
-                // 2. Trigger Pairing Logic
-                if let Err(e) = PairingService::process_new_raw_log(pool, &raw_log).await {
-                    error!("PAIRING_ERROR for log {}: {:?}", raw_log.id, e);
-                    // Return error to propagate
-                    return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            // Sử dụng Unified AttendanceLogService cho trường hợp import log
+            match crate::services::attendance_log_service::AttendanceLogService::process_parsed_log(
+                pool,
+                job.workspace_id,
+                employee.id,
+                punch_time_utc,
+                LogSource::Import,
+                None,
+                None,
+            ).await {
+                Ok(true) => Ok(1),
+                Ok(false) => Ok(0),
+                Err(e) => {
+                    error!("UNIFIED_LOG_SERVICE_ERROR: {}", e);
+                    Err(StatusCode::INTERNAL_SERVER_ERROR)
                 }
-                Ok(1)
-            } else {
-                Ok(0)
             }
         } else {
             let req = CreateAttendanceAdjustmentRequest {
