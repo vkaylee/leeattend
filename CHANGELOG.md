@@ -68,6 +68,9 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Interactive UI**: Created a reusable `PaginationControls` component with quick-jump to page and adjustable page size selector.
     - **Backend Architecture**: Added a generic `PaginatedResponse<T>` and `AttendanceReportSort` models to support consistent paginated APIs.
     - **SQLX Resilience**: Migrated report queries to `sqlx::query` to avoid offline cache synchronization issues during rapid iteration.
+- **Daily Report Filtering Fix**:
+    - **Repository Layer**: Updated `get_workspace_schedules` to accept an optional `employee_ids` filter, pushing filtering logic down to the database/repository level for better performance.
+    - **Integration Test**: Added `daily_report_filtering_tests.rs` to verify that reports correctly respect the selected employee filters.
 - **Employee Bulk Import Improvements**:
     - **"Silent Skip" Logic**: Enhanced import backend to automatically skip duplicate employee IDs (using `ON CONFLICT DO NOTHING`) instead of failing the entire batch.
     - **Progress Feedback**: Import job status now correctly distinguishes between inserted rows and skipped rows.
@@ -126,6 +129,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - Backend: Added `std_days_source` column to `payslip_segments` for granular auditability.
     - Frontend: Implemented `PayrollPriorityLegend` to visualize the 3-tier payroll hierarchy in the `PayrollTable` segment details.
     - Added comprehensive integration tests for payroll traceability (`payroll_traceability_tests.rs`).
+- **Payroll Table Optimization (2000+ Employees)**:
+    - **Dual Pagination**: Implemented top and bottom pagination controls in the Payroll table to improve navigation.
+    - **Client-Side Slicing**: Optimized the table to render only visible rows (20 per page) while keeping the full dataset in memory, ensuring instant search and sorting performance for large datasets (~2000 records).
+    - **Smart Selection**: Implemented intelligent selection logic where "Select All" targets only the current page, with a banner offering to "Select all X filtered employees" for batch operations.
+    - **UI Modernization**: Refactored `PaginationControls` to match the project's premium design language (primary colors, rounded corners).
 - **Schedule Traceability System**:
     - Backend: Enhanced `RuleEvaluator` to track rule outcomes and decision logic for every shift assignment.
     - Frontend: Implemented `PriorityLegend` and `ScheduleTracePopover` to visualize why a specific shift was assigned (e.g., Roster Override vs. Pattern).
