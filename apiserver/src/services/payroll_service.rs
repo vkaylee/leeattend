@@ -140,7 +140,7 @@ impl PayrollService {
             let mut processed_def_ids = BTreeSet::new();
             for (esc, scd) in salary_history.iter().rev() {
                 if !processed_def_ids.contains(&scd.id) && esc.effective_date <= seg_start {
-                    if scd.code == "BASE" || scd.name == "Lương cơ bản" {
+                    if scd.is_base_for_ot {
                         segment_base_salary += esc.amount;
                     }
                     processed_def_ids.insert(scd.id);

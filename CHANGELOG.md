@@ -1,10 +1,11 @@
 # Changelog
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
-
 ## [Unreleased]
-
 ### Added
+- **Strict Boolean Payroll Calculation**: Removed "magic string" checks (`BASE`, `Lương cơ bản`) in `PayrollService`. The engine now strictly relies on the `is_base_for_ot` flag from the database schema for identifying base salary components.
+- **Payroll Data Consistency Migration**: Added migration `20260123000000_ensure_base_salary_flags.sql` to backfill the `is_base_for_ot` flag for legacy salary components, ensuring backward compatibility with the new strict logic.
+- **Smart Payroll UI Pagination**: Fixed an issue where pagination state would reset incorrectly during navigation. Improved table stability and user feedback during large dataset browsing.
 - **Graceful Shutdown Handling**:
     - **`agent-main` (Rust)**: Implemented `tokio_util::sync::CancellationToken` to orchestrate clean shutdowns of supervisor loops, WebSocket listeners, and child processes upon receiving `SIGINT` or `SIGTERM`.
     - **`agent-zk-worker` (Python)**: Implemented native signal handlers using `asyncio.Event` to ensure the JSON-RPC server closes connections and exits gracefully.
@@ -29,15 +30,11 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Robust Batch Processing**: Enhanced `AttendanceImportService` to support "Partial Success," allowing valid records to be imported even if the batch contains duplicate logs or non-existent employee IDs.
     - **Database Level Protection**: Added a unique constraint to `raw_attendance_logs` to prevent duplicate punches at the database level.
     - **Comprehensive Testing**: Added a dedicated integration test (`attendance_partial_import.rs`) to verify the "Partial Success" behavior and error logging.
-
 ### Fixed
 - **Daily Report Filtering**: Resolved an issue where filtering by Department or Employee ID returned empty results due to incorrect JOIN logic in the reporting service.
 - **Pagination State Management**: Fixed a bug in `webdashboard` where changing the page size on the Payroll Summary table did not correctly refresh the data set.
-
 ### Changed
 - **Payroll Summary Polish**: Improved alignment and overflow handling in the Payroll Summary table for better responsiveness.
-
-### Added
 - **Variable-based Payroll Incentive Engine (Diligence Bonus)**:
     - **Incentive Context**: During payroll calculation, the engine aggregates a high-fidelity context including `total_late_early_count`, `unpaid_leave_days`, and `sick_leave_days`.
     - **Policy Matching**: The `PayrollEvaluator` matches this context against a prioritized list of `IncentiveTiers`.

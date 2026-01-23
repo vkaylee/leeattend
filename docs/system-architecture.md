@@ -176,7 +176,7 @@ The `PayrollService` uses a multi-pass approach to ensure precise prorating when
     │       Individual > Dept > Workspace hierarchy.           │
     │                                                          │
     │  B. Rate Derivation                                      │
-    │     - Sum all "Base for OT" Components at segment start. │
+    │     - Sum all components where `is_base_for_ot = TRUE` at segment start (strict boolean logic, no magic strings). │
     │     - Hourly Rate = Total Base / (Std Days * Hours/Day). │
     │                                                          │
     │  C. Attendance Aggregation                               │
