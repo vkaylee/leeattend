@@ -31,6 +31,9 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Database Level Protection**: Added a unique constraint to `raw_attendance_logs` to prevent duplicate punches at the database level.
     - **Comprehensive Testing**: Added a dedicated integration test (`attendance_partial_import.rs`) to verify the "Partial Success" behavior and error logging.
 ### Fixed
+- **SQL Migration Syntax**: Fixed a syntax error in migration `20260123000000` where incorrectly escaped characters caused PostgreSQL failures.
+- **Chinese Locale Synchronization**: Added missing `payroll.selection` keys to `zh.json` to ensure consistency across all supported languages.
+- **Outdated Integration Tests**: Updated `schedule_traceability_tests.rs` and `work_unit_integration_tests.rs` to match the latest `ReportService` and `RosterRepository` function signatures.
 - **Daily Report Filtering**: Resolved an issue where filtering by Department or Employee ID returned empty results due to incorrect JOIN logic in the reporting service.
 - **Pagination State Management**: Fixed a bug in `webdashboard` where changing the page size on the Payroll Summary table did not correctly refresh the data set.
 ### Changed

@@ -38,7 +38,9 @@ The project uses a **Unified Test Orchestrator (`run-tests.sh`)** to provide a c
 - **Data Integrity**: Enforced by unique constraints on `(workspace_id, employee_id, punch_time)`.
 - **Traceability**: All pairing decisions (via FSM or Anchor-First algorithms) are documented in `generation_metadata` for auditing.
 
+- **Schedule Traceability Verification**: Dedicated integration tests (`schedule_traceability_tests.rs`) verify that every schedule assignment (Manual, Rule-based, or Default) accurately records its origin and reasoning metadata.
 ## 🌐 Localization (i18n)
 
-- **Parity**: 100% key parity across English (`en`), Vietnamese (`vi`), and Chinese (`zh`).
+- **Parity**: Verified key parity across English (`en`), Vietnamese (`vi`), and Chinese (`zh`).
 - **Verification**: Automated tests ensure no hardcoded strings exist in JSX and that all keys are synchronized across locale files.
+- **Automated Synchronization**: Continuous testing validates that all supported languages (English, Vietnamese, Chinese) remain in perfect sync, preventing runtime translation errors.

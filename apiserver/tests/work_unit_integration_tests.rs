@@ -106,6 +106,7 @@ async fn test_work_unit_integer_integrity_flow() {
         test_date,
         None,
         None,
+        None,
     )
     .await
     .unwrap();

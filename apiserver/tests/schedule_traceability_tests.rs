@@ -118,7 +118,7 @@ async fn test_workspace_schedules_with_traces() {
     ).execute(&pool).await.unwrap();
 
     // Fetch workspace schedules
-    let schedules = roster_repository::get_workspace_schedules(&pool, ws_id, test_date, test_date).await.unwrap();
+    let schedules = roster_repository::get_workspace_schedules(&pool, ws_id, test_date, test_date, None).await.unwrap();
     
     let emp_sched = schedules.iter().find(|s| s.employee_id == emp_id).unwrap();
     let day_sched = &emp_sched.schedules[0];

@@ -1152,6 +1152,11 @@
     }
   },
   "payroll": {
+    "selection": {
+      "all_filtered_selected": "已选择列表中全部 {{count}} 名员工。",
+      "count_selected": "已选择 {{count}} 名员工。",
+      "select_all_filtered": "选择全部 {{count}} 名员工"
+    },
     "traceability": {
       "hierarchy_title": "配置优先级层级",
       "hierarchy_explanation": "薪资配置优先级：个人 > 部门 > 工作空间。",
