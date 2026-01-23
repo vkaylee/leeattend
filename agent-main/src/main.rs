@@ -81,7 +81,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Retry loop for sidecar connection
         let mut zk_client = loop {
             match ZKClient::connect(sidecar_addr).await {
-                Ok(client) => break client,
+                Ok(mut client) => {
+                    client.set_timeout(config.rpc_timeout_seconds);
+                    break client;
+                },
                 Err(e) => {
                     error!("Failed to connect to sidecar: {}. Retrying in 2s...", e);
                     sleep(Duration::from_secs(2)).await;

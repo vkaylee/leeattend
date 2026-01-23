@@ -30,12 +30,21 @@ pub struct JsonRpcError {
 pub struct ZKClient {
     stream: TcpStream,
     next_id: u64,
+    timeout: Duration,
 }
 
 impl ZKClient {
     pub async fn connect(addr: &str) -> io::Result<Self> {
         let stream = TcpStream::connect(addr).await?;
-        Ok(Self { stream, next_id: 1 })
+        Ok(Self { 
+            stream, 
+            next_id: 1,
+            timeout: Duration::from_secs(30) // Default
+        })
+    }
+
+    pub fn set_timeout(&mut self, seconds: u64) {
+        self.timeout = Duration::from_secs(seconds);
     }
 
     pub async fn call(&mut self, method: &str, params: Value) -> io::Result<Value> {
@@ -56,9 +65,9 @@ impl ZKClient {
         let mut reader = BufReader::new(&mut self.stream);
         let mut line = String::new();
         
-        // Add timeout for reading response
+        // Use the configured timeout for reading response
         let read_future = reader.read_line(&mut line);
-        match timeout(Duration::from_secs(5), read_future).await {
+        match timeout(self.timeout, read_future).await {
             Ok(result) => result?, // IO Result
             Err(_) => return Err(io::Error::new(io::ErrorKind::TimedOut, "RPC Call Timed Out")),
         };

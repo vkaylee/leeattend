@@ -8,6 +8,7 @@ pub struct Config {
     pub central_server_url: String,
     pub database_url: String,
     pub python_path: String,
+    pub rpc_timeout_seconds: u64,
 }
 
 impl Config {
@@ -50,6 +51,11 @@ impl Config {
             }
         });
 
+        let rpc_timeout_seconds = env::var("RPC_TIMEOUT_SECONDS")
+            .unwrap_or_default()
+            .parse()
+            .unwrap_or(30);
+
         // In cảnh báo fallback ngay lập tức
         if !fallbacks.is_empty() {
             warn!("⚠️  PHÁT HIỆN THIẾU CẤU HÌNH .ENV - SỬ DỤNG GIÁ TRỊ MẶC ĐỊNH:");
@@ -65,6 +71,7 @@ impl Config {
             central_server_url,
             database_url,
             python_path,
+            rpc_timeout_seconds,
         }
     }
 
@@ -74,6 +81,7 @@ impl Config {
         info!("   • Central URL  : {}", self.central_server_url);
         info!("   • Database     : {}", self.database_url);
         info!("   • Python Path  : {}", self.python_path);
+        info!("   • RPC Timeout  : {}s", self.rpc_timeout_seconds);
         info!("============================================================");
     }
 }

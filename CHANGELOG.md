@@ -15,6 +15,7 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Dynamic Path Resolution**: Added automatic detection for Python virtual environments (`venv` vs `venv_linux`), resolving path issues across different Linux distributions.
     - **Environment Template**: Created `.env.template` for the agent to guide manual configuration and ensure standard defaults.
     - **Console Awareness**: Added a colorful startup summary and explicit warnings when fallback values are being used instead of environment variables.
+    - **Configurable RPC Timeout**: Added `RPC_TIMEOUT_SECONDS` to the configuration system (default 30s) to prevent `TimedOut` errors during large attendance log fetches from ZKTeco devices.
 - **Partial Attendance Import Success**:
     - **Robust Batch Processing**: Enhanced `AttendanceImportService` to support "Partial Success," allowing valid records to be imported even if the batch contains duplicate logs or non-existent employee IDs.
     - **Database Level Protection**: Added a unique constraint to `raw_attendance_logs` to prevent duplicate punches at the database level.
