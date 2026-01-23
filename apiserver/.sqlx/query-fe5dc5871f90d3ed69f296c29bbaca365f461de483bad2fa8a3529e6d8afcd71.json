@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO time_entries (id, employee_id, punch_in_time, punch_out_time, duration_minutes, entry_type) \n         VALUES ($1, $2, $3, $4, $5, $6)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz",
+        "Int4",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fe5dc5871f90d3ed69f296c29bbaca365f461de483bad2fa8a3529e6d8afcd71"
+}

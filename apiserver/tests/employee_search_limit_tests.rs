@@ -53,7 +53,7 @@ async fn test_employee_search_limit_50() {
         .bind(ws_id)
         .bind(&name)
         .bind(&id_num)
-        .execute(pool)
+        .execute(&pool)
         .await
         .unwrap();
 
@@ -61,7 +61,7 @@ async fn test_employee_search_limit_50() {
             r#"INSERT INTO employment_periods (employee_id, hire_date) VALUES ($1, CURRENT_DATE)"#
         )
         .bind(employee_id)
-        .execute(pool)
+        .execute(&pool)
         .await
         .unwrap();
     }
@@ -105,7 +105,7 @@ async fn test_employee_list_no_limit() {
         .bind(ws_id)
         .bind(&name)
         .bind(&id_num)
-        .execute(pool)
+        .execute(&pool)
         .await
         .unwrap();
 
@@ -113,7 +113,7 @@ async fn test_employee_list_no_limit() {
             r#"INSERT INTO employment_periods (employee_id, hire_date) VALUES ($1, CURRENT_DATE)"#
         )
         .bind(employee_id)
-        .execute(pool)
+        .execute(&pool)
         .await
         .unwrap();
     }

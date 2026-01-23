@@ -100,7 +100,7 @@ export default function EmployeesPage() {
 
   const toast = useToast();
 
-  const filteredEmployees = employees;
+  
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); const formData = new FormData(e.currentTarget);
@@ -151,9 +151,9 @@ export default function EmployeesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filteredEmployees.length === 0 ? (
+              {employees.length === 0 ? (
                 <tr><td colSpan={5} className="px-8 py-32 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("employees.table.no_data")}</td></tr>
-              ) : filteredEmployees.map((emp) => (
+              ) : employees.map((emp) => (
                 <tr key={emp.id} data-testid={`employees-row-${emp.id}`} onClick={() => setSelectedEmployee(emp)} className={cn("cursor-pointer transition-all group relative", selectedEmployee?.id === emp.id ? "bg-primary-50/50" : "hover:bg-slate-50/50")}>
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-5">

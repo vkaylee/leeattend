@@ -6,9 +6,9 @@ use std::sync::Arc;
 use uuid::Uuid;
 use crate::{
     AppState,
-    UserId,
     models::{OvertimePolicy, OvertimeRule},
     repositories::overtime_policy_repository::OvertimePolicyRepository,
+    handlers::common::MemberContext,
 };
 use serde::Deserialize;
 
@@ -31,7 +31,7 @@ pub struct CreateRuleRequest {
 pub async fn list_policies(
     State(state): State<Arc<AppState>>,
     Path(workspace_id): Path<Uuid>,
-    _user_id: UserId,
+    _ctx: MemberContext,
 ) -> Result<Json<Vec<OvertimePolicy>>, StatusCode> {
     let policies = OvertimePolicyRepository::get_policy_definitions(&state.db, workspace_id)
         .await
@@ -45,7 +45,7 @@ pub async fn list_policies(
 pub async fn get_policy(
     State(state): State<Arc<AppState>>,
     Path((_workspace_id, policy_id)): Path<(Uuid, Uuid)>,
-    _user_id: UserId,
+    _ctx: MemberContext,
 ) -> Result<Json<(OvertimePolicy, Vec<OvertimeRule>)>, StatusCode> {
     let result = OvertimePolicyRepository::get_policy_with_rules(&state.db, policy_id)
         .await
@@ -60,9 +60,12 @@ pub async fn get_policy(
 pub async fn create_policy(
     State(state): State<Arc<AppState>>,
     Path(workspace_id): Path<Uuid>,
-    _user_id: UserId,
+    ctx: MemberContext,
     Json(req): Json<CreatePolicyRequest>,
 ) -> Result<Json<OvertimePolicy>, StatusCode> {
+    if !ctx.is_admin_or_owner() {
+        return Err(StatusCode::FORBIDDEN);
+    }
     let policy = OvertimePolicyRepository::create_policy_definition(&state.db, workspace_id, &req.name, req.description.as_deref())
         .await
         .map_err(|e| {
@@ -75,9 +78,12 @@ pub async fn create_policy(
 pub async fn add_rule(
     State(state): State<Arc<AppState>>,
     Path((_workspace_id, policy_id)): Path<(Uuid, Uuid)>,
-    _user_id: UserId,
+    ctx: MemberContext,
     Json(req): Json<CreateRuleRequest>,
 ) -> Result<Json<OvertimeRule>, StatusCode> {
+    if !ctx.is_admin_or_owner() {
+        return Err(StatusCode::FORBIDDEN);
+    }
     let rule = OvertimeRule {
         id: Uuid::new_v4(),
         policy_id,
@@ -111,9 +117,12 @@ pub struct AssignPolicyRequest {
 pub async fn assign_policy(
     State(state): State<Arc<AppState>>,
     Path(workspace_id): Path<Uuid>,
-    _user_id: UserId,
+    ctx: MemberContext,
     Json(req): Json<AssignPolicyRequest>,
 ) -> Result<StatusCode, StatusCode> {
+    if !ctx.is_admin_or_owner() {
+        return Err(StatusCode::FORBIDDEN);
+    }
     OvertimePolicyRepository::create_policy_assignment(
         &state.db,
         workspace_id,

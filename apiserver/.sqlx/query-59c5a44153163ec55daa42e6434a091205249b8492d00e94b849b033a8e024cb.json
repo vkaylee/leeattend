@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO leave_requests (employee_id, leave_type, start_date, end_date, status) \n         VALUES ($1, 'vacation', '2026-01-20', '2026-01-24', 'approved')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "59c5a44153163ec55daa42e6434a091205249b8492d00e94b849b033a8e024cb"
+}

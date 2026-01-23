@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT accrued_amount, year FROM leave_balances WHERE employee_id = $1 AND year = 2027",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "accrued_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 1,
+        "name": "year",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "def70c826c3364dbb192c97fa97885595a50e30c7546926b821c157a507a3376"
+}

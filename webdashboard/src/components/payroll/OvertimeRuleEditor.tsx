@@ -11,6 +11,7 @@ import {
   Hash,
   Percent
 } from 'lucide-react';
+import { OvertimeRule } from "@/lib/api/types";
 import { addOvertimeRule } from '@/lib/api/payroll';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/Toast';
@@ -18,7 +19,7 @@ import { useToast } from '@/components/Toast';
 interface OvertimeRuleEditorProps {
   wsId: string;
   policyId: string;
-  rules: any[];
+  rules: OvertimeRule[];
 }
 
 export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRuleEditorProps) {
@@ -36,7 +37,7 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
   const [isHoliday, setIsHoliday] = useState(false);
 
   const addMutation = useMutation({
-    mutationFn: (data: any) => addOvertimeRule(wsId, policyId, data),
+    mutationFn: (data: Partial<OvertimeRule>) => addOvertimeRule(wsId, policyId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['overtime-policies'] });
       setIsAdding(false);
@@ -178,7 +179,7 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
       )}
 
       <div className='space-y-2'>
-        {rules.sort((a, b) => b.priority - a.priority).map((rule: any) => (
+        {rules.sort((a, b) => b.priority - a.priority).map((rule: OvertimeRule) => (
           <div key={rule.id} className='flex items-center justify-between p-3 bg-slate-50/30 rounded-xl border border-slate-100/50 hover:bg-white transition-all'>
             <div className='flex items-center gap-4'>
               <div className='px-2 py-1 bg-primary-50 text-primary-700 rounded-lg text-[10px] font-black'>

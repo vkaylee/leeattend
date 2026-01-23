@@ -710,3 +710,27 @@ export interface WorkingCondition {
 
 
 
+
+// --- Payroll Models ---
+
+export interface OvertimePolicy {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface OvertimeRule {
+  id: string;
+  policy_id: string;
+  priority: number;
+  multiplier: number;
+  time_start?: string;
+  time_end?: string;
+  days_of_week: number;
+  is_holiday: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
