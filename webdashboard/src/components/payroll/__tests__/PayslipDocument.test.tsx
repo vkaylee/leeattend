@@ -388,8 +388,8 @@ describe("PayslipDocument", () => {
     // Simulate a case where definition is missing (e.g. bad join) or component is missing
     const payslip = createMockPayslip({
       salary_components: [
-        // @ts-ignore - Simulating runtime data mismatch
         {
+          // @ts-expect-error - Simulating runtime data mismatch
           component: {
             amount: "10000000"
           }

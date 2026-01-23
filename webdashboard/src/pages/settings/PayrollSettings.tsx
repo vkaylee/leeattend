@@ -5,9 +5,10 @@ import { cn } from "@/lib/utils";
 import SalaryComponentManager from "@/components/payroll/SalaryComponentManager";
 import PayrollSettingsSection from "@/components/payroll/PayrollSettingsSection";
 import BonusPolicyManager from "@/components/payroll/BonusPolicyManager";
+import OvertimePolicyManager from "@/components/payroll/OvertimePolicyManager";
 import { getCurrentWorkspaceId } from "@/lib/api";
 
-type TabType = "policy" | "components" | "incentives";
+type TabType = "policy" | "components" | "incentives" | "overtime";
 
 export default function PayrollSettings() {
   const { t } = useTranslation();
@@ -27,9 +28,10 @@ export default function PayrollSettings() {
       </div>
 
       <div className="flex bg-slate-100/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50 shadow-inner">
-        <button onClick={() => setActiveTab("policy")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'policy' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><FileText size={14} /> {t("common.settings.tabs.payroll_policy")}</button>
-        <button onClick={() => setActiveTab("components")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'components' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Blocks size={14} /> {t("common.settings.tabs.salary_components")}</button>
-        <button onClick={() => setActiveTab("incentives")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'incentives' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Sparkles size={14} /> {t("common.settings.tabs.incentives")}</button>
+        <button onClick={() => setActiveTab("policy")} data-testid="payroll-tab-policy" className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'policy' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><FileText size={14} /> {t("common.settings.tabs.payroll_policy")}</button>
+        <button onClick={() => setActiveTab("components")} data-testid="payroll-tab-components" className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'components' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Blocks size={14} /> {t("common.settings.tabs.salary_components")}</button>
+        <button onClick={() => setActiveTab("incentives")} data-testid="payroll-tab-incentives" className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'incentives' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Sparkles size={14} /> {t("common.settings.tabs.incentives")}</button>
+        <button onClick={() => setActiveTab("overtime")} data-testid="payroll-tab-overtime" className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === "overtime" ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Calculator size={14} /> {t("common.settings.tabs.overtime_policy")}</button>
       </div>
 
       <div className="animate-in slide-in-from-bottom-4 duration-500">
@@ -42,6 +44,12 @@ export default function PayrollSettings() {
         {activeTab === "components" && (
           <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden p-8">
             <SalaryComponentManager wsId={wsId!} />
+          </div>
+        )}
+
+        {activeTab === "overtime" && (
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden p-8">
+            <OvertimePolicyManager wsId={wsId!} />
           </div>
         )}
 

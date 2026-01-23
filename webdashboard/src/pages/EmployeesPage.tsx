@@ -24,6 +24,7 @@ import {
 
 import { 
   fetchEmployees, 
+  searchEmployees,
   createEmployee, 
   updateEmployee, 
   deleteEmployee, 
@@ -36,6 +37,7 @@ import {
   rehireEmployee
 } from "../lib/api";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { useDebounce } from "@/hooks/use-debounce";
 import { format } from "date-fns";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
@@ -66,7 +68,12 @@ export default function EmployeesPage() {
   const [isRehireModalOpen, setIsRehireModalOpen] = useState(false);
   const [selectedDeptId, setSelectedDeptId] = useState<string>("");
 
-  const { data: employees = [], isLoading } = useQuery({ queryKey: ["employees", wsId], queryFn: () => fetchEmployees(wsId), enabled: !!wsId });
+  const debouncedSearch = useDebounce(searchTerm, 500);
+  const { data: employees = [], isLoading } = useQuery({ 
+    queryKey: ["employees", wsId, debouncedSearch], 
+    queryFn: () => searchEmployees(wsId, debouncedSearch), 
+    enabled: !!wsId 
+  });
   const { data: departments } = useQuery({ queryKey: ["departments", wsId], queryFn: () => fetchDepartments(wsId), enabled: !!wsId });
   const { data: deptHistory } = useQuery({ queryKey: ["deptHistory", selectedEmployee?.id], queryFn: () => fetchEmployeeDepartmentHistory(wsId, selectedEmployee!.id), enabled: !!selectedEmployee });
   const { data: employmentHistory } = useQuery({ queryKey: ["employmentHistory", selectedEmployee?.id], queryFn: () => fetchEmploymentHistory(wsId, selectedEmployee!.id), enabled: !!selectedEmployee });
@@ -93,10 +100,7 @@ export default function EmployeesPage() {
 
   const toast = useToast();
 
-  const filteredEmployees = employees.filter(emp => 
-    emp.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.employee_id_number.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEmployees = employees;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); const formData = new FormData(e.currentTarget);

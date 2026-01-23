@@ -117,3 +117,34 @@
 .animate-enter {
   animation: enter 0.4s ease-out forwards;
 }
+
+/* Print Styles for Payslip */
+@media print {
+  @page {
+    size: A5 portrait;
+    margin: 10mm;
+  }
+
+  /* Hide everything except the print container */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Show only payslip print container */
+  .payslip-print-container,
+  .payslip-print-container * {
+    visibility: visible;
+  }
+
+  .payslip-print-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  /* Hide UI elements during print */
+  .print\\:hidden {
+    display: none !important;
+  }
+}

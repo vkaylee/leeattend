@@ -74,9 +74,9 @@ export default function PeopleSettings() {
 
       <div className="flex bg-slate-100/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50 shadow-inner">
 
-        <button onClick={() => setActiveTab("members")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'members' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Users size={14} /> {t("common.settings.tabs.members")}</button>
+        <button data-testid="tab-members" onClick={() => setActiveTab("members")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'members' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Users size={14} /> {t("common.settings.tabs.members")}</button>
 
-        <button onClick={() => setActiveTab("departments")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'departments' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Building2 size={14} /> {t("common.settings.tabs.departments")}</button>
+        <button data-testid="tab-departments" onClick={() => setActiveTab("departments")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'departments' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Building2 size={14} /> {t("common.settings.tabs.departments")}</button>
 
       </div>
 
@@ -90,7 +90,7 @@ export default function PeopleSettings() {
 
             <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-10">
 
-              <div className="flex items-center gap-3 border-b border-slate-50 pb-6"><UserPlus className="w-6 h-6 text-primary-500" /><h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">{t("common.workspace_settings.invite_member")}</h2></div>
+              <div className="flex items-center gap-3 border-b border-slate-50 pb-6"><UserPlus className="w-6 h-6 text-primary-500" /><h2 data-testid="invite-member-heading" className="text-xl font-black text-slate-800 tracking-tight uppercase">{t("common.workspace_settings.invite_member")}</h2></div>
 
               <form onSubmit={handleInvite} className="flex flex-wrap gap-6 items-end">
 
@@ -116,7 +116,7 @@ export default function PeopleSettings() {
 
                 </div>
 
-                <button type="submit" disabled={isAdding} className="bg-primary-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95 disabled:opacity-50 h-[56px]">{isAdding ? t("common.inviting").toUpperCase() : t("common.workspace_settings.invite_member").toUpperCase()}</button>
+                <button data-testid="invite-member-submit-btn" type="submit" disabled={isAdding} className="bg-primary-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95 disabled:opacity-50 h-[56px]">{isAdding ? t("common.inviting").toUpperCase() : t("common.workspace_settings.invite_member").toUpperCase()}</button>
 
               </form>
 
@@ -128,7 +128,7 @@ export default function PeopleSettings() {
 
               <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/30 px-10">
 
-                <div className="flex items-center gap-3"><Users className="w-6 h-6 text-slate-400" /><h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">{t("common.workspace_settings.members_list")}</h2></div>
+                <div className="flex items-center gap-3"><Users className="w-6 h-6 text-slate-400" /><h2 data-testid="members-list-heading" className="text-xl font-black text-slate-800 tracking-tight uppercase">{t("common.workspace_settings.members_list")}</h2></div>
 
                 <span className="text-[10px] font-black text-primary-600 bg-primary-50 px-4 py-1.5 rounded-full border border-primary-100 shadow-sm uppercase tracking-widest">{members.length} {t("members.title").toUpperCase()}</span>
 

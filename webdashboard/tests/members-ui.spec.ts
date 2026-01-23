@@ -22,16 +22,17 @@ test.describe("Members UI", () => {
     await peopleLink.click();
     await expect(page).toHaveURL(/\/workspace\/settings\/people/i, { timeout: 30000 });
 
-    await expect(page.getByRole('heading', { level: 1, name: /People|Nhân sự/ })).toBeVisible();
+    await expect(page.getByTestId('people-settings-title')).toBeVisible();
+    await page.getByTestId('tab-members').click();
 
     // 4. Verify Invite Member Section is visible
-    await expect(page.getByRole('heading', { level: 2, name: /Invite Member|Mời thành viên/i })).toBeVisible();
+    await expect(page.getByTestId('invite-member-heading')).toBeVisible();
     
     // 5. Check if the form elements are there
     await expect(page.getByPlaceholder('dong-nghiep@congty.com')).toBeVisible();
-    await expect(page.getByRole('button', { name: /Invite Member|Mời thành viên/i })).toBeVisible();
+    await expect(page.getByTestId('invite-member-submit-btn')).toBeVisible();
 
     // 6. Verify Members List is also present
-    await expect(page.getByRole('heading', { level: 2, name: /Members List|Danh sách thành viên/i })).toBeVisible();
+    await expect(page.getByTestId('members-list-heading')).toBeVisible();
   });
 });

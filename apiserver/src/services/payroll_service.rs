@@ -7,6 +7,8 @@ use sqlx::PgPool;
 use std::collections::{BTreeSet, HashMap};
 use uuid::Uuid;
 
+use crate::domain::policy::overtime::OvertimeEngine;
+use crate::repositories::overtime_policy_repository::OvertimePolicyRepository;
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{Payslip, PolicyRules};
 use crate::repositories::{department_repository, payroll_repository, roster_repository, shift_repository, time_entry_repository, leave_request_repository, SqlxWorkspaceRepository};
@@ -128,6 +130,8 @@ impl PayrollService {
                 .push(entry);
         }
 
+        let mut total_overtime_pay = Decimal::ZERO;
+        let mut policy_cache: HashMap<Uuid, Vec<crate::models::OvertimeRule>> = HashMap::new();
         for (seg_start, seg_end) in segments {
             // A. Context Resolution
             let active_dept = all_dept_history
@@ -164,6 +168,7 @@ impl PayrollService {
             // B. Attendance Calculation
             let mut segment_std_units = 0;
             let mut segment_ot_units = 0;
+            let mut segment_ot_pay = Decimal::ZERO;
 
             let mut current_date = seg_start;
             while current_date <= seg_end {
@@ -216,6 +221,37 @@ impl PayrollService {
                                         segment_std_units += std_u;
                                         segment_ot_units += ot_u;
 
+                                        if ot_u > 0 {
+                                            if let Some(policy_id) = OvertimePolicyRepository::resolve_policy_for_employee(pool, employee_id, workspace_id, current_date).await.unwrap_or(None) {
+                                                let rules = if let Some(r) = policy_cache.get(&policy_id) {
+                                                    r.clone()
+                                                } else {
+                                                    let r = OvertimePolicyRepository::get_policy_with_rules(pool, policy_id).await.unwrap_or(None).map(|(_, rules)| rules).unwrap_or_default();
+                                                    policy_cache.insert(policy_id, r.clone());
+                                                    r
+                                                };
+
+                                                let hourly_rate = if std_config.std_working_days.is_zero() || std_config.hours_per_day.is_zero() { 
+                                                    Decimal::ZERO 
+                                                } else { 
+                                                    (segment_base_salary / std_config.std_working_days) / std_config.hours_per_day 
+                                                };
+
+                                                let mut ot_intervals = Vec::new();
+                                                if punch_in < start {
+                                                    ot_intervals.push((punch_in.time(), std::cmp::min(punch_out, start).time()));
+                                                }
+                                                if punch_out > end {
+                                                    ot_intervals.push((std::cmp::max(punch_in, end).time(), punch_out.time()));
+                                                }
+
+                                                segment_ot_pay += OvertimeEngine::calculate_overtime_pay_from_times(&rules, current_date, false, &ot_intervals, hourly_rate);
+                                            } else {
+                                                let hourly_rate = if std_config.std_working_days.is_zero() || std_config.hours_per_day.is_zero() { Decimal::ZERO } else { (segment_base_salary / std_config.std_working_days) / std_config.hours_per_day };
+                                                segment_ot_pay += (Decimal::from(ot_u) * Decimal::from(workspace.work_unit_minutes) / Decimal::from(60)) * hourly_rate * Decimal::from_f64(1.5).unwrap();
+                                            }
+                                        }
+
                                         // Violation detection for IncentiveContext
                                         let is_late = punch_in > start + chrono::Duration::minutes(rules.grace_period_minutes as i64);
                                         let is_early = punch_out < end;
@@ -244,6 +280,7 @@ impl PayrollService {
             total_base_pay += segment_amount;
             total_std_units += segment_std_units;
             total_ot_units += segment_ot_units;
+            total_overtime_pay += segment_ot_pay;
             
             segment_snapshots.push((
                 seg_start, seg_end, dept_id, segment_base_salary, std_config.std_working_days,
@@ -252,13 +289,7 @@ impl PayrollService {
             ));
         }
 
-        // OT Calculation
-        let total_overtime_pay = if !segment_snapshots.is_empty() {
-            let last = segment_snapshots.last().unwrap();
-            let daily_rate = if last.4.is_zero() { Decimal::ZERO } else { last.3 / last.4 };
-            let hourly_rate = if last.5.is_zero() { Decimal::ZERO } else { daily_rate / last.5 };
-            hourly_rate * (Decimal::from(total_ot_units) * Decimal::from(workspace.work_unit_minutes) / Decimal::from(60)) * Decimal::from_f64(1.5).unwrap()
-        } else { Decimal::ZERO };
+        
 
         // 7. Incentives Calculation
         let active_policies = payroll_repository::get_active_incentive_policies(pool, workspace_id).await.unwrap_or_default();

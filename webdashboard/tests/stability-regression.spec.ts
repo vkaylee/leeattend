@@ -46,7 +46,7 @@ test("should load settings page without ReferenceErrors", async ({ page, baseURL
   await settingsLink.click();
   
   // Verify heading is visible (Settings2 icon used to be in the sidebar or page header)
-  await expect(page.getByRole('heading', { level: 1 })).toContainText(/Workspace Settings|Cài đặt Workspace|General|Chung|Cấu hình chung/i, { timeout: 15000 });
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(/Workspace Settings|Cài đặt Workspace|General|Chung|Cấu hình chung|常规|常规设置/i, { timeout: 15000 });
   
   // Check console for "ReferenceError"
   const logs: string[] = [];

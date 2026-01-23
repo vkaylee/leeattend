@@ -210,7 +210,8 @@
         "localization": "本地化",
         "appearance": "外观",
         "agents": "连接的应用程序",
-        "devices": "物联网设备"
+        "devices": "物联网设备",
+        "overtime_policy": "Chính sách tăng ca"
       }
     },
     "logout": "退出登录",
@@ -280,8 +281,8 @@
     "status_pending": "待处理",
     "status_approved": "已批准",
     "status_rejected": "已拒绝",
-    "select_employee": "选择员工...",
-    "select_department": "选择部门...",
+    "select_employee": "选择员工",
+    "select_department": "选择部门",
     "effective_from": "生效日期",
     "indefinite": "无限期",
     "definite": "有期限",
@@ -401,7 +402,8 @@
     "add_new": "添加新项",
     "import": "导入数据",
     "search_employee": "搜索员工...",
-    "no_notes": "无备注。"
+    "no_notes": "无备注。",
+    "global": "全局"
   },
   "dashboard": {
     "title": "仪表板",
@@ -631,30 +633,30 @@
     "run_accrual": "更新余额",
     "confirm_accrual": "您确定要运行今天的累计计算吗？系统将根据分配的政策自动添加假期。",
     "view_details": "查看详情",
-          "table": {
-            "base": "基础额度",
-            "accrued": "累计",
-            "carried_over": "结转",
-            "used": "已用",
-            "remaining": "剩余",
-            "usage": "使用率",
-            "history_tooltip": "查看余额历史",
-            "accrued_info": "根据公司的累计政策（月/季/年）自动添加的天数。",
-            "policy": "政策"
-          },
-          "detail": {
-            "breakdown": "余额明细",
-            "calculation": "计算方式",
-            "policy_info": "政策信息",
-            "accrual_info_title": "累计信息",
-            "used": "已使用"
-          },
-          "assignment_types": {
-            "employee": "个人",
-            "department": "部门",
-            "workspace": "全局"
-          },
-          "history": {
+    "table": {
+      "base": "基础额度",
+      "accrued": "累计",
+      "carried_over": "结转",
+      "used": "已用",
+      "remaining": "剩余",
+      "usage": "使用率",
+      "history_tooltip": "查看余额历史",
+      "accrued_info": "根据公司的累计政策（月/季/年）自动添加的天数。",
+      "policy": "政策"
+    },
+    "detail": {
+      "breakdown": "余额明细",
+      "calculation": "计算方式",
+      "policy_info": "政策信息",
+      "accrual_info_title": "累计信息",
+      "used": "已使用"
+    },
+    "assignment_types": {
+      "employee": "个人",
+      "department": "部门",
+      "workspace": "全局"
+    },
+    "history": {
       "title": "休假历史",
       "subtitle": "查看详细历史记录并调整休假余额。",
       "tab_history": "历史",
@@ -1088,13 +1090,12 @@
       "sick_full": "病假",
       "personal": "事假"
     },
-          "policy": {
-            "title": "休假政策",
-            "title_single": "政策",
-            "subtitle": "配置休假额度和累计规则",
-            "policy_note": "注意：政策更改不具有追溯力。过去的累计保持不变；更改仅适用于未来的余额更新。",
-            "assign_btn": "分配政策",
-    
+    "policy": {
+      "title": "休假政策",
+      "title_single": "政策",
+      "subtitle": "配置休假额度和累计规则",
+      "policy_note": "注意：政策更改不具有追溯力。过去的累计保持不变；更改仅适用于未来的余额更新。",
+      "assign_btn": "分配政策",
       "add_btn": "添加政策",
       "assign_title": "分配政策",
       "assign_subtitle": "人员分配",
@@ -1267,6 +1268,36 @@
     "segments": {
       "title": "薪资段详情"
     },
+    "document": {
+      "title": "工资单",
+      "system_subtitle": "考勤与薪资系统",
+      "verified": "已验证文件",
+      "period": "期间",
+      "employee_details": "员工信息",
+      "name": "姓名",
+      "employee_id": "员工编号",
+      "department": "部门",
+      "net_payment": "净支付",
+      "paid_via": "银行转账支付",
+      "earnings_breakdown": "收入明细",
+      "description": "描述",
+      "amount": "金额",
+      "base_salary": "基本工资",
+      "segment": "分段",
+      "code": "代码",
+      "monthly": "月度",
+      "days_at_rate": "{{days}} 天 @ {{rate}}/天",
+      "overtime_compensation": "加班费",
+      "units": "单位",
+      "gross_pay": "总收入",
+      "deductions": "扣款",
+      "net_pay": "净收入",
+      "note": "注意：这是由系统自动生成的文件，无需实体签名。如有任何差异，请在3个工作日内向人力资源部门反馈。",
+      "generated_by": "由 LeeAttend 系统生成",
+      "print_payslip": "打印工资单",
+      "print_hint": "使用上方的打印按钮保存为PDF或打印纸质版。",
+      "preview_title": "工资单预览"
+    },
     "incentives": {
       "title": "激励与奖金政策",
       "add_btn": "新政策",
@@ -1275,7 +1306,19 @@
       "tiers_config": "评估层级",
       "name_required": "政策名称是必填项",
       "no_policies": "没有激励政策"
-    }
+    },
+    "overtime_policies_desc": "Quản lý các quy tắc tính lương tăng ca theo thời gian và ngày.",
+    "overtime_policies": "Chính sách tăng ca",
+    "no_overtime_policies": "Chưa có chính sách tăng ca nào.",
+    "create_first_policy": "Tạo chính sách đầu tiên ngay.",
+    "rules": "Calculation Rules",
+    "add_rule": "Add Rule",
+    "assign_policy": "分配政策",
+    "assign_overtime_policy": "分配加班政策",
+    "assignee_type": "分配类型",
+    "select_policy": "选择政策",
+    "select_policy_placeholder": "-- 选择政策 --",
+    "effective_from": "生效日期"
   },
   "reports": {
     "title": "考勤报告",
@@ -1429,62 +1472,62 @@
     "select_default_shift": "选择默认班次",
     "assign_btn": "分配班次",
     "directory_title": "班次类型目录",
-        "auto_deduct": "自动扣除",
-        "grace_period": "宽限期 (分钟)",
-        "grace_period_desc": "如果启用了“阻止”政策，则此时间之前的打卡将被阻止。如果启用了“钳位”，则加班从此处开始计算。",
-        "set_off_day": "设为休息",
-        "days_count": "已选择 {{count}} 天",
-        "empty_state": {
-          "title": "选择人员以继续",
-          "desc": "请从左侧列表选择一名员工以开始排班。"
-        },
-        "tabs": {
-          "weekly_roster": "每周排班",
-          "fixed_assignments": "固定分配",
-          "directory": "目录"
-        },
-        "actions": {
-          "copy_previous": "复制上周",
-          "assign_all_week": "全周分配",
-          "clear_week": "清除本周"
-        },
-        "types": {
-          "flexible": "灵活",
-          "fixed": "固定"
-        },
-        "table": {
-          "assignment_type": "分配类型",
-          "range": "范围",
-          "shift_name": "班次类型名称",
-          "time_range": "时间范围",
-          "break_time": "休息时间"
-        },
-        "modal": {
-          "setup_title": "班次设置",
-          "setup_subtitle": "声明班次参数",
-          "edit_subtitle": "更新配置或更改时间",
-          "name_placeholder": "办公室、早班、分时段班次...",
-          "start_time": "上班打卡",
-          "end_time": "下班打卡",
-          "break_config": "休息配置",
-          "break_start": "休息开始",
-          "break_end": "休息结束",
-          "auto_deduct_label": "自动扣除休息时间",
-          "break_duration": "休息时长",
-          "save_shift_btn": "保存班次类型",
-          "update_config_btn": "更新配置",
-          "correction_label": "数据修正",
-          "correction_desc": "修正将覆盖当前班次记录。仅用于修复输入错误。",
-          "correction_warning": "这是一个直接修正",
-          "effective_date_label": "生效日期",
-          "effective_date_desc": "新版本将从该日期起生效。",
-          "grace_period": "提前打卡宽限 (分钟)",
-          "grace_period_desc": "如果启用了“阻止”政策，则此时间之前的打卡将被阻止。如果启用了“钳位”，则加班从此处开始计算。",
-          "select_shift_title": "选择班次",
-          "select_shift_subtitle": "为选中的 {{count}} 天选择班次",
-          "mark_as_off": "将选中日期标记为休息",
-          "assign_to_days": "分配给 {{days}}"
-        },
+    "auto_deduct": "自动扣除",
+    "grace_period": "宽限期 (分钟)",
+    "grace_period_desc": "如果启用了“阻止”政策，则此时间之前的打卡将被阻止。如果启用了“钳位”，则加班从此处开始计算。",
+    "set_off_day": "设为休息",
+    "days_count": "已选择 {{count}} 天",
+    "empty_state": {
+      "title": "选择人员以继续",
+      "desc": "请从左侧列表选择一名员工以开始排班。"
+    },
+    "tabs": {
+      "weekly_roster": "每周排班",
+      "fixed_assignments": "固定分配",
+      "directory": "目录"
+    },
+    "actions": {
+      "copy_previous": "复制上周",
+      "assign_all_week": "全周分配",
+      "clear_week": "清除本周"
+    },
+    "types": {
+      "flexible": "灵活",
+      "fixed": "固定"
+    },
+    "table": {
+      "assignment_type": "分配类型",
+      "range": "范围",
+      "shift_name": "班次类型名称",
+      "time_range": "时间范围",
+      "break_time": "休息时间"
+    },
+    "modal": {
+      "setup_title": "班次设置",
+      "setup_subtitle": "声明班次参数",
+      "edit_subtitle": "更新配置或更改时间",
+      "name_placeholder": "办公室、早班、分时段班次...",
+      "start_time": "上班打卡",
+      "end_time": "下班打卡",
+      "break_config": "休息配置",
+      "break_start": "休息开始",
+      "break_end": "休息结束",
+      "auto_deduct_label": "自动扣除休息时间",
+      "break_duration": "休息时长",
+      "save_shift_btn": "保存班次类型",
+      "update_config_btn": "更新配置",
+      "correction_label": "数据修正",
+      "correction_desc": "修正将覆盖当前班次记录。仅用于修复输入错误。",
+      "correction_warning": "这是一个直接修正",
+      "effective_date_label": "生效日期",
+      "effective_date_desc": "新版本将从该日期起生效。",
+      "grace_period": "提前打卡宽限 (分钟)",
+      "grace_period_desc": "如果启用了“阻止”政策，则此时间之前的打卡将被阻止。如果启用了“钳位”，则加班从此处开始计算。",
+      "select_shift_title": "选择班次",
+      "select_shift_subtitle": "为选中的 {{count}} 天选择班次",
+      "mark_as_off": "将选中日期标记为休息",
+      "assign_to_days": "分配给 {{days}}"
+    },
     "messages": {
       "assign_success": "员工班次分配成功。",
       "assign_error": "分配错误",

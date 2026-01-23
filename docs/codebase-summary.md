@@ -76,3 +76,10 @@ The payroll engine is built on three complementary layers working in tandem:
 - **Parity**: Verified key parity across English (`en`), Vietnamese (`vi`), and Chinese (`zh`).
 - **Verification**: Automated tests ensure no hardcoded strings exist in JSX and that all keys are synchronized across locale files.
 - **Automated Synchronization**: Continuous testing validates that all supported languages (English, Vietnamese, Chinese) remain in perfect sync, preventing runtime translation errors.
+
+## 🚀 Recent Major Improvements (Jan 2026)
+
+### Search-as-you-type Performance Optimization
+- **Backend Search Limit**: Enforced a `LIMIT 50` on employee searches at the repository level (`employee_repository.rs`) to prevent client-side lag and database overhead in large workspaces (3000+ employees).
+- **Asynchronous UI Patterns**: Refactored major lists (Employees Page, Overtime Assignment) to use a debounced server-side search pattern via the reusable `EmployeeSearch` and `Combobox` components.
+- **Test Reliability Standards**: Adopted `data-testid` based locators as the primary standard for all new and refactored UI components to ensure E2E test resilience against i18n changes.

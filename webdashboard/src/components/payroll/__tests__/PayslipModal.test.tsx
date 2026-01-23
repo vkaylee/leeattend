@@ -179,9 +179,20 @@ describe("PayslipModal", () => {
     expect(printButton.closest("button")).toBeDefined();
   });
 
-  it("calls window.print when print button clicked", () => {
-    const printMock = vi.fn();
-    vi.spyOn(window, "print").mockImplementation(printMock);
+  it("opens print window when print button clicked", () => {
+    // Mock window.open to return a mock window object
+    const mockPrintWindow = {
+      document: {
+        write: vi.fn(),
+        close: vi.fn(),
+      },
+      focus: vi.fn(),
+      print: vi.fn(),
+      close: vi.fn(),
+      closed: false,
+      onload: null as (() => void) | null,
+    };
+    const openMock = vi.spyOn(window, "open").mockReturnValue(mockPrintWindow as unknown as Window);
 
     renderWithProviders(
       <PayslipModal
@@ -193,14 +204,19 @@ describe("PayslipModal", () => {
       />
     );
 
-    // window.print should NOT be called on initial render
-    expect(printMock).not.toHaveBeenCalled();
+    // window.open should NOT be called on initial render
+    expect(openMock).not.toHaveBeenCalled();
 
     const printButton = screen.getByText("Print Payslip").closest("button");
     if (printButton) fireEvent.click(printButton);
 
-    // window.print IS called when print button clicked
-    expect(printMock).toHaveBeenCalledTimes(1);
+    // window.open IS called when print button clicked
+    expect(openMock).toHaveBeenCalledWith('', '_blank', 'width=600,height=800');
+    // Document should be written to with A5 page size styling
+    expect(mockPrintWindow.document.write).toHaveBeenCalled();
+    const writeCall = mockPrintWindow.document.write.mock.calls[0][0];
+    expect(writeCall).toContain('size: A5 portrait');
+    expect(writeCall).toContain('Payslip - Nguyen Van A');
   });
 
   it("calls onClose callback when close button clicked", () => {

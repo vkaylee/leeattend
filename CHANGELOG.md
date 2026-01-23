@@ -55,3 +55,19 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Incentive Context**: During payroll calculation, the engine aggregates a high-fidelity context including `total_late_early_count`, `unpaid_leave_days`, and `sick_leave_days`.
     - **Policy Matching**: The `PayrollEvaluator` matches this context against a prioritized list of `IncentiveTiers`.
     - **Generosity Principle**: Tiers are sorted by priority. The engine selects the first matching tier (e.g., Tier 1 for 0 violations, Tier 2 for < 2 violations), rewarding the most diligent behavior.
+
+## [2026-01-23]
+### Added
+- Backend support for server-side employee search with a 50-record limit to ensure performance in large workspaces.
+- New `EmployeeSearch` and `Combobox` components for optimized asynchronous assignee selection.
+- Integration tests for employee search limits: `apiserver/tests/employee_search_limit_tests.rs`.
+- Comprehensive `data-testid` attributes to `PayrollSettings` and `EmployeesPage` for test stability.
+
+### Changed
+- Refactored `EmployeesPage` to use debounced server-side filtering (handles 3000+ employees smoothly).
+- Updated `AssignOvertimePolicyModal` to use async search instead of manual UUID input.
+- Standardized E2E locators in `members-ui.spec.ts` to use `data-testid`.
+
+### Fixed
+- Performance bottlenecks on the Employees page caused by client-side filtering of large lists.
+- Synchronized missing translation keys for Overtime UI across all locales (vi, en, zh).

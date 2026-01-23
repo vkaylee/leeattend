@@ -22,3 +22,5 @@ pub use leaves::*;
 pub use payroll::*;
 pub use shifts::*;
 pub use workspaces::*;
+pub mod overtime;
+pub use overtime::*;

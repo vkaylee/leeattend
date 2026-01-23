@@ -248,7 +248,7 @@ Quản lý hồ sơ nhân viên trong tổ chức.
 #### GET /workspaces/:ws_id/employees
 Lấy danh sách tất cả nhân viên.
 - **Query Params**:
-    - `q`: string (Tìm kiếm theo tên, họ, mã nhân viên hoặc tên đầy đủ. Case-insensitive).
+    - `q`: string (Tìm kiếm theo tên, họ, mã nhân viên hoặc tên đầy đủ. Case-insensitive. Giới hạn 50 kết quả đầu tiên nếu có tham số `q`. (Limited to first 50 results if `q` is provided)).
 - **Response (200)**: `Array<Employee>`
 
 #### POST /workspaces/:ws_id/employees

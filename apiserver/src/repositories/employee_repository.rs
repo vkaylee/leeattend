@@ -198,6 +198,10 @@ pub async fn get_all_employees(
 
     sql.push_str(" ORDER BY e.full_name");
 
+    if search_query.is_some() {
+        sql.push_str(" LIMIT 50");
+    }
+
     let mut db_query = query_as::<_, Employee>(&sql).bind(workspace_id);
 
     if let Some(q) = search_query {
@@ -205,7 +209,6 @@ pub async fn get_all_employees(
             db_query = db_query.bind(format!("%{}%", q.trim()));
         }
     }
-
     db_query.fetch_all(pool).await
 }
 

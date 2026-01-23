@@ -95,66 +95,55 @@ export async function calculate_payroll(
   return response.json();
 }
 
-export async function calculateBatchPayslips(
+export async function fetchEmployeePayslips(
   wsId: string,
-  data: { employee_ids: string[]; year: number; month: number }
-): Promise<{ results: any[] }> {
-  const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/payroll/calculate-batch`,
-    { 
-      method: "POST",
-      body: JSON.stringify(data)
-    }
-  );
-  if (!response.ok) throw new Error("Failed to calculate batch payroll");
-  return response.json();
-}
-
-export async function fetchWorkspacePayslips(
-  wsId: string,
-  year: number,
-  month: number
+  employeeId: string,
 ): Promise<Payslip[]> {
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/payroll/payslips?year=${year}&month=${month}`
+    `${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/payslips`
   );
-  if (!response.ok) throw new Error("Failed to fetch workspace payslips");
-  return response.json();
-}
-
-export async function fetchEmployeePayslips(wsId: string, employeeId: string): Promise<Payslip[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/payslips`);
   if (!response.ok) throw new Error("Failed to fetch payslips");
   return response.json();
 }
 
-export async function setDepartmentPayrollConfig(
-  wsId: string, 
-  deptId: string, 
-  data: { std_working_days: number; hours_per_day: number; effective_date: string }
-): Promise<any> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/departments/${deptId}/payroll-config`, {
+export async function fetchEmployeePayrollConfigs(wsId: string, employeeId: string) {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/payroll-config`);
+  if (!response.ok) throw new Error("Failed to fetch employee payroll configs");
+  return response.json();
+}
+
+// Overtime Policies
+export async function fetchOvertimePolicies(wsId: string) {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/overtime/policies`);
+  if (!response.ok) throw new Error("Failed to fetch overtime policies");
+  return response.json();
+}
+
+export async function fetchOvertimePolicy(wsId: string, policyId: string) {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/overtime/policies/${policyId}`);
+  if (!response.ok) throw new Error("Failed to fetch overtime policy");
+  return response.json();
+}
+
+export async function createOvertimePolicy(wsId: string, data: any) {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/overtime/policies`, {
     method: "POST",
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error("Failed to set department payroll config");
+  if (!response.ok) throw new Error("Failed to create overtime policy");
   return response.json();
 }
 
-export async function fetchDepartmentPayrollConfigs(
-  wsId: string, 
-  deptId: string
-): Promise<any[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/departments/${deptId}/payroll-config`);
-  if (!response.ok) throw new Error("Failed to fetch department payroll configs");
+export async function addOvertimeRule(wsId: string, policyId: string, data: any) {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/overtime/policies/${policyId}/rules`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to add overtime rule");
   return response.json();
 }
 
-export async function setEmployeePayrollConfig(
-  wsId: string, 
-  employeeId: string, 
-  data: { std_working_days: number; hours_per_day: number; effective_date: string }
-): Promise<any> {
+export async function setEmployeePayrollConfig(wsId: string, employeeId: string, data: any) {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/payroll-config`, {
     method: "POST",
     body: JSON.stringify(data),
@@ -163,11 +152,41 @@ export async function setEmployeePayrollConfig(
   return response.json();
 }
 
-export async function fetchEmployeePayrollConfigs(
-  wsId: string, 
-  employeeId: string
-): Promise<any[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/payroll-config`);
-  if (!response.ok) throw new Error("Failed to fetch employee payroll configs");
+export async function fetchDepartmentPayrollConfigs(wsId: string, deptId: string) {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/departments/${deptId}/payroll-config`);
+  if (!response.ok) throw new Error("Failed to fetch department payroll configs");
   return response.json();
+}
+
+export async function setDepartmentPayrollConfig(wsId: string, deptId: string, data: any) {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/departments/${deptId}/payroll-config`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to set department payroll config");
+  return response.json();
+}
+
+export async function calculateBatchPayslips(wsId: string, data: any) {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll/calculate-batch`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to calculate batch payslips");
+  return response.json();
+}
+
+export async function fetchWorkspacePayslips(wsId: string, year: number, month: number) {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/payroll/payslips?year=${year}&month=${month}`);
+  if (!response.ok) throw new Error("Failed to fetch workspace payslips");
+  return response.json();
+}
+
+export async function assignOvertimePolicy(wsId: string, data: any) {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/overtime/policies/assign`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Failed to assign overtime policy');
+  return response.ok;
 }

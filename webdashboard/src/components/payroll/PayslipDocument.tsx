@@ -41,17 +41,17 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
             </div>
             <div>
               <h1 data-testid="workspace-name" className='text-2xl font-black uppercase tracking-tight'>{workspace?.name || 'LeeAttend'}</h1>
-              <p className='text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]'>Attendance & Payroll System</p>
+              <p className='text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]'>{t('payroll.document.system_subtitle')}</p>
             </div>
           </div>
           <div className='inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100 print:bg-white print:border-slate-200'>
             <ShieldCheck size={12} />
-            <span className='text-[10px] font-black uppercase tracking-widest'>Verified Document</span>
+            <span className='text-[10px] font-black uppercase tracking-widest'>{t('payroll.document.verified')}</span>
           </div>
         </div>
 
         <div className='text-right'>
-          <h2 data-testid="payslip-title" className='text-4xl font-black uppercase tracking-tighter text-slate-900 mb-1'>Pay Slip</h2>
+          <h2 data-testid="payslip-title" className='text-4xl font-black uppercase tracking-tighter text-slate-900 mb-1'>{t('payroll.document.title')}</h2>
           <div className='flex items-center justify-end gap-2 text-slate-500'>
             <CalendarDays size={14} />
             <span data-testid="period-month" className='text-sm font-bold uppercase tracking-widest'>
@@ -59,7 +59,7 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
             </span>
           </div>
           <p data-testid="period-range" className='text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-widest'>
-            Period: {formatDate(payslip.period_start)} - {formatDate(payslip.period_end)}
+            {t('payroll.document.period')}: {formatDate(payslip.period_start)} - {formatDate(payslip.period_end)}
           </p>
         </div>
       </div>
@@ -67,21 +67,21 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
       {/* Employee & Summary Info */}
       <div className='grid grid-cols-2 gap-12 mb-12'>
         <div className='space-y-6' data-testid="employee-details">
-          <h3 className='text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 border-b border-slate-100 pb-2'>Employee Details</h3>
+          <h3 className='text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 border-b border-slate-100 pb-2'>{t('payroll.document.employee_details')}</h3>
           <div className='grid grid-cols-[100px_1fr] gap-y-4 text-sm'>
-            <span className='font-bold text-slate-400 uppercase text-[10px] tracking-widest'>Name</span>
+            <span className='font-bold text-slate-400 uppercase text-[10px] tracking-widest'>{t('payroll.document.name')}</span>
             <span data-testid="employee-name" className='font-black text-slate-900 uppercase'>{employee.full_name}</span>
 
-            <span className='font-bold text-slate-400 uppercase text-[10px] tracking-widest'>Employee ID</span>
+            <span className='font-bold text-slate-400 uppercase text-[10px] tracking-widest'>{t('payroll.document.employee_id')}</span>
             <span data-testid="employee-id" className='font-bold text-slate-900'>{employee.employee_id_number}</span>
 
-            <span className='font-bold text-slate-400 uppercase text-[10px] tracking-widest'>Department</span>
+            <span className='font-bold text-slate-400 uppercase text-[10px] tracking-widest'>{t('payroll.document.department')}</span>
             <span data-testid="employee-department" className='font-bold text-slate-900'>{employee.department_name || 'N/A'}</span>
           </div>
         </div>
 
         <div data-testid="net-payment-box" className='bg-slate-50 rounded-3xl p-8 border border-slate-100 print:bg-white print:border-slate-200'>
-          <h3 className='text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-6 text-center'>Net Payment</h3>
+          <h3 className='text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-6 text-center'>{t('payroll.document.net_payment')}</h3>
           <div className='text-center space-y-1'>
             <p data-testid="net-pay-amount" className='text-5xl font-black text-slate-900 tracking-tighter leading-none'>
               {formatAmount(payslip.net_pay_amount)}

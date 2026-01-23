@@ -187,30 +187,31 @@
     },
     "devices": "Devices",
     "settings": {
-      "categories": {
-        "connectivity": "Connectivity",
-        "connectivity_desc": "Manage device connections and network settings.",
-        "general": "General",
-        "payroll": "Payroll",
-        "payroll_desc": "Manage standard work days and salary formulas.",
-        "people": "Personnel",
-        "people_desc": "Manage employees, departments, and roles.",
-        "time": "Time & Attendance",
-        "time_desc": "Configure shifts, rosters, and attendance rules."
-      },
       "tabs": {
-        "general": "General Config",
-        "patterns": "Working Patterns",
-        "rules": "Auto-assign Rules",
-        "payroll_policy": "Payroll Policy",
-        "salary_components": "Salary Components",
-        "incentives": "Incentives & Bonuses",
-        "members": "Members",
-        "departments": "Departments",
-        "localization": "Localization",
-        "appearance": "Appearance",
-        "agents": "Connected Apps",
-        "devices": "IoT Devices"
+        "overtime_policy": "Overtime Policy",
+        "devices": "物联网设备",
+        "localization": "本地化",
+        "agents": "连接的应用程序",
+        "rules": "自动分配规则",
+        "payroll_policy": "薪资政策",
+        "appearance": "外观",
+        "patterns": "工作模式",
+        "departments": "部门",
+        "salary_components": "薪资组成部分",
+        "members": "成员",
+        "incentives": "激励与奖金",
+        "general": "常规配置"
+      },
+      "categories": {
+        "payroll_desc": "管理标准工作日和薪资公式。",
+        "connectivity_desc": "管理设备连接和网络设置。",
+        "people": "人员",
+        "payroll": "薪资",
+        "time_desc": "配置班次、排班和考勤规则。",
+        "time": "时间与考勤",
+        "connectivity": "连接性",
+        "people_desc": "管理员工、部门和角色。",
+        "general": "常规"
       }
     },
     "logout": "Logout",
@@ -249,7 +250,6 @@
     "total": "Total",
     "save": "Save",
     "optional": "Optional",
-
     "info": "Information",
     "warning": "Warning",
     "remove": "Remove",
@@ -281,8 +281,8 @@
     "status_pending": "Pending",
     "status_approved": "Approved",
     "status_rejected": "Rejected",
-    "select_employee": "Select employee...",
-    "select_department": "Select department...",
+    "select_employee": "Select Employee",
+    "select_department": "Select Department",
     "effective_from": "Effective From",
     "indefinite": "Indefinite",
     "definite": "Definite",
@@ -401,9 +401,9 @@
     "base_for_ot": "OT Base",
     "add_new": "Add New",
     "import": "Import Data",
-    "save": "Save",
     "search_employee": "Search employees...",
-    "no_notes": "No notes."
+    "no_notes": "No notes.",
+    "global": "Global"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -626,37 +626,37 @@
       "working": "Working"
     }
   },
-    "leave_balances": {
-      "title": "Leave Balances",
-      "subtitle": "Track employee leave entitlements and usage",
-      "summary_table": "Balance Summary",
-      "run_accrual": "Update Balances",
-      "confirm_accrual": "Are you sure you want to run accrual calculation for today? System will automatically add leave based on assigned policies.",
-      "view_details": "View Details",
-      "table": {
-        "base": "Base Entitlement",
-        "accrued": "Accrued",
-        "carried_over": "Carried Over",
-        "used": "Used",
-        "remaining": "Remaining",
-        "usage": "Usage",
-        "history_tooltip": "View balance history",
-        "accrued_info": "Days automatically added based on the company's accrual policy (monthly/quarterly/yearly).",
-        "policy": "Policy"
-      },
-      "detail": {
-        "breakdown": "Balance Breakdown",
-        "calculation": "Calculation",
-        "policy_info": "Policy Information",
-        "accrual_info_title": "Accrual Info",
-        "used": "used"
-      },
-      "assignment_types": {
-        "employee": "Individual",
-        "department": "Department",
-        "workspace": "Workspace"
-      },
-      "history": {
+  "leave_balances": {
+    "title": "Leave Balances",
+    "subtitle": "Track employee leave entitlements and usage",
+    "summary_table": "Balance Summary",
+    "run_accrual": "Update Balances",
+    "confirm_accrual": "Are you sure you want to run accrual calculation for today? System will automatically add leave based on assigned policies.",
+    "view_details": "View Details",
+    "table": {
+      "base": "Base Entitlement",
+      "accrued": "Accrued",
+      "carried_over": "Carried Over",
+      "used": "Used",
+      "remaining": "Remaining",
+      "usage": "Usage",
+      "history_tooltip": "View balance history",
+      "accrued_info": "Days automatically added based on the company's accrual policy (monthly/quarterly/yearly).",
+      "policy": "Policy"
+    },
+    "detail": {
+      "breakdown": "Balance Breakdown",
+      "calculation": "Calculation",
+      "policy_info": "Policy Information",
+      "accrual_info_title": "Accrual Info",
+      "used": "used"
+    },
+    "assignment_types": {
+      "employee": "Individual",
+      "department": "Department",
+      "workspace": "Workspace"
+    },
+    "history": {
       "title": "Leave History",
       "subtitle": "View detailed history and adjust leave balances.",
       "tab_history": "History",
@@ -1090,12 +1090,12 @@
       "sick_full": "Sick Leave",
       "personal": "Personal Business"
     },
-      "policy": {
-        "title": "Leave Policy",
-        "title_single": "Policy",
-        "subtitle": "Configure leave entitlements and accrual rules",
-        "policy_note": "Note: Policy changes are not retroactive. Past accruals remain unchanged; changes only apply to future balance updates.",
-        "assign_btn": "Assign Policy",
+    "policy": {
+      "title": "Leave Policy",
+      "title_single": "Policy",
+      "subtitle": "Configure leave entitlements and accrual rules",
+      "policy_note": "Note: Policy changes are not retroactive. Past accruals remain unchanged; changes only apply to future balance updates.",
+      "assign_btn": "Assign Policy",
       "add_btn": "Add Policy",
       "assign_title": "Assign Policy",
       "assign_subtitle": "Personnel Allocation",
@@ -1152,13 +1152,14 @@
       "no_requests": "No requests found."
     }
   },
-      "payroll": {
-        "selection": {
-          "all_filtered_selected": "All {{count}} employees in this list are selected.",
-          "count_selected": "{{count}} employees selected.",
-          "select_all_filtered": "Select all {{count}} employees"
-        },
-        "traceability": {      "hierarchy_title": "Config Priority Hierarchy",
+  "payroll": {
+    "selection": {
+      "all_filtered_selected": "All {{count}} employees in this list are selected.",
+      "count_selected": "{{count}} employees selected.",
+      "select_all_filtered": "Select all {{count}} employees"
+    },
+    "traceability": {
+      "hierarchy_title": "Config Priority Hierarchy",
       "hierarchy_explanation": "Payroll config is prioritized: Individual > Department > Workspace.",
       "individual_policy": "Individual Policy",
       "department_policy": "Department Policy",
@@ -1267,6 +1268,36 @@
     "segments": {
       "title": "Payroll Segments Detail"
     },
+    "document": {
+      "title": "Pay Slip",
+      "system_subtitle": "Attendance & Payroll System",
+      "verified": "Verified Document",
+      "period": "Period",
+      "employee_details": "Employee Details",
+      "name": "Name",
+      "employee_id": "Employee ID",
+      "department": "Department",
+      "net_payment": "Net Payment",
+      "paid_via": "Paid via Bank Transfer",
+      "earnings_breakdown": "Earnings Breakdown",
+      "description": "Description",
+      "amount": "Amount",
+      "base_salary": "Base Salary",
+      "segment": "Segment",
+      "code": "Code",
+      "monthly": "Monthly",
+      "days_at_rate": "{{days}} Days @ {{rate}}/day",
+      "overtime_compensation": "Overtime Compensation",
+      "units": "Units",
+      "gross_pay": "Gross Pay",
+      "deductions": "Deductions",
+      "net_pay": "Net Pay",
+      "note": "Note: This is a computer-generated document and does not require a physical signature. Any discrepancies should be reported to the HR department within 3 working days.",
+      "generated_by": "Generated by LeeAttend System",
+      "print_payslip": "Print Payslip",
+      "print_hint": "Use the print button above to save as PDF or print a physical copy.",
+      "preview_title": "Official Payslip Preview"
+    },
     "incentives": {
       "title": "Incentive & Bonus Policies",
       "add_btn": "New Policy",
@@ -1275,7 +1306,19 @@
       "tiers_config": "Evaluation Tiers",
       "name_required": "Policy name is required",
       "no_policies": "No incentive policies"
-    }
+    },
+    "overtime_policies": "Overtime Policies",
+    "overtime_policies_desc": "Manage overtime pay rules based on time and day.",
+    "no_overtime_policies": "No overtime policies found.",
+    "create_first_policy": "Create your first policy now.",
+    "rules": "Calculation Rules",
+    "add_rule": "Add Rule",
+    "assign_policy": "Assign Policy",
+    "assign_overtime_policy": "Assign Overtime Policy",
+    "assignee_type": "Assignee Type",
+    "select_policy": "Select Policy",
+    "select_policy_placeholder": "-- Choose Policy --",
+    "effective_from": "Effective From"
   },
   "reports": {
     "title": "Attendance Reports",

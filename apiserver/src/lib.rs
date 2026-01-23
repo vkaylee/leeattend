@@ -369,6 +369,23 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/reports/attendance",
             get(handlers::get_attendance_report),
         )
+                .route(
+            "/workspaces/:ws_id/overtime/policies",
+            get(handlers::list_policies).post(handlers::create_policy),
+        )
+        .route(
+            "/workspaces/:ws_id/overtime/policies/:policy_id",
+            get(handlers::get_policy),
+        )
+        .route(
+            "/workspaces/:ws_id/overtime/policies/:policy_id/rules",
+            post(handlers::add_rule),
+        )
+        .route(
+            "/workspaces/:ws_id/overtime/policies/assign",
+            post(handlers::assign_policy),
+        )
+
         // Payroll
         .route(
             "/workspaces/:ws_id/payroll-settings",

@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT opa.policy_id \n            FROM overtime_policy_assignments opa\n            JOIN employee_department_history edh ON edh.department_id = opa.assignee_id\n            WHERE opa.workspace_id = $1 AND opa.assignee_type = 'department' \n            AND edh.employee_id = $2 AND edh.effective_date <= $3\n            AND opa.effective_from <= $3 AND (opa.effective_to IS NULL OR opa.effective_to >= $3)\n            ORDER BY edh.effective_date DESC, opa.created_at DESC LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "policy_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1bf28c9421b1f7094caab3aa18ce1b6ac0e77cb18e7a6bb5dacf2d133aaa95bf"
+}

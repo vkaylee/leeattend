@@ -56,7 +56,7 @@ describe("PayrollTable", () => {
 
   it("renders payslip summary rows", async () => {
     renderWithProviders(
-      <PayrollTable 
+      <PayrollTable employee={null} workspace={null} 
         payslips={mockPayslips} 
         isLoading={false} 
         adjustments={[]} 
@@ -71,7 +71,7 @@ describe("PayrollTable", () => {
 
   it("expands card to show segments when clicked", async () => {
     renderWithProviders(
-      <PayrollTable 
+      <PayrollTable employee={null} workspace={null} 
         payslips={mockPayslips} 
         isLoading={false} 
         adjustments={[]} 
@@ -100,7 +100,7 @@ describe("PayrollTable", () => {
     ];
 
     renderWithProviders(
-      <PayrollTable 
+      <PayrollTable employee={null} workspace={null} 
         payslips={mockPayslips} 
         isLoading={false} 
         adjustments={mockAdjustments as any} 

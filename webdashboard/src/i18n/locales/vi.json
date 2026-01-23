@@ -187,30 +187,31 @@
     },
     "devices": "Thiết bị",
     "settings": {
-      "categories": {
-        "connectivity": "Kết nối",
-        "connectivity_desc": "Quản lý kết nối thiết bị và cài đặt mạng.",
-        "general": "Chung",
-        "payroll": "Lương",
-        "payroll_desc": "Quản lý ngày công chuẩn và công thức tính lương.",
-        "people": "Nhân sự",
-        "people_desc": "Quản lý nhân viên, phòng ban và vai trò.",
-        "time": "Thời gian & Chấm công",
-        "time_desc": "Cấu hình ca làm việc, lịch trình và quy tắc chấm công."
-      },
       "tabs": {
-        "general": "Cấu hình chung",
-        "patterns": "Mẫu lịch làm việc",
-        "rules": "Quy tắc gán tự động",
-        "payroll_policy": "Chính sách lương",
-        "salary_components": "Thành phần lương",
-        "incentives": "Thưởng & Ưu đãi",
-        "members": "Thành viên",
-        "departments": "Phòng ban",
-        "localization": "Địa phương",
-        "appearance": "Giao diện",
-        "agents": "Ứng dụng kết nối",
-        "devices": "Thiết bị IoT"
+        "overtime_policy": "Chính sách tăng ca",
+        "devices": "物联网设备",
+        "localization": "本地化",
+        "agents": "连接的应用程序",
+        "rules": "自动分配规则",
+        "payroll_policy": "薪资政策",
+        "appearance": "外观",
+        "patterns": "工作模式",
+        "departments": "部门",
+        "salary_components": "薪资组成部分",
+        "members": "成员",
+        "incentives": "激励与奖金",
+        "general": "常规配置"
+      },
+      "categories": {
+        "payroll_desc": "管理标准工作日和薪资公式。",
+        "connectivity_desc": "管理设备连接和网络设置。",
+        "people": "人员",
+        "payroll": "薪资",
+        "time_desc": "配置班次、排班和考勤规则。",
+        "time": "时间与考勤",
+        "connectivity": "连接性",
+        "people_desc": "管理员工、部门和角色。",
+        "general": "常规"
       }
     },
     "logout": "Đăng xuất",
@@ -247,7 +248,7 @@
     "year": "Năm",
     "month": "Tháng",
     "total": "Tổng số",
-    "save": "Lưu",
+    "save": "Lưu lại",
     "optional": "Tùy chọn",
     "info": "Thông báo",
     "warning": "Cảnh báo",
@@ -280,8 +281,8 @@
     "status_pending": "Chờ duyệt",
     "status_approved": "Đã duyệt",
     "status_rejected": "Từ chối",
-    "select_employee": "Chọn nhân viên...",
-    "select_department": "Chọn phòng ban...",
+    "select_employee": "Chọn nhân viên",
+    "select_department": "Chọn phòng ban",
     "effective_from": "Ngày hiệu lực",
     "indefinite": "Vô thời hạn",
     "definite": "Có thời hạn",
@@ -400,9 +401,9 @@
     "base_for_ot": "Tính OT",
     "add_new": "Thêm mới",
     "import": "Nhập dữ liệu",
-    "save": "Lưu lại",
     "search_employee": "Tìm kiếm nhân viên...",
-    "no_notes": "Không có ghi chú."
+    "no_notes": "Không có ghi chú.",
+    "global": "Toàn hệ thống"
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -625,37 +626,37 @@
       "working": "Đang làm việc"
     }
   },
-    "leave_balances": {
-      "title": "Số dư nghỉ phép",
-      "subtitle": "Theo dõi định mức và sử dụng phép của nhân sự",
-      "summary_table": "Bảng tổng hợp số dư",
-      "run_accrual": "Cập nhật số dư",
-      "confirm_accrual": "Bạn có chắc chắn muốn chạy tính toán tích lũy cho hôm nay? Hệ thống sẽ tự động cộng thêm phép dựa trên chính sách đã gán.",
-      "view_details": "Xem Chi tiết",
-        "table": {
-        "base": "Định mức",
-        "accrued": "Tích lũy",
-        "carried_over": "Chuyển từ năm trước",
-        "used": "Đã dùng",
-        "remaining": "Còn lại",
-        "usage": "Tỷ lệ sử dụng",
-        "history_tooltip": "Xem lịch sử biến động",
-        "accrued_info": "Số ngày phép được cộng thêm tự động dựa trên chính sách tích lũy của công ty (theo tháng/quý/năm).",
-        "policy": "Chính sách"
-      },
-      "detail": {
-        "breakdown": "Chi tiết số dư",
-        "calculation": "Cách tính",
-        "policy_info": "Thông tin chính sách",
-        "accrual_info_title": "Thông tin tích lũy",
-        "used": "đã sử dụng"
-      },
-      "assignment_types": {
-        "employee": "Cá nhân",
-        "department": "Phòng ban",
-        "workspace": "Toàn cục"
-      },
-      "history": {
+  "leave_balances": {
+    "title": "Số dư nghỉ phép",
+    "subtitle": "Theo dõi định mức và sử dụng phép của nhân sự",
+    "summary_table": "Bảng tổng hợp số dư",
+    "run_accrual": "Cập nhật số dư",
+    "confirm_accrual": "Bạn có chắc chắn muốn chạy tính toán tích lũy cho hôm nay? Hệ thống sẽ tự động cộng thêm phép dựa trên chính sách đã gán.",
+    "view_details": "Xem Chi tiết",
+    "table": {
+      "base": "Định mức",
+      "accrued": "Tích lũy",
+      "carried_over": "Chuyển từ năm trước",
+      "used": "Đã dùng",
+      "remaining": "Còn lại",
+      "usage": "Tỷ lệ sử dụng",
+      "history_tooltip": "Xem lịch sử biến động",
+      "accrued_info": "Số ngày phép được cộng thêm tự động dựa trên chính sách tích lũy của công ty (theo tháng/quý/năm).",
+      "policy": "Chính sách"
+    },
+    "detail": {
+      "breakdown": "Chi tiết số dư",
+      "calculation": "Cách tính",
+      "policy_info": "Thông tin chính sách",
+      "accrual_info_title": "Thông tin tích lũy",
+      "used": "đã sử dụng"
+    },
+    "assignment_types": {
+      "employee": "Cá nhân",
+      "department": "Phòng ban",
+      "workspace": "Toàn cục"
+    },
+    "history": {
       "title": "Lịch sử nghỉ phép",
       "subtitle": "Xem lịch sử chi tiết và điều chỉnh số dư nghỉ phép.",
       "tab_history": "Lịch sử",
@@ -1089,13 +1090,12 @@
       "sick_full": "Nghỉ ốm",
       "personal": "Việc riêng"
     },
-          "policy": {
-            "title": "Chính sách nghỉ phép",
-            "title_single": "Chính sách",
-            "subtitle": "Cấu hình định mức nghỉ phép và quy tắc tích lũy",
-            "policy_note": "Lưu ý: Các thay đổi về chính sách không có tính hồi tố. Kết quả tích lũy trong quá khứ sẽ được giữ nguyên, thay đổi chỉ áp dụng cho các lần cập nhật số dư trong tương lai.",
-            "assign_btn": "Gán chính sách",
-    
+    "policy": {
+      "title": "Chính sách nghỉ phép",
+      "title_single": "Chính sách",
+      "subtitle": "Cấu hình định mức nghỉ phép và quy tắc tích lũy",
+      "policy_note": "Lưu ý: Các thay đổi về chính sách không có tính hồi tố. Kết quả tích lũy trong quá khứ sẽ được giữ nguyên, thay đổi chỉ áp dụng cho các lần cập nhật số dư trong tương lai.",
+      "assign_btn": "Gán chính sách",
       "add_btn": "Thêm chính sách",
       "assign_title": "Gán chính sách",
       "assign_subtitle": "Phân bổ nhân sự",
@@ -1152,13 +1152,14 @@
       "no_requests": "Không có yêu cầu nào."
     }
   },
-      "payroll": {
-        "selection": {
-          "all_filtered_selected": "Đã chọn toàn bộ {{count}} nhân viên trong danh sách.",
-          "count_selected": "Đã chọn {{count}} nhân viên.",
-          "select_all_filtered": "Chọn toàn bộ {{count}} nhân viên"
-        },
-        "traceability": {      "hierarchy_title": "Thứ tự ưu tiên cấu hình",
+  "payroll": {
+    "selection": {
+      "all_filtered_selected": "Đã chọn toàn bộ {{count}} nhân viên trong danh sách.",
+      "count_selected": "Đã chọn {{count}} nhân viên.",
+      "select_all_filtered": "Chọn toàn bộ {{count}} nhân viên"
+    },
+    "traceability": {
+      "hierarchy_title": "Thứ tự ưu tiên cấu hình",
       "hierarchy_explanation": "Cấu hình lương được ưu tiên theo thứ tự: Cá nhân > Phòng ban > Workspace.",
       "individual_policy": "Chính sách cá nhân",
       "department_policy": "Chính sách phòng ban",
@@ -1267,6 +1268,36 @@
     "segments": {
       "title": "Chi tiết dòng lương (Segments)"
     },
+    "document": {
+      "title": "Phiếu Lương",
+      "system_subtitle": "Hệ thống Chấm công & Tính lương",
+      "verified": "Tài liệu đã xác thực",
+      "period": "Kỳ lương",
+      "employee_details": "Thông tin nhân viên",
+      "name": "Họ tên",
+      "employee_id": "Mã nhân viên",
+      "department": "Phòng ban",
+      "net_payment": "Thực nhận",
+      "paid_via": "Chuyển khoản ngân hàng",
+      "earnings_breakdown": "Chi tiết thu nhập",
+      "description": "Mô tả",
+      "amount": "Số tiền",
+      "base_salary": "Lương cơ bản",
+      "segment": "Phân đoạn",
+      "code": "Mã",
+      "monthly": "Hàng tháng",
+      "days_at_rate": "{{days}} Ngày @ {{rate}}/ngày",
+      "overtime_compensation": "Lương tăng ca",
+      "units": "Đơn vị",
+      "gross_pay": "Tổng thu nhập",
+      "deductions": "Khấu trừ",
+      "net_pay": "Thực nhận",
+      "note": "Lưu ý: Đây là tài liệu được tạo tự động bởi hệ thống và không cần chữ ký vật lý. Mọi sai sót vui lòng phản hồi cho bộ phận Nhân sự trong vòng 3 ngày làm việc.",
+      "generated_by": "Tạo bởi LeeAttend",
+      "print_payslip": "In phiếu lương",
+      "print_hint": "Sử dụng nút In phía trên để lưu PDF hoặc in bản cứng.",
+      "preview_title": "Xem trước phiếu lương"
+    },
     "incentives": {
       "title": "Chính sách Thưởng & Ưu đãi",
       "add_btn": "Thêm Chính sách",
@@ -1275,7 +1306,19 @@
       "tiers_config": "Cấu hình Bậc thưởng",
       "name_required": "Vui lòng nhập tên chính sách",
       "no_policies": "Chưa có chính sách thưởng nào"
-    }
+    },
+    "overtime_policies": "Chính sách tăng ca",
+    "overtime_policies_desc": "Quản lý các quy tắc tính lương tăng ca theo thời gian và ngày.",
+    "no_overtime_policies": "Chưa có chính sách tăng ca nào.",
+    "create_first_policy": "Tạo chính sách đầu tiên ngay.",
+    "rules": "Quy tắc tính",
+    "add_rule": "Thêm quy tắc",
+    "assign_policy": "Gán chính sách",
+    "assign_overtime_policy": "Gán chính sách tăng ca",
+    "assignee_type": "Đối tượng áp dụng",
+    "select_policy": "Chọn chính sách",
+    "select_policy_placeholder": "-- Chọn một chính sách --",
+    "effective_from": "Ngày hiệu lực"
   },
   "reports": {
     "title": "Báo cáo chấm công",
