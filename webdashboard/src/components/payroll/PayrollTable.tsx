@@ -184,6 +184,20 @@ export default function PayrollTable({
           </div>
         );
       })}
+
+      {/* Payslip Modal */}
+      {employee && selectedPayslip && (
+        <PayslipModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedPayslip(null);
+          }}
+          employee={employee}
+          payslip={selectedPayslip}
+          workspace={workspace}
+        />
+      )}
     </div>
   );
 }

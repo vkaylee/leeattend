@@ -4,6 +4,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { X, Printer, Download } from 'lucide-react';
 import { Employee, Payslip, Workspace } from '@/lib/api/types';
 import PayslipDocument from './PayslipDocument';
+import { useDateTimeFormatter } from '@/hooks/use-datetime';
 
 interface PayslipModalProps {
   isOpen: boolean;
@@ -13,14 +14,15 @@ interface PayslipModalProps {
   workspace: Workspace | null;
 }
 
-export default function PayslipModal({ 
-  isOpen, 
-  onClose, 
-  employee, 
-  payslip, 
-  workspace 
+export default function PayslipModal({
+  isOpen,
+  onClose,
+  employee,
+  payslip,
+  workspace
 }: PayslipModalProps) {
   const { t } = useTranslation();
+  const { formatMonthYear } = useDateTimeFormatter();
 
   const handlePrint = () => {
     window.print();
@@ -35,7 +37,12 @@ export default function PayslipModal({
           {/* Action Bar */}
           <div className='p-6 bg-white border-b border-slate-200 flex items-center justify-between print:hidden'>
             <div className='flex items-center gap-4'>
-              <h2 className='text-sm font-black uppercase tracking-widest text-slate-400'>Official Payslip Preview</h2>
+              <div>
+                <h2 className='text-sm font-black uppercase tracking-widest text-slate-400'>Official Payslip Preview</h2>
+                <p className='text-xs font-bold text-slate-600 mt-1'>
+                  {t('common.month')} {formatMonthYear(payslip.period_start)}
+                </p>
+              </div>
             </div>
             <div className='flex items-center gap-3'>
               <button 

@@ -10,6 +10,7 @@ import {
   CalendarDays
 } from "lucide-react";
 import { Employee, Payslip, AttendanceAdjustmentRequest } from "@/lib/api/types";
+import { useWorkspace } from "@/hooks/use-workspace";
 import PayrollTable from "./PayrollTable";
 import EmployeeSalaryConfig from "./EmployeeSalaryConfig";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ export default function PayrollDetailDrawer({
   onResolveAdjustments
 }: PayrollDetailDrawerProps) {
   const { t } = useTranslation();
+  const { workspace } = useWorkspace(workspaceId);
   const [activeTab, setActiveTab] = useState<"history" | "config">("history");
 
   if (!employee) return null;
@@ -132,6 +134,8 @@ export default function PayrollDetailDrawer({
                     <span className="text-xs font-black text-slate-800 uppercase tracking-[0.25em]">{t("payroll.history_title")} Detail</span>
                   </div>
                   <PayrollTable 
+                    employee={employee} 
+                    workspace={workspace || null}
                     payslips={payslips} 
                     isLoading={isLoadingPayslips} 
                     adjustments={adjustments}
