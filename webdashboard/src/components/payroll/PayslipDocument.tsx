@@ -99,8 +99,6 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
             <thead>
               <tr className='text-[10px] font-black uppercase tracking-widest text-slate-400'>
                 <th className='text-left pb-4'>Description</th>
-                <th className='text-right pb-4'>Units</th>
-                <th className='text-right pb-4'>Rate</th>
                 <th className='text-right pb-4'>Amount</th>
               </tr>
             </thead>
@@ -109,8 +107,9 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
               {payslip.salary_components?.map((sc, idx) => {
                 const monthlyRate = parseFloat(sc.component.amount);
                 const standardDays = payslip.segments?.[0]?.applied_std_days || 22;
+                const totalPaidDays = payslip.segments?.reduce((sum, seg) => sum + seg.paid_work_days, 0) || 0;
                 const dailyRate = monthlyRate / standardDays;
-                const proratedAmount = dailyRate * payslip.standard_units;
+                const proratedAmount = dailyRate * totalPaidDays;
 
                 return (
                   <tr key={idx} className='group'>
@@ -119,15 +118,11 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
                         <div className='w-1.5 h-1.5 bg-blue-600 rounded-full' />
                         <div>
                           <p className='font-bold text-slate-900'>{sc.definition.name}</p>
-                          <p className='text-[10px] text-slate-400 font-bold uppercase'>Code: {sc.definition.code} • Monthly Rate: {formatAmount(monthlyRate)}</p>
+                          <p className='text-[10px] text-slate-400 font-bold uppercase'>
+                            Code: {sc.definition.code} • Monthly: {formatAmount(monthlyRate)} • {totalPaidDays.toFixed(1)} Days @ {formatAmount(dailyRate)}/day
+                          </p>
                         </div>
                       </div>
-                    </td>
-                    <td className='text-right py-4 font-bold text-slate-600'>
-                      {payslip.standard_units} Days
-                    </td>
-                    <td className='text-right py-4 font-bold text-slate-600'>
-                      {formatAmount(dailyRate)} / day
                     </td>
                     <td className='text-right py-4 font-black text-slate-900'>
                       {formatAmount(proratedAmount)}
@@ -144,15 +139,11 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
                       <div className='w-1.5 h-1.5 bg-blue-600 rounded-full' />
                       <div>
                         <p className='font-bold text-slate-900'>Base Salary {idx > 0 ? ` (Segment ${idx + 1})` : ''}</p>
-                        <p className='text-[10px] text-slate-400 font-bold uppercase'>{seg.start_date} - {seg.end_date}</p>
+                        <p className='text-[10px] text-slate-400 font-bold uppercase'>
+                          {seg.start_date} - {seg.end_date} • {seg.paid_work_days.toFixed(1)} Days @ {formatAmount(seg.applied_base_salary)}
+                        </p>
                       </div>
                     </div>
-                  </td>
-                  <td className='text-right py-4 font-bold text-slate-600'>
-                    {seg.paid_work_days.toFixed(1)} Days
-                  </td>
-                  <td className='text-right py-4 font-bold text-slate-600'>
-                    {formatAmount(seg.applied_base_salary)}
                   </td>
                   <td className='text-right py-4 font-black text-slate-900'>
                     {formatAmount(seg.amount)}
@@ -166,13 +157,12 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
                   <td className='py-4'>
                     <div className='flex items-center gap-3'>
                       <div className='w-1.5 h-1.5 bg-emerald-500 rounded-full' />
-                      <p className='font-bold text-slate-900 uppercase'>Overtime Compensation</p>
+                      <div>
+                        <p className='font-bold text-slate-900 uppercase'>Overtime Compensation</p>
+                        <p className='text-[10px] text-slate-400 font-bold uppercase'>{payslip.overtime_units} Units</p>
+                      </div>
                     </div>
                   </td>
-                  <td className='text-right py-4 font-bold text-slate-600'>
-                    {payslip.overtime_units} Units
-                  </td>
-                  <td className='text-right py-4 font-bold text-slate-600'>---</td>
                   <td className='text-right py-4 font-black text-slate-900'>
                     {formatAmount(payslip.overtime_pay_amount)}
                   </td>
@@ -188,8 +178,6 @@ export default function PayslipDocument({ employee, payslip, workspace }: Paysli
                       <p className='font-bold text-slate-900 uppercase'>{inc.policy_name}</p>
                     </div>
                   </td>
-                  <td className='text-right py-4 font-bold text-slate-600'>---</td>
-                  <td className='text-right py-4 font-bold text-slate-600'>---</td>
                   <td className='text-right py-4 font-black text-slate-900'>
                     {formatAmount(inc.amount)}
                   </td>
