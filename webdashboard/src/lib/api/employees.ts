@@ -1,14 +1,18 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
-import { Employee, EmploymentPeriod, EmployeeDepartmentHistory, WorkingCondition } from "./types";
+import { Employee, EmploymentPeriod, EmployeeDepartmentHistory, WorkingCondition, PaginatedResponse } from "./types";
 
-export async function fetchEmployees(wsId: string): Promise<Employee[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees`);
+export async function fetchEmployees(
+  wsId: string,
+  page = 1,
+  limit = 50
+): Promise<PaginatedResponse<Employee>> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/employees?page=${page}&limit=${limit}`
+  );
   if (!response.ok) throw new Error("Failed to fetch employees");
   return response.json();
 }
-
-// ... existing search, fetchEmployee, fetchEmploymentHistory, rehireEmployee ...
 
 export async function fetchWorkingConditions(wsId: string, employeeId: string): Promise<WorkingCondition[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/conditions`);
@@ -36,11 +40,18 @@ export async function deleteWorkingCondition(wsId: string, employeeId: string, c
   if (!response.ok) throw new Error("Failed to delete working condition");
 }
 
-export async function searchEmployees(wsId: string, query: string): Promise<Employee[]> {
+export async function searchEmployees(
+  wsId: string, 
+  query: string,
+  page = 1,
+  limit = 50
+): Promise<PaginatedResponse<Employee>> {
   const queryParams = new URLSearchParams();
   if (query) {
     queryParams.append("q", query);
   }
+  queryParams.append("page", page.toString());
+  queryParams.append("limit", limit.toString());
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees?${queryParams.toString()}`);
   if (!response.ok) throw new Error("Failed to search employees");
   return response.json();

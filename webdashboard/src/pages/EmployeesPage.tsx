@@ -45,6 +45,7 @@ import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
 import { useToast } from "@/components/Toast";
 import { cn } from "@/lib/utils";
+import PaginationControls from "@/components/common/PaginationControls";
 
 import AttendanceImportDialog from "@/components/AttendanceImportDialog";
 import WorkingConditionConfig from "@/components/employees/WorkingConditionConfig";
@@ -62,6 +63,8 @@ export default function EmployeesPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeDetailTab, setActiveDetailTab] = useState<DetailTabType>("profile");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -69,11 +72,15 @@ export default function EmployeesPage() {
   const [selectedDeptId, setSelectedDeptId] = useState<string>("");
 
   const debouncedSearch = useDebounce(searchTerm, 500);
-  const { data: employees = [], isLoading } = useQuery({ 
-    queryKey: ["employees", wsId, debouncedSearch], 
-    queryFn: () => searchEmployees(wsId, debouncedSearch), 
-    enabled: !!wsId 
+  useEffect(() => { setPage(1); }, [debouncedSearch]);
+  const { data: employeesData, isLoading } = useQuery({
+    queryKey: ["employees", wsId, debouncedSearch, page, pageSize],
+    queryFn: () => searchEmployees(wsId, debouncedSearch, page, pageSize),
+    enabled: !!wsId
   });
+  const employees = employeesData?.data || [];
+  const totalItems = employeesData?.total || 0;
+  const totalPages = Math.ceil(totalItems / pageSize);
   const { data: departments } = useQuery({ queryKey: ["departments", wsId], queryFn: () => fetchDepartments(wsId), enabled: !!wsId });
   const { data: deptHistory } = useQuery({ queryKey: ["deptHistory", selectedEmployee?.id], queryFn: () => fetchEmployeeDepartmentHistory(wsId, selectedEmployee!.id), enabled: !!selectedEmployee });
   const { data: employmentHistory } = useQuery({ queryKey: ["employmentHistory", selectedEmployee?.id], queryFn: () => fetchEmploymentHistory(wsId, selectedEmployee!.id), enabled: !!selectedEmployee });
@@ -139,6 +146,16 @@ export default function EmployeesPage() {
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary-500 transition-colors" size={20} />
           <input data-testid="employee-search" type="text" placeholder={t("employees.search_placeholder")} className="w-full pl-14 pr-8 py-4.5 bg-white border border-slate-100 rounded-[1.75rem] shadow-xl shadow-slate-900/5 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white transition-all font-black text-sm uppercase tracking-tight" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
+        <div className="px-2 pt-2">
+          <PaginationControls
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            pageSize={pageSize}
+            totalItems={totalItems}
+            onPageSizeChange={setPageSize}
+          />
+        </div>
 
         <div className="bg-white border border-slate-100 rounded-[2.5rem] flex-1 overflow-auto shadow-sm p-2">
           <table className="w-full text-left border-collapse">
@@ -176,8 +193,17 @@ export default function EmployeesPage() {
             </tbody>
           </table>
         </div>
+        <div className="px-2 py-4 shadow-inner bg-slate-50/30 rounded-b-[2.5rem] border-t border-slate-100">
+          <PaginationControls
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            pageSize={pageSize}
+            totalItems={totalItems}
+            onPageSizeChange={setPageSize}
+          />
+        </div>
       </div>
-
       {selectedEmployee && (
         <div className="flex-1 bg-white border border-slate-100 rounded-[3rem] flex flex-col shadow-premium-2xl overflow-hidden animate-in slide-in-from-right duration-700">
           <div className="p-10 border-b border-slate-50 bg-slate-50/30">

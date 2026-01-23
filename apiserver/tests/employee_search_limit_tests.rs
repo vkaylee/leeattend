@@ -81,8 +81,10 @@ async fn test_employee_search_limit_50() {
 
     assert_eq!(response.status(), StatusCode::OK);
     let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
-    let employees: Vec<Employee> = serde_json::from_slice(&body).unwrap();
-    assert_eq!(employees.len(), 50, "Search results should be limited to 50");
+    let response_data: apiserver::models::PaginatedResponse<Employee> = serde_json::from_slice(&body).unwrap();
+    let employees = response_data.data;
+    assert_eq!(employees.len(), 50, "Search results should be limited to 50 by default");
+    assert_eq!(response_data.total, 60);
 }
 
 #[tokio::test]
@@ -133,6 +135,8 @@ async fn test_employee_list_no_limit() {
 
     assert_eq!(response.status(), StatusCode::OK);
     let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
-    let employees: Vec<Employee> = serde_json::from_slice(&body).unwrap();
-    assert!(employees.len() > 50, "Full list should not be limited to 50");
+    let response_data: apiserver::models::PaginatedResponse<Employee> = serde_json::from_slice(&body).unwrap();
+    let employees = response_data.data;
+    assert_eq!(employees.len(), 50, "Full list should be paginated to 50 by default");
+    assert_eq!(response_data.total, 60);
 }

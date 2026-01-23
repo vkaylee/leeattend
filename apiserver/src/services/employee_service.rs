@@ -229,8 +229,10 @@ impl EmployeeService {
         pool: &PgPool,
         workspace_id: Uuid,
         search_query: Option<String>,
-    ) -> Result<Vec<Employee>, StatusCode> {
-        employee_repository::get_all_employees(pool, workspace_id, search_query)
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<Employee>, i64), StatusCode> {
+        employee_repository::get_all_employees(pool, workspace_id, search_query, page, limit)
             .await
             .map_err(|e| {
                 eprintln!("Error getting all employees: {:?}", e);

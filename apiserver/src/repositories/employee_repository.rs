@@ -187,29 +187,43 @@ pub async fn get_all_employees(
     pool: &PgPool,
     workspace_id: Uuid,
     search_query: Option<String>,
-) -> Result<Vec<Employee>, sqlx::Error> {
-    let mut sql = format!("{} WHERE e.workspace_id = $1", EMPLOYEE_SELECT_QUERY);
+    page: i64,
+    limit: i64,
+) -> Result<(Vec<Employee>, i64), sqlx::Error> {
+    let mut where_clause = "WHERE e.workspace_id = $1".to_string();
+    if let Some(ref q) = search_query {
+        if !q.trim().is_empty() {
+            where_clause.push_str(" AND (e.full_name ILIKE $2 OR e.employee_id_number ILIKE $2)");
+        }
+    }
+
+    let count_sql = format!("SELECT COUNT(*) FROM employees e {}", where_clause);
+    let mut count_query = query_scalar::<_, i64>(&count_sql).bind(workspace_id);
+
+    let sql = format!(
+        "{} {} ORDER BY e.full_name LIMIT $3 OFFSET $4",
+        EMPLOYEE_SELECT_QUERY, where_clause
+    );
+    let mut db_query = query_as::<_, Employee>(&sql).bind(workspace_id);
 
     if let Some(ref q) = search_query {
         if !q.trim().is_empty() {
-            sql.push_str(" AND (e.full_name ILIKE $2 OR e.employee_id_number ILIKE $2)");
+            let bound_q = format!("%{}%", q.trim());
+            count_query = count_query.bind(bound_q.clone());
+            db_query = db_query.bind(bound_q);
+        } else {
+            db_query = db_query.bind(Option::<String>::None);
         }
+    } else {
+        db_query = db_query.bind(Option::<String>::None);
     }
 
-    sql.push_str(" ORDER BY e.full_name");
+    let total = count_query.fetch_one(pool).await?;
 
-    if search_query.is_some() {
-        sql.push_str(" LIMIT 50");
-    }
+    let offset = (page - 1) * limit;
+    let employees = db_query.bind(limit).bind(offset).fetch_all(pool).await?;
 
-    let mut db_query = query_as::<_, Employee>(&sql).bind(workspace_id);
-
-    if let Some(q) = search_query {
-        if !q.trim().is_empty() {
-            db_query = db_query.bind(format!("%{}%", q.trim()));
-        }
-    }
-    db_query.fetch_all(pool).await
+    Ok((employees, total))
 }
 
 #[allow(clippy::too_many_arguments)]

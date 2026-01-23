@@ -8,10 +8,9 @@ use uuid::Uuid;
 
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmployeeDepartmentHistory, EmployeeSearchQuery,
-    RehireEmployeeRequest, TransferEmployeeRequest, UpdateEmployeeRequest,
+    CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmployeeDepartmentHistory, 
+    PaginatedResponse, PaginationParams, RehireEmployeeRequest, TransferEmployeeRequest, UpdateEmployeeRequest,
 };
-
 pub async fn get_working_conditions(
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -60,10 +59,18 @@ pub async fn get_employees(
     Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
-    Query(query): Query<EmployeeSearchQuery>,
+    Query(query): Query<PaginationParams>,
 ) -> impl IntoResponse {
-    match EmployeeService::get_all_employees(&state.db, workspace_id, query.q).await {
-        Ok(employees) => Json(employees).into_response(),
+    let page = query.page.unwrap_or(1);
+    let limit = query.limit.unwrap_or(50);
+    match EmployeeService::get_all_employees(&state.db, workspace_id, query.q, page, limit).await {
+        Ok((data, total)) => Json(PaginatedResponse {
+            data,
+            total: total as usize,
+            page,
+            limit,
+        })
+        .into_response(),
         Err(status) => status.into_response(),
     }
 }
