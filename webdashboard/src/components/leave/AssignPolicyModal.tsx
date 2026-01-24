@@ -30,7 +30,8 @@ export function AssignPolicyModal({ isOpen, onClose, wsId }: AssignPolicyModalPr
   const [assignDeptId, setAssignDeptId] = useState<string>("");
   const [assignPolicyId, setAssignPolicyId] = useState<string>("");
 
-  const { data: employees = [], isLoading: employeesLoading } = useQuery({ queryKey: ["employees", wsId], queryFn: () => fetchEmployees(wsId!), enabled: isOpen && !!wsId });
+  const { data: employeesData, isLoading: employeesLoading } = useQuery({ queryKey: ["employees", wsId], queryFn: () => fetchEmployees(wsId!, 1, 3000), enabled: isOpen && !!wsId });
+  const employees = employeesData?.data || [];
   const { data: departments = [], isLoading: departmentsLoading } = useQuery({ queryKey: ["departments", wsId], queryFn: () => fetchDepartments(wsId!), enabled: isOpen && !!wsId });
   const { data: policies = [], isLoading: policiesLoading } = useQuery({ queryKey: ["leave-policies", wsId], queryFn: () => fetchLeavePolicies(wsId!), enabled: isOpen && !!wsId });
 

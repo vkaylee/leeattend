@@ -46,7 +46,8 @@ export default function LeaveRequestsPage() {
   const [leaveType, setLeaveType] = useState<string>("vacation");
   const [policyType, setPolicyType] = useState<string>("vacation");
 
-  const { data: employees = [] } = useQuery({ queryKey: ["employees", wsId], queryFn: () => fetchEmployees(wsId!), enabled: !!wsId });
+  const { data: employeesData } = useQuery({ queryKey: ["employees", wsId], queryFn: () => fetchEmployees(wsId!, 1, 3000), enabled: !!wsId });
+  const employees = employeesData?.data || [];
   const { data: balances = [] } = useQuery({ queryKey: ["leave-balances", wsId, selectedEmpId], queryFn: () => fetchEmployeeLeaveBalances(wsId!, selectedEmpId), enabled: !!wsId && !!selectedEmpId });
   const { data: requests = [], isLoading: requestsLoading } = useQuery({ queryKey: ["leave-requests", wsId, activeTab], queryFn: () => fetchWorkspaceLeaveRequests(wsId!, activeTab), enabled: !!wsId && activeTab !== "policies" });
   const { data: policies = [], isLoading: policiesLoading } = useQuery({ queryKey: ["leave-policies", wsId], queryFn: () => fetchLeavePolicies(wsId!), enabled: !!wsId });

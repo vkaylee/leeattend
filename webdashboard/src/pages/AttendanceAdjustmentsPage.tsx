@@ -40,11 +40,12 @@ export default function AttendanceAdjustmentsPage() {
     queryFn: () => fetchWorkspaceAttendanceAdjustments(wsId!, activeTab), 
     enabled: !!wsId 
   });
-  const { data: employees = [] } = useQuery({ 
+  const { data: employeesData } = useQuery({ 
     queryKey: ["employees", wsId], 
-    queryFn: () => fetchEmployees(wsId!), 
+    queryFn: () => fetchEmployees(wsId!, 1, 3000), 
     enabled: !!wsId 
   });
+  const employees = employeesData?.data || [];
 
   const approveMutation = useMutation({
     mutationFn: (data: { id: string; status: string }) => approveAttendanceAdjustment(wsId!, data.id, { status: data.status }),

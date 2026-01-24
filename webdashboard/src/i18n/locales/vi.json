@@ -1,5 +1,6 @@
 {
   "common": {
+    "search": "Tìm kiếm...",
     "dashboard": "Bảng điều khiển",
     "workspace_settings": {
       "title": "Cài đặt Workspace",

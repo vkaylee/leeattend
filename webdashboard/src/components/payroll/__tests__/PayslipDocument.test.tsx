@@ -152,8 +152,8 @@ describe("PayslipDocument", () => {
     );
 
     expect(screen.getByText("Tech Corp Vietnam")).toBeDefined();
-    expect(screen.getByText(/Attendance & Payroll System/)).toBeDefined();
-    expect(screen.getByText("Verified Document")).toBeDefined();
+    expect(screen.getByText("payroll.document.system_subtitle")).toBeDefined();
+    expect(screen.getByText("payroll.document.verified")).toBeDefined();
   });
 
   it("displays fallback workspace name when null", () => {
@@ -177,7 +177,7 @@ describe("PayslipDocument", () => {
       />
     );
 
-    expect(screen.getByText("Pay Slip")).toBeDefined();
+    expect(screen.getByText("payroll.document.title")).toBeDefined();
     // Check period dates are shown
     expect(screen.getByText(/01\/01\/2026/)).toBeDefined();
     expect(screen.getByText(/31\/01\/2026/)).toBeDefined();
@@ -196,7 +196,7 @@ describe("PayslipDocument", () => {
       />
     );
 
-    expect(screen.getByText("Employee Details")).toBeDefined();
+    expect(screen.getByText("payroll.document.employee_details")).toBeDefined();
     // CSS uppercase class makes text display uppercase, but DOM text remains original
     expect(screen.getByText("Nguyen Van A")).toBeDefined();
     expect(screen.getByText("EMP001")).toBeDefined();
@@ -212,7 +212,7 @@ describe("PayslipDocument", () => {
       />
     );
 
-    expect(screen.getByText("Net Payment")).toBeDefined();
+    expect(screen.getByText("payroll.document.net_payment")).toBeDefined();
     expect(screen.getByText("Paid via Bank Transfer")).toBeDefined();
   });
 
@@ -414,7 +414,7 @@ describe("PayslipDocument", () => {
     }
     
     // If it survives, check if it rendered the document shell
-    expect(screen.getByText("Pay Slip")).toBeDefined();
+    expect(screen.getByText("payroll.document.title")).toBeDefined();
   });
 
   it("renders overtime section when present", () => {

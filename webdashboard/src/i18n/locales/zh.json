@@ -1,5 +1,6 @@
 {
   "common": {
+    "search": "搜索...",
     "dashboard": "仪表板",
     "workspace_settings": {
       "title": "工作空间设置",

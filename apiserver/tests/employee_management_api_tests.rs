@@ -280,7 +280,8 @@ async fn test_get_employees_search() {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .unwrap();
-    let employees: Vec<Employee> = serde_json::from_slice(&body).unwrap();
+    let res: apiserver::models::PaginatedResponse<Employee> = serde_json::from_slice(&body).unwrap();
+    let employees = res.data;
     assert_eq!(employees.len(), 1);
     assert_eq!(employees[0].full_name, "Alice Wonder");
 
@@ -303,11 +304,11 @@ async fn test_get_employees_search() {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .unwrap();
-    let employees: Vec<Employee> = serde_json::from_slice(&body).unwrap();
+    let res: apiserver::models::PaginatedResponse<Employee> = serde_json::from_slice(&body).unwrap();
+    let employees = res.data;
     assert_eq!(employees.len(), 1);
     assert_eq!(employees[0].full_name, "Bob Builder");
 }
-
 #[tokio::test]
 async fn test_update_employee_complex() {
     let (_test_db, factory, app) = setup_app().await;

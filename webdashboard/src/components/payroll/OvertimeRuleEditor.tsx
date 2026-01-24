@@ -163,8 +163,8 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
                 onClick={() => addMutation.mutate({
                   priority,
                   multiplier,
-                  time_start: startTime || null,
-                  time_end: endTime || null,
+                  time_start: startTime || undefined,
+                  time_end: endTime || undefined,
                   days_of_week: days,
                   is_holiday: isHoliday
                 })}

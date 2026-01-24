@@ -106,11 +106,12 @@ export default function ShiftsPage() {
   const [correctionEffectiveDate, setCorrectionEffectiveDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   // Queries
-  const { data: employees } = useQuery({
+  const { data: employeesData } = useQuery({
     queryKey: ["employees", wsId],
-    queryFn: () => fetchEmployees(wsId),
+    queryFn: () => fetchEmployees(wsId, 1, 3000),
     enabled: !!wsId,
   });
+  const employees = employeesData?.data || [];
 
   const { data: shifts } = useQuery({
     queryKey: ["shifts", wsId],
@@ -320,7 +321,7 @@ export default function ShiftsPage() {
     setCorrectionEffectiveDate(format(new Date(), 'yyyy-MM-dd'));
   };
 
-  const employeeOptions = employees?.map(emp => ({
+  const employeeOptions = employees.map(emp => ({
     value: emp.id, label: emp.full_name, description: emp.employee_id_number,
     icon: <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">{emp.full_name[0]}</div>
   })) || [];
@@ -362,7 +363,7 @@ export default function ShiftsPage() {
         {activeTab !== "directory" && (
           <div className="max-w-md mb-8">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block ml-1">{t("common.employees")}</label>
-            <Combobox data-testid="employee-select" options={employeeOptions} value={selectedEmployee?.id} onChange={(id) => setSelectedEmployee(employees?.find(e => e.id === id) || null)} placeholder={t("shifts.empty_state.title")} searchPlaceholder={t("common.search_employee")} className="bg-white border-slate-200 shadow-sm h-12 rounded-[20px]" />
+            <Combobox data-testid="employee-select" options={employeeOptions} value={selectedEmployee?.id} onChange={(id) => setSelectedEmployee(employees.find(e => e.id === id) || null)} placeholder={t("shifts.empty_state.title")} searchPlaceholder={t("common.search_employee")} className="bg-white border-slate-200 shadow-sm h-12 rounded-[20px]" />
           </div>
         )}
 

@@ -1,5 +1,6 @@
 {
   "common": {
+    "search": "Search...",
     "dashboard": "Dashboard",
     "workspace_settings": {
       "title": "Workspace Settings",

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -16,11 +16,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { 
-  fetchEmployees, 
-  fetchEmployeePayslips, 
+import {
+  fetchEmployees,
+  searchEmployees,
+  fetchEmployeePayslips,
   fetchWorkspacePayslips,
-  calculate_payroll, 
+  calculate_payroll,
   getCurrentWorkspaceId,
   fetchWorkspaceAttendanceAdjustments,
   Employee,
@@ -56,6 +57,15 @@ export default function PayrollPage() {
   const [isBatchCalcModalOpen, setIsBatchCalcModalOpen] = useState(false);
   const [isAdjustmentDrawerOpen, setIsAdjustmentDrawerOpen] = useState(false);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
+
+  // Debounce search term for server-side search
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
   
   const [calcYear, setCalcYear] = useState(() => {
     const d = new Date();
@@ -68,17 +78,32 @@ export default function PayrollPage() {
     return d.getMonth() + 1;
   });
 
-  const { data: employees = [], isLoading: empsLoading } = useQuery({
-    queryKey: ["employees", wsId],
-    queryFn: () => fetchEmployees(wsId),
+  // Use server-side search when search term exists, otherwise fetch all employees
+  const { data: employeesData, isLoading: empsLoading } = useQuery({
+    queryKey: ["employees", wsId, debouncedSearchTerm],
+    queryFn: () => {
+      if (debouncedSearchTerm.trim()) {
+        // Server-side search with higher limit to show more results
+        return searchEmployees(wsId, debouncedSearchTerm, 1, 100);
+      }
+      // Fetch all employees (up to 3000)
+      return fetchEmployees(wsId, 1, 3000);
+    },
     enabled: !!wsId,
   });
 
-  const { data: workspacePayslips = [], isLoading: workspacePayslipsLoading } = useQuery({
+  const employees = employeesData?.data ?? [];
+
+  const { data: workspacePayslipsData = [], isLoading: workspacePayslipsLoading } = useQuery({
     queryKey: ["workspace-payslips", wsId, calcYear, calcMonth],
     queryFn: () => fetchWorkspacePayslips(wsId, calcYear, calcMonth),
     enabled: !!wsId,
   });
+
+  // Handle both paginated and direct array responses for backwards compatibility
+  const workspacePayslips = Array.isArray(workspacePayslipsData)
+    ? workspacePayslipsData
+    : workspacePayslipsData?.data ?? [];
 
   const { data: employeePayslips = [], isLoading: employeePayslipsLoading } = useQuery({
     queryKey: ["payslips", selectedEmployee?.id],
@@ -109,12 +134,9 @@ export default function PayrollPage() {
       return;
     }
 
-    const employeesToSelect = employees.filter(emp => 
-      emp.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.employee_id_number.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    if (selectedIds.size === employeesToSelect.length) setSelectedIds(new Set());
-    else setSelectedIds(new Set(employeesToSelect.map(e => e.id)));
+    // Server-side search already filters employees, so use all visible employees
+    if (selectedIds.size === employees.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(employees.map(e => e.id)));
   };
 
   const toggleSelect = (id: string) => {

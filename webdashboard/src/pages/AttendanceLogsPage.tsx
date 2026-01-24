@@ -95,7 +95,8 @@ export default function AttendanceLogsPage() {
     setDateRange({ start, end });
   };
 
-  const { data: employees } = useQuery({ queryKey: ["employees", wsId], queryFn: () => fetchEmployees(wsId!), enabled: !!wsId });
+  const { data: employeesData } = useQuery({ queryKey: ["employees", wsId], queryFn: () => fetchEmployees(wsId!, 1, 3000), enabled: !!wsId });
+  const employees = employeesData?.data || [];
   const { data, isLoading } = useQuery({
     queryKey: ["attendance-raw-logs", wsId, employeeId, dateRange, page],
     queryFn: () => {
@@ -106,8 +107,8 @@ export default function AttendanceLogsPage() {
     enabled: !!wsId,
   });
 
-  const getEmployeeName = (id: string) => { const emp = employees?.find(e => e.id === id); return emp ? emp.full_name : t("common.system"); };
-  const getEmployeeID = (id: string) => { const emp = employees?.find(e => e.id === id); return emp ? emp.employee_id_number : ""; };
+  const getEmployeeName = (id: string) => { const emp = employees.find(e => e.id === id); return emp ? emp.full_name : t("common.system"); };
+  const getEmployeeID = (id: string) => { const emp = employees.find(e => e.id === id); return emp ? emp.employee_id_number : ""; };
   const totalPages = Math.ceil((data?.total || 0) / limit);
 
   return (

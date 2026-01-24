@@ -1,16 +1,11 @@
-import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
-import { User, X } from "lucide-react";
-import { Combobox } from "../ui/Combobox";
-import { useDebounce } from "../../hooks/use-debounce";
-import { searchEmployees } from "../../lib/api";
-
-interface Employee {
-  id: string;
-  full_name: string;
-  employee_id_number: string;
-}
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import { User, X } from 'lucide-react';
+import { Combobox } from '../ui/Combobox';
+import { useDebounce } from '../../hooks/use-debounce';
+import { searchEmployees } from '../../lib/api';
+import { Employee } from '../../lib/api/types';
 
 interface EmployeeSearchProps {
   workspaceId: string;
@@ -19,7 +14,7 @@ interface EmployeeSearchProps {
   placeholder?: string;
   className?: string;
   id?: string;
-  "data-testid"?: string;
+  'data-testid'?: string;
   multiple?: boolean;
 }
 
@@ -34,22 +29,23 @@ export function EmployeeSearch({
   placeholder,
   className,
   id,
-  "data-testid": testId,
+  'data-testid': testId,
   multiple = false,
 }: EmployeeSearchProps) {
   const { t } = useTranslation();
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 400);
 
   // Fetch employees with debounced query
-  const { data: employees = [], isLoading } = useQuery<Employee[]>({
-    queryKey: ["employees", workspaceId, "search", debouncedSearchTerm],
+  const { data: employeesData, isLoading } = useQuery({
+    queryKey: ['employees', workspaceId, 'search', debouncedSearchTerm],
     queryFn: () => searchEmployees(workspaceId, debouncedSearchTerm),
     enabled: !!workspaceId,
   });
 
+  const employees = employeesData?.data || [];
+
   // Keep track of selected employee objects to show their names in chips
-  // (Alternatively, we could fetch full details for the IDs in 'value')
   const [selectedMeta, setSelectedMeta] = useState<Employee[]>([]);
 
   const selectedIds = React.useMemo(() => 
@@ -83,7 +79,7 @@ export function EmployeeSearch({
       if (!current.includes(selectedId)) {
         onChange([...current, selectedId]);
       }
-      setSearchTerm(""); // Reset for next search
+      setSearchTerm(''); // Reset for next search
     } else {
       onChange(selectedId);
     }
@@ -96,20 +92,15 @@ export function EmployeeSearch({
   };
 
   // Transform to Combobox options
-  // In multi-mode, we hide already selected items from the dropdown list.
-  // In single-mode, we keep them visible so the user can see which one is selected.
   const baseOptions = employees
     .filter(emp => !multiple || !selectedIds.includes(emp.id)) 
     .map((emp) => ({
       value: emp.id,
       label: emp.full_name,
       description: emp.employee_id_number,
-      icon: <User className="h-4 w-4 text-slate-400" />,
+      icon: <User className='h-4 w-4 text-slate-400' />,
     }));
 
-  // Ensure currently selected items are in the options list 
-  // (even if they were filtered out by server-side search)
-  // so the Combobox trigger can always find their labels.
   const extraOptions = selectedMeta
     .filter(m => selectedIds.includes(m.id))
     .filter(m => !baseOptions.find(opt => opt.value === m.id))
@@ -117,47 +108,45 @@ export function EmployeeSearch({
       value: m.id,
       label: m.full_name,
       description: m.employee_id_number,
-      icon: <User className="h-4 w-4 text-slate-400" />,
+      icon: <User className='h-4 w-4 text-slate-400' />,
     }));
 
   const options = [...extraOptions, ...baseOptions];
 
   return (
-    <div className={`space-y-2 ${className}`}>
-      {multiple && selectedIds.length > 0 && (
-        <div className="flex flex-wrap gap-2 px-1">
-          {selectedIds.map(id => {
-            const meta = selectedMeta.find(m => m.id === id);
-            return (
-              <span 
-                key={id}
-                className="inline-flex items-center gap-2 bg-white text-primary-600 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-tight border border-primary-100 shadow-sm animate-in fade-in zoom-in-95 duration-300"
-              >
-                <User size={12} className="opacity-50" />
-                {meta ? meta.full_name : id.slice(0, 8)}
-                <button 
-                  onClick={() => handleRemove(id)}
-                  className="hover:bg-rose-50 hover:text-rose-600 rounded-lg p-1 transition-all active:scale-90"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </span>
-            );
-          })}
-        </div>
-      )}
-      
+    <div className={'space-y-2 ' + (className || '')}>
       <Combobox
         id={id}
         data-testid={testId}
         options={options}
-        value={multiple ? undefined : (value as string || "")}
+        value={multiple ? '' : (Array.isArray(value) ? '' : (value || ''))}
         onChange={handleSelect}
+        placeholder={placeholder || t('common.search')}
         onSearchChange={setSearchTerm}
-        placeholder={placeholder || t("employees.search.placeholder")}
-        searchPlaceholder={t("employees.search.input_placeholder")}
-        emptyText={isLoading ? t("common.loading") : t("employees.search.no_results")}
       />
+
+      {multiple && selectedIds.length > 0 && (
+        <div className='flex flex-wrap gap-2'>
+          {selectedIds.map(id => {
+            const meta = selectedMeta.find(m => m.id === id);
+            return (
+              <div
+                key={id}
+                className='flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium border border-slate-200'
+              >
+                <span>{meta?.full_name || id}</span>
+                <button
+                  type='button'
+                  onClick={() => handleRemove(id)}
+                  className='hover:text-rose-500 transition-colors'
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
