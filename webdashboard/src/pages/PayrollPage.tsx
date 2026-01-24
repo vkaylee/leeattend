@@ -92,7 +92,7 @@ export default function PayrollPage() {
     enabled: !!wsId,
   });
 
-  const employees = employeesData?.data ?? [];
+  const employees = React.useMemo(() => employeesData?.data ?? [], [employeesData?.data]);
 
   const { data: workspacePayslipsData = [], isLoading: workspacePayslipsLoading } = useQuery({
     queryKey: ["workspace-payslips", wsId, calcYear, calcMonth],

@@ -43,7 +43,7 @@ export function EmployeeSearch({
     enabled: !!workspaceId,
   });
 
-  const employees = employeesData?.data || [];
+  const employees = React.useMemo(() => employeesData?.data || [], [employeesData?.data]);
 
   // Keep track of selected employee objects to show their names in chips
   const [selectedMeta, setSelectedMeta] = useState<Employee[]>([]);

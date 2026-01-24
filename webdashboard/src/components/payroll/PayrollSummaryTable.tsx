@@ -56,6 +56,7 @@ export default function PayrollSummaryTable({
   }, [employees, searchTerm]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentPage(1);
   }, [searchTerm]);
 

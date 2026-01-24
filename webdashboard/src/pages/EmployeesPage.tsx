@@ -72,7 +72,9 @@ export default function EmployeesPage() {
   const [selectedDeptId, setSelectedDeptId] = useState<string>("");
 
   const debouncedSearch = useDebounce(searchTerm, 500);
-  useEffect(() => { setPage(1); }, [debouncedSearch]);
+  useEffect(() => { 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPage(1); }, [debouncedSearch]);
   const { data: employeesData, isLoading } = useQuery({
     queryKey: ["employees", wsId, debouncedSearch, page, pageSize],
     queryFn: () => searchEmployees(wsId, debouncedSearch, page, pageSize),

@@ -20,7 +20,6 @@ vi.mock('../../lib/api', async () => {
     getCurrentWorkspaceId: vi.fn(() => 'test-ws-id'),
     fetchWorkspaceAttendanceAdjustments: vi.fn(),
     fetchWorkspace: vi.fn(),
-    fetchWorkspaceStats: vi.fn(),
   };
 });
 
@@ -47,7 +46,6 @@ describe('PayrollPage', () => {
       limit: 100,
     });
     (api.fetchWorkspace as any).mockResolvedValue({ id: 'test-ws-id', name: 'Test Workspace' });
-    (api.fetchWorkspaceStats as any).mockResolvedValue({ total_employees: 0, active_today: 0, on_leave: 0, pending_adjustments: 0 });
     (api.fetchEmployeePayslips as any).mockResolvedValue([]);
     (api.fetchWorkspacePayslips as any).mockResolvedValue([]);
     (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([]);

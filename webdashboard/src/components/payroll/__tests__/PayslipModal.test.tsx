@@ -291,7 +291,6 @@ describe("PayslipModal", () => {
     const malformedPayslip = {
         ...mockPayslip,
         salary_components: [
-            // @ts-ignore - Simulating runtime data mismatch
             { component: { amount: '1000000' } } // Missing definition
         ]
     } as unknown as Payslip;

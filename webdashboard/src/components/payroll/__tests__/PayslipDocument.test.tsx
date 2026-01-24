@@ -349,7 +349,7 @@ describe("PayslipDocument", () => {
     // Wait, the component uses Intl.NumberFormat('vi-VN'). 
     // In node environment, full ICU might not be available or might differ.
     // But usually Vitest/JSDOM supports it reasonably well.
-    // 5,000,000 VND formatted is usually "5.000.000 ₫" or "5.000.000 ₫" (nbsp).
+    // 5,000,000 VND formatted is usually "5.000.000 ₫" or "5.000.000 ₫" (nbsp).
     
     // Let's use a regex to be safe about spacing/currency symbol
     expect(screen.getByText(/5\.000\.000/)).toBeDefined();
@@ -400,7 +400,6 @@ describe("PayslipDocument", () => {
 
     // This should NOT crash the entire component
     // We expect it might fail to render that row, or render empty, but not throw
-    try {
       renderWithProviders(
         <PayslipDocument
           employee={createMockEmployee()}
@@ -408,10 +407,6 @@ describe("PayslipDocument", () => {
           workspace={createMockWorkspace()}
         />
       );
-    } catch (e) {
-      // If it crashes, we want to know
-      throw e;
-    }
     
     // If it survives, check if it rendered the document shell
     expect(screen.getByText("payroll.document.title")).toBeDefined();
