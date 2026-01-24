@@ -92,3 +92,19 @@ The payroll engine is built on three complementary layers working in tandem:
 - **Backend Search Limit**: Enforced a `LIMIT 50` on employee searches at the repository level (`employee_repository.rs`) to prevent client-side lag and database overhead in large workspaces (3000+ employees).
 - **Asynchronous UI Patterns**: Refactored major lists (Employees Page, Overtime Assignment) to use a debounced server-side search pattern via the reusable `EmployeeSearch` and `Combobox` components.
 - **Test Reliability Standards**: Adopted `data-testid` based locators as the primary standard for all new and refactored UI components to ensure E2E test resilience against i18n changes.
+
+## ⚡ Payroll & Policy Engine
+
+The payroll system has been upgraded with a **Flexible Overtime Policy Engine**:
+
+- **Granular Control**: Define overtime rules based on:
+  - **Daily Thresholds**: E.g., >8 hours triggers x1.5 rate.
+  - **Weekly Thresholds**: E.g., >40 hours triggers x2.0 rate.
+  - **Day Types**: Specific multipliers for Rest Days and Holidays.
+- **Priority Logic**: Rules are evaluated in a specific order, allowing complex tiered compensation structures.
+- **Visual Management**: A new **Overtime Policy Manager** in the web dashboard allows HR administrators to create, edit, and assign policies visually.
+
+## 🚀 Performance Optimizations
+
+- **Denormalized Access**: The `time_entries` table now includes a direct `workspace_id` column (migrated via `20260124000000_add_workspace_id_to_time_entries.sql`). This removes the need for costly joins with the `employees` table during high-volume workspace-level reporting and simplifies Row-Level Security (RLS) policies.
+- **Optimized Pagination**: Employee lists now support server-side search and pagination with optimized SQL queries to handle large workforces efficiently.

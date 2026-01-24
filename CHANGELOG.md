@@ -34,3 +34,7 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ### Changed
 - **Payroll Transparency**: Added `standard_amount` to `IncentiveEvaluationResult` for better auditability.
+
+### Documentation
+- Updated `codebase-summary.md` with details on the new Overtime Engine and Performance Optimizations.
+- Updated `api-reference.md` to reflect the new `workspace_id` field in TimeEntry responses.

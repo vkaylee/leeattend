@@ -278,6 +278,7 @@ Lấy toàn bộ lịch sử các giai đoạn làm việc (Employment Periods) 
     {
       "id": "uuid",
       "employee_id": "uuid",
+      "workspace_id": "uuid",
       "hire_date": "2024-01-01",
       "termination_date": "2025-12-31",
       "is_rehire": false,
@@ -345,7 +346,8 @@ Ghi nhận giờ vào làm hoặc bắt đầu nghỉ giải lao.
 - **Request**: 
   ```json
   { 
-    "employee_id": "uuid", 
+    "employee_id": "uuid",
+      "workspace_id": "uuid", 
     "entry_type": "work|break", 
     "is_break_overtime": false, 
     "note": "Ghi chú tùy chọn" 
@@ -407,6 +409,7 @@ Get leave balances for all employees in the workspace. Supports pagination and s
   "data": [
     {
       "employee_id": "uuid",
+      "workspace_id": "uuid",
       "employee_name": "Full Name",
       "leave_type": "annual",
       "entitlement": 12,
@@ -593,6 +596,7 @@ Lấy danh sách các phiên làm việc (sessions) đã được ghép cặp.
     {
       "id": "uuid",
       "employee_id": "uuid",
+      "workspace_id": "uuid",
       "punch_in": "2026-01-14T08:00:00Z",
       "punch_out": "2026-01-14T17:00:00Z",
       "work_units": 8.0,
@@ -615,6 +619,7 @@ Lấy danh sách nhật ký quẹt thẻ thô (nguyên bản) từ thiết bị 
     {
       "id": "uuid",
       "employee_id": "uuid",
+      "workspace_id": "uuid",
       "punch_time": "2026-01-14T08:00:00Z",
       "source": "device|import|manual",
       "device_id": "string-or-null",
@@ -657,6 +662,7 @@ Lưu thông tin chi tiết phiếu lương hàng tháng.
 {
   "id": "uuid",
   "employee_id": "uuid",
+      "workspace_id": "uuid",
   "period_start": "YYYY-MM-DD",
   "period_end": "YYYY-MM-DD",
   "base_pay_amount": "decimal_string",
@@ -679,6 +685,7 @@ Lưu thông tin chi tiết phiếu lương hàng tháng.
       "component": {
         "id": "uuid",
         "employee_id": "uuid",
+      "workspace_id": "uuid",
         "component_definition_id": "uuid",
         "amount": "decimal_string",
         "effective_date": "YYYY-MM-DD",
@@ -1024,6 +1031,7 @@ Tính toán lịch biểu hiệu lực (Effective Schedule) cho tất cả nhân
   [
     {
       "employee_id": "uuid",
+      "workspace_id": "uuid",
       "full_name": "...",
       "schedules": [
         {
@@ -1053,6 +1061,7 @@ Lấy lịch sử tất cả các thay đổi về gán ca (cả cố định v�
     {
       "id": "uuid",
       "employee_id": "uuid",
+      "workspace_id": "uuid",
       "employee_name": "...",
       "assignment_type": "roster|fixed",
       "shift_name": "Night Shift",

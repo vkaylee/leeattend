@@ -10,7 +10,7 @@ API Server đóng vai trò là trung tâm tiếp nhận dữ liệu từ các Ag
 
 ### Yêu cầu hệ thống
 - Rust 1.75+
-- PostgreSQL (Dự kiến)
+- PostgreSQL 14+
 
 ### Các bước triển khai
 1. Di chuyển vào thư mục `apiserver`:
