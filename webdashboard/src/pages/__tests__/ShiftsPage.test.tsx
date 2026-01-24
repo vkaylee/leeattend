@@ -99,18 +99,33 @@ vi.mock("@/hooks/use-datetime", () => ({
 describe("ShiftsPage - Shift Picker Modal", () => {
   let queryClient: QueryClient;
 
-  const mockEmployees = [
-    {
-      id: "emp-1",
-      full_name: "John Doe",
-      employee_id_number: "EMP001",
-    },
-    {
-      id: "emp-2",
-      full_name: "Jane Smith",
-      employee_id_number: "EMP002",
-    },
-  ];
+  const mockEmployees = {
+    data: [
+      {
+        id: "emp-1",
+        full_name: "John Doe",
+        employee_id_number: "EMP001",
+        workspace_id: "ws-1",
+        is_active: true,
+        hire_date: "2025-01-01",
+        created_at: "2025-01-01T00:00:00Z",
+        updated_at: "2025-01-01T00:00:00Z",
+      },
+      {
+        id: "emp-2",
+        full_name: "Jane Smith",
+        employee_id_number: "EMP002",
+        workspace_id: "ws-1",
+        is_active: true,
+        hire_date: "2025-01-02",
+        created_at: "2025-01-02T00:00:00Z",
+        updated_at: "2025-01-02T00:00:00Z",
+      },
+    ],
+    total: 2,
+    page: 1,
+    limit: 50,
+  };
 
   const mockShifts = [
     {

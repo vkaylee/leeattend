@@ -140,12 +140,14 @@ impl PayrollService {
                 .max_by_key(|d| d.effective_date);
             let dept_id = active_dept.map(|d| d.department_id);
 
-            let mut segment_base_salary = Decimal::ZERO;
+            let mut segment_total_base = Decimal::ZERO;
+            let mut segment_ot_base = Decimal::ZERO;
             let mut processed_def_ids = BTreeSet::new();
             for (esc, scd) in salary_history.iter().rev() {
                 if !processed_def_ids.contains(&scd.id) && esc.effective_date <= seg_start {
+                    segment_total_base += esc.amount;
                     if scd.is_base_for_ot {
-                        segment_base_salary += esc.amount;
+                        segment_ot_base += esc.amount;
                     }
                     processed_def_ids.insert(scd.id);
                 }
@@ -234,7 +236,7 @@ impl PayrollService {
                                                 let hourly_rate = if std_config.std_working_days.is_zero() || std_config.hours_per_day.is_zero() { 
                                                     Decimal::ZERO 
                                                 } else { 
-                                                    (segment_base_salary / std_config.std_working_days) / std_config.hours_per_day 
+                                                    (segment_ot_base / std_config.std_working_days) / std_config.hours_per_day 
                                                 };
 
                                                 let mut ot_intervals = Vec::new();
@@ -247,7 +249,7 @@ impl PayrollService {
 
                                                 segment_ot_pay += OvertimeEngine::calculate_overtime_pay_from_times(&rules, current_date, false, &ot_intervals, hourly_rate);
                                             } else {
-                                                let hourly_rate = if std_config.std_working_days.is_zero() || std_config.hours_per_day.is_zero() { Decimal::ZERO } else { (segment_base_salary / std_config.std_working_days) / std_config.hours_per_day };
+                                                let hourly_rate = if std_config.std_working_days.is_zero() || std_config.hours_per_day.is_zero() { Decimal::ZERO } else { (segment_ot_base / std_config.std_working_days) / std_config.hours_per_day };
                                                 segment_ot_pay += (Decimal::from(ot_u) * Decimal::from(workspace.work_unit_minutes) / Decimal::from(60)) * hourly_rate * Decimal::from_f64(1.5).unwrap();
                                             }
                                         }
@@ -274,7 +276,7 @@ impl PayrollService {
 
             // C. Financials
             let worked_days_dec = Decimal::from(segment_std_units) / seg_units_per_day;
-            let daily_rate = if std_config.std_working_days.is_zero() { Decimal::ZERO } else { segment_base_salary / std_config.std_working_days };
+            let daily_rate = if std_config.std_working_days.is_zero() { Decimal::ZERO } else { segment_total_base / std_config.std_working_days };
             let segment_amount = daily_rate * worked_days_dec;
 
             total_base_pay += segment_amount;
@@ -283,7 +285,7 @@ impl PayrollService {
             total_overtime_pay += segment_ot_pay;
             
             segment_snapshots.push((
-                seg_start, seg_end, dept_id, segment_base_salary, std_config.std_working_days,
+                seg_start, seg_end, dept_id, segment_total_base, std_config.std_working_days,
                 std_config.hours_per_day, worked_days_dec, worked_days_dec, segment_amount,
                 std_config.source
             ));

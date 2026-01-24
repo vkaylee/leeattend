@@ -85,10 +85,15 @@ describe("WorkingPatternsPage", () => {
     (api.fetchShifts as any).mockResolvedValue([
       { id: "shift-1", name: "Morning", start_time: "08:00", end_time: "17:00" }
     ]);
-    (api.fetchEmployees as any).mockResolvedValue([
-      { id: "emp-1", full_name: "John Doe" },
-      { id: "emp-2", full_name: "Jane Smith" }
-    ]);
+    (api.fetchEmployees as any).mockResolvedValue({
+      data: [
+        { id: "emp-1", full_name: "John Doe", employee_id_number: "EMP001", workspace_id: "ws-1", is_active: true, hire_date: "2025-01-01", created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" },
+        { id: "emp-2", full_name: "Jane Smith", employee_id_number: "EMP002", workspace_id: "ws-1", is_active: true, hire_date: "2025-01-02", created_at: "2025-01-02T00:00:00Z", updated_at: "2025-01-02T00:00:00Z" }
+      ],
+      total: 2,
+      page: 1,
+      limit: 50,
+    });
     (api.fetchPatternDetails as any).mockResolvedValue([]);
   });
 

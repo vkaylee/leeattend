@@ -460,6 +460,7 @@ pub struct UpdateEmployeeRequest {
 pub struct TimeEntry {
     pub id: Uuid,
     pub employee_id: Uuid,
+    pub workspace_id: Uuid,
     pub shift_id: Option<Uuid>,
     pub punch_in_time: DateTime<Utc>,
     pub punch_out_time: Option<DateTime<Utc>>,

@@ -494,10 +494,18 @@ impl TimeEntryBuilder {
                 po.signed_duration_since(self.punch_in_time).num_minutes() as i32
             });
 
+            let employee_id = self.employee_id.expect("Employee ID is required for TimeEntry");
+            let workspace_id: Uuid = sqlx::query_scalar("SELECT workspace_id FROM employees WHERE id = $1")
+                .bind(employee_id)
+                .fetch_one(&self.pool)
+                .await
+                .unwrap();
+
             sqlx::query_scalar(
-                "INSERT INTO time_entries (employee_id, punch_in_time, punch_out_time, is_break_overtime, entry_type, duration_minutes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+                "INSERT INTO time_entries (employee_id, workspace_id, punch_in_time, punch_out_time, is_break_overtime, entry_type, duration_minutes) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
             )
-            .bind(self.employee_id.expect("Employee ID is required for TimeEntry"))
+            .bind(employee_id)
+            .bind(workspace_id)
             .bind(self.punch_in_time)
             .bind(self.punch_out_time)
             .bind(self.is_break_overtime)

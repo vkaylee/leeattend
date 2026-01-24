@@ -218,6 +218,12 @@ impl PairingService {
         let sessions = strategy.pair(&filtered_log_events, shift_config.as_ref());
 
         // 5. Update Database
+        let workspace_id = sqlx::query_scalar!(
+            "SELECT workspace_id FROM employees WHERE id = $1",
+            employee_id
+        )
+        .fetch_one(pool)
+        .await?;
         let mut tx = pool.begin().await?;
 
         // Delete existing entries starting on THIS day only (24h window)
@@ -258,11 +264,12 @@ impl PairingService {
             sqlx::query!(
                 r#"
                 INSERT INTO time_entries 
-                (id, employee_id, shift_id, punch_in_time, punch_out_time, duration_minutes, entry_type, note, generation_metadata, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+                (id, employee_id, workspace_id, shift_id, punch_in_time, punch_out_time, duration_minutes, entry_type, note, generation_metadata, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
                 "#,
                 Uuid::new_v4(),
                 employee_id,
+                workspace_id,
                 shift_id_opt,
                 start_dt_utc,
                 end_dt_utc,

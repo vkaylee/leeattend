@@ -30,9 +30,9 @@ describe("AssignPolicyModal", () => {
       },
     });
     (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
-    (api.fetchEmployees as any).mockResolvedValue([
+    (api.fetchEmployees as any).mockResolvedValue({ data: [
       { id: "emp-1", first_name: "Alice", last_name: "Doe", employee_id_number: "EMP001" }
-    ]);
+    ], total: 1, page: 1, limit: 3000 });
     (api.fetchDepartments as any).mockResolvedValue([
       { id: "dept-1", name: "Engineering" }
     ]);
@@ -59,7 +59,7 @@ describe("AssignPolicyModal", () => {
   it("fetches data when opened", async () => {
     renderModal(true);
     await waitFor(() => {
-      expect(api.fetchEmployees).toHaveBeenCalledWith("test-ws-id");
+      expect(api.fetchEmployees).toHaveBeenCalledWith("test-ws-id", 1, 3000);
       expect(api.fetchDepartments).toHaveBeenCalledWith("test-ws-id");
       expect(api.fetchLeavePolicies).toHaveBeenCalledWith("test-ws-id");
     });

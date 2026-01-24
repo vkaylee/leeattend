@@ -86,6 +86,8 @@ impl TimeTrackingService {
         let entry = TimeEntry {
             id: Uuid::new_v4(),
             employee_id: req.employee_id,
+            workspace_id,
+
             shift_id,
             punch_in_time: now,
             punch_out_time: None,

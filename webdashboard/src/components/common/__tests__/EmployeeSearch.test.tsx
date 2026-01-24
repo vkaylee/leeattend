@@ -34,7 +34,7 @@ describe("EmployeeSearch Component", () => {
 
   it("calls onChange when an employee is selected", async () => {
     (useQuery as any).mockReturnValue({
-      data: mockEmployees,
+      data: { data: mockEmployees },
       isLoading: false,
     });
 
@@ -49,7 +49,7 @@ describe("EmployeeSearch Component", () => {
 
   it("renders chips in multiple mode", () => {
     (useQuery as any).mockReturnValue({
-      data: mockEmployees,
+      data: { data: mockEmployees },
       isLoading: false,
     });
 

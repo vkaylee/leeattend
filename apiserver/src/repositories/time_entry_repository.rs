@@ -5,10 +5,11 @@ use uuid::Uuid;
 
 pub async fn create_time_entry(pool: &PgPool, entry: &TimeEntry) -> Result<(), sqlx::Error> {
     query(
-        "INSERT INTO time_entries (id, employee_id, shift_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+        "INSERT INTO time_entries (id, employee_id, workspace_id, shift_id, punch_in_time, punch_out_time, duration_minutes, is_break_overtime, entry_type, note, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)"
     )
     .bind(entry.id)
     .bind(entry.employee_id)
+    .bind(entry.workspace_id)
     .bind(entry.shift_id)
     .bind(entry.punch_in_time)
     .bind(entry.punch_out_time)
@@ -106,27 +107,26 @@ pub async fn get_paginated_logs(
     p_limit: i64,
     p_offset: i64,
 ) -> Result<Vec<TimeEntry>, sqlx::Error> {
-    let mut sql = "SELECT te.* FROM time_entries te 
-                  JOIN employees e ON te.employee_id = e.id 
-                  WHERE e.workspace_id = $1"
+    let mut sql = "SELECT * FROM time_entries 
+                  WHERE workspace_id = $1"
         .to_string();
     let mut param_idx = 2;
 
     if p_employee_id.is_some() {
-        sql.push_str(&format!(" AND te.employee_id = ${}", param_idx));
+        sql.push_str(&format!(" AND employee_id = ${}", param_idx));
         param_idx += 1;
     }
     if p_from.is_some() {
-        sql.push_str(&format!(" AND te.punch_in_time >= ${}", param_idx));
+        sql.push_str(&format!(" AND punch_in_time >= ${}", param_idx));
         param_idx += 1;
     }
     if p_to.is_some() {
-        sql.push_str(&format!(" AND te.punch_in_time <= ${}", param_idx));
+        sql.push_str(&format!(" AND punch_in_time <= ${}", param_idx));
         param_idx += 1;
     }
 
     sql.push_str(&format!(
-        " ORDER BY te.punch_in_time DESC LIMIT ${} OFFSET ${}",
+        " ORDER BY punch_in_time DESC LIMIT ${} OFFSET ${}",
         param_idx,
         param_idx + 1
     ));
@@ -154,21 +154,21 @@ pub async fn count_logs(
     p_to: Option<DateTime<Utc>>,
 ) -> Result<i64, sqlx::Error> {
     let mut sql = "SELECT COUNT(*) FROM time_entries te 
-                  JOIN employees e ON te.employee_id = e.id 
+                  JOIN employees e ON employee_id = e.id 
                   WHERE e.workspace_id = $1"
         .to_string();
     let mut param_idx = 2;
 
     if p_employee_id.is_some() {
-        sql.push_str(&format!(" AND te.employee_id = ${}", param_idx));
+        sql.push_str(&format!(" AND employee_id = ${}", param_idx));
         param_idx += 1;
     }
     if p_from.is_some() {
-        sql.push_str(&format!(" AND te.punch_in_time >= ${}", param_idx));
+        sql.push_str(&format!(" AND punch_in_time >= ${}", param_idx));
         param_idx += 1;
     }
     if p_to.is_some() {
-        sql.push_str(&format!(" AND te.punch_in_time <= ${}", param_idx));
+        sql.push_str(&format!(" AND punch_in_time <= ${}", param_idx));
         // NO param_idx += 1 here as it's the last one
     }
 

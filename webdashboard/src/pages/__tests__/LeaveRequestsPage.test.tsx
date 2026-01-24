@@ -52,9 +52,14 @@ describe("LeaveRequestsPage", () => {
       },
     });
     (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
-    (api.fetchEmployees as any).mockResolvedValue([
-      { id: "emp-1", full_name: "John Doe", hire_date: "2025-01-01" }
-    ]);
+    (api.fetchEmployees as any).mockResolvedValue({
+      data: [
+        { id: "emp-1", full_name: "John Doe", hire_date: "2025-01-01", employee_id_number: "EMP001", workspace_id: "ws-1", is_active: true, created_at: "2025-01-01T00:00:00Z", updated_at: "2025-01-01T00:00:00Z" }
+      ],
+      total: 1,
+      page: 1,
+      limit: 50,
+    });
     (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([]);
     (api.fetchEmployeeLeaveBalances as any).mockResolvedValue([]);
     (api.fetchLeavePolicies as any).mockResolvedValue([]);
