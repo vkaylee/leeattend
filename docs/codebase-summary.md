@@ -23,6 +23,15 @@ LeeAttend is a high-performance attendance and payroll system split into three p
     - **Official Payslip Document UI**: Professional, high-fidelity A4-ready preview modal using Radix-UI and Tailwind `print:` modifiers for precise PDF and physical output generation.
     - **Rendering Stability**: Implements robust defensive coding and explicit numeric parsing for high-reliability financial data visualization.
 
+
+## 🛡️ Multi-Tenancy & Data Isolation
+
+The system enforces strict data isolation between workspaces using a Shared-Database, Row-Level Isolation pattern:
+
+- **Mandatory Workspace ID**: All tenant-specific tables (Time Entries, Employees, Shifts, etc.) are required to have a `workspace_id` column.
+- **Automated Compliance Testing**: The `apiserver/tests/schema_isolation_tests.rs` test suite automatically scans the PostgreSQL schema and fails if any new base table (excluding global whitelisted ones like `users` or `workspaces`) is created without a `workspace_id`.
+- **Constraint Enforcement**: `workspace_id` columns are configured with `NOT NULL` and `FOREIGN KEY` constraints referencing the `workspaces` table with `ON DELETE CASCADE`.
+
 ## 🧪 Testing Infrastructure
 
 The project uses a **Unified Test Orchestrator (`run-tests.sh`)** to provide a consistent development experience across all components.

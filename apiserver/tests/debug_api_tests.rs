@@ -72,8 +72,9 @@ async fn test_clear_attendance_data() {
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
     // Add time entries
-    sqlx::query("INSERT INTO time_entries (employee_id, punch_in_time) VALUES ($1, NOW())")
+    sqlx::query("INSERT INTO time_entries (employee_id, workspace_id, punch_in_time) VALUES ($1, $2, NOW())")
         .bind(emp_id)
+        .bind(ws_id)
         .execute(&_db.pool())
         .await
         .unwrap();
@@ -81,6 +82,7 @@ async fn test_clear_attendance_data() {
     // Verify data exists
     let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM time_entries WHERE employee_id = $1")
         .bind(emp_id)
+        .bind(ws_id)
         .fetch_one(&_db.pool())
         .await
         .unwrap();
@@ -105,6 +107,7 @@ async fn test_clear_attendance_data() {
         let count: i64 =
             sqlx::query_scalar("SELECT COUNT(*) FROM time_entries WHERE employee_id = $1")
                 .bind(emp_id)
+        .bind(ws_id)
                 .fetch_one(&_db.pool())
                 .await
                 .unwrap();
@@ -139,6 +142,7 @@ async fn test_full_reset() {
         let exists: bool =
             sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM employees WHERE id = $1)")
                 .bind(emp_id)
+        .bind(ws_id)
                 .fetch_one(&_db.pool())
                 .await
                 .unwrap();

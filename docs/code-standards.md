@@ -3,6 +3,7 @@
 ## 🦀 Rust (Backend)
 
 ### 1. Linter & Quality
+- **Multi-Tenancy Isolation**: Tất cả các bảng chứa dữ liệu của tenant (workspace) **PHẢI** bao gồm cột `workspace_id`. Điều này được thực thi tự động thông qua `schema_isolation_tests.rs`. Không bao giờ truy vấn dữ liệu mà không lọc theo `workspace_id`.
 - **Zero-Warning Policy**: Dự án thực thi chính sách không cảnh báo nghiêm ngặt. Code phải vượt qua `cargo clippy -- -D warnings` trước khi commit.
 - **Test Module Placement**: Luôn đặt khối `mod tests` ở cuối tệp tin để tránh cảnh báo Clippy về việc sắp xếp các mục sau module test.
 - **Type Complexity**: Tránh các kiểu dữ liệu lồng nhau quá sâu (ví dụ: `OnceLock<Arc<Mutex<HashSet<...>>>>`). Hãy sử dụng `type` alias để cải thiện khả năng đọc và bảo trì.

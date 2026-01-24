@@ -526,3 +526,104 @@ async fn test_calculate_payroll_no_salary() {
     let payslip = result.unwrap();
     assert_eq!(payslip.base_pay_amount, Decimal::ZERO);
 }
+
+#[tokio::test]
+async fn test_payslip_calculation_with_mixed_ot_base_components_integrated() {
+    let (test_db, factory) = setup_test_db().await;
+    let pool = test_db.pool();
+
+    let user_id = factory.user().create().await;
+    let workspace_id = factory.workspace().create_with_owner(user_id).await;
+
+    sqlx::query(
+        "UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1",
+    )
+    .bind(workspace_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let employee_id = factory
+        .employee()
+        .with_workspace(workspace_id)
+        .with_user(user_id)
+        .create()
+        .await;
+
+    let test_date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+    
+    let base_salary_id: Uuid = sqlx::query_scalar(
+        "INSERT INTO salary_component_definitions (workspace_id, name, code, is_base_for_ot, is_taxable) 
+         VALUES ($1, $2, $3, $4, $5) RETURNING id",
+    )
+    .bind(workspace_id)
+    .bind("Lương cơ bản")
+    .bind("BASE")
+    .bind(true)
+    .bind(true)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+
+    let allowance_id: Uuid = sqlx::query_scalar(
+        "INSERT INTO salary_component_definitions (workspace_id, name, code, is_base_for_ot, is_taxable) 
+         VALUES ($1, $2, $3, $4, $5) RETURNING id",
+    )
+    .bind(workspace_id)
+    .bind("Phụ cấp ăn trưa")
+    .bind("LUNCH")
+    .bind(false)
+    .bind(true)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        "INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) 
+         VALUES ($1, $2, $3, $4), ($1, $5, $6, $7)",
+    )
+    .bind(employee_id)
+    .bind(base_salary_id)
+    .bind(Decimal::new(1000000, 0))
+    .bind(test_date)
+    .bind(allowance_id)
+    .bind(Decimal::new(500000, 0))
+    .bind(test_date)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        "INSERT INTO payroll_settings (workspace_id, fixed_std_days, hours_per_day, effective_date) 
+         VALUES ($1, $2, $3, $4)",
+    )
+    .bind(workspace_id)
+    .bind(Decimal::new(25, 0))
+    .bind(Decimal::new(8, 0))
+    .bind(test_date)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let shift_id = factory.shift().with_workspace(workspace_id).create().await;
+    sqlx::query("INSERT INTO shift_rosters (employee_id, shift_id, date) VALUES ($1, $2, $3)")
+        .bind(employee_id).bind(shift_id).bind(test_date).execute(&pool).await.unwrap();
+
+    let tz = chrono_tz::UTC;
+    let punch_in = tz.from_local_datetime(&test_date.and_hms_opt(8, 0, 0).unwrap()).single().unwrap().with_timezone(&Utc);
+    let punch_out = tz.from_local_datetime(&test_date.and_hms_opt(19, 0, 0).unwrap()).single().unwrap().with_timezone(&Utc);
+
+    sqlx::query(
+        "INSERT INTO time_entries (employee_id, workspace_id, punch_in_time, punch_out_time, entry_type) 
+         VALUES ($1, $2, $3, $4, 'work')",
+    )
+    .bind(employee_id).bind(workspace_id).bind(punch_in).bind(punch_out).execute(&pool).await.unwrap();
+
+    let payslip = PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
+        .await
+        .expect("Should calculate payslip");
+
+    assert_eq!(payslip.base_pay_amount, Decimal::new(60000, 0));
+    assert_eq!(payslip.overtime_pay_amount, Decimal::new(15000, 0));
+    assert_eq!(payslip.net_pay_amount, Decimal::new(75000, 0));
+}

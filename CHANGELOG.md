@@ -15,6 +15,9 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - Added print-specific CSS optimizations (Tailwind `print:` modifiers).
 
 ### Security
+- **Strict Multi-Tenancy Enforcement**:
+    - Added mandatory `workspace_id` column to `time_entries` table.
+    - Implemented `apiserver/tests/schema_isolation_tests.rs` to automatically verify that all database tables (except whitelisted global ones) include `workspace_id` for data isolation.
 - **RBAC Audit \& Hardening**:
     - Implemented strict administrative checks (`ctx.is_admin_or_owner()`) across all Overtime Policy handlers.
     - Migrated handlers from `UserId` to `MemberContext` to ensure workspace-level isolation and role verification.
