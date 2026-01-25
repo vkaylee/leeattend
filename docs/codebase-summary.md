@@ -1,6 +1,6 @@
 # Codebase Summary
 
-**Last Updated:** 2026-01-24
+**Last Updated:** 2026-01-25
 
 Overview of the LeeAttend project structure, core technologies, and recent architectural improvements.
 
@@ -13,10 +13,11 @@ LeeAttend is a high-performance attendance and payroll system split into three p
 - **Database**: PostgreSQL 14+ (SQLx)
 - **Core Responsibility**: Manages workspaces, employees, complex pairing algorithms (FSM), hierarchical temporal payroll calculation, and serves as the WebSocket hub for Edge Agents.
 - **Key Modules**:
-    - `src/domain/policy`: Overtime and Payroll policy logic (Flexible Overtime Engine).
-    - `src/services`: Business logic for pairing, payroll, and time tracking.
+    - **Leave Management V2**: Relational design with `leave_types` reference table (FK-enforced), dynamic policy assignment, and accrual logic.
+    - **Overtime Engine**: Flexible, rule-based overtime calculation with priority-based segment evaluation.
+    - **Payroll Engine**: Temporal, 3-tier settings (Global -> Group -> Individual) with traceability.
     - `src/handlers`: REST API endpoints and WebSocket handlers.
-    - `src/repositories`: Database access layer.
+    - `src/repositories`: Database access layer with RLS-like filtering.
 
 ### 2. agent-main (Edge Orchestrator)
 - **Language**: Rust
@@ -32,10 +33,11 @@ LeeAttend is a high-performance attendance and payroll system split into three p
 - **Styling**: Tailwind CSS v4 (Metro-style aesthetic)
 - **State Management**: TanStack Query (React Query)
 - **Key Features**:
+    - **Leave Policy Manager**: Centralized management of leave types and policies.
     - **Overtime Policy Manager**: Visual editor for complex overtime rules.
     - **Official Payslip UI**: High-fidelity, print-ready payslip generation using Radix-UI.
-    - **ESS Portal**: Self-service for employees to view attendance and payslips.
-    - **Performance**: Server-side pagination and search for large employee datasets.
+    - **ESS Portal**: Self-service for employees to view attendance, payslips, and request leave.
+    - **Performance**: Server-side pagination and fuzzy search for large employee datasets (5000+ records).
 
 ## 🛡️ Security & Multi-Tenancy
 
@@ -51,6 +53,7 @@ LeeAttend is a high-performance attendance and payroll system split into three p
 
 ## 🚀 Performance Optimizations
 
+- **Relational Integrity**: Migrated legacy string-based `leave_type` to normalized `leave_types` table with Foreign Key constraints (Jan 2026).
 - **Denormalized Access**: `time_entries` table includes `workspace_id` for direct RLS and optimized reporting queries.
 - **Full-Text Search**: `pg_trgm` (Trigram) indexes on employee names for instant fuzzy search.
 - **Optimized Pagination**: Efficient SQL pagination for employee and log lists.

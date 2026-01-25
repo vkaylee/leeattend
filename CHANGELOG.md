@@ -4,6 +4,10 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ## [Unreleased]
 ### Added
+- **Leave Management System Refactor**:
+    - **Architecture**: Migrated from string-based `leave_type` to a normalized `leave_types` reference table with strict Foreign Key constraints.
+    - **Frontend**: Added 'Leave Types' management in Settings and unified 'Assign Policy' modals.
+    - **Data Integrity**: Backfilled existing data and handled orphans with a robust migration strategy (Jan 24-25, 2026).
 - **Overtime Policy System**:
     - Implemented `OvertimeEngine` for flexible, prioritized segment-based calculation.
     - Added comprehensive backend support for `OvertimePolicy`, `OvertimeRule`, and `OvertimePolicyAssignment`.
@@ -36,5 +40,5 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 - **Payroll Transparency**: Added `standard_amount` to `IncentiveEvaluationResult` for better auditability.
 
 ### Documentation
-- Updated `codebase-summary.md` with details on the new Overtime Engine and Performance Optimizations.
+- Updated `codebase-summary.md` with details on Leave Management V2, Overtime Engine, and Performance Optimizations.
 - Updated `api-reference.md` to reflect the new `workspace_id` field in TimeEntry responses.
