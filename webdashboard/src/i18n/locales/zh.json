@@ -407,7 +407,9 @@
     "global": "全局",
     "unknown": "未知",
     "auto": "自动",
-    "required": "必填"
+    "required": "必填",
+    "forever": "永久",
+    "important_note": "重要提示"
   },
   "dashboard": {
     "title": "仪表板",
@@ -1630,13 +1632,17 @@
         "policies": "累积策略",
         "types_desc": "定义可用的请假类型及其规则",
         "policies_desc": "设置请假如何随时间累积",
-        "assignments": "政策分配"
+        "assignments": "政策分配",
+        "assignments_desc": "向员工或部门分配政策"
       },
       "messages": {
         "update_success": "请假类型更新成功",
         "update_error": "更新请假类型失败",
         "create_success": "策略创建成功",
-        "delete_success": "策略删除成功"
+        "delete_success": "策略删除成功",
+        "assignment_note": "政策分配定义了每个人的休假计算方式。更改将在下次计划的应计运行期间应用，或者可以通过“通用设置”中的“应计运行”工具强制执行。",
+        "loading": "正在加载分配...",
+        "no_assignments": "未找到政策分配"
       },
       "fields": {
         "approval": "审批",
@@ -1646,6 +1652,16 @@
       "types": {
         "paid": "带薪假",
         "unpaid": "无薪假"
+      },
+      "actions": {
+        "assign": "分配政策"
+      },
+      "table": {
+        "policy": "政策",
+        "type": "类型",
+        "assignee": "受托人",
+        "effective_date": "生效日期",
+        "created_at": "创建于"
       }
     }
   }

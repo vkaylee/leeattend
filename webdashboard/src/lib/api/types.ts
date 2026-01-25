@@ -774,3 +774,17 @@ export interface OvertimeRule {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface LeavePolicyAssignmentDetail {
+  id: string;
+  workspace_id: string;
+  assignee_type: string;
+  assignee_id: string | null;
+  policy_id: string;
+  effective_from: string;
+  effective_to: string | null;
+  created_at: string;
+  policy_name: string;
+  leave_type_name: string;
+}
+

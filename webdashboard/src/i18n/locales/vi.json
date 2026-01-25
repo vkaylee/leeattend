@@ -407,7 +407,9 @@
     "global": "Toàn hệ thống",
     "unknown": "Không xác định",
     "auto": "Tự động",
-    "required": "Bắt buộc"
+    "required": "Bắt buộc",
+    "forever": "Vô thời hạn",
+    "important_note": "Lưu ý quan trọng"
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -1630,13 +1632,17 @@
         "policies": "Chính sách tích lũy",
         "types_desc": "Định nghĩa các loại nghỉ và quy tắc",
         "policies_desc": "Thiết lập cách tích lũy ngày nghỉ theo thời gian",
-        "assignments": "Gán chính sách"
+        "assignments": "Gán chính sách",
+        "assignments_desc": "Gán chính sách nghỉ phép cho nhân viên hoặc phòng ban"
       },
       "messages": {
         "update_success": "Cập nhật loại nghỉ thành công",
         "update_error": "Cập nhật loại nghỉ thất bại",
         "create_success": "Tạo chính sách thành công",
-        "delete_success": "Xóa chính sách thành công"
+        "delete_success": "Xóa chính sách thành công",
+        "assignment_note": "Việc gán chính sách xác định cách tính phép cho mỗi người. Các thay đổi sẽ được áp dụng trong đợt tích lũy định kỳ tiếp theo hoặc có thể thực hiện thủ công qua công cụ \"Cập nhật số dư\" trong Cài đặt chung.",
+        "loading": "Đang tải danh sách...",
+        "no_assignments": "Không tìm thấy dữ liệu gán chính sách"
       },
       "fields": {
         "approval": "Phê duyệt",
@@ -1646,6 +1652,16 @@
       "types": {
         "paid": "Nghỉ có lương",
         "unpaid": "Nghỉ không lương"
+      },
+      "actions": {
+        "assign": "Gán chính sách"
+      },
+      "table": {
+        "policy": "Chính sách",
+        "type": "Loại",
+        "assignee": "Đối tượng",
+        "effective_date": "Ngày hiệu lực",
+        "created_at": "Ngày tạo"
       }
     }
   }

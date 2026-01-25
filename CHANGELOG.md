@@ -4,6 +4,19 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ## [Unreleased]
 ### Added
+- **Smart Leave Policy Assignment**:
+    - **Automatic Conflict Resolution**: Implemented "Delete Future" logic when assigning mid-term policies, ensuring a clean and consistent timeline without manual cleanup.
+    - **Assignment History**: Added a detailed history table in Leave Settings to track all policy assignments (Workspace, Department, and Employee scope).
+    - **Multi-language Support**: Full translation for Leave Settings in English, Vietnamese, and Chinese.
+- **Leave Balance Visibility Improvements**:
+    - **Unified View**: Transitioned to `CROSS JOIN` architecture in the Balances page, ensuring all employees are immediately visible for all leave types once a policy is assigned (even with 0 balance).
+    - **Robust Fallbacks**: Graceful handling of missing default leave types using CTE-based priority resolution.
+
+### Changed
+- **Payroll UX Refactor**:
+    - **Search Persistence**: Improved search input behavior in PayrollSummaryTable to prevent focus loss during server-side loading states.
+    - **Optimized Layout**: Cleaned up the header and pagination controls for better accessibility and focus.
+
 - **Leave Management System Refactor**:
     - **Architecture**: Migrated from string-based `leave_type` to a normalized `leave_types` reference table with strict Foreign Key constraints.
     - **Frontend**: Added 'Leave Types' management in Settings and unified 'Assign Policy' modals.

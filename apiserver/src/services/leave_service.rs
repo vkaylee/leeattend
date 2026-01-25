@@ -36,7 +36,10 @@ impl LeaveService {
             params.q,
         )
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| {
+            eprintln!("SQLx Error in get_workspace_balances: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
         Ok(crate::models::PaginatedResponse {
             data,
@@ -67,7 +70,10 @@ impl LeaveService {
         )
         .fetch_all(pool)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| {
+            eprintln!("SQLx Error in get_workspace_balances: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
         // Get Usage (Approved Requests) with leave type info via FK join
         let requests = sqlx::query!(
@@ -85,7 +91,10 @@ impl LeaveService {
         )
         .fetch_all(pool)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| {
+            eprintln!("SQLx Error in get_workspace_balances: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
         let mut history: Vec<LeaveHistoryItem> = Vec::new();
 
@@ -203,7 +212,10 @@ impl LeaveService {
 
         leave_request_repository::create_leave_request(pool, &request)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(|e| {
+            eprintln!("SQLx Error in get_workspace_balances: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
         Ok(request)
     }
@@ -233,7 +245,10 @@ impl LeaveService {
             Some(user_id),
         )
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| {
+            eprintln!("SQLx Error in get_workspace_balances: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
         // If approved, update roster
         if req.status == LeaveStatus::Approved {
@@ -262,7 +277,10 @@ impl LeaveService {
 
                 let _ = roster_repository::upsert_roster(pool, &roster)
                     .await
-                    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                    .map_err(|e| {
+            eprintln!("SQLx Error in get_workspace_balances: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
                 if let Some(next_date) = current_date.succ_opt() {
                     current_date = next_date;

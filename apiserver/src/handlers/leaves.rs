@@ -304,3 +304,18 @@ pub async fn trigger_accrual_run(
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
+
+
+pub async fn get_leave_policy_assignments(
+    Path(_ws_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+) -> Result<Json<Vec<crate::models::LeavePolicyAssignmentDetail>>, StatusCode> {
+    if !ctx.is_admin_or_owner() {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    match crate::repositories::leave_policy_repository::get_policy_assignments(&state.db, ctx.workspace_id).await {
+        Ok(assignments) => Ok(Json(assignments)),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}

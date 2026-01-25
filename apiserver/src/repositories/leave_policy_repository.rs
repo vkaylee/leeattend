@@ -124,6 +124,29 @@ pub async fn create_policy_assignment(
     .await?
     .leave_type_id;
 
+    // 2a. Delete future assignments (or starting same day) to prevent overlap conflict
+    // for the same leave type and assignee scope.
+    sqlx::query!(
+        r#"
+        DELETE FROM leave_policy_assignments a
+        USING leave_policy_definitions d
+        WHERE a.policy_id = d.id
+          AND a.workspace_id = $1
+          AND a.assignee_type = $2
+          AND (a.assignee_id = $3 OR (a.assignee_id IS NULL AND $3 IS NULL))
+          AND d.leave_type_id = $4
+          AND a.effective_from >= $5
+        "#,
+        assignment.workspace_id,
+        assignment.assignee_type,
+        assignment.assignee_id,
+        leave_type_id,
+        assignment.effective_from
+    )
+    .execute(&mut *tx)
+    .await?;
+
+
     // 2. Auto-close existing assignments of the same type and category that overlap
     // Only close assignments that started before or on the new effective_from date
     // and are either still open (NULL) or end after the new effective_from.
@@ -286,4 +309,35 @@ pub async fn find_active_assignment_for_employee(
     }
 
     Ok(None)
+}
+
+
+pub async fn get_policy_assignments(
+    pool: &PgPool,
+    workspace_id: Uuid,
+) -> Result<Vec<crate::models::LeavePolicyAssignmentDetail>, sqlx::Error> {
+    sqlx::query_as!(
+        crate::models::LeavePolicyAssignmentDetail,
+        r#"
+        SELECT 
+            a.id, 
+            a.workspace_id, 
+            a.assignee_type, 
+            a.assignee_id, 
+            a.policy_id, 
+            a.effective_from, 
+            a.effective_to, 
+            a.created_at as "created_at!",
+            d.name as "policy_name!",
+            lt.name as "leave_type_name!"
+        FROM leave_policy_assignments a
+        JOIN leave_policy_definitions d ON a.policy_id = d.id
+        JOIN leave_types lt ON d.leave_type_id = lt.id
+        WHERE a.workspace_id = $1
+        ORDER BY a.created_at DESC
+        "#,
+        workspace_id
+    )
+    .fetch_all(pool)
+    .await
 }

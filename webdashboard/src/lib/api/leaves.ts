@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
-import { LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, PaginatedResponse } from "./types";
+import { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, PaginatedResponse } from "./types";
 
 export async function submitLeaveRequest(
   wsId: string,
@@ -202,4 +202,11 @@ export async function deleteLeaveType(
     throw new Error(error);
   }
   if (!response.ok) throw new Error("Failed to delete leave type");
+}
+
+
+export async function fetchLeavePolicyAssignments(wsId: string): Promise<LeavePolicyAssignmentDetail[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/policies/assignments`);
+  if (!response.ok) throw new Error("Failed to fetch leave policy assignments");
+  return response.json();
 }

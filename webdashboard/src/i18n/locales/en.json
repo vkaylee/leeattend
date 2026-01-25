@@ -407,7 +407,9 @@
     "global": "Global",
     "unknown": "Unknown",
     "auto": "Auto",
-    "required": "Required"
+    "required": "Required",
+    "forever": "Forever",
+    "important_note": "Important Note"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1630,13 +1632,17 @@
         "policies": "Accrual Policies",
         "types_desc": "Define available leave types and their rules",
         "policies_desc": "Set up how leave is earned over time",
-        "assignments": "Policy Assignments"
+        "assignments": "Policy Assignments",
+        "assignments_desc": "Assign policies to employees or departments"
       },
       "messages": {
         "update_success": "Leave type updated successfully",
         "update_error": "Failed to update leave type",
         "create_success": "Policy created successfully",
-        "delete_success": "Policy deleted successfully"
+        "delete_success": "Policy deleted successfully",
+        "assignment_note": "Policy assignments define how leave is calculated for each person. Changes will be applied during the next scheduled accrual run or can be forced via the \"Accrual Run\" tool in General Settings.",
+        "loading": "Loading assignments...",
+        "no_assignments": "No policy assignments found"
       },
       "fields": {
         "approval": "Approval",
@@ -1646,6 +1652,16 @@
       "types": {
         "paid": "Paid Leave",
         "unpaid": "Unpaid Leave"
+      },
+      "actions": {
+        "assign": "Assign Policy"
+      },
+      "table": {
+        "policy": "Policy",
+        "type": "Type",
+        "assignee": "Assignee",
+        "effective_date": "Effective Date",
+        "created_at": "Created At"
       }
     }
   }

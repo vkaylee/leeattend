@@ -4,9 +4,12 @@ import { LeaveTypeManager } from "@/components/leave/LeaveTypeManager";
 import { LeavePolicyManager } from "@/components/leave/LeavePolicyManager";
 import { AssignPolicyModal } from "@/components/leave/AssignPolicyModal";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
-import { Tabs } from "@/components/ui/Tabs";
 import { CalendarDays, ShieldCheck, UserPlus, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { fetchLeavePolicyAssignments } from "@/lib/api";
+import { format } from "date-fns";
+
 
 type TabType = "types" | "policies" | "assignments";
 
@@ -15,6 +18,13 @@ export default function LeaveSettings() {
   const wsId = getCurrentWorkspaceId();
   const [activeTab, setActiveTab] = useState<TabType>("types");
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+
+  const { data: assignments = [], isLoading: assignmentsLoading } = useQuery({
+    queryKey: ["leave-assignments", wsId],
+    queryFn: () => fetchLeavePolicyAssignments(wsId!),
+    enabled: !!wsId && activeTab === "assignments"
+  });
+
 
   if (!wsId) return null;
 
@@ -72,7 +82,7 @@ export default function LeaveSettings() {
             )}
           >
             <UserPlus className="w-4 h-4" />
-            {t("settings.leave.tabs.assignments", "Assignments")}
+            {t("settings.leave.tabs.assignments")}
           </button>
         </div>
 
@@ -110,10 +120,10 @@ export default function LeaveSettings() {
               <div className="mb-8 border-b border-slate-50 pb-6 flex justify-between items-end">
                 <div>
                   <h3 className="text-xl font-bold text-slate-800 tracking-tight uppercase">
-                    Policy Assignments
+                    {t("settings.leave.tabs.assignments")}
                   </h3>
                   <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-tight">
-                    Assign policies to employees or departments
+                    {t("settings.leave.tabs.assignments_desc")}
                   </p>
                 </div>
                 <button
@@ -121,24 +131,68 @@ export default function LeaveSettings() {
                   className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 shadow-lg shadow-primary-100"
                 >
                   <UserPlus className="w-4 h-4" />
-                  Assign Policy
+                  {t("settings.leave.actions.assign")}
                 </button>
               </div>
               <div className="bg-amber-50 border border-amber-100 p-8 rounded-[2.5rem] flex items-start gap-6">
                 <Info className="text-amber-600 w-6 h-6 mt-1 shrink-0" />
                 <div className="space-y-2">
-                  <p className="font-bold text-amber-900 uppercase tracking-widest text-xs">Important Note</p>
+                  <p className="font-bold text-amber-900 uppercase tracking-widest text-xs">{t("common.important_note")}</p>
                   <p className="text-sm text-amber-800 leading-relaxed">
-                    Policy assignments define how leave is calculated for each person. Changes will be applied during the next scheduled accrual run or can be forced via the "Accrual Run" tool in General Settings.
+                    {t("settings.leave.messages.assignment_note")}
                   </p>
                 </div>
+              </div>
+              <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm mt-8 animate-in slide-in-from-bottom-4 duration-700">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("settings.leave.table.policy")}</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("settings.leave.table.type")}</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("settings.leave.table.assignee")}</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("settings.leave.table.effective_date")}</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">{t("settings.leave.table.created_at")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {assignmentsLoading ? (
+                      <tr><td colSpan={5} className="p-8 text-center text-slate-400 italic font-bold text-xs uppercase tracking-widest">{t("settings.leave.messages.loading")}</td></tr>
+                    ) : assignments.length === 0 ? (
+                      <tr><td colSpan={5} className="p-12 text-center text-slate-400 italic font-bold text-xs uppercase tracking-widest opacity-50">{t("settings.leave.messages.no_assignments")}</td></tr>
+                    ) : (
+                      assignments.map((a: any) => (
+                        <tr key={a.id} className="hover:bg-slate-50/50 transition-colors group">
+                          <td className="px-6 py-5 font-bold text-slate-700 text-xs tracking-tight">{a.policy_name}</td>
+                          <td className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{a.leave_type_name}</td>
+                          <td className="px-6 py-5">
+                            <span className={cn("px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border shadow-sm", 
+                              a.assignee_type === "workspace" ? "bg-purple-50 text-purple-600 border-purple-100" :
+                              a.assignee_type === "department" ? "bg-blue-50 text-blue-600 border-blue-100" :
+                              "bg-emerald-50 text-emerald-600 border-emerald-100"
+                            )}>
+                              {a.assignee_type}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5 text-xs font-mono text-slate-600 font-bold">
+                             {format(new Date(a.effective_from), "MMM dd, yyyy")} 
+                             <span className="text-slate-300 mx-2">→</span>
+                             {a.effective_to ? format(new Date(a.effective_to), "MMM dd, yyyy") : <span className="text-slate-400 italic">{t("common.forever")}</span>}
+                          </td>
+                          <td className="px-6 py-5 text-[10px] font-mono text-slate-400 text-right uppercase">
+                            {format(new Date(a.created_at), "MMM dd HH:mm")}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      <AssignPolicyModal
+      <AssignPolicyModal 
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}
         wsId={wsId}

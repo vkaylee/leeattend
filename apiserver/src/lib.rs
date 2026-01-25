@@ -315,6 +315,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             post(handlers::leaves::assign_leave_policy),
         )
         .route(
+            "/workspaces/:ws_id/leave/policies/assignments",
+            get(handlers::leaves::get_leave_policy_assignments),
+        )
+        .route(
             "/workspaces/:ws_id/leave/accrual/run",
             post(handlers::trigger_accrual_run),
         )

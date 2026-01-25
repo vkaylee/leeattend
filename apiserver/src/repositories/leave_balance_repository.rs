@@ -66,13 +66,12 @@ pub async fn get_workspace_balances(
 ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), sqlx::Error> {
     let search_term = format!("%{}%", search.unwrap_or_default());
 
-    // Get total count
+    // Get total count (per employee-leave_type pair)
     let count_sql = r#"
         SELECT COUNT(*)
         FROM employees e
-        LEFT JOIN leave_balances lb ON e.id = lb.employee_id AND lb.year = $2
-        LEFT JOIN leave_types lt ON lb.leave_type_id = lt.id
-        WHERE e.workspace_id = $1 AND e.is_active = TRUE
+        CROSS JOIN leave_types lt
+        WHERE e.workspace_id = $1 AND e.is_active = TRUE AND lt.workspace_id = $1
           AND ($3 = '%%' OR e.full_name ILIKE $3 OR lt.name ILIKE $3 OR lt.code ILIKE $3)
     "#;
 
@@ -87,10 +86,10 @@ pub async fn get_workspace_balances(
         SELECT
             e.id as employee_id,
             e.full_name as employee_name,
-            COALESCE(lb.leave_type_id, (SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation' LIMIT 1)) as leave_type_id,
-            COALESCE(lt.code, 'vacation') as leave_type_code,
-            COALESCE(lt.name, 'Vacation') as leave_type_name,
-            COALESCE(lt.is_paid, TRUE) as is_paid,
+            lt.id as leave_type_id,
+            lt.code as leave_type_code,
+            lt.name as leave_type_name,
+            lt.is_paid as is_paid,
             COALESCE(lb.entitlement, 0) as entitlement,
             COALESCE(lb.accrued_amount::FLOAT8, 0.0) as accrued_amount,
             COALESCE(lb.carried_over, 0) as carried_over,
@@ -99,7 +98,7 @@ pub async fn get_workspace_balances(
                     SELECT SUM(end_date - start_date + 1)
                     FROM leave_requests
                     WHERE employee_id = e.id
-                    AND leave_type_id = lb.leave_type_id
+                    AND leave_type_id = lt.id
                     AND status = 'approved'
                     AND EXTRACT(YEAR FROM start_date) = $2
                 ),
@@ -111,7 +110,7 @@ pub async fn get_workspace_balances(
                         SELECT SUM(end_date - start_date + 1)
                         FROM leave_requests
                         WHERE employee_id = e.id
-                        AND leave_type_id = lb.leave_type_id
+                        AND leave_type_id = lt.id
                         AND status = 'approved'
                         AND EXTRACT(YEAR FROM start_date) = $2
                     ),
@@ -123,7 +122,7 @@ pub async fn get_workspace_balances(
                 FROM leave_policy_assignments a
                 JOIN leave_policy_definitions d ON a.policy_id = d.id
                 WHERE a.workspace_id = $1
-                  AND d.leave_type_id = lb.leave_type_id
+                  AND d.leave_type_id = lt.id
                   AND (
                     (a.assignee_type = 'employee' AND a.assignee_id = e.id) OR
                     (a.assignee_type = 'department' AND a.assignee_id = (SELECT department_id FROM employee_department_history WHERE employee_id = e.id ORDER BY effective_date DESC LIMIT 1)) OR
@@ -144,7 +143,7 @@ pub async fn get_workspace_balances(
                 FROM leave_policy_assignments a
                 JOIN leave_policy_definitions d ON a.policy_id = d.id
                 WHERE a.workspace_id = $1
-                  AND d.leave_type_id = lb.leave_type_id
+                  AND d.leave_type_id = lt.id
                   AND (
                     (a.assignee_type = 'employee' AND a.assignee_id = e.id) OR
                     (a.assignee_type = 'department' AND a.assignee_id = (SELECT department_id FROM employee_department_history WHERE employee_id = e.id ORDER BY effective_date DESC LIMIT 1)) OR
@@ -161,11 +160,11 @@ pub async fn get_workspace_balances(
                 LIMIT 1
             ) as assignment_type
         FROM employees e
-        LEFT JOIN leave_balances lb ON e.id = lb.employee_id AND lb.year = $2
-        LEFT JOIN leave_types lt ON lb.leave_type_id = lt.id
-        WHERE e.workspace_id = $1 AND e.is_active = TRUE
+        CROSS JOIN leave_types lt
+        LEFT JOIN leave_balances lb ON e.id = lb.employee_id AND lt.id = lb.leave_type_id AND lb.year = $2
+        WHERE e.workspace_id = $1 AND e.is_active = TRUE AND lt.workspace_id = $1
           AND ($3 = '%%' OR e.full_name ILIKE $3 OR lt.name ILIKE $3 OR lt.code ILIKE $3)
-        ORDER BY e.full_name, lt.name
+        ORDER BY e.full_name ASC, lt.name ASC
         LIMIT $4 OFFSET $5
     "#;
 

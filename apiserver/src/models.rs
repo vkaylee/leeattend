@@ -1476,3 +1476,18 @@ pub struct OvertimePolicyAssignment {
     pub effective_to: Option<NaiveDate>,
     pub created_at: Option<DateTime<Utc>>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+pub struct LeavePolicyAssignmentDetail {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub assignee_type: String,
+    pub assignee_id: Option<Uuid>,
+    pub policy_id: Uuid,
+    pub effective_from: NaiveDate,
+    pub effective_to: Option<NaiveDate>,
+    pub created_at: DateTime<Utc>,
+    pub policy_name: String,
+    pub leave_type_name: String,
+}
+

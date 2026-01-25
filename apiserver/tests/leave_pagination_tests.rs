@@ -83,8 +83,8 @@ async fn test_workspace_leave_balances_pagination() {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let resp: PaginatedResponse<WorkspaceLeaveBalance> = serde_json::from_slice(&body).unwrap();
     
-    assert_eq!(resp.total, 15);
-    assert_eq!(resp.data.len(), 15);
+    assert_eq!(resp.total, 60);
+    assert_eq!(resp.data.len(), 20);
     assert_eq!(resp.page, 1);
 
     // 2. Test Limit 5, Page 1
@@ -106,7 +106,7 @@ async fn test_workspace_leave_balances_pagination() {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let resp: PaginatedResponse<WorkspaceLeaveBalance> = serde_json::from_slice(&body).unwrap();
     
-    assert_eq!(resp.total, 15);
+    assert_eq!(resp.total, 60);
     assert_eq!(resp.data.len(), 5);
     assert_eq!(resp.page, 1);
     
@@ -129,7 +129,7 @@ async fn test_workspace_leave_balances_pagination() {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let resp: PaginatedResponse<WorkspaceLeaveBalance> = serde_json::from_slice(&body).unwrap();
     
-    assert_eq!(resp.total, 15);
+    assert_eq!(resp.total, 60);
     assert_eq!(resp.data.len(), 5);
     assert_eq!(resp.page, 2);
 
@@ -159,7 +159,7 @@ async fn test_workspace_leave_balances_pagination() {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let resp: PaginatedResponse<WorkspaceLeaveBalance> = serde_json::from_slice(&body).unwrap();
     
-    assert_eq!(resp.total, 1);
-    assert_eq!(resp.data.len(), 1);
+    assert_eq!(resp.total, 4);
+    assert_eq!(resp.data.len(), 4);
     assert_eq!(resp.data[0].employee_name, "Target Person");
 }
