@@ -190,4 +190,25 @@ describe("PayrollSummaryTable", () => {
     // 4. Verify loading state is also visible (somewhere else)
     expect(screen.getByText("common.loading")).toBeInTheDocument();
   });
+
+  it("auto-focuses the search input on mount", () => {
+    render(
+      <BrowserRouter>
+        <PayrollSummaryTable 
+          employees={mockEmployees}
+          payslips={mockPayslips}
+          isLoading={false}
+          selectedIds={new Set()}
+          onToggleSelect={onToggleSelect}
+          onToggleSelectAll={onToggleSelectAll}
+          onViewDetail={onViewDetail}
+          searchTerm=""
+          onSearchChange={onSearchChange}
+        />
+      </BrowserRouter>
+    );
+
+    const input = screen.getByLabelText("common.search");
+    expect(input).toHaveFocus();
+  });
 });

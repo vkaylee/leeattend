@@ -95,21 +95,11 @@ export default function PayrollSummaryTable({
         <div className="flex flex-col md:flex-row md:items-center gap-6 flex-1">
           <div className="relative group flex-1 max-w-lg">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 w-4.5 h-4.5 group-focus-within:text-primary-500 transition-colors" />
-            <input type="text" aria-label={t("common.search")} placeholder={t("payroll.search_placeholder")} className="w-full pl-14 pr-6 py-3.5 bg-white border border-slate-200 rounded-[1.5rem] outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all font-bold text-sm shadow-sm" value={searchTerm} onChange={(e) => onSearchChange(e.target.value)} />
+            <input type="text" autoFocus aria-label={t("common.search")} placeholder={t("payroll.search_placeholder")} className="w-full pl-14 pr-6 py-3.5 bg-white border border-slate-200 rounded-[1.5rem] outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 transition-all font-bold text-sm shadow-sm" value={searchTerm} onChange={(e) => onSearchChange(e.target.value)} />
           </div>
           <div className="flex items-center gap-3"><span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">{filteredEmployees.length} {t("common.employees")}</span></div>
         </div>
 
-        <div className="flex items-center">
-          <PaginationControls 
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            pageSize={pageSize}
-            totalItems={filteredEmployees.length}
-            onPageSizeChange={setPageSize}
-          />
-        </div>
 
       </div>
       {isLoading ? (
