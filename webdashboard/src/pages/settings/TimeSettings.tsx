@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Clock, Calculator, Save, ShieldAlert, Settings2, Shield, LayoutGrid, List, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -45,7 +46,20 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
 
 
-  const [activeTab, setActiveTab] = useState<TabType>("general");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get("tab") as TabType;
+  const [activeTab, setActiveTab] = useState<TabType>(tabFromUrl || "general");
+
+  useEffect(() => {
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
+
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   const [workUnit, setWorkUnit] = useState(workspace.work_unit_minutes);
 
@@ -125,11 +139,11 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
       <div className="flex bg-slate-100/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50 shadow-inner">
 
-        <button onClick={() => setActiveTab("general")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'general' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Settings2 size={14} /> {t("common.settings.tabs.general")}</button>
+        <button onClick={() => handleTabChange("general")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'general' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Settings2 size={14} /> {t("common.settings.tabs.general")}</button>
 
-        <button onClick={() => setActiveTab("patterns")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'patterns' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><LayoutGrid size={14} /> {t("common.settings.tabs.patterns")}</button>
+        <button onClick={() => handleTabChange("patterns")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'patterns' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><LayoutGrid size={14} /> {t("common.settings.tabs.patterns")}</button>
 
-        <button onClick={() => setActiveTab("rules")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'rules' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Zap size={14} /> {t("common.settings.tabs.rules")}</button>
+        <button onClick={() => handleTabChange("rules")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'rules' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Zap size={14} /> {t("common.settings.tabs.rules")}</button>
 
       </div>
 

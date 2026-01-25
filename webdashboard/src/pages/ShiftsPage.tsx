@@ -335,7 +335,7 @@ export default function ShiftsPage() {
           <p className="text-slate-500 mt-1">{t("shifts.subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/working-patterns" className="bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2 border border-slate-200 shadow-sm transition-all">
+          <Link to="/workspace/settings/time?tab=patterns" className="bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2 border border-slate-200 shadow-sm transition-all">
             <CalendarRange className="w-4 h-4" />
             <span className="text-xs uppercase tracking-widest">{t("patterns.manage_btn")}</span>
           </Link>

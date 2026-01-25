@@ -14,8 +14,6 @@ import LeaveBalancesPage from "./pages/LeaveBalancesPage";
 import ReportsPage from "./pages/ReportsPage";
 import PayrollPage from "./pages/PayrollPage";
 import ShiftsPage from "./pages/ShiftsPage";
-import WorkingPatternsPage from "./pages/WorkingPatternsPage";
-import AssignmentRulesPage from "./pages/AssignmentRulesPage";
 import SettingsLayout from "./pages/settings/SettingsLayout";
 import GeneralSettings from "./pages/settings/GeneralSettings";
 import PeopleSettings from "./pages/settings/PeopleSettings";
@@ -57,8 +55,6 @@ export function AppRoutes() {
             <Route path="attendance-adjustments" element={<AttendanceAdjustmentsPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="shifts" element={<ShiftsPage />} />
-            <Route path="working-patterns" element={<WorkingPatternsPage />} />
-            <Route path="assignment-rules" element={<AssignmentRulesPage />} />
             <Route path="payroll" element={<PayrollPage />} />
             
             <Route path="workspace/settings" element={<SettingsLayout />}>

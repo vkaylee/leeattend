@@ -30,7 +30,7 @@ export default function MainLayout() {
     return {
       org: ["/members", "/employees", "/departments"].includes(path),
       time: ["/time-tracking", "/attendance-logs", "/leave-requests", "/attendance-adjustments", "/reports", "/leave-balances"].includes(path) || path === "/",
-      payroll: ["/shifts", "/payroll", "/working-patterns", "/assignment-rules"].includes(path),
+      payroll: ["/shifts", "/payroll"].includes(path),
       system: path.startsWith("/workspace/settings"),
       ess: path.startsWith("/ess/"),
     };
@@ -65,7 +65,7 @@ export default function MainLayout() {
     const path = location.pathname;
     const isOrg = ["/members", "/employees", "/departments"].includes(path);
     const isTime = ["/time-tracking", "/attendance-logs", "/leave-requests", "/attendance-adjustments", "/reports", "/leave-balances"].includes(path);
-    const isPayroll = ["/shifts", "/payroll", "/working-patterns", "/assignment-rules"].includes(path);
+    const isPayroll = ["/shifts", "/payroll"].includes(path);
     const isSystem = path.startsWith("/workspace/settings");
     const isEss = path.startsWith("/ess/");
 

@@ -75,8 +75,6 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
     ]},
     { section: "payroll", sectionIcon: Wallet, label: t("common.sections.payroll_shifts"), testId: "sidebar-section-payroll", items: [
       { to: "/shifts", icon: CalendarRange, label: t("common.shifts"), testId: "sidebar-link-shifts" },
-      { to: "/working-patterns", icon: ListOrdered, label: t("patterns.title"), testId: "sidebar-link-working-patterns" },
-      { to: "/assignment-rules", icon: Zap, label: t("rules.title"), testId: "sidebar-link-assignment-rules" },
       { to: "/payroll", icon: DollarSign, label: t("payroll.title"), testId: "sidebar-link-payroll" }
     ]},
     { section: "system", sectionIcon: Wrench, label: t("settings.title"), testId: "sidebar-section-system", items: [
