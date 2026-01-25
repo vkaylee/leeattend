@@ -167,11 +167,12 @@ async fn test_leave_balance_repo_upsert() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let vacation_id = sqlx::query_scalar!("SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'", ws_id).fetch_one(&pool).await.unwrap();
 
     let balance = apiserver::models::LeaveBalance {
         id: Uuid::new_v4(),
         employee_id: emp_id,
-        leave_type: "vacation".to_string(),
+        leave_type_id: vacation_id,
         year: 2026,
         entitlement: 15,
         accrued_amount: rust_decimal::Decimal::ZERO,

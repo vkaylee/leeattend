@@ -1227,8 +1227,8 @@ pub enum AccrualFrequency {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SeniorityBonus {
-    pub min_years: i32,
-    pub extra_days: f64,
+    pub months: i32,
+    pub bonus_amount: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -1261,6 +1261,7 @@ pub struct LeavePolicyConfig {
     pub accrual_timing: String, // "start_of_period" or "end_of_period"
     #[serde(default)]
     pub seniority_bonus: Vec<SeniorityBonus>,
+    pub carry_over_limit: Option<i32>,
     pub max_balance: Option<f64>,
     pub reset_month: Option<i32>,
     pub min_work_days_threshold: Option<f64>,

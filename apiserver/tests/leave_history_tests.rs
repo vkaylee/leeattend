@@ -56,9 +56,17 @@ async fn test_leave_history_and_adjustment() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
 
+    let vacation_id: uuid::Uuid = sqlx::query_scalar!(
+        "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
+        ws_id
+    )
+    .fetch_one(&_test_db.pool())
+    .await
+    .unwrap();
+
     // 2. Perform Manual Adjustment (Add +5 days)
     let adjust_req = AdjustBalanceRequest {
-        leave_type: "vacation".to_string(),
+        leave_type_id: vacation_id,
         amount: 5.0,
         reason: "Initial Balance".to_string(),
         transaction_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
@@ -88,7 +96,7 @@ async fn test_leave_history_and_adjustment() {
     // 3. Submit & Approve Leave Request (Usage -2 days)
     let submit_req = SubmitLeaveRequest {
         employee_id: emp_id,
-        leave_type: "vacation".to_string(),
+        leave_type_id: vacation_id,
         start_date: NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
         end_date: NaiveDate::from_ymd_opt(2026, 2, 2).unwrap(),
         reason: Some("Short trip".to_string()),

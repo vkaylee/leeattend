@@ -10,6 +10,7 @@ import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import WorkspaceSwitcher from "../WorkspaceSwitcher";
 import Modal from "../ui/Modal";
+import { cn } from "@/lib/utils";
 
 export default function MainLayout() {
   const { t } = useTranslation();
@@ -20,8 +21,8 @@ export default function MainLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showSwitcher, setShowSwitcher] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
-    const saved = localStorage.getItem('sidebar-collapsed');
-    return saved === 'true';
+    const saved = localStorage.getItem("sidebar-collapsed");
+    return saved === "true";
   });
 
   const getInitialOpenSections = () => {
@@ -55,7 +56,7 @@ export default function MainLayout() {
   const toggleCollapsed = () => {
     setIsCollapsed(prev => {
       const newValue = !prev;
-      localStorage.setItem('sidebar-collapsed', String(newValue));
+      localStorage.setItem("sidebar-collapsed", String(newValue));
       return newValue;
     });
   };
@@ -87,7 +88,6 @@ export default function MainLayout() {
 
   return (
     <div className="flex min-h-screen bg-[#fcfcfd] text-slate-700 font-sans relative overflow-x-hidden">
-      {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-500"
@@ -104,7 +104,10 @@ export default function MainLayout() {
         isCollapsed={isCollapsed}
       />
 
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden relative">
+      <div className={cn(
+        "flex-1 flex flex-col min-w-0 h-screen overflow-hidden relative transition-all duration-300",
+        isCollapsed ? "lg:ml-20" : "lg:ml-72"
+      )}>
         <Navbar
           currentWorkspaceName={currentWorkspace?.name || "Workspace"}
           onOpenSidebar={() => setIsSidebarOpen(true)}
@@ -119,7 +122,6 @@ export default function MainLayout() {
         </main>
       </div>
 
-      {/* Switcher Modal */}
       <Modal
         isOpen={showSwitcher}
         onClose={() => setShowSwitcher(false)}

@@ -177,3 +177,29 @@ export async function updateLeaveTypeConfig(
   if (!response.ok) throw new Error("Failed to update leave type config");
   return response.json();
 }
+
+export async function createLeaveType(
+  wsId: string,
+  data: { code: string; name: string; is_paid: boolean }
+): Promise<LeaveType> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/types`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to create leave type");
+  return response.json();
+}
+
+export async function deleteLeaveType(
+  wsId: string,
+  typeId: string
+): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/types/${typeId}`, {
+    method: "DELETE",
+  });
+  if (response.status === 409) {
+    const error = await response.text();
+    throw new Error(error);
+  }
+  if (!response.ok) throw new Error("Failed to delete leave type");
+}

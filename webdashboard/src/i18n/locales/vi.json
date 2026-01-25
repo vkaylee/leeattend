@@ -573,7 +573,8 @@
     "profile": {
       "subtitle": "Xem và quản lý thông tin cá nhân của bạn.",
       "update_success": "Cập nhật hồ sơ thành công",
-      "update_error": "Lỗi khi cập nhật hồ sơ"
+      "update_error": "Lỗi khi cập nhật hồ sơ",
+      "title": "Hồ sơ của tôi"
     },
     "emergency_contact": {
       "add_success": "Thêm liên hệ thành công",
@@ -1616,7 +1617,8 @@
       "people_desc": "Quản lý nhân viên, phòng ban và vai trò.",
       "time_desc": "Cấu hình ca làm việc, lịch trình và quy tắc chấm công.",
       "payroll_desc": "Quản lý ngày công chuẩn và công thức tính lương.",
-      "connectivity_desc": "Quản lý kết nối thiết bị và cài đặt mạng."
+      "connectivity_desc": "Quản lý kết nối thiết bị và cài đặt mạng.",
+      "leave": "Quản lý nghỉ phép"
     },
     "navigation": "Điều hướng",
     "admin_only": "Chỉ dành cho quản trị viên",
@@ -1627,7 +1629,8 @@
         "types": "Loại nghỉ",
         "policies": "Chính sách tích lũy",
         "types_desc": "Định nghĩa các loại nghỉ và quy tắc",
-        "policies_desc": "Thiết lập cách tích lũy ngày nghỉ theo thời gian"
+        "policies_desc": "Thiết lập cách tích lũy ngày nghỉ theo thời gian",
+        "assignments": "Gán chính sách"
       },
       "messages": {
         "update_success": "Cập nhật loại nghỉ thành công",

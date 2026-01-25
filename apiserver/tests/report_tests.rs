@@ -271,14 +271,22 @@ async fn test_get_workspace_attendance_summary() {
         .create()
         .await;
 
+    let vacation_id: Uuid = sqlx::query_scalar!(
+        "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
+        ws_id
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+
     // Create an approved leave request
     let start_date = Utc::now().date_naive();
     let end_date = start_date;
     sqlx::query!(
-        "INSERT INTO leave_requests (id, employee_id, leave_type, start_date, end_date, status) VALUES ($1, $2, $3, $4, $5, $6)",
+        "INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, status) VALUES ($1, $2, $3, $4, $5, $6)",
         Uuid::new_v4(),
         employee_id,
-        "vacation",
+        vacation_id,
         start_date,
         end_date,
         LeaveStatus::Approved as LeaveStatus

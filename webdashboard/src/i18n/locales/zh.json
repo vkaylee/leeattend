@@ -573,7 +573,8 @@
     "profile": {
       "subtitle": "查看和管理您的个人信息。",
       "update_success": "个人资料更新成功",
-      "update_error": "更新个人资料时出错"
+      "update_error": "更新个人资料时出错",
+      "title": "我的个人资料"
     },
     "emergency_contact": {
       "add_success": "联系人添加成功",
@@ -1616,7 +1617,8 @@
       "people_desc": "管理员工、部门和角色。",
       "time_desc": "配置班次、排班和考勤规则。",
       "payroll_desc": "管理标准工作日和公式。",
-      "connectivity_desc": "管理设备连接和网络。"
+      "connectivity_desc": "管理设备连接和网络。",
+      "leave": "休假管理"
     },
     "navigation": "导航",
     "admin_only": "仅限管理员",
@@ -1627,7 +1629,8 @@
         "types": "请假类型",
         "policies": "累积策略",
         "types_desc": "定义可用的请假类型及其规则",
-        "policies_desc": "设置请假如何随时间累积"
+        "policies_desc": "设置请假如何随时间累积",
+        "assignments": "政策分配"
       },
       "messages": {
         "update_success": "请假类型更新成功",

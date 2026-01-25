@@ -573,7 +573,8 @@
     "profile": {
       "subtitle": "View and manage your personal information.",
       "update_success": "Profile updated successfully",
-      "update_error": "Error updating profile"
+      "update_error": "Error updating profile",
+      "title": "My Profile"
     },
     "emergency_contact": {
       "add_success": "Contact added successfully",
@@ -1616,7 +1617,8 @@
       "people_desc": "Manage employees, departments and roles.",
       "time_desc": "Configure shifts, rosters and attendance rules.",
       "payroll_desc": "Manage standard work days and formulas.",
-      "connectivity_desc": "Manage device connections and network."
+      "connectivity_desc": "Manage device connections and network.",
+      "leave": "Leave Management"
     },
     "navigation": "Navigation",
     "admin_only": "Administrators only",
@@ -1627,7 +1629,8 @@
         "types": "Leave Types",
         "policies": "Accrual Policies",
         "types_desc": "Define available leave types and their rules",
-        "policies_desc": "Set up how leave is earned over time"
+        "policies_desc": "Set up how leave is earned over time",
+        "assignments": "Policy Assignments"
       },
       "messages": {
         "update_success": "Leave type updated successfully",

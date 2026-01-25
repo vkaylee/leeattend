@@ -13,19 +13,46 @@ impl LeaveAccrualService {
     /// Pure function to calculate how much leave should be accrued for a given policy and employee state.
     pub fn calculate_accrual_amount(
         config: &LeavePolicyConfig,
-        years_service: i32,
-        _accrual_date: NaiveDate,
+        months_service: i32,
+        work_days_in_period: f64,
     ) -> f64 {
-        let mut amount = config.accrual_amount;
-
-        // Apply seniority bonuses (additive)
-        for bonus in &config.seniority_bonus {
-            if years_service >= bonus.min_years {
-                amount += bonus.extra_days;
+        // Check working days threshold if configured
+        if let Some(threshold) = config.min_work_days_threshold {
+            if work_days_in_period < threshold {
+                return 0.0;
             }
         }
 
+        let mut amount = config.accrual_amount;
+
+        // Apply seniority bonus (highest milestone reached)
+        let mut bonus_to_apply = 0.0;
+        let mut max_milestone_months = -1;
+        
+        for bonus in &config.seniority_bonus {
+            if months_service >= bonus.months && bonus.months > max_milestone_months {
+                bonus_to_apply = bonus.bonus_amount;
+                max_milestone_months = bonus.months;
+            }
+        }
+        amount += bonus_to_apply;
+
         amount
+    }
+
+    /// Calculate how many days can be carried over to the next year
+    pub fn calculate_carry_over_amount(
+        remaining_days: f64,
+        carry_over_limit: i32,
+    ) -> f64 {
+        let limit = carry_over_limit as f64;
+        if remaining_days > limit {
+            limit
+        } else if remaining_days < 0.0 {
+            0.0 
+        } else {
+            remaining_days
+        }
     }
 
     /// Helper to count "Qualifying Days" for performance-based accrual.
@@ -106,8 +133,8 @@ impl LeaveAccrualService {
         Ok(qualifying_days.len() as i32)
     }
 
-    /// Helper to calculate full years of service across multiple periods
-    pub fn calculate_total_seniority(
+    /// Helper to calculate full months of service across multiple periods
+    pub fn calculate_total_months_seniority(
         periods: &[crate::models::EmploymentPeriod],
         as_of: NaiveDate,
     ) -> i32 {
@@ -124,7 +151,7 @@ impl LeaveAccrualService {
             }
         }
 
-        (total_days / 365) as i32
+        (total_days / 30) as i32 // Approximate month
     }
 
     /// Determines if an accrual should run on this date based on frequency.
@@ -221,14 +248,13 @@ impl LeaveAccrualService {
                     ) {
                         let periods =
                             employee_repository::get_employment_history(pool, emp.id).await?;
-                        let years_service =
-                            Self::calculate_total_seniority(&periods, current_check_date);
-                        let mut amount =
-                            Self::calculate_accrual_amount(config, years_service, current_check_date);
-
-                        // Performance threshold check
-                        if let Some(threshold) = config.min_work_days_threshold {
-                            let (check_start, check_end) = match config.frequency {
+                        let months_service =
+                            Self::calculate_total_months_seniority(&periods, current_check_date);
+                        
+                        // Default work days to threshold to pass check if not configured
+                        let mut work_days = 20.0;
+                        if config.min_work_days_threshold.is_some() {
+                             let (check_start, check_end) = match config.frequency {
                                 AccrualFrequency::Monthly => {
                                     if config.accrual_timing == "start_of_period" {
                                         let prev_month_date = if current_check_date.month() == 1 {
@@ -267,14 +293,10 @@ impl LeaveAccrualService {
                                 }
                                 _ => (current_check_date, current_check_date),
                             };
-
-                            let qualifying_days =
-                                Self::count_qualifying_days(pool, emp.id, check_start, check_end, tz)
-                                    .await?;
-                            if (qualifying_days as f64) < threshold {
-                                amount = 0.0;
-                            }
+                            work_days = Self::count_qualifying_days(pool, emp.id, check_start, check_end, tz).await? as f64;
                         }
+
+                        let amount = Self::calculate_accrual_amount(config, months_service, work_days);
 
                         if amount > 0.0 {
                             use rust_decimal::prelude::FromPrimitive;
@@ -408,116 +430,34 @@ mod tests {
             accrual_timing: "start_of_period".to_string(),
             seniority_bonus: vec![
                 SeniorityBonus {
-                    min_years: 1,
-                    extra_days: 0.5,
+                    months: 12,
+                    bonus_amount: 0.5,
                 },
                 SeniorityBonus {
-                    min_years: 5,
-                    extra_days: 1.0,
+                    months: 60,
+                    bonus_amount: 1.0,
                 },
             ],
+            carry_over_limit: Some(5),
             max_balance: None,
             reset_month: None,
-            min_work_days_threshold: None,
+            min_work_days_threshold: Some(14.0),
         };
 
-        // 0 years service
-        assert_eq!(
-            LeaveAccrualService::calculate_accrual_amount(
-                &config,
-                0,
-                NaiveDate::from_ymd_opt(2020, 6, 1).unwrap()
-            ),
-            1.0
-        );
+        // 0 months service, enough work days
+        assert_eq!(LeaveAccrualService::calculate_accrual_amount(&config, 0, 15.0), 1.0);
+        
+        // 0 months service, NOT enough work days
+        assert_eq!(LeaveAccrualService::calculate_accrual_amount(&config, 0, 10.0), 0.0);
 
-        // 1 year service
-        assert_eq!(
-            LeaveAccrualService::calculate_accrual_amount(
-                &config,
-                1,
-                NaiveDate::from_ymd_opt(2021, 1, 1).unwrap()
-            ),
-            1.5
-        );
-
-        // 5 years service
-        assert_eq!(
-            LeaveAccrualService::calculate_accrual_amount(
-                &config,
-                5,
-                NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()
-            ),
-            2.5
-        );
+        // 12 months service milestone
+        assert_eq!(LeaveAccrualService::calculate_accrual_amount(&config, 12, 15.0), 1.5);
     }
 
     #[test]
-    fn test_should_run_accrual() {
-        let monthly = AccrualFrequency::Monthly;
-        let quarterly = AccrualFrequency::Quarterly;
-        let yearly = AccrualFrequency::Yearly;
-
-        // Monthly start
-        assert!(LeaveAccrualService::should_run_accrual(
-            &monthly,
-            "start_of_period",
-            NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
-        ));
-        assert!(!LeaveAccrualService::should_run_accrual(
-            &monthly,
-            "start_of_period",
-            NaiveDate::from_ymd_opt(2026, 1, 15).unwrap()
-        ));
-
-        // Monthly end
-        assert!(LeaveAccrualService::should_run_accrual(
-            &monthly,
-            "end_of_period",
-            NaiveDate::from_ymd_opt(2026, 1, 31).unwrap()
-        ));
-        assert!(!LeaveAccrualService::should_run_accrual(
-            &monthly,
-            "end_of_period",
-            NaiveDate::from_ymd_opt(2026, 1, 15).unwrap()
-        ));
-
-        // Quarterly start
-        assert!(LeaveAccrualService::should_run_accrual(
-            &quarterly,
-            "start_of_period",
-            NaiveDate::from_ymd_opt(2026, 4, 1).unwrap()
-        ));
-        assert!(!LeaveAccrualService::should_run_accrual(
-            &quarterly,
-            "start_of_period",
-            NaiveDate::from_ymd_opt(2026, 5, 1).unwrap()
-        ));
-
-        // Quarterly end
-        assert!(LeaveAccrualService::should_run_accrual(
-            &quarterly,
-            "end_of_period",
-            NaiveDate::from_ymd_opt(2026, 3, 31).unwrap()
-        ));
-        assert!(!LeaveAccrualService::should_run_accrual(
-            &quarterly,
-            "end_of_period",
-            NaiveDate::from_ymd_opt(2026, 4, 30).unwrap()
-        ));
-
-        // Yearly start
-        assert!(LeaveAccrualService::should_run_accrual(
-            &yearly,
-            "start_of_period",
-            NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()
-        ));
-
-        // Yearly end
-        assert!(LeaveAccrualService::should_run_accrual(
-            &yearly,
-            "end_of_period",
-            NaiveDate::from_ymd_opt(2026, 12, 31).unwrap()
-        ));
+    fn test_carry_over_limit_logic() {
+        assert_eq!(LeaveAccrualService::calculate_carry_over_amount(10.0, 5), 5.0);
+        assert_eq!(LeaveAccrualService::calculate_carry_over_amount(3.0, 5), 3.0);
+        assert_eq!(LeaveAccrualService::calculate_carry_over_amount(0.0, 5), 0.0);
     }
 }

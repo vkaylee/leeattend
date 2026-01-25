@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchLeaveTypes, updateLeaveTypeConfig } from "@/lib/api/leaves";
+import { fetchLeaveTypes, updateLeaveTypeConfig, createLeaveType, deleteLeaveType } from "@/lib/api/leaves";
 import { LeaveType, LeaveTypeConfig } from "@/lib/api/types";
-import { ShieldCheck, FileText, Wallet, AlertTriangle, Edit2 } from "lucide-react";
+import { Wallet, AlertTriangle, Edit2, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import Modal from "@/components/ui/Modal";
+import { cn } from "@/lib/utils";
 
 interface LeaveTypeManagerProps {
   wsId: string;
@@ -15,183 +16,116 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
   const { t } = useTranslation();
   const toast = useToast();
   const queryClient = useQueryClient();
+  
   const [editingType, setEditingType] = useState<LeaveType | null>(null);
+  const [isAddingType, setIsAddingType] = useState(false);
+  const [deletingType, setDeletingType] = useState<LeaveType | null>(null);
 
-  const { data: leaveTypes = [], isLoading } = useQuery({
+  const { data: leaveTypes = [], isLoading: isTypesLoading } = useQuery({
     queryKey: ["leave-types", wsId],
     queryFn: () => fetchLeaveTypes(wsId),
   });
 
-  const updateMutation = useMutation({
-    mutationFn: (data: { typeId: string; config: LeaveTypeConfig }) =>
-      updateLeaveTypeConfig(wsId, data.typeId, data.config),
+  const createTypeMutation = useMutation({
+    mutationFn: (data: { code: string; name: string; is_paid: boolean }) => createLeaveType(wsId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leave-types"] });
-      toast.success(t("settings.leave.messages.update_success", "Leave type updated successfully"));
+      toast.success("Leave type created successfully");
+      setIsAddingType(false);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const updateTypeMutation = useMutation({
+    mutationFn: (data: { typeId: string; config: LeaveTypeConfig }) => updateLeaveTypeConfig(wsId, data.typeId, data.config),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leave-types"] });
+      toast.success("Leave type updated successfully");
       setEditingType(null);
     },
-    onError: () => {
-      toast.error(t("settings.leave.messages.update_error", "Failed to update leave type"));
+    onError: () => toast.error("Failed to update leave type"),
+  });
+
+  const deleteTypeMutation = useMutation({
+    mutationFn: (typeId: string) => deleteLeaveType(wsId, typeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leave-types"] });
+      toast.success("Leave type deleted successfully");
+      setDeletingType(null);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+      setDeletingType(null);
     },
   });
 
-  if (isLoading) return <div className="p-8 text-center text-primary-400">Loading leave types...</div>;
+  if (isTypesLoading) return <div className="py-12 text-center text-slate-400 animate-pulse">Loading leave types...</div>;
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center px-1">
+         <p className="text-xs font-medium text-slate-500 max-w-md italic">Define the categories of leave available in your organization (e.g., Annual Leave, Sick Leave).</p>
+         <button onClick={() => setIsAddingType(true)} className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100"><Plus size={14} /> Add Leave Type</button>
+      </div>
+      
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {leaveTypes.map((type) => (
-          <div
-            key={type.id}
-            className="relative flex flex-col justify-between rounded-xl border border-primary-200/50 bg-white p-6 shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-800"
-          >
+          <div key={type.id} className="relative flex flex-col justify-between rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm hover:shadow-md transition-all group">
             <div>
               <div className="flex items-center justify-between">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                  type.is_paid ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30" : "bg-amber-100 text-amber-600 dark:bg-amber-900/30"
-                }`}>
-                  {type.is_paid ? <Wallet className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
+                <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl shadow-inner", type.is_paid ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100")}>
+                  {type.is_paid ? <Wallet size={20} /> : <AlertTriangle size={20} />}
                 </div>
-                <button
-                  onClick={() => setEditingType(type)}
-                  className="rounded-full p-2 text-primary-400 hover:bg-slate-100 hover:text-primary-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
-                >
-                  <Edit2 className="h-4 w-4" />
-                </button>
-              </div>
-              <h3 className="mt-4 text-lg font-bold text-primary-600 uppercase tracking-tight dark:text-white">{type.name}</h3>
-              <p className="text-sm text-primary-400 dark:text-primary-400">Code: {type.code}</p>
-              
-              <div className="mt-4 space-y-2">
-                <div className="flex items-center gap-2 text-sm text-primary-400 dark:text-primary-400">
-                  <ShieldCheck className="h-4 w-4 text-primary-500" />
-                  <span>{t("settings.leave.fields.approval", "Approval")}: {type.policy_config.approval_required ? t("common.required") : t("common.auto")}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-primary-400 dark:text-primary-400">
-                  <FileText className="h-4 w-4 text-blue-500" />
-                  <span>{t("settings.leave.fields.document", "Document")}: {type.policy_config.requires_document ? t("common.required") : t("common.optional")}</span>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => setEditingType(type)} className="p-2 text-slate-400 hover:text-primary-600 bg-slate-50 rounded-xl border border-slate-100"><Edit2 size={16} /></button>
+                  <button onClick={() => setDeletingType(type)} className="p-2 text-slate-400 hover:text-rose-600 bg-slate-50 rounded-xl border border-slate-100"><Trash2 size={16} /></button>
                 </div>
               </div>
-            </div>
-            
-            <div className="mt-4 border-t border-primary-100/50 pt-4 dark:border-slate-800">
-               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                 type.is_paid ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-slate-100 text-primary-600 dark:bg-slate-800 dark:text-primary-400"
-               }`}>
-                 {type.is_paid ? t("settings.leave.types.paid", "Paid Leave") : t("settings.leave.types.unpaid", "Unpaid Leave")}
-               </span>
+              <h3 className="mt-5 text-lg font-bold text-slate-800 tracking-tight leading-none uppercase">{type.name}</h3>
+              <p className="mt-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Code: {type.code}</p>
+              <div className="mt-4 flex gap-2">
+                 <span className={cn("px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border", type.is_paid ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-amber-50 text-amber-700 border-amber-100")}>{type.is_paid ? "Paid" : "Unpaid"}</span>
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      {editingType && (
-        <EditConfigModal
-          isOpen={!!editingType}
-          onClose={() => setEditingType(null)}
-          leaveType={editingType}
-          onSave={(config) => updateMutation.mutate({ typeId: editingType.id, config })}
-          isSaving={updateMutation.isPending}
-        />
+      {isAddingType && <AddLeaveTypeModal onClose={() => setIsAddingType(false)} onSave={(data: any) => createTypeMutation.mutate(data)} isSaving={createTypeMutation.isPending} />}
+      {editingType && <EditLeaveTypeModal leaveType={editingType} onClose={() => setEditingType(null)} onSave={(config: LeaveTypeConfig) => updateTypeMutation.mutate({ typeId: editingType.id, config })} isSaving={updateTypeMutation.isPending} />}
+      {deletingType && (
+        <Modal isOpen={true} onClose={() => setDeletingType(null)} title="Confirm Delete">
+          <div className="p-8">
+            <p className="text-sm">Are you sure you want to delete "{deletingType.name}"?</p>
+            <div className="mt-8 flex justify-end gap-3"><button onClick={() => setDeletingType(null)} className="px-6 py-2 text-xs font-bold text-slate-400">Cancel</button><button onClick={() => deleteTypeMutation.mutate(deletingType.id)} className="rounded-xl bg-rose-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase">Delete</button></div>
+          </div>
+        </Modal>
       )}
     </div>
   );
 }
 
-function EditConfigModal({
-  isOpen,
-  onClose,
-  leaveType,
-  onSave,
-  isSaving,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  leaveType: LeaveType;
-  onSave: (config: LeaveTypeConfig) => void;
-  isSaving: boolean;
-}) {
-  const [config, setConfig] = useState<LeaveTypeConfig>(leaveType.policy_config);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(config);
-  };
-
+function AddLeaveTypeModal({ onClose, onSave, isSaving }: any) {
+  const [formData, setFormData] = useState({ code: "", name: "", is_paid: true });
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Configure ${leaveType.name}`}>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
-          <label className="flex items-start gap-3 rounded-lg border border-primary-200/50 p-4 dark:border-slate-700">
-            <input
-              type="checkbox"
-              checked={config.approval_required}
-              onChange={(e) => setConfig({ ...config, approval_required: e.target.checked })}
-              className="mt-1 h-4 w-4 rounded border-primary-200 text-primary-600 focus:ring-primary-500"
-            />
-            <div>
-              <span className="block text-sm font-medium text-primary-600 dark:text-white">Require Approval</span>
-              <span className="block text-xs text-primary-400">Manager must approve requests of this type</span>
-            </div>
-          </label>
+    <Modal isOpen={true} onClose={onClose} title="Add Leave Type">
+      <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="p-8 space-y-5">
+        <input required type="text" placeholder="Code" value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })} className="w-full rounded-2xl border p-4 text-sm" />
+        <input required type="text" placeholder="Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full rounded-2xl border p-4 text-sm" />
+        <div className="flex items-center gap-3"><input type="checkbox" checked={formData.is_paid} onChange={(e) => setFormData({ ...formData, is_paid: e.target.checked })} /><label className="text-xs font-bold uppercase">Paid Leave?</label></div>
+        <div className="flex justify-end gap-3 pt-6"><button type="button" onClick={onClose}>Cancel</button><button type="submit" disabled={isSaving} className="rounded-xl bg-primary-600 px-8 py-3 text-xs font-bold text-white uppercase">Create</button></div>
+      </form>
+    </Modal>
+  );
+}
 
-          <label className="flex items-start gap-3 rounded-lg border border-primary-200/50 p-4 dark:border-slate-700">
-            <input
-              type="checkbox"
-              checked={config.requires_document}
-              onChange={(e) => setConfig({ ...config, requires_document: e.target.checked })}
-              className="mt-1 h-4 w-4 rounded border-primary-200 text-primary-600 focus:ring-primary-500"
-            />
-            <div>
-              <span className="block text-sm font-medium text-primary-600 dark:text-white">Require Document</span>
-              <span className="block text-xs text-primary-400">Employee must attach a file (e.g. medical certificate)</span>
-            </div>
-          </label>
-
-          <label className="flex items-start gap-3 rounded-lg border border-primary-200/50 p-4 dark:border-slate-700">
-            <input
-              type="checkbox"
-              checked={config.allow_negative_balance}
-              onChange={(e) => setConfig({ ...config, allow_negative_balance: e.target.checked })}
-              className="mt-1 h-4 w-4 rounded border-primary-200 text-primary-600 focus:ring-primary-500"
-            />
-            <div>
-              <span className="block text-sm font-medium text-primary-600 dark:text-white">Allow Negative Balance</span>
-              <span className="block text-xs text-primary-400">Allow taking leave even if balance is insufficient</span>
-            </div>
-          </label>
-
-          {config.allow_negative_balance && (
-             <div>
-               <label className="block text-sm font-medium text-primary-400 dark:text-primary-400">Negative Limit (Days)</label>
-               <input
-                 type="number"
-                 step="0.5"
-                 value={config.negative_balance_limit || ""}
-                 onChange={(e) => setConfig({ ...config, negative_balance_limit: parseFloat(e.target.value) })}
-                 className="mt-1 block w-full rounded-md border border-primary-200 text-primary-600 px-3 py-2 text-sm text-primary-600 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-800"
-                 placeholder="e.g. 5.0"
-               />
-             </div>
-          )}
-        </div>
-
-        <div className="flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-primary-200 px-6 py-2.5 text-sm font-medium text-primary-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="flex items-center gap-2 rounded-lg bg-primary-600 px-6 py-2.5 text-sm font-bold text-white uppercase tracking-widest text-xs hover:bg-primary-700 disabled:opacity-50"
-          >
-            {isSaving ? "Saving..." : "Save Changes"}
-          </button>
-        </div>
+function EditLeaveTypeModal({ leaveType, onClose, onSave, isSaving }: any) {
+  const [config, setConfig] = useState(leaveType.policy_config || { approval_required: true, requires_document: false, allow_negative_balance: false });
+  return (
+    <Modal isOpen={true} onClose={onClose} title={`Config: ${leaveType.name}`}>
+      <form onSubmit={(e) => { e.preventDefault(); onSave(config); }} className="p-8 space-y-4">
+        <label className="flex items-center gap-3"><input type="checkbox" checked={config.approval_required} onChange={(e) => setConfig({ ...config, approval_required: e.target.checked })} /><span className="text-xs font-bold uppercase">Approval Required</span></label>
+        <div className="flex justify-end gap-3 pt-6"><button type="button" onClick={onClose}>Cancel</button><button type="submit" disabled={isSaving} className="rounded-xl bg-primary-600 px-8 py-3 text-xs font-bold text-white uppercase">Save</button></div>
       </form>
     </Modal>
   );

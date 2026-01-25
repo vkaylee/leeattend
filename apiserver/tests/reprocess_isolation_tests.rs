@@ -70,10 +70,11 @@ async fn test_reprocess_should_not_delete_next_day_entries() {
 
     // 2. Pre-populate Day 2 entry (to simulate existing data)
     sqlx::query!(
-        "INSERT INTO time_entries (id, employee_id, punch_in_time, punch_out_time, duration_minutes, entry_type) 
-         VALUES ($1, $2, $3, $4, $5, $6)",
+        "INSERT INTO time_entries (id, employee_id, workspace_id, punch_in_time, punch_out_time, duration_minutes, entry_type) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7)",
         Uuid::new_v4(),
         emp_id,
+        ws_id,
         day2_in,
         Some(day2_out),
         540,

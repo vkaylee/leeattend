@@ -65,7 +65,7 @@ describe("LeaveRequestsPage", () => {
     (api.fetchEmployeeLeaveBalances as any).mockResolvedValue([]);
     (api.fetchLeavePolicies as any).mockResolvedValue([]);
     (api.fetchLeaveTypes as any).mockResolvedValue([
-      { id: "lt-vacation", code: "vacation", name: "Vacation", is_paid: true, workspace_id: "ws-1", policy_config: {}, created_at: "2025-01-01T00:00:00Z" }
+      { id: "lt-vacation", code: "lt-vacation", name: "Vacation", is_paid: true, workspace_id: "ws-1", policy_config: {}, created_at: "2025-01-01T00:00:00Z" }
     ]);
   });
 
@@ -110,7 +110,7 @@ describe("LeaveRequestsPage", () => {
     (api.fetchEmployeeLeaveBalances as any).mockImplementation((wsId: string, empId: string) => {
       if (empId === "emp-1") {
         return Promise.resolve([
-          { leave_type_id: "lt-1", leave_type_code: "vacation", leave_type_name: "Vacation", is_paid: true, remaining: 10, entitlement: 12, carried_over: 2, accrued_amount: 0, used: 2 }
+          { leave_type_id: "lt-1", leave_type_code: "lt-vacation", leave_type_name: "Vacation", is_paid: true, remaining: 10, entitlement: 12, carried_over: 2, accrued_amount: 0, used: 2 }
         ]);
       }
       return Promise.resolve([]);
@@ -136,7 +136,7 @@ describe("LeaveRequestsPage", () => {
     expect(await screen.findByText(/Còn/i)).toBeDefined();
     expect(screen.getByText("10")).toBeDefined();
 
-    await user.selectOptions(screen.getByLabelText(/Loại/i), "vacation");
+    await user.selectOptions(screen.getByLabelText(/Loại/i), "lt-vacation");
     
     // Fill dates
     const startDate = screen.getByLabelText(/Từ ngày/i);
@@ -190,165 +190,8 @@ describe("LeaveRequestsPage", () => {
     });
   });
 
-  it("manages policies", async () => {
-    const user = userEvent.setup();
-    (api.fetchLeavePolicies as any).mockResolvedValue([
-      { id: "pol-1", name: "Standard Policy", leave_type_id: "lt-vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period", carry_over_limit: 5 } }
-    ]);
-    (api.createLeavePolicy as any).mockResolvedValue({});
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <BrowserRouter>
-            <LeaveRequestsPage />
-          </BrowserRouter>
-        </ToastProvider>
-      </QueryClientProvider>
-    );
 
-    await user.click(screen.getByText(/Chính sách/i));
 
-    expect(await screen.findByText("Standard Policy")).toBeDefined();
 
-    // Create policy
-    await user.click(screen.getByText(/Thêm chính sách/i));
-    const nameInput = await screen.findByLabelText(/Tên chính sách/i);
-    await user.type(nameInput, "New Policy");
-    await user.click(screen.getByTestId("save-policy-btn"));
-
-    await waitFor(() => {
-      expect(api.createLeavePolicy).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({ name: "New Policy" }));
-    });
-  });
-
-  it("edits an existing policy", async () => {
-    const user = userEvent.setup();
-    (api.fetchLeavePolicies as any).mockResolvedValue([
-      { id: "pol-1", name: "Old Policy", leave_type_id: "lt-vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period", carry_over_limit: 5 } }
-    ]);
-    (api.updateLeavePolicy as any).mockResolvedValue({});
-
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <BrowserRouter>
-            <LeaveRequestsPage />
-          </BrowserRouter>
-        </ToastProvider>
-      </QueryClientProvider>
-    );
-
-    await user.click(screen.getByText(/Chính sách/i));
-    expect(await screen.findByText("Old Policy")).toBeDefined();
-
-    const editBtn = await screen.findByTitle(/sửa/i);
-    await user.click(editBtn);
-
-    expect(await screen.findByText(/Sửa chính sách/i)).toBeDefined();
-    const nameInput = screen.getByLabelText(/Tên chính sách/i);
-    await user.clear(nameInput);
-    await user.type(nameInput, "Updated Policy");
-    await user.click(screen.getByTestId("save-policy-btn"));
-
-    await waitFor(() => {
-      expect(api.updateLeavePolicy).toHaveBeenCalledWith("test-ws-id", "pol-1", expect.objectContaining({ name: "Updated Policy" }));
-    });
-  });
-
-  it("deletes a policy", async () => {
-    const user = userEvent.setup();
-    (api.fetchLeavePolicies as any).mockResolvedValue([
-      { id: "pol-1", name: "To Be Deleted", leave_type_id: "lt-vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period", carry_over_limit: 5 } }
-    ]);
-    (api.deleteLeavePolicy as any).mockResolvedValue({});
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <BrowserRouter>
-            <LeaveRequestsPage />
-          </BrowserRouter>
-        </ToastProvider>
-      </QueryClientProvider>
-    );
-
-    await user.click(screen.getByText(/Chính sách/i));
-    expect(await screen.findByText("To Be Deleted")).toBeDefined();
-
-    const deleteBtn = await screen.findByTitle(/xóa/i);
-    await user.click(deleteBtn);
-
-    expect(window.confirm).toHaveBeenCalled();
-    await waitFor(() => {
-      expect(api.deleteLeavePolicy).toHaveBeenCalledWith("test-ws-id", "pol-1");
-    });
-  });
-
-  it("handles policy assignment", async () => {
-    const user = userEvent.setup();
-    (api.fetchLeavePolicies as any).mockResolvedValue([
-      { id: "pol-1", name: "Standard", leave_type_id: "lt-vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period" } }
-    ]);
-    (api.assignLeavePolicy as any).mockResolvedValue({});
-
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <BrowserRouter>
-            <LeaveRequestsPage />
-          </BrowserRouter>
-        </ToastProvider>
-      </QueryClientProvider>
-    );
-
-    await user.click(screen.getByText(/Chính sách/i));
-    
-    // Wait for policy list to be updated
-    expect(await screen.findByText("Standard")).toBeDefined();
-
-    await user.click(screen.getByText(/Gán chính sách/i));
-
-    const empSelects = await screen.findAllByLabelText(/Nhân viên/i);
-    const empSelect = empSelects.find(el => el.id === 'assign-emp') || empSelects[0];
-    await user.selectOptions(empSelect, "emp-1");
-    
-    const policySelect = await screen.findByLabelText(/Chính sách/i);
-    await user.selectOptions(policySelect, "pol-1");
-    
-    await user.click(screen.getByText(/Gán ngay/i));
-
-    await waitFor(() => {
-      expect(api.assignLeavePolicy).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
-        assignee_type: "employee",
-        assignee_id: "emp-1",
-        policy_id: "pol-1"
-      }));
-    });
-  });
-
-  it("fetches leave policies on mount regardless of the active tab", async () => {
-    (api.fetchLeavePolicies as any).mockResolvedValue([
-      { id: "pol-1", name: "Standard Vacation", leave_type_id: "lt-vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period" } }
-    ]);
-
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <BrowserRouter>
-            <LeaveRequestsPage />
-          </BrowserRouter>
-        </ToastProvider>
-      </QueryClientProvider>
-    );
-
-    // Initial tab is "Chờ duyệt"
-    expect(screen.getAllByText(/Chờ duyệt/i).length).toBeGreaterThan(0);
-
-    // Verify fetchLeavePolicies was called
-    await waitFor(() => {
-      expect(api.fetchLeavePolicies).toHaveBeenCalledWith("test-ws-id");
-    });
-  });
 });

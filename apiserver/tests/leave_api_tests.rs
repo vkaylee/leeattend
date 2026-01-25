@@ -13,6 +13,17 @@ use common::factory::TestFactory;
 use std::sync::Arc;
 use tower::ServiceExt;
 
+
+async fn get_default_leave_type(db: &common::db::TestDatabase, ws_id: uuid::Uuid) -> uuid::Uuid {
+    sqlx::query_scalar!(
+        "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
+        ws_id
+    )
+    .fetch_one(&db.pool)
+    .await
+    .unwrap()
+}
+
 async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
     let _ = tracing_subscriber::fmt()
         .with_env_filter("apiserver=debug,sqlx=info")
@@ -55,6 +66,7 @@ async fn test_leave_request_lifecycle() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let leave_type_id = get_default_leave_type(&_test_db, ws_id).await;
 
     // 2. Submit Leave Request
     let start_date = Utc::now().date_naive();
@@ -62,7 +74,7 @@ async fn test_leave_request_lifecycle() {
 
     let submit_req = SubmitLeaveRequest {
         employee_id: emp_id,
-        leave_type: "annual".to_string(),
+        leave_type_id,
         start_date,
         end_date,
         reason: Some("Family vacation".to_string()),
@@ -180,10 +192,11 @@ async fn test_reject_leave_request() {
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
+    let leave_type_id = get_default_leave_type(&_test_db, ws_id).await;
 
     let submit_req = SubmitLeaveRequest {
         employee_id: emp_id,
-        leave_type: "annual".to_string(),
+        leave_type_id,
         start_date: Utc::now().date_naive(),
         end_date: Utc::now().date_naive(),
         reason: Some("Reject me".to_string()),
@@ -250,10 +263,11 @@ async fn test_submit_leave_request_non_existent_employee() {
     let (_test_db, factory, app) = setup_app().await;
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let leave_type_id = get_default_leave_type(&_test_db, ws_id).await;
 
     let submit_req = serde_json::json!({
         "employee_id": uuid::Uuid::new_v4(),
-        "leave_type": "annual",
+        "leave_type_id": leave_type_id,
         "start_date": "2026-01-01",
         "end_date": "2026-01-01"
     });

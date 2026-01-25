@@ -52,8 +52,8 @@ async fn test_performance_based_accrual() {
         let dt = Utc.with_ymd_and_hms(2026, 1, i, 8, 0, 0).unwrap();
         
         sqlx::query!(
-            "INSERT INTO time_entries (employee_id, punch_in_time, entry_type) VALUES ($1, $2, 'work')",
-            emp, dt
+            "INSERT INTO time_entries (employee_id, workspace_id, punch_in_time, entry_type) VALUES ($1, $2, $3, 'work')",
+            emp, ws_id, dt
         ).execute(&pool).await.unwrap();
     }
 
@@ -72,8 +72,8 @@ async fn test_performance_based_accrual() {
     for i in 11..=15 {
         let dt = Utc.with_ymd_and_hms(2026, 1, i, 8, 0, 0).unwrap();
         sqlx::query!(
-            "INSERT INTO time_entries (employee_id, punch_in_time, entry_type) VALUES ($1, $2, 'work')",
-            emp, dt
+            "INSERT INTO time_entries (employee_id, workspace_id, punch_in_time, entry_type) VALUES ($1, $2, $3, 'work')",
+            emp, ws_id, dt
         ).execute(&pool).await.unwrap();
     }
 
@@ -99,16 +99,24 @@ async fn test_performance_based_accrual() {
     for i in 1..=10 {
         let dt = Utc.with_ymd_and_hms(2026, 1, i, 8, 0, 0).unwrap();
         sqlx::query!(
-            "INSERT INTO time_entries (employee_id, punch_in_time, entry_type) VALUES ($1, $2, 'work')",
-            emp, dt
+            "INSERT INTO time_entries (employee_id, workspace_id, punch_in_time, entry_type) VALUES ($1, $2, $3, 'work')",
+            emp, ws_id, dt
         ).execute(&pool).await.unwrap();
     }
 
     // 5 leave days
+    let vacation_id: uuid::Uuid = sqlx::query_scalar!(
+        "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
+        ws_id
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+
     sqlx::query!(
-        "INSERT INTO leave_requests (employee_id, leave_type, start_date, end_date, status) 
-         VALUES ($1, 'vacation', '2026-01-20', '2026-01-24', 'approved')",
-        emp
+        "INSERT INTO leave_requests (employee_id, leave_type_id, start_date, end_date, status) 
+         VALUES ($1, $2, '2026-01-20', '2026-01-24', 'approved')",
+        emp, vacation_id
     ).execute(&pool).await.unwrap();
 
     // Run accrual for 2026-02-01
@@ -159,8 +167,8 @@ async fn test_performance_based_accrual_end_of_period() {
     for i in 1..=10 {
         let dt = Utc.with_ymd_and_hms(2026, 1, i, 8, 0, 0).unwrap();
         sqlx::query!(
-            "INSERT INTO time_entries (employee_id, punch_in_time, entry_type) VALUES ($1, $2, 'work')",
-            emp, dt
+            "INSERT INTO time_entries (employee_id, workspace_id, punch_in_time, entry_type) VALUES ($1, $2, $3, 'work')",
+            emp, ws_id, dt
         ).execute(&pool).await.unwrap();
     }
 
@@ -178,8 +186,8 @@ async fn test_performance_based_accrual_end_of_period() {
     for i in 11..=15 {
         let dt = Utc.with_ymd_and_hms(2026, 1, i, 8, 0, 0).unwrap();
         sqlx::query!(
-            "INSERT INTO time_entries (employee_id, punch_in_time, entry_type) VALUES ($1, $2, 'work')",
-            emp, dt
+            "INSERT INTO time_entries (employee_id, workspace_id, punch_in_time, entry_type) VALUES ($1, $2, $3, 'work')",
+            emp, ws_id, dt
         ).execute(&pool).await.unwrap();
     }
 

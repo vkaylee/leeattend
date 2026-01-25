@@ -108,7 +108,7 @@ pub async fn create_employee_tx_skip_duplicates(
     let result = sqlx::query(
         "INSERT INTO employees (id, workspace_id, user_id, full_name, employee_id_number, tags, is_active, created_at, updated_at) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-         ON CONFLICT (employee_id_number) DO NOTHING",
+         ON CONFLICT (workspace_id, employee_id_number) DO NOTHING",
     )
     .bind(employee.id)
     .bind(employee.workspace_id)

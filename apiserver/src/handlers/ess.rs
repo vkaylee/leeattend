@@ -299,27 +299,28 @@ pub async fn get_my_leave_balances(
     let balances = sqlx::query_as::<_, EssLeaveBalance>(
         r#"
         SELECT
-            lb.leave_type,
+            lt.code as leave_type,
             lb.entitlement,
             CAST(lb.accrued_amount AS FLOAT8) as accrued_amount,
             lb.carried_over,
             COALESCE(
                 (SELECT COUNT(*) FROM leave_requests lr
                  WHERE lr.employee_id = $1
-                   AND lr.leave_type = lb.leave_type
+                   AND lr.leave_type_id = lb.leave_type_id
                    AND lr.status = 'approved'
-                   AND EXTRACT(YEAR FROM lr.start_date) = $2),
+                   AND CAST(EXTRACT(YEAR FROM lr.start_date) AS INTEGER) = $2),
                 0
             ) as used,
             CAST(lb.entitlement + lb.accrued_amount + lb.carried_over AS FLOAT8) - COALESCE(
                 (SELECT COUNT(*) FROM leave_requests lr
                  WHERE lr.employee_id = $1
-                   AND lr.leave_type = lb.leave_type
+                   AND lr.leave_type_id = lb.leave_type_id
                    AND lr.status = 'approved'
-                   AND EXTRACT(YEAR FROM lr.start_date) = $2),
+                   AND CAST(EXTRACT(YEAR FROM lr.start_date) AS INTEGER) = $2),
                 0
             ) as remaining
         FROM leave_balances lb
+        JOIN leave_types lt ON lb.leave_type_id = lt.id
         WHERE lb.employee_id = $1 AND lb.year = $2
         "#,
     )

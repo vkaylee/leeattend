@@ -51,7 +51,6 @@ mod ax_auth {
         type Rejection = (StatusCode, String);
 
         async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-            // 1. In development, allow Impersonation via Header
             #[cfg(debug_assertions)]
             {
                 if let Some(imp_id_str) = parts.headers.get("X-Debug-Impersonate-Id").and_then(|h| h.to_str().ok()) {
@@ -61,7 +60,6 @@ mod ax_auth {
                 }
             }
 
-            // 2. Check for JWT in Authorization header
             if let Some(auth_header) = parts.headers.get("Authorization") {
                 if let Ok(auth_str) = auth_header.to_str() {
                     if let Some(token) = auth_str.strip_prefix("Bearer ") {
@@ -80,7 +78,6 @@ mod ax_auth {
                 }
             }
 
-            // 3. Fallback to X-User-Id in development (debug assertions)
             #[cfg(debug_assertions)]
             {
                 if let Some(user_id_str) =
@@ -103,9 +100,7 @@ mod ax_auth {
 pub use ax_auth::UserId;
 
 pub fn create_app(state: Arc<AppState>) -> Router {
-    // Cấu hình CORS
     let cors = if cfg!(debug_assertions) {
-        // Trong môi trường dev, cho phép tất cả để tránh phiền phức về port
         CorsLayer::new()
             .allow_origin(Any)
             .allow_methods([
@@ -118,7 +113,6 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             ])
             .allow_headers(Any)
     } else {
-        // Trong môi trường production, cấu hình nghiêm ngặt từ env
         let allowed_origins_str =
             std::env::var("ALLOWED_ORIGINS").unwrap_or_else(|_| "".to_string());
 
@@ -175,11 +169,9 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route("/ws", get(handlers::ws_handler))
         .route("/agents", get(handlers::get_agents))
         .route("/agent/:agent_id/command", post(handlers::send_command))
-        // Profile
         .route("/me", get(handlers::get_me).patch(handlers::update_me))
         .route("/auth/change-password", post(handlers::change_password))
         .route("/users", get(handlers::get_users))
-        // Device Management
         .route(
             "/devices",
             get(handlers::get_devices).post(handlers::create_device),
@@ -188,7 +180,6 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/devices/:id",
             put(handlers::update_device).delete(handlers::delete_device),
         )
-        // Authorized Agents
         .route(
             "/authorized-agents",
             get(handlers::get_authorized_agents).post(handlers::create_authorized_agent),
@@ -203,7 +194,6 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/authorized-agents/:id/trust",
             put(handlers::update_agent_trust),
         )
-        // Workspace Management
         .route(
             "/workspaces",
             get(handlers::get_workspaces).post(handlers::create_workspace),
@@ -228,7 +218,6 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/members/:user_id/roles/:role_id",
             delete(handlers::revoke_extra_role),
         )
-        // Employee Management
         .route(
             "/workspaces/:ws_id/employees/upload",
             post(handlers::upload_employee_excel),
@@ -259,7 +248,6 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/employees/:id/conditions/:cond_id",
             delete(handlers::delete_working_condition),
         )
-        // Time Tracking
         .route("/workspaces/:ws_id/time/punch-in", post(handlers::punch_in))
         .route(
             "/workspaces/:ws_id/time/punch-out/:employee_id",
@@ -273,7 +261,6 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/time/entries/:id",
             put(handlers::update_time_entry).delete(handlers::delete_time_entry),
         )
-        // Leave Management
         .route(
             "/workspaces/:ws_id/leave/submit",
             post(handlers::submit_leave_request),
@@ -302,15 +289,18 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/employees/:id/leave/adjust",
             post(handlers::adjust_leave_balance),
         )
-                .route(
+        .route(
             "/workspaces/:ws_id/leave/types",
-            get(handlers::leave_types::list_leave_types),
+            get(handlers::leave_types::list_leave_types).post(handlers::leave_types::create_leave_type),
+        )
+        .route(
+            "/workspaces/:ws_id/leave/types/:id",
+            delete(handlers::leave_types::delete_leave_type),
         )
         .route(
             "/workspaces/:ws_id/leave/types/:id/config",
             put(handlers::leave_types::update_leave_type_config),
         )
-        // Leave Policies
         .route(
             "/workspaces/:ws_id/leave/policies",
             get(handlers::leaves::get_leave_policies).post(handlers::leaves::create_leave_policy),
@@ -377,7 +367,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/reports/attendance",
             get(handlers::get_attendance_report),
         )
-                .route(
+        .route(
             "/workspaces/:ws_id/overtime/policies",
             get(handlers::list_policies).post(handlers::create_policy),
         )
@@ -393,8 +383,6 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/overtime/policies/assign",
             post(handlers::assign_policy),
         )
-
-        // Payroll
         .route(
             "/workspaces/:ws_id/payroll-settings",
             get(handlers::get_payroll_settings).patch(handlers::update_payroll_settings),
@@ -440,7 +428,6 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/employees/:id/payroll-config",
             post(handlers::set_employee_payroll_config).get(handlers::get_employee_payroll_configs),
         )
-        // Departments
         .route(
             "/workspaces/:ws_id/departments",
             get(handlers::get_departments).post(handlers::create_department),
@@ -457,7 +444,6 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/employees/:id/departments",
             get(handlers::get_employee_department_history).post(handlers::transfer_employee),
         )
-        // Shifts
         .route(
             "/workspaces/:ws_id/shifts",
             get(handlers::get_shifts).post(handlers::create_shift),
@@ -470,7 +456,6 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/shifts/assign",
             post(handlers::assign_shift),
         )
-        // Working Patterns
         .route(
             "/workspaces/:ws_id/working-patterns",
             get(handlers::working_patterns::list_patterns)
@@ -490,7 +475,6 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(handlers::working_patterns::get_employee_pattern_history)
                 .post(handlers::working_patterns::assign_pattern),
         )
-        // Assignment Rules
         .route(
             "/workspaces/:ws_id/assignment-rules",
             get(handlers::assignment_rules::get_assignment_rules)
@@ -502,7 +486,6 @@ pub fn create_app(state: Arc<AppState>) -> Router {
                 .delete(handlers::assignment_rules::delete_assignment_rule),
         );
 
-    // Rosters
     let roster_routes = Router::new()
         .route(
             "/workspaces/:ws_id/schedules",
@@ -525,14 +508,11 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             delete(handlers::delete_roster),
         );
 
-    // Employee Self-Service (ESS) Routes
     let ess_routes = Router::new()
-        // Profile
         .route(
             "/ess/profile",
             get(handlers::ess::get_my_profile).put(handlers::ess::update_my_profile),
         )
-        // Emergency Contacts
         .route(
             "/ess/emergency-contacts",
             get(handlers::ess::get_my_emergency_contacts)
@@ -542,13 +522,9 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/ess/emergency-contacts/:contact_id",
             delete(handlers::ess::delete_emergency_contact),
         )
-        // Documents
         .route("/ess/documents", get(handlers::ess::get_my_documents))
-        // Payslips
         .route("/ess/payslips", get(handlers::ess::get_my_payslips))
-        // Attendance
         .route("/ess/attendance", get(handlers::ess::get_my_attendance))
-        // Leave
         .route(
             "/ess/leave/balances",
             get(handlers::ess::get_my_leave_balances),

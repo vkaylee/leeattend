@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE employees SET tags = $1 WHERE id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "VarcharArray",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5b0e33d95cb1e41150df1ab6dbe9c4c1789a576fb13010d04ac215ce2e318a90"
+}

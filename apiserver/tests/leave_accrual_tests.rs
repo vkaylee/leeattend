@@ -55,7 +55,7 @@ async fn test_accrual_scenarios() {
             "accrual_amount": 1.0,
             "accrual_timing": "start_of_period",
             "seniority_bonus": [
-                { "min_years": 1, "extra_days": 1.0 }
+                { "months": 12, "bonus_amount": 1.0 }
             ]
         }))
         .create()

@@ -605,11 +605,11 @@ async fn test_payslip_calculation_with_mixed_ot_base_components_integrated() {
     .await
     .unwrap();
 
-    let shift_id = factory.shift().with_workspace(workspace_id).create().await;
+    let shift_id = factory.shift().with_workspace(workspace_id).with_break_duration(0).create().await;
     sqlx::query("INSERT INTO shift_rosters (employee_id, shift_id, date) VALUES ($1, $2, $3)")
         .bind(employee_id).bind(shift_id).bind(test_date).execute(&pool).await.unwrap();
 
-    let tz = chrono_tz::UTC;
+    let tz: chrono_tz::Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
     let punch_in = tz.from_local_datetime(&test_date.and_hms_opt(8, 0, 0).unwrap()).single().unwrap().with_timezone(&Utc);
     let punch_out = tz.from_local_datetime(&test_date.and_hms_opt(19, 0, 0).unwrap()).single().unwrap().with_timezone(&Utc);
 

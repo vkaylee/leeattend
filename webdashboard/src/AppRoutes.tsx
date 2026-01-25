@@ -35,11 +35,9 @@ import MainLayout from "./components/layout/MainLayout";
 export function AppRoutes() {
   return (
     <Routes>
-      {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
-      {/* Protected routes */}
       <Route element={<AuthGuard />}>
         <Route path="/onboarding" element={<OnboardingPage />} />
         <Route element={<WorkspaceGuard />}>
@@ -63,22 +61,22 @@ export function AppRoutes() {
             <Route path="assignment-rules" element={<AssignmentRulesPage />} />
             <Route path="payroll" element={<PayrollPage />} />
             
-            {/* Settings Hub */}
             <Route path="workspace/settings" element={<SettingsLayout />}>
               <Route index element={<GeneralSettings />} />
               <Route path="general" element={<GeneralSettings />} />
               <Route path="people" element={<PeopleSettings />} />
               <Route path="time" element={<TimeSettings />} />
               <Route path="payroll" element={<PayrollSettings />} />
-                            <Route path="leave" element={<LeaveSettings />} />
+              <Route path="leave" element={<LeaveSettings />} />
               <Route path="connectivity" element={<ConnectivitySettings />} />
             </Route>
 
             <Route path="profile" element={<ProfilePage />} />
-            {/* ESS Routes */}
-            <Route path="/ess/clock" element={<MyClockPage />} />
-            <Route path="/ess/profile" element={<MyProfilePage />} />
-            <Route path="/ess/attendance" element={<MyAttendancePage />} />
+            <Route path="ess">
+              <Route path="profile" element={<MyProfilePage />} />
+              <Route path="attendance" element={<MyAttendancePage />} />
+              <Route path="clock" element={<MyClockPage />} />
+            </Route>
           </Route>
         </Route>
       </Route>

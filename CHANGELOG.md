@@ -27,6 +27,15 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - Migrated handlers from `UserId` to `MemberContext` to ensure workspace-level isolation and role verification.
 
 ### Fixed
+- **Leave Accrual Logic**:
+    - Updated seniority bonus logic to "Highest Milestone Reached" instead of additive stacking, preventing double-counting.
+    - Fixed `LeaveAccrualService` to correctly handle milestone-based accrual rules.
+- **ESS Leave Balances**:
+    - Updated `get_my_leave_balances` API to correctly join with the new `leave_types` table, resolving 500 errors.
+- **Test Suite Stability**:
+    - Fixed `leave_api_tests.rs` to use valid `leave_type_id` UUIDs instead of random ones or legacy strings.
+    - Updated `payroll_tests.rs` to use correct local timezone (Asia/Ho_Chi_Minh) and break duration settings, resolving rate calculation discrepancies.
+    - Fixed `leave_accrual_performance_tests.rs` and `reprocess_isolation_tests.rs` to include the mandatory `workspace_id` in manual time entry insertions.
 - **Employee Search Performance**:
     - Enforced a 50-record limit at the repository level to prevent database strain and client-side lag.
     - Refactored `EmployeesPage` to use debounced server-side searching.

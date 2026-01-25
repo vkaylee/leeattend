@@ -683,7 +683,7 @@ impl TestFactory {
 pub struct LeaveRequestBuilder {
     pool: PgPool,
     employee_id: Option<Uuid>,
-    leave_type: String,
+    leave_type_id: Option<Uuid>,
     start_date: chrono::NaiveDate,
     end_date: chrono::NaiveDate,
     status: LeaveStatus,
@@ -695,7 +695,7 @@ impl LeaveRequestBuilder {
         Self {
             pool,
             employee_id: None,
-            leave_type: "annual".to_string(),
+            leave_type_id: None,
             start_date: chrono::Utc::now().date_naive(),
             end_date: chrono::Utc::now().date_naive(),
             status: LeaveStatus::Pending,
@@ -718,14 +718,31 @@ impl LeaveRequestBuilder {
         self
     }
 
+    pub fn with_leave_type(mut self, leave_type_id: Uuid) -> Self {
+        self.leave_type_id = Some(leave_type_id);
+        self
+    }
+
     pub async fn create(self) -> Uuid {
         let id = Uuid::new_v4();
+        let leave_type_id = if let Some(id) = self.leave_type_id {
+            id
+        } else {
+            let emp_id = self.employee_id.expect("Employee ID is required for LeaveRequest");
+            sqlx::query_scalar!(
+                "SELECT id FROM leave_types WHERE workspace_id = (SELECT workspace_id FROM employees WHERE id = $1) AND code = 'vacation'",
+                emp_id
+            )
+            .fetch_one(&self.pool)
+            .await
+            .expect("Default leave type 'vacation' not found")
+        };
         sqlx::query(
-            "INSERT INTO leave_requests (id, employee_id, leave_type, start_date, end_date, status) VALUES ($1, $2, $3, $4, $5, $6)",
+            "INSERT INTO leave_requests (id, employee_id, leave_type_id, start_date, end_date, status) VALUES ($1, $2, $3, $4, $5, $6)",
         )
         .bind(id)
         .bind(self.employee_id.expect("Employee ID is required for LeaveRequest"))
-        .bind(self.leave_type)
+        .bind(leave_type_id)
         .bind(self.start_date)
         .bind(self.end_date)
         .bind(self.status)
@@ -741,7 +758,7 @@ impl LeaveRequestBuilder {
 pub struct LeaveBalanceBuilder {
     pool: PgPool,
     employee_id: Option<Uuid>,
-    leave_type: String,
+    leave_type_id: Option<Uuid>,
     year: i32,
     entitlement: i32,
     carried_over: i32,
@@ -753,7 +770,7 @@ impl LeaveBalanceBuilder {
         Self {
             pool,
             employee_id: None,
-            leave_type: "vacation".to_string(),
+            leave_type_id: None,
             year: chrono::Utc::now().date_naive().year(),
             entitlement: 12,
             carried_over: 0,
@@ -770,14 +787,31 @@ impl LeaveBalanceBuilder {
         self
     }
 
+    pub fn with_leave_type(mut self, leave_type_id: Uuid) -> Self {
+        self.leave_type_id = Some(leave_type_id);
+        self
+    }
+
     pub async fn create(self) -> Uuid {
         let id = Uuid::new_v4();
+        let leave_type_id = if let Some(id) = self.leave_type_id {
+            id
+        } else {
+            let emp_id = self.employee_id.expect("Employee ID is required for LeaveBalance");
+            sqlx::query_scalar!(
+                "SELECT id FROM leave_types WHERE workspace_id = (SELECT workspace_id FROM employees WHERE id = $1) AND code = 'vacation'",
+                emp_id
+            )
+            .fetch_one(&self.pool)
+            .await
+            .expect("Default leave type 'vacation' not found")
+        };
         sqlx::query(
-            "INSERT INTO leave_balances (id, employee_id, leave_type, year, entitlement, carried_over) VALUES ($1, $2, $3, $4, $5, $6)",
+            "INSERT INTO leave_balances (id, employee_id, leave_type_id, year, entitlement, carried_over) VALUES ($1, $2, $3, $4, $5, $6)",
         )
         .bind(id)
         .bind(self.employee_id.expect("Employee ID is required for LeaveBalance"))
-        .bind(self.leave_type)
+        .bind(leave_type_id)
         .bind(self.year)
         .bind(self.entitlement)
         .bind(self.carried_over)

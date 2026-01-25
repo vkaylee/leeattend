@@ -34,6 +34,7 @@ async fn test_find_active_policy_priority() {
         max_balance: None,
         reset_month: None,
         min_work_days_threshold: None,
+        carry_over_limit: None,
     };
 
     // 1. Create Global Policy
