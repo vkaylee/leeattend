@@ -74,7 +74,7 @@ export default function SettingsLayout() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group ${
+                className={`flex items-start gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group ${
                   isActive(item.path)
                     ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50"
                     : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
@@ -86,8 +86,8 @@ export default function SettingsLayout() {
                   {item.icon}
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="font-bold text-sm truncate">{item.label}</span>
-                  <span className="text-[10px] text-slate-500 font-medium truncate hidden xl:block">
+                  <span className="font-bold text-sm leading-tight">{item.label}</span>
+                  <span className="text-[10px] text-slate-500 font-medium leading-tight hidden xl:block">
                     {item.description}
                   </span>
                 </div>
