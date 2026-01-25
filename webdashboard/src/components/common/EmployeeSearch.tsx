@@ -16,6 +16,7 @@ interface EmployeeSearchProps {
   id?: string;
   'data-testid'?: string;
   multiple?: boolean;
+  autoFocus?: boolean;
 }
 
 /**
@@ -31,6 +32,7 @@ export function EmployeeSearch({
   id,
   'data-testid': testId,
   multiple = false,
+  autoFocus = false,
 }: EmployeeSearchProps) {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
@@ -123,6 +125,7 @@ export function EmployeeSearch({
         onChange={handleSelect}
         placeholder={placeholder || t('common.search')}
         onSearchChange={setSearchTerm}
+        autoFocus={autoFocus}
       />
 
       {multiple && selectedIds.length > 0 && (

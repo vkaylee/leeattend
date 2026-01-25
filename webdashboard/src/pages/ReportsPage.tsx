@@ -303,7 +303,7 @@ export default function ReportsPage() {
 
           <div className="h-10 w-px bg-slate-100 hidden md:block opacity-50" />
 
-          <div className="w-full md:w-80"><EmployeeSearch workspaceId={wsId!} value={selectedEmployeeIds} onChange={setSelectedEmployeeIds} multiple={true} placeholder={t("reports.search_placeholder")} /></div>
+          <div className="w-full md:w-80"><EmployeeSearch workspaceId={wsId!} value={selectedEmployeeIds} onChange={setSelectedEmployeeIds} multiple={true} autoFocus={true} placeholder={t("reports.search_placeholder")} /></div>
 
         </div>
 

@@ -24,6 +24,7 @@ interface ComboboxProps {
   id?: string;
   "data-testid"?: string;
   shouldFilter?: boolean;
+  autoFocus?: boolean;
 }
 
 export function Combobox({
@@ -38,6 +39,7 @@ export function Combobox({
   id,
   "data-testid": testId,
   shouldFilter,
+  autoFocus,
 }: ComboboxProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -56,7 +58,7 @@ export function Combobox({
       </select>
 
       <Popover.Trigger asChild>
-        <button id={id} data-testid={testId} type="button" className={cn("flex w-full items-center justify-between rounded-[1.25rem] border border-slate-100 bg-slate-50 px-5 py-4 text-sm font-bold text-primary-600 transition-all hover:border-primary-200 hover:bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/10 shadow-inner uppercase tracking-tight", className)}>
+        <button id={id} data-testid={testId} autoFocus={autoFocus} type="button" className={cn("flex w-full items-center justify-between rounded-[1.25rem] border border-slate-100 bg-slate-50 px-5 py-4 text-sm font-bold text-primary-600 transition-all hover:border-primary-200 hover:bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/10 shadow-inner uppercase tracking-tight", className)}>
           <span className="flex items-center gap-3 truncate">
             {selectedOption?.icon}
             {selectedOption ? selectedOption.label : <span className="text-primary-400 font-bold opacity-60">{placeholder}</span>}
