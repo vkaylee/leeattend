@@ -88,7 +88,6 @@ export default function PayrollSummaryTable({
     onToggleSelectAll();
   };
 
-  if (isLoading) return <div className="bg-white border border-slate-100 rounded-[2.5rem] p-24 text-center text-slate-500 font-bold italic uppercase tracking-widest text-xs opacity-50 shadow-sm">{t("common.loading")}</div>;
 
   return (
     <div className="bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-sm flex flex-col h-full animate-in fade-in duration-700">
@@ -111,7 +110,12 @@ export default function PayrollSummaryTable({
             onPageSizeChange={setPageSize}
           />
         </div>
+
       </div>
+      {isLoading ? (
+        <div className="p-24 text-center text-slate-500 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.loading")}</div>
+      ) : (
+        <>
 
       {selectedIds.size > 0 && (
         <div className="bg-primary-50 px-8 py-3 border-b border-primary-100 flex items-center justify-between animate-in slide-in-from-top-2">
@@ -220,6 +224,8 @@ export default function PayrollSummaryTable({
           onPageSizeChange={setPageSize}
         />
       </div>
+        </>
+      )}
     </div>
   );
 }

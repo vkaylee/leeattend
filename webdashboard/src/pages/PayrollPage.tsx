@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { 
   Calculator, 
   ArrowLeft, 
@@ -90,6 +90,7 @@ export default function PayrollPage() {
       return fetchEmployees(wsId, 1, 3000);
     },
     enabled: !!wsId,
+    placeholderData: keepPreviousData,
   });
 
   const employees = React.useMemo(() => employeesData?.data ?? [], [employeesData?.data]);
@@ -98,6 +99,7 @@ export default function PayrollPage() {
     queryKey: ["workspace-payslips", wsId, calcYear, calcMonth],
     queryFn: () => fetchWorkspacePayslips(wsId, calcYear, calcMonth),
     enabled: !!wsId,
+    placeholderData: keepPreviousData,
   });
 
   // Handle both paginated and direct array responses for backwards compatibility
@@ -115,6 +117,7 @@ export default function PayrollPage() {
     queryKey: ["adjustments", wsId, "pending"],
     queryFn: () => fetchWorkspaceAttendanceAdjustments(wsId, "pending"),
     enabled: !!wsId,
+    placeholderData: keepPreviousData,
   });
 
   const employeeAdjustments = selectedEmployee 
