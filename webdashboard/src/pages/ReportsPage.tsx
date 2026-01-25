@@ -84,7 +84,7 @@ export default function ReportsPage() {
   const [confirmDialog, setConfirmDialog] = useState<{ show: boolean; employeeId: string; employeeName: string; date: string; } | null>(null);
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(() => getDaysInMonth(new Date(getMonthRange(-1).start)));
   const [sortBy, setSortBy] = useState<AttendanceReportSort | undefined>(undefined);
 
   const updatePageSizeForDateRange = (start: string, end: string) => {
