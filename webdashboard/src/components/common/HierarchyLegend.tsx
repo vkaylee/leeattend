@@ -31,13 +31,13 @@ export const HierarchyLegend: React.FC<HierarchyLegendProps> = ({ steps, title, 
           <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center border border-primary-100 shadow-inner">
             {icon}
           </div>
-          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">
+          <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500">
             {title}
           </span>
         </div>
         <div className="flex items-center gap-3">
           <HelpCircle size={16} className="text-slate-200" />
-          <div className={cn("w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400 transition-transform duration-300", isOpen && "rotate-180")}>
+          <div className={cn("w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-500 transition-transform duration-300", isOpen && "rotate-180")}>
             <ChevronDown size={16} />
           </div>
         </div>
@@ -59,19 +59,19 @@ export const HierarchyLegend: React.FC<HierarchyLegendProps> = ({ steps, title, 
                 {/* Content */}
                 <div className="flex flex-col flex-1">
                   <div className="flex items-center justify-between gap-4">
-                    <span className={`text-[11px] font-black uppercase tracking-tight leading-tight ${p.isActive ? 'text-slate-900' : 'text-slate-500'}`}>
+                    <span className={`text-[11px] font-bold uppercase tracking-tight leading-tight ${p.isActive ? 'text-slate-700' : 'text-slate-500'}`}>
                       {p.label}
                     </span>
-                    <span className="text-[9px] font-black text-slate-400 group-hover:text-primary-600 transition-colors bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 shadow-sm">
+                    <span className="text-[9px] font-bold text-slate-500 group-hover:text-primary-600 transition-colors bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 shadow-sm">
                       P{p.priority}
                     </span>
                   </div>
                   
                   {idx === 0 && (
-                    <div className="mt-1.5 flex items-center gap-1.5"><div className="w-1 h-1 bg-primary-500 rounded-full animate-pulse" /><span className="text-[8px] font-black text-primary-500 uppercase tracking-widest">{t("shifts.traceability.highest_priority")}</span></div>
+                    <div className="mt-1.5 flex items-center gap-1.5"><div className="w-1 h-1 bg-primary-500 rounded-full animate-pulse" /><span className="text-[8px] font-bold text-primary-500 uppercase tracking-widest">{t("shifts.traceability.highest_priority")}</span></div>
                   )}
                   {idx === steps.length - 1 && (
-                    <div className="mt-1.5 flex items-center gap-1.5"><div className="w-1 h-1 bg-slate-300 rounded-full" /><span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t("shifts.traceability.lowest_priority")}</span></div>
+                    <div className="mt-1.5 flex items-center gap-1.5"><div className="w-1 h-1 bg-slate-300 rounded-full" /><span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">{t("shifts.traceability.lowest_priority")}</span></div>
                   )}
                 </div>
               </div>
@@ -81,7 +81,7 @@ export const HierarchyLegend: React.FC<HierarchyLegendProps> = ({ steps, title, 
           <div className="mt-10 p-6 bg-slate-50 rounded-[1.5rem] border border-slate-100 shadow-inner group/note">
             <div className="flex items-center gap-2 mb-3">
                <HelpCircle size={14} className="text-primary-500 opacity-50" />
-               <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{t("common.note")}</span>
+               <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">{t("common.note")}</span>
             </div>
             <p className="text-[11px] text-slate-500 font-bold leading-relaxed uppercase tracking-tight">
               {explanation}

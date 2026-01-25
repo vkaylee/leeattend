@@ -15,6 +15,7 @@ vi.mock("../../lib/api", () => ({
   approveLeaveRequest: vi.fn(),
   fetchEmployeeLeaveBalances: vi.fn(),
   fetchLeavePolicies: vi.fn(),
+  fetchLeaveTypes: vi.fn(),
   createLeavePolicy: vi.fn(),
   updateLeavePolicy: vi.fn(),
   deleteLeavePolicy: vi.fn(),
@@ -63,6 +64,9 @@ describe("LeaveRequestsPage", () => {
     (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([]);
     (api.fetchEmployeeLeaveBalances as any).mockResolvedValue([]);
     (api.fetchLeavePolicies as any).mockResolvedValue([]);
+    (api.fetchLeaveTypes as any).mockResolvedValue([
+      { id: "lt-vacation", code: "vacation", name: "Vacation", is_paid: true, workspace_id: "ws-1", policy_config: {}, created_at: "2025-01-01T00:00:00Z" }
+    ]);
   });
 
   it("renders without workspace selected", () => {
@@ -82,7 +86,7 @@ describe("LeaveRequestsPage", () => {
 
   it("renders pending requests by default", async () => {
     (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([
-      { id: "req-1", employee_id: "emp-1", leave_type: "vacation", start_date: "2026-01-01", end_date: "2026-01-02", status: "pending", reason: "Test reason" }
+      { id: "req-1", employee_id: "emp-1", leave_type_id: "lt-vacation", start_date: "2026-01-01", end_date: "2026-01-02", status: "pending", reason: "Test reason" }
     ]);
 
     render(
@@ -106,7 +110,7 @@ describe("LeaveRequestsPage", () => {
     (api.fetchEmployeeLeaveBalances as any).mockImplementation((wsId: string, empId: string) => {
       if (empId === "emp-1") {
         return Promise.resolve([
-          { leave_type: "vacation", remaining: 10, entitlement: 12, carried_over: 2 }
+          { leave_type_id: "lt-1", leave_type_code: "vacation", leave_type_name: "Vacation", is_paid: true, remaining: 10, entitlement: 12, carried_over: 2, accrued_amount: 0, used: 2 }
         ]);
       }
       return Promise.resolve([]);
@@ -148,7 +152,7 @@ describe("LeaveRequestsPage", () => {
     await waitFor(() => {
       expect(api.submitLeaveRequest).toHaveBeenCalledWith("test-ws-id", expect.objectContaining({
         employee_id: "emp-1",
-        leave_type: "vacation",
+        leave_type_id: "lt-vacation",
         reason: "Vacation time"
       }));
     });
@@ -157,7 +161,7 @@ describe("LeaveRequestsPage", () => {
   it("handles approve/reject actions", async () => {
     const user = userEvent.setup();
     (api.fetchWorkspaceLeaveRequests as any).mockResolvedValue([
-      { id: "req-1", employee_id: "emp-1", leave_type: "vacation", start_date: "2026-01-01", end_date: "2026-01-02", status: "pending" }
+      { id: "req-1", employee_id: "emp-1", leave_type_id: "lt-vacation", start_date: "2026-01-01", end_date: "2026-01-02", status: "pending" }
     ]);
     (api.approveLeaveRequest as any).mockResolvedValue({});
 
@@ -189,7 +193,7 @@ describe("LeaveRequestsPage", () => {
   it("manages policies", async () => {
     const user = userEvent.setup();
     (api.fetchLeavePolicies as any).mockResolvedValue([
-      { id: "pol-1", name: "Standard Policy", leave_type: "vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period", carry_over_limit: 5 } }
+      { id: "pol-1", name: "Standard Policy", leave_type_id: "lt-vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period", carry_over_limit: 5 } }
     ]);
     (api.createLeavePolicy as any).mockResolvedValue({});
 
@@ -221,7 +225,7 @@ describe("LeaveRequestsPage", () => {
   it("edits an existing policy", async () => {
     const user = userEvent.setup();
     (api.fetchLeavePolicies as any).mockResolvedValue([
-      { id: "pol-1", name: "Old Policy", leave_type: "vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period", carry_over_limit: 5 } }
+      { id: "pol-1", name: "Old Policy", leave_type_id: "lt-vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period", carry_over_limit: 5 } }
     ]);
     (api.updateLeavePolicy as any).mockResolvedValue({});
 
@@ -255,7 +259,7 @@ describe("LeaveRequestsPage", () => {
   it("deletes a policy", async () => {
     const user = userEvent.setup();
     (api.fetchLeavePolicies as any).mockResolvedValue([
-      { id: "pol-1", name: "To Be Deleted", leave_type: "vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period", carry_over_limit: 5 } }
+      { id: "pol-1", name: "To Be Deleted", leave_type_id: "lt-vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period", carry_over_limit: 5 } }
     ]);
     (api.deleteLeavePolicy as any).mockResolvedValue({});
     vi.spyOn(window, 'confirm').mockReturnValue(true);
@@ -285,7 +289,7 @@ describe("LeaveRequestsPage", () => {
   it("handles policy assignment", async () => {
     const user = userEvent.setup();
     (api.fetchLeavePolicies as any).mockResolvedValue([
-      { id: "pol-1", name: "Standard", leave_type: "vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period" } }
+      { id: "pol-1", name: "Standard", leave_type_id: "lt-vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period" } }
     ]);
     (api.assignLeavePolicy as any).mockResolvedValue({});
 
@@ -326,7 +330,7 @@ describe("LeaveRequestsPage", () => {
 
   it("fetches leave policies on mount regardless of the active tab", async () => {
     (api.fetchLeavePolicies as any).mockResolvedValue([
-      { id: "pol-1", name: "Standard Vacation", leave_type: "vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period" } }
+      { id: "pol-1", name: "Standard Vacation", leave_type_id: "lt-vacation", rule_config: { frequency: "monthly", accrual_amount: 1, accrual_timing: "start_of_period" } }
     ]);
 
     render(

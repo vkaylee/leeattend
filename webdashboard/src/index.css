@@ -65,7 +65,7 @@
   }
 
   /* Global softer font weights */
-  .font-black {
+  .font-bold {
     font-weight: 600 !important; /* semibold instead of 900 */
   }
 }
@@ -147,4 +147,10 @@
   .print\\:hidden {
     display: none !important;
   }
+}
+
+/* Global placeholder softening */
+::placeholder {
+  color: var(--primary-300) !important;
+  opacity: 0.7 !important;
 }

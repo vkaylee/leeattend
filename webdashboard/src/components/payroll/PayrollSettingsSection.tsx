@@ -54,7 +54,7 @@ export default function PayrollSettingsSection({ wsId }: Props) {
             <ShieldAlert size={20} />
           </div>
           <div className="text-xs text-blue-800 leading-relaxed font-medium">
-            <p className="font-black uppercase tracking-widest mb-1 text-blue-900">{t("common.payroll.settings.note_title")}</p>
+            <p className="font-bold uppercase tracking-widest mb-1 text-blue-900">{t("common.payroll.settings.note_title")}</p>
             <p className="opacity-80">{t("common.payroll.settings.note_desc")}</p>
           </div>
         </div>

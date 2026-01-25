@@ -7,7 +7,8 @@ import {
   Banknote, 
   Cpu, 
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  CalendarDays
 } from "lucide-react";
 
 export default function SettingsLayout() {
@@ -39,6 +40,12 @@ export default function SettingsLayout() {
       icon: <Banknote className="w-4 h-4" />,
       description: t("settings.categories.payroll_desc")
     },
+        { 
+      path: "/workspace/settings/leave", 
+      label: "Leave Management", 
+      icon: <CalendarDays className="w-4 h-4" />,
+      description: "Manage leave types and policies"
+    },
     { 
       path: "/workspace/settings/connectivity", 
       label: t("settings.categories.connectivity"), 
@@ -58,7 +65,7 @@ export default function SettingsLayout() {
       <aside className="w-full lg:w-72 flex-shrink-0">
         <div className="bg-white rounded-3xl border border-slate-100 p-4 shadow-sm sticky top-24">
           <div className="px-4 py-3 mb-2">
-            <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
+            <h2 className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">
               {t("settings.navigation")}
             </h2>
           </div>
@@ -70,7 +77,7 @@ export default function SettingsLayout() {
                 className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group ${
                   isActive(item.path)
                     ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
                 }`}
               >
                 <div className={`p-2 rounded-xl transition-colors ${
@@ -80,7 +87,7 @@ export default function SettingsLayout() {
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="font-bold text-sm truncate">{item.label}</span>
-                  <span className="text-[10px] text-slate-400 font-medium truncate hidden xl:block">
+                  <span className="text-[10px] text-slate-500 font-medium truncate hidden xl:block">
                     {item.description}
                   </span>
                 </div>

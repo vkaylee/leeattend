@@ -1,5 +1,5 @@
 use crate::models::{LeaveRequest, LeaveStatus};
-use chrono::{Utc, NaiveDate};
+use chrono::{NaiveDate, Utc};
 use sqlx::{query, query_as, PgPool, Row};
 use uuid::Uuid;
 
@@ -8,10 +8,15 @@ pub async fn create_leave_request(
     request: &LeaveRequest,
 ) -> Result<(), sqlx::Error> {
     query!(
-        "INSERT INTO leave_requests (id, employee_id, leave_type, start_date, end_date, reason, status, requested_by_user_id, approved_by_user_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+        r#"
+        INSERT INTO leave_requests
+            (id, employee_id, leave_type_id, start_date, end_date, reason, status,
+             requested_by_user_id, approved_by_user_id, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        "#,
         request.id,
         request.employee_id,
-        request.leave_type,
+        request.leave_type_id,
         request.start_date,
         request.end_date,
         request.reason,
@@ -32,7 +37,13 @@ pub async fn get_leave_request_by_id(
 ) -> Result<Option<LeaveRequest>, sqlx::Error> {
     query_as!(
         LeaveRequest,
-        "SELECT id, employee_id, leave_type, start_date, end_date, reason, status as \"status: LeaveStatus\", requested_by_user_id, approved_by_user_id, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM leave_requests WHERE id = $1",
+        r#"
+        SELECT id, employee_id, leave_type_id, start_date, end_date, reason,
+               status as "status: LeaveStatus", requested_by_user_id, approved_by_user_id,
+               created_at as "created_at!", updated_at as "updated_at!"
+        FROM leave_requests
+        WHERE id = $1
+        "#,
         id
     )
     .fetch_optional(pool)
@@ -63,7 +74,14 @@ pub async fn get_employee_leave_requests(
 ) -> Result<Vec<LeaveRequest>, sqlx::Error> {
     query_as!(
         LeaveRequest,
-        "SELECT id, employee_id, leave_type, start_date, end_date, reason, status as \"status: LeaveStatus\", requested_by_user_id, approved_by_user_id, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM leave_requests WHERE employee_id = $1 ORDER BY start_date DESC",
+        r#"
+        SELECT id, employee_id, leave_type_id, start_date, end_date, reason,
+               status as "status: LeaveStatus", requested_by_user_id, approved_by_user_id,
+               created_at as "created_at!", updated_at as "updated_at!"
+        FROM leave_requests
+        WHERE employee_id = $1
+        ORDER BY start_date DESC
+        "#,
         employee_id
     )
     .fetch_all(pool)
@@ -76,7 +94,12 @@ pub async fn get_workspace_leave_requests(
     status: Option<LeaveStatus>,
 ) -> Result<Vec<LeaveRequest>, sqlx::Error> {
     let mut query_builder: sqlx::QueryBuilder<sqlx::Postgres> = sqlx::QueryBuilder::new(
-        "SELECT lr.id, lr.employee_id, lr.leave_type, lr.start_date, lr.end_date, lr.reason, lr.status, lr.requested_by_user_id, lr.approved_by_user_id, lr.created_at, lr.updated_at FROM leave_requests lr JOIN employees e ON lr.employee_id = e.id WHERE e.workspace_id = "
+        r#"SELECT lr.id, lr.employee_id, lr.leave_type_id, lr.start_date, lr.end_date,
+           lr.reason, lr.status, lr.requested_by_user_id, lr.approved_by_user_id,
+           lr.created_at, lr.updated_at
+           FROM leave_requests lr
+           JOIN employees e ON lr.employee_id = e.id
+           WHERE e.workspace_id = "#,
     );
     query_builder.push_bind(workspace_id);
 
@@ -100,74 +123,46 @@ pub struct LeaveBreakdown {
 }
 
 pub async fn get_approved_leave_breakdown(
-
     pool: &PgPool,
-
     employee_id: Uuid,
-
     start_date: NaiveDate,
-
     end_date: NaiveDate,
-
 ) -> Result<LeaveBreakdown, sqlx::Error> {
-
     let rows = sqlx::query(
-
-        r#"SELECT leave_type, SUM(end_date - start_date + 1) as days
-
-           FROM leave_requests
-
-           WHERE employee_id = 
- 
-
-             AND status = 'approved'
-
-             AND start_date <= $3
-
-             AND end_date >= $2
-
-           GROUP BY leave_type"#,
-
+        r#"
+        SELECT lt.code as leave_type_code, SUM(lr.end_date - lr.start_date + 1) as days
+        FROM leave_requests lr
+        JOIN leave_types lt ON lr.leave_type_id = lt.id
+        WHERE lr.employee_id = $1
+          AND lr.status = 'approved'
+          AND lr.start_date <= $3
+          AND lr.end_date >= $2
+        GROUP BY lt.code
+        "#,
     )
-
     .bind(employee_id)
-
     .bind(start_date)
-
     .bind(end_date)
-
     .fetch_all(pool)
-
     .await?;
 
-
-
-    let mut breakdown = LeaveBreakdown { total_days: 0.0, unpaid_days: 0.0, sick_days: 0.0 };
+    let mut breakdown = LeaveBreakdown {
+        total_days: 0.0,
+        unpaid_days: 0.0,
+        sick_days: 0.0,
+    };
 
     for row in rows {
-
         let days: i64 = row.get("days");
-
         let days_f = days as f64;
-
         breakdown.total_days += days_f;
-
-        let leave_type: String = row.get("leave_type");
-
-        if leave_type == "unpaid" || leave_type == "personal" {
-
+        let leave_type_code: String = row.get("leave_type_code");
+        if leave_type_code == "unpaid" || leave_type_code == "personal" {
             breakdown.unpaid_days += days_f;
-
-        } else if leave_type == "sick" {
-
+        } else if leave_type_code == "sick" {
             breakdown.sick_days += days_f;
-
         }
-
     }
 
-
-
     Ok(breakdown)
-
 }

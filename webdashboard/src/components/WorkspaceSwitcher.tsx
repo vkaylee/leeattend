@@ -40,12 +40,12 @@ export default function WorkspaceSwitcher() {
     ...workspaces.map((ws) => ({
       value: ws.id, label: ws.name,
       icon: (<div className="bg-primary-50 p-2 rounded-xl border border-primary-100 shadow-inner group-hover:bg-primary-600 group-hover:text-white transition-all"><Briefcase size={16} /></div>),
-      description: (<div className="flex items-center gap-2 mt-1 opacity-60"><span className="text-[9px] font-black uppercase tracking-widest">ID:</span><span className="text-[9px] font-mono font-bold">{ws.id.substring(0, 8).toUpperCase()}</span></div>)
+      description: (<div className="flex items-center gap-2 mt-1 opacity-60"><span className="text-[9px] font-bold uppercase tracking-widest">ID:</span><span className="text-[9px] font-mono font-bold">{ws.id.substring(0, 8).toUpperCase()}</span></div>)
     })),
     {
       value: "ADD_NEW", label: t("common.create_workspace"),
       icon: (<div className="bg-slate-100 p-2 rounded-xl border border-slate-200 shadow-inner group-hover:bg-emerald-600 group-hover:text-white transition-all"><Plus size={16} /></div>),
-      description: (<p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1 opacity-60 italic">{t("common.add_office_branch")}</p>)
+      description: (<p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1 opacity-60 italic">{t("common.add_office_branch")}</p>)
     }
   ];
 
@@ -57,7 +57,7 @@ export default function WorkspaceSwitcher() {
         onChange={handleSwitch}
         placeholder={t("common.select_workspace")}
         searchPlaceholder={t("common.search_placeholder")}
-        className="h-14 bg-slate-50/50 border-slate-100 hover:bg-white hover:border-primary-200 transition-all rounded-[1.5rem] text-sm font-black text-slate-700 uppercase tracking-tight shadow-inner"
+        className="h-14 bg-slate-50/50 border-slate-100 hover:bg-white hover:border-primary-200 transition-all rounded-[1.5rem] text-sm font-bold text-slate-700 uppercase tracking-tight shadow-inner"
       />
       <CreateWorkspaceDialog isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
     </div>

@@ -50,19 +50,19 @@ export default function PayrollDetailDrawer({
           {/* Header */}
           <header className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
             <div className="flex items-center gap-6">
-              <div className="w-20 h-20 bg-primary-600 rounded-[2rem] flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-primary-100 rotate-3 hover:rotate-0 transition-transform duration-500">
+              <div className="w-20 h-20 bg-primary-600 rounded-[2rem] flex items-center justify-center text-white text-3xl font-bold shadow-xl shadow-primary-100 rotate-3 hover:rotate-0 transition-transform duration-500">
                 {employee.full_name[0]}
               </div>
               <div className="space-y-1">
-                <Dialog.Title className="text-3xl font-black text-slate-900 tracking-tight uppercase">
+                <Dialog.Title className="text-3xl font-bold text-slate-700 tracking-tight uppercase">
                   {employee.full_name}
                 </Dialog.Title>
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
                     {employee.employee_id_number}
                   </span>
                   <div className="w-1.5 h-1.5 bg-primary-200 rounded-full" />
-                  <span className="text-[10px] font-black text-primary-600 uppercase tracking-widest">
+                  <span className="text-[10px] font-bold text-primary-600 uppercase tracking-widest">
                     {employee.department_name || t("departments.not_assigned")}
                   </span>
                 </div>
@@ -81,7 +81,7 @@ export default function PayrollDetailDrawer({
               <button
                 onClick={() => setActiveTab("history")}
                 className={cn(
-                  "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all",
+                  "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
                   activeTab === "history" ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700"
                 )}
               >
@@ -90,7 +90,7 @@ export default function PayrollDetailDrawer({
               <button
                 onClick={() => setActiveTab("config")}
                 className={cn(
-                  "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all",
+                  "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
                   activeTab === "config" ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700"
                 )}
               >
@@ -109,8 +109,8 @@ export default function PayrollDetailDrawer({
                         <Banknote size={24} />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 opacity-70">{t("common.payroll.table.net_pay")} (Latest)</p>
-                        <p className="text-2xl font-black text-slate-900 font-mono tracking-tighter">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1 opacity-70">{t("common.payroll.table.net_pay")} (Latest)</p>
+                        <p className="text-2xl font-bold text-slate-700 font-mono tracking-tighter">
                           {payslips.length > 0 
                             ? new Intl.NumberFormat('vi-VN').format(parseFloat(payslips[0].net_pay_amount))
                             : "—"}
@@ -122,8 +122,8 @@ export default function PayrollDetailDrawer({
                         <CalendarDays size={24} />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 opacity-70">{t("employees.hire_date")}</p>
-                        <p className="text-2xl font-black text-slate-900 font-mono tracking-tighter">{employee.hire_date}</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1 opacity-70">{t("employees.hire_date")}</p>
+                        <p className="text-2xl font-bold text-slate-700 font-mono tracking-tighter">{employee.hire_date}</p>
                       </div>
                    </div>
                 </div>
@@ -131,7 +131,7 @@ export default function PayrollDetailDrawer({
                 <div className="space-y-6">
                   <div className="flex items-center gap-3 px-2">
                     <div className="w-1.5 h-6 bg-primary-600 rounded-full" />
-                    <span className="text-xs font-black text-slate-800 uppercase tracking-[0.25em]">{t("payroll.history_title")} Detail</span>
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-[0.25em]">{t("payroll.history_title")} Detail</span>
                   </div>
                   <PayrollTable 
                     employee={employee} 

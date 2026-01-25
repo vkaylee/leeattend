@@ -302,6 +302,14 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/employees/:id/leave/adjust",
             post(handlers::adjust_leave_balance),
         )
+                .route(
+            "/workspaces/:ws_id/leave/types",
+            get(handlers::leave_types::list_leave_types),
+        )
+        .route(
+            "/workspaces/:ws_id/leave/types/:id/config",
+            put(handlers::leave_types::update_leave_type_config),
+        )
         // Leave Policies
         .route(
             "/workspaces/:ws_id/leave/policies",

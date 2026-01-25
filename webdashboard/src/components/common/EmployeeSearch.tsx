@@ -98,7 +98,7 @@ export function EmployeeSearch({
       value: emp.id,
       label: emp.full_name,
       description: emp.employee_id_number,
-      icon: <User className='h-4 w-4 text-slate-400' />,
+      icon: <User className='h-4 w-4 text-slate-500' />,
     }));
 
   const extraOptions = selectedMeta
@@ -108,7 +108,7 @@ export function EmployeeSearch({
       value: m.id,
       label: m.full_name,
       description: m.employee_id_number,
-      icon: <User className='h-4 w-4 text-slate-400' />,
+      icon: <User className='h-4 w-4 text-slate-500' />,
     }));
 
   const options = [...extraOptions, ...baseOptions];

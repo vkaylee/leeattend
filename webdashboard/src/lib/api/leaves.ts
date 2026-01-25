@@ -1,10 +1,10 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
-import { LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, PaginatedResponse } from "./types";
+import { LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, PaginatedResponse } from "./types";
 
 export async function submitLeaveRequest(
   wsId: string,
-  data: { employee_id: string; leave_type: string; start_date: string; end_date: string; reason?: string },
+  data: { employee_id: string; leave_type_id: string; start_date: string; end_date: string; reason?: string },
 ): Promise<LeaveRequest> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/submit`, {
     method: "POST",
@@ -81,7 +81,7 @@ export async function fetchLeaveHistory(
 export async function adjustLeaveBalance(
   wsId: string,
   employeeId: string,
-  data: { leave_type: string; amount: number; reason: string; transaction_date: string }
+  data: { leave_type_id: string; amount: number; reason: string; transaction_date: string }
 ): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/leave/adjust`, {
     method: "POST",
@@ -157,4 +157,23 @@ export async function triggerAccrualRun(
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Failed to trigger accrual run");
+}
+
+export async function fetchLeaveTypes(wsId: string): Promise<LeaveType[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/types`);
+  if (!response.ok) throw new Error("Failed to fetch leave types");
+  return response.json();
+}
+
+export async function updateLeaveTypeConfig(
+  wsId: string,
+  typeId: string,
+  config: LeaveTypeConfig
+): Promise<LeaveType> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/types/${typeId}/config`, {
+    method: "PUT",
+    body: JSON.stringify({ policy_config: config }),
+  });
+  if (!response.ok) throw new Error("Failed to update leave type config");
+  return response.json();
 }

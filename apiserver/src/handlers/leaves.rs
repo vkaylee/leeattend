@@ -189,7 +189,7 @@ pub async fn create_leave_policy(
         workspace_id,
         &req.name,
         req.description.as_deref(),
-        &req.leave_type,
+        req.leave_type_id,
         req.rule_config,
     )
     .await
@@ -215,7 +215,7 @@ pub async fn update_leave_policy(
         workspace_id,
         req.name.as_deref(),
         req.description.as_deref(),
-        req.leave_type.as_deref(),
+        req.leave_type_id,
         req.rule_config,
     )
     .await

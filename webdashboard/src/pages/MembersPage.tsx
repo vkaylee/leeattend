@@ -16,10 +16,10 @@ export default function MembersPage() {
             <Users size={32} />
           </div>
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+            <h1 className="text-4xl font-bold text-slate-700 tracking-tighter uppercase leading-none">
               {t("members.title")}
             </h1>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mt-2 opacity-60">
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] mt-2 opacity-60">
               {t("members.subtitle")}
             </p>
           </div>
@@ -28,7 +28,7 @@ export default function MembersPage() {
         <button
           onClick={() => setIsInviteOpen(true)}
           data-testid="invite-member-trigger"
-          className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95"
+          className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95"
         >
           <UserPlus size={18} />
           {t("members.invite.title").toUpperCase()}

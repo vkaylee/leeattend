@@ -500,7 +500,7 @@ pub struct UpdateTimeEntryRequest {
 pub struct LeaveRequest {
     pub id: Uuid,
     pub employee_id: Uuid,
-    pub leave_type: String,
+    pub leave_type_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,
     pub reason: Option<String>,
@@ -511,10 +511,20 @@ pub struct LeaveRequest {
     pub updated_at: DateTime<Utc>,
 }
 
+/// Response wrapper with leave type details for API responses
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LeaveRequestWithType {
+    #[serde(flatten)]
+    pub request: LeaveRequest,
+    pub leave_type_code: String,
+    pub leave_type_name: String,
+    pub is_paid: bool,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubmitLeaveRequest {
     pub employee_id: Uuid,
-    pub leave_type: String,
+    pub leave_type_id: Uuid,
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,
     pub reason: Option<String>,
@@ -529,7 +539,7 @@ pub struct ApproveLeaveRequest {
 pub struct LeaveBalance {
     pub id: Uuid,
     pub employee_id: Uuid,
-    pub leave_type: String,
+    pub leave_type_id: Uuid,
     pub year: i32,
     pub entitlement: i32,
     pub accrued_amount: rust_decimal::Decimal,
@@ -540,7 +550,10 @@ pub struct LeaveBalance {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EmployeeLeaveBalance {
-    pub leave_type: String,
+    pub leave_type_id: Uuid,
+    pub leave_type_code: String,
+    pub leave_type_name: String,
+    pub is_paid: bool,
     pub entitlement: i32,
     pub accrued_amount: f64,
     pub carried_over: i32,
@@ -552,7 +565,10 @@ pub struct EmployeeLeaveBalance {
 pub struct WorkspaceLeaveBalance {
     pub employee_id: Uuid,
     pub employee_name: String,
-    pub leave_type: String,
+    pub leave_type_id: Uuid,
+    pub leave_type_code: String,
+    pub leave_type_name: String,
+    pub is_paid: bool,
     pub entitlement: i32,
     pub accrued_amount: f64,
     pub carried_over: i32,
@@ -1215,6 +1231,29 @@ pub struct SeniorityBonus {
     pub extra_days: f64,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct LeaveTypeConfig {
+    #[serde(default)]
+    pub requires_document: bool,
+    #[serde(default)]
+    pub allow_negative_balance: bool,
+    #[serde(default)]
+    pub negative_balance_limit: Option<f64>,
+    #[serde(default)]
+    pub approval_required: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct LeaveType {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub code: String,
+    pub name: String,
+    pub is_paid: bool,
+    pub policy_config: sqlx::types::Json<LeaveTypeConfig>,
+    pub created_at: DateTime<Utc>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LeavePolicyConfig {
     pub frequency: AccrualFrequency,
@@ -1233,7 +1272,7 @@ pub struct LeavePolicyDefinition {
     pub workspace_id: Uuid,
     pub name: String,
     pub description: Option<String>,
-    pub leave_type: String,
+    pub leave_type_id: Uuid,
     pub rule_config: sqlx::types::Json<LeavePolicyConfig>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -1259,7 +1298,7 @@ pub struct LeaveAccrualLog {
     pub policy_assignment_id: Option<Uuid>,
     pub accrual_date: NaiveDate,
     pub amount: rust_decimal::Decimal,
-    pub leave_type: String,
+    pub leave_type_id: Uuid,
     pub notes: Option<String>,
     pub created_at: DateTime<Utc>,
 }
@@ -1268,7 +1307,7 @@ pub struct LeaveAccrualLog {
 pub struct CreateLeavePolicyRequest {
     pub name: String,
     pub description: Option<String>,
-    pub leave_type: String,
+    pub leave_type_id: Uuid,
     pub rule_config: LeavePolicyConfig,
 }
 
@@ -1276,7 +1315,7 @@ pub struct CreateLeavePolicyRequest {
 pub struct UpdateLeavePolicyRequest {
     pub name: Option<String>,
     pub description: Option<String>,
-    pub leave_type: Option<String>,
+    pub leave_type_id: Option<Uuid>,
     pub rule_config: Option<LeavePolicyConfig>,
 }
 
@@ -1304,7 +1343,7 @@ pub struct LeaveHistoryItem {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AdjustBalanceRequest {
-    pub leave_type: String,
+    pub leave_type_id: Uuid,
     pub amount: f64, // Positive to add, Negative to deduct
     pub reason: String,
     pub transaction_date: NaiveDate,

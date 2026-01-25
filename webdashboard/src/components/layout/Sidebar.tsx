@@ -107,12 +107,12 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
             </div>
             {!isCollapsed && (
               <div className="flex flex-col">
-                <span className="font-black text-2xl tracking-tighter text-slate-900 leading-none uppercase">Attend</span>
-                <span className="text-[10px] font-black text-primary-600 uppercase tracking-[0.25em] mt-1.5 opacity-80">Premium Hub</span>
+                <span className="font-bold text-2xl tracking-tighter text-slate-700 leading-none uppercase">Attend</span>
+                <span className="text-[10px] font-bold text-primary-600 uppercase tracking-[0.25em] mt-1.5 opacity-80">Premium Hub</span>
               </div>
             )}
           </div>
-          <button className="lg:hidden p-3 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-xl active:scale-90 transition-all shadow-sm border border-slate-100" onClick={onClose}><X size={20} /></button>
+          <button className="lg:hidden p-3 bg-slate-50 text-slate-500 hover:text-rose-600 rounded-xl active:scale-90 transition-all shadow-sm border border-slate-100" onClick={onClose}><X size={20} /></button>
         </div>
       </div>
 
@@ -133,8 +133,8 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
                   isCollapsed ? "lg:justify-center lg:px-3 lg:py-3 px-5 py-4" : "px-5 py-4"
                 )}
               >
-                <Icon className={cn("transition-all group-hover:scale-110", isActive ? "text-white" : "text-slate-400 group-hover:text-primary-500", isCollapsed ? "lg:w-6 lg:h-6 w-5 h-5" : "w-5 h-5")} />
-                {!isCollapsed && <span className="font-black text-sm uppercase tracking-tight">{group.label}</span>}
+                <Icon className={cn("transition-all group-hover:scale-110", isActive ? "text-white" : "text-slate-500 group-hover:text-primary-500", isCollapsed ? "lg:w-6 lg:h-6 w-5 h-5" : "w-5 h-5")} />
+                {!isCollapsed && <span className="font-bold text-sm uppercase tracking-tight">{group.label}</span>}
                 {isActive && !isCollapsed && <div className="absolute right-4 w-2 h-2 bg-white rounded-full shadow-2xl animate-pulse" />}
               </Link>
             );
@@ -149,7 +149,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
                 data-testid={group.testId}
                 title={isCollapsed ? group.label : undefined}
                 className={cn(
-                  "w-full flex items-center justify-between font-black text-slate-400 uppercase hover:text-primary-600 transition-all group/sec border-b border-slate-50/50 mb-3 tracking-[0.3em]",
+                  "w-full flex items-center justify-between font-bold text-slate-500 uppercase hover:text-primary-600 transition-all group/sec border-b border-slate-50/50 mb-3 tracking-[0.3em]",
                   isCollapsed ? "lg:justify-center lg:px-2 lg:py-3 px-5 py-2.5 text-[9px]" : "px-5 py-2.5 text-[9px]"
                 )}
               >
@@ -180,7 +180,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
                       <div className={cn("rounded-lg flex items-center justify-center transition-all", isActive ? "bg-white text-primary-600 shadow-sm" : "bg-transparent text-slate-300 group-hover/item:text-primary-500", isCollapsed ? "lg:w-auto lg:h-auto w-8 h-8" : "w-8 h-8")}>
                         <item.icon className={cn("transition-all", isCollapsed ? "lg:w-6 lg:h-6 w-4 h-4" : "w-4 h-4")} />
                       </div>
-                      {!isCollapsed && <span className="font-black text-xs uppercase tracking-tight">{item.label}</span>}
+                      {!isCollapsed && <span className="font-bold text-xs uppercase tracking-tight">{item.label}</span>}
                       {isActive && !isCollapsed && <div className="absolute left-0 w-1.5 h-6 bg-primary-600 rounded-r-full shadow-lg shadow-primary-500/50" />}
                     </Link>
                   );
@@ -203,14 +203,14 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
           )}
         >
           <UserCircle size={isCollapsed ? 24 : 20} className="group-hover:scale-110 transition-transform" />
-          {!isCollapsed && <span className="font-black text-xs uppercase tracking-widest">{t("common.profile")}</span>}
+          {!isCollapsed && <span className="font-bold text-xs uppercase tracking-widest">{t("common.profile")}</span>}
         </Link>
         <button
           onClick={onShowSwitcher}
           data-testid="sidebar-btn-switcher"
           title={isCollapsed ? t("common.switch_workspace") : undefined}
           className={cn(
-            "w-full flex items-center gap-4 text-slate-500 hover:bg-white hover:text-primary-600 hover:shadow-xl hover:scale-[1.02] rounded-2xl transition-all group font-black text-xs uppercase tracking-widest border border-transparent hover:border-slate-100 active:scale-95",
+            "w-full flex items-center gap-4 text-slate-500 hover:bg-white hover:text-primary-600 hover:shadow-xl hover:scale-[1.02] rounded-2xl transition-all group font-bold text-xs uppercase tracking-widest border border-transparent hover:border-slate-100 active:scale-95",
             isCollapsed ? "lg:justify-center lg:px-3 lg:py-3 px-5 py-3.5" : "px-5 py-3.5"
           )}
         >
@@ -222,7 +222,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
           data-testid="sidebar-btn-logout"
           title={isCollapsed ? t("common.logout") : undefined}
           className={cn(
-            "w-full flex items-center gap-4 text-rose-500 hover:bg-rose-50 rounded-2xl transition-all group font-black text-xs uppercase tracking-widest active:scale-95",
+            "w-full flex items-center gap-4 text-rose-500 hover:bg-rose-50 rounded-2xl transition-all group font-bold text-xs uppercase tracking-widest active:scale-95",
             isCollapsed ? "lg:justify-center lg:px-3 lg:py-3 px-5 py-3.5" : "px-5 py-3.5"
           )}
         >

@@ -89,7 +89,7 @@ export default function AssignOvertimePolicyModal({
       <form onSubmit={handleSubmit} className='space-y-6'>
         <div className='grid grid-cols-1 gap-6'>
           <div className='space-y-2'>
-            <label className='text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1'>{t('payroll.assignee_type')}</label>
+            <label className='text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1'>{t('payroll.assignee_type')}</label>
             <div className='flex bg-slate-100 p-1 rounded-2xl'>
               {[
                 { id: 'employee', label: t('common.employee'), icon: <User size={12}/> },
@@ -117,7 +117,7 @@ export default function AssignOvertimePolicyModal({
 
           {selectedType === 'employee' && (
             <div className='space-y-2'>
-              <label className='text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1'>{t('common.select_employee')}</label>
+              <label className='text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1'>{t('common.select_employee')}</label>
               <EmployeeSearch 
                 workspaceId={wsId}
                 value={targetId}
@@ -131,14 +131,14 @@ export default function AssignOvertimePolicyModal({
 
           {selectedType === 'department' && (
             <div className='space-y-2'>
-              <label className='text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1'>{t('common.select_department')}</label>
+              <label className='text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1'>{t('common.select_department')}</label>
               <Combobox 
                 id='dept-select'
                 data-testid='assign-dept-select'
                 options={departments.map(d => ({
                   value: d.id,
                   label: d.name,
-                  icon: <Building2 size={14} className='text-slate-400' />
+                  icon: <Building2 size={14} className='text-slate-500' />
                 }))}
                 value={targetId}
                 onChange={setTargetId}
@@ -149,7 +149,7 @@ export default function AssignOvertimePolicyModal({
           )}
 
           <div className='space-y-2'>
-            <label className='text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1'>{t('payroll.select_policy')}</label>
+            <label className='text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1'>{t('payroll.select_policy')}</label>
             <Combobox 
               id='policy-select'
               data-testid='assign-policy-select'
@@ -166,9 +166,9 @@ export default function AssignOvertimePolicyModal({
           </div>
 
           <div className='space-y-2'>
-            <label className='text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1'>{t('payroll.effective_from')}</label>
+            <label className='text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1'>{t('payroll.effective_from')}</label>
             <div className='relative'>
-              <Calendar className='absolute left-4 top-1/2 -translate-y-1/2 text-slate-400' size={16} />
+              <Calendar className='absolute left-4 top-1/2 -translate-y-1/2 text-slate-500' size={16} />
               <input 
                 type='date'
                 data-testid='assign-effective-from'

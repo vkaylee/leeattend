@@ -56,10 +56,10 @@ export function Combobox({
       </select>
 
       <Popover.Trigger asChild>
-        <button id={id} data-testid={testId} type="button" className={cn("flex w-full items-center justify-between rounded-[1.25rem] border border-slate-100 bg-slate-50 px-5 py-4 text-sm font-black text-slate-700 transition-all hover:border-primary-200 hover:bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/10 shadow-inner uppercase tracking-tight", className)}>
+        <button id={id} data-testid={testId} type="button" className={cn("flex w-full items-center justify-between rounded-[1.25rem] border border-slate-100 bg-slate-50 px-5 py-4 text-sm font-bold text-primary-600 transition-all hover:border-primary-200 hover:bg-white focus:outline-none focus:ring-4 focus:ring-primary-500/10 shadow-inner uppercase tracking-tight", className)}>
           <span className="flex items-center gap-3 truncate">
             {selectedOption?.icon}
-            {selectedOption ? selectedOption.label : <span className="text-slate-400 font-bold opacity-60">{placeholder}</span>}
+            {selectedOption ? selectedOption.label : <span className="text-primary-400 font-bold opacity-60">{placeholder}</span>}
           </span>
           <ChevronDown className={cn("ml-2 h-4 w-4 shrink-0 text-slate-300 transition-transform duration-300", open && "rotate-180 text-primary-500")} />
         </button>
@@ -70,11 +70,11 @@ export function Combobox({
           <Command shouldFilter={shouldFilter ?? !onSearchChange} className="flex flex-col gap-3">
             <div className="flex items-center border-b border-slate-50 px-4 pb-3 pt-1">
               <Search className="mr-3 h-4 w-4 shrink-0 text-slate-300" />
-              <Command.Input placeholder={searchPlaceholder} onValueChange={onSearchChange} className="flex h-10 w-full rounded-md bg-transparent text-sm outline-none placeholder:text-slate-300 disabled:cursor-not-allowed disabled:opacity-50 font-bold" />
+              <Command.Input placeholder={searchPlaceholder} onValueChange={onSearchChange} className="flex h-10 w-full rounded-md bg-transparent text-sm text-primary-700 outline-none placeholder:text-slate-300 disabled:cursor-not-allowed disabled:opacity-50 font-bold" />
             </div>
             
             <Command.List className="max-h-[320px] overflow-y-auto overflow-x-hidden p-1 custom-scrollbar">
-              <Command.Empty className="py-10 text-center text-[10px] text-slate-400 font-black uppercase tracking-widest opacity-50">{emptyText}</Command.Empty>
+              <Command.Empty className="py-10 text-center text-[10px] text-primary-400 font-bold uppercase tracking-widest opacity-50">{emptyText}</Command.Empty>
               <Command.Group>
                 {options.map((option) => (
                   <Command.Item
@@ -83,7 +83,7 @@ export function Combobox({
                     data-testid={testId ? `${testId}-option-${option.value}` : `combo-option-${option.value}`}
                     onSelect={() => { onChange(option.value); setOpen(false); }}
                     className={cn(
-                      "relative flex cursor-pointer select-none items-center rounded-2xl px-4 py-3.5 text-sm font-black outline-none transition-all hover:bg-primary-50 hover:text-primary-600 data-[selected=true]:bg-primary-50 data-[selected=true]:text-primary-600 uppercase tracking-tight",
+                      "relative flex cursor-pointer select-none items-center rounded-2xl px-4 py-3.5 text-sm font-bold outline-none transition-all hover:bg-primary-50 hover:text-primary-600 data-[selected=true]:bg-primary-50 data-[selected=true]:text-primary-600 uppercase tracking-tight",
                       value === option.value && "bg-primary-50 text-primary-600 shadow-inner"
                     )}
                   >

@@ -179,30 +179,30 @@ export default function PayrollPage() {
       {/* Header with Stats and Actions */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
         <div>
-          <h1 data-testid="payroll-title" className="text-3xl font-bold tracking-tight text-slate-900">{t("payroll.title")}</h1>
+          <h1 data-testid="payroll-title" className="text-3xl font-bold tracking-tight text-slate-700">{t("payroll.title")}</h1>
           <p className="text-slate-500 mt-1 font-medium">{t("payroll.subtitle")}</p>
         </div>
 
         <div className="flex items-center gap-4 bg-white p-2 rounded-[2rem] border border-slate-200 shadow-sm">
            <div className="flex items-center bg-slate-100/50 rounded-2xl p-1 shadow-inner border border-slate-200/50">
-              <button onClick={() => changeMonth(-1)} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-primary-600 hover:bg-white hover:shadow-sm rounded-xl transition-all"><ArrowLeft size={18} /></button>
+              <button onClick={() => changeMonth(-1)} className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-primary-600 hover:bg-white hover:shadow-sm rounded-xl transition-all"><ArrowLeft size={18} /></button>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="px-6 flex flex-col items-center min-w-[160px] cursor-pointer hover:bg-white hover:shadow-sm rounded-xl transition-all py-1.5 group outline-none border border-transparent hover:border-slate-100">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 group-hover:text-primary-500 transition-colors">{t("payroll.table.period")}</span>
-                    <span className="text-sm font-black text-slate-900 group-hover:text-primary-600 transition-colors uppercase tracking-tighter">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1 group-hover:text-primary-500 transition-colors">{t("payroll.table.period")}</span>
+                    <span className="text-sm font-bold text-slate-700 group-hover:text-primary-600 transition-colors uppercase tracking-tighter">
                       {calcMonth} / {calcYear}
                     </span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-80 p-4 rounded-[2rem] shadow-2xl border-slate-100" align="center" sideOffset={8}>
-                    <DropdownMenuLabel className="text-center text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">{t("common.select_month", { defaultValue: "SELECT PAY PERIOD" })}</DropdownMenuLabel>
+                    <DropdownMenuLabel className="text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">{t("common.select_month", { defaultValue: "SELECT PAY PERIOD" })}</DropdownMenuLabel>
                     <MonthYearPicker month={calcMonth} year={calcYear} onChange={(m, y) => { setCalcMonth(m); setCalcYear(y); }} />
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <button onClick={() => changeMonth(1)} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-primary-600 hover:bg-white hover:shadow-sm rounded-xl transition-all"><ArrowRight size={18} /></button>
+              <button onClick={() => changeMonth(1)} className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-primary-600 hover:bg-white hover:shadow-sm rounded-xl transition-all"><ArrowRight size={18} /></button>
            </div>
 
            <div className="h-10 w-px bg-slate-100" />
@@ -214,10 +214,10 @@ export default function PayrollPage() {
             }}
             disabled={selectedIds.size === 0}
             className={cn(
-              "flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95",
+              "flex items-center gap-3 px-8 py-3 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95",
               selectedIds.size > 0 
                 ? "bg-primary-600 text-white shadow-primary-100 hover:bg-primary-700" 
-                : "bg-slate-100 text-slate-400 shadow-none cursor-not-allowed"
+                : "bg-slate-100 text-slate-500 shadow-none cursor-not-allowed"
             )}
            >
              <Calculator size={18} />

@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                                SELECT id, amount FROM leave_accrual_logs\n                                WHERE employee_id = $1 AND leave_type_id = $2 AND accrual_date = $3\n                                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "amount",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "89e0c25ccbc6d1badef89d2dfcbe6caf06c112d6d8e5f51353d77555b05569db"
+}

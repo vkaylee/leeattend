@@ -77,11 +77,11 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
     >
       <div className="shrink-0 mt-0.5">{icons[toast.type]}</div>
       <div className="flex-1">
-        {toast.title && <div className="text-sm font-black text-slate-900 mb-0.5 uppercase tracking-tight">{toast.title}</div>}
+        {toast.title && <div className="text-sm font-bold text-slate-700 mb-0.5 uppercase tracking-tight">{toast.title}</div>}
         <div className="text-sm text-slate-600 font-medium leading-relaxed">{toast.message}</div>
       </div>
       <button onClick={onClose} className="shrink-0 p-1 hover:bg-white/50 rounded-lg transition-colors">
-        <X className="w-4 h-4 text-slate-400" />
+        <X className="w-4 h-4 text-slate-500" />
       </button>
     </div>
   );

@@ -52,13 +52,15 @@ impl LeaveService {
         employee_id: Uuid,
         year: i32,
     ) -> Result<Vec<LeaveHistoryItem>, StatusCode> {
-        // 1. Get Accruals & Adjustments
+        // Get Accruals & Adjustments with leave type info via FK join
         let logs = sqlx::query!(
             r#"
-            SELECT id, accrual_date, amount, leave_type, notes, created_at, policy_assignment_id
-            FROM leave_accrual_logs
-            WHERE employee_id = $1 
-              AND EXTRACT(YEAR FROM accrual_date) = $2
+            SELECT lal.id, lal.accrual_date, lal.amount, lt.name as leave_type_name,
+                   lal.notes, lal.created_at, lal.policy_assignment_id
+            FROM leave_accrual_logs lal
+            JOIN leave_types lt ON lal.leave_type_id = lt.id
+            WHERE lal.employee_id = $1
+              AND EXTRACT(YEAR FROM lal.accrual_date) = $2
             "#,
             employee_id,
             year as f64
@@ -67,14 +69,16 @@ impl LeaveService {
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        // 2. Get Usage (Approved Requests)
+        // Get Usage (Approved Requests) with leave type info via FK join
         let requests = sqlx::query!(
             r#"
-            SELECT id, start_date, end_date, leave_type, reason, created_at
-            FROM leave_requests
-            WHERE employee_id = $1 
-              AND status = 'approved'
-              AND EXTRACT(YEAR FROM start_date) = $2
+            SELECT lr.id, lr.start_date, lr.end_date, lt.name as leave_type_name,
+                   lr.reason, lr.created_at
+            FROM leave_requests lr
+            JOIN leave_types lt ON lr.leave_type_id = lt.id
+            WHERE lr.employee_id = $1
+              AND lr.status = 'approved'
+              AND EXTRACT(YEAR FROM lr.start_date) = $2
             "#,
             employee_id,
             year as f64
@@ -105,7 +109,7 @@ impl LeaveService {
         for req in requests {
             let days = (req.end_date - req.start_date).num_days() + 1;
             history.push(LeaveHistoryItem {
-                id: Uuid::new_v4(), // Virtual ID for history view
+                id: Uuid::new_v4(),
                 date: req.start_date,
                 transaction_type: LeaveTransactionType::Usage,
                 amount: -(days as f64),
@@ -134,7 +138,7 @@ impl LeaveService {
             pool,
             workspace_id,
             employee_id,
-            &req.leave_type,
+            req.leave_type_id,
             amount_dec,
             req.transaction_date,
             &req.reason,
@@ -172,10 +176,21 @@ impl LeaveService {
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
+        // Validate leave_type_id exists for this workspace
+        let leave_type = sqlx::query!(
+            "SELECT id FROM leave_types WHERE id = $1 AND workspace_id = $2",
+            req.leave_type_id,
+            workspace_id
+        )
+        .fetch_optional(pool)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::BAD_REQUEST)?;
+
         let request = LeaveRequest {
             id: Uuid::new_v4(),
             employee_id: req.employee_id,
-            leave_type: req.leave_type,
+            leave_type_id: leave_type.id,
             start_date: req.start_date,
             end_date: req.end_date,
             reason: req.reason,
@@ -222,6 +237,16 @@ impl LeaveService {
 
         // If approved, update roster
         if req.status == LeaveStatus::Approved {
+            // Get leave type name for roster notes
+            let leave_type_name = sqlx::query_scalar!(
+                "SELECT name FROM leave_types WHERE id = $1",
+                request.leave_type_id
+            )
+            .fetch_optional(pool)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .unwrap_or_else(|| "Leave".to_string());
+
             let mut current_date = request.start_date;
             while current_date <= request.end_date {
                 let roster = ShiftRoster {
@@ -230,7 +255,7 @@ impl LeaveService {
                     shift_id: None,
                     date: current_date,
                     status: "on_leave".to_string(),
-                    notes: Some(format!("Nghỉ phép: {}", request.leave_type)),
+                    notes: Some(format!("Nghỉ phép: {}", leave_type_name)),
                     created_at: Utc::now(),
                     updated_at: Utc::now(),
                 };

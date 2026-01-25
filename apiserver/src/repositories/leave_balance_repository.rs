@@ -8,15 +8,14 @@ pub async fn get_employee_balances(
     employee_id: Uuid,
     year: i32,
 ) -> Result<Vec<EmployeeLeaveBalance>, sqlx::Error> {
-    // We calculate "used" days by summing up approved leave requests in the given year
-    // Note: This is a simple implementation that counts days between start and end.
-    // In a production system, you'd need to exclude weekends or holidays depending on policy.
-
     let balances = query_as!(
         EmployeeLeaveBalance,
         r#"
-        SELECT 
-            lb.leave_type as "leave_type!",
+        SELECT
+            lb.leave_type_id as "leave_type_id!",
+            lt.code as "leave_type_code!",
+            lt.name as "leave_type_name!",
+            lt.is_paid as "is_paid!",
             lb.entitlement as "entitlement!",
             lb.accrued_amount::FLOAT8 as "accrued_amount!",
             lb.carried_over as "carried_over!",
@@ -24,11 +23,11 @@ pub async fn get_employee_balances(
                 (
                     SELECT SUM(end_date - start_date + 1)
                     FROM leave_requests
-                    WHERE employee_id = lb.employee_id 
-                    AND leave_type = lb.leave_type
+                    WHERE employee_id = lb.employee_id
+                    AND leave_type_id = lb.leave_type_id
                     AND status = 'approved'
                     AND EXTRACT(YEAR FROM start_date) = lb.year
-                ), 
+                ),
                 0
             )::INT as "used!",
             (
@@ -36,15 +35,16 @@ pub async fn get_employee_balances(
                     (
                         SELECT SUM(end_date - start_date + 1)
                         FROM leave_requests
-                        WHERE employee_id = lb.employee_id 
-                        AND leave_type = lb.leave_type
+                        WHERE employee_id = lb.employee_id
+                        AND leave_type_id = lb.leave_type_id
                         AND status = 'approved'
                         AND EXTRACT(YEAR FROM start_date) = lb.year
-                    ), 
+                    ),
                     0
                 )
             )::FLOAT8 as "remaining!"
         FROM leave_balances lb
+        JOIN leave_types lt ON lb.leave_type_id = lt.id
         WHERE lb.employee_id = $1 AND lb.year = $2
         "#,
         employee_id,
@@ -66,15 +66,16 @@ pub async fn get_workspace_balances(
 ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), sqlx::Error> {
     let search_term = format!("%{}%", search.unwrap_or_default());
 
-    // 1. Get Total Count
+    // Get total count
     let count_sql = r#"
         SELECT COUNT(*)
         FROM employees e
         LEFT JOIN leave_balances lb ON e.id = lb.employee_id AND lb.year = $2
+        LEFT JOIN leave_types lt ON lb.leave_type_id = lt.id
         WHERE e.workspace_id = $1 AND e.is_active = TRUE
-          AND ($3 = '%%' OR e.full_name ILIKE $3 OR lb.leave_type ILIKE $3)
+          AND ($3 = '%%' OR e.full_name ILIKE $3 OR lt.name ILIKE $3 OR lt.code ILIKE $3)
     "#;
-    
+
     let total: i64 = sqlx::query_scalar(count_sql)
         .bind(workspace_id)
         .bind(year)
@@ -83,10 +84,13 @@ pub async fn get_workspace_balances(
         .await?;
 
     let sql = r#"
-        SELECT 
+        SELECT
             e.id as employee_id,
             e.full_name as employee_name,
-            COALESCE(lb.leave_type, 'vacation') as leave_type,
+            COALESCE(lb.leave_type_id, (SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation' LIMIT 1)) as leave_type_id,
+            COALESCE(lt.code, 'vacation') as leave_type_code,
+            COALESCE(lt.name, 'Vacation') as leave_type_name,
+            COALESCE(lt.is_paid, TRUE) as is_paid,
             COALESCE(lb.entitlement, 0) as entitlement,
             COALESCE(lb.accrued_amount::FLOAT8, 0.0) as accrued_amount,
             COALESCE(lb.carried_over, 0) as carried_over,
@@ -94,11 +98,11 @@ pub async fn get_workspace_balances(
                 (
                     SELECT SUM(end_date - start_date + 1)
                     FROM leave_requests
-                    WHERE employee_id = e.id 
-                    AND leave_type = COALESCE(lb.leave_type, 'vacation')
+                    WHERE employee_id = e.id
+                    AND leave_type_id = lb.leave_type_id
                     AND status = 'approved'
                     AND EXTRACT(YEAR FROM start_date) = $2
-                ), 
+                ),
                 0
             )::INT as used,
             (
@@ -106,20 +110,20 @@ pub async fn get_workspace_balances(
                     (
                         SELECT SUM(end_date - start_date + 1)
                         FROM leave_requests
-                        WHERE employee_id = e.id 
-                        AND leave_type = COALESCE(lb.leave_type, 'vacation')
+                        WHERE employee_id = e.id
+                        AND leave_type_id = lb.leave_type_id
                         AND status = 'approved'
                         AND EXTRACT(YEAR FROM start_date) = $2
-                    ), 
+                    ),
                     0
                 )
             )::FLOAT8 as remaining,
             (
-                SELECT d.name 
+                SELECT d.name
                 FROM leave_policy_assignments a
                 JOIN leave_policy_definitions d ON a.policy_id = d.id
                 WHERE a.workspace_id = $1
-                  AND d.leave_type = COALESCE(lb.leave_type, 'vacation')
+                  AND d.leave_type_id = lb.leave_type_id
                   AND (
                     (a.assignee_type = 'employee' AND a.assignee_id = e.id) OR
                     (a.assignee_type = 'department' AND a.assignee_id = (SELECT department_id FROM employee_department_history WHERE employee_id = e.id ORDER BY effective_date DESC LIMIT 1)) OR
@@ -127,20 +131,20 @@ pub async fn get_workspace_balances(
                   )
                   AND a.effective_from <= NOW()
                   AND (a.effective_to IS NULL OR a.effective_to > NOW())
-                ORDER BY 
-                  CASE a.assignee_type 
-                    WHEN 'employee' THEN 1 
-                    WHEN 'department' THEN 2 
-                    WHEN 'workspace' THEN 3 
+                ORDER BY
+                  CASE a.assignee_type
+                    WHEN 'employee' THEN 1
+                    WHEN 'department' THEN 2
+                    WHEN 'workspace' THEN 3
                   END ASC
                 LIMIT 1
             ) as policy_name,
             (
-                SELECT a.assignee_type 
+                SELECT a.assignee_type
                 FROM leave_policy_assignments a
                 JOIN leave_policy_definitions d ON a.policy_id = d.id
                 WHERE a.workspace_id = $1
-                  AND d.leave_type = COALESCE(lb.leave_type, 'vacation')
+                  AND d.leave_type_id = lb.leave_type_id
                   AND (
                     (a.assignee_type = 'employee' AND a.assignee_id = e.id) OR
                     (a.assignee_type = 'department' AND a.assignee_id = (SELECT department_id FROM employee_department_history WHERE employee_id = e.id ORDER BY effective_date DESC LIMIT 1)) OR
@@ -148,19 +152,20 @@ pub async fn get_workspace_balances(
                   )
                   AND a.effective_from <= NOW()
                   AND (a.effective_to IS NULL OR a.effective_to > NOW())
-                ORDER BY 
-                  CASE a.assignee_type 
-                    WHEN 'employee' THEN 1 
-                    WHEN 'department' THEN 2 
-                    WHEN 'workspace' THEN 3 
+                ORDER BY
+                  CASE a.assignee_type
+                    WHEN 'employee' THEN 1
+                    WHEN 'department' THEN 2
+                    WHEN 'workspace' THEN 3
                   END ASC
                 LIMIT 1
             ) as assignment_type
         FROM employees e
         LEFT JOIN leave_balances lb ON e.id = lb.employee_id AND lb.year = $2
+        LEFT JOIN leave_types lt ON lb.leave_type_id = lt.id
         WHERE e.workspace_id = $1 AND e.is_active = TRUE
-          AND ($3 = '%%' OR e.full_name ILIKE $3 OR lb.leave_type ILIKE $3)
-        ORDER BY e.full_name, lb.leave_type
+          AND ($3 = '%%' OR e.full_name ILIKE $3 OR lt.name ILIKE $3 OR lt.code ILIKE $3)
+        ORDER BY e.full_name, lt.name
         LIMIT $4 OFFSET $5
     "#;
 
@@ -172,7 +177,7 @@ pub async fn get_workspace_balances(
         .bind(offset)
         .fetch_all(pool)
         .await?;
-        
+
     Ok((data, total))
 }
 
@@ -182,17 +187,17 @@ pub async fn upsert_leave_balance(
 ) -> Result<(), sqlx::Error> {
     query!(
         r#"
-        INSERT INTO leave_balances (id, employee_id, leave_type, year, entitlement, carried_over)
+        INSERT INTO leave_balances (id, employee_id, leave_type_id, year, entitlement, carried_over)
         VALUES ($1, $2, $3, $4, $5, $6)
-        ON CONFLICT (employee_id, leave_type, year)
-        DO UPDATE SET 
+        ON CONFLICT (employee_id, leave_type_id, year)
+        DO UPDATE SET
             entitlement = EXCLUDED.entitlement,
             carried_over = EXCLUDED.carried_over,
             updated_at = CURRENT_TIMESTAMP
         "#,
         balance.id,
         balance.employee_id,
-        balance.leave_type,
+        balance.leave_type_id,
         balance.year,
         balance.entitlement,
         balance.carried_over
@@ -206,60 +211,42 @@ pub async fn adjust_balance(
     pool: &PgPool,
     workspace_id: Uuid,
     employee_id: Uuid,
-    leave_type: &str,
+    leave_type_id: Uuid,
     amount: rust_decimal::Decimal,
     transaction_date: chrono::NaiveDate,
     reason: &str,
 ) -> Result<(), sqlx::Error> {
     let mut tx = pool.begin().await?;
 
-    // 1. Log the adjustment (is_manual implied by null policy_id or explicit flag if we had one)
+    // Log the adjustment
     sqlx::query!(
         r#"
-        INSERT INTO leave_accrual_logs (workspace_id, employee_id, policy_assignment_id, accrual_date, amount, leave_type, notes)
+        INSERT INTO leave_accrual_logs (workspace_id, employee_id, policy_assignment_id, accrual_date, amount, leave_type_id, notes)
         VALUES ($1, $2, NULL, $3, $4, $5, $6)
         "#,
         workspace_id,
         employee_id,
         transaction_date,
         amount,
-        leave_type,
+        leave_type_id,
         reason
     )
     .execute(&mut *tx)
     .await?;
 
-    // 2. Update the balance
-    // We treat 'adjustment' as modifying 'entitlement' for simplicity in this model,
-    // or we could have a separate 'adjustments' column.
-    // Given the current schema has `entitlement` and `accrued_amount` (from previous migrations),
-    // let's check `leave_balances` schema again.
-    // Based on previous context, `leave_balances` has `entitlement`, `accrued_amount`, `carried_over`.
-    // Let's add to `accrued_amount` as that's the most logical place for dynamic additions.
-
-    // However, looking at the `upsert_leave_balance` above, it only updates `entitlement` and `carried_over`.
-    // Wait, I recall a migration added `accrued_amount`. Let me verify `models.rs` doesn't show it in `LeaveBalance` struct yet?
-    // Checking `models.rs`... `LeaveBalance` has `entitlement` and `carried_over`.
-    // Ah, `LeaveAccrualService` uses `accrued_amount`.
-    // I need to be consistent. If `accrued_amount` exists in DB, I should use it.
-    // The previous `upsert_leave_balance` in this file might be outdated or for initial setup.
-
-    // Let's assume `accrued_amount` exists as per `LeaveAccrualService`.
-    // I will update `accrued_amount` + amount.
-
     let year = transaction_date.year();
 
     sqlx::query!(
         r#"
-        INSERT INTO leave_balances (employee_id, leave_type, year, entitlement, accrued_amount, carried_over)
+        INSERT INTO leave_balances (employee_id, leave_type_id, year, entitlement, accrued_amount, carried_over)
         VALUES ($1, $2, $3, 0, $4, 0)
-        ON CONFLICT (employee_id, leave_type, year)
-        DO UPDATE SET 
+        ON CONFLICT (employee_id, leave_type_id, year)
+        DO UPDATE SET
             accrued_amount = leave_balances.accrued_amount + EXCLUDED.accrued_amount,
             updated_at = CURRENT_TIMESTAMP
         "#,
         employee_id,
-        leave_type,
+        leave_type_id,
         year,
         amount
     )

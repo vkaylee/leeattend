@@ -93,7 +93,7 @@ export default function MyClockPage() {
 
   if (!employee) {
     return (
-      <div className="p-8 text-center text-slate-400 font-bold italic">
+      <div className="p-8 text-center text-slate-500 font-bold italic">
         {t("common.no_profile")}
       </div>
     );
@@ -104,10 +104,10 @@ export default function MyClockPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter text-slate-900 uppercase leading-none">
+          <h1 className="text-4xl font-bold tracking-tighter text-slate-700 uppercase leading-none">
             {t("ess.clock.title")}
           </h1>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] opacity-60 mt-1.5">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] opacity-60 mt-1.5">
             {t("ess.clock.subtitle")}
           </p>
         </div>
@@ -133,7 +133,7 @@ export default function MyClockPage() {
           <div className="px-8 py-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <History className="w-5 h-5 text-primary-500" />
-              <h3 className="font-black text-slate-800 uppercase tracking-widest text-xs">
+              <h3 className="font-bold text-slate-800 uppercase tracking-widest text-xs">
                 {t("ess.clock.recent_history")}
               </h3>
             </div>
@@ -142,13 +142,13 @@ export default function MyClockPage() {
             <table className="w-full text-left border-collapse">
               <thead className="sticky top-0 bg-white/80 backdrop-blur-md z-10 border-b border-slate-100">
                 <tr>
-                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <th className="px-8 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                     {t("common.date")}
                   </th>
-                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <th className="px-8 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                     {t("common.in")}
                   </th>
-                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <th className="px-8 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                     {t("common.out")}
                   </th>
                 </tr>
@@ -158,7 +158,7 @@ export default function MyClockPage() {
                   <tr>
                     <td
                       colSpan={3}
-                      className="px-10 py-20 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50"
+                      className="px-10 py-20 text-center text-slate-500 font-bold italic uppercase tracking-widest text-xs opacity-50"
                     >
                       {t("ess.clock.no_entries")}
                     </td>

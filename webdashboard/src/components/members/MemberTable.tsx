@@ -31,8 +31,8 @@ export default function MemberTable() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{t("common.user")}</th>
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{t("common.role")}</th>
+                <th className="px-10 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">{t("common.user")}</th>
+                <th className="px-8 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">{t("common.role")}</th>
                 <th className="px-10 py-6 border-b border-slate-100"></th>
               </tr>
             </thead>
@@ -41,7 +41,7 @@ export default function MemberTable() {
                 <tr key={member.user_id} className="group hover:bg-slate-50/50 transition-all">
                   <td className="px-10 py-6">
                     <div className="flex items-center gap-5">
-                      <div className="w-14 h-14 rounded-2xl bg-primary-50 flex items-center justify-center text-primary-600 font-black shadow-inner border border-primary-100/50 overflow-hidden group-hover:scale-110 transition-transform">
+                      <div className="w-14 h-14 rounded-2xl bg-primary-50 flex items-center justify-center text-primary-600 font-bold shadow-inner border border-primary-100/50 overflow-hidden group-hover:scale-110 transition-transform">
                         {member.avatar_url ? (
                           <img src={member.avatar_url} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -49,15 +49,15 @@ export default function MemberTable() {
                         )}
                       </div>
                       <div>
-                        <div className="font-black text-slate-900 text-sm tracking-tight uppercase leading-none mb-1.5">{member.full_name || t("common.no_name")}</div>
-                        <div className="text-[10px] text-slate-400 font-mono font-bold flex items-center gap-2 opacity-70">
+                        <div className="font-bold text-slate-700 text-sm tracking-tight uppercase leading-none mb-1.5">{member.full_name || t("common.no_name")}</div>
+                        <div className="text-[10px] text-slate-500 font-mono font-bold flex items-center gap-2 opacity-70">
                           <Mail size={12} className="text-primary-400" /> {member.email}
                         </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-8 py-6">
-                    <span className={cn("inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm", 
+                    <span className={cn("inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm", 
                       member.role === "owner" ? "bg-purple-50 text-purple-600 border-purple-100" : 
                       member.role === "admin" ? "bg-blue-50 text-blue-600 border-blue-100" : 
                       "bg-slate-50 text-slate-500 border-slate-100"
@@ -68,9 +68,9 @@ export default function MemberTable() {
                   </td>
                   <td className="px-10 py-6 text-right">
                     <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-                      <button onClick={() => handleManageRoles(member.user_id)} className="p-3 bg-white text-slate-400 hover:text-primary-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90" title={t("members.table.manage_roles")}><UserCog size={20} /></button>
+                      <button onClick={() => handleManageRoles(member.user_id)} className="p-3 bg-white text-slate-500 hover:text-primary-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90" title={t("members.table.manage_roles")}><UserCog size={20} /></button>
                       {member.role !== "owner" && (
-                        <button onClick={() => handleRemoveMember(member.user_id)} className="p-3 bg-white text-slate-400 hover:text-rose-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90" title={t("members.table.remove_member")}><Trash2 size={20} /></button>
+                        <button onClick={() => handleRemoveMember(member.user_id)} className="p-3 bg-white text-slate-500 hover:text-rose-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90" title={t("members.table.remove_member")}><Trash2 size={20} /></button>
                       )}
                     </div>
                   </td>
@@ -82,7 +82,7 @@ export default function MemberTable() {
           {members.length === 0 && (
             <div className="py-32 text-center bg-slate-50/30 flex flex-col items-center">
               <UserIcon className="w-20 h-20 mb-6 text-slate-200" />
-              <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.25em]">{t("members.table.messages.no_members")}</p>
+              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.25em]">{t("members.table.messages.no_members")}</p>
             </div>
           )}
         </div>

@@ -404,7 +404,10 @@
     "import": "Import Data",
     "search_employee": "Search employees...",
     "no_notes": "No notes.",
-    "global": "Global"
+    "global": "Global",
+    "unknown": "Unknown",
+    "auto": "Auto",
+    "required": "Required"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1079,6 +1082,7 @@
   "leave_requests": {
     "title": "Leave Requests",
     "subtitle": "Approve and manage personnel absence",
+    "invalid_leave_type": "Invalid leave type selected",
     "create_btn": "Create Request",
     "remaining": "Left",
     "tabs": {
@@ -1615,6 +1619,31 @@
       "connectivity_desc": "Manage device connections and network."
     },
     "navigation": "Navigation",
-    "admin_only": "Administrators only"
+    "admin_only": "Administrators only",
+    "leave": {
+      "title": "Leave Settings",
+      "desc": "Configure leave types and accrual policies for your workspace.",
+      "tabs": {
+        "types": "Leave Types",
+        "policies": "Accrual Policies",
+        "types_desc": "Define available leave types and their rules",
+        "policies_desc": "Set up how leave is earned over time"
+      },
+      "messages": {
+        "update_success": "Leave type updated successfully",
+        "update_error": "Failed to update leave type",
+        "create_success": "Policy created successfully",
+        "delete_success": "Policy deleted successfully"
+      },
+      "fields": {
+        "approval": "Approval",
+        "document": "Document",
+        "days_per_period": "days / period"
+      },
+      "types": {
+        "paid": "Paid Leave",
+        "unpaid": "Unpaid Leave"
+      }
+    }
   }
 }

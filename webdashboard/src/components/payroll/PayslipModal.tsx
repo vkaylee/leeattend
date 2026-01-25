@@ -82,7 +82,7 @@ export default function PayslipModal({
             }
 
             /* Typography */
-            .font-black { font-weight: 600; }
+            .font-bold { font-weight: 600; }
             .font-bold { font-weight: 500; }
             .uppercase { text-transform: uppercase; }
             .italic { font-style: italic; }
@@ -101,9 +101,9 @@ export default function PayslipModal({
             [class*="text-[8px]"] { font-size: 4px; }
 
             /* Colors */
-            .text-slate-900 { color: #0f172a; }
+            .text-slate-700 { color: #0f172a; }
             .text-slate-500 { color: #64748b; }
-            .text-slate-400 { color: #94a3b8; }
+            .text-slate-500 { color: #94a3b8; }
             .text-slate-300 { color: #cbd5e1; }
             .text-emerald-700 { color: #047857; }
             .text-emerald-600 { color: #059669; }
@@ -252,7 +252,7 @@ export default function PayslipModal({
           <div className='p-6 bg-white border-b border-slate-200 flex items-center justify-between print:hidden'>
             <div className='flex items-center gap-4'>
               <div>
-                <h2 className='text-sm font-black uppercase tracking-widest text-slate-400'>Official Payslip Preview</h2>
+                <h2 className='text-sm font-bold uppercase tracking-widest text-slate-500'>Official Payslip Preview</h2>
                 <p className='text-xs font-bold text-slate-600 mt-1'>
                   {t('common.month')} {formatMonthYear(payslip.period_start)}
                 </p>
@@ -262,12 +262,12 @@ export default function PayslipModal({
               <button
                 onClick={handlePrint}
                 data-testid="payslip-print-btn"
-                className='flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95'
+                className='flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95'
               >
                 <Printer size={14} /> Print Payslip
               </button>
               <Dialog.Close asChild>
-                <button data-testid="payslip-close-btn" className='w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-600 transition-all'>
+                <button data-testid="payslip-close-btn" className='w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 hover:text-rose-600 transition-all'>
                   <X size={20} />
                 </button>
               </Dialog.Close>

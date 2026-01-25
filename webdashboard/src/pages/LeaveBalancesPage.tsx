@@ -46,8 +46,8 @@ export default function LeaveBalancesPage() {
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
         <div className="space-y-1">
-          <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-slate-900 uppercase leading-none">{t("leave_balances.title")}</h1>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("leave_balances.subtitle")}</p>
+          <h1 className="text-3xl md:text-5xl font-bold tracking-tighter text-slate-800 uppercase leading-none">{t("leave_balances.title")}</h1>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] opacity-60">{t("leave_balances.subtitle")}</p>
         </div>
         <button
           onClick={() => {
@@ -56,7 +56,7 @@ export default function LeaveBalancesPage() {
             }
           }}
           disabled={accrualMutation.isPending}
-          className="bg-slate-900 hover:bg-black text-white font-black px-6 md:px-8 py-3.5 md:py-3 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-slate-200 transition-all active:scale-95 text-xs uppercase tracking-widest disabled:opacity-50 min-h-[44px] w-full md:w-auto"
+          className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 md:px-8 py-3.5 md:py-3 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95 text-xs uppercase tracking-widest disabled:opacity-50 min-h-[44px] w-full md:w-auto"
         >
           <PlayCircle size={18} /> <span className="whitespace-nowrap">{accrualMutation.isPending ? t("common.processing").toUpperCase() : t("leave_balances.run_accrual", "Cập nhật số dư").toUpperCase()}</span>
         </button>
@@ -66,7 +66,7 @@ export default function LeaveBalancesPage() {
         <div className="p-5 md:p-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-5 md:gap-6 bg-slate-50/30">
           <div className="flex items-center gap-3">
             <Filter className="w-5 h-5 text-primary-600" />
-            <h2 className="text-lg md:text-xl font-black text-slate-800 tracking-tight uppercase">{t("leave_balances.summary_table")}</h2>
+            <h2 className="text-lg md:text-xl font-bold text-slate-800 tracking-tight uppercase">{t("leave_balances.summary_table")}</h2>
             {totalItems > 0 && (
               <span className="px-2 py-0.5 bg-slate-200 text-slate-600 rounded-full text-xs font-bold">
                 {totalItems}
@@ -79,7 +79,7 @@ export default function LeaveBalancesPage() {
             <input
               type="text"
               placeholder={t("common.search_placeholder")}
-              className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight shadow-sm min-h-[44px]"
+              className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm min-h-[44px]"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -94,21 +94,21 @@ export default function LeaveBalancesPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t("common.employee")}</th>
-                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t("common.type")}</th>
-                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">{t("leave_balances.table.remaining")}</th>
-                <th className="px-5 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t("leave_balances.table.usage")}</th>
-                <th className="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t("common.actions", "Actions")}</th>
+                <th className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">{t("common.employee")}</th>
+                <th className="px-5 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">{t("common.type")}</th>
+                <th className="px-5 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] text-right">{t("leave_balances.table.remaining")}</th>
+                <th className="px-5 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">{t("leave_balances.table.usage")}</th>
+                <th className="px-6 py-5 text-right text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">{t("common.actions", "Actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {isLoading && !balances.length ? (
-                <tr><td colSpan={5} className="px-6 py-20 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</td></tr>
+                <tr><td colSpan={5} className="px-6 py-20 text-center text-slate-500 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</td></tr>
               ) : balances.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-32 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</td></tr>
+                <tr><td colSpan={5} className="px-6 py-32 text-center text-slate-500 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</td></tr>
               ) : (balances as any[]).map((balance: any, idx: number) => (
                 <DesktopBalanceRow
-                  key={`${balance.employee_id}-${balance.leave_type}-${idx}`}
+                  key={`${balance.employee_id}-${balance.leave_type_id}-${idx}`}
                   balance={balance}
                   onViewDetails={() => setSelectedBalance(balance)}
                   onViewHistory={() => setSelectedEmployee({ id: balance.employee_id, name: balance.employee_name })}
@@ -121,12 +121,12 @@ export default function LeaveBalancesPage() {
         {/* Tablet/Mobile Card View (<1024px) - Simplified */}
         <div className="lg:hidden divide-y divide-slate-100">
           {isLoading && !balances.length ? (
-            <div className="px-5 py-20 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</div>
+            <div className="px-5 py-20 text-center text-slate-500 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</div>
           ) : balances.length === 0 ? (
-            <div className="px-5 py-32 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</div>
+            <div className="px-5 py-32 text-center text-slate-500 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</div>
           ) : (balances as any[]).map((balance: any, idx: number) => (
             <MobileBalanceCard
-              key={`${balance.employee_id}-${balance.leave_type}-${idx}`}
+              key={`${balance.employee_id}-${balance.leave_type_id}-${idx}`}
               balance={balance}
               onViewDetails={() => setSelectedBalance(balance)}
               onViewHistory={() => setSelectedEmployee({ id: balance.employee_id, name: balance.employee_name })}
@@ -137,8 +137,8 @@ export default function LeaveBalancesPage() {
         {/* Pagination Controls */}
         {totalItems > 0 && (
           <div className="p-5 md:p-8 border-t border-slate-50 bg-slate-50/30 flex flex-col md:flex-row items-center justify-between gap-4">
-             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-               {t("common.showing")} <span className="text-slate-700">{(page - 1) * limit + 1}</span> - <span className="text-slate-700">{Math.min(page * limit, totalItems)}</span> {t("common.of")} <span className="text-slate-700">{totalItems}</span>
+             <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+               {t("common.showing")} <span className="text-slate-600">{(page - 1) * limit + 1}</span> - <span className="text-slate-600">{Math.min(page * limit, totalItems)}</span> {t("common.of")} <span className="text-slate-600">{totalItems}</span>
              </div>
              
              <div className="flex items-center gap-2">
@@ -164,9 +164,9 @@ export default function LeaveBalancesPage() {
                         key={p}
                         onClick={() => setPage(p)}
                         className={cn(
-                          "w-8 h-8 flex items-center justify-center rounded-xl text-xs font-black transition-all",
+                          "w-8 h-8 flex items-center justify-center rounded-xl text-xs font-bold transition-all",
                           page === p 
-                            ? "bg-slate-900 text-white shadow-md shadow-slate-200" 
+                            ? "bg-primary-600 text-white shadow-md shadow-indigo-100" 
                             : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
                         )}
                       >
@@ -214,10 +214,10 @@ function DesktopBalanceRow({ balance, onViewDetails, onViewHistory }: {
       {/* Employee Name with Avatar */}
       <td className="px-6 py-6">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600 font-black text-sm shadow-inner border border-primary-100/50 uppercase group-hover:scale-110 transition-transform flex-shrink-0">
+          <div className="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600 font-bold text-sm shadow-inner border border-primary-100/50 uppercase group-hover:scale-110 transition-transform flex-shrink-0">
             {balance.employee_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
           </div>
-          <div className="font-black text-slate-900 text-base tracking-tight uppercase leading-tight">
+          <div className="font-bold text-slate-800 text-base tracking-tight uppercase leading-tight">
             {balance.employee_name}
           </div>
         </div>
@@ -225,8 +225,8 @@ function DesktopBalanceRow({ balance, onViewDetails, onViewHistory }: {
 
       {/* Leave Type Badge */}
       <td className="px-5 py-6">
-        <span className="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-xl text-xs font-black uppercase tracking-wider border border-slate-200 shadow-sm inline-block">
-          {balance.leave_type}
+        <span className="px-3 py-1.5 bg-slate-50 text-slate-600 rounded-xl text-xs font-bold uppercase tracking-wider border border-slate-200 shadow-sm inline-block">
+          {balance.leave_type_name}
         </span>
       </td>
 
@@ -234,14 +234,14 @@ function DesktopBalanceRow({ balance, onViewDetails, onViewHistory }: {
       <td className="px-5 py-6 text-right">
         <div className="flex items-center justify-end gap-2">
           <span className={cn(
-            "text-2xl font-black px-4 py-2 rounded-xl font-mono shadow-inner border transition-all uppercase tracking-tighter",
+            "text-2xl font-bold px-4 py-2 rounded-xl font-mono shadow-inner border transition-all uppercase tracking-tighter",
             balance.remaining > 0
               ? "text-emerald-600 bg-emerald-50 border-emerald-100"
-              : "text-slate-400 bg-slate-100 border-slate-200 opacity-60"
+              : "text-slate-500 bg-slate-100 border-slate-200 opacity-60"
           )}>
             {balance.remaining}
           </span>
-          <span className="text-xs font-bold text-slate-400 uppercase">
+          <span className="text-xs font-bold text-slate-500 uppercase">
             {t("common.days_short", "days")}
           </span>
         </div>
@@ -261,7 +261,7 @@ function DesktopBalanceRow({ balance, onViewDetails, onViewHistory }: {
               style={{ width: `${Math.min(100, usagePercent)}%` }}
             />
           </div>
-          <span className="text-xs font-black text-slate-500 font-mono tracking-tighter min-w-[3ch]">
+          <span className="text-xs font-bold text-slate-500 font-mono tracking-tighter min-w-[3ch]">
             {usagePercent}%
           </span>
         </div>
@@ -304,32 +304,32 @@ function MobileBalanceCard({ balance, onViewDetails, onViewHistory }: {
     <div className="p-5 space-y-5 bg-white hover:bg-slate-50/30 transition-all">
       {/* Header: Employee Avatar + Name + Leave Type */}
       <div className="flex items-center gap-3">
-        <div className="w-14 h-14 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 font-black text-base shadow-inner border border-primary-100/50 uppercase flex-shrink-0">
+        <div className="w-14 h-14 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 font-bold text-base shadow-inner border border-primary-100/50 uppercase flex-shrink-0">
           {balance.employee_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-black text-slate-900 text-base tracking-tight uppercase leading-tight truncate">
+          <div className="font-bold text-slate-800 text-base tracking-tight uppercase leading-tight truncate">
             {balance.employee_name}
           </div>
-          <span className="inline-block mt-1.5 px-3 py-1.5 bg-slate-50 text-slate-600 rounded-xl text-xs font-black uppercase tracking-wider border border-slate-200 shadow-sm">
-            {balance.leave_type}
+          <span className="inline-block mt-1.5 px-3 py-1.5 bg-slate-50 text-slate-600 rounded-xl text-xs font-bold uppercase tracking-wider border border-slate-200 shadow-sm">
+            {balance.leave_type_name}
           </span>
         </div>
       </div>
 
       {/* Hero Metric: Remaining Balance */}
       <div className="bg-gradient-to-br from-primary-50/50 to-transparent rounded-2xl p-5 border border-primary-100/30">
-        <div className="text-[10px] font-black text-primary-600 uppercase tracking-[0.2em] mb-2">
+        <div className="text-[10px] font-bold text-primary-600 uppercase tracking-[0.2em] mb-2">
           {t("leave_balances.table.remaining")}
         </div>
         <div className="flex items-baseline gap-2">
           <span className={cn(
-            "text-5xl font-black font-mono tracking-tighter",
-            balance.remaining > 0 ? "text-emerald-600" : "text-slate-400"
+            "text-5xl font-bold font-mono tracking-tighter",
+            balance.remaining > 0 ? "text-emerald-600" : "text-slate-500"
           )}>
             {balance.remaining}
           </span>
-          <span className="text-sm font-bold text-slate-400 uppercase">
+          <span className="text-sm font-bold text-slate-500 uppercase">
             {t("common.days_short", "days")}
           </span>
         </div>
@@ -337,7 +337,7 @@ function MobileBalanceCard({ balance, onViewDetails, onViewHistory }: {
 
       {/* Usage Progress Bar */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between text-[10px] font-black text-slate-500 uppercase tracking-wider">
+        <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wider">
           <span>{t("leave_balances.table.usage")}</span>
           <span className="font-mono">{usagePercent}%</span>
         </div>
@@ -358,7 +358,7 @@ function MobileBalanceCard({ balance, onViewDetails, onViewHistory }: {
       <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
         <button
           onClick={onViewDetails}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-black uppercase tracking-wider text-xs rounded-xl transition-all active:scale-95 shadow-lg shadow-primary-200 min-h-[44px]"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-bold uppercase tracking-wider text-xs rounded-xl transition-all active:scale-95 shadow-lg shadow-primary-200 min-h-[44px]"
         >
           <Eye className="h-5 w-5" />
           <span>{t("leave_balances.view_details", "View Details")}</span>

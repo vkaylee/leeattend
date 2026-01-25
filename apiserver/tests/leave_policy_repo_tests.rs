@@ -18,6 +18,14 @@ async fn test_find_active_policy_priority() {
     let emp_id = factory.employee().with_workspace(ws_id).create().await;
     let dept_id = Uuid::new_v4(); // Mock dept_id
 
+    // Fetch leave type ID
+    let vacation_id = sqlx::query!("SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'", ws_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap()
+        .id;
+
+
     let config = LeavePolicyConfig {
         frequency: AccrualFrequency::Monthly,
         accrual_amount: 1.0,
@@ -34,7 +42,7 @@ async fn test_find_active_policy_priority() {
         ws_id,
         "Global",
         None,
-        "vacation",
+        vacation_id,
         config.clone(),
     )
     .await
@@ -72,7 +80,7 @@ async fn test_find_active_policy_priority() {
         ws_id,
         "Dept",
         None,
-        "vacation",
+        vacation_id,
         config.clone(),
     )
     .await
@@ -110,7 +118,7 @@ async fn test_find_active_policy_priority() {
         ws_id,
         "Employee",
         None,
-        "vacation",
+        vacation_id,
         config.clone(),
     )
     .await

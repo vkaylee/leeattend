@@ -44,16 +44,16 @@ export default function RegisterPage() {
       <div className="max-w-md w-full space-y-10 p-12 bg-white rounded-[3.5rem] shadow-premium-2xl relative z-10 animate-in zoom-in-95 duration-1000 border border-white/60">
         <div className="text-center">
           <div className="bg-slate-900 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-slate-400 transform hover:rotate-6 hover:scale-110 transition-all duration-700 group/logo">
-             <span className="text-white text-4xl font-black italic tracking-tighter group-hover:text-primary-400 transition-colors">L</span>
+             <span className="text-white text-4xl font-bold italic tracking-tighter group-hover:text-primary-400 transition-colors">L</span>
           </div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">{t("auth.register_title")}</h2>
-          <p className="mt-4 text-slate-400 font-black uppercase tracking-[0.3em] text-[9px] opacity-60 leading-relaxed">
+          <h2 className="text-4xl font-bold text-slate-700 tracking-tighter uppercase leading-none">{t("auth.register_title")}</h2>
+          <p className="mt-4 text-slate-500 font-bold uppercase tracking-[0.3em] text-[9px] opacity-60 leading-relaxed">
             {t("auth.slogan").toUpperCase()}
           </p>
         </div>
 
         {error && (
-          <div role="alert" className="bg-rose-50 border-2 border-rose-100 text-rose-600 p-5 rounded-[2rem] text-[11px] font-black uppercase tracking-widest text-center animate-in slide-in-from-top-4 shadow-inner">
+          <div role="alert" className="bg-rose-50 border-2 border-rose-100 text-rose-600 p-5 rounded-[2rem] text-[11px] font-bold uppercase tracking-widest text-center animate-in slide-in-from-top-4 shadow-inner">
             {error}
           </div>
         )}
@@ -67,21 +67,21 @@ export default function RegisterPage() {
               { id: "confirm_password", label: "confirm_password", type: "password", placeholder: "••••••••", auto: "new-password" }
             ].map((field) => (
               <div key={field.id} className="space-y-2 px-1">
-                <label htmlFor={field.id} className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 opacity-70">{t(`auth.${field.label}`)}</label>
-                <input id={field.id} name={field.id} type={field.type} autoComplete={field.auto} required className="block w-full px-6 py-4 bg-slate-50 border border-slate-100 text-slate-900 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white transition-all font-black placeholder:text-slate-300 text-sm uppercase tracking-tight shadow-inner" placeholder={field.placeholder} value={(formData as any)[field.id]} onChange={handleChange} />
+                <label htmlFor={field.id} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 opacity-70">{t(`auth.${field.label}`)}</label>
+                <input id={field.id} name={field.id} type={field.type} autoComplete={field.auto} required className="block w-full px-6 py-4 bg-slate-50 border border-slate-100 text-slate-700 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 focus:bg-white transition-all font-bold placeholder:text-slate-300 text-sm uppercase tracking-tight shadow-inner" placeholder={field.placeholder} value={(formData as any)[field.id]} onChange={handleChange} />
               </div>
             ))}
           </div>
 
           <div className="pt-2">
-            <button type="submit" disabled={isLoading} className="w-full flex justify-center py-5 px-4 border border-transparent text-xs font-black rounded-2xl text-white bg-slate-900 hover:bg-black transition-all disabled:opacity-50 uppercase tracking-[0.2em] shadow-2xl shadow-slate-400 active:scale-95">
+            <button type="submit" disabled={isLoading} className="w-full flex justify-center py-5 px-4 border border-transparent text-xs font-bold rounded-2xl text-white bg-slate-900 hover:bg-primary-700 transition-all disabled:opacity-50 uppercase tracking-[0.2em] shadow-2xl shadow-slate-400 active:scale-95">
               {isLoading ? t("auth.creating_account").toUpperCase() : t("auth.register_btn").toUpperCase()}
             </button>
           </div>
 
           <div className="text-center pt-2">
-            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest opacity-60">{t("auth.already_have_account")} </span>
-            <Link to="/login" className="font-black text-primary-600 hover:text-primary-700 text-[10px] uppercase tracking-widest transition-colors ml-1">{t("auth.login").toUpperCase()}</Link>
+            <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest opacity-60">{t("auth.already_have_account")} </span>
+            <Link to="/login" className="font-bold text-primary-600 hover:text-primary-700 text-[10px] uppercase tracking-widest transition-colors ml-1">{t("auth.login").toUpperCase()}</Link>
           </div>
         </form>
       </div>

@@ -24,7 +24,7 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ trac
       <Popover.Trigger asChild>
         <button 
           onClick={(e) => e.stopPropagation()}
-          className="p-1 rounded-full hover:bg-slate-100 text-slate-400 transition-colors"
+          className="p-1 rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
         >
           <Info size={14} />
         </button>
@@ -41,7 +41,7 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ trac
                 <Shield size={16} />
               </div>
               <div>
-                <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">
+                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-tight">
                   {t("shifts.traceability.title")}
                 </h3>
                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
@@ -54,10 +54,10 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ trac
             {appliedRule && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
                     {t("shifts.traceability.winner")}
                   </span>
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase">
                     {t("shifts.traceability.applied")}
                   </span>
                 </div>
@@ -72,7 +72,7 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ trac
                     </p>
                   )}
                   <div className="pt-1 flex items-center gap-3 pl-5">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase">
                       {t("shifts.traceability.priority")}: {appliedRule.priority}
                     </span>
                   </div>
@@ -100,10 +100,10 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ trac
                   onClick={() => setShowOverridden(!showOverridden)}
                   className="flex items-center justify-between w-full group"
                 >
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-600 transition-colors">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 group-hover:text-slate-600 transition-colors">
                     {t("shifts.traceability.show_overridden")} ({overriddenRules.length})
                   </span>
-                  {showOverridden ? <ChevronDown size={14} className="text-slate-400" /> : <ChevronRight size={14} className="text-slate-400" />}
+                  {showOverridden ? <ChevronDown size={14} className="text-slate-500" /> : <ChevronRight size={14} className="text-slate-500" />}
                 </button>
 
                 {showOverridden && (
@@ -120,7 +120,7 @@ export const ScheduleTracePopover: React.FC<ScheduleTracePopoverProps> = ({ trac
                           </p>
                         )}
                         <div className="pt-1 flex items-center gap-3 pl-5">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase">
+                          <span className="text-[9px] font-bold text-slate-500 uppercase">
                             {t("shifts.traceability.priority")}: {rule.priority}
                           </span>
                         </div>

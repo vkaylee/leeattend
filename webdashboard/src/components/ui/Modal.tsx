@@ -73,12 +73,12 @@ export default function Modal({
               )}
               <div>
                 {title && (
-                  <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+                  <h2 className="text-xl font-bold text-primary-600 tracking-tight">
                     {title}
                   </h2>
                 )}
                 {subtitle && (
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                  <p className="text-[10px] text-primary-400 font-bold uppercase tracking-widest mt-0.5">
                     {subtitle}
                   </p>
                 )}
@@ -88,7 +88,7 @@ export default function Modal({
               onClick={onClose}
               className="p-2 hover:bg-slate-100 rounded-full transition-colors group"
             >
-              <X className="w-5 h-5 text-slate-300 group-hover:text-slate-600" />
+              <X className="w-5 h-5 text-slate-300 group-hover:text-primary-700" />
             </button>
           </div>
         )}

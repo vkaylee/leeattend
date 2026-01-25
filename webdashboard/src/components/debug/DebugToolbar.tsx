@@ -80,7 +80,7 @@ export const DebugToolbar: React.FC = () => {
           <Terminal size={16} className="text-blue-400" />
           <span className="text-xs font-bold tracking-wider uppercase">Debug Suite v2.0</span>
         </div>
-        <button onClick={() => setIsOpen(false)} className="hover:text-slate-400">
+        <button onClick={() => setIsOpen(false)} className="hover:text-slate-500">
           <X size={16} />
         </button>
       </div>
@@ -206,7 +206,7 @@ export const DebugToolbar: React.FC = () => {
                 className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
                 title="Clear attendance logs and time entries"
               >
-                <Trash2 size={12} className="text-slate-400 group-hover:text-amber-400" />
+                <Trash2 size={12} className="text-slate-500 group-hover:text-amber-400" />
                 <span className="text-[8px] font-bold uppercase">Logs</span>
               </button>
               <button
@@ -215,7 +215,7 @@ export const DebugToolbar: React.FC = () => {
                 className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
                 title="Clear payroll history"
               >
-                <Trash2 size={12} className="text-slate-400 group-hover:text-amber-400" />
+                <Trash2 size={12} className="text-slate-500 group-hover:text-amber-400" />
                 <span className="text-[8px] font-bold uppercase">Payroll</span>
               </button>
               <button
@@ -224,7 +224,7 @@ export const DebugToolbar: React.FC = () => {
                 className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
                 title="Clear schedules and rosters"
               >
-                <Trash2 size={12} className="text-slate-400 group-hover:text-amber-400" />
+                <Trash2 size={12} className="text-slate-500 group-hover:text-amber-400" />
                 <span className="text-[8px] font-bold uppercase">Rosters</span>
               </button>
             </div>

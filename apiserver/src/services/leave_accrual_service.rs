@@ -19,7 +19,6 @@ impl LeaveAccrualService {
         let mut amount = config.accrual_amount;
 
         // Apply seniority bonuses (additive)
-        // Assumption: extra_days is "Days added per accrual period"
         for bonus in &config.seniority_bonus {
             if years_service >= bonus.min_years {
                 amount += bonus.extra_days;
@@ -30,7 +29,6 @@ impl LeaveAccrualService {
     }
 
     /// Helper to count "Qualifying Days" for performance-based accrual.
-    /// Qualifying Days = Days with 'work' entries + Approved Leave Days.
     pub async fn count_qualifying_days(
         pool: &PgPool,
         employee_id: Uuid,
@@ -41,7 +39,7 @@ impl LeaveAccrualService {
         use std::collections::HashSet;
         let mut qualifying_days = HashSet::new();
 
-        // 1. Days with actual work entries
+        // Days with actual work entries
         let start_dt = tz
             .from_local_datetime(&start_date.and_hms_opt(0, 0, 0).unwrap())
             .single()
@@ -57,8 +55,8 @@ impl LeaveAccrualService {
             r#"
             SELECT DISTINCT(punch_in_time AT TIME ZONE $2)::date as "date!"
             FROM time_entries
-            WHERE employee_id = $1 
-              AND punch_in_time >= $3 
+            WHERE employee_id = $1
+              AND punch_in_time >= $3
               AND punch_in_time <= $4
               AND entry_type = 'work'
             "#,
@@ -74,7 +72,7 @@ impl LeaveAccrualService {
             qualifying_days.insert(row.date);
         }
 
-        // 2. Approved Leave days
+        // Approved Leave days
         let leave_days = sqlx::query!(
             r#"
             SELECT start_date, end_date
@@ -130,14 +128,9 @@ impl LeaveAccrualService {
     }
 
     /// Determines if an accrual should run on this date based on frequency.
-    /// Returns true if this date matches the schedule.
-    ///
-    /// Policies:
-    /// - Monthly: Runs on 1st of month (if timing=start) or Last of month (if timing=end).
-    /// - Quarterly: Runs on Jan 1, Apr 1, Jul 1, Oct 1.
     pub fn should_run_accrual(
         frequency: &AccrualFrequency,
-        timing: &str, // "start_of_period" or "end_of_period"
+        timing: &str,
         date: NaiveDate,
     ) -> bool {
         let is_start = timing == "start_of_period";
@@ -147,19 +140,15 @@ impl LeaveAccrualService {
                 if is_start {
                     date.day() == 1
                 } else {
-                    // Last day of month
                     let next_day = date.succ_opt().unwrap_or(date);
                     next_day.month() != date.month()
                 }
             }
             AccrualFrequency::Quarterly => {
-                // Quarters start: Jan(1), Apr(4), Jul(7), Oct(10)
                 let is_quarter_month = matches!(date.month(), 1 | 4 | 7 | 10);
                 if is_start {
                     date.day() == 1 && is_quarter_month
                 } else {
-                    // End of quarter: Mar 31, Jun 30, Sep 30, Dec 31
-                    // Logic: Tomorrow is 1st of (Apr, Jul, Oct, Jan)
                     let next_day = date.succ_opt().unwrap_or(date);
                     next_day.day() == 1 && matches!(next_day.month(), 4 | 7 | 10 | 1)
                 }
@@ -175,14 +164,13 @@ impl LeaveAccrualService {
     }
 
     /// Main orchestrator to process accruals for a workspace on a specific date.
-    /// This is expected to be called by a daily cron job.
     pub async fn process_workspace_accruals(
         pool: &PgPool,
         workspace_id: Uuid,
         date: NaiveDate,
         force: bool,
     ) -> Result<Vec<LeaveAccrualLog>, sqlx::Error> {
-        // 0. Get Workspace settings for timezone
+        // Get Workspace settings for timezone
         let workspace = sqlx::query!(
             "SELECT timezone FROM workspaces WHERE id = $1",
             workspace_id
@@ -191,69 +179,98 @@ impl LeaveAccrualService {
         .await?;
         let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
 
-        // 1. Get all active employees
+        // Get all active employees
         let employees = employee_repository::get_active_employees(pool, workspace_id).await?;
         let mut all_logs = Vec::new();
 
         for emp in employees {
-            // 2. Resolve policy for employee
+            // Resolve policy for employee
             let dept_hist = department_repository::get_current_department(pool, emp.id)
                 .await
                 .ok()
                 .flatten();
 
-            if let Some((policy, assignment_id)) = leave_policy_repository::find_active_assignment_for_employee(
-                pool,
-                workspace_id,
-                emp.id,
-                dept_hist.map(|d| d.department_id),
-                date,
-            )
-            .await?
+            if let Some((policy, assignment_id, _leave_type_code)) =
+                leave_policy_repository::find_active_assignment_for_employee(
+                    pool,
+                    workspace_id,
+                    emp.id,
+                    dept_hist.map(|d| d.department_id),
+                    date,
+                )
+                .await?
             {
                 let config = &policy.rule_config.0;
+                let leave_type_id = policy.leave_type_id;
 
-                // --- SMART CATCH-UP LOGIC ---
-                // We iterate from the start of the policy assignment up to the target date.
-                // This ensures that if a policy was assigned retroactively, we backfill missing days.
-                
                 // Fetch the assignment record to get the true effective_from
                 let assignment = sqlx::query!(
                     "SELECT effective_from FROM leave_policy_assignments WHERE id = $1",
                     assignment_id
-                ).fetch_one(pool).await?;
+                )
+                .fetch_one(pool)
+                .await?;
 
                 let mut current_check_date = assignment.effective_from;
-                
-                while current_check_date <= date {
-                    // Check if accrual should run on THIS specific date in the past/present
-                    if Self::should_run_accrual(&config.frequency, &config.accrual_timing, current_check_date) {
-                        
-                        let periods = employee_repository::get_employment_history(pool, emp.id).await?;
-                        let years_service = Self::calculate_total_seniority(&periods, current_check_date);
-                        let mut amount = Self::calculate_accrual_amount(config, years_service, current_check_date);
 
-                        // --- PERFORMANCE THRESHOLD CHECK ---
+                while current_check_date <= date {
+                    if Self::should_run_accrual(
+                        &config.frequency,
+                        &config.accrual_timing,
+                        current_check_date,
+                    ) {
+                        let periods =
+                            employee_repository::get_employment_history(pool, emp.id).await?;
+                        let years_service =
+                            Self::calculate_total_seniority(&periods, current_check_date);
+                        let mut amount =
+                            Self::calculate_accrual_amount(config, years_service, current_check_date);
+
+                        // Performance threshold check
                         if let Some(threshold) = config.min_work_days_threshold {
                             let (check_start, check_end) = match config.frequency {
                                 AccrualFrequency::Monthly => {
                                     if config.accrual_timing == "start_of_period" {
                                         let prev_month_date = if current_check_date.month() == 1 {
-                                            NaiveDate::from_ymd_opt(current_check_date.year() - 1, 12, 1).unwrap()
+                                            NaiveDate::from_ymd_opt(
+                                                current_check_date.year() - 1,
+                                                12,
+                                                1,
+                                            )
+                                            .unwrap()
                                         } else {
-                                            NaiveDate::from_ymd_opt(current_check_date.year(), current_check_date.month() - 1, 1).unwrap()
+                                            NaiveDate::from_ymd_opt(
+                                                current_check_date.year(),
+                                                current_check_date.month() - 1,
+                                                1,
+                                            )
+                                            .unwrap()
                                         };
-                                        let end = NaiveDate::from_ymd_opt(current_check_date.year(), current_check_date.month(), 1).unwrap().pred_opt().unwrap();
+                                        let end = NaiveDate::from_ymd_opt(
+                                            current_check_date.year(),
+                                            current_check_date.month(),
+                                            1,
+                                        )
+                                        .unwrap()
+                                        .pred_opt()
+                                        .unwrap();
                                         (prev_month_date, end)
                                     } else {
-                                        let start = NaiveDate::from_ymd_opt(current_check_date.year(), current_check_date.month(), 1).unwrap();
+                                        let start = NaiveDate::from_ymd_opt(
+                                            current_check_date.year(),
+                                            current_check_date.month(),
+                                            1,
+                                        )
+                                        .unwrap();
                                         (start, current_check_date)
                                     }
                                 }
                                 _ => (current_check_date, current_check_date),
                             };
 
-                            let qualifying_days = Self::count_qualifying_days(pool, emp.id, check_start, check_end, tz).await?;
+                            let qualifying_days =
+                                Self::count_qualifying_days(pool, emp.id, check_start, check_end, tz)
+                                    .await?;
                             if (qualifying_days as f64) < threshold {
                                 amount = 0.0;
                             }
@@ -261,83 +278,102 @@ impl LeaveAccrualService {
 
                         if amount > 0.0 {
                             use rust_decimal::prelude::FromPrimitive;
-                            let decimal_amount = rust_decimal::Decimal::from_f64(amount).unwrap_or_default();
+                            let decimal_amount =
+                                rust_decimal::Decimal::from_f64(amount).unwrap_or_default();
 
-                            // Check if a log already exists for this date/type/employee
+                            // Check if a log already exists for this date/type/employee using FK
                             let existing_log = sqlx::query!(
                                 r#"
-                                SELECT id, amount FROM leave_accrual_logs 
-                                WHERE employee_id = $1 AND leave_type = $2 AND accrual_date = $3
+                                SELECT id, amount FROM leave_accrual_logs
+                                WHERE employee_id = $1 AND leave_type_id = $2 AND accrual_date = $3
                                 "#,
-                                emp.id, policy.leave_type, current_check_date
-                            ).fetch_optional(pool).await?;
+                                emp.id,
+                                leave_type_id,
+                                current_check_date
+                            )
+                            .fetch_optional(pool)
+                            .await?;
 
                             if let Some(old_log) = existing_log {
-                                // If force is true and amount has changed, RE-CALCULATE
+                                // If force is true and amount has changed, re-calculate
                                 if force && old_log.amount != decimal_amount {
                                     let diff = decimal_amount - old_log.amount;
 
-                                    // 1. Update the log entry
+                                    // Update the log entry
                                     let updated_log = sqlx::query_as!(
                                         LeaveAccrualLog,
                                         r#"
-                                        UPDATE leave_accrual_logs 
+                                        UPDATE leave_accrual_logs
                                         SET amount = $1, notes = COALESCE(notes, '') || ' (Re-calculated)'
                                         WHERE id = $2
-                                        RETURNING id, workspace_id, employee_id, policy_assignment_id, accrual_date, amount, leave_type, notes, created_at as "created_at!"
+                                        RETURNING id, workspace_id, employee_id, policy_assignment_id,
+                                                  accrual_date, amount, leave_type_id, notes,
+                                                  created_at as "created_at!"
                                         "#,
-                                        decimal_amount, old_log.id
-                                    ).fetch_one(pool).await?;
+                                        decimal_amount,
+                                        old_log.id
+                                    )
+                                    .fetch_one(pool)
+                                    .await?;
 
-                                    // 2. Adjust the balance entry (add the difference)
+                                    // Adjust the balance entry using FK
                                     sqlx::query!(
                                         r#"
-                                        UPDATE leave_balances 
+                                        UPDATE leave_balances
                                         SET accrued_amount = accrued_amount + $3, updated_at = NOW()
-                                        WHERE employee_id = $1 AND year = $2 AND leave_type = $4
+                                        WHERE employee_id = $1 AND year = $2 AND leave_type_id = $4
                                         "#,
-                                        emp.id, current_check_date.year(), diff, policy.leave_type
-                                    ).execute(pool).await?;
+                                        emp.id,
+                                        current_check_date.year(),
+                                        diff,
+                                        leave_type_id
+                                    )
+                                    .execute(pool)
+                                    .await?;
 
                                     all_logs.push(updated_log);
                                 }
                             } else {
-                                // No log exists, perform original insertion logic
+                                // No log exists, perform insertion using FK
                                 let log = sqlx::query_as!(
                                     LeaveAccrualLog,
                                     r#"
-                                    INSERT INTO leave_accrual_logs (workspace_id, employee_id, policy_assignment_id, accrual_date, amount, leave_type)
-                                    VALUES ($1, $2, $4, $3, $5, $6)
-                                    ON CONFLICT (employee_id, leave_type, accrual_date) DO NOTHING
-                                    RETURNING id, workspace_id, employee_id, policy_assignment_id, accrual_date, amount, leave_type, notes, created_at as "created_at!"
+                                    INSERT INTO leave_accrual_logs
+                                        (workspace_id, employee_id, policy_assignment_id, accrual_date, amount, leave_type_id)
+                                    VALUES ($1, $2, $3, $4, $5, $6)
+                                    ON CONFLICT (employee_id, leave_type_id, accrual_date) DO NOTHING
+                                    RETURNING id, workspace_id, employee_id, policy_assignment_id,
+                                              accrual_date, amount, leave_type_id, notes,
+                                              created_at as "created_at!"
                                     "#,
                                     workspace_id,
                                     emp.id,
-                                    current_check_date,
                                     Some(assignment_id),
+                                    current_check_date,
                                     decimal_amount,
-                                    policy.leave_type
+                                    leave_type_id
                                 )
                                 .fetch_optional(pool)
                                 .await?;
 
                                 if let Some(l) = log {
-                                    // Update Balance for the year of THIS check date
+                                    // Update Balance using FK
                                     sqlx::query!(
                                         r#"
-                                        INSERT INTO leave_balances (employee_id, year, leave_type, entitlement, accrued_amount, carried_over)
+                                        INSERT INTO leave_balances (employee_id, year, leave_type_id, entitlement, accrued_amount, carried_over)
                                         VALUES ($1, $2, $3, 0, $4, 0)
-                                        ON CONFLICT (employee_id, leave_type, year)
-                                        DO UPDATE SET 
+                                        ON CONFLICT (employee_id, leave_type_id, year)
+                                        DO UPDATE SET
                                             accrued_amount = leave_balances.accrued_amount + EXCLUDED.accrued_amount,
                                             updated_at = NOW()
                                         "#,
                                         emp.id,
                                         current_check_date.year(),
-                                        policy.leave_type,
+                                        leave_type_id,
                                         decimal_amount
                                     )
-                                    .execute(pool).await?;
+                                    .execute(pool)
+                                    .await?;
 
                                     all_logs.push(l);
                                 }

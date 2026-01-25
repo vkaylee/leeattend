@@ -5,6 +5,7 @@ use apiserver::AppState;
 use axum::http::StatusCode;
 use common::db::TestDatabase;
 use common::factory::TestFactory;
+use uuid::Uuid;
 use std::sync::Arc;
 use tower::ServiceExt;
 
@@ -39,16 +40,21 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
 
 #[tokio::test]
 async fn test_leave_policy_api_lifecycle() {
-    let (_test_db, factory, app) = setup_app().await;
+    let (test_db, factory, app) = setup_app().await;
 
     let admin_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(admin_id).await;
 
     // 1. Create Policy
+    let vacation_id: Uuid = sqlx::query_scalar!("SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'", ws_id)
+        .fetch_one(&test_db.pool())
+        .await
+        .unwrap();
+
     let policy_req = serde_json::json!({
         "name": "Standard Annual Leave",
         "description": "Standard policy for all employees",
-        "leave_type": "vacation",
+        "leave_type_id": vacation_id,
         "rule_config": {
             "frequency": "monthly",
             "accrual_amount": 1.25,

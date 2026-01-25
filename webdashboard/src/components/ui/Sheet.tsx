@@ -73,12 +73,12 @@ export default function Sheet({
               </div>
               <div>
                 {title && (
-                  <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">
+                  <h2 className="text-xl font-bold text-slate-700 tracking-tight uppercase">
                     {title}
                   </h2>
                 )}
                 {subtitle && (
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 opacity-70">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 opacity-70">
                     {subtitle}
                   </p>
                 )}
@@ -86,7 +86,7 @@ export default function Sheet({
             </div>
             <button
               onClick={onClose}
-              className="p-3 bg-white hover:bg-slate-50 rounded-xl transition-all shadow-md border border-slate-100 text-slate-400 hover:text-rose-600 active:scale-90"
+              className="p-3 bg-white hover:bg-slate-50 rounded-xl transition-all shadow-md border border-slate-100 text-slate-500 hover:text-rose-600 active:scale-90"
             >
               <X className="w-5 h-5" />
             </button>

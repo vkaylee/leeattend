@@ -105,7 +105,7 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
           <div>
 
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 leading-tight">{t("common.settings.categories.time")}</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-700 leading-tight">{t("common.settings.categories.time")}</h1>
 
             <p className="text-slate-500 mt-1 font-medium">{t("common.settings.categories.time_desc")}</p>
 
@@ -115,7 +115,7 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
         {activeTab === "general" && (
 
-          <button onClick={handleSaveConfig} disabled={updateWsMutation.isPending} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95 disabled:opacity-50"><Save size={18} /> {t("common.workspace_settings.save_config").toUpperCase()}</button>
+          <button onClick={handleSaveConfig} disabled={updateWsMutation.isPending} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95 disabled:opacity-50"><Save size={18} /> {t("common.workspace_settings.save_config").toUpperCase()}</button>
 
         )}
 
@@ -125,11 +125,11 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
       <div className="flex bg-slate-100/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50 shadow-inner">
 
-        <button onClick={() => setActiveTab("general")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'general' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Settings2 size={14} /> {t("common.settings.tabs.general")}</button>
+        <button onClick={() => setActiveTab("general")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'general' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Settings2 size={14} /> {t("common.settings.tabs.general")}</button>
 
-        <button onClick={() => setActiveTab("patterns")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'patterns' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><LayoutGrid size={14} /> {t("common.settings.tabs.patterns")}</button>
+        <button onClick={() => setActiveTab("patterns")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'patterns' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><LayoutGrid size={14} /> {t("common.settings.tabs.patterns")}</button>
 
-        <button onClick={() => setActiveTab("rules")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'rules' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Zap size={14} /> {t("common.settings.tabs.rules")}</button>
+        <button onClick={() => setActiveTab("rules")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'rules' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Zap size={14} /> {t("common.settings.tabs.rules")}</button>
 
       </div>
 
@@ -141,13 +141,13 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
           <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-10">
 
-            <div className="flex items-center gap-3 border-b border-slate-50 pb-6"><Calculator className="w-6 h-6 text-indigo-500" /><h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">{t("common.workspace_settings.attendance_config")}</h2></div>
+            <div className="flex items-center gap-3 border-b border-slate-50 pb-6"><Calculator className="w-6 h-6 text-indigo-500" /><h2 className="text-xl font-bold text-slate-800 tracking-tight uppercase">{t("common.workspace_settings.attendance_config")}</h2></div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
 
               <div className="space-y-3">
 
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.work_unit")}</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("common.workspace_settings.work_unit")}</label>
 
                 <Combobox options={[{ value: "1", label: t("common.workspace_settings.work_unit_options.1min"), description: t("common.workspace_settings.work_unit_options.1min_desc"), icon: <Clock size={14} /> }, { value: "15", label: t("common.workspace_settings.work_unit_options.15min"), description: t("common.workspace_settings.work_unit_options.15min_desc"), icon: <Clock size={14} /> }, { value: "30", label: t("common.workspace_settings.work_unit_options.30min"), description: t("common.workspace_settings.work_unit_options.30min_desc"), icon: <Clock size={14} /> }, { value: "60", label: t("common.workspace_settings.work_unit_options.60min"), description: t("common.workspace_settings.work_unit_options.60min_desc"), icon: <Clock size={14} /> }]} value={workUnit.toString()} onChange={(v) => setWorkUnit(parseInt(v))} className="bg-slate-50 border-slate-100 h-14" />
 
@@ -155,7 +155,7 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
               <div className="space-y-3">
 
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.rounding_policy")}</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("common.workspace_settings.rounding_policy")}</label>
 
                 <Combobox options={[{ value: "none", label: t("common.workspace_settings.rounding_options.none"), icon: <ShieldAlert size={14} /> }, { value: "floor", label: t("common.workspace_settings.rounding_options.floor"), icon: <Calculator size={14} /> }, { value: "ceil", label: t("common.workspace_settings.rounding_options.ceil"), icon: <Calculator size={14} /> }, { value: "round", label: t("common.workspace_settings.rounding_options.round"), icon: <Calculator size={14} /> }]} value={roundingPolicy} onChange={setRoundingPolicy} className="bg-slate-50 border-slate-100 h-14" />
 
@@ -163,7 +163,7 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
                             <div className="space-y-3 md:col-span-2">
 
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.pairing_algorithm")}</label>
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("common.workspace_settings.pairing_algorithm")}</label>
 
                               <Combobox options={[{ value: "dp_pattern", label: t("common.workspace_settings.algorithm_options.dp_pattern"), description: t("common.workspace_settings.algorithm_options.dp_pattern_desc"), icon: <Settings2 size={14} /> }, { value: "anchor_first", label: t("common.workspace_settings.algorithm_options.anchor_first"), description: t("common.workspace_settings.algorithm_options.anchor_first_desc"), icon: <Clock size={14} /> }, { value: "sequential", label: t("common.workspace_settings.algorithm_options.sequential"), description: t("common.workspace_settings.algorithm_options.sequential_desc"), icon: <Calculator size={14} /> }, { value: "fsm", label: t("common.workspace_settings.algorithm_options.fsm"), description: t("common.workspace_settings.algorithm_options.fsm_desc"), icon: <Shield size={14} /> }]} value={pairingAlgorithm} onChange={setPairingAlgorithm} className="bg-slate-50 border-slate-100 h-14" />
 
@@ -175,7 +175,7 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
               
 
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.early_arrival_strategy")}</label>
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("common.workspace_settings.early_arrival_strategy")}</label>
 
               
 

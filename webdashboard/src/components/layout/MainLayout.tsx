@@ -86,7 +86,7 @@ export default function MainLayout() {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen bg-[#fcfcfd] text-slate-900 font-sans relative overflow-x-hidden">
+    <div className="flex min-h-screen bg-[#fcfcfd] text-slate-700 font-sans relative overflow-x-hidden">
       {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div 
@@ -134,7 +134,7 @@ export default function MainLayout() {
           <div className="pt-6 border-t border-slate-50 flex justify-end">
             <button 
               onClick={() => setShowSwitcher(false)}
-              className="px-8 py-3 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
+              className="px-8 py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
             >
               {t("common.close")}
             </button>

@@ -191,7 +191,7 @@ export default function ReportsPage() {
 
 
 
-  if (!wsId) return <div className="p-12 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
+  if (!wsId) return <div className="p-12 text-center text-slate-500 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
 
 
 
@@ -205,7 +205,7 @@ export default function ReportsPage() {
 
       absent: "bg-rose-50 text-rose-600 border-rose-100",
 
-      off: "bg-slate-50 text-slate-400 border-slate-100",
+      off: "bg-slate-50 text-slate-500 border-slate-100",
 
     };
 
@@ -217,7 +217,7 @@ export default function ReportsPage() {
 
     };
 
-    return <span className={cn("px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm", styles[status] || styles.off)}>{labels[status] || status}</span>;
+    return <span className={cn("px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm", styles[status] || styles.off)}>{labels[status] || status}</span>;
 
   };
 
@@ -231,13 +231,13 @@ export default function ReportsPage() {
 
         <div className="space-y-1">
 
-          <h1 className="text-4xl font-black tracking-tighter text-slate-900 uppercase leading-none">{t("reports.title")}</h1>
+          <h1 className="text-4xl font-bold tracking-tighter text-slate-700 uppercase leading-none">{t("reports.title")}</h1>
 
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("reports.subtitle")}</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] opacity-60">{t("reports.subtitle")}</p>
 
         </div>
 
-        <button className="flex items-center gap-3 bg-white border border-slate-200 text-slate-700 px-8 py-3 rounded-2xl hover:bg-slate-50 transition-all font-black text-xs uppercase tracking-widest shadow-xl active:scale-95"><Download size={18} /> {t("reports.export_excel").toUpperCase()}</button>
+        <button className="flex items-center gap-3 bg-white border border-slate-200 text-slate-700 px-8 py-3 rounded-2xl hover:bg-slate-50 transition-all font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95"><Download size={18} /> {t("reports.export_excel").toUpperCase()}</button>
 
       </div>
 
@@ -251,11 +251,11 @@ export default function ReportsPage() {
 
 
 
-                <button onClick={() => handleReportTypeChange("summary")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", reportType === 'summary' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><List size={14} /> {t("reports.tabs.summary")}</button>
+                <button onClick={() => handleReportTypeChange("summary")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", reportType === 'summary' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><List size={14} /> {t("reports.tabs.summary")}</button>
 
 
 
-                <button onClick={() => handleReportTypeChange("daily")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", reportType === 'daily' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><TableProperties size={14} /> {t("reports.tabs.daily")}</button>
+                <button onClick={() => handleReportTypeChange("daily")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", reportType === 'daily' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><TableProperties size={14} /> {t("reports.tabs.daily")}</button>
 
 
 
@@ -269,7 +269,7 @@ export default function ReportsPage() {
 
             {["this_month", "last_month"].map(mode => (
 
-              <button key={mode} onClick={() => handleFilterModeChange(mode as any)} className={cn("px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", filterMode === mode ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}>{t(`common.filters.${mode}`).toUpperCase()}</button>
+              <button key={mode} onClick={() => handleFilterModeChange(mode as any)} className={cn("px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === mode ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}>{t(`common.filters.${mode}`).toUpperCase()}</button>
 
             ))}
 
@@ -279,7 +279,7 @@ export default function ReportsPage() {
 
                           <DropdownMenuTrigger asChild>
 
-                            <button className={cn("flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", filterMode === "specific_month" ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}>
+                            <button className={cn("flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === "specific_month" ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}>
 
                               <CalendarRange size={14} /> {filterMode === "specific_month" ? `${specificMonth.month}/${specificMonth.year}` : t("common.filters.specific_month").toUpperCase()}
 
@@ -297,7 +297,7 @@ export default function ReportsPage() {
 
             </DropdownMenu>
 
-            <button onClick={() => handleFilterModeChange("custom")} className={cn("px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", filterMode === "custom" ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}>{t("common.filters.custom").toUpperCase()}</button>
+            <button onClick={() => handleFilterModeChange("custom")} className={cn("px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", filterMode === "custom" ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}>{t("common.filters.custom").toUpperCase()}</button>
 
           </div>
 
@@ -317,7 +317,7 @@ export default function ReportsPage() {
 
                     <div className="space-y-3 px-1">
 
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Calendar size={12} /> {t("common.from_date")}</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2"><Calendar size={12} /> {t("common.from_date")}</label>
 
                       <input 
 
@@ -335,7 +335,7 @@ export default function ReportsPage() {
 
                         }} 
 
-                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white transition-all font-black text-sm shadow-inner" 
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white transition-all font-bold text-sm shadow-inner" 
 
                       />
 
@@ -343,7 +343,7 @@ export default function ReportsPage() {
 
                     <div className="space-y-3 px-1">
 
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Calendar size={12} /> {t("common.to_date")}</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2"><Calendar size={12} /> {t("common.to_date")}</label>
 
                       <input 
 
@@ -361,7 +361,7 @@ export default function ReportsPage() {
 
                         }} 
 
-                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white transition-all font-black text-sm shadow-inner" 
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white transition-all font-bold text-sm shadow-inner" 
 
                       />
 
@@ -429,7 +429,7 @@ export default function ReportsPage() {
 
 
 
-                        className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] cursor-pointer hover:text-primary-600 transition-colors group"
+                        className="px-10 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] cursor-pointer hover:text-primary-600 transition-colors group"
 
 
 
@@ -465,7 +465,7 @@ export default function ReportsPage() {
 
 
 
-                        className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-right cursor-pointer hover:text-primary-600 transition-colors group"
+                        className="px-10 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] text-right cursor-pointer hover:text-primary-600 transition-colors group"
 
 
 
@@ -501,7 +501,7 @@ export default function ReportsPage() {
 
 
 
-                        className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-right cursor-pointer hover:text-primary-600 transition-colors group"
+                        className="px-10 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] text-right cursor-pointer hover:text-primary-600 transition-colors group"
 
 
 
@@ -533,7 +533,7 @@ export default function ReportsPage() {
 
 
 
-                      <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-right">{t("common.notes")}</th>
+                      <th className="px-10 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] text-right">{t("common.notes")}</th>
 
 
 
@@ -553,7 +553,7 @@ export default function ReportsPage() {
 
 
 
-                      <tr><td colSpan={4} className="px-10 py-20 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("reports.messages.generating")}</td></tr>
+                      <tr><td colSpan={4} className="px-10 py-20 text-center text-slate-500 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("reports.messages.generating")}</td></tr>
 
 
 
@@ -561,7 +561,7 @@ export default function ReportsPage() {
 
 
 
-                      <tr><td colSpan={4} className="px-10 py-32 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("reports.messages.no_data")}</td></tr>
+                      <tr><td colSpan={4} className="px-10 py-32 text-center text-slate-500 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("reports.messages.no_data")}</td></tr>
 
 
 
@@ -573,7 +573,7 @@ export default function ReportsPage() {
 
 
 
-                        <td className="px-10 py-6 font-black text-slate-900 text-sm tracking-tight uppercase leading-none">{row.employee_name}</td>
+                        <td className="px-10 py-6 font-bold text-slate-700 text-sm tracking-tight uppercase leading-none">{row.employee_name}</td>
 
 
 
@@ -581,11 +581,11 @@ export default function ReportsPage() {
 
 
 
-                          <div className="font-mono font-black text-primary-600 text-base tracking-tighter">{formatUnitsToHours(row.total_work_units, workUnitMinutes)}h</div>
+                          <div className="font-mono font-bold text-primary-600 text-base tracking-tighter">{formatUnitsToHours(row.total_work_units, workUnitMinutes)}h</div>
 
 
 
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-60">{row.total_work_units} UNITS</span>
+                          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest opacity-60">{row.total_work_units} UNITS</span>
 
 
 
@@ -593,7 +593,7 @@ export default function ReportsPage() {
 
 
 
-                        <td className="px-10 py-6 text-right font-mono font-black text-orange-600 text-base tracking-tighter">{row.total_leave_days} {t("common.days_short")}</td>
+                        <td className="px-10 py-6 text-right font-mono font-bold text-orange-600 text-base tracking-tighter">{row.total_leave_days} {t("common.days_short")}</td>
 
 
 
@@ -637,35 +637,35 @@ export default function ReportsPage() {
 
 
 
-                        <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{t("common.date")}</th>
+                        <th className="px-10 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">{t("common.date")}</th>
 
 
 
-                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{t("common.employee")}</th>
+                        <th className="px-8 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">{t("common.employee")}</th>
 
 
 
-                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{t("common.shift")}</th>
+                        <th className="px-8 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">{t("common.shift")}</th>
 
 
 
-                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-center">{t("common.in")}</th>
+                        <th className="px-8 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] text-center">{t("common.in")}</th>
 
 
 
-                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-center">{t("common.out")}</th>
+                        <th className="px-8 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] text-center">{t("common.out")}</th>
 
 
 
-                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-right">{t("reports.table.hours")}</th>
+                        <th className="px-8 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] text-right">{t("reports.table.hours")}</th>
 
 
 
-                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-center">{t("common.status")}</th>
+                        <th className="px-8 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] text-center">{t("common.status")}</th>
 
 
 
-                        {isDebugMode && <th className="px-8 py-6 text-[10px] font-black text-amber-600 uppercase tracking-[0.25em] text-center">DEBUG</th>}
+                        {isDebugMode && <th className="px-8 py-6 text-[10px] font-bold text-amber-600 uppercase tracking-[0.25em] text-center">DEBUG</th>}
 
 
 
@@ -689,7 +689,7 @@ export default function ReportsPage() {
 
 
 
-                        <tr><td colSpan={isDebugMode ? 9 : 8} className="px-10 py-20 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</td></tr>
+                        <tr><td colSpan={isDebugMode ? 9 : 8} className="px-10 py-20 text-center text-slate-500 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</td></tr>
 
 
 
@@ -697,7 +697,7 @@ export default function ReportsPage() {
 
 
 
-                        <tr><td colSpan={isDebugMode ? 9 : 8} className="px-10 py-32 text-center text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("reports.messages.no_data")}</td></tr>
+                        <tr><td colSpan={isDebugMode ? 9 : 8} className="px-10 py-32 text-center text-slate-500 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("reports.messages.no_data")}</td></tr>
 
 
 
@@ -729,11 +729,11 @@ export default function ReportsPage() {
 
 
 
-                            <td className="px-10 py-6 font-mono text-[11px] font-black text-slate-500 uppercase">{formatDate(row.date)}</td>
+                            <td className="px-10 py-6 font-mono text-[11px] font-bold text-slate-500 uppercase">{formatDate(row.date)}</td>
 
 
 
-                            <td className="px-8 py-6 font-black text-slate-900 text-sm tracking-tight uppercase leading-none">{row.employee_name}</td>
+                            <td className="px-8 py-6 font-bold text-slate-700 text-sm tracking-tight uppercase leading-none">{row.employee_name}</td>
 
 
 
@@ -749,11 +749,11 @@ export default function ReportsPage() {
 
 
 
-                                  <span className="font-black text-slate-700 text-xs uppercase tracking-tighter shadow-sm bg-white px-2 py-0.5 rounded-lg border border-slate-100 w-fit">{row.scheduled_start.substring(0, 5)} — {row.scheduled_end?.substring(0, 5)}</span>
+                                  <span className="font-bold text-slate-700 text-xs uppercase tracking-tighter shadow-sm bg-white px-2 py-0.5 rounded-lg border border-slate-100 w-fit">{row.scheduled_start.substring(0, 5)} — {row.scheduled_end?.substring(0, 5)}</span>
 
 
 
-                                  {row.break_duration_minutes !== null && <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1.5 opacity-70 italic">{row.break_start ? `${t("common.break")}: ${row.break_start.substring(0, 5)}-${row.break_end?.substring(0, 5)}` : `${t("common.break")}: ${row.break_duration_minutes}m`}</span>}
+                                  {row.break_duration_minutes !== null && <span className="text-[8px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-1.5 opacity-70 italic">{row.break_start ? `${t("common.break")}: ${row.break_start.substring(0, 5)}-${row.break_end?.substring(0, 5)}` : `${t("common.break")}: ${row.break_duration_minutes}m`}</span>}
 
 
 
@@ -761,7 +761,7 @@ export default function ReportsPage() {
 
 
 
-                              ) : <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic opacity-50">{t("reports.no_shift")}</span>}
+                              ) : <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest italic opacity-50">{t("reports.no_shift")}</span>}
 
 
 
@@ -769,11 +769,11 @@ export default function ReportsPage() {
 
 
 
-                            <td className="px-8 py-6 text-center font-mono font-black text-xs text-slate-900 tracking-tighter shadow-inner bg-slate-50/50 rounded-xl m-2">{formatTime(row.actual_punch_in)}</td>
+                            <td className="px-8 py-6 text-center font-mono font-bold text-xs text-slate-700 tracking-tighter shadow-inner bg-slate-50/50 rounded-xl m-2">{formatTime(row.actual_punch_in)}</td>
 
 
 
-                            <td className="px-8 py-6 text-center font-mono font-black text-xs text-slate-900 tracking-tighter shadow-inner bg-slate-50/50 rounded-xl m-2">{formatTime(row.actual_punch_out)}</td>
+                            <td className="px-8 py-6 text-center font-mono font-bold text-xs text-slate-700 tracking-tighter shadow-inner bg-slate-50/50 rounded-xl m-2">{formatTime(row.actual_punch_out)}</td>
 
 
 
@@ -781,11 +781,11 @@ export default function ReportsPage() {
 
 
 
-                              <div className="font-mono font-black text-primary-600 text-base tracking-tighter leading-none">{formatUnitsToHours(row.work_units, workUnitMinutes)}h</div>
+                              <div className="font-mono font-bold text-primary-600 text-base tracking-tighter leading-none">{formatUnitsToHours(row.work_units, workUnitMinutes)}h</div>
 
 
 
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-60">{row.work_units}U</span>
+                              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest opacity-60">{row.work_units}U</span>
 
 
 
@@ -861,7 +861,7 @@ export default function ReportsPage() {
 
 
 
-                                      <h4 className="text-[10px] font-black text-amber-400 uppercase tracking-[0.3em]">Audit Trail Analysis</h4>
+                                      <h4 className="text-[10px] font-bold text-amber-400 uppercase tracking-[0.3em]">Audit Trail Analysis</h4>
 
 
 
@@ -983,9 +983,9 @@ export default function ReportsPage() {
 
           </div>
 
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-2 opacity-70">{t("reports.quick_stats.total_hours")}</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] mb-2 opacity-70">{t("reports.quick_stats.total_hours")}</p>
 
-          <p className="text-5xl font-black text-white tracking-tighter">
+          <p className="text-5xl font-bold text-white tracking-tighter">
 
             {formatUnitsToHours(
 
@@ -997,7 +997,7 @@ export default function ReportsPage() {
 
               workUnitMinutes
 
-            )} <span className="text-xl opacity-30 font-black uppercase tracking-widest ml-1">HRS</span>
+            )} <span className="text-xl opacity-30 font-bold uppercase tracking-widest ml-1">HRS</span>
 
           </p>
 
@@ -1013,11 +1013,11 @@ export default function ReportsPage() {
 
           </div>
 
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-2 opacity-70">{t("common.employees")}</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] mb-2 opacity-70">{t("common.employees")}</p>
 
-          <p className="text-5xl font-black text-slate-900 tracking-tighter">
+          <p className="text-5xl font-bold text-slate-700 tracking-tighter">
 
-            {new Set(filteredData.map((r: any) => r.employee_id)).size} <span className="text-xl opacity-20 font-black uppercase tracking-widest ml-1">STAFF</span>
+            {new Set(filteredData.map((r: any) => r.employee_id)).size} <span className="text-xl opacity-20 font-bold uppercase tracking-widest ml-1">STAFF</span>
 
           </p>
 
@@ -1035,15 +1035,15 @@ export default function ReportsPage() {
 
           <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 shadow-inner">
 
-            <p className="text-base font-black text-slate-700 uppercase tracking-tight leading-relaxed text-center italic opacity-80">"{confirmDialog && t("reports.reprocess.confirm_message", { employee: confirmDialog.employeeName, date: formatDate(confirmDialog.date) })}"</p>
+            <p className="text-base font-bold text-slate-700 uppercase tracking-tight leading-relaxed text-center italic opacity-80">"{confirmDialog && t("reports.reprocess.confirm_message", { employee: confirmDialog.employeeName, date: formatDate(confirmDialog.date) })}"</p>
 
           </div>
 
           <div className="flex gap-6 border-t border-slate-50 pt-2">
 
-            <button onClick={() => setConfirmDialog(null)} className="flex-1 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all active:scale-95" disabled={reprocessMutation.isPending}>{t("common.cancel")}</button>
+            <button onClick={() => setConfirmDialog(null)} className="flex-1 px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all active:scale-95" disabled={reprocessMutation.isPending}>{t("common.cancel")}</button>
 
-            <button onClick={handleConfirmReprocess} disabled={reprocessMutation.isPending} className="flex-[1.5] bg-slate-900 hover:bg-black text-white font-black px-8 py-4 rounded-2xl flex items-center justify-center gap-4 transition-all active:scale-95 disabled:opacity-50 shadow-2xl shadow-slate-400 text-xs uppercase tracking-widest">
+            <button onClick={handleConfirmReprocess} disabled={reprocessMutation.isPending} className="flex-[1.5] bg-slate-900 hover:bg-primary-700 text-white font-bold px-8 py-4 rounded-2xl flex items-center justify-center gap-4 transition-all active:scale-95 disabled:opacity-50 shadow-2xl shadow-slate-400 text-xs uppercase tracking-widest">
 
               {reprocessMutation.isPending ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Check size={20} />} {t("reports.reprocess.confirm").toUpperCase()}
 

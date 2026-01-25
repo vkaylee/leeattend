@@ -6,12 +6,13 @@ import {
   fetchEmployees,
   fetchDepartments,
   fetchLeavePolicies,
+  fetchLeaveTypes,
   assignLeavePolicy,
   getCurrentWorkspaceId,
-} from "../../lib/api";
-import { Combobox } from "../ui/Combobox";
-import Modal from "../ui/Modal";
-import { useToast } from "../Toast";
+} from "@/lib/api";
+import { Combobox } from "@/components/ui/Combobox";
+import Modal from "@/components/ui/Modal";
+import { useToast } from "@/components/Toast";
 import { format } from "date-fns";
 
 interface AssignPolicyModalProps {
@@ -33,7 +34,9 @@ export function AssignPolicyModal({ isOpen, onClose, wsId }: AssignPolicyModalPr
   const { data: employeesData, isLoading: employeesLoading } = useQuery({ queryKey: ["employees", wsId], queryFn: () => fetchEmployees(wsId!, 1, 3000), enabled: isOpen && !!wsId });
   const employees = employeesData?.data || [];
   const { data: departments = [], isLoading: departmentsLoading } = useQuery({ queryKey: ["departments", wsId], queryFn: () => fetchDepartments(wsId!), enabled: isOpen && !!wsId });
-  const { data: policies = [], isLoading: policiesLoading } = useQuery({ queryKey: ["leave-policies", wsId], queryFn: () => fetchLeavePolicies(wsId!), enabled: isOpen && !!wsId });
+    const { data: policies = [], isLoading: policiesLoading } = useQuery({ queryKey: ["leave-policies", wsId], queryFn: () => fetchLeavePolicies(wsId!), enabled: isOpen && !!wsId });
+  const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types", wsId], queryFn: () => fetchLeaveTypes(wsId!), enabled: isOpen && !!wsId });
+
 
   const assignMutation = useMutation({
     mutationFn: (data: { assignee_type: string; assignee_id: string | null; policy_id: string; effective_from: string }) => assignLeavePolicy(wsId!, data),
@@ -62,37 +65,37 @@ export function AssignPolicyModal({ isOpen, onClose, wsId }: AssignPolicyModalPr
     <Modal isOpen={isOpen} onClose={onClose} title={t("leave_requests.policy.assign_title")} subtitle={t("leave_requests.policy.assign_subtitle")} icon={<ShieldCheck size={24} />} maxWidth="md">
       <form onSubmit={handleAssignPolicy} className="space-y-8 pt-4 animate-in fade-in duration-500">
         <div className="space-y-2">
-          <label htmlFor="assignee-type" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.table.type")}</label>
-          <Combobox id="assignee-type" options={[{ value: "workspace", label: t("leave_requests.policy.assignee_types.workspace"), description: t("leave_requests.policy.assignee_types.workspace_desc") }, { value: "department", label: t("leave_requests.policy.assignee_types.department"), description: t("leave_requests.policy.assignee_types.department_desc") }, { value: "employee", label: t("leave_requests.policy.assignee_types.employee"), description: t("leave_requests.policy.assignee_types.employee_desc") }]} value={assigneeType} onChange={setAssigneeType} className="bg-slate-50 border-slate-100 h-14" />
+          <label htmlFor="assignee-type" className="text-[10px] font-bold text-primary-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.table.type")}</label>
+          <Combobox id="assignee-type" options={[{ value: "workspace", label: t("leave_requests.policy.assignee_types.workspace"), description: t("leave_requests.policy.assignee_types.workspace_desc") }, { value: "department", label: t("leave_requests.policy.assignee_types.department"), description: t("leave_requests.policy.assignee_types.department_desc") }, { value: "employee", label: t("leave_requests.policy.assignee_types.employee"), description: t("leave_requests.policy.assignee_types.employee_desc") }]} value={assigneeType} onChange={setAssigneeType} className="bg-slate-50 border-primary-100/50 h-14" />
         </div>
 
         {assigneeType === 'employee' && (
           <div className="space-y-2 animate-in slide-in-from-top-2">
-            <label htmlFor="assign-emp" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.employee")}</label>
-            <Combobox id="assign-emp" options={employees.map(e => ({ value: e.id, label: e.full_name, description: e.employee_id_number, icon: <UserCircle size={14} /> }))} value={assignEmpId} onChange={setAssignEmpId} placeholder={employeesLoading ? t("common.loading") : t("common.select_employee")} className="bg-slate-50 border-slate-100 h-14" />
+            <label htmlFor="assign-emp" className="text-[10px] font-bold text-primary-400 uppercase tracking-widest ml-1">{t("common.employee")}</label>
+            <Combobox id="assign-emp" options={employees.map(e => ({ value: e.id, label: e.full_name, description: e.employee_id_number, icon: <UserCircle size={14} /> }))} value={assignEmpId} onChange={setAssignEmpId} placeholder={employeesLoading ? t("common.loading") : t("common.select_employee")} className="bg-slate-50 border-primary-100/50 h-14" />
           </div>
         )}
 
         {assigneeType === 'department' && (
           <div className="space-y-2 animate-in slide-in-from-top-2">
-            <label htmlFor="assign-dept" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.department")}</label>
-            <Combobox id="assign-dept" options={departments.map(d => ({ value: d.id, label: d.name, icon: <Building2 size={14} /> }))} value={assignDeptId} onChange={setAssignDeptId} placeholder={departmentsLoading ? t("common.loading") : t("common.select_department")} className="bg-slate-50 border-slate-100 h-14" />
+            <label htmlFor="assign-dept" className="text-[10px] font-bold text-primary-400 uppercase tracking-widest ml-1">{t("common.department")}</label>
+            <Combobox id="assign-dept" options={departments.map(d => ({ value: d.id, label: d.name, icon: <Building2 size={14} /> }))} value={assignDeptId} onChange={setAssignDeptId} placeholder={departmentsLoading ? t("common.loading") : t("common.select_department")} className="bg-slate-50 border-primary-100/50 h-14" />
           </div>
         )}
 
         <div className="space-y-2">
-          <label htmlFor="assign-policy" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.title_single")}</label>
-          <Combobox id="assign-policy" options={policies.map(p => ({ value: p.id, label: p.name, description: p.leave_type === 'vacation' ? t("leave_requests.types.vacation") : t("leave_requests.types.sick"), icon: <ShieldCheck size={14} /> }))} value={assignPolicyId} onChange={setAssignPolicyId} placeholder={policiesLoading ? t("common.loading") : t("leave_requests.policy.select_placeholder")} className="bg-slate-50 border-slate-100 h-14" />
+          <label htmlFor="assign-policy" className="text-[10px] font-bold text-primary-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.title_single")}</label>
+          <Combobox id="assign-policy" options={policies.map(p => ({ value: p.id, label: p.name, description: leaveTypes.find(t => t.id === p.leave_type_id)?.name || p.leave_type_id, icon: <ShieldCheck size={14} /> }))} value={assignPolicyId} onChange={setAssignPolicyId} placeholder={policiesLoading ? t("common.loading") : t("leave_requests.policy.select_placeholder")} className="bg-slate-50 border-primary-100/50 h-14" />
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="assign-date" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.effective_from")}</label>
-          <input id="assign-date" type="date" name="effective_from" required defaultValue={format(new Date(), 'yyyy-MM-dd')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-black text-sm uppercase tracking-tight" />
+          <label htmlFor="assign-date" className="text-[10px] font-bold text-primary-400 uppercase tracking-widest ml-1">{t("common.effective_from")}</label>
+          <input id="assign-date" type="date" name="effective_from" required defaultValue={format(new Date(), 'yyyy-MM-dd')} className="w-full px-5 py-4 text-primary-600 bg-slate-50 border border-primary-100/50 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-bold text-sm uppercase tracking-tight" />
         </div>
 
         <div className="pt-4 flex gap-4">
-          <button type="button" onClick={onClose} className="flex-1 px-8 py-4 bg-white border border-slate-200 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">{t("common.cancel")}</button>
-          <button type="submit" disabled={assignMutation.isPending} className="flex-1 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-200 active:scale-95 disabled:opacity-50">{assignMutation.isPending ? t("common.processing").toUpperCase() : t("leave_requests.policy.assign_now_btn").toUpperCase()}</button>
+          <button type="button" onClick={onClose} className="flex-1 px-8 py-4 bg-white border border-primary-200/50 rounded-2xl font-bold text-xs uppercase tracking-widest text-primary-400 hover:bg-slate-50 transition-all">{t("common.cancel")}</button>
+          <button type="submit" disabled={assignMutation.isPending} className="flex-1 bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-indigo-200 active:scale-95 disabled:opacity-50">{assignMutation.isPending ? t("common.processing").toUpperCase() : t("leave_requests.policy.assign_now_btn").toUpperCase()}</button>
         </div>
       </form>
     </Modal>

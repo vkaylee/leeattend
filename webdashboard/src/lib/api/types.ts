@@ -137,7 +137,7 @@ export interface RawAttendanceLog {
 export interface LeaveRequest {
   id: string;
   employee_id: string;
-  leave_type: string;
+  leave_type_id: string;
   start_date: string;
   end_date: string;
   reason?: string;
@@ -149,7 +149,10 @@ export interface LeaveRequest {
 }
 
 export interface EmployeeLeaveBalance {
-  leave_type: string;
+  leave_type_id: string;
+  leave_type_code: string;
+  leave_type_name: string;
+  is_paid: boolean;
   entitlement: number;
   accrued_amount: number;
   carried_over: number;
@@ -160,7 +163,10 @@ export interface EmployeeLeaveBalance {
 export interface WorkspaceLeaveBalance {
   employee_id: string;
   employee_name: string;
-  leave_type: string;
+  leave_type_id: string;
+  leave_type_code: string;
+  leave_type_name: string;
+  is_paid: boolean;
   entitlement: number;
   accrued_amount: number;
   carried_over: number;
@@ -447,12 +453,29 @@ export interface EmploymentPeriod {
   updated_at: string;
 }
 
+export interface LeaveTypeConfig {
+  requires_document?: boolean;
+  allow_negative_balance?: boolean;
+  negative_balance_limit?: number;
+  approval_required?: boolean;
+}
+
+export interface LeaveType {
+  id: string;
+  workspace_id: string;
+  code: string;
+  name: string;
+  is_paid: boolean;
+  policy_config: LeaveTypeConfig;
+  created_at: string;
+}
+
 export interface LeavePolicy {
   id: string;
   workspace_id: string;
   name: string;
   description?: string;
-  leave_type?: string;
+  leave_type_id: string;
   rule_config: LeavePolicyConfig;
   created_at: string;
   updated_at: string;
@@ -463,6 +486,23 @@ export type AccrualFrequency = "monthly" | "quarterly" | "yearly";
 export interface SeniorityBonus {
   min_years: number;
   extra_days: number;
+}
+
+export interface LeaveTypeConfig {
+  requires_document?: boolean;
+  allow_negative_balance?: boolean;
+  negative_balance_limit?: number;
+  approval_required?: boolean;
+}
+
+export interface LeaveType {
+  id: string;
+  workspace_id: string;
+  code: string;
+  name: string;
+  is_paid: boolean;
+  policy_config: LeaveTypeConfig;
+  created_at: string;
 }
 
 export interface LeavePolicyConfig {

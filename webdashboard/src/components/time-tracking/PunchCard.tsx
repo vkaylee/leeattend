@@ -40,14 +40,14 @@ export function PunchCard({
       </div>
 
       <div className="mb-10 relative z-10">
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase leading-tight">
+        <h2 className="text-2xl font-bold text-slate-700 tracking-tight uppercase leading-tight">
           {userName}
         </h2>
         <div className="mt-3 flex items-center justify-center gap-2">
           <span className={`w-2 h-2 rounded-full ${
             activeEntry ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'
           }`} />
-          <p className="text-slate-400 text-xs font-black uppercase tracking-widest">
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
             {activeEntry
               ? (isOnBreak ? t("time_tracking.status.on_break") : t("time_tracking.status.working"))
               : t("time_tracking.status.off_duty")
@@ -59,10 +59,10 @@ export function PunchCard({
       {activeEntry ? (
         <div className="w-full space-y-6 relative z-10">
           <div className="bg-slate-50 border border-slate-100 p-6 rounded-3xl shadow-inner">
-            <div className="text-slate-400 font-black uppercase text-[9px] tracking-[0.2em] mb-2">
+            <div className="text-slate-500 font-bold uppercase text-[9px] tracking-[0.2em] mb-2">
               {isOnBreak ? t("time_tracking.status.break_start_at") : t("time_tracking.status.shift_start_at")}
             </div>
-            <div className="font-black text-4xl text-slate-800 tracking-tighter font-mono">
+            <div className="font-bold text-4xl text-slate-800 tracking-tighter font-mono">
               {formatTime(activeEntry.punch_in_time)}
             </div>
           </div>
@@ -72,7 +72,7 @@ export function PunchCard({
               <button
                 onClick={() => onPunchOut()}
                 disabled={isPunching}
-                className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-700 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50"
+                className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-emerald-700 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50"
               >
                 {t("time_tracking.actions.return_to_work")}
               </button>
@@ -81,14 +81,14 @@ export function PunchCard({
                 <button
                   onClick={() => onPunchIn("break")}
                   disabled={isPunching}
-                  className="w-full bg-amber-500 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-amber-600 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-amber-100 disabled:opacity-50"
+                  className="w-full bg-amber-500 text-white py-5 rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-amber-600 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-amber-100 disabled:opacity-50"
                 >
                   {t("time_tracking.actions.start_break")}
                 </button>
                 <button
                   onClick={() => onPunchOut()}
                   disabled={isPunching}
-                  className="w-full bg-rose-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-rose-700 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-rose-100 disabled:opacity-50"
+                  className="w-full bg-rose-600 text-white py-5 rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-rose-700 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-rose-100 disabled:opacity-50"
                 >
                   {t("time_tracking.actions.punch_out")}
                 </button>
@@ -100,7 +100,7 @@ export function PunchCard({
         <button
           onClick={() => onPunchIn("work")}
           disabled={isPunching}
-          className="w-full bg-primary-600 text-white py-6 rounded-[1.5rem] font-black uppercase tracking-widest text-xs hover:bg-primary-700 hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-primary-100 relative z-10 disabled:opacity-50"
+          className="w-full bg-primary-600 text-white py-6 rounded-[1.5rem] font-bold uppercase tracking-widest text-xs hover:bg-primary-700 hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-primary-100 relative z-10 disabled:opacity-50"
         >
           {t("time_tracking.actions.start_work")}
         </button>
@@ -108,7 +108,7 @@ export function PunchCard({
 
       <button
         onClick={onRequestAdjustment}
-        className="mt-8 text-primary-600 text-[10px] font-black uppercase tracking-widest hover:text-primary-800 transition-colors py-2"
+        className="mt-8 text-primary-600 text-[10px] font-bold uppercase tracking-widest hover:text-primary-800 transition-colors py-2"
       >
         {t("time_tracking.forgot_punch")}
       </button>

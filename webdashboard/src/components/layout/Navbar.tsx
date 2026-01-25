@@ -47,16 +47,16 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
 
         {/* Premium Breadcrumbs */}
         <nav className="flex items-center gap-3">
-          <span className="hidden sm:inline text-slate-400 font-black uppercase text-[10px] tracking-[0.25em] opacity-60">{currentWorkspaceName || "Workspace"}</span>
+          <span className="hidden sm:inline text-slate-500 font-bold uppercase text-[10px] tracking-[0.25em] opacity-60">{currentWorkspaceName || "Workspace"}</span>
           <BreadcrumbSeparator className="w-3 h-3 text-slate-300" />
-          <span className="text-slate-900 font-black uppercase text-[10px] tracking-[0.25em] bg-slate-100 px-3 py-1 rounded-lg shadow-inner">
+          <span className="text-slate-700 font-bold uppercase text-[10px] tracking-[0.25em] bg-slate-100 px-3 py-1 rounded-lg shadow-inner">
             {getPageName(location.pathname).toUpperCase()}
           </span>
         </nav>
       </div>
       
       <div className="flex items-center gap-6 ml-auto">
-        <button className="p-3 text-slate-400 hover:text-primary-600 hover:bg-white rounded-[1.25rem] transition-all relative group border border-transparent hover:border-slate-100 hover:shadow-xl hover:shadow-primary-900/5">
+        <button className="p-3 text-slate-500 hover:text-primary-600 hover:bg-white rounded-[1.25rem] transition-all relative group border border-transparent hover:border-slate-100 hover:shadow-xl hover:shadow-primary-900/5">
           <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white shadow-sm group-hover:scale-125 transition-transform animate-pulse"></div>
           <Bell size={20} strokeWidth={2.5} />
         </button>
@@ -65,10 +65,10 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
 
         <div className="flex items-center gap-4 pl-2 group cursor-pointer active:scale-95 transition-all">
           <div className="hidden sm:block text-right">
-            <p className="text-xs font-black text-slate-900 leading-none group-hover:text-primary-600 transition-colors uppercase tracking-tight">{t("common.admin")}</p>
-            <p className="text-[9px] font-black text-slate-400 mt-1.5 uppercase tracking-[0.2em] opacity-60 leading-none">{t("common.workspace_owner")}</p>
+            <p className="text-xs font-bold text-slate-700 leading-none group-hover:text-primary-600 transition-colors uppercase tracking-tight">{t("common.admin")}</p>
+            <p className="text-[9px] font-bold text-slate-500 mt-1.5 uppercase tracking-[0.2em] opacity-60 leading-none">{t("common.workspace_owner")}</p>
           </div>
-          <div className="w-12 h-12 rounded-[1.25rem] bg-slate-900 text-white flex items-center justify-center font-black text-sm shadow-2xl shadow-slate-400 border border-slate-800 group-hover:bg-primary-600 group-hover:border-primary-500 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3">
+          <div className="w-12 h-12 rounded-[1.25rem] bg-slate-900 text-white flex items-center justify-center font-bold text-sm shadow-2xl shadow-slate-400 border border-slate-800 group-hover:bg-primary-600 group-hover:border-primary-500 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3">
             AD
           </div>
         </div>

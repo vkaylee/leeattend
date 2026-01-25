@@ -24,3 +24,4 @@ pub use shifts::*;
 pub use workspaces::*;
 pub mod overtime;
 pub use overtime::*;
+pub mod leave_types;

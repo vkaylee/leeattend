@@ -404,7 +404,10 @@
     "import": "Nhập dữ liệu",
     "search_employee": "Tìm kiếm nhân viên...",
     "no_notes": "Không có ghi chú.",
-    "global": "Toàn hệ thống"
+    "global": "Toàn hệ thống",
+    "unknown": "Không xác định",
+    "auto": "Tự động",
+    "required": "Bắt buộc"
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -1079,6 +1082,7 @@
   "leave_requests": {
     "title": "Yêu cầu nghỉ phép",
     "subtitle": "Duyệt và quản lý thời gian nghỉ của nhân sự",
+    "invalid_leave_type": "Loại phép không hợp lệ",
     "create_btn": "Tạo yêu cầu",
     "remaining": "Còn",
     "tabs": {
@@ -1615,6 +1619,31 @@
       "connectivity_desc": "Quản lý kết nối thiết bị và cài đặt mạng."
     },
     "navigation": "Điều hướng",
-    "admin_only": "Chỉ dành cho quản trị viên"
+    "admin_only": "Chỉ dành cho quản trị viên",
+    "leave": {
+      "title": "Cài đặt Nghỉ phép",
+      "desc": "Cấu hình các loại nghỉ và chính sách tích lũy cho không gian làm việc.",
+      "tabs": {
+        "types": "Loại nghỉ",
+        "policies": "Chính sách tích lũy",
+        "types_desc": "Định nghĩa các loại nghỉ và quy tắc",
+        "policies_desc": "Thiết lập cách tích lũy ngày nghỉ theo thời gian"
+      },
+      "messages": {
+        "update_success": "Cập nhật loại nghỉ thành công",
+        "update_error": "Cập nhật loại nghỉ thất bại",
+        "create_success": "Tạo chính sách thành công",
+        "delete_success": "Xóa chính sách thành công"
+      },
+      "fields": {
+        "approval": "Phê duyệt",
+        "document": "Tài liệu",
+        "days_per_period": "ngày / chu kỳ"
+      },
+      "types": {
+        "paid": "Nghỉ có lương",
+        "unpaid": "Nghỉ không lương"
+      }
+    }
   }
 }

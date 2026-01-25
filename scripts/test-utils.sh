@@ -97,7 +97,7 @@ run_parallel_ordered() {
              cat "$log"
         fi
         
-        wait "$pid" || true
+        wait "$pid"
         local status=$?
         
         # Special case for pytest: exit code 5 means "no tests collected", 

@@ -404,7 +404,10 @@
     "import": "导入数据",
     "search_employee": "搜索员工...",
     "no_notes": "无备注。",
-    "global": "全局"
+    "global": "全局",
+    "unknown": "未知",
+    "auto": "自动",
+    "required": "必填"
   },
   "dashboard": {
     "title": "仪表板",
@@ -1079,6 +1082,7 @@
   "leave_requests": {
     "title": "请假申请",
     "subtitle": "审批和管理人员缺勤",
+    "invalid_leave_type": "选择的假期类型无效",
     "create_btn": "创建申请",
     "remaining": "剩余",
     "tabs": {
@@ -1615,6 +1619,31 @@
       "connectivity_desc": "管理设备连接和网络。"
     },
     "navigation": "导航",
-    "admin_only": "仅限管理员"
+    "admin_only": "仅限管理员",
+    "leave": {
+      "title": "请假设置",
+      "desc": "为您的工作区配置请假类型和累积策略。",
+      "tabs": {
+        "types": "请假类型",
+        "policies": "累积策略",
+        "types_desc": "定义可用的请假类型及其规则",
+        "policies_desc": "设置请假如何随时间累积"
+      },
+      "messages": {
+        "update_success": "请假类型更新成功",
+        "update_error": "更新请假类型失败",
+        "create_success": "策略创建成功",
+        "delete_success": "策略删除成功"
+      },
+      "fields": {
+        "approval": "审批",
+        "document": "文档",
+        "days_per_period": "天 / 周期"
+      },
+      "types": {
+        "paid": "带薪假",
+        "unpaid": "无薪假"
+      }
+    }
   }
 }

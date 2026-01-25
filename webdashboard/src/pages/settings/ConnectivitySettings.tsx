@@ -27,7 +27,7 @@ export default function ConnectivitySettings() {
 
           <div>
 
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 leading-tight">{t("common.settings.categories.connectivity")}</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-700 leading-tight">{t("common.settings.categories.connectivity")}</h1>
 
             <p className="text-slate-500 mt-1 font-medium">{t("common.settings.categories.connectivity_desc")}</p>
 
@@ -41,9 +41,9 @@ export default function ConnectivitySettings() {
 
       <div className="flex bg-slate-100/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50 shadow-inner">
 
-        <button onClick={() => setActiveTab("agents")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'agents' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Share2 size={14} /> {t("common.settings.tabs.agents")}</button>
+        <button onClick={() => setActiveTab("agents")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'agents' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Share2 size={14} /> {t("common.settings.tabs.agents")}</button>
 
-        <button onClick={() => setActiveTab("devices")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'devices' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><HardDrive size={14} /> {t("common.settings.tabs.devices")}</button>
+        <button onClick={() => setActiveTab("devices")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'devices' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><HardDrive size={14} /> {t("common.settings.tabs.devices")}</button>
 
       </div>
 

@@ -179,14 +179,29 @@ impl WorkspaceBuilder {
     #[allow(dead_code)]
     pub async fn create(self) -> Uuid {
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
-            sqlx::query_scalar(
+            let ws_id: Uuid = sqlx::query_scalar(
                 "INSERT INTO workspaces (name, timezone) VALUES ($1, $2) RETURNING id",
             )
             .bind(self.name)
             .bind(self.timezone)
             .fetch_one(&self.pool)
             .await
-            .unwrap()
+            .unwrap();
+
+            // Seed default leave types for tests
+            sqlx::query(
+                "INSERT INTO leave_types (workspace_id, code, name, is_paid) VALUES 
+                ($1, 'vacation', 'Vacation', true),
+                ($1, 'sick', 'Sick Leave', true),
+                ($1, 'personal', 'Personal Leave', true),
+                ($1, 'unpaid', 'Unpaid Leave', false)"
+            )
+            .bind(ws_id)
+            .execute(&self.pool)
+            .await
+            .unwrap();
+
+            ws_id
         })
         .await
         .expect("Workspace creation timed out")
@@ -813,13 +828,26 @@ impl LeavePolicyBuilder {
     }
 
     pub async fn create(self) -> Uuid {
+        let ws_id = self.workspace_id.expect("Workspace ID required");
+        let pool = self.pool.clone();
+        
+        // Fetch vacation ID as default
+        let leave_type_id = sqlx::query_scalar!(
+            "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
+            ws_id
+        )
+        .fetch_one(&pool)
+        .await
+        .expect("Default leave type 'vacation' not found - check WorkspaceBuilder seeding");
+
         tokio::time::timeout(std::time::Duration::from_secs(5), async {
             sqlx::query_scalar(
-                "INSERT INTO leave_policy_definitions (workspace_id, name, rule_config) VALUES ($1, $2, $3) RETURNING id",
+                "INSERT INTO leave_policy_definitions (workspace_id, name, rule_config, leave_type_id) VALUES ($1, $2, $3, $4) RETURNING id",
             )
-            .bind(self.workspace_id.expect("Workspace ID required"))
+            .bind(ws_id)
             .bind(self.name)
             .bind(self.rule_config)
+            .bind(leave_type_id)
             .fetch_one(&self.pool)
             .await
             .unwrap()

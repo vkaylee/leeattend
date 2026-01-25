@@ -53,9 +53,9 @@ export default function MyAttendancePage() {
 
         <div className="space-y-1">
 
-          <h1 className="text-4xl font-black tracking-tighter text-slate-900 uppercase leading-none">{t("ess.attendance.title")}</h1>
+          <h1 className="text-4xl font-bold tracking-tighter text-slate-700 uppercase leading-none">{t("ess.attendance.title")}</h1>
 
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("ess.attendance.subtitle")}</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] opacity-60">{t("ess.attendance.subtitle")}</p>
 
         </div>
 
@@ -65,7 +65,7 @@ export default function MyAttendancePage() {
 
           <div className="flex items-center bg-slate-100/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200/50">
 
-            <button onClick={handlePrevMonth} className="w-12 h-12 flex items-center justify-center text-slate-400 hover:text-primary-600 hover:bg-white hover:shadow-md rounded-xl transition-all active:scale-90"><ChevronLeft size={24} /></button>
+            <button onClick={handlePrevMonth} className="w-12 h-12 flex items-center justify-center text-slate-500 hover:text-primary-600 hover:bg-white hover:shadow-md rounded-xl transition-all active:scale-90"><ChevronLeft size={24} /></button>
 
             
 
@@ -75,9 +75,9 @@ export default function MyAttendancePage() {
 
                 <button className="px-10 flex flex-col items-center min-w-[200px] cursor-pointer hover:bg-white hover:shadow-md rounded-xl transition-all py-2 group outline-none border border-transparent hover:border-slate-100">
 
-                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] leading-none mb-1.5 group-hover:text-primary-500 transition-colors">{t("payroll.table.period").toUpperCase()}</span>
+                  <span className="text-[8px] font-bold text-slate-500 uppercase tracking-[0.3em] leading-none mb-1.5 group-hover:text-primary-500 transition-colors">{t("payroll.table.period").toUpperCase()}</span>
 
-                  <span className="text-sm font-black text-slate-900 group-hover:text-primary-600 transition-colors uppercase tracking-tight">
+                  <span className="text-sm font-bold text-slate-700 group-hover:text-primary-600 transition-colors uppercase tracking-tight">
 
                     {format(currentMonth, "MMMM yyyy")}
 
@@ -101,7 +101,7 @@ export default function MyAttendancePage() {
 
 
 
-            <button onClick={handleNextMonth} className="w-12 h-12 flex items-center justify-center text-slate-400 hover:text-primary-600 hover:bg-white hover:shadow-md rounded-xl transition-all active:scale-90"><ChevronRight size={24} /></button>
+            <button onClick={handleNextMonth} className="w-12 h-12 flex items-center justify-center text-slate-500 hover:text-primary-600 hover:bg-white hover:shadow-md rounded-xl transition-all active:scale-90"><ChevronRight size={24} /></button>
 
           </div>
 
@@ -119,7 +119,7 @@ export default function MyAttendancePage() {
 
             <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
 
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{t("common.loading")}</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">{t("common.loading")}</span>
 
           </div>
 
@@ -129,9 +129,9 @@ export default function MyAttendancePage() {
 
             <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-xl border border-slate-100 mb-8"><Calendar size={40} className="text-slate-200" /></div>
 
-            <h3 className="text-xl font-bold text-slate-900 uppercase tracking-tight">{t("ess.attendance.no_data")}</h3>
+            <h3 className="text-xl font-bold text-slate-700 uppercase tracking-tight">{t("ess.attendance.no_data")}</h3>
 
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-2 opacity-50 italic">{t("common.no_records_found")}</p>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-2 opacity-50 italic">{t("common.no_records_found")}</p>
 
           </div>
 
@@ -145,15 +145,15 @@ export default function MyAttendancePage() {
 
                 <tr className="bg-slate-50/50 border-b border-slate-100">
 
-                  <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{t("ess.attendance.date")}</th>
+                  <th className="px-10 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">{t("ess.attendance.date")}</th>
 
-                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-center">{t("common.in")}</th>
+                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] text-center">{t("common.in")}</th>
 
-                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-center">{t("common.out")}</th>
+                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] text-center">{t("common.out")}</th>
 
-                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-center">{t("ess.attendance.duration")}</th>
+                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] text-center">{t("ess.attendance.duration")}</th>
 
-                  <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-right">{t("common.status")}</th>
+                  <th className="px-10 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] text-right">{t("common.status")}</th>
 
                 </tr>
 
@@ -169,13 +169,13 @@ export default function MyAttendancePage() {
 
                       <div className="flex items-center gap-6">
 
-                        <div className="w-14 h-14 rounded-2xl bg-primary-50 text-primary-600 flex items-center justify-center font-black text-2xl shadow-inner border border-primary-100/50 group-hover:scale-110 transition-transform">{format(new Date(entry.punch_in_time), "dd")}</div>
+                        <div className="w-14 h-14 rounded-2xl bg-primary-50 text-primary-600 flex items-center justify-center font-bold text-2xl shadow-inner border border-primary-100/50 group-hover:scale-110 transition-transform">{format(new Date(entry.punch_in_time), "dd")}</div>
 
                         <div>
 
-                          <div className="font-black text-slate-900 text-sm tracking-tight uppercase leading-none mb-1.5">{format(new Date(entry.punch_in_time), "EEEE")}</div>
+                          <div className="font-bold text-slate-700 text-sm tracking-tight uppercase leading-none mb-1.5">{format(new Date(entry.punch_in_time), "EEEE")}</div>
 
-                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] opacity-70 leading-none">{formatDate(entry.punch_in_time)}</div>
+                          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] opacity-70 leading-none">{formatDate(entry.punch_in_time)}</div>
 
                         </div>
 
@@ -187,7 +187,7 @@ export default function MyAttendancePage() {
 
                       <div className="flex flex-col items-center gap-2">
 
-                        <span className="text-sm font-black font-mono text-slate-700 tracking-tighter">{formatTime(entry.punch_in_time)}</span>
+                        <span className="text-sm font-bold font-mono text-slate-700 tracking-tighter">{formatTime(entry.punch_in_time)}</span>
 
                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-sm shadow-emerald-500/50 animate-pulse"></div>
 
@@ -201,13 +201,13 @@ export default function MyAttendancePage() {
 
                         <div className="flex flex-col items-center gap-2">
 
-                          <span className="text-sm font-black font-mono text-slate-700 tracking-tighter">{formatTime(entry.punch_out_time)}</span>
+                          <span className="text-sm font-bold font-mono text-slate-700 tracking-tighter">{formatTime(entry.punch_out_time)}</span>
 
                           <div className="w-1.5 h-1.5 bg-rose-500 rounded-full shadow-sm shadow-rose-500/50"></div>
 
                         </div>
 
-                      ) : <span className="text-slate-300 font-black tracking-widest italic text-[10px] uppercase opacity-50">Active...</span>}
+                      ) : <span className="text-slate-300 font-bold tracking-widest italic text-[10px] uppercase opacity-50">Active...</span>}
 
                     </td>
 
@@ -215,9 +215,9 @@ export default function MyAttendancePage() {
 
                       {entry.duration_minutes ? (
 
-                        <span className="inline-flex items-center px-3 py-1 rounded-xl bg-slate-100/50 text-slate-600 text-[10px] font-black uppercase tracking-widest border border-slate-200/50 shadow-inner">{Math.floor(entry.duration_minutes / 60)}h {entry.duration_minutes % 60}m</span>
+                        <span className="inline-flex items-center px-3 py-1 rounded-xl bg-slate-100/50 text-slate-600 text-[10px] font-bold uppercase tracking-widest border border-slate-200/50 shadow-inner">{Math.floor(entry.duration_minutes / 60)}h {entry.duration_minutes % 60}m</span>
 
-                      ) : <span className="text-slate-300 font-black">-</span>}
+                      ) : <span className="text-slate-300 font-bold">-</span>}
 
                     </td>
 
@@ -225,7 +225,7 @@ export default function MyAttendancePage() {
 
                       <div className="flex items-center justify-end gap-4">
 
-                        <span className={cn("px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm", entry.punch_out_time ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-amber-50 text-amber-600 border-amber-100 animate-pulse")}>{entry.punch_out_time ? t("common.completed").toUpperCase() : t("common.pending").toUpperCase()}</span>
+                        <span className={cn("px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm", entry.punch_out_time ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-amber-50 text-amber-600 border-amber-100 animate-pulse")}>{entry.punch_out_time ? t("common.completed").toUpperCase() : t("common.pending").toUpperCase()}</span>
 
                         {entry.generation_metadata && (
 
@@ -247,7 +247,7 @@ export default function MyAttendancePage() {
 
                                     <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-400 shadow-inner border border-primary-500/20"><Activity size={20} /></div>
 
-                                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white opacity-80">{t("ess.attendance.generation_info").toUpperCase()}</span>
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white opacity-80">{t("ess.attendance.generation_info").toUpperCase()}</span>
 
                                   </div>
 

@@ -70,37 +70,37 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-[1.25rem] bg-primary-50 flex items-center justify-center text-primary-600 shadow-sm border border-primary-100/50"><Settings2 size={24} /></div>
           <div>
-            <h1 data-testid="general-settings-title" className="text-3xl font-bold tracking-tight text-slate-900 leading-tight">{t("common.settings.categories.general")}</h1>
+            <h1 data-testid="general-settings-title" className="text-3xl font-bold tracking-tight text-slate-700 leading-tight">{t("common.settings.categories.general")}</h1>
             <p className="text-slate-500 mt-1 font-medium">{t("common.workspace_settings.description")}</p>
           </div>
         </div>
-        <button onClick={handleSaveConfig} disabled={updateWsMutation.isPending} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95 disabled:opacity-50"><Save size={18} /> {t("common.workspace_settings.save_config").toUpperCase()}</button>
+        <button onClick={handleSaveConfig} disabled={updateWsMutation.isPending} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95 disabled:opacity-50"><Save size={18} /> {t("common.workspace_settings.save_config").toUpperCase()}</button>
       </div>
 
       <div className="flex bg-slate-100/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50 shadow-inner">
-        <button onClick={() => setActiveTab("localization")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'localization' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Globe size={14} /> {t("common.settings.tabs.localization")}</button>
-        <button onClick={() => setActiveTab("appearance")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-black uppercase tracking-widest transition-all", activeTab === 'appearance' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Palette size={14} /> {t("common.settings.tabs.appearance")}</button>
+        <button onClick={() => setActiveTab("localization")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'localization' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Globe size={14} /> {t("common.settings.tabs.localization")}</button>
+        <button onClick={() => setActiveTab("appearance")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'appearance' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}><Palette size={14} /> {t("common.settings.tabs.appearance")}</button>
       </div>
 
       <div className="animate-in slide-in-from-bottom-4 duration-500">
         {activeTab === "localization" && (
           <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-10">
-            <div className="flex items-center gap-3 border-b border-slate-50 pb-6"><Globe className="w-6 h-6 text-indigo-500" /><h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">{t("common.workspace_settings.general_config")}</h2></div>
+            <div className="flex items-center gap-3 border-b border-slate-50 pb-6"><Globe className="w-6 h-6 text-indigo-500" /><h2 className="text-xl font-bold text-slate-800 tracking-tight uppercase">{t("common.workspace_settings.general_config")}</h2></div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.date_format")}</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("common.workspace_settings.date_format")}</label>
                 <Combobox options={[{ value: "DD/MM/YYYY", label: "DD/MM/YYYY", description: t("common.workspace_settings.date_format_options.vn"), icon: <Calendar size={14} /> }, { value: "MM/DD/YYYY", label: "MM/DD/YYYY", description: t("common.workspace_settings.date_format_options.us"), icon: <Calendar size={14} /> }, { value: "YYYY-MM-DD", label: "YYYY-MM-DD", description: t("common.workspace_settings.date_format_options.iso"), icon: <Calendar size={14} /> }]} value={dateFormat} onChange={setDateFormat} className="bg-slate-50 border-slate-100 h-14" />
               </div>
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.time_format")}</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("common.workspace_settings.time_format")}</label>
                 <Combobox options={[{ value: "24h", label: t("common.workspace_settings.time_format_options.24h"), description: t("common.workspace_settings.time_format_options.example_24h"), icon: <Clock size={14} /> }, { value: "12h", label: t("common.workspace_settings.time_format_options.12h"), description: t("common.workspace_settings.time_format_options.example_12h"), icon: <Clock size={14} /> }]} value={timeFormat} onChange={setTimeFormat} className="bg-slate-50 border-slate-100 h-14" />
               </div>
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.timezone")}</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("common.workspace_settings.timezone")}</label>
                 <Combobox options={[{ value: "Asia/Ho_Chi_Minh", label: "Asia/Ho_Chi_Minh", description: t("common.workspace_settings.timezone_options.vn"), icon: <Globe size={14} /> }, { value: "Asia/Bangkok", label: "Asia/Bangkok", description: t("common.workspace_settings.timezone_options.th"), icon: <Globe size={14} /> }, { value: "UTC", label: t("common.workspace_settings.timezone_options.utc"), icon: <Globe size={14} /> }]} value={timezone} onChange={setTimezone} className="bg-slate-50 border-slate-100 h-14" />
               </div>
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.default_language")}</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("common.workspace_settings.default_language")}</label>
                 <Combobox options={[{ value: "vi", label: t("common.languages.vi"), icon: <Languages size={14} /> }, { value: "en", label: t("common.languages.en"), icon: <Languages size={14} /> }, { value: "zh", label: t("common.languages.zh"), icon: <Languages size={14} /> }]} value={defaultLanguage} onChange={setDefaultLanguage} className="bg-slate-50 border-slate-100 h-14" />
               </div>
             </div>
@@ -109,10 +109,10 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
 
         {activeTab === "appearance" && (
           <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-10">
-            <div className="flex items-center gap-3 border-b border-slate-50 pb-6"><Palette className="w-6 h-6 text-pink-500" /><h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">{t("common.workspace_settings.theme_config")}</h2></div>
+            <div className="flex items-center gap-3 border-b border-slate-50 pb-6"><Palette className="w-6 h-6 text-pink-500" /><h2 className="text-xl font-bold text-slate-800 tracking-tight uppercase">{t("common.workspace_settings.theme_config")}</h2></div>
             <div className="space-y-10">
               <div className="space-y-6">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t("common.workspace_settings.primary_color")}</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("common.workspace_settings.primary_color")}</label>
                 <div className="flex flex-wrap gap-5 items-center">
                   {[
                     { name: t("common.colors.violet"), color: '#7c3aed' }, { name: t("common.colors.indigo"), color: '#4f46e5' }, { name: t("common.colors.blue"), color: '#2563eb' },
@@ -125,11 +125,11 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
                   <div className="h-12 w-px bg-slate-100 mx-2" />
                   <div className="flex items-center gap-4 bg-slate-50 p-2.5 rounded-[1.5rem] border border-slate-100 shadow-inner group">
                     <input type="color" value={themePrimaryColor} onChange={(e) => setThemePrimaryColor(e.target.value)} className="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-none p-0 overflow-hidden" />
-                    <input type="text" value={themePrimaryColor} onChange={(e) => setThemePrimaryColor(e.target.value)} className="bg-transparent border-none text-sm font-mono font-black text-slate-600 w-24 outline-none uppercase tracking-tighter" />
+                    <input type="text" value={themePrimaryColor} onChange={(e) => setThemePrimaryColor(e.target.value)} className="bg-transparent border-none text-sm font-mono font-bold text-slate-600 w-24 outline-none uppercase tracking-tighter" />
                   </div>
                 </div>
               </div>
-              <div className="p-8 bg-slate-50 border border-slate-100 rounded-[2rem] shadow-inner"><p className="text-[11px] font-bold text-slate-400 leading-relaxed italic uppercase tracking-tight opacity-80">{t("common.workspace_settings.theme_desc")}</p></div>
+              <div className="p-8 bg-slate-50 border border-slate-100 rounded-[2rem] shadow-inner"><p className="text-[11px] font-bold text-slate-500 leading-relaxed italic uppercase tracking-tight opacity-80">{t("common.workspace_settings.theme_desc")}</p></div>
             </div>
           </div>
         )}

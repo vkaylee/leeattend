@@ -222,7 +222,7 @@ describe("api.ts comprehensive tests", () => {
   describe("Leave API", () => {
     it("submitLeaveRequest", async () => {
       mockSuccess({});
-      await api.submitLeaveRequest("ws-1", { employee_id: "e1", leave_type: "v", start_date: "...", end_date: "..." });
+      await api.submitLeaveRequest("ws-1", { employee_id: "e1", leave_type_id: "lt-1", start_date: "...", end_date: "..." });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/leave/submit"), expect.objectContaining({ method: "POST" }));
     });
 

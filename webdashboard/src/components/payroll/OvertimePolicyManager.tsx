@@ -27,11 +27,11 @@ function OvertimePolicyCard({ policy, wsId }: { policy: any, wsId: string }) {
     <div className='bg-white border border-slate-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group'>
       <div className='flex items-center justify-between mb-4'>
         <div className='flex items-center gap-4'>
-          <div className='w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors'>
+          <div className='w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-500 group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors'>
             <Settings2 size={24} />
           </div>
           <div>
-            <h3 className='font-bold text-slate-900 text-lg'>{policy.name}</h3>
+            <h3 className='font-bold text-slate-700 text-lg'>{policy.name}</h3>
             <p className='text-sm text-slate-500'>{policy.description}</p>
           </div>
         </div>
@@ -73,13 +73,13 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
     },
   });
 
-  if (isLoading) return <div className='p-8 text-center animate-pulse text-slate-400 font-bold'>Loading policies...</div>;
+  if (isLoading) return <div className='p-8 text-center animate-pulse text-slate-500 font-bold'>Loading policies...</div>;
 
   return (
     <div className='space-y-6'>
       <div className='flex items-center justify-between'>
         <div>
-          <h2 className='text-xl font-bold text-slate-900 flex items-center gap-2'>
+          <h2 className='text-xl font-bold text-slate-700 flex items-center gap-2'>
             <Calculator className='text-primary-600' size={20} />
             {t('payroll.overtime_policies')}
           </h2>
@@ -107,7 +107,7 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
         <div className='bg-slate-50 rounded-3xl p-6 border border-slate-200 animate-in fade-in slide-in-from-top-4 duration-300'>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div className='space-y-2'>
-              <label className='text-xs font-black uppercase tracking-widest text-slate-400 ml-1'>{t('common.name')}</label>
+              <label className='text-xs font-bold uppercase tracking-widest text-slate-500 ml-1'>{t('common.name')}</label>
               <input
                 type='text'
                 value={name}
@@ -117,7 +117,7 @@ export default function OvertimePolicyManager({ wsId }: OvertimePolicyManagerPro
               />
             </div>
             <div className='space-y-2'>
-              <label className='text-xs font-black uppercase tracking-widest text-slate-400 ml-1'>{t('common.description')}</label>
+              <label className='text-xs font-bold uppercase tracking-widest text-slate-500 ml-1'>{t('common.description')}</label>
               <input
                 type='text'
                 value={description}
