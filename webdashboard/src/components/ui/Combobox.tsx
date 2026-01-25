@@ -42,7 +42,7 @@ export function Combobox({
   autoFocus,
 }: ComboboxProps) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoFocus || false);
   
   placeholder = placeholder || t("common.combobox.placeholder");
   searchPlaceholder = searchPlaceholder || t("common.combobox.search");
@@ -72,7 +72,7 @@ export function Combobox({
           <Command shouldFilter={shouldFilter ?? !onSearchChange} className="flex flex-col gap-3">
             <div className="flex items-center border-b border-slate-50 px-4 pb-3 pt-1">
               <Search className="mr-3 h-4 w-4 shrink-0 text-slate-300" />
-              <Command.Input placeholder={searchPlaceholder} onValueChange={onSearchChange} className="flex h-10 w-full rounded-md bg-transparent text-sm text-primary-700 outline-none placeholder:text-slate-300 disabled:cursor-not-allowed disabled:opacity-50 font-bold" />
+              <Command.Input autoFocus={autoFocus} placeholder={searchPlaceholder} onValueChange={onSearchChange} className="flex h-10 w-full rounded-md bg-transparent text-sm text-primary-700 outline-none placeholder:text-slate-300 disabled:cursor-not-allowed disabled:opacity-50 font-bold" />
             </div>
             
             <Command.List className="max-h-[320px] overflow-y-auto overflow-x-hidden p-1 custom-scrollbar">
