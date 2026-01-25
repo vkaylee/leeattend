@@ -143,4 +143,51 @@ describe("PayrollSummaryTable", () => {
     fireEvent.click(screen.getByText("John Doe"));
     expect(onViewDetail).toHaveBeenCalledWith(mockEmployees[0]);
   });
+
+  it("maintains input focus when switching to loading state (regression test)", () => {
+    const { rerender } = render(
+      <BrowserRouter>
+        <PayrollSummaryTable 
+          employees={mockEmployees}
+          payslips={mockPayslips}
+          isLoading={false}
+          selectedIds={new Set()}
+          onToggleSelect={onToggleSelect}
+          onToggleSelectAll={onToggleSelectAll}
+          onViewDetail={onViewDetail}
+          searchTerm="test"
+          onSearchChange={onSearchChange}
+        />
+      </BrowserRouter>
+    );
+
+    // 1. Find input and focus it
+    const input = screen.getByLabelText("common.search");
+    input.focus();
+    expect(input).toHaveFocus();
+
+    // 2. Rerender with isLoading=true
+    rerender(
+      <BrowserRouter>
+        <PayrollSummaryTable 
+          employees={mockEmployees}
+          payslips={mockPayslips}
+          isLoading={true}
+          selectedIds={new Set()}
+          onToggleSelect={onToggleSelect}
+          onToggleSelectAll={onToggleSelectAll}
+          onViewDetail={onViewDetail}
+          searchTerm="test"
+          onSearchChange={onSearchChange}
+        />
+      </BrowserRouter>
+    );
+
+    // 3. Verify input is still there and still focused
+    expect(screen.getByLabelText("common.search")).toBeInTheDocument();
+    expect(screen.getByLabelText("common.search")).toHaveFocus();
+    
+    // 4. Verify loading state is also visible (somewhere else)
+    expect(screen.getByText("common.loading")).toBeInTheDocument();
+  });
 });
