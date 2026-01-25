@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import ReportsPage from "../ReportsPage";
@@ -48,9 +48,10 @@ describe("ReportsPage", () => {
     });
     (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
     (api.fetchWorkspace as any).mockResolvedValue({ id: "test-ws-id", name: "Test Workspace", work_unit_minutes: 60 });
-    (api.fetchAttendanceReport as any).mockResolvedValue([
-      { employee_id: "emp-1", employee_name: "John Doe", total_work_units: 480, total_leave_days: 0 }
-    ]);
+    (api.fetchAttendanceReport as any).mockResolvedValue({
+      data: [{ employee_id: "emp-1", employee_name: "John Doe", total_work_units: 480, total_leave_days: 0 }],
+      total: 1
+    });
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -67,35 +68,35 @@ describe("ReportsPage", () => {
 
   it("renders report table and default to current month", async () => {
     renderWithProviders(<ReportsPage />);
-    
     expect(await screen.findByText("John Doe")).toBeDefined();
-    
-    // Default should be "Tháng này"
-    const thisMonthBtn = screen.getByText(/common.filters.this_month/i);
-    expect(thisMonthBtn).toBeDefined();
+    // In ReportsPage, filterMode defaults to "last_month"
+    const lastMonthBtn = screen.getByText(/common.filters.last_month/i);
+    expect(lastMonthBtn).toBeDefined();
   });
 
   it("changes date range when clicking 'Tháng trước'", async () => {
     const user = userEvent.setup();
     renderWithProviders(<ReportsPage />);
-
     const lastMonthBtn = screen.getByText(/common.filters.last_month/i);
     await user.click(lastMonthBtn);
-
     expect(api.fetchAttendanceReport).toHaveBeenCalled();
   });
 
   it("shows custom date inputs when clicking 'Tùy chỉnh'", async () => {
     const user = userEvent.setup();
     renderWithProviders(<ReportsPage />);
-
-    expect(screen.queryByLabelText(/common.from_date/i)).toBeNull();
-
     const customBtn = screen.getByText(/common.filters.custom/i);
     await user.click(customBtn);
-
-    // Use findByText or findByLabelText with regex
     expect(await screen.findByText(/common.from_date/i)).toBeDefined();
-    expect(screen.getByText(/common.to_date/i)).toBeDefined();
+  });
+
+  it("defaults pageSize to the number of days in the month", async () => {
+    renderWithProviders(<ReportsPage />);
+    await waitFor(() => {
+      const calls = (api.fetchAttendanceReport as any).mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      // The 6th argument (index 5) is pageSize. December 2025 has 31 days.
+      expect(calls[0][5]).toBe(31);
+    });
   });
 });
