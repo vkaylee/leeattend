@@ -72,7 +72,7 @@ pub async fn get_workspace_balances(
         FROM employees e
         CROSS JOIN leave_types lt
         WHERE e.workspace_id = $1 AND e.is_active = TRUE AND lt.workspace_id = $1
-          AND ($3 = '%%' OR e.full_name ILIKE $3 OR lt.name ILIKE $3 OR lt.code ILIKE $3)
+          AND ($3 = '%%' OR e.full_name ILIKE $3 OR e.employee_id_number ILIKE $3 OR lt.name ILIKE $3 OR lt.code ILIKE $3)
     "#;
 
     let total: i64 = sqlx::query_scalar(count_sql)
@@ -163,7 +163,7 @@ pub async fn get_workspace_balances(
         CROSS JOIN leave_types lt
         LEFT JOIN leave_balances lb ON e.id = lb.employee_id AND lt.id = lb.leave_type_id AND lb.year = $2
         WHERE e.workspace_id = $1 AND e.is_active = TRUE AND lt.workspace_id = $1
-          AND ($3 = '%%' OR e.full_name ILIKE $3 OR lt.name ILIKE $3 OR lt.code ILIKE $3)
+          AND ($3 = '%%' OR e.full_name ILIKE $3 OR e.employee_id_number ILIKE $3 OR lt.name ILIKE $3 OR lt.code ILIKE $3)
         ORDER BY e.full_name ASC, lt.name ASC
         LIMIT $4 OFFSET $5
     "#;

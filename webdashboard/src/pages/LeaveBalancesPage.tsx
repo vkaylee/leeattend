@@ -78,6 +78,7 @@ export default function LeaveBalancesPage() {
             <Search className="absolute left-4 md:left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary-500 transition-colors" size={18} />
             <input
               type="text"
+              autoFocus
               placeholder={t("common.search_placeholder")}
               className="w-full pl-12 md:pl-14 pr-5 md:pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm min-h-[44px]"
               value={searchTerm}
