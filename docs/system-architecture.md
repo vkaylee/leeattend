@@ -330,3 +330,29 @@ Khi gặp lỗi giao diện, AI Agent nên thực hiện các bước sau:
 4.  Chạy Playwright Debug: `npx playwright test tests/debug-ui.spec.ts`.
 
 5.  **Dọn dẹp:** Sử dụng `pkill -f "AI_MANAGED=true"` để tắt chính xác các server do AI tạo ra, tránh giết nhầm server của người dùng.
+## 🤖 Edge Agent Architecture
+
+### 1. Inverted Master-Sidecar Communication
+The system utilizes a hybrid Rust/Python architecture where the Rust Orchestrator (`agent-main`) acts as the "Master" and the Python script (`agent-zk-worker`) acts as the "Sidecar". 
+
+To ensure maximum reliability and ease of deployment, the communication model is inverted:
+- **Rust as Server**: The Orchestrator opens a TCP Server on a **dynamic port** (assigned by the OS at runtime, port 0).
+- **Python as Client**: The Python sidecar receives this port via a command-line argument and proactively connects to the Master.
+- **Bi-directional JSON-RPC**: Once the connection is established, the Master sends control requests (fetch logs, sync time) while the Sidecar can optionally push real-time events back to the Master over the same stream.
+- **Zero Conflict**: Dynamic port assignment allows multiple Agents to run on the same physical gateway without port collision or manual configuration.
+
+### 2. Reliable Data Sync (Log-Forwarding Pattern)
+The Agent follows a "Local-First" approach to ensure data safety during internet outages:
+1. **Fetch**: The Orchestrator polls logs from physical devices via the Python Sidecar.
+2. **Commit**: Logs are immediately persisted to a local SQLite database with `is_synced = 0`.
+3. **Sync Loop**: A background task in `CentralClient` continuously polls the local DB for unsynced records.
+4. **Push & ACK**: Logs are pushed to the Cloud WebSocket API. The record is only marked as `is_synced = 1` once a valid `type: "ack"` is received from the server.
+
+---
+
+
+### 0. Graceful Shutdown & Lifecycle Management
+To ensure data integrity and clean process termination, both the Edge Agent and the Central Server implement proactive signal handling:
+- **Signal Propagation**: Upon receiving `SIGINT` (Ctrl+C) or `SIGTERM`, the Orchestrator (`agent-main`) triggers a `CancellationToken`. This immediately signals all background tasks (WebSocket sync, device polling, heartbeat) to stop after their current unit of work.
+- **Sidecar Cleanup**: The Orchestrator explicitly kills the Python sidecar process and waits for its exit, preventing "zombie" processes from lingering on the host system.
+- **Stateless Exit**: The Python worker proactively closes hardware connections and its control stream safely before exiting.

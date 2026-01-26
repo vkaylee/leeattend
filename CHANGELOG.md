@@ -4,6 +4,14 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ## [Unreleased]
 ### Added
+- **Agent Infrastructure & Sync Engine Rewrite**:
+    - **Inverted Communication Model**: Migrated from "Python Server / Rust Client" to a more robust "Rust Server / Python Client" architecture.
+    - **Dynamic Port Assignment**: The Orchestrator now binds to a random available port (0) and passes it to the Sidecar, eliminating port conflicts.
+    - **Centralized Stateful Ingestion**: Refactored `AttendanceLogService` into a stateful hub that manages its own `mpsc` buffer and background batch-flush worker.
+    - **End-to-End Log Syncing**: Implemented a reliable sync loop in `CentralClient` that polls the local SQLite database for unsynced logs and pushes them to the Cloud API with full ACK support.
+    - **Robust Supervisor**: The Orchestrator now proactively restarts the Sidecar and waits for a reverse-connection if the process dies.
+    - **Integration Verified**: Added comprehensive integration tests verifying the full path: Hardware Logic -> SQLite -> WebSocket -> Cloud API.
+### Added
 - **Smart Leave Policy Assignment**:
     - **Automatic Conflict Resolution**: Implemented "Delete Future" logic when assigning mid-term policies, ensuring a clean and consistent timeline without manual cleanup.
     - **Assignment History**: Added a detailed history table in Leave Settings to track all policy assignments (Workspace, Department, and Employee scope).
