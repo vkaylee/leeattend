@@ -33,7 +33,7 @@ async fn test_end_to_end_log_push() {
                             let msg_id = val["msg_id"].clone();
                             let _ = log_tx.send(val).await;
                             // Send ACK back
-                            let ack = json!({"type": "ack", "msg_id": msg_id});
+                            let ack = json!({"type": "ack", "msg_id": msg_id, "status": "success"});
                             ws_stream.send(Message::Text(ack.to_string().into())).await.unwrap();
                         }
                     }
@@ -80,4 +80,79 @@ async fn test_end_to_end_log_push() {
         assert_eq!(unsynced.len(), 0, "Log should be marked as synced in local DB");
 
     }).await.expect("E2E Log Push Test Timed Out");
+}
+
+#[tokio::test]
+async fn test_reliable_sync_with_server_error() {
+    let _ = env_logger::builder().is_test(true).try_init();
+
+    timeout(Duration::from_secs(30), async {
+        // 1. Setup Mock Central Server
+        let ws_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let ws_addr = ws_listener.local_addr().unwrap();
+        let ws_url = format!("ws://{}", ws_addr);
+
+        let (log_tx, mut log_rx) = tokio::sync::mpsc::channel(10);
+        tokio::spawn(async move {
+            if let Ok((stream, _)) = ws_listener.accept().await {
+                let mut ws_stream = accept_async(stream).await.expect("Failed to accept WS");
+                let _ = ws_stream.next().await; // Handshake
+                
+                let mut attempt = 0;
+                while let Some(Ok(msg)) = ws_stream.next().await {
+                    if let Message::Text(text) = msg {
+                        let val: serde_json::Value = serde_json::from_str(&text).unwrap();
+                        if val["type"] == "attendance" {
+                            attempt += 1;
+                            let msg_id = val["msg_id"].clone();
+                            let _ = log_tx.send(val).await;
+                            
+                            if attempt == 1 {
+                                // First attempt: Return error
+                                let ack = json!({"type": "ack", "msg_id": msg_id, "status": "error", "error": "buffer full"});
+                                ws_stream.send(Message::Text(ack.to_string().into())).await.unwrap();
+                            } else {
+                                // Subsequent attempts: Return success
+                                let ack = json!({"type": "ack", "msg_id": msg_id, "status": "success"});
+                                ws_stream.send(Message::Text(ack.to_string().into())).await.unwrap();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 2. Setup Agent
+        let db_file = tempfile::NamedTempFile::new().unwrap();
+        let db_url = format!("sqlite:{}", db_file.path().to_str().unwrap());
+        let db = Database::new(&db_url).await.unwrap();
+        sqlx::migrate!("./migrations").run(db.get_pool()).await.unwrap();
+
+        db.upsert_device("DEV_RETRY", None, "127.0.0.1", 4370).await.unwrap();
+        db.save_raw_attendance("DEV_RETRY", AttendanceData {
+            user_id: "RETRY_USER".into(),
+            timestamp: "2026-01-26 12:00:00".into(),
+            status: Some(1),
+            punch: Some(1),
+        }).await.unwrap();
+
+        let (client, rx) = CentralClient::new(ws_url, "AGENT_RETRY".into(), "TOKEN_RETRY".into(), db.clone());
+        client.start(rx).await;
+
+        // 3. Verify Mock Server received the log TWICE (once for failed attempt, once for retry)
+        info!("Waiting for first attempt...");
+        let _ = log_rx.recv().await.expect("Did not receive first attempt");
+        
+        info!("Waiting for retry attempt...");
+        let second = log_rx.recv().await.expect("Did not receive second attempt");
+        assert_eq!(second["data"]["user_id"], "RETRY_USER");
+
+        // 4. Verify DB is finally marked as synced
+        // Wait for retry loop (continuous loop has 50ms delay if limit hit, but here we wait for next fetch)
+        // With current logic count < limit (1 < 500) -> 10s sleep
+        sleep(Duration::from_secs(12)).await;
+        let unsynced = db.get_unsynced_logs(10).await.unwrap();
+        assert_eq!(unsynced.len(), 0, "Log should be finally synced");
+
+    }).await.expect("Reliable Sync Test Timed Out");
 }
