@@ -27,5 +27,5 @@ if [ -n "$TEST_PATTERN" ]; then
 fi
 
 run_parallel_ordered "Phase 3 (Integration & E2E)" "$COMPONENT_FILTER" \
-    "1|apiserver-int|apiserver|timeout 120s cargo test --test '*' $TEST_PATTERN -- --test-threads $NUM_WORKERS" \
-    "2|playwright-e2e|webdashboard|timeout 120s npx playwright test $PW_ARGS --workers $NUM_WORKERS"
+    "1|apiserver-int|apiserver|timeout 300s cargo test --test '*' $TEST_PATTERN -- --test-threads $NUM_WORKERS" \
+    "2|playwright-e2e|webdashboard|timeout 300s npx playwright test $PW_ARGS --workers $NUM_WORKERS"

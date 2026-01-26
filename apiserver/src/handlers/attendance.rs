@@ -165,7 +165,7 @@ pub async fn upload_attendance_excel(
 
     let path = file_path.ok_or(StatusCode::BAD_REQUEST)?;
 
-    let job_id = crate::services::attendance_import_service::AttendanceImportService::batch_import_from_file(
+    let job_id = crate::services::AttendanceImportService::batch_import_from_file(
         state.db.clone(),
         ws_id,
         user_id,
@@ -220,7 +220,7 @@ pub async fn upload_attendance_logs(
 
     let path = file_path.ok_or(StatusCode::BAD_REQUEST)?;
 
-    let job_id = crate::services::attendance_import_service::AttendanceImportService::batch_import_from_file(
+    let job_id = crate::services::AttendanceImportService::batch_import_from_file(
         state.db.clone(),
         ws_id,
         user_id,
@@ -316,8 +316,7 @@ pub async fn upload_employee_excel(
 
 
     let path = file_path.ok_or(StatusCode::BAD_REQUEST)?;
-
-    let job_id = crate::services::attendance_import_service::AttendanceImportService::batch_import_from_file(
+    let job_id = crate::services::AttendanceImportService::batch_import_from_file(
         state.db.clone(),
         ws_id,
         user_id,

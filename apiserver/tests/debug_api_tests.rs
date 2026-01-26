@@ -1,4 +1,5 @@
 mod common;
+use apiserver::services::AttendanceLogService;
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
 use common::db::TestDatabase;
 use common::factory::TestFactory;
@@ -42,6 +43,7 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
         workspace_repo,
         agent_service,
         jwt_secret: "test_secret".to_string(),
+        attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
     });
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")

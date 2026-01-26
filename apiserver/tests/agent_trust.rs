@@ -1,6 +1,7 @@
 use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
 use apiserver::models::MemberRole;
+use apiserver::services::AttendanceLogService;
 use apiserver::AppState;
 use serial_test::serial;
 use sqlx::postgres::PgPoolOptions;
@@ -88,6 +89,7 @@ async fn spawn_app() -> (String, Uuid, Uuid) {
         workspace_repo,
         agent_service,
         jwt_secret: "test_secret".to_string(),
+        attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
     });
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")

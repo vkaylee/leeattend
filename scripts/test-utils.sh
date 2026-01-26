@@ -19,7 +19,7 @@ mkdir -p "$LOG_DIR"
 
 # Calculate workers: half of CPU cores (min 1)
 CPU_CORES=$(nproc)
-export NUM_WORKERS=$(( CPU_CORES / 2 ))
+export NUM_WORKERS=${NUM_WORKERS:-$(( CPU_CORES / 4 ))}
 if [ $NUM_WORKERS -lt 1 ]; then NUM_WORKERS=1; fi
 
 # Helper to print log sequentially
@@ -84,6 +84,7 @@ run_parallel_ordered() {
         return 0
     fi
     
+    local phase_status=0
     for i in "${!pids[@]}"; do
         local pid="${pids[$i]}"
         local log="${logs[$i]}"
@@ -100,10 +101,8 @@ run_parallel_ordered() {
         wait "$pid"
         local status=$?
         
-        # Special case for pytest: exit code 5 means "no tests collected", 
-        # which is acceptable when filtering by pattern.
+        # Special case for pytest: exit code 5 means "no tests collected"
         if [[ "$name" == *"agent-zk-worker"* && $status -eq 5 ]]; then
-            echo -e "  [${YELLOW}INFO${NC}] $name: No tests matched the pattern."
             status=0
         fi
 
@@ -111,15 +110,15 @@ run_parallel_ordered() {
         
         if [ $status -ne 0 ]; then
             echo -e "\n${RED}❌ Task '$name' failed with status $status.${NC}"
-            echo -e "${YELLOW}Killing other tasks in this phase...${NC}"
-            # Kill all other processes in the same process group or just the captured pids
-            for p in "${pids[@]}"; do
-                kill "$p" 2>/dev/null || true
-            done
-            echo -e "${RED}Aborting pipeline.${NC}"
-            exit 1
+            phase_status=$status
         fi
     done
     
+    if [ $phase_status -ne 0 ]; then
+        echo -e "${RED}Aborting pipeline due to phase failure.${NC}"
+        exit $phase_status
+    fi
+
     echo -e "\n${GREEN}✅ $phase_name Completed Successfully!${NC}"
+    return 0
 }

@@ -1,4 +1,5 @@
 mod common;
+use apiserver::services::AttendanceLogService;
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
 use chrono::{Duration, Utc};
 use common::factory::TestFactory;
@@ -41,6 +42,7 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory, common::db::TestDataba
         workspace_repo,
         agent_service,
         jwt_secret: "hb_ws_secret".to_string(),
+        attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
     });
 
     let app = create_app(state);

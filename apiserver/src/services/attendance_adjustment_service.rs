@@ -13,23 +13,6 @@ use crate::services::attendance_import_service::AttendanceImportService;
 pub struct AttendanceAdjustmentService;
 
 impl AttendanceAdjustmentService {
-    /// Start a new import job from a file on disk (Delegated to AttendanceImportService)
-    pub async fn batch_import_from_file(
-        pool: PgPool,
-        workspace_id: Uuid,
-        user_id: Uuid,
-        file_path: String,
-    ) -> Result<Uuid, StatusCode> {
-        AttendanceImportService::batch_import_from_file(
-            pool,
-            workspace_id,
-            user_id,
-            file_path,
-            "adjustment".to_string(),
-        )
-        .await
-    }
-
     /// Resume all jobs that were interrupted by a server restart
     pub async fn resume_all_pending_jobs(pool: PgPool) {
         AttendanceImportService::resume_all_pending_jobs(pool).await;

@@ -50,6 +50,7 @@ export default function LeaveSettings() {
         <div className="flex bg-slate-100/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50 shadow-inner mb-8">
           <button
             onClick={() => setActiveTab("types")}
+            data-testid="leave-tab-types"
             className={cn(
               "flex items-center gap-3 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all duration-300",
               activeTab === "types"
@@ -62,6 +63,7 @@ export default function LeaveSettings() {
           </button>
           <button
             onClick={() => setActiveTab("policies")}
+            data-testid="leave-tab-policies"
             className={cn(
               "flex items-center gap-3 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all duration-300",
               activeTab === "policies"
@@ -74,6 +76,7 @@ export default function LeaveSettings() {
           </button>
           <button
             onClick={() => setActiveTab("assignments")}
+            data-testid="leave-tab-assignments"
             className={cn(
               "flex items-center gap-3 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all duration-300",
               activeTab === "assignments"
@@ -128,7 +131,7 @@ export default function LeaveSettings() {
                 </div>
                 <button
                   onClick={() => setIsAssignModalOpen(true)}
-                  className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 shadow-lg shadow-primary-100"
+                  data-testid="assign-policy-btn" className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 shadow-lg shadow-primary-100"
                 >
                   <UserPlus className="w-4 h-4" />
                   {t("settings.leave.actions.assign")}

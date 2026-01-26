@@ -54,6 +54,7 @@ impl LeaveService {
         _workspace_id: Uuid,
         employee_id: Uuid,
         year: i32,
+        leave_type_id: Option<Uuid>,
     ) -> Result<Vec<LeaveHistoryItem>, StatusCode> {
         // Get Accruals & Adjustments with leave type info via FK join
         let logs = sqlx::query!(
@@ -64,14 +65,16 @@ impl LeaveService {
             JOIN leave_types lt ON lal.leave_type_id = lt.id
             WHERE lal.employee_id = $1
               AND EXTRACT(YEAR FROM lal.accrual_date) = $2
+              AND (lt.id = $3 OR $3 IS NULL)
             "#,
             employee_id,
-            year as f64
+            year as f64,
+            leave_type_id
         )
         .fetch_all(pool)
         .await
         .map_err(|e| {
-            eprintln!("SQLx Error in get_workspace_balances: {:?}", e);
+            eprintln!("SQLx Error in get_employee_leave_history logs: {:?}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
@@ -85,14 +88,16 @@ impl LeaveService {
             WHERE lr.employee_id = $1
               AND lr.status = 'approved'
               AND EXTRACT(YEAR FROM lr.start_date) = $2
+              AND (lt.id = $3 OR $3 IS NULL)
             "#,
             employee_id,
-            year as f64
+            year as f64,
+            leave_type_id
         )
         .fetch_all(pool)
         .await
         .map_err(|e| {
-            eprintln!("SQLx Error in get_workspace_balances: {:?}", e);
+            eprintln!("SQLx Error in get_employee_leave_history requests: {:?}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
@@ -108,7 +113,7 @@ impl LeaveService {
                 id: log.id,
                 date: log.accrual_date,
                 transaction_type,
-                amount: log.amount.to_f64().unwrap_or(0.0),
+                amount: ToPrimitive::to_f64(&log.amount).unwrap_or(0.0),
                 reason: log.notes,
                 reference_id: None,
                 created_at: log.created_at.unwrap_or_else(chrono::Utc::now),

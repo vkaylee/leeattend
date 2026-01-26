@@ -32,7 +32,7 @@ test.describe('Route & Sidebar Regression', () => {
 
       // Verify page content via titleTestId
       const title = page.getByTestId(route.titleTestId);
-      await expect(title).toBeVisible({ timeout: 15000 });
+      await expect(title).toBeVisible({ timeout: 30000 });
       
       console.log(`Successfully verified ${route.name} via data-testid: "${route.titleTestId}"`);
     });

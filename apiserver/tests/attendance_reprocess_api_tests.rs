@@ -1,6 +1,7 @@
 mod common;
 
 use apiserver::models::{LogSource, RawAttendanceLog};
+use apiserver::services::AttendanceLogService;
 use apiserver::AppState;
 use axum::http::{Request, StatusCode};
 use chrono::{TimeZone, Utc, NaiveDate};
@@ -38,6 +39,7 @@ async fn test_force_reprocess_attendance_api() {
         workspace_repo,
         agent_service,
         jwt_secret,
+        attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
     });
 
     let base_date = NaiveDate::from_ymd_opt(2026, 1, 14).unwrap();

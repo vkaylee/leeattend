@@ -409,7 +409,8 @@
     "auto": "Tự động",
     "required": "Bắt buộc",
     "forever": "Vô thời hạn",
-    "important_note": "Lưu ý quan trọng"
+    "important_note": "Lưu ý quan trọng",
+    "no_data": "Không có dữ liệu"
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -656,7 +657,13 @@
       "calculation": "Cách tính",
       "policy_info": "Thông tin chính sách",
       "accrual_info_title": "Thông tin tích lũy",
-      "used": "đã sử dụng"
+      "used": "đã sử dụng",
+      "history": "Lịch sử giao dịch",
+      "tabs": {
+        "all": "Tất cả",
+        "accruals": "Tích lũy",
+        "usage": "Sử dụng"
+      }
     },
     "assignment_types": {
       "employee": "Cá nhân",
@@ -683,6 +690,12 @@
       "validation": {
         "invalid_amount": "Số lượng không hợp lệ"
       }
+    },
+    "transaction_type": {
+      "accrual": "Tích lũy định kỳ",
+      "usage": "Sử dụng nghỉ phép",
+      "adjustment": "Điều chỉnh số dư",
+      "carry_over": "Chuyển từ năm trước"
     }
   },
   "members": {

@@ -22,7 +22,7 @@ cleanup() {
   echo "Cleaning up..."
   rm -f "$FLAG_FILE"
   # Stop containers and remove volumes (drops the database)
-  docker-compose -f "$COMPOSE_FILE" down -v
+  docker compose -f "$COMPOSE_FILE" down -v
 }
 
 # Set trap for cleanup on exit (normal or error)
@@ -37,10 +37,10 @@ DB_NAME="test_database"
 DATABASE_URL="postgres://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}"
 
 echo "Starting test database..."
-docker-compose -f "$COMPOSE_FILE" up -d "$DB_CONTAINER_NAME"
+docker compose -f "$COMPOSE_FILE" up -d "$DB_CONTAINER_NAME"
 
 echo "Waiting for database to be ready..."
-until docker-compose -f "$COMPOSE_FILE" exec "$DB_CONTAINER_NAME" pg_isready -U "$DB_USER" -d "$DB_NAME"; do
+until docker compose -f "$COMPOSE_FILE" exec "$DB_CONTAINER_NAME" pg_isready -U "$DB_USER" -d "$DB_NAME"; do
   printf '.'
   sleep 1
 done

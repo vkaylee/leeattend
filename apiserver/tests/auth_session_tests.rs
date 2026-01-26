@@ -2,6 +2,7 @@ mod common;
 
 use apiserver::agent_manager::AgentManager;
 use apiserver::services::auth_service::AuthService;
+use apiserver::services::AttendanceLogService;
 use apiserver::AppState;
 use axum::http::StatusCode;
 use common::db::TestDatabase;
@@ -33,6 +34,7 @@ async fn setup_context() -> (TestDatabase, TestFactory, Arc<AppState>) {
         workspace_repo: workspace_repo.clone(),
         agent_service: agent_service.clone(),
         jwt_secret: "test_secret_session".to_string(),
+        attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
     });
 
     (test_db, factory, app_state)

@@ -1,6 +1,6 @@
 use axum::http::StatusCode;
 use calamine::{Data, DataType, Reader, Xls, Xlsx};
-use chrono::{DateTime, NaiveDate, TimeZone, Utc};
+use chrono::{DateTime, NaiveDate, Utc, TimeZone};
 use chrono_tz::Tz;
 use sqlx::PgPool;
 use std::collections::HashSet;
@@ -134,19 +134,10 @@ impl AttendanceImportService {
             }
         };
 
-        let mut processed_rows = job.processed_rows; // This might be > 0 if resumed, but strictly validating means we might re-validate or fail.
-                                                     // For simplicity, if we are resuming, we assume validation passed previously?
-                                                     // Or better: just re-process from start if it's strict. But `processed_rows` implies we skip.
-                                                     // Given strict validation requirement, if we resume, we probably should re-validate everything remaining?
-                                                     // Let's assume for now we parse EVERYTHING to validate, but only insert what's needed?
-                                                     // Actually, if `processed_rows > 0`, it means some were inserted. If we failed halfway, we might have partial data.
-                                                     // But "Strict Validation" (Approach A) implies "Atomic Batch" conceptually (don't start if bad).
-                                                     // So if we are resuming a CRASHED job, we should probably re-validate.
-
+        let mut processed_rows = job.processed_rows;
         let mut errors = Vec::new();
         let mut pending_rows: Vec<PendingRow> = Vec::new();
 
-        // 1. PARSE PHASE
         let mut is_excel = false;
         if let Ok(mut reader) = Xlsx::new(Cursor::new(&file_bytes)) {
             if let Some(Ok(range)) = reader.worksheet_range_at(0) {
@@ -179,11 +170,8 @@ impl AttendanceImportService {
                 .has_headers(true)
                 .from_reader(Cursor::new(&file_bytes));
             let records: Vec<_> = reader.records().flatten().collect();
-            // In CSV, first row is header, so rows are records.
-            // But parse_excel_range handles header skipping (row 0).
-            // For CSV, we iterate records which are already data rows.
             for (idx, record) in records.into_iter().enumerate() {
-                let current_line = idx + 2; // +1 header, +1 for 1-based
+                let current_line = idx + 2;
                 let raw_emp_id = record.get(0).unwrap_or("").trim();
                 let emp_id_number = normalize_employee_id(raw_emp_id);
                 let emp_dt_str = record.get(2).unwrap_or("").trim();
@@ -240,7 +228,6 @@ impl AttendanceImportService {
             return Err(());
         }
 
-        // 2. VALIDATION PHASE (Soft Validation)
         let unique_emp_ids: HashSet<String> = pending_rows
             .iter()
             .map(|r| r.emp_id_number.clone())
@@ -283,12 +270,10 @@ impl AttendanceImportService {
             }
         };
 
-        // 3. PROCESSING PHASE
         let mut skipped_rows = 0;
         let rows_to_process = pending_rows.into_iter().skip(processed_rows as usize);
 
         for row in rows_to_process {
-            // Only process if employee is known
             if !known_emp_ids.contains(&row.emp_id_number) {
                 skipped_rows += 1;
                 continue;
@@ -314,7 +299,6 @@ impl AttendanceImportService {
                     }
                 }
                 Err(_) => {
-                    // This should be rare if validation passed, maybe DB error
                     errors.push(format!(
                         "NV {}: Lỗi hệ thống khi lưu (Dòng {})",
                         row.emp_id_number, row.line_number
@@ -348,10 +332,6 @@ impl AttendanceImportService {
         .await;
 
         let _ = tokio::fs::remove_file(file_path).await;
-        info!(
-            "Import job {} ({}) finished with status {}",
-            job_id, job.target_type, status
-        );
         Ok(())
     }
 
@@ -384,7 +364,6 @@ impl AttendanceImportService {
         let mut errors = Vec::new();
         let mut pending_employees: Vec<PendingEmployee> = Vec::new();
 
-        // 1. PARSE PHASE
         let mut is_excel = false;
         if let Ok(mut reader) = Xlsx::new(Cursor::new(&file_bytes)) {
             if let Some(Ok(range)) = reader.worksheet_range_at(0) {
@@ -420,7 +399,6 @@ impl AttendanceImportService {
                 let hire_date = if hire_date_str.is_empty() {
                     Utc::now().with_timezone(&Tz::Asia__Ho_Chi_Minh).date_naive()
                 } else {
-                    // Try some common formats
                     NaiveDate::parse_from_str(hire_date_str, "%Y-%m-%d")
                         .or_else(|_| NaiveDate::parse_from_str(hire_date_str, "%d/%m/%Y"))
                         .or_else(|_| NaiveDate::parse_from_str(hire_date_str, "%m/%d/%Y"))
@@ -458,12 +436,6 @@ impl AttendanceImportService {
             return Err(());
         }
 
-        // 2. VALIDATION PHASE (Duplicate ID check) -> REMOVED strict failure. 
-        // We will skip duplicates during processing.
-        // let id_numbers: Vec<String> = pending_employees.iter().map(|e| e.id_number.clone()).collect();
-        // match employee_repository::get_existing_employee_ids_by_numbers(&pool, job.workspace_id, &id_numbers).await { ... }
-
-        // 3. PROCESSING PHASE
         let mut processed_rows = 0;
         let mut skipped_rows = 0;
         
@@ -581,9 +553,8 @@ impl AttendanceImportService {
         preferred_time: Option<&str>,
         timezone: &str,
     ) {
-        // Skip header row (index 0)
         for (idx, row) in range.rows().skip(1).enumerate() {
-            let current_line = idx + 2; // +1 for skip, +1 for 1-based indexing
+            let current_line = idx + 2;
             let raw_id = match row.first() {
                 Some(Data::String(s)) => s.clone(),
                 Some(Data::Float(f)) => f.to_string(),
@@ -595,7 +566,6 @@ impl AttendanceImportService {
             };
             let emp_id_number = normalize_employee_id(&raw_id);
 
-            // Column 2 (index 2) is usually Time/Date
             let punch_time = match row.get(2) {
                 Some(Data::String(s)) => match AttendanceAdjustmentService::parse_datetime(
                     s.trim(),
@@ -616,7 +586,7 @@ impl AttendanceImportService {
                     if let Some(naive) = cell_data.as_datetime() {
                         let tz: Tz = timezone.parse().unwrap_or(chrono_tz::Asia::Ho_Chi_Minh);
                         match tz.from_local_datetime(&naive) {
-                            chrono::LocalResult::Single(dt) => Some(dt.with_timezone(&Utc)),
+                            chrono::LocalResult::Single(dt) => Some(dt.with_timezone::<Utc>(&Utc)),
                             _ => Some(DateTime::<Utc>::from_naive_utc_and_offset(naive, Utc)),
                         }
                     } else {
@@ -649,8 +619,6 @@ impl AttendanceImportService {
         emp_id_number: &str,
         punch_time_utc: DateTime<Utc>,
     ) -> Result<usize, StatusCode> {
-        // We still fetch the employee here to get the UUID, or we could have cached it in validation map.
-        // Fetching again is safer/easier for now.
         let employee = match employee_repository::get_employee_by_id_number(
             pool,
             emp_id_number,
@@ -660,7 +628,6 @@ impl AttendanceImportService {
         {
             Ok(Some(emp)) => emp,
             _ => {
-                // Should not happen due to validation
                 error!(
                     "EMPLOYEE_NOT_FOUND: {} in WS {}",
                     emp_id_number, job.workspace_id
@@ -670,7 +637,6 @@ impl AttendanceImportService {
         };
 
         if job.target_type == "log" {
-            // Sử dụng Unified AttendanceLogService cho trường hợp import log
             match crate::services::attendance_log_service::AttendanceLogService::process_parsed_log(
                 pool,
                 job.workspace_id,

@@ -76,7 +76,7 @@ export default function LeaveRequestsPage() {
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col md:flex-row justify-between items-center gap-8 px-2">
         <div className="space-y-1">
-          <h1 className="text-5xl font-bold tracking-tighter text-primary-700 uppercase leading-none">{t("leave_requests.title")}</h1>
+          <h1 data-testid="leave-requests-title" className="text-5xl font-bold tracking-tighter text-primary-700 uppercase leading-none">{t("leave_requests.title")}</h1>
           <p className="text-[10px] font-bold text-primary-400 uppercase tracking-[0.25em] opacity-60">{t("leave_requests.subtitle")}</p>
         </div>
         <button onClick={() => { setIsModalOpen(true); setSelectedEmpId(""); }} className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-8 py-3 rounded-2xl flex items-center gap-3 shadow-xl shadow-primary-100 transition-all active:scale-95 text-xs uppercase tracking-widest">

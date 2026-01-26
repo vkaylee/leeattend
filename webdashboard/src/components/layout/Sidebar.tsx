@@ -103,7 +103,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
           <div key={item.label}>
             {item.section ? (
               <div className="space-y-2">
-                {!isCollapsed && <button onClick={() => toggleSection(item.section!)} className="flex w-full items-center justify-between px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.25em] hover:text-primary-600 transition-colors group"><div className="flex items-center gap-2">{item.sectionIcon && <item.sectionIcon className="h-3 w-3 opacity-50 group-hover:opacity-100" />}<span>{item.label}</span></div>{openSections[item.section] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}</button>}
+                {!isCollapsed && <button onClick={() => toggleSection(item.section!)} data-testid={item.testId} className="flex w-full items-center justify-between px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.25em] hover:text-primary-600 transition-colors group"><div className="flex items-center gap-2">{item.sectionIcon && <item.sectionIcon className="h-3 w-3 opacity-50 group-hover:opacity-100" />}<span>{item.label}</span></div>{openSections[item.section] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}</button>}
                 {(openSections[item.section] || isCollapsed) && (
                   <div className="space-y-1">
                     {item.items?.map((subItem) => (

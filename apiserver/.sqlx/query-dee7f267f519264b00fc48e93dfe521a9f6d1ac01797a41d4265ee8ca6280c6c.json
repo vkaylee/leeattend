@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT lr.id, lr.start_date, lr.end_date, lt.name as leave_type_name,\n                   lr.reason, lr.created_at\n            FROM leave_requests lr\n            JOIN leave_types lt ON lr.leave_type_id = lt.id\n            WHERE lr.employee_id = $1\n              AND lr.status = 'approved'\n              AND EXTRACT(YEAR FROM lr.start_date) = $2\n            ",
+  "query": "\n            SELECT lr.id, lr.start_date, lr.end_date, lt.name as leave_type_name,\n                   lr.reason, lr.created_at\n            FROM leave_requests lr\n            JOIN leave_types lt ON lr.leave_type_id = lt.id\n            WHERE lr.employee_id = $1\n              AND lr.status = 'approved'\n              AND EXTRACT(YEAR FROM lr.start_date) = $2\n              AND (lt.id = $3 OR $3 IS NULL)\n            ",
   "describe": {
     "columns": [
       {
@@ -37,7 +37,8 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Numeric"
+        "Numeric",
+        "Uuid"
       ]
     },
     "nullable": [
@@ -49,5 +50,5 @@
       true
     ]
   },
-  "hash": "e532ca8e2fa335082d6afb65190484e8dc046fabd7f819cee67193257f5498d1"
+  "hash": "dee7f267f519264b00fc48e93dfe521a9f6d1ac01797a41d4265ee8ca6280c6c"
 }

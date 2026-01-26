@@ -409,7 +409,8 @@
     "auto": "自动",
     "required": "必填",
     "forever": "永久",
-    "important_note": "重要提示"
+    "important_note": "重要提示",
+    "no_data": "暂无数据"
   },
   "dashboard": {
     "title": "仪表板",
@@ -656,7 +657,13 @@
       "calculation": "计算方式",
       "policy_info": "政策信息",
       "accrual_info_title": "累计信息",
-      "used": "已使用"
+      "used": "已使用",
+      "history": "交易历史",
+      "tabs": {
+        "all": "全部",
+        "accruals": "累计",
+        "usage": "使用"
+      }
     },
     "assignment_types": {
       "employee": "个人",
@@ -683,6 +690,12 @@
       "validation": {
         "invalid_amount": "金额无效"
       }
+    },
+    "transaction_type": {
+      "accrual": "定期累计",
+      "usage": "假期使用",
+      "adjustment": "余额调整",
+      "carry_over": "结转"
     }
   },
   "members": {

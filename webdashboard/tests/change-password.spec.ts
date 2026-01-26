@@ -3,7 +3,7 @@ import { expect } from "@playwright/test";
 
 test.describe("Change Password Flow", () => {
   test("should change password successfully", async ({ page, baseURL }) => {
-    test.slow(); // Increases timeout for this test
+    test.slow();
     // 1. Initial Login
     await page.goto(`${baseURL}/login`);
     await page.getByTestId('login-email-input').fill("admin@leeattend.com");
@@ -23,28 +23,31 @@ test.describe("Change Password Flow", () => {
     await expect(page).toHaveURL("/", { timeout: 15000 });
 
     await page.goto("/profile");
+    // Wait for SECURITY button and click it
+    const securityTab = page.getByRole('button', { name: /SECURITY|Bảo mật/i });
+    await expect(securityTab).toBeVisible({ timeout: 15000 });
+    await securityTab.click();
+
     const nextPwd = currentPwd === "admin123" ? "newadmin123" : "admin123";
 
     console.log(`Changing password from ${currentPwd} to ${nextPwd}`);
 
-    // Fill form in Profile
-    // 3. Fill the change password form
-    // Using testids for stability
+    // Fill the change password form
     const oldPassInput = page.getByTestId('current-password-input');
     const newPassInput = page.getByTestId('new-password-input');
     const confirmPassInput = page.getByTestId('confirm-password-input');
     
-    await oldPassInput.fill('admin123');
-    await newPassInput.fill('newadmin123');
-    await confirmPassInput.fill('newadmin123');
+    await oldPassInput.fill(currentPwd);
+    await newPassInput.fill(nextPwd);
+    await confirmPassInput.fill(nextPwd);
 
     const updateBtn = page.getByTestId('update-password-btn');
     await updateBtn.click();
 
-    // Đợi logout và redirect về login
+    // Wait for logout and redirect to login
     await expect(page).toHaveURL("/login", { timeout: 15000 });
 
-    // Thử login với mật khẩu mới
+    // Try login with new password
     await page.getByTestId('login-email-input').fill("admin@leeattend.com");
     await page.getByTestId('login-password-input').fill(nextPwd);
     await page.getByTestId('login-submit-btn').click();
@@ -54,9 +57,13 @@ test.describe("Change Password Flow", () => {
     // --- RESET PASSWORD BACK TO admin123 for other tests ---
     console.log("Resetting password back to admin123...");
     await page.goto("/profile");
-    await page.getByTestId('current-password-input').fill('newadmin123');
-    await page.getByTestId('new-password-input').fill('admin123');
-    await page.getByTestId('confirm-password-input').fill('admin123');
+    const securityTabReset = page.getByRole('button', { name: /SECURITY|Bảo mật/i });
+    await expect(securityTabReset).toBeVisible({ timeout: 15000 });
+    await securityTabReset.click();
+    
+    await page.getByTestId('current-password-input').fill(nextPwd);
+    await page.getByTestId('new-password-input').fill("admin123");
+    await page.getByTestId('confirm-password-input').fill("admin123");
     await page.getByTestId('update-password-btn').click();
     await expect(page).toHaveURL("/login", { timeout: 15000 });
     

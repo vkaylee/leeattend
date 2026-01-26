@@ -47,17 +47,9 @@ function TimeSettingsContent({ workspace }: { workspace: Workspace }) {
 
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const tabFromUrl = searchParams.get("tab") as TabType;
-  const [activeTab, setActiveTab] = useState<TabType>(tabFromUrl || "general");
-
-  useEffect(() => {
-    if (tabFromUrl && tabFromUrl !== activeTab) {
-      setActiveTab(tabFromUrl);
-    }
-  }, [tabFromUrl]);
+  const activeTab = (searchParams.get("tab") as TabType) || "general";
 
   const handleTabChange = (tab: TabType) => {
-    setActiveTab(tab);
     setSearchParams({ tab });
   };
 

@@ -3,6 +3,9 @@ import { expect } from "@playwright/test";
 
 test.describe("Leave Policies CRUD", () => {
   test('should create, edit, and delete a leave policy', async ({ page }) => {
+    page.on('console', msg => console.log(`[BROWSER] ${msg.type().toUpperCase()}: ${msg.text()}`));
+    page.on('pageerror', err => console.log(`[BROWSER ERROR] ${err.message}`));
+
     // 1. Login and Navigate
     await page.goto('/login');
     await page.getByTestId('fast-login-btn').click();
@@ -10,20 +13,16 @@ test.describe("Leave Policies CRUD", () => {
     // Wait for dashboard to load
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 30000 });
 
-    // Navigate to Leave Requests
-    const leaveRequestsLink = page.getByTestId('sidebar-link-leave-requests');
-    if (!await leaveRequestsLink.isVisible()) {
-      await page.getByTestId('sidebar-section-time').click();
-    }
-    await leaveRequestsLink.click({ force: true });
-    await expect(page.getByRole('heading', { level: 1 })).toContainText(/Leave Requests|Yêu cầu nghỉ phép/);
+    // Navigate to Leave Settings
+    await page.goto("/workspace/settings/leave");
+    await expect(page.getByRole('heading', { level: 2, name: /Leave Settings|Cài đặt nghỉ phép/i })).toBeVisible();
 
     // Switch to Policies tab
     await page.getByTestId('leave-tab-policies').click();
 
     // Add new policy
     await page.getByTestId('add-policy-btn').click();
-    await expect(page.getByRole('heading', { level: 2, name: /Leave Policies|Chính sách nghỉ phép/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Create Leave Policy/i })).toBeVisible();
 
     const policyName = `E2E Policy ${Date.now()}`;
     await page.fill('input[id="policy-name"]', policyName);
@@ -31,27 +30,30 @@ test.describe("Leave Policies CRUD", () => {
 
     await page.getByTestId('save-policy-btn').click();
     
-    // Wait for modal to close and policy to appear in table
-    await expect(page.getByRole('heading', { level: 2, name: /Leave Policies|Chính sách nghỉ phép/i })).not.toBeVisible();
-    await expect(page.getByRole('cell', { name: policyName })).toBeVisible();
+    // Wait for modal to close and policy to appear
+    await expect(page.getByRole('heading', { name: /Create Leave Policy/i })).not.toBeVisible();
+    await expect(page.getByRole('heading', { name: policyName })).toBeVisible();
 
     // 5. Edit the Policy
-    const row = page.getByRole('row', { name: policyName });
-    // First button in actions is Edit
-        await row.getByRole('button').first().click();
-        await expect(page.getByRole('heading', { level: 2, name: /Edit Policy|Sửa chính sách/i })).toBeVisible();
-    
-        const updatedName = `${policyName} Updated`;
-        await page.fill('input[id="policy-name"]', updatedName);
-        await page.getByTestId('save-policy-btn').click();
-    
-    await expect(page.getByRole('heading', { level: 2, name: /Edit Policy|Sửa chính sách/i })).not.toBeVisible();
-    await expect(page.getByRole('cell', { name: updatedName })).toBeVisible();
+    const card = page.locator('div.group.relative').filter({ has: page.getByRole('heading', { name: policyName }) });
+    await card.hover();
+    await card.getByTestId('edit-policy-btn').click({ force: true });
+    await expect(page.getByRole('heading', { name: /Edit Policy/i })).toBeVisible();
+
+    const updatedName = `${policyName} Updated`;
+    await page.fill('input[id="policy-name"]', updatedName);
+    await page.getByTestId('save-policy-btn').click();
+
+    // Wait specifically for modal to disappear
+    await expect(page.getByRole('heading', { name: /Edit Policy/i })).not.toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: updatedName })).toBeVisible();
 
     // 6. Delete the Policy
     page.on('dialog', dialog => dialog.accept()); // Handle confirm()
-    await page.getByRole('row', { name: updatedName }).getByRole('button').nth(1).click(); // Second button is Delete
+    const updatedCard = page.locator('div.group.relative').filter({ has: page.getByRole('heading', { name: updatedName }) });
+    await updatedCard.hover();
+    await updatedCard.getByTestId('delete-policy-btn').click({ force: true });
     
-    await expect(page.getByRole('cell', { name: updatedName })).not.toBeVisible();
+    await expect(page.getByRole('heading', { name: updatedName })).not.toBeVisible();
   });
 });

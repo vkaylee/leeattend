@@ -1,6 +1,7 @@
 mod common;
 
 use apiserver::models::{LogSource, RawAttendanceLog};
+use apiserver::services::AttendanceLogService;
 use apiserver::AppState;
 use axum::http::{Request, StatusCode};
 use chrono::{TimeZone, Utc, NaiveDate};
@@ -38,6 +39,7 @@ async fn test_reprocess_should_not_delete_next_day_entries() {
         workspace_repo,
         agent_service,
         jwt_secret,
+        attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
     });
 
     // Day 1: 2026-01-14

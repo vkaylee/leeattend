@@ -1,6 +1,6 @@
 use crate::models::RawAttendanceLog;
 use chrono::{DateTime, Utc};
-use sqlx::{query, query_as, PgPool};
+use sqlx::{query, query_as, PgPool, QueryBuilder};
 use uuid::Uuid;
 
 pub async fn create_raw_log(pool: &PgPool, log: &RawAttendanceLog) -> Result<bool, sqlx::Error> {
@@ -115,4 +115,37 @@ pub async fn count_raw_logs(
         .fetch_one(pool)
         .await
         .map(|r| r.0)
+}
+
+/// Batch insert multiple raw attendance logs
+/// Uses ON CONFLICT DO NOTHING to skip duplicates
+/// Returns count of actually inserted rows
+pub async fn create_raw_logs_batch(
+    pool: &PgPool,
+    logs: &[&RawAttendanceLog],
+) -> Result<usize, sqlx::Error> {
+    if logs.is_empty() {
+        return Ok(0);
+    }
+
+    let mut query_builder: QueryBuilder<sqlx::Postgres> = QueryBuilder::new(
+        "INSERT INTO raw_attendance_logs (id, workspace_id, employee_id, punch_time, source, device_id, raw_data, created_at) ",
+    );
+
+    query_builder.push_values(logs.iter(), |mut b, log| {
+        b.push_bind(log.id)
+            .push_bind(log.workspace_id)
+            .push_bind(log.employee_id)
+            .push_bind(log.punch_time)
+            .push_bind(log.source)
+            .push_bind(&log.device_id)
+            .push_bind(&log.raw_data)
+            .push_bind(log.created_at);
+    });
+
+    query_builder.push(" ON CONFLICT (workspace_id, employee_id, punch_time) DO NOTHING");
+
+    let result = query_builder.build().execute(pool).await?;
+
+    Ok(result.rows_affected() as usize)
 }

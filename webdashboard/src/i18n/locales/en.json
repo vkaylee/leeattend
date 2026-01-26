@@ -409,7 +409,8 @@
     "auto": "Auto",
     "required": "Required",
     "forever": "Forever",
-    "important_note": "Important Note"
+    "important_note": "Important Note",
+    "no_data": "No data found"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -656,7 +657,13 @@
       "calculation": "Calculation",
       "policy_info": "Policy Information",
       "accrual_info_title": "Accrual Info",
-      "used": "used"
+      "used": "used",
+      "history": "Transaction History",
+      "tabs": {
+        "all": "All",
+        "accruals": "Accruals",
+        "usage": "Usage"
+      }
     },
     "assignment_types": {
       "employee": "Individual",
@@ -683,6 +690,12 @@
       "validation": {
         "invalid_amount": "Invalid amount"
       }
+    },
+    "transaction_type": {
+      "accrual": "Periodic Accrual",
+      "usage": "Leave Usage",
+      "adjustment": "Balance Adjustment",
+      "carry_over": "Carry Over"
     }
   },
   "members": {

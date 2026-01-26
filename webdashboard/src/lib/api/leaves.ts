@@ -1,16 +1,16 @@
-import { API_BASE_URL } from "./config";
+import { API_BASE_URL } from './config';
 import { apiFetch } from "./helpers";
-import { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, PaginatedResponse } from "./types";
+import { LeavePolicyAssignmentDetail, LeaveRequest, EmployeeLeaveBalance, WorkspaceLeaveBalance, LeaveHistoryItem, LeavePolicy, LeaveType, LeaveTypeConfig, PaginatedResponse } from './types';
 
 export async function submitLeaveRequest(
   wsId: string,
   data: { employee_id: string; leave_type_id: string; start_date: string; end_date: string; reason?: string },
 ): Promise<LeaveRequest> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/submit`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error("Failed to submit leave request");
+  if (!response.ok) throw new Error('Failed to submit leave request');
   return response.json();
 }
 
@@ -22,7 +22,7 @@ export async function fetchWorkspaceLeaveRequests(
     ? `${API_BASE_URL}/workspaces/${wsId}/leave/requests?status=${status}`
     : `${API_BASE_URL}/workspaces/${wsId}/leave/requests`;
   const response = await apiFetch(url);
-  if (!response.ok) throw new Error("Failed to fetch leave requests");
+  if (!response.ok) throw new Error('Failed to fetch leave requests');
   return response.json();
 }
 
@@ -30,7 +30,7 @@ export async function fetchMyLeaveRequests(
   employeeId: string
 ): Promise<LeaveRequest[]> {
   const response = await apiFetch(`${API_BASE_URL}/employees/${employeeId}/leave/requests`);
-  if (!response.ok) throw new Error("Failed to fetch my leave requests");
+  if (!response.ok) throw new Error('Failed to fetch my leave requests');
   return response.json();
 }
 
@@ -40,10 +40,10 @@ export async function approveLeaveRequest(
   data: { status: string },
 ): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/requests/${requestId}/approve`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error("Failed to approve leave request");
+  if (!response.ok) throw new Error('Failed to approve leave request');
 }
 
 export async function fetchEmployeeLeaveBalances(
@@ -51,7 +51,7 @@ export async function fetchEmployeeLeaveBalances(
   employeeId: string,
 ): Promise<EmployeeLeaveBalance[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/leave/balances`);
-  if (!response.ok) throw new Error("Failed to fetch leave balances");
+  if (!response.ok) throw new Error('Failed to fetch leave balances');
   return response.json();
 }
 
@@ -60,21 +60,25 @@ export async function fetchWorkspaceLeaveBalances(
   params?: { page?: number; limit?: number; q?: string }
 ): Promise<PaginatedResponse<WorkspaceLeaveBalance>> {
   const query = new URLSearchParams();
-  if (params?.page) query.append("page", params.page.toString());
-  if (params?.limit) query.append("limit", params.limit.toString());
-  if (params?.q) query.append("q", params.q);
+  if (params?.page) query.append('page', params.page.toString());
+  if (params?.limit) query.append('limit', params.limit.toString());
+  if (params?.q) query.append('q', params.q);
 
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/balances?${query.toString()}`);
-  if (!response.ok) throw new Error("Failed to fetch workspace leave balances");
+  if (!response.ok) throw new Error('Failed to fetch workspace leave balances');
   return response.json();
 }
 
 export async function fetchLeaveHistory(
   wsId: string,
   employeeId: string,
+  leaveTypeId?: string,
 ): Promise<LeaveHistoryItem[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/leave/history`);
-  if (!response.ok) throw new Error("Failed to fetch leave history");
+  const url = leaveTypeId 
+    ? `${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/leave/history?leave_type_id=${leaveTypeId}`
+    : `${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/leave/history`;
+  const response = await apiFetch(url);
+  if (!response.ok) throw new Error('Failed to fetch leave history');
   return response.json();
 }
 
@@ -84,15 +88,15 @@ export async function adjustLeaveBalance(
   data: { leave_type_id: string; amount: number; reason: string; transaction_date: string }
 ): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/leave/adjust`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error("Failed to adjust leave balance");
+  if (!response.ok) throw new Error('Failed to adjust leave balance');
 }
 
 export async function fetchLeavePolicies(wsId: string): Promise<LeavePolicy[]> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/policies`);
-  if (!response.ok) throw new Error("Failed to fetch leave policies");
+  if (!response.ok) throw new Error('Failed to fetch leave policies');
   return response.json();
 }
 
@@ -101,10 +105,10 @@ export async function createLeavePolicy(
   data: Partial<LeavePolicy>
 ): Promise<LeavePolicy> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/policies`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error("Failed to create leave policy");
+  if (!response.ok) throw new Error('Failed to create leave policy');
   return response.json();
 }
 
@@ -117,7 +121,7 @@ export async function updateLeavePolicy(
     method: "PATCH",
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error("Failed to update leave policy");
+  if (!response.ok) throw new Error('Failed to update leave policy');
   return response.json();
 }
 
@@ -126,26 +130,67 @@ export async function deleteLeavePolicy(
   policyId: string
 ): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/policies/${policyId}`, {
-    method: "DELETE",
+    method: 'DELETE',
   });
-  if (!response.ok) throw new Error("Failed to delete leave policy");
+  if (!response.ok) throw new Error('Failed to delete leave policy');
+}
+
+export async function fetchLeaveTypes(wsId: string): Promise<LeaveType[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/types`);
+  if (!response.ok) throw new Error('Failed to fetch leave types');
+  return response.json();
+}
+
+export async function createLeaveType(
+  wsId: string,
+  data: Partial<LeaveType>
+): Promise<LeaveType> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/types`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Failed to create leave type');
+  return response.json();
+}
+
+export async function updateLeaveType(
+  wsId: string,
+  id: string,
+  data: Partial<LeaveType>
+): Promise<LeaveType> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/types/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Failed to update leave type');
+  return response.json();
+}
+
+export async function deleteLeaveType(
+  wsId: string,
+  id: string
+): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/types/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) throw new Error('Failed to delete leave type');
+}
+
+export async function fetchLeavePolicyAssignments(wsId: string): Promise<LeavePolicyAssignmentDetail[]> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/policies/assignments`);
+  if (!response.ok) throw new Error('Failed to fetch policy assignments');
+  return response.json();
 }
 
 export async function assignLeavePolicy(
   wsId: string,
-  data: { 
-    assignee_type: string; 
-    assignee_id: string | null; 
-    policy_id: string; 
-    effective_from: string; 
-    effective_to?: string 
-  }
+  data: { assignee_type: string; assignee_id: string | null; policy_id: string; effective_from: string }
 ): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/policies/assign`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error("Failed to assign leave policy");
+  if (!response.ok) throw new Error('Failed to assign leave policy');
 }
 
 export async function triggerAccrualRun(
@@ -153,60 +198,21 @@ export async function triggerAccrualRun(
   data: { date: string }
 ): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/accrual/run`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error("Failed to trigger accrual run");
-}
-
-export async function fetchLeaveTypes(wsId: string): Promise<LeaveType[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/types`);
-  if (!response.ok) throw new Error("Failed to fetch leave types");
-  return response.json();
+  if (!response.ok) throw new Error('Failed to trigger accrual run');
 }
 
 export async function updateLeaveTypeConfig(
   wsId: string,
-  typeId: string,
+  id: string,
   config: LeaveTypeConfig
 ): Promise<LeaveType> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/types/${typeId}/config`, {
-    method: "PUT",
-    body: JSON.stringify({ policy_config: config }),
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/types/${id}/config`, {
+    method: "PATCH",
+    body: JSON.stringify(config),
   });
-  if (!response.ok) throw new Error("Failed to update leave type config");
-  return response.json();
-}
-
-export async function createLeaveType(
-  wsId: string,
-  data: { code: string; name: string; is_paid: boolean }
-): Promise<LeaveType> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/types`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Failed to create leave type");
-  return response.json();
-}
-
-export async function deleteLeaveType(
-  wsId: string,
-  typeId: string
-): Promise<void> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/types/${typeId}`, {
-    method: "DELETE",
-  });
-  if (response.status === 409) {
-    const error = await response.text();
-    throw new Error(error);
-  }
-  if (!response.ok) throw new Error("Failed to delete leave type");
-}
-
-
-export async function fetchLeavePolicyAssignments(wsId: string): Promise<LeavePolicyAssignmentDetail[]> {
-  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/policies/assignments`);
-  if (!response.ok) throw new Error("Failed to fetch leave policy assignments");
+  if (!response.ok) throw new Error('Failed to update leave type config');
   return response.json();
 }

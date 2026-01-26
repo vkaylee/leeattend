@@ -1,6 +1,7 @@
 mod common;
 
 use apiserver::agent_manager::AgentManager;
+use apiserver::services::AttendanceLogService;
 use apiserver::AppState;
 use axum::http::StatusCode;
 use chrono::NaiveDate;
@@ -33,6 +34,7 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
         workspace_repo: workspace_repo.clone(),
         agent_service: agent_service.clone(),
         jwt_secret: "test_secret".to_string(),
+        attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
     });
 
     let app = apiserver::create_app(app_state);

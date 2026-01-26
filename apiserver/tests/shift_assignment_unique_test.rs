@@ -1,3 +1,4 @@
+use apiserver::services::AttendanceLogService;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
@@ -35,6 +36,7 @@ async fn setup_test_app(pool: PgPool) -> axum::Router {
         workspace_repo,
         agent_service,
         jwt_secret: "test_secret".to_string(),
+        attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
     });
 
     create_app(state)

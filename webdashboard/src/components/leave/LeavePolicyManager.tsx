@@ -81,7 +81,7 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
   return (
     <div className="space-y-6">
       <div className="flex justify-end px-1">
-         <button onClick={() => setIsCreating(true)} className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100"><Plus size={14} /> Create Policy</button>
+         <button data-testid="add-policy-btn" onClick={() => setIsCreating(true)} className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100"><Plus size={14} /> Create Policy</button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -101,8 +101,8 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
                     {type?.name || "Unknown"}
                   </span>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => setEditingPolicy(policy)} className="p-2 text-slate-400 hover:text-primary-600 bg-slate-50 rounded-xl border border-slate-100"><Edit2 size={16} /></button>
-                    <button onClick={() => { if (confirm("Delete this policy?")) deleteMutation.mutate(policy.id); }} className="p-2 text-slate-400 hover:text-rose-600 bg-slate-50 rounded-xl border border-slate-100"><Trash2 size={16} /></button>
+                    <button data-testid="edit-policy-btn" onClick={() => setEditingPolicy(policy)} className="p-2 text-slate-400 hover:text-primary-600 bg-slate-50 rounded-xl border border-slate-100"><Edit2 size={16} /></button>
+                    <button data-testid="delete-policy-btn" onClick={() => { if (confirm("Delete this policy?")) deleteMutation.mutate(policy.id); }} className="p-2 text-slate-400 hover:text-rose-600 bg-slate-50 rounded-xl border border-slate-100"><Trash2 size={16} /></button>
                   </div>
                 </div>
                 <h3 className="mt-5 text-lg font-bold text-slate-800 tracking-tight leading-none uppercase">{policy.name}</h3>
@@ -194,7 +194,7 @@ function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: 
           </div>
           <div className="space-y-6 px-2">
             <FormRow label="Policy Name">
-              <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold outline-none focus:ring-4 focus:ring-primary-500/5 transition-all h-[54px]" placeholder="e.g. Standard Policy" />
+              <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold outline-none focus:ring-4 focus:ring-primary-500/5 transition-all h-[54px]" id="policy-name" placeholder="e.g. Standard Policy" />
             </FormRow>
             <FormRow label="Leave Type">
               <Combobox options={leaveTypes.map((t: any) => ({ value: t.id, label: t.name }))} value={formData.leave_type_id} onChange={(val) => setFormData({...formData, leave_type_id: val})} className="bg-white border-slate-200 h-[54px] rounded-xl" />
@@ -210,7 +210,7 @@ function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: 
           </div>
           <div className="bg-slate-50/50 p-10 rounded-[2.5rem] border border-slate-100 space-y-6">
             <FormRow label="Base Amount" info="Days to grant per period">
-              <input required type="number" step="0.1" value={formData.accrual_amount} onChange={(e) => setFormData({...formData, accrual_amount: parseFloat(e.target.value)})} className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold font-mono text-center h-[54px]" />
+              <input required type="number" step="0.1" id="annual-entitlement" value={formData.accrual_amount} onChange={(e) => setFormData({...formData, accrual_amount: parseFloat(e.target.value)})} className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold font-mono text-center h-[54px]" />
             </FormRow>
             <FormRow label="Frequency">
               <select value={formData.frequency} onChange={(e) => setFormData({...formData, frequency: e.target.value})} className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold uppercase h-[54px]">
@@ -263,7 +263,7 @@ function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: 
         {/* FOOTER */}
         <div className="flex justify-end gap-4 pt-8 border-t border-slate-100 sticky bottom-0 bg-white pb-2">
           <button type="button" onClick={onClose} className="px-8 py-3 text-xs font-bold text-slate-400 uppercase tracking-[0.2em] hover:text-slate-600">Cancel</button>
-          <button type="submit" disabled={isSaving} className="rounded-2xl bg-primary-600 px-10 py-4 text-xs font-black text-white uppercase tracking-[0.2em] shadow-2xl shadow-primary-200 hover:bg-primary-700 active:scale-95 transition-all">
+          <button type="submit" data-testid="save-policy-btn" disabled={isSaving} className="rounded-2xl bg-primary-600 px-10 py-4 text-xs font-black text-white uppercase tracking-[0.2em] shadow-2xl shadow-primary-200 hover:bg-primary-700 active:scale-95 transition-all">
             {isSaving ? "Saving..." : (policy ? "Update Policy" : "Create Policy")}
           </button>
         </div>

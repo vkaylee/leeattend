@@ -3,6 +3,7 @@ mod common;
 use apiserver::agent_manager::AgentManager;
 use apiserver::create_app;
 use apiserver::models::{DailyAttendanceReport, PaginatedResponse};
+use apiserver::services::AttendanceLogService;
 use apiserver::AppState;
 use chrono::{Local, NaiveTime, TimeZone, Utc};
 use common::db::TestDatabase;
@@ -30,6 +31,7 @@ async fn spawn_app() -> (String, TestDatabase) {
         workspace_repo,
         agent_service,
         jwt_secret: "test_secret_123".to_string(),
+        attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
     });
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")

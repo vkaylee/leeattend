@@ -140,13 +140,23 @@ pub async fn get_workspace_leave_requests(
     }
 }
 
+#[derive(Deserialize)]
+pub struct LeaveHistoryQuery {
+    pub leave_type_id: Option<Uuid>,
+}
+
 pub async fn get_employee_leave_history(
     Path((ws_id, emp_id)): Path<(Uuid, Uuid)>,
+    Query(query): Query<LeaveHistoryQuery>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<LeaveHistoryItem>>, StatusCode> {
     let year = Utc::now().year();
     match crate::services::leave_service::LeaveService::get_employee_leave_history(
-        &state.db, ws_id, emp_id, year,
+        &state.db,
+        ws_id,
+        emp_id,
+        year,
+        query.leave_type_id,
     )
     .await
     {

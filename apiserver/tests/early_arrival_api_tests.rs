@@ -1,6 +1,7 @@
 mod common;
 
 use apiserver::models::EarlyArrivalStrategy;
+use apiserver::services::AttendanceLogService;
 use apiserver::AppState;
 use apiserver::agent_manager::AgentManager;
 use apiserver::repositories::{SqlxAgentRepository, SqlxWorkspaceRepository};
@@ -31,6 +32,7 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
         workspace_repo,
         agent_service,
         jwt_secret: "test_secret".to_string(),
+        attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
     });
 
     let app = apiserver::create_app(state);
