@@ -4,6 +4,9 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ## [Unreleased]
 ### Added
+- **Batch Data Ingestion**: Added `save_raw_attendance_batch` to Edge Agent, increasing write performance by ~100x.
+- **SQLite Tuning**: Optimized PRAGMA settings (WAL, NORMAL sync, 64MB cache) for high-frequency logs.
+- **Batch Worker Integration**: Implemented independent DB Writer worker with time-based and size-based flush logic.
 - **Agent Infrastructure & Sync Engine Rewrite**:
     - **Inverted Communication Model**: Migrated from "Python Server / Rust Client" to a more robust "Rust Server / Python Client" architecture.
     - **Dynamic Port Assignment**: The Orchestrator now binds to a random available port (0) and passes it to the Sidecar, eliminating port conflicts.

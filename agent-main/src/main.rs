@@ -36,29 +36,51 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db = Database::new(&config.database_url).await.expect("Failed to initialize database");
 
     let (central_client, central_rx) = CentralClient::new(
-        config.central_server_url, 
-        config.agent_id, 
-        config.agent_token, 
+        config.central_server_url.clone(), 
+        config.agent_id.clone(), 
+        config.agent_token.clone(), 
         db.clone()
     );
     central_client.start(central_rx).await;
 
-    // --- DB Writer Worker ---
-    let (log_tx, mut log_rx) = mpsc::channel::<(String, models::AttendanceData)>(10000); // Buffer size 10k
+    // --- DB Writer Worker (Batch Mode) ---
+    let (log_tx, mut log_rx) = mpsc::channel::<(String, models::AttendanceData)>(10000); 
     let writer_db = db.clone();
     
     tokio::spawn(async move {
-        info!("💾 DB Writer Worker started");
-        // Optional: Batch insert could be implemented here for even more speed
-        while let Some((device_id, log)) = log_rx.recv().await {
-            // Use existing deduplication logic in save_raw_attendance
-            if let Err(e) = writer_db.save_raw_attendance(&device_id, log).await {
-                error!("Failed to save log to DB: {}", e);
+        info!("💾 DB Writer Worker started (Batch Mode)");
+        let mut buffer = Vec::with_capacity(500);
+        let mut interval = tokio::time::interval(Duration::from_millis(500));
+
+        loop {
+            tokio::select! {
+                msg = log_rx.recv() => {
+                    match msg {
+                        Some(item) => {
+                            buffer.push(item);
+                            if buffer.len() >= 500 {
+                                let to_save = std::mem::replace(&mut buffer, Vec::with_capacity(500));
+                                if let Err(e) = writer_db.save_raw_attendance_batch(to_save).await {
+                                    error!("Failed to save batch to DB: {}", e);
+                                }
+                            }
+                        }
+                        None => break,
+                    }
+                }
+                _ = interval.tick() => {
+                    if !buffer.is_empty() {
+                        let to_save = std::mem::replace(&mut buffer, Vec::with_capacity(500));
+                        if let Err(e) = writer_db.save_raw_attendance_batch(to_save).await {
+                            error!("Failed to save timed batch to DB: {}", e);
+                        }
+                    }
+                }
             }
         }
         info!("💾 DB Writer Worker stopped");
     });
-    // ------------------------
+    // -------------------------------------
 
     let listener = TcpListener::bind("127.0.0.1:0").await?;
     let actual_port = listener.local_addr()?.port();

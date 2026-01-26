@@ -356,3 +356,20 @@ To ensure data integrity and clean process termination, both the Edge Agent and 
 - **Signal Propagation**: Upon receiving `SIGINT` (Ctrl+C) or `SIGTERM`, the Orchestrator (`agent-main`) triggers a `CancellationToken`. This immediately signals all background tasks (WebSocket sync, device polling, heartbeat) to stop after their current unit of work.
 - **Sidecar Cleanup**: The Orchestrator explicitly kills the Python sidecar process and waits for its exit, preventing "zombie" processes from lingering on the host system.
 - **Stateless Exit**: The Python worker proactively closes hardware connections and its control stream safely before exiting.
+
+### 17. High-Performance Edge Ingestion
+To handle high-traffic environments (30k+ logs), the Edge Agent employs an optimized ingestion pipeline:
+
+#### 17.1. Batch DB Writer Worker
+- **Pattern**: Producer-Consumer with a 10,000-slot `mpsc` channel.
+- **Batching Strategy**: The worker buffers incoming logs and flushes them to SQLite in a single transaction when:
+    - The buffer reaches **500 records**.
+    - An interval of **500ms** has passed (ensuring real-time availability).
+- **Efficiency**: Reduces SQLite transaction overhead by up to 100x compared to single-row inserts.
+
+#### 17.2. SQLite Performance Tuning
+The local database is configured with the following PRAGMAs:
+- `journal_mode=WAL`: Enables concurrent reads and writes.
+- `synchronous=NORMAL`: Balances safety and write speed.
+- `cache_size=-64000`: Allocates 64MB of RAM for database caching.
+- `temp_store=MEMORY`: Keeps temporary tables in RAM to avoid disk I/O.
