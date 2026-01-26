@@ -1,6 +1,7 @@
 mod common;
 use apiserver::models::ImportJobStatus;
 use apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService;
+use apiserver::services::attendance_import_service::AttendanceImportService;
 use common::db::TestDatabase;
 use common::factory::TestFactory;
 use std::time::Duration;
@@ -35,7 +36,7 @@ async fn test_batch_import_from_file_success() {
     fs::write(&file_path, csv_data).await.unwrap();
 
     // Import from file path
-    let job_id = AttendanceAdjustmentService::batch_import_from_file(
+    let job_id = AttendanceImportService::batch_import_from_file(
         pool.clone(),
         ws_id,
         user_id,
@@ -168,7 +169,7 @@ async fn test_import_fallback_logic() {
     );
     fs::write(&file_path, csv_data).await.unwrap();
 
-    let job_id = AttendanceAdjustmentService::batch_import_from_file(
+    let job_id = AttendanceImportService::batch_import_from_file(
         pool.clone(),
         ws_id,
         user_id,
@@ -223,7 +224,7 @@ async fn test_import_soft_validation_behavior() {
     fs::write(&file_path, csv_data).await.unwrap();
 
     // Import from file path
-    let job_id = AttendanceAdjustmentService::batch_import_from_file(
+    let job_id = AttendanceImportService::batch_import_from_file(
         pool.clone(),
         ws_id,
         user_id,

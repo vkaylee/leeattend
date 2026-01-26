@@ -1,5 +1,5 @@
 use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite, Error};
-use log::info;
+// use log::info;
 use crate::models::{RawAttendanceLog, DeviceConfig, AttendanceData};
 use chrono::NaiveDateTime;
 

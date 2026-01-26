@@ -2,6 +2,7 @@ mod common;
 
 use apiserver::models::ImportJobStatus;
 use apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService;
+use apiserver::services::attendance_import_service::AttendanceImportService;
 use chrono::Datelike;
 use common::db::TestDatabase;
 use common::factory::TestFactory;
@@ -44,7 +45,7 @@ async fn test_workspace_specific_date_parsing() {
     );
     fs::write(&file_path, csv_data.clone()).await.unwrap();
 
-    let job_id = AttendanceAdjustmentService::batch_import_from_file(
+    let job_id = AttendanceImportService::batch_import_from_file(
         pool.clone(),
         ws_id,
         user_id,
@@ -96,7 +97,7 @@ async fn test_workspace_specific_date_parsing() {
     let file_path_vn = format!("{}/date_test_vn_{}.csv", storage_dir, uuid::Uuid::new_v4());
     fs::write(&file_path_vn, csv_data).await.unwrap();
 
-    let job_id_vn = AttendanceAdjustmentService::batch_import_from_file(
+    let job_id_vn = AttendanceImportService::batch_import_from_file(
         pool.clone(),
         ws_id,
         user_id,

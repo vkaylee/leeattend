@@ -336,10 +336,12 @@ pub async fn get_existing_employee_ids_by_numbers(
         return Ok(Vec::new());
     }
 
+    let normalized_ids: Vec<String> = id_numbers.iter().map(|id| normalize_employee_id(id)).collect();
+
     let query = "SELECT employee_id_number FROM employees WHERE workspace_id = $1 AND employee_id_number = ANY($2)";
     let result: Vec<String> = sqlx::query_scalar(query)
         .bind(workspace_id)
-        .bind(id_numbers)
+        .bind(normalized_ids)
         .fetch_all(pool)
         .await?;
 

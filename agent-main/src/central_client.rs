@@ -1,5 +1,5 @@
 use futures_util::{ SinkExt, StreamExt };
-use log::{error, info, warn};
+use log::{error, info};
 use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
@@ -24,6 +24,7 @@ pub struct CentralClient {
     tx: mpsc::Sender<CentralMessage>,
 }
 
+#[allow(clippy::collapsible_if)]
 impl CentralClient {
     pub fn new(url: String, agent_id: String, token: String, db: Database) -> (Self, mpsc::Receiver<CentralMessage>) {
         let (tx, rx) = mpsc::channel(100);
@@ -82,6 +83,7 @@ impl RetryManager {
     }
 }
 
+#[allow(clippy::collapsible_if)]
 impl CentralClient {
     pub async fn start(&self, mut rx: mpsc::Receiver<CentralMessage>) {
         let url = self.url.clone();
@@ -105,8 +107,8 @@ impl CentralClient {
                             data: AttendanceData {
                                 user_id: log.user_id.clone(),
                                 timestamp: log.timestamp.format("%Y-%m-%d %H:%M:%S").to_string(),
-                                status: log.status.map(|s| s as i32),
-                                punch: log.punch.map(|p| p as i32),
+                                status: log.status,
+                                punch: log.punch,
                             },
                             timestamp: chrono::Utc::now().to_rfc3339(),
                         };
@@ -154,7 +156,7 @@ impl CentralClient {
                             timestamp: chrono::Utc::now().to_rfc3339(),
                         };
                         if let Ok(text) = serde_json::to_string(&handshake) {
-                            if let Err(_) = write.send(Message::Text(text.into())).await {
+                            if write.send(Message::Text(text.into())).await.is_err() {
                                 manager.record_connection_failed();
                                 continue;
                             }
@@ -164,7 +166,7 @@ impl CentralClient {
                             tokio::select! {
                                 Some(out_msg) = rx.recv() => {
                                     if let Ok(text) = serde_json::to_string(&out_msg) {
-                                        if let Err(_) = write.send(Message::Text(text.into())).await {
+                                        if write.send(Message::Text(text.into())).await.is_err() {
                                             break;
                                         }
                                     }

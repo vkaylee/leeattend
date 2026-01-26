@@ -7,6 +7,7 @@ use crate::models::{
     CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmploymentPeriod, RehireEmployeeRequest, UpdateEmployeeRequest, WorkingCondition,
 };
 use crate::repositories::{employee_repository, user_repository};
+use crate::utils::normalize_employee_id;
 
 pub struct EmployeeService;
 
@@ -100,7 +101,7 @@ impl EmployeeService {
             workspace_id,
             user_id: req.user_id,
             full_name: req.full_name,
-            employee_id_number: req.employee_id_number,
+            employee_id_number: normalize_employee_id(&req.employee_id_number),
             hire_date: req.hire_date,
             termination_date: None,
             tags: req.tags.unwrap_or_default(),
@@ -263,7 +264,7 @@ impl EmployeeService {
             workspace_id,
             req.user_id,
             req.full_name,
-            req.employee_id_number,
+            req.employee_id_number.map(|s| normalize_employee_id(&s)),
             req.hire_date,
             req.termination_date,
             req.tags,
