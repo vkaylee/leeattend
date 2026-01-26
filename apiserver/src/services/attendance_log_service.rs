@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
+use std::sync::Arc;
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
@@ -7,10 +8,49 @@ use crate::models::{LogSource, RawAttendanceLog};
 use crate::repositories::{employee_repository, raw_attendance_log_repository};
 use crate::services::pairing_service::PairingService;
 use crate::utils::datetime::parse_datetime_with_tz;
+use crate::services::{AgentLogBuffer, AgentLogEntry, agent_log_buffer};
 
-pub struct AttendanceLogService;
+#[derive(Clone)]
+pub struct AttendanceLogService {
+    #[allow(dead_code)]
+    pool: PgPool,
+    log_buffer: Arc<AgentLogBuffer>,
+}
 
 impl AttendanceLogService {
+    pub fn new(
+        #[allow(dead_code)]
+    pool: PgPool,
+        buffer_capacity: usize,
+        batch_size: usize,
+        flush_interval_ms: u64,
+    ) -> (Self, tokio::task::JoinHandle<()>) {
+        let (log_buffer, log_receiver) = AgentLogBuffer::new(buffer_capacity);
+        let log_buffer = Arc::new(log_buffer);
+
+        let pool_clone = pool.clone();
+        let worker_handle = tokio::spawn(async move {
+            agent_log_buffer::run_log_worker(
+                pool_clone,
+                log_receiver,
+                batch_size,
+                flush_interval_ms,
+            )
+            .await;
+        });
+
+        let service = Self {
+            pool,
+            log_buffer,
+        };
+
+        (service, worker_handle)
+    }
+
+    pub async fn ingest_agent_log(&self, entry: AgentLogEntry) -> Result<(), String> {
+        self.log_buffer.send(entry).await
+    }
+
     /// Processes a single attendance log entry from any source (Agent or Import).
     /// Handles employee mapping, timezone-aware parsing (if needed), and triggers pairing logic.
     #[allow(clippy::too_many_arguments)]
@@ -46,7 +86,7 @@ impl AttendanceLogService {
         let punch_time = match parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt) {
             Ok(dt) => dt,
             Err(e) => {
-                let msg = format!("Failed to parse timestamp '{}': {}", punch_time_raw, e);
+                let msg = format!("Failed to parse timestamp '''{}''': {}", punch_time_raw, e);
                 error!("{}", msg);
                 return Err(msg);
             }

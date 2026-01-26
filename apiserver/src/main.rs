@@ -1,3 +1,4 @@
+use apiserver::services::{AttendanceLogService, AttendanceImportService};
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
@@ -21,10 +22,8 @@ impl Drop for PortFileGuard {
 
 #[tokio::main]
 async fn main() {
-    // Load environment variables from .env file
     dotenvy::dotenv().ok();
 
-    // Initialize tracing (logging)
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -33,7 +32,6 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    // Database connection
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let pool = PgPoolOptions::new()
         .max_connections(10)
@@ -42,16 +40,13 @@ async fn main() {
         .await
         .expect("Failed to connect to Postgres");
 
-    // Run migrations
     sqlx::migrate!("./migrations")
         .run(&pool)
         .await
         .expect("Failed to run migrations");
 
-    // Resume any pending attendance import jobs
-    apiserver::services::attendance_adjustment_service::AttendanceAdjustmentService::resume_all_pending_jobs(pool.clone()).await;
+    AttendanceImportService::resume_all_pending_jobs(pool.clone()).await;
 
-    // Seed dev data if in debug mode
     #[cfg(debug_assertions)]
     {
         apiserver::dev_initialization::ensure_dev_data(&pool)
@@ -59,7 +54,6 @@ async fn main() {
             .expect("Failed to seed dev data");
     }
 
-    // Initialize AppState
     let agent_manager = AgentManager::new();
     let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: pool.clone() });
     let workspace_repo =
@@ -71,6 +65,27 @@ async fn main() {
     let jwt_secret =
         std::env::var("JWT_SECRET").unwrap_or_else(|_| "dev_secret_key_leeattend_2026".to_string());
 
+    let buffer_capacity: usize = std::env::var("AGENT_LOG_BUFFER_CAPACITY")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(5000);
+    let batch_size: usize = std::env::var("AGENT_LOG_BATCH_SIZE")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(100);
+    let flush_interval_ms: u64 = std::env::var("AGENT_LOG_FLUSH_MS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(1000);
+
+    let (attendance_service, log_worker_handle) = AttendanceLogService::new(
+        pool.clone(),
+        buffer_capacity,
+        batch_size,
+        flush_interval_ms,
+    );
+    let attendance_service = Arc::new(attendance_service);
+
     let state = Arc::new(AppState {
         agent_manager,
         db: pool,
@@ -78,12 +93,11 @@ async fn main() {
         workspace_repo,
         agent_service,
         jwt_secret,
+        attendance_service,
     });
 
-    // Build our application
     let app = create_app(state.clone());
 
-    // Read host and port from environment variables
     let host = std::env::var("API_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
     let host = host.trim().to_string();
     let preferred_port = std::env::var("API_PORT")
@@ -91,48 +105,31 @@ async fn main() {
         .parse::<u16>()
         .unwrap_or(3000);
 
-    tracing::debug!("Configured host: '{}', port: {}", host, preferred_port);
-
-    // Try to bind to the preferred port, or find another one if it's busy
-    // Dọn dẹp file cũ nếu có để tránh stale data
     let port_file_name =
         std::env::var("PORT_FILE_NAME").unwrap_or_else(|_| ".api_port".to_string());
     let _ = std::fs::remove_file(&port_file_name);
 
     let listener = {
         let mut listener = None;
-        let max_port = preferred_port + 100; // Try up to 100 next ports
+        let max_port = preferred_port + 100;
 
         for port in preferred_port..max_port {
             let addr_str = format!("{}:{}", host, port);
-            tracing::info!("Attempting to bind to {}", addr_str);
             match tokio::net::TcpListener::bind(&addr_str).await {
                 Ok(l) => {
                     listener = Some(l);
                     break;
                 }
-                Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
-                    tracing::warn!("Port {} is already in use, trying next one...", port);
-                    continue;
-                }
+                Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => continue,
                 Err(e) => panic!("Failed to bind to {}: {}", addr_str, e),
             }
         }
-
-        listener
-            .expect("Could not find an available port in the range 3000-3100. Throwing exception.")
+        listener.expect("Could not find an available port")
     };
 
     let actual_addr = listener.local_addr().unwrap();
-    tracing::info!("Actual listening on {}", actual_addr);
-
-    // Ghi port vào file để Frontend/AI có thể tự động khám phá
     if std::fs::write(&port_file_name, actual_addr.port().to_string()).is_ok() {
-        tracing::info!(
-            "Saved actual port to {}: {}",
-            port_file_name,
-            actual_addr.port()
-        );
+        tracing::info!("Actual listening on {}", actual_addr);
     }
 
     let _guard = PortFileGuard {
@@ -144,9 +141,17 @@ async fn main() {
         .await
         .unwrap();
 
-    // Sau khi server ngừng nhận request, thực hiện thông báo cho Agent và đóng tài nguyên
+    // Graceful shutdown sequence
+    tracing::info!("Starting graceful shutdown...");
+
     state.agent_manager.shutdown().await;
-    state.db.close().await;
+
+    drop(state);
+
+    tracing::info!("Waiting for log worker to drain...");
+    if let Err(e) = log_worker_handle.await {
+        tracing::error!("Log worker task panicked: {:?}", e);
+    }
 
     tracing::info!("Server stopped.");
 }
@@ -173,6 +178,4 @@ async fn shutdown_signal() {
         _ = ctrl_c => {},
         _ = terminate => {},
     }
-
-    tracing::info!("Graceful shutdown signal received.");
 }

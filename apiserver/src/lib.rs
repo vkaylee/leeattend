@@ -14,7 +14,7 @@ use axum::{
 
 use crate::agent_manager::AgentManager;
 use crate::repositories::{AgentRepository, WorkspaceRepository};
-use crate::services::AgentService;
+use crate::services::{AgentService, AttendanceLogService};
 use axum::http::{HeaderValue, Method};
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -27,6 +27,7 @@ pub struct AppState {
     pub workspace_repo: Arc<dyn WorkspaceRepository>,
     pub agent_service: Arc<AgentService>,
     pub jwt_secret: String,
+    pub attendance_service: Arc<AttendanceLogService>,
 }
 
 mod ax_auth {

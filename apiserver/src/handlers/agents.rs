@@ -20,6 +20,7 @@ use crate::models::{
     AuthorizedAgent, CreateAuthorizedAgentRequest, CreateDeviceRequest, Device, TrustAgentRequest,
     UpdateAuthorizedAgentRequest, UpdateDeviceRequest,
 };
+use crate::services::AgentLogEntry;
 use crate::AppState;
 
 // --- WebSocket Handlers ---
@@ -59,19 +60,18 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                             if !agent_id.is_empty() && !workspace_id.is_nil() {
                                 if let (Some(device_id), Some(data)) = (v["device_id"].as_str(), v.get("data")) {
                                     if let (Some(user_id_number), Some(punch_time_str)) = (data["user_id"].as_str(), data["timestamp"].as_str()) {
-                                        // Sử dụng Unified AttendanceLogService
-                                        let _ = crate::services::attendance_log_service::AttendanceLogService::process_log(
-                                            &state_clone.db,
+                                        // Send to buffered channel for async processing
+                                        let entry = AgentLogEntry {
                                             workspace_id,
-                                            user_id_number,
-                                            punch_time_str,
-                                            crate::models::LogSource::Device,
-                                            Some(device_id.to_string()),
-                                            Some(data.clone()),
-                                            &ws_tz,
-                                            Some(&ws_date_fmt),
-                                            Some(&ws_time_fmt)
-                                        ).await;
+                                            employee_id_number: user_id_number.to_string(),
+                                            punch_time_raw: punch_time_str.to_string(),
+                                            device_id: Some(device_id.to_string()),
+                                            raw_data: Some(data.clone()),
+                                            timezone: ws_tz.clone(),
+                                            date_fmt: ws_date_fmt.clone(),
+                                            time_fmt: ws_time_fmt.clone(),
+                                        };
+                                        let _ = state_clone.attendance_service.ingest_agent_log(entry).await;
                                     }
                                 }
                             }
