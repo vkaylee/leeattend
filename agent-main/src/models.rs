@@ -9,8 +9,8 @@ pub struct RawAttendanceLog {
     pub device_id: String,
     pub user_id: String,
     pub timestamp: chrono::NaiveDateTime,
-    pub status: Option<i64>, // SQLite INTEGER is i64
-    pub punch: Option<i64>,  // SQLite INTEGER is i64
+    pub status: Option<i32>,
+    pub punch: Option<i32>,
     pub is_synced: i64,      // SQLite INTEGER
     pub created_at: Option<chrono::NaiveDateTime>,
 }

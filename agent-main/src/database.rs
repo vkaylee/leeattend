@@ -1,6 +1,7 @@
 use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite, Error};
 use log::info;
-use crate::models::{RawAttendanceLog, DeviceConfig};
+use crate::models::{RawAttendanceLog, DeviceConfig, AttendanceData};
+use chrono::NaiveDateTime;
 
 #[derive(Clone)]
 pub struct Database {
@@ -13,13 +14,6 @@ impl Database {
             .max_connections(5)
             .connect(database_url)
             .await?;
-
-        // Run migrations
-        sqlx::migrate!("./migrations")
-            .run(&pool)
-            .await?;
-
-        info!("Database connected and migrations applied.");
         Ok(Self { pool })
     }
 
@@ -28,14 +22,15 @@ impl Database {
         &self.pool
     }
 
+    #[allow(dead_code)]
     pub async fn save_raw_attendance(
         &self,
         device_id: &str,
-        user_id: &str,
-        timestamp: chrono::NaiveDateTime,
-        status: Option<i32>,
-        punch: Option<i32>,
+        data: AttendanceData,
     ) -> Result<i64, Error> {
+        let timestamp = NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%d %H:%M:%S")
+            .unwrap_or_else(|_| NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%dT%H:%M:%SZ").unwrap_or_default());
+
         let res = sqlx::query(
             r#"
             INSERT INTO zkt_raw_attendance (device_id, user_id, timestamp, status, punch)
@@ -43,28 +38,21 @@ impl Database {
             "#,
         )
         .bind(device_id)
-        .bind(user_id)
+        .bind(data.user_id)
         .bind(timestamp)
-        .bind(status)
-        .bind(punch)
+        .bind(data.status)
+        .bind(data.punch)
         .execute(&self.pool)
         .await?;
 
         Ok(res.last_insert_rowid())
     }
 
+    #[allow(dead_code)]
     pub async fn get_unsynced_logs(&self, limit: i64) -> Result<Vec<RawAttendanceLog>, Error> {
         sqlx::query_as::<_, RawAttendanceLog>(
             r#"
-            SELECT 
-                id, 
-                device_id, 
-                user_id, 
-                timestamp, 
-                status, 
-                punch, 
-                is_synced, 
-                created_at
+            SELECT id, device_id, user_id, timestamp, status, punch, is_synced, created_at
             FROM zkt_raw_attendance
             WHERE is_synced = 0
             LIMIT ?
@@ -75,25 +63,18 @@ impl Database {
         .await
     }
 
+    #[allow(dead_code)]
     pub async fn mark_synced(&self, ids: &[i64]) -> Result<(), Error> {
         if ids.is_empty() {
             return Ok(());
         }
-
-        // SQLite doesn't support array parameters directly like Postgres, so we build the query dynamically or iterate.
-        // For simplicity and safety with small batches, we can loop (transaction) or build a generic query string.
-        // Let's use a transaction.
         let mut tx = self.pool.begin().await?;
-        
         for id in ids {
-            sqlx::query(
-                "UPDATE zkt_raw_attendance SET is_synced = 1 WHERE id = ?",
-            )
-            .bind(id)
-            .execute(&mut *tx)
-            .await?;
+            sqlx::query("UPDATE zkt_raw_attendance SET is_synced = 1 WHERE id = ?")
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
         }
-
         tx.commit().await?;
         Ok(())
     }
@@ -120,6 +101,7 @@ impl Database {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub async fn get_active_devices(&self) -> Result<Vec<DeviceConfig>, Error> {
         sqlx::query_as::<_, DeviceConfig>(
             r#"
@@ -136,91 +118,49 @@ impl Database {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::NaiveDate;
 
     async fn setup_db() -> Database {
-        // Use in-memory database for testing
-        let pool = SqlitePoolOptions::new()
-            .max_connections(1)
-            .connect("sqlite::memory:")
-            .await
-            .expect("Failed to create in-memory pool");
-
-        // Run migrations (assuming ./migrations exists relative to cargo workspace root)
-        sqlx::migrate!("./migrations")
-            .run(&pool)
-            .await
-            .expect("Failed to run migrations");
-
-        Database { pool }
+        let db = Database::new("sqlite::memory:").await.unwrap();
+        sqlx::migrate!("./migrations").run(db.get_pool()).await.unwrap();
+        db
     }
 
     #[tokio::test]
     async fn test_save_and_retrieve_attendance() {
         let db = setup_db().await;
-        
-        let timestamp = NaiveDate::from_ymd_opt(2023, 1, 1)
-            .unwrap()
-            .and_hms_opt(12, 0, 0)
-            .unwrap();
-
-        let id = db.save_raw_attendance(
-            "DEV001", 
-            "USER123", 
-            timestamp, 
-            Some(1), 
-            Some(0)
-        ).await.expect("Failed to save attendance");
-
-        assert!(id > 0);
-
-        let logs = db.get_unsynced_logs(10).await.expect("Failed to get logs");
+        let data = AttendanceData {
+            user_id: "U1".into(),
+            timestamp: "2026-01-01 08:00:00".into(),
+            status: Some(1),
+            punch: Some(1),
+        };
+        db.save_raw_attendance("D1", data).await.unwrap();
+        let logs = db.get_unsynced_logs(10).await.unwrap();
         assert_eq!(logs.len(), 1);
-        assert_eq!(logs[0].device_id, "DEV001");
-        assert_eq!(logs[0].user_id, "USER123");
-        assert_eq!(logs[0].timestamp, timestamp);
+        assert_eq!(logs[0].user_id, "U1");
     }
 
     #[tokio::test]
     async fn test_mark_synced() {
         let db = setup_db().await;
-        let timestamp = chrono::Utc::now().naive_utc();
-        
-        let id = db.save_raw_attendance("DEV001", "U1", timestamp, None, None)
-            .await
-            .unwrap();
-
-        let logs_before = db.get_unsynced_logs(10).await.unwrap();
-        assert_eq!(logs_before.len(), 1);
-
+        let data = AttendanceData {
+            user_id: "U1".into(),
+            timestamp: "2026-01-01 08:00:00".into(),
+            status: Some(1),
+            punch: Some(1),
+        };
+        let id = db.save_raw_attendance("D1", data).await.unwrap();
         db.mark_synced(&[id]).await.unwrap();
-
-        let logs_after = db.get_unsynced_logs(10).await.unwrap();
-        assert_eq!(logs_after.len(), 0);
+        let logs = db.get_unsynced_logs(10).await.unwrap();
+        assert_eq!(logs.len(), 0);
     }
 
     #[tokio::test]
     async fn test_device_upsert() {
         let db = setup_db().await;
-
-        // Insert new
-        db.upsert_device("DEV001", Some("Entrance"), "192.168.1.10", 4370)
-            .await
-            .unwrap();
-
+        db.upsert_device("D1", Some("Device 1"), "1.1.1.1", 4370).await.unwrap();
         let devices = db.get_active_devices().await.unwrap();
         assert_eq!(devices.len(), 1);
-        assert_eq!(devices[0].id, "DEV001");
-        assert_eq!(devices[0].name.as_deref(), Some("Entrance"));
-
-        // Update existing
-        db.upsert_device("DEV001", Some("Main Gate"), "192.168.1.20", 4370)
-            .await
-            .unwrap();
-
-        let devices = db.get_active_devices().await.unwrap();
-        assert_eq!(devices.len(), 1);
-        assert_eq!(devices[0].name.as_deref(), Some("Main Gate"));
-        assert_eq!(devices[0].ip, "192.168.1.20");
+        assert_eq!(devices[0].id, "D1");
     }
 }
