@@ -145,7 +145,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             for device in devices {
-                info!("Processing device: {} ({})", device.name.as_deref().unwrap_or("Unnamed"), device.ip);
+                info!("Processing device: {} ({})", &device.name, device.ip);
                 
                 let connect_res = zk_client.call("zk.connect", json!({
                     "device_id": device.id,
@@ -162,7 +162,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Ok(logs_val) => {
                         if let Ok(logs) = serde_json::from_value::<Vec<models::AttendanceData>>(logs_val) {
                             let count = logs.len();
-                            info!("Fetched {} logs from {}. Pushing to DB queue...", count, device.id);
+                            info!("Fetched {} logs from {} ({}). Pushing to DB queue...", count, device.name, device.id);
                             
                             for log in logs {
                                 if let Err(e) = log_tx.send((device.id.clone(), log)).await {
@@ -175,7 +175,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Err(e) => error!("Failed to get logs from {}: {}", device.id, e),
                 }
 
-                let _ = zk_client.call("zk.sync_time", json!({"device_id": device.id})).await;
             }
 
             tokio::select! {

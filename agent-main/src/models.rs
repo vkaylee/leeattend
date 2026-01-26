@@ -11,7 +11,7 @@ pub struct RawAttendanceLog {
     pub timestamp: chrono::NaiveDateTime,
     pub status: Option<i32>,
     pub punch: Option<i32>,
-    pub is_synced: i64,      // SQLite INTEGER
+    pub is_synced: i64,
     pub created_at: Option<chrono::NaiveDateTime>,
 }
 
@@ -19,11 +19,25 @@ pub struct RawAttendanceLog {
 #[allow(dead_code)]
 pub struct DeviceConfig {
     pub id: String,
-    pub name: Option<String>,
+    pub name: String,
     pub ip: String,
     pub port: i64,
     pub last_seen: Option<chrono::NaiveDateTime>,
     pub is_active: Option<bool>,
+}
+
+// Config Push Models
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DeviceConfigPush {
+    pub device_id: String,
+    pub name: String,
+    pub ip: String,
+    pub port: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ConfigData {
+    pub devices: Vec<DeviceConfigPush>,
 }
 
 // WebSocket / API Models
@@ -52,7 +66,7 @@ pub enum CentralMessage {
         error: Option<String>,
     },
     ConfigPush {
-        data: Value,
+        data: ConfigData,
     },
     Command {
         id: String,

@@ -7,6 +7,26 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeviceConfigPush {
+    pub device_id: String,
+    pub name: String,
+    pub ip: String,
+    pub port: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConfigData {
+    pub devices: Vec<DeviceConfigPush>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum CentralMessage {
+    ConfigPush { data: ConfigData },
+    // Chúng ta có thể thêm các variant khác ở đây sau này nếu cần
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentCommand {
     pub id: String,
     pub r#type: String,
@@ -102,6 +122,18 @@ impl AgentManager {
         results
     }
 
+
+    pub async fn push_message(&self, agent_id: &str, msg: CentralMessage) -> Result<(), String> {
+        let agents = self.inner.agents.read().await;
+        if let Some(tx) = agents.get(agent_id) {
+            let msg_text = serde_json::to_string(&msg).map_err(|e| e.to_string())?;
+            tx.send(Message::Text(msg_text))
+                .map_err(|e| e.to_string())?;
+            Ok(())
+        } else {
+            Err(format!("Agent {} not found or offline", agent_id))
+        }
+    }
     pub async fn shutdown(&self) {
         let agents = self.inner.agents.read().await;
         tracing::info!(

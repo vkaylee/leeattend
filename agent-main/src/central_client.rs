@@ -260,14 +260,8 @@ async fn handle_incoming_text(text: &str, db: &Database) {
     if let Ok(msg) = serde_json::from_str::<CentralMessage>(text) {
         match msg {
             CentralMessage::ConfigPush { data } => {
-                if let Some(devices) = data.get("devices").and_then(|d| d.as_array()) {
-                    for d in devices {
-                        let id = d.get("device_id").or(d.get("id")).and_then(|v| v.as_str());
-                        let ip = d.get("ip").and_then(|v| v.as_str());
-                        if let (Some(id), Some(ip)) = (id, ip) {
-                            let _ = db.upsert_device(id, None, ip, 4370).await;
-                        }
-                    }
+                for d in data.devices {
+                    let _ = db.upsert_device(&d.device_id, &d.name, &d.ip, d.port).await;
                 }
             }
             CentralMessage::Ack { msg_id, status, .. } => {

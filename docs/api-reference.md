@@ -1544,3 +1544,65 @@ Gán chính sách tăng ca cho đối tượng (Global, Dept, Employee).
   }
   ```
 - **Response (200 OK)**
+
+## WebSocket Agent Protocol
+
+The Agent communicates with the Server via a persistent WebSocket connection. All messages use a type-safe JSON format with a discriminator field `type`.
+
+### Server -> Agent: Config Push
+Sent by the server whenever a device configuration changes or an agent is authorized.
+
+**Message Type:** `config_push`
+
+**Payload Structure:**
+```json
+{
+  "type": "config_push",
+  "data": {
+    "devices": [
+      {
+        "device_id": "uuid-string",
+        "name": "Device Display Name",
+        "ip": "192.168.1.100",
+        "port": 4370
+      }
+    ]
+  }
+}
+```
+
+### Agent -> Server: Attendance Data
+Sent by the agent to sync raw logs.
+
+**Message Type:** `attendance`
+
+**Payload Structure:**
+```json
+{
+  "type": "attendance",
+  "msg_id": "unique-msg-id",
+  "agent_id": "agent-uuid",
+  "device_id": "device-uuid",
+  "data": {
+    "user_id": "123",
+    "timestamp": "2024-01-26 10:00:00",
+    "status": 1,
+    "punch": 1
+  },
+  "timestamp": "2024-01-26T10:00:00Z"
+}
+```
+
+### Server -> Agent: Ack
+Acknowledgment for attendance sync.
+
+**Message Type:** `ack`
+
+**Payload Structure:**
+```json
+{
+  "type": "ack",
+  "msg_id": "id-of-the-attendance-msg",
+  "status": "success"
+}
+```

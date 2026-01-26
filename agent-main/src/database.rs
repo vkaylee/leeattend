@@ -175,7 +175,7 @@ impl Database {
         Ok(())
     }
 
-    pub async fn upsert_device(&self, id: &str, name: Option<&str>, ip: &str, port: i32) -> Result<(), Error> {
+    pub async fn upsert_device(&self, id: &str, name: &str, ip: &str, port: i32) -> Result<(), Error> {
         sqlx::query(
             r#"
             INSERT INTO devices (id, name, ip, port, last_seen, is_active)

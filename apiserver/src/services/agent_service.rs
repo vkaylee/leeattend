@@ -1,8 +1,7 @@
-use crate::agent_manager::{AgentCommand, AgentManager};
+use crate::agent_manager::{AgentManager, CentralMessage, ConfigData, DeviceConfigPush};
 use crate::models::AuthorizedAgent;
 use crate::repositories::AgentRepository;
 use std::sync::Arc;
-use uuid::Uuid;
 
 pub struct AgentService {
     repo: Arc<dyn AgentRepository>,
@@ -17,27 +16,19 @@ impl AgentService {
     pub async fn notify_config_update(&self, agent_id: &str) -> Result<(), String> {
         let devices = self.repo.find_devices_by_agent_id(agent_id).await?;
 
-        let config_msg = serde_json::json!({
-            "type": "config_update",
-            "devices": devices.into_iter().map(|d| {
-                serde_json::json!({
-                    "device_id": d.id.to_string(),
-                    "ip": d.ip,
-                    "port": d.port
-                })
-            }).collect::<Vec<_>>()
-        });
-
-        let command = AgentCommand {
-            id: Uuid::new_v4().to_string(),
-            r#type: "config_push".to_string(),
-            method: "update_config".to_string(),
-            device_id: None,
-            data: Some(config_msg),
+        let config_data = ConfigData {
+            devices: devices.into_iter().map(|d| {
+                DeviceConfigPush {
+                    device_id: d.id.to_string(),
+                    name: d.name,
+                    ip: d.ip,
+                    port: d.port
+                }
+            }).collect()
         };
 
         self.manager
-            .send_command(agent_id, command)
+            .push_message(agent_id, CentralMessage::ConfigPush { data: config_data })
             .await
             .map_err(|e| e.to_string())
     }
@@ -72,11 +63,11 @@ impl AgentService {
 
 #[cfg(test)]
 mod tests {
+    use uuid::Uuid;
     use super::*;
     use crate::models::{AuthorizedAgent, Device};
     use async_trait::async_trait;
     use std::sync::Arc;
-    use uuid::Uuid;
 
     struct MockAgentRepo;
 

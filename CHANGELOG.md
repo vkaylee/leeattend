@@ -2,7 +2,18 @@
 
 Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại đây.
 
-## [Unreleased]
+## [Unreleased] - 2026-01-27
+### Added
+- Type-safe `CentralMessage::ConfigPush` enum protocol between Server and Agent.
+- Enhanced Agent logging: Device names are now displayed in "Processing" and "Fetched logs" messages.
+- Integration test for `ConfigPush` enum in `agent-main`.
+
+### Changed
+- Refactored `agent-main` to use structured `ConfigData` instead of raw JSON `Value` for configuration updates.
+- Updated `DeviceConfigPush` model to require `name` (mandatory String).
+
+### Removed
+- Automatic `zk.sync_time` RPC call in Agent polling loop (preventing unintended device clock overrides).
 ### Added
 - **Batch Data Ingestion**: Added `save_raw_attendance_batch` to Edge Agent, increasing write performance by ~100x.
 - **SQLite Tuning**: Optimized PRAGMA settings (WAL, NORMAL sync, 64MB cache) for high-frequency logs.

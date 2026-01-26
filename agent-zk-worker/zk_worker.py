@@ -42,6 +42,16 @@ class ZKService:
             })
         return logs
 
+    async def get_time(self):
+        conn = await self.connect()
+        dt = await asyncio.to_thread(conn.get_time)
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+    async def get_time(self):
+        conn = await self.connect()
+        dt = await asyncio.to_thread(conn.get_time)
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+
     async def sync_time(self):
         conn = await self.connect()
         now = datetime.now()
@@ -114,6 +124,10 @@ class ZKWorkerClient:
                         device_id = params["device_id"]
                         result = await self.services[device_id].get_users()
                     
+                    elif method == "zk.get_time":
+                        result = await self.services[device_id].get_time()
+                    elif method == "zk.get_time":
+                        result = await self.services[device_id].get_time()
                     elif method == "zk.sync_time":
                         device_id = params["device_id"]
                         result = await self.services[device_id].sync_time()
