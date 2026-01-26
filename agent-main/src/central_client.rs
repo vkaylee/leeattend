@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use futures_util::{ SinkExt, StreamExt };
 use log::{error, info};
 use std::time::Duration;
@@ -16,19 +17,23 @@ use tokio_tungstenite::{
 use crate::database::Database;
 use crate::models::{CentralMessage, AttendanceData};
 
+use std::sync::atomic::{AtomicBool, Ordering};
+
 pub struct CentralClient {
     url: String,
     agent_id: String,
     token: String,
     db: Database,
     tx: mpsc::Sender<CentralMessage>,
+    is_connected: Arc<AtomicBool>,
 }
 
 #[allow(clippy::collapsible_if)]
 impl CentralClient {
     pub fn new(url: String, agent_id: String, token: String, db: Database) -> (Self, mpsc::Receiver<CentralMessage>) {
         let (tx, rx) = mpsc::channel(100);
-        (Self { url, agent_id, token, db, tx }, rx)
+        let is_connected = Arc::new(AtomicBool::new(false));
+        (Self { url, agent_id, token, db, tx, is_connected }, rx)
     }
 }
 
@@ -97,8 +102,13 @@ impl CentralClient {
         let sync_db = db.clone();
         let sync_tx = tx.clone();
         let sync_agent_id = agent_id.clone();
+        let connected = self.is_connected.clone();
         tokio::spawn(async move {
             loop {
+                if !connected.load(Ordering::Relaxed) {
+                    sleep(Duration::from_secs(5)).await;
+                    continue;
+                }
                 let limit = 500;
                 match sync_db.get_unsynced_logs(limit).await {
                     Ok(logs) => {
@@ -150,6 +160,21 @@ impl CentralClient {
             }
         });
 
+
+        // 4. Stale Sync Reset Task
+        let stale_db = db.clone();
+        tokio::spawn(async move {
+            loop {
+                sleep(Duration::from_secs(60)).await;
+                if let Ok(count) = stale_db.reset_stale_syncing(300).await {
+                    if count > 0 {
+                        log::info!("Reset {} stale syncing logs for retry", count);
+                    }
+                }
+            }
+        });
+
+        let ws_connected = self.is_connected.clone();
         // 3. WS Connection Manager
         tokio::spawn(async move {
             let mut manager = RetryManager::new();
@@ -163,6 +188,7 @@ impl CentralClient {
                 match connect_central(&url, &agent_id, &token).await {
                     Ok((ws_stream, _)) => {
                         info!("✅ Connected to Central Server.");
+                        ws_connected.store(true, Ordering::Relaxed);
                         manager.record_connection_established();
                         let (mut write, mut read) = ws_stream.split();
 
@@ -174,7 +200,8 @@ impl CentralClient {
                         };
                         if let Ok(text) = serde_json::to_string(&handshake) {
                             if write.send(Message::Text(text.into())).await.is_err() {
-                                manager.record_connection_failed();
+                                ws_connected.store(false, Ordering::Relaxed);
+                        manager.record_connection_failed();
                                 continue;
                             }
                         }
@@ -199,10 +226,12 @@ impl CentralClient {
                                 }
                             }
                         }
+                        ws_connected.store(false, Ordering::Relaxed);
                         manager.record_dropped_prematurely();
                     }
                     Err(e) => {
                         error!("❌ Connection failed: {}", e);
+                        ws_connected.store(false, Ordering::Relaxed);
                         manager.record_connection_failed();
                     }
                 }
@@ -241,9 +270,17 @@ async fn handle_incoming_text(text: &str, db: &Database) {
                     }
                 }
             }
-            CentralMessage::Ack { msg_id } => {
+            CentralMessage::Ack { msg_id, status, .. } => {
                 if let Ok(id) = msg_id.parse::<i64>() {
-                    let _ = db.mark_synced(&[id]).await;
+                    if status.as_deref() == Some("success") {
+                        let _ = db.mark_synced(&[id]).await;
+                    } else {
+                        // error or missing status -> reset to unsynced so it can be retried
+                        let _ = sqlx::query("UPDATE zkt_raw_attendance SET is_synced = 0 WHERE id = ?")
+                            .bind(id)
+                            .execute(db.get_pool())
+                            .await;
+                    }
                 }
             }
             _ => {}

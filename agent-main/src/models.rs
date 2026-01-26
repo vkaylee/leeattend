@@ -48,6 +48,8 @@ pub enum CentralMessage {
     },
     Ack {
         msg_id: String,
+        status: Option<String>,
+        error: Option<String>,
     },
     ConfigPush {
         data: Value,

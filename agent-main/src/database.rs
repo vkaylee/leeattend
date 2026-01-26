@@ -33,8 +33,8 @@ impl Database {
 
         let res = sqlx::query(
             r#"
-            INSERT INTO zkt_raw_attendance (device_id, user_id, timestamp, status, punch)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO zkt_raw_attendance (device_id, user_id, timestamp, status, punch, updated_at)
+            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             "#,
         )
         .bind(device_id)
@@ -49,6 +49,14 @@ impl Database {
     }
 
     #[allow(dead_code)]
+    pub async fn reset_stale_syncing(&self, timeout_secs: i64) -> Result<u64, Error> {
+        let res = sqlx::query("UPDATE zkt_raw_attendance SET is_synced = 0 WHERE is_synced = 2 AND (strftime(%s, now) - strftime(%s, updated_at)) > ?")
+            .bind(timeout_secs)
+            .execute(&self.pool)
+            .await?;
+        Ok(res.rows_affected())
+    }
+
     pub async fn reset_syncing_status(&self) -> Result<(), Error> {
         sqlx::query("UPDATE zkt_raw_attendance SET is_synced = 0 WHERE is_synced = 2")
             .execute(&self.pool)
@@ -76,7 +84,7 @@ impl Database {
             // SQLite doesnt easily bind arrays, so we use a loop or format string.
             // For simplicity and safety with small batches, we can do individual updates or a structured query.
             for id in ids {
-                sqlx::query("UPDATE zkt_raw_attendance SET is_synced = 2 WHERE id = ?")
+                sqlx::query("UPDATE zkt_raw_attendance SET is_synced = 2, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
                     .bind(id)
                     .execute(&mut *tx)
                     .await?;

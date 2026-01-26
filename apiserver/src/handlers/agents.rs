@@ -71,19 +71,23 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                             date_fmt: ws_date_fmt.clone(),
                                             time_fmt: ws_time_fmt.clone(),
                                         };
-                                        let _ = state_clone.attendance_service.ingest_agent_log(entry).await;
+                                        let result = state_clone.attendance_service.ingest_agent_log(entry).await;
+                                        if let Some(msg_id) = v["msg_id"].as_str() {
+                                            let (status, message) = match result {
+                                                Ok(_) => ("success", None),
+                                                Err(e) => ("error", Some(e)),
+                                            };
+                                            let ack = serde_json::json!({
+                                                "type": "ack",
+                                                "msg_id": msg_id,
+                                                "status": status,
+                                                "error": message,
+                                                "timestamp": chrono::Utc::now().to_rfc3339()
+                                            });
+                                            let _ = tx.send(Message::Text(ack.to_string()));
+                                        }
                                     }
                                 }
-                            }
-
-                            if let Some(msg_id) = v["msg_id"].as_str() {
-                                let ack = serde_json::json!({
-                                    "type": "ack",
-                                    "msg_id": msg_id,
-                                    "status": "success",
-                                    "timestamp": chrono::Utc::now().to_rfc3339()
-                                });
-                                let _ = tx.send(Message::Text(ack.to_string()));
                             }
                         } else if v["type"] == "status_update" {
                             if let (Some(id), Some(devices_json)) =
