@@ -63,12 +63,12 @@ async fn spawn_app() -> (String, Uuid, Arc<AppState>) {
 
     let state = Arc::new(AppState {
         agent_manager,
-        db: db_pool,
+        db: db_pool.clone(),
         agent_repo,
         workspace_repo,
         agent_service,
         jwt_secret: "test_secret".to_string(),
-        attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
+        attendance_service: Arc::new(AttendanceLogService::new(db_pool.clone(), 100, 10, 1000).0),
     });
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -198,5 +198,78 @@ async fn test_websocket_auth_untrusted() {
         assert!(text.contains("AGENT_NOT_TRUSTED"));
     } else {
         panic!("Expected error message");
+    }
+}
+
+#[tokio::test]
+#[serial]
+async fn test_websocket_attendance_ack_structured() {
+    let (address, workspace_id, state) = spawn_app().await;
+
+    // 1. Prepare agent
+    let agent_id = "ACK_TEST_AGENT";
+    let token = "ack_token";
+    sqlx::query("INSERT INTO authorized_agents (id, name, token, is_trusted, workspace_id) VALUES ($1, $2, $3, true, $4)")
+        .bind(agent_id)
+        .bind("Ack Agent")
+        .bind(token)
+        .bind(workspace_id)
+        .execute(&state.db)
+        .await
+        .unwrap();
+
+    // 2. Prepare employee
+    let emp_id = uuid::Uuid::new_v4();
+    sqlx::query("INSERT INTO employees (id, workspace_id, full_name, employee_id_number) VALUES ($1, $2, $3, $4)")
+        .bind(emp_id)
+        .bind(workspace_id)
+        .bind("Ack Employee")
+        .bind("ACK001")
+        .execute(&state.db)
+        .await
+        .unwrap();
+
+    // 3. Connect and Handshake
+    let (ws_stream, _) = connect_async(&address).await.expect("Failed to connect");
+    let (mut write, mut read) = ws_stream.split();
+
+    write.send(Message::Text(serde_json::json!({
+        "type": "handshake",
+        "agent_id": agent_id,
+        "token": token
+    }).to_string().into())).await.unwrap();
+
+    // 4. Send Attendance Log
+    let msg_id = "test_msg_123";
+    let attendance = serde_json::json!({
+        "type": "attendance",
+        "msg_id": msg_id,
+        "device_id": "DEV001",
+        "data": {
+            "user_id": "ACK001",
+            "timestamp": "2026-01-26 10:00:00"
+        }
+    });
+    write.send(Message::Text(attendance.to_string().into())).await.unwrap();
+
+    
+    // 5. Expect structured ACK with status success
+    // Note: We might receive config_push first upon authorization
+    loop {
+        if let Some(Ok(Message::Text(text))) = read.next().await {
+            let v: serde_json::Value = serde_json::from_str(&text).unwrap();
+            if v["type"] == "ack" {
+                assert_eq!(v["msg_id"], msg_id);
+                assert_eq!(v["status"], "success");
+                break;
+            } else if v["type"] == "config_push" {
+                // Ignore config push
+                continue;
+            } else {
+                panic!("Unexpected message type: {}", v["type"]);
+            }
+        } else {
+            panic!("Expected ACK message");
+        }
     }
 }

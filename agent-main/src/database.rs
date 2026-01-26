@@ -50,13 +50,14 @@ impl Database {
 
     #[allow(dead_code)]
     pub async fn reset_stale_syncing(&self, timeout_secs: i64) -> Result<u64, Error> {
-        let res = sqlx::query("UPDATE zkt_raw_attendance SET is_synced = 0 WHERE is_synced = 2 AND (strftime(%s, now) - strftime(%s, updated_at)) > ?")
+        let res = sqlx::query("UPDATE zkt_raw_attendance SET is_synced = 0 WHERE is_synced = 2 AND (strftime(\"%s\", \"now\") - strftime(\"%s\", updated_at)) > ?")
             .bind(timeout_secs)
             .execute(&self.pool)
             .await?;
         Ok(res.rows_affected())
     }
 
+    #[allow(dead_code)]
     pub async fn reset_syncing_status(&self) -> Result<(), Error> {
         sqlx::query("UPDATE zkt_raw_attendance SET is_synced = 0 WHERE is_synced = 2")
             .execute(&self.pool)
@@ -81,8 +82,6 @@ impl Database {
 
         if !logs.is_empty() {
             let ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
-            // SQLite doesnt easily bind arrays, so we use a loop or format string.
-            // For simplicity and safety with small batches, we can do individual updates or a structured query.
             for id in ids {
                 sqlx::query("UPDATE zkt_raw_attendance SET is_synced = 2, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
                     .bind(id)
@@ -185,6 +184,44 @@ mod tests {
         db.mark_synced(&[id]).await.unwrap();
         let logs = db.get_unsynced_logs(10).await.unwrap();
         assert_eq!(logs.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_syncing_state_and_stale_reset() {
+        let db = setup_db().await;
+        let data = AttendanceData {
+            user_id: "U1".into(),
+            timestamp: "2026-01-01 08:00:00".into(),
+            status: Some(1),
+            punch: Some(1),
+        };
+        let id = db.save_raw_attendance("D1", data).await.unwrap();
+        
+        // 1. Fetching should mark as Syncing (is_synced = 2)
+        let logs = db.get_unsynced_logs(10).await.unwrap();
+        assert_eq!(logs.len(), 1);
+        
+        // 2. Fetching again immediately should return nothing (already syncing)
+        let logs2 = db.get_unsynced_logs(10).await.unwrap();
+        assert_eq!(logs2.len(), 0);
+        
+        // 3. Resetting syncing status should make it available again
+        db.reset_syncing_status().await.unwrap();
+        let logs3 = db.get_unsynced_logs(10).await.unwrap();
+        assert_eq!(logs3.len(), 1);
+        
+        // 4. Test stale reset (force an old updated_at)
+        sqlx::query("UPDATE zkt_raw_attendance SET updated_at = \"2000-01-01 00:00:00\" WHERE id = ?")
+            .bind(id)
+            .execute(db.get_pool())
+            .await.unwrap();
+            
+        // Reset logs older than 5 mins (300s)
+        let count = db.reset_stale_syncing(300).await.unwrap();
+        assert_eq!(count, 1);
+        
+        let logs4 = db.get_unsynced_logs(10).await.unwrap();
+        assert_eq!(logs4.len(), 1);
     }
 
     #[tokio::test]
