@@ -78,8 +78,12 @@ class ZKWorkerClient:
             if not data:
                 break
             
+            line = data.decode().strip()
+            if not line:
+                continue
+
             try:
-                request = json.loads(data.decode())
+                request = json.loads(line)
                 method = request.get("method")
                 params = request.get("params", {})
                 request_id = request.get("id")
