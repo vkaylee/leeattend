@@ -99,6 +99,23 @@ async def test_handle_requests_json_decode_error(zk_worker_instance):
     await zk_worker_instance.handle_requests(reader)
     zk_worker_instance.writer.write.assert_not_called()
 
+
+@pytest.mark.asyncio
+async def test_handle_requests_empty_line(zk_worker_instance):
+    reader = AsyncMock()
+    zk_worker_instance.writer = create_mock_writer()
+    
+    # Send an empty line followed by a valid ping
+    request = {"jsonrpc": "2.0", "method": "zk.ping", "params": {}, "id": 1}
+    reader.readline.side_effect = [b"\n", json.dumps(request).encode() + b"\n", b""]
+
+    await zk_worker_instance.handle_requests(reader)
+    
+    # Should have ignored the empty line and processed the ping
+    zk_worker_instance.writer.write.assert_called_once()
+    response = json.loads(zk_worker_instance.writer.write.call_args[0][0].decode().strip())
+    assert response["result"] == "pong"
+
 @pytest.mark.asyncio
 async def test_zk_worker_run():
     zk_worker = ZKWorkerClient()
