@@ -5,7 +5,7 @@ use tracing::{error, info, warn};
 use uuid::Uuid;
 
 use crate::models::{LogSource, RawAttendanceLog};
-use crate::repositories::{employee_repository, raw_attendance_log_repository};
+use crate::repositories::{employee_repository, raw_attendance_log_repository, attendance_log_error_repository};
 use crate::services::pairing_service::PairingService;
 use crate::utils::datetime::parse_datetime_with_tz;
 use crate::services::{AgentLogBuffer, AgentLogEntry, agent_log_buffer};
@@ -54,7 +54,7 @@ impl AttendanceLogService {
     /// Processes a single attendance log entry from any source (Agent or Import).
     /// Handles employee mapping, timezone-aware parsing (if needed), and triggers pairing logic.
     #[allow(clippy::too_many_arguments)]
-    pub async fn process_log(
+        pub async fn process_log(
         pool: &PgPool,
         workspace_id: Uuid,
         employee_id_number: &str,
@@ -73,6 +73,14 @@ impl AttendanceLogService {
             Ok(None) => {
                 let msg = format!("Employee not found: {} in workspace {}", employee_id_number, workspace_id);
                 warn!("{}", msg);
+                let _ = attendance_log_error_repository::create_error_log(
+                    pool,
+                    workspace_id,
+                    device_id.clone(),
+                    raw_data,
+                    &msg,
+                    &format!("{:?}", source),
+                ).await;
                 return Err(msg);
             }
             Err(e) => {
@@ -86,8 +94,16 @@ impl AttendanceLogService {
         let punch_time = match parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt) {
             Ok(dt) => dt,
             Err(e) => {
-                let msg = format!("Failed to parse timestamp '''{}''': {}", punch_time_raw, e);
+                let msg = format!("Failed to parse timestamp '{}': {}", punch_time_raw, e);
                 error!("{}", msg);
+                let _ = attendance_log_error_repository::create_error_log(
+                    pool,
+                    workspace_id,
+                    device_id.clone(),
+                    raw_data,
+                    &msg,
+                    &format!("{:?}", source),
+                ).await;
                 return Err(msg);
             }
         };

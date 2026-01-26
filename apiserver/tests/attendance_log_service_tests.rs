@@ -141,3 +141,47 @@ async fn test_process_log_invalid_timestamp() {
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("Failed to parse timestamp"));
 }
+
+#[tokio::test]
+async fn test_process_log_records_to_dlq_on_error() {
+    let test_db = TestDatabase::new().await;
+    let pool = test_db.pool();
+    let factory = TestFactory::new(pool.clone());
+
+    let workspace_id = factory.workspace().create().await;
+
+    // 1. Trigger Unknown Employee Error
+    let _ = AttendanceLogService::process_log(
+        &pool, workspace_id, "UNKNOWN_EMP", "2026-01-23 10:00:00", 
+        LogSource::Device, Some("DEV_1".to_string()), None, "UTC", None, None
+    ).await;
+
+    // 2. Trigger Invalid Timestamp Error
+    let _employee_id = factory.employee()
+        .with_workspace(workspace_id)
+        .with_employee_id_number("EMP_VALID")
+        .create()
+        .await;
+    let _ = AttendanceLogService::process_log(
+        &pool, workspace_id, "EMP_VALID", "invalid-time", 
+        LogSource::Device, Some("DEV_1".to_string()), None, "UTC", None, None
+    ).await;
+
+    // 3. Verify DLQ Table
+    let errors: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM attendance_log_errors WHERE workspace_id = $1 ")
+        .bind(workspace_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+
+    assert_eq!(errors, 2, "Should have 2 error records in DLQ");
+    
+    let error_msgs: Vec<String> = sqlx::query_scalar("SELECT error_message FROM attendance_log_errors WHERE workspace_id = $1 ORDER BY created_at ASC")
+        .bind(workspace_id)
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+        
+    assert!(error_msgs[0].contains("Employee not found"));
+    assert!(error_msgs[1].contains("Failed to parse timestamp"));
+}

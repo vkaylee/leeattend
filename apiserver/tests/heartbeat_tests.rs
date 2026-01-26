@@ -37,7 +37,7 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory, common::db::TestDataba
 
     let state = Arc::new(AppState {
         agent_manager,
-        db: pool,
+        db: pool.clone(),
         agent_repo,
         workspace_repo,
         agent_service,

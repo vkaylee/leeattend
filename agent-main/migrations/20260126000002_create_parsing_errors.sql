@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS parsing_errors (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    device_id TEXT NOT NULL,
+    raw_data TEXT NOT NULL,
+    error_msg TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

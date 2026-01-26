@@ -10,6 +10,7 @@ use log::{info, error, warn};
 use dotenvy::dotenv;
 use tokio_util::sync::CancellationToken;
 use tokio::net::TcpListener;
+use tokio::sync::mpsc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -41,6 +42,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         db.clone()
     );
     central_client.start(central_rx).await;
+
+    // --- DB Writer Worker ---
+    let (log_tx, mut log_rx) = mpsc::channel::<(String, models::AttendanceData)>(10000); // Buffer size 10k
+    let writer_db = db.clone();
+    
+    tokio::spawn(async move {
+        info!("💾 DB Writer Worker started");
+        // Optional: Batch insert could be implemented here for even more speed
+        while let Some((device_id, log)) = log_rx.recv().await {
+            // Use existing deduplication logic in save_raw_attendance
+            if let Err(e) = writer_db.save_raw_attendance(&device_id, log).await {
+                error!("Failed to save log to DB: {}", e);
+            }
+        }
+        info!("💾 DB Writer Worker stopped");
+    });
+    // ------------------------
 
     let listener = TcpListener::bind("127.0.0.1:0").await?;
     let actual_port = listener.local_addr()?.port();
@@ -122,11 +140,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Ok(logs_val) => {
                         if let Ok(logs) = serde_json::from_value::<Vec<models::AttendanceData>>(logs_val) {
                             let count = logs.len();
+                            info!("Fetched {} logs from {}. Pushing to DB queue...", count, device.id);
+                            
                             for log in logs {
-                                db.save_raw_attendance(&device.id, log).await.ok();
-                            }
-                            if count > 0 {
-                                info!("Successfully fetched and saved {} logs from {}", count, device.id);
+                                if let Err(e) = log_tx.send((device.id.clone(), log)).await {
+                                    error!("Failed to push log to queue: {}", e);
+                                    break;
+                                }
                             }
                         }
                     },

@@ -84,12 +84,12 @@ async fn spawn_app() -> (String, Uuid, Uuid) {
 
     let state = Arc::new(AppState {
         agent_manager,
-        db: db_pool,
+        db: db_pool.clone(),
         agent_repo,
         workspace_repo,
         agent_service,
         jwt_secret: "test_secret".to_string(),
-        attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
+        attendance_service: Arc::new(AttendanceLogService::new(db_pool.clone(), 100, 10, 1000).0),
     });
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")

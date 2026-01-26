@@ -8,6 +8,18 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 FLAG_FILE="$PROJECT_ROOT/.test.sh.flag"
 COMPOSE_FILE="$PROJECT_ROOT/docker-compose.test.yml"
 
+# Parse arguments
+USE_COVERAGE=false
+TEST_ARGS=()
+
+for arg in "$@"; do
+  if [[ "$arg" == "--cov" ]] || [[ "$arg" == "--coverage" ]]; then
+    USE_COVERAGE=true
+  else
+    TEST_ARGS+=("$arg")
+  fi
+done
+
 # Check if tests are already running
 if [ -f "$FLAG_FILE" ]; then
   echo "Error: Tests are already running (flag file exists: $FLAG_FILE)"
@@ -40,7 +52,7 @@ echo "Starting test database..."
 docker compose -f "$COMPOSE_FILE" up -d "$DB_CONTAINER_NAME"
 
 echo "Waiting for database to be ready..."
-until docker compose -f "$COMPOSE_FILE" exec "$DB_CONTAINER_NAME" pg_isready -U "$DB_USER" -d "$DB_NAME"; do
+until docker compose -f "$COMPOSE_FILE" exec "$DB_CONTAINER_NAME" pg_isready -U "$DB_USER" -d "$DB_NAME" > /dev/null 2>&1; do
   printf '.'
   sleep 1
 done
@@ -53,14 +65,19 @@ sqlx migrate run --source "$SCRIPT_DIR/migrations" --database-url "$DATABASE_URL
 export DATABASE_URL_FOR_TEST_GENERATION="$DATABASE_URL"
 export DATABASE_URL="$DATABASE_URL"
 
-echo "Running cargo tarpaulin for apiserver..."
 # Navigate to apiserver directory
 cd "$SCRIPT_DIR"
 
-# Run tarpaulin and capture exit code
 set +e
-cargo tarpaulin --workspace --timeout 120 --exclude-files "src/main.rs"
-TARPAULIN_EXIT_CODE=$?
+if [ "$USE_COVERAGE" = true ]; then
+  echo "Running cargo tarpaulin (Coverage mode)..."
+  cargo tarpaulin --workspace --timeout 120 --exclude-files "src/main.rs" "${TEST_ARGS[@]}"
+  EXIT_CODE=$?
+else
+  echo "Running cargo test (Standard mode)..."
+  cargo test --workspace "${TEST_ARGS[@]}"
+  EXIT_CODE=$?
+fi
 set -e
 
-exit $TARPAULIN_EXIT_CODE
+exit $EXIT_CODE

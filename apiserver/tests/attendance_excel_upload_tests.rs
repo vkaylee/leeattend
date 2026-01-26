@@ -36,12 +36,7 @@ async fn test_batch_import_from_file_success() {
     fs::write(&file_path, csv_data).await.unwrap();
 
     // Import from file path
-    let job_id = AttendanceImportService::batch_import_from_file(
-        pool.clone(),
-        ws_id,
-        user_id,
-        file_path.clone(),
-    )
+    let job_id = AttendanceImportService::batch_import_from_file(pool.clone(), ws_id, user_id, file_path.clone(), "UTC".to_string())
     .await
     .expect("Import failed");
 
@@ -169,12 +164,7 @@ async fn test_import_fallback_logic() {
     );
     fs::write(&file_path, csv_data).await.unwrap();
 
-    let job_id = AttendanceImportService::batch_import_from_file(
-        pool.clone(),
-        ws_id,
-        user_id,
-        file_path.clone(),
-    )
+    let job_id = AttendanceImportService::batch_import_from_file(pool.clone(), ws_id, user_id, file_path.clone(), "UTC".to_string())
     .await
     .expect("Import failed");
 
@@ -224,12 +214,7 @@ async fn test_import_soft_validation_behavior() {
     fs::write(&file_path, csv_data).await.unwrap();
 
     // Import from file path
-    let job_id = AttendanceImportService::batch_import_from_file(
-        pool.clone(),
-        ws_id,
-        user_id,
-        file_path.clone(),
-    )
+    let job_id = AttendanceImportService::batch_import_from_file(pool.clone(), ws_id, user_id, file_path.clone(), "UTC".to_string())
     .await
     .expect("Import job creation failed");
 

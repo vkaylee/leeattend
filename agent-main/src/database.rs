@@ -2,6 +2,7 @@ use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite, Error};
 // use log::info;
 use crate::models::{RawAttendanceLog, DeviceConfig, AttendanceData};
 use chrono::NaiveDateTime;
+use serde_json;
 
 #[derive(Clone)]
 pub struct Database {
@@ -14,6 +15,8 @@ impl Database {
             .max_connections(5)
             .connect(database_url)
             .await?;
+        sqlx::migrate!("./migrations").run(&pool).await?;
+        sqlx::query("PRAGMA journal_mode=WAL;").execute(&pool).await?;
         Ok(Self { pool })
     }
 
@@ -28,13 +31,36 @@ impl Database {
         device_id: &str,
         data: AttendanceData,
     ) -> Result<i64, Error> {
-        let timestamp = NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%d %H:%M:%S")
-            .unwrap_or_else(|_| NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%dT%H:%M:%SZ").unwrap_or_default());
+        let timestamp_res = NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%d %H:%M:%S")
+            .or_else(|_| NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%dT%H:%M:%SZ"));
+
+        let timestamp = match timestamp_res {
+            Ok(t) => t,
+            Err(e) => {
+                let raw_json = serde_json::to_string(&data).unwrap_or_default();
+                let error_msg = format!("Timestamp parse error: {}", e);
+                
+                sqlx::query(
+                    r#"
+                    INSERT INTO parsing_errors (device_id, raw_data, error_msg, created_at)
+                    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                    "#
+                )
+                .bind(device_id)
+                .bind(raw_json)
+                .bind(error_msg)
+                .execute(&self.pool)
+                .await?;
+                
+                return Ok(0);
+            }
+        };
 
         let res = sqlx::query(
             r#"
             INSERT INTO zkt_raw_attendance (device_id, user_id, timestamp, status, punch, updated_at)
             VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(device_id, user_id, timestamp) DO NOTHING
             "#,
         )
         .bind(device_id)
@@ -172,6 +198,53 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_save_duplicate_attendance() {
+        let db = setup_db().await;
+        let data = AttendanceData {
+            user_id: "U_DUP".into(),
+            timestamp: "2026-01-26 12:00:00".into(),
+            status: Some(1),
+            punch: Some(1),
+        };
+
+        db.save_raw_attendance("D_DUP", data.clone()).await.unwrap();
+        db.save_raw_attendance("D_DUP", data).await.unwrap();
+
+        let logs = sqlx::query_as::<_, RawAttendanceLog>("SELECT * FROM zkt_raw_attendance WHERE user_id = 'U_DUP'")
+            .fetch_all(db.get_pool())
+            .await
+            .unwrap();
+            
+        assert_eq!(logs.len(), 1, "Should only have 1 log entry after duplicate save");
+    }
+
+    #[tokio::test]
+    async fn test_save_malformed_attendance() {
+        let db = setup_db().await;
+        let data = AttendanceData {
+            user_id: "U_BAD".into(),
+            timestamp: "INVALID-TIME-FORMAT".into(),
+            status: Some(1),
+            punch: Some(1),
+        };
+
+        let id = db.save_raw_attendance("D_BAD", data).await.unwrap();
+        assert_eq!(id, 0);
+
+        let logs = sqlx::query_as::<_, RawAttendanceLog>("SELECT * FROM zkt_raw_attendance WHERE user_id = 'U_BAD'")
+            .fetch_all(db.get_pool())
+            .await
+            .unwrap();
+        assert_eq!(logs.len(), 0);
+
+        let error_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM parsing_errors WHERE device_id = 'D_BAD'")
+            .fetch_one(db.get_pool())
+            .await
+            .unwrap();
+        assert_eq!(error_count, 1);
+    }
+
+    #[tokio::test]
     async fn test_mark_synced() {
         let db = setup_db().await;
         let data = AttendanceData {
@@ -222,6 +295,16 @@ mod tests {
         
         let logs4 = db.get_unsynced_logs(10).await.unwrap();
         assert_eq!(logs4.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_wal_mode() {
+        let db = setup_db().await;
+        let mode: String = sqlx::query_scalar("PRAGMA journal_mode;")
+            .fetch_one(db.get_pool())
+            .await
+            .unwrap();
+        assert!(mode == "wal" || mode == "memory", "Journal mode should be wal or memory (actual: {})", mode);
     }
 
     #[tokio::test]
