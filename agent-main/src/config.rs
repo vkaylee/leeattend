@@ -9,6 +9,7 @@ pub struct Config {
     pub database_url: String,
     pub python_path: String,
     pub rpc_timeout_seconds: u64,
+    pub poll_interval_seconds: u64,
 }
 
 impl Config {
@@ -56,7 +57,11 @@ impl Config {
             .parse()
             .unwrap_or(30);
 
-        // In cảnh báo fallback ngay lập tức
+        let poll_interval_seconds = env::var("POLL_INTERVAL_SECONDS")
+            .unwrap_or_default()
+            .parse()
+            .unwrap_or(60);
+
         if !fallbacks.is_empty() {
             warn!("⚠️  PHÁT HIỆN THIẾU CẤU HÌNH .ENV - SỬ DỤNG GIÁ TRỊ MẶC ĐỊNH:");
             for f in fallbacks {
@@ -72,6 +77,7 @@ impl Config {
             database_url,
             python_path,
             rpc_timeout_seconds,
+            poll_interval_seconds,
         }
     }
 
@@ -82,6 +88,7 @@ impl Config {
         info!("   • Database     : {}", self.database_url);
         info!("   • Python Path  : {}", self.python_path);
         info!("   • RPC Timeout  : {}s", self.rpc_timeout_seconds);
+        info!("   • Poll Interval: {}s", self.poll_interval_seconds);
         info!("============================================================");
     }
 }

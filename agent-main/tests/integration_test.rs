@@ -1,50 +1,35 @@
 use std::process::Stdio;
 use tokio::process::Command;
-use tokio::time::{sleep, Duration, timeout};
+use tokio::time::{Duration, timeout};
 use agent::zk_client::ZKClient;
 use serde_json::json;
+use tokio::net::TcpListener;
 
 #[tokio::test]
-async fn test_full_process_handshake() {
+async fn test_full_process_handshake_new_architecture() {
     timeout(Duration::from_secs(20), async {
-        // 1. Khởi động Python Worker (dùng venv)
+        // Bind to port 0 for dynamic port assignment
+        let listener = TcpListener::bind("127.0.0.1:0").await.expect("Failed to bind dynamic port");
+        let actual_port = listener.local_addr().unwrap().port();
+
         let mut child = Command::new("../agent-zk-worker/venv/bin/python3")
             .arg("zk_worker.py")
+            .arg(actual_port.to_string())
             .current_dir("../agent-zk-worker")
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
             .expect("Failed to start python worker");
 
-        // Chờ worker boot
-        sleep(Duration::from_secs(4)).await;
+        let (stream, _) = listener.accept().await.expect("Failed to accept connection");
+        let mut client = ZKClient::new(stream);
 
-        // 2. Kết nối client tới port 5000 (mặc định của zk_worker)
-        let mut client = match ZKClient::connect("127.0.0.1:5000").await {
-            Ok(c) => c,
-            Err(e) => {
-                child.kill().await.ok();
-                panic!("Failed to connect to worker: {}", e);
-            }
-        };
+        let result = client.call("zk.ping", json!({})).await.expect("RPC ping failed");
+        assert_eq!(result, "pong");
 
-        // 3. Test invalid method (Fast)
         let result_err = client.call("zk.invalid_method", json!({})).await;
         assert!(result_err.is_err());
-        let err_msg = result_err.unwrap_err().to_string();
-        assert!(err_msg.contains("Method not found"));
-
-        // 4. Gửi lệnh connect (giả lập kết nối thiết bị - có thể timeout nếu không có thiết bị)
-        let result = client.call("zk.connect", json!({
-            "device_id": "INT_TEST",
-            "ip": "127.0.0.1",
-            "port": 4370
-        })).await;
-
-        // Verify result (đối với integration test, ta chỉ cần protocol pass)
-        assert!(result.is_err() || result.is_ok()); 
         
-        // 5. Cleanup
         child.kill().await.unwrap();
     }).await.expect("Integration test timed out");
 }

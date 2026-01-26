@@ -1,10 +1,11 @@
 import asyncio
 import json
 import logging
+import sys
 from datetime import datetime
 from pyzk2 import ZK, const
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("zk-worker")
 
 class ZKService:
@@ -52,13 +53,28 @@ class ZKService:
         users = await asyncio.to_thread(conn.get_users)
         return [{"uid": u.uid, "user_id": u.user_id, "name": u.name} for u in users]
 
-class ZKWorker:
-    def __init__(self):
+class ZKWorkerClient:
+    def __init__(self, master_addr="127.0.0.1", master_port=5000):
+        self.master_addr = master_addr
+        self.master_port = master_port
         self.services = {}
+        self.writer = None
 
-    async def handle_rpc(self, reader, writer):
+    async def run(self):
         while True:
-            data = await reader.read(4096)
+            try:
+                logger.info(f"🔗 Connecting to Master at {self.master_addr}:{self.master_port}...")
+                reader, self.writer = await asyncio.open_connection(self.master_addr, self.master_port)
+                logger.info("✅ Connected to Master")
+                
+                await self.handle_requests(reader)
+            except Exception as e:
+                logger.error(f"❌ Connection error: {e}. Retrying in 5s...")
+                await asyncio.sleep(5)
+
+    async def handle_requests(self, reader):
+        while True:
+            data = await reader.readline()
             if not data:
                 break
             
@@ -68,13 +84,16 @@ class ZKWorker:
                 params = request.get("params", {})
                 request_id = request.get("id")
 
-                logger.info(f"RPC Request: {method} {params}")
+                logger.info(f"📩 RPC Request: {method}")
                 
                 result = None
                 error = None
 
                 try:
-                    if method == "zk.connect":
+                    if method == "zk.ping":
+                        result = "pong"
+                    
+                    elif method == "zk.connect":
                         device_id = params["device_id"]
                         ip = params["ip"]
                         port = params.get("port", 4370)
@@ -106,35 +125,33 @@ class ZKWorker:
                         error = {"code": -32601, "message": "Method not found"}
                 
                 except Exception as e:
-                    logger.exception("Error handling RPC method")
+                    logger.exception("🔥 Error handling RPC method")
                     error = {"code": -32000, "message": str(e)}
 
                 response = {
                     "jsonrpc": "2.0",
+                    "result": result,
+                    "error": error,
                     "id": request_id
                 }
-                if error:
-                    response["error"] = error
-                else:
-                    response["result"] = result
-
-                writer.write(json.dumps(response).encode() + b"\n")
-                await writer.drain()
+                
+                self.writer.write(json.dumps(response).encode() + b"\n")
+                await self.writer.drain()
 
             except Exception as e:
                 logger.error(f"Error parsing request: {e}")
-                break
-
-        writer.close()
-        await writer.wait_closed()
-
-    async def run(self, host="127.0.0.1", port=5000):
-        server = await asyncio.start_server(self.handle_rpc, host, port)
-        print(f"ZK Worker started on {host}:{port}", flush=True)
-        logger.info(f"ZK Worker started on {host}:{port}")
-        async with server:
-            await server.serve_forever()
 
 if __name__ == "__main__":
-    worker = ZKWorker()
-    asyncio.run(worker.run())
+    # Get port from command line arguments if provided
+    port = 5000
+    if len(sys.argv) > 1:
+        try:
+            port = int(sys.argv[1])
+        except ValueError:
+            logger.error(f"Invalid port provided: {sys.argv[1]}. Using default 5000.")
+
+    worker = ZKWorkerClient(master_port=port)
+    try:
+        asyncio.run(worker.run())
+    except KeyboardInterrupt:
+        pass

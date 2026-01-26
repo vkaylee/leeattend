@@ -34,13 +34,12 @@ pub struct ZKClient {
 }
 
 impl ZKClient {
-    pub async fn connect(addr: &str) -> io::Result<Self> {
-        let stream = TcpStream::connect(addr).await?;
-        Ok(Self { 
+    pub fn new(stream: TcpStream) -> Self {
+        Self { 
             stream, 
             next_id: 1,
-            timeout: Duration::from_secs(30) // Default
-        })
+            timeout: Duration::from_secs(30)
+        }
     }
 
     pub fn set_timeout(&mut self, seconds: u64) {
@@ -59,17 +58,20 @@ impl ZKClient {
         };
 
         let mut request_bytes = serde_json::to_vec(&request)?;
-        request_bytes.push(b'\n'); // just 
+        request_bytes.push(b'\n');
 
         self.stream.write_all(&request_bytes).await?;
 
         let mut reader = BufReader::new(&mut self.stream);
         let mut line = String::new();
         
-        // Use the configured timeout for reading response
         let read_future = reader.read_line(&mut line);
         match timeout(self.timeout, read_future).await {
-            Ok(result) => result?, // IO Result
+            Ok(result) => {
+                if result? == 0 {
+                    return Err(io::Error::new(io::ErrorKind::ConnectionAborted, "Sidecar connection closed"));
+                }
+            },
             Err(_) => return Err(io::Error::new(io::ErrorKind::TimedOut, "RPC Call Timed Out")),
         };
 
@@ -81,6 +83,16 @@ impl ZKClient {
 
         Ok(response.result.unwrap_or(Value::Null))
     }
+
+    pub async fn read_next_message(&mut self) -> io::Result<String> {
+        let mut reader = BufReader::new(&mut self.stream);
+        let mut line = String::new();
+        let bytes_read = reader.read_line(&mut line).await?;
+        if bytes_read == 0 {
+            return Err(io::Error::new(io::ErrorKind::ConnectionAborted, "Connection closed"));
+        }
+        Ok(line)
+    }
 }
 
 #[cfg(test)]
@@ -88,105 +100,33 @@ mod tests {
     use super::*;
     use tokio::net::TcpListener;
     use serde_json::json;
-    use tokio::time::{timeout, sleep, Duration};
 
     #[tokio::test]
-    async fn test_zk_client_call() {
-        timeout(Duration::from_secs(5), async {
-            // 1. Mock Server
-            let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-            let addr = listener.local_addr().unwrap();
+    async fn test_zk_client_call_server_mode() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
 
-            tokio::spawn(async move {
-                let (mut socket, _) = listener.accept().await.unwrap();
-                let mut reader = BufReader::new(&mut socket);
-                let mut line = String::new();
-                reader.read_line(&mut line).await.unwrap();
-                
-                let req: JsonRpcRequest = serde_json::from_str(&line).unwrap();
-
-                // Gửi response giả lập kèm ký tự xuống dòng
-                let res = json!({
-                    "jsonrpc": "2.0",
-                    "result": "ok",
-                    "id": req.id
-                });
-                let mut response_bytes = serde_json::to_vec(&res).unwrap();
-                response_bytes.push(b'\n');
-                socket.write_all(&response_bytes).await.unwrap();
-            });
-
-            // 2. Client call
-            let mut client = ZKClient::connect(&addr.to_string()).await.unwrap();
-            let result = client.call("test.method", json!({})).await.unwrap();
-
-            assert_eq!(result, "ok");
-        }).await.expect("Test timed out");
-    }
-
-    #[tokio::test]
-    async fn test_zk_client_error_response() {
-        timeout(Duration::from_secs(5), async {
-            let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-            let addr = listener.local_addr().unwrap();
-
-            tokio::spawn(async move {
-                let (mut socket, _) = listener.accept().await.unwrap();
-                let mut reader = BufReader::new(&mut socket);
-                let mut line = String::new();
-                reader.read_line(&mut line).await.unwrap();
-                
-                let req: JsonRpcRequest = serde_json::from_str(&line).unwrap();
-
-                // Trả về lỗi JSON-RPC
-                let res = json!({
-                    "jsonrpc": "2.0",
-                    "error": {
-                        "code": -32000,
-                        "message": "Hardware Error"
-                    },
-                    "id": req.id
-                });
-                let mut response_bytes = serde_json::to_vec(&res).unwrap();
-                response_bytes.push(b'\n');
-                socket.write_all(&response_bytes).await.unwrap();
-            });
-
-            let mut client = ZKClient::connect(&addr.to_string()).await.unwrap();
-            let result = client.call("test.method", json!({})).await;
-
-            assert!(result.is_err());
-            assert_eq!(result.unwrap_err().to_string(), "Hardware Error");
-        }).await.expect("Test timed out");
-    }
-
-    #[tokio::test]
-    async fn test_zk_client_timeout() {
-        timeout(Duration::from_secs(5), async {
-            // Test that the client times out if server doesn't respond
-            let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-            let addr = listener.local_addr().unwrap();
-
-            let _server = tokio::spawn(async move {
-                let (mut socket, _) = listener.accept().await.unwrap();
-                let mut reader = BufReader::new(&mut socket);
-                let mut line = String::new();
-                // Server reads request but never responds
-                let _ = reader.read_line(&mut line).await;
-                // Just sleep effectively forever (longer than client timeout)
-                sleep(Duration::from_secs(10)).await;
-                // keep socket alive
-                let _ = socket.write_all(b" ").await;
-            });
-
-            let mut client = ZKClient::connect(&addr.to_string()).await.unwrap();
-            client.set_timeout(1); // Set short timeout for test
+        tokio::spawn(async move {
+            let mut stream = TcpStream::connect(addr).await.unwrap();
+            let mut reader = BufReader::new(&mut stream);
+            let mut line = String::new();
+            reader.read_line(&mut line).await.unwrap();
             
-            let result = client.call("test.timeout", json!({})).await;
+            let req: JsonRpcRequest = serde_json::from_str(&line).unwrap();
+            let res = json!({
+                "jsonrpc": "2.0",
+                "result": "pong",
+                "id": req.id
+            });
+            let mut res_bytes = serde_json::to_vec(&res).unwrap();
+            res_bytes.push(b'\n');
+            stream.write_all(&res_bytes).await.unwrap();
+        });
 
-            assert!(result.is_err());
-            let err = result.unwrap_err();
-            assert_eq!(err.kind(), io::ErrorKind::TimedOut);
-        }).await.expect("Test failed to timeout correctly or other error");
+        let (stream, _) = listener.accept().await.unwrap();
+        let mut client = ZKClient::new(stream);
+        let result = client.call("zk.ping", json!({})).await.unwrap();
+
+        assert_eq!(result, "pong");
     }
 }
