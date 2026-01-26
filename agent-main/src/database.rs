@@ -49,8 +49,17 @@ impl Database {
     }
 
     #[allow(dead_code)]
+    pub async fn reset_syncing_status(&self) -> Result<(), Error> {
+        sqlx::query("UPDATE zkt_raw_attendance SET is_synced = 0 WHERE is_synced = 2")
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
     pub async fn get_unsynced_logs(&self, limit: i64) -> Result<Vec<RawAttendanceLog>, Error> {
-        sqlx::query_as::<_, RawAttendanceLog>(
+        let mut tx = self.pool.begin().await?;
+        
+        let logs = sqlx::query_as::<_, RawAttendanceLog>(
             r#"
             SELECT id, device_id, user_id, timestamp, status, punch, is_synced, created_at
             FROM zkt_raw_attendance
@@ -59,8 +68,23 @@ impl Database {
             "#,
         )
         .bind(limit)
-        .fetch_all(&self.pool)
-        .await
+        .fetch_all(&mut *tx)
+        .await?;
+
+        if !logs.is_empty() {
+            let ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
+            // SQLite doesnt easily bind arrays, so we use a loop or format string.
+            // For simplicity and safety with small batches, we can do individual updates or a structured query.
+            for id in ids {
+                sqlx::query("UPDATE zkt_raw_attendance SET is_synced = 2 WHERE id = ?")
+                    .bind(id)
+                    .execute(&mut *tx)
+                    .await?;
+            }
+        }
+
+        tx.commit().await?;
+        Ok(logs)
     }
 
     #[allow(dead_code)]

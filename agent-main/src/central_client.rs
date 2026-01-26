@@ -86,6 +86,7 @@ impl RetryManager {
 #[allow(clippy::collapsible_if)]
 impl CentralClient {
     pub async fn start(&self, mut rx: mpsc::Receiver<CentralMessage>) {
+        let _ = self.db.reset_syncing_status().await;
         let url = self.url.clone();
         let agent_id = self.agent_id.clone();
         let token = self.token.clone();
@@ -98,24 +99,40 @@ impl CentralClient {
         let sync_agent_id = agent_id.clone();
         tokio::spawn(async move {
             loop {
-                if let Ok(logs) = sync_db.get_unsynced_logs(50).await {
-                    for log in logs {
-                        let msg = CentralMessage::Attendance {
-                            msg_id: log.id.to_string(),
-                            agent_id: sync_agent_id.clone(),
-                            device_id: log.device_id.clone(),
-                            data: AttendanceData {
-                                user_id: log.user_id.clone(),
-                                timestamp: log.timestamp.format("%Y-%m-%d %H:%M:%S").to_string(),
-                                status: log.status,
-                                punch: log.punch,
-                            },
-                            timestamp: chrono::Utc::now().to_rfc3339(),
-                        };
-                        let _ = sync_tx.send(msg).await;
+                let limit = 500;
+                match sync_db.get_unsynced_logs(limit).await {
+                    Ok(logs) => {
+                        let count = logs.len();
+                        for log in logs {
+                            let msg = CentralMessage::Attendance {
+                                msg_id: log.id.to_string(),
+                                agent_id: sync_agent_id.clone(),
+                                device_id: log.device_id.clone(),
+                                data: AttendanceData {
+                                    user_id: log.user_id.clone(),
+                                    timestamp: log.timestamp.format("%Y-%m-%d %H:%M:%S").to_string(),
+                                    status: log.status,
+                                    punch: log.punch,
+                                },
+                                timestamp: chrono::Utc::now().to_rfc3339(),
+                            };
+                            if sync_tx.send(msg).await.is_err() {
+                                break;
+                            }
+                        }
+                        
+                        if count < limit as usize {
+                            sleep(Duration::from_secs(10)).await;
+                        } else {
+                            // Hit limit, there are likely more. Send continuously.
+                            // Small delay to prevent tight loop CPU spike
+                            sleep(Duration::from_millis(50)).await;
+                        }
+                    }
+                    Err(_) => {
+                        sleep(Duration::from_secs(10)).await;
                     }
                 }
-                sleep(Duration::from_secs(10)).await;
             }
         });
 
