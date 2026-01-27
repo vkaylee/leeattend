@@ -1,4 +1,4 @@
-import { User, Workspace, AuthorizedAgent, WorkspaceMember } from "@/lib/api";
+import { User, Workspace, AuthorizedAgent, WorkspaceMember, Device } from "@/lib/api";
 
 export const userFactory = (overrides: Partial<User> = {}): User => {
   const id = crypto.randomUUID();
@@ -43,8 +43,27 @@ export const agentFactory = (
     token: "secret_token",
     is_trusted: true,
     is_active: true,
+    max_concurrent_workers: 2,
     last_ip: "127.0.0.1",
     last_seen_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    workspace_id: crypto.randomUUID(),
+    ...overrides,
+  };
+};
+
+export const deviceFactory = (
+  overrides: Partial<Device> = {},
+): Device => {
+  return {
+    id: `DEV_${Math.floor(Math.random() * 1000)}`,
+    agent_id: "AGENT_1",
+    name: "Test Device",
+    ip: "192.168.1.100",
+    port: 4370,
+    brand: "zkteco",
+    is_enabled: true,
+    last_status: "online",
     created_at: new Date().toISOString(),
     workspace_id: crypto.randomUUID(),
     ...overrides,

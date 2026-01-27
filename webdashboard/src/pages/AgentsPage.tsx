@@ -167,7 +167,7 @@ export default function AgentsPage() {
         </table>
       </div>
 
-      <AgentEditModal agent={editingAgent} isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onSave={handleSave} />
+      <AgentEditModal key={editingAgent?.id} agent={editingAgent} isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onSave={handleSave} />
     </div>
   );
 }

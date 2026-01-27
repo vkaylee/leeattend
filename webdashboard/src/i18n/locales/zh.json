@@ -212,7 +212,7 @@
         "appearance": "外观",
         "agents": "连接的应用程序",
         "devices": "物联网设备",
-        "overtime_policy": "Chính sách tăng ca"
+        "overtime_policy": "加班政策"
       }
     },
     "logout": "退出登录",
@@ -1034,6 +1034,9 @@
       "select_agent": "选择一个代理...",
       "ip": "IP 地址",
       "port": "端口",
+      "brand": "品牌",
+      "brand_placeholder": "选择品牌 (ZKTeco, Mock...)",
+      "strategy": "执行策略",
       "save": "保存",
       "clock_name": "考勤机名称",
       "clock_name_placeholder": "例：走廊考勤机...",

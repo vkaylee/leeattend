@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   X,
@@ -8,7 +8,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   Power,
-  Loader2
+  Loader2,
+  Cpu
 } from "lucide-react";
 import { AuthorizedAgent } from "@/lib/api";
 import { useAuthorizedAgents } from "@/hooks/use-agents";
@@ -24,34 +25,36 @@ interface AgentEditModalProps {
 export default function AgentEditModal({ agent, isOpen, onClose, onSave }: AgentEditModalProps) {
   const { t } = useTranslation();
   const { updateAgent, isUpdating } = useAuthorizedAgents();
-  const [name, setName] = useState("");
-  const [token, setToken] = useState("");
-  const [isTrusted, setIsTrusted] = useState(false);
-  const [isActive, setIsActive] = useState(true);
-
-  useEffect(() => {
-    if (agent) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setName(agent.name);
-      setToken(agent.token);
-      setIsTrusted(agent.is_trusted);
-      setIsActive(agent.is_active);
-    }
-  }, [agent]);
+  
+  // Initialize state directly from agent since parent uses key={agent?.id} to force remount
+  const [name, setName] = useState(agent?.name || "");
+  const [token, setToken] = useState(agent?.token || "");
+  const [isTrusted, setIsTrusted] = useState(agent?.is_trusted || false);
+  const [isActive, setIsActive] = useState(agent?.is_active ?? true);
+  const [maxConcurrentWorkers, setMaxConcurrentWorkers] = useState(agent?.max_concurrent_workers || 2);
 
   if (!isOpen || !agent) return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     try {
-      const updated = await updateAgent({ id: agent!.id, agent: { name, token, is_trusted: isTrusted, is_active: isActive } });
-      onSave(updated || agent); onClose();
+      const updated = await updateAgent({ 
+        id: agent!.id, 
+        agent: { 
+          name, 
+          token, 
+          is_trusted: isTrusted, 
+          is_active: isActive,
+          max_concurrent_workers: maxConcurrentWorkers
+        } 
+      });
+      onSave(updated || agent!); onClose();
     } catch (e) { console.error(e); }
   }
 
   return (
-    <div className="modal-backdrop">
-      <div className="modal-content max-w-lg shadow-premium-2xl">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="w-full max-w-xl bg-white rounded-[2.5rem] shadow-premium-2xl border border-white overflow-hidden animate-in zoom-in-95 duration-300">
         <div className="flex items-center justify-between p-10 border-b border-slate-50 bg-slate-50/30">
           <div className="flex items-center gap-5">
             <div className="bg-primary-50 p-4 rounded-2xl text-primary-600 shadow-inner border border-primary-100/50">
@@ -70,25 +73,34 @@ export default function AgentEditModal({ agent, isOpen, onClose, onSave }: Agent
         <form onSubmit={handleSubmit} className="p-10 space-y-10 animate-in fade-in duration-500">
           <div className="space-y-6">
             <div className="space-y-2 px-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] ml-1">{t("common.agents.edit_modal.id_label")}</label>
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("common.agents.edit_modal.id_label")}</label>
               <div className="w-full bg-slate-100/50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-500 font-mono font-bold shadow-inner opacity-60 uppercase text-xs">{agent.id}</div>
             </div>
 
             <div className="space-y-2 px-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] ml-1">{t("common.agents.edit_modal.name_label")}</label>
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("common.agents.edit_modal.name_label")}</label>
               <input required placeholder={t("common.agents.edit_modal.name_placeholder")} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-bold text-sm uppercase tracking-tight" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
 
-            <div className="space-y-2 px-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] ml-1">{t("common.agents.edit_modal.token_label")}</label>
-              <div className="relative group">
-                <input required placeholder={t("common.agents.edit_modal.token_placeholder")} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all pr-14 font-mono font-bold text-sm text-slate-700" value={token} onChange={(e) => setToken(e.target.value)} />
-                <Key className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-primary-500 transition-colors" />
+            <div className="grid grid-cols-2 gap-8">
+              <div className="space-y-2 px-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("common.agents.edit_modal.token_label")}</label>
+                <div className="relative group">
+                  <Key className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary-500 transition-colors" size={18} />
+                  <input required placeholder={t("common.agents.edit_modal.token_placeholder")} className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono text-sm tracking-widest" value={token} onChange={(e) => setToken(e.target.value)} />
+                </div>
+              </div>
+              <div className="space-y-2 px-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("devices.form.strategy")}</label>
+                <div className="relative group">
+                  <input type="number" min="1" max="100" required className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all pr-12 font-mono font-bold text-sm text-slate-700" value={maxConcurrentWorkers} onChange={(e) => setMaxConcurrentWorkers(parseInt(e.target.value))} />
+                  <Cpu className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-primary-500 transition-colors" />
+                </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-6 pt-2">
-              <button type="button" onClick={() => setIsTrusted(!isTrusted)} className={cn("flex flex-col items-center gap-3 p-6 rounded-[2rem] border-2 transition-all font-bold text-[10px] uppercase tracking-widest active:scale-95 shadow-inner", isTrusted ? "bg-emerald-50 border-emerald-100 text-emerald-700 shadow-emerald-900/5" : "bg-slate-50 border-slate-100 text-slate-500")}>
+              <button type="button" onClick={() => setIsTrusted(!isTrusted)} className={cn("flex flex-col items-center gap-3 p-6 rounded-[2rem] border-2 transition-all font-bold text-[10px] uppercase tracking-widest active:scale-95 shadow-inner", isTrusted ? "bg-emerald-50 border-emerald-100 text-emerald-700 shadow-emerald-900/5" : "bg-slate-50 border-slate-100 text-slate-400")}>
                 {isTrusted ? <ShieldCheck size={24} /> : <ShieldAlert size={24} />}
                 {isTrusted ? t("common.agents.status.trusted") : t("common.agents.status.pending")}
               </button>

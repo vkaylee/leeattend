@@ -19,6 +19,7 @@ export interface Device {
   ip: string;
   port: number;
   is_enabled: boolean;
+  brand: string;
   last_status: string;
   created_at: string;
   workspace_id: string;
@@ -33,6 +34,7 @@ export interface AuthorizedAgent {
   last_seen_at: string;
   created_at: string;
   is_active: boolean;
+  max_concurrent_workers: number;
   workspace_id: string;
 }
 
@@ -363,6 +365,7 @@ export interface PayrollIncentivePolicy {
   base_amount: number;
   payout_type: "fixed" | "percentage";
   is_active: boolean;
+  max_concurrent_workers: number;
   tiers?: IncentiveTier[];
   created_at: string;
 }
@@ -602,6 +605,7 @@ export interface EmployeeDocument {
   mime_type: string;
   expires_at?: string;
   is_active: boolean;
+  max_concurrent_workers: number;
   uploaded_by?: string;
   created_at: string;
 }
@@ -652,6 +656,7 @@ export interface WorkingPattern {
   description?: string;
 
   is_active: boolean;
+  max_concurrent_workers: number;
 
   created_at: string;
 
