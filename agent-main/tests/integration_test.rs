@@ -24,10 +24,10 @@ async fn test_full_process_handshake_new_architecture() {
         let (stream, _) = listener.accept().await.expect("Failed to accept connection");
         let mut client = ZKClient::new(stream);
 
-        let result = client.call("zk.ping", json!({})).await.expect("RPC ping failed");
+        let result = client.call("common.ping", json!({})).await.expect("RPC ping failed");
         assert_eq!(result, "pong");
 
-        let result_err = client.call("zk.invalid_method", json!({})).await;
+        let result_err = client.call("common.invalid_method", json!({})).await;
         assert!(result_err.is_err());
         
         child.kill().await.unwrap();
