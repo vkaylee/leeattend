@@ -249,7 +249,7 @@ Every request can include an optional `X-Debug-Mock-Date` header. This is parsed
 
 ## Infrastructure Diagram
 ```ascii
-[ Web Dashboard ] <--- REST API ---> [ API Server ] <--- WebSocket (Outbound Only) ---> [ Agent (Rust) ] <--- JSON-RPC (TCP) ---> [ ZK Worker (Python) ] <---> [ ZKTeco Devices ]
+[ Web Dashboard ] <--- REST API ---> [ API Server ] <--- WebSocket (Outbound Only) ---> [ Agent (Rust) ] <--- JSON-RPC (TCP) ---> [ Multi-Brand Workers ] <---> [ ZKTeco Devices ]
  (Tauri Desktop)                        (Rust)                                           (Orchestrator)                        (Sidecar Driver)
                                                                                                │
                                                                                          [ attendance.db ]
@@ -373,3 +373,17 @@ The local database is configured with the following PRAGMAs:
 - `synchronous=NORMAL`: Balances safety and write speed.
 - `cache_size=-64000`: Allocates 64MB of RAM for database caching.
 - `temp_store=MEMORY`: Keeps temporary tables in RAM to avoid disk I/O.
+
+### 18. Multi-Brand Sidecar Support (New)
+The Edge Agent has been evolved from a monolithic ZK-only driver to a modular, multi-brand orchestrator.
+
+#### 18.1. Standardized JSON-RPC 2.0 Contract
+All biometric workers (ZKTeco, Hikvision, Mock, etc.) must implement a standardized JSON-RPC 2.0 interface:
+- **`common.*` namespace**: Heartbeats and lifecycle checks (`common.ping`).
+- **`device.*` namespace**: Low-level hardware operations (`device.connect`, `device.get_logs`, `device.get_time`).
+- **Isolation**: Each sidecar handles exactly one physical device connection, ensuring that a crash in one driver does not affect other devices.
+
+#### 18.2. Parallel Polling Architecture
+The Orchestrator (`agent-main`) utilizes `tokio` tasks and `futures::join_all` to communicate with multiple sidecars concurrently:
+- **Concurrency**: Logs are fetched from all configured devices in parallel, drastically reducing the total polling cycle time.
+- **Resource Management**: Each worker process is spawned with piped stdout/stderr, allowing the Orchestrator to capture and prefix logs for better observability.
