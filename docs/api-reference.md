@@ -195,7 +195,8 @@ Lấy danh sách tất cả các thiết bị trong workspace hiện tại (Xác
 
 #### POST /devices
 Thêm thiết bị mới vào workspace.
-- **Request**: `{ "agent_id": "...", "name": "...", "ip": "...", "port": 4370 }`
+- **Request**: `{ "agent_id": "...", "name": "...", "ip": "...", "port": 4370,
+        "brand": "zkteco|mock" }`
 - **Response (201)**: `{ "id": "uuid-v4" }`
 
 ---
@@ -223,7 +224,7 @@ Khai báo một Agent mới vào workspace.
 - **Response (201)**: `{ "id": "AGENT_01" }`
 
 #### PATCH /authorized-agents/:id (New)
-Cập nhật thông tin Agent (tên, token, trạng thái active/trusted).
+Cập nhật thông tin Agent (tên, token, trạng thái active/trusted, max_concurrent_workers).
 - **Response (200 OK)**
 
 #### DELETE /authorized-agents/:id (Soft Delete)
@@ -1564,7 +1565,8 @@ Sent by the server whenever a device configuration changes or an agent is author
         "device_id": "uuid-string",
         "name": "Device Display Name",
         "ip": "192.168.1.100",
-        "port": 4370
+        "port": 4370,
+        "brand": "zkteco|mock"
       }
     ]
   }

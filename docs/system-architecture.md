@@ -387,3 +387,12 @@ All biometric workers (ZKTeco, Hikvision, Mock, etc.) must implement a standardi
 The Orchestrator (`agent-main`) utilizes `tokio` tasks and `futures::join_all` to communicate with multiple sidecars concurrently:
 - **Concurrency**: Logs are fetched from all configured devices in parallel, drastically reducing the total polling cycle time.
 - **Resource Management**: Each worker process is spawned with piped stdout/stderr, allowing the Orchestrator to capture and prefix logs for better observability.
+
+#### 18.3. Dynamic Reconfiguration \& Execution Strategy (New)
+The Edge Agent now supports hot-reloading of its worker configuration and fine-grained resource control:
+- **Database-Driven Configuration**: Instead of hardcoded values, the Orchestrator loads active workers from its local SQLite database. 
+- **Hot-Reloading**: When the dashboard pushes a configuration change, the Orchestrator receives a signal via `CentralClient`, gracefully shuts down all current sidecars, and spawns new ones based on the updated DB state.
+- **Execution Strategy (Bounded Parallelism)**:
+    - **Concurrency Control**: A `Semaphore` is used to limit the number of sidecar processes active at any given time.
+    - **Sequential Polling**: Setting `MAX_CONCURRENT_WORKERS = 1` forces the agent to poll devices one-by-one, minimizing RAM usage.
+    - **Parallel Polling**: Setting `MAX_CONCURRENT_WORKERS > 1` enables high-throughput polling for gateways with sufficient resources.
