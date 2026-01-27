@@ -69,6 +69,9 @@ Run the unified test suite with automatic environment management:
 ./run-tests.sh --api [pattern]   # Run only API/Backend tests
 ./run-tests.sh --web [pattern]   # Run only Web/Frontend/E2E tests
 ```
+
+> **Note**: The test runner automatically detects your system resources (RAM/CPU) and tunes concurrency to prevent system freezes. On low-memory systems (<8GB), it automatically switches to serial execution for stability.
+
 *Note: Linting (Phase 0) is mandatory and runs before tests in all modes.*
 
 Manual execution (Internal scripts):

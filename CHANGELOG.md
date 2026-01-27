@@ -4,6 +4,14 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ## [Unreleased] - 2026-01-27
 ### Added
+- **Test Orchestrator Improvements**:
+    - **Smart Resource Detection**: Updated `scripts/test-utils.sh` to automatically detect available RAM and CPU cores.
+    - **Auto-Tuning**: Automatically reduces parallelism (NUM_WORKERS) on constrained environments (e.g., 8GB RAM) to prevent system freeze during compilation.
+    - **Serial Mode Fallback**: Automatically switches to sequential execution if resources are critically low.
+### Added
+- **Dynamic Worker Reconfiguration**: Orchestrator now hot-reloads workers based on dashboard configuration changes without service interruption.
+- **Bounded Parallelism (Semaphore)**: Added `MAX_CONCURRENT_WORKERS` to control the number of active sidecars, allowing sequential or parallel polling based on hardware capacity.
+- **Multi-Brand UI Support**: Integrated Brand selection (ZKTeco, Mock) in Device Management UI and Agent configuration for execution strategy.
 - **Multi-Brand Worker API**: Standardized JSON-RPC 2.0 contract for device sidecars (`common.*`, `device.*`).
 - **Parallel Sidecar Polling**: Refactored `agent-main` to poll multiple device workers concurrently using `tokio` and `futures::join_all`.
 - **Mock Worker**: Added `agent-mock-worker` for simulating multi-brand environments without physical hardware.
@@ -15,6 +23,9 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 - Improved E2E test reliability by adding `data-testid` to navigation elements and fixing query invalidation.
 
 ### Added
+- **Dynamic Worker Reconfiguration**: Orchestrator now hot-reloads workers based on dashboard configuration changes without service interruption.
+- **Bounded Parallelism (Semaphore)**: Added `MAX_CONCURRENT_WORKERS` to control the number of active sidecars, allowing sequential or parallel polling based on hardware capacity.
+- **Multi-Brand UI Support**: Integrated Brand selection (ZKTeco, Mock) in Device Management UI and Agent configuration for execution strategy.
 - Type-safe `CentralMessage::ConfigPush` enum protocol between Server and Agent.
 - Enhanced Agent logging: Device names are now displayed in "Processing" and "Fetched logs" messages.
 - Integration test for `ConfigPush` enum in `agent-main`.
@@ -26,6 +37,9 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 ### Removed
 - Automatic `zk.sync_time` RPC call in Agent polling loop (preventing unintended device clock overrides).
 ### Added
+- **Dynamic Worker Reconfiguration**: Orchestrator now hot-reloads workers based on dashboard configuration changes without service interruption.
+- **Bounded Parallelism (Semaphore)**: Added `MAX_CONCURRENT_WORKERS` to control the number of active sidecars, allowing sequential or parallel polling based on hardware capacity.
+- **Multi-Brand UI Support**: Integrated Brand selection (ZKTeco, Mock) in Device Management UI and Agent configuration for execution strategy.
 - **Batch Data Ingestion**: Added `save_raw_attendance_batch` to Edge Agent, increasing write performance by ~100x.
 - **SQLite Tuning**: Optimized PRAGMA settings (WAL, NORMAL sync, 64MB cache) for high-frequency logs.
 - **Batch Worker Integration**: Implemented independent DB Writer worker with time-based and size-based flush logic.
@@ -37,6 +51,9 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
     - **Robust Supervisor**: The Orchestrator now proactively restarts the Sidecar and waits for a reverse-connection if the process dies.
     - **Integration Verified**: Added comprehensive integration tests verifying the full path: Hardware Logic -> SQLite -> WebSocket -> Cloud API.
 ### Added
+- **Dynamic Worker Reconfiguration**: Orchestrator now hot-reloads workers based on dashboard configuration changes without service interruption.
+- **Bounded Parallelism (Semaphore)**: Added `MAX_CONCURRENT_WORKERS` to control the number of active sidecars, allowing sequential or parallel polling based on hardware capacity.
+- **Multi-Brand UI Support**: Integrated Brand selection (ZKTeco, Mock) in Device Management UI and Agent configuration for execution strategy.
 - **Smart Leave Policy Assignment**:
     - **Automatic Conflict Resolution**: Implemented "Delete Future" logic when assigning mid-term policies, ensuring a clean and consistent timeline without manual cleanup.
     - **Assignment History**: Added a detailed history table in Leave Settings to track all policy assignments (Workspace, Department, and Employee scope).
