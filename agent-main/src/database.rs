@@ -175,15 +175,15 @@ impl Database {
         Ok(())
     }
 
-    pub async fn upsert_device(&self, id: &str, name: &str, ip: &str, port: i32) -> Result<(), Error> {
+    pub async fn upsert_device(&self, id: &str, name: &str, ip: &str, port: i32, brand: &str) -> Result<(), Error> {
         sqlx::query(
             r#"
-            INSERT INTO devices (id, name, ip, port, last_seen, is_active)
-            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, 1)
+            INSERT INTO devices (id, name, ip, port, brand, last_seen, is_active)
+            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 1)
             ON CONFLICT(id) DO UPDATE SET
                 name = excluded.name,
                 ip = excluded.ip,
-                port = excluded.port,
+                port = excluded.port, brand = excluded.brand,
                 last_seen = CURRENT_TIMESTAMP,
                 is_active = 1
             "#,
@@ -191,16 +191,39 @@ impl Database {
         .bind(id)
         .bind(name)
         .bind(ip)
-        .bind(port)
+        .bind(port).bind(brand)
         .execute(&self.pool)
         .await?;
         Ok(())
     }
 
+    pub async fn upsert_agent_config(&self, key: &str, value: &str) -> Result<(), Error> {
+        sqlx::query(
+            r#"
+            INSERT INTO agent_config (key, value)
+            VALUES (?, ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value
+            "#
+        )
+        .bind(key)
+        .bind(value)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn get_agent_config(&self, key: &str) -> Result<Option<String>, Error> {
+        let res: Option<(String,)> = sqlx::query_as("SELECT value FROM agent_config WHERE key = ?")
+            .bind(key)
+            .fetch_optional(&self.pool)
+            .await?;
+        Ok(res.map(|r| r.0))
+    }
+
     pub async fn get_active_devices(&self) -> Result<Vec<DeviceConfig>, Error> {
         sqlx::query_as::<_, DeviceConfig>(
             r#"
-            SELECT id, name, ip, port, last_seen, is_active
+            SELECT id, name, ip, port, brand, last_seen, is_active
             FROM devices
             WHERE is_active = 1
             "#

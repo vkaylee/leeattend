@@ -90,7 +90,8 @@ async fn test_create_and_get_device() {
         "agent_id": "TEST_AGENT",
         "name": "Test Device",
         "ip": "192.168.1.50",
-        "port": 4370
+        "port": 4370,
+        "brand": "mock"
     });
 
     let response = client
@@ -118,6 +119,7 @@ async fn test_create_and_get_device() {
     assert_eq!(response.status().as_u16(), 200);
     let devices: Vec<serde_json::Value> = response.json().await.unwrap();
     assert_eq!(devices.len(), 1);
+    assert_eq!(devices[0]["brand"], "mock");
 }
 
 #[tokio::test]
@@ -135,7 +137,8 @@ async fn test_delete_device() {
         .json(&serde_json::json!({
             "agent_id": "TEST_AGENT",
             "name": "To Delete",
-            "ip": "1.1.1.1"
+            "ip": "1.1.1.1",
+            "brand": "zkteco"
         }))
         .send()
         .await
@@ -180,7 +183,8 @@ async fn test_update_device() {
         .json(&serde_json::json!({
             "agent_id": "TEST_AGENT",
             "name": "Old Name",
-            "ip": "1.1.1.1"
+            "ip": "1.1.1.1",
+            "brand": "zkteco"
         }))
         .send()
         .await
@@ -192,7 +196,8 @@ async fn test_update_device() {
 
     let update_body = serde_json::json!({
         "name": "New Name",
-        "is_enabled": false
+        "is_enabled": false,
+        "brand": "mock"
     });
 
     let response = client
@@ -217,6 +222,7 @@ async fn test_update_device() {
     let devices: Vec<serde_json::Value> = response.json().await.unwrap();
     assert_eq!(devices[0]["name"], "New Name");
     assert_eq!(devices[0]["is_enabled"], false);
+    assert_eq!(devices[0]["brand"], "mock");
 }
 
 #[tokio::test]

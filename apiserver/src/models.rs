@@ -122,6 +122,8 @@ pub struct AuthorizedAgent {
     pub last_seen_at: DateTime<Utc>,
     pub is_active: bool,
     pub workspace_id: Uuid,
+    #[sqlx(default)]
+    pub max_concurrent_workers: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -130,6 +132,7 @@ pub struct UpdateAuthorizedAgentRequest {
     pub token: Option<String>,
     pub is_trusted: Option<bool>,
     pub is_active: Option<bool>,
+    pub max_concurrent_workers: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -138,6 +141,7 @@ pub struct CreateAuthorizedAgentRequest {
     pub name: String,
     pub token: String,
     pub workspace_id: Option<Uuid>,
+    pub max_concurrent_workers: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -152,10 +156,13 @@ pub struct Device {
     pub name: String,
     pub ip: String,
     pub port: i32,
+    pub brand: String,
     pub is_enabled: bool,
     pub last_status: String,
     pub created_at: DateTime<Utc>,
     pub workspace_id: Uuid,
+    #[sqlx(default)]
+    pub max_concurrent_workers: i32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -164,7 +171,9 @@ pub struct CreateDeviceRequest {
     pub name: String,
     pub ip: String,
     pub port: Option<i32>,
+    pub brand: Option<String>,
     pub workspace_id: Option<Uuid>,
+    pub max_concurrent_workers: Option<i32>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -172,6 +181,7 @@ pub struct UpdateDeviceRequest {
     pub name: Option<String>,
     pub ip: Option<String>,
     pub port: Option<i32>,
+    pub brand: Option<String>,
     pub is_enabled: Option<bool>,
 }
 
@@ -427,6 +437,7 @@ pub struct UpdateAssignmentRuleRequest {
     pub priority: Option<i32>,
     pub conditions: Option<AssignmentRuleConditions>,
     pub is_active: Option<bool>,
+    pub max_concurrent_workers: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -452,6 +463,7 @@ pub struct UpdateEmployeeRequest {
     pub termination_date: Option<NaiveDate>,
     pub tags: Option<Vec<String>>,
     pub is_active: Option<bool>,
+    pub max_concurrent_workers: Option<i32>,
 }
 
 // --- Time Tracking Models ---

@@ -15,6 +15,8 @@ impl AgentService {
 
     pub async fn notify_config_update(&self, agent_id: &str) -> Result<(), String> {
         let devices = self.repo.find_devices_by_agent_id(agent_id).await?;
+        let agent = self.repo.find_by_id(agent_id).await?;
+        let max_workers = agent.map(|a| a.max_concurrent_workers);
 
         let config_data = ConfigData {
             devices: devices.into_iter().map(|d| {
@@ -22,9 +24,11 @@ impl AgentService {
                     device_id: d.id.to_string(),
                     name: d.name,
                     ip: d.ip,
-                    port: d.port
+                    port: d.port,
+                    brand: d.brand
                 }
-            }).collect()
+            }).collect(),
+            max_concurrent_workers: max_workers
         };
 
         self.manager

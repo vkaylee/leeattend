@@ -11,8 +11,9 @@ use futures_util::{sink::SinkExt, stream::StreamExt};
 use serde::Deserialize;
 use std::sync::Arc;
 use tokio::sync::mpsc;
-use tracing::info;
+use tracing::{info, warn};
 use uuid::Uuid;
+use tokio::time::Duration;
 
 use crate::agent_manager::AgentCommand;
 use crate::handlers::common::MemberContext;
@@ -145,6 +146,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                             .await;
                                     }
                                     Ok(None) => {
+                                        warn!("Agent authorization failed for {}: UNAUTHORIZED_AGENT", id);
                                         let _ = tx.send(Message::Text(
                                             serde_json::json!({
                                                 "type": "error",
@@ -156,6 +158,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                         break;
                                     }
                                     Err(code) => {
+                                        warn!("Agent authorization error for {}: {}", id, code);
                                         let message = match code.as_str() {
                                             "INVALID_TOKEN" => "Token không chính xác.",
                                             "AGENT_NOT_TRUSTED" => "Agent chưa được phê duyệt.",
@@ -187,7 +190,10 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
 
     tokio::select! {
         _ = (&mut send_task) => recv_task.abort(),
-        _ = (&mut recv_task) => send_task.abort(),
+        _ = (&mut recv_task) => {
+            // Give send_task a chance to flush pending messages (like errors) before closing
+            let _ = tokio::time::timeout(Duration::from_secs(2), send_task).await;
+        },
     };
 }
 
@@ -247,7 +253,7 @@ pub async fn create_device(
     let port = req.port.unwrap_or(4370);
 
     match sqlx::query(
-        "INSERT INTO devices (id, agent_id, name, ip, port, workspace_id) VALUES ($1, $2, $3, $4, $5, $6)",
+        "INSERT INTO devices (id, agent_id, name, ip, port, workspace_id, brand) VALUES ($1, $2, $3, $4, $5, $6, $7)",
     )
     .bind(id)
     .bind(&req.agent_id)
@@ -255,6 +261,7 @@ pub async fn create_device(
     .bind(&req.ip)
     .bind(port)
     .bind(workspace_id)
+        .bind(req.brand.unwrap_or_else(|| "zkteco".to_string()))
     .execute(&state.db)
     .await
     {
@@ -288,14 +295,16 @@ pub async fn update_device(
     let ip = req.ip.unwrap_or(current_device.ip);
     let port = req.port.unwrap_or(current_device.port);
     let is_enabled = req.is_enabled.unwrap_or(current_device.is_enabled);
+    let brand = req.brand.unwrap_or(current_device.brand);
 
     match sqlx::query(
-        "UPDATE devices SET name = $1, ip = $2, port = $3, is_enabled = $4 WHERE id = $5 AND workspace_id = $6",
+        "UPDATE devices SET name = $1, ip = $2, port = $3, is_enabled = $4, brand = $5 WHERE id = $6 AND workspace_id = $7",
     )
     .bind(name)
     .bind(ip)
     .bind(port)
     .bind(is_enabled)
+        .bind(brand)
     .bind(id)
     .bind(workspace_id)
     .execute(&state.db)
@@ -377,12 +386,13 @@ pub async fn create_authorized_agent(
     Json(req): Json<CreateAuthorizedAgentRequest>,
 ) -> impl IntoResponse {
     match sqlx::query(
-        "INSERT INTO authorized_agents (id, name, token, workspace_id) VALUES ($1, $2, $3, $4)",
+        "INSERT INTO authorized_agents (id, name, token, workspace_id, max_concurrent_workers) VALUES ($1, $2, $3, $4, $5)",
     )
     .bind(&req.id)
     .bind(&req.name)
     .bind(&req.token)
     .bind(workspace_id)
+    .bind(req.max_concurrent_workers.unwrap_or(2))
     .execute(&state.db)
     .await
     {
@@ -479,6 +489,14 @@ pub async fn update_authorized_agent(
         query_builder.push_bind(is_active);
         has_fields_to_update = true;
     }
+    if let Some(max_concurrent_workers) = req.max_concurrent_workers {
+        if has_fields_to_update {
+            query_builder.push(", ");
+        }
+        query_builder.push("max_concurrent_workers = ");
+        query_builder.push_bind(max_concurrent_workers);
+        has_fields_to_update = true;
+    }
 
     if !has_fields_to_update {
         return (StatusCode::BAD_REQUEST, "No fields to update").into_response();
@@ -500,6 +518,8 @@ pub async fn update_authorized_agent(
                 && state.agent_manager.is_online(&agent.id).await
             {
                 state.agent_manager.remove_agent(&agent.id).await;
+            } else {
+                let _ = state.agent_service.notify_config_update(&agent.id).await;
             }
             Json(agent).into_response()
         }

@@ -12,11 +12,13 @@ pub struct DeviceConfigPush {
     pub name: String,
     pub ip: String,
     pub port: i32,
+    pub brand: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigData {
     pub devices: Vec<DeviceConfigPush>,
+    pub max_concurrent_workers: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

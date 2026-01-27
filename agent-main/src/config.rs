@@ -10,6 +10,7 @@ pub struct Config {
     pub python_path: String,
     pub rpc_timeout_seconds: u64,
     pub poll_interval_seconds: u64,
+    pub max_concurrent_workers: usize,
 }
 
 impl Config {
@@ -57,6 +58,11 @@ impl Config {
             .parse()
             .unwrap_or(30);
 
+        let max_concurrent_workers = env::var("MAX_CONCURRENT_WORKERS")
+            .unwrap_or_default()
+            .parse()
+            .unwrap_or(5);
+
         let poll_interval_seconds = env::var("POLL_INTERVAL_SECONDS")
             .unwrap_or_default()
             .parse()
@@ -78,6 +84,7 @@ impl Config {
             python_path,
             rpc_timeout_seconds,
             poll_interval_seconds,
+            max_concurrent_workers,
         }
     }
 
@@ -89,6 +96,7 @@ impl Config {
         info!("   • Python Path  : {}", self.python_path);
         info!("   • RPC Timeout  : {}s", self.rpc_timeout_seconds);
         info!("   • Poll Interval: {}s", self.poll_interval_seconds);
+        info!("   • Max Workers   : {}", self.max_concurrent_workers);
         info!("============================================================");
     }
 }

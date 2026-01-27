@@ -52,7 +52,7 @@ async fn test_end_to_end_log_push() {
             .expect("Failed to run migrations");
 
         // 4. Mock device and log
-        db.upsert_device("DEV1", "Test Device", "127.0.0.1", 4370).await.unwrap();
+        db.upsert_device("DEV1", "Test Device", "127.0.0.1", 4370, "zkteco").await.unwrap();
         let log_data = AttendanceData {
             user_id: "USER1".into(),
             timestamp: "2026-01-26 12:00:00".into(),
@@ -62,7 +62,7 @@ async fn test_end_to_end_log_push() {
         db.save_raw_attendance("DEV1", log_data).await.unwrap();
 
         // 5. Start CentralClient
-        let (client, rx) = CentralClient::new(ws_url, "AGENT1".into(), "TOKEN1".into(), db.clone());
+        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT1".into(), "TOKEN1".into(), db.clone());
         client.start(rx).await;
 
         // 6. Verify Mock Server received the log
@@ -128,7 +128,7 @@ async fn test_reliable_sync_with_server_error() {
         let db = Database::new(&db_url).await.unwrap();
         sqlx::migrate!("./migrations").run(db.get_pool()).await.unwrap();
 
-        db.upsert_device("DEV_RETRY", "Retry Device", "127.0.0.1", 4370).await.unwrap();
+        db.upsert_device("DEV_RETRY", "Retry Device", "127.0.0.1", 4370, "zkteco").await.unwrap();
         db.save_raw_attendance("DEV_RETRY", AttendanceData {
             user_id: "RETRY_USER".into(),
             timestamp: "2026-01-26 12:00:00".into(),
@@ -136,7 +136,7 @@ async fn test_reliable_sync_with_server_error() {
             punch: Some(1),
         }).await.unwrap();
 
-        let (client, rx) = CentralClient::new(ws_url, "AGENT_RETRY".into(), "TOKEN_RETRY".into(), db.clone());
+        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_RETRY".into(), "TOKEN_RETRY".into(), db.clone());
         client.start(rx).await;
 
         // 3. Verify Mock Server received the log TWICE (once for failed attempt, once for retry)

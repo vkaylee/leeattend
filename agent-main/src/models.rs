@@ -22,6 +22,7 @@ pub struct DeviceConfig {
     pub name: String,
     pub ip: String,
     pub port: i64,
+    pub brand: String,
     pub last_seen: Option<chrono::NaiveDateTime>,
     pub is_active: Option<bool>,
 }
@@ -33,11 +34,13 @@ pub struct DeviceConfigPush {
     pub name: String,
     pub ip: String,
     pub port: i32,
+    pub brand: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ConfigData {
     pub devices: Vec<DeviceConfigPush>,
+    pub max_concurrent_workers: Option<i32>,
 }
 
 // WebSocket / API Models

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use futures_util::{ SinkExt, StreamExt };
-use log::{error, info};
+use log::{error, info, warn};
 use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
@@ -25,80 +25,28 @@ pub struct CentralClient {
     token: String,
     db: Database,
     tx: mpsc::Sender<CentralMessage>,
+    reload_tx: mpsc::Sender<()>,
     is_connected: Arc<AtomicBool>,
 }
 
 #[allow(clippy::collapsible_if)]
 impl CentralClient {
-    pub fn new(url: String, agent_id: String, token: String, db: Database) -> (Self, mpsc::Receiver<CentralMessage>) {
+    pub fn new(url: String, agent_id: String, token: String, db: Database) -> (Self, mpsc::Receiver<CentralMessage>, mpsc::Receiver<()>) {
         let (tx, rx) = mpsc::channel(100);
+        let (reload_tx, reload_rx) = mpsc::channel(1);
         let is_connected = Arc::new(AtomicBool::new(false));
-        (Self { url, agent_id, token, db, tx, is_connected }, rx)
-    }
-}
-
-#[derive(Debug, PartialEq)]
-enum RetryMode {
-    Initial,
-    Backoff,
-}
-
-struct RetryManager {
-    retry_count: u32,
-    mode: RetryMode,
-}
-
-impl RetryManager {
-    fn new() -> Self {
-        Self {
-            retry_count: 0,
-            mode: RetryMode::Initial,
-        }
+        (Self { url, agent_id, token, db, tx, reload_tx, is_connected }, rx, reload_rx)
     }
 
-    fn get_delay(&self) -> Duration {
-        if self.retry_count == 0 {
-            return Duration::from_secs(0);
-        }
-
-        match self.mode {
-            RetryMode::Initial => Duration::from_secs(5),
-            RetryMode::Backoff => calculate_backoff(self.retry_count),
-        }
-    }
-
-    fn record_connection_failed(&mut self) {
-        if self.retry_count < 10 {
-            self.retry_count += 1;
-        }
-    }
-
-    fn record_connection_established(&mut self) {}
-
-    fn record_stable(&mut self) {
-        self.retry_count = 0;
-        self.mode = RetryMode::Initial;
-    }
-
-    fn record_dropped_prematurely(&mut self) {
-        self.mode = RetryMode::Backoff;
-        if self.retry_count < 10 {
-            self.retry_count += 1;
-        }
-    }
-}
-
-#[allow(clippy::collapsible_if)]
-impl CentralClient {
-    pub async fn start(&self, mut rx: mpsc::Receiver<CentralMessage>) {
-        let _ = self.db.reset_syncing_status().await;
+    pub async fn start(self, mut rx: mpsc::Receiver<CentralMessage>) {
         let url = self.url.clone();
         let agent_id = self.agent_id.clone();
         let token = self.token.clone();
         let tx = self.tx.clone();
         let db = self.db.clone();
+        let ws_reload_tx = self.reload_tx.clone();
 
-        // 1. Sync Loop - periodic poll unsynced logs from DB
+        // 1. Sync Loop
         let sync_db = db.clone();
         let sync_tx = tx.clone();
         let sync_agent_id = agent_id.clone();
@@ -126,22 +74,12 @@ impl CentralClient {
                                 },
                                 timestamp: chrono::Utc::now().to_rfc3339(),
                             };
-                            if sync_tx.send(msg).await.is_err() {
-                                break;
-                            }
+                            if sync_tx.send(msg).await.is_err() { break; }
                         }
-                        
-                        if count < limit as usize {
-                            sleep(Duration::from_secs(10)).await;
-                        } else {
-                            // Hit limit, there are likely more. Send continuously.
-                            // Small delay to prevent tight loop CPU spike
-                            sleep(Duration::from_millis(50)).await;
-                        }
+                        if count < limit as usize { sleep(Duration::from_secs(10)).await; }
+                        else { sleep(Duration::from_millis(50)).await; }
                     }
-                    Err(_) => {
-                        sleep(Duration::from_secs(10)).await;
-                    }
+                    Err(_) => { sleep(Duration::from_secs(10)).await; }
                 }
             }
         });
@@ -160,29 +98,14 @@ impl CentralClient {
             }
         });
 
-
-        // 4. Stale Sync Reset Task
-        let stale_db = db.clone();
-        tokio::spawn(async move {
-            loop {
-                sleep(Duration::from_secs(60)).await;
-                if let Ok(count) = stale_db.reset_stale_syncing(300).await {
-                    if count > 0 {
-                        log::info!("Reset {} stale syncing logs for retry", count);
-                    }
-                }
-            }
-        });
-
-        let ws_connected = self.is_connected.clone();
         // 3. WS Connection Manager
+        let conn_reload_tx = ws_reload_tx.clone();
+        let ws_connected = self.is_connected.clone();
         tokio::spawn(async move {
             let mut manager = RetryManager::new();
             loop {
                 let delay = manager.get_delay();
-                if delay > Duration::from_secs(0) {
-                    sleep(delay).await;
-                }
+                if delay > Duration::from_secs(0) { sleep(delay).await; }
 
                 info!("Connecting to Central Server at {}...", url);
                 match connect_central(&url, &agent_id, &token).await {
@@ -192,7 +115,6 @@ impl CentralClient {
                         manager.record_connection_established();
                         let (mut write, mut read) = ws_stream.split();
 
-                        // Handshake
                         let handshake = CentralMessage::Handshake {
                             agent_id: agent_id.clone(),
                             token: token.clone(),
@@ -201,7 +123,7 @@ impl CentralClient {
                         if let Ok(text) = serde_json::to_string(&handshake) {
                             if write.send(Message::Text(text.into())).await.is_err() {
                                 ws_connected.store(false, Ordering::Relaxed);
-                        manager.record_connection_failed();
+                                manager.record_connection_failed();
                                 continue;
                             }
                         }
@@ -210,18 +132,31 @@ impl CentralClient {
                             tokio::select! {
                                 Some(out_msg) = rx.recv() => {
                                     if let Ok(text) = serde_json::to_string(&out_msg) {
-                                        if write.send(Message::Text(text.into())).await.is_err() {
-                                            break;
-                                        }
+                                        if write.send(Message::Text(text.into())).await.is_err() { break; }
                                     }
                                 }
-                                Some(in_msg) = read.next() => {
+                                in_msg = read.next() => {
                                     match in_msg {
-                                        Ok(Message::Text(text)) => {
-                                            handle_incoming_text(&text, &db).await;
+                                        Some(Ok(Message::Text(text))) => {
+                                            handle_incoming_text(&text, &db, &conn_reload_tx).await;
                                             manager.record_stable();
                                         }
-                                        _ => break,
+                                        Some(Ok(Message::Ping(p))) => {
+                                            if write.send(Message::Pong(p)).await.is_err() { break; }
+                                        }
+                                        Some(Ok(Message::Close(f))) => {
+                                            warn!("🚪 Server closed connection: {:?}", f);
+                                            break;
+                                        }
+                                        Some(Err(e)) => {
+                                            error!("❌ WS Error: {}", e);
+                                            break;
+                                        }
+                                        None => {
+                                            warn!("🔌 WS stream ended.");
+                                            break;
+                                        }
+                                        _ => {}
                                     }
                                 }
                             }
@@ -240,36 +175,24 @@ impl CentralClient {
     }
 }
 
-fn calculate_backoff(retry_count: u32) -> Duration {
-    let base_delay = Duration::from_secs(1);
-    let max_delay = Duration::from_secs(60);
-    let exponent = std::cmp::min(retry_count.saturating_sub(1), 31);
-    std::cmp::min(base_delay.saturating_mul(2u32.pow(exponent)), max_delay)
-}
-
-async fn connect_central(url: &str, agent_id: &str, token: &str) -> Result<(WebSocketStream<MaybeTlsStream<TcpStream>>, tokio_tungstenite::tungstenite::handshake::client::Response), Box<dyn std::error::Error + Send + Sync>> {
-    let mut request = url.into_client_request()?;
-    let headers = request.headers_mut();
-    headers.insert("Authorization", HeaderValue::from_str(&format!("Bearer {}", token))?);
-    headers.insert("X-Agent-ID", HeaderValue::from_str(agent_id)?);
-    let (ws_stream, response) = connect_async(request).await?;
-    Ok((ws_stream, response))
-}
-
-async fn handle_incoming_text(text: &str, db: &Database) {
+pub async fn handle_incoming_text(text: &str, db: &Database, reload_tx: &mpsc::Sender<()>) {
     if let Ok(msg) = serde_json::from_str::<CentralMessage>(text) {
         match msg {
             CentralMessage::ConfigPush { data } => {
-                for d in data.devices {
-                    let _ = db.upsert_device(&d.device_id, &d.name, &d.ip, d.port).await;
+                info!("Received ConfigPush with {} devices", data.devices.len());
+                if let Some(mw) = data.max_concurrent_workers {
+                    let _ = db.upsert_agent_config("max_concurrent_workers", &mw.to_string()).await;
                 }
+                for d in data.devices {
+                    let _ = db.upsert_device(&d.device_id, &d.name, &d.ip, d.port, &d.brand).await;
+                }
+                let _ = reload_tx.try_send(());
             }
             CentralMessage::Ack { msg_id, status, .. } => {
                 if let Ok(id) = msg_id.parse::<i64>() {
                     if status.as_deref() == Some("success") {
                         let _ = db.mark_synced(&[id]).await;
                     } else {
-                        // error or missing status -> reset to unsynced so it can be retried
                         let _ = sqlx::query("UPDATE zkt_raw_attendance SET is_synced = 0 WHERE id = ?")
                             .bind(id)
                             .execute(db.get_pool())
@@ -277,7 +200,71 @@ async fn handle_incoming_text(text: &str, db: &Database) {
                     }
                 }
             }
+            CentralMessage::Error { code, message } => {
+                error!("⚠️ Server error [{}]: {}", code, message);
+            }
             _ => {}
         }
+    }
+}
+
+async fn connect_central(url: &str, agent_id: &str, token: &str) -> Result<(WebSocketStream<MaybeTlsStream<TcpStream>>, tokio_tungstenite::tungstenite::handshake::client::Response), Box<dyn std::error::Error + Send + Sync>> {
+    let mut request = url.into_client_request()?;
+    request.headers_mut().insert("X-Agent-Id", HeaderValue::from_str(agent_id)?);
+    request.headers_mut().insert("X-Token", HeaderValue::from_str(token)?);
+    let (ws_stream, response) = connect_async(request).await?;
+    Ok((ws_stream, response))
+}
+
+struct RetryManager {
+    retry_count: u32,
+}
+
+impl RetryManager {
+    fn new() -> Self { Self { retry_count: 0 } }
+    fn get_delay(&self) -> Duration {
+        if self.retry_count == 0 { return Duration::from_secs(0); }
+        let base = 1u64;
+        let delay = std::cmp::min(base * 2u64.pow(std::cmp::min(self.retry_count - 1, 31)), 60);
+        Duration::from_secs(delay)
+    }
+    fn record_connection_established(&mut self) { self.retry_count = 0; }
+    fn record_connection_failed(&mut self) { self.retry_count = std::cmp::min(self.retry_count + 1, 10); }
+    fn record_dropped_prematurely(&mut self) { self.record_connection_failed(); }
+    fn record_stable(&mut self) { self.retry_count = 0; }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::database::Database;
+    use tokio::sync::mpsc;
+
+    #[tokio::test]
+    async fn test_handle_incoming_error() {
+        let db = Database::new(":memory:").await.unwrap();
+        let (reload_tx, _reload_rx) = mpsc::channel(1);
+
+        let error_msg = r#"{"type":"error", "code":"INVALID_TOKEN", "message":"Invalid token provided"}"#;
+        handle_incoming_text(error_msg, &db, &reload_tx).await;
+    }
+
+    #[tokio::test]
+    async fn test_handle_incoming_ack_failure() {
+        let db = Database::new(":memory:").await.unwrap();
+        let (reload_tx, _reload_rx) = mpsc::channel(1);
+
+        sqlx::query("INSERT INTO zkt_raw_attendance (id, device_id, user_id, timestamp, is_synced) VALUES (999, 'dev1', 'user1', '2026-01-27 10:00:00', 2)")
+            .execute(db.get_pool())
+            .await
+            .unwrap();
+
+        let ack_error = r#"{"type":"ack", "msg_id":"999", "status":"error", "error":"Server overloaded"}"#;
+        handle_incoming_text(ack_error, &db, &reload_tx).await;
+
+        let logs = db.get_unsynced_logs(10).await.unwrap();
+        assert_eq!(logs.len(), 1);
+        assert_eq!(logs[0].id, 999);
+        assert_eq!(logs[0].is_synced, 0);
     }
 }
