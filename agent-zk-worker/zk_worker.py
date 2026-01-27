@@ -5,12 +5,11 @@ import sys
 from datetime import datetime
 from pyzk2 import ZK, const
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("zk-worker")
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger('zk-worker')
 
 class ZKService:
-    def __init__(self, device_id: str, ip: str, port: int = 4370):
-        self.device_id = device_id
+    def __init__(self, ip: str, port: int = 4370):
         self.ip = ip
         self.port = port
         self.zk = ZK(ip, port=port, timeout=5, force_udp=True, ommit_ping=True)
@@ -35,141 +34,92 @@ class ZKService:
         logs = []
         for log in raw_logs:
             logs.append({
-                "user_id": log.user_id,
-                "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                "status": log.status,
-                "punch": log.punch
+                'user_id': log.user_id,
+                'timestamp': log.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                'status': log.status,
+                'punch': log.punch
             })
         return logs
 
     async def get_time(self):
         conn = await self.connect()
         dt = await asyncio.to_thread(conn.get_time)
-        return dt.strftime("%Y-%m-%d %H:%M:%S")
-
-    async def get_time(self):
-        conn = await self.connect()
-        dt = await asyncio.to_thread(conn.get_time)
-        return dt.strftime("%Y-%m-%d %H:%M:%S")
+        return dt.strftime('%Y-%m-%d %H:%M:%S')
 
     async def sync_time(self):
         conn = await self.connect()
         now = datetime.now()
         await asyncio.to_thread(conn.set_time, now)
-        return now.strftime("%Y-%m-%d %H:%M:%S")
-
-    async def get_users(self):
-        conn = await self.connect()
-        users = await asyncio.to_thread(conn.get_users)
-        return [{"uid": u.uid, "user_id": u.user_id, "name": u.name} for u in users]
+        return now.strftime('%Y-%m-%d %H:%M:%S')
 
 class ZKWorkerClient:
-    def __init__(self, master_addr="127.0.0.1", master_port=5000):
+    def __init__(self, master_addr='127.0.0.1', master_port=5000):
         self.master_addr = master_addr
         self.master_port = master_port
-        self.services = {}
+        self.service = None
         self.writer = None
 
     async def run(self):
         while True:
             try:
-                logger.info(f"🔗 Connecting to Master at {self.master_addr}:{self.master_port}...")
+                logger.info(f'🔗 Connecting to Master at {self.master_addr}:{self.master_port}...')
                 reader, self.writer = await asyncio.open_connection(self.master_addr, self.master_port)
-                logger.info("✅ Connected to Master")
-                
+                logger.info('✅ Connected to Master')
                 await self.handle_requests(reader)
             except Exception as e:
-                logger.error(f"❌ Connection error: {e}. Retrying in 5s...")
+                logger.error(f'❌ Connection error: {e}. Retrying in 5s...')
                 await asyncio.sleep(5)
 
     async def handle_requests(self, reader):
         while True:
             data = await reader.readline()
-            if not data:
-                break
-            
+            if not data: break
             line = data.decode().strip()
-            if not line:
-                continue
-
+            if not line: continue
             try:
                 request = json.loads(line)
-                method = request.get("method")
-                params = request.get("params", {})
-                request_id = request.get("id")
-
-                logger.info(f"📩 RPC Request: {method}")
-                
+                method = request.get('method')
+                params = request.get('params', {})
+                request_id = request.get('id')
+                logger.info(f'📩 RPC Request: {method}')
                 result = None
                 error = None
-
                 try:
-                    if method == "zk.ping":
-                        result = "pong"
-                    
-                    elif method == "zk.connect":
-                        device_id = params["device_id"]
-                        ip = params["ip"]
-                        port = params.get("port", 4370)
-                        if device_id not in self.services:
-                            self.services[device_id] = ZKService(device_id, ip, port)
-                        await self.services[device_id].connect()
+                    if method == 'common.ping':
+                        result = 'pong'
+                    elif method == 'device.connect':
+                        ip = params['ip']
+                        port = params.get('port', 4370)
+                        self.service = ZKService(ip, port)
+                        await self.service.connect()
                         result = True
-                    
-                    elif method == "zk.get_attendance":
-                        device_id = params["device_id"]
-                        result = await self.services[device_id].get_attendance_logs()
-                    
-                    elif method == "zk.get_users":
-                        device_id = params["device_id"]
-                        result = await self.services[device_id].get_users()
-                    
-                    elif method == "zk.get_time":
-                        result = await self.services[device_id].get_time()
-                    elif method == "zk.get_time":
-                        result = await self.services[device_id].get_time()
-                    elif method == "zk.sync_time":
-                        device_id = params["device_id"]
-                        result = await self.services[device_id].sync_time()
-                    
-                    elif method == "zk.disconnect":
-                        device_id = params["device_id"]
-                        if device_id in self.services:
-                            await self.services[device_id].disconnect()
-                            del self.services[device_id]
-                        result = True
-                    
+                    elif method == 'device.get_logs':
+                        if not self.service: raise Exception('Device not connected')
+                        result = await self.service.get_attendance_logs()
+                    elif method == 'device.get_time':
+                        if not self.service: raise Exception('Device not connected')
+                        result = await self.service.get_time()
+                    elif method == 'device.sync_time':
+                        if not self.service: raise Exception('Device not connected')
+                        result = await self.service.sync_time()
                     else:
-                        error = {"code": -32601, "message": "Method not found"}
-                
+                        error = {'code': -32601, 'message': f'Method {method} not found'}
                 except Exception as e:
-                    logger.exception("🔥 Error handling RPC method")
-                    error = {"code": -32000, "message": str(e)}
-
-                response = {
-                    "jsonrpc": "2.0",
-                    "result": result,
-                    "error": error,
-                    "id": request_id
-                }
+                    logger.error(f'❌ Error executing method {method}: {e}')
+                    error = {'code': -32603, 'message': str(e)}
                 
-                self.writer.write(json.dumps(response).encode() + b"\n")
+                response = {'jsonrpc': '2.0', 'id': request_id}
+                if error: response['error'] = error
+                else: response['result'] = result
+                self.writer.write((json.dumps(response) + '\n').encode())
                 await self.writer.drain()
-
+            except json.JSONDecodeError as e:
+                logger.error(f'❌ Error parsing request: {e}')
             except Exception as e:
-                logger.error(f"Error parsing request: {e}")
+                logger.error(f'❌ Unexpected error in request loop: {e}')
+                break
 
 if __name__ == "__main__":
-    # Get port from command line arguments if provided
-    port = 5000
-    if len(sys.argv) > 1:
-        try:
-            port = int(sys.argv[1])
-        except ValueError:
-            logger.error(f"Invalid port provided: {sys.argv[1]}. Using default 5000.")
-
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 5000
     worker = ZKWorkerClient(master_port=port)
-    try:
-        asyncio.run(worker.run())
-    except KeyboardInterrupt:
-        pass
+    asyncio.run(worker.run())

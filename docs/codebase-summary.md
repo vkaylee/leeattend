@@ -1,6 +1,6 @@
 # Codebase Summary
 
-**Last Updated:** 2026-01-25
+**Last Updated:** 2026-01-27
 
 Overview of the LeeAttend project structure, core technologies, and recent architectural improvements.
 
@@ -22,13 +22,21 @@ LeeAttend is a high-performance attendance and payroll system split into three p
 ### 2. agent-main (Edge Orchestrator)
 - **Language**: Rust
 - **Database**: SQLite (SQLx)
-- **Core Responsibility**: Lightweight process running at physical locations. It manages a Python sidecar (`agent-zk-worker`), buffers attendance logs locally, and syncs data to the Central Server.
+- **Core Responsibility**: Lightweight process running at physical locations. It manages multiple Python sidecars (ZKTeco, Mock, etc.) via JSON-RPC 2.0, buffers attendance logs locally, and syncs data to the Central Server.
 - **Features**:
     - **Resilience**: Offline buffering and automatic retry.
     - **Process Management**: Spawns and monitors the Python worker.
     - **Configuration**: Environment-based config with robust defaults.
 
-### 3. webdashboard (Admin & ESS Portal)
+### 3. Sidecar Workers (Device Connectors)
+- **Languages**: Python 3.10+
+- **Core Responsibility**: Low-level communication with biometric hardware.
+- **Components**:
+    - **agent-zk-worker**: Communicates with ZKTeco devices using `pyzk`.
+    - **agent-mock-worker**: Simulates device behavior for testing and development.
+- **Protocol**: Standardized JSON-RPC 2.0 over TCP (loopback).
+
+### 4. webdashboard (Admin & ESS Portal)
 - **Framework**: React 18 (Vite, TypeScript)
 - **Styling**: Tailwind CSS v4 (Metro-style aesthetic)
 - **State Management**: TanStack Query (React Query)
@@ -71,6 +79,9 @@ LeeAttend is a high-performance attendance and payroll system split into three p
 
 ```
 .
+├── agent-main/              # Rust Edge Orchestrator
+├── agent-zk-worker/         # ZKTeco Python Sidecar
+├── agent-mock-worker/       # Simulation Sidecar (New)
 ├── apiserver/               # Rust Backend
 │   ├── migrations/          # SQLx Migrations
 │   ├── src/                 # Source Code

@@ -1606,3 +1606,24 @@ Acknowledgment for attendance sync.
   "status": "success"
 }
 ```
+
+## 🤖 Worker RPC API (Edge Orchestrator <-> Sidecars)
+The Rust Edge Orchestrator (`agent-main`) communicates with brand-specific sidecars (e.g., `agent-zk-worker`) using **JSON-RPC 2.0** over TCP.
+
+### Protocol
+- **Transport**: TCP Loopback (127.0.0.1)
+- **Format**: Line-delimited JSON-RPC 2.0
+
+### Standard Methods
+#### `common.ping`
+Check if the sidecar is alive.
+- **Request**: `{ "jsonrpc": "2.0", "method": "common.ping", "id": 1 }`
+#### `device.connect`
+Connect to a physical biometric device.
+- **Params**: `ip` (String), `port` (Number)
+#### `device.get_logs`
+Fetch attendance logs from the device.
+#### `device.get_time`
+Fetch current device time.
+#### `device.sync_time`
+Synchronize device time.

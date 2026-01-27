@@ -13,8 +13,8 @@ test.describe('Route & Sidebar Regression', () => {
     { name: 'Attendance Logs', path: '/attendance-logs', testId: 'sidebar-link-attendance-logs', sectionId: 'sidebar-section-time', titleTestId: 'attendance-logs-title' },
     { name: 'Leave Requests', path: '/leave-requests', testId: 'sidebar-link-leave-requests', sectionId: 'sidebar-section-time', titleTestId: 'leave-requests-title' },
     { name: 'Shifts', path: '/shifts', testId: 'sidebar-link-shifts', sectionId: 'sidebar-section-payroll', titleTestId: 'shifts-title' },
-    { name: 'Working Patterns', path: '/working-patterns', testId: 'sidebar-link-working-patterns', sectionId: 'sidebar-section-payroll', titleTestId: 'patterns-title' },
-    { name: 'Assignment Rules', path: '/assignment-rules', testId: 'sidebar-link-assignment-rules', sectionId: 'sidebar-section-payroll', titleTestId: 'assignment-rules-title' },
+    { name: 'Working Patterns', path: '/workspace/settings/time?tab=patterns', testId: 'sidebar-link-working-patterns', sectionId: 'sidebar-section-payroll', titleTestId: 'patterns-title' },
+    { name: 'Assignment Rules', path: '/workspace/settings/time?tab=rules', testId: 'sidebar-link-assignment-rules', sectionId: 'sidebar-section-payroll', titleTestId: 'assignment-rules-title' },
     { name: 'Payroll', path: '/payroll', testId: 'sidebar-link-payroll', sectionId: 'sidebar-section-payroll', titleTestId: 'payroll-title' },
     { name: 'General Settings', path: '/workspace/settings/general', testId: 'sidebar-link-settings-general', sectionId: 'sidebar-section-system', titleTestId: 'general-settings-title' },
     { name: 'People Settings', path: '/workspace/settings/people', testId: 'sidebar-link-settings-people', sectionId: 'sidebar-section-system', titleTestId: 'people-settings-title' },
@@ -28,7 +28,7 @@ test.describe('Route & Sidebar Regression', () => {
       await page.goto(route.path);
 
       // Verify URL
-      await expect(page).toHaveURL(new RegExp(route.path.replace(/\//g, '\\/')));
+      await expect(page).toHaveURL(new RegExp(route.path.replace(/\//g, '\\/').replace(/\?/g, '\\?')));
 
       // Verify page content via titleTestId
       const title = page.getByTestId(route.titleTestId);

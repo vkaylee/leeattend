@@ -1,7 +1,7 @@
 use std::process::Stdio;
 use tokio::process::Command;
 use tokio::time::{sleep, Duration};
-use agent::zk_client::ZKClient;
+use agent::worker_client::WorkerClient;
 use agent::database::Database;
 use agent::central_client::CentralClient;
 use agent::models;
@@ -11,14 +11,23 @@ use dotenvy::dotenv;
 use tokio_util::sync::CancellationToken;
 use tokio::net::TcpListener;
 use tokio::sync::mpsc;
+use futures::future::join_all;
+
+#[derive(Clone)]
+struct WorkerConfig {
+    name: String,
+    brand: String,
+    ip: String,
+    port: u32,
+    sidecar_script: String,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
-    
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
-    info!("🚀 Starting Rust Agent Orchestrator (Full Service Server Mode)...");
+    info!("🚀 Starting Multi-Brand Rust Agent Orchestrator...");
 
     let cancel_token = CancellationToken::new();
     let cloned_token = cancel_token.clone();
@@ -80,121 +89,136 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         info!("💾 DB Writer Worker stopped");
     });
-    // -------------------------------------
 
-    let listener = TcpListener::bind("127.0.0.1:0").await?;
-    let actual_port = listener.local_addr()?.port();
-    info!("📡 RPC Server listening on 127.0.0.1:{}...", actual_port);
+    // In a real scenario, these would come from the central server configuration
+    let workers = vec![
+        WorkerConfig {
+            name: "ZK-Entrance".to_string(),
+            brand: "zkteco".to_string(),
+            ip: "192.168.1.201".to_string(),
+            port: 4370,
+            sidecar_script: "../agent-zk-worker/zk_worker.py".to_string(),
+        },
+        WorkerConfig {
+            name: "Mock-Exit".to_string(),
+            brand: "mock".to_string(),
+            ip: "127.0.0.1".to_string(),
+            port: 9999,
+            sidecar_script: "../agent-mock-worker/mock_worker.py".to_string(),
+        },
+    ];
 
-    while !cancel_token.is_cancelled() {
-        info!("Starting ZK Python Worker Sidecar...");
-        
-        let mut child = Command::new(&config.python_path)
-            .arg("../agent-zk-worker/zk_worker.py")
-            .arg(actual_port.to_string())
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit())
-            .spawn()?;
+    let mut polling_handles = vec![];
 
-        let stream = tokio::select! {
-            res = listener.accept() => {
-                match res {
-                    Ok((s, addr)) => {
-                        info!("✅ Sidecar connected from {}", addr);
-                        s
-                    },
+    for worker in workers {
+        let log_tx = log_tx.clone();
+        let cancel_token = cancel_token.clone();
+        let python_path = config.python_path.clone();
+
+        let handle = tokio::spawn(async move {
+            info!("Device Polling Loop started for: {} ({})", worker.name, worker.ip);
+            
+            while !cancel_token.is_cancelled() {
+                let listener = match TcpListener::bind("127.0.0.1:0").await {
+                    Ok(l) => l,
                     Err(e) => {
-                        error!("Accept error: {}", e);
-                        sleep(Duration::from_secs(2)).await;
+                        error!("[{}] Failed to bind local RPC listener: {}", worker.name, e);
+                        sleep(Duration::from_secs(5)).await;
                         continue;
                     }
-                }
-            },
-            _ = cancel_token.cancelled() => {
-                let _ = child.kill().await;
-                break;
-            }
-            _ = sleep(Duration::from_secs(15)) => {
-                error!("Sidecar failed to connect within 15s. Restarting...");
-                let _ = child.kill().await;
-                continue;
-            }
-        };
+                };
+                let rpc_port = listener.local_addr().unwrap().port();
 
-        let mut zk_client = ZKClient::new(stream);
-        zk_client.set_timeout(config.rpc_timeout_seconds);
-
-        info!("Entering main polling loop...");
-
-        loop {
-            if cancel_token.is_cancelled() {
-                break;
-            }
-
-            let devices = match db.get_active_devices().await {
-                Ok(d) => d,
-                Err(e) => {
-                    error!("Failed to fetch devices from local DB: {}", e);
-                    sleep(Duration::from_secs(5)).await;
-                    continue;
-                }
-            };
-
-            if devices.is_empty() {
-                warn!("No active devices configured. Waiting...");
-            }
-
-            for device in devices {
-                info!("Processing device: {} ({})", &device.name, device.ip);
+                info!("[{}] Spawning sidecar ({}) on RPC port {}...", worker.name, worker.brand, rpc_port);
                 
-                let connect_res = zk_client.call("zk.connect", json!({
-                    "device_id": device.id,
-                    "ip": device.ip,
-                    "port": device.port
-                })).await;
+                let mut sidecar = match Command::new(&python_path)
+                    .arg(&worker.sidecar_script)
+                    .arg(rpc_port.to_string())
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
+                    .spawn() {
+                        Ok(s) => s,
+                        Err(e) => {
+                            error!("[{}] Failed to spawn sidecar: {}", worker.name, e);
+                            sleep(Duration::from_secs(10)).await;
+                            continue;
+                        }
+                    };
 
-                if let Err(e) = connect_res {
-                    error!("Failed to connect to device {}: {}", device.id, e);
+                let stream = tokio::select! {
+                    res = listener.accept() => {
+                        match res {
+                            Ok((s, _)) => s,
+                            Err(e) => {
+                                error!("[{}] Accept error: {}", worker.name, e);
+                                let _ = sidecar.kill().await;
+                                sleep(Duration::from_secs(2)).await;
+                                continue;
+                            }
+                        }
+                    }
+                    _ = sleep(Duration::from_secs(10)) => {
+                        error!("[{}] Sidecar connection timeout", worker.name);
+                        let _ = sidecar.kill().await;
+                        continue;
+                    }
+                };
+
+                let mut client = match WorkerClient::new(&stream.local_addr().unwrap().to_string()) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        // Use the stream directly instead of connecting again
+                        let rpc_addr = stream.peer_addr().unwrap().to_string();
+                        match WorkerClient::new(&rpc_addr) {
+                            Ok(c) => c,
+                            Err(_) => {
+                                error!("[{}] Failed to create client: {}", worker.name, e);
+                                let _ = sidecar.kill().await;
+                                continue;
+                            }
+                        }
+                    }
+                };
+
+                info!("[{}] Sidecar connected and ready.", worker.name);
+
+                if let Err(e) = client.call("device.connect", json!({"ip": worker.ip, "port": worker.port})) {
+                    error!("[{}] Device connection failed: {}", worker.name, e);
+                    let _ = sidecar.kill().await;
+                    sleep(Duration::from_secs(10)).await;
                     continue;
                 }
 
-                match zk_client.call("zk.get_attendance", json!({"device_id": device.id})).await {
-                    Ok(logs_val) => {
-                        if let Ok(logs) = serde_json::from_value::<Vec<models::AttendanceData>>(logs_val) {
-                            let count = logs.len();
-                            info!("Fetched {} logs from {} ({}). Pushing to DB queue...", count, device.name, device.id);
-                            
-                            for log in logs {
-                                if let Err(e) = log_tx.send((device.id.clone(), log)).await {
-                                    error!("Failed to push log to queue: {}", e);
-                                    break;
+                while !cancel_token.is_cancelled() {
+                    match client.call("device.get_logs", json!({})) {
+                        Ok(res) => {
+                            if let Some(logs) = res.as_array().filter(|l| !l.is_empty()) {
+                                info!("[{}] Fetched {} logs", worker.name, logs.len());
+                                for log in logs {
+                                    if let Ok(attendance) = serde_json::from_value::<models::AttendanceData>(log.clone()) {
+                                        let _ = log_tx.send((worker.name.clone(), attendance)).await;
+                                    }
                                 }
                             }
                         }
-                    },
-                    Err(e) => error!("Failed to get logs from {}: {}", device.id, e),
+                        Err(e) => {
+                            error!("[{}] Polling error: {}", worker.name, e);
+                            break;
+                        }
+                    }
+                    sleep(Duration::from_secs(5)).await;
                 }
-
+                
+                let _ = sidecar.kill().await;
+                warn!("[{}] Sidecar connection lost, restarting...", worker.name);
+                sleep(Duration::from_secs(5)).await;
             }
+        });
 
-            tokio::select! {
-                _ = sleep(Duration::from_secs(config.poll_interval_seconds)) => {
-                    info!("Poll interval reached. Starting next cycle...");
-                },
-                _ = cancel_token.cancelled() => break,
-                exit_status = child.wait() => {
-                    warn!("Sidecar process died: {:?}", exit_status);
-                    break; 
-                }
-            }
-        }
-
-        if cancel_token.is_cancelled() {
-            let _ = child.kill().await;
-            break;
-        }
+        polling_handles.push(handle);
     }
 
-    info!("Agent Orchestrator stopped gracefully.");
+    join_all(polling_handles).await;
+    info!("Orchestrator shutting down...");
     Ok(())
 }

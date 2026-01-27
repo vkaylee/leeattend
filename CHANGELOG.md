@@ -4,6 +4,17 @@ Tất cả các thay đổi lớn của dự án sẽ được ghi nhận tại 
 
 ## [Unreleased] - 2026-01-27
 ### Added
+- **Multi-Brand Worker API**: Standardized JSON-RPC 2.0 contract for device sidecars (`common.*`, `device.*`).
+- **Parallel Sidecar Polling**: Refactored `agent-main` to poll multiple device workers concurrently using `tokio` and `futures::join_all`.
+- **Mock Worker**: Added `agent-mock-worker` for simulating multi-brand environments without physical hardware.
+- **Worker Configuration**: Struct `WorkerConfig` in `agent-main` for flexible sidecar management.
+- **Log Device Names**: Attendance logs now display the physical device name (fetched via frontend join).
+
+### Changed
+- Standardized `agent-zk-worker` RPC methods to use namespaces (`device.connect`, `device.get_logs`, etc.).
+- Improved E2E test reliability by adding `data-testid` to navigation elements and fixing query invalidation.
+
+### Added
 - Type-safe `CentralMessage::ConfigPush` enum protocol between Server and Agent.
 - Enhanced Agent logging: Device names are now displayed in "Processing" and "Fetched logs" messages.
 - Integration test for `ConfigPush` enum in `agent-main`.

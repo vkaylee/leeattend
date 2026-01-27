@@ -28,15 +28,15 @@ test.describe('Leave Policy Assignment Integration', () => {
     
     // Wait for form input directly
     console.log('Waiting for Add Employee form...');
-    const firstNameInput = page.locator('input[name="first_name"]');
-    await expect(firstNameInput).toBeVisible({ timeout: 30000 });
+    const nameInput = page.getByTestId('employees-form-name-input');
+    await expect(nameInput).toBeVisible({ timeout: 30000 });
 
     const uniqueId = `INT-${Date.now()}`;
-    const fullName = 'Alice Integrator';
-    await firstNameInput.fill('Alice');
-    await page.fill('input[name="last_name"]', 'Integrator');
-    await page.fill('input[name="employee_id_number"]', uniqueId);
-    await page.fill('input[name="hire_date"]', '2026-01-01');
+    const fullName = 'Alice Doe';
+    await nameInput.fill('Alice Doe');
+    
+    await page.getByTestId('employees-form-id-input').fill(uniqueId);
+    await page.getByTestId('employees-form-hire-date-input').fill('2026-01-01');
     await page.getByTestId('save-employee-btn').click();
     
     // Wait for row to appear
@@ -67,21 +67,21 @@ test.describe('Leave Policy Assignment Integration', () => {
     await assignBtn.click();
     
     console.log('Filling assignment modal...');
-    await page.click('button[id="assignee-type"]');
+    await page.getByTestId('assign-type-select').click();
     await page.getByRole('option', { name: /Individual|Cá nhân/i }).click();
 
-    await page.click('button[id="assignee-id"]');
+    await page.getByTestId('assign-emp-select').click();
     await page.keyboard.type(fullName);
     await page.getByRole('option', { name: fullName }).first().click();
 
-    await page.click('button[id="policy-id"]');
+    await page.getByTestId('assign-policy-select').click();
     await page.keyboard.type(policyName);
     await page.getByRole('option', { name: policyName }).first().click();
 
     await page.getByTestId('submit-assign-policy-btn').click();
     
     // Verify assignment exists in table
-    await expect(page.getByRole('cell', { name: fullName })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('cell', { name: policyName })).toBeVisible({ timeout: 15000 });
     console.log('Assignment successful.');
   });
 });

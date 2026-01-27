@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchRawAttendanceLogs, fetchEmployees, fetchWorkspace, getCurrentWorkspaceId } from "@/lib/api";
+import { fetchRawAttendanceLogs, fetchEmployees, fetchWorkspace, getCurrentWorkspaceId, fetchDevices } from "@/lib/api";
 import { format, endOfMonth } from "date-fns";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { 
@@ -107,6 +107,18 @@ export default function AttendanceLogsPage() {
     enabled: !!wsId,
   });
 
+  const { data: devicesData } = useQuery({
+    queryKey: ["devices", wsId],
+    queryFn: () => fetchDevices(),
+    enabled: !!wsId,
+  });
+
+  const getDeviceName = (id?: string) => {
+    if (!id) return null;
+    const device = devicesData?.find(d => d.id === id);
+    return device ? device.name : null;
+  };
+
   const getEmployeeName = (id: string) => { const emp = employees.find(e => e.id === id); return emp ? emp.full_name : t("common.system"); };
   const getEmployeeID = (id: string) => { const emp = employees.find(e => e.id === id); return emp ? emp.employee_id_number : ""; };
   const totalPages = Math.ceil((data?.total || 0) / limit);
@@ -191,8 +203,19 @@ export default function AttendanceLogsPage() {
                       <div className="text-[9px] font-bold text-primary-600 uppercase tracking-widest mt-0.5">{getEmployeeID(log.employee_id) || "SYSTEM"}</div>
                     </td>
                     <td className="px-8 py-5">
-                      <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-slate-200">{log.source}</span>
-                      {log.device_id && <span className="ml-2 text-[9px] font-bold text-slate-500 uppercase tracking-tighter"><HardDrive size={10} className="inline mr-1" /> {log.device_id}</span>}
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-slate-200">{log.source}</span>
+                          {log.source === "Device" && getDeviceName(log.device_id) && (
+                            <span className="text-[10px] font-bold text-slate-700 uppercase">{getDeviceName(log.device_id)}</span>
+                          )}
+                        </div>
+                        {log.device_id && (
+                          <div className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter flex items-center gap-1 ml-0.5">
+                            <HardDrive size={10} /> {log.device_id}
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="px-8 py-5 text-right">
                       <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-bold uppercase tracking-widest border border-emerald-100 shadow-sm">{t("attendance_logs.status.recorded")}</span>

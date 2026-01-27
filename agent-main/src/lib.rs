@@ -1,3 +1,4 @@
+pub mod worker_client;
 pub mod zk_client;
 pub mod config;
 pub mod database;
