@@ -72,8 +72,8 @@ impl CentralClient {
                     _ => 10, // Default: 10 retries
                 };
                 let ttl_minutes = match sync_db.get_agent_config("retry_ttl_minutes").await {
-                    Ok(Some(val)) => val.parse::<i64>().unwrap_or(5),
-                    _ => 5, // Default: 5 minutes
+                    Ok(Some(val)) => val.parse::<i64>().unwrap_or(60),
+                    _ => 60, // Default: 1 hour
                 };
 
                 if let Ok(moved) = sync_db.move_expired_logs_to_dlq(max_retries, ttl_minutes).await {

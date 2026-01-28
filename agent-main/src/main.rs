@@ -465,15 +465,15 @@ fn print_help() {
     println!("    agent config             Show all configuration values");
     println!("    agent config max_retry_count 10");
     println!("                             Set max retry attempts to 10");
-    println!("    agent config retry_ttl_minutes 5");
-    println!("                             Set retry TTL to 5 minutes");
+    println!("    agent config retry_ttl_minutes 60");
+    println!("                             Set retry TTL to 60 minutes");
     println!();
     println!("  Status & Metrics:");
     println!("    agent status             Show queue sizes, retry rates, DLQ growth");
     println!();
     println!("CONFIGURATION KEYS:");
     println!("  max_retry_count          Maximum retry attempts before DLQ (default: 10)");
-    println!("  retry_ttl_minutes        Retry timeout in minutes (default: 5)");
+    println!("  retry_ttl_minutes        Retry timeout in minutes (default: 60)");
     println!("  max_concurrent_workers   Max parallel device connections (default: 2)");
     println!();
     println!("UNDERSTANDING THE SYSTEM:");
@@ -494,7 +494,7 @@ fn print_help() {
     println!();
     println!("  Why logs end up in DLQ:");
     println!("    1. Max retries exceeded (e.g., invalid data format)");
-    println!("    2. TTL timeout (e.g., central server down for >5 min)");
+    println!("    2. TTL timeout (e.g., central server down for >60 min)");
     println!();
     println!("DATABASE QUERIES (Direct Access):");
     println!();
@@ -779,7 +779,7 @@ async fn handle_config_command(db: &Database, args: &[String]) -> Result<(), Box
         if configs.is_empty() {
             println!("No custom configuration set. Using defaults:");
             println!("  max_retry_count      = 10");
-            println!("  retry_ttl_minutes    = 5");
+            println!("  retry_ttl_minutes    = 60");
             println!("  max_concurrent_workers = 2");
             println!();
         } else {
