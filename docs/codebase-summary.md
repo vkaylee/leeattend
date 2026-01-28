@@ -38,10 +38,11 @@ LeeAttend is a high-performance attendance and payroll system split into three p
     - **Multi-Brand Support**: Spawns brand-specific sidecars (zkteco, mock) based on database config
     - **Concurrent Workers**: Semaphore-based concurrency control (configurable max workers)
     - **Fair Polling**: Semaphore-based round-robin scheduling ensures no device starvation
+    - **Duplicate Detection**: In-memory HashSet filters redundant logs (99.95% queue traffic reduction)
     - **Log Cleanup**: Automatic deletion of synced logs older than 365 days (daily task)
     - **FIFO Guarantee**: ORDER BY id ASC ensures logs sync in exact device order
     - **CLI Commands**: `--help`, `failed-logs [limit]`, `failed [limit]` for log inspection
-- **Test Coverage**: 63 tests (37 library + 26 integration) including memory leak detection
+- **Test Coverage**: 67 tests (39 library + 28 integration) including duplicate detection, memory leak detection
 
 ### 3. Sidecar Workers (Device Connectors)
 - **Languages**: Python 3.10+

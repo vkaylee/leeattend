@@ -86,7 +86,29 @@
   - `device.get_logs()` - Fetch attendance logs
   - `device.get_time()` - Sync device time
 
-#### 4.5. Memory Leak Detection (Testing)
+#### 4.5. Duplicate Detection & Deduplication
+The agent filters duplicate logs at the worker level using in-memory deduplication to reduce queue traffic and database operations:
+- **Pattern**: Each worker maintains a `HashSet<String>` for the current session:
+  ```rust
+  let mut seen_logs: HashSet<String> = HashSet::new();
+
+  for log in logs {
+      let key = format!("{}:{}", attendance.user_id, attendance.timestamp);
+      if seen_logs.insert(key) {
+          // New log - send to queue
+          let _ = log_tx.send((worker.name.clone(), attendance)).await;
+      } else {
+          // Duplicate - skip
+          duplicate_count += 1;
+      }
+  }
+  ```
+- **Key Format**: `"user_id:timestamp"` (device_id is implicit per worker).
+- **Memory Safety**: Approximate ~5MB per 50,000 logs; HashSet cleared on worker restart.
+- **Logging**: Always log duplicate count when present: `"Fetched X logs (Y new, Z duplicates filtered)"`.
+- **Testing**: Verify filter accuracy, memory bounds, and log output in worker tests.
+
+#### 4.6. Memory Leak Detection (Testing)
 - **Test Module**: `tests/memory_leak_detection_test.rs`
 - **Strategy**: Spawn 1000+ iterations of channel/semaphore operations
 - **Validation**: Monitor process memory before/after using `/proc/self/status` on Linux
