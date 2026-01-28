@@ -89,6 +89,7 @@ mod tests {
                     last_seen_at: chrono::Utc::now(),
                     is_active: true,
                     workspace_id: Uuid::new_v4(),
+                    max_concurrent_workers: 5,
                 }))
             } else if id == "untrusted_agent" {
                 Ok(Some(AuthorizedAgent {
@@ -101,6 +102,7 @@ mod tests {
                     last_seen_at: chrono::Utc::now(),
                     is_active: true,
                     workspace_id: Uuid::new_v4(),
+                    max_concurrent_workers: 5,
                 }))
             } else {
                 Ok(None)

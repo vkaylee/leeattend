@@ -14,6 +14,7 @@ use crate::services::{AgentLogBuffer, AgentLogEntry, agent_log_buffer};
 pub struct AttendanceLogService {
     #[allow(dead_code)]
     pool: PgPool,
+    #[allow(dead_code)]  // Buffer kept for potential batch operations
     log_buffer: Arc<AgentLogBuffer>,
 }
 
@@ -47,8 +48,23 @@ impl AttendanceLogService {
         (service, worker_handle)
     }
 
+    /// Process agent log synchronously to ensure ACK reflects actual parsing/DB result.
+    /// This allows agent to retry failed logs in next sync cycle.
     pub async fn ingest_agent_log(&self, entry: AgentLogEntry) -> Result<(), String> {
-        self.log_buffer.send(entry).await
+        Self::process_log(
+            &self.pool,
+            entry.workspace_id,
+            &entry.employee_id_number,
+            &entry.punch_time_raw,
+            LogSource::Device,
+            entry.device_id,
+            entry.raw_data,
+            &entry.timezone,
+            Some(&entry.date_fmt),
+            Some(&entry.time_fmt),
+        )
+        .await
+        .map(|_| ()) // Convert Result<bool, String> to Result<(), String>
     }
 
     /// Processes a single attendance log entry from any source (Agent or Import).
