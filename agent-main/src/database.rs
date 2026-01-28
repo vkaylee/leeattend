@@ -140,7 +140,7 @@ impl Database {
         // Use read-only query to avoid lock contention with batch writer
         let logs = sqlx::query_as::<_, RawAttendanceLog>(
             r#"
-            SELECT id, device_id, user_id, timestamp, status, punch, is_synced, created_at, updated_at
+            SELECT id, device_id, user_id, timestamp, status, punch, is_synced, created_at, updated_at, retry_count
             FROM zkt_raw_attendance
             WHERE is_synced = 0
             ORDER BY id ASC
@@ -182,7 +182,7 @@ impl Database {
     pub async fn get_failed_sync_logs(&self, limit: i64) -> Result<Vec<RawAttendanceLog>, Error> {
         let logs = sqlx::query_as::<_, RawAttendanceLog>(
             r#"
-            SELECT id, device_id, user_id, timestamp, status, punch, is_synced, created_at, updated_at
+            SELECT id, device_id, user_id, timestamp, status, punch, is_synced, created_at, updated_at, retry_count
             FROM zkt_raw_attendance
             WHERE is_synced = 0
             AND updated_at IS NOT NULL
@@ -224,7 +224,7 @@ impl Database {
         Ok(res.rows_affected())
     }
 
-    /// Mark fetched logs as in-flight (is_synced=2). Call after get_unsynced_logs.
+    /// Mark fetched logs as in-flight (is_synced=2) and increment retry_count. Call after get_unsynced_logs.
     pub async fn mark_in_flight(&self, ids: &[i64]) -> Result<(), Error> {
         if ids.is_empty() {
             return Ok(());
@@ -232,7 +232,7 @@ impl Database {
 
         let placeholders: Vec<String> = ids.iter().map(|_| "?".to_string()).collect();
         let query = format!(
-            "UPDATE zkt_raw_attendance SET is_synced = 2, updated_at = CURRENT_TIMESTAMP WHERE id IN ({})",
+            "UPDATE zkt_raw_attendance SET is_synced = 2, updated_at = CURRENT_TIMESTAMP, retry_count = retry_count + 1 WHERE id IN ({})",
             placeholders.join(",")
         );
 
@@ -265,6 +265,82 @@ impl Database {
 
         tx.commit().await?;
         Ok(())
+    }
+
+    /// Move expired logs to failed_logs table (dead letter queue).
+    /// Returns number of logs moved to DLQ.
+    pub async fn move_expired_logs_to_dlq(&self, max_retries: i64, ttl_minutes: i64) -> Result<u64, Error> {
+        let mut tx = self.pool.begin().await?;
+
+        // Find logs that exceeded retry limit OR TTL
+        let expired = sqlx::query_as::<_, RawAttendanceLog>(
+            r#"
+            SELECT id, device_id, user_id, timestamp, status, punch, is_synced, created_at, updated_at, retry_count
+            FROM zkt_raw_attendance
+            WHERE is_synced = 0
+            AND (
+                retry_count >= ?
+                OR (updated_at IS NOT NULL AND (julianday('now') - julianday(updated_at)) * 1440 >= ?)
+            )
+            ORDER BY id ASC
+            LIMIT 1000
+            "#
+        )
+        .bind(max_retries)
+        .bind(ttl_minutes)
+        .fetch_all(&mut *tx)
+        .await?;
+
+        if expired.is_empty() {
+            return Ok(0);
+        }
+
+        // Insert into failed_logs table
+        for log in &expired {
+            let failure_reason = if log.retry_count >= max_retries {
+                format!("Max retries exceeded ({})", max_retries)
+            } else {
+                format!("TTL exceeded ({}m)", ttl_minutes)
+            };
+
+            sqlx::query(
+                r#"
+                INSERT INTO zkt_failed_logs
+                (id, device_id, user_id, timestamp, status, punch, failed_at, failure_reason, retry_attempts, first_attempt_at, last_attempt_at)
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?)
+                "#
+            )
+            .bind(log.id)
+            .bind(&log.device_id)
+            .bind(&log.user_id)
+            .bind(&log.timestamp)
+            .bind(log.status)
+            .bind(log.punch)
+            .bind(&failure_reason)
+            .bind(log.retry_count)
+            .bind(log.created_at)
+            .bind(log.updated_at)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        // Delete from zkt_raw_attendance
+        let ids: Vec<i64> = expired.iter().map(|l| l.id).collect();
+        let placeholders: Vec<String> = ids.iter().map(|_| "?".to_string()).collect();
+        let delete_query = format!(
+            "DELETE FROM zkt_raw_attendance WHERE id IN ({})",
+            placeholders.join(",")
+        );
+
+        let mut q = sqlx::query(&delete_query);
+        for id in &ids {
+            q = q.bind(id);
+        }
+        q.execute(&mut *tx).await?;
+
+        let count = expired.len() as u64;
+        tx.commit().await?;
+        Ok(count)
     }
 
     pub async fn upsert_device(&self, id: &str, name: &str, ip: &str, port: i32, brand: &str) -> Result<(), Error> {

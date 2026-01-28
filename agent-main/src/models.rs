@@ -14,6 +14,23 @@ pub struct RawAttendanceLog {
     pub is_synced: i64,
     pub created_at: Option<chrono::NaiveDateTime>,
     pub updated_at: Option<chrono::NaiveDateTime>,
+    pub retry_count: i64,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+#[allow(dead_code)]
+pub struct FailedLog {
+    pub id: i64,
+    pub device_id: String,
+    pub user_id: String,
+    pub timestamp: chrono::NaiveDateTime,
+    pub status: Option<i32>,
+    pub punch: Option<i32>,
+    pub failed_at: chrono::NaiveDateTime,
+    pub failure_reason: String,
+    pub retry_attempts: i64,
+    pub first_attempt_at: Option<chrono::NaiveDateTime>,
+    pub last_attempt_at: Option<chrono::NaiveDateTime>,
 }
 
 #[derive(Debug, sqlx::FromRow)]

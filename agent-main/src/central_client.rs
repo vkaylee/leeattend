@@ -65,6 +65,23 @@ impl CentralClient {
                     sleep(Duration::from_secs(5)).await;
                     continue;
                 }
+
+                // Periodic cleanup: Move expired logs to DLQ
+                let max_retries = match sync_db.get_agent_config("max_retry_count").await {
+                    Ok(Some(val)) => val.parse::<i64>().unwrap_or(10),
+                    _ => 10, // Default: 10 retries
+                };
+                let ttl_minutes = match sync_db.get_agent_config("retry_ttl_minutes").await {
+                    Ok(Some(val)) => val.parse::<i64>().unwrap_or(60),
+                    _ => 60, // Default: 1 hour
+                };
+
+                if let Ok(moved) = sync_db.move_expired_logs_to_dlq(max_retries, ttl_minutes).await {
+                    if moved > 0 {
+                        warn!("⚠️ Moved {} expired logs to dead letter queue (max_retries={}, ttl={}m)", moved, max_retries, ttl_minutes);
+                    }
+                }
+
                 let limit = 500;
                 match sync_db.get_unsynced_logs(limit).await {
                     Ok(logs) => {
@@ -81,7 +98,7 @@ impl CentralClient {
                                 info!("📤 Syncing {} logs to central server...", count);
                             }
 
-                            // Mark as in-flight BEFORE sending to avoid re-fetching
+                            // Mark as in-flight BEFORE sending to avoid re-fetching (also increments retry_count)
                             let log_ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
                             if let Err(e) = sync_db.mark_in_flight(&log_ids).await {
                                 error!("Failed to mark logs in-flight: {}", e);
