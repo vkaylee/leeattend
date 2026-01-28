@@ -37,6 +37,7 @@ mod tests {
         assert_eq!(normalize_employee_id("0000"), "0");
         assert_eq!(normalize_employee_id("0"), "0");
         assert_eq!(normalize_employee_id("  00055  "), "55");
+        assert_eq!(normalize_employee_id("0026"), "26"); // Issue: ensure 0026 becomes 26
         
         // Alphanumeric & Special (Protection)
         assert_eq!(normalize_employee_id("EMP001"), "EMP001");
