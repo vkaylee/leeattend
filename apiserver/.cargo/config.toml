@@ -1,3 +1,7 @@
 [target.x86_64-unknown-linux-gnu]
 linker = "clang"
 rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+
+[build]
+# Limit parallel jobs to prevent system hanging (adjust based on your CPU/RAM)
+jobs = 4
