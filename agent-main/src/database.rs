@@ -140,7 +140,7 @@ impl Database {
         // Use read-only query to avoid lock contention with batch writer
         let logs = sqlx::query_as::<_, RawAttendanceLog>(
             r#"
-            SELECT id, device_id, user_id, timestamp, status, punch, is_synced, created_at
+            SELECT id, device_id, user_id, timestamp, status, punch, is_synced, created_at, updated_at
             FROM zkt_raw_attendance
             WHERE is_synced = 0
             ORDER BY id ASC
@@ -182,7 +182,7 @@ impl Database {
     pub async fn get_failed_sync_logs(&self, limit: i64) -> Result<Vec<RawAttendanceLog>, Error> {
         let logs = sqlx::query_as::<_, RawAttendanceLog>(
             r#"
-            SELECT id, device_id, user_id, timestamp, status, punch, is_synced, created_at
+            SELECT id, device_id, user_id, timestamp, status, punch, is_synced, created_at, updated_at
             FROM zkt_raw_attendance
             WHERE is_synced = 0
             AND updated_at IS NOT NULL

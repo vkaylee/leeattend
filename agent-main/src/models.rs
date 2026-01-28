@@ -13,6 +13,7 @@ pub struct RawAttendanceLog {
     pub punch: Option<i32>,
     pub is_synced: i64,
     pub created_at: Option<chrono::NaiveDateTime>,
+    pub updated_at: Option<chrono::NaiveDateTime>,
 }
 
 #[derive(Debug, sqlx::FromRow)]

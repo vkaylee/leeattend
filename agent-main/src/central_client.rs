@@ -70,7 +70,16 @@ impl CentralClient {
                     Ok(logs) => {
                         let count = logs.len();
                         if count > 0 {
-                            info!("📤 Syncing {} logs to central server...", count);
+                            // Classify logs: new (updated_at IS NULL) vs retry (updated_at IS NOT NULL)
+                            let new_count = logs.iter().filter(|l| l.updated_at.is_none()).count();
+                            let retry_count = count - new_count;
+
+                            if retry_count > 0 {
+                                info!("📤 Syncing {} logs to central server ({} new, {} retries)...",
+                                      count, new_count, retry_count);
+                            } else {
+                                info!("📤 Syncing {} logs to central server...", count);
+                            }
 
                             // Mark as in-flight BEFORE sending to avoid re-fetching
                             let log_ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
