@@ -12,6 +12,70 @@ To ensure data integrity and clean process termination, both the Edge Agent and 
 - Agent chỉ đánh dấu log là `is_synced = 1` sau khi nhận được bản tin `type: "ack"` từ Server.
 - Nếu không nhận được ACK trong vòng 10 giây, Agent sẽ giữ log ở trạng thái chưa gửi và thử lại ở batch sau.
 
+### 2. Edge Agent Resilience & Retry Architecture
+
+The Edge Agent (`agent-main`) implements robust retry logic with exponential backoff to handle transient failures in device polling and server connectivity.
+
+#### 2.1 Central Server Connection (WebSocket)
+The agent maintains a persistent WebSocket connection to the Central Server for bidirectional sync:
+
+- **Connection Timeout**: 30 seconds - prevents indefinite hangs on network unavailability
+- **Stability Threshold**: 60 seconds - retry count only resets after 60s of stable connection
+- **Exponential Backoff**: 1s, 2s, 4s, 8s, 16s, 32s, 60s (capped)
+- **Jitter**: ±25% jitter applied to all backoff delays to prevent thundering herd effect
+- **Max Retries**: 10 attempts before manual intervention
+
+**Retry Manager Implementation** (`src/central_client.rs`):
+- Tracks `retry_count` (0-10) and `stable_since` timestamp
+- Resets retry count to 0 after connection remains stable for 60 seconds
+- Logs all connection state transitions with structured error messages
+
+#### 2.2 Sidecar (Device Worker) Connection
+The agent spawns brand-specific Python sidecars (ZKTeco, Mock) that poll biometric devices:
+
+- **RPC Protocol**: JSON-RPC 2.0 over TCP (loopback at 127.0.0.1)
+- **Max Retry Delay**: 60 seconds (capped)
+- **Stability Threshold**: 30 seconds to reset retry counter
+- **Max Retry Count**: 10 attempts per device
+- **Exponential Backoff**: 2s, 4s, 8s, 16s, 32s, 60s (capped)
+- **Jitter**: ±25% on all delays
+
+**Sidecar Retry Module** (`src/retry.rs`):
+```rust
+pub const SIDECAR_MAX_RETRY_DELAY_SECS: u64 = 60;
+pub const SIDECAR_MAX_RETRY_COUNT: u32 = 10;
+pub const SIDECAR_STABILITY_THRESHOLD_SECS: u64 = 30;
+pub fn get_sidecar_retry_delay(retry_count: u32) -> Duration
+```
+
+Each worker maintains independent retry tracking:
+- Initial sidecar spawn failure → increment retry count, apply backoff, restart
+- Sidecar connection timeout (>10s) → increment retry count, kill process, restart
+- Device polling error → increment retry count, kill sidecar, restart
+- Successful polling for 30s → reset retry count to 0
+
+#### 2.3 Worker Client Improvements
+The `WorkerClient` struct handles RPC communication with sidecars:
+
+- **Read Timeout**: 5 minutes (300s) for slow device connections
+- **Write Timeout**: 30 seconds for RPC requests
+- **Blocking Mode**: Ensures tokio non-blocking sockets are converted to blocking for reliable I/O
+- **from_stream()**: Constructor for accepted TCP connections (sets blocking mode + timeouts)
+
+#### 2.4 Failure Recovery Paths
+All failure points increment retry count and apply exponential backoff:
+
+1. **Bind failure** → Retry sidecar spawn
+2. **Sidecar spawn failure** → Retry with backoff
+3. **Connection accept timeout** → Kill sidecar, retry with backoff
+4. **Stream conversion error** → Kill sidecar, retry with backoff
+5. **Client creation error** → Kill sidecar, retry with backoff
+6. **Device.connect RPC error** → Kill sidecar, retry with backoff
+7. **Device.get_logs RPC error** → Kill sidecar, retry with backoff
+8. **Connection drop** → Kill sidecar, retry with backoff
+
+The system is designed to tolerate transient network issues, slow hardware, and temporary service unavailability without manual intervention.
+
 ### 10. Attendance Pairing & Audit Engine
 Hệ thống xử lý dữ liệu quẹt thẻ (punch) theo mô hình **Event-Sourcing Audit Trail** để đảm bảo tính minh bạch và khả năng phục hồi dữ liệu:
 
@@ -390,9 +454,34 @@ The Orchestrator (`agent-main`) utilizes `tokio` tasks and `futures::join_all` t
 
 #### 18.3. Dynamic Reconfiguration \& Execution Strategy (New)
 The Edge Agent now supports hot-reloading of its worker configuration and fine-grained resource control:
-- **Database-Driven Configuration**: Instead of hardcoded values, the Orchestrator loads active workers from its local SQLite database. 
+- **Database-Driven Configuration**: Instead of hardcoded values, the Orchestrator loads active workers from its local SQLite database.
 - **Hot-Reloading**: When the dashboard pushes a configuration change, the Orchestrator receives a signal via `CentralClient`, gracefully shuts down all current sidecars, and spawns new ones based on the updated DB state.
 - **Execution Strategy (Bounded Parallelism)**:
     - **Concurrency Control**: A `Semaphore` is used to limit the number of sidecar processes active at any given time.
     - **Sequential Polling**: Setting `MAX_CONCURRENT_WORKERS = 1` forces the agent to poll devices one-by-one, minimizing RAM usage.
     - **Parallel Polling**: Setting `MAX_CONCURRENT_WORKERS > 1` enables high-throughput polling for gateways with sufficient resources.
+
+#### 18.4. Fair Round-Robin Device Polling (New)
+To ensure no device is starved when resources are limited, the Edge Agent implements fair scheduling:
+- **Semaphore-Based Fairness**: Each polling cycle, the Orchestrator acquires `MAX_CONCURRENT_WORKERS` permits from a Semaphore.
+- **Per-Cycle Acquisition**: Permits are released after each device finishes, allowing other devices to use freed capacity immediately.
+- **No Device Starvation**: With `MAX_CONCURRENT_WORKERS = 1`, devices take turns in defined order (via `join_all` and sequential iteration).
+- **Optimization**: Enables proportional load balancing when `MAX_CONCURRENT_WORKERS > 1`, with high-speed devices completing faster and yielding permits sooner.
+- **Implementation**: `agent-main/src/main.rs:302-334` uses tokio Semaphore + futures::join_all.
+
+#### 18.5. Log Cleanup & 365-Day Retention (New)
+The Edge Agent automatically maintains database hygiene by removing old synced logs:
+- **Retention Policy**: Synced logs older than 365 days are automatically deleted.
+- **Cleanup Frequency**: Background task runs every 24 hours (configurable via `CLEANUP_INTERVAL_HOURS`).
+- **Safety**: Only logs marked as `is_synced=1` are eligible for deletion; in-flight logs are preserved.
+- **Traceability**: Before deletion, the count of removed logs is logged for audit purposes.
+- **Database Impact**: Reduces SQLite file size and improves query performance on historical searches.
+- **Implementation**: `agent-main/src/main.rs:135-162`, database.rs:212-225.
+
+#### 18.6. FIFO Ordering Guarantee (New)
+To ensure logs are processed in the exact order they arrived from devices, the Edge Agent enforces FIFO semantics:
+- **Auto-Increment IDs**: Logs are assigned monotonically increasing IDs at insertion time.
+- **Order Preservation**: When fetching unsynced logs, `ORDER BY id ASC` is always applied.
+- **ID Reuse Prevention**: SQLite auto-increment never reuses deleted IDs within the same database session.
+- **Impact**: Guarantees that log batches pushed to the Central Server maintain source device order, enabling correct payroll calculations even if devices clock is not synchronized.
+- **Implementation**: `agent-main/src/database.rs:138-155` in `get_unsynced_logs()`.

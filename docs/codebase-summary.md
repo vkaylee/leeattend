@@ -23,10 +23,25 @@ LeeAttend is a high-performance attendance and payroll system split into three p
 - **Language**: Rust
 - **Database**: SQLite (SQLx)
 - **Core Responsibility**: Lightweight process running at physical locations. It manages multiple Python sidecars (ZKTeco, Mock, etc.) via JSON-RPC 2.0, buffers attendance logs locally, and syncs data to the Central Server.
+- **Key Modules**:
+    - **main.rs**: Orchestrator loop managing device polling, worker lifecycle, and configuration reloading
+    - **central_client.rs**: WebSocket connection to Central Server with `RetryManager` for connection resilience (30s timeout, 60s stability threshold)
+    - **worker_client.rs**: JSON-RPC 2.0 client for sidecar communication (5min read, 30s write timeout)
+    - **retry.rs**: Reusable exponential backoff with jitter (2s-60s delays, ±25% jitter) for sidecar retries
+    - **database.rs**: SQLite operations for offline log buffering and device configuration
+    - **config.rs**: Environment-based configuration loading with defaults
 - **Features**:
-    - **Resilience**: Offline buffering and automatic retry.
-    - **Process Management**: Spawns and monitors the Python worker.
-    - **Configuration**: Environment-based config with robust defaults.
+    - **Sidecar Resilience**: Exponential backoff retry (max 10 retries) with 30s stability threshold
+    - **Central Sync**: WebSocket with auto-reconnect (max 10 retries) and ACK-based delivery confirmation
+    - **Offline Buffering**: Queues logs locally during network unavailability
+    - **Dynamic Reconfiguration**: Hot-reload device config from Central Server via ConfigPush messages
+    - **Multi-Brand Support**: Spawns brand-specific sidecars (zkteco, mock) based on database config
+    - **Concurrent Workers**: Semaphore-based concurrency control (configurable max workers)
+    - **Fair Polling**: Semaphore-based round-robin scheduling ensures no device starvation
+    - **Log Cleanup**: Automatic deletion of synced logs older than 365 days (daily task)
+    - **FIFO Guarantee**: ORDER BY id ASC ensures logs sync in exact device order
+    - **CLI Commands**: `--help`, `failed-logs [limit]`, `failed [limit]` for log inspection
+- **Test Coverage**: 63 tests (37 library + 26 integration) including memory leak detection
 
 ### 3. Sidecar Workers (Device Connectors)
 - **Languages**: Python 3.10+

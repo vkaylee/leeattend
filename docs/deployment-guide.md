@@ -108,6 +108,49 @@ Chỉ cần chạy file `agent`:
 ```
 Nó sẽ tự động khởi động `agent-zk-worker`, kết nối database và bắt đầu đồng bộ.
 
+### 🔧 CLI Commands
+
+Agent provides several command-line utilities for debugging and operations:
+
+**View Help:**
+```bash
+./agent --help
+```
+
+**View Failed Sync Logs:**
+```bash
+# Show last 50 failed logs (default limit)
+./agent failed-logs
+
+# Show last N failed logs
+./agent failed-logs 100
+
+# Alias
+./agent failed 50
+```
+
+**Output Format:**
+```
+Failed Sync Logs (limit: 50):
+- ID: 123 | Device: ZK1 | Time: 2026-01-28 10:30:45 | Status: Retry pending
+- ID: 124 | Device: ZK2 | Time: 2026-01-28 10:31:20 | Status: Retry pending
+```
+
+### 🧹 Automatic Maintenance
+
+The Agent automatically performs these maintenance tasks:
+
+**365-Day Log Cleanup (Daily)**
+- Runs every 24 hours
+- Deletes synced logs older than 365 days
+- Reduces database file size and improves query performance
+- Preserves in-flight logs (is_synced=0)
+
+**Fair Polling Scheduler**
+- Ensures no device is starved of polling resources
+- When `MAX_CONCURRENT_WORKERS=1`, devices take turns sequentially
+- With `MAX_CONCURRENT_WORKERS>1`, enables parallel polling with semaphore-based fairness
+
 ---
 
 ## 🪟 Triển khai Service trên Windows (NSSM)

@@ -1615,17 +1615,47 @@ The Rust Edge Orchestrator (`agent-main`) communicates with brand-specific sidec
 ### Protocol
 - **Transport**: TCP Loopback (127.0.0.1)
 - **Format**: Line-delimited JSON-RPC 2.0
+- **Read Timeout**: 5 minutes (300s) for slow device operations
+- **Write Timeout**: 30 seconds for RPC requests
+
+### Sidecar Lifecycle & Retry Behavior
+
+#### Sidecar Connection
+The orchestrator spawns a brand-specific sidecar process (Python) and waits for it to connect on an ephemeral RPC port:
+
+- **Connection Accept Timeout**: 10 seconds - if sidecar doesn't connect within 10s, spawn is considered failed
+- **Retry Delay**: Exponential backoff with ±25% jitter
+  - Retry 1: 2s, Retry 2: 4s, Retry 3: 8s, Retry 4: 16s, Retry 5: 32s, Retry 6+: 60s (capped)
+- **Stability Reset**: Retry count resets to 0 after successful polling for 30 seconds
+- **Max Retries**: 10 attempts before the worker enters dormant state
+
+#### Failure Recovery
+All failure points trigger retry logic:
+
+| Failure | Action | Retry Delay |
+|---------|--------|-------------|
+| Sidecar spawn fails | Increment retry, apply backoff | Exponential 2-60s |
+| Connection timeout (>10s) | Kill sidecar, increment retry | Exponential 2-60s |
+| RPC call timeout (>5min read) | Kill sidecar, increment retry | Exponential 2-60s |
+| Connection drop during polling | Kill sidecar, increment retry | Exponential 2-60s |
 
 ### Standard Methods
 #### `common.ping`
 Check if the sidecar is alive.
 - **Request**: `{ "jsonrpc": "2.0", "method": "common.ping", "id": 1 }`
+
 #### `device.connect`
 Connect to a physical biometric device.
 - **Params**: `ip` (String), `port` (Number)
+- **Side Effects**: If fails, triggers sidecar restart with retry logic
+
 #### `device.get_logs`
-Fetch attendance logs from the device.
+Fetch attendance logs from the device (called every 5 seconds by orchestrator).
+- **Timeout**: Respects 5-minute read timeout
+- **Failure**: Triggers sidecar restart if connection is lost
+
 #### `device.get_time`
-Fetch current device time.
+Fetch current device time for synchronization checks.
+
 #### `device.sync_time`
-Synchronize device time.
+Synchronize device time with sidecar.

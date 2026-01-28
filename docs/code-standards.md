@@ -11,6 +11,100 @@
 - **Method Size (Rule of 30)**: Một hàm không nên dài quá 30 dòng code. Nếu dài hơn, hãy cân nhắc tách nhỏ ra các private methods hoặc helper functions.
 - **Single Responsibility (SRP)**: Một hàm chỉ làm một việc duy nhất. Tên hàm phải phản ánh đúng hành động (ví dụ: `validate_agent_token` thay vì `check_agent`).
 
+### 4. Agent-Specific Patterns (agent-main)
+
+#### 4.1. Retry Logic & Exponential Backoff
+- **Module**: `src/retry.rs` provides standardized retry utilities
+- **Constants**:
+  - `SIDECAR_MAX_RETRY_DELAY_SECS = 60` (capped maximum)
+  - `SIDECAR_STABILITY_THRESHOLD_SECS = 30` (time before resetting retry counter)
+  - `SIDECAR_MAX_RETRY_COUNT = 10` (maximum retry attempts)
+- **Function**: `get_sidecar_retry_delay(retry_count: u32) -> Duration` with ±25% jitter
+- **Usage Pattern**:
+  ```rust
+  if last_stable < STABILITY_THRESHOLD {
+      retry_count += 1;
+  } else {
+      retry_count = 0; // Reset after stability window
+  }
+  let backoff = get_sidecar_retry_delay(retry_count);
+  tokio::time::sleep(backoff).await;
+  ```
+
+#### 4.2. Database Query Patterns
+- **FIFO Ordering**: Always use `ORDER BY id ASC` in log queries:
+  ```rust
+  // ✅ CORRECT
+  SELECT * FROM attendance_logs WHERE is_synced = 0 ORDER BY id ASC
+
+  // ❌ INCORRECT (may break ordering)
+  SELECT * FROM attendance_logs WHERE is_synced = 0
+  ```
+- **Batch Operations**: Use `IN` clause for batch updates:
+  ```rust
+  UPDATE attendance_logs SET is_synced = 1 WHERE id IN (?, ?, ...)
+  ```
+- **Insert Strategy**: Don't set `updated_at` on INSERT; only set when marking in-flight:
+  ```rust
+  // ✅ CORRECT (created_at only)
+  INSERT INTO attendance_logs (device_id, user_id, created_at) VALUES (...)
+
+  // When marking in-flight:
+  UPDATE attendance_logs SET updated_at = NOW() WHERE id = ?
+  ```
+
+#### 4.3. Semaphore-Based Concurrency
+- **Pattern**: Use tokio `Semaphore` for bounded parallelism:
+  ```rust
+  let semaphore = Arc::new(Semaphore::new(max_workers));
+  let mut tasks = vec![];
+  for device in devices {
+      let permit = semaphore.acquire().await;
+      tasks.push(tokio::spawn(async move {
+          let _guard = permit; // Held until task completes
+          // Device polling work
+      }));
+  }
+  futures::future::join_all(tasks).await;
+  ```
+- **Fair Scheduling**: Per-cycle acquire-release ensures no device starvation
+- **Resource Cleanup**: Permit auto-releases on drop
+
+#### 4.4. Sidecar Worker Management
+- **Spawn Pattern**: Use `Command::new()` with piped stdout/stderr:
+  ```rust
+  let mut child = Command::new(&sidecar_path)
+      .arg("--port").arg(port.to_string())
+      .stdout(Stdio::piped())
+      .stderr(Stdio::piped())
+      .spawn()?;
+  ```
+- **Cleanup**: Always call `child.kill()` before abandoning process handle
+- **RPC Contract**: All workers must implement JSON-RPC 2.0 with these methods:
+  - `common.ping()` - Heartbeat
+  - `device.connect(device_id)` - Establish hardware connection
+  - `device.get_logs()` - Fetch attendance logs
+  - `device.get_time()` - Sync device time
+
+#### 4.5. Memory Leak Detection (Testing)
+- **Test Module**: `tests/memory_leak_detection_test.rs`
+- **Strategy**: Spawn 1000+ iterations of channel/semaphore operations
+- **Validation**: Monitor process memory before/after using `/proc/self/status` on Linux
+- **Tolerance**: Assert `final_rss < initial_rss + 10MB` to catch gradual leaks
+- **Example**:
+  ```rust
+  #[tokio::test]
+  async fn test_channel_leak_detection() {
+      let initial_rss = get_rss_mb();
+      for _ in 0..1000 {
+          let (tx, rx) = mpsc::channel(100);
+          drop(tx); drop(rx); // Simulate usage
+      }
+      let final_rss = get_rss_mb();
+      assert!(final_rss < initial_rss + 10.0, "Memory leak detected");
+  }
+  ```
+
 ### 2. Architecture Layers (Handler-Service-Repository)
 Để đảm bảo tính linh hoạt và dễ kiểm thử (Mockable), dự án tuân thủ mô hình 3 lớp:
 - **Handlers (API Layer)**: Chỉ trích xuất tham số từ Request, gọi Service và trả về Response.

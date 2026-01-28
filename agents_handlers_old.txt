@@ -1,0 +1,75 @@
+   241	pub async fn create_device(
+   242	    State(state): State<Arc<AppState>>,
+   243	    MemberContext { workspace_id, .. }: MemberContext,
+   244	    Json(req): Json<CreateDeviceRequest>,
+   245	) -> impl IntoResponse {
+   246	    let id = Uuid::new_v4();
+   247	    let port = req.port.unwrap_or(4370);
+   248	
+   249	    match sqlx::query(
+   250	        "INSERT INTO devices (id, agent_id, name, ip, port, workspace_id) VALUES ($1, $2, $3, $4, $5, $6)",
+   251	    )
+   252	    .bind(id)
+   253	    .bind(&req.agent_id)
+   254	    .bind(&req.name)
+   255	    .bind(&req.ip)
+   256	    .bind(port)
+   257	    .bind(workspace_id)
+   258	    .execute(&state.db)
+   259	    .await
+   260	    {
+   261	        Ok(_) => {
+   262	            let _ = state.agent_service.notify_config_update(&req.agent_id).await;
+   263	            (StatusCode::CREATED, Json(serde_json::json!({ "id": id }))).into_response()
+   264	        }
+   265	        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+   266	    }
+   267	}
+   268	
+   269	pub async fn update_device(
+   270	    Path(id): Path<Uuid>,
+   271	    State(state): State<Arc<AppState>>,
+   272	    MemberContext { workspace_id, .. }: MemberContext,
+   273	    Json(req): Json<UpdateDeviceRequest>,
+   274	) -> impl IntoResponse {
+   275	    let current_device = match sqlx::query_as::<_, Device>(
+   276	        "SELECT * FROM devices WHERE id = $1 AND workspace_id = $2",
+   277	    )
+   278	    .bind(id)
+   279	    .bind(workspace_id)
+   280	    .fetch_one(&state.db)
+   281	    .await
+   282	    {
+   283	        Ok(d) => d,
+   284	        Err(_) => return StatusCode::NOT_FOUND.into_response(),
+   285	    };
+   286	
+   287	    let name = req.name.unwrap_or(current_device.name);
+   288	    let ip = req.ip.unwrap_or(current_device.ip);
+   289	    let port = req.port.unwrap_or(current_device.port);
+   290	    let is_enabled = req.is_enabled.unwrap_or(current_device.is_enabled);
+   291	
+   292	    match sqlx::query(
+   293	        "UPDATE devices SET name = $1, ip = $2, port = $3, is_enabled = $4 WHERE id = $5 AND workspace_id = $6",
+   294	    )
+   295	    .bind(name)
+   296	    .bind(ip)
+   297	    .bind(port)
+   298	    .bind(is_enabled)
+   299	    .bind(id)
+   300	    .bind(workspace_id)
+   301	    .execute(&state.db)
+   302	    .await
+   303	    {
+   304	        Ok(_) => {
+   305	            let _ = state.agent_service.notify_config_update(&current_device.agent_id).await;
+   306	            StatusCode::OK.into_response()
+   307	        }
+   308	        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+   309	    }
+   310	}
+   311	
+   312	pub async fn delete_device(
+   313	    Path(id): Path<Uuid>,
+   314	    State(state): State<Arc<AppState>>,
+   315	    MemberContext { workspace_id, .. }: MemberContext,
