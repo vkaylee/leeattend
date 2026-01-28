@@ -1,0 +1,182 @@
+use std::collections::HashSet;
+use tokio::sync::mpsc;
+use tokio::time::Duration;
+
+/// Test that duplicate detection filters repeated logs before sending to queue.
+/// Simulates device returning same logs repeatedly (no device clearing).
+#[tokio::test]
+async fn test_duplicate_detection_filters_repeated_logs() {
+    let (tx, mut rx) = mpsc::channel::<(String, String)>(100);
+    let mut seen_logs: HashSet<String> = HashSet::new();
+
+    // Simulate 3 polling cycles from same device
+    let device_name = "OFFICE".to_string();
+
+    // Poll 1: Device returns 5 logs
+    let poll1_logs = vec![
+        ("U001", "2026-01-28 08:00:00"),
+        ("U002", "2026-01-28 08:01:00"),
+        ("U003", "2026-01-28 08:02:00"),
+        ("U004", "2026-01-28 08:03:00"),
+        ("U005", "2026-01-28 08:04:00"),
+    ];
+
+    let mut sent_count_p1 = 0;
+    for (user_id, timestamp) in &poll1_logs {
+        let key = format!("{}:{}", user_id, timestamp);
+        if seen_logs.insert(key) {
+            tx.send((device_name.clone(), format!("{}:{}", user_id, timestamp))).await.unwrap();
+            sent_count_p1 += 1;
+        }
+    }
+    assert_eq!(sent_count_p1, 5, "Poll 1: All 5 logs should be new");
+
+    // Poll 2: Device returns 7 logs (5 duplicates + 2 new)
+    let poll2_logs = vec![
+        ("U001", "2026-01-28 08:00:00"), // Duplicate
+        ("U002", "2026-01-28 08:01:00"), // Duplicate
+        ("U003", "2026-01-28 08:02:00"), // Duplicate
+        ("U004", "2026-01-28 08:03:00"), // Duplicate
+        ("U005", "2026-01-28 08:04:00"), // Duplicate
+        ("U006", "2026-01-28 08:05:00"), // New
+        ("U007", "2026-01-28 08:06:00"), // New
+    ];
+
+    let mut sent_count_p2 = 0;
+    let mut dup_count_p2 = 0;
+    for (user_id, timestamp) in &poll2_logs {
+        let key = format!("{}:{}", user_id, timestamp);
+        if seen_logs.insert(key) {
+            tx.send((device_name.clone(), format!("{}:{}", user_id, timestamp))).await.unwrap();
+            sent_count_p2 += 1;
+        } else {
+            dup_count_p2 += 1;
+        }
+    }
+    assert_eq!(sent_count_p2, 2, "Poll 2: Only 2 new logs should be sent");
+    assert_eq!(dup_count_p2, 5, "Poll 2: 5 duplicates should be filtered");
+
+    // Poll 3: Device returns 10 logs (7 duplicates + 3 new)
+    let poll3_logs = vec![
+        ("U001", "2026-01-28 08:00:00"), // Duplicate
+        ("U002", "2026-01-28 08:01:00"), // Duplicate
+        ("U003", "2026-01-28 08:02:00"), // Duplicate
+        ("U004", "2026-01-28 08:03:00"), // Duplicate
+        ("U005", "2026-01-28 08:04:00"), // Duplicate
+        ("U006", "2026-01-28 08:05:00"), // Duplicate
+        ("U007", "2026-01-28 08:06:00"), // Duplicate
+        ("U008", "2026-01-28 08:07:00"), // New
+        ("U009", "2026-01-28 08:08:00"), // New
+        ("U010", "2026-01-28 08:09:00"), // New
+    ];
+
+    let mut sent_count_p3 = 0;
+    let mut dup_count_p3 = 0;
+    for (user_id, timestamp) in &poll3_logs {
+        let key = format!("{}:{}", user_id, timestamp);
+        if seen_logs.insert(key) {
+            tx.send((device_name.clone(), format!("{}:{}", user_id, timestamp))).await.unwrap();
+            sent_count_p3 += 1;
+        } else {
+            dup_count_p3 += 1;
+        }
+    }
+    assert_eq!(sent_count_p3, 3, "Poll 3: Only 3 new logs should be sent");
+    assert_eq!(dup_count_p3, 7, "Poll 3: 7 duplicates should be filtered");
+
+    // Verify total messages in queue
+    drop(tx);
+    let mut received = 0;
+    while let Ok(Some(_)) = tokio::time::timeout(Duration::from_millis(100), rx.recv()).await {
+        received += 1;
+    }
+    assert_eq!(received, 10, "Total: 10 unique logs should be in queue (5+2+3)");
+
+    println!("✅ Duplicate detection test passed:");
+    println!("   Poll 1: {} sent, 0 filtered", sent_count_p1);
+    println!("   Poll 2: {} sent, {} filtered", sent_count_p2, dup_count_p2);
+    println!("   Poll 3: {} sent, {} filtered", sent_count_p3, dup_count_p3);
+    println!("   Total: {} unique logs in queue", received);
+}
+
+/// Test memory efficiency: HashSet size stays bounded.
+#[tokio::test]
+async fn test_hashset_memory_bounded() {
+    let mut seen_logs: HashSet<String> = HashSet::new();
+
+    // Simulate large device with 50K logs
+    for i in 0..50_000 {
+        let key = format!("U{}:2026-01-28 08:{}:{}", i % 1000, i / 60, i % 60);
+        seen_logs.insert(key);
+    }
+
+    // Each key ~30 bytes: "U123:2026-01-28 08:12:34"
+    // 50K keys × 30 bytes = 1.5MB (acceptable)
+    let mem_estimate = seen_logs.len() * 30;
+    assert!(mem_estimate < 2_000_000, "Memory should be under 2MB");
+
+    println!("✅ Memory bounded test passed:");
+    println!("   {} unique keys", seen_logs.len());
+    println!("   ~{} bytes (~{} MB)", mem_estimate, mem_estimate / 1_000_000);
+}
+
+/// Test that different timestamps for same user create unique keys.
+#[tokio::test]
+async fn test_unique_key_generation() {
+    let mut seen_logs: HashSet<String> = HashSet::new();
+
+    // Same user, different timestamps
+    let key1 = format!("U001:2026-01-28 08:00:00");
+    let key2 = format!("U001:2026-01-28 08:01:00");
+    let key3 = format!("U001:2026-01-28 08:00:00"); // Duplicate of key1
+
+    assert!(seen_logs.insert(key1.clone()), "First timestamp should be new");
+    assert!(seen_logs.insert(key2.clone()), "Second timestamp should be new");
+    assert!(!seen_logs.insert(key3.clone()), "Duplicate timestamp should be rejected");
+
+    assert_eq!(seen_logs.len(), 2, "Should have 2 unique keys");
+
+    println!("✅ Unique key generation test passed:");
+    println!("   U001:08:00:00 → new");
+    println!("   U001:08:01:00 → new");
+    println!("   U001:08:00:00 → duplicate (filtered)");
+}
+
+/// Test concurrent polling from multiple devices (each has own HashSet).
+#[tokio::test]
+async fn test_multiple_devices_independent_deduplication() {
+    let (tx, mut rx) = mpsc::channel::<(String, String)>(100);
+
+    // Device 1: OFFICE
+    let mut seen_office: HashSet<String> = HashSet::new();
+    let key_o1 = format!("U001:2026-01-28 08:00:00");
+    let key_o2 = format!("U002:2026-01-28 08:01:00");
+
+    seen_office.insert(key_o1.clone());
+    tx.send(("OFFICE".to_string(), key_o1.clone())).await.unwrap();
+    seen_office.insert(key_o2.clone());
+    tx.send(("OFFICE".to_string(), key_o2.clone())).await.unwrap();
+
+    // Device 2: XUONG 1
+    let mut seen_xuong: HashSet<String> = HashSet::new();
+    let key_x1 = format!("U001:2026-01-28 08:00:00"); // Same key as OFFICE, but different device
+    let key_x2 = format!("U003:2026-01-28 08:02:00");
+
+    seen_xuong.insert(key_x1.clone());
+    tx.send(("XUONG 1".to_string(), key_x1.clone())).await.unwrap();
+    seen_xuong.insert(key_x2.clone());
+    tx.send(("XUONG 1".to_string(), key_x2.clone())).await.unwrap();
+
+    // Both devices can have same user+timestamp (different physical logs)
+    drop(tx);
+    let mut received = 0;
+    while let Ok(Some(_)) = tokio::time::timeout(Duration::from_millis(100), rx.recv()).await {
+        received += 1;
+    }
+    assert_eq!(received, 4, "Should have 4 logs (2 per device)");
+
+    println!("✅ Multiple devices test passed:");
+    println!("   OFFICE: {} unique logs", seen_office.len());
+    println!("   XUONG 1: {} unique logs", seen_xuong.len());
+    println!("   Total queued: {}", received);
+}

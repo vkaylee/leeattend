@@ -1,6 +1,7 @@
 use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Instant;
+use std::collections::HashSet;
 use tokio::process::Command;
 use tokio::time::{sleep, Duration};
 use agent::worker_client::WorkerClient;
@@ -298,6 +299,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         continue;
                     }
 
+                    // In-memory duplicate detection: tracks seen logs to avoid sending duplicates to queue
+                    // Key format: "user_id:timestamp" (device_id is implicit per worker)
+                    let mut seen_logs: HashSet<String> = HashSet::new();
+
                     while !token.is_cancelled() {
                         // Acquire semaphore permit for this poll cycle (fair round-robin)
                         // Released at end of loop iteration, allowing other devices to poll
@@ -314,13 +319,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 }
 
                                 if let Some(logs) = res.as_array().filter(|l| !l.is_empty()) {
-                                    info!("[{}] Fetched {} logs", worker.name, logs.len());
+                                    let fetched_count = logs.len();
+                                    let mut new_count = 0;
+                                    let mut duplicate_count = 0;
 
-                                    // Send all logs to queue - that's it, we're done
+                                    // Filter duplicates before sending to queue
                                     for log in logs {
                                         if let Ok(attendance) = serde_json::from_value::<models::AttendanceData>(log.clone()) {
-                                            let _ = log_tx.send((worker.name.clone(), attendance)).await;
+                                            // Create unique key: user_id:timestamp
+                                            let key = format!("{}:{}", attendance.user_id, attendance.timestamp);
+
+                                            if seen_logs.insert(key) {
+                                                // New log - send to queue
+                                                let _ = log_tx.send((worker.name.clone(), attendance)).await;
+                                                new_count += 1;
+                                            } else {
+                                                // Duplicate - skip
+                                                duplicate_count += 1;
+                                            }
                                         }
+                                    }
+
+                                    if duplicate_count > 0 {
+                                        info!("[{}] Fetched {} logs ({} new, {} duplicates filtered)",
+                                              worker.name, fetched_count, new_count, duplicate_count);
+                                    } else {
+                                        info!("[{}] Fetched {} logs", worker.name, fetched_count);
                                     }
                                 }
                             }
