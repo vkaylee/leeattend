@@ -117,6 +117,7 @@ async fn test_update_employee_id_normalization() {
         termination_date: None,
         tags: None,
         is_active: None,
+        max_concurrent_workers: None,
     };
 
     let response = app

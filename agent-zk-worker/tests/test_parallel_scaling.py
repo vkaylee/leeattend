@@ -55,12 +55,12 @@ async def run_worker_test(max_parallel, requests_count):
     requests = []
     for i in range(requests_count):
         req = {
-            "jsonrpc": "2.0", 
-            "method": "device.get_time", 
+            "jsonrpc": "2.0",
+            "method": "device.get_time",
             "id": i
         }
-        requests.append(json.dumps(req).encode() + bn)
-    requests.append(b) # End of stream
+        requests.append(json.dumps(req).encode() + b"\n")
+    requests.append(b"") # End of stream
     
     reader.readline.side_effect = requests
     

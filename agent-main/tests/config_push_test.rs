@@ -16,6 +16,7 @@ async fn test_handle_config_push_with_brand() {
                     brand: "zkteco".to_string(),
                 },
             ],
+            max_concurrent_workers: None,
         },
     };
 
