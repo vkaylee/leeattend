@@ -389,6 +389,22 @@ impl Database {
         Ok(res.map(|r| r.0))
     }
 
+    /// Clear all configuration on startup to ensure fresh sync from Server.
+    /// Agent will use defaults until ConfigPush arrives after Handshake.
+    pub async fn clear_startup_config(&self) -> Result<(), Error> {
+        // Clear agent_config table (use defaults until ConfigPush)
+        sqlx::query("DELETE FROM agent_config")
+            .execute(&self.pool)
+            .await?;
+
+        // Deactivate all devices (wait for ConfigPush to provide fresh list)
+        sqlx::query("UPDATE devices SET is_active = 0")
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn get_active_devices(&self) -> Result<Vec<DeviceConfig>, Error> {
         sqlx::query_as::<_, DeviceConfig>(
             r#"

@@ -86,14 +86,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let db = Database::new(&config.database_url).await.expect("Failed to initialize database");
 
-    // Load dynamic config
-    let db_max_workers = db.get_agent_config("max_concurrent_workers").await.unwrap_or(None);
-    let mut current_max_workers = if let Some(s) = db_max_workers {
-        s.parse().unwrap_or(config.max_concurrent_workers)
+    // Clear startup config: Agent should NOT use stale database config.
+    // Server will send ConfigPush after Handshake with fresh configuration.
+    if let Err(e) = db.clear_startup_config().await {
+        warn!("Failed to clear startup config: {}", e);
     } else {
-        config.max_concurrent_workers
-    };
-    info!("⚙️ Effective Max Workers: {}", current_max_workers);
+        info!("🔄 Cleared local config on startup - waiting for ConfigPush from Server...");
+    }
+
+    // Use defaults until ConfigPush arrives (database config was just cleared)
+    let mut current_max_workers = config.max_concurrent_workers;
+    info!("⚙️ Using default Max Workers: {} (until ConfigPush)", current_max_workers);
 
 
     let (central_client, central_rx, mut reload_rx) = CentralClient::new(
