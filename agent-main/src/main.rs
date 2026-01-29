@@ -7,8 +7,10 @@ use tokio::time::{sleep, Duration};
 use agent::worker_client::WorkerClient;
 use agent::database::Database;
 use agent::central_client::CentralClient;
+use agent::hybrid_database::HybridDatabase;
 use agent::models;
 use agent::retry::{get_sidecar_retry_delay, SIDECAR_MAX_RETRY_COUNT, SIDECAR_STABILITY_THRESHOLD_SECS};
+use agent::crash_recovery::{CrashMarker, recover_from_crash};
 use serde_json::json;
 use log::{info, error, warn};
 use dotenvy::dotenv;
@@ -77,6 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::spawn(async move {
         if tokio::signal::ctrl_c().await.is_ok() {
             info!("Shutdown signal received (Ctrl+C).");
+            info!("Flushing in-memory data to disk...");
             cloned_token.cancel();
         }
     });
@@ -84,11 +87,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = agent::config::Config::load();
     config.show_summary();
 
-    let db = Database::new(&config.database_url).await.expect("Failed to initialize database");
+    // === CRASH RECOVERY ===
+    let crash_marker = CrashMarker::new(&config.database_url);
+
+    if crash_marker.check_crash() {
+        warn!("⚠️ Detected previous crash or unclean shutdown");
+        if let Some(info) = crash_marker.read_crash_info() {
+            warn!("Previous session info:\n{}", info);
+        }
+    }
+
+    // Initialize HybridDatabase (memory + disk)
+    let hybrid_db = HybridDatabase::new(&config.database_url, 100_000)
+        .await
+        .expect("Failed to initialize HybridDatabase");
+
+    // Perform crash recovery if needed
+    if crash_marker.check_crash() {
+        let recovered = recover_from_crash(hybrid_db.disk_db()).await
+            .expect("Failed to recover from crash");
+        info!("✅ Crash recovery complete: {} logs reset", recovered);
+    }
+
+    // Write new crash marker
+    if let Err(e) = crash_marker.write() {
+        warn!("Failed to write crash marker: {}", e);
+    }
 
     // Clear startup config: Agent should NOT use stale database config.
     // Server will send ConfigPush after Handshake with fresh configuration.
-    if let Err(e) = db.clear_startup_config().await {
+    if let Err(e) = hybrid_db.disk_db().clear_startup_config().await {
         warn!("Failed to clear startup config: {}", e);
     } else {
         info!("🔄 Cleared local config on startup - waiting for ConfigPush from Server...");
@@ -98,12 +126,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut current_max_workers = config.max_concurrent_workers;
     info!("⚙️ Using default Max Workers: {} (until ConfigPush)", current_max_workers);
 
-
     let (central_client, central_rx, mut reload_rx) = CentralClient::new(
-        config.central_server_url.clone(), 
-        config.agent_id.clone(), 
-        config.agent_token.clone(), 
-        db.clone()
+        config.central_server_url.clone(),
+        config.agent_id.clone(),
+        config.agent_token.clone(),
+        hybrid_db.clone(),
     );
     central_client.start(central_rx).await;
 
@@ -111,7 +138,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Use Arc<AtomicBool> to ensure only one writer starts
     let writer_started = Arc::new(std::sync::atomic::AtomicBool::new(false));
     let (log_tx, mut log_rx) = mpsc::channel::<(String, models::AttendanceData)>(10000);
-    let writer_db = db.clone();
+    let writer_hybrid = hybrid_db.clone();
 
     if !writer_started.swap(true, std::sync::atomic::Ordering::SeqCst) {
         tokio::spawn(async move {
@@ -127,8 +154,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 buffer.push(item);
                                 if buffer.len() >= 100 {
                                     let to_save = std::mem::replace(&mut buffer, Vec::with_capacity(100));
-                                    if let Err(e) = writer_db.save_raw_attendance_batch(to_save).await {
-                                        error!("Failed to save batch to DB: {}", e);
+                                    if let Err(e) = writer_hybrid.save_raw_attendance_batch(to_save) {
+                                        error!("Failed to save batch to memory: {}", e);
                                     }
                                     // Yield to let sync loop acquire lock
                                     sleep(Duration::from_millis(10)).await;
@@ -140,8 +167,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     _ = interval.tick() => {
                         if !buffer.is_empty() {
                             let to_save = std::mem::replace(&mut buffer, Vec::with_capacity(100));
-                            if let Err(e) = writer_db.save_raw_attendance_batch(to_save).await {
-                                error!("Failed to save timed batch to DB: {}", e);
+                            if let Err(e) = writer_hybrid.save_raw_attendance_batch(to_save) {
+                                error!("Failed to save timed batch to memory: {}", e);
                             }
                         }
                     }
@@ -153,8 +180,45 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         warn!("⚠️ DB Writer Worker already running, skipping duplicate spawn");
     }
 
+    // --- Checkpoint Worker (Periodic Disk Persistence) ---
+    let checkpoint_hybrid = hybrid_db.clone();
+    let checkpoint_cancel = cancel_token.clone();
+    tokio::spawn(async move {
+        info!("💾 Checkpoint Worker started (5s interval)");
+
+        let mut interval = tokio::time::interval(Duration::from_secs(5));
+
+        loop {
+            tokio::select! {
+                _ = interval.tick() => {
+                    if checkpoint_hybrid.memory_store().is_dirty() {
+                        match checkpoint_hybrid.checkpoint().await {
+                            Ok(count) => {
+                                if count > 0 {
+                                    info!("💾 Checkpoint: {} logs persisted to disk", count);
+                                }
+                            }
+                            Err(e) => {
+                                error!("❌ Checkpoint failed: {}", e);
+                            }
+                        }
+                    }
+                }
+                _ = checkpoint_cancel.cancelled() => {
+                    info!("💾 Checkpoint Worker: Final flush...");
+                    match checkpoint_hybrid.flush_all().await {
+                        Ok(count) => info!("✅ Final flush: {} logs written", count),
+                        Err(e) => error!("❌ Final flush failed: {}", e),
+                    }
+                    info!("💾 Checkpoint Worker stopped");
+                    break;
+                }
+            }
+        }
+    });
+
     // --- Periodic Cleanup Task (Old Synced Logs) ---
-    let cleanup_db = db.clone();
+    let cleanup_hybrid = hybrid_db.clone();
     let cleanup_cancel = cancel_token.clone();
     tokio::spawn(async move {
         info!("🧹 Cleanup Worker started (365-day retention)");
@@ -163,7 +227,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Run cleanup every 24 hours
             tokio::select! {
                 _ = sleep(Duration::from_secs(86400)) => {
-                    match cleanup_db.cleanup_old_synced_logs(365).await {
+                    match cleanup_hybrid.disk_db().cleanup_old_synced_logs(365).await {
                         Ok(deleted) => {
                             if deleted > 0 {
                                 info!("🧹 Cleaned up {} old synced logs (>365 days)", deleted);
@@ -185,7 +249,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     while !cancel_token.is_cancelled() {
         let semaphore = Arc::new(Semaphore::new(current_max_workers));
 
-        let db_devices = match db.get_active_devices().await {
+        let db_devices = match hybrid_db.disk_db().get_active_devices().await {
             Ok(devices) => devices,
             Err(e) => {
                 error!("Failed to load devices from DB: {}", e);
@@ -390,9 +454,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         tokio::select! {
             _ = reload_rx.recv() => {
                 info!("🔄 Configuration change detected! Restarting all workers...");
-                
+
                 // Reload config
-                if let Ok(Some(s)) = db.get_agent_config("max_concurrent_workers").await
+                if let Ok(Some(s)) = hybrid_db.disk_db().get_agent_config("max_concurrent_workers").await
                     && let Ok(new_val) = s.parse::<usize>()
                     && new_val != current_max_workers
                 {
@@ -411,7 +475,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    info!("Orchestrator shut down.");
+    // Wait for checkpoint worker to complete final flush
+    info!("⏳ Waiting for final checkpoint...");
+    sleep(Duration::from_secs(2)).await;
+
+    // Remove crash marker on clean exit
+    if let Err(e) = crash_marker.remove() {
+        warn!("Failed to remove crash marker: {}", e);
+    }
+    info!("✅ Clean shutdown complete.");
+
     Ok(())
 }
 

@@ -1,11 +1,14 @@
 use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite, Error};
 use crate::models::{RawAttendanceLog, DeviceConfig, AttendanceData};
+use crate::memory_store::InMemoryStore;
 use chrono::NaiveDateTime;
 use serde_json;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Database {
     pool: Pool<Sqlite>,
+    memory_store: Arc<InMemoryStore>,
 }
 
 impl Database {
@@ -21,7 +24,22 @@ impl Database {
             .execute(&pool)
             .await?;
 
-        Ok(Self { pool })
+        // Initialize in-memory store with 10K capacity (as per plan)
+        let memory_store = Arc::new(InMemoryStore::new(10_000));
+
+        // Load existing unsynced/in-flight logs from disk into memory (startup recovery)
+        let existing_logs = sqlx::query_as::<_, RawAttendanceLog>(
+            "SELECT id, device_id, user_id, timestamp, status, punch, is_synced, created_at, updated_at, retry_count
+             FROM zkt_raw_attendance
+             WHERE is_synced IN (0, 2)
+             ORDER BY id ASC"
+        )
+        .fetch_all(&pool)
+        .await?;
+
+        memory_store.load_from_disk(existing_logs);
+
+        Ok(Self { pool, memory_store })
     }
 
     pub fn get_pool(&self) -> &Pool<Sqlite> {
@@ -33,6 +51,7 @@ impl Database {
         device_id: &str,
         data: AttendanceData,
     ) -> Result<i64, Error> {
+        // Parse timestamp first
         let timestamp_res = NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%d %H:%M:%S")
             .or_else(|_| NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%dT%H:%M:%SZ"));
 
@@ -41,7 +60,7 @@ impl Database {
             Err(e) => {
                 let raw_json = serde_json::to_string(&data).unwrap_or_default();
                 let error_msg = format!("Timestamp parse error: {}", e);
-                
+
                 sqlx::query(
                     r#"
                     INSERT INTO parsing_errors (device_id, raw_data, error_msg, created_at)
@@ -53,11 +72,12 @@ impl Database {
                 .bind(error_msg)
                 .execute(&self.pool)
                 .await?;
-                
+
                 return Ok(0);
             }
         };
 
+        // Write to disk first
         let res = sqlx::query(
             r#"
             INSERT INTO zkt_raw_attendance (device_id, user_id, timestamp, status, punch)
@@ -66,14 +86,22 @@ impl Database {
             "#,
         )
         .bind(device_id)
-        .bind(data.user_id)
+        .bind(&data.user_id)
         .bind(timestamp)
         .bind(data.status)
         .bind(data.punch)
         .execute(&self.pool)
         .await?;
 
-        Ok(res.last_insert_rowid())
+        let id = res.last_insert_rowid();
+
+        // If inserted (not duplicate), also insert to memory store
+        if res.rows_affected() > 0 {
+            // Try in-memory insert (best effort, ignore errors for now)
+            let _ = self.memory_store.insert(device_id.to_string(), data);
+        }
+
+        Ok(id)
     }
 
     pub async fn save_raw_attendance_batch(
@@ -87,12 +115,12 @@ impl Database {
         // Parse and prepare all records first
         type BatchRecord = (String, String, NaiveDateTime, Option<i32>, Option<i32>);
         let mut records: Vec<BatchRecord> = Vec::new();
-        for (device_id, data) in batch {
+        for (device_id, data) in &batch {
             let timestamp_res = NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%d %H:%M:%S")
                 .or_else(|_| NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%dT%H:%M:%SZ"));
 
             if let Ok(timestamp) = timestamp_res {
-                records.push((device_id, data.user_id, timestamp, data.status, data.punch));
+                records.push((device_id.clone(), data.user_id.clone(), timestamp, data.status, data.punch));
             }
         }
 
@@ -100,7 +128,7 @@ impl Database {
             return Ok(0);
         }
 
-        // Use single INSERT with multiple VALUES for better performance
+        // Write to disk first (with deduplication via CONFLICT clause)
         let mut tx = self.pool.begin().await?;
         let placeholders: Vec<&str> = records.iter().map(|_| "(?, ?, ?, ?, ?)").collect();
         let query = format!(
@@ -116,7 +144,12 @@ impl Database {
         let result = q.execute(&mut *tx).await?;
         tx.commit().await?;
 
-        Ok(result.rows_affected() as usize)
+        let rows_affected = result.rows_affected() as usize;
+
+        // Also insert to memory store (best effort)
+        let _ = self.memory_store.insert_batch(batch);
+
+        Ok(rows_affected)
     }
 
     pub async fn reset_stale_syncing(&self, timeout_secs: i64) -> Result<u64, Error> {
@@ -127,18 +160,19 @@ impl Database {
         Ok(res.rows_affected())
     }
 
-    pub async fn reset_syncing_status(&self) -> Result<(), Error> {
-        sqlx::query("UPDATE zkt_raw_attendance SET is_synced = 0 WHERE is_synced = 2")
+    pub async fn reset_syncing_status(&self) -> Result<u64, Error> {
+        let res = sqlx::query("UPDATE zkt_raw_attendance SET is_synced = 0 WHERE is_synced = 2")
             .execute(&self.pool)
             .await?;
-        Ok(())
+        Ok(res.rows_affected())
     }
 
     /// Get unsynced logs for transmission. Returns logs WITHOUT marking them in-flight.
     /// Caller must call mark_in_flight() immediately after successful fetch.
     /// FIFO order: Logs are returned in insertion order (id ASC).
     pub async fn get_unsynced_logs(&self, limit: i64) -> Result<Vec<RawAttendanceLog>, Error> {
-        // Use read-only query to avoid lock contention with batch writer
+        // For Phase 2, read from disk to maintain test compatibility
+        // Later phases will optimize to read from memory only
         let logs = sqlx::query_as::<_, RawAttendanceLog>(
             r#"
             SELECT id, device_id, user_id, timestamp, status, punch, is_synced, created_at, updated_at, retry_count
@@ -155,8 +189,27 @@ impl Database {
         Ok(logs)
     }
 
+    /// Get all logs for memory store initialization (startup only)
+    /// Returns all unsynced and in-flight logs to populate memory on startup
+    pub async fn get_all_logs(&self) -> Result<Vec<RawAttendanceLog>, Error> {
+        let logs = sqlx::query_as::<_, RawAttendanceLog>(
+            r#"
+            SELECT id, device_id, user_id, timestamp, status, punch,
+                   is_synced, created_at, updated_at, retry_count
+            FROM zkt_raw_attendance
+            WHERE is_synced IN (0, 2)  -- Only load pending/in-flight
+            ORDER BY id ASC
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(logs)
+    }
+
     /// Count total unsynced logs for sync coordination
     pub async fn count_unsynced_logs(&self) -> Result<i64, Error> {
+        // For Phase 2, read from disk to maintain test compatibility
         let count = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM zkt_raw_attendance WHERE is_synced = 0"
         )
@@ -181,6 +234,7 @@ impl Database {
     /// Get logs that failed to sync (attempted but failed).
     /// These have is_synced=0 but updated_at is not null (marked in-flight at least once).
     pub async fn get_failed_sync_logs(&self, limit: i64) -> Result<Vec<RawAttendanceLog>, Error> {
+        // For Phase 2, read from disk to maintain test compatibility
         let logs = sqlx::query_as::<_, RawAttendanceLog>(
             r#"
             SELECT id, device_id, user_id, timestamp, status, punch, is_synced, created_at, updated_at, retry_count
@@ -231,6 +285,10 @@ impl Database {
             return Ok(());
         }
 
+        // Update in-memory store
+        self.memory_store.mark_in_flight(ids);
+
+        // Also update disk for consistency with tests and recovery
         let placeholders: Vec<String> = ids.iter().map(|_| "?".to_string()).collect();
         let query = format!(
             "UPDATE zkt_raw_attendance SET is_synced = 2, updated_at = CURRENT_TIMESTAMP, retry_count = retry_count + 1 WHERE id IN ({})",
@@ -242,6 +300,7 @@ impl Database {
             q = q.bind(id);
         }
         q.execute(&self.pool).await?;
+
         Ok(())
     }
 
@@ -249,9 +308,13 @@ impl Database {
         if ids.is_empty() {
             return Ok(());
         }
+
+        // Update in-memory store
+        self.memory_store.mark_synced(ids);
+
+        // Also update disk for consistency
         let mut tx = self.pool.begin().await?;
 
-        // Batch update using IN clause instead of loop
         let placeholders: Vec<String> = ids.iter().map(|_| "?".to_string()).collect();
         let query = format!(
             "UPDATE zkt_raw_attendance SET is_synced = 1 WHERE id IN ({})",
@@ -442,6 +505,88 @@ impl Database {
 
         let res = q.execute(&self.pool).await?;
         Ok(res.rows_affected())
+    }
+
+    /// Batch checkpoint: Insert unpersisted logs from memory to disk
+    /// Returns: (inserted_count, skipped_duplicates)
+    pub async fn checkpoint_batch(&self, logs: &[crate::memory_store::MemoryLog]) -> Result<(usize, usize), Error> {
+        if logs.is_empty() {
+            return Ok((0, 0));
+        }
+
+        let mut tx = self.pool.begin().await?;
+        let mut inserted = 0;
+        let mut skipped = 0;
+
+        // Batch insert with ON CONFLICT DO NOTHING
+        // SQLite limit: ~500 values per statement
+        for chunk in logs.chunks(100) {
+            let placeholders: Vec<&str> = chunk.iter()
+                .map(|_| "(?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                .collect();
+            let query = format!(
+                r#"
+                INSERT INTO zkt_raw_attendance
+                    (id, device_id, user_id, timestamp, status, punch, is_synced, created_at, retry_count)
+                VALUES {}
+                ON CONFLICT(device_id, user_id, timestamp) DO NOTHING
+                "#,
+                placeholders.join(",")
+            );
+
+            let mut q = sqlx::query(&query);
+            for log in chunk {
+                q = q.bind(log.id)
+                    .bind(&log.device_id)
+                    .bind(&log.user_id)
+                    .bind(log.timestamp)
+                    .bind(log.status)
+                    .bind(log.punch)
+                    .bind(log.is_synced)
+                    .bind(log.created_at)
+                    .bind(log.retry_count);
+            }
+
+            let result = q.execute(&mut *tx).await?;
+            inserted += result.rows_affected() as usize;
+            skipped += chunk.len() - result.rows_affected() as usize;
+        }
+
+        tx.commit().await?;
+        Ok((inserted, skipped))
+    }
+
+    /// Update sync status for checkpointed logs
+    pub async fn update_sync_status_batch(&self, updates: &[(i64, i64)]) -> Result<(), Error> {
+        if updates.is_empty() {
+            return Ok(());
+        }
+
+        let mut tx = self.pool.begin().await?;
+
+        for chunk in updates.chunks(100) {
+            for &(id, is_synced) in chunk {
+                sqlx::query("UPDATE zkt_raw_attendance SET is_synced = ? WHERE id = ?")
+                    .bind(is_synced)
+                    .bind(id)
+                    .execute(&mut *tx)
+                    .await?;
+            }
+        }
+
+        tx.commit().await?;
+        Ok(())
+    }
+
+    /// Get max ID from disk (for memory store ID seeding)
+    pub async fn get_max_id(&self) -> Result<i64, Error> {
+        let max_id: Option<i64> = sqlx::query_scalar(
+            "SELECT MAX(id) FROM zkt_raw_attendance"
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(max_id.unwrap_or(0))
     }
 }
 

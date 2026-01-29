@@ -4,6 +4,7 @@ use tokio::net::TcpListener;
 use futures_util::{SinkExt, StreamExt};
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 use agent::database::Database;
+use agent::hybrid_database::HybridDatabase;
 use agent::central_client::CentralClient;
 use agent::models::AttendanceData;
 use log::info;
@@ -61,8 +62,9 @@ async fn test_end_to_end_log_push() {
         };
         db.save_raw_attendance("DEV1", log_data).await.unwrap();
 
-        // 5. Start CentralClient
-        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT1".into(), "TOKEN1".into(), db.clone());
+        // 5. Start CentralClient with HybridDatabase
+        let hybrid_db = HybridDatabase::new(&db_url, 1000).await.unwrap();
+        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT1".into(), "TOKEN1".into(), hybrid_db);
         client.start(rx).await;
 
         // 6. Verify Mock Server received the log
@@ -136,7 +138,8 @@ async fn test_reliable_sync_with_server_error() {
             punch: Some(1),
         }).await.unwrap();
 
-        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_RETRY".into(), "TOKEN_RETRY".into(), db.clone());
+        let hybrid_db = HybridDatabase::new(&db_url, 1000).await.unwrap();
+        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_RETRY".into(), "TOKEN_RETRY".into(), hybrid_db);
         client.start(rx).await;
 
         // 3. Verify Mock Server received the log TWICE (once for failed attempt, once for retry)

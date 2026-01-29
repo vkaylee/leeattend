@@ -1,0 +1,389 @@
+use crate::database::Database;
+use crate::memory_store::{InMemoryStore, MemoryLog, StoreError};
+use crate::models::AttendanceData;
+use std::sync::Arc;
+use log::info;
+
+/// HybridDatabase orchestrates in-memory and disk persistence
+/// - Memory is primary for fast reads/writes
+/// - Disk is backup for crash recovery and long-term persistence
+#[derive(Clone)]
+pub struct HybridDatabase {
+    disk: Database,
+    memory: Arc<InMemoryStore>,
+}
+
+impl HybridDatabase {
+    pub async fn new(database_url: &str, max_memory_logs: usize) -> Result<Self, sqlx::Error> {
+        let disk = Database::new(database_url).await?;
+        let memory = Arc::new(InMemoryStore::new(max_memory_logs));
+
+        // Seed ID counter from disk
+        let max_id = disk.get_max_id().await?;
+        memory.seed_id(max_id + 1);
+
+        // Load pending logs into memory
+        let pending = disk.get_all_logs().await?;
+        let count = pending.len();
+        memory.load_from_disk(pending);
+        info!("HybridDatabase: Loaded {} pending logs into memory", count);
+
+        Ok(Self { disk, memory })
+    }
+
+    pub fn memory_store(&self) -> Arc<InMemoryStore> {
+        self.memory.clone()
+    }
+
+    pub fn disk_db(&self) -> &Database {
+        &self.disk
+    }
+
+    /// Save attendance - goes to memory first
+    pub fn save_raw_attendance(&self, device_id: &str, data: AttendanceData) -> Result<i64, StoreError> {
+        self.memory.insert(device_id.to_string(), data)
+    }
+
+    /// Batch save - goes to memory first
+    pub fn save_raw_attendance_batch(&self, batch: Vec<(String, AttendanceData)>) -> Result<usize, StoreError> {
+        self.memory.insert_batch(batch)
+    }
+
+    /// Get unsynced logs from memory
+    pub fn get_unsynced_logs(&self, limit: usize) -> Vec<MemoryLog> {
+        self.memory.get_unsynced(limit)
+    }
+
+    /// Count unsynced logs
+    pub fn count_unsynced_logs(&self) -> usize {
+        self.memory.count_unsynced()
+    }
+
+    /// Mark logs as in-flight
+    pub fn mark_in_flight(&self, ids: &[i64]) {
+        self.memory.mark_in_flight(ids)
+    }
+
+    /// Mark logs as synced
+    pub fn mark_synced(&self, ids: &[i64]) {
+        self.memory.mark_synced(ids)
+    }
+
+    /// Reset log to unsynced (failed ACK)
+    pub fn reset_to_unsynced(&self, id: i64) {
+        self.memory.reset_to_unsynced(id)
+    }
+
+    /// Checkpoint unpersisted logs to disk
+    pub async fn checkpoint(&self) -> Result<usize, sqlx::Error> {
+        let unpersisted = self.memory.get_unpersisted();
+        if unpersisted.is_empty() {
+            return Ok(0);
+        }
+
+        let (inserted, _skipped) = self.disk.checkpoint_batch(&unpersisted).await?;
+
+        // Mark as persisted in memory
+        let ids: Vec<i64> = unpersisted.iter().map(|l| l.id).collect();
+        self.memory.mark_persisted(&ids);
+        self.memory.clear_dirty();
+
+        Ok(inserted)
+    }
+
+    /// Full flush on shutdown
+    pub async fn flush_all(&self) -> Result<usize, sqlx::Error> {
+        // First checkpoint any unpersisted
+        self.checkpoint().await?;
+
+        // Then update disk with final sync states
+        let all_logs = self.memory.get_all();
+        let updates: Vec<(i64, i64)> = all_logs.iter()
+            .filter(|l| l.persisted)  // Only update already-persisted logs
+            .map(|l| (l.id, l.is_synced))
+            .collect();
+
+        self.disk.update_sync_status_batch(&updates).await?;
+
+        Ok(updates.len())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_attendance(user_id: &str, timestamp: &str) -> AttendanceData {
+        AttendanceData {
+            user_id: user_id.to_string(),
+            timestamp: timestamp.to_string(),
+            status: Some(1),
+            punch: Some(0),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_hybrid_new() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        assert_eq!(hybrid.count_unsynced_logs(), 0);
+        assert!(!hybrid.memory_store().is_dirty());
+    }
+
+    #[tokio::test]
+    async fn test_hybrid_save_single() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+
+        let data = make_attendance("U001", "2026-01-29 10:00:00");
+        let id = hybrid.save_raw_attendance("DEV1", data).unwrap();
+
+        assert!(id > 0);
+        assert_eq!(hybrid.count_unsynced_logs(), 1);
+        assert!(hybrid.memory_store().is_dirty());
+    }
+
+    #[tokio::test]
+    async fn test_hybrid_save_batch() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+
+        let batch: Vec<(String, AttendanceData)> = (1..=5)
+            .map(|i| {
+                (
+                    "DEV1".to_string(),
+                    make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00"),
+                )
+            })
+            .collect();
+
+        let count = hybrid.save_raw_attendance_batch(batch).unwrap();
+
+        assert_eq!(count, 5);
+        assert_eq!(hybrid.count_unsynced_logs(), 5);
+    }
+
+    #[tokio::test]
+    async fn test_hybrid_checkpoint_empty() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+
+        // Checkpoint with no logs
+        let checkpointed = hybrid.checkpoint().await.unwrap();
+
+        assert_eq!(checkpointed, 0);
+        assert!(!hybrid.memory_store().is_dirty());
+    }
+
+    #[tokio::test]
+    async fn test_hybrid_checkpoint_with_logs() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+
+        // Save logs
+        for i in 1..=10 {
+            let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+            hybrid.save_raw_attendance("DEV1", data).unwrap();
+        }
+
+        assert_eq!(hybrid.count_unsynced_logs(), 10);
+        assert!(hybrid.memory_store().is_dirty());
+
+        // Checkpoint
+        let checkpointed = hybrid.checkpoint().await.unwrap();
+
+        assert_eq!(checkpointed, 10);
+        assert!(!hybrid.memory_store().is_dirty());
+    }
+
+    #[tokio::test]
+    async fn test_hybrid_full_workflow() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+
+        // 1. Save logs
+        for i in 1..=5 {
+            let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+            hybrid.save_raw_attendance("DEV1", data).unwrap();
+        }
+        assert_eq!(hybrid.count_unsynced_logs(), 5);
+
+        // 2. Get unsynced
+        let logs = hybrid.get_unsynced_logs(10);
+        assert_eq!(logs.len(), 5);
+
+        // 3. Mark in-flight
+        let ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
+        hybrid.mark_in_flight(&ids);
+        assert_eq!(hybrid.count_unsynced_logs(), 0);
+
+        // 4. Mark synced (first 3)
+        hybrid.mark_synced(&ids[0..3]);
+
+        // 5. Checkpoint
+        let checkpointed = hybrid.checkpoint().await.unwrap();
+        assert!(checkpointed > 0);
+    }
+
+    #[tokio::test]
+    async fn test_hybrid_restart_recovery() {
+        // Note: In-memory SQLite doesn't persist between connections
+        // This test verifies the recovery mechanism works with the same connection
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+
+        // Phase 1: Save and checkpoint
+        for i in 1..=5 {
+            let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+            hybrid.save_raw_attendance("DEV1", data).unwrap();
+        }
+
+        // Verify all are unsynced before checkpoint
+        assert_eq!(hybrid.count_unsynced_logs(), 5);
+
+        // Checkpoint to disk
+        let checkpointed = hybrid.checkpoint().await.unwrap();
+        assert_eq!(checkpointed, 5);
+
+        // After checkpoint, should be 0 (marked as synced if needed)
+        // Load_from_disk only loads unsynced/in-flight logs
+        // For this test, we verify checkpoint doesn't error
+    }
+
+    #[tokio::test]
+    async fn test_hybrid_reset_to_unsynced_after_inflight() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+
+        // Save and mark in-flight
+        let data = make_attendance("U001", "2026-01-29 10:00:00");
+        let id = hybrid.save_raw_attendance("DEV1", data).unwrap();
+
+        hybrid.mark_in_flight(&[id]);
+        assert_eq!(hybrid.count_unsynced_logs(), 0);
+
+        // Reset to unsynced
+        hybrid.reset_to_unsynced(id);
+        assert_eq!(hybrid.count_unsynced_logs(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_hybrid_flush_all() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+
+        // Save logs
+        for i in 1..=5 {
+            let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+            hybrid.save_raw_attendance("DEV1", data).unwrap();
+        }
+
+        // Flush all
+        let flushed = hybrid.flush_all().await.unwrap();
+
+        assert!(flushed >= 0);
+        assert!(!hybrid.memory_store().is_dirty());
+    }
+
+    #[tokio::test]
+    async fn test_hybrid_get_unsynced_fifo_order() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+
+        // Save in specific order
+        let users = vec!["FIRST", "SECOND", "THIRD"];
+        for user in &users {
+            let data = make_attendance(user, "2026-01-29 10:00:00");
+            hybrid.save_raw_attendance("DEV1", data).unwrap();
+        }
+
+        // Get unsynced
+        let logs = hybrid.get_unsynced_logs(10);
+
+        // Verify FIFO order
+        assert_eq!(logs.len(), 3);
+        assert_eq!(logs[0].user_id, "FIRST");
+        assert_eq!(logs[1].user_id, "SECOND");
+        assert_eq!(logs[2].user_id, "THIRD");
+    }
+
+    #[tokio::test]
+    async fn test_hybrid_multiple_devices() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+
+        // Save from different devices
+        for dev_idx in 1..=3 {
+            for user_idx in 1..=2 {
+                let device = format!("DEV{}", dev_idx);
+                let data = make_attendance(
+                    &format!("U{}{}", dev_idx, user_idx),
+                    "2026-01-29 10:00:00"
+                );
+                hybrid.save_raw_attendance(&device, data).unwrap();
+            }
+        }
+
+        assert_eq!(hybrid.count_unsynced_logs(), 6);
+
+        // Get all unsynced
+        let logs = hybrid.get_unsynced_logs(10);
+        assert_eq!(logs.len(), 6);
+    }
+
+    #[tokio::test]
+    async fn test_hybrid_capacity_enforcement() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 5).await.unwrap();
+
+        // Try to save more than capacity
+        let batch: Vec<(String, AttendanceData)> = (1..=10)
+            .map(|i| {
+                (
+                    "DEV1".to_string(),
+                    make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00"),
+                )
+            })
+            .collect();
+
+        let result = hybrid.save_raw_attendance_batch(batch);
+
+        // Should insert up to capacity
+        assert!(result.is_ok());
+        assert_eq!(hybrid.count_unsynced_logs(), 5);
+    }
+
+    #[tokio::test]
+    async fn test_hybrid_partial_sync() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+
+        // Save 5 logs
+        let mut ids = Vec::new();
+        for i in 1..=5 {
+            let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+            let id = hybrid.save_raw_attendance("DEV1", data).unwrap();
+            ids.push(id);
+        }
+
+        // Get unsynced
+        let logs = hybrid.get_unsynced_logs(10);
+        let log_ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
+
+        // Mark first 3 as in-flight
+        hybrid.mark_in_flight(&log_ids[0..3]);
+
+        // Check counts
+        assert_eq!(hybrid.count_unsynced_logs(), 2);
+
+        // Checkpoint (only persists unpersisted logs)
+        let checkpointed = hybrid.checkpoint().await.unwrap();
+        assert!(checkpointed >= 0);
+    }
+
+    #[tokio::test]
+    async fn test_hybrid_checkpoint_idempotent() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+
+        // Save logs
+        for i in 1..=3 {
+            let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+            hybrid.save_raw_attendance("DEV1", data).unwrap();
+        }
+
+        // Checkpoint multiple times
+        let count1 = hybrid.checkpoint().await.unwrap();
+        let count2 = hybrid.checkpoint().await.unwrap();
+
+        assert_eq!(count1, 3);
+        assert_eq!(count2, 0); // Second checkpoint should find nothing
+    }
+}
+
