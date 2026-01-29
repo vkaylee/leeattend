@@ -148,6 +148,14 @@ impl TimeTrackingService {
                 StatusCode::INTERNAL_SERVER_ERROR
             })?;
 
+        // Recalculate summary
+        let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
+        if let Ok(Some(ws)) = workspace_repo.get_workspace_by_id(workspace_id).await {
+            let tz: Tz = ws.timezone.parse().unwrap_or(chrono_tz::UTC);
+            let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
+            let _ = crate::services::attendance_summary_service::AttendanceSummaryService::recalculate_daily_summary(pool, workspace_id, employee_id, local_date).await;
+        }
+
         Ok(entry)
     }
 
@@ -207,6 +215,14 @@ impl TimeTrackingService {
         time_entry_repository::update_time_entry(pool, &entry)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        // Recalculate summary
+        let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
+        if let Ok(Some(ws)) = workspace_repo.get_workspace_by_id(workspace_id).await {
+            let tz: Tz = ws.timezone.parse().unwrap_or(chrono_tz::UTC);
+            let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
+            let _ = crate::services::attendance_summary_service::AttendanceSummaryService::recalculate_daily_summary(pool, workspace_id, entry.employee_id, local_date).await;
+        }
 
         Ok(entry)
     }

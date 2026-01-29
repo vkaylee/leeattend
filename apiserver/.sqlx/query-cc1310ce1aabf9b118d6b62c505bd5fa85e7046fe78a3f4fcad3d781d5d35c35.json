@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE attendance_daily_summaries\n            SET \n                claimed_ot_minutes = $1,\n                ot_reason = $2,\n                ot_status = 'pending_manager',\n                updated_at = CURRENT_TIMESTAMP\n            WHERE employee_id = $3 AND date = $4\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cc1310ce1aabf9b118d6b62c505bd5fa85e7046fe78a3f4fcad3d781d5d35c35"
+}

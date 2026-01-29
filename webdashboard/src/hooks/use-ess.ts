@@ -242,3 +242,39 @@ export function useMyClock() {
     isPunching: punchInMutation.isPending || punchOutMutation.isPending,
   };
 }
+
+// --- OT Hooks ---
+
+import { fetchMyAttendanceSummaries, submitMyOtClaim } from "@/lib/api";
+
+export function useMyAttendanceSummaries(start: string, end: string) {
+  const query = useQuery({
+    queryKey: [...essKeys.all, "summaries", start, end],
+    queryFn: () => fetchMyAttendanceSummaries(start, end),
+  });
+
+  return {
+    summaries: query.data || [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+}
+
+export function useSubmitOtClaim() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (data: { date: string; minutes: number; reason: string }) =>
+      submitMyOtClaim(data.date, data.minutes, data.reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...essKeys.all, "summaries"] });
+    },
+  });
+
+  return {
+    submitClaim: mutation.mutateAsync,
+    isSubmitting: mutation.isPending,
+  };
+}

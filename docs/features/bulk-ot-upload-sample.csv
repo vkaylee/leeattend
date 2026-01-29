@@ -1,0 +1,5 @@
+employee_id,date,minutes,reason
+E001,2026-01-27,120,Production line overtime - paper form #123
+E002,2026-01-27,90,Urgent order completion - approved by supervisor
+E003,2026-01-27,60,Machine maintenance and troubleshooting
+E004,2026-01-28,150,Emergency customer delivery - paper form #124

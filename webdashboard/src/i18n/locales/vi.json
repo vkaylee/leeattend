@@ -260,6 +260,8 @@
       "no_results": "Không tìm thấy kết quả."
     },
     "cancel": "Hủy bỏ",
+    "submit": "Gửi",
+    "error_occurred": "Đã xảy ra lỗi",
     "processing": "Đang xử lý...",
     "shift": "Ca làm việc",
     "status": "Trạng thái",
@@ -607,6 +609,14 @@
       "status": "Trạng thái",
       "generation_info": "Thông tin xử lý (Truy xuất nguồn gốc)",
       "no_data": "Không tìm thấy dữ liệu chấm công cho tháng này."
+    },
+    "ot": {
+      "claim_title": "Xác nhận Tăng ca",
+      "claim_desc": "Gửi yêu cầu xác nhận giờ tăng ca",
+      "claimed_minutes": "Số phút xác nhận",
+      "reason_placeholder": "Lý do tăng ca?",
+      "error_zero_minutes": "Số phút phải lớn hơn 0",
+      "error_exceeds_system": "Không thể xác nhận nhiều hơn hệ thống ghi nhận"
     }
   },
   "time_tracking": {
@@ -1621,6 +1631,45 @@
       "confirm_clear": "Bạn có chắc chắn muốn xóa TOÀN BỘ dữ liệu [{{label}}] của Workspace này không? Thao tác này không thể hoàn tác.",
       "clear_success": "Đã xóa dữ liệu [{{label}}] thành công.",
       "clear_error": "Lỗi khi xóa dữ liệu:"
+    }
+  },
+  "approvals": {
+    "paper_ot": {
+      "title": "Nhập đơn OT giấy",
+      "description": "Nhập yêu cầu tăng ca từ đơn giấy đã ký",
+      "select_employee": "Tìm nhân viên...",
+      "minutes": "Số phút OT",
+      "reason_placeholder": "Đơn #1234 - Dây chuyền sản xuất",
+      "photo": "Ảnh đơn giấy (Tùy chọn)",
+      "photo_coming_soon": "Tính năng tải ảnh sắp ra mắt",
+      "error_no_employee": "Vui lòng chọn nhân viên",
+      "error_minutes": "Số phút phải lớn hơn 0",
+      "error_reason": "Lý do là bắt buộc",
+      "btn_enter": "Nhập đơn giấy"
+    },
+    "bulk_upload": {
+      "title": "Tải lên hàng loạt OT",
+      "description": "Tải file CSV để nhập nhiều yêu cầu OT cùng lúc",
+      "btn": "Tải lên hàng loạt",
+      "download_template": "Tải mẫu CSV",
+      "drag_drop": "Kéo thả file CSV vào đây",
+      "or_click": "hoặc nhấn để chọn",
+      "select_file": "Chọn file",
+      "upload": "Tải lên & Xử lý",
+      "error_csv_only": "Chỉ cho phép file CSV",
+      "confirm_close_with_errors": "Một số dòng thất bại. Bạn có chắc muốn đóng?",
+      "result_summary": "Tóm tắt kết quả",
+      "total": "Tổng số",
+      "success": "Thành công",
+      "failed": "Thất bại",
+      "error_details": "Chi tiết lỗi",
+      "download_errors": "Tải xuống lỗi",
+      "line": "Dòng",
+      "success_message": "{{count}} yêu cầu OT đã được nhập thành công"
+    },
+    "filter": {
+      "paper_forms": "Đơn giấy",
+      "self_service": "Tự phục vụ"
     }
   },
   "settings": {

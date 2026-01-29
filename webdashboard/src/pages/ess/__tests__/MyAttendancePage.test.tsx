@@ -6,6 +6,14 @@ import { useMyAttendance } from "@/hooks/use-ess";
 // Mock hooks
 vi.mock("@/hooks/use-ess", () => ({
   useMyAttendance: vi.fn(),
+  useMyAttendanceSummaries: vi.fn(() => ({
+    summaries: [],
+    isLoading: false,
+  })),
+  useSubmitOtClaim: vi.fn(() => ({
+    submitClaim: vi.fn(),
+    isSubmitting: false,
+  })),
 }));
 
 vi.mock("@/hooks/use-datetime", () => ({

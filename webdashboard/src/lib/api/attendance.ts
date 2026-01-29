@@ -262,3 +262,104 @@ export async function reprocessAttendance(
   if (!response.ok) throw new Error("Failed to reprocess attendance");
 }
 
+
+// --- OT Claim & Approval ---
+
+import { AttendanceDailySummary } from "./types";
+
+export async function claimOt(
+  wsId: string,
+  employeeId: string,
+  data: { date: string; claimed_minutes: number; reason?: string }
+): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/claim-ot/${employeeId}`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to claim OT");
+}
+
+export async function approveOt(
+  wsId: string,
+  employeeId: string,
+  data: { date: string; approved_minutes: number; manager_note?: string; status: "approved" | "rejected" }
+): Promise<void> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/approve-ot/${employeeId}`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to approve OT");
+}
+
+export async function fetchAttendanceSummaries(
+  wsId: string,
+  start: string,
+  end: string,
+  employeeId?: string
+): Promise<AttendanceDailySummary[]> {
+  const params = new URLSearchParams({
+    start_date: start,
+    end_date: end,
+  });
+  if (employeeId) params.append("employee_id", employeeId);
+
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/summaries?${params.toString()}`);
+  if (!response.ok) throw new Error("Failed to fetch attendance summaries");
+  return response.json();
+}
+
+export async function enterPaperOt(
+  wsId: string,
+  employeeId: string,
+  data: {
+    date: string;
+    claimed_minutes: number;
+    reason: string;
+    paper_form_photo_url?: string;
+  }
+): Promise<AttendanceDailySummary> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/attendance/enter-paper-ot/${employeeId}`,
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    }
+  );
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(err || "Failed to enter paper OT");
+  }
+  return response.json();
+}
+
+export async function bulkUploadPaperOt(
+  wsId: string,
+  file: File
+): Promise<{
+  total_rows: number;
+  success_count: number;
+  failed_count: number;
+  errors: Array<{
+    line_number: number;
+    employee_id: string;
+    error_message: string;
+  }>;
+}> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/attendance/bulk-upload-paper-ot`,
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(err || "Failed to upload CSV file");
+  }
+
+  return response.json();
+}

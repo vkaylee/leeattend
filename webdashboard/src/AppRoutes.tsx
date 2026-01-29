@@ -28,6 +28,7 @@ import AttendanceLogsPage from "./pages/AttendanceLogsPage";
 import MyProfilePage from "./pages/ess/MyProfilePage";
 import MyAttendancePage from "./pages/ess/MyAttendancePage";
 import MyClockPage from "./pages/ess/MyClockPage";
+import OtApprovalsPage from "./pages/approvals/OtApprovalsPage";
 import MainLayout from "./components/layout/MainLayout";
 
 export function AppRoutes() {
@@ -53,6 +54,7 @@ export function AppRoutes() {
             <Route path="leave-balances" element={<LeaveBalancesPage />} />
             <Route path="workspace/leave/balances" element={<LeaveBalancesPage />} />
             <Route path="attendance-adjustments" element={<AttendanceAdjustmentsPage />} />
+            <Route path="approvals/ot" element={<OtApprovalsPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="shifts" element={<ShiftsPage />} />
             <Route path="payroll" element={<PayrollPage />} />

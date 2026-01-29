@@ -43,7 +43,7 @@ async fn test_process_log_success_with_timezone() {
 
     // 3. Assertions
     assert!(result.is_ok());
-    assert_eq!(result.unwrap(), true);
+    assert!(result.unwrap());
 
     // Verify in DB
     let logs = raw_attendance_log_repository::get_paginated_raw_logs(
@@ -74,13 +74,13 @@ async fn test_process_log_duplicate_prevention() {
     let res1 = AttendanceLogService::process_log(
         &pool, workspace_id, "EMP_DUP", punch_time, LogSource::Device, None, None, "UTC", None, None
     ).await;
-    assert_eq!(res1.unwrap(), true);
+    assert!(res1.unwrap());
 
     // Second call: Duplicate (Should return Ok(false) due to ON CONFLICT DO NOTHING)
     let res2 = AttendanceLogService::process_log(
         &pool, workspace_id, "EMP_DUP", punch_time, LogSource::Device, None, None, "UTC", None, None
     ).await;
-    assert_eq!(res2.unwrap(), false);
+    assert!(!res2.unwrap());
 
     // Verify only one log exists
     let count = raw_attendance_log_repository::count_raw_logs(&pool, workspace_id, None, None, None).await.unwrap();

@@ -120,8 +120,8 @@ async fn test_assign_policy_override_and_future_cleanup() {
     
     assert_eq!(jan_assign.effective_from.month(), 1);
     assert_eq!(mar_assign.effective_from.month(), 3);
-    
-    assert!(assignments.iter().find(|a| a.effective_from.month() == 6).is_none(), "June assignment should be deleted");
+
+    assert!(!assignments.iter().any(|a| a.effective_from.month() == 6), "June assignment should be deleted");
 
     assert_eq!(jan_assign.effective_to, Some(NaiveDate::from_ymd_opt(2026, 2, 28).unwrap()));
     assert_eq!(mar_assign.effective_to, None);

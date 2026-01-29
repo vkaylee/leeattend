@@ -501,3 +501,12 @@ To eliminate redundant queue traffic and reduce database operations by up to 99.
 - **Impact**: Reduces queue channel traffic, database write overhead, and sync cycle time, especially beneficial in high-frequency polling scenarios (devices reporting every 2-5 seconds).
 - **Implementation**: `agent-main/src/main.rs:303-355` in device polling loop.
 - **Tests**: 4 new tests in `tests/duplicate_detection_test.rs` validating filter accuracy, memory bounds, and log output format.
+
+## Overtime Management
+
+Overtime is managed through a "3-Way Match" workflow:
+1.  **System Calculation:** `AttendanceCalculator` analyzes logs against policies to detect "System OT" and stores it in `attendance_daily_summaries`.
+2.  **Employee Claim:** Employees review System OT and submit a claim (up to the detected amount).
+3.  **Manager Approval:** Managers approve claims, which then become the "Payable OT" for payroll.
+
+This ensures compliance and auditability, avoiding automatic payments for unauthorized presence while simplifying the claim process for valid work.

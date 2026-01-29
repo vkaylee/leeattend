@@ -260,6 +260,8 @@
       "no_results": "未找到结果。"
     },
     "cancel": "取消",
+    "submit": "提交",
+    "error_occurred": "发生错误",
     "processing": "正在处理...",
     "shift": "班次",
     "status": "状态",
@@ -607,6 +609,14 @@
       "status": "状态",
       "generation_info": "处理信息（溯源）",
       "no_data": "本月未找到考勤数据。"
+    },
+    "ot": {
+      "claim_title": "申请加班",
+      "claim_desc": "提交您的加班申请以供审批",
+      "claimed_minutes": "申请分钟数",
+      "reason_placeholder": "您为什么加班？",
+      "error_zero_minutes": "分钟数必须大于0",
+      "error_exceeds_system": "不能申请超过系统检测到的加班时间"
     }
   },
   "time_tracking": {
@@ -1621,6 +1631,45 @@
       "confirm_clear": "您确定要清除此工作空间的所有 [{{label}}] 数据吗？此操作无法撤销。",
       "clear_success": "[{{label}}] 数据清除成功。",
       "clear_error": "清除数据时出错："
+    }
+  },
+  "approvals": {
+    "paper_ot": {
+      "title": "输入纸质加班表单",
+      "description": "输入来自已签署纸质表单的加班申请",
+      "select_employee": "搜索员工...",
+      "minutes": "加班分钟数",
+      "reason_placeholder": "纸质表单 #1234 - 生产线",
+      "photo": "纸质表单照片（可选）",
+      "photo_coming_soon": "照片上传即将推出",
+      "error_no_employee": "请选择一名员工",
+      "error_minutes": "分钟数必须大于 0",
+      "error_reason": "需要提供原因",
+      "btn_enter": "输入纸质表单"
+    },
+    "bulk_upload": {
+      "title": "批量上传加班",
+      "description": "上传 CSV 文件以一次性输入多个加班申请",
+      "btn": "批量上传",
+      "download_template": "下载 CSV 模板",
+      "drag_drop": "将 CSV 文件拖放到此处",
+      "or_click": "或点击浏览",
+      "select_file": "选择文件",
+      "upload": "上传并处理",
+      "error_csv_only": "仅允许 CSV 文件",
+      "confirm_close_with_errors": "某些行失败。您确定要关闭吗？",
+      "result_summary": "上传摘要",
+      "total": "总计",
+      "success": "成功",
+      "failed": "失败",
+      "error_details": "错误详情",
+      "download_errors": "下载错误",
+      "line": "行",
+      "success_message": "{{count}} 个加班申请已成功输入"
+    },
+    "filter": {
+      "paper_forms": "纸质表单",
+      "self_service": "自助服务"
     }
   },
   "settings": {

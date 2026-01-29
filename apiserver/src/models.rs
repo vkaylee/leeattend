@@ -1503,3 +1503,51 @@ pub struct LeavePolicyAssignmentDetail {
     pub leave_type_name: String,
 }
 
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display)]
+#[sqlx(type_name = "ot_status_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum OtStatus {
+    None,
+    PendingEmployee,
+    PendingManager,
+    Approved,
+    Rejected,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct AttendanceDailySummary {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub employee_id: Uuid,
+    pub date: NaiveDate,
+    pub actual_work_minutes: i32,
+    pub system_detected_ot_minutes: i32,
+    pub claimed_ot_minutes: i32,
+    pub approved_ot_minutes: i32,
+    pub ot_status: OtStatus,
+    pub ot_reason: Option<String>,
+    pub manager_note: Option<String>,
+    pub claim_entered_by_user_id: Option<Uuid>,
+    pub claim_entered_at: Option<DateTime<Utc>>,
+    pub paper_form_photo_url: Option<String>,
+    pub entered_via: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+// Bulk OT Upload Models
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct BulkOtEntryError {
+    pub line_number: usize,
+    pub employee_id: String,
+    pub error_message: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct BulkOtUploadResult {
+    pub total_rows: usize,
+    pub success_count: usize,
+    pub failed_count: usize,
+    pub errors: Vec<BulkOtEntryError>,
+}

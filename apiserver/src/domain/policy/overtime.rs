@@ -244,7 +244,7 @@ mod tests {
         use chrono_tz::UTC;
         use chrono::TimeZone;
         let start = UTC.with_ymd_and_hms(2026, 1, 26, 22, 0, 0).unwrap();
-        let end = UTC.with_ymd_and_hms(2026, 1, 27, 02, 0, 0).unwrap();
+        let end = UTC.with_ymd_and_hms(2026, 1, 27, 2, 0, 0).unwrap();
         
         let days = OvertimeEngine::split_interval_by_day(start, end, &UTC);
         

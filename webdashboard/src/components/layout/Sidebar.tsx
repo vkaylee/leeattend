@@ -10,6 +10,7 @@ import {
   UserCircle,
   Users,
   Clock,
+  CheckCircle,
   CalendarDays,
   UserRound,
   Banknote,
@@ -71,7 +72,8 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
       { to: "/leave-requests", icon: Plane, label: t("leave_requests.title"), testId: "sidebar-link-leave-requests" },
       { to: "/workspace/leave/balances", icon: Scale, label: t("common.leave_balances"), testId: "sidebar-link-leave-balances" },
       { to: "/attendance-adjustments", icon: ClipboardCheck, label: t("common.attendance_confirm"), testId: "sidebar-link-attendance-adjustments" },
-      { to: "/workspace/reports", icon: BarChart3, label: t("common.reports"), testId: "sidebar-link-reports" }
+      { to: "/workspace/reports", icon: BarChart3, label: t("common.reports"), testId: "sidebar-link-reports" },
+      { to: "/approvals/ot", icon: CheckCircle, label: "OT Approvals", testId: "sidebar-link-approvals-ot" }
     ]},
     { section: "payroll", sectionIcon: Wallet, label: t("common.sections.payroll_shifts"), testId: "sidebar-section-payroll", items: [
       { to: "/shifts", icon: CalendarRange, label: t("common.shifts"), testId: "sidebar-link-shifts" },

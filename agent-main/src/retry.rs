@@ -38,7 +38,7 @@ pub fn get_sidecar_retry_delay(retry_count: u32) -> Duration {
     let jitter_factor = rng.gen_range(0.75..=1.25);
     let jittered = (base_delay as f64 * jitter_factor) as u64;
 
-    Duration::from_secs(std::cmp::max(2, std::cmp::min(jittered, SIDECAR_MAX_RETRY_DELAY_SECS)))
+    Duration::from_secs(jittered.clamp(2, SIDECAR_MAX_RETRY_DELAY_SECS))
 }
 
 #[cfg(test)]

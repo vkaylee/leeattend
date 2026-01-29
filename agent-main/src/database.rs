@@ -85,7 +85,8 @@ impl Database {
         }
 
         // Parse and prepare all records first
-        let mut records: Vec<(String, String, NaiveDateTime, Option<i32>, Option<i32>)> = Vec::new();
+        type BatchRecord = (String, String, NaiveDateTime, Option<i32>, Option<i32>);
+        let mut records: Vec<BatchRecord> = Vec::new();
         for (device_id, data) in batch {
             let timestamp_res = NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%d %H:%M:%S")
                 .or_else(|_| NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%dT%H:%M:%SZ"));
@@ -313,7 +314,7 @@ impl Database {
             .bind(log.id)
             .bind(&log.device_id)
             .bind(&log.user_id)
-            .bind(&log.timestamp)
+            .bind(log.timestamp)
             .bind(log.status)
             .bind(log.punch)
             .bind(&failure_reason)

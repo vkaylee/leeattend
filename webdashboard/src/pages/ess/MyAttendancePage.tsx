@@ -4,18 +4,24 @@ import { useMyAttendance } from "@/hooks/use-ess";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { startOfMonth, endOfMonth, format, subMonths, addMonths } from "date-fns";
 import {
-  CalendarDays, 
-  Clock, 
-  MapPin, 
-  ChevronLeft, 
+  CalendarDays,
+  Clock,
+  MapPin,
+  ChevronLeft,
   ChevronRight,
   Info,
   Calendar,
   Activity,
-  History
-} from "lucide-react";import { cn } from "@/lib/utils";
+  History,
+  AlertCircle,
+  CheckCircle
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import * as Popover from "@radix-ui/react-popover";
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
+import { useMyAttendanceSummaries } from "@/hooks/use-ess";
+import { ClaimOtDialog } from "@/components/ess/ClaimOtDialog";
+import { AttendanceDailySummary } from "@/lib/api/types";
 
 export default function MyAttendancePage() {
 
@@ -27,13 +33,20 @@ export default function MyAttendancePage() {
 
 
 
+  const startDate = format(startOfMonth(currentMonth), "yyyy-MM-dd");
+  const endDate = format(endOfMonth(currentMonth), "yyyy-MM-dd");
+
   const { entries, isLoading } = useMyAttendance({
-
-    start_date: format(startOfMonth(currentMonth), "yyyy-MM-dd"),
-
-    end_date: format(endOfMonth(currentMonth), "yyyy-MM-dd"),
-
+    start_date: startDate,
+    end_date: endDate,
   });
+
+  const { summaries } = useMyAttendanceSummaries(startDate, endDate);
+  
+  const [selectedSummary, setSelectedSummary] = useState<AttendanceDailySummary | null>(null);
+  const [claimOpen, setClaimOpen] = useState(false);
+
+  const getSummary = (date: string) => summaries.find(s => s.date === date);
 
 
 
@@ -152,7 +165,7 @@ export default function MyAttendancePage() {
                   <th className="px-8 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] text-center">{t("common.out")}</th>
 
                   <th className="px-8 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] text-center">{t("ess.attendance.duration")}</th>
-
+                  <th className="px-8 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] text-center">OT Status</th>
                   <th className="px-10 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] text-right">{t("common.status")}</th>
 
                 </tr>
@@ -161,8 +174,11 @@ export default function MyAttendancePage() {
 
               <tbody className="divide-y divide-slate-50">
 
-                {entries.map((entry) => (
-
+                {entries.map((entry) => {
+                  const dateStr = format(new Date(entry.punch_in_time), "yyyy-MM-dd");
+                  const summary = getSummary(dateStr);
+                  
+                  return (
                   <tr key={entry.id} className="hover:bg-slate-50/50 transition-all group">
 
                     <td className="px-10 py-6">
@@ -221,6 +237,33 @@ export default function MyAttendancePage() {
 
                     </td>
 
+
+                    <td className="px-8 py-6 text-center">
+                        {summary && summary.system_detected_ot_minutes > 0 ? (
+                            <div className="flex flex-col items-center gap-1">
+                                <span className="text-xs font-bold text-amber-600">{summary.system_detected_ot_minutes}m OT</span>
+                                {summary.ot_status === "pending_employee" || (summary.ot_status === "none" && summary.system_detected_ot_minutes > 0) ? (
+                                    <button 
+                                        onClick={() => { setSelectedSummary(summary); setClaimOpen(true); }}
+                                        className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700 px-2 py-1 rounded-lg hover:bg-amber-200 transition-colors"
+                                    >
+                                        Claim
+                                    </button>
+                                ) : (
+                                    <span className={cn(
+                                        "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
+                                        summary.ot_status === "approved" ? "bg-emerald-100 text-emerald-700" :
+                                        summary.ot_status === "rejected" ? "bg-rose-100 text-rose-700" :
+                                        "bg-slate-100 text-slate-500"
+                                    )}>
+                                        {summary.ot_status === "pending_manager" ? "Pending" : summary.ot_status}
+                                    </span>
+                                )}
+                            </div>
+                        ) : (
+                            <span className="text-slate-300">-</span>
+                        )}
+                    </td>
                     <td className="px-10 py-6 text-right">
 
                       <div className="flex items-center justify-end gap-4">
@@ -275,7 +318,8 @@ export default function MyAttendancePage() {
 
                   </tr>
 
-                ))}
+                )
+                })}
 
               </tbody>
 
@@ -286,7 +330,8 @@ export default function MyAttendancePage() {
         )}
 
       </div>
-
+      
+      <ClaimOtDialog open={claimOpen} onOpenChange={setClaimOpen} summary={selectedSummary} />
     </div>
   );
 }

@@ -239,11 +239,10 @@ pub async fn handle_incoming_text(text: &str, db: &Database, reload_tx: &mpsc::S
                 }
                 // Deactivate devices not in this push (handles stale/renamed devices)
                 let active_ids: Vec<String> = data.devices.iter().map(|d| d.device_id.clone()).collect();
-                if let Ok(deactivated) = db.deactivate_devices_not_in(&active_ids).await {
-                    if deactivated > 0 {
+                if let Ok(deactivated) = db.deactivate_devices_not_in(&active_ids).await
+                    && deactivated > 0 {
                         info!("Deactivated {} stale devices", deactivated);
                     }
-                }
                 for d in data.devices {
                     let _ = db.upsert_device(&d.device_id, &d.name, &d.ip, d.port, &d.brand).await;
                 }
@@ -316,7 +315,7 @@ impl RetryManager {
         let jittered = (base_delay as f64 * jitter_factor) as u64;
 
         // Ensure minimum 1s and maximum 60s after jitter
-        let final_delay = std::cmp::max(1, std::cmp::min(jittered, MAX_RETRY_DELAY_SECS));
+        let final_delay = jittered.clamp(1, MAX_RETRY_DELAY_SECS);
         Duration::from_secs(final_delay)
     }
 
@@ -339,13 +338,12 @@ impl RetryManager {
 
     fn record_stable(&mut self) {
         if let Some(since) = self.stable_since {
-            if since.elapsed() >= Duration::from_secs(STABILITY_THRESHOLD_SECS) {
-                if self.retry_count > 0 {
+            if since.elapsed() >= Duration::from_secs(STABILITY_THRESHOLD_SECS)
+                && self.retry_count > 0 {
                     info!("Connection stable for {}s, resetting retry count", STABILITY_THRESHOLD_SECS);
                     self.retry_count = 0;
                 }
                 // Keep stable_since as-is to avoid repeated reset logs
-            }
         } else {
             // First stable call after connection - start the timer
             self.stable_since = Some(Instant::now());

@@ -48,7 +48,7 @@ async fn test_daily_isolation_and_human_error_tolerance() {
     // 07:18 (Normal In)
     // 07:18:30 (Double punch - same minute)
     // 17:40 (Late Out - 10h total)
-    let logs_30 = vec![
+    let logs_30 = [
         tz.from_local_datetime(&date_30.and_hms_opt(7, 18, 0).unwrap()).unwrap().with_timezone(&Utc),
         tz.from_local_datetime(&date_30.and_hms_opt(7, 18, 30).unwrap()).unwrap().with_timezone(&Utc),
         tz.from_local_datetime(&date_30.and_hms_opt(17, 40, 0).unwrap()).unwrap().with_timezone(&Utc),
@@ -56,7 +56,7 @@ async fn test_daily_isolation_and_human_error_tolerance() {
 
     // Day 31 logs:
     // 07:16 (Normal In)
-    let logs_31 = vec![
+    let logs_31 = [
         tz.from_local_datetime(&date_31.and_hms_opt(7, 16, 0).unwrap()).unwrap().with_timezone(&Utc),
     ];
 

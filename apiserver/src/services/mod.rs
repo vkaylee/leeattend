@@ -30,3 +30,5 @@ pub mod agent_log_buffer;
 pub mod attendance_log_service;
 
 pub use agent_log_buffer::{AgentLogBuffer, AgentLogEntry};
+
+pub mod attendance_summary_service;

@@ -210,6 +210,10 @@ impl PairingService {
                 next_day_utc,
             )
             .await?;
+            
+            let workspace_id = sqlx::query_scalar!("SELECT workspace_id FROM employees WHERE id = $1", employee_id).fetch_one(pool).await?;
+            let _ = crate::services::attendance_summary_service::AttendanceSummaryService::recalculate_daily_summary(pool, workspace_id, employee_id, date).await;
+            
             return Ok(());
         }
 
@@ -283,6 +287,11 @@ impl PairingService {
         }
 
         tx.commit().await?;
+        
+        // Recalculate daily summary for OT workflow
+        if let Err(e) = crate::services::attendance_summary_service::AttendanceSummaryService::recalculate_daily_summary(pool, workspace_id, employee_id, date).await {
+            tracing::error!("Failed to recalculate attendance summary for emp {} on {}: {}", employee_id, date, e);
+        }
         Ok(())
     }
 

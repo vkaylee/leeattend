@@ -793,3 +793,25 @@ export interface LeavePolicyAssignmentDetail {
   leave_type_name: string;
 }
 
+
+export type OtStatus = "none" | "pending_employee" | "pending_manager" | "approved" | "rejected";
+
+export interface AttendanceDailySummary {
+  id: string;
+  workspace_id: string;
+  employee_id: string;
+  date: string;
+  actual_work_minutes: number;
+  system_detected_ot_minutes: number;
+  claimed_ot_minutes: number;
+  approved_ot_minutes: number;
+  ot_status: OtStatus;
+  ot_reason?: string;
+  manager_note?: string;
+  claim_entered_by_user_id?: string;
+  claim_entered_at?: string;
+  paper_form_photo_url?: string;
+  entered_via?: "self_service" | "paper_form";
+  created_at: string;
+  updated_at: string;
+}

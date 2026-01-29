@@ -349,6 +349,26 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(handlers::get_raw_attendance_logs),
         )
         .route(
+            "/workspaces/:ws_id/attendance/claim-ot/:employee_id",
+            post(handlers::claim_ot),
+        )
+        .route(
+            "/workspaces/:ws_id/attendance/enter-paper-ot/:employee_id",
+            post(handlers::enter_paper_ot),
+        )
+        .route(
+            "/workspaces/:ws_id/attendance/bulk-upload-paper-ot",
+            post(handlers::bulk_upload_paper_ot),
+        )
+        .route(
+            "/workspaces/:ws_id/attendance/approve-ot/:employee_id",
+            post(handlers::approve_ot),
+        )
+        .route(
+            "/workspaces/:ws_id/attendance/summaries",
+            get(handlers::get_attendance_summaries),
+        )
+        .route(
             "/workspaces/:ws_id/attendance/reprocess/:employee_id",
             post(handlers::force_reprocess_attendance),
         )

@@ -1659,3 +1659,38 @@ Fetch current device time for synchronization checks.
 
 #### `device.sync_time`
 Synchronize device time with sidecar.
+
+## Attendance & Overtime
+
+### POST /workspaces/:id/attendance/claim-ot/:employee_id
+Claim overtime for a specific date.
+
+**Payload:**
+```json
+{
+  "date": "2024-01-01",
+  "claimed_minutes": 60,
+  "reason": "Production release support"
+}
+```
+
+### POST /workspaces/:id/attendance/approve-ot/:employee_id
+Approve or reject an overtime claim.
+
+**Payload:**
+```json
+{
+  "date": "2024-01-01",
+  "approved_minutes": 60,
+  "status": "approved", // or "rejected"
+  "manager_note": "Approved"
+}
+```
+
+### GET /workspaces/:id/attendance/summaries
+Fetch daily summaries including work hours and OT status.
+
+**Query Params:**
+- `start_date`: YYYY-MM-DD
+- `end_date`: YYYY-MM-DD
+- `employee_id`: UUID (Optional, admins only)

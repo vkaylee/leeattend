@@ -135,7 +135,7 @@
         "7days": "7 days (No days off)",
         "hours_per_day": "Std. Hours per Day",
         "note_title": "Note on Hourly Rate Calculation",
-        "note_desc": "Hourly rate for OT = (Total Base Salary & Fixed Allowances) / (Std. Work Days × Std. Hours per Day).",
+        "note_desc": "Hourly rate for OT = (Total Base Salary & Fixed Allowances) / (Std. Work Days \u00d7 Std. Hours per Day).",
         "policy_desc": "Manage standard working units and their changes over time.",
         "add_version": "Create New Policy Version",
         "date_warning": "Note: The effective date determines which payroll periods are affected. Changes automatically apply from this date onwards.",
@@ -260,6 +260,8 @@
       "no_results": "No results found."
     },
     "cancel": "Cancel",
+    "submit": "Submit",
+    "error_occurred": "An error occurred",
     "processing": "Processing...",
     "shift": "Shift",
     "status": "Status",
@@ -326,7 +328,7 @@
     "deleting": "Deleting...",
     "source": "Source",
     "languages": {
-      "vi": "Tiếng Việt",
+      "vi": "Ti\u1ebfng Vi\u1ec7t",
       "en": "English",
       "zh": "Chinese"
     },
@@ -518,7 +520,7 @@
     "slogan": "HR Management System 4.0",
     "login_error": "Incorrect email or password",
     "connection_error": "Server connection error",
-    "fast_login": "⚡ Fast Login",
+    "fast_login": "\u26a1 Fast Login",
     "or_use_account": "Or use account",
     "email": "Email",
     "password": "Password",
@@ -607,6 +609,14 @@
       "status": "Status",
       "generation_info": "Processing Info (Traceability)",
       "no_data": "No attendance data found for this month."
+    },
+    "ot": {
+      "claim_title": "Claim Overtime",
+      "claim_desc": "Submit your overtime claim for approval",
+      "claimed_minutes": "Minutes to Claim",
+      "reason_placeholder": "Why did you work overtime?",
+      "error_zero_minutes": "Minutes must be greater than 0",
+      "error_exceeds_system": "Cannot claim more than system detected OT"
     }
   },
   "time_tracking": {
@@ -778,7 +788,7 @@
       "current": "Current",
       "no_salary_history": "No salary history",
       "work_history": "Work History",
-      "view_details": "View details →",
+      "view_details": "View details \u2192",
       "joined": "Joined company",
       "returned": "Returned to work"
     },
@@ -1231,7 +1241,7 @@
       "7days": "7 days (No days off)",
       "hours_per_day": "Std. Hours per Day",
       "note_title": "Note on Hourly Rate",
-      "note_desc": "Hourly rate for OT = (Total Base Pay) / (Std. Work Days × Std. Hours/Day).",
+      "note_desc": "Hourly rate for OT = (Total Base Pay) / (Std. Work Days \u00d7 Std. Hours/Day).",
       "effective_date": "Effective Date",
       "std_days": "Std. Work Days",
       "no_history": "No config history",
@@ -1621,6 +1631,45 @@
       "confirm_clear": "Are you sure you want to clear ALL [{{label}}] data for this Workspace? This cannot be undone.",
       "clear_success": "Cleared [{{label}}] data successfully.",
       "clear_error": "Error clearing data:"
+    }
+  },
+  "approvals": {
+    "paper_ot": {
+      "title": "Enter Paper OT Form",
+      "description": "Enter overtime claim from signed paper form",
+      "select_employee": "Search employee...",
+      "minutes": "OT Minutes",
+      "reason_placeholder": "Paper form #1234 - Production line",
+      "photo": "Paper Form Photo (Optional)",
+      "photo_coming_soon": "Photo upload coming soon",
+      "error_no_employee": "Please select an employee",
+      "error_minutes": "Minutes must be greater than 0",
+      "error_reason": "Reason is required",
+      "btn_enter": "Enter Paper Form"
+    },
+    "bulk_upload": {
+      "title": "Bulk Upload OT",
+      "description": "Upload CSV file to enter multiple OT claims at once",
+      "btn": "Bulk Upload",
+      "download_template": "Download CSV Template",
+      "drag_drop": "Drag and drop CSV file here",
+      "or_click": "or click to browse",
+      "select_file": "Select File",
+      "upload": "Upload & Process",
+      "error_csv_only": "Only CSV files are allowed",
+      "confirm_close_with_errors": "Some rows failed. Are you sure you want to close?",
+      "result_summary": "Upload Summary",
+      "total": "Total",
+      "success": "Success",
+      "failed": "Failed",
+      "error_details": "Error Details",
+      "download_errors": "Download Errors",
+      "line": "Line",
+      "success_message": "{{count}} OT claims entered successfully"
+    },
+    "filter": {
+      "paper_forms": "Paper Forms",
+      "self_service": "Self-Service"
     }
   },
   "settings": {

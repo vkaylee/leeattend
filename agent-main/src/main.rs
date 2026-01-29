@@ -328,12 +328,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         match client.call("device.get_logs", json!({})) {
                             Ok(res) => {
                                 // Check stability and reset retry count if stable
-                                if let Some(since) = stable_since {
-                                    if since.elapsed() >= Duration::from_secs(SIDECAR_STABILITY_THRESHOLD_SECS) && retry_count > 0 {
+                                if let Some(since) = stable_since
+                                    && since.elapsed() >= Duration::from_secs(SIDECAR_STABILITY_THRESHOLD_SECS) && retry_count > 0 {
                                         info!("[{}] Connection stable for {}s, resetting retry count", worker.name, SIDECAR_STABILITY_THRESHOLD_SECS);
                                         retry_count = 0;
                                     }
-                                }
 
                                 if let Some(logs) = res.as_array().filter(|l| !l.is_empty()) {
                                     let fetched_count = logs.len();
@@ -589,7 +588,8 @@ async fn handle_dlq_command(db: &Database, args: &[String]) -> Result<(), Box<dy
         .fetch_one(db.get_pool())
         .await?;
 
-    let dlq_logs: Vec<(i64, String, String, String, Option<i32>, Option<i32>, String, String, i64)> = sqlx::query_as(
+    type DlqRecord = (i64, String, String, String, Option<i32>, Option<i32>, String, String, i64);
+    let dlq_logs: Vec<DlqRecord> = sqlx::query_as(
         "SELECT id, device_id, user_id, timestamp, status, punch, failed_at, failure_reason, retry_attempts
          FROM zkt_failed_logs
          ORDER BY failed_at DESC

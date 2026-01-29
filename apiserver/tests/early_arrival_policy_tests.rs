@@ -4,19 +4,22 @@ use apiserver::services::AttendanceCalculator;
 
 #[tokio::test]
 async fn test_early_arrival_strategies_logic() {
-    let shift_start = Some(Utc.from_local_datetime(
-        &NaiveDate::from_ymd_opt(2026, 1, 1).unwrap().and_time(NaiveTime::from_hms_opt(8, 0, 0).unwrap())
-    ).single().unwrap());
-    
-    let shift_end = Some(Utc.from_local_datetime(
-        &NaiveDate::from_ymd_opt(2026, 1, 1).unwrap().and_time(NaiveTime::from_hms_opt(17, 0, 0).unwrap())
-    ).single().unwrap());
+    let date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+    let shift_start_dt = Utc.from_local_datetime(
+        &date.and_time(NaiveTime::from_hms_opt(8, 0, 0).unwrap())
+    ).single().unwrap();
+    let shift_start = Some(shift_start_dt);
+
+    let shift_end_dt = Utc.from_local_datetime(
+        &date.and_time(NaiveTime::from_hms_opt(17, 0, 0).unwrap())
+    ).single().unwrap();
+    let shift_end = Some(shift_end_dt);
 
     let punch_in = Utc.from_local_datetime(
-        &NaiveDate::from_ymd_opt(2026, 1, 1).unwrap().and_time(NaiveTime::from_hms_opt(7, 0, 0).unwrap())
+        &date.and_time(NaiveTime::from_hms_opt(7, 0, 0).unwrap())
     ).single().unwrap();
-    
-    let punch_out = shift_end.clone().unwrap();
+
+    let punch_out = shift_end_dt;
 
     let mut rules = PolicyRules {
         grace_period_minutes: 20,
