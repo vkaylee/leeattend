@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 import { Menu, ChevronRight as BreadcrumbSeparator, Bell, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 
 interface NavbarProps {
   currentWorkspaceName: string;
@@ -56,6 +57,9 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
       </div>
       
       <div className="flex items-center gap-6 ml-auto">
+        {/* Language Switcher */}
+        <LanguageSwitcher />
+
         <button className="p-3 text-slate-500 hover:text-primary-600 hover:bg-white rounded-[1.25rem] transition-all relative group border border-transparent hover:border-slate-100 hover:shadow-xl hover:shadow-primary-900/5">
           <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white shadow-sm group-hover:scale-125 transition-transform animate-pulse"></div>
           <Bell size={20} strokeWidth={2.5} />
