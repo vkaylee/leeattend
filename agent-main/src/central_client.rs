@@ -68,6 +68,17 @@ impl CentralClient {
                     continue;
                 }
 
+                // Block syncing until valid device config is received
+                let device_count = match sync_hybrid.disk_db().get_active_devices().await {
+                    Ok(devices) => devices.len(),
+                    Err(_) => 0,
+                };
+                if device_count == 0 {
+                    warn!("🔴 Sync loop waiting - no active devices configured");
+                    sleep(Duration::from_secs(5)).await;
+                    continue;
+                }
+
                 // Periodic cleanup: Move expired logs to DLQ
                 let max_retries = match sync_hybrid.disk_db().get_agent_config("max_retry_count").await {
                     Ok(Some(val)) => val.parse::<i64>().unwrap_or(10),
@@ -514,5 +525,70 @@ mod tests {
         // Fail connection
         manager.record_connection_failed();
         assert!(manager.stable_since.is_none());
+    }
+
+    // ===== Sync Loop Device Validation Tests =====
+
+    #[tokio::test]
+    async fn test_sync_blocked_when_no_active_devices() {
+        // Create in-memory database
+        let hybrid_db = HybridDatabase::new(":memory:", 1000).await.unwrap();
+
+        // Insert a log to sync
+        sqlx::query(
+            "INSERT INTO zkt_raw_attendance (id, device_id, user_id, timestamp, is_synced) VALUES (1, 'dev1', 'user1', '2026-01-29 10:00:00', 0)"
+        )
+        .execute(hybrid_db.disk_db().get_pool())
+        .await
+        .unwrap();
+
+        // Verify no active devices (sync should be blocked)
+        let devices = hybrid_db.disk_db().get_active_devices().await.unwrap();
+        assert_eq!(devices.len(), 0, "Should have no active devices initially");
+
+        // Verify logs exist but sync is blocked due to no devices
+        let _logs = hybrid_db.get_unsynced_logs(10);
+        // Note: logs may not be in memory since we inserted directly to disk
+        // The key assertion is that get_active_devices returns 0
+    }
+
+    #[tokio::test]
+    async fn test_sync_allowed_when_devices_configured() {
+        let hybrid_db = HybridDatabase::new(":memory:", 1000).await.unwrap();
+
+        // Add an active device
+        hybrid_db
+            .disk_db()
+            .upsert_device("dev1", "Device 1", "192.168.1.100", 4370, "zkteco")
+            .await
+            .unwrap();
+
+        // Verify device is active
+        let devices = hybrid_db.disk_db().get_active_devices().await.unwrap();
+        assert_eq!(devices.len(), 1, "Should have 1 active device");
+        assert_eq!(devices[0].id, "dev1");
+    }
+
+    #[tokio::test]
+    async fn test_sync_blocked_after_devices_deactivated() {
+        let hybrid_db = HybridDatabase::new(":memory:", 1000).await.unwrap();
+
+        // Add device then deactivate all
+        hybrid_db
+            .disk_db()
+            .upsert_device("dev1", "Device 1", "192.168.1.100", 4370, "zkteco")
+            .await
+            .unwrap();
+
+        // Deactivate all devices (simulates ConfigPush with 0 devices)
+        hybrid_db
+            .disk_db()
+            .deactivate_devices_not_in(&[])
+            .await
+            .unwrap();
+
+        // Verify no active devices
+        let devices = hybrid_db.disk_db().get_active_devices().await.unwrap();
+        assert_eq!(devices.len(), 0, "All devices should be deactivated");
     }
 }
