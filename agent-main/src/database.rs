@@ -1,5 +1,5 @@
 use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite, Error};
-use crate::models::{RawAttendanceLog, DeviceConfig, AttendanceData};
+use crate::models::{RawAttendanceLog, SignatureRow, DeviceConfig, AttendanceData};
 use crate::memory_store::InMemoryStore;
 use chrono::NaiveDateTime;
 use serde_json;
@@ -205,6 +205,22 @@ impl Database {
         .await?;
 
         Ok(logs)
+    }
+
+    /// Load all signatures for dedup index (startup only - Phase 3)
+    /// Returns minimal data: device_id, user_id, timestamp for all logs
+    pub async fn get_all_signatures(&self) -> Result<Vec<SignatureRow>, Error> {
+        let rows = sqlx::query_as::<_, SignatureRow>(
+            r#"
+            SELECT device_id, user_id, timestamp
+            FROM zkt_raw_attendance
+            ORDER BY id ASC
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows)
     }
 
     /// Count total unsynced logs for sync coordination

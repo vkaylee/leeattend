@@ -22,11 +22,17 @@ impl HybridDatabase {
         let max_id = disk.get_max_id().await?;
         memory.seed_id(max_id + 1);
 
-        // Load pending logs into memory
+        // Phase A: Load signatures (ALL logs including synced)
+        let signatures = disk.get_all_signatures().await?;
+        let sig_count = signatures.len();
+        memory.load_signatures(signatures);
+        info!("HybridDatabase: Loaded {} signatures for dedup index", sig_count);
+
+        // Phase B: Load unsynced/in-flight logs into queue
         let pending = disk.get_all_logs().await?;
-        let count = pending.len();
+        let pending_count = pending.len();
         memory.load_from_disk(pending);
-        info!("HybridDatabase: Loaded {} pending logs into memory", count);
+        info!("HybridDatabase: Loaded {} pending logs into memory", pending_count);
 
         Ok(Self { disk, memory })
     }
@@ -384,6 +390,72 @@ mod tests {
 
         assert_eq!(count1, 3);
         assert_eq!(count2, 0); // Second checkpoint should find nothing
+    }
+
+    // ===== Phase 4: Integration Tests =====
+
+    #[tokio::test]
+    async fn test_full_dedup_lifecycle() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+
+        let data = make_attendance("U001", "2026-01-29 10:00:00");
+
+        // 1. Insert
+        let id = hybrid.save_raw_attendance("DEV1", data.clone()).unwrap();
+        assert!(id > 0);
+
+        // 2. Sync
+        hybrid.mark_in_flight(&[id]);
+        hybrid.mark_synced(&[id]);
+
+        // 3. Checkpoint
+        hybrid.checkpoint().await.unwrap();
+
+        // 4. Try duplicate - should fail
+        let result = hybrid.save_raw_attendance("DEV1", data);
+        assert!(matches!(result, Err(StoreError::Duplicate)));
+    }
+
+    #[tokio::test]
+    async fn test_signatures_survive_restart_simulation() {
+        // Create temporary database file
+        let temp_db = tempfile::NamedTempFile::new().unwrap();
+        let db_url = format!("sqlite:{}", temp_db.path().display());
+
+        // Phase 1: Create and checkpoint logs
+        {
+            let hybrid = HybridDatabase::new(&db_url, 1000).await.unwrap();
+
+            for i in 1..=10 {
+                let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+                hybrid.save_raw_attendance("DEV1", data).unwrap();
+            }
+
+            // Checkpoint to disk
+            hybrid.checkpoint().await.unwrap();
+
+            // Mark some as synced
+            let logs = hybrid.get_unsynced_logs(5);
+            let ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
+            hybrid.mark_in_flight(&ids);
+            hybrid.mark_synced(&ids);
+
+            // Final flush
+            hybrid.flush_all().await.unwrap();
+        }
+
+        // Phase 2: Simulate restart
+        {
+            let hybrid = HybridDatabase::new(&db_url, 1000).await.unwrap();
+
+            // All 10 signatures should be loaded
+            assert_eq!(hybrid.memory_store().count_signatures(), 10);
+
+            // Try to insert duplicate of synced log
+            let data = make_attendance("U001", "2026-01-29 10:00:00");
+            let result = hybrid.save_raw_attendance("DEV1", data);
+            assert!(matches!(result, Err(StoreError::Duplicate)));
+        }
     }
 }
 

@@ -17,6 +17,14 @@ pub struct RawAttendanceLog {
     pub retry_count: i64,
 }
 
+/// Minimal struct for signature loading (Phase 3)
+#[derive(Debug, sqlx::FromRow)]
+pub struct SignatureRow {
+    pub device_id: String,
+    pub user_id: String,
+    pub timestamp: chrono::NaiveDateTime,
+}
+
 #[derive(Debug, sqlx::FromRow)]
 #[allow(dead_code)]
 pub struct FailedLog {

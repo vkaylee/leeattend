@@ -1,11 +1,13 @@
-use dashmap::DashMap;
+use dashmap::{DashMap, DashSet};
 use parking_lot::RwLock;
 use std::collections::{BTreeSet, HashMap};
 use std::sync::atomic::{AtomicI64, AtomicUsize, AtomicBool, Ordering};
 use std::time::Instant;
 use chrono::NaiveDateTime;
-use crate::models::{RawAttendanceLog, AttendanceData};
+use crate::models::{RawAttendanceLog, AttendanceData, SignatureRow};
 use std::sync::Arc;
+use std::hash::{Hash, Hasher};
+use rustc_hash::FxHasher;
 
 /// In-memory log with sync status and persistence tracking
 #[derive(Clone, Debug)]
@@ -26,6 +28,7 @@ pub struct MemoryLog {
 /// In-memory store for attendance logs with FIFO ordering
 pub struct InMemoryStore {
     logs: DashMap<i64, MemoryLog>,
+    signatures: DashSet<u64>,  // Hash signatures for deduplication
     unsynced_index: Arc<RwLock<BTreeSet<i64>>>,
     inflight_index: Arc<RwLock<HashMap<i64, Instant>>>,
     next_id: AtomicI64,
@@ -40,6 +43,7 @@ pub enum StoreError {
     CapacityExceeded,
     InvalidTimestamp,
     NotFound,
+    Duplicate,
 }
 
 impl std::fmt::Display for StoreError {
@@ -48,6 +52,7 @@ impl std::fmt::Display for StoreError {
             StoreError::CapacityExceeded => write!(f, "Store capacity exceeded"),
             StoreError::InvalidTimestamp => write!(f, "Invalid timestamp format"),
             StoreError::NotFound => write!(f, "Log not found"),
+            StoreError::Duplicate => write!(f, "Duplicate log rejected"),
         }
     }
 }
@@ -59,6 +64,7 @@ impl InMemoryStore {
     pub fn new(max_capacity: usize) -> Self {
         Self {
             logs: DashMap::with_capacity(max_capacity / 2),
+            signatures: DashSet::with_capacity(max_capacity),
             unsynced_index: Arc::new(RwLock::new(BTreeSet::new())),
             inflight_index: Arc::new(RwLock::new(HashMap::new())),
             next_id: AtomicI64::new(1),
@@ -66,6 +72,28 @@ impl InMemoryStore {
             count: AtomicUsize::new(0),
             max_capacity,
         }
+    }
+
+    /// Compute 64-bit signature for deduplication.
+    /// Signature = hash(device_id, user_id, timestamp_unix)
+    fn compute_signature(device_id: &str, user_id: &str, timestamp: NaiveDateTime) -> u64 {
+        let mut hasher = FxHasher::default();
+        device_id.hash(&mut hasher);
+        user_id.hash(&mut hasher);
+        // Use Unix timestamp for deterministic hashing
+        timestamp.and_utc().timestamp().hash(&mut hasher);
+        hasher.finish()
+    }
+
+    /// Check if a signature already exists (public for testing)
+    pub fn has_signature(&self, device_id: &str, user_id: &str, timestamp: NaiveDateTime) -> bool {
+        let sig = Self::compute_signature(device_id, user_id, timestamp);
+        self.signatures.contains(&sig)
+    }
+
+    /// Get signature count (for monitoring)
+    pub fn count_signatures(&self) -> usize {
+        self.signatures.len()
     }
 
     /// Seed the next ID counter (used during initialization)
@@ -76,6 +104,15 @@ impl InMemoryStore {
         self.next_id.store(safe_start, Ordering::SeqCst);
     }
 
+    /// Load signatures only (Phase A of startup - Phase 3)
+    /// Does NOT create MemoryLog entries - just populates signature index
+    pub fn load_signatures(&self, rows: Vec<SignatureRow>) {
+        for row in rows {
+            let sig = Self::compute_signature(&row.device_id, &row.user_id, row.timestamp);
+            self.signatures.insert(sig);
+        }
+    }
+
     /// Load existing logs from disk into memory (startup recovery)
     pub fn load_from_disk(&self, logs: Vec<RawAttendanceLog>) {
         let mut max_id = 0i64;
@@ -84,6 +121,11 @@ impl InMemoryStore {
 
         for log in logs {
             max_id = max_id.max(log.id);
+
+            // Add signature for ALL loaded logs (including synced ones)
+            let signature = Self::compute_signature(&log.device_id, &log.user_id, log.timestamp);
+            self.signatures.insert(signature);
+
             let memory_log = MemoryLog {
                 id: log.id,
                 device_id: log.device_id,
@@ -114,18 +156,27 @@ impl InMemoryStore {
 
     /// Insert a new attendance log. Returns assigned ID.
     pub fn insert(&self, device_id: String, data: AttendanceData) -> Result<i64, StoreError> {
+        // Parse timestamp first (needed for signature)
+        let timestamp = NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%d %H:%M:%S")
+            .or_else(|_| NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%dT%H:%M:%SZ"))
+            .map_err(|_| StoreError::InvalidTimestamp)?;
+
+        // Compute signature and check for duplicate
+        let signature = Self::compute_signature(&device_id, &data.user_id, timestamp);
+        if self.signatures.contains(&signature) {
+            return Err(StoreError::Duplicate);
+        }
+
         // Check capacity (backpressure)
         if self.count.load(Ordering::Relaxed) >= self.max_capacity {
             return Err(StoreError::CapacityExceeded);
         }
 
+        // Add signature FIRST (before log)
+        self.signatures.insert(signature);
+
         let id = self.next_id.fetch_add(1, Ordering::SeqCst);
         let now = chrono::Utc::now().naive_utc();
-
-        // Parse timestamp with fallback formats
-        let timestamp = NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%d %H:%M:%S")
-            .or_else(|_| NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%dT%H:%M:%SZ"))
-            .map_err(|_| StoreError::InvalidTimestamp)?;
 
         let log = MemoryLog {
             id,
@@ -151,41 +202,60 @@ impl InMemoryStore {
 
     /// Batch insert with automatic capacity check
     pub fn insert_batch(&self, batch: Vec<(String, AttendanceData)>) -> Result<usize, StoreError> {
-        let available = self.max_capacity.saturating_sub(self.count.load(Ordering::Relaxed));
-        let to_insert = batch.len().min(available);
+        if batch.is_empty() {
+            return Err(StoreError::CapacityExceeded); // Maintain original behavior for empty batch
+        }
 
-        if to_insert == 0 {
+        let available = self.max_capacity.saturating_sub(self.count.load(Ordering::Relaxed));
+        if available == 0 {
             return Err(StoreError::CapacityExceeded);
         }
 
         let mut inserted = 0;
         let mut unsynced = self.unsynced_index.write();
 
-        for (device_id, data) in batch.into_iter().take(to_insert) {
+        for (device_id, data) in batch.into_iter() {
+            if inserted >= available {
+                break; // Capacity limit reached
+            }
+
+            // Parse timestamp
+            let timestamp = match NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%d %H:%M:%S")
+                .or_else(|_| NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%dT%H:%M:%SZ"))
+            {
+                Ok(ts) => ts,
+                Err(_) => continue, // Skip invalid timestamp
+            };
+
+            // Check for duplicate
+            let signature = Self::compute_signature(&device_id, &data.user_id, timestamp);
+            if self.signatures.contains(&signature) {
+                continue; // Skip duplicate
+            }
+
+            // Add signature FIRST
+            self.signatures.insert(signature);
+
             let id = self.next_id.fetch_add(1, Ordering::SeqCst);
             let now = chrono::Utc::now().naive_utc();
 
-            if let Ok(timestamp) = NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%d %H:%M:%S")
-                .or_else(|_| NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%dT%H:%M:%SZ"))
-            {
-                let log = MemoryLog {
-                    id,
-                    device_id,
-                    user_id: data.user_id,
-                    timestamp,
-                    status: data.status,
-                    punch: data.punch,
-                    is_synced: 0,
-                    created_at: now,
-                    updated_at: None,
-                    retry_count: 0,
-                    persisted: false,
-                };
+            let log = MemoryLog {
+                id,
+                device_id,
+                user_id: data.user_id,
+                timestamp,
+                status: data.status,
+                punch: data.punch,
+                is_synced: 0,
+                created_at: now,
+                updated_at: None,
+                retry_count: 0,
+                persisted: false,
+            };
 
-                self.logs.insert(id, log);
-                unsynced.insert(id);
-                inserted += 1;
-            }
+            self.logs.insert(id, log);
+            unsynced.insert(id);
+            inserted += 1;
         }
 
         self.count.fetch_add(inserted, Ordering::SeqCst);
@@ -353,6 +423,7 @@ impl InMemoryStore {
     }
 
     /// Remove synced logs older than threshold (memory cleanup)
+    /// IMPORTANT: Signatures are NOT removed - they provide ongoing dedup protection
     pub fn cleanup_synced(&self, max_age_secs: u64) -> usize {
         let threshold = chrono::Utc::now().naive_utc() - chrono::Duration::seconds(max_age_secs as i64);
         let mut to_remove = Vec::new();
@@ -366,6 +437,7 @@ impl InMemoryStore {
         let count = to_remove.len();
         for id in to_remove {
             self.logs.remove(&id);
+            // NOTE: DO NOT remove signature - keep for dedup protection
         }
         self.count.fetch_sub(count, Ordering::SeqCst);
 
@@ -1022,5 +1094,251 @@ mod tests {
         let logs = store.get_unsynced(10);
         assert_eq!(logs.len(), 1);
         assert_eq!(logs[0].user_id, "NEW");
+    }
+
+    // ===== Phase 1: Signature Tests =====
+
+    #[test]
+    fn test_compute_signature_deterministic() {
+        let ts = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+
+        // Multiple calls with same input
+        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts);
+        let sig2 = InMemoryStore::compute_signature("DEV1", "USER001", ts);
+        let sig3 = InMemoryStore::compute_signature("DEV1", "USER001", ts);
+
+        assert_eq!(sig1, sig2);
+        assert_eq!(sig2, sig3);
+    }
+
+    #[test]
+    fn test_compute_signature_different_devices() {
+        let ts = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+
+        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts);
+        let sig2 = InMemoryStore::compute_signature("DEV2", "USER001", ts);
+
+        assert_ne!(sig1, sig2, "Different device should produce different signature");
+    }
+
+    #[test]
+    fn test_compute_signature_different_users() {
+        let ts = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+
+        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts);
+        let sig2 = InMemoryStore::compute_signature("DEV1", "USER002", ts);
+
+        assert_ne!(sig1, sig2, "Different user should produce different signature");
+    }
+
+    #[test]
+    fn test_compute_signature_different_timestamps() {
+        let ts1 = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let ts2 = NaiveDateTime::parse_from_str("2026-01-29 10:00:01", "%Y-%m-%d %H:%M:%S").unwrap();
+
+        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts1);
+        let sig2 = InMemoryStore::compute_signature("DEV1", "USER001", ts2);
+
+        assert_ne!(sig1, sig2, "Different timestamp should produce different signature");
+    }
+
+    #[test]
+    fn test_signature_count() {
+        let store = InMemoryStore::new(1000);
+        assert_eq!(store.count_signatures(), 0);
+    }
+
+    // ===== Phase 2: Deduplication Tests =====
+
+    #[test]
+    fn test_insert_rejects_exact_duplicate() {
+        let store = InMemoryStore::new(1000);
+
+        let data = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-29 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+
+        // First insert succeeds
+        let result1 = store.insert("DEV1".to_string(), data.clone());
+        assert!(result1.is_ok());
+
+        // Second insert fails
+        let result2 = store.insert("DEV1".to_string(), data);
+        assert!(matches!(result2, Err(StoreError::Duplicate)));
+
+        // Only 1 log in store
+        assert_eq!(store.count_total(), 1);
+        assert_eq!(store.count_signatures(), 1);
+    }
+
+    #[test]
+    fn test_insert_allows_different_timestamp() {
+        let store = InMemoryStore::new(1000);
+
+        let data1 = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-29 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        let data2 = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-29 10:00:01".to_string(), // 1 second later
+            status: Some(1),
+            punch: Some(0),
+        };
+
+        // Both should succeed
+        assert!(store.insert("DEV1".to_string(), data1).is_ok());
+        assert!(store.insert("DEV1".to_string(), data2).is_ok());
+
+        assert_eq!(store.count_total(), 2);
+        assert_eq!(store.count_signatures(), 2);
+    }
+
+    #[test]
+    fn test_cleanup_synced_preserves_signatures() {
+        let store = InMemoryStore::new(1000);
+
+        let data = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-29 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+
+        // Insert and sync
+        let id = store.insert("DEV1".to_string(), data.clone()).unwrap();
+        store.mark_in_flight(&[id]);
+        store.mark_synced(&[id]);
+
+        // Set old created_at
+        if let Some(mut log) = store.logs.get_mut(&id) {
+            log.created_at = chrono::Utc::now().naive_utc() - chrono::Duration::hours(2);
+        }
+
+        // Cleanup (1 hour threshold)
+        let cleaned = store.cleanup_synced(3600);
+        assert_eq!(cleaned, 1);
+
+        // Log removed, but signature remains
+        assert_eq!(store.count_total(), 0);
+        assert_eq!(store.count_signatures(), 1);
+
+        // Duplicate still rejected
+        let result = store.insert("DEV1".to_string(), data);
+        assert!(matches!(result, Err(StoreError::Duplicate)));
+    }
+
+    #[test]
+    fn test_batch_insert_handles_duplicates() {
+        let store = InMemoryStore::new(1000);
+
+        let batch = vec![
+            ("DEV1".to_string(), AttendanceData {
+                user_id: "U001".to_string(),
+                timestamp: "2026-01-29 10:00:00".to_string(),
+                status: Some(1),
+                punch: Some(0),
+            }),
+            ("DEV1".to_string(), AttendanceData {
+                user_id: "U001".to_string(),
+                timestamp: "2026-01-29 10:00:00".to_string(), // Duplicate of first
+                status: Some(1),
+                punch: Some(0),
+            }),
+            ("DEV1".to_string(), AttendanceData {
+                user_id: "U002".to_string(),
+                timestamp: "2026-01-29 10:00:00".to_string(), // Different user
+                status: Some(1),
+                punch: Some(0),
+            }),
+        ];
+
+        let inserted = store.insert_batch(batch).unwrap();
+
+        assert_eq!(inserted, 2, "Should insert 2, skip 1 duplicate");
+        assert_eq!(store.count_total(), 2);
+        assert_eq!(store.count_signatures(), 2);
+    }
+
+    #[test]
+    fn test_load_from_disk_populates_signatures() {
+        let store = InMemoryStore::new(1000);
+        let ts = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+
+        let logs = vec![
+            RawAttendanceLog {
+                id: 1,
+                device_id: "D1".to_string(),
+                user_id: "U1".to_string(),
+                timestamp: ts,
+                status: Some(1),
+                punch: Some(1),
+                is_synced: 0,
+                created_at: Some(chrono::Utc::now().naive_utc()),
+                updated_at: None,
+                retry_count: 0,
+            },
+        ];
+
+        store.load_from_disk(logs);
+
+        // Signature should be populated
+        assert_eq!(store.count_signatures(), 1);
+
+        // Insert same log should be rejected
+        let data = AttendanceData {
+            user_id: "U1".to_string(),
+            timestamp: "2026-01-29 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(1),
+        };
+        let result = store.insert("D1".to_string(), data);
+        assert!(matches!(result, Err(StoreError::Duplicate)));
+    }
+
+    #[test]
+    fn test_concurrent_inserts_no_duplicates() {
+        use std::sync::Arc;
+        use std::thread;
+
+        let store = Arc::new(InMemoryStore::new(10000));
+        let mut handles = vec![];
+
+        // 10 threads trying to insert same log
+        for _ in 0..10 {
+            let store_clone = store.clone();
+            let handle = thread::spawn(move || {
+                let data = AttendanceData {
+                    user_id: "CONCURRENT_USER".to_string(),
+                    timestamp: "2026-01-29 12:00:00".to_string(),
+                    status: Some(1),
+                    punch: Some(0),
+                };
+                store_clone.insert("CONCURRENT_DEV".to_string(), data)
+            });
+            handles.push(handle);
+        }
+
+        let mut success_count = 0;
+        let mut duplicate_count = 0;
+
+        for handle in handles {
+            match handle.join().unwrap() {
+                Ok(_) => success_count += 1,
+                Err(StoreError::Duplicate) => duplicate_count += 1,
+                Err(e) => panic!("Unexpected error: {:?}", e),
+            }
+        }
+
+        // Exactly 1 should succeed, 9 should be duplicates
+        assert_eq!(success_count, 1, "Exactly 1 insert should succeed");
+        assert_eq!(duplicate_count, 9, "9 should be duplicates");
+        assert_eq!(store.count_total(), 1);
+        assert_eq!(store.count_signatures(), 1);
     }
 }
