@@ -208,11 +208,11 @@ impl Database {
     }
 
     /// Load all signatures for dedup index (startup only - Phase 3)
-    /// Returns minimal data: device_id, user_id, timestamp for all logs
+    /// Returns minimal data: device_id, user_id, timestamp, punch, status for all logs
     pub async fn get_all_signatures(&self) -> Result<Vec<SignatureRow>, Error> {
         let rows = sqlx::query_as::<_, SignatureRow>(
             r#"
-            SELECT device_id, user_id, timestamp
+            SELECT device_id, user_id, timestamp, punch, status
             FROM zkt_raw_attendance
             ORDER BY id ASC
             "#,

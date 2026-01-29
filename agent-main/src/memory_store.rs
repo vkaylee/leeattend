@@ -75,19 +75,21 @@ impl InMemoryStore {
     }
 
     /// Compute 64-bit signature for deduplication.
-    /// Signature = hash(device_id, user_id, timestamp_unix)
-    fn compute_signature(device_id: &str, user_id: &str, timestamp: NaiveDateTime) -> u64 {
+    /// Signature = hash(device_id, user_id, timestamp_unix, punch, status)
+    fn compute_signature(device_id: &str, user_id: &str, timestamp: NaiveDateTime, punch: Option<i32>, status: Option<i32>) -> u64 {
         let mut hasher = FxHasher::default();
         device_id.hash(&mut hasher);
         user_id.hash(&mut hasher);
         // Use Unix timestamp for deterministic hashing
         timestamp.and_utc().timestamp().hash(&mut hasher);
+        punch.hash(&mut hasher);
+        status.hash(&mut hasher);
         hasher.finish()
     }
 
     /// Check if a signature already exists (public for testing)
-    pub fn has_signature(&self, device_id: &str, user_id: &str, timestamp: NaiveDateTime) -> bool {
-        let sig = Self::compute_signature(device_id, user_id, timestamp);
+    pub fn has_signature(&self, device_id: &str, user_id: &str, timestamp: NaiveDateTime, punch: Option<i32>, status: Option<i32>) -> bool {
+        let sig = Self::compute_signature(device_id, user_id, timestamp, punch, status);
         self.signatures.contains(&sig)
     }
 
@@ -108,7 +110,7 @@ impl InMemoryStore {
     /// Does NOT create MemoryLog entries - just populates signature index
     pub fn load_signatures(&self, rows: Vec<SignatureRow>) {
         for row in rows {
-            let sig = Self::compute_signature(&row.device_id, &row.user_id, row.timestamp);
+            let sig = Self::compute_signature(&row.device_id, &row.user_id, row.timestamp, row.punch, row.status);
             self.signatures.insert(sig);
         }
     }
@@ -123,7 +125,7 @@ impl InMemoryStore {
             max_id = max_id.max(log.id);
 
             // Add signature for ALL loaded logs (including synced ones)
-            let signature = Self::compute_signature(&log.device_id, &log.user_id, log.timestamp);
+            let signature = Self::compute_signature(&log.device_id, &log.user_id, log.timestamp, log.punch, log.status);
             self.signatures.insert(signature);
 
             let memory_log = MemoryLog {
@@ -162,7 +164,7 @@ impl InMemoryStore {
             .map_err(|_| StoreError::InvalidTimestamp)?;
 
         // Compute signature and check for duplicate
-        let signature = Self::compute_signature(&device_id, &data.user_id, timestamp);
+        let signature = Self::compute_signature(&device_id, &data.user_id, timestamp, data.punch, data.status);
         if self.signatures.contains(&signature) {
             return Err(StoreError::Duplicate);
         }
@@ -228,7 +230,7 @@ impl InMemoryStore {
             };
 
             // Check for duplicate
-            let signature = Self::compute_signature(&device_id, &data.user_id, timestamp);
+            let signature = Self::compute_signature(&device_id, &data.user_id, timestamp, data.punch, data.status);
             if self.signatures.contains(&signature) {
                 continue; // Skip duplicate
             }
@@ -1103,9 +1105,9 @@ mod tests {
         let ts = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
 
         // Multiple calls with same input
-        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts);
-        let sig2 = InMemoryStore::compute_signature("DEV1", "USER001", ts);
-        let sig3 = InMemoryStore::compute_signature("DEV1", "USER001", ts);
+        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(0), Some(1));
+        let sig2 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(0), Some(1));
+        let sig3 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(0), Some(1));
 
         assert_eq!(sig1, sig2);
         assert_eq!(sig2, sig3);
@@ -1115,8 +1117,8 @@ mod tests {
     fn test_compute_signature_different_devices() {
         let ts = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
 
-        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts);
-        let sig2 = InMemoryStore::compute_signature("DEV2", "USER001", ts);
+        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(0), Some(1));
+        let sig2 = InMemoryStore::compute_signature("DEV2", "USER001", ts, Some(0), Some(1));
 
         assert_ne!(sig1, sig2, "Different device should produce different signature");
     }
@@ -1125,8 +1127,8 @@ mod tests {
     fn test_compute_signature_different_users() {
         let ts = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
 
-        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts);
-        let sig2 = InMemoryStore::compute_signature("DEV1", "USER002", ts);
+        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(0), Some(1));
+        let sig2 = InMemoryStore::compute_signature("DEV1", "USER002", ts, Some(0), Some(1));
 
         assert_ne!(sig1, sig2, "Different user should produce different signature");
     }
@@ -1136,10 +1138,30 @@ mod tests {
         let ts1 = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
         let ts2 = NaiveDateTime::parse_from_str("2026-01-29 10:00:01", "%Y-%m-%d %H:%M:%S").unwrap();
 
-        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts1);
-        let sig2 = InMemoryStore::compute_signature("DEV1", "USER001", ts2);
+        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts1, Some(0), Some(1));
+        let sig2 = InMemoryStore::compute_signature("DEV1", "USER001", ts2, Some(0), Some(1));
 
         assert_ne!(sig1, sig2, "Different timestamp should produce different signature");
+    }
+
+    #[test]
+    fn test_compute_signature_different_punch() {
+        let ts = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+
+        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(0), Some(1));
+        let sig2 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(1), Some(1));
+
+        assert_ne!(sig1, sig2, "Different punch should produce different signature");
+    }
+
+    #[test]
+    fn test_compute_signature_different_status() {
+        let ts = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+
+        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(0), Some(1));
+        let sig2 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(0), Some(2));
+
+        assert_ne!(sig1, sig2, "Different status should produce different signature");
     }
 
     #[test]
@@ -1188,6 +1210,61 @@ mod tests {
             user_id: "U001".to_string(),
             timestamp: "2026-01-29 10:00:01".to_string(), // 1 second later
             status: Some(1),
+            punch: Some(0),
+        };
+
+        // Both should succeed
+        assert!(store.insert("DEV1".to_string(), data1).is_ok());
+        assert!(store.insert("DEV1".to_string(), data2).is_ok());
+
+        assert_eq!(store.count_total(), 2);
+        assert_eq!(store.count_signatures(), 2);
+    }
+
+    #[test]
+    fn test_insert_allows_different_punch_same_timestamp() {
+        let store = InMemoryStore::new(1000);
+
+        // Same device, user, timestamp, status - but different punch
+        let data1 = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-29 08:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0), // check-in
+        };
+        let data2 = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-29 08:00:00".to_string(), // Same timestamp
+            status: Some(1),
+            punch: Some(1), // check-out
+        };
+
+        // Both should succeed - this is the critical bug fix
+        let result1 = store.insert("DEV1".to_string(), data1);
+        assert!(result1.is_ok(), "First insert (punch=0) should succeed");
+
+        let result2 = store.insert("DEV1".to_string(), data2);
+        assert!(result2.is_ok(), "Second insert (punch=1) should succeed - NOT duplicate");
+
+        assert_eq!(store.count_total(), 2, "Both logs should be stored");
+        assert_eq!(store.count_signatures(), 2, "Both signatures should be stored");
+    }
+
+    #[test]
+    fn test_insert_allows_different_status_same_timestamp() {
+        let store = InMemoryStore::new(1000);
+
+        // Same device, user, timestamp, punch - but different status
+        let data1 = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-29 08:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        let data2 = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-29 08:00:00".to_string(), // Same timestamp
+            status: Some(2), // Different status
             punch: Some(0),
         };
 

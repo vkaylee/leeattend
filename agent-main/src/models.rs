@@ -23,6 +23,8 @@ pub struct SignatureRow {
     pub device_id: String,
     pub user_id: String,
     pub timestamp: chrono::NaiveDateTime,
+    pub punch: Option<i32>,
+    pub status: Option<i32>,
 }
 
 #[derive(Debug, sqlx::FromRow)]
