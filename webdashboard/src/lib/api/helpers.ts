@@ -106,8 +106,12 @@ export async function apiFetch(
     clearTimeout(id);
     
     if (response.status === 401) {
-        // Handle token refresh logic here if needed, or just return response
-        // For now, let the caller handle 401 or global interceptor
+      console.warn("Session expired (401). Redirecting to login...");
+      clearAuthSession();
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+      throw new Error("Session expired");
     }
 
     return response;
