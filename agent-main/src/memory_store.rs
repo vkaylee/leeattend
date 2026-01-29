@@ -8,6 +8,35 @@ use crate::models::{RawAttendanceLog, AttendanceData, SignatureRow};
 use std::sync::Arc;
 use std::hash::{Hash, Hasher};
 use rustc_hash::FxHasher;
+/// Maximum retry delay cap in seconds (5 minutes)
+const MAX_RETRY_DELAY_SECS: i64 = 300;
+
+/// Maximum bit shift for exponential backoff (2^8 = 256s, then capped to 300s)
+const MAX_RETRY_SHIFT: i64 = 8;
+
+/// Jitter percentage (±10%)
+const JITTER_PERCENT: f64 = 0.10;
+
+/// Calculate exponential backoff delay with jitter.
+/// Formula: min(2^retry_count, MAX_RETRY_DELAY_SECS) ± 10% jitter
+///
+/// Delay progression: 1s → 2s → 4s → 8s → 16s → 32s → 64s → 128s → 256s → 300s (capped)
+fn calculate_backoff_with_jitter(retry_count: i64) -> i64 {
+    use rand::Rng;
+
+    // Base delay: 2^retry_count, capped at MAX_RETRY_SHIFT bits
+    let base_delay = (1i64 << retry_count.min(MAX_RETRY_SHIFT)).min(MAX_RETRY_DELAY_SECS);
+
+    // Apply ±10% jitter to prevent thundering herd
+    let jitter_range = (base_delay as f64 * JITTER_PERCENT) as i64;
+    if jitter_range > 0 {
+        let jitter = rand::thread_rng().gen_range(-jitter_range..=jitter_range);
+        // Ensure delay is at least 1 second
+        (base_delay + jitter).max(1)
+    } else {
+        base_delay
+    }
+}
 
 /// In-memory log with sync status and persistence tracking
 #[derive(Clone, Debug)]
@@ -278,9 +307,9 @@ impl InMemoryStore {
                 break;
             }
             if let Some(log) = self.logs.get(id) {
-                // Skip logs still in backoff period
+                // Skip logs still in backoff period (5-minute cap with jitter)
                 if let Some(updated_at) = log.updated_at {
-                    let delay_secs = (1i64 << log.retry_count.min(6)).min(60);
+                    let delay_secs = calculate_backoff_with_jitter(log.retry_count);
                     let eligible_at = updated_at + chrono::Duration::seconds(delay_secs);
                     if now < eligible_at {
                         continue; // Still in backoff
@@ -307,7 +336,7 @@ impl InMemoryStore {
         for id in unsynced.iter() {
             if let Some(log) = self.logs.get(id) {
                 if let Some(updated_at) = log.updated_at {
-                    let delay_secs = (1i64 << log.retry_count.min(6)).min(60);
+                    let delay_secs = calculate_backoff_with_jitter(log.retry_count);
                     let eligible_at = updated_at + chrono::Duration::seconds(delay_secs);
                     if now < eligible_at {
                         count += 1;
@@ -1038,7 +1067,7 @@ mod tests {
     }
 
     #[test]
-    fn test_backoff_cap_at_60_seconds() {
+    fn test_backoff_cap_at_300_seconds() {
         let store = InMemoryStore::new(1000);
 
         // Insert log with high retry count
@@ -1050,19 +1079,21 @@ mod tests {
         };
         let id = store.insert("D1".to_string(), data).unwrap();
 
-        // Simulate many retries (retry_count=10)
+        // Simulate many retries (retry_count=10, beyond 2^8=256s)
+        // With jitter, delay can be 300 ± 10% = 270-330s
+        // Use 200s ago - definitely still in backoff (less than min 270s)
         if let Some(mut log) = store.logs.get_mut(&id) {
             log.retry_count = 10;
-            log.updated_at = Some(chrono::Utc::now().naive_utc() - chrono::Duration::seconds(59));
+            log.updated_at = Some(chrono::Utc::now().naive_utc() - chrono::Duration::seconds(200));
         }
 
-        // Should NOT be returned (still within 60s cap)
+        // Should NOT be returned (200s < min backoff 270s)
         let logs = store.get_unsynced(10);
         assert_eq!(logs.len(), 0);
 
-        // After 61 seconds, should be eligible
+        // After 400 seconds (well past max 330s with jitter), should be eligible
         if let Some(mut log) = store.logs.get_mut(&id) {
-            log.updated_at = Some(chrono::Utc::now().naive_utc() - chrono::Duration::seconds(61));
+            log.updated_at = Some(chrono::Utc::now().naive_utc() - chrono::Duration::seconds(400));
         }
         let logs = store.get_unsynced(10);
         assert_eq!(logs.len(), 1);

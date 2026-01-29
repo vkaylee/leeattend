@@ -89,14 +89,132 @@ impl Config {
     }
 
     pub fn show_summary(&self) {
-        info!("🚀 CẤU HÌNH HIỆN TẠI:");
-        info!("   • Agent ID     : {}", self.agent_id);
-        info!("   • Central URL  : {}", self.central_server_url);
-        info!("   • Database     : {}", self.database_url);
-        info!("   • Python Path  : {}", self.python_path);
-        info!("   • RPC Timeout  : {}s", self.rpc_timeout_seconds);
-        info!("   • Poll Interval: {}s", self.poll_interval_seconds);
-        info!("   • Max Workers   : {}", self.max_concurrent_workers);
         info!("============================================================");
+        info!("🚀 AGENT CONFIGURATION");
+        info!("============================================================");
+        info!("Agent ID           : {}", self.agent_id);
+        info!("Central Server URL : {}", self.central_server_url);
+        info!("Database URL       : {}", self.database_url);
+        info!("Python Path        : {}", self.python_path);
+        info!("------------------------------------------------------------");
+        info!("⚙️  RUNTIME SETTINGS");
+        info!("------------------------------------------------------------");
+        info!("RPC Timeout        : {}s", self.rpc_timeout_seconds);
+        info!("Poll Interval      : {}s", self.poll_interval_seconds);
+        info!("Max Workers        : {}", self.max_concurrent_workers);
+        info!("------------------------------------------------------------");
+        info!("🔄 RETRY & BACKOFF CONSTANTS");
+        info!("------------------------------------------------------------");
+        info!("Sync Backoff Cap   : 300s (5 min) ±10% jitter");
+        info!("Sync Max Shift     : 2^8 = 256s before cap");
+        info!("Sidecar Max Delay  : 60s ±25% jitter");
+        info!("Sidecar Max Retry  : 10 attempts");
+        info!("Sidecar Stability  : 30s");
+        info!("============================================================");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_struct_fields() {
+        let config = Config {
+            agent_id: "test-agent".to_string(),
+            agent_token: "test-token".to_string(),
+            central_server_url: "ws://localhost:3001/api/ws".to_string(),
+            database_url: "sqlite:test.db".to_string(),
+            python_path: "/usr/bin/python3".to_string(),
+            rpc_timeout_seconds: 30,
+            poll_interval_seconds: 60,
+            max_concurrent_workers: 5,
+        };
+
+        assert_eq!(config.agent_id, "test-agent");
+        assert_eq!(config.agent_token, "test-token");
+        assert_eq!(config.central_server_url, "ws://localhost:3001/api/ws");
+        assert_eq!(config.database_url, "sqlite:test.db");
+        assert_eq!(config.python_path, "/usr/bin/python3");
+        assert_eq!(config.rpc_timeout_seconds, 30);
+        assert_eq!(config.poll_interval_seconds, 60);
+        assert_eq!(config.max_concurrent_workers, 5);
+    }
+
+    #[test]
+    fn test_config_load_from_env() {
+        // SAFETY: Test runs single-threaded, env modification is isolated
+        unsafe {
+            std::env::set_var("AGENT_ID", "prod-agent-001");
+            std::env::set_var("AGENT_TOKEN", "secret-token-123");
+            std::env::set_var("CENTRAL_SERVER_URL", "wss://prod.example.com/ws");
+            std::env::set_var("DATABASE_URL", "sqlite:prod.db");
+            std::env::set_var("RPC_TIMEOUT_SECONDS", "45");
+            std::env::set_var("POLL_INTERVAL_SECONDS", "120");
+            std::env::set_var("MAX_CONCURRENT_WORKERS", "10");
+        }
+
+        let config = Config::load();
+
+        assert_eq!(config.agent_id, "prod-agent-001");
+        assert_eq!(config.agent_token, "secret-token-123");
+        assert_eq!(config.central_server_url, "wss://prod.example.com/ws");
+        assert_eq!(config.database_url, "sqlite:prod.db");
+        assert_eq!(config.rpc_timeout_seconds, 45);
+        assert_eq!(config.poll_interval_seconds, 120);
+        assert_eq!(config.max_concurrent_workers, 10);
+
+        // Cleanup
+        unsafe {
+            std::env::remove_var("AGENT_ID");
+            std::env::remove_var("AGENT_TOKEN");
+            std::env::remove_var("CENTRAL_SERVER_URL");
+            std::env::remove_var("DATABASE_URL");
+            std::env::remove_var("RPC_TIMEOUT_SECONDS");
+            std::env::remove_var("POLL_INTERVAL_SECONDS");
+            std::env::remove_var("MAX_CONCURRENT_WORKERS");
+        }
+    }
+
+    #[test]
+    fn test_config_invalid_numeric_uses_default() {
+        // SAFETY: Test runs single-threaded
+        unsafe {
+            std::env::set_var("RPC_TIMEOUT_SECONDS", "not-a-number");
+            std::env::set_var("POLL_INTERVAL_SECONDS", "");
+            std::env::set_var("MAX_CONCURRENT_WORKERS", "-5");
+        }
+
+        let config = Config::load();
+
+        // Should fall back to defaults for invalid values
+        assert_eq!(config.rpc_timeout_seconds, 30);
+        assert_eq!(config.poll_interval_seconds, 60);
+        // "-5" parses as invalid for usize, falls back to default
+        assert_eq!(config.max_concurrent_workers, 5);
+
+        // Cleanup
+        unsafe {
+            std::env::remove_var("RPC_TIMEOUT_SECONDS");
+            std::env::remove_var("POLL_INTERVAL_SECONDS");
+            std::env::remove_var("MAX_CONCURRENT_WORKERS");
+        }
+    }
+
+    #[test]
+    fn test_show_summary_does_not_panic() {
+        let config = Config {
+            agent_id: "test".to_string(),
+            agent_token: "token".to_string(),
+            central_server_url: "ws://localhost".to_string(),
+            database_url: "sqlite:test.db".to_string(),
+            python_path: "/usr/bin/python3".to_string(),
+            rpc_timeout_seconds: 30,
+            poll_interval_seconds: 60,
+            max_concurrent_workers: 5,
+        };
+
+        // Should not panic
+        config.show_summary();
     }
 }
