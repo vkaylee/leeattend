@@ -141,6 +141,13 @@ impl CentralClient {
 
                 // Adaptive sleep based on queue size
                 let unsynced_count = sync_hybrid.count_unsynced_logs();
+
+                // Log backoff status for monitoring
+                let backoff_count = sync_hybrid.memory_store().count_in_backoff();
+                if backoff_count > 0 {
+                    log::debug!("⏳ {} logs in backoff, {} eligible for sync", backoff_count, unsynced_count - backoff_count);
+                }
+
                 let sleep_duration = if count == 0 {
                     Duration::from_millis(500)  // Idle: check every 500ms
                 } else if unsynced_count > 1000 {

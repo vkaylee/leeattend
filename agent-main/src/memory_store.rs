@@ -195,13 +195,25 @@ impl InMemoryStore {
         Ok(inserted)
     }
 
-    /// Get unsynced logs in FIFO order (by ID)
+    /// Get unsynced logs in FIFO order (by ID) with exponential backoff filtering
     pub fn get_unsynced(&self, limit: usize) -> Vec<MemoryLog> {
         let unsynced = self.unsynced_index.read();
         let mut result = Vec::with_capacity(limit);
+        let now = chrono::Utc::now().naive_utc();
 
-        for id in unsynced.iter().take(limit) {
+        for id in unsynced.iter() {
+            if result.len() >= limit {
+                break;
+            }
             if let Some(log) = self.logs.get(id) {
+                // Skip logs still in backoff period
+                if let Some(updated_at) = log.updated_at {
+                    let delay_secs = (1i64 << log.retry_count.min(6)).min(60);
+                    let eligible_at = updated_at + chrono::Duration::seconds(delay_secs);
+                    if now < eligible_at {
+                        continue; // Still in backoff
+                    }
+                }
                 result.push(log.clone());
             }
         }
@@ -212,6 +224,27 @@ impl InMemoryStore {
     /// Count unsynced logs
     pub fn count_unsynced(&self) -> usize {
         self.unsynced_index.read().len()
+    }
+
+    /// Count logs currently in backoff (not eligible for sync)
+    pub fn count_in_backoff(&self) -> usize {
+        let unsynced = self.unsynced_index.read();
+        let now = chrono::Utc::now().naive_utc();
+        let mut count = 0;
+
+        for id in unsynced.iter() {
+            if let Some(log) = self.logs.get(id) {
+                if let Some(updated_at) = log.updated_at {
+                    let delay_secs = (1i64 << log.retry_count.min(6)).min(60);
+                    let eligible_at = updated_at + chrono::Duration::seconds(delay_secs);
+                    if now < eligible_at {
+                        count += 1;
+                    }
+                }
+            }
+        }
+
+        count
     }
 
     /// Count total logs in memory
@@ -861,5 +894,133 @@ mod tests {
         // Get all should return both
         let all = store.get_all();
         assert_eq!(all.len(), 2);
+    }
+
+    // ===== Exponential Backoff Tests =====
+
+    #[test]
+    fn test_backoff_new_logs_immediate() {
+        let store = InMemoryStore::new(1000);
+
+        // Insert new log (retry_count=0, updated_at=None)
+        let data = AttendanceData {
+            user_id: "U1".to_string(),
+            timestamp: "2026-01-29 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(1),
+        };
+        store.insert("D1".to_string(), data).unwrap();
+
+        // New log should be returned immediately
+        let logs = store.get_unsynced(10);
+        assert_eq!(logs.len(), 1);
+    }
+
+    #[test]
+    fn test_backoff_skips_recent_retry() {
+        let store = InMemoryStore::new(1000);
+
+        // Insert and simulate first retry
+        let data = AttendanceData {
+            user_id: "U1".to_string(),
+            timestamp: "2026-01-29 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(1),
+        };
+        let id = store.insert("D1".to_string(), data).unwrap();
+
+        // Mark in-flight (sets retry_count=1, updated_at=now)
+        store.mark_in_flight(&[id]);
+        store.reset_to_unsynced(id);
+
+        // Should NOT be returned (within 2s backoff)
+        let logs = store.get_unsynced(10);
+        assert_eq!(logs.len(), 0);
+        assert_eq!(store.count_in_backoff(), 1);
+    }
+
+    #[test]
+    fn test_backoff_allows_after_delay() {
+        let store = InMemoryStore::new(1000);
+
+        // Insert log
+        let data = AttendanceData {
+            user_id: "U1".to_string(),
+            timestamp: "2026-01-29 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(1),
+        };
+        let id = store.insert("D1".to_string(), data).unwrap();
+
+        // Simulate retry with old updated_at (3 seconds ago)
+        if let Some(mut log) = store.logs.get_mut(&id) {
+            log.retry_count = 1;
+            log.updated_at = Some(chrono::Utc::now().naive_utc() - chrono::Duration::seconds(3));
+        }
+
+        // Should be returned (past 2s backoff for retry_count=1)
+        let logs = store.get_unsynced(10);
+        assert_eq!(logs.len(), 1);
+    }
+
+    #[test]
+    fn test_backoff_cap_at_60_seconds() {
+        let store = InMemoryStore::new(1000);
+
+        // Insert log with high retry count
+        let data = AttendanceData {
+            user_id: "U1".to_string(),
+            timestamp: "2026-01-29 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(1),
+        };
+        let id = store.insert("D1".to_string(), data).unwrap();
+
+        // Simulate many retries (retry_count=10)
+        if let Some(mut log) = store.logs.get_mut(&id) {
+            log.retry_count = 10;
+            log.updated_at = Some(chrono::Utc::now().naive_utc() - chrono::Duration::seconds(59));
+        }
+
+        // Should NOT be returned (still within 60s cap)
+        let logs = store.get_unsynced(10);
+        assert_eq!(logs.len(), 0);
+
+        // After 61 seconds, should be eligible
+        if let Some(mut log) = store.logs.get_mut(&id) {
+            log.updated_at = Some(chrono::Utc::now().naive_utc() - chrono::Duration::seconds(61));
+        }
+        let logs = store.get_unsynced(10);
+        assert_eq!(logs.len(), 1);
+    }
+
+    #[test]
+    fn test_backoff_new_logs_prioritized() {
+        let store = InMemoryStore::new(1000);
+
+        // Insert retry log (in backoff)
+        let data1 = AttendanceData {
+            user_id: "RETRY".to_string(),
+            timestamp: "2026-01-29 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(1),
+        };
+        let id1 = store.insert("D1".to_string(), data1).unwrap();
+        store.mark_in_flight(&[id1]);
+        store.reset_to_unsynced(id1);
+
+        // Insert new log
+        let data2 = AttendanceData {
+            user_id: "NEW".to_string(),
+            timestamp: "2026-01-29 10:00:01".to_string(),
+            status: Some(1),
+            punch: Some(1),
+        };
+        store.insert("D1".to_string(), data2).unwrap();
+
+        // Only NEW should be returned (RETRY is in backoff)
+        let logs = store.get_unsynced(10);
+        assert_eq!(logs.len(), 1);
+        assert_eq!(logs[0].user_id, "NEW");
     }
 }
