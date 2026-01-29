@@ -545,6 +545,37 @@ SHA256(device_id | raw_user_id | punch_time_raw | punch | status)
 - Admin can review staged logs and map users later
 - Only true database errors trigger Agent retries
 
+### 17.5. Unknown Logs Dashboard & Auto-Claim (New - 2026-01-29)
+The system provides a UI for managing staged logs and automatically claims them when employees are created.
+
+**Auto-Claim Flow:**
+```
+Employee Created/Updated
+        ↓
+EmployeeService.create_employee()
+        ↓
+AttendanceLogService.claim_staged_logs()
+        ↓
+Match staging logs by (workspace_id, raw_user_id)
+        ↓
+Move to raw_attendance_logs
+        ↓
+Mark staging as 'processed'
+        ↓
+Trigger PairingService for all affected dates
+```
+
+**API Endpoints:**
+- `GET /workspaces/:ws_id/attendance/staging-logs` - List pending staging logs
+- `POST /workspaces/:ws_id/attendance/staging-logs/:id/resolve` - Manually assign to employee
+- `DELETE /workspaces/:ws_id/attendance/staging-logs/:id` - Dismiss log
+
+**Frontend Features:**
+- New "Unidentified" tab in AttendanceLogsPage with pending count badge
+- Table showing: Unknown ID, Device, Punch Time, Actions
+- Actions: Assign to existing employee, Create new employee, Delete
+- "Create Employee" button redirects to employee form with pre-filled enrollment ID
+
 ### 18. Multi-Brand Sidecar Support (New)
 The Edge Agent has been evolved from a monolithic ZK-only driver to a modular, multi-brand orchestrator.
 

@@ -363,3 +363,68 @@ export async function bulkUploadPaperOt(
 
   return response.json();
 }
+
+// --- Staging Logs (Unknown Users) ---
+
+export interface StagingLog {
+  id: string;
+  workspace_id: string;
+  device_id: string | null;
+  raw_user_id: string;
+  punch_time: string;
+  raw_data: Record<string, unknown> | null;
+  status: string;
+  created_at: string;
+}
+
+export interface StagingLogsResponse {
+  data: StagingLog[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export async function fetchStagingLogs(
+  wsId: string,
+  page: number = 1,
+  limit: number = 50
+): Promise<StagingLogsResponse> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/attendance/staging-logs?${params.toString()}`
+  );
+  if (!response.ok) throw new Error("Failed to fetch staging logs");
+  return response.json();
+}
+
+export async function resolveStagingLog(
+  wsId: string,
+  logId: string,
+  employeeId: string
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/attendance/staging-logs/${logId}/resolve`,
+    {
+      method: "POST",
+      body: JSON.stringify({ employee_id: employeeId }),
+    }
+  );
+  if (!response.ok) throw new Error("Failed to resolve staging log");
+}
+
+export async function dismissStagingLog(
+  wsId: string,
+  logId: string
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/attendance/staging-logs/${logId}`,
+    {
+      method: "DELETE",
+    }
+  );
+  if (!response.ok) throw new Error("Failed to dismiss staging log");
+}

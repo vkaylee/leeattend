@@ -124,6 +124,16 @@ impl EmployeeService {
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+        // Auto-claim any staged logs for this employee_id_number
+        if let Err(e) = crate::services::AttendanceLogService::claim_staged_logs(
+            pool,
+            workspace_id,
+            employee.id,
+            &employee.employee_id_number,
+        ).await {
+            tracing::warn!("Failed to claim staged logs for new employee {}: {}", employee.id, e);
+        }
+
         Ok(employee)
     }
 
@@ -258,13 +268,13 @@ impl EmployeeService {
                 .ok_or(StatusCode::BAD_REQUEST)?; // User not found
         }
 
-        employee_repository::update_employee(
+        let employee = employee_repository::update_employee(
             pool,
             id,
             workspace_id,
             req.user_id,
             req.full_name,
-            req.employee_id_number.map(|s| normalize_employee_id(&s)),
+            req.employee_id_number.clone().map(|s| normalize_employee_id(&s)),
             req.hire_date,
             req.termination_date,
             req.tags,
@@ -275,7 +285,22 @@ impl EmployeeService {
             eprintln!("Error updating employee: {:?}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?
-        .ok_or(StatusCode::NOT_FOUND)
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+        // If employee_id_number was updated, try to claim staged logs
+        if let Some(new_id_number) = req.employee_id_number {
+            let normalized = normalize_employee_id(&new_id_number);
+            if let Err(e) = crate::services::AttendanceLogService::claim_staged_logs(
+                pool,
+                workspace_id,
+                id,
+                &normalized,
+            ).await {
+                tracing::warn!("Failed to claim staged logs for updated employee {}: {}", id, e);
+            }
+        }
+
+        Ok(employee)
     }
 
     pub async fn delete_employee(

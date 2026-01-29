@@ -256,4 +256,88 @@ impl AttendanceLogService {
             Err(e) => Err(e.to_string()),
         }
     }
+
+    /// Claim staged logs for a newly created/updated employee.
+    /// Finds all pending staging logs matching the employee_id_number and moves them to raw_attendance_logs.
+    /// Returns the number of logs claimed.
+    pub async fn claim_staged_logs(
+        pool: &PgPool,
+        workspace_id: Uuid,
+        employee_id: Uuid,
+        employee_id_number: &str,
+    ) -> Result<u32, String> {
+        // 1. Find all pending staging logs for this employee_id_number
+        let staged_logs = sqlx::query_as::<_, staging_log_repository::StagingLog>(
+            r#"
+            SELECT id, workspace_id, device_id, raw_user_id, punch_time, raw_data, fingerprint, status, created_at
+            FROM attendance_staging_logs
+            WHERE workspace_id = $1 AND raw_user_id = $2 AND status = 'pending'
+            ORDER BY punch_time ASC
+            "#
+        )
+        .bind(workspace_id)
+        .bind(employee_id_number)
+        .fetch_all(pool)
+        .await
+        .map_err(|e| format!("Failed to fetch staged logs: {}", e))?;
+
+        if staged_logs.is_empty() {
+            return Ok(0);
+        }
+
+        let mut claimed_count = 0u32;
+        let mut dates_to_reprocess = std::collections::HashSet::new();
+
+        for staged in &staged_logs {
+            // 2. Create RawAttendanceLog from staging
+            let raw_log = RawAttendanceLog {
+                id: Uuid::new_v4(),
+                workspace_id,
+                employee_id,
+                punch_time: staged.punch_time,
+                source: LogSource::Device,
+                device_id: staged.device_id.clone(),
+                raw_data: staged.raw_data.clone(),
+                created_at: Utc::now(),
+            };
+
+            // 3. Insert to raw_attendance_logs
+            match raw_attendance_log_repository::create_raw_log(pool, &raw_log).await {
+                Ok(true) => {
+                    claimed_count += 1;
+                    dates_to_reprocess.insert(staged.punch_time.date_naive());
+
+                    // Mark staging log as processed
+                    let _ = staging_log_repository::update_staging_status(pool, staged.id, "processed").await;
+                }
+                Ok(false) => {
+                    // Duplicate - still mark as processed
+                    let _ = staging_log_repository::update_staging_status(pool, staged.id, "processed").await;
+                }
+                Err(e) => {
+                    error!("Failed to claim staged log {}: {}", staged.id, e);
+                }
+            }
+        }
+
+        // 4. Trigger pairing for all affected dates
+        // Get workspace timezone for proper reprocessing
+        let ws = crate::repositories::workspace_repository::get_workspace_by_id(pool, workspace_id)
+            .await
+            .ok()
+            .flatten();
+        let tz_str = ws.as_ref().map(|w| w.timezone.as_str()).unwrap_or("UTC");
+        let tz: chrono_tz::Tz = tz_str.parse().unwrap_or(chrono_tz::UTC);
+        let algorithm = ws.as_ref().map(|w| w.pairing_algorithm.as_str()).unwrap_or("anchor_first");
+
+        for date in dates_to_reprocess {
+            info!("Reprocessing attendance for employee {} on {}", employee_id, date);
+            if let Err(e) = PairingService::reprocess_daily_attendance(pool, employee_id, date, tz, algorithm).await {
+                error!("Pairing error for employee {} on {}: {:?}", employee_id, date, e);
+            }
+        }
+
+        info!("Claimed {} staged logs for employee {}", claimed_count, employee_id_number);
+        Ok(claimed_count)
+    }
 }

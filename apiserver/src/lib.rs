@@ -349,6 +349,18 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(handlers::get_raw_attendance_logs),
         )
         .route(
+            "/workspaces/:ws_id/attendance/staging-logs",
+            get(handlers::attendance::get_staging_logs),
+        )
+        .route(
+            "/workspaces/:ws_id/attendance/staging-logs/:id/resolve",
+            post(handlers::attendance::resolve_staging_log),
+        )
+        .route(
+            "/workspaces/:ws_id/attendance/staging-logs/:id",
+            delete(handlers::attendance::dismiss_staging_log),
+        )
+        .route(
             "/workspaces/:ws_id/attendance/claim-ot/:employee_id",
             post(handlers::claim_ot),
         )

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import {
   Trash2,
   UserCircle,
@@ -57,6 +58,7 @@ export default function EmployeesPage() {
   const wsId = getCurrentWorkspaceId() || "";
   const queryClient = useQueryClient();
   const { formatDate } = useDateTimeFormatter();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -65,6 +67,20 @@ export default function EmployeesPage() {
   const [activeDetailTab, setActiveDetailTab] = useState<DetailTabType>("profile");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [prefillEnrollmentId, setPrefillEnrollmentId] = useState<string>("");
+
+  // Handle enrollment_id query param from staging logs
+  useEffect(() => {
+    const enrollmentId = searchParams.get("enrollment_id");
+    if (enrollmentId) {
+      setPrefillEnrollmentId(enrollmentId);
+      setIsModalOpen(true);
+      setEditingEmployee(null);
+      // Clear the query param after opening modal
+      searchParams.delete("enrollment_id");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -115,7 +131,10 @@ export default function EmployeesPage() {
     e.preventDefault(); const formData = new FormData(e.currentTarget);
     const data = { full_name: formData.get("full_name") as string, employee_id_number: formData.get("employee_id_number") as string, hire_date: formData.get("hire_date") as string, is_active: formData.get("is_active") === "on" };
     if (editingEmployee) updateMutation.mutate({ id: editingEmployee.id, employee: data });
-    else createMutation.mutate(data);
+    else {
+      createMutation.mutate(data);
+      setPrefillEnrollmentId(""); // Clear prefill after creating
+    }
   };
 
   const handleTransferSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -322,7 +341,7 @@ export default function EmployeesPage() {
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("employees.form.full_name")}</label>
             <input name="full_name" data-testid="employees-form-name-input" required defaultValue={editingEmployee?.full_name} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm" />
           </div>
-          <div className="space-y-3 px-1"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("employees.form.employee_id")}</label><input name="employee_id_number" data-testid="employees-form-id-input" required defaultValue={editingEmployee?.employee_id_number} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono font-bold text-sm tracking-widest uppercase shadow-sm" /></div>
+          <div className="space-y-3 px-1"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("employees.form.employee_id")}</label><input name="employee_id_number" data-testid="employees-form-id-input" required defaultValue={editingEmployee?.employee_id_number || prefillEnrollmentId} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono font-bold text-sm tracking-widest uppercase shadow-sm" /></div>
           <div className="space-y-3 px-1"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("employees.form.hire_date")}</label><input type="date" name="hire_date" data-testid="employees-form-hire-date-input" required defaultValue={editingEmployee?.hire_date} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-bold text-sm shadow-sm" /></div>
           <div className="flex items-center gap-4 py-2 px-2 group cursor-pointer">
             <input type="checkbox" name="is_active" id="is_active" data-testid="employees-form-active-checkbox" defaultChecked={editingEmployee ? editingEmployee.is_active : true} className="w-7 h-7 text-primary-600 rounded-xl border-slate-200 focus:ring-primary-500 transition-all cursor-pointer shadow-inner" />
