@@ -1,11 +1,12 @@
 use chrono::{DateTime, Utc};
+use sha2::{Sha256, Digest};
 use sqlx::PgPool;
 use std::sync::Arc;
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
 use crate::models::{LogSource, RawAttendanceLog};
-use crate::repositories::{employee_repository, raw_attendance_log_repository, attendance_log_error_repository};
+use crate::repositories::{employee_repository, raw_attendance_log_repository, attendance_log_error_repository, staging_log_repository};
 use crate::services::pairing_service::PairingService;
 use crate::utils::datetime::parse_datetime_with_tz;
 use crate::services::{AgentLogBuffer, AgentLogEntry, agent_log_buffer};
@@ -48,8 +49,39 @@ impl AttendanceLogService {
         (service, worker_handle)
     }
 
+    /// Calculate fingerprint for deduplication.
+    /// Format: SHA256(device_id|raw_user_id|punch_time_raw|punch|status)
+    fn calculate_fingerprint(
+        device_id: Option<&str>,
+        raw_user_id: &str,
+        punch_time_raw: &str,
+        raw_data: Option<&serde_json::Value>,
+    ) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(device_id.unwrap_or(""));
+        hasher.update("|");
+        hasher.update(raw_user_id);
+        hasher.update("|");
+        hasher.update(punch_time_raw);
+        hasher.update("|");
+        // Extract punch and status from raw_data if available
+        if let Some(data) = raw_data {
+            if let Some(punch) = data.get("punch").and_then(|p| p.as_i64()) {
+                hasher.update(punch.to_string());
+            }
+            hasher.update("|");
+            if let Some(status) = data.get("status").and_then(|s| s.as_i64()) {
+                hasher.update(status.to_string());
+            }
+        } else {
+            hasher.update("|");
+        }
+        format!("{:x}", hasher.finalize())
+    }
+
     /// Process agent log synchronously to ensure ACK reflects actual parsing/DB result.
-    /// This allows agent to retry failed logs in next sync cycle.
+    /// Returns Ok(()) for ALL cases except database connection errors.
+    /// Unknown users and validation errors are swallowed with 200 OK to prevent agent retries.
     pub async fn ingest_agent_log(&self, entry: AgentLogEntry) -> Result<(), String> {
         Self::process_log(
             &self.pool,
@@ -68,7 +100,12 @@ impl AttendanceLogService {
     }
 
     /// Processes a single attendance log entry from any source (Agent or Import).
-    /// Handles employee mapping, timezone-aware parsing (if needed), and triggers pairing logic.
+    ///
+    /// Routing Logic (Dual-Layer Protection):
+    /// - Case 1: Employee found → insert to raw_attendance_logs → Ok(true)
+    /// - Case 2: Employee NOT found → insert to attendance_staging_logs → Ok(false)
+    /// - Case 3: Parse/validation error → insert to attendance_log_errors → Ok(false)
+    /// - Case 4: Database connection error → Err(msg) (agent should retry)
     #[allow(clippy::too_many_arguments)]
         pub async fn process_log(
         pool: &PgPool,
@@ -87,19 +124,34 @@ impl AttendanceLogService {
         let employee = match employee_repository::find_by_number(pool, workspace_id, employee_id_number).await {
             Ok(Some(emp)) => emp,
             Ok(None) => {
-                let msg = format!("Employee not found: {} in workspace {}", employee_id_number, workspace_id);
-                warn!("{}", msg);
-                let _ = attendance_log_error_repository::create_error_log(
+                // Case 2: Unknown user → Stage for later review (NOT an error)
+                let fingerprint = Self::calculate_fingerprint(
+                    device_id.as_deref(),
+                    employee_id_number,
+                    punch_time_raw,
+                    raw_data.as_ref(),
+                );
+
+                // Parse timestamp for staging (best effort)
+                let punch_time = parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt)
+                    .unwrap_or_else(|_| Utc::now());
+
+                let _ = staging_log_repository::create_staging_log(
                     pool,
                     workspace_id,
-                    device_id.clone(),
+                    device_id,
+                    employee_id_number,
+                    punch_time,
                     raw_data,
-                    &msg,
-                    &format!("{:?}", source),
+                    &fingerprint,
                 ).await;
-                return Err(msg);
+
+                warn!("Unknown user {} staged for workspace {} (fingerprint: {})",
+                    employee_id_number, workspace_id, &fingerprint[..8]);
+                return Ok(false); // SUCCESS - don't retry
             }
             Err(e) => {
+                // Case 4: Database error → Agent should retry
                 let msg = format!("Database error finding employee: {}", e);
                 error!("{}", msg);
                 return Err(msg);
@@ -110,17 +162,28 @@ impl AttendanceLogService {
         let punch_time = match parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt) {
             Ok(dt) => dt,
             Err(e) => {
+                // Case 3: Validation error → Log with fingerprint (NOT retry)
                 let msg = format!("Failed to parse timestamp '{}': {}", punch_time_raw, e);
                 error!("{}", msg);
-                let _ = attendance_log_error_repository::create_error_log(
+
+                let fingerprint = Self::calculate_fingerprint(
+                    device_id.as_deref(),
+                    employee_id_number,
+                    punch_time_raw,
+                    raw_data.as_ref(),
+                );
+
+                let _ = attendance_log_error_repository::create_error_log_with_fingerprint(
                     pool,
                     workspace_id,
-                    device_id.clone(),
+                    device_id,
                     raw_data,
                     &msg,
                     &format!("{:?}", source),
+                    &fingerprint,
                 ).await;
-                return Err(msg);
+
+                return Ok(false); // SUCCESS - don't retry
             }
         };
 

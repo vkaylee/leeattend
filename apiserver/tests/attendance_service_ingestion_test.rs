@@ -84,20 +84,22 @@ async fn test_attendance_service_ingestion_employee_not_found() {
     // Act: Ingest log with nonexistent employee
     let result = service.ingest_agent_log(entry).await;
 
-    // Assert: Should fail immediately with employee not found error
-    assert!(result.is_err(), "Ingestion should fail for nonexistent employee");
-    assert!(
-        result.unwrap_err().contains("Employee not found"),
-        "Error should indicate employee not found"
-    );
+    // Assert: Should succeed (staged for later review) - prevents agent retry spam
+    assert!(result.is_ok(), "Ingestion should succeed (staged for review)");
 
-    // Assert: No log should be created
+    // Assert: No log in raw_attendance_logs (employee unknown)
     let logs = sqlx::query!("SELECT count(*) as count FROM raw_attendance_logs WHERE workspace_id = $1", ws_id)
         .fetch_one(&pool)
         .await
         .unwrap();
+    assert_eq!(logs.count, Some(0), "No log should be in raw_attendance_logs");
 
-    assert_eq!(logs.count, Some(0), "No log should be created for invalid employee");
+    // Assert: Log should be in staging table
+    let staged = sqlx::query!("SELECT count(*) as count FROM attendance_staging_logs WHERE workspace_id = $1", ws_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(staged.count, Some(1), "Log should be staged for unknown user");
 }
 
 #[tokio::test]
@@ -135,18 +137,20 @@ async fn test_attendance_service_ingestion_invalid_timestamp() {
     // Act: Ingest log with invalid timestamp
     let result = service.ingest_agent_log(entry).await;
 
-    // Assert: Should fail immediately with parse error
-    assert!(result.is_err(), "Ingestion should fail for invalid timestamp");
-    assert!(
-        result.unwrap_err().contains("Failed to parse timestamp"),
-        "Error should indicate timestamp parse failure"
-    );
+    // Assert: Should succeed (logged as error) - prevents agent retry spam
+    assert!(result.is_ok(), "Ingestion should succeed (error logged)");
 
-    // Assert: No log should be created
+    // Assert: No log in raw_attendance_logs
     let logs = sqlx::query!("SELECT count(*) as count FROM raw_attendance_logs WHERE employee_id = $1", emp_id)
         .fetch_one(&pool)
         .await
         .unwrap();
+    assert_eq!(logs.count, Some(0), "No log should be in raw_attendance_logs");
 
-    assert_eq!(logs.count, Some(0), "No log should be created for invalid timestamp");
+    // Assert: Error should be in error table
+    let errors = sqlx::query!("SELECT count(*) as count FROM attendance_log_errors WHERE workspace_id = $1", ws_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(errors.count, Some(1), "Error should be logged in attendance_log_errors");
 }

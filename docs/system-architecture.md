@@ -493,6 +493,58 @@ hash(device_id | user_id | timestamp_unix | punch | status)
 - 25x faster startup (lightweight Phase A)
 - Concurrent lock-free dedup checks (DashSet)
 
+### 17.4. Dual-Layer Server Protection & Staging (New - 2026-01-29)
+The API Server implements a dual-layer protection system to separate business unknowns from technical errors and prevent Agent retry spam.
+
+**Architecture:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│              ATTENDANCE LOG ROUTING LOGIC                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  Incoming Log → Find Employee                                │
+│                    ↓                                         │
+│              ┌─────┴─────┐                                   │
+│              │  Found?   │                                   │
+│              └─────┬─────┘                                   │
+│         YES ↙      ↘ NO                                      │
+│         ↓           ↓                                        │
+│  Parse Timestamp   Stage Log                                 │
+│       ↓            (attendance_staging_logs)                 │
+│   ┌───┴───┐        → Return Ok(false)                       │
+│   │Valid? │                                                  │
+│   └───┬───┘                                                  │
+│  YES ↙  ↘ NO                                                 │
+│    ↓      ↓                                                  │
+│  Save   Log Error                                            │
+│  (raw_attendance_logs)  (attendance_log_errors)             │
+│  → Ok(true)            → Ok(false)                          │
+│                                                              │
+│  ⚠️ Only DB errors return Err() for Agent retry             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Tables:**
+- **`attendance_staging_logs`**: Stores valid logs from unknown users
+  - Columns: `id`, `workspace_id`, `device_id`, `raw_user_id`, `punch_time`, `raw_data`, `fingerprint`, `status`, `created_at`
+  - Unique constraint on `(workspace_id, fingerprint)` prevents duplicate spam
+  - Status workflow: `pending` → `processed` | `dismissed`
+
+- **`attendance_log_errors`**: Enhanced with fingerprint deduplication
+  - Added `fingerprint` column with partial unique index
+  - Prevents duplicate error entries from repeated agent retries
+
+**Fingerprint Formula (SHA256):**
+```rust
+SHA256(device_id | raw_user_id | punch_time_raw | punch | status)
+```
+
+**Benefits:**
+- Unknown users don't cause Agent retry loops (staged for later review)
+- Validation errors don't spam error table (fingerprint dedup)
+- Admin can review staged logs and map users later
+- Only true database errors trigger Agent retries
+
 ### 18. Multi-Brand Sidecar Support (New)
 The Edge Agent has been evolved from a monolithic ZK-only driver to a modular, multi-brand orchestrator.
 

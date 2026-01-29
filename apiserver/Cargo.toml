@@ -26,6 +26,7 @@ calamine = { version = "0.32.0", features = ["dates"] }
 csv = "1.4.0"
 strum = "0.26"
 strum_macros = "0.26"
+sha2 = "0.10"
 
 [lints.rust]
 warnings = "deny"
