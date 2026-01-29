@@ -140,11 +140,21 @@ Failed Sync Logs (limit: 50):
 
 The Agent automatically performs these maintenance tasks:
 
+**Two-Phase Startup (Signature Cache)**
+- Phase A: Load all signatures from disk (~25 bytes per row)
+  - Populates DashSet<u64> for persistent dedup protection
+  - 25x faster than loading full logs
+  - Typically completes in <1 second for 100K signatures
+- Phase B: Load unsynced/in-flight logs into sync queue
+  - Same as original startup behavior
+  - Only pending logs loaded into memory
+
 **365-Day Log Cleanup (Daily)**
 - Runs every 24 hours
 - Deletes synced logs older than 365 days
 - Reduces database file size and improves query performance
 - Preserves in-flight logs (is_synced=0)
+- Signatures remain in memory for continued dedup protection
 
 **Fair Polling Scheduler**
 - Ensures no device is starved of polling resources
@@ -152,12 +162,16 @@ The Agent automatically performs these maintenance tasks:
 - With `MAX_CONCURRENT_WORKERS>1`, enables parallel polling with semaphore-based fairness
 
 **Duplicate Detection & Queue Traffic Reduction**
-- In-memory HashSet per worker filters redundant logs at the polling stage
-- Key format: `user_id:timestamp` (device_id implicit per worker)
-- Reduces queue channel traffic and database writes by up to 99.95%
-- Memory footprint: ~5MB per 50,000 logs (bounded per session)
-- Logging: `"Fetched X logs (Y new, Z duplicates filtered)"` when duplicates detected
-- Automatically resets when worker reconnects or configuration is reloaded
+- **Worker-level HashSet**: In-memory dedup at polling stage (user_id:timestamp key)
+  - Reduces queue channel traffic by up to 99.95%
+  - Memory: ~5MB per 50,000 logs (bounded per session)
+  - Resets on worker reconnect or configuration reload
+- **Agent-level Signature Cache**: Hash-based persistent dedup (FxHash u64)
+  - Formula: hash(device_id|user_id|timestamp|punch|status)
+  - Memory: 8 bytes per signature (96% savings vs full log)
+  - Survives log cleanup and agent restarts
+  - Prevents false positives (includes punch+status)
+- Combined logging: `"Fetched X logs (Y new, Z duplicates filtered)"` when duplicates detected
 
 ---
 

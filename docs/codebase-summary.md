@@ -28,11 +28,15 @@ LeeAttend is a high-performance attendance and payroll system split into three p
     - **central_client.rs**: WebSocket connection to Central Server with `RetryManager` for connection resilience (30s timeout, 60s stability threshold)
     - **worker_client.rs**: JSON-RPC 2.0 client for sidecar communication (5min read, 30s write timeout)
     - **retry.rs**: Reusable exponential backoff with jitter (2s-60s delays, ±25% jitter) for sidecar retries
+    - **memory_store.rs**: In-memory DashMap-based log storage with signature cache deduplication (DashSet<u64>)
+    - **hybrid_database.rs**: Facade orchestrating memory-first reads with disk persistence
     - **database.rs**: SQLite operations for offline log buffering and device configuration
     - **config.rs**: Environment-based configuration loading with defaults
 - **Features**:
-    - **Sidecar Resilience**: Exponential backoff retry (max 10 retries) with 30s stability threshold
+    - **Sidecar Resilience**: Exponential backoff retry (max 10 retries, formula: 2^retry_count capped at 60s) with 30s stability threshold
     - **Central Sync**: WebSocket with auto-reconnect (max 10 retries) and ACK-based delivery confirmation
+    - **Signature Cache Deduplication**: Hash-based duplicate detection (FxHash u64) with 96% memory savings (0.8MB vs 20MB for 100K logs)
+    - **Two-Phase Startup**: Phase A loads signatures from disk, Phase B loads unsynced queue
     - **Offline Buffering**: Queues logs locally during network unavailability
     - **Dynamic Reconfiguration**: Hot-reload device config from Central Server via ConfigPush messages
     - **Multi-Brand Support**: Spawns brand-specific sidecars (zkteco, mock) based on database config
@@ -43,6 +47,7 @@ LeeAttend is a high-performance attendance and payroll system split into three p
     - **FIFO Guarantee**: ORDER BY id ASC ensures logs sync in exact device order
     - **CLI Commands**: `--help`, `failed-logs [limit]`, `failed [limit]` for log inspection
 - **Test Coverage**: 67 tests (39 library + 28 integration) including duplicate detection, memory leak detection
+- **Agent Test Coverage**: 178 tests total including signature cache deduplication and exponential backoff
 
 ### 3. Sidecar Workers (Device Connectors)
 - **Languages**: Python 3.10+

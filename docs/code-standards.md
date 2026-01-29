@@ -108,6 +108,34 @@ The agent filters duplicate logs at the worker level using in-memory deduplicati
 - **Logging**: Always log duplicate count when present: `"Fetched X logs (Y new, Z duplicates filtered)"`.
 - **Testing**: Verify filter accuracy, memory bounds, and log output in worker tests.
 
+#### 4.6. Signature Cache Deduplication (Agent-Main)
+The main orchestrator uses hash-based signature caching for persistent duplicate protection with minimal memory overhead:
+- **Data Structure**: `DashSet<u64>` for concurrent lock-free signature storage
+- **Hash Function**: FxHash (rustc-hash) for fast non-cryptographic hashing
+- **Signature Formula** (CRITICAL - must include ALL fields):
+  ```rust
+  fn compute_signature(
+      device_id: &str,
+      user_id: &str,
+      timestamp: NaiveDateTime,
+      punch: Option<i32>,     // REQUIRED (In/Out/Break)
+      status: Option<i32>     // REQUIRED (Check-in/Check-out)
+  ) -> u64 {
+      let mut hasher = FxHasher::default();
+      device_id.hash(&mut hasher);
+      user_id.hash(&mut hasher);
+      timestamp.and_utc().timestamp().hash(&mut hasher);
+      punch.hash(&mut hasher);    // Prevents false positives
+      status.hash(&mut hasher);   // Prevents false positives
+      hasher.finish()
+  }
+  ```
+- **Why punch+status**: Same employee can punch In/Out/Break at exact same timestamp - these MUST be distinct logs
+- **Memory Savings**: 8 bytes per signature vs ~200 bytes per full log (96% reduction)
+- **Persistence**: Signatures remain in memory even after logs are synced/cleaned up
+- **Startup**: Two-phase loading (Phase A: all signatures, Phase B: unsynced queue)
+- **Testing**: Validate no false positives when punch/status differ at same timestamp
+
 #### 4.6. Memory Leak Detection (Testing)
 - **Test Module**: `tests/memory_leak_detection_test.rs`
 - **Strategy**: Spawn 1000+ iterations of channel/semaphore operations
