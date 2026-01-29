@@ -111,7 +111,7 @@ impl CentralClient {
                                 agent_id: sync_agent_id.clone(),
                                 device_id: log.device_id.clone(),
                                 data: AttendanceData {
-                                    user_id: log.user_id.clone(),
+                                    user_id: crate::utils::normalize_employee_id(&log.user_id),
                                     timestamp: log.timestamp.format("%Y-%m-%d %H:%M:%S").to_string(),
                                     status: log.status,
                                     punch: log.punch,
