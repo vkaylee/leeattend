@@ -262,6 +262,8 @@
     },
     "cancel": "取消",
     "submit": "提交",
+    "back_to_workspace": "返回工作区",
+    "refresh": "刷新",
     "error_occurred": "发生错误",
     "processing": "正在处理...",
     "shift": "班次",

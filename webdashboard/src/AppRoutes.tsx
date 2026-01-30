@@ -31,6 +31,7 @@ import MyClockPage from "./pages/ess/MyClockPage";
 import OtApprovalsPage from "./pages/approvals/OtApprovalsPage";
 import WorkerMonitorPage from "./pages/WorkerMonitorPage";
 import MainLayout from "./components/layout/MainLayout";
+import InfraLayout from "./components/layout/InfraLayout";
 
 export function AppRoutes() {
   return (
@@ -40,6 +41,12 @@ export function AppRoutes() {
 
       <Route element={<AuthGuard />}>
         <Route path="/onboarding" element={<OnboardingPage />} />
+
+        {/* Global infrastructure pages (no workspace required) */}
+        <Route path="/infra" element={<InfraLayout />}>
+          <Route path="monitor" element={<WorkerMonitorPage />} />
+        </Route>
+
         <Route element={<WorkspaceGuard />}>
           <Route path="/" element={<MainLayout />}>
             <Route index element={<DashboardPage />} />
@@ -48,7 +55,6 @@ export function AppRoutes() {
             <Route path="members" element={<MembersPage />} />
             <Route path="agents" element={<AgentsPage />} />
             <Route path="devices" element={<DevicesPage />} />
-            <Route path="monitor" element={<WorkerMonitorPage />} />
             <Route path="workspace/reports" element={<ReportsPage />} />
             <Route path="workspace/payroll" element={<PayrollPage />} />
             <Route path="attendance-logs" element={<AttendanceLogsPage />} />

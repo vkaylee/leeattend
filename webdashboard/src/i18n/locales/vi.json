@@ -262,6 +262,8 @@
     },
     "cancel": "Hủy bỏ",
     "submit": "Gửi",
+    "back_to_workspace": "Quay lại Workspace",
+    "refresh": "Làm mới",
     "error_occurred": "Đã xảy ra lỗi",
     "processing": "Đang xử lý...",
     "shift": "Ca làm việc",

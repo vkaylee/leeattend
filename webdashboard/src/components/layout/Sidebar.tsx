@@ -81,7 +81,7 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
       { to: "/payroll", icon: DollarSign, label: t("payroll.title"), testId: "sidebar-link-payroll" }
     ]},
     { section: "system", sectionIcon: Wrench, label: t("settings.title"), testId: "sidebar-section-system", items: [
-      { to: "/monitor", icon: Activity, label: t("monitor.title"), testId: "sidebar-link-monitor" },
+      { to: "/infra/monitor", icon: Activity, label: t("monitor.title"), testId: "sidebar-link-monitor" },
       { to: "/workspace/settings/general", icon: Globe, label: t("settings.categories.general"), testId: "sidebar-link-settings-general" },
       { to: "/workspace/settings/people", icon: UserCog, label: t("settings.categories.people"), testId: "sidebar-link-settings-people" },
       { to: "/workspace/settings/time", icon: TimerIcon, label: t("settings.categories.time"), testId: "sidebar-link-settings-time" },

@@ -262,6 +262,8 @@
     },
     "cancel": "Cancel",
     "submit": "Submit",
+    "back_to_workspace": "Back to Workspace",
+    "refresh": "Refresh",
     "error_occurred": "An error occurred",
     "processing": "Processing...",
     "shift": "Shift",
