@@ -79,14 +79,14 @@ export function ClaimOtDialog({ open, onOpenChange, summary }: ClaimOtDialogProp
             className="absolute right-4 top-4 rounded-full p-2 opacity-70 transition-opacity hover:opacity-100 hover:bg-slate-100"
           >
             <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t("ess.ot.close")}</span>
           </button>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-6">
             <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
                 <div>
-                    <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">System Detected</p>
+                    <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">{t("ess.ot.system_detected")}</p>
                     <p className="text-lg font-bold text-amber-900">{summary.system_detected_ot_minutes} min</p>
                 </div>
             </div>

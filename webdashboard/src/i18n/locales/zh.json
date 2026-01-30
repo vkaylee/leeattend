@@ -118,6 +118,7 @@
     "no_records_found": "未找到记录。",
     "no_profile": "未找到个人资料。",
     "select_month": "选择月份",
+    "uploading": "上传中...",
     "payroll": {
       "settings": {
         "global_history": "全系统配置历史",
@@ -348,8 +349,10 @@
       "out_of": "之",
       "records": "记录",
       "page": "页",
+      "first": "首页",
       "prev": "上一页",
       "next": "下一页",
+      "last": "末页",
       "rows_per_page": "每页行数"
     },
     "filters": {
@@ -616,7 +619,9 @@
       "claimed_minutes": "申请分钟数",
       "reason_placeholder": "您为什么加班？",
       "error_zero_minutes": "分钟数必须大于0",
-      "error_exceeds_system": "不能申请超过系统检测到的加班时间"
+      "error_exceeds_system": "不能申请超过系统检测到的加班时间",
+      "system_detected": "系统检测",
+      "close": "关闭"
     }
   },
   "time_tracking": {
@@ -928,9 +933,19 @@
     "status": {
       "recorded": "已记录"
     },
+    "tabs": {
+      "recorded": "已记录",
+      "unknown": "未识别"
+    },
+    "unknown_id": "未知ID",
+    "not_in_system": "系统中不存在",
+    "select_employee": "选择员工...",
+    "assign": "分配",
+    "create_employee": "创建",
     "messages": {
       "loading": "正在加载日志...",
-      "no_data": "未找到打卡日志。"
+      "no_data": "未找到打卡日志。",
+      "no_unknown_logs": "没有未识别的记录"
     },
     "modal": {
       "import_title": "从文件导入打卡日志"

@@ -118,6 +118,7 @@
     "no_records_found": "No records found.",
     "no_profile": "No profile found.",
     "select_month": "Select Month",
+    "uploading": "Uploading...",
     "payroll": {
       "settings": {
         "global_history": "System-wide Configuration History",
@@ -348,8 +349,10 @@
       "out_of": "of",
       "records": "records",
       "page": "Page",
+      "first": "First",
       "prev": "Prev",
       "next": "Next",
+      "last": "Last",
       "rows_per_page": "Rows per page"
     },
     "filters": {
@@ -616,7 +619,9 @@
       "claimed_minutes": "Minutes to Claim",
       "reason_placeholder": "Why did you work overtime?",
       "error_zero_minutes": "Minutes must be greater than 0",
-      "error_exceeds_system": "Cannot claim more than system detected OT"
+      "error_exceeds_system": "Cannot claim more than system detected OT",
+      "system_detected": "System Detected",
+      "close": "Close"
     }
   },
   "time_tracking": {
@@ -928,9 +933,19 @@
     "status": {
       "recorded": "Recorded"
     },
+    "tabs": {
+      "recorded": "Recorded Logs",
+      "unknown": "Unidentified"
+    },
+    "unknown_id": "Unknown ID",
+    "not_in_system": "Not in system",
+    "select_employee": "Select employee...",
+    "assign": "Assign",
+    "create_employee": "Create",
     "messages": {
       "loading": "Loading logs...",
-      "no_data": "No punch logs found."
+      "no_data": "No punch logs found.",
+      "no_unknown_logs": "No unidentified logs"
     },
     "modal": {
       "import_title": "Import punch logs from file"

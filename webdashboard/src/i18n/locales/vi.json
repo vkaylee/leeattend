@@ -118,6 +118,7 @@
     "no_records_found": "Không tìm thấy bản ghi nào.",
     "no_profile": "Không tìm thấy hồ sơ.",
     "select_month": "Chọn tháng",
+    "uploading": "Đang tải lên...",
     "payroll": {
       "settings": {
         "global_history": "Lịch sử cấu hình toàn hệ thống",
@@ -348,8 +349,10 @@
       "out_of": "trên",
       "records": "bản ghi",
       "page": "Trang",
+      "first": "Đầu",
       "prev": "Trước",
       "next": "Sau",
+      "last": "Cuối",
       "rows_per_page": "Số dòng/trang"
     },
     "filters": {
@@ -616,7 +619,9 @@
       "claimed_minutes": "Số phút xác nhận",
       "reason_placeholder": "Lý do tăng ca?",
       "error_zero_minutes": "Số phút phải lớn hơn 0",
-      "error_exceeds_system": "Không thể xác nhận nhiều hơn hệ thống ghi nhận"
+      "error_exceeds_system": "Không thể xác nhận nhiều hơn hệ thống ghi nhận",
+      "system_detected": "Hệ thống ghi nhận",
+      "close": "Đóng"
     }
   },
   "time_tracking": {
@@ -928,9 +933,19 @@
     "status": {
       "recorded": "Đã ghi nhận"
     },
+    "tabs": {
+      "recorded": "Đã ghi nhận",
+      "unknown": "Chưa xác định"
+    },
+    "unknown_id": "ID chưa xác định",
+    "not_in_system": "Chưa có trong hệ thống",
+    "select_employee": "Chọn nhân viên...",
+    "assign": "Gán",
+    "create_employee": "Tạo mới",
     "messages": {
       "loading": "Đang tải nhật ký...",
-      "no_data": "Không tìm thấy dữ liệu quẹt thẻ nào."
+      "no_data": "Không tìm thấy dữ liệu quẹt thẻ nào.",
+      "no_unknown_logs": "Không có bản ghi chưa xác định"
     },
     "modal": {
       "import_title": "Nhập nhật ký quẹt thẻ từ file"

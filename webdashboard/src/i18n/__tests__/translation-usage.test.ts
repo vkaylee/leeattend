@@ -152,7 +152,9 @@ describe('Translation Usage', () => {
             // Filter out common non-translatable things
             if (/^[A-Z0-9_-]+$/.test(text)) return; // Likely a constant or ID
             if (text.startsWith('data-')) return;
-            
+            // Brand names and technical identifiers
+            if (['Lee', 'Attend', 'ID:'].includes(text)) return;
+
             hardcodedStrings.push({ file, line: index + 1, text });
           }
         }

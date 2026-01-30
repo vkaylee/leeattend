@@ -97,13 +97,13 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
           )}
         </div>
         <div>
-          <nav className="relative z-0 inline-flex gap-1" aria-label="Pagination">
+          <nav className="relative z-0 inline-flex gap-1" aria-label={t("common.pagination.page")}>
             <button
               onClick={() => onPageChange(1)}
               disabled={currentPage === 1}
               className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 bg-white border border-slate-200 rounded-xl hover:text-primary-600 hover:border-primary-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
             >
-              <span className="sr-only">First</span>
+              <span className="sr-only">{t("common.pagination.first")}</span>
               <ChevronsLeft className="w-4 h-4" />
             </button>
             <button
@@ -111,7 +111,7 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
               disabled={currentPage === 1}
               className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 bg-white border border-slate-200 rounded-xl hover:text-primary-600 hover:border-primary-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
             >
-              <span className="sr-only">Previous</span>
+              <span className="sr-only">{t("common.pagination.prev")}</span>
               <ChevronLeft className="w-4 h-4" />
             </button>
             
@@ -137,7 +137,7 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
               disabled={currentPage === totalPages}
               className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 bg-white border border-slate-200 rounded-xl hover:text-primary-600 hover:border-primary-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
             >
-              <span className="sr-only">Next</span>
+              <span className="sr-only">{t("common.pagination.next")}</span>
               <ChevronRight className="w-4 h-4" />
             </button>
             <button
@@ -145,7 +145,7 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
               disabled={currentPage === totalPages}
               className="relative inline-flex items-center w-9 h-9 justify-center text-sm font-medium text-slate-500 bg-white border border-slate-200 rounded-xl hover:text-primary-600 hover:border-primary-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-sm active:scale-95"
             >
-              <span className="sr-only">Last</span>
+              <span className="sr-only">{t("common.pagination.last")}</span>
               <ChevronsRight className="w-4 h-4" />
             </button>
           </nav>
