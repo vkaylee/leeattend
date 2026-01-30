@@ -9,7 +9,7 @@ use crate::models::{
     AttendanceReportSort, DailyAttendanceReport, AttendanceSummary, PaginatedResponse, PolicyRules,
 };
 use crate::repositories::{
-    roster_repository, time_entry_repository,
+    employee_repository, roster_repository, time_entry_repository,
     SqlxWorkspaceRepository,
 };
 use crate::repositories::workspace_repository::WorkspaceRepository;
@@ -41,14 +41,50 @@ impl ReportService {
 
         let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
 
-        // 1. Get all schedules for the range
-        let schedules =
-            roster_repository::get_workspace_schedules(pool, workspace_id, start_date, end_date, employee_ids.as_ref())
-                .await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        // 1. PAGINATION AT DATABASE LEVEL
+        let page = page.unwrap_or(1);
+        let limit = limit.unwrap_or(20);
 
-        // 2. Get all time entries for the range
-        // Convert NaiveDate to DateTime<Utc> using Workspace Timezone
+        // Daily report always uses ASC sort (no sort parameter exposed)
+        let (paginated_employees, total_employees) = employee_repository::get_paginated_employee_ids(
+            pool,
+            workspace_id,
+            employee_ids.as_ref(),
+            page,
+            limit,
+            false, // sort_desc = false -> ORDER BY full_name ASC
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!("Error fetching paginated employees: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+        // Early return if no employees
+        if paginated_employees.is_empty() {
+            return Ok(PaginatedResponse {
+                data: Vec::new(),
+                total: total_employees as usize,
+                page,
+                limit,
+            });
+        }
+
+        // 2. Get employee IDs for filtered queries
+        let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
+
+        // 3. Get schedules ONLY for paginated employees
+        let schedules = roster_repository::get_workspace_schedules(
+            pool,
+            workspace_id,
+            start_date,
+            end_date,
+            Some(&emp_ids),
+        )
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        // 4. Convert NaiveDate to DateTime<Utc> using Workspace Timezone
         let start_dt = tz
             .from_local_datetime(
                 &start_date
@@ -69,17 +105,22 @@ impl ReportService {
             .ok_or(StatusCode::BAD_REQUEST)?
             .with_timezone(&Utc);
 
+        // 5. BATCH fetch time entries (eliminates N+1)
+        let entries_map = time_entry_repository::get_workspace_time_entries_batch(
+            pool,
+            &emp_ids,
+            start_dt,
+            end_dt,
+        )
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        // 6. Calculate reports (same logic as before)
         let mut reports = Vec::new();
 
         for emp_sched in schedules {
-            let entries = time_entry_repository::get_employee_time_entries(
-                pool,
-                emp_sched.employee_id,
-                start_dt,
-                end_dt,
-            )
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            // Get entries from HashMap (O(1) lookup instead of DB query)
+            let entries = entries_map.get(&emp_sched.employee_id).cloned().unwrap_or_default();
 
             for daily in emp_sched.schedules {
                 let date = daily.date;
@@ -107,10 +148,10 @@ impl ReportService {
                         .map(|e| e.duration_minutes.unwrap_or(0))
                         .sum();
 
-                    let start_dt = daily
+                    let shift_start_dt = daily
                         .start_time
                         .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
-                    let end_dt = daily
+                    let shift_end_dt = daily
                         .end_time
                         .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
 
@@ -132,7 +173,7 @@ impl ReportService {
                     if let Some(aeo) = daily.allow_early_ot { rules.allow_early_ot = aeo; }
 
                     // Handle shift boundaries (with overnight shift support)
-                    let (shift_start, shift_end) = if let (Some(start), Some(mut end)) = (start_dt, end_dt) {
+                    let (shift_start, shift_end) = if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
                         if daily.end_time < daily.start_time {
                             end += chrono::Duration::days(1);
                         }
@@ -174,12 +215,12 @@ impl ReportService {
 
                 // Collect metadata from all entries for this day
                 let mut metadata_map = serde_json::Map::new();
-                
+
                 let log_metadata: Vec<_> = day_entries
                     .iter()
                     .filter_map(|e| e.generation_metadata.clone())
                     .collect();
-                
+
                 if !log_metadata.is_empty() {
                     metadata_map.insert("time_entries".to_string(), serde_json::json!(log_metadata));
                 }
@@ -214,25 +255,10 @@ impl ReportService {
             }
         }
 
-        // 3. Pagination
-        let total = reports.len();
-        let limit = limit.unwrap_or(20);
-        let page = page.unwrap_or(1);
-        let offset = ((page - 1) * limit) as usize;
-
-        let data = if offset >= total {
-            Vec::new()
-        } else {
-            reports
-                .into_iter()
-                .skip(offset)
-                .take(limit as usize)
-                .collect()
-        };
-
+        // 7. Return paginated response (NO in-memory skip/take)
         Ok(PaginatedResponse {
-            data,
-            total,
+            data: reports,
+            total: total_employees as usize,  // Total from DB pagination
             page,
             limit,
         })
@@ -244,9 +270,10 @@ impl ReportService {
     /// to ensure data consistency between Summary and Detail reports.
     ///
     /// Process:
-    /// 1. Fetch schedules and time entries (batch)
-    /// 2. Apply AttendanceCalculator for each day (same as detail report)
-    /// 3. Aggregate daily results per employee
+    /// 1. DB-level pagination via get_paginated_employee_ids
+    /// 2. Batch fetch schedules and time entries (eliminates N+1)
+    /// 3. Apply AttendanceCalculator for each day (same as detail report)
+    /// 4. Aggregate daily results per employee
     #[allow(clippy::too_many_arguments)]
     pub async fn get_workspace_attendance_summary(
         pool: &PgPool,
@@ -258,6 +285,9 @@ impl ReportService {
         limit: Option<i64>,
         employee_ids: Option<Vec<Uuid>>,
     ) -> Result<PaginatedResponse<AttendanceSummary>, StatusCode> {
+        use std::collections::HashMap;
+        use sqlx::Row;
+
         // 0. Get Workspace Settings
         let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
         let workspace = workspace_repo
@@ -271,18 +301,53 @@ impl ReportService {
 
         let tz: Tz = workspace.timezone.parse().unwrap_or(chrono_tz::UTC);
 
-        // 1. Get all schedules for the range (batch fetch)
+        // 1. PAGINATION AT DATABASE LEVEL
+        let page = page.unwrap_or(1);
+        let limit = limit.unwrap_or(20);
+
+        // Determine sort direction for name sorting at DB level
+        // NameDesc -> ORDER BY full_name DESC; all others -> ORDER BY full_name ASC
+        let sort_desc = matches!(sort, Some(AttendanceReportSort::NameDesc));
+
+        let (paginated_employees, total_employees) = employee_repository::get_paginated_employee_ids(
+            pool,
+            workspace_id,
+            employee_ids.as_ref(),
+            page,
+            limit,
+            sort_desc,
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!("Error fetching paginated employees: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+        // Early return if no employees
+        if paginated_employees.is_empty() {
+            return Ok(PaginatedResponse {
+                data: Vec::new(),
+                total: total_employees as usize,
+                page,
+                limit,
+            });
+        }
+
+        // 2. Get employee IDs for filtered queries
+        let emp_ids: Vec<Uuid> = paginated_employees.iter().map(|e| e.id).collect();
+
+        // 3. Get schedules ONLY for paginated employees
         let schedules = roster_repository::get_workspace_schedules(
             pool,
             workspace_id,
             start_date,
             end_date,
-            employee_ids.as_ref(),
+            Some(&emp_ids),
         )
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        // 2. Convert dates to UTC for time entry query
+        // 4. Convert dates to UTC for time entry query
         let start_dt = tz
             .from_local_datetime(
                 &start_date
@@ -303,27 +368,33 @@ impl ReportService {
             .ok_or(StatusCode::BAD_REQUEST)?
             .with_timezone(&Utc);
 
-        // 3. Fetch leave days per employee (batch query)
-        use sqlx::Row;
-        let leave_data: std::collections::HashMap<Uuid, i64> = sqlx::query(
+        // 5. BATCH fetch time entries (eliminates N+1)
+        let entries_map = time_entry_repository::get_workspace_time_entries_batch(
+            pool,
+            &emp_ids,
+            start_dt,
+            end_dt,
+        )
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        // 6. Fetch leave days for paginated employees (batch query)
+        let leave_data: HashMap<Uuid, i64> = sqlx::query(
             r#"
             SELECT
                 lr.employee_id,
                 SUM(lr.end_date - lr.start_date + 1)::bigint as leave_days
             FROM leave_requests lr
-            JOIN employees e ON e.id = lr.employee_id
-            WHERE e.workspace_id = $1
+            WHERE lr.employee_id = ANY($1)
               AND lr.status = 'approved'
               AND lr.start_date >= $2::date
               AND lr.end_date <= $3::date
-              AND ($4::uuid[] IS NULL OR lr.employee_id = ANY($4))
             GROUP BY lr.employee_id
             "#,
         )
-        .bind(workspace_id)
+        .bind(&emp_ids)
         .bind(start_date)
         .bind(end_date)
-        .bind(employee_ids.as_deref())
         .fetch_all(pool)
         .await
         .map_err(|e| {
@@ -339,21 +410,12 @@ impl ReportService {
         })
         .collect();
 
-        // 4. Calculate work units per employee using the SAME logic as daily report
-        use std::collections::HashMap;
-        let mut employee_totals: HashMap<Uuid, (String, i32)> = HashMap::new();
+        // 7. Calculate work units per employee using the SAME logic as daily report
+        let mut employee_totals: HashMap<Uuid, i32> = HashMap::new();
 
         for emp_sched in schedules {
-            // Batch fetch time entries for this employee
-            let entries = time_entry_repository::get_employee_time_entries(
-                pool,
-                emp_sched.employee_id,
-                start_dt,
-                end_dt,
-            )
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
+            // Get entries from HashMap (O(1) lookup instead of DB query)
+            let entries = entries_map.get(&emp_sched.employee_id).cloned().unwrap_or_default();
             let mut employee_total_units = 0i32;
 
             // Calculate for each day (same logic as get_daily_attendance_report)
@@ -381,10 +443,10 @@ impl ReportService {
                         .map(|e| e.duration_minutes.unwrap_or(0))
                         .sum();
 
-                    let start_dt = daily
+                    let shift_start_dt = daily
                         .start_time
                         .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
-                    let end_dt = daily
+                    let shift_end_dt = daily
                         .end_time
                         .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
 
@@ -421,7 +483,7 @@ impl ReportService {
 
                     // Handle shift boundaries (with overnight shift support)
                     let (shift_start, shift_end) =
-                        if let (Some(start), Some(mut end)) = (start_dt, end_dt) {
+                        if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
                             if daily.end_time < daily.start_time {
                                 end += chrono::Duration::days(1);
                             }
@@ -448,31 +510,27 @@ impl ReportService {
                 }
             }
 
-            employee_totals.insert(
-                emp_sched.employee_id,
-                (emp_sched.full_name, employee_total_units),
-            );
+            employee_totals.insert(emp_sched.employee_id, employee_total_units);
         }
 
-        // 5. Build results
-        let mut results: Vec<AttendanceSummary> = employee_totals
-            .into_iter()
-            .map(|(employee_id, (employee_name, total_work_units))| AttendanceSummary {
-                employee_id,
-                employee_name,
-                total_work_units,
-                total_leave_days: leave_data.get(&employee_id).copied().unwrap_or(0),
+        // 8. Build results from paginated employees (preserve order)
+        let mut results: Vec<AttendanceSummary> = paginated_employees
+            .iter()
+            .map(|emp| AttendanceSummary {
+                employee_id: emp.id,
+                employee_name: emp.full_name.clone(),
+                total_work_units: *employee_totals.get(&emp.id).unwrap_or(&0),
+                total_leave_days: leave_data.get(&emp.id).copied().unwrap_or(0),
             })
             .collect();
 
-        // 6. Sorting
-        if let Some(s) = sort {
+        // 9. Sort within batch (for calculated fields only)
+        // Note: Name sorting (ASC/DESC) is already handled by DB ORDER BY via sort_desc parameter
+        // Calculated field sorts (WorkHours, LeaveDays) only affect order within current page
+        if let Some(s) = &sort {
             match s {
-                AttendanceReportSort::NameAsc => {
-                    results.sort_by(|a, b| a.employee_name.cmp(&b.employee_name))
-                }
-                AttendanceReportSort::NameDesc => {
-                    results.sort_by(|a, b| b.employee_name.cmp(&a.employee_name))
+                AttendanceReportSort::NameAsc | AttendanceReportSort::NameDesc => {
+                    // Already sorted from DB - no action needed
                 }
                 AttendanceReportSort::WorkHoursAsc => {
                     results.sort_by(|a, b| a.total_work_units.cmp(&b.total_work_units))
@@ -489,25 +547,10 @@ impl ReportService {
             }
         }
 
-        // 7. Pagination
-        let total = results.len();
-        let limit = limit.unwrap_or(20);
-        let page = page.unwrap_or(1);
-        let offset = ((page - 1) * limit) as usize;
-
-        let data = if offset >= total {
-            Vec::new()
-        } else {
-            results
-                .into_iter()
-                .skip(offset)
-                .take(limit as usize)
-                .collect()
-        };
-
+        // 10. Return response (NO in-memory skip/take - pagination done at DB level)
         Ok(PaginatedResponse {
-            data,
-            total,
+            data: results,
+            total: total_employees as usize,
             page,
             limit,
         })

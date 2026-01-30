@@ -5,6 +5,13 @@ use uuid::Uuid;
 use crate::models::{Employee, EmploymentPeriod, WorkingCondition};
 use crate::utils::normalize_employee_id;
 
+/// Minimal employee info for paginated reports
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct EmployeeBasicInfo {
+    pub id: Uuid,
+    pub full_name: String,
+}
+
 pub async fn find_by_number(
     pool: &PgPool,
     workspace_id: Uuid,
@@ -425,4 +432,52 @@ pub async fn get_employee_payroll_config_at(
     )
     .fetch_optional(pool)
     .await
+}
+
+/// Get paginated employee IDs with optional filter for reports
+/// Returns: (employees, total_count)
+///
+/// # Arguments
+/// * `sort_desc` - If true, ORDER BY full_name DESC; if false, ORDER BY full_name ASC
+pub async fn get_paginated_employee_ids(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    filter_ids: Option<&Vec<Uuid>>,
+    page: i64,
+    limit: i64,
+    sort_desc: bool,
+) -> Result<(Vec<EmployeeBasicInfo>, i64), sqlx::Error> {
+    // Count query
+    let total: i64 = query_scalar(
+        r#"SELECT COUNT(*) FROM employees
+           WHERE workspace_id = $1 AND is_active = true
+           AND ($2::uuid[] IS NULL OR id = ANY($2))"#,
+    )
+    .bind(workspace_id)
+    .bind(filter_ids)
+    .fetch_one(pool)
+    .await?;
+
+    // Data query with pagination and dynamic ORDER BY
+    // Note: Using format!() for ORDER direction since sqlx doesn't support binding ORDER direction
+    let offset = (page - 1) * limit;
+    let order_dir = if sort_desc { "DESC" } else { "ASC" };
+    let sql = format!(
+        r#"SELECT id, full_name FROM employees
+           WHERE workspace_id = $1 AND is_active = true
+           AND ($2::uuid[] IS NULL OR id = ANY($2))
+           ORDER BY full_name {}
+           LIMIT $3 OFFSET $4"#,
+        order_dir
+    );
+
+    let employees = query_as::<_, EmployeeBasicInfo>(&sql)
+        .bind(workspace_id)
+        .bind(filter_ids)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(pool)
+        .await?;
+
+    Ok((employees, total))
 }

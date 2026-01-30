@@ -650,12 +650,12 @@ Overtime is managed through a "3-Way Match" workflow:
 This ensures compliance and auditability, avoiding automatic payments for unauthorized presence while simplifying the claim process for valid work.
 
 ### 19. Unified Attendance Report Calculation (New - 2026-01-30)
-The Summary and Detail attendance reports now share identical calculation logic, ensuring data consistency.
+The Summary and Detail attendance reports now share identical calculation logic with database-level pagination, ensuring data consistency and optimal performance.
 
 **Problem Solved:**
-Previously, the Summary Report used raw SQL aggregation (`SUM(duration_minutes)`), bypassing business rules like break deduction, shift boundaries, and OT calculation. This caused discrepancies with the Detail Report.
+Previously, the Summary Report used raw SQL aggregation (`SUM(duration_minutes)`), bypassing business rules like break deduction, shift boundaries, and OT calculation. This caused discrepancies with the Detail Report. Additionally, both reports loaded ALL employees into memory before pagination.
 
-**Unified Architecture:**
+**Unified Architecture with DB Pagination:**
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │           ATTENDANCE REPORT CALCULATION FLOW                 │
@@ -663,22 +663,39 @@ Previously, the Summary Report used raw SQL aggregation (`SUM(duration_minutes)`
 │                                                              │
 │  Both Summary & Detail Reports:                              │
 │                                                              │
-│  1. Fetch Schedules (batch)                                  │
+│  1. DB-Level Pagination (NEW)                                │
+│     └─ employee_repository::get_paginated_employee_ids()     │
+│        → Returns (Vec<EmployeeBasicInfo>, total_count)       │
+│        → Sorts by name at DB level                           │
+│                                                              │
+│  2. Fetch Schedules (batch, paginated employees only)        │
 │     └─ roster_repository::get_workspace_schedules()          │
 │                                                              │
-│  2. Fetch Time Entries (batch per employee)                  │
-│     └─ time_entry_repository::get_employee_time_entries()    │
+│  3. Batch Fetch Time Entries (NEW - eliminates N+1)          │
+│     └─ time_entry_repository::get_workspace_time_entries_batch()
+│        → Returns HashMap<Uuid, Vec<TimeEntry>>               │
+│        → Single query for all employees                      │
 │                                                              │
-│  3. For each day:                                            │
+│  4. For each day:                                            │
 │     ├─ Resolve PolicyRules (via PolicyResolver)              │
 │     ├─ Handle shift boundaries (inc. overnight shifts)       │
 │     └─ Calculate via AttendanceCalculator::calculate_daily_units()
 │                                                              │
-│  4. Summary Report: Aggregate daily results per employee     │
+│  5. Summary Report: Aggregate daily results per employee     │
 │     Detail Report: Return daily breakdown                    │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+**Performance Improvements:**
+- **Before**: O(N) queries for time entries, O(N) memory for all employees
+- **After**: O(1) batch query for time entries, O(L) memory (L=limit per page)
+- **Eliminated N+1**: All time entries fetched in single query via batch function
+- **DB Pagination**: Only requested page of employees loaded into memory
+
+**Sorting Behavior:**
+- **Name Sort**: Global sorting handled at database level (ORDER BY full_name ASC/DESC)
+- **Calculated Fields** (WorkHours, LeaveDays): Within-page sorting only (cannot sort globally without computing all)
 
 **AttendanceCalculator Applied Rules:**
 - **Break Deduction**: Auto-deduct scheduled break or deduct actual break taken
@@ -695,7 +712,15 @@ Previously, the Summary Report used raw SQL aggregation (`SUM(duration_minutes)`
 Summary.total_work_units = Σ Detail[day].work_units (for same employee, date range)
 ```
 
-**Performance:**
-- Batch fetching for schedules, time entries, and leave data
-- No N+1 queries - all data fetched once then processed in memory
-- Leave days calculated separately via optimized SQL aggregation
+**Repository Functions:**
+```rust
+// New paginated employee fetch
+employee_repository::get_paginated_employee_ids(
+    pool, workspace_id, filter_ids, page, limit, sort_desc
+) -> (Vec<EmployeeBasicInfo>, total_count)
+
+// New batch time entry fetch
+time_entry_repository::get_workspace_time_entries_batch(
+    pool, employee_ids, from, to
+) -> HashMap<Uuid, Vec<TimeEntry>>
+```

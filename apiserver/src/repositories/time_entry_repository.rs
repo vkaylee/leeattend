@@ -1,6 +1,7 @@
 use crate::models::TimeEntry;
 use chrono::{DateTime, Utc};
 use sqlx::{query, query_as, query_scalar, PgPool};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 pub async fn create_time_entry(pool: &PgPool, entry: &TimeEntry) -> Result<(), sqlx::Error> {
@@ -185,4 +186,37 @@ pub async fn count_logs(
     }
 
     query.fetch_one(pool).await
+}
+
+/// Batch fetch time entries for multiple employees in a single query
+/// Returns HashMap keyed by employee_id for O(1) lookup
+pub async fn get_workspace_time_entries_batch(
+    pool: &PgPool,
+    employee_ids: &[Uuid],
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+) -> Result<HashMap<Uuid, Vec<TimeEntry>>, sqlx::Error> {
+    if employee_ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let entries = query_as::<_, TimeEntry>(
+        r#"SELECT * FROM time_entries
+           WHERE employee_id = ANY($1)
+           AND punch_in_time >= $2 AND punch_in_time <= $3
+           ORDER BY employee_id, punch_in_time DESC"#,
+    )
+    .bind(employee_ids)
+    .bind(from)
+    .bind(to)
+    .fetch_all(pool)
+    .await?;
+
+    // Group by employee_id for O(1) lookup
+    let mut result: HashMap<Uuid, Vec<TimeEntry>> = HashMap::new();
+    for entry in entries {
+        result.entry(entry.employee_id).or_default().push(entry);
+    }
+
+    Ok(result)
 }

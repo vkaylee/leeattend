@@ -218,6 +218,133 @@ The main orchestrator uses hash-based signature caching for persistent duplicate
 - **Services (Domain Layer)**: Chứa logic nghiệp vụ. Services nhận các Repositories thông qua Dependency Injection (DI) để tương tác với dữ liệu.
 - **Repositories (Data Layer)**: Định nghĩa các Trait (sử dụng `#[async_trait]`) để trừu tượng hóa việc truy vấn dữ liệu (SQLx, In-memory, etc.).
 
+### 2.1. Database Pagination Pattern
+For optimal performance, pagination MUST be implemented at the database level, not in-memory:
+
+**Anti-pattern (DO NOT USE):**
+```rust
+// ❌ INCORRECT - Loads all data then paginates in memory
+let all_items = repository::get_all(pool).await?;
+let total = all_items.len();
+let data = all_items.into_iter().skip(offset).take(limit).collect();
+```
+
+**Correct Pattern:**
+```rust
+// ✅ CORRECT - Pagination at DB level
+let (items, total) = repository::get_paginated(pool, page, limit).await?;
+// Returns only requested page + total count in single query
+```
+
+**Implementation Example:**
+```rust
+pub async fn get_paginated_employee_ids(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    filter_ids: Option<&Vec<Uuid>>,
+    page: i64,
+    limit: i64,
+    sort_desc: bool,
+) -> Result<(Vec<EmployeeBasicInfo>, i64), sqlx::Error> {
+    // Count query
+    let total: i64 = query_scalar(
+        "SELECT COUNT(*) FROM employees
+         WHERE workspace_id = $1 AND is_active = true
+         AND ($2::uuid[] IS NULL OR id = ANY($2))"
+    )
+    .bind(workspace_id)
+    .bind(filter_ids)
+    .fetch_one(pool)
+    .await?;
+
+    // Data query with LIMIT/OFFSET at DB level
+    let offset = (page - 1) * limit;
+    let employees = query_as::<_, EmployeeBasicInfo>(
+        "SELECT id, full_name FROM employees
+         WHERE workspace_id = $1 AND is_active = true
+         AND ($2::uuid[] IS NULL OR id = ANY($2))
+         ORDER BY full_name ASC
+         LIMIT $3 OFFSET $4"
+    )
+    .bind(workspace_id)
+    .bind(filter_ids)
+    .bind(limit)
+    .bind(offset)
+    .fetch_all(pool)
+    .await?;
+
+    Ok((employees, total))
+}
+```
+
+**Benefits:**
+- Memory: O(L) instead of O(N) where L=limit, N=total records
+- Performance: Only fetches requested page from database
+- Scalability: Handles large datasets without memory issues
+
+### 2.2. Batch Fetching Pattern (N+1 Query Elimination)
+To eliminate N+1 query problems, use batch fetching with HashMap returns:
+
+**Anti-pattern (N+1 Query Problem):**
+```rust
+// ❌ INCORRECT - N queries in loop
+for employee in employees {
+    let entries = get_employee_time_entries(pool, employee.id).await?;
+    process(entries);
+}
+```
+
+**Correct Pattern:**
+```rust
+// ✅ CORRECT - Single batch query
+let employee_ids: Vec<Uuid> = employees.iter().map(|e| e.id).collect();
+let entries_map = get_workspace_time_entries_batch(pool, &employee_ids).await?;
+
+for employee in employees {
+    let entries = entries_map.get(&employee.id).cloned().unwrap_or_default();
+    process(entries);
+}
+```
+
+**Implementation Example:**
+```rust
+pub async fn get_workspace_time_entries_batch(
+    pool: &PgPool,
+    employee_ids: &[Uuid],
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+) -> Result<HashMap<Uuid, Vec<TimeEntry>>, sqlx::Error> {
+    if employee_ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let entries = query_as::<_, TimeEntry>(
+        "SELECT * FROM time_entries
+         WHERE employee_id = ANY($1)
+         AND punch_in_time >= $2 AND punch_in_time <= $3
+         ORDER BY employee_id, punch_in_time DESC"
+    )
+    .bind(employee_ids)
+    .bind(from)
+    .bind(to)
+    .fetch_all(pool)
+    .await?;
+
+    // Group by employee_id for O(1) lookup
+    let mut result: HashMap<Uuid, Vec<TimeEntry>> = HashMap::new();
+    for entry in entries {
+        result.entry(entry.employee_id).or_default().push(entry);
+    }
+
+    Ok(result)
+}
+```
+
+**Benefits:**
+- Queries: O(1) instead of O(N)
+- Performance: Single database roundtrip
+- Lookup: O(1) via HashMap
+
 ### 3. Dependency Injection
 Sử dụng `Arc<dyn RepositoryTrait>` để inject vào Services. Khởi tạo toàn bộ dependencies tại `main.rs` và đưa vào `AppState`.
 
