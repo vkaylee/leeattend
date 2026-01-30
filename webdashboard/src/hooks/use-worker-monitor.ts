@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchMonitorStats, fetchWorkerList } from "@/lib/api/attendance";
-import { getCurrentWorkspaceId } from "@/lib/api";
 
 export const monitorKeys = {
   all: ["worker-monitor"] as const,
@@ -9,19 +8,15 @@ export const monitorKeys = {
 };
 
 export function useWorkerMonitor() {
-  const wsId = getCurrentWorkspaceId();
-
   const statsQuery = useQuery({
     queryKey: monitorKeys.stats(),
-    queryFn: () => fetchMonitorStats(wsId!),
-    enabled: !!wsId,
+    queryFn: fetchMonitorStats,
     refetchInterval: 5000, // Refresh every 5 seconds for real-time monitoring
   });
 
   const workersQuery = useQuery({
     queryKey: monitorKeys.workers(),
-    queryFn: () => fetchWorkerList(wsId!),
-    enabled: !!wsId,
+    queryFn: fetchWorkerList,
     refetchInterval: 5000,
   });
 

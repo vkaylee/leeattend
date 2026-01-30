@@ -428,13 +428,13 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/reports/jobs/:job_id/download",
             get(handlers::report_export::download_report),
         )
-        // Worker monitoring endpoints
+        // Worker monitoring endpoints (global infrastructure)
         .route(
-            "/workspaces/:ws_id/monitor/stats",
+            "/monitor/stats",
             get(handlers::worker_monitor::get_monitor_stats),
         )
         .route(
-            "/workspaces/:ws_id/monitor/workers",
+            "/monitor/workers",
             get(handlers::worker_monitor::get_worker_list),
         )
         .route(

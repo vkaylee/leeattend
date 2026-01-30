@@ -3,7 +3,7 @@
 //! Provides real-time monitoring endpoints for distributed worker system.
 
 use axum::{
-    extract::{Path, State},
+    extract::State,
     http::StatusCode,
     Json,
 };
@@ -52,10 +52,9 @@ pub struct MonitorStatsResponse {
 
 /// Get dashboard overview statistics.
 ///
-/// Route: GET /workspaces/:ws_id/monitor/stats
+/// Route: GET /monitor/stats
 pub async fn get_monitor_stats(
     State(state): State<Arc<AppState>>,
-    Path(_ws_id): Path<Uuid>,
 ) -> Result<Json<MonitorStatsResponse>, (StatusCode, String)> {
     let redis = state.redis.as_ref().ok_or_else(|| {
         (
@@ -113,10 +112,9 @@ pub async fn get_monitor_stats(
 
 /// Get list of all worker heartbeats.
 ///
-/// Route: GET /workspaces/:ws_id/monitor/workers
+/// Route: GET /monitor/workers
 pub async fn get_worker_list(
     State(state): State<Arc<AppState>>,
-    Path(_ws_id): Path<Uuid>,
 ) -> Result<Json<Vec<WorkerHeartbeat>>, (StatusCode, String)> {
     let redis = state.redis.as_ref().ok_or_else(|| {
         (

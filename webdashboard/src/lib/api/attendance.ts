@@ -487,24 +487,16 @@ export async function downloadExportReport(
   return response.blob();
 }
 
-// --- Worker Monitoring ---
+// --- Worker Monitoring (Global Infrastructure) ---
 
-export async function fetchMonitorStats(
-  wsId: string
-): Promise<WorkerMonitorStats> {
-  const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/monitor/stats`
-  );
+export async function fetchMonitorStats(): Promise<WorkerMonitorStats> {
+  const response = await apiFetch(`${API_BASE_URL}/monitor/stats`);
   if (!response.ok) throw new Error("Failed to fetch monitor stats");
   return response.json();
 }
 
-export async function fetchWorkerList(
-  wsId: string
-): Promise<WorkerHeartbeat[]> {
-  const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/monitor/workers`
-  );
+export async function fetchWorkerList(): Promise<WorkerHeartbeat[]> {
+  const response = await apiFetch(`${API_BASE_URL}/monitor/workers`);
   if (!response.ok) throw new Error("Failed to fetch worker list");
   return response.json();
 }
