@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useDevices } from "@/hooks/use-devices";
-import { useAgentsStatus } from "@/hooks/use-agents";
+import { useAuthorizedAgents } from "@/hooks/use-agents";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,7 +38,7 @@ export default function DevicesPage() {
   const { t } = useTranslation();
   const toast = useToast();
   const { devices, isLoading: devicesLoading, createDevice, updateDevice, deleteDevice } = useDevices();
-  const { agents, isLoading: agentsLoading } = useAgentsStatus();
+  const { agents: authorizedAgents, isLoading: agentsLoading } = useAuthorizedAgents();
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingDevice, setEditingDevice] = useState<any>(null);
@@ -189,7 +189,7 @@ export default function DevicesPage() {
           <div className="grid grid-cols-2 gap-8">
             <div className="space-y-3 px-1">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("devices.form.managed_by")}</label>
-              <Combobox options={agents.map((a) => ({ value: a.agent_id, label: a.agent_id, icon: <Server size={14} /> }))} value={editingDevice ? editingDevice.agent_id : newDevice.agent_id} onChange={(val) => editingDevice ? setEditingDevice({ ...editingDevice, agent_id: val }) : setNewDevice({ ...newDevice, agent_id: val })} placeholder={t("devices.form.select_agent")} className="bg-slate-50 border-slate-100 h-14" />
+              <Combobox options={authorizedAgents.map((a) => ({ value: a.id, label: `${a.name} (${a.id})`, icon: <Server size={14} /> }))} value={editingDevice ? editingDevice.agent_id : newDevice.agent_id} onChange={(val) => editingDevice ? setEditingDevice({ ...editingDevice, agent_id: val }) : setNewDevice({ ...newDevice, agent_id: val })} placeholder={t("devices.form.select_agent")} className="bg-slate-50 border-slate-100 h-14" />
             </div>
             <div className="space-y-3 px-1">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("devices.form.brand")}</label>
