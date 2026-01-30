@@ -648,3 +648,54 @@ Overtime is managed through a "3-Way Match" workflow:
 3.  **Manager Approval:** Managers approve claims, which then become the "Payable OT" for payroll.
 
 This ensures compliance and auditability, avoiding automatic payments for unauthorized presence while simplifying the claim process for valid work.
+
+### 19. Unified Attendance Report Calculation (New - 2026-01-30)
+The Summary and Detail attendance reports now share identical calculation logic, ensuring data consistency.
+
+**Problem Solved:**
+Previously, the Summary Report used raw SQL aggregation (`SUM(duration_minutes)`), bypassing business rules like break deduction, shift boundaries, and OT calculation. This caused discrepancies with the Detail Report.
+
+**Unified Architecture:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│           ATTENDANCE REPORT CALCULATION FLOW                 │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  Both Summary & Detail Reports:                              │
+│                                                              │
+│  1. Fetch Schedules (batch)                                  │
+│     └─ roster_repository::get_workspace_schedules()          │
+│                                                              │
+│  2. Fetch Time Entries (batch per employee)                  │
+│     └─ time_entry_repository::get_employee_time_entries()    │
+│                                                              │
+│  3. For each day:                                            │
+│     ├─ Resolve PolicyRules (via PolicyResolver)              │
+│     ├─ Handle shift boundaries (inc. overnight shifts)       │
+│     └─ Calculate via AttendanceCalculator::calculate_daily_units()
+│                                                              │
+│  4. Summary Report: Aggregate daily results per employee     │
+│     Detail Report: Return daily breakdown                    │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**AttendanceCalculator Applied Rules:**
+- **Break Deduction**: Auto-deduct scheduled break or deduct actual break taken
+- **Shift Boundaries**: Standard time = intersection of punch time and shift window
+- **Early OT**: Time before shift start (if `allow_early_ot = true`)
+- **Late OT**: Time after shift end
+- **Grace Period**: Blocks early OT if arrival is within grace window
+- **Authorized Early Leave**: Pays full shift if leaving within allowed minutes
+- **Overnight Shift Support**: Automatically linearizes shifts crossing midnight
+- **No-Shift Fallback**: When no schedule assigned, calculates raw duration
+
+**Consistency Guarantee:**
+```
+Summary.total_work_units = Σ Detail[day].work_units (for same employee, date range)
+```
+
+**Performance:**
+- Batch fetching for schedules, time entries, and leave data
+- No N+1 queries - all data fetched once then processed in memory
+- Leave days calculated separately via optimized SQL aggregation
