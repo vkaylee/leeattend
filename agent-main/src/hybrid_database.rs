@@ -418,9 +418,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_signatures_survive_restart_simulation() {
-        // Create temporary database file
-        let temp_db = tempfile::NamedTempFile::new().unwrap();
-        let db_url = format!("sqlite:{}", temp_db.path().display());
+        // Use shared in-memory SQLite with UUID for test isolation
+        // Note: This simulates restart by creating two separate HybridDatabase instances
+        // sharing the same in-memory DB via cache=shared
+        let db_url = format!("sqlite:file:{}?mode=memory&cache=shared", uuid::Uuid::new_v4());
 
         // Phase 1: Create and checkpoint logs
         {

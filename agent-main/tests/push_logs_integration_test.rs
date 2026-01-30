@@ -8,6 +8,12 @@ use agent::hybrid_database::HybridDatabase;
 use agent::central_client::CentralClient;
 use agent::models::AttendanceData;
 use log::info;
+use uuid::Uuid;
+
+/// Create an in-memory SQLite URL with shared cache for parallel test isolation
+fn in_memory_db_url() -> String {
+    format!("sqlite:file:{}?mode=memory&cache=shared", Uuid::new_v4())
+}
 
 #[tokio::test]
 async fn test_end_to_end_log_push() {
@@ -26,7 +32,7 @@ async fn test_end_to_end_log_push() {
                 let mut ws_stream = accept_async(stream).await.expect("Failed to accept WS");
                 // Wait for Handshake (first message)
                 let _ = ws_stream.next().await;
-                
+
                 while let Some(Ok(msg)) = ws_stream.next().await {
                     if let Message::Text(text) = msg {
                         let val: serde_json::Value = serde_json::from_str(&text).unwrap();
@@ -42,15 +48,9 @@ async fn test_end_to_end_log_push() {
             }
         });
 
-        // 3. Setup Agent with temporary DB
-        let db_file = tempfile::NamedTempFile::new().unwrap();
-        let db_url = format!("sqlite:{}", db_file.path().to_str().unwrap());
+        // 3. Setup Agent with in-memory DB (shared cache for connection pool)
+        let db_url = in_memory_db_url();
         let db = Database::new(&db_url).await.unwrap();
-        
-        sqlx::migrate!("./migrations")
-            .run(db.get_pool())
-            .await
-            .expect("Failed to run migrations");
 
         // 4. Mock device and log
         db.upsert_device("DEV1", "Test Device", "127.0.0.1", 4370, "zkteco").await.unwrap();
@@ -99,7 +99,7 @@ async fn test_reliable_sync_with_server_error() {
             if let Ok((stream, _)) = ws_listener.accept().await {
                 let mut ws_stream = accept_async(stream).await.expect("Failed to accept WS");
                 let _ = ws_stream.next().await; // Handshake
-                
+
                 let mut attempt = 0;
                 while let Some(Ok(msg)) = ws_stream.next().await {
                     if let Message::Text(text) = msg {
@@ -108,7 +108,7 @@ async fn test_reliable_sync_with_server_error() {
                             attempt += 1;
                             let msg_id = val["msg_id"].clone();
                             let _ = log_tx.send(val).await;
-                            
+
                             if attempt == 1 {
                                 // First attempt: Return error
                                 let ack = json!({"type": "ack", "msg_id": msg_id, "status": "error", "error": "buffer full"});
@@ -124,11 +124,9 @@ async fn test_reliable_sync_with_server_error() {
             }
         });
 
-        // 2. Setup Agent
-        let db_file = tempfile::NamedTempFile::new().unwrap();
-        let db_url = format!("sqlite:{}", db_file.path().to_str().unwrap());
+        // 2. Setup Agent with in-memory DB
+        let db_url = in_memory_db_url();
         let db = Database::new(&db_url).await.unwrap();
-        sqlx::migrate!("./migrations").run(db.get_pool()).await.unwrap();
 
         db.upsert_device("DEV_RETRY", "Retry Device", "127.0.0.1", 4370, "zkteco").await.unwrap();
         db.save_raw_attendance("DEV_RETRY", AttendanceData {
@@ -145,7 +143,7 @@ async fn test_reliable_sync_with_server_error() {
         // 3. Verify Mock Server received the log TWICE (once for failed attempt, once for retry)
         info!("Waiting for first attempt...");
         let _ = log_rx.recv().await.expect("Did not receive first attempt");
-        
+
         info!("Waiting for retry attempt...");
         let second = log_rx.recv().await.expect("Did not receive second attempt");
         assert_eq!(second["data"]["user_id"], "RETRY_USER");

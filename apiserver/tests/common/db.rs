@@ -43,7 +43,7 @@ impl TestDatabase {
             .await
             .expect("Failed to connect to Postgres admin");
 
-        // Tối ưu hóa: Dùng template database đã được migrate sẵn để tránh chạy lại migrations
+        // Use template database to avoid running migrations
         let sql = format!(
             "CREATE DATABASE \"{}\" TEMPLATE leeattend_test_template",
             db_name
@@ -89,8 +89,6 @@ impl TestDatabase {
             .await
             .expect("Failed to connect to the new test database");
 
-        // KHÔNG chạy migrations ở đây vì đã dùng TEMPLATE
-
         Self {
             pool,
             db_name,
@@ -116,31 +114,63 @@ impl TestDatabase {
                 };
 
                 for (db_name, admin_url) in dbs_to_cleanup {
-                    Self::spawn_detached_cleanup(db_name, admin_url);
+                    if let Err(e) = Self::cleanup_database_async(&db_name, &admin_url).await {
+                        eprintln!("Signal cleanup failed for {}: {}", db_name, e);
+                    }
                 }
                 std::process::exit(1);
             });
         });
     }
 
-    fn spawn_detached_cleanup(db_name: String, admin_url: String) {
+    /// Async database cleanup using sqlx directly (no shell commands)
+    async fn cleanup_database_async(db_name: &str, admin_url: &str) -> Result<(), sqlx::Error> {
         let mut url_parts: Vec<&str> = admin_url.split('/').collect();
         url_parts.pop();
         let base_admin_url = format!("{}/postgres", url_parts.join("/"));
 
-        let kill_sql = format!("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{}' AND pid <> pg_backend_pid();", db_name);
-        let drop_sql = format!("DROP DATABASE \"{}\";", db_name);
+        let mut conn = PgConnection::connect(&base_admin_url).await?;
 
-        // Dùng psql trực tiếp, gộp lệnh và đảm bảo thoát các kết nối khác
-        let full_cmd = format!(
-            "psql -X \"{}\" -c \"{}\" > /tmp/db_cleanup_{}.log 2>&1 && psql -X \"{}\" -c \"{}\" >> /tmp/db_cleanup_{}.log 2>&1",
-            base_admin_url, kill_sql, db_name, base_admin_url, drop_sql, db_name
+        // Terminate all connections to the target database
+        let kill_sql = format!(
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{}' AND pid <> pg_backend_pid()",
+            db_name
         );
+        let _ = conn.execute(kill_sql.as_str()).await;
 
-        let _ = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(format!("({}) &", full_cmd))
-            .spawn();
+        // Drop the database
+        let drop_sql = format!("DROP DATABASE IF EXISTS \"{}\"", db_name);
+        conn.execute(drop_sql.as_str()).await?;
+
+        Ok(())
+    }
+
+    /// Blocking cleanup wrapper for use in Drop trait
+    fn cleanup_database_blocking(db_name: String, admin_url: String) {
+        // Use tokio's Handle to run async code from sync context
+        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            // We're inside a tokio runtime, spawn a task
+            let db_name_clone = db_name.clone();
+            handle.spawn(async move {
+                if let Err(e) = Self::cleanup_database_async(&db_name_clone, &admin_url).await {
+                    eprintln!("Async cleanup failed for {}: {}", db_name_clone, e);
+                }
+            });
+        } else {
+            // No runtime available, create a new one for cleanup
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build();
+                if let Ok(rt) = rt {
+                    rt.block_on(async {
+                        if let Err(e) = Self::cleanup_database_async(&db_name, &admin_url).await {
+                            eprintln!("Sync cleanup failed for {}: {}", db_name, e);
+                        }
+                    });
+                }
+            });
+        }
     }
 
     pub fn pool(&self) -> PgPool {
@@ -158,6 +188,6 @@ impl Drop for TestDatabase {
                 dbs.remove(&(self.db_name.clone(), self.base_url.clone()));
             }
         }
-        Self::spawn_detached_cleanup(self.db_name.clone(), self.base_url.clone());
+        Self::cleanup_database_blocking(self.db_name.clone(), self.base_url.clone());
     }
 }
