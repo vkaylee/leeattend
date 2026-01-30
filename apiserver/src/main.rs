@@ -1,7 +1,10 @@
-use apiserver::services::{AttendanceLogService, AttendanceImportService};
+use apiserver::queue::RedisPool;
+use apiserver::services::{AttendanceImportService, AttendanceLogService, ReportCoordinator};
+use apiserver::worker::{ReportWorker, WorkerConfig};
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
+use tokio_util::sync::CancellationToken;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 struct PortFileGuard {
@@ -86,6 +89,63 @@ async fn main() {
     );
     let attendance_service = Arc::new(attendance_service);
 
+    // Initialize Redis for distributed job processing (optional)
+    let redis_pool = match std::env::var("REDIS_URL") {
+        Ok(url) => match RedisPool::new(&url).await {
+            Ok(pool) => {
+                // Verify connection with health check
+                match pool.health_check().await {
+                    Ok(()) => {
+                        tracing::info!("Redis connected for distributed processing");
+                        Some(pool)
+                    }
+                    Err(e) => {
+                        tracing::warn!(
+                            "Redis health check failed, falling back to sync processing: {}",
+                            e
+                        );
+                        None
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::warn!(
+                    "Redis connection failed, falling back to sync processing: {}",
+                    e
+                );
+                None
+            }
+        },
+        Err(_) => {
+            tracing::info!("REDIS_URL not set, distributed processing disabled");
+            None
+        }
+    };
+
+    // Initialize report worker if Redis is available
+    let worker_cancel_token = CancellationToken::new();
+    let (coordinator, worker_handle) = if let Some(ref redis) = redis_pool {
+        let worker_config = WorkerConfig::from_env();
+        tracing::info!(
+            max_concurrent = worker_config.max_concurrent_jobs,
+            poll_timeout = worker_config.poll_timeout_secs,
+            "Initializing report worker"
+        );
+
+        let coordinator = Arc::new(ReportCoordinator::new(redis.clone(), pool.clone()));
+
+        let worker = ReportWorker::new(
+            redis.clone(),
+            pool.clone(),
+            worker_config,
+            coordinator.clone(),
+        );
+
+        (Some(coordinator), Some(worker.start(worker_cancel_token.clone())))
+    } else {
+        (None, None)
+    };
+
     let state = Arc::new(AppState {
         agent_manager,
         db: pool,
@@ -94,6 +154,8 @@ async fn main() {
         agent_service,
         jwt_secret,
         attendance_service,
+        redis: redis_pool,
+        coordinator,
     });
 
     let app = create_app(state.clone());
@@ -143,6 +205,15 @@ async fn main() {
 
     // Graceful shutdown sequence
     tracing::info!("Starting graceful shutdown...");
+
+    // Cancel report worker first
+    worker_cancel_token.cancel();
+    if let Some(handle) = worker_handle {
+        tracing::info!("Waiting for report worker to complete...");
+        if let Err(e) = handle.await {
+            tracing::error!("Report worker task panicked: {:?}", e);
+        }
+    }
 
     state.agent_manager.shutdown().await;
 

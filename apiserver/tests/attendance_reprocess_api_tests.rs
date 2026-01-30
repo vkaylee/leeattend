@@ -40,6 +40,7 @@ async fn test_force_reprocess_attendance_api() {
         agent_service,
         jwt_secret,
         attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
+        redis: None,
     });
 
     let base_date = NaiveDate::from_ymd_opt(2026, 1, 14).unwrap();

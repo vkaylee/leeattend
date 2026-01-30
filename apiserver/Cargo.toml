@@ -27,6 +27,11 @@ csv = "1.4.0"
 strum = "0.26"
 strum_macros = "0.26"
 sha2 = "0.10"
+redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+rust_xlsxwriter = "0.79"
+aws-sdk-s3 = "1.68"
+aws-config = "1.5"
 
 [lints.rust]
 warnings = "deny"

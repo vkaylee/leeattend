@@ -434,6 +434,29 @@ pub async fn get_employee_payroll_config_at(
     .await
 }
 
+/// Get active employee IDs for distributed report processing.
+/// Returns only IDs (lightweight) for batching into micro-jobs.
+///
+/// # Arguments
+/// * `workspace_id` - Workspace to query
+/// * `filter_ids` - Optional: subset of employee IDs to filter by
+pub async fn get_active_employee_ids(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    filter_ids: Option<&Vec<Uuid>>,
+) -> Result<Vec<Uuid>, sqlx::Error> {
+    query_scalar(
+        r#"SELECT id FROM employees
+           WHERE workspace_id = $1 AND is_active = true
+           AND ($2::uuid[] IS NULL OR id = ANY($2))
+           ORDER BY full_name"#,
+    )
+    .bind(workspace_id)
+    .bind(filter_ids)
+    .fetch_all(pool)
+    .await
+}
+
 /// Get paginated employee IDs with optional filter for reports
 /// Returns: (employees, total_count)
 ///

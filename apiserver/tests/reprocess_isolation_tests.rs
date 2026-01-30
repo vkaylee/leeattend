@@ -40,6 +40,7 @@ async fn test_reprocess_should_not_delete_next_day_entries() {
         agent_service,
         jwt_secret,
         attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
+        redis: None,
     });
 
     // Day 1: 2026-01-14

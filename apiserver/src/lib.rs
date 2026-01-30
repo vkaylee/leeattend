@@ -1,11 +1,14 @@
 pub mod agent_manager;
+pub mod cache;
 pub mod dev_initialization;
 pub mod domain;
 pub mod handlers;
 pub mod models;
+pub mod queue;
 pub mod repositories;
 pub mod services;
 pub mod utils;
+pub mod worker;
 
 use axum::{
     routing::{delete, get, patch, post, put},
@@ -13,8 +16,9 @@ use axum::{
 };
 
 use crate::agent_manager::AgentManager;
+use crate::queue::RedisPool;
 use crate::repositories::{AgentRepository, WorkspaceRepository};
-use crate::services::{AgentService, AttendanceLogService};
+use crate::services::{AgentService, AttendanceLogService, ReportCoordinator};
 use axum::http::{HeaderValue, Method};
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -28,6 +32,12 @@ pub struct AppState {
     pub agent_service: Arc<AgentService>,
     pub jwt_secret: String,
     pub attendance_service: Arc<AttendanceLogService>,
+    /// Optional Redis pool for distributed job processing.
+    /// When None, report generation falls back to synchronous processing.
+    pub redis: Option<RedisPool>,
+    /// Optional ReportCoordinator for async report generation.
+    /// Requires Redis to be available.
+    pub coordinator: Option<Arc<ReportCoordinator>>,
 }
 
 mod ax_auth {
@@ -403,6 +413,20 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(
             "/workspaces/:ws_id/reports/attendance",
             get(handlers::get_attendance_report),
+        )
+        // Async report export endpoints
+        .route(
+            "/workspaces/:ws_id/reports/export",
+            post(handlers::report_export::create_export_job),
+        )
+        .route(
+            "/workspaces/:ws_id/reports/jobs/:job_id",
+            get(handlers::report_export::get_job_status)
+                .delete(handlers::report_export::cancel_job),
+        )
+        .route(
+            "/workspaces/:ws_id/reports/jobs/:job_id/download",
+            get(handlers::report_export::download_report),
         )
         .route(
             "/workspaces/:ws_id/overtime/policies",

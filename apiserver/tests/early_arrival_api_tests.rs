@@ -33,6 +33,7 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
         agent_service,
         jwt_secret: "test_secret".to_string(),
         attendance_service: Arc::new(AttendanceLogService::new(db_pool.clone(), 100, 10, 1000).0),
+        redis: None,
     });
 
     let app = apiserver::create_app(state);
