@@ -5,7 +5,7 @@ import { fetchWorkspaceLeaveBalances, getCurrentWorkspaceId, triggerAccrualRun, 
 import { Search, Filter, History, PlayCircle, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { LeaveHistoryModal } from "@/components/leave/LeaveHistoryModal";
 import { LeaveBalanceDetailModal } from "@/components/leave/LeaveBalanceDetailModal";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/use-debounce";
 

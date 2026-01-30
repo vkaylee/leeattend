@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import PayrollSettingsSection from "../PayrollSettingsSection";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastProvider } from "@/components/Toast";
+import { ToastProvider } from "@/components/ui/Toast";
 import * as api from "@/lib/api/payroll";
 import React from "react";
 

@@ -6,7 +6,7 @@ import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment,
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 import TemporalConfigTable from "@/components/common/TemporalConfigTable";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 

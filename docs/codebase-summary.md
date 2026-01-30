@@ -1,6 +1,6 @@
 # Codebase Summary
 
-**Last Updated:** 2026-01-27
+**Last Updated:** 2026-01-30
 
 Overview of the LeeAttend project structure, core technologies, and recent architectural improvements.
 
@@ -61,6 +61,18 @@ LeeAttend is a high-performance attendance and payroll system split into three p
 - **Framework**: React 18 (Vite, TypeScript)
 - **Styling**: Tailwind CSS v4 (Metro-style aesthetic)
 - **State Management**: TanStack Query (React Query)
+- **Component Structure** (Organized by concern):
+    - `src/components/ui/` - Generic, reusable UI primitives (Modal, Toast, Combobox, Tabs)
+    - `src/components/common/` - Shared cross-cutting components (AuthGuard, WorkspaceGuard)
+    - `src/components/layout/` - Page structure components (MainLayout, Sidebar, Navbar, WorkspaceSwitcher)
+    - `src/components/features/` - Business domain components organized by feature:
+        - `features/agents/` - Agent management (AgentEditModal)
+        - `features/attendance/` - Attendance operations (AttendanceImportDialog)
+        - `features/workspaces/` - Workspace management (CreateWorkspaceDialog)
+        - `features/settings/` - Settings UI (RoleManagementModal)
+    - `src/components/payroll/` - Payroll-specific components
+    - `src/components/leave/` - Leave management components
+    - `src/components/employees/` - Employee management components
 - **Key Features**:
     - **Leave Policy Manager**: Centralized management of leave types and policies.
     - **Overtime Policy Manager**: Visual editor for complex overtime rules.
@@ -110,7 +122,11 @@ LeeAttend is a high-performance attendance and payroll system split into three p
 ├── agent-main/              # Rust Edge Orchestrator
 ├── agent-zk-worker/         # Python Hardware Interface
 ├── webdashboard/            # React Frontend
-│   ├── src/components/      # UI Components
+│   ├── src/components/      # UI Components (organized by concern)
+│   │   ├── ui/              # Generic primitives (Modal, Toast, Tabs)
+│   │   ├── common/          # Shared components (AuthGuard, WorkspaceGuard)
+│   │   ├── layout/          # Layout components (MainLayout, Sidebar)
+│   │   └── features/        # Business domain components
 │   ├── src/pages/           # Route Pages
 │   └── tests/               # Playwright E2E Tests
 ├── docs/                    # Documentation

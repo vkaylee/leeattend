@@ -44,11 +44,11 @@ import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import PaginationControls from "@/components/common/PaginationControls";
 
-import AttendanceImportDialog from "@/components/AttendanceImportDialog";
+import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
 import WorkingConditionConfig from "@/components/employees/WorkingConditionConfig";
 
 type DetailTabType = "profile" | "salary" | "history" | "policies";

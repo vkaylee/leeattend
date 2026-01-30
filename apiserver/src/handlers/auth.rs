@@ -40,7 +40,13 @@ pub async fn register(
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
     };
 
-    // 3. Create User
+    // 3. Begin transaction for atomicity
+    let mut tx = match state.db.begin().await {
+        Ok(tx) => tx,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    };
+
+    // 4. Create User within transaction
     let user_id = Uuid::new_v4();
     let created_at = Utc::now();
     let user = User {
@@ -51,10 +57,25 @@ pub async fn register(
         avatar_url: None,
         bio: None,
         preferred_language: None,
-        password_hash, // Used the hashed password
+        password_hash,
     };
 
-    if let Err(e) = user_repository::create_user(&state.db, &user).await {
+    if let Err(e) = user_repository::create_user_tx(&mut *tx, &user).await {
+        let _ = tx.rollback().await;
+        return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
+    }
+
+    // 5. Create session within transaction
+    let refresh_token = match AuthService::create_session_tx(&mut *tx, user.id).await {
+        Ok(t) => t,
+        Err(e) => {
+            let _ = tx.rollback().await;
+            return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response();
+        }
+    };
+
+    // 6. Commit transaction
+    if let Err(e) = tx.commit().await {
         return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
     }
 
@@ -69,13 +90,8 @@ pub async fn register(
         created_at: user.created_at,
     };
 
-    // 4. Generate Tokens
+    // 7. Generate access token (stateless, no DB write needed)
     let access_token = match AuthService::generate_token(user.id, &state.jwt_secret, 60) {
-        Ok(t) => t,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
-    };
-
-    let refresh_token = match AuthService::create_session(&state.db, user.id).await {
         Ok(t) => t,
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
     };

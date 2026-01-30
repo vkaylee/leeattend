@@ -139,9 +139,7 @@ impl PairingService {
 
         // 2. Fetch raw logs
         // Search window: strictly bounded by shift hours + buffer to avoid cross-day stealing.
-        let start_of_day_local = tz
-            .from_local_datetime(&date.and_hms_opt(0, 0, 0).unwrap())
-            .unwrap();
+        let start_of_day_local = local_to_tz(&tz, date, 0, 0, 0)?;
         let start_of_day_utc = start_of_day_local.with_timezone(&Utc);
         
         let (window_start_utc, window_end_utc) = if let Some(s) = &shift_config {
@@ -243,7 +241,7 @@ impl PairingService {
 
         for session in sessions {
             // Calculate timestamps based on local day start to ensure accuracy
-            let start_dt_local = tz.from_local_datetime(&date.and_hms_opt(0, 0, 0).unwrap()).unwrap()
+            let start_dt_local = local_to_tz(&tz, date, 0, 0, 0)?
                 + Duration::minutes(session.start_minutes as i64);
             let start_dt_utc = start_dt_local.with_timezone(&Utc);
 
@@ -252,11 +250,13 @@ impl PairingService {
                 continue;
             }
 
-            let end_dt_utc = session.end_minutes.map(|m| {
-                let end_dt_local = tz.from_local_datetime(&date.and_hms_opt(0, 0, 0).unwrap()).unwrap()
+            let end_dt_utc = if let Some(m) = session.end_minutes {
+                let end_dt_local = local_to_tz(&tz, date, 0, 0, 0)?
                     + Duration::minutes(m as i64);
-                end_dt_local.with_timezone(&Utc)
-            });
+                Some(end_dt_local.with_timezone(&Utc))
+            } else {
+                None
+            };
 
             let duration = end_dt_utc.map(|end| (end - start_dt_utc).num_minutes() as i32);
 
@@ -308,5 +308,22 @@ impl PairingService {
         .execute(pool)
         .await?;
         Ok(())
+    }
+}
+
+/// Convert local date/time to timezone-aware DateTime, handling DST edge cases
+fn local_to_tz(tz: &Tz, date: NaiveDate, h: u32, m: u32, s: u32) -> Result<DateTime<Tz>, sqlx::Error> {
+    let naive = date.and_hms_opt(h, m, s)
+        .ok_or_else(|| sqlx::Error::Protocol(format!("Invalid time: {}:{}:{}", h, m, s)))?;
+    match tz.from_local_datetime(&naive) {
+        chrono::LocalResult::Single(dt) => Ok(dt),
+        chrono::LocalResult::Ambiguous(dt, _) => Ok(dt),
+        chrono::LocalResult::None => {
+            // DST gap - shift forward 1 hour
+            let shifted = naive + Duration::hours(1);
+            tz.from_local_datetime(&shifted)
+                .single()
+                .ok_or_else(|| sqlx::Error::Protocol("Cannot resolve DST gap".to_string()))
+        }
     }
 }

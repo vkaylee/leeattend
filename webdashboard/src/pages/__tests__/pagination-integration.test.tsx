@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
-import { ToastProvider } from "../../components/Toast";
+import { ToastProvider } from "../../components/ui/Toast";
 import PayrollPage from "../PayrollPage";
 import AttendanceLogsPage from "../AttendanceLogsPage";
 import LeaveRequestsPage from "../LeaveRequestsPage";

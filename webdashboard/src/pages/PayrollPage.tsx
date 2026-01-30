@@ -26,7 +26,7 @@ import {
   fetchWorkspaceAttendanceAdjustments,
   Employee,
 } from "../lib/api";
-import { useToast } from "../components/Toast";
+import { useToast } from "../components/ui/Toast";
 import Modal from "@/components/ui/Modal";
 import EmployeeSalaryConfig from "@/components/payroll/EmployeeSalaryConfig";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, LayoutDashboard, Loader2 } from "lucide-react";
 import { useWorkspaces } from "@/hooks/use-workspace";
-import Modal from "./ui/Modal";
+import Modal from "@/components/ui/Modal";
 
 interface CreateWorkspaceDialogProps {
   isOpen: boolean;

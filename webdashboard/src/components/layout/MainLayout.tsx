@@ -8,7 +8,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { useI18nSync } from "@/hooks/use-i18n-sync";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
-import WorkspaceSwitcher from "../WorkspaceSwitcher";
+import WorkspaceSwitcher from "./WorkspaceSwitcher";
 import Modal from "../ui/Modal";
 import { cn } from "@/lib/utils";
 

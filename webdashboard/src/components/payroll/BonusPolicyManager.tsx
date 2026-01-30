@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchIncentivePolicies, createIncentivePolicy, deleteIncentivePolicy } from "@/lib/api/payroll";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 
 interface BonusPolicyManagerProps {
   wsId: string;

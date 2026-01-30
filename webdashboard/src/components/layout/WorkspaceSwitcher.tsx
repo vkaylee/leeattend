@@ -6,9 +6,9 @@ import {
   getCurrentWorkspaceId,
   setCurrentWorkspaceId,
 } from "@/lib/api";
-import CreateWorkspaceDialog from "./CreateWorkspaceDialog";
+import CreateWorkspaceDialog from "@/components/features/workspaces/CreateWorkspaceDialog";
 import { useWorkspaces } from "@/hooks/use-workspace";
-import { Combobox } from "./ui/Combobox";
+import { Combobox } from "@/components/ui/Combobox";
 
 export default function WorkspaceSwitcher() {
   const { t } = useTranslation();

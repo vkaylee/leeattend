@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Settings2, Save, Clock, Palette, Globe, Calendar, Languages } from "lucide-react";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace } from "@/lib/api";
 import { Combobox } from "@/components/ui/Combobox";
 import { useTheme } from "@/hooks/use-theme";

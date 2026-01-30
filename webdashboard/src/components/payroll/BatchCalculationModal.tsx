@@ -11,7 +11,7 @@ import Modal from "@/components/ui/Modal";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { calculateBatchPayslips } from "@/lib/api";
 import { BatchCalculateResult } from "@/lib/api/types";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
 import { cn } from "@/lib/utils";
 

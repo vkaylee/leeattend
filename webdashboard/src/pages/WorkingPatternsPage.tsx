@@ -28,7 +28,7 @@ import {
   Shift,
   Employee
 } from "../lib/api";
-import { useToast } from "../components/Toast";
+import { useToast } from "../components/ui/Toast";
 import Modal from "@/components/ui/Modal";
 import { format, startOfToday } from "date-fns";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";

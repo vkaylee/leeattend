@@ -14,9 +14,9 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuthorizedAgents } from "@/hooks/use-agents";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
-import AgentEditModal from "@/components/AgentEditModal";
+import AgentEditModal from "@/components/features/agents/AgentEditModal";
 import { AuthorizedAgent } from "@/lib/api";
 
 export default function AgentsPage() {

@@ -3,7 +3,7 @@ use bcrypt::{hash, verify, DEFAULT_COST};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{Executor, PgPool, Postgres};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -60,6 +60,24 @@ impl AuthService {
             .bind(&token)
             .bind(expires_at)
             .execute(db)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        Ok(token)
+    }
+
+    pub async fn create_session_tx<'e, E>(executor: E, user_id: Uuid) -> Result<String, String>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let token = Uuid::new_v4().to_string();
+        let expires_at = Utc::now() + Duration::days(7);
+
+        sqlx::query("INSERT INTO sessions (user_id, token, expires_at) VALUES ($1, $2, $3)")
+            .bind(user_id)
+            .bind(&token)
+            .bind(expires_at)
+            .execute(executor)
             .await
             .map_err(|e| e.to_string())?;
 

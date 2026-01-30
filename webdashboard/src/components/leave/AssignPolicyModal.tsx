@@ -12,7 +12,7 @@ import {
 } from "@/lib/api";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { format } from "date-fns";
 
 interface AssignPolicyModalProps {

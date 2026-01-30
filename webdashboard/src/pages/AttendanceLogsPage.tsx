@@ -20,7 +20,7 @@ import {
   Link2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import AttendanceImportDialog from "@/components/AttendanceImportDialog";
+import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
 import { useNavigate } from "react-router-dom";

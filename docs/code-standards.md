@@ -11,6 +11,63 @@
 - **Method Size (Rule of 30)**: Một hàm không nên dài quá 30 dòng code. Nếu dài hơn, hãy cân nhắc tách nhỏ ra các private methods hoặc helper functions.
 - **Single Responsibility (SRP)**: Một hàm chỉ làm một việc duy nhất. Tên hàm phải phản ánh đúng hành động (ví dụ: `validate_agent_token` thay vì `check_agent`).
 
+### 1.1. Error Handling Best Practices
+- **NO `.unwrap()` in Production Code**: Avoid `.unwrap()` and `.expect()` in handler/service/repository code. Use `?` operator or explicit error handling instead.
+  ```rust
+  // ❌ INCORRECT (can panic)
+  let date = NaiveDate::from_ymd_opt(year, month, 1).unwrap();
+
+  // ✅ CORRECT (graceful error)
+  let Some(date) = NaiveDate::from_ymd_opt(year, month, 1) else {
+      return Err("Invalid date".into());
+  };
+  ```
+- **Exception for Constants**: `.expect("message")` is acceptable for infallible constant values:
+  ```rust
+  // ✅ OK - midnight is always valid
+  NaiveTime::from_hms_opt(0, 0, 0).expect("midnight is valid")
+  ```
+- **DST/Timezone Handling**: Always handle `LocalResult` variants when converting local time:
+  ```rust
+  // ✅ CORRECT - handles DST gaps and ambiguities
+  match tz.from_local_datetime(&naive) {
+      chrono::LocalResult::Single(dt) => Ok(dt),
+      chrono::LocalResult::Ambiguous(dt, _) => Ok(dt), // Pick first
+      chrono::LocalResult::None => {
+          // DST gap - shift forward
+          let shifted = naive + Duration::hours(1);
+          tz.from_local_datetime(&shifted).single().ok_or("DST error")
+      }
+  }
+  ```
+
+### 1.2. Database Transaction Patterns
+- **Atomic Operations**: Use transactions when multiple DB operations must succeed or fail together:
+  ```rust
+  // ✅ CORRECT - atomic user registration
+  let mut tx = pool.begin().await?;
+  create_user_tx(&mut *tx, &user).await?;
+  create_session_tx(&mut *tx, user.id).await?;
+  tx.commit().await?;
+  ```
+- **Generic Executor Pattern**: Use `Executor` trait for functions that work with both pools and transactions:
+  ```rust
+  pub async fn create_user_tx<'e, E>(executor: E, user: &User) -> Result<(), sqlx::Error>
+  where
+      E: Executor<'e, Database = Postgres>,
+  {
+      sqlx::query("INSERT INTO users ...").execute(executor).await?;
+      Ok(())
+  }
+  ```
+- **Rollback on Error**: Explicitly rollback on error before returning (though Drop also handles this):
+  ```rust
+  if let Err(e) = some_operation(&mut *tx).await {
+      let _ = tx.rollback().await;
+      return Err(e);
+  }
+  ```
+
 ### 4. Agent-Specific Patterns (agent-main)
 
 #### 4.1. Retry Logic & Exponential Backoff

@@ -16,7 +16,7 @@ import {
   createWorkingCondition,
   deleteWorkingCondition
 } from "@/lib/api/employees";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { useTranslation } from "react-i18next";
 import { WorkingCondition } from "@/lib/api/types";
 import { format } from "date-fns";

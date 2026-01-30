@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { fetchOvertimePolicies, assignOvertimePolicy } from '@/lib/api/payroll';
 import { fetchDepartments } from '@/lib/api/departments';
-import { useToast } from '@/components/Toast';
+import { useToast } from '@/components/ui/Toast';
 import Modal from '@/components/ui/Modal';
 import { Combobox } from '@/components/ui/Combobox';
 import { EmployeeSearch } from '@/components/common/EmployeeSearch';

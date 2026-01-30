@@ -44,7 +44,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import PaginationControls from "@/components/common/PaginationControls";
 

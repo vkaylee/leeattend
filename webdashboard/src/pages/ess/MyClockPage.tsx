@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { History } from "lucide-react";
 import { useMyProfile, useMyClock } from "@/hooks/use-ess";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { fetchWorkspace, getCurrentWorkspaceId, submitAttendanceAdjustment } from "@/lib/api";
 import { toUTCISO } from "@/lib/datetime";
 import { PunchCard } from "@/components/time-tracking/PunchCard";

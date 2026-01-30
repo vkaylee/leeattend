@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchLeaveTypes, updateLeaveTypeConfig, createLeaveType, deleteLeaveType } from "@/lib/api/leaves";
 import { LeaveType, LeaveTypeConfig } from "@/lib/api/types";
 import { Wallet, AlertTriangle, Edit2, Plus, Trash2 } from "lucide-react";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import Modal from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 

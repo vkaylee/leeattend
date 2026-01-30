@@ -24,7 +24,7 @@ import {
   AssignmentRule,
   AssignmentRuleConditions
 } from "../lib/api";
-import { useToast } from "../components/Toast";
+import { useToast } from "../components/ui/Toast";
 import Modal from "@/components/ui/Modal";
 import { Combobox } from "@/components/ui/Combobox";
 

@@ -20,7 +20,7 @@ import {
   fetchEmployeePayrollConfigs,
   setEmployeePayrollConfig
 } from "@/lib/api/payroll";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { useTranslation } from "react-i18next";
 import { EmployeeSalaryComponent, SalaryComponentDefinition } from "@/lib/api/types";
 import { Combobox } from "@/components/ui/Combobox";

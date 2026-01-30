@@ -1,4 +1,4 @@
-use chrono::{NaiveDate, TimeZone, Utc};
+use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -49,10 +49,8 @@ impl AttendanceSummaryService {
         let daily_schedule = emp_sched.schedules.iter().find(|s| s.date == date).ok_or("No schedule for date")?;
 
         // 3. Get Time Entries for the date (in UTC range)
-        let start_dt_utc = tz.from_local_datetime(&date.and_hms_opt(0, 0, 0).unwrap())
-            .single().unwrap().with_timezone(&Utc);
-        let end_dt_utc = tz.from_local_datetime(&date.and_hms_opt(23, 59, 59).unwrap())
-            .single().unwrap().with_timezone(&Utc);
+        let start_dt_utc = local_midnight_to_utc(&tz, date, 0, 0, 0)?;
+        let end_dt_utc = local_midnight_to_utc(&tz, date, 23, 59, 59)?;
 
         let entries = time_entry_repository::get_employee_time_entries(
             pool,
@@ -323,5 +321,23 @@ impl AttendanceSummaryService {
         .map_err(|e| e.to_string())?;
 
         Ok(result)
+    }
+}
+
+/// Helper to convert local date+time to UTC, handling DST edge cases
+fn local_midnight_to_utc(tz: &Tz, date: NaiveDate, h: u32, m: u32, s: u32) -> Result<DateTime<Utc>, String> {
+    let naive = date.and_hms_opt(h, m, s)
+        .ok_or_else(|| format!("Invalid time: {}:{}:{}", h, m, s))?;
+    match tz.from_local_datetime(&naive) {
+        chrono::LocalResult::Single(dt) => Ok(dt.with_timezone(&Utc)),
+        chrono::LocalResult::Ambiguous(dt, _) => Ok(dt.with_timezone(&Utc)),
+        chrono::LocalResult::None => {
+            // DST gap - use next valid time
+            let shifted = naive + chrono::Duration::hours(1);
+            tz.from_local_datetime(&shifted)
+                .single()
+                .map(|dt| dt.with_timezone(&Utc))
+                .ok_or_else(|| "Cannot resolve DST gap".to_string())
+        }
     }
 }

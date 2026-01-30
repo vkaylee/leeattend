@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "../components/Toast";
+import { useToast } from "../components/ui/Toast";
 import {
   User as UserIcon,
   Mail,

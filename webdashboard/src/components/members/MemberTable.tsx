@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { WorkspaceMember } from "@/lib/api";
 import { useWorkspaceMembers } from "@/hooks/use-workspace";
-import RoleManagementModal from "@/components/RoleManagementModal";
+import RoleManagementModal from "@/components/features/settings/RoleManagementModal";
 import { cn } from "@/lib/utils";
 
 export default function MemberTable() {

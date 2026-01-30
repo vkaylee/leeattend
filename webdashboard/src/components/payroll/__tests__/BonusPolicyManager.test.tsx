@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import BonusPolicyManager from "../BonusPolicyManager";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as api from "@/lib/api/payroll";
-import { ToastProvider } from "@/components/Toast";
+import { ToastProvider } from "@/components/ui/Toast";
 
 // Mock API
 vi.mock("@/lib/api/payroll", () => ({

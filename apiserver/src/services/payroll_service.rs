@@ -1,5 +1,5 @@
 use axum::http::StatusCode;
-use chrono::{NaiveDate, TimeZone, Utc};
+use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::Decimal;
@@ -68,16 +68,10 @@ impl PayrollService {
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         // 4. Fetch Time Entries (All for the month)
-        let start_dt = tz
-            .from_local_datetime(&start_date.and_hms_opt(0, 0, 0).unwrap())
-            .single()
-            .unwrap()
-            .with_timezone(&Utc);
-        let end_dt = tz
-            .from_local_datetime(&end_date.and_hms_opt(23, 59, 59).unwrap())
-            .single()
-            .unwrap()
-            .with_timezone(&Utc);
+        let start_dt = local_to_utc(&tz, start_date, 0, 0, 0)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let end_dt = local_to_utc(&tz, end_date, 23, 59, 59)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         let time_entries =
             time_entry_repository::get_employee_time_entries(pool, employee_id, start_dt, end_dt)
@@ -105,7 +99,7 @@ impl PayrollService {
         for i in 0..sorted_dates.len() {
             let seg_start = sorted_dates[i];
             let seg_end = if i + 1 < sorted_dates.len() {
-                sorted_dates[i + 1].pred_opt().unwrap()
+                sorted_dates[i + 1].pred_opt().unwrap_or(seg_start)
             } else {
                 end_date
             };
@@ -250,7 +244,7 @@ impl PayrollService {
                                                 segment_ot_pay += OvertimeEngine::calculate_overtime_pay_from_times(&rules, current_date, false, &ot_intervals, hourly_rate);
                                             } else {
                                                 let hourly_rate = if std_config.std_working_days.is_zero() || std_config.hours_per_day.is_zero() { Decimal::ZERO } else { (segment_ot_base / std_config.std_working_days) / std_config.hours_per_day };
-                                                segment_ot_pay += (Decimal::from(ot_u) * Decimal::from(workspace.work_unit_minutes) / Decimal::from(60)) * hourly_rate * Decimal::from_f64(1.5).unwrap();
+                                                segment_ot_pay += (Decimal::from(ot_u) * Decimal::from(workspace.work_unit_minutes) / Decimal::from(60)) * hourly_rate * Decimal::from_f64(1.5).unwrap_or(Decimal::new(15, 1));
                                             }
                                         }
 
@@ -271,7 +265,10 @@ impl PayrollService {
                         }
                     }
                 }
-                current_date = current_date.succ_opt().unwrap();
+                current_date = match current_date.succ_opt() {
+                    Some(d) => d,
+                    None => break,
+                };
             }
 
             // C. Financials
@@ -376,5 +373,23 @@ impl PayrollService {
 
         let results = join_all(tasks).await;
         crate::models::BatchCalculatePayrollResponse { results }
+    }
+}
+
+/// Convert local date/time to UTC DateTime, handling DST edge cases
+fn local_to_utc(tz: &Tz, date: NaiveDate, h: u32, m: u32, s: u32) -> Result<DateTime<Utc>, String> {
+    let naive = date.and_hms_opt(h, m, s)
+        .ok_or_else(|| format!("Invalid time: {}:{}:{}", h, m, s))?;
+    match tz.from_local_datetime(&naive) {
+        chrono::LocalResult::Single(dt) => Ok(dt.with_timezone(&Utc)),
+        chrono::LocalResult::Ambiguous(dt, _) => Ok(dt.with_timezone(&Utc)),
+        chrono::LocalResult::None => {
+            // DST gap - use next valid time
+            let shifted = naive + chrono::Duration::hours(1);
+            tz.from_local_datetime(&shifted)
+                .single()
+                .map(|dt| dt.with_timezone(&Utc))
+                .ok_or_else(|| "Cannot resolve DST gap".to_string())
+        }
     }
 }

@@ -7,7 +7,7 @@ import LeaveBalancesPage from "../LeaveBalancesPage";
 import AttendanceLogsPage from "../AttendanceLogsPage";
 import MyClockPage from "../ess/MyClockPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastProvider } from "../../components/Toast";
+import { ToastProvider } from "../../components/ui/Toast";
 import React from "react";
 import i18n from "../../i18n/config";
 

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, List, Coins, ShieldCheck, Percent, Trash2 } from "lucide-react";
 import { fetchSalaryComponents, createSalaryComponent } from "@/lib/api/payroll";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { useTranslation } from "react-i18next";
 import { SalaryComponentDefinition } from "@/lib/api/types";
 import Modal from "@/components/ui/Modal";

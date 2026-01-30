@@ -146,7 +146,16 @@ impl OvertimeEngine {
 
         while current < end_tz {
             let date = current.date_naive();
-            let day_end = tz.from_local_datetime(&date.and_hms_opt(23, 59, 59).unwrap()).single().unwrap();
+            // 23:59:59 is always valid; DST can make from_local ambiguous but we pick first
+            let day_end = match tz.from_local_datetime(&date.and_hms_opt(23, 59, 59).expect("valid time")) {
+                chrono::LocalResult::Single(dt) => dt,
+                chrono::LocalResult::Ambiguous(dt, _) => dt,
+                chrono::LocalResult::None => {
+                    // Rare: DST gap at 23:59:59 - use 22:59:59 + 1 hour
+                    let shifted = date.and_hms_opt(22, 59, 59).expect("valid time") + chrono::Duration::hours(1);
+                    tz.from_local_datetime(&shifted).single().unwrap_or(current)
+                }
+            };
             
             let segment_end = if day_end < end_tz {
                 // We add 1 second to day_end to reach the next day boundary roughly
@@ -176,7 +185,16 @@ impl OvertimeEngine {
                 break;
             }
             // Move to next day
-            current = tz.from_local_datetime(&(date.succ_opt().unwrap().and_hms_opt(0, 0, 0).unwrap())).single().unwrap();
+            let Some(next_date) = date.succ_opt() else { break };
+            current = match tz.from_local_datetime(&next_date.and_hms_opt(0, 0, 0).expect("midnight valid")) {
+                chrono::LocalResult::Single(dt) => dt,
+                chrono::LocalResult::Ambiguous(dt, _) => dt,
+                chrono::LocalResult::None => {
+                    // DST gap at midnight - advance by 1 hour
+                    let shifted = next_date.and_hms_opt(1, 0, 0).expect("1am valid");
+                    tz.from_local_datetime(&shifted).single().unwrap_or(segment_end)
+                }
+            };
         }
 
         result

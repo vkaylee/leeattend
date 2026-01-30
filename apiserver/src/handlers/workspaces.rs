@@ -54,9 +54,10 @@ pub async fn get_workspace_stats(
     .bind(
         today
             .and_hms_opt(0, 0, 0)
-            .unwrap()
+            .expect("midnight is valid")
             .and_local_timezone(Utc)
-            .unwrap(),
+            .single()
+            .expect("UTC has no DST ambiguity"),
     )
     .bind(workspace_id)
     .fetch_one(&state.db)

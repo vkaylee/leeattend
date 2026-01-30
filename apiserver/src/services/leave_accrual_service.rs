@@ -2,7 +2,7 @@ use crate::models::{AccrualFrequency, LeaveAccrualLog, LeavePolicyConfig};
 use crate::repositories::{
     department_repository, employee_repository, leave_policy_repository,
 };
-use chrono::{Datelike, NaiveDate, TimeZone, Utc};
+use chrono::{DateTime, Datelike, NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -67,16 +67,8 @@ impl LeaveAccrualService {
         let mut qualifying_days = HashSet::new();
 
         // Days with actual work entries
-        let start_dt = tz
-            .from_local_datetime(&start_date.and_hms_opt(0, 0, 0).unwrap())
-            .single()
-            .unwrap()
-            .with_timezone(&Utc);
-        let end_dt = tz
-            .from_local_datetime(&end_date.and_hms_opt(23, 59, 59).unwrap())
-            .single()
-            .unwrap()
-            .with_timezone(&Utc);
+        let start_dt = local_to_utc(&tz, start_date, 0, 0, 0)?;
+        let end_dt = local_to_utc(&tz, end_date, 23, 59, 59)?;
 
         let work_days = sqlx::query!(
             r#"
@@ -414,6 +406,24 @@ impl LeaveAccrualService {
         }
 
         Ok(all_logs)
+    }
+}
+
+/// Convert local date/time to UTC DateTime, handling DST edge cases
+fn local_to_utc(tz: &Tz, date: NaiveDate, h: u32, m: u32, s: u32) -> Result<DateTime<Utc>, sqlx::Error> {
+    let naive = date.and_hms_opt(h, m, s)
+        .ok_or_else(|| sqlx::Error::Protocol(format!("Invalid time: {}:{}:{}", h, m, s)))?;
+    match tz.from_local_datetime(&naive) {
+        chrono::LocalResult::Single(dt) => Ok(dt.with_timezone(&Utc)),
+        chrono::LocalResult::Ambiguous(dt, _) => Ok(dt.with_timezone(&Utc)),
+        chrono::LocalResult::None => {
+            // DST gap - use next valid time
+            let shifted = naive + chrono::Duration::hours(1);
+            tz.from_local_datetime(&shifted)
+                .single()
+                .map(|dt| dt.with_timezone(&Utc))
+                .ok_or_else(|| sqlx::Error::Protocol("Cannot resolve DST gap".to_string()))
+        }
     }
 }
 

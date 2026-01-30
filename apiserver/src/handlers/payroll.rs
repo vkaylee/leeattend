@@ -431,13 +431,17 @@ pub async fn get_workspace_payslips(
     MemberContext { .. }: MemberContext,
     Query(query): Query<PayrollQuery>,
 ) -> impl IntoResponse {
-    let start_date = chrono::NaiveDate::from_ymd_opt(query.year, query.month, 1).unwrap();
-    let next_month = if query.month == 12 {
-        chrono::NaiveDate::from_ymd_opt(query.year + 1, 1, 1).unwrap()
-    } else {
-        chrono::NaiveDate::from_ymd_opt(query.year, query.month + 1, 1).unwrap()
+    let Some(start_date) = chrono::NaiveDate::from_ymd_opt(query.year, query.month, 1) else {
+        return (StatusCode::BAD_REQUEST, "Invalid year/month").into_response();
     };
-    let end_date = next_month.pred_opt().unwrap();
+    let next_month = if query.month == 12 {
+        chrono::NaiveDate::from_ymd_opt(query.year + 1, 1, 1)
+    } else {
+        chrono::NaiveDate::from_ymd_opt(query.year, query.month + 1, 1)
+    };
+    let Some(end_date) = next_month.and_then(|d| d.pred_opt()) else {
+        return (StatusCode::BAD_REQUEST, "Invalid date range").into_response();
+    };
 
     match crate::repositories::payroll_repository::get_payslips_by_workspace_period(
         &state.db,

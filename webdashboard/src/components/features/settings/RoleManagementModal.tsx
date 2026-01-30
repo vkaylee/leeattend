@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { X, Shield, Plus, Trash2, Clock, UserCheck } from "lucide-react";
 import { useMemberRoles } from "@/hooks/use-workspace";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { Combobox } from "./ui/Combobox";
+import { Combobox } from "@/components/ui/Combobox";
 
 interface RoleManagementModalProps {
   userId: string | null;

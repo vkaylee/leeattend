@@ -20,9 +20,9 @@ import {
   getCurrentWorkspaceId 
 } from "../lib/api";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
-import AttendanceImportDialog from "@/components/AttendanceImportDialog";
+import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
 
 type TabType = "pending" | "approved" | "rejected";
 

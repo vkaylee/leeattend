@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useMyProfile, useEmergencyContacts } from "@/hooks/use-ess";
 import {

@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchPayrollSettings, updatePayrollSettings, fetchPayrollSettingsHistory } from "@/lib/api/payroll";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { useTranslation } from "react-i18next";
 import TemporalConfigTable from "../common/TemporalConfigTable";
 import { ShieldAlert } from "lucide-react";

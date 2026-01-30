@@ -14,7 +14,7 @@ import {
 import { OvertimeRule } from "@/lib/api/types";
 import { addOvertimeRule } from '@/lib/api/payroll';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/components/Toast';
+import { useToast } from '@/components/ui/Toast';
 
 interface OvertimeRuleEditorProps {
   wsId: string;

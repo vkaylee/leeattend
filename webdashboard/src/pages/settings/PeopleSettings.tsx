@@ -3,9 +3,9 @@ import { useTranslation } from "react-i18next";
 import { Users, UserPlus, Mail, Settings2, Trash2, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspaceMembers } from "@/hooks/use-workspace";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { Combobox } from "@/components/ui/Combobox";
-import RoleManagementModal from "@/components/RoleManagementModal";
+import RoleManagementModal from "@/components/features/settings/RoleManagementModal";
 import DepartmentsPage from "@/pages/DepartmentsPage";
 
 type TabType = "members" | "departments";

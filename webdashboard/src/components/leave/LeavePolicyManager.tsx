@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchLeavePolicies, createLeavePolicy, deleteLeavePolicy, updateLeavePolicy, fetchLeaveTypes } from "@/lib/api/leaves";
 import { LeavePolicy, LeaveType } from "@/lib/api/types";
 import { Plus, Trash2, Clock, Edit2, ShieldCheck, Milestone, LayoutGrid } from "lucide-react";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import Modal from "@/components/ui/Modal";
 import { Combobox } from "@/components/ui/Combobox";
 import { cn } from "@/lib/utils";

@@ -11,7 +11,7 @@ import {
 import OvertimeRuleEditor from './OvertimeRuleEditor';
 import AssignOvertimePolicyModal from './AssignOvertimePolicyModal';
 import { fetchOvertimePolicies, createOvertimePolicy, fetchOvertimePolicy } from '@/lib/api/payroll';
-import { useToast } from '@/components/Toast';
+import { useToast } from '@/components/ui/Toast';
 
 interface OvertimePolicyManagerProps {
   wsId: string;
