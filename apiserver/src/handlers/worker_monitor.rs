@@ -1,0 +1,261 @@
+//! Worker Monitoring API Handlers
+//!
+//! Provides real-time monitoring endpoints for distributed worker system.
+
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    Json,
+};
+use chrono::{DateTime, Utc};
+use redis::AsyncCommands;
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use uuid::Uuid;
+
+use crate::AppState;
+
+// Redis key patterns for monitoring
+const WORKER_HEARTBEAT_PREFIX: &str = "monitor:worker:";
+const STATS_COMPLETED_PREFIX: &str = "stats:completed:";
+const STATS_FAILED_PREFIX: &str = "stats:failed:";
+const QUEUE_KEY: &str = "report:jobs:attendance";
+
+/// Worker status enum
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum WorkerStatus {
+    Idle,
+    Processing,
+}
+
+/// Worker heartbeat payload stored in Redis
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkerHeartbeat {
+    pub id: Uuid,
+    pub host: String,
+    pub status: WorkerStatus,
+    pub current_task_type: Option<String>,
+    pub last_seen_at: DateTime<Utc>,
+}
+
+/// Dashboard overview statistics response
+#[derive(Debug, Serialize)]
+pub struct MonitorStatsResponse {
+    pub pending_tasks: u64,
+    pub total_workers: u64,
+    pub active_workers: u64,
+    pub idle_workers: u64,
+    pub completed_today: u64,
+    pub failed_today: u64,
+}
+
+/// Get dashboard overview statistics.
+///
+/// Route: GET /workspaces/:ws_id/monitor/stats
+pub async fn get_monitor_stats(
+    State(state): State<Arc<AppState>>,
+    Path(_ws_id): Path<Uuid>,
+) -> Result<Json<MonitorStatsResponse>, (StatusCode, String)> {
+    let redis = state.redis.as_ref().ok_or_else(|| {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            "Redis not available".to_string(),
+        )
+    })?;
+
+    let mut conn = redis.conn();
+
+    // 1. Get pending tasks count (LLEN on queue)
+    let pending_tasks: u64 = conn.llen(QUEUE_KEY).await.unwrap_or(0);
+
+    // 2. Get today's stats counters
+    let today = Utc::now().format("%Y-%m-%d").to_string();
+    let completed_key = format!("{}{}", STATS_COMPLETED_PREFIX, today);
+    let failed_key = format!("{}{}", STATS_FAILED_PREFIX, today);
+
+    let completed_today: u64 = conn.get(&completed_key).await.unwrap_or(0);
+    let failed_today: u64 = conn.get(&failed_key).await.unwrap_or(0);
+
+    // 3. Scan all worker heartbeat keys
+    let pattern = format!("{}*", WORKER_HEARTBEAT_PREFIX);
+    let worker_keys = scan_keys(&mut conn, &pattern).await;
+
+    // 4. Get worker statuses and count
+    let mut total_workers = 0u64;
+    let mut active_workers = 0u64;
+    let mut idle_workers = 0u64;
+
+    if !worker_keys.is_empty() {
+        // MGET all worker heartbeat values
+        let values: Vec<Option<String>> = conn.mget(&worker_keys).await.unwrap_or_default();
+
+        for value in values.into_iter().flatten() {
+            if let Ok(heartbeat) = serde_json::from_str::<WorkerHeartbeat>(&value) {
+                total_workers += 1;
+                match heartbeat.status {
+                    WorkerStatus::Processing => active_workers += 1,
+                    WorkerStatus::Idle => idle_workers += 1,
+                }
+            }
+        }
+    }
+
+    Ok(Json(MonitorStatsResponse {
+        pending_tasks,
+        total_workers,
+        active_workers,
+        idle_workers,
+        completed_today,
+        failed_today,
+    }))
+}
+
+/// Get list of all worker heartbeats.
+///
+/// Route: GET /workspaces/:ws_id/monitor/workers
+pub async fn get_worker_list(
+    State(state): State<Arc<AppState>>,
+    Path(_ws_id): Path<Uuid>,
+) -> Result<Json<Vec<WorkerHeartbeat>>, (StatusCode, String)> {
+    let redis = state.redis.as_ref().ok_or_else(|| {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            "Redis not available".to_string(),
+        )
+    })?;
+
+    let mut conn = redis.conn();
+
+    // Scan all worker heartbeat keys
+    let pattern = format!("{}*", WORKER_HEARTBEAT_PREFIX);
+    let worker_keys = scan_keys(&mut conn, &pattern).await;
+
+    if worker_keys.is_empty() {
+        return Ok(Json(vec![]));
+    }
+
+    // MGET all worker heartbeat values
+    let values: Vec<Option<String>> = conn.mget(&worker_keys).await.unwrap_or_default();
+
+    let workers: Vec<WorkerHeartbeat> = values
+        .into_iter()
+        .flatten()
+        .filter_map(|v| serde_json::from_str(&v).ok())
+        .collect();
+
+    Ok(Json(workers))
+}
+
+/// Scan Redis keys matching a pattern using SCAN iterator.
+/// Avoids KEYS command which can block Redis on large datasets.
+async fn scan_keys(conn: &mut redis::aio::ConnectionManager, pattern: &str) -> Vec<String> {
+    let mut keys = Vec::new();
+    let mut cursor = 0u64;
+
+    loop {
+        // SCAN cursor MATCH pattern COUNT 100
+        let result: Result<(u64, Vec<String>), _> = redis::cmd("SCAN")
+            .arg(cursor)
+            .arg("MATCH")
+            .arg(pattern)
+            .arg("COUNT")
+            .arg(100)
+            .query_async(conn)
+            .await;
+
+        match result {
+            Ok((next_cursor, found_keys)) => {
+                keys.extend(found_keys);
+                cursor = next_cursor;
+                if cursor == 0 {
+                    break;
+                }
+            }
+            Err(_) => break,
+        }
+    }
+
+    keys
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_worker_status_serialization() {
+        let idle = WorkerStatus::Idle;
+        let processing = WorkerStatus::Processing;
+
+        let idle_json = serde_json::to_string(&idle).unwrap();
+        let processing_json = serde_json::to_string(&processing).unwrap();
+
+        assert_eq!(idle_json, "\"IDLE\"");
+        assert_eq!(processing_json, "\"PROCESSING\"");
+    }
+
+    #[test]
+    fn test_worker_heartbeat_serialization() {
+        let heartbeat = WorkerHeartbeat {
+            id: Uuid::nil(),
+            host: "worker-pod-1".to_string(),
+            status: WorkerStatus::Processing,
+            current_task_type: Some("EXPORT_CHUNK".to_string()),
+            last_seen_at: Utc::now(),
+        };
+
+        let json = serde_json::to_string(&heartbeat).unwrap();
+        assert!(json.contains("\"status\":\"PROCESSING\""));
+        assert!(json.contains("\"current_task_type\":\"EXPORT_CHUNK\""));
+        assert!(json.contains("\"host\":\"worker-pod-1\""));
+    }
+
+    #[test]
+    fn test_monitor_stats_response_serialization() {
+        let stats = MonitorStatsResponse {
+            pending_tasks: 150,
+            total_workers: 50,
+            active_workers: 45,
+            idle_workers: 5,
+            completed_today: 1200,
+            failed_today: 3,
+        };
+
+        let json = serde_json::to_string(&stats).unwrap();
+        assert!(json.contains("\"pending_tasks\":150"));
+        assert!(json.contains("\"total_workers\":50"));
+        assert!(json.contains("\"active_workers\":45"));
+    }
+
+    #[test]
+    fn test_key_patterns() {
+        assert_eq!(WORKER_HEARTBEAT_PREFIX, "monitor:worker:");
+        assert_eq!(STATS_COMPLETED_PREFIX, "stats:completed:");
+        assert_eq!(STATS_FAILED_PREFIX, "stats:failed:");
+
+        // Test daily key format
+        let today = "2026-01-30";
+        let completed_key = format!("{}{}", STATS_COMPLETED_PREFIX, today);
+        let failed_key = format!("{}{}", STATS_FAILED_PREFIX, today);
+
+        assert_eq!(completed_key, "stats:completed:2026-01-30");
+        assert_eq!(failed_key, "stats:failed:2026-01-30");
+    }
+
+    #[test]
+    fn test_worker_heartbeat_deserialization() {
+        let json = r#"{
+            "id": "550e8400-e29b-41d4-a716-446655440000",
+            "host": "worker-1",
+            "status": "IDLE",
+            "current_task_type": null,
+            "last_seen_at": "2026-01-30T12:00:00Z"
+        }"#;
+
+        let heartbeat: WorkerHeartbeat = serde_json::from_str(json).unwrap();
+        assert_eq!(heartbeat.host, "worker-1");
+        assert_eq!(heartbeat.status, WorkerStatus::Idle);
+        assert!(heartbeat.current_task_type.is_none());
+    }
+}

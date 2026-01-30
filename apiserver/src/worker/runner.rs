@@ -4,16 +4,43 @@
 
 use std::sync::Arc;
 
+use chrono::{DateTime, Utc};
+use redis::AsyncCommands;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use tokio::sync::Semaphore;
+use tokio::sync::{Mutex, Semaphore};
 use tokio::time::Duration;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
+use uuid::Uuid;
 
 use crate::cache::CacheManager;
 use crate::queue::{RedisPool, ReportJob, ReportQueue, TaskType};
 use crate::services::ReportCoordinator;
 use crate::worker::handlers::{AttendanceHandler, MergeHandler};
+
+// Redis key patterns for monitoring
+const WORKER_HEARTBEAT_PREFIX: &str = "monitor:worker:";
+const HEARTBEAT_INTERVAL_SECS: u64 = 5;
+const HEARTBEAT_TTL_SECS: i64 = 15;
+
+/// Worker status for heartbeat
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum WorkerStatus {
+    Idle,
+    Processing,
+}
+
+/// Worker heartbeat payload stored in Redis
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkerHeartbeat {
+    pub id: Uuid,
+    pub host: String,
+    pub status: WorkerStatus,
+    pub current_task_type: Option<String>,
+    pub last_seen_at: DateTime<Utc>,
+}
 
 /// Configuration for worker behavior.
 #[derive(Debug, Clone)]
@@ -75,10 +102,15 @@ impl WorkerConfig {
 /// Background worker that processes report jobs from Redis queue.
 pub struct ReportWorker {
     queue: ReportQueue,
+    redis: RedisPool,
     db: PgPool,
     config: WorkerConfig,
     coordinator: Arc<ReportCoordinator>,
     cache: Arc<CacheManager>,
+    worker_id: Uuid,
+    hostname: String,
+    current_status: Arc<Mutex<WorkerStatus>>,
+    current_task_type: Arc<Mutex<Option<String>>>,
 }
 
 impl ReportWorker {
@@ -90,12 +122,21 @@ impl ReportWorker {
         coordinator: Arc<ReportCoordinator>,
     ) -> Self {
         let cache = Arc::new(CacheManager::new(redis.clone(), db.clone()));
+        let hostname = std::env::var("HOSTNAME")
+            .or_else(|_| std::env::var("COMPUTERNAME"))
+            .unwrap_or_else(|_| "unknown".to_string());
+
         Self {
-            queue: ReportQueue::new(redis),
+            queue: ReportQueue::new(redis.clone()),
+            redis,
             db,
             config,
             coordinator,
             cache,
+            worker_id: Uuid::new_v4(),
+            hostname,
+            current_status: Arc::new(Mutex::new(WorkerStatus::Idle)),
+            current_task_type: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -110,6 +151,8 @@ impl ReportWorker {
     /// Main worker loop.
     async fn run(self, cancel_token: CancellationToken) {
         info!(
+            worker_id = %self.worker_id,
+            hostname = %self.hostname,
             max_concurrent = self.config.max_concurrent_jobs,
             poll_timeout = self.config.poll_timeout_secs,
             "Report worker started"
@@ -117,6 +160,13 @@ impl ReportWorker {
 
         let semaphore = Arc::new(Semaphore::new(self.config.max_concurrent_jobs));
         let worker = Arc::new(self);
+
+        // Start heartbeat background task
+        let heartbeat_worker = worker.clone();
+        let heartbeat_cancel = cancel_token.clone();
+        let heartbeat_task = tokio::spawn(async move {
+            heartbeat_worker.heartbeat_loop(heartbeat_cancel).await;
+        });
 
         loop {
             // Check for shutdown
@@ -149,6 +199,13 @@ impl ReportWorker {
                     let worker_clone = worker.clone();
                     let job_id = job.job_id;
                     let timeout_secs = worker.config.job_timeout_secs;
+                    let task_type_str = format!("{:?}", job.task_type);
+
+                    // Update status to processing
+                    {
+                        *worker.current_status.lock().await = WorkerStatus::Processing;
+                        *worker.current_task_type.lock().await = Some(task_type_str.clone());
+                    }
 
                     // Spawn task to process job
                     tokio::spawn(async move {
@@ -159,6 +216,20 @@ impl ReportWorker {
                             worker_clone.process_job(job),
                         )
                         .await;
+
+                        // Update daily stats based on result
+                        let success = matches!(result, Ok(Ok(())));
+                        if success {
+                            let _ = worker_clone.queue.increment_daily_completed().await;
+                        } else {
+                            let _ = worker_clone.queue.increment_daily_failed().await;
+                        }
+
+                        // Reset status to idle
+                        {
+                            *worker_clone.current_status.lock().await = WorkerStatus::Idle;
+                            *worker_clone.current_task_type.lock().await = None;
+                        }
 
                         match result {
                             Ok(Ok(())) => {
@@ -205,7 +276,65 @@ impl ReportWorker {
             }
         }
 
+        // Clean up heartbeat key
+        let _ = worker.remove_heartbeat().await;
+
+        // Wait for heartbeat task to finish
+        let _ = heartbeat_task.await;
+
         info!("Report worker stopped");
+    }
+
+    /// Background loop that sends heartbeats every 5 seconds.
+    async fn heartbeat_loop(self: Arc<Self>, cancel_token: CancellationToken) {
+        let mut interval = tokio::time::interval(Duration::from_secs(HEARTBEAT_INTERVAL_SECS));
+
+        loop {
+            tokio::select! {
+                _ = cancel_token.cancelled() => {
+                    break;
+                }
+                _ = interval.tick() => {
+                    if let Err(e) = self.send_heartbeat().await {
+                        warn!(error = %e, "Failed to send heartbeat");
+                    }
+                }
+            }
+        }
+    }
+
+    /// Send heartbeat to Redis with current status.
+    async fn send_heartbeat(&self) -> Result<(), redis::RedisError> {
+        let mut conn = self.redis.conn();
+        let key = format!("{}{}", WORKER_HEARTBEAT_PREFIX, self.worker_id);
+
+        let status = self.current_status.lock().await.clone();
+        let task_type = self.current_task_type.lock().await.clone();
+
+        let heartbeat = WorkerHeartbeat {
+            id: self.worker_id,
+            host: self.hostname.clone(),
+            status,
+            current_task_type: task_type,
+            last_seen_at: Utc::now(),
+        };
+
+        let json = serde_json::to_string(&heartbeat)
+            .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "JSON error", e.to_string())))?;
+
+        redis::pipe()
+            .set(&key, json)
+            .expire(&key, HEARTBEAT_TTL_SECS)
+            .query_async(&mut conn)
+            .await
+    }
+
+    /// Remove heartbeat key on shutdown.
+    async fn remove_heartbeat(&self) -> Result<(), redis::RedisError> {
+        let mut conn = self.redis.conn();
+        let key = format!("{}{}", WORKER_HEARTBEAT_PREFIX, self.worker_id);
+        let _: () = conn.del(&key).await?;
+        Ok(())
     }
 
     /// Process a single job by routing to appropriate handler.
@@ -390,5 +519,53 @@ mod tests {
                 assert!(is_implemented);
             }
         }
+    }
+
+    #[test]
+    fn test_worker_status_serialization() {
+        let idle = WorkerStatus::Idle;
+        let processing = WorkerStatus::Processing;
+
+        let idle_json = serde_json::to_string(&idle).unwrap();
+        let processing_json = serde_json::to_string(&processing).unwrap();
+
+        assert_eq!(idle_json, "\"IDLE\"");
+        assert_eq!(processing_json, "\"PROCESSING\"");
+    }
+
+    #[test]
+    fn test_worker_heartbeat_serialization() {
+        let heartbeat = WorkerHeartbeat {
+            id: Uuid::nil(),
+            host: "worker-pod-1".to_string(),
+            status: WorkerStatus::Processing,
+            current_task_type: Some("AttendanceReport".to_string()),
+            last_seen_at: Utc::now(),
+        };
+
+        let json = serde_json::to_string(&heartbeat).unwrap();
+        assert!(json.contains("\"status\":\"PROCESSING\""));
+        assert!(json.contains("\"current_task_type\":\"AttendanceReport\""));
+        assert!(json.contains("\"host\":\"worker-pod-1\""));
+
+        // Verify roundtrip
+        let decoded: WorkerHeartbeat = serde_json::from_str(&json).unwrap();
+        assert_eq!(decoded.host, "worker-pod-1");
+        assert_eq!(decoded.status, WorkerStatus::Processing);
+    }
+
+    #[test]
+    fn test_heartbeat_key_format() {
+        let worker_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
+        let key = format!("{}{}", WORKER_HEARTBEAT_PREFIX, worker_id);
+        assert_eq!(key, "monitor:worker:550e8400-e29b-41d4-a716-446655440000");
+    }
+
+    #[test]
+    fn test_heartbeat_timing_constants() {
+        // Heartbeat every 5s, TTL 15s = 3 missed heartbeats before expiry
+        assert_eq!(HEARTBEAT_INTERVAL_SECS, 5);
+        assert_eq!(HEARTBEAT_TTL_SECS, 15);
+        assert!(HEARTBEAT_TTL_SECS >= HEARTBEAT_INTERVAL_SECS as i64 * 2);
     }
 }

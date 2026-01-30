@@ -10,6 +10,11 @@ const COUNTER_PREFIX: &str = "report:counter:";
 const DLQ_KEY: &str = "report:dlq";
 const JOB_TTL_SECS: i64 = 86400; // 24 hours
 
+// Global daily stats keys
+const STATS_COMPLETED_PREFIX: &str = "stats:completed:";
+const STATS_FAILED_PREFIX: &str = "stats:failed:";
+const STATS_TTL_SECS: i64 = 604800; // 7 days retention
+
 /// Queue for report processing jobs.
 /// Uses Redis LIST for FIFO job distribution and HASH for result storage.
 pub struct ReportQueue {
@@ -339,6 +344,40 @@ impl ReportQueue {
         let key = format!("{}{}", RESULTS_PREFIX, parent_job_id);
         let _: () = conn.del(&key).await?;
         Ok(())
+    }
+
+    /// Increment global daily completed jobs counter.
+    /// Uses date-based key for daily aggregation with 7-day TTL.
+    pub async fn increment_daily_completed(&self) -> Result<u64, redis::RedisError> {
+        let mut conn = self.pool.conn();
+        let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+        let key = format!("{}{}", STATS_COMPLETED_PREFIX, today);
+
+        let count: u64 = redis::pipe()
+            .incr(&key, 1)
+            .expire(&key, STATS_TTL_SECS)
+            .ignore()
+            .query_async(&mut conn)
+            .await?;
+
+        Ok(count)
+    }
+
+    /// Increment global daily failed jobs counter.
+    /// Uses date-based key for daily aggregation with 7-day TTL.
+    pub async fn increment_daily_failed(&self) -> Result<u64, redis::RedisError> {
+        let mut conn = self.pool.conn();
+        let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+        let key = format!("{}{}", STATS_FAILED_PREFIX, today);
+
+        let count: u64 = redis::pipe()
+            .incr(&key, 1)
+            .expire(&key, STATS_TTL_SECS)
+            .ignore()
+            .query_async(&mut conn)
+            .await?;
+
+        Ok(count)
     }
 
     /// Update job status atomically.
