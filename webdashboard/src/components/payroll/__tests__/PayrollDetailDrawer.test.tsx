@@ -4,7 +4,7 @@ import PayrollDetailDrawer from "../PayrollDetailDrawer";
 import { Employee, Payslip } from "@/lib/api/types";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastProvider } from "../../Toast";
+import { ToastProvider } from "../../ui/Toast";
 
 // Mock i18next
 vi.mock("react-i18next", () => ({

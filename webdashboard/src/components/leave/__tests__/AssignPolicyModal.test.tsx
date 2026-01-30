@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AssignPolicyModal } from "../AssignPolicyModal";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as api from "../../../lib/api";
-import { ToastProvider } from "../../Toast";
+import { ToastProvider } from "../../ui/Toast";
 
 // Mock the API library
 vi.mock("../../../lib/api", () => ({

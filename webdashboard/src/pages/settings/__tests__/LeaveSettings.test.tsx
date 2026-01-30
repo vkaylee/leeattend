@@ -25,7 +25,7 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/lib/api/leaves");
 vi.mock("@/lib/api/helpers");
-vi.mock("@/components/Toast", () => ({ useToast: () => ({ success: vi.fn(), error: vi.fn() }) }));
+vi.mock("@/components/ui/Toast", () => ({ useToast: () => ({ success: vi.fn(), error: vi.fn() }) }));
 
 
 const mockAssignments = [

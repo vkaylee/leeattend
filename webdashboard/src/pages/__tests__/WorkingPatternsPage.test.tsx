@@ -45,7 +45,7 @@ vi.mock("@/components/common/EmployeeSearch", () => ({
 // Mock Toast
 const mockToastSuccess = vi.fn();
 const mockToastError = vi.fn();
-vi.mock("../../components/Toast", () => ({
+vi.mock("../../components/ui/Toast", () => ({
   useToast: () => ({
     success: mockToastSuccess,
     error: mockToastError,

@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import WorkspaceGuard from "../WorkspaceGuard";
+import WorkspaceGuard from "../common/WorkspaceGuard";
 import * as api from "@/lib/api";
 import { useWorkspaces } from "@/hooks/use-workspace";
 import { vi, describe, it, expect, beforeEach } from "vitest";

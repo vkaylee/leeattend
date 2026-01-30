@@ -11,7 +11,7 @@ vi.mock('@/lib/api/payroll', () => ({
   assignOvertimePolicy: vi.fn().mockResolvedValue(true),
 }));
 
-vi.mock('@/components/Toast', () => ({
+vi.mock('@/components/ui/Toast', () => ({
   useToast: () => ({ success: vi.fn(), error: vi.fn() }),
 }));
 

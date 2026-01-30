@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import PayrollTable from "../PayrollTable";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastProvider } from "../../Toast";
+import { ToastProvider } from "../../ui/Toast";
 import { Payslip } from "@/lib/api/types";
 import React from "react";
 

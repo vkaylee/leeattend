@@ -1,9 +1,9 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import RoleManagementModal from "../RoleManagementModal";
+import RoleManagementModal from "../features/settings/RoleManagementModal";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastProvider } from "../../components/ui/Toast";
+import { ToastProvider } from "../ui/Toast";
 import * as api from "../../lib/api";
 import React from "react";
 

@@ -9,7 +9,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/lib/api/leaves");
-vi.mock("@/components/Toast", () => ({ useToast: () => ({ success: vi.fn(), error: vi.fn() }) }));
+vi.mock("@/components/ui/Toast", () => ({ useToast: () => ({ success: vi.fn(), error: vi.fn() }) }));
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 

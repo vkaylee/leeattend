@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import AuthGuard from "../AuthGuard";
+import AuthGuard from "../common/AuthGuard";
 import * as api from "@/lib/api";
 import { useProfile } from "@/hooks/use-profile";
 import { vi, describe, it, expect, beforeEach } from "vitest";

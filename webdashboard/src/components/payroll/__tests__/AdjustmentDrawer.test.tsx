@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import AdjustmentDrawer from "../AdjustmentDrawer";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastProvider } from "../../Toast";
+import { ToastProvider } from "../../ui/Toast";
 import * as api from "@/lib/api";
 import React from "react";
 
