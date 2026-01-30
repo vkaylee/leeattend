@@ -36,6 +36,7 @@ async fn setup_context() -> (TestDatabase, TestFactory, Arc<AppState>) {
         jwt_secret: "test_secret_session".to_string(),
         attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
         redis: None,
+        coordinator: None,
     });
 
     (test_db, factory, app_state)

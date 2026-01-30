@@ -82,6 +82,7 @@ async fn spawn_app() -> (Arc<AppState>, Uuid, String) {
         jwt_secret: "test_secret".to_string(),
         attendance_service: Arc::new(AttendanceLogService::new(db_pool.clone(), 100, 10, 1000).0),
         redis: None,
+        coordinator: None,
     });
 
     // Generate token

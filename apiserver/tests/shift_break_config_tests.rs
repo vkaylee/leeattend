@@ -38,6 +38,7 @@ async fn setup_test_app(pool: PgPool) -> axum::Router {
         jwt_secret: "test_secret".to_string(),
         attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
         redis: None,
+        coordinator: None,
     });
 
     create_app(state)

@@ -34,6 +34,7 @@ async fn setup_app() -> (TestDatabase, TestFactory, Arc<AppState>, axum::Router)
         jwt_secret: "test_secret_agent_ext".to_string(),
         attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
         redis: None,
+        coordinator: None,
     });
 
     let app = apiserver::create_app(app_state.clone());

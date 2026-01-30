@@ -57,6 +57,7 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory) {
         jwt_secret: "archive_secret".to_string(),
         attendance_service: Arc::new(AttendanceLogService::new(db_pool.clone(), 100, 10, 1000).0),
         redis: None,
+        coordinator: None,
     });
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();

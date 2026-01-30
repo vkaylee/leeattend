@@ -36,6 +36,7 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
         jwt_secret: "test_secret_123".to_string(), // Matches AuthHelper default secret
         attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
         redis: None,
+        coordinator: None,
     });
 
     let app = apiserver::create_app(app_state);
