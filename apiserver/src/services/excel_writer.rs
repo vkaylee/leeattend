@@ -62,7 +62,7 @@ impl ExcelWriter {
             .write_string_with_format(
                 0,
                 0,
-                &format!("Attendance Summary Report - {}", workspace_name),
+                format!("Attendance Summary Report - {}", workspace_name),
                 &title_format,
             )
             .map_err(|e| e.to_string())?;
@@ -72,7 +72,7 @@ impl ExcelWriter {
             .write_string_with_format(
                 1,
                 0,
-                &format!("Period: {} to {}", date_range.0, date_range.1),
+                format!("Period: {} to {}", date_range.0, date_range.1),
                 &subtitle_format,
             )
             .map_err(|e| e.to_string())?;
@@ -182,7 +182,7 @@ impl ExcelWriter {
             .write_string_with_format(
                 0,
                 0,
-                &format!("Attendance Detail Report - {}", workspace_name),
+                format!("Attendance Detail Report - {}", workspace_name),
                 &title_format,
             )
             .map_err(|e| e.to_string())?;
@@ -192,7 +192,7 @@ impl ExcelWriter {
             .write_string_with_format(
                 1,
                 0,
-                &format!("Period: {} to {}", date_range.0, date_range.1),
+                format!("Period: {} to {}", date_range.0, date_range.1),
                 &subtitle_format,
             )
             .map_err(|e| e.to_string())?;
@@ -219,7 +219,7 @@ impl ExcelWriter {
             let row = (idx + 4) as u32;
 
             worksheet
-                .write_string(row, 0, &report.date.to_string())
+                .write_string(row, 0, report.date.to_string())
                 .map_err(|e| e.to_string())?;
 
             worksheet
@@ -227,19 +227,19 @@ impl ExcelWriter {
                 .map_err(|e| e.to_string())?;
 
             worksheet
-                .write_string_with_format(row, 2, &format_time(report.scheduled_start), &time_format)
+                .write_string_with_format(row, 2, format_time(report.scheduled_start), &time_format)
                 .map_err(|e| e.to_string())?;
 
             worksheet
-                .write_string_with_format(row, 3, &format_time(report.scheduled_end), &time_format)
+                .write_string_with_format(row, 3, format_time(report.scheduled_end), &time_format)
                 .map_err(|e| e.to_string())?;
 
             worksheet
-                .write_string_with_format(row, 4, &format_datetime(report.actual_punch_in), &time_format)
+                .write_string_with_format(row, 4, format_datetime(report.actual_punch_in), &time_format)
                 .map_err(|e| e.to_string())?;
 
             worksheet
-                .write_string_with_format(row, 5, &format_datetime(report.actual_punch_out), &time_format)
+                .write_string_with_format(row, 5, format_datetime(report.actual_punch_out), &time_format)
                 .map_err(|e| e.to_string())?;
 
             worksheet

@@ -82,3 +82,40 @@ impl WorkspaceCache {
         self.cache.delete(&Self::key(workspace_id)).await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cache_key_generation() {
+        let workspace_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
+        let key = WorkspaceCache::key(workspace_id);
+        assert_eq!(key, "cache:workspace:550e8400-e29b-41d4-a716-446655440000");
+    }
+
+    #[test]
+    fn test_cached_config_serialization() {
+        let config = CachedWorkspaceConfig {
+            id: Uuid::new_v4(),
+            timezone: "Asia/Ho_Chi_Minh".to_string(),
+            rounding_policy: "floor".to_string(),
+            work_unit_minutes: 30,
+            early_arrival_strategy: EarlyArrivalStrategy::Allow,
+        };
+
+        let json = serde_json::to_string(&config).unwrap();
+        let decoded: CachedWorkspaceConfig = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(config.id, decoded.id);
+        assert_eq!(config.timezone, decoded.timezone);
+        assert_eq!(config.rounding_policy, decoded.rounding_policy);
+        assert_eq!(config.work_unit_minutes, decoded.work_unit_minutes);
+    }
+
+    #[test]
+    fn test_default_ttl() {
+        // 5 minutes is reasonable for workspace config
+        assert_eq!(DEFAULT_CACHE_TTL.as_secs(), 300);
+    }
+}

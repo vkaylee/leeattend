@@ -105,3 +105,97 @@ impl ShiftCache {
         self.cache.delete(&Self::key(workspace_id)).await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cache_key_generation() {
+        let workspace_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
+        let key = ShiftCache::key(workspace_id);
+        assert_eq!(key, "cache:shifts:550e8400-e29b-41d4-a716-446655440000");
+    }
+
+    #[test]
+    fn test_cached_shift_serialization() {
+        let shift = CachedShift {
+            id: Uuid::new_v4(),
+            name: "Day Shift".to_string(),
+            start_time: NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
+            end_time: NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+            break_duration_minutes: Some(60),
+            break_start: Some(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
+            break_end: Some(NaiveTime::from_hms_opt(13, 0, 0).unwrap()),
+            is_break_auto_deduct: Some(true),
+            allow_early_ot: Some(false),
+            early_punch_in_grace_period_minutes: Some(15),
+        };
+
+        let json = serde_json::to_string(&shift).unwrap();
+        let decoded: CachedShift = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(shift.id, decoded.id);
+        assert_eq!(shift.name, decoded.name);
+        assert_eq!(shift.start_time, decoded.start_time);
+        assert_eq!(shift.end_time, decoded.end_time);
+        assert_eq!(shift.break_duration_minutes, decoded.break_duration_minutes);
+    }
+
+    #[test]
+    fn test_vec_to_hashmap_conversion() {
+        let shift1 = CachedShift {
+            id: Uuid::new_v4(),
+            name: "Morning".to_string(),
+            start_time: NaiveTime::from_hms_opt(6, 0, 0).unwrap(),
+            end_time: NaiveTime::from_hms_opt(14, 0, 0).unwrap(),
+            break_duration_minutes: Some(30),
+            break_start: None,
+            break_end: None,
+            is_break_auto_deduct: Some(false),
+            allow_early_ot: Some(true),
+            early_punch_in_grace_period_minutes: Some(10),
+        };
+        let shift2 = CachedShift {
+            id: Uuid::new_v4(),
+            name: "Evening".to_string(),
+            start_time: NaiveTime::from_hms_opt(14, 0, 0).unwrap(),
+            end_time: NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
+            break_duration_minutes: Some(30),
+            break_start: None,
+            break_end: None,
+            is_break_auto_deduct: Some(false),
+            allow_early_ot: Some(false),
+            early_punch_in_grace_period_minutes: Some(5),
+        };
+
+        let shifts = vec![shift1.clone(), shift2.clone()];
+        let map: HashMap<Uuid, CachedShift> = shifts.into_iter().map(|s| (s.id, s)).collect();
+
+        assert_eq!(map.len(), 2);
+        assert!(map.contains_key(&shift1.id));
+        assert!(map.contains_key(&shift2.id));
+        assert_eq!(map.get(&shift1.id).unwrap().name, "Morning");
+        assert_eq!(map.get(&shift2.id).unwrap().name, "Evening");
+    }
+
+    #[test]
+    fn test_overnight_shift() {
+        let shift = CachedShift {
+            id: Uuid::new_v4(),
+            name: "Night Shift".to_string(),
+            start_time: NaiveTime::from_hms_opt(22, 0, 0).unwrap(),
+            end_time: NaiveTime::from_hms_opt(6, 0, 0).unwrap(), // Next day
+            break_duration_minutes: Some(45),
+            break_start: Some(NaiveTime::from_hms_opt(2, 0, 0).unwrap()),
+            break_end: Some(NaiveTime::from_hms_opt(2, 45, 0).unwrap()),
+            is_break_auto_deduct: Some(true),
+            allow_early_ot: Some(true),
+            early_punch_in_grace_period_minutes: Some(30),
+        };
+
+        // Overnight shift: end_time < start_time
+        assert!(shift.end_time < shift.start_time);
+        assert_eq!(shift.break_duration_minutes, Some(45));
+    }
+}

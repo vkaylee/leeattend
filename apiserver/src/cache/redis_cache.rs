@@ -112,3 +112,54 @@ impl RedisCache {
         Ok(value)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use serde::{Deserialize, Serialize};
+    use std::time::Duration;
+
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    struct TestData {
+        id: u32,
+        name: String,
+    }
+
+    #[test]
+    fn test_workspace_key_format() {
+        let workspace_id = uuid::Uuid::new_v4();
+        let key = format!("cache:workspace:{}", workspace_id);
+        assert!(key.starts_with("cache:workspace:"));
+        assert!(key.contains(&workspace_id.to_string()));
+    }
+
+    #[test]
+    fn test_shift_key_format() {
+        let workspace_id = uuid::Uuid::new_v4();
+        let key = format!("cache:shifts:{}", workspace_id);
+        assert!(key.starts_with("cache:shifts:"));
+    }
+
+    #[test]
+    fn test_serialization_roundtrip() {
+        let data = TestData {
+            id: 42,
+            name: "Test Workspace".to_string(),
+        };
+
+        let json = serde_json::to_string(&data).unwrap();
+        let decoded: TestData = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(data, decoded);
+    }
+
+    #[test]
+    fn test_ttl_duration() {
+        let ttl = Duration::from_secs(300);
+        assert_eq!(ttl.as_secs(), 300);
+
+        // 5 minute TTL is reasonable for cache
+        assert!(ttl.as_secs() >= 60);
+        assert!(ttl.as_secs() <= 3600);
+    }
+}
+

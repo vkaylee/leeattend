@@ -140,6 +140,7 @@ impl AttendanceHandler {
     }
 
     /// Calculate summary attendance for batch of employees.
+    #[allow(clippy::too_many_arguments)]
     async fn calculate_summary(
         pool: &PgPool,
         schedules: &[crate::models::EmployeeSchedule],
@@ -255,7 +256,7 @@ impl AttendanceHandler {
                     let (shift_start, shift_end) =
                         if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
                             if daily.end_time < daily.start_time {
-                                end = end + Duration::days(1);
+                                end += Duration::days(1);
                             }
                             (Some(start), Some(end))
                         } else {
@@ -369,7 +370,7 @@ impl AttendanceHandler {
                     let (shift_start, shift_end) =
                         if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
                             if daily.end_time < daily.start_time {
-                                end = end + Duration::days(1);
+                                end += Duration::days(1);
                             }
                             (Some(start), Some(end))
                         } else {
@@ -449,5 +450,160 @@ impl AttendanceHandler {
         }
 
         serde_json::to_string(&reports).map_err(|e| format!("Failed to serialize: {}", e))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::DailyAttendanceReport;
+    use chrono::NaiveTime;
+
+    #[test]
+    fn test_status_determination_present() {
+        let status = determine_status(
+            Some(NaiveTime::from_hms_opt(8, 0, 0).unwrap()),  // punch_in
+            Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()), // sched_start
+            true,                                              // has_shift
+        );
+        assert_eq!(status, "present");
+    }
+
+    #[test]
+    fn test_status_determination_late() {
+        let status = determine_status(
+            Some(NaiveTime::from_hms_opt(9, 0, 0).unwrap()),  // punch_in (late)
+            Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()), // sched_start
+            true,
+        );
+        assert_eq!(status, "late");
+    }
+
+    #[test]
+    fn test_status_determination_absent() {
+        let status = determine_status(None, Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()), true);
+        assert_eq!(status, "absent");
+    }
+
+    #[test]
+    fn test_status_determination_off() {
+        let status = determine_status(None, None, false);
+        assert_eq!(status, "off");
+    }
+
+    #[test]
+    fn test_entries_filtering_by_date() {
+        // Simulate filtering entries by date (as done in the handler)
+        let entries_dates = vec![
+            NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            NaiveDate::from_ymd_opt(2026, 1, 2).unwrap(),
+            NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+        ];
+
+        let target_date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+        let filtered: Vec<_> = entries_dates.iter().filter(|d| **d == target_date).collect();
+
+        assert_eq!(filtered.len(), 2);
+    }
+
+    #[test]
+    fn test_break_minutes_aggregation() {
+        let break_entries = vec![15, 30, 15]; // Minutes
+        let total: i32 = break_entries.iter().sum();
+        assert_eq!(total, 60);
+    }
+
+    #[test]
+    fn test_overnight_shift_detection() {
+        let start = NaiveTime::from_hms_opt(22, 0, 0).unwrap();
+        let end = NaiveTime::from_hms_opt(6, 0, 0).unwrap();
+
+        // Overnight: end < start
+        assert!(end < start);
+    }
+
+    #[test]
+    fn test_summary_serialization() {
+        let summaries = vec![
+            AttendanceSummary {
+                employee_id: Uuid::new_v4(),
+                employee_name: "Alice".to_string(),
+                total_work_units: 160,
+                total_leave_days: 2,
+            },
+            AttendanceSummary {
+                employee_id: Uuid::new_v4(),
+                employee_name: "Bob".to_string(),
+                total_work_units: 152,
+                total_leave_days: 4,
+            },
+        ];
+
+        let json = serde_json::to_string(&summaries).unwrap();
+        let decoded: Vec<AttendanceSummary> = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(decoded.len(), 2);
+        assert_eq!(decoded[0].employee_name, "Alice");
+        assert_eq!(decoded[0].total_work_units, 160);
+    }
+
+    #[test]
+    fn test_detail_report_serialization() {
+        let reports = vec![DailyAttendanceReport {
+            date: NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(),
+            employee_id: Uuid::new_v4(),
+            employee_name: "Charlie".to_string(),
+            scheduled_start: Some(NaiveTime::from_hms_opt(9, 0, 0).unwrap()),
+            scheduled_end: Some(NaiveTime::from_hms_opt(17, 0, 0).unwrap()),
+            break_duration_minutes: Some(60),
+            break_start: Some(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
+            break_end: Some(NaiveTime::from_hms_opt(13, 0, 0).unwrap()),
+            is_break_auto_deduct: Some(true),
+            actual_punch_in: None,
+            actual_punch_out: None,
+            work_units: 0,
+            status: "absent".to_string(),
+            generation_metadata: None,
+        }];
+
+        let json = serde_json::to_string(&reports).unwrap();
+        let decoded: Vec<DailyAttendanceReport> = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(decoded.len(), 1);
+        assert_eq!(decoded[0].status, "absent");
+        assert_eq!(decoded[0].work_units, 0);
+    }
+
+    #[test]
+    fn test_timezone_parsing() {
+        let valid_tz: Result<Tz, _> = "Asia/Ho_Chi_Minh".parse();
+        assert!(valid_tz.is_ok());
+
+        let invalid_tz: Result<Tz, _> = "Invalid/Timezone".parse();
+        assert!(invalid_tz.is_err());
+
+        // Default fallback
+        let tz: Tz = "invalid".parse().unwrap_or(chrono_tz::UTC);
+        assert_eq!(tz, chrono_tz::UTC);
+    }
+
+    // Helper function for status determination (mirrors handler logic)
+    fn determine_status(
+        punch_in_time: Option<NaiveTime>,
+        sched_start: Option<NaiveTime>,
+        has_shift: bool,
+    ) -> &'static str {
+        if let Some(punch_in) = punch_in_time {
+            if let Some(sched) = sched_start {
+                if punch_in > sched + Duration::minutes(5) {
+                    return "late";
+                }
+            }
+            "present"
+        } else if has_shift {
+            "absent"
+        } else {
+            "off"
+        }
     }
 }

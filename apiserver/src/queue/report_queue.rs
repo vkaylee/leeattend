@@ -367,3 +367,121 @@ impl ReportQueue {
         self.update_job_metadata(&meta).await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::queue::{DateRange, ReportConfig, ReportType, TaskType};
+    use chrono::NaiveDate;
+
+    #[test]
+    fn test_queue_key_constants() {
+        assert_eq!(QUEUE_KEY, "report:jobs:attendance");
+        assert_eq!(META_PREFIX, "report:meta:");
+        assert_eq!(RESULTS_PREFIX, "report:results:");
+        assert_eq!(COUNTER_PREFIX, "report:counter:");
+        assert_eq!(DLQ_KEY, "report:dlq");
+        assert_eq!(JOB_TTL_SECS, 86400); // 24 hours
+    }
+
+    #[test]
+    fn test_meta_key_format() {
+        let job_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
+        let key = format!("{}{}", META_PREFIX, job_id);
+        assert_eq!(key, "report:meta:550e8400-e29b-41d4-a716-446655440000");
+    }
+
+    #[test]
+    fn test_results_key_format() {
+        let job_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
+        let key = format!("{}{}", RESULTS_PREFIX, job_id);
+        assert_eq!(key, "report:results:550e8400-e29b-41d4-a716-446655440000");
+    }
+
+    #[test]
+    fn test_counter_key_format() {
+        let job_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
+        let counter_key = format!("{}{}", COUNTER_PREFIX, job_id);
+        let failed_key = format!("{}{}:failed", COUNTER_PREFIX, job_id);
+
+        assert_eq!(counter_key, "report:counter:550e8400-e29b-41d4-a716-446655440000");
+        assert_eq!(failed_key, "report:counter:550e8400-e29b-41d4-a716-446655440000:failed");
+    }
+
+    #[test]
+    fn test_batch_field_format() {
+        let batch_index = 42u32;
+        let field = format!("batch_{:05}", batch_index);
+        assert_eq!(field, "batch_00042");
+
+        // Test sorting order
+        let fields: Vec<String> = vec![9, 0, 100, 1, 10]
+            .into_iter()
+            .map(|i| format!("batch_{:05}", i))
+            .collect();
+        let mut sorted = fields.clone();
+        sorted.sort();
+
+        assert_eq!(sorted[0], "batch_00000");
+        assert_eq!(sorted[1], "batch_00001");
+        assert_eq!(sorted[2], "batch_00009");
+        assert_eq!(sorted[3], "batch_00010");
+        assert_eq!(sorted[4], "batch_00100");
+    }
+
+    #[test]
+    fn test_job_serialization_for_queue() {
+        let job = crate::queue::ReportJob::new(
+            Uuid::new_v4(),
+            5,
+            TaskType::AttendanceReport,
+            Uuid::new_v4(),
+            vec![Uuid::new_v4(), Uuid::new_v4()],
+            DateRange {
+                start: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                end: NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+            },
+            ReportConfig {
+                report_type: ReportType::Summary,
+                timezone: "UTC".to_string(),
+                rounding_policy: "floor".to_string(),
+                work_unit_minutes: 30,
+            },
+        );
+
+        // Jobs should serialize to JSON for Redis (snake_case)
+        let json = serde_json::to_string(&job).unwrap();
+        assert!(json.contains("attendance_report"));
+        assert!(json.contains("summary"));
+
+        // Verify roundtrip
+        let decoded: crate::queue::ReportJob = serde_json::from_str(&json).unwrap();
+        assert_eq!(job.job_id, decoded.job_id);
+        assert_eq!(job.batch_index, decoded.batch_index);
+    }
+
+    #[test]
+    fn test_url_key_format() {
+        let job_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
+        let url_key = format!("{}{}:url", RESULTS_PREFIX, job_id);
+        assert_eq!(url_key, "report:results:550e8400-e29b-41d4-a716-446655440000:url");
+    }
+
+    #[test]
+    fn test_cleanup_key_list() {
+        let job_id = Uuid::new_v4();
+
+        let meta_key = format!("{}{}", META_PREFIX, job_id);
+        let counter_key = format!("{}{}", COUNTER_PREFIX, job_id);
+        let failed_key = format!("{}{}:failed", COUNTER_PREFIX, job_id);
+        let results_key = format!("{}{}", RESULTS_PREFIX, job_id);
+        let url_key = format!("{}{}:url", RESULTS_PREFIX, job_id);
+
+        // All keys should contain the job_id
+        assert!(meta_key.contains(&job_id.to_string()));
+        assert!(counter_key.contains(&job_id.to_string()));
+        assert!(failed_key.contains(&job_id.to_string()));
+        assert!(results_key.contains(&job_id.to_string()));
+        assert!(url_key.contains(&job_id.to_string()));
+    }
+}

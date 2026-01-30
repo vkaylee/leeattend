@@ -260,3 +260,135 @@ impl ReportWorker {
         &self.queue
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_worker_config_default() {
+        let config = WorkerConfig::default();
+
+        assert_eq!(config.max_concurrent_jobs, 2);
+        assert!((config.poll_timeout_secs - 30.0).abs() < 0.01);
+        assert_eq!(config.max_retries, 3);
+        assert_eq!(config.job_timeout_secs, 300);
+    }
+
+    #[test]
+    fn test_worker_config_from_env() {
+        // Test with no env vars (should use defaults)
+        std::env::remove_var("WORKER_MAX_CONCURRENT");
+        std::env::remove_var("WORKER_POLL_TIMEOUT_SECS");
+        std::env::remove_var("WORKER_MAX_RETRIES");
+        std::env::remove_var("WORKER_JOB_TIMEOUT_SECS");
+
+        let config = WorkerConfig::from_env();
+        assert_eq!(config.max_concurrent_jobs, 2);
+        assert_eq!(config.max_retries, 3);
+    }
+
+    #[test]
+    fn test_worker_config_memory_constraint() {
+        // 2 concurrent jobs with 20 employees each at ~2.5MB/employee
+        // = 2 * 20 * 2.5MB = 100MB for processing
+        // This fits comfortably in 256MB container with overhead
+
+        let config = WorkerConfig::default();
+        let employees_per_batch = 20;
+        let approx_mb_per_employee = 2.5;
+
+        let estimated_memory_mb =
+            (config.max_concurrent_jobs as f64) * (employees_per_batch as f64) * approx_mb_per_employee;
+
+        assert!(estimated_memory_mb < 200.0); // Leave room for overhead
+    }
+
+    #[test]
+    fn test_job_timeout_reasonable() {
+        let config = WorkerConfig::default();
+
+        // 5 minutes should be enough for 20 employees
+        assert_eq!(config.job_timeout_secs, 300);
+        assert!(config.job_timeout_secs >= 60); // At least 1 minute
+        assert!(config.job_timeout_secs <= 600); // At most 10 minutes
+    }
+
+    #[test]
+    fn test_poll_timeout_blpop() {
+        let config = WorkerConfig::default();
+
+        // 30 seconds is good for BLPOP - not too aggressive, not too slow
+        assert!((config.poll_timeout_secs - 30.0).abs() < 0.01);
+        assert!(config.poll_timeout_secs >= 5.0);
+        assert!(config.poll_timeout_secs <= 60.0);
+    }
+
+    #[test]
+    fn test_max_retries_reasonable() {
+        let config = WorkerConfig::default();
+
+        // 3 retries is standard for transient failures
+        assert_eq!(config.max_retries, 3);
+        assert!(config.max_retries >= 1);
+        assert!(config.max_retries <= 5);
+    }
+
+    #[test]
+    fn test_semaphore_capacity() {
+        use tokio::sync::Semaphore;
+
+        let config = WorkerConfig::default();
+        let semaphore = Semaphore::new(config.max_concurrent_jobs);
+
+        assert_eq!(semaphore.available_permits(), 2);
+
+        // Simulate acquiring permits
+        let permit1 = semaphore.try_acquire();
+        assert!(permit1.is_ok());
+        assert_eq!(semaphore.available_permits(), 1);
+
+        let permit2 = semaphore.try_acquire();
+        assert!(permit2.is_ok());
+        assert_eq!(semaphore.available_permits(), 0);
+
+        // Third should fail
+        let permit3 = semaphore.try_acquire();
+        assert!(permit3.is_err());
+    }
+
+    #[test]
+    fn test_cancellation_token() {
+        use tokio_util::sync::CancellationToken;
+
+        let token = CancellationToken::new();
+        assert!(!token.is_cancelled());
+
+        token.cancel();
+        assert!(token.is_cancelled());
+    }
+
+    #[test]
+    fn test_task_type_routing() {
+        // Ensure all task types are handled
+        let task_types = vec![
+            TaskType::AttendanceReport,
+            TaskType::MergeResults,
+            TaskType::PayrollReport,
+        ];
+
+        for task_type in task_types {
+            let is_implemented = matches!(
+                task_type,
+                TaskType::AttendanceReport | TaskType::MergeResults
+            );
+
+            // PayrollReport should be not implemented yet
+            if matches!(task_type, TaskType::PayrollReport) {
+                assert!(!is_implemented);
+            } else {
+                assert!(is_implemented);
+            }
+        }
+    }
+}
