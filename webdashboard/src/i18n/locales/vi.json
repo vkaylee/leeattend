@@ -992,6 +992,25 @@
       "downloading": "Đang tải..."
     }
   },
+  "monitor": {
+    "title": "Giám Sát Worker",
+    "subtitle": "Trạng thái worker phân tán thời gian thực",
+    "pending_tasks": "Tác vụ chờ",
+    "active_workers": "Worker đang chạy",
+    "idle_workers": "Worker rảnh",
+    "completed_today": "Hoàn thành hôm nay",
+    "failed_today": "Thất bại hôm nay",
+    "total_workers": "Tổng Worker",
+    "live_updates": "Cập nhật mỗi 5 giây",
+    "worker_list": "Danh sách Worker",
+    "worker_list_subtitle": "Các container worker đang hoạt động",
+    "no_workers": "Không có worker nào",
+    "worker_id": "Mã Worker",
+    "host": "Máy chủ",
+    "status": "Trạng thái",
+    "current_task": "Tác vụ hiện tại",
+    "last_seen": "Lần cuối thấy"
+  },
   "agents": {
     "title": "Quản lý Agent",
     "subtitle": "Phê duyệt và kiểm soát các điểm kết nối Edge Agent",

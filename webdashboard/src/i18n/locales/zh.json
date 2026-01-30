@@ -992,6 +992,25 @@
       "downloading": "正在下载..."
     }
   },
+  "monitor": {
+    "title": "Worker 监控",
+    "subtitle": "实时分布式工作进程状态",
+    "pending_tasks": "待处理任务",
+    "active_workers": "活跃 Worker",
+    "idle_workers": "空闲 Worker",
+    "completed_today": "今日完成",
+    "failed_today": "今日失败",
+    "total_workers": "总 Worker 数",
+    "live_updates": "每5秒更新",
+    "worker_list": "Worker 列表",
+    "worker_list_subtitle": "活跃的工作容器",
+    "no_workers": "没有活跃的 Worker",
+    "worker_id": "Worker ID",
+    "host": "主机",
+    "status": "状态",
+    "current_task": "当前任务",
+    "last_seen": "最后心跳"
+  },
   "agents": {
     "title": "代理管理",
     "subtitle": "批准并控制边缘代理连接点",

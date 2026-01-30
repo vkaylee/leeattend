@@ -992,6 +992,25 @@
       "downloading": "Downloading..."
     }
   },
+  "monitor": {
+    "title": "Worker Monitor",
+    "subtitle": "Real-time distributed worker status",
+    "pending_tasks": "Pending Tasks",
+    "active_workers": "Active Workers",
+    "idle_workers": "Idle Workers",
+    "completed_today": "Completed Today",
+    "failed_today": "Failed Today",
+    "total_workers": "Total Workers",
+    "live_updates": "Live updates every 5s",
+    "worker_list": "Workers",
+    "worker_list_subtitle": "Active worker containers",
+    "no_workers": "No active workers",
+    "worker_id": "Worker ID",
+    "host": "Host",
+    "status": "Status",
+    "current_task": "Current Task",
+    "last_seen": "Last Seen"
+  },
   "agents": {
     "title": "Agent Management",
     "subtitle": "Approve and control Edge Agent connection points",

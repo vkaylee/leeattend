@@ -29,6 +29,7 @@ import MyProfilePage from "./pages/ess/MyProfilePage";
 import MyAttendancePage from "./pages/ess/MyAttendancePage";
 import MyClockPage from "./pages/ess/MyClockPage";
 import OtApprovalsPage from "./pages/approvals/OtApprovalsPage";
+import WorkerMonitorPage from "./pages/WorkerMonitorPage";
 import MainLayout from "./components/layout/MainLayout";
 
 export function AppRoutes() {
@@ -47,6 +48,7 @@ export function AppRoutes() {
             <Route path="members" element={<MembersPage />} />
             <Route path="agents" element={<AgentsPage />} />
             <Route path="devices" element={<DevicesPage />} />
+            <Route path="monitor" element={<WorkerMonitorPage />} />
             <Route path="workspace/reports" element={<ReportsPage />} />
             <Route path="workspace/payroll" element={<PayrollPage />} />
             <Route path="attendance-logs" element={<AttendanceLogsPage />} />

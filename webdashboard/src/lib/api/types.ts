@@ -464,6 +464,23 @@ export interface CreateReportExportResponse {
   status_url: string;
 }
 
+export interface WorkerMonitorStats {
+  pending_tasks: number;
+  total_workers: number;
+  active_workers: number;
+  idle_workers: number;
+  completed_today: number;
+  failed_today: number;
+}
+
+export interface WorkerHeartbeat {
+  id: string;
+  host: string;
+  status: "IDLE" | "PROCESSING";
+  current_task_type: string | null;
+  last_seen_at: string;
+}
+
 export interface MemberRolesResponse {
   primary: string;
   extra: MemberExtraRole[];

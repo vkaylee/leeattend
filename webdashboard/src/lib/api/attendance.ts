@@ -11,7 +11,9 @@ import {
   AttendanceReportSort,
   ReportExportJob,
   CreateReportExportRequest,
-  CreateReportExportResponse
+  CreateReportExportResponse,
+  WorkerMonitorStats,
+  WorkerHeartbeat
 } from "./types";
 
 export async function punchIn(
@@ -483,4 +485,26 @@ export async function downloadExportReport(
   );
   if (!response.ok) throw new Error("Failed to download report");
   return response.blob();
+}
+
+// --- Worker Monitoring ---
+
+export async function fetchMonitorStats(
+  wsId: string
+): Promise<WorkerMonitorStats> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/monitor/stats`
+  );
+  if (!response.ok) throw new Error("Failed to fetch monitor stats");
+  return response.json();
+}
+
+export async function fetchWorkerList(
+  wsId: string
+): Promise<WorkerHeartbeat[]> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/monitor/workers`
+  );
+  if (!response.ok) throw new Error("Failed to fetch worker list");
+  return response.json();
 }
