@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO employee_working_patterns (id, employee_id, pattern_id, start_date, workspace_id) VALUES ($1, $2, $3, $4, $5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f2860a5cdbce7ab0c11d9cbbd41c54c87a4d83d8b2429401984605e821ec5d4f"
+}

@@ -249,11 +249,27 @@ Sử dụng `Arc<dyn RepositoryTrait>` để inject vào Services. Khởi tạo 
 
 To ensure high-quality delivery and fast feedback loops, the project uses a unified test orchestrator. This tool handles environment setup (Postgres in Docker), parallel execution, and result aggregation.
 
+### ⚠️ WSL Performance Protocol (CRITICAL)
+
+> **This project runs on WSL with severe Disk I/O issues (1GB/s read causing system freeze).**
+
+**Mandatory Rules:**
+1. **NEVER** run `cargo test`, `cargo nextest`, `pytest`, or any test command directly
+2. **ALWAYS** use `./run-tests.sh` for ALL testing requests (unit, integration, e2e)
+3. The script automatically moves migrations to RAM (`/dev/shm`) to prevent system freeze
+4. For DB-related test code, prefer `sqlite::memory:` or tmpfs for Postgres
+
+**Why This Matters:**
+- Direct test execution triggers massive Disk I/O on WSL's VirtioFS
+- This causes system freeze, requiring hard restart
+- The `run-tests.sh` script handles RAM disk setup/cleanup transparently
+
 ### 1. Usage & Modes
-Running `./run-tests.sh` without arguments displays the help menu. It supports three main modes:
+Running `./run-tests.sh` without arguments displays the help menu. It supports these modes:
 - `--all`: Runs the full suite (Lint -> Unit -> Integration/E2E).
 - `--api`: Focuses on backend components (`apiserver`, `agent-main`, `agent-zk-worker`).
 - `--web`: Focuses on frontend components (`webdashboard`, Playwright E2E).
+- `--no-ram`: Disables RAM disk optimization (not recommended on WSL).
 
 ### 2. Selective Testing (Pattern Matching)
 You can append a **Pattern** as the second argument to run specific test files or cases:

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO raw_attendance_logs (id, workspace_id, employee_id, punch_time, source) VALUES ($1, $2, $3, $4, $5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        {
+          "Custom": {
+            "name": "log_source_type",
+            "kind": {
+              "Enum": [
+                "device",
+                "import",
+                "manual"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e34d954ee1495874e830e06a57702c13bbfd4b535f4e7d97f885c15cd619a386"
+}

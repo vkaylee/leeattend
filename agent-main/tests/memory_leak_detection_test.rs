@@ -35,8 +35,8 @@ async fn test_channel_no_accumulation_when_consumed() {
     });
 
     let consumed_clone = consumed.clone();
-    let consumer = tokio::spawn(async move {
-        while let Some(_) = rx.recv().await {
+    let _consumer = tokio::spawn(async move {
+        while (rx.recv().await).is_some() {
             consumed_clone.fetch_add(1, Ordering::SeqCst);
         }
     });
@@ -316,7 +316,7 @@ async fn test_channel_sender_drop_closes_receiver() {
 
     let exit_clone = receiver_exited.clone();
     let receiver = tokio::spawn(async move {
-        while let Some(_) = rx.recv().await {
+        while (rx.recv().await).is_some() {
             // Process
         }
         // Receiver exits when all senders dropped

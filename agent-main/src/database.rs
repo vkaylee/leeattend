@@ -891,7 +891,7 @@ mod tests {
         let logs2 = handle2.await.unwrap();
 
         // Both should succeed (no deadlock)
-        assert!(logs1.len() > 0 || logs2.len() > 0, "At least one fetch should succeed");
+        assert!(!logs1.is_empty() || !logs2.is_empty(), "At least one fetch should succeed");
 
         // Total fetched should not exceed 200
         let total_fetched = logs1.len() + logs2.len();

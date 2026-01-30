@@ -334,15 +334,14 @@ impl InMemoryStore {
         let mut count = 0;
 
         for id in unsynced.iter() {
-            if let Some(log) = self.logs.get(id) {
-                if let Some(updated_at) = log.updated_at {
+            if let Some(log) = self.logs.get(id)
+                && let Some(updated_at) = log.updated_at {
                     let delay_secs = calculate_backoff_with_jitter(log.retry_count);
                     let eligible_at = updated_at + chrono::Duration::seconds(delay_secs);
                     if now < eligible_at {
                         count += 1;
                     }
                 }
-            }
         }
 
         count

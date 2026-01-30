@@ -108,8 +108,18 @@ async fn test_process_log_unknown_employee() {
         None
     ).await;
 
-    assert!(result.is_err());
-    assert!(result.unwrap_err().contains("Employee not found"));
+    // Dual-Layer Protection: unknown employee is staged, not an error
+    assert!(result.is_ok());
+    assert!(!result.unwrap()); // Ok(false) = staged for later
+
+    // Verify staged in staging table
+    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM attendance_staging_logs WHERE workspace_id = $1 AND raw_user_id = $2")
+        .bind(workspace_id)
+        .bind("NON_EXISTENT")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(count, 1, "Should have staged the unknown employee log");
 }
 
 #[tokio::test]
@@ -138,8 +148,17 @@ async fn test_process_log_invalid_timestamp() {
         None
     ).await;
 
-    assert!(result.is_err());
-    assert!(result.unwrap_err().contains("Failed to parse timestamp"));
+    // Dual-Layer Protection: invalid timestamp is logged to DLQ, not an error
+    assert!(result.is_ok());
+    assert!(!result.unwrap()); // Ok(false) = logged to error table
+
+    // Verify in DLQ
+    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM attendance_log_errors WHERE workspace_id = $1")
+        .bind(workspace_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(count, 1, "Should have error record in DLQ");
 }
 
 #[tokio::test]
@@ -150,38 +169,47 @@ async fn test_process_log_records_to_dlq_on_error() {
 
     let workspace_id = factory.workspace().create().await;
 
-    // 1. Trigger Unknown Employee Error
+    // 1. Unknown Employee → staged (not DLQ)
     let _ = AttendanceLogService::process_log(
-        &pool, workspace_id, "UNKNOWN_EMP", "2026-01-23 10:00:00", 
+        &pool, workspace_id, "UNKNOWN_EMP", "2026-01-23 10:00:00",
         LogSource::Device, Some("DEV_1".to_string()), None, "UTC", None, None
     ).await;
 
-    // 2. Trigger Invalid Timestamp Error
+    // 2. Invalid Timestamp → DLQ
     let _employee_id = factory.employee()
         .with_workspace(workspace_id)
         .with_employee_id_number("EMP_VALID")
         .create()
         .await;
     let _ = AttendanceLogService::process_log(
-        &pool, workspace_id, "EMP_VALID", "invalid-time", 
+        &pool, workspace_id, "EMP_VALID", "invalid-time",
         LogSource::Device, Some("DEV_1".to_string()), None, "UTC", None, None
     ).await;
 
-    // 3. Verify DLQ Table
-    let errors: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM attendance_log_errors WHERE workspace_id = $1 ")
+    // 3. Verify DLQ Table (only invalid timestamp goes here)
+    let dlq_errors: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM attendance_log_errors WHERE workspace_id = $1")
         .bind(workspace_id)
         .fetch_one(&pool)
         .await
         .unwrap();
 
-    assert_eq!(errors, 2, "Should have 2 error records in DLQ");
-    
-    let error_msgs: Vec<String> = sqlx::query_scalar("SELECT error_message FROM attendance_log_errors WHERE workspace_id = $1 ORDER BY created_at ASC")
+    assert_eq!(dlq_errors, 1, "Should have 1 error in DLQ (invalid timestamp only)");
+
+    // 4. Verify Staging Table (unknown employee goes here)
+    let staged: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM attendance_staging_logs WHERE workspace_id = $1")
         .bind(workspace_id)
-        .fetch_all(&pool)
+        .fetch_one(&pool)
         .await
         .unwrap();
-        
-    assert!(error_msgs[0].contains("Employee not found"));
-    assert!(error_msgs[1].contains("Failed to parse timestamp"));
+
+    assert_eq!(staged, 1, "Should have 1 staged log (unknown employee)");
+
+    // Verify DLQ error message
+    let error_msg: String = sqlx::query_scalar("SELECT error_message FROM attendance_log_errors WHERE workspace_id = $1")
+        .bind(workspace_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+
+    assert!(error_msg.contains("Failed to parse timestamp"));
 }

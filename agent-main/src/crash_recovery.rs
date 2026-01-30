@@ -46,11 +46,10 @@ impl CrashMarker {
             chrono::Utc::now().to_rfc3339()
         );
         // Ensure parent directory exists
-        if let Some(parent) = Path::new(&self.path).parent() {
-            if !parent.as_os_str().is_empty() && parent != Path::new("") {
+        if let Some(parent) = Path::new(&self.path).parent()
+            && !parent.as_os_str().is_empty() && parent != Path::new("") {
                 fs::create_dir_all(parent)?;
             }
-        }
         fs::write(&self.path, content)
     }
 

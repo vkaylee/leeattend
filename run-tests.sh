@@ -3,6 +3,7 @@
 # ==============================================================================
 # Unified Test Orchestrator for LeeAttend
 # Optimized for selective testing and auto-environment setup.
+# Includes WSL2 RAM Disk optimization to avoid Disk I/O overload.
 # ==============================================================================
 
 set -euo pipefail
@@ -15,6 +16,124 @@ BLUE='\033[0;34m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
+# ==============================================================================
+# WSL2 RAM Disk Optimization
+# Moves migrations to /dev/shm to avoid 1GB/s Disk I/O causing system freeze
+# ==============================================================================
+
+PROJECT_NAME="leeattend"
+RAM_DISK_BASE="/dev/shm/${PROJECT_NAME}_migrations"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Directories containing migrations
+MIGRATION_DIRS=(
+    "${SCRIPT_DIR}/apiserver/migrations"
+    "${SCRIPT_DIR}/agent-main/migrations"
+)
+
+# Track what we've symlinked for cleanup
+declare -a SYMLINKED_DIRS=()
+WSL_MODE_ACTIVE=false
+
+# Detect WSL environment
+is_wsl() {
+    if grep -qiE "(microsoft|wsl)" /proc/version 2>/dev/null; then
+        return 0
+    fi
+    if [[ -n "${WSL_DISTRO_NAME:-}" ]]; then
+        return 0
+    fi
+    return 1
+}
+
+# Cleanup function - restore original directories from backup
+cleanup_ram_disk() {
+    if [[ "$WSL_MODE_ACTIVE" != "true" ]]; then
+        return 0
+    fi
+
+    echo -e "\n${BLUE}🔄 Restoring migration directories from backup...${NC}"
+
+    for dir in "${SYMLINKED_DIRS[@]}"; do
+        local backup_dir="${dir}_backup"
+
+        # Remove symlink if it exists
+        if [[ -L "$dir" ]]; then
+            rm -f "$dir"
+        fi
+
+        # Restore from backup
+        if [[ -d "$backup_dir" ]]; then
+            mv "$backup_dir" "$dir"
+            echo -e "  ${GREEN}✓${NC} Restored: $dir"
+        fi
+    done
+
+    # Cleanup RAM disk
+    if [[ -d "$RAM_DISK_BASE" ]]; then
+        rm -rf "$RAM_DISK_BASE"
+        echo -e "  ${GREEN}✓${NC} Cleaned up RAM disk: $RAM_DISK_BASE"
+    fi
+
+    WSL_MODE_ACTIVE=false
+    echo -e "${GREEN}✓ Cleanup complete${NC}"
+}
+
+# Setup RAM disk for migrations
+setup_ram_disk() {
+    if ! is_wsl; then
+        echo -e "${BLUE}ℹ Not running on WSL, skipping RAM disk optimization${NC}"
+        return 0
+    fi
+
+    echo -e "${YELLOW}${BOLD}⚡ WSL detected - Enabling RAM Disk optimization${NC}"
+    echo -e "${BLUE}  Moving migrations to /dev/shm to avoid Disk I/O overload...${NC}"
+
+    # Set trap for cleanup on exit/interrupt
+    trap cleanup_ram_disk EXIT INT TERM
+
+    WSL_MODE_ACTIVE=true
+
+    # Create RAM disk base directory
+    mkdir -p "$RAM_DISK_BASE"
+
+    for dir in "${MIGRATION_DIRS[@]}"; do
+        if [[ ! -d "$dir" ]]; then
+            echo -e "  ${YELLOW}⚠${NC} Skipping (not found): $dir"
+            continue
+        fi
+
+        local dir_name=$(basename "$dir")
+        local parent_name=$(basename "$(dirname "$dir")")
+        local ram_target="${RAM_DISK_BASE}/${parent_name}_${dir_name}"
+        local backup_dir="${dir}_backup"
+
+        # Safety check: don't proceed if backup already exists (previous failed run)
+        if [[ -d "$backup_dir" ]]; then
+            echo -e "  ${RED}⚠${NC} Backup already exists: $backup_dir"
+            echo -e "  ${YELLOW}  Restoring previous backup first...${NC}"
+            if [[ -L "$dir" ]]; then
+                rm -f "$dir"
+            fi
+            mv "$backup_dir" "$dir"
+        fi
+
+        # Copy to RAM disk
+        cp -r "$dir" "$ram_target"
+
+        # Backup original directory
+        mv "$dir" "$backup_dir"
+
+        # Create symlink to RAM disk
+        ln -s "$ram_target" "$dir"
+
+        SYMLINKED_DIRS+=("$dir")
+        echo -e "  ${GREEN}✓${NC} RAM-linked: $dir -> $ram_target"
+    done
+
+    echo -e "${GREEN}✓ RAM disk setup complete${NC}\n"
+}
+
 show_help() {
     echo -e "${BLUE}${BOLD}🚀 LeeAttend Test Runner${NC}"
     echo -e "Usage: ./run-tests.sh [options] [pattern]"
@@ -24,6 +143,11 @@ show_help() {
     echo -e "  ${GREEN}--api${NC}          Run tests for API components (Rust, Python)"
     echo -e "  ${GREEN}--web${NC}          Run tests for Web component (Vite, Playwright)"
     echo -e "  ${GREEN}--help${NC}         Show this help message"
+    echo -e "  ${GREEN}--no-ram${NC}       Disable RAM disk optimization (even on WSL)"
+    echo ""
+    echo -e "${BOLD}WSL Optimization:${NC}"
+    echo -e "  On WSL, migrations are auto-moved to RAM (/dev/shm) to avoid I/O overload."
+    echo -e "  Backups are created and restored automatically on exit/interrupt."
     echo ""
     echo -e "${BOLD}Pattern:${NC}"
     echo -e "  Optional. Filter test cases by name (e.g., 'auth', 'attendance')."
@@ -58,6 +182,8 @@ run_integration() {
 
 # --- Main Logic ---
 
+DISABLE_RAM_DISK=false
+
 if [ $# -eq 0 ]; then
     show_help
     exit 0
@@ -66,6 +192,13 @@ fi
 FILTER=""
 MODE=""
 PATTERN="${2:-}"
+
+# Check for --no-ram flag
+for arg in "$@"; do
+    if [[ "$arg" == "--no-ram" ]]; then
+        DISABLE_RAM_DISK=true
+    fi
+done
 
 case "$1" in
     --all)
@@ -84,6 +217,22 @@ case "$1" in
         show_help
         exit 0
         ;;
+    --no-ram)
+        # Handle --no-ram as first arg with mode as second
+        if [[ -n "${2:-}" && "$2" != "--no-ram" ]]; then
+            case "$2" in
+                --all) MODE="all"; FILTER="" ;;
+                --api) MODE="api"; FILTER="apiserver|agent" ;;
+                --web) MODE="web"; FILTER="webdashboard" ;;
+                *) echo -e "${RED}Unknown option: $2${NC}"; show_help; exit 1 ;;
+            esac
+            PATTERN="${3:-}"
+        else
+            echo -e "${RED}--no-ram requires a mode (--api, --web, --all)${NC}"
+            show_help
+            exit 1
+        fi
+        ;;
     *)
         echo -e "${RED}Unknown option: $1${NC}"
         show_help
@@ -96,6 +245,11 @@ if [ -n "$PATTERN" ]; then
     echo -e "${BLUE}🎯 Specific test pattern: ${YELLOW}$PATTERN${NC}"
 fi
 echo -e "${BLUE}================================================================${NC}"
+
+# Setup RAM disk for WSL optimization (unless disabled)
+if [[ "$DISABLE_RAM_DISK" != "true" ]]; then
+    setup_ram_disk
+fi
 
 # Lint luôn chạy trên toàn bộ component (không lọc theo pattern)
 run_lint "$FILTER"

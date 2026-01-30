@@ -278,7 +278,8 @@ mod tests {
         // Flush all
         let flushed = hybrid.flush_all().await.unwrap();
 
-        assert!(flushed >= 0);
+        // flushed is usize, always >= 0, just verify flush succeeded
+        let _ = flushed;
         assert!(!hybrid.memory_store().is_dirty());
     }
 
@@ -371,7 +372,8 @@ mod tests {
 
         // Checkpoint (only persists unpersisted logs)
         let checkpointed = hybrid.checkpoint().await.unwrap();
-        assert!(checkpointed >= 0);
+        // checkpointed is usize, always >= 0, just verify checkpoint succeeded
+        let _ = checkpointed;
     }
 
     #[tokio::test]

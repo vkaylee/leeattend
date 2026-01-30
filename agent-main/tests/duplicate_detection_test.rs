@@ -126,9 +126,9 @@ async fn test_unique_key_generation() {
     let mut seen_logs: HashSet<String> = HashSet::new();
 
     // Same user, different timestamps
-    let key1 = format!("U001:2026-01-28 08:00:00");
-    let key2 = format!("U001:2026-01-28 08:01:00");
-    let key3 = format!("U001:2026-01-28 08:00:00"); // Duplicate of key1
+    let key1 = "U001:2026-01-28 08:00:00".to_string();
+    let key2 = "U001:2026-01-28 08:01:00".to_string();
+    let key3 = "U001:2026-01-28 08:00:00".to_string(); // Duplicate of key1
 
     assert!(seen_logs.insert(key1.clone()), "First timestamp should be new");
     assert!(seen_logs.insert(key2.clone()), "Second timestamp should be new");
@@ -149,8 +149,8 @@ async fn test_multiple_devices_independent_deduplication() {
 
     // Device 1: OFFICE
     let mut seen_office: HashSet<String> = HashSet::new();
-    let key_o1 = format!("U001:2026-01-28 08:00:00");
-    let key_o2 = format!("U002:2026-01-28 08:01:00");
+    let key_o1 = "U001:2026-01-28 08:00:00".to_string();
+    let key_o2 = "U002:2026-01-28 08:01:00".to_string();
 
     seen_office.insert(key_o1.clone());
     tx.send(("OFFICE".to_string(), key_o1.clone())).await.unwrap();
@@ -159,8 +159,8 @@ async fn test_multiple_devices_independent_deduplication() {
 
     // Device 2: XUONG 1
     let mut seen_xuong: HashSet<String> = HashSet::new();
-    let key_x1 = format!("U001:2026-01-28 08:00:00"); // Same key as OFFICE, but different device
-    let key_x2 = format!("U003:2026-01-28 08:02:00");
+    let key_x1 = "U001:2026-01-28 08:00:00".to_string(); // Same key as OFFICE, but different device
+    let key_x2 = "U003:2026-01-28 08:02:00".to_string();
 
     seen_xuong.insert(key_x1.clone());
     tx.send(("XUONG 1".to_string(), key_x1.clone())).await.unwrap();

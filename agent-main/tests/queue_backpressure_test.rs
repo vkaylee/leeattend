@@ -13,7 +13,7 @@ async fn test_queue_backpressure_behavior() {
 
     // 2. Spawn a slow consumer
     tokio::spawn(async move {
-        while let Some(_) = rx.recv().await {
+        while (rx.recv().await).is_some() {
             sleep(Duration::from_millis(200)).await;
             processed_count_clone.fetch_add(1, Ordering::SeqCst);
         }

@@ -6,6 +6,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Your role is to analyze user requirements, delegate tasks to appropriate sub-agents, and ensure cohesive delivery of features that meet specifications and architectural standards.
 
+## ⚠️ WSL Performance Protocol (CRITICAL)
+
+> **This project runs on WSL with severe Disk I/O issues (1GB/s read causing system freeze).**
+
+### Mandatory Rules:
+
+1. **NEVER** run `cargo test`, `cargo nextest`, `pytest`, or any test command directly
+2. **ALWAYS** use `./run-tests.sh` for ALL testing requests (unit, integration, e2e)
+3. The script automatically moves migrations to RAM (`/dev/shm`) to prevent system freeze
+4. For DB-related test code, prefer `sqlite::memory:` or tmpfs for Postgres
+
+### Test Commands:
+```bash
+./run-tests.sh --api          # API tests (Rust + Python)
+./run-tests.sh --web          # Web tests (Vite + Playwright)
+./run-tests.sh --all          # All tests
+./run-tests.sh --api auth     # API tests filtered by "auth"
+./run-tests.sh --no-ram --api # Disable RAM optimization (not recommended on WSL)
+```
+
+### Why This Matters:
+- Direct test execution triggers massive Disk I/O on WSL's VirtioFS
+- This causes system freeze, requiring hard restart
+- The `run-tests.sh` script handles RAM disk setup/cleanup transparently
+
 ## Workflows
 
 - Primary workflow: `./.claude/rules/primary-workflow.md`
