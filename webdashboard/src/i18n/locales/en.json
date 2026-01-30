@@ -977,6 +977,21 @@
       "upload_error": "Error uploading file"
     }
   },
+  "report_export": {
+    "title": "Export Report",
+    "subtitle": "Generate Excel file for download",
+    "start_export": "Start Export",
+    "download_button": "Download File",
+    "run_background": "Run in Background",
+    "batches_completed": "Batches: {{completed}}/{{total}}",
+    "status": {
+      "preparing": "Preparing export...",
+      "processing": "Generating report...",
+      "completed": "Ready to download!",
+      "failed": "Export failed",
+      "downloading": "Downloading..."
+    }
+  },
   "agents": {
     "title": "Agent Management",
     "subtitle": "Approve and control Edge Agent connection points",

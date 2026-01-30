@@ -977,6 +977,21 @@
       "upload_error": "Lỗi khi tải file lên"
     }
   },
+  "report_export": {
+    "title": "Xuất Báo Cáo",
+    "subtitle": "Tạo file Excel để tải về",
+    "start_export": "Bắt đầu xuất",
+    "download_button": "Tải file",
+    "run_background": "Chạy nền",
+    "batches_completed": "Đã xử lý: {{completed}}/{{total}}",
+    "status": {
+      "preparing": "Đang chuẩn bị...",
+      "processing": "Đang tạo báo cáo...",
+      "completed": "Sẵn sàng tải về!",
+      "failed": "Xuất thất bại",
+      "downloading": "Đang tải..."
+    }
+  },
   "agents": {
     "title": "Quản lý Agent",
     "subtitle": "Phê duyệt và kiểm soát các điểm kết nối Edge Agent",

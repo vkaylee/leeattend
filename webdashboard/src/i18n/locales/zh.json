@@ -977,6 +977,21 @@
       "upload_error": "上传文件时出错"
     }
   },
+  "report_export": {
+    "title": "导出报告",
+    "subtitle": "生成 Excel 文件下载",
+    "start_export": "开始导出",
+    "download_button": "下载文件",
+    "run_background": "后台运行",
+    "batches_completed": "已完成: {{completed}}/{{total}}",
+    "status": {
+      "preparing": "正在准备...",
+      "processing": "正在生成报告...",
+      "completed": "准备下载！",
+      "failed": "导出失败",
+      "downloading": "正在下载..."
+    }
+  },
   "agents": {
     "title": "代理管理",
     "subtitle": "批准并控制边缘代理连接点",

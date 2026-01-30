@@ -1,14 +1,17 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch, getCurrentWorkspaceId } from "./helpers";
-import { 
-  TimeEntry, 
-  AttendanceAdjustmentRequest, 
-  RawAttendanceLog, 
+import {
+  TimeEntry,
+  AttendanceAdjustmentRequest,
+  RawAttendanceLog,
   AttendanceImportJob,
   AttendanceSummary,
   DailyAttendanceReport,
   PaginatedResponse,
-  AttendanceReportSort
+  AttendanceReportSort,
+  ReportExportJob,
+  CreateReportExportRequest,
+  CreateReportExportResponse
 } from "./types";
 
 export async function punchIn(
@@ -427,4 +430,57 @@ export async function dismissStagingLog(
     }
   );
   if (!response.ok) throw new Error("Failed to dismiss staging log");
+}
+
+// --- Report Export ---
+
+export async function createReportExportJob(
+  wsId: string,
+  request: CreateReportExportRequest
+): Promise<CreateReportExportResponse> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/reports/export`,
+    {
+      method: "POST",
+      body: JSON.stringify(request),
+    }
+  );
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(err || "Failed to start report export");
+  }
+  return response.json();
+}
+
+export async function fetchExportJobStatus(
+  wsId: string,
+  jobId: string
+): Promise<ReportExportJob> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/reports/jobs/${jobId}`
+  );
+  if (!response.ok) throw new Error("Failed to fetch export job status");
+  return response.json();
+}
+
+export async function cancelExportJob(
+  wsId: string,
+  jobId: string
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/reports/jobs/${jobId}`,
+    { method: "DELETE" }
+  );
+  if (!response.ok) throw new Error("Failed to cancel export job");
+}
+
+export async function downloadExportReport(
+  wsId: string,
+  jobId: string
+): Promise<Blob> {
+  const response = await apiFetch(
+    `${API_BASE_URL}/workspaces/${wsId}/reports/jobs/${jobId}/download`
+  );
+  if (!response.ok) throw new Error("Failed to download report");
+  return response.blob();
 }

@@ -432,6 +432,38 @@ export interface AttendanceImportJob {
   updated_at: string;
 }
 
+export interface ReportExportJobProgress {
+  total_batches: number;
+  completed_batches: number;
+  failed_batches: number;
+  percentage: number;
+}
+
+export interface ReportExportJob {
+  job_id: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  progress: ReportExportJobProgress;
+  result_url?: string;
+  error?: string;
+  created_at: string;
+  completed_at?: string;
+}
+
+export interface CreateReportExportRequest {
+  start_date: string;
+  end_date: string;
+  report_type: "summary" | "detail";
+  employee_ids?: string[];
+}
+
+export interface CreateReportExportResponse {
+  job_id: string;
+  status: string;
+  total_batches: number;
+  estimated_seconds: number;
+  status_url: string;
+}
+
 export interface MemberRolesResponse {
   primary: string;
   extra: MemberExtraRole[];

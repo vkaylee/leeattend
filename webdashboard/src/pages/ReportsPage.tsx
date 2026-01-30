@@ -47,6 +47,7 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import PaginationControls from "@/components/common/PaginationControls";
+import ReportExportDialog from "@/components/features/reports/ReportExportDialog";
 
 export default function ReportsPage() {
   const { t } = useTranslation();
@@ -82,6 +83,7 @@ export default function ReportsPage() {
   const [expandedDebugRows, setExpandedDebugRows] = useState<Set<string>>(new Set());
   const [reprocessingRow, setReprocessingRow] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ show: boolean; employeeId: string; employeeName: string; date: string; } | null>(null);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(() => getDaysInMonth(new Date(getMonthRange(-1).start)));
@@ -237,7 +239,12 @@ export default function ReportsPage() {
 
         </div>
 
-        <button className="flex items-center gap-3 bg-white border border-slate-200 text-slate-700 px-8 py-3 rounded-2xl hover:bg-slate-50 transition-all font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95"><Download size={18} /> {t("reports.export_excel").toUpperCase()}</button>
+        <button
+          onClick={() => setIsExportDialogOpen(true)}
+          className="flex items-center gap-3 bg-white border border-slate-200 text-slate-700 px-8 py-3 rounded-2xl hover:bg-slate-50 transition-all font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95"
+        >
+          <Download size={18} /> {t("reports.export_excel").toUpperCase()}
+        </button>
 
       </div>
 
@@ -1054,6 +1061,16 @@ export default function ReportsPage() {
         </div>
 
       </Modal>
+
+      <ReportExportDialog
+        isOpen={isExportDialogOpen}
+        onClose={() => setIsExportDialogOpen(false)}
+        wsId={wsId || ""}
+        startDate={dateRange.start}
+        endDate={dateRange.end}
+        reportType={reportType === "daily" ? "detail" : "summary"}
+        employeeIds={selectedEmployeeIds.length > 0 ? selectedEmployeeIds : undefined}
+      />
 
     </div>
 
