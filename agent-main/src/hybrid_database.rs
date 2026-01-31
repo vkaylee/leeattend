@@ -80,6 +80,16 @@ impl HybridDatabase {
         self.memory.reset_to_unsynced(id)
     }
 
+    /// Mark synced by composite key (for ACK handling)
+    pub fn mark_synced_by_key(&self, composite_key: &str) -> bool {
+        self.memory.mark_synced_by_key(composite_key)
+    }
+
+    /// Reset to unsynced by composite key (for failed ACK)
+    pub fn reset_to_unsynced_by_key(&self, composite_key: &str) -> bool {
+        self.memory.reset_to_unsynced_by_key(composite_key)
+    }
+
     /// Checkpoint unpersisted logs to disk
     pub async fn checkpoint(&self) -> Result<usize, sqlx::Error> {
         let unpersisted = self.memory.get_unpersisted();
@@ -87,7 +97,7 @@ impl HybridDatabase {
             return Ok(0);
         }
 
-        let (inserted, _skipped) = self.disk.checkpoint_batch(&unpersisted).await?;
+        let (inserted, _skipped, _composite_keys) = self.disk.checkpoint_batch(&unpersisted).await?;
 
         // Mark as persisted in memory
         let ids: Vec<i64> = unpersisted.iter().map(|l| l.id).collect();
@@ -118,6 +128,7 @@ impl HybridDatabase {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::NaiveDateTime;
 
     fn make_attendance(user_id: &str, timestamp: &str) -> AttendanceData {
         AttendanceData {
@@ -459,6 +470,133 @@ mod tests {
             let result = hybrid.save_raw_attendance("DEV1", data);
             assert!(matches!(result, Err(StoreError::Duplicate)));
         }
+    }
+
+    // ===== Phase 3: Checkpoint Refactor Tests =====
+
+    #[tokio::test]
+    async fn test_checkpoint_no_id_collision() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+
+        // Pre-populate disk with logs having specific IDs
+        for i in 1..=100 {
+            let data = AttendanceData {
+                user_id: format!("U{:03}", i),
+                timestamp: "2026-01-31 10:00:00".to_string(),
+                status: Some(1),
+                punch: Some(0),
+            };
+            hybrid.save_raw_attendance(&format!("DEV{}", (i % 5) + 1), data).ok();
+        }
+
+        // Checkpoint first batch
+        let checkpointed1 = hybrid.checkpoint().await.unwrap();
+        assert!(checkpointed1 > 0);
+
+        // Create more logs with overlapping memory IDs
+        for i in 50..=150 {
+            let data = AttendanceData {
+                user_id: format!("U{:03}", i + 1000),  // Different user to avoid business duplicate
+                timestamp: "2026-01-31 11:00:00".to_string(),
+                status: Some(1),
+                punch: Some(0),
+            };
+            hybrid.save_raw_attendance("DEV2", data).ok();
+        }
+
+        // Second checkpoint should NOT fail with UNIQUE constraint error
+        let checkpointed2 = hybrid.checkpoint().await.unwrap();
+        assert!(checkpointed2 > 0, "Checkpoint should not fail with ID collision");
+    }
+
+    #[tokio::test]
+    async fn test_full_checkpoint_ack_flow_with_composite_key() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+
+        // Insert logs to memory
+        for i in 0..10 {
+            let data = AttendanceData {
+                user_id: format!("U{:03}", i),
+                timestamp: format!("2026-01-31 10:{:02}:00", i),
+                status: Some(1),
+                punch: Some(0),
+            };
+            hybrid.save_raw_attendance("DEV1", data).unwrap();
+        }
+
+        // Checkpoint to disk
+        let inserted = hybrid.checkpoint().await.unwrap();
+        assert_eq!(inserted, 10);
+
+        // Simulate ACK flow: get unsynced logs, extract composite keys, mark synced
+        let logs = hybrid.get_unsynced_logs(20);
+        for log in &logs {
+            let composite_key = log.composite_key();
+
+            // Mark in-flight
+            hybrid.mark_in_flight(&[log.id]);
+
+            // Simulate successful ACK using composite key
+            assert!(hybrid.mark_synced_by_key(&composite_key), "Should find log by composite key");
+        }
+
+        // Verify all synced
+        assert_eq!(hybrid.count_unsynced_logs(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_ack_failure_resets_to_unsynced() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+
+        let data = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-31 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+
+        let id = hybrid.save_raw_attendance("DEV1", data).unwrap();
+
+        // Mark in-flight
+        hybrid.mark_in_flight(&[id]);
+        assert_eq!(hybrid.count_unsynced_logs(), 0);  // In-flight, not unsynced
+
+        // Construct composite key
+        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let key = format!("DEV1:U001:{}", ts.and_utc().timestamp());
+
+        // Simulate failed ACK - reset to unsynced
+        assert!(hybrid.reset_to_unsynced_by_key(&key));
+
+        // Should be back in unsynced queue
+        assert_eq!(hybrid.count_unsynced_logs(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_checkpoint_performance_1000_logs() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 10000).await.unwrap();
+
+        // Insert 1000 logs
+        for i in 0..1000 {
+            let data = AttendanceData {
+                user_id: format!("U{:06}", i),
+                timestamp: format!("2026-01-31 {:02}:{:02}:{:02}", i / 3600, (i % 3600) / 60, i % 60),
+                status: Some(1),
+                punch: Some(0),
+            };
+            hybrid.save_raw_attendance("DEV1", data).unwrap();
+        }
+
+        // Measure checkpoint time
+        let start = std::time::Instant::now();
+        let inserted = hybrid.checkpoint().await.unwrap();
+        let elapsed = start.elapsed();
+
+        assert_eq!(inserted, 1000);
+        assert!(
+            elapsed.as_millis() < 500,  // Should be well under 500ms
+            "Checkpoint took {:?}, expected < 500ms", elapsed
+        );
     }
 }
 

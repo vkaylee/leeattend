@@ -54,10 +54,24 @@ pub struct MemoryLog {
     pub persisted: bool,          // true if already on disk
 }
 
+impl MemoryLog {
+    /// Generate composite key string for ACK correlation
+    /// Format: "device_id:user_id:timestamp_unix"
+    pub fn composite_key(&self) -> String {
+        format!(
+            "{}:{}:{}",
+            self.device_id,
+            self.user_id,
+            self.timestamp.and_utc().timestamp()
+        )
+    }
+}
+
 /// In-memory store for attendance logs with FIFO ordering
 pub struct InMemoryStore {
     logs: DashMap<i64, MemoryLog>,
     signatures: DashSet<u64>,  // Hash signatures for deduplication
+    composite_index: DashMap<String, i64>,  // composite_key -> memory_id for ACK correlation
     unsynced_index: Arc<RwLock<BTreeSet<i64>>>,
     inflight_index: Arc<RwLock<HashMap<i64, Instant>>>,
     next_id: AtomicI64,
@@ -94,6 +108,7 @@ impl InMemoryStore {
         Self {
             logs: DashMap::with_capacity(max_capacity / 2),
             signatures: DashSet::with_capacity(max_capacity),
+            composite_index: DashMap::with_capacity(max_capacity),
             unsynced_index: Arc::new(RwLock::new(BTreeSet::new())),
             inflight_index: Arc::new(RwLock::new(HashMap::new())),
             next_id: AtomicI64::new(1),
@@ -159,8 +174,8 @@ impl InMemoryStore {
 
             let memory_log = MemoryLog {
                 id: log.id,
-                device_id: log.device_id,
-                user_id: log.user_id,
+                device_id: log.device_id.clone(),
+                user_id: log.user_id.clone(),
                 timestamp: log.timestamp,
                 status: log.status,
                 punch: log.punch,
@@ -171,6 +186,14 @@ impl InMemoryStore {
                 persisted: true, // Loaded from disk = already persisted
             };
 
+            // Build composite key for ACK correlation
+            let composite_key = format!(
+                "{}:{}:{}",
+                log.device_id,
+                log.user_id,
+                log.timestamp.and_utc().timestamp()
+            );
+
             // Update indices based on sync status
             if log.is_synced == 0 {
                 unsynced.insert(log.id);
@@ -179,6 +202,7 @@ impl InMemoryStore {
             }
 
             self.logs.insert(log.id, memory_log);
+            self.composite_index.insert(composite_key, log.id);
         }
 
         self.next_id.store(max_id + 1, Ordering::SeqCst);
@@ -211,8 +235,8 @@ impl InMemoryStore {
 
         let log = MemoryLog {
             id,
-            device_id,
-            user_id: data.user_id,
+            device_id: device_id.clone(),
+            user_id: data.user_id.clone(),
             timestamp,
             status: data.status,
             punch: data.punch,
@@ -223,7 +247,16 @@ impl InMemoryStore {
             persisted: false,
         };
 
+        // Build composite key for ACK correlation
+        let composite_key = format!(
+            "{}:{}:{}",
+            device_id,
+            data.user_id,
+            timestamp.and_utc().timestamp()
+        );
+
         self.logs.insert(id, log);
+        self.composite_index.insert(composite_key, id);
         self.unsynced_index.write().insert(id);
         self.count.fetch_add(1, Ordering::SeqCst);
         self.dirty.store(true, Ordering::SeqCst);
@@ -404,6 +437,31 @@ impl InMemoryStore {
         self.dirty.store(true, Ordering::SeqCst);
     }
 
+    /// Get memory ID by composite key
+    pub fn get_id_by_composite_key(&self, composite_key: &str) -> Option<i64> {
+        self.composite_index.get(composite_key).map(|entry| *entry)
+    }
+
+    /// Mark synced by composite key (for ACK handling)
+    pub fn mark_synced_by_key(&self, composite_key: &str) -> bool {
+        if let Some(id) = self.get_id_by_composite_key(composite_key) {
+            self.mark_synced(&[id]);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Reset to unsynced by composite key (for failed ACK)
+    pub fn reset_to_unsynced_by_key(&self, composite_key: &str) -> bool {
+        if let Some(id) = self.get_id_by_composite_key(composite_key) {
+            self.reset_to_unsynced(id);
+            true
+        } else {
+            false
+        }
+    }
+
     /// Get all unpersisted logs for checkpointing
     pub fn get_unpersisted(&self) -> Vec<MemoryLog> {
         self.logs.iter()
@@ -460,13 +518,14 @@ impl InMemoryStore {
 
         for entry in self.logs.iter() {
             if entry.is_synced == 1 && entry.created_at < threshold {
-                to_remove.push(*entry.key());
+                to_remove.push((*entry.key(), entry.composite_key()));
             }
         }
 
         let count = to_remove.len();
-        for id in to_remove {
+        for (id, composite_key) in to_remove {
             self.logs.remove(&id);
+            self.composite_index.remove(&composite_key);
             // NOTE: DO NOT remove signature - keep for dedup protection
         }
         self.count.fetch_sub(count, Ordering::SeqCst);
@@ -1447,5 +1506,106 @@ mod tests {
         assert_eq!(duplicate_count, 9, "9 should be duplicates");
         assert_eq!(store.count_total(), 1);
         assert_eq!(store.count_signatures(), 1);
+    }
+
+    #[test]
+    fn test_composite_key_format() {
+        let log = MemoryLog {
+            id: 1,
+            device_id: "DEV1".to_string(),
+            user_id: "U001".to_string(),
+            timestamp: NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap(),
+            status: Some(1),
+            punch: Some(0),
+            is_synced: 0,
+            created_at: chrono::Utc::now().naive_utc(),
+            updated_at: None,
+            retry_count: 0,
+            persisted: false,
+        };
+
+        let key = log.composite_key();
+        assert!(key.starts_with("DEV1:U001:"));
+        assert!(key.ends_with(&log.timestamp.and_utc().timestamp().to_string()));
+    }
+
+    #[test]
+    fn test_composite_index_lookup() {
+        let store = InMemoryStore::new(1000);
+
+        let data = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-31 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+
+        let id = store.insert("DEV1".to_string(), data).unwrap();
+
+        // Construct expected composite key
+        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let expected_key = format!("DEV1:U001:{}", ts.and_utc().timestamp());
+
+        // Lookup should return the inserted ID
+        assert_eq!(store.get_id_by_composite_key(&expected_key), Some(id));
+
+        // Lookup non-existent key should return None
+        assert_eq!(store.get_id_by_composite_key("INVALID:KEY:0"), None);
+    }
+
+    #[test]
+    fn test_mark_synced_by_key() {
+        let store = InMemoryStore::new(1000);
+
+        let data = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-31 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+
+        let id = store.insert("DEV1".to_string(), data).unwrap();
+
+        // Mark in-flight first
+        store.mark_in_flight(&[id]);
+
+        // Construct composite key
+        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let key = format!("DEV1:U001:{}", ts.and_utc().timestamp());
+
+        // Mark synced by key should return true
+        assert!(store.mark_synced_by_key(&key));
+
+        // Verify synced
+        let log = store.logs.get(&id).unwrap();
+        assert_eq!(log.is_synced, 1);
+    }
+
+    #[test]
+    fn test_reset_to_unsynced_by_key() {
+        let store = InMemoryStore::new(1000);
+
+        let data = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-31 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+
+        let id = store.insert("DEV1".to_string(), data).unwrap();
+
+        // Mark in-flight
+        store.mark_in_flight(&[id]);
+        assert_eq!(store.count_unsynced(), 0);  // In-flight, not unsynced
+
+        // Construct composite key
+        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let key = format!("DEV1:U001:{}", ts.and_utc().timestamp());
+
+        // Reset to unsynced by key
+        assert!(store.reset_to_unsynced_by_key(&key));
+
+        // Should be back in unsynced queue
+        assert_eq!(store.count_unsynced(), 1);
     }
 }

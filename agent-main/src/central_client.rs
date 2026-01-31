@@ -20,6 +20,20 @@ use crate::hybrid_database::HybridDatabase;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
+/// Parse composite key "device_id:user_id:timestamp_unix" back to components
+fn parse_composite_key(key: &str) -> Option<(String, String, chrono::NaiveDateTime)> {
+    let parts: Vec<&str> = key.split(':').collect();
+    if parts.len() != 3 {
+        return None;
+    }
+
+    let timestamp_unix = parts[2].parse::<i64>().ok()?;
+    let timestamp = chrono::DateTime::from_timestamp(timestamp_unix, 0)?
+        .naive_utc();
+
+    Some((parts[0].to_string(), parts[1].to_string(), timestamp))
+}
+
 // Retry configuration constants
 const CONNECTION_TIMEOUT_SECS: u64 = 30;
 const STABILITY_THRESHOLD_SECS: u64 = 60;
@@ -133,7 +147,7 @@ impl CentralClient {
                 }
                 for log in logs {
                     let msg = CentralMessage::Attendance {
-                        msg_id: log.id.to_string(),
+                        msg_id: log.composite_key(),
                         agent_id: sync_agent_id.clone(),
                         device_id: log.device_id.clone(),
                         data: AttendanceData {
@@ -284,18 +298,42 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                 let _ = reload_tx.try_send(());
             }
             CentralMessage::Ack { msg_id, status, .. } => {
-                if let Ok(id) = msg_id.parse::<i64>() {
-                    if status.as_deref() == Some("success") {
-                        // Update memory and disk
-                        hybrid_db.mark_synced(&[id]);
-                        let _ = hybrid_db.disk_db().mark_synced(&[id]).await;
-                    } else {
-                        // Reset in memory and disk
-                        hybrid_db.reset_to_unsynced(id);
-                        let _ = sqlx::query("UPDATE zkt_raw_attendance SET is_synced = 0 WHERE id = ?")
-                            .bind(id)
-                            .execute(hybrid_db.disk_db().get_pool())
-                            .await;
+                // msg_id is now composite key "device_id:user_id:timestamp_unix"
+                if status.as_deref() == Some("success") {
+                    // Update memory
+                    if !hybrid_db.mark_synced_by_key(&msg_id) {
+                        warn!("ACK for unknown log: {}", msg_id);
+                    }
+
+                    // Update disk using composite key
+                    if let Some(parts) = parse_composite_key(&msg_id) {
+                        let _ = sqlx::query(
+                            "UPDATE zkt_raw_attendance SET is_synced = 1
+                             WHERE device_id = ? AND user_id = ? AND timestamp = ?"
+                        )
+                        .bind(&parts.0)
+                        .bind(&parts.1)
+                        .bind(parts.2)
+                        .execute(hybrid_db.disk_db().get_pool())
+                        .await;
+                    }
+                } else {
+                    // Failed ACK - reset to unsynced for retry
+                    if !hybrid_db.reset_to_unsynced_by_key(&msg_id) {
+                        warn!("Failed ACK for unknown log: {}", msg_id);
+                    }
+
+                    // Reset disk using composite key
+                    if let Some(parts) = parse_composite_key(&msg_id) {
+                        let _ = sqlx::query(
+                            "UPDATE zkt_raw_attendance SET is_synced = 0
+                             WHERE device_id = ? AND user_id = ? AND timestamp = ?"
+                        )
+                        .bind(&parts.0)
+                        .bind(&parts.1)
+                        .bind(parts.2)
+                        .execute(hybrid_db.disk_db().get_pool())
+                        .await;
                     }
                 }
             }

@@ -547,10 +547,15 @@ impl Database {
 
     /// Batch checkpoint: Insert unpersisted logs from memory to disk
     /// Returns: (inserted_count, skipped_duplicates)
-    pub async fn checkpoint_batch(&self, logs: &[crate::memory_store::MemoryLog]) -> Result<(usize, usize), Error> {
+    pub async fn checkpoint_batch(&self, logs: &[crate::memory_store::MemoryLog]) -> Result<(usize, usize, Vec<(String, String, chrono::NaiveDateTime)>), Error> {
         if logs.is_empty() {
-            return Ok((0, 0));
+            return Ok((0, 0, vec![]));
         }
+
+        // Collect composite keys for all logs being inserted
+        let composite_keys: Vec<(String, String, chrono::NaiveDateTime)> = logs.iter()
+            .map(|l| (l.device_id.clone(), l.user_id.clone(), l.timestamp))
+            .collect();
 
         let mut tx = self.pool.begin().await?;
         let mut inserted = 0;
@@ -560,12 +565,12 @@ impl Database {
         // SQLite limit: ~500 values per statement
         for chunk in logs.chunks(100) {
             let placeholders: Vec<&str> = chunk.iter()
-                .map(|_| "(?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                .map(|_| "(?, ?, ?, ?, ?, ?, ?, ?)")
                 .collect();
             let query = format!(
                 r#"
                 INSERT INTO zkt_raw_attendance
-                    (id, device_id, user_id, timestamp, status, punch, is_synced, created_at, retry_count)
+                    (device_id, user_id, timestamp, status, punch, is_synced, created_at, retry_count)
                 VALUES {}
                 ON CONFLICT(device_id, user_id, timestamp) DO NOTHING
                 "#,
@@ -574,8 +579,7 @@ impl Database {
 
             let mut q = sqlx::query(&query);
             for log in chunk {
-                q = q.bind(log.id)
-                    .bind(&log.device_id)
+                q = q.bind(&log.device_id)
                     .bind(&log.user_id)
                     .bind(log.timestamp)
                     .bind(log.status)
@@ -591,7 +595,7 @@ impl Database {
         }
 
         tx.commit().await?;
-        Ok((inserted, skipped))
+        Ok((inserted, skipped, composite_keys))
     }
 
     /// Update sync status for checkpointed logs
@@ -1151,5 +1155,81 @@ mod tests {
             "SELECT COUNT(*) FROM zkt_raw_attendance WHERE is_synced = 1"
         ).fetch_one(db.get_pool()).await.unwrap();
         assert_eq!(synced, 0, "0 synced logs should remain (deleted)");
+    }
+
+    #[tokio::test]
+    async fn test_checkpoint_batch_no_id_collision() {
+        let db = setup_db().await;
+
+        // Pre-populate disk with logs having IDs 1-100
+        for i in 1..=100 {
+            let data = AttendanceData {
+                user_id: format!("U{:03}", i),
+                timestamp: "2026-01-31 10:00:00".to_string(),
+                status: Some(1),
+                punch: Some(0),
+            };
+            db.save_raw_attendance(&format!("DEV{}", (i % 5) + 1), data).await.ok();
+        }
+
+        // Create memory logs with overlapping IDs (would have caused UNIQUE constraint failure before Phase 1)
+        let memory_logs: Vec<crate::memory_store::MemoryLog> = (50..=150)
+            .map(|i| crate::memory_store::MemoryLog {
+                id: i,  // IDs 50-100 overlap with disk!
+                device_id: "DEV2".to_string(),
+                user_id: format!("U{:03}", i + 1000),  // Different user_ids to avoid business duplicate
+                timestamp: NaiveDateTime::parse_from_str("2026-01-31 11:00:00", "%Y-%m-%d %H:%M:%S").unwrap(),
+                status: Some(1),
+                punch: Some(0),
+                is_synced: 0,
+                created_at: chrono::Utc::now().naive_utc(),
+                updated_at: None,
+                retry_count: 0,
+                persisted: false,
+            })
+            .collect();
+
+        // This should NOT fail with UNIQUE constraint error
+        let result = db.checkpoint_batch(&memory_logs).await;
+        assert!(result.is_ok(), "Checkpoint should not fail with ID collision");
+
+        let (inserted, _skipped, keys) = result.unwrap();
+        assert!(inserted > 0, "Should insert logs");
+        assert!(keys.len() > 0, "Should return composite keys");
+    }
+
+    #[tokio::test]
+    async fn test_checkpoint_batch_returns_composite_keys() {
+        let db = setup_db().await;
+
+        // Create memory logs
+        let memory_logs: Vec<crate::memory_store::MemoryLog> = (1..=5)
+            .map(|i| crate::memory_store::MemoryLog {
+                id: i,
+                device_id: "DEV1".to_string(),
+                user_id: format!("U{:03}", i),
+                timestamp: NaiveDateTime::parse_from_str(&format!("2026-01-31 10:{:02}:00", i), "%Y-%m-%d %H:%M:%S").unwrap(),
+                status: Some(1),
+                punch: Some(0),
+                is_synced: 0,
+                created_at: chrono::Utc::now().naive_utc(),
+                updated_at: None,
+                retry_count: 0,
+                persisted: false,
+            })
+            .collect();
+
+        // Checkpoint and verify return type
+        let (inserted, skipped, keys) = db.checkpoint_batch(&memory_logs).await.unwrap();
+
+        assert_eq!(inserted, 5);
+        assert_eq!(skipped, 0);
+        assert_eq!(keys.len(), 5);
+
+        // Verify composite keys are formatted correctly
+        for (i, (device_id, user_id, _timestamp)) in keys.iter().enumerate() {
+            assert_eq!(device_id, "DEV1");
+            assert_eq!(user_id, &format!("U{:03}", i + 1));
+        }
     }
 }
