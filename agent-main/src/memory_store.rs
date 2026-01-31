@@ -1625,4 +1625,202 @@ mod tests {
         // Should be back in unsynced queue
         assert_eq!(store.count_unsynced(), 1);
     }
+
+    #[test]
+    fn test_composite_key_hash_consistency() {
+        // Verify hash computation is deterministic
+        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+
+        let hash1 = MemoryLog::compute_composite_hash("DEV1", "U001", ts);
+        let hash2 = MemoryLog::compute_composite_hash("DEV1", "U001", ts);
+
+        assert_eq!(hash1, hash2, "Hash must be deterministic");
+    }
+
+    #[test]
+    fn test_composite_key_hash_uniqueness() {
+        // Verify different components produce different hashes
+        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+
+        let hash1 = MemoryLog::compute_composite_hash("DEV1", "U001", ts);
+        let hash2 = MemoryLog::compute_composite_hash("DEV2", "U001", ts);  // Different device
+        let hash3 = MemoryLog::compute_composite_hash("DEV1", "U002", ts);  // Different user
+
+        assert_ne!(hash1, hash2, "Different devices must have different hashes");
+        assert_ne!(hash1, hash3, "Different users must have different hashes");
+        assert_ne!(hash2, hash3, "All combinations must be unique");
+    }
+
+    #[test]
+    fn test_composite_key_hash_timestamp_sensitivity() {
+        // Verify timestamp differences produce different hashes
+        let ts1 = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let ts2 = NaiveDateTime::parse_from_str("2026-01-31 10:00:01", "%Y-%m-%d %H:%M:%S").unwrap();
+
+        let hash1 = MemoryLog::compute_composite_hash("DEV1", "U001", ts1);
+        let hash2 = MemoryLog::compute_composite_hash("DEV1", "U001", ts2);
+
+        assert_ne!(hash1, hash2, "Different timestamps must have different hashes");
+    }
+
+    #[test]
+    fn test_hash_based_lookup_after_insert() {
+        // Verify hash-based lookup works correctly
+        let store = InMemoryStore::new(1000);
+
+        let data = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-31 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+
+        let id = store.insert("DEV1".to_string(), data).unwrap();
+
+        // Construct composite key string
+        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let key = format!("DEV1:U001:{}", ts.and_utc().timestamp());
+
+        // Lookup by string should parse and compute hash internally
+        assert_eq!(store.get_id_by_composite_key(&key), Some(id));
+    }
+
+    #[test]
+    fn test_hash_based_lookup_multiple_logs() {
+        // Verify no hash collisions in typical usage
+        let store = InMemoryStore::new(1000);
+
+        let mut inserted_ids = Vec::new();
+        let mut composite_keys = Vec::new();
+
+        // Insert 100 logs with different device/user/timestamp combinations
+        for i in 0..100 {
+            let device = format!("DEV{}", i % 10);
+            let user = format!("U{:03}", i);
+            let timestamp = format!("2026-01-31 10:{:02}:00", i % 60);
+
+            let data = AttendanceData {
+                user_id: user.clone(),
+                timestamp: timestamp.clone(),
+                status: Some(1),
+                punch: Some(0),
+            };
+
+            let id = store.insert(device.clone(), data).unwrap();
+            inserted_ids.push(id);
+
+            let ts = NaiveDateTime::parse_from_str(&timestamp, "%Y-%m-%d %H:%M:%S").unwrap();
+            let key = format!("{}:{}:{}", device, user, ts.and_utc().timestamp());
+            composite_keys.push(key);
+        }
+
+        // Verify all lookups return correct IDs
+        for (i, key) in composite_keys.iter().enumerate() {
+            let found_id = store.get_id_by_composite_key(key);
+            assert_eq!(found_id, Some(inserted_ids[i]),
+                "Lookup for key {} should return ID {}, got {:?}",
+                key, inserted_ids[i], found_id);
+        }
+    }
+
+    #[test]
+    fn test_hash_collision_detection() {
+        // Verify we can detect if hashes ever collide (should never happen)
+        let mut hashes = std::collections::HashSet::new();
+
+        // Generate 1000 different composite keys
+        for i in 0..1000 {
+            let device = format!("DEVICE_{}", i);
+            let user = format!("USER_{}", i);
+            let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S")
+                .unwrap()
+                .checked_add_signed(chrono::Duration::seconds(i))
+                .unwrap();
+
+            let hash = MemoryLog::compute_composite_hash(&device, &user, ts);
+
+            assert!(hashes.insert(hash),
+                "Hash collision detected for device={}, user={}, ts={}",
+                device, user, ts);
+        }
+
+        assert_eq!(hashes.len(), 1000, "All hashes should be unique");
+    }
+
+    #[test]
+    fn test_load_from_disk_uses_hash_index() {
+        // Verify load_from_disk correctly populates hash-based index
+        let store = InMemoryStore::new(1000);
+
+        let logs = vec![
+            RawAttendanceLog {
+                id: 1,
+                device_id: "DEV1".to_string(),
+                user_id: "U001".to_string(),
+                timestamp: NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap(),
+                status: Some(1),
+                punch: Some(0),
+                is_synced: 0,
+                created_at: Some(chrono::Utc::now().naive_utc()),
+                updated_at: None,
+                retry_count: 0,
+            },
+            RawAttendanceLog {
+                id: 2,
+                device_id: "DEV2".to_string(),
+                user_id: "U002".to_string(),
+                timestamp: NaiveDateTime::parse_from_str("2026-01-31 11:00:00", "%Y-%m-%d %H:%M:%S").unwrap(),
+                status: Some(1),
+                punch: Some(0),
+                is_synced: 2,
+                created_at: Some(chrono::Utc::now().naive_utc()),
+                updated_at: None,
+                retry_count: 0,
+            },
+        ];
+
+        store.load_from_disk(logs);
+
+        // Verify lookups work for loaded logs
+        let key1 = format!("DEV1:U001:{}",
+            NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S")
+                .unwrap().and_utc().timestamp());
+        let key2 = format!("DEV2:U002:{}",
+            NaiveDateTime::parse_from_str("2026-01-31 11:00:00", "%Y-%m-%d %H:%M:%S")
+                .unwrap().and_utc().timestamp());
+
+        assert_eq!(store.get_id_by_composite_key(&key1), Some(1));
+        assert_eq!(store.get_id_by_composite_key(&key2), Some(2));
+    }
+
+    #[test]
+    fn test_cleanup_removes_from_hash_index() {
+        // Verify cleanup properly removes entries from hash-based index
+        let store = InMemoryStore::new(1000);
+
+        let data = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-31 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+
+        let id = store.insert("DEV1".to_string(), data).unwrap();
+
+        // Mark synced
+        store.mark_synced(&[id]);
+
+        // Construct key
+        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let key = format!("DEV1:U001:{}", ts.and_utc().timestamp());
+
+        // Verify lookup works before cleanup
+        assert_eq!(store.get_id_by_composite_key(&key), Some(id));
+
+        // Cleanup old synced logs (use 0 seconds to cleanup immediately)
+        store.cleanup_synced(0);
+
+        // Verify lookup fails after cleanup
+        assert_eq!(store.get_id_by_composite_key(&key), None);
+    }
 }
