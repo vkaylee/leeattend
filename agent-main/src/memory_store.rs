@@ -1853,4 +1853,238 @@ mod tests {
         // Verify lookup fails after cleanup
         assert_eq!(store.get_id_by_composite_key(&key), None);
     }
+
+    #[test]
+    fn test_cleanup_respects_age_threshold() {
+        // Verify cleanup only removes logs older than threshold
+        let store = InMemoryStore::new(1000);
+
+        // Insert log and mark synced
+        let data = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-31 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+
+        let id = store.insert("DEV1".to_string(), data).unwrap();
+        store.mark_synced(&[id]);
+
+        // Try cleanup with very long threshold (1 year = 31536000 seconds)
+        // Log was just created, should NOT be cleaned
+        let removed = store.cleanup_synced(31536000);
+        assert_eq!(removed, 0, "Recently synced log should not be cleaned");
+        assert_eq!(store.count_total(), 1, "Log should still be in store");
+
+        // Now cleanup with 0 seconds threshold (immediate)
+        let removed = store.cleanup_synced(0);
+        assert_eq!(removed, 1, "Log should be cleaned with 0 threshold");
+        assert_eq!(store.count_total(), 0, "Store should be empty");
+    }
+
+    #[test]
+    fn test_cleanup_only_removes_synced_logs() {
+        // Verify cleanup only removes synced (is_synced=1) logs
+        let store = InMemoryStore::new(1000);
+
+        // Insert 3 logs with different sync states
+        let data1 = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-31 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        let data2 = AttendanceData {
+            user_id: "U002".to_string(),
+            timestamp: "2026-01-31 10:01:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        let data3 = AttendanceData {
+            user_id: "U003".to_string(),
+            timestamp: "2026-01-31 10:02:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+
+        let id1 = store.insert("DEV1".to_string(), data1).unwrap(); // Will be synced
+        let id2 = store.insert("DEV1".to_string(), data2).unwrap(); // Will be in-flight
+        let _id3 = store.insert("DEV1".to_string(), data3).unwrap(); // Will stay unsynced
+
+        // Set different states (follow normal flow: unsynced -> in_flight -> synced)
+        store.mark_in_flight(&[id1]);  // Move to in-flight first
+        store.mark_synced(&[id1]);     // Then mark synced (is_synced = 1)
+        store.mark_in_flight(&[id2]);  // Move to in-flight (is_synced = 2)
+
+        // Verify initial state
+        assert_eq!(store.count_total(), 3);
+
+        // Cleanup with 0 threshold
+        let removed = store.cleanup_synced(0);
+
+        // Only synced log (id1) should be removed
+        assert_eq!(removed, 1, "Only synced log should be cleaned");
+        assert_eq!(store.count_total(), 2, "Unsynced and in-flight should remain");
+    }
+
+    #[test]
+    fn test_cleanup_at_capacity_boundary() {
+        // Test behavior when store is at capacity
+        let store = InMemoryStore::new(5); // Small capacity
+
+        // Fill to capacity
+        for i in 0..5 {
+            let data = AttendanceData {
+                user_id: format!("U{:03}", i),
+                timestamp: format!("2026-01-31 10:{:02}:00", i),
+                status: Some(1),
+                punch: Some(0),
+            };
+            store.insert("DEV1".to_string(), data).unwrap();
+        }
+
+        assert_eq!(store.count_total(), 5);
+
+        // Try to insert one more - should fail
+        let extra_data = AttendanceData {
+            user_id: "U999".to_string(),
+            timestamp: "2026-01-31 11:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        let result = store.insert("DEV1".to_string(), extra_data.clone());
+        assert!(result.is_err(), "Should fail at capacity");
+
+        // Mark all as synced
+        let logs = store.get_unsynced(10);
+        let ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
+        store.mark_synced(&ids);
+
+        // Cleanup
+        let removed = store.cleanup_synced(0);
+        assert_eq!(removed, 5, "All synced logs should be cleaned");
+        assert_eq!(store.count_total(), 0);
+
+        // Now insert should work
+        let result = store.insert("DEV1".to_string(), extra_data);
+        assert!(result.is_ok(), "Should succeed after cleanup");
+    }
+
+    #[test]
+    fn test_cleanup_preserves_signatures_for_dedup() {
+        // Critical test: verify signatures survive cleanup
+        let store = InMemoryStore::new(1000);
+
+        let data = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-31 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+
+        // Insert, sync, and cleanup
+        let id = store.insert("DEV1".to_string(), data.clone()).unwrap();
+        store.mark_synced(&[id]);
+        let removed = store.cleanup_synced(0);
+        assert_eq!(removed, 1);
+
+        // Signature should still exist - try to insert duplicate
+        let result = store.insert("DEV1".to_string(), data);
+        assert!(result.is_err(), "Duplicate should be rejected even after cleanup");
+        assert_eq!(store.count_signatures(), 1, "Signature should persist");
+    }
+
+    #[test]
+    fn test_capacity_percentage_calculation() {
+        // Test for monitoring logic
+        let store = InMemoryStore::new(100);
+
+        // Fill to 80%
+        for i in 0..80 {
+            let data = AttendanceData {
+                user_id: format!("U{:03}", i),
+                timestamp: format!("2026-01-31 {:02}:{:02}:00", i / 60, i % 60),
+                status: Some(1),
+                punch: Some(0),
+            };
+            store.insert("DEV1".to_string(), data).unwrap();
+        }
+
+        let total = store.count_total();
+        let capacity = 100;
+        let percent = (total * 100) / capacity;
+
+        assert_eq!(total, 80);
+        assert_eq!(percent, 80, "Should be at 80% capacity");
+    }
+
+    #[test]
+    fn test_cleanup_batch_performance() {
+        // Test cleanup handles large batches efficiently
+        let store = InMemoryStore::new(10000);
+
+        // Insert 1000 logs
+        for i in 0..1000 {
+            let data = AttendanceData {
+                user_id: format!("U{:04}", i),
+                timestamp: format!("2026-01-31 {:02}:{:02}:{:02}",
+                    (i / 3600) % 24, (i / 60) % 60, i % 60),
+                status: Some(1),
+                punch: Some(0),
+            };
+            store.insert("DEV1".to_string(), data).unwrap();
+        }
+
+        assert_eq!(store.count_total(), 1000);
+
+        // Mark all synced
+        let logs = store.get_unsynced(1000);
+        let ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
+        store.mark_synced(&ids);
+
+        // Cleanup all
+        let start = std::time::Instant::now();
+        let removed = store.cleanup_synced(0);
+        let elapsed = start.elapsed();
+
+        assert_eq!(removed, 1000);
+        assert_eq!(store.count_total(), 0);
+        assert!(elapsed.as_millis() < 100, "Cleanup should be fast (<100ms for 1000 logs)");
+    }
+
+    #[test]
+    fn test_memory_stats_during_cleanup_cycle() {
+        // Simulate production cleanup cycle behavior
+        let store = InMemoryStore::new(1000);
+
+        // Phase 1: Initial inserts
+        for i in 0..100 {
+            let data = AttendanceData {
+                user_id: format!("U{:03}", i),
+                timestamp: format!("2026-01-31 10:{:02}:00", i % 60),
+                status: Some(1),
+                punch: Some(0),
+            };
+            store.insert("DEV1".to_string(), data).unwrap();
+        }
+
+        let stats1 = (store.count_total(), store.count_unsynced(), store.count_signatures());
+        assert_eq!(stats1, (100, 100, 100), "All should be unsynced initially");
+
+        // Phase 2: Sync half (follow proper flow: unsynced -> in_flight -> synced)
+        let logs = store.get_unsynced(50);
+        let ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
+        store.mark_in_flight(&ids);  // First move to in_flight
+        store.mark_synced(&ids);     // Then mark synced
+
+        let stats2 = (store.count_total(), store.count_unsynced(), store.count_signatures());
+        assert_eq!(stats2, (100, 50, 100), "50 synced (removed from unsynced), 50 unsynced");
+
+        // Phase 3: Cleanup synced
+        let removed = store.cleanup_synced(0);
+        assert_eq!(removed, 50);
+
+        let stats3 = (store.count_total(), store.count_unsynced(), store.count_signatures());
+        assert_eq!(stats3, (50, 50, 100), "50 remaining, signatures preserved");
+    }
 }
