@@ -23,25 +23,31 @@ use std::sync::atomic::{AtomicBool, Ordering};
 /// Parse composite key "device_id:user_id:timestamp_unix" back to components
 /// Uses rsplit to safely handle device_id containing colons
 /// Format: device_id can contain colons, user_id and timestamp_unix cannot
-fn parse_composite_key(key: &str) -> Option<(String, String, chrono::NaiveDateTime)> {
+/// Returns timestamp as SQLite-compatible string format "YYYY-MM-DD HH:MM:SS"
+fn parse_composite_key(key: &str) -> Option<(String, String, String)> {
     // Split from right: timestamp (last), user_id (second-to-last), device_id (rest)
     let mut parts = key.rsplitn(3, ':');
 
     // Extract in reverse order: timestamp, user_id, device_id
-    let timestamp_str = parts.next()?;
-    let user_id = parts.next()?;
-    let device_id = parts.next()?;
+    let timestamp_str = parts.next()?.trim();  // Trim whitespace
+    let user_id = parts.next()?.trim();        // Trim whitespace
+    let device_id = parts.next()?.trim();      // Trim whitespace
 
     // Ensure we consumed exactly 3 parts (no extra parts remaining)
     if parts.next().is_some() {
         return None; // Too many colons even for rsplit(3)
     }
 
+    // Parse Unix timestamp
     let timestamp_unix = timestamp_str.parse::<i64>().ok()?;
-    let timestamp = chrono::DateTime::from_timestamp(timestamp_unix, 0)?
+    let datetime = chrono::DateTime::from_timestamp(timestamp_unix, 0)?
         .naive_utc();
 
-    Some((device_id.to_string(), user_id.to_string(), timestamp))
+    // CRITICAL: Format to SQLite DATETIME format (matches DB storage)
+    // This ensures the WHERE clause in UPDATE query matches exactly
+    let timestamp_formatted = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
+
+    Some((device_id.to_string(), user_id.to_string(), timestamp_formatted))
 }
 
 // Retry configuration constants
@@ -316,16 +322,35 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                     }
 
                     // Update disk using composite key
-                    if let Some(parts) = parse_composite_key(&msg_id) {
-                        let _ = sqlx::query(
+                    if let Some((device_id, user_id, timestamp_str)) = parse_composite_key(&msg_id) {
+                        log::info!("🔍 ACK Success: device='{}', user='{}', timestamp='{}'",
+                            device_id, user_id, timestamp_str);
+
+                        match sqlx::query(
                             "UPDATE zkt_raw_attendance SET is_synced = 1
                              WHERE device_id = ? AND user_id = ? AND timestamp = ?"
                         )
-                        .bind(&parts.0)
-                        .bind(&parts.1)
-                        .bind(parts.2)
+                        .bind(&device_id)
+                        .bind(&user_id)
+                        .bind(&timestamp_str)
                         .execute(hybrid_db.disk_db().get_pool())
-                        .await;
+                        .await
+                        {
+                            Ok(result) => {
+                                let rows = result.rows_affected();
+                                if rows == 0 {
+                                    log::error!("❌ UPDATE affected 0 rows! device='{}', user='{}', timestamp='{}' - Log may not exist in DB or already synced",
+                                        device_id, user_id, timestamp_str);
+                                } else {
+                                    log::debug!("✅ Marked {} row(s) as synced in DB", rows);
+                                }
+                            }
+                            Err(e) => {
+                                log::error!("❌ UPDATE query failed: {}", e);
+                            }
+                        }
+                    } else {
+                        log::warn!("⚠️ Failed to parse composite key: {}", msg_id);
                     }
                 } else {
                     // Failed ACK - reset to unsynced for retry
@@ -334,14 +359,17 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                     }
 
                     // Reset disk using composite key
-                    if let Some(parts) = parse_composite_key(&msg_id) {
+                    if let Some((device_id, user_id, timestamp_str)) = parse_composite_key(&msg_id) {
+                        log::warn!("⚠️ ACK Failed: Resetting device='{}', user='{}', timestamp='{}'",
+                            device_id, user_id, timestamp_str);
+
                         let _ = sqlx::query(
                             "UPDATE zkt_raw_attendance SET is_synced = 0
                              WHERE device_id = ? AND user_id = ? AND timestamp = ?"
                         )
-                        .bind(&parts.0)
-                        .bind(&parts.1)
-                        .bind(parts.2)
+                        .bind(&device_id)
+                        .bind(&user_id)
+                        .bind(&timestamp_str)
                         .execute(hybrid_db.disk_db().get_pool())
                         .await;
                     }
@@ -451,10 +479,12 @@ mod tests {
         let result = parse_composite_key(key);
         assert!(result.is_some());
 
-        let (device_id, user_id, timestamp) = result.unwrap();
+        let (device_id, user_id, timestamp_str) = result.unwrap();
         assert_eq!(device_id, "DEV1");
         assert_eq!(user_id, "U001");
-        assert_eq!(timestamp, chrono::DateTime::from_timestamp(1738314000, 0).unwrap().naive_utc());
+        // Verify timestamp is formatted correctly for SQLite
+        // 1738314000 = 2025-01-31 09:00:00 UTC
+        assert_eq!(timestamp_str, "2025-01-31 09:00:00");
     }
 
     #[test]
@@ -464,10 +494,10 @@ mod tests {
         let result = parse_composite_key(key);
         assert!(result.is_some(), "Should parse device_id with colons");
 
-        let (device_id, user_id, timestamp) = result.unwrap();
+        let (device_id, user_id, timestamp_str) = result.unwrap();
         assert_eq!(device_id, "Office:Main:Gate");
         assert_eq!(user_id, "U001");
-        assert_eq!(timestamp, chrono::DateTime::from_timestamp(1738314000, 0).unwrap().naive_utc());
+        assert_eq!(timestamp_str, "2025-01-31 09:00:00");
     }
 
     #[test]
