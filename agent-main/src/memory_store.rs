@@ -65,13 +65,28 @@ impl MemoryLog {
             self.timestamp.and_utc().timestamp()
         )
     }
+
+    /// Compute hash of composite key components for memory index
+    /// Uses FxHasher for fast, deterministic hashing
+    pub fn composite_key_hash(&self) -> u64 {
+        Self::compute_composite_hash(&self.device_id, &self.user_id, self.timestamp)
+    }
+
+    /// Static method to compute composite key hash from components
+    fn compute_composite_hash(device_id: &str, user_id: &str, timestamp: NaiveDateTime) -> u64 {
+        let mut hasher = FxHasher::default();
+        device_id.hash(&mut hasher);
+        user_id.hash(&mut hasher);
+        timestamp.and_utc().timestamp().hash(&mut hasher);
+        hasher.finish()
+    }
 }
 
 /// In-memory store for attendance logs with FIFO ordering
 pub struct InMemoryStore {
     logs: DashMap<i64, MemoryLog>,
     signatures: DashSet<u64>,  // Hash signatures for deduplication
-    composite_index: DashMap<String, i64>,  // composite_key -> memory_id for ACK correlation
+    composite_index: DashMap<u64, i64>,  // composite_key_hash -> memory_id for ACK correlation
     unsynced_index: Arc<RwLock<BTreeSet<i64>>>,
     inflight_index: Arc<RwLock<HashMap<i64, Instant>>>,
     next_id: AtomicI64,
@@ -186,13 +201,8 @@ impl InMemoryStore {
                 persisted: true, // Loaded from disk = already persisted
             };
 
-            // Build composite key for ACK correlation
-            let composite_key = format!(
-                "{}:{}:{}",
-                log.device_id,
-                log.user_id,
-                log.timestamp.and_utc().timestamp()
-            );
+            // Compute composite key hash for ACK correlation
+            let composite_hash = MemoryLog::compute_composite_hash(&log.device_id, &log.user_id, log.timestamp);
 
             // Update indices based on sync status
             if log.is_synced == 0 {
@@ -202,7 +212,7 @@ impl InMemoryStore {
             }
 
             self.logs.insert(log.id, memory_log);
-            self.composite_index.insert(composite_key, log.id);
+            self.composite_index.insert(composite_hash, log.id);
         }
 
         self.next_id.store(max_id + 1, Ordering::SeqCst);
@@ -247,16 +257,11 @@ impl InMemoryStore {
             persisted: false,
         };
 
-        // Build composite key for ACK correlation
-        let composite_key = format!(
-            "{}:{}:{}",
-            device_id,
-            data.user_id,
-            timestamp.and_utc().timestamp()
-        );
+        // Compute composite key hash for ACK correlation
+        let composite_hash = MemoryLog::compute_composite_hash(&device_id, &data.user_id, timestamp);
 
         self.logs.insert(id, log);
-        self.composite_index.insert(composite_key, id);
+        self.composite_index.insert(composite_hash, id);
         self.unsynced_index.write().insert(id);
         self.count.fetch_add(1, Ordering::SeqCst);
         self.dirty.store(true, Ordering::SeqCst);
@@ -437,9 +442,21 @@ impl InMemoryStore {
         self.dirty.store(true, Ordering::SeqCst);
     }
 
-    /// Get memory ID by composite key
+    /// Get memory ID by composite key string (parses and computes hash)
+    /// Format: "device_id:user_id:timestamp_unix"
     pub fn get_id_by_composite_key(&self, composite_key: &str) -> Option<i64> {
-        self.composite_index.get(composite_key).map(|entry| *entry)
+        // Parse composite key string to compute hash
+        let parts: Vec<&str> = composite_key.split(':').collect();
+        if parts.len() != 3 {
+            return None;
+        }
+
+        let timestamp_unix: i64 = parts[2].parse().ok()?;
+        let timestamp = chrono::DateTime::from_timestamp(timestamp_unix, 0)?
+            .naive_utc();
+
+        let hash = MemoryLog::compute_composite_hash(parts[0], parts[1], timestamp);
+        self.composite_index.get(&hash).map(|entry| *entry)
     }
 
     /// Mark synced by composite key (for ACK handling)
@@ -518,14 +535,14 @@ impl InMemoryStore {
 
         for entry in self.logs.iter() {
             if entry.is_synced == 1 && entry.created_at < threshold {
-                to_remove.push((*entry.key(), entry.composite_key()));
+                to_remove.push((*entry.key(), entry.composite_key_hash()));
             }
         }
 
         let count = to_remove.len();
-        for (id, composite_key) in to_remove {
+        for (id, composite_hash) in to_remove {
             self.logs.remove(&id);
-            self.composite_index.remove(&composite_key);
+            self.composite_index.remove(&composite_hash);
             // NOTE: DO NOT remove signature - keep for dedup protection
         }
         self.count.fetch_sub(count, Ordering::SeqCst);

@@ -302,7 +302,7 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                 if status.as_deref() == Some("success") {
                     // Update memory
                     if !hybrid_db.mark_synced_by_key(&msg_id) {
-                        warn!("ACK for unknown log: {}", msg_id);
+                        log::debug!("ACK for already-synced log (disk update OK): {}", msg_id);
                     }
 
                     // Update disk using composite key
@@ -320,7 +320,7 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                 } else {
                     // Failed ACK - reset to unsynced for retry
                     if !hybrid_db.reset_to_unsynced_by_key(&msg_id) {
-                        warn!("Failed ACK for unknown log: {}", msg_id);
+                        log::debug!("Failed ACK for already-synced log: {}", msg_id);
                     }
 
                     // Reset disk using composite key
