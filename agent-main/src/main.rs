@@ -217,47 +217,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    // --- Periodic Cleanup Task (Old Synced Logs) ---
+    // --- Periodic Disk Cleanup Task (Old Logs >365 Days) ---
+    // Note: Memory cleanup is now handled by mark_synced() immediately on ACK
     let cleanup_hybrid = hybrid_db.clone();
     let cleanup_cancel = cancel_token.clone();
     tokio::spawn(async move {
-        info!("🧹 Cleanup Worker started (immediate memory cleanup, 365-day disk retention)");
+        info!("🧹 Disk Cleanup Worker started (365-day retention)");
 
-        // Memory cleanup interval: every 5 minutes
-        let memory_cleanup_interval = Duration::from_secs(300);
         // Disk cleanup interval: every 24 hours
         let disk_cleanup_interval = Duration::from_secs(86400);
-
-        let mut memory_cleanup_timer = tokio::time::interval(memory_cleanup_interval);
         let mut disk_cleanup_timer = tokio::time::interval(disk_cleanup_interval);
 
         // Skip immediate tick on startup
-        memory_cleanup_timer.tick().await;
         disk_cleanup_timer.tick().await;
 
         loop {
             tokio::select! {
-                _ = memory_cleanup_timer.tick() => {
-                    // Log memory store stats
-                    let total = cleanup_hybrid.memory_store().count_total();
-                    let unsynced = cleanup_hybrid.memory_store().count_unsynced();
-                    let signatures = cleanup_hybrid.memory_store().count_signatures();
-
-                    // Clean synced logs immediately (0 seconds retention)
-                    // Rationale: Once synced, disk has authoritative record
-                    // Signatures preserved for dedup protection
-                    let removed = cleanup_hybrid.memory_store().cleanup_synced(0);
-
-                    if removed > 0 || total > 1000 {
-                        info!("🧹 Memory stats: total={}, unsynced={}, signatures={}, cleaned={}",
-                            total, unsynced, signatures, removed);
-                    }
-
-                    // Warn if approaching capacity (80% threshold)
-                    if total > 80_000 {
-                        warn!("⚠️ Memory store at {}% capacity ({}/100000)", total / 1000, total);
-                    }
-                }
                 _ = disk_cleanup_timer.tick() => {
                     match cleanup_hybrid.disk_db().cleanup_old_synced_logs(365).await {
                         Ok(deleted) => {
@@ -271,7 +246,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 _ = cleanup_cancel.cancelled() => {
-                    info!("🧹 Cleanup Worker stopped");
+                    info!("🧹 Disk Cleanup Worker stopped");
                     break;
                 }
             }
