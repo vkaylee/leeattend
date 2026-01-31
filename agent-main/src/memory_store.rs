@@ -414,17 +414,32 @@ impl InMemoryStore {
         self.dirty.store(true, Ordering::SeqCst);
     }
 
-    /// Mark logs as synced (is_synced=1)
+    /// Mark logs as synced and remove from memory (is_synced=1)
+    /// Keeps signature for dedup protection, removes log entry
+    /// Rationale: Once synced, disk has authoritative record
     pub fn mark_synced(&self, ids: &[i64]) {
         let mut inflight = self.inflight_index.write();
 
         for &id in ids {
-            if let Some(mut log) = self.logs.get_mut(&id) {
-                log.is_synced = 1;
+            // Get composite hash before removing
+            let composite_hash = self.logs.get(&id).map(|log| log.composite_key_hash());
+
+            // Remove from memory (log no longer needed)
+            self.logs.remove(&id);
+
+            // Remove from composite index
+            if let Some(hash) = composite_hash {
+                self.composite_index.remove(&hash);
             }
+
+            // Remove from inflight
             inflight.remove(&id);
+
+            // Decrement count
+            self.count.fetch_sub(1, Ordering::SeqCst);
         }
 
+        // Note: Signature is NOT removed - preserved for dedup protection
         self.dirty.store(true, Ordering::SeqCst);
     }
 
@@ -682,15 +697,19 @@ mod tests {
             punch: Some(1),
         };
         let id = store.insert("D1".to_string(), data).unwrap();
+        assert_eq!(store.count_total(), 1);
         store.mark_in_flight(&[id]);
 
-        // Mark as synced
+        // Mark as synced - log should be REMOVED from memory
         store.mark_synced(&[id]);
 
-        // Verify log is synced
-        let log = store.logs.get(&id).unwrap();
-        assert_eq!(log.is_synced, 1);
+        // Verify log is removed (not just synced)
+        assert!(store.logs.get(&id).is_none(), "Log should be removed after sync");
+        assert_eq!(store.count_total(), 0, "Count should be 0 after sync");
         assert_eq!(store.count_unsynced(), 0);
+
+        // Signature should still exist for dedup
+        assert_eq!(store.count_signatures(), 1, "Signature preserved for dedup");
     }
 
     #[test]
@@ -775,6 +794,8 @@ mod tests {
 
     #[test]
     fn test_cleanup_synced() {
+        // With immediate removal in mark_synced, cleanup_synced becomes a no-op
+        // This test verifies that cleanup handles the new behavior correctly
         let store = InMemoryStore::new(1000);
 
         // Insert 3 logs
@@ -788,20 +809,20 @@ mod tests {
             store.insert("D1".to_string(), data).unwrap();
         }
 
-        // Mark first 2 as synced
+        assert_eq!(store.count_total(), 3);
+
+        // Mark first 2 as synced - they are IMMEDIATELY removed
         store.mark_in_flight(&[1, 2]);
         store.mark_synced(&[1, 2]);
 
-        // Manually set old created_at for synced logs
-        for id in [1, 2] {
-            if let Some(mut log) = store.logs.get_mut(&id) {
-                log.created_at = chrono::Utc::now().naive_utc() - chrono::Duration::seconds(7200);
-            }
-        }
+        // Logs are already removed by mark_synced
+        assert_eq!(store.count_total(), 1, "Only 1 unsynced log remains");
 
-        // Cleanup logs older than 1 hour (3600 seconds)
-        let removed = store.cleanup_synced(3600);
-        assert_eq!(removed, 2);
+        // cleanup_synced should find nothing to clean
+        let removed = store.cleanup_synced(0);
+        assert_eq!(removed, 0, "No synced logs to clean (already removed by mark_synced)");
+
+        // Only unsynced log remains
         assert_eq!(store.count_total(), 1);
     }
 
@@ -885,7 +906,7 @@ mod tests {
         });
         handles.push(handle);
 
-        // Mark synced thread
+        // Mark synced thread (removes synced logs from memory)
         let store_clone = store.clone();
         let handle = thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_millis(20));
@@ -899,7 +920,10 @@ mod tests {
             handle.join().unwrap();
         }
 
-        assert_eq!(store.count_total(), 50);
+        // Total = 50 inserted minus synced (up to 10)
+        // Due to race conditions, synced count varies (0-10)
+        let total = store.count_total();
+        assert!(total >= 40 && total <= 50, "Expected 40-50 logs, got {}", total);
     }
 
     #[test]
@@ -970,15 +994,15 @@ mod tests {
         // Mark in-flight
         store.mark_in_flight(&ids);
 
-        // Mark synced in two batches
+        // Mark synced in two batches - logs are immediately removed
         store.mark_synced(&ids[0..2]);
-        store.mark_synced(&ids[2..5]);
+        assert_eq!(store.count_total(), 3, "2 synced logs removed");
 
-        // All should be synced
-        for id in &ids {
-            let log = store.logs.get(id).unwrap();
-            assert_eq!(log.is_synced, 1);
-        }
+        store.mark_synced(&ids[2..5]);
+        assert_eq!(store.count_total(), 0, "All logs removed after sync");
+
+        // All signatures preserved
+        assert_eq!(store.count_signatures(), 5, "All signatures preserved");
     }
 
     #[test]
@@ -1068,14 +1092,15 @@ mod tests {
             store.insert("D1".to_string(), data).unwrap()
         };
 
-        // Mark one as in-flight, one as synced
+        // Mark one as in-flight, one as synced (which removes it immediately)
         store.mark_in_flight(&[id1]);
-        store.mark_synced(&[id1]);
+        store.mark_synced(&[id1]); // Removed from memory
         store.mark_in_flight(&[id2]);
 
-        // Get all should return both
+        // Get all should return only unsynced (synced logs removed immediately)
         let all = store.get_all();
-        assert_eq!(all.len(), 2);
+        assert_eq!(all.len(), 1);
+        assert_eq!(all[0].id, id2);
     }
 
     // ===== Exponential Backoff Tests =====
@@ -1387,7 +1412,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cleanup_synced_preserves_signatures() {
+    fn test_mark_synced_preserves_signatures() {
         let store = InMemoryStore::new(1000);
 
         let data = AttendanceData {
@@ -1397,23 +1422,14 @@ mod tests {
             punch: Some(0),
         };
 
-        // Insert and sync
+        // Insert and sync (immediate removal)
         let id = store.insert("DEV1".to_string(), data.clone()).unwrap();
         store.mark_in_flight(&[id]);
         store.mark_synced(&[id]);
 
-        // Set old created_at
-        if let Some(mut log) = store.logs.get_mut(&id) {
-            log.created_at = chrono::Utc::now().naive_utc() - chrono::Duration::hours(2);
-        }
-
-        // Cleanup (1 hour threshold)
-        let cleaned = store.cleanup_synced(3600);
-        assert_eq!(cleaned, 1);
-
-        // Log removed, but signature remains
+        // Log immediately removed by mark_synced
         assert_eq!(store.count_total(), 0);
-        assert_eq!(store.count_signatures(), 1);
+        assert_eq!(store.count_signatures(), 1, "Signature preserved");
 
         // Duplicate still rejected
         let result = store.insert("DEV1".to_string(), data);
@@ -1597,9 +1613,9 @@ mod tests {
         // Mark synced by key should return true
         assert!(store.mark_synced_by_key(&key));
 
-        // Verify synced
-        let log = store.logs.get(&id).unwrap();
-        assert_eq!(log.is_synced, 1);
+        // Verify log is REMOVED after sync (not just marked)
+        assert!(store.logs.get(&id).is_none(), "Log should be removed after sync");
+        assert_eq!(store.count_total(), 0);
     }
 
     #[test]
@@ -1824,8 +1840,8 @@ mod tests {
     }
 
     #[test]
-    fn test_cleanup_removes_from_hash_index() {
-        // Verify cleanup properly removes entries from hash-based index
+    fn test_mark_synced_removes_from_hash_index() {
+        // Verify mark_synced immediately removes log and composite index entry
         let store = InMemoryStore::new(1000);
 
         let data = AttendanceData {
@@ -1836,30 +1852,28 @@ mod tests {
         };
 
         let id = store.insert("DEV1".to_string(), data).unwrap();
-
-        // Mark synced
-        store.mark_synced(&[id]);
 
         // Construct key
         let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
         let key = format!("DEV1:U001:{}", ts.and_utc().timestamp());
 
-        // Verify lookup works before cleanup
+        // Before sync, lookup works
         assert_eq!(store.get_id_by_composite_key(&key), Some(id));
 
-        // Cleanup old synced logs (use 0 seconds to cleanup immediately)
-        store.cleanup_synced(0);
+        // Mark synced - should immediately remove
+        store.mark_in_flight(&[id]);
+        store.mark_synced(&[id]);
 
-        // Verify lookup fails after cleanup
+        // After sync, lookup fails (log removed)
         assert_eq!(store.get_id_by_composite_key(&key), None);
+        assert_eq!(store.count_total(), 0);
     }
 
     #[test]
-    fn test_cleanup_respects_age_threshold() {
-        // Verify cleanup only removes logs older than threshold
+    fn test_mark_synced_immediate_removal() {
+        // Verify synced logs are immediately removed, not waiting for cleanup
         let store = InMemoryStore::new(1000);
 
-        // Insert log and mark synced
         let data = AttendanceData {
             user_id: "U001".to_string(),
             timestamp: "2026-01-31 10:00:00".to_string(),
@@ -1868,26 +1882,25 @@ mod tests {
         };
 
         let id = store.insert("DEV1".to_string(), data).unwrap();
+        assert_eq!(store.count_total(), 1);
+
+        // Mark synced - should remove immediately
+        store.mark_in_flight(&[id]);
         store.mark_synced(&[id]);
 
-        // Try cleanup with very long threshold (1 year = 31536000 seconds)
-        // Log was just created, should NOT be cleaned
-        let removed = store.cleanup_synced(31536000);
-        assert_eq!(removed, 0, "Recently synced log should not be cleaned");
-        assert_eq!(store.count_total(), 1, "Log should still be in store");
+        // Log is gone
+        assert_eq!(store.count_total(), 0, "Synced log removed immediately");
 
-        // Now cleanup with 0 seconds threshold (immediate)
+        // cleanup_synced has nothing to do
         let removed = store.cleanup_synced(0);
-        assert_eq!(removed, 1, "Log should be cleaned with 0 threshold");
-        assert_eq!(store.count_total(), 0, "Store should be empty");
+        assert_eq!(removed, 0, "No synced logs to clean");
     }
 
     #[test]
-    fn test_cleanup_only_removes_synced_logs() {
-        // Verify cleanup only removes synced (is_synced=1) logs
+    fn test_mark_synced_preserves_unsynced_and_inflight() {
+        // Verify only synced logs are removed, others remain
         let store = InMemoryStore::new(1000);
 
-        // Insert 3 logs with different sync states
         let data1 = AttendanceData {
             user_id: "U001".to_string(),
             timestamp: "2026-01-31 10:00:00".to_string(),
@@ -1907,32 +1920,26 @@ mod tests {
             punch: Some(0),
         };
 
-        let id1 = store.insert("DEV1".to_string(), data1).unwrap(); // Will be synced
-        let id2 = store.insert("DEV1".to_string(), data2).unwrap(); // Will be in-flight
-        let _id3 = store.insert("DEV1".to_string(), data3).unwrap(); // Will stay unsynced
+        let id1 = store.insert("DEV1".to_string(), data1).unwrap();
+        let id2 = store.insert("DEV1".to_string(), data2).unwrap();
+        let _id3 = store.insert("DEV1".to_string(), data3).unwrap();
 
-        // Set different states (follow normal flow: unsynced -> in_flight -> synced)
-        store.mark_in_flight(&[id1]);  // Move to in-flight first
-        store.mark_synced(&[id1]);     // Then mark synced (is_synced = 1)
-        store.mark_in_flight(&[id2]);  // Move to in-flight (is_synced = 2)
+        // Mark id1 synced (removed), id2 in-flight (kept), id3 stays unsynced
+        store.mark_in_flight(&[id1]);
+        store.mark_synced(&[id1]);
+        store.mark_in_flight(&[id2]);
 
-        // Verify initial state
-        assert_eq!(store.count_total(), 3);
-
-        // Cleanup with 0 threshold
-        let removed = store.cleanup_synced(0);
-
-        // Only synced log (id1) should be removed
-        assert_eq!(removed, 1, "Only synced log should be cleaned");
-        assert_eq!(store.count_total(), 2, "Unsynced and in-flight should remain");
+        // Only synced log removed
+        assert_eq!(store.count_total(), 2, "Unsynced and in-flight remain");
     }
 
     #[test]
-    fn test_cleanup_at_capacity_boundary() {
-        // Test behavior when store is at capacity
-        let store = InMemoryStore::new(5); // Small capacity
+    fn test_capacity_recovery_after_sync() {
+        // Test that capacity is freed when logs are synced
+        let store = InMemoryStore::new(5);
 
         // Fill to capacity
+        let mut ids = Vec::new();
         for i in 0..5 {
             let data = AttendanceData {
                 user_id: format!("U{:03}", i),
@@ -1940,39 +1947,34 @@ mod tests {
                 status: Some(1),
                 punch: Some(0),
             };
-            store.insert("DEV1".to_string(), data).unwrap();
+            let id = store.insert("DEV1".to_string(), data).unwrap();
+            ids.push(id);
         }
 
         assert_eq!(store.count_total(), 5);
 
-        // Try to insert one more - should fail
+        // Should fail at capacity
         let extra_data = AttendanceData {
             user_id: "U999".to_string(),
             timestamp: "2026-01-31 11:00:00".to_string(),
             status: Some(1),
             punch: Some(0),
         };
-        let result = store.insert("DEV1".to_string(), extra_data.clone());
-        assert!(result.is_err(), "Should fail at capacity");
+        assert!(store.insert("DEV1".to_string(), extra_data.clone()).is_err());
 
-        // Mark all as synced
-        let logs = store.get_unsynced(10);
-        let ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
+        // Sync all logs - they're immediately removed
+        store.mark_in_flight(&ids);
         store.mark_synced(&ids);
 
-        // Cleanup
-        let removed = store.cleanup_synced(0);
-        assert_eq!(removed, 5, "All synced logs should be cleaned");
-        assert_eq!(store.count_total(), 0);
+        assert_eq!(store.count_total(), 0, "All synced logs removed");
 
-        // Now insert should work
-        let result = store.insert("DEV1".to_string(), extra_data);
-        assert!(result.is_ok(), "Should succeed after cleanup");
+        // Now insert works
+        assert!(store.insert("DEV1".to_string(), extra_data).is_ok());
     }
 
     #[test]
-    fn test_cleanup_preserves_signatures_for_dedup() {
-        // Critical test: verify signatures survive cleanup
+    fn test_signature_preserved_after_sync() {
+        // Critical: verify signatures survive mark_synced removal
         let store = InMemoryStore::new(1000);
 
         let data = AttendanceData {
@@ -1982,16 +1984,18 @@ mod tests {
             punch: Some(0),
         };
 
-        // Insert, sync, and cleanup
+        // Insert and sync
         let id = store.insert("DEV1".to_string(), data.clone()).unwrap();
+        store.mark_in_flight(&[id]);
         store.mark_synced(&[id]);
-        let removed = store.cleanup_synced(0);
-        assert_eq!(removed, 1);
 
-        // Signature should still exist - try to insert duplicate
+        // Log removed but signature preserved
+        assert_eq!(store.count_total(), 0);
+        assert_eq!(store.count_signatures(), 1, "Signature preserved for dedup");
+
+        // Duplicate should be rejected
         let result = store.insert("DEV1".to_string(), data);
-        assert!(result.is_err(), "Duplicate should be rejected even after cleanup");
-        assert_eq!(store.count_signatures(), 1, "Signature should persist");
+        assert!(result.is_err(), "Duplicate rejected even after sync removal");
     }
 
     #[test]
@@ -2019,8 +2023,8 @@ mod tests {
     }
 
     #[test]
-    fn test_cleanup_batch_performance() {
-        // Test cleanup handles large batches efficiently
+    fn test_batch_sync_performance() {
+        // Test mark_synced handles large batches efficiently
         let store = InMemoryStore::new(10000);
 
         // Insert 1000 logs
@@ -2037,24 +2041,27 @@ mod tests {
 
         assert_eq!(store.count_total(), 1000);
 
-        // Mark all synced
+        // Mark all synced (immediate removal)
         let logs = store.get_unsynced(1000);
         let ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
-        store.mark_synced(&ids);
 
-        // Cleanup all
+        store.mark_in_flight(&ids);
+
         let start = std::time::Instant::now();
-        let removed = store.cleanup_synced(0);
+        store.mark_synced(&ids);
         let elapsed = start.elapsed();
 
-        assert_eq!(removed, 1000);
+        // All logs removed immediately by mark_synced
         assert_eq!(store.count_total(), 0);
-        assert!(elapsed.as_millis() < 100, "Cleanup should be fast (<100ms for 1000 logs)");
+        assert!(elapsed.as_millis() < 100, "Sync removal should be fast (<100ms for 1000 logs)");
+
+        // Signatures preserved
+        assert_eq!(store.count_signatures(), 1000);
     }
 
     #[test]
-    fn test_memory_stats_during_cleanup_cycle() {
-        // Simulate production cleanup cycle behavior
+    fn test_memory_stats_during_sync_cycle() {
+        // Simulate production sync cycle behavior
         let store = InMemoryStore::new(1000);
 
         // Phase 1: Initial inserts
@@ -2071,18 +2078,18 @@ mod tests {
         let stats1 = (store.count_total(), store.count_unsynced(), store.count_signatures());
         assert_eq!(stats1, (100, 100, 100), "All should be unsynced initially");
 
-        // Phase 2: Sync half (follow proper flow: unsynced -> in_flight -> synced)
+        // Phase 2: Sync half (logs immediately removed)
         let logs = store.get_unsynced(50);
         let ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
-        store.mark_in_flight(&ids);  // First move to in_flight
-        store.mark_synced(&ids);     // Then mark synced
+        store.mark_in_flight(&ids);
+        store.mark_synced(&ids);
 
         let stats2 = (store.count_total(), store.count_unsynced(), store.count_signatures());
-        assert_eq!(stats2, (100, 50, 100), "50 synced (removed from unsynced), 50 unsynced");
+        assert_eq!(stats2, (50, 50, 100), "50 removed by sync, 50 unsynced remain");
 
-        // Phase 3: Cleanup synced
+        // Phase 3: cleanup_synced is now no-op (nothing to clean)
         let removed = store.cleanup_synced(0);
-        assert_eq!(removed, 50);
+        assert_eq!(removed, 0, "No synced logs to clean (removed immediately)");
 
         let stats3 = (store.count_total(), store.count_unsynced(), store.count_signatures());
         assert_eq!(stats3, (50, 50, 100), "50 remaining, signatures preserved");
