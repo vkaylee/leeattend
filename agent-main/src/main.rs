@@ -221,7 +221,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cleanup_hybrid = hybrid_db.clone();
     let cleanup_cancel = cancel_token.clone();
     tokio::spawn(async move {
-        info!("🧹 Cleanup Worker started (365-day disk retention, 1-hour memory retention)");
+        info!("🧹 Cleanup Worker started (immediate memory cleanup, 365-day disk retention)");
 
         // Memory cleanup interval: every 5 minutes
         let memory_cleanup_interval = Duration::from_secs(300);
@@ -243,9 +243,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let unsynced = cleanup_hybrid.memory_store().count_unsynced();
                     let signatures = cleanup_hybrid.memory_store().count_signatures();
 
-                    // Clean synced logs older than 1 hour from memory
-                    // Signatures are preserved for dedup protection
-                    let removed = cleanup_hybrid.memory_store().cleanup_synced(3600);
+                    // Clean synced logs immediately (0 seconds retention)
+                    // Rationale: Once synced, disk has authoritative record
+                    // Signatures preserved for dedup protection
+                    let removed = cleanup_hybrid.memory_store().cleanup_synced(0);
 
                     if removed > 0 || total > 1000 {
                         info!("🧹 Memory stats: total={}, unsynced={}, signatures={}, cleaned={}",
