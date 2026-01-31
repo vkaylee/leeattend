@@ -21,17 +21,27 @@ use crate::hybrid_database::HybridDatabase;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Parse composite key "device_id:user_id:timestamp_unix" back to components
+/// Uses rsplit to safely handle device_id containing colons
+/// Format: device_id can contain colons, user_id and timestamp_unix cannot
 fn parse_composite_key(key: &str) -> Option<(String, String, chrono::NaiveDateTime)> {
-    let parts: Vec<&str> = key.split(':').collect();
-    if parts.len() != 3 {
-        return None;
+    // Split from right: timestamp (last), user_id (second-to-last), device_id (rest)
+    let mut parts = key.rsplitn(3, ':');
+
+    // Extract in reverse order: timestamp, user_id, device_id
+    let timestamp_str = parts.next()?;
+    let user_id = parts.next()?;
+    let device_id = parts.next()?;
+
+    // Ensure we consumed exactly 3 parts (no extra parts remaining)
+    if parts.next().is_some() {
+        return None; // Too many colons even for rsplit(3)
     }
 
-    let timestamp_unix = parts[2].parse::<i64>().ok()?;
+    let timestamp_unix = timestamp_str.parse::<i64>().ok()?;
     let timestamp = chrono::DateTime::from_timestamp(timestamp_unix, 0)?
         .naive_utc();
 
-    Some((parts[0].to_string(), parts[1].to_string(), timestamp))
+    Some((device_id.to_string(), user_id.to_string(), timestamp))
 }
 
 // Retry configuration constants
@@ -433,6 +443,64 @@ mod tests {
     use super::*;
     use crate::hybrid_database::HybridDatabase;
     use tokio::sync::mpsc;
+
+    #[test]
+    fn test_parse_composite_key_normal() {
+        // Normal case: device_id without colons
+        let key = "DEV1:U001:1738314000";
+        let result = parse_composite_key(key);
+        assert!(result.is_some());
+
+        let (device_id, user_id, timestamp) = result.unwrap();
+        assert_eq!(device_id, "DEV1");
+        assert_eq!(user_id, "U001");
+        assert_eq!(timestamp, chrono::DateTime::from_timestamp(1738314000, 0).unwrap().naive_utc());
+    }
+
+    #[test]
+    fn test_parse_composite_key_with_colon_in_device_id() {
+        // Device ID with colons (common in real deployments like "Office:Main Gate")
+        let key = "Office:Main:Gate:U001:1738314000";
+        let result = parse_composite_key(key);
+        assert!(result.is_some(), "Should parse device_id with colons");
+
+        let (device_id, user_id, timestamp) = result.unwrap();
+        assert_eq!(device_id, "Office:Main:Gate");
+        assert_eq!(user_id, "U001");
+        assert_eq!(timestamp, chrono::DateTime::from_timestamp(1738314000, 0).unwrap().naive_utc());
+    }
+
+    #[test]
+    fn test_parse_composite_key_single_colon_device() {
+        // Single colon in device_id
+        let key = "Office:Gate:U001:1738314000";
+        let result = parse_composite_key(key);
+        assert!(result.is_some());
+
+        let (device_id, user_id, _) = result.unwrap();
+        assert_eq!(device_id, "Office:Gate");
+        assert_eq!(user_id, "U001");
+    }
+
+    #[test]
+    fn test_parse_composite_key_invalid_timestamp() {
+        // Invalid timestamp should return None
+        let key = "DEV1:U001:not_a_number";
+        let result = parse_composite_key(key);
+        assert!(result.is_none(), "Invalid timestamp should return None");
+    }
+
+    #[test]
+    fn test_parse_composite_key_missing_parts() {
+        // Missing parts should return None
+        let key = "DEV1:U001";
+        let result = parse_composite_key(key);
+        assert!(result.is_none(), "Missing timestamp should return None");
+
+        let key2 = "DEV1";
+        let result2 = parse_composite_key(key2);
+        assert!(result2.is_none(), "Missing user_id and timestamp should return None");
+    }
 
     #[tokio::test]
     async fn test_handle_incoming_error() {

@@ -444,18 +444,22 @@ impl InMemoryStore {
 
     /// Get memory ID by composite key string (parses and computes hash)
     /// Format: "device_id:user_id:timestamp_unix"
+    /// Uses rsplit to safely handle device_id containing colons
     pub fn get_id_by_composite_key(&self, composite_key: &str) -> Option<i64> {
-        // Parse composite key string to compute hash
-        let parts: Vec<&str> = composite_key.split(':').collect();
-        if parts.len() != 3 {
-            return None;
-        }
+        // Split from right: timestamp (last), user_id (second-to-last), device_id (rest)
+        let mut parts = composite_key.rsplitn(3, ':');
 
-        let timestamp_unix: i64 = parts[2].parse().ok()?;
+        // Extract in reverse order: timestamp, user_id, device_id
+        let timestamp_str = parts.next()?;
+        let user_id = parts.next()?;
+        let device_id = parts.next()?;
+
+        // Parse timestamp
+        let timestamp_unix: i64 = timestamp_str.parse().ok()?;
         let timestamp = chrono::DateTime::from_timestamp(timestamp_unix, 0)?
             .naive_utc();
 
-        let hash = MemoryLog::compute_composite_hash(parts[0], parts[1], timestamp);
+        let hash = MemoryLog::compute_composite_hash(device_id, user_id, timestamp);
         self.composite_index.get(&hash).map(|entry| *entry)
     }
 
@@ -1683,6 +1687,32 @@ mod tests {
 
         // Lookup by string should parse and compute hash internally
         assert_eq!(store.get_id_by_composite_key(&key), Some(id));
+    }
+
+    #[test]
+    fn test_composite_key_with_colon_in_device_id() {
+        // Verify device_id containing colons is handled correctly
+        let store = InMemoryStore::new(1000);
+
+        // Device name with colon (common in real deployments)
+        let device_id = "Office:Main:Gate".to_string();
+        let data = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-31 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+
+        let id = store.insert(device_id.clone(), data).unwrap();
+
+        // Construct composite key (will have multiple colons)
+        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let key = format!("{}:U001:{}", device_id, ts.and_utc().timestamp());
+        // key = "Office:Main:Gate:U001:1738314000"
+
+        // Lookup should work correctly with rsplit parsing
+        assert_eq!(store.get_id_by_composite_key(&key), Some(id),
+            "Device ID with colons should be parsed correctly");
     }
 
     #[test]
