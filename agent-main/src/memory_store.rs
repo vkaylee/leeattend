@@ -2221,4 +2221,248 @@ mod tests {
         assert!(store.logs.get(&id).is_none(), "Persisted log should be removed");
         assert_eq!(store.count_total(), 0);
     }
+
+    #[test]
+    fn test_memory_cleanup_requires_both_synced_and_persisted() {
+        // Comprehensive test: Memory cleanup only when BOTH synced AND persisted
+        let store = InMemoryStore::new(1000);
+
+        // Insert 4 test logs
+        let mut ids = Vec::new();
+        for i in 0..4 {
+            let data = AttendanceData {
+                user_id: format!("U{:03}", i),
+                timestamp: format!("2026-01-31 10:{:02}:00", i),
+                status: Some(1),
+                punch: Some(0),
+            };
+            let id = store.insert("DEV1".to_string(), data).unwrap();
+            ids.push(id);
+        }
+
+        assert_eq!(store.count_total(), 4);
+
+        // Scenario 1: NOT synced + NOT persisted (baseline)
+        // Log 0: Stays unsynced, not persisted
+        // Expected: Kept in memory ✓
+
+        // Scenario 2: NOT synced + persisted
+        // Log 1: Persisted but not synced yet
+        store.mark_persisted(&[ids[1]]);
+        // Expected: Kept in memory (waiting for sync)
+
+        // Scenario 3: Synced + NOT persisted (should warn and keep)
+        // Log 2: Mark in-flight and try to sync WITHOUT persisting
+        store.mark_in_flight(&[ids[2]]);
+        store.mark_synced(&[ids[2]]);
+        // Expected: Kept in memory (not persisted, logged warning)
+
+        // Scenario 4: Synced + persisted (correct flow)
+        // Log 3: Persisted AND synced
+        store.mark_in_flight(&[ids[3]]);
+        store.mark_persisted(&[ids[3]]);
+        store.mark_synced(&[ids[3]]);
+        // Expected: REMOVED from memory ✓
+
+        // Verify results
+        assert!(store.logs.get(&ids[0]).is_some(), "Log 0: NOT synced + NOT persisted = KEPT");
+        assert!(store.logs.get(&ids[1]).is_some(), "Log 1: NOT synced + persisted = KEPT");
+        assert!(store.logs.get(&ids[2]).is_some(), "Log 2: synced + NOT persisted = KEPT");
+        assert!(store.logs.get(&ids[3]).is_none(), "Log 3: synced + persisted = REMOVED");
+
+        // Verify counts
+        assert_eq!(store.count_total(), 3, "Only 1 log removed (synced + persisted)");
+
+        // Verify persistence flags
+        assert!(!store.logs.get(&ids[0]).unwrap().persisted, "Log 0 not persisted");
+        assert!(store.logs.get(&ids[1]).unwrap().persisted, "Log 1 persisted but not synced");
+        assert!(!store.logs.get(&ids[2]).unwrap().persisted, "Log 2 synced but not persisted");
+
+        // All signatures preserved
+        assert_eq!(store.count_signatures(), 4, "All signatures preserved for dedup");
+    }
+
+    #[test]
+    fn test_persisted_logs_not_synced_remain_in_memory() {
+        // Test that persisted logs awaiting sync are NOT removed
+        let store = InMemoryStore::new(1000);
+
+        // Insert 3 logs
+        let mut ids = Vec::new();
+        for i in 0..3 {
+            let data = AttendanceData {
+                user_id: format!("U{:03}", i),
+                timestamp: format!("2026-01-31 10:{:02}:00", i),
+                status: Some(1),
+                punch: Some(0),
+            };
+            let id = store.insert("DEV1".to_string(), data).unwrap();
+            ids.push(id);
+        }
+
+        // Persist all logs (simulating successful disk checkpoint)
+        store.mark_persisted(&ids);
+
+        // Verify all are persisted
+        for &id in &ids {
+            assert!(store.logs.get(&id).unwrap().persisted, "Log should be persisted");
+        }
+
+        // Mark only first log as in-flight and synced
+        store.mark_in_flight(&[ids[0]]);
+        store.mark_synced(&[ids[0]]);
+
+        // Only the synced log should be removed
+        assert!(store.logs.get(&ids[0]).is_none(), "Synced log removed");
+        assert!(store.logs.get(&ids[1]).is_some(), "Persisted but not synced = kept");
+        assert!(store.logs.get(&ids[2]).is_some(), "Persisted but not synced = kept");
+
+        assert_eq!(store.count_total(), 2, "Only synced log removed");
+
+        // The remaining persisted logs are still available for sync
+        let unsynced = store.get_unsynced(10);
+        assert_eq!(unsynced.len(), 2, "2 persisted logs awaiting sync");
+    }
+
+    #[test]
+    fn test_checkpoint_then_sync_flow() {
+        // Test production flow: checkpoint to disk -> send to server -> receive ACK -> cleanup
+        let store = InMemoryStore::new(1000);
+
+        // Phase 1: Insert logs (memory only, not persisted)
+        let mut ids = Vec::new();
+        for i in 0..5 {
+            let data = AttendanceData {
+                user_id: format!("U{:03}", i),
+                timestamp: format!("2026-01-31 10:{:02}:00", i),
+                status: Some(1),
+                punch: Some(0),
+            };
+            let id = store.insert("DEV1".to_string(), data).unwrap();
+            ids.push(id);
+        }
+
+        assert_eq!(store.count_total(), 5);
+
+        // Verify all are unpersisted
+        for &id in &ids {
+            assert!(!store.logs.get(&id).unwrap().persisted, "Should be unpersisted initially");
+        }
+
+        // Phase 2: Checkpoint to disk (simulate batch checkpoint)
+        store.mark_persisted(&ids);
+
+        // Verify all are now persisted
+        for &id in &ids {
+            assert!(store.logs.get(&id).unwrap().persisted, "Should be persisted after checkpoint");
+        }
+
+        // All logs still in memory (not synced yet)
+        assert_eq!(store.count_total(), 5, "All logs remain after checkpoint");
+
+        // Phase 3: Send to server (mark in-flight)
+        store.mark_in_flight(&ids);
+
+        // All logs still in memory (awaiting ACK)
+        assert_eq!(store.count_total(), 5, "All logs remain while in-flight");
+
+        // Phase 4: Receive ACK from server (mark synced)
+        store.mark_synced(&ids);
+
+        // NOW all logs are removed (synced + persisted)
+        assert_eq!(store.count_total(), 0, "All logs removed after sync");
+
+        // Verify all removed
+        for &id in &ids {
+            assert!(store.logs.get(&id).is_none(), "Log should be removed");
+        }
+
+        // Signatures preserved
+        assert_eq!(store.count_signatures(), 5, "All signatures preserved");
+    }
+
+    #[test]
+    fn test_partial_checkpoint_partial_sync() {
+        // Test mixed scenario: some persisted, some synced
+        let store = InMemoryStore::new(1000);
+
+        // Insert 6 logs
+        let mut ids = Vec::new();
+        for i in 0..6 {
+            let data = AttendanceData {
+                user_id: format!("U{:03}", i),
+                timestamp: format!("2026-01-31 10:{:02}:00", i),
+                status: Some(1),
+                punch: Some(0),
+            };
+            let id = store.insert("DEV1".to_string(), data).unwrap();
+            ids.push(id);
+        }
+
+        // Checkpoint first 4 logs
+        store.mark_persisted(&ids[0..4]);
+
+        // Mark all 6 as in-flight
+        store.mark_in_flight(&ids);
+
+        // Try to sync all 6 logs
+        store.mark_synced(&ids);
+
+        // Only the 4 persisted logs should be removed
+        assert!(store.logs.get(&ids[0]).is_none(), "Persisted + synced = removed");
+        assert!(store.logs.get(&ids[1]).is_none(), "Persisted + synced = removed");
+        assert!(store.logs.get(&ids[2]).is_none(), "Persisted + synced = removed");
+        assert!(store.logs.get(&ids[3]).is_none(), "Persisted + synced = removed");
+        assert!(store.logs.get(&ids[4]).is_some(), "NOT persisted + synced = kept");
+        assert!(store.logs.get(&ids[5]).is_some(), "NOT persisted + synced = kept");
+
+        assert_eq!(store.count_total(), 2, "4 removed, 2 kept (not persisted)");
+
+        // The 2 unpersisted logs are still in inflight state
+        let unpersisted = store.get_unpersisted();
+        assert_eq!(unpersisted.len(), 2, "2 logs awaiting disk checkpoint");
+    }
+
+    #[test]
+    fn test_disk_checkpoint_failure_recovery() {
+        // Test scenario: checkpoint fails, logs retry on next checkpoint
+        let store = InMemoryStore::new(1000);
+
+        // Insert logs
+        let mut ids = Vec::new();
+        for i in 0..3 {
+            let data = AttendanceData {
+                user_id: format!("U{:03}", i),
+                timestamp: format!("2026-01-31 10:{:02}:00", i),
+                status: Some(1),
+                punch: Some(0),
+            };
+            let id = store.insert("DEV1".to_string(), data).unwrap();
+            ids.push(id);
+        }
+
+        // Send to server before checkpoint (edge case)
+        store.mark_in_flight(&ids);
+
+        // Server sends ACK but logs not persisted yet
+        store.mark_synced(&ids);
+
+        // All logs should be KEPT (not persisted)
+        assert_eq!(store.count_total(), 3, "All logs kept (not persisted)");
+
+        // Logs are still marked as in-flight, waiting for checkpoint
+        for &id in &ids {
+            assert!(store.logs.get(&id).is_some(), "Log should remain in memory");
+            assert!(!store.logs.get(&id).unwrap().persisted, "Should not be persisted");
+        }
+
+        // Now checkpoint succeeds
+        store.mark_persisted(&ids);
+
+        // Try to sync again (re-send ACK after checkpoint)
+        store.mark_synced(&ids);
+
+        // NOW all logs are removed (persisted + synced)
+        assert_eq!(store.count_total(), 0, "All logs removed after checkpoint + sync");
+    }
 }
