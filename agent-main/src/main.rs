@@ -221,20 +221,51 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cleanup_hybrid = hybrid_db.clone();
     let cleanup_cancel = cancel_token.clone();
     tokio::spawn(async move {
-        info!("🧹 Cleanup Worker started (365-day retention)");
+        info!("🧹 Cleanup Worker started (365-day disk retention, 1-hour memory retention)");
+
+        // Memory cleanup interval: every 5 minutes
+        let memory_cleanup_interval = Duration::from_secs(300);
+        // Disk cleanup interval: every 24 hours
+        let disk_cleanup_interval = Duration::from_secs(86400);
+
+        let mut memory_cleanup_timer = tokio::time::interval(memory_cleanup_interval);
+        let mut disk_cleanup_timer = tokio::time::interval(disk_cleanup_interval);
+
+        // Skip immediate tick on startup
+        memory_cleanup_timer.tick().await;
+        disk_cleanup_timer.tick().await;
 
         loop {
-            // Run cleanup every 24 hours
             tokio::select! {
-                _ = sleep(Duration::from_secs(86400)) => {
+                _ = memory_cleanup_timer.tick() => {
+                    // Log memory store stats
+                    let total = cleanup_hybrid.memory_store().count_total();
+                    let unsynced = cleanup_hybrid.memory_store().count_unsynced();
+                    let signatures = cleanup_hybrid.memory_store().count_signatures();
+
+                    // Clean synced logs older than 1 hour from memory
+                    // Signatures are preserved for dedup protection
+                    let removed = cleanup_hybrid.memory_store().cleanup_synced(3600);
+
+                    if removed > 0 || total > 1000 {
+                        info!("🧹 Memory stats: total={}, unsynced={}, signatures={}, cleaned={}",
+                            total, unsynced, signatures, removed);
+                    }
+
+                    // Warn if approaching capacity (80% threshold)
+                    if total > 80_000 {
+                        warn!("⚠️ Memory store at {}% capacity ({}/100000)", total / 1000, total);
+                    }
+                }
+                _ = disk_cleanup_timer.tick() => {
                     match cleanup_hybrid.disk_db().cleanup_old_synced_logs(365).await {
                         Ok(deleted) => {
                             if deleted > 0 {
-                                info!("🧹 Cleaned up {} old synced logs (>365 days)", deleted);
+                                info!("🧹 Disk cleanup: removed {} old synced logs (>365 days)", deleted);
                             }
                         }
                         Err(e) => {
-                            error!("❌ Cleanup failed: {}", e);
+                            error!("❌ Disk cleanup failed: {}", e);
                         }
                     }
                 }
