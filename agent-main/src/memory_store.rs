@@ -8,6 +8,7 @@ use crate::models::{RawAttendanceLog, AttendanceData, SignatureRow};
 use std::sync::Arc;
 use std::hash::{Hash, Hasher};
 use rustc_hash::FxHasher;
+use log::warn;
 /// Maximum retry delay cap in seconds (5 minutes)
 const MAX_RETRY_DELAY_SECS: i64 = 300;
 
@@ -417,10 +418,28 @@ impl InMemoryStore {
     /// Mark logs as synced and remove from memory (is_synced=1)
     /// Keeps signature for dedup protection, removes log entry
     /// Rationale: Once synced, disk has authoritative record
+    /// Safety: Only removes logs that are already persisted to disk
     pub fn mark_synced(&self, ids: &[i64]) {
         let mut inflight = self.inflight_index.write();
 
         for &id in ids {
+            // Safety check: only remove if persisted to disk
+            let should_remove = self.logs.get(&id)
+                .map(|log| log.persisted)
+                .unwrap_or(false);
+
+            if !should_remove {
+                // Log not persisted yet - skip removal but log warning
+                if let Some(log) = self.logs.get(&id) {
+                    warn!(
+                        "Attempted to sync unpersisted log id={} device={} - keeping in memory until disk checkpoint",
+                        id, log.device_id
+                    );
+                    // Keep in inflight state, will be retried
+                    continue;
+                }
+            }
+
             // Get composite hash before removing
             let composite_hash = self.logs.get(&id).map(|log| log.composite_key_hash());
 
@@ -700,6 +719,9 @@ mod tests {
         assert_eq!(store.count_total(), 1);
         store.mark_in_flight(&[id]);
 
+        // Persist to disk first (required before sync removal)
+        store.mark_persisted(&[id]);
+
         // Mark as synced - log should be REMOVED from memory
         store.mark_synced(&[id]);
 
@@ -813,6 +835,7 @@ mod tests {
 
         // Mark first 2 as synced - they are IMMEDIATELY removed
         store.mark_in_flight(&[1, 2]);
+        store.mark_persisted(&[1, 2]); // Persist before sync
         store.mark_synced(&[1, 2]);
 
         // Logs are already removed by mark_synced
@@ -994,6 +1017,9 @@ mod tests {
         // Mark in-flight
         store.mark_in_flight(&ids);
 
+        // Persist all logs first
+        store.mark_persisted(&ids);
+
         // Mark synced in two batches - logs are immediately removed
         store.mark_synced(&ids[0..2]);
         assert_eq!(store.count_total(), 3, "2 synced logs removed");
@@ -1094,6 +1120,7 @@ mod tests {
 
         // Mark one as in-flight, one as synced (which removes it immediately)
         store.mark_in_flight(&[id1]);
+        store.mark_persisted(&[id1]); // Persist before sync
         store.mark_synced(&[id1]); // Removed from memory
         store.mark_in_flight(&[id2]);
 
@@ -1425,6 +1452,7 @@ mod tests {
         // Insert and sync (immediate removal)
         let id = store.insert("DEV1".to_string(), data.clone()).unwrap();
         store.mark_in_flight(&[id]);
+        store.mark_persisted(&[id]); // Persist before sync
         store.mark_synced(&[id]);
 
         // Log immediately removed by mark_synced
@@ -1605,6 +1633,9 @@ mod tests {
 
         // Mark in-flight first
         store.mark_in_flight(&[id]);
+
+        // Persist before sync
+        store.mark_persisted(&[id]);
 
         // Construct composite key
         let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
@@ -1862,6 +1893,7 @@ mod tests {
 
         // Mark synced - should immediately remove
         store.mark_in_flight(&[id]);
+        store.mark_persisted(&[id]); // Persist before sync
         store.mark_synced(&[id]);
 
         // After sync, lookup fails (log removed)
@@ -1886,6 +1918,7 @@ mod tests {
 
         // Mark synced - should remove immediately
         store.mark_in_flight(&[id]);
+        store.mark_persisted(&[id]); // Persist before sync
         store.mark_synced(&[id]);
 
         // Log is gone
@@ -1926,6 +1959,7 @@ mod tests {
 
         // Mark id1 synced (removed), id2 in-flight (kept), id3 stays unsynced
         store.mark_in_flight(&[id1]);
+        store.mark_persisted(&[id1]); // Persist before sync
         store.mark_synced(&[id1]);
         store.mark_in_flight(&[id2]);
 
@@ -1964,6 +1998,7 @@ mod tests {
 
         // Sync all logs - they're immediately removed
         store.mark_in_flight(&ids);
+        store.mark_persisted(&ids); // Persist before sync
         store.mark_synced(&ids);
 
         assert_eq!(store.count_total(), 0, "All synced logs removed");
@@ -1987,6 +2022,7 @@ mod tests {
         // Insert and sync
         let id = store.insert("DEV1".to_string(), data.clone()).unwrap();
         store.mark_in_flight(&[id]);
+        store.mark_persisted(&[id]); // Persist before sync
         store.mark_synced(&[id]);
 
         // Log removed but signature preserved
@@ -2046,6 +2082,7 @@ mod tests {
         let ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
 
         store.mark_in_flight(&ids);
+        store.mark_persisted(&ids); // Persist before sync
 
         let start = std::time::Instant::now();
         store.mark_synced(&ids);
@@ -2082,6 +2119,7 @@ mod tests {
         let logs = store.get_unsynced(50);
         let ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
         store.mark_in_flight(&ids);
+        store.mark_persisted(&ids); // Persist before sync
         store.mark_synced(&ids);
 
         let stats2 = (store.count_total(), store.count_unsynced(), store.count_signatures());
@@ -2093,5 +2131,94 @@ mod tests {
 
         let stats3 = (store.count_total(), store.count_unsynced(), store.count_signatures());
         assert_eq!(stats3, (50, 50, 100), "50 remaining, signatures preserved");
+    }
+
+    #[test]
+    fn test_mark_synced_only_removes_persisted_logs() {
+        // Critical safety test: verify logs are only removed after disk persistence
+        let store = InMemoryStore::new(1000);
+
+        // Insert 3 logs
+        let mut ids = Vec::new();
+        for i in 0..3 {
+            let data = AttendanceData {
+                user_id: format!("U{:03}", i),
+                timestamp: format!("2026-01-31 10:{:02}:00", i),
+                status: Some(1),
+                punch: Some(0),
+            };
+            let id = store.insert("DEV1".to_string(), data).unwrap();
+            ids.push(id);
+        }
+
+        // Verify all logs are in memory
+        assert_eq!(store.count_total(), 3);
+
+        // Mark first 2 as in-flight (simulating send to server)
+        store.mark_in_flight(&[ids[0], ids[1]]);
+
+        // Simulate disk checkpoint for only the first log
+        store.mark_persisted(&[ids[0]]);
+
+        // Verify persistence status
+        assert!(store.logs.get(&ids[0]).unwrap().persisted, "Log 0 should be persisted");
+        assert!(!store.logs.get(&ids[1]).unwrap().persisted, "Log 1 should NOT be persisted");
+        assert!(!store.logs.get(&ids[2]).unwrap().persisted, "Log 2 should NOT be persisted");
+
+        // Try to mark both in-flight logs as synced
+        // Only the persisted log should be removed from memory
+        store.mark_synced(&[ids[0], ids[1]]);
+
+        // Critical assertion: only persisted log removed
+        assert!(store.logs.get(&ids[0]).is_none(), "Persisted log should be removed");
+        assert!(store.logs.get(&ids[1]).is_some(), "Non-persisted log should remain in memory");
+        assert!(store.logs.get(&ids[2]).is_some(), "Unsynced log should remain in memory");
+
+        // Verify counts
+        assert_eq!(store.count_total(), 2, "Only 1 log removed (the persisted one)");
+
+        // Now persist the second log and mark it synced
+        store.mark_persisted(&[ids[1]]);
+        store.mark_synced(&[ids[1]]);
+
+        // Now it should be removed
+        assert!(store.logs.get(&ids[1]).is_none(), "Now persisted, should be removed");
+        assert_eq!(store.count_total(), 1, "2 logs removed total");
+
+        // Signatures should still exist for all 3
+        assert_eq!(store.count_signatures(), 3, "All signatures preserved for dedup");
+    }
+
+    #[test]
+    fn test_mark_synced_logs_warning_for_unpersisted() {
+        // Test that attempting to sync unpersisted logs is handled safely
+        let store = InMemoryStore::new(1000);
+
+        let data = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-01-31 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        let id = store.insert("DEV1".to_string(), data).unwrap();
+
+        // Mark as in-flight
+        store.mark_in_flight(&[id]);
+
+        // Try to mark as synced WITHOUT persisting first
+        // This should NOT remove the log (safety check)
+        store.mark_synced(&[id]);
+
+        // Log should still be in memory (not removed)
+        assert!(store.logs.get(&id).is_some(), "Unpersisted log should NOT be removed");
+        assert_eq!(store.count_total(), 1, "Log count should remain 1");
+
+        // Now persist and sync - should work
+        store.mark_persisted(&[id]);
+        store.mark_synced(&[id]);
+
+        // Now it should be removed
+        assert!(store.logs.get(&id).is_none(), "Persisted log should be removed");
+        assert_eq!(store.count_total(), 0);
     }
 }
