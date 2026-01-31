@@ -7,14 +7,17 @@
 //! - Cancel pending jobs
 
 use axum::{
+    body::Body,
     extract::{Path, State},
-    http::StatusCode,
-    response::{IntoResponse, Redirect},
+    http::{header, HeaderMap, HeaderValue, StatusCode},
+    response::{IntoResponse, Redirect, Response},
     Json,
 };
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use tokio::fs::File;
+use tokio_util::io::ReaderStream;
 use uuid::Uuid;
 
 use crate::handlers::common::MemberContext;
@@ -344,6 +347,154 @@ pub async fn cancel_job(
     );
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// GET /api/reports/local/*key
+///
+/// Serve locally stored report files.
+/// Only used when storage is configured for local filesystem.
+///
+/// Security:
+/// - Requires authentication via MemberContext
+/// - Workspace access validation from key path
+/// - Path traversal protection via canonicalization
+pub async fn serve_local_report(
+    State(state): State<Arc<AppState>>,
+    Path(key): Path<String>,
+    ctx: MemberContext,
+) -> Result<Response, (StatusCode, String)> {
+    // 1. Extract workspace_id from key (format: workspace_id/year/month/filename)
+    let workspace_id = key
+        .split('/')
+        .next()
+        .and_then(|id_str| Uuid::parse_str(id_str).ok())
+        .ok_or_else(|| {
+            (
+                StatusCode::BAD_REQUEST,
+                "Invalid key format: expected workspace_id/year/month/filename".to_string(),
+            )
+        })?;
+
+    // 2. RBAC: Verify user has access to this workspace
+    if ctx.workspace_id != workspace_id {
+        tracing::warn!(
+            user_id = %ctx.user_id,
+            requested_workspace = %workspace_id,
+            user_workspace = %ctx.workspace_id,
+            "Unauthorized workspace access attempt"
+        );
+        return Err((
+            StatusCode::FORBIDDEN,
+            "Access denied: workspace mismatch".to_string(),
+        ));
+    }
+
+    // 3. Get local storage base path
+    let base_path = match &state.storage {
+        crate::StorageBackend::Local { base_path } => base_path.join("reports"),
+        _ => {
+            return Err((
+                StatusCode::NOT_FOUND,
+                "Local storage not configured".to_string(),
+            ))
+        }
+    };
+
+    // 4. Build and validate file path
+    let file_path = base_path.join(&key);
+
+    // 5. Security: Prevent path traversal
+    let canonical_base = match tokio::fs::canonicalize(&base_path).await {
+        Ok(p) => p,
+        Err(_) => {
+            tracing::error!(base = %base_path.display(), "Base storage path does not exist");
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Storage not properly configured".to_string(),
+            ));
+        }
+    };
+
+    let canonical_file = match tokio::fs::canonicalize(&file_path).await {
+        Ok(p) => p,
+        Err(_) => {
+            return Err((StatusCode::NOT_FOUND, "Report not found".to_string()));
+        }
+    };
+
+    if !canonical_file.starts_with(&canonical_base) {
+        tracing::warn!(
+            requested = %key,
+            user_id = %ctx.user_id,
+            "Path traversal attempt blocked"
+        );
+        return Err((StatusCode::FORBIDDEN, "Access denied".to_string()));
+    }
+
+    // 6. Open file
+    let file = File::open(&canonical_file).await.map_err(|e| {
+        if e.kind() == std::io::ErrorKind::NotFound {
+            (StatusCode::NOT_FOUND, "Report not found".to_string())
+        } else {
+            tracing::error!(error = %e, path = %canonical_file.display(), "Failed to open report file");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to read report".to_string(),
+            )
+        }
+    })?;
+
+    // 7. Get file metadata for Content-Length
+    let metadata = file.metadata().await.map_err(|e| {
+        tracing::error!(error = %e, "Failed to get file metadata");
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to read report".to_string(),
+        )
+    })?;
+
+    // 8. Extract filename for Content-Disposition
+    let filename = canonical_file
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("report.xlsx");
+
+    // 9. Stream the file
+    let stream = ReaderStream::new(file);
+    let body = Body::from_stream(stream);
+
+    // 10. Build response with headers
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        header::CONTENT_TYPE,
+        HeaderValue::from_static(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ),
+    );
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        HeaderValue::from_str(&format!("attachment; filename=\"{}\"", filename))
+            .unwrap_or_else(|_| HeaderValue::from_static("attachment; filename=\"report.xlsx\"")),
+    );
+    headers.insert(
+        header::CONTENT_LENGTH,
+        HeaderValue::from_str(&metadata.len().to_string())
+            .unwrap_or_else(|_| HeaderValue::from_static("0")),
+    );
+    headers.insert(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static("no-cache, no-store, must-revalidate"),
+    );
+
+    tracing::info!(
+        key = %key,
+        size = metadata.len(),
+        "Serving local report file"
+    );
+
+    let mut response = Response::new(body);
+    *response.headers_mut() = headers;
+    Ok(response)
 }
 
 #[cfg(test)]

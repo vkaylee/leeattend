@@ -494,7 +494,7 @@ mod tests {
     #[test]
     fn test_entries_filtering_by_date() {
         // Simulate filtering entries by date (as done in the handler)
-        let entries_dates = vec![
+        let entries_dates = [
             NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
             NaiveDate::from_ymd_opt(2026, 1, 2).unwrap(),
             NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
@@ -508,7 +508,7 @@ mod tests {
 
     #[test]
     fn test_break_minutes_aggregation() {
-        let break_entries = vec![15, 30, 15]; // Minutes
+        let break_entries = [15, 30, 15]; // Minutes
         let total: i32 = break_entries.iter().sum();
         assert_eq!(total, 60);
     }

@@ -16,7 +16,7 @@ use uuid::Uuid;
 
 use crate::cache::CacheManager;
 use crate::queue::{RedisPool, ReportJob, ReportQueue, TaskType};
-use crate::services::ReportCoordinator;
+use crate::services::{DynStorageProvider, ReportCoordinator};
 use crate::worker::handlers::{AttendanceHandler, MergeHandler};
 
 // Redis key patterns for monitoring
@@ -107,6 +107,7 @@ pub struct ReportWorker {
     config: WorkerConfig,
     coordinator: Arc<ReportCoordinator>,
     cache: Arc<CacheManager>,
+    storage: DynStorageProvider,
     worker_id: Uuid,
     hostname: String,
     current_status: Arc<Mutex<WorkerStatus>>,
@@ -120,6 +121,7 @@ impl ReportWorker {
         db: PgPool,
         config: WorkerConfig,
         coordinator: Arc<ReportCoordinator>,
+        storage: DynStorageProvider,
     ) -> Self {
         let cache = Arc::new(CacheManager::new(redis.clone(), db.clone()));
         let hostname = std::env::var("HOSTNAME")
@@ -133,6 +135,7 @@ impl ReportWorker {
             config,
             coordinator,
             cache,
+            storage,
             worker_id: Uuid::new_v4(),
             hostname,
             current_status: Arc::new(Mutex::new(WorkerStatus::Idle)),
@@ -357,7 +360,9 @@ impl ReportWorker {
             TaskType::AttendanceReport => {
                 AttendanceHandler::handle(&self.db, &self.queue, &self.cache, &job).await
             }
-            TaskType::MergeResults => MergeHandler::handle(&self.db, &self.queue, &job).await,
+            TaskType::MergeResults => {
+                MergeHandler::handle(&self.db, &self.queue, &job, &self.storage).await
+            }
             TaskType::PayrollReport => {
                 // Future implementation
                 Err("PayrollReport not implemented".to_string())

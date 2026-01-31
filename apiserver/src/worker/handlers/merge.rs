@@ -1,20 +1,19 @@
 //! Merge Handler
 //!
-//! Aggregates batch results into final Excel report, uploads to S3,
-//! and generates presigned URL for download.
+//! Aggregates batch results into final Excel report, uploads to storage (S3 or local),
+//! and generates download URL.
 
 use chrono::{NaiveDate, Utc};
 use sqlx::PgPool;
-use std::time::Duration;
 use tracing::{info, warn};
 
 use crate::models::{AttendanceSummary, DailyAttendanceReport};
 use crate::queue::{JobStatus, ReportJob, ReportQueue, ReportType};
 use crate::services::excel_writer::EXCEL_CONTENT_TYPE;
-use crate::services::{ExcelWriter, S3Client};
+use crate::services::{DynStorageProvider, ExcelWriter};
 
-/// Presigned URL validity duration (24 hours).
-const PRESIGNED_URL_EXPIRY: Duration = Duration::from_secs(86400);
+/// Presigned URL validity duration (24 hours) - no longer used, kept for backward compatibility.
+const _PRESIGNED_URL_EXPIRY: std::time::Duration = std::time::Duration::from_secs(86400);
 
 /// Handler for merging batch results into final report.
 pub struct MergeHandler;
@@ -26,11 +25,16 @@ impl MergeHandler {
     /// 1. Fetch all batch results from Redis
     /// 2. Deserialize and merge based on report type
     /// 3. Generate Excel file
-    /// 4. Upload to S3
-    /// 5. Generate presigned URL
+    /// 4. Upload to storage (S3 or local)
+    /// 5. Generate download URL
     /// 6. Update job status to completed
     /// 7. Cleanup batch results
-    pub async fn handle(pool: &PgPool, queue: &ReportQueue, job: &ReportJob) -> Result<(), String> {
+    pub async fn handle(
+        pool: &PgPool,
+        queue: &ReportQueue,
+        job: &ReportJob,
+        storage: &DynStorageProvider,
+    ) -> Result<(), String> {
         let parent_job_id = job.parent_job_id;
 
         info!(
@@ -88,8 +92,8 @@ impl MergeHandler {
             "Excel file generated"
         );
 
-        // 6. Upload to S3
-        let s3_key = format!(
+        // 6. Build storage key
+        let storage_key = format!(
             "{}/{}/{}/{}",
             meta.workspace_id,
             Utc::now().format("%Y"),
@@ -97,20 +101,32 @@ impl MergeHandler {
             file_name
         );
 
-        let download_url = match Self::upload_to_s3(&s3_key, excel_data).await {
-            Ok(url) => url,
+        // 7. Upload to storage (S3 or local)
+        let upload_result = storage
+            .upload(&storage_key, excel_data, EXCEL_CONTENT_TYPE)
+            .await;
+
+        let download_url = match upload_result {
+            Ok(key) => {
+                // Get download URL from storage provider
+                storage.get_download_url(&key).await.map_err(|e| {
+                    format!("Failed to generate download URL: {}", e)
+                })?
+            }
             Err(e) => {
-                // S3 not configured - use placeholder URL
-                warn!(
-                    parent_job_id = %parent_job_id,
-                    error = %e,
-                    "S3 upload failed, using placeholder URL"
-                );
-                format!("/api/reports/{}/download", parent_job_id)
+                // Critical: Storage failure should fail the job, not silently discard data
+                return Err(format!("Storage upload failed: {}. Report data lost!", e));
             }
         };
 
-        // 7. Update job metadata
+        info!(
+            parent_job_id = %parent_job_id,
+            storage_type = storage.storage_type(),
+            key = %storage_key,
+            "Report uploaded successfully"
+        );
+
+        // 8. Update job metadata
         queue
             .set_result_url(parent_job_id, &download_url)
             .await
@@ -121,7 +137,7 @@ impl MergeHandler {
             .await
             .map_err(|e| format!("Failed to update job status: {}", e))?;
 
-        // 8. Cleanup batch results (optional, TTL handles this too)
+        // 9. Cleanup batch results (optional, TTL handles this too)
         if let Err(e) = queue.delete_results(parent_job_id).await {
             warn!(
                 parent_job_id = %parent_job_id,
@@ -213,23 +229,6 @@ impl MergeHandler {
         );
 
         Ok((excel_data, file_name))
-    }
-
-    /// Upload Excel file to S3 and generate presigned URL.
-    async fn upload_to_s3(key: &str, data: Vec<u8>) -> Result<String, String> {
-        let s3_client = S3Client::new().await.map_err(|e| e.to_string())?;
-
-        s3_client
-            .upload_report(key, data, EXCEL_CONTENT_TYPE)
-            .await
-            .map_err(|e| e.to_string())?;
-
-        let url = s3_client
-            .generate_presigned_url(key, PRESIGNED_URL_EXPIRY)
-            .await
-            .map_err(|e| e.to_string())?;
-
-        Ok(url)
     }
 
     /// Get workspace name from database.
