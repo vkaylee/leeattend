@@ -75,18 +75,49 @@ function getHeaders() {
 }
 
 /**
+ * Extended RequestInit with custom timeout
+ */
+export interface ApiFetchOptions extends RequestInit {
+  /**
+   * Request timeout in milliseconds
+   * @default 10000 (10 seconds)
+   */
+  timeout?: number;
+}
+
+/**
+ * Timeout constants for different operation types
+ */
+export const TIMEOUT = {
+  /** Standard API calls (10 seconds) */
+  DEFAULT: 10000,
+  /** Report generation and large file operations (3 minutes) */
+  REPORT_OPERATION: 180000,
+  /** Health checks and quick operations (5 seconds) */
+  QUICK: 5000,
+} as const;
+
+/**
  * Wrapper for fetch to handle 401 and refresh token
+ *
+ * @param url - API endpoint URL
+ * @param options - Fetch options with optional timeout (default: 10 seconds)
  */
 export async function apiFetch(
   url: string,
-  options: RequestInit = {},
+  options: ApiFetchOptions = {},
 ): Promise<Response> {
   const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), 10000);
+  // Default timeout: 10 seconds for normal API calls
+  const timeoutMs = options.timeout ?? TIMEOUT.DEFAULT;
+  const id = setTimeout(() => controller.abort(), timeoutMs);
 
   const headers = { ...getHeaders(), ...options.headers };
-  
-  if (options.body instanceof FormData) {
+
+  // Remove timeout from options to avoid passing it to fetch
+  const { timeout, ...fetchOptions } = options;
+
+  if (fetchOptions.body instanceof FormData) {
     delete (headers as any)["Content-Type"];
   }
 
@@ -98,8 +129,8 @@ export async function apiFetch(
   }
 
   try {
-    const response = await fetch(fullUrl, { 
-      ...options, 
+    const response = await fetch(fullUrl, {
+      ...fetchOptions,
       headers,
       signal: controller.signal
     });

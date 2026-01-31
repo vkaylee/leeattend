@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "./config";
-import { apiFetch, getCurrentWorkspaceId } from "./helpers";
+import { apiFetch, getCurrentWorkspaceId, TIMEOUT } from "./helpers";
 import {
   TimeEntry,
   AttendanceAdjustmentRequest,
@@ -445,6 +445,7 @@ export async function createReportExportJob(
     {
       method: "POST",
       body: JSON.stringify(request),
+      timeout: TIMEOUT.REPORT_OPERATION, // 3 minutes for report generation
     }
   );
   if (!response.ok) {
@@ -481,7 +482,10 @@ export async function downloadExportReport(
   jobId: string
 ): Promise<Blob> {
   const response = await apiFetch(
-    `${API_BASE_URL}/workspaces/${wsId}/reports/jobs/${jobId}/download`
+    `${API_BASE_URL}/workspaces/${wsId}/reports/jobs/${jobId}/download`,
+    {
+      timeout: TIMEOUT.REPORT_OPERATION, // 3 minutes for large Excel file download
+    }
   );
   if (!response.ok) throw new Error("Failed to download report");
   return response.blob();
