@@ -4,7 +4,9 @@
 //! - Upload report files
 //! - Generate presigned download URLs
 
+use aws_config::timeout::TimeoutConfig;
 use aws_config::BehaviorVersion;
+use aws_sdk_s3::config::Builder as S3ConfigBuilder;
 use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::Client;
 use std::time::Duration;
@@ -33,14 +35,40 @@ impl S3Client {
     /// Reads AWS credentials from environment/config files.
     /// Requires `S3_BUCKET` environment variable to be set.
     ///
+    /// Configuration via environment variables:
+    /// - `S3_BUCKET`: Required, S3 bucket name
+    /// - `S3_UPLOAD_TIMEOUT_SECS`: Optional, upload timeout in seconds (default: 180 = 3 minutes)
+    ///
     /// # Errors
     /// Returns error if S3_BUCKET is not set.
     pub async fn new() -> Result<Self, S3Error> {
-        let config = aws_config::load_defaults(BehaviorVersion::latest()).await;
-        let client = Client::new(&config);
+        // Get upload timeout from environment or use 3 minutes default
+        let upload_timeout_secs: u64 = std::env::var("S3_UPLOAD_TIMEOUT_SECS")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(180); // 3 minutes default
+
+        let timeout_config = TimeoutConfig::builder()
+            .operation_timeout(Duration::from_secs(upload_timeout_secs))
+            .operation_attempt_timeout(Duration::from_secs(upload_timeout_secs))
+            .build();
+
+        let config = aws_config::defaults(BehaviorVersion::latest())
+            .timeout_config(timeout_config)
+            .load()
+            .await;
+
+        let s3_config = S3ConfigBuilder::from(&config).build();
+        let client = Client::from_conf(s3_config);
 
         let bucket =
             std::env::var("S3_BUCKET").map_err(|_| S3Error("S3_BUCKET not set".to_string()))?;
+
+        tracing::info!(
+            bucket = %bucket,
+            upload_timeout_secs = upload_timeout_secs,
+            "S3 client initialized with custom timeout"
+        );
 
         Ok(Self { client, bucket })
     }
@@ -48,8 +76,23 @@ impl S3Client {
     /// Create S3Client with explicit bucket name (for testing).
     #[allow(dead_code)]
     pub async fn with_bucket(bucket: String) -> Result<Self, S3Error> {
-        let config = aws_config::load_defaults(BehaviorVersion::latest()).await;
-        let client = Client::new(&config);
+        let upload_timeout_secs: u64 = std::env::var("S3_UPLOAD_TIMEOUT_SECS")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(180);
+
+        let timeout_config = TimeoutConfig::builder()
+            .operation_timeout(Duration::from_secs(upload_timeout_secs))
+            .operation_attempt_timeout(Duration::from_secs(upload_timeout_secs))
+            .build();
+
+        let config = aws_config::defaults(BehaviorVersion::latest())
+            .timeout_config(timeout_config)
+            .load()
+            .await;
+
+        let s3_config = S3ConfigBuilder::from(&config).build();
+        let client = Client::from_conf(s3_config);
 
         Ok(Self { client, bucket })
     }
