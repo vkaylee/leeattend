@@ -43,6 +43,7 @@ export default function DevicesPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingDevice, setEditingDevice] = useState<any>(null);
   const [newDevice, setNewDevice] = useState({ name: "", agent_id: "", ip: "", port: 4370, brand: "zkteco" });
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -68,6 +69,22 @@ export default function DevicesPage() {
       await deleteDevice(id);
       toast.success(t("devices.toast.delete_success"));
     } catch (e) { console.error(e); }
+  }
+
+  async function handleToggleDevice(device: { id: string; name: string; is_enabled: boolean }) {
+    const confirmKey = device.is_enabled ? "devices.confirm_disable" : "devices.confirm_enable";
+    if (!confirm(t(confirmKey, { name: device.name }))) return;
+
+    setTogglingId(device.id);
+    try {
+      await updateDevice(device.id, { is_enabled: !device.is_enabled });
+      toast.success(t(device.is_enabled ? "devices.toast.disabled" : "devices.toast.enabled", { name: device.name }));
+    } catch (e) {
+      console.error(e);
+      toast.error(t("devices.toast.toggle_error"));
+    } finally {
+      setTogglingId(null);
+    }
   }
 
   const loading = devicesLoading || agentsLoading;
@@ -140,12 +157,32 @@ export default function DevicesPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-6 md:justify-start">
-                   <span className={cn("px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm", 
+                <div className="flex items-center justify-end gap-4 md:justify-start">
+                   <span className={cn("px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm",
                     device.is_enabled ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-100 text-slate-500 border-slate-200 opacity-60"
                   )}>
                     {device.is_enabled ? t("devices.table.active").toUpperCase() : t("devices.table.disabled").toUpperCase()}
                   </span>
+
+                  <button
+                    onClick={() => handleToggleDevice(device)}
+                    disabled={togglingId === device.id}
+                    className={cn(
+                      "px-4 py-1.5 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all border shadow-sm active:scale-95",
+                      togglingId === device.id && "opacity-50 cursor-not-allowed",
+                      device.is_enabled
+                        ? "text-rose-600 hover:bg-rose-50 border-rose-100 bg-white"
+                        : "bg-emerald-600 text-white hover:bg-emerald-700 border-transparent shadow-emerald-100"
+                    )}
+                  >
+                    {togglingId === device.id ? (
+                      <RefreshCw size={12} className="animate-spin" />
+                    ) : device.is_enabled ? (
+                      t("common.disable").toUpperCase()
+                    ) : (
+                      t("common.enable").toUpperCase()
+                    )}
+                  </button>
                 </div>
               </div>
 
