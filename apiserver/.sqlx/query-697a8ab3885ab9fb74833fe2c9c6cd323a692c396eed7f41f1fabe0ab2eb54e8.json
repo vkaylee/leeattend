@@ -1,12 +1,12 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id FROM time_entries WHERE employee_id = $1",
+  "query": "SELECT name FROM workspaces WHERE id = $1",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
-        "type_info": "Uuid"
+        "name": "name",
+        "type_info": "Varchar"
       }
     ],
     "parameters": {
@@ -18,5 +18,5 @@
       false
     ]
   },
-  "hash": "d1d6b0380469114603b2307c9109dfd95b0f8adb1df6da938b9f1fdd40def303"
+  "hash": "697a8ab3885ab9fb74833fe2c9c6cd323a692c396eed7f41f1fabe0ab2eb54e8"
 }
