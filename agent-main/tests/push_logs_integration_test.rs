@@ -53,7 +53,7 @@ async fn test_end_to_end_log_push() {
         let db = Database::new(&db_url).await.unwrap();
 
         // 4. Mock device and log
-        db.upsert_device("DEV1", "Test Device", "127.0.0.1", 4370, "zkteco").await.unwrap();
+        db.upsert_device("DEV1", "Test Device", "127.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
         let log_data = AttendanceData {
             user_id: "USER1".into(),
             timestamp: "2026-01-26 12:00:00".into(),
@@ -128,7 +128,7 @@ async fn test_reliable_sync_with_server_error() {
         let db_url = in_memory_db_url();
         let db = Database::new(&db_url).await.unwrap();
 
-        db.upsert_device("DEV_RETRY", "Retry Device", "127.0.0.1", 4370, "zkteco").await.unwrap();
+        db.upsert_device("DEV_RETRY", "Retry Device", "127.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
         db.save_raw_attendance("DEV_RETRY", AttendanceData {
             user_id: "RETRY_USER".into(),
             timestamp: "2026-01-26 12:00:00".into(),

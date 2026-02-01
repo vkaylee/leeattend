@@ -45,7 +45,7 @@ pub struct MemoryLog {
     pub id: i64,
     pub device_id: String,
     pub user_id: String,
-    pub timestamp: NaiveDateTime,
+    pub timestamp: i64,  // Unix timestamp (UTC seconds)
     pub status: Option<i32>,
     pub punch: Option<i32>,
     pub is_synced: i64,           // 0=unsynced, 1=synced, 2=in_flight
@@ -63,7 +63,7 @@ impl MemoryLog {
             "{}:{}:{}",
             self.device_id,
             self.user_id,
-            self.timestamp.and_utc().timestamp()
+            self.timestamp
         )
     }
 
@@ -74,11 +74,11 @@ impl MemoryLog {
     }
 
     /// Static method to compute composite key hash from components
-    fn compute_composite_hash(device_id: &str, user_id: &str, timestamp: NaiveDateTime) -> u64 {
+    fn compute_composite_hash(device_id: &str, user_id: &str, timestamp: i64) -> u64 {
         let mut hasher = FxHasher::default();
         device_id.hash(&mut hasher);
         user_id.hash(&mut hasher);
-        timestamp.and_utc().timestamp().hash(&mut hasher);
+        timestamp.hash(&mut hasher);
         hasher.finish()
     }
 }
@@ -136,19 +136,19 @@ impl InMemoryStore {
 
     /// Compute 64-bit signature for deduplication.
     /// Signature = hash(device_id, user_id, timestamp_unix, punch, status)
-    fn compute_signature(device_id: &str, user_id: &str, timestamp: NaiveDateTime, punch: Option<i32>, status: Option<i32>) -> u64 {
+    fn compute_signature(device_id: &str, user_id: &str, timestamp: i64, punch: Option<i32>, status: Option<i32>) -> u64 {
         let mut hasher = FxHasher::default();
         device_id.hash(&mut hasher);
         user_id.hash(&mut hasher);
         // Use Unix timestamp for deterministic hashing
-        timestamp.and_utc().timestamp().hash(&mut hasher);
+        timestamp.hash(&mut hasher);
         punch.hash(&mut hasher);
         status.hash(&mut hasher);
         hasher.finish()
     }
 
     /// Check if a signature already exists (public for testing)
-    pub fn has_signature(&self, device_id: &str, user_id: &str, timestamp: NaiveDateTime, punch: Option<i32>, status: Option<i32>) -> bool {
+    pub fn has_signature(&self, device_id: &str, user_id: &str, timestamp: i64, punch: Option<i32>, status: Option<i32>) -> bool {
         let sig = Self::compute_signature(device_id, user_id, timestamp, punch, status);
         self.signatures.contains(&sig)
     }
@@ -221,14 +221,10 @@ impl InMemoryStore {
     }
 
     /// Insert a new attendance log. Returns assigned ID.
-    pub fn insert(&self, device_id: String, data: AttendanceData) -> Result<i64, StoreError> {
-        // Parse timestamp first (needed for signature)
-        let timestamp = NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%d %H:%M:%S")
-            .or_else(|_| NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%dT%H:%M:%SZ"))
-            .map_err(|_| StoreError::InvalidTimestamp)?;
-
+    /// Accepts pre-converted UTC Unix timestamp (i64) to avoid re-parsing
+    pub fn insert(&self, device_id: String, data: AttendanceData, timestamp_utc: i64) -> Result<i64, StoreError> {
         // Compute signature and check for duplicate
-        let signature = Self::compute_signature(&device_id, &data.user_id, timestamp, data.punch, data.status);
+        let signature = Self::compute_signature(&device_id, &data.user_id, timestamp_utc, data.punch, data.status);
         if self.signatures.contains(&signature) {
             return Err(StoreError::Duplicate);
         }
@@ -248,7 +244,7 @@ impl InMemoryStore {
             id,
             device_id: device_id.clone(),
             user_id: data.user_id.clone(),
-            timestamp,
+            timestamp: timestamp_utc,
             status: data.status,
             punch: data.punch,
             is_synced: 0,
@@ -259,7 +255,7 @@ impl InMemoryStore {
         };
 
         // Compute composite key hash for ACK correlation
-        let composite_hash = MemoryLog::compute_composite_hash(&device_id, &data.user_id, timestamp);
+        let composite_hash = MemoryLog::compute_composite_hash(&device_id, &data.user_id, timestamp_utc);
 
         self.logs.insert(id, log);
         self.composite_index.insert(composite_hash, id);
@@ -271,7 +267,8 @@ impl InMemoryStore {
     }
 
     /// Batch insert with automatic capacity check
-    pub fn insert_batch(&self, batch: Vec<(String, AttendanceData)>) -> Result<usize, StoreError> {
+    /// Accepts pre-converted UTC Unix timestamps (i64) to avoid re-parsing
+    pub fn insert_batch(&self, batch: Vec<(String, AttendanceData, i64)>) -> Result<usize, StoreError> {
         if batch.is_empty() {
             return Err(StoreError::CapacityExceeded); // Maintain original behavior for empty batch
         }
@@ -284,21 +281,13 @@ impl InMemoryStore {
         let mut inserted = 0;
         let mut unsynced = self.unsynced_index.write();
 
-        for (device_id, data) in batch.into_iter() {
+        for (device_id, data, timestamp_utc) in batch.into_iter() {
             if inserted >= available {
                 break; // Capacity limit reached
             }
 
-            // Parse timestamp
-            let timestamp = match NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%d %H:%M:%S")
-                .or_else(|_| NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%dT%H:%M:%SZ"))
-            {
-                Ok(ts) => ts,
-                Err(_) => continue, // Skip invalid timestamp
-            };
-
             // Check for duplicate
-            let signature = Self::compute_signature(&device_id, &data.user_id, timestamp, data.punch, data.status);
+            let signature = Self::compute_signature(&device_id, &data.user_id, timestamp_utc, data.punch, data.status);
             if self.signatures.contains(&signature) {
                 continue; // Skip duplicate
             }
@@ -313,7 +302,7 @@ impl InMemoryStore {
                 id,
                 device_id,
                 user_id: data.user_id,
-                timestamp,
+                timestamp: timestamp_utc,
                 status: data.status,
                 punch: data.punch,
                 is_synced: 0,
@@ -490,10 +479,8 @@ impl InMemoryStore {
 
         // Parse timestamp
         let timestamp_unix: i64 = timestamp_str.parse().ok()?;
-        let timestamp = chrono::DateTime::from_timestamp(timestamp_unix, 0)?
-            .naive_utc();
 
-        let hash = MemoryLog::compute_composite_hash(device_id, user_id, timestamp);
+        let hash = MemoryLog::compute_composite_hash(device_id, user_id, timestamp_unix);
         self.composite_index.get(&hash).map(|entry| *entry)
     }
 
@@ -592,6 +579,14 @@ impl InMemoryStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::NaiveDateTime;
+
+    fn ts(timestamp_str: &str) -> i64 {
+        NaiveDateTime::parse_from_str(timestamp_str, "%Y-%m-%d %H:%M:%S")
+            .expect("Invalid timestamp format")
+            .and_utc()
+            .timestamp()
+    }
 
     #[test]
     fn test_new_store() {
@@ -611,7 +606,7 @@ mod tests {
             punch: Some(1),
         };
 
-        let id = store.insert("D1".to_string(), data).unwrap();
+        let id = store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
         assert_eq!(id, 1);
         assert_eq!(store.count_total(), 1);
         assert_eq!(store.count_unsynced(), 1);
@@ -630,7 +625,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(1),
             };
-            store.insert("D1".to_string(), data).unwrap();
+            store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
         }
 
         // Insert 3rd log (should fail)
@@ -640,7 +635,7 @@ mod tests {
             status: Some(1),
             punch: Some(1),
         };
-        let result = store.insert("D1".to_string(), data);
+        let result = store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00"));
         assert!(matches!(result, Err(StoreError::CapacityExceeded)));
     }
 
@@ -657,7 +652,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(1),
             };
-            store.insert("D1".to_string(), data).unwrap();
+            store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
         }
 
         // Get unsynced logs
@@ -686,7 +681,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(1),
             };
-            store.insert("D1".to_string(), data).unwrap();
+            store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
         }
 
         // Get logs and mark as in-flight
@@ -715,7 +710,7 @@ mod tests {
             status: Some(1),
             punch: Some(1),
         };
-        let id = store.insert("D1".to_string(), data).unwrap();
+        let id = store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
         assert_eq!(store.count_total(), 1);
         store.mark_in_flight(&[id]);
 
@@ -745,7 +740,7 @@ mod tests {
             status: Some(1),
             punch: Some(1),
         };
-        let id = store.insert("D1".to_string(), data).unwrap();
+        let id = store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
         store.mark_in_flight(&[id]);
         assert_eq!(store.count_unsynced(), 0);
 
@@ -768,19 +763,19 @@ mod tests {
                 timestamp: "2026-01-29 10:00:00".to_string(),
                 status: Some(1),
                 punch: Some(1),
-            }),
+            }, ts("2026-01-29 10:00:00")),
             ("D1".to_string(), AttendanceData {
                 user_id: "U2".to_string(),
                 timestamp: "2026-01-29 10:01:00".to_string(),
                 status: Some(1),
                 punch: Some(1),
-            }),
+            }, ts("2026-01-29 10:01:00")),
             ("D1".to_string(), AttendanceData {
                 user_id: "U3".to_string(),
                 timestamp: "2026-01-29 10:02:00".to_string(),
                 status: Some(1),
                 punch: Some(1),
-            }),
+            }, ts("2026-01-29 10:02:00")),
         ];
 
         let inserted = store.insert_batch(batch).unwrap();
@@ -801,7 +796,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(1),
             };
-            store.insert("D1".to_string(), data).unwrap();
+            store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
         }
 
         // All logs should be unpersisted
@@ -828,7 +823,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(1),
             };
-            store.insert("D1".to_string(), data).unwrap();
+            store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
         }
 
         assert_eq!(store.count_total(), 3);
@@ -858,7 +853,7 @@ mod tests {
                 id: 1,
                 device_id: "D1".to_string(),
                 user_id: "U1".to_string(),
-                timestamp: chrono::NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap(),
+                timestamp: ts("2026-01-29 10:00:00"),
                 status: Some(1),
                 punch: Some(1),
                 is_synced: 0,
@@ -870,7 +865,7 @@ mod tests {
                 id: 2,
                 device_id: "D1".to_string(),
                 user_id: "U2".to_string(),
-                timestamp: chrono::NaiveDateTime::parse_from_str("2026-01-29 10:01:00", "%Y-%m-%d %H:%M:%S").unwrap(),
+                timestamp: ts("2026-01-29 10:01:00"),
                 status: Some(1),
                 punch: Some(1),
                 is_synced: 2,
@@ -892,7 +887,7 @@ mod tests {
             status: Some(1),
             punch: Some(1),
         };
-        let id = store.insert("D1".to_string(), data).unwrap();
+        let id = store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
         assert_eq!(id, 3); // Should continue from max_id + 1
     }
 
@@ -914,7 +909,7 @@ mod tests {
                     status: Some(1),
                     punch: Some(1),
                 };
-                store_clone.insert("D1".to_string(), data).unwrap();
+                store_clone.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
             }
         });
         handles.push(handle);
@@ -961,7 +956,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(1),
             };
-            store.insert("D1".to_string(), data).unwrap();
+            store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
         }
 
         let logs = store.get_unsynced(3);
@@ -991,7 +986,7 @@ mod tests {
             status: Some(1),
             punch: Some(1),
         };
-        let id = store.insert("D1".to_string(), data).unwrap();
+        let id = store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
 
         // Should be at least 1000 + gap (1000 ID gap)
         assert!(id >= 2000, "ID {} should be >= 2000", id);
@@ -1010,7 +1005,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(1),
             };
-            let id = store.insert("D1".to_string(), data).unwrap();
+            let id = store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
             ids.push(id);
         }
 
@@ -1043,7 +1038,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(1),
             };
-            store.insert("D1".to_string(), data).unwrap();
+            store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
         }
 
         // Get with limit
@@ -1068,7 +1063,7 @@ mod tests {
         };
 
         // Should accept ISO format
-        let result = store.insert("DEV1".to_string(), data);
+        let result = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00"));
         assert!(result.is_ok());
     }
 
@@ -1083,7 +1078,7 @@ mod tests {
             status: Some(1),
             punch: Some(1),
         };
-        store.insert("D1".to_string(), data).unwrap();
+        store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
 
         assert!(store.is_dirty());
 
@@ -1105,7 +1100,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(1),
             };
-            store.insert("D1".to_string(), data).unwrap()
+            store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap()
         };
 
         let id2 = {
@@ -1115,7 +1110,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(1),
             };
-            store.insert("D1".to_string(), data).unwrap()
+            store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap()
         };
 
         // Mark one as in-flight, one as synced (which removes it immediately)
@@ -1143,7 +1138,7 @@ mod tests {
             status: Some(1),
             punch: Some(1),
         };
-        store.insert("D1".to_string(), data).unwrap();
+        store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
 
         // New log should be returned immediately
         let logs = store.get_unsynced(10);
@@ -1161,7 +1156,7 @@ mod tests {
             status: Some(1),
             punch: Some(1),
         };
-        let id = store.insert("D1".to_string(), data).unwrap();
+        let id = store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
 
         // Mark in-flight (sets retry_count=1, updated_at=now)
         store.mark_in_flight(&[id]);
@@ -1184,7 +1179,7 @@ mod tests {
             status: Some(1),
             punch: Some(1),
         };
-        let id = store.insert("D1".to_string(), data).unwrap();
+        let id = store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
 
         // Simulate retry with old updated_at (3 seconds ago)
         if let Some(mut log) = store.logs.get_mut(&id) {
@@ -1208,7 +1203,7 @@ mod tests {
             status: Some(1),
             punch: Some(1),
         };
-        let id = store.insert("D1".to_string(), data).unwrap();
+        let id = store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
 
         // Simulate many retries (retry_count=10, beyond 2^8=256s)
         // With jitter, delay can be 300 ± 10% = 270-330s
@@ -1241,7 +1236,7 @@ mod tests {
             status: Some(1),
             punch: Some(1),
         };
-        let id1 = store.insert("D1".to_string(), data1).unwrap();
+        let id1 = store.insert("D1".to_string(), data1, ts("2026-01-29 10:00:00")).unwrap();
         store.mark_in_flight(&[id1]);
         store.reset_to_unsynced(id1);
 
@@ -1252,7 +1247,7 @@ mod tests {
             status: Some(1),
             punch: Some(1),
         };
-        store.insert("D1".to_string(), data2).unwrap();
+        store.insert("D1".to_string(), data2, ts("2026-01-29 10:00:00")).unwrap();
 
         // Only NEW should be returned (RETRY is in backoff)
         let logs = store.get_unsynced(10);
@@ -1264,12 +1259,12 @@ mod tests {
 
     #[test]
     fn test_compute_signature_deterministic() {
-        let ts = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let timestamp_unix = ts("2026-01-29 10:00:00");
 
         // Multiple calls with same input
-        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(0), Some(1));
-        let sig2 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(0), Some(1));
-        let sig3 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(0), Some(1));
+        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", timestamp_unix, Some(0), Some(1));
+        let sig2 = InMemoryStore::compute_signature("DEV1", "USER001", timestamp_unix, Some(0), Some(1));
+        let sig3 = InMemoryStore::compute_signature("DEV1", "USER001", timestamp_unix, Some(0), Some(1));
 
         assert_eq!(sig1, sig2);
         assert_eq!(sig2, sig3);
@@ -1277,28 +1272,28 @@ mod tests {
 
     #[test]
     fn test_compute_signature_different_devices() {
-        let ts = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let timestamp_unix = ts("2026-01-29 10:00:00");
 
-        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(0), Some(1));
-        let sig2 = InMemoryStore::compute_signature("DEV2", "USER001", ts, Some(0), Some(1));
+        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", timestamp_unix, Some(0), Some(1));
+        let sig2 = InMemoryStore::compute_signature("DEV2", "USER001", timestamp_unix, Some(0), Some(1));
 
         assert_ne!(sig1, sig2, "Different device should produce different signature");
     }
 
     #[test]
     fn test_compute_signature_different_users() {
-        let ts = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let timestamp_unix = ts("2026-01-29 10:00:00");
 
-        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(0), Some(1));
-        let sig2 = InMemoryStore::compute_signature("DEV1", "USER002", ts, Some(0), Some(1));
+        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", timestamp_unix, Some(0), Some(1));
+        let sig2 = InMemoryStore::compute_signature("DEV1", "USER002", timestamp_unix, Some(0), Some(1));
 
         assert_ne!(sig1, sig2, "Different user should produce different signature");
     }
 
     #[test]
     fn test_compute_signature_different_timestamps() {
-        let ts1 = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
-        let ts2 = NaiveDateTime::parse_from_str("2026-01-29 10:00:01", "%Y-%m-%d %H:%M:%S").unwrap();
+        let ts1 = ts("2026-01-29 10:00:00");
+        let ts2 = ts("2026-01-29 10:00:01");
 
         let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts1, Some(0), Some(1));
         let sig2 = InMemoryStore::compute_signature("DEV1", "USER001", ts2, Some(0), Some(1));
@@ -1308,20 +1303,20 @@ mod tests {
 
     #[test]
     fn test_compute_signature_different_punch() {
-        let ts = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let timestamp_unix = ts("2026-01-29 10:00:00");
 
-        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(0), Some(1));
-        let sig2 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(1), Some(1));
+        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", timestamp_unix, Some(0), Some(1));
+        let sig2 = InMemoryStore::compute_signature("DEV1", "USER001", timestamp_unix, Some(1), Some(1));
 
         assert_ne!(sig1, sig2, "Different punch should produce different signature");
     }
 
     #[test]
     fn test_compute_signature_different_status() {
-        let ts = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let timestamp_unix = ts("2026-01-29 10:00:00");
 
-        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(0), Some(1));
-        let sig2 = InMemoryStore::compute_signature("DEV1", "USER001", ts, Some(0), Some(2));
+        let sig1 = InMemoryStore::compute_signature("DEV1", "USER001", timestamp_unix, Some(0), Some(1));
+        let sig2 = InMemoryStore::compute_signature("DEV1", "USER001", timestamp_unix, Some(0), Some(2));
 
         assert_ne!(sig1, sig2, "Different status should produce different signature");
     }
@@ -1346,11 +1341,11 @@ mod tests {
         };
 
         // First insert succeeds
-        let result1 = store.insert("DEV1".to_string(), data.clone());
+        let result1 = store.insert("DEV1".to_string(), data.clone(), ts("2026-01-29 10:00:00"));
         assert!(result1.is_ok());
 
         // Second insert fails
-        let result2 = store.insert("DEV1".to_string(), data);
+        let result2 = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00"));
         assert!(matches!(result2, Err(StoreError::Duplicate)));
 
         // Only 1 log in store
@@ -1376,8 +1371,8 @@ mod tests {
         };
 
         // Both should succeed
-        assert!(store.insert("DEV1".to_string(), data1).is_ok());
-        assert!(store.insert("DEV1".to_string(), data2).is_ok());
+        assert!(store.insert("DEV1".to_string(), data1, ts("2026-01-29 10:00:00")).is_ok());
+        assert!(store.insert("DEV1".to_string(), data2, ts("2026-01-29 10:00:01")).is_ok());
 
         assert_eq!(store.count_total(), 2);
         assert_eq!(store.count_signatures(), 2);
@@ -1402,10 +1397,10 @@ mod tests {
         };
 
         // Both should succeed - this is the critical bug fix
-        let result1 = store.insert("DEV1".to_string(), data1);
+        let result1 = store.insert("DEV1".to_string(), data1, ts("2026-01-29 10:00:00"));
         assert!(result1.is_ok(), "First insert (punch=0) should succeed");
 
-        let result2 = store.insert("DEV1".to_string(), data2);
+        let result2 = store.insert("DEV1".to_string(), data2, ts("2026-01-29 10:00:00"));
         assert!(result2.is_ok(), "Second insert (punch=1) should succeed - NOT duplicate");
 
         assert_eq!(store.count_total(), 2, "Both logs should be stored");
@@ -1431,8 +1426,8 @@ mod tests {
         };
 
         // Both should succeed
-        assert!(store.insert("DEV1".to_string(), data1).is_ok());
-        assert!(store.insert("DEV1".to_string(), data2).is_ok());
+        assert!(store.insert("DEV1".to_string(), data1, ts("2026-01-29 10:00:00")).is_ok());
+        assert!(store.insert("DEV1".to_string(), data2, ts("2026-01-29 10:00:00")).is_ok());
 
         assert_eq!(store.count_total(), 2);
         assert_eq!(store.count_signatures(), 2);
@@ -1450,7 +1445,7 @@ mod tests {
         };
 
         // Insert and sync (immediate removal)
-        let id = store.insert("DEV1".to_string(), data.clone()).unwrap();
+        let id = store.insert("DEV1".to_string(), data.clone(), ts("2026-01-29 10:00:00")).unwrap();
         store.mark_in_flight(&[id]);
         store.mark_persisted(&[id]); // Persist before sync
         store.mark_synced(&[id]);
@@ -1460,7 +1455,7 @@ mod tests {
         assert_eq!(store.count_signatures(), 1, "Signature preserved");
 
         // Duplicate still rejected
-        let result = store.insert("DEV1".to_string(), data);
+        let result = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00"));
         assert!(matches!(result, Err(StoreError::Duplicate)));
     }
 
@@ -1474,19 +1469,19 @@ mod tests {
                 timestamp: "2026-01-29 10:00:00".to_string(),
                 status: Some(1),
                 punch: Some(0),
-            }),
+            }, ts("2026-01-29 10:00:00")),
             ("DEV1".to_string(), AttendanceData {
                 user_id: "U001".to_string(),
                 timestamp: "2026-01-29 10:00:00".to_string(), // Duplicate of first
                 status: Some(1),
                 punch: Some(0),
-            }),
+            }, ts("2026-01-29 10:00:00")),
             ("DEV1".to_string(), AttendanceData {
                 user_id: "U002".to_string(),
                 timestamp: "2026-01-29 10:00:00".to_string(), // Different user
                 status: Some(1),
                 punch: Some(0),
-            }),
+            }, ts("2026-01-29 10:00:00")),
         ];
 
         let inserted = store.insert_batch(batch).unwrap();
@@ -1499,14 +1494,14 @@ mod tests {
     #[test]
     fn test_load_from_disk_populates_signatures() {
         let store = InMemoryStore::new(1000);
-        let ts = NaiveDateTime::parse_from_str("2026-01-29 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let timestamp_unix = ts("2026-01-29 10:00:00");
 
         let logs = vec![
             RawAttendanceLog {
                 id: 1,
                 device_id: "D1".to_string(),
                 user_id: "U1".to_string(),
-                timestamp: ts,
+                timestamp: timestamp_unix,
                 status: Some(1),
                 punch: Some(1),
                 is_synced: 0,
@@ -1528,7 +1523,7 @@ mod tests {
             status: Some(1),
             punch: Some(1),
         };
-        let result = store.insert("D1".to_string(), data);
+        let result = store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00"));
         assert!(matches!(result, Err(StoreError::Duplicate)));
     }
 
@@ -1550,7 +1545,7 @@ mod tests {
                     status: Some(1),
                     punch: Some(0),
                 };
-                store_clone.insert("CONCURRENT_DEV".to_string(), data)
+                store_clone.insert("CONCURRENT_DEV".to_string(), data, ts("2026-01-29 10:00:00"))
             });
             handles.push(handle);
         }
@@ -1579,7 +1574,7 @@ mod tests {
             id: 1,
             device_id: "DEV1".to_string(),
             user_id: "U001".to_string(),
-            timestamp: NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap(),
+            timestamp: ts("2026-01-31 10:00:00"),
             status: Some(1),
             punch: Some(0),
             is_synced: 0,
@@ -1591,7 +1586,7 @@ mod tests {
 
         let key = log.composite_key();
         assert!(key.starts_with("DEV1:U001:"));
-        assert!(key.ends_with(&log.timestamp.and_utc().timestamp().to_string()));
+        assert!(key.ends_with(&log.timestamp.to_string()));
     }
 
     #[test]
@@ -1605,11 +1600,11 @@ mod tests {
             punch: Some(0),
         };
 
-        let id = store.insert("DEV1".to_string(), data).unwrap();
+        let id = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
 
         // Construct expected composite key
-        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
-        let expected_key = format!("DEV1:U001:{}", ts.and_utc().timestamp());
+        let timestamp_unix = ts("2026-01-29 10:00:00");
+        let expected_key = format!("DEV1:U001:{}", timestamp_unix);
 
         // Lookup should return the inserted ID
         assert_eq!(store.get_id_by_composite_key(&expected_key), Some(id));
@@ -1629,7 +1624,7 @@ mod tests {
             punch: Some(0),
         };
 
-        let id = store.insert("DEV1".to_string(), data).unwrap();
+        let id = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
 
         // Mark in-flight first
         store.mark_in_flight(&[id]);
@@ -1638,8 +1633,8 @@ mod tests {
         store.mark_persisted(&[id]);
 
         // Construct composite key
-        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
-        let key = format!("DEV1:U001:{}", ts.and_utc().timestamp());
+        let timestamp_unix = ts("2026-01-29 10:00:00");
+        let key = format!("DEV1:U001:{}", timestamp_unix);
 
         // Mark synced by key should return true
         assert!(store.mark_synced_by_key(&key));
@@ -1660,15 +1655,15 @@ mod tests {
             punch: Some(0),
         };
 
-        let id = store.insert("DEV1".to_string(), data).unwrap();
+        let id = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
 
         // Mark in-flight
         store.mark_in_flight(&[id]);
         assert_eq!(store.count_unsynced(), 0);  // In-flight, not unsynced
 
         // Construct composite key
-        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
-        let key = format!("DEV1:U001:{}", ts.and_utc().timestamp());
+        let timestamp_unix = ts("2026-01-29 10:00:00");
+        let key = format!("DEV1:U001:{}", timestamp_unix);
 
         // Reset to unsynced by key
         assert!(store.reset_to_unsynced_by_key(&key));
@@ -1680,10 +1675,10 @@ mod tests {
     #[test]
     fn test_composite_key_hash_consistency() {
         // Verify hash computation is deterministic
-        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let timestamp = ts("2026-01-31 10:00:00");
 
-        let hash1 = MemoryLog::compute_composite_hash("DEV1", "U001", ts);
-        let hash2 = MemoryLog::compute_composite_hash("DEV1", "U001", ts);
+        let hash1 = MemoryLog::compute_composite_hash("DEV1", "U001", timestamp);
+        let hash2 = MemoryLog::compute_composite_hash("DEV1", "U001", timestamp);
 
         assert_eq!(hash1, hash2, "Hash must be deterministic");
     }
@@ -1691,11 +1686,11 @@ mod tests {
     #[test]
     fn test_composite_key_hash_uniqueness() {
         // Verify different components produce different hashes
-        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let timestamp = ts("2026-01-31 10:00:00");
 
-        let hash1 = MemoryLog::compute_composite_hash("DEV1", "U001", ts);
-        let hash2 = MemoryLog::compute_composite_hash("DEV2", "U001", ts);  // Different device
-        let hash3 = MemoryLog::compute_composite_hash("DEV1", "U002", ts);  // Different user
+        let hash1 = MemoryLog::compute_composite_hash("DEV1", "U001", timestamp);
+        let hash2 = MemoryLog::compute_composite_hash("DEV2", "U001", timestamp);  // Different device
+        let hash3 = MemoryLog::compute_composite_hash("DEV1", "U002", timestamp);  // Different user
 
         assert_ne!(hash1, hash2, "Different devices must have different hashes");
         assert_ne!(hash1, hash3, "Different users must have different hashes");
@@ -1705,8 +1700,8 @@ mod tests {
     #[test]
     fn test_composite_key_hash_timestamp_sensitivity() {
         // Verify timestamp differences produce different hashes
-        let ts1 = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
-        let ts2 = NaiveDateTime::parse_from_str("2026-01-31 10:00:01", "%Y-%m-%d %H:%M:%S").unwrap();
+        let ts1 = ts("2026-01-31 10:00:00");
+        let ts2 = ts("2026-01-31 10:00:01");
 
         let hash1 = MemoryLog::compute_composite_hash("DEV1", "U001", ts1);
         let hash2 = MemoryLog::compute_composite_hash("DEV1", "U001", ts2);
@@ -1726,11 +1721,11 @@ mod tests {
             punch: Some(0),
         };
 
-        let id = store.insert("DEV1".to_string(), data).unwrap();
+        let id = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
 
         // Construct composite key string
-        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
-        let key = format!("DEV1:U001:{}", ts.and_utc().timestamp());
+        let timestamp_unix = ts("2026-01-29 10:00:00");
+        let key = format!("DEV1:U001:{}", timestamp_unix);
 
         // Lookup by string should parse and compute hash internally
         assert_eq!(store.get_id_by_composite_key(&key), Some(id));
@@ -1750,11 +1745,11 @@ mod tests {
             punch: Some(0),
         };
 
-        let id = store.insert(device_id.clone(), data).unwrap();
+        let id = store.insert(device_id.clone(), data, ts("2026-01-29 10:00:00")).unwrap();
 
         // Construct composite key (will have multiple colons)
-        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
-        let key = format!("{}:U001:{}", device_id, ts.and_utc().timestamp());
+        let timestamp_unix = ts("2026-01-29 10:00:00");
+        let key = format!("{}:U001:{}", device_id, timestamp_unix);
         // key = "Office:Main:Gate:U001:1738314000"
 
         // Lookup should work correctly with rsplit parsing
@@ -1783,11 +1778,11 @@ mod tests {
                 punch: Some(0),
             };
 
-            let id = store.insert(device.clone(), data).unwrap();
+            let timestamp_unix = ts(&timestamp);
+            let id = store.insert(device.clone(), data, timestamp_unix).unwrap();
             inserted_ids.push(id);
 
-            let ts = NaiveDateTime::parse_from_str(&timestamp, "%Y-%m-%d %H:%M:%S").unwrap();
-            let key = format!("{}:{}:{}", device, user, ts.and_utc().timestamp());
+            let key = format!("{}:{}:{}", device, user, timestamp_unix);
             composite_keys.push(key);
         }
 
@@ -1806,19 +1801,17 @@ mod tests {
         let mut hashes = std::collections::HashSet::new();
 
         // Generate 1000 different composite keys
+        let base_ts = ts("2026-01-31 10:00:00");
         for i in 0..1000 {
             let device = format!("DEVICE_{}", i);
             let user = format!("USER_{}", i);
-            let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S")
-                .unwrap()
-                .checked_add_signed(chrono::Duration::seconds(i))
-                .unwrap();
+            let timestamp_unix = base_ts + i;
 
-            let hash = MemoryLog::compute_composite_hash(&device, &user, ts);
+            let hash = MemoryLog::compute_composite_hash(&device, &user, timestamp_unix);
 
             assert!(hashes.insert(hash),
                 "Hash collision detected for device={}, user={}, ts={}",
-                device, user, ts);
+                device, user, timestamp_unix);
         }
 
         assert_eq!(hashes.len(), 1000, "All hashes should be unique");
@@ -1834,7 +1827,7 @@ mod tests {
                 id: 1,
                 device_id: "DEV1".to_string(),
                 user_id: "U001".to_string(),
-                timestamp: NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap(),
+                timestamp: ts("2026-01-31 10:00:00"),
                 status: Some(1),
                 punch: Some(0),
                 is_synced: 0,
@@ -1846,7 +1839,7 @@ mod tests {
                 id: 2,
                 device_id: "DEV2".to_string(),
                 user_id: "U002".to_string(),
-                timestamp: NaiveDateTime::parse_from_str("2026-01-31 11:00:00", "%Y-%m-%d %H:%M:%S").unwrap(),
+                timestamp: ts("2026-01-31 11:00:00"),
                 status: Some(1),
                 punch: Some(0),
                 is_synced: 2,
@@ -1882,11 +1875,11 @@ mod tests {
             punch: Some(0),
         };
 
-        let id = store.insert("DEV1".to_string(), data).unwrap();
+        let id = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
 
         // Construct key
-        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
-        let key = format!("DEV1:U001:{}", ts.and_utc().timestamp());
+        let timestamp_unix = ts("2026-01-29 10:00:00");
+        let key = format!("DEV1:U001:{}", timestamp_unix);
 
         // Before sync, lookup works
         assert_eq!(store.get_id_by_composite_key(&key), Some(id));
@@ -1913,7 +1906,7 @@ mod tests {
             punch: Some(0),
         };
 
-        let id = store.insert("DEV1".to_string(), data).unwrap();
+        let id = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
         assert_eq!(store.count_total(), 1);
 
         // Mark synced - should remove immediately
@@ -1953,9 +1946,9 @@ mod tests {
             punch: Some(0),
         };
 
-        let id1 = store.insert("DEV1".to_string(), data1).unwrap();
-        let id2 = store.insert("DEV1".to_string(), data2).unwrap();
-        let _id3 = store.insert("DEV1".to_string(), data3).unwrap();
+        let id1 = store.insert("DEV1".to_string(), data1, ts("2026-01-29 10:00:00")).unwrap();
+        let id2 = store.insert("DEV1".to_string(), data2, ts("2026-01-29 10:00:00")).unwrap();
+        let _id3 = store.insert("DEV1".to_string(), data3, ts("2026-01-29 10:00:00")).unwrap();
 
         // Mark id1 synced (removed), id2 in-flight (kept), id3 stays unsynced
         store.mark_in_flight(&[id1]);
@@ -1981,7 +1974,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(0),
             };
-            let id = store.insert("DEV1".to_string(), data).unwrap();
+            let id = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
             ids.push(id);
         }
 
@@ -1994,7 +1987,7 @@ mod tests {
             status: Some(1),
             punch: Some(0),
         };
-        assert!(store.insert("DEV1".to_string(), extra_data.clone()).is_err());
+        assert!(store.insert("DEV1".to_string(), extra_data.clone(), ts("2026-01-29 10:00:00")).is_err());
 
         // Sync all logs - they're immediately removed
         store.mark_in_flight(&ids);
@@ -2004,7 +1997,7 @@ mod tests {
         assert_eq!(store.count_total(), 0, "All synced logs removed");
 
         // Now insert works
-        assert!(store.insert("DEV1".to_string(), extra_data).is_ok());
+        assert!(store.insert("DEV1".to_string(), extra_data, ts("2026-01-29 10:00:00")).is_ok());
     }
 
     #[test]
@@ -2020,7 +2013,7 @@ mod tests {
         };
 
         // Insert and sync
-        let id = store.insert("DEV1".to_string(), data.clone()).unwrap();
+        let id = store.insert("DEV1".to_string(), data.clone(), ts("2026-01-29 10:00:00")).unwrap();
         store.mark_in_flight(&[id]);
         store.mark_persisted(&[id]); // Persist before sync
         store.mark_synced(&[id]);
@@ -2030,7 +2023,7 @@ mod tests {
         assert_eq!(store.count_signatures(), 1, "Signature preserved for dedup");
 
         // Duplicate should be rejected
-        let result = store.insert("DEV1".to_string(), data);
+        let result = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00"));
         assert!(result.is_err(), "Duplicate rejected even after sync removal");
     }
 
@@ -2047,7 +2040,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(0),
             };
-            store.insert("DEV1".to_string(), data).unwrap();
+            store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
         }
 
         let total = store.count_total();
@@ -2072,7 +2065,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(0),
             };
-            store.insert("DEV1".to_string(), data).unwrap();
+            store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
         }
 
         assert_eq!(store.count_total(), 1000);
@@ -2109,7 +2102,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(0),
             };
-            store.insert("DEV1".to_string(), data).unwrap();
+            store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
         }
 
         let stats1 = (store.count_total(), store.count_unsynced(), store.count_signatures());
@@ -2147,7 +2140,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(0),
             };
-            let id = store.insert("DEV1".to_string(), data).unwrap();
+            let id = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
             ids.push(id);
         }
 
@@ -2200,7 +2193,7 @@ mod tests {
             status: Some(1),
             punch: Some(0),
         };
-        let id = store.insert("DEV1".to_string(), data).unwrap();
+        let id = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
 
         // Mark as in-flight
         store.mark_in_flight(&[id]);
@@ -2236,7 +2229,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(0),
             };
-            let id = store.insert("DEV1".to_string(), data).unwrap();
+            let id = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
             ids.push(id);
         }
 
@@ -2296,7 +2289,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(0),
             };
-            let id = store.insert("DEV1".to_string(), data).unwrap();
+            let id = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
             ids.push(id);
         }
 
@@ -2338,7 +2331,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(0),
             };
-            let id = store.insert("DEV1".to_string(), data).unwrap();
+            let id = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
             ids.push(id);
         }
 
@@ -2395,7 +2388,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(0),
             };
-            let id = store.insert("DEV1".to_string(), data).unwrap();
+            let id = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
             ids.push(id);
         }
 
@@ -2437,7 +2430,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(0),
             };
-            let id = store.insert("DEV1".to_string(), data).unwrap();
+            let id = store.insert("DEV1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
             ids.push(id);
         }
 

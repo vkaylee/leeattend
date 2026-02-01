@@ -12,6 +12,7 @@ tokio-tungstenite = { version = "0.26", features = ["native-tls"] }
 url = "2.5"
 uuid = { version = "1.10", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.9"
 dotenvy = "0.15"
 log = "0.4"
 env_logger = "0.11"

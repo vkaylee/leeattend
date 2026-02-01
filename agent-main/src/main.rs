@@ -154,7 +154,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 buffer.push(item);
                                 if buffer.len() >= 100 {
                                     let to_save = std::mem::replace(&mut buffer, Vec::with_capacity(100));
-                                    if let Err(e) = writer_hybrid.save_raw_attendance_batch(to_save) {
+                                    if let Err(e) = writer_hybrid.save_raw_attendance_batch(to_save).await {
                                         error!("Failed to save batch to memory: {}", e);
                                     }
                                     // Yield to let sync loop acquire lock
@@ -167,7 +167,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     _ = interval.tick() => {
                         if !buffer.is_empty() {
                             let to_save = std::mem::replace(&mut buffer, Vec::with_capacity(100));
-                            if let Err(e) = writer_hybrid.save_raw_attendance_batch(to_save) {
+                            if let Err(e) = writer_hybrid.save_raw_attendance_batch(to_save).await {
                                 error!("Failed to save timed batch to memory: {}", e);
                             }
                         }
@@ -633,7 +633,9 @@ async fn handle_failed_logs_command(db: &Database, args: &[String]) -> Result<()
     println!("├─────────┼────────────┼────────────┼─────────────────────┼────────┼───────┤");
 
     for log in &failed_logs {
-        let timestamp_str = log.timestamp.format("%Y-%m-%d %H:%M:%S").to_string();
+        let timestamp_str = chrono::DateTime::from_timestamp(log.timestamp, 0)
+            .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
+            .unwrap_or_else(|| format!("invalid_{}", log.timestamp));
         let status_str = log.status.map(|s| s.to_string()).unwrap_or_else(|| "NULL".to_string());
         let punch_str = log.punch.map(|p| p.to_string()).unwrap_or_else(|| "NULL".to_string());
 

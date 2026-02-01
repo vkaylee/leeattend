@@ -46,13 +46,36 @@ impl HybridDatabase {
     }
 
     /// Save attendance - goes to memory first
-    pub fn save_raw_attendance(&self, device_id: &str, data: AttendanceData) -> Result<i64, StoreError> {
-        self.memory.insert(device_id.to_string(), data)
+    /// Converts local time to UTC Unix timestamp using device timezone
+    pub async fn save_raw_attendance(&self, device_id: &str, data: AttendanceData) -> Result<i64, StoreError> {
+        // Get device timezone
+        let tz = self.disk.get_device_timezone(device_id).await
+            .map_err(|_| StoreError::InvalidTimestamp)?;
+
+        // Parse timestamp and convert to UTC Unix timestamp
+        let timestamp_utc = Database::parse_local_to_utc_timestamp(&data.timestamp, tz)
+            .map_err(|_| StoreError::InvalidTimestamp)?;
+
+        self.memory.insert(device_id.to_string(), data, timestamp_utc)
     }
 
     /// Batch save - goes to memory first
-    pub fn save_raw_attendance_batch(&self, batch: Vec<(String, AttendanceData)>) -> Result<usize, StoreError> {
-        self.memory.insert_batch(batch)
+    /// Converts local time to UTC Unix timestamp using device timezone for each log
+    pub async fn save_raw_attendance_batch(&self, batch: Vec<(String, AttendanceData)>) -> Result<usize, StoreError> {
+        let mut batch_with_timestamps = Vec::new();
+
+        for (device_id, data) in batch {
+            // Get device timezone
+            let tz = self.disk.get_device_timezone(&device_id).await
+                .map_err(|_| StoreError::InvalidTimestamp)?;
+
+            // Parse timestamp and convert to UTC Unix timestamp
+            if let Ok(timestamp_utc) = Database::parse_local_to_utc_timestamp(&data.timestamp, tz) {
+                batch_with_timestamps.push((device_id, data, timestamp_utc));
+            }
+        }
+
+        self.memory.insert_batch(batch_with_timestamps)
     }
 
     /// Get unsynced logs from memory
@@ -151,7 +174,7 @@ mod tests {
         let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
 
         let data = make_attendance("U001", "2026-01-29 10:00:00");
-        let id = hybrid.save_raw_attendance("DEV1", data).unwrap();
+        let id = hybrid.save_raw_attendance("DEV1", data).await.unwrap();
 
         assert!(id > 0);
         assert_eq!(hybrid.count_unsynced_logs(), 1);
@@ -171,7 +194,7 @@ mod tests {
             })
             .collect();
 
-        let count = hybrid.save_raw_attendance_batch(batch).unwrap();
+        let count = hybrid.save_raw_attendance_batch(batch).await.unwrap();
 
         assert_eq!(count, 5);
         assert_eq!(hybrid.count_unsynced_logs(), 5);
@@ -195,7 +218,7 @@ mod tests {
         // Save logs
         for i in 1..=10 {
             let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
-            hybrid.save_raw_attendance("DEV1", data).unwrap();
+            hybrid.save_raw_attendance("DEV1", data).await.unwrap();
         }
 
         assert_eq!(hybrid.count_unsynced_logs(), 10);
@@ -215,7 +238,7 @@ mod tests {
         // 1. Save logs
         for i in 1..=5 {
             let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
-            hybrid.save_raw_attendance("DEV1", data).unwrap();
+            hybrid.save_raw_attendance("DEV1", data).await.unwrap();
         }
         assert_eq!(hybrid.count_unsynced_logs(), 5);
 
@@ -245,7 +268,7 @@ mod tests {
         // Phase 1: Save and checkpoint
         for i in 1..=5 {
             let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
-            hybrid.save_raw_attendance("DEV1", data).unwrap();
+            hybrid.save_raw_attendance("DEV1", data).await.unwrap();
         }
 
         // Verify all are unsynced before checkpoint
@@ -266,7 +289,7 @@ mod tests {
 
         // Save and mark in-flight
         let data = make_attendance("U001", "2026-01-29 10:00:00");
-        let id = hybrid.save_raw_attendance("DEV1", data).unwrap();
+        let id = hybrid.save_raw_attendance("DEV1", data).await.unwrap();
 
         hybrid.mark_in_flight(&[id]);
         assert_eq!(hybrid.count_unsynced_logs(), 0);
@@ -283,7 +306,7 @@ mod tests {
         // Save logs
         for i in 1..=5 {
             let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
-            hybrid.save_raw_attendance("DEV1", data).unwrap();
+            hybrid.save_raw_attendance("DEV1", data).await.unwrap();
         }
 
         // Flush all
@@ -302,7 +325,7 @@ mod tests {
         let users = vec!["FIRST", "SECOND", "THIRD"];
         for user in &users {
             let data = make_attendance(user, "2026-01-29 10:00:00");
-            hybrid.save_raw_attendance("DEV1", data).unwrap();
+            hybrid.save_raw_attendance("DEV1", data).await.unwrap();
         }
 
         // Get unsynced
@@ -327,7 +350,7 @@ mod tests {
                     &format!("U{}{}", dev_idx, user_idx),
                     "2026-01-29 10:00:00"
                 );
-                hybrid.save_raw_attendance(&device, data).unwrap();
+                hybrid.save_raw_attendance(&device, data).await.unwrap();
             }
         }
 
@@ -352,7 +375,7 @@ mod tests {
             })
             .collect();
 
-        let result = hybrid.save_raw_attendance_batch(batch);
+        let result = hybrid.save_raw_attendance_batch(batch).await;
 
         // Should insert up to capacity
         assert!(result.is_ok());
@@ -367,7 +390,7 @@ mod tests {
         let mut ids = Vec::new();
         for i in 1..=5 {
             let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
-            let id = hybrid.save_raw_attendance("DEV1", data).unwrap();
+            let id = hybrid.save_raw_attendance("DEV1", data).await.unwrap();
             ids.push(id);
         }
 
@@ -394,7 +417,7 @@ mod tests {
         // Save logs
         for i in 1..=3 {
             let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
-            hybrid.save_raw_attendance("DEV1", data).unwrap();
+            hybrid.save_raw_attendance("DEV1", data).await.unwrap();
         }
 
         // Checkpoint multiple times
@@ -414,7 +437,7 @@ mod tests {
         let data = make_attendance("U001", "2026-01-29 10:00:00");
 
         // 1. Insert
-        let id = hybrid.save_raw_attendance("DEV1", data.clone()).unwrap();
+        let id = hybrid.save_raw_attendance("DEV1", data.clone()).await.unwrap();
         assert!(id > 0);
 
         // 2. Sync
@@ -425,7 +448,7 @@ mod tests {
         hybrid.checkpoint().await.unwrap();
 
         // 4. Try duplicate - should fail
-        let result = hybrid.save_raw_attendance("DEV1", data);
+        let result = hybrid.save_raw_attendance("DEV1", data).await;
         assert!(matches!(result, Err(StoreError::Duplicate)));
     }
 
@@ -442,7 +465,7 @@ mod tests {
 
             for i in 1..=10 {
                 let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
-                hybrid.save_raw_attendance("DEV1", data).unwrap();
+                hybrid.save_raw_attendance("DEV1", data).await.unwrap();
             }
 
             // Checkpoint to disk
@@ -467,7 +490,7 @@ mod tests {
 
             // Try to insert duplicate of synced log
             let data = make_attendance("U001", "2026-01-29 10:00:00");
-            let result = hybrid.save_raw_attendance("DEV1", data);
+            let result = hybrid.save_raw_attendance("DEV1", data).await;
             assert!(matches!(result, Err(StoreError::Duplicate)));
         }
     }
@@ -486,7 +509,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(0),
             };
-            hybrid.save_raw_attendance(&format!("DEV{}", (i % 5) + 1), data).ok();
+            hybrid.save_raw_attendance(&format!("DEV{}", (i % 5) + 1), data).await.ok();
         }
 
         // Checkpoint first batch
@@ -501,7 +524,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(0),
             };
-            hybrid.save_raw_attendance("DEV2", data).ok();
+            hybrid.save_raw_attendance("DEV2", data).await.ok();
         }
 
         // Second checkpoint should NOT fail with UNIQUE constraint error
@@ -521,7 +544,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(0),
             };
-            hybrid.save_raw_attendance("DEV1", data).unwrap();
+            hybrid.save_raw_attendance("DEV1", data).await.unwrap();
         }
 
         // Checkpoint to disk
@@ -555,15 +578,18 @@ mod tests {
             punch: Some(0),
         };
 
-        let id = hybrid.save_raw_attendance("DEV1", data).unwrap();
+        let id = hybrid.save_raw_attendance("DEV1", data).await.unwrap();
 
         // Mark in-flight
         hybrid.mark_in_flight(&[id]);
         assert_eq!(hybrid.count_unsynced_logs(), 0);  // In-flight, not unsynced
 
-        // Construct composite key
-        let ts = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
-        let key = format!("DEV1:U001:{}", ts.and_utc().timestamp());
+        // Construct composite key using Unix timestamp directly
+        let ts_unix = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S")
+            .unwrap()
+            .and_utc()
+            .timestamp();
+        let key = format!("DEV1:U001:{}", ts_unix);
 
         // Simulate failed ACK - reset to unsynced
         assert!(hybrid.reset_to_unsynced_by_key(&key));
@@ -584,7 +610,7 @@ mod tests {
                 status: Some(1),
                 punch: Some(0),
             };
-            hybrid.save_raw_attendance("DEV1", data).unwrap();
+            hybrid.save_raw_attendance("DEV1", data).await.unwrap();
         }
 
         // Measure checkpoint time

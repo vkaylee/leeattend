@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS zkt_raw_attendance (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     device_id TEXT NOT NULL,
     user_id TEXT NOT NULL,
-    timestamp DATETIME NOT NULL,
+    timestamp INTEGER NOT NULL,
     status INTEGER,
     punch INTEGER,
     is_synced INTEGER DEFAULT 0 NOT NULL,
@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS devices (
     name TEXT,
     ip TEXT NOT NULL,
     port INTEGER DEFAULT 4370 NOT NULL,
+    timezone TEXT NOT NULL DEFAULT 'UTC',
     last_seen DATETIME,
     is_active BOOLEAN DEFAULT 1
 );

@@ -2,6 +2,7 @@ use agent::hybrid_database::HybridDatabase;
 use agent::memory_store::InMemoryStore;
 use agent::models::AttendanceData;
 use std::time::Instant;
+use chrono::NaiveDateTime;
 
 fn make_attendance(user_id: &str, timestamp: &str) -> AttendanceData {
     AttendanceData {
@@ -12,6 +13,13 @@ fn make_attendance(user_id: &str, timestamp: &str) -> AttendanceData {
     }
 }
 
+fn parse_timestamp_to_unix(timestamp_str: &str) -> i64 {
+    NaiveDateTime::parse_from_str(timestamp_str, "%Y-%m-%d %H:%M:%S")
+        .expect("Invalid timestamp format")
+        .and_utc()
+        .timestamp()
+}
+
 // ============ Performance Benchmark Tests ============
 
 #[test]
@@ -19,9 +27,10 @@ fn benchmark_insert_latency() {
     let store = InMemoryStore::new(100_000);
 
     let start = Instant::now();
+    let timestamp_unix = parse_timestamp_to_unix("2026-01-29 10:00:00");
     for i in 0..1000 {
         let data = make_attendance(&format!("U{:05}", i), "2026-01-29 10:00:00");
-        store.insert(format!("DEV{}", i % 10), data).unwrap();
+        store.insert(format!("DEV{}", i % 10), data, timestamp_unix).unwrap();
     }
     let elapsed = start.elapsed();
 
@@ -41,9 +50,10 @@ fn benchmark_query_latency() {
     let store = InMemoryStore::new(100_000);
 
     // Populate with 10K logs
+    let timestamp_unix = parse_timestamp_to_unix("2026-01-29 10:00:00");
     for i in 0..10_000 {
         let data = make_attendance(&format!("U{:05}", i), "2026-01-29 10:00:00");
-        store.insert(format!("DEV{}", i % 10), data).unwrap();
+        store.insert(format!("DEV{}", i % 10), data, timestamp_unix).unwrap();
     }
 
     let start = Instant::now();
@@ -68,9 +78,10 @@ fn benchmark_memory_usage() {
     let store = InMemoryStore::new(100_000);
 
     // Insert 50K logs
+    let timestamp_unix = parse_timestamp_to_unix("2026-01-29 10:00:00");
     for i in 0..50_000 {
         let data = make_attendance(&format!("U{:05}", i), "2026-01-29 10:00:00");
-        store.insert(format!("DEV{}", i % 100), data).unwrap();
+        store.insert(format!("DEV{}", i % 100), data, timestamp_unix).unwrap();
     }
 
     // Verify all logs inserted
@@ -86,13 +97,15 @@ fn benchmark_batch_insert_latency() {
     let store = InMemoryStore::new(100_000);
 
     let start = Instant::now();
+    let timestamp_unix = parse_timestamp_to_unix("2026-01-29 10:00:00");
     for batch_idx in 0..100 {
-        let batch: Vec<(String, AttendanceData)> = (0..100)
+        let batch: Vec<(String, AttendanceData, i64)> = (0..100)
             .map(|i| {
                 let offset = batch_idx * 100 + i;
                 (
                     format!("DEV{}", offset % 10),
                     make_attendance(&format!("U{:05}", offset), "2026-01-29 10:00:00"),
+                    timestamp_unix,
                 )
             })
             .collect();
@@ -112,9 +125,10 @@ fn benchmark_mark_operations() {
     let store = InMemoryStore::new(100_000);
 
     // Insert 5K logs
+    let timestamp_unix = parse_timestamp_to_unix("2026-01-29 10:00:00");
     for i in 0..5_000 {
         let data = make_attendance(&format!("U{:05}", i), "2026-01-29 10:00:00");
-        store.insert(format!("DEV{}", i % 10), data).unwrap();
+        store.insert(format!("DEV{}", i % 10), data, timestamp_unix).unwrap();
     }
 
     // Benchmark mark_in_flight
@@ -143,7 +157,7 @@ async fn integration_full_sync_workflow() {
     // Phase 1: Collect logs
     for i in 1..=100 {
         let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
-        hybrid.save_raw_attendance("DEV1", data).unwrap();
+        hybrid.save_raw_attendance("DEV1", data).await.unwrap();
     }
     assert_eq!(hybrid.count_unsynced_logs(), 100);
 
@@ -176,7 +190,7 @@ async fn integration_restart_recovery_with_inflight() {
     // Save and mark some as in-flight
     for i in 1..=10 {
         let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
-        hybrid.save_raw_attendance("DEV1", data).unwrap();
+        hybrid.save_raw_attendance("DEV1", data).await.unwrap();
     }
 
     let logs = hybrid.get_unsynced_logs(10);
@@ -209,7 +223,7 @@ async fn integration_concurrent_device_writes() {
                     &format!("D{}U{:03}", dev_idx, user_idx),
                     "2026-01-29 10:00:00"
                 );
-                hybrid.save_raw_attendance(&device, data).ok();
+                hybrid.save_raw_attendance(&device, data).await.ok();
             }
         });
         handles.push(handle);
@@ -230,7 +244,7 @@ async fn integration_checkpoint_under_load() {
     // Insert large batch
     for i in 0..1000 {
         let data = make_attendance(&format!("U{:05}", i), "2026-01-29 10:00:00");
-        hybrid.save_raw_attendance("DEV1", data).unwrap();
+        hybrid.save_raw_attendance("DEV1", data).await.unwrap();
     }
 
     let start = Instant::now();
@@ -256,7 +270,7 @@ async fn integration_mixed_sync_states() {
     // Insert 30 logs
     for i in 1..=30 {
         let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
-        let id = hybrid.save_raw_attendance("DEV1", data).unwrap();
+        let id = hybrid.save_raw_attendance("DEV1", data).await.unwrap();
         if i <= 10 {
             synced_ids.push(id);
         } else if i <= 20 {
@@ -285,7 +299,7 @@ async fn integration_mixed_sync_states() {
 fn edge_case_empty_batch_insert() {
     let store = InMemoryStore::new(1000);
 
-    let batch: Vec<(String, AttendanceData)> = vec![];
+    let batch: Vec<(String, AttendanceData, i64)> = vec![];
     let result = store.insert_batch(batch);
 
     assert!(result.is_err());
@@ -297,12 +311,14 @@ fn edge_case_single_capacity_store() {
 
     // Insert first log
     let data1 = make_attendance("U1", "2026-01-29 10:00:00");
-    let id1 = store.insert("D1".to_string(), data1).unwrap();
+    let ts1 = parse_timestamp_to_unix("2026-01-29 10:00:00");
+    let id1 = store.insert("D1".to_string(), data1, ts1).unwrap();
     assert!(id1 > 0);
 
     // Try to insert second (should fail)
     let data2 = make_attendance("U2", "2026-01-29 10:01:00");
-    let result = store.insert("D1".to_string(), data2);
+    let ts2 = parse_timestamp_to_unix("2026-01-29 10:01:00");
+    let result = store.insert("D1".to_string(), data2, ts2);
 
     assert!(result.is_err());
 }
@@ -312,9 +328,10 @@ fn edge_case_get_unsynced_after_all_synced() {
     let store = InMemoryStore::new(1000);
 
     // Insert and sync all
+    let timestamp_unix = parse_timestamp_to_unix("2026-01-29 10:00:00");
     for i in 1..=3 {
         let data = make_attendance(&format!("U{}", i), "2026-01-29 10:00:00");
-        store.insert("D1".to_string(), data).unwrap();
+        store.insert("D1".to_string(), data, timestamp_unix).unwrap();
     }
 
     let logs = store.get_unsynced(10);
@@ -333,9 +350,10 @@ fn edge_case_cleanup_synced_no_old_logs() {
     let store = InMemoryStore::new(1000);
 
     // Insert recent logs
+    let timestamp_unix = parse_timestamp_to_unix("2026-01-29 10:00:00");
     for i in 1..=3 {
         let data = make_attendance(&format!("U{}", i), "2026-01-29 10:00:00");
-        store.insert("D1".to_string(), data).unwrap();
+        store.insert("D1".to_string(), data, timestamp_unix).unwrap();
     }
 
     // Mark as synced
@@ -360,7 +378,8 @@ fn edge_case_multiple_timestamp_formats() {
         status: Some(1),
         punch: Some(0),
     };
-    assert!(store.insert("D1".to_string(), data1).is_ok());
+    let ts1 = parse_timestamp_to_unix("2026-01-29 10:00:00");
+    assert!(store.insert("D1".to_string(), data1, ts1).is_ok());
 
     // Test format 2: ISO 8601
     let data2 = AttendanceData {
@@ -369,7 +388,8 @@ fn edge_case_multiple_timestamp_formats() {
         status: Some(1),
         punch: Some(0),
     };
-    assert!(store.insert("D1".to_string(), data2).is_ok());
+    let ts2 = parse_timestamp_to_unix("2026-01-29 10:00:00");
+    assert!(store.insert("D1".to_string(), data2, ts2).is_ok());
 
     assert_eq!(store.count_total(), 2);
 }
