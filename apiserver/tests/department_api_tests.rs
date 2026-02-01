@@ -31,6 +31,46 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
         agent_manager.clone(),
     ));
 
+    let storage_provider = apiserver::services::create_storage_provider(&storage)
+
+
+    // Setup test storage
+
+
+
+    let storage = apiserver::StorageBackend::Local {
+
+
+
+        base_path: std::path::PathBuf::from("./test_storage"),
+
+
+
+    };
+
+
+
+    let storage_provider = apiserver::services::create_storage_provider(&storage)
+
+
+
+        .await
+
+
+
+        .expect("Failed to create test storage");
+
+
+
+
+    // Setup test storage
+    let storage = apiserver::StorageBackend::Local {
+        base_path: std::path::PathBuf::from("./test_storage"),
+    };
+    let storage_provider = apiserver::services::create_storage_provider(&storage)
+        .await
+        .expect("Failed to create test storage");
+
     let app_state = Arc::new(AppState {
         agent_manager,
         db: pool.clone(),
@@ -41,6 +81,8 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
         attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
         redis: None,
         coordinator: None,
+        storage,
+        storage_provider,
     });
 
     let app = apiserver::create_app(app_state);

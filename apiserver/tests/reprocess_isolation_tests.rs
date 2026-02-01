@@ -32,6 +32,46 @@ async fn test_reprocess_should_not_delete_next_day_entries() {
     ));
     let jwt_secret = "dev_secret_key".to_string();
 
+    let storage_provider = apiserver::services::create_storage_provider(&storage)
+
+
+    // Setup test storage
+
+
+
+    let storage = apiserver::StorageBackend::Local {
+
+
+
+        base_path: std::path::PathBuf::from("./test_storage"),
+
+
+
+    };
+
+
+
+    let storage_provider = apiserver::services::create_storage_provider(&storage)
+
+
+
+        .await
+
+
+
+        .expect("Failed to create test storage");
+
+
+
+
+    // Setup test storage
+    let storage = apiserver::StorageBackend::Local {
+        base_path: std::path::PathBuf::from("./test_storage"),
+    };
+    let storage_provider = apiserver::services::create_storage_provider(&storage)
+        .await
+        .expect("Failed to create test storage");
+
     let state = Arc::new(AppState {
         agent_manager,
         db: pool.clone(),
@@ -42,6 +82,8 @@ async fn test_reprocess_should_not_delete_next_day_entries() {
         attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
         redis: None,
         coordinator: None,
+        storage,
+        storage_provider,
     });
 
     // Day 1: 2026-01-14

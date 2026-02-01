@@ -40,6 +40,46 @@ async fn setup_test_context() -> (
     ));
     let jwt_secret = "dev_secret_key".to_string();
 
+    let storage_provider = apiserver::services::create_storage_provider(&storage)
+
+
+    // Setup test storage
+
+
+
+    let storage = apiserver::StorageBackend::Local {
+
+
+
+        base_path: std::path::PathBuf::from("./test_storage"),
+
+
+
+    };
+
+
+
+    let storage_provider = apiserver::services::create_storage_provider(&storage)
+
+
+
+        .await
+
+
+
+        .expect("Failed to create test storage");
+
+
+
+
+    // Setup test storage
+    let storage = apiserver::StorageBackend::Local {
+        base_path: std::path::PathBuf::from("./test_storage"),
+    };
+    let storage_provider = apiserver::services::create_storage_provider(&storage)
+        .await
+        .expect("Failed to create test storage");
+
     let state = Arc::new(AppState {
         agent_manager,
         db: pool.clone(),
@@ -49,8 +89,7 @@ async fn setup_test_context() -> (
         jwt_secret,
         attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
         redis: None,
-        coordinator: None,
-    });
+        coordinator: None    });
 
     let base_time = Utc.with_ymd_and_hms(2026, 1, 14, 8, 0, 0).unwrap();
 
