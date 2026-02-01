@@ -264,6 +264,8 @@
     "submit": "Gửi",
     "back_to_workspace": "Quay lại Workspace",
     "refresh": "Làm mới",
+    "expand_all": "Mở rộng tất cả",
+    "collapse_all": "Thu gọn tất cả",
     "error_occurred": "Đã xảy ra lỗi",
     "processing": "Đang xử lý...",
     "shift": "Ca làm việc",
@@ -417,7 +419,9 @@
     "required": "Bắt buộc",
     "forever": "Vô thời hạn",
     "important_note": "Lưu ý quan trọng",
-    "no_data": "Không có dữ liệu"
+    "no_data": "Không có dữ liệu",
+    "disable": "Tắt",
+    "enable": "Bật"
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -1073,6 +1077,10 @@
   "devices": {
     "title": "Quản lý thiết bị",
     "add_btn": "Thêm thiết bị",
+    "confirm_disable": "Xác nhận tắt {{name}}? Agent sẽ ngừng đồng bộ thiết bị này.",
+    "confirm_enable": "Xác nhận bật {{name}}? Agent sẽ bắt đầu đồng bộ thiết bị này.",
+    "no_devices_for_agent": "Chưa có thiết bị nào được gán cho agent này.",
+    "unassigned_title": "Thiết bị chưa gán",
     "messages": {
       "empty_desc": "Hệ thống chưa ghi nhận thiết bị IoT nào. Hãy kết nối máy chấm công để bắt đầu."
     },
@@ -1083,7 +1091,10 @@
       "update_error": "Lỗi khi cập nhật thiết bị.",
       "delete_confirm": "Bạn có chắc chắn muốn xóa thiết bị này?",
       "delete_success": "Đã xóa thiết bị khỏi hệ thống.",
-      "delete_error": "Lỗi khi xóa thiết bị."
+      "delete_error": "Lỗi khi xóa thiết bị.",
+      "disabled": "Đã tắt {{name}}",
+      "enabled": "Đã bật {{name}}",
+      "toggle_error": "Không thể cập nhật trạng thái thiết bị"
     },
     "form": {
       "infrastructure": "Hạ tầng kết nối",
@@ -1120,6 +1131,9 @@
       "delete": "Xóa thiết bị",
       "no_data": "Chưa có thiết bị nào được thiết lập."
     }
+  },
+  "connectivity": {
+    "empty_guide": "Cài đặt Agent trên mạng nội bộ để kết nối thiết bị chấm công. Tải trình cài đặt từ tài liệu hướng dẫn."
   },
   "onboarding": {
     "welcome_title": "Chào mừng bạn!",

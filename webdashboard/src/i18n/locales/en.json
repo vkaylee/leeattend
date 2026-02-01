@@ -264,6 +264,8 @@
     "submit": "Submit",
     "back_to_workspace": "Back to Workspace",
     "refresh": "Refresh",
+    "expand_all": "Expand All",
+    "collapse_all": "Collapse All",
     "error_occurred": "An error occurred",
     "processing": "Processing...",
     "shift": "Shift",
@@ -417,7 +419,9 @@
     "required": "Required",
     "forever": "Forever",
     "important_note": "Important Note",
-    "no_data": "No data found"
+    "no_data": "No data found",
+    "disable": "Disable",
+    "enable": "Enable"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1073,6 +1077,10 @@
   "devices": {
     "title": "Device Management",
     "add_btn": "Add Device",
+    "confirm_disable": "Are you sure you want to disable {{name}}? The agent will stop polling this device.",
+    "confirm_enable": "Are you sure you want to enable {{name}}? The agent will start polling this device.",
+    "no_devices_for_agent": "No devices assigned to this agent yet.",
+    "unassigned_title": "Unassigned Devices",
     "messages": {
       "empty_desc": "No IoT devices recorded yet. Connect a timekeeper to get started."
     },
@@ -1083,7 +1091,10 @@
       "update_error": "Error updating device.",
       "delete_confirm": "Are you sure you want to delete this device?",
       "delete_success": "Device removed from system.",
-      "delete_error": "Error deleting device."
+      "delete_error": "Error deleting device.",
+      "disabled": "{{name}} has been disabled",
+      "enabled": "{{name}} has been enabled",
+      "toggle_error": "Failed to update device status"
     },
     "form": {
       "infrastructure": "Connection Infrastructure",
@@ -1120,6 +1131,9 @@
       "delete": "Delete Device",
       "no_data": "No devices set up yet."
     }
+  },
+  "connectivity": {
+    "empty_guide": "Install an Agent on your local network to connect attendance devices. Download the installer from the documentation."
   },
   "onboarding": {
     "welcome_title": "Welcome!",
