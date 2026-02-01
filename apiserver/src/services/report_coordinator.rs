@@ -6,6 +6,7 @@
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use tracing::{error, warn};
 use uuid::Uuid;
 
 use crate::queue::{
@@ -245,7 +246,25 @@ impl ReportCoordinator {
 
         // Check if file is ready
         let result_url = if meta.status == JobStatus::Completed {
-            self.queue.get_result_url(job_id).await.ok().flatten()
+            match self.queue.get_result_url(job_id).await {
+                Ok(url) => {
+                    if url.is_none() {
+                        warn!(
+                            job_id = %job_id,
+                            "Job marked as completed but result URL not found in Redis"
+                        );
+                    }
+                    url
+                }
+                Err(e) => {
+                    error!(
+                        job_id = %job_id,
+                        error = %e,
+                        "Failed to retrieve result URL from Redis for completed job"
+                    );
+                    None
+                }
+            }
         } else {
             None
         };

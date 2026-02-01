@@ -1,4 +1,5 @@
 use redis::AsyncCommands;
+use tracing::{debug, error};
 use uuid::Uuid;
 
 use crate::queue::{JobMetadata, RedisPool, ReportJob};
@@ -162,10 +163,10 @@ impl ReportQueue {
         let counter_key = format!("{}{}", COUNTER_PREFIX, parent_job_id);
 
         // Set TTL on first increment (counter may not exist yet)
-        let count: u32 = redis::pipe()
+        // Use tuple destructuring to handle pipe response (incr returns u32, expire returns i32)
+        let (count, _): (u32, i32) = redis::pipe()
             .incr(&counter_key, 1)
             .expire(&counter_key, JOB_TTL_SECS)
-            .ignore()
             .query_async(&mut conn)
             .await?;
 
@@ -184,10 +185,10 @@ impl ReportQueue {
         let mut conn = self.pool.conn();
         let failed_key = format!("{}{}:failed", COUNTER_PREFIX, parent_job_id);
 
-        let count: u32 = redis::pipe()
+        // Use tuple destructuring to handle pipe response (incr returns u32, expire returns i32)
+        let (count, _): (u32, i32) = redis::pipe()
             .incr(&failed_key, 1)
             .expire(&failed_key, JOB_TTL_SECS)
-            .ignore()
             .query_async(&mut conn)
             .await?;
 
@@ -313,11 +314,27 @@ impl ReportQueue {
         let mut conn = self.pool.conn();
         let key = format!("{}{}:url", RESULTS_PREFIX, job_id);
 
+        debug!(
+            job_id = %job_id,
+            url = %url,
+            redis_key = %key,
+            "Storing result URL in Redis"
+        );
+
         redis::pipe()
             .set(&key, url)
             .expire(&key, JOB_TTL_SECS)
             .query_async(&mut conn)
             .await
+            .map_err(|e| {
+                error!(
+                    job_id = %job_id,
+                    redis_key = %key,
+                    error = %e,
+                    "Failed to store result URL in Redis"
+                );
+                e
+            })
     }
 
     /// Get the result URL for a completed job.
@@ -331,7 +348,32 @@ impl ReportQueue {
     pub async fn get_result_url(&self, job_id: Uuid) -> Result<Option<String>, redis::RedisError> {
         let mut conn = self.pool.conn();
         let key = format!("{}{}:url", RESULTS_PREFIX, job_id);
-        conn.get(&key).await
+
+        debug!(
+            job_id = %job_id,
+            redis_key = %key,
+            "Retrieving result URL from Redis"
+        );
+
+        let url: Option<String> = conn.get(&key).await.map_err(|e| {
+            error!(
+                job_id = %job_id,
+                redis_key = %key,
+                error = %e,
+                "Failed to retrieve result URL from Redis"
+            );
+            e
+        })?;
+
+        if let Some(ref url_value) = url {
+            debug!(
+                job_id = %job_id,
+                url = %url_value,
+                "Successfully retrieved result URL from Redis"
+            );
+        }
+
+        Ok(url)
     }
 
     /// Delete batch results after merge completes.
@@ -353,10 +395,10 @@ impl ReportQueue {
         let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
         let key = format!("{}{}", STATS_COMPLETED_PREFIX, today);
 
-        let count: u64 = redis::pipe()
+        // Use tuple destructuring to handle pipe response (incr returns u64, expire returns i32)
+        let (count, _): (u64, i32) = redis::pipe()
             .incr(&key, 1)
             .expire(&key, STATS_TTL_SECS)
-            .ignore()
             .query_async(&mut conn)
             .await?;
 
@@ -370,10 +412,10 @@ impl ReportQueue {
         let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
         let key = format!("{}{}", STATS_FAILED_PREFIX, today);
 
-        let count: u64 = redis::pipe()
+        // Use tuple destructuring to handle pipe response (incr returns u64, expire returns i32)
+        let (count, _): (u64, i32) = redis::pipe()
             .incr(&key, 1)
             .expire(&key, STATS_TTL_SECS)
-            .ignore()
             .query_async(&mut conn)
             .await?;
 
