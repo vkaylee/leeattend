@@ -132,7 +132,7 @@ export default function ConnectivityTopology() {
   const isLoading = agentsLoading || devicesLoading;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div data-testid="connectivity-topology" className="space-y-8 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
         <div className="flex items-center gap-4">
@@ -153,12 +153,14 @@ export default function ConnectivityTopology() {
           {agents.length > 0 && (
             <>
               <button
+                data-testid="expand-all-btn"
                 onClick={expandAll}
                 className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-primary-600 transition-colors"
               >
                 {t("common.expand_all")}
               </button>
               <button
+                data-testid="collapse-all-btn"
                 onClick={collapseAll}
                 className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-primary-600 transition-colors"
               >
@@ -168,6 +170,7 @@ export default function ConnectivityTopology() {
             </>
           )}
           <button
+            data-testid="toggle-inactive-btn"
             onClick={() => setIncludeInactive(!includeInactive)}
             className={cn(
               "flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all border shadow-sm active:scale-95",
@@ -179,6 +182,7 @@ export default function ConnectivityTopology() {
             {includeInactive ? t("common.status_inactive") : t("common.status_active")}
           </button>
           <button
+            data-testid="add-agent-btn"
             onClick={() => setShowAddForm(true)}
             className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95"
           >
@@ -189,7 +193,7 @@ export default function ConnectivityTopology() {
 
       {/* Add Agent Form */}
       {showAddForm && (
-        <form onSubmit={handleAddAgent} className="bg-white border-2 border-primary-100 p-10 rounded-[2.5rem] shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500">
+        <form data-testid="add-agent-form" onSubmit={handleAddAgent} className="bg-white border-2 border-primary-100 p-10 rounded-[2.5rem] shadow-xl shadow-primary-50/50 animate-in slide-in-from-top-4 duration-500">
           <div className="flex items-center gap-3 mb-8 text-primary-700">
             <div className="w-8 h-8 rounded-xl bg-primary-50 flex items-center justify-center shadow-inner"><Plus size={16} /></div>
             <h4 className="text-[10px] font-bold uppercase tracking-[0.2em]">{t("agents.add_form_title")}</h4>
@@ -197,20 +201,20 @@ export default function ConnectivityTopology() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="space-y-3 px-1">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("agents.id_label")}</label>
-              <input required placeholder="agent-001" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono font-bold text-sm uppercase tracking-tight" value={newAgent.id} onChange={(e) => setNewAgent({ ...newAgent, id: e.target.value })} />
+              <input data-testid="agent-id-input" required placeholder="agent-001" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono font-bold text-sm uppercase tracking-tight" value={newAgent.id} onChange={(e) => setNewAgent({ ...newAgent, id: e.target.value })} />
             </div>
             <div className="space-y-3 px-1">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("agents.name_label")}</label>
-              <input required placeholder="Office Main" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-bold text-sm uppercase tracking-tight" value={newAgent.name} onChange={(e) => setNewAgent({ ...newAgent, name: e.target.value })} />
+              <input data-testid="agent-name-input" required placeholder="Office Main" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-bold text-sm uppercase tracking-tight" value={newAgent.name} onChange={(e) => setNewAgent({ ...newAgent, name: e.target.value })} />
             </div>
             <div className="space-y-3 px-1">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("agents.token_label")}</label>
-              <input required placeholder="Connection token" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono font-bold text-sm" value={newAgent.token} onChange={(e) => setNewAgent({ ...newAgent, token: e.target.value })} />
+              <input data-testid="agent-token-input" required placeholder="Connection token" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono font-bold text-sm" value={newAgent.token} onChange={(e) => setNewAgent({ ...newAgent, token: e.target.value })} />
             </div>
           </div>
           <div className="mt-10 flex justify-end gap-4">
-            <button type="button" onClick={() => setShowAddForm(false)} className="px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">{t("common.cancel")}</button>
-            <button type="submit" className="bg-primary-600 text-white px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95">{t("agents.save_btn")}</button>
+            <button data-testid="agent-form-cancel" type="button" onClick={() => setShowAddForm(false)} className="px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">{t("common.cancel")}</button>
+            <button data-testid="agent-form-submit" type="submit" className="bg-primary-600 text-white px-12 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95">{t("agents.save_btn")}</button>
           </div>
         </form>
       )}
@@ -223,7 +227,7 @@ export default function ConnectivityTopology() {
           ))}
         </div>
       ) : agents.length === 0 ? (
-        <div className="py-32 text-center border-2 border-dashed border-slate-100 rounded-[3rem] bg-slate-50/30 flex flex-col items-center animate-in zoom-in-95 duration-500">
+        <div data-testid="empty-agents-state" className="py-32 text-center border-2 border-dashed border-slate-100 rounded-[3rem] bg-slate-50/30 flex flex-col items-center animate-in zoom-in-95 duration-500">
           <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-sm mb-6 border border-slate-100">
             <Server size={32} className="text-slate-200" />
           </div>
@@ -234,6 +238,7 @@ export default function ConnectivityTopology() {
             {t("connectivity.empty_guide")}
           </p>
           <button
+            data-testid="empty-add-agent-btn"
             onClick={() => setShowAddForm(true)}
             className="px-10 py-4 bg-white border border-slate-200 rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] text-slate-600 hover:border-primary-200 hover:text-primary-600 transition-all shadow-sm active:scale-95"
           >
@@ -241,7 +246,7 @@ export default function ConnectivityTopology() {
           </button>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div data-testid="agents-list" className="space-y-4">
           {agents.map(agent => (
             <AgentAccordionCard
               key={agent.id}
@@ -262,14 +267,14 @@ export default function ConnectivityTopology() {
 
       {/* Unassigned Devices Section */}
       {unassignedDevices.length > 0 && (
-        <div className="mt-8 animate-in fade-in duration-500">
+        <div data-testid="unassigned-devices-section" className="mt-8 animate-in fade-in duration-500">
           <div className="flex items-center gap-3 mb-4 px-2">
             <AlertCircle size={16} className="text-amber-500" />
             <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">
               {t("devices.unassigned_title")} ({unassignedDevices.length})
             </h3>
           </div>
-          <div className="bg-amber-50/50 border border-amber-100 rounded-[2.5rem] p-6 space-y-3">
+          <div data-testid="unassigned-devices-list" className="bg-amber-50/50 border border-amber-100 rounded-[2.5rem] p-6 space-y-3">
             {unassignedDevices.map(device => (
               <DeviceListItem
                 key={device.id}
@@ -303,10 +308,11 @@ export default function ConnectivityTopology() {
         maxWidth="lg"
       >
         {editingDevice && (
-          <form onSubmit={handleSaveDevice} className="space-y-8 pt-4 animate-in fade-in duration-500">
+          <form data-testid="edit-device-form" onSubmit={handleSaveDevice} className="space-y-8 pt-4 animate-in fade-in duration-500">
             <div className="space-y-3 px-1">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("devices.form.clock_name")}</label>
               <input
+                data-testid="device-name-input"
                 required
                 className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm"
                 placeholder={t("devices.form.clock_name_placeholder")}
@@ -319,6 +325,7 @@ export default function ConnectivityTopology() {
               <div className="space-y-3 px-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("devices.form.managed_by")}</label>
                 <Combobox
+                  data-testid="device-agent-select"
                   options={agents.map((a) => ({ value: a.id, label: `${a.name} (${a.id})`, icon: <Server size={14} /> }))}
                   value={editingDevice.agent_id}
                   onChange={(val) => setEditingDevice({ ...editingDevice, agent_id: val })}
@@ -329,6 +336,7 @@ export default function ConnectivityTopology() {
               <div className="space-y-3 px-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("devices.form.brand")}</label>
                 <Combobox
+                  data-testid="device-brand-select"
                   options={brandOptions}
                   value={editingDevice.brand}
                   onChange={(val) => setEditingDevice({ ...editingDevice, brand: val })}
@@ -342,6 +350,7 @@ export default function ConnectivityTopology() {
               <div className="col-span-2 space-y-3 px-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("devices.form.ip_local")}</label>
                 <input
+                  data-testid="device-ip-input"
                   required
                   className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono font-bold text-sm tracking-tight"
                   placeholder="192.168.1.100"
@@ -352,6 +361,7 @@ export default function ConnectivityTopology() {
               <div className="space-y-3 px-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("devices.form.port")}</label>
                 <input
+                  data-testid="device-port-input"
                   type="number"
                   required
                   className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-mono font-bold text-sm text-center tracking-tighter"
@@ -363,6 +373,7 @@ export default function ConnectivityTopology() {
 
             <div className="flex gap-4 pt-6">
               <button
+                data-testid="device-form-cancel"
                 type="button"
                 onClick={() => setEditingDevice(null)}
                 className="flex-1 px-8 py-4 bg-white border border-slate-200 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all active:scale-95"
@@ -370,6 +381,7 @@ export default function ConnectivityTopology() {
                 {t("devices.form.cancel")}
               </button>
               <button
+                data-testid="device-form-submit"
                 type="submit"
                 className="flex-1 bg-primary-600 text-white px-8 py-4 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95 flex items-center justify-center gap-3"
               >

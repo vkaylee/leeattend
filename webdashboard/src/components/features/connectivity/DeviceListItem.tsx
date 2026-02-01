@@ -67,11 +67,14 @@ export default function DeviceListItem({
   const isDimmed = !parentAgentActive || !device.is_enabled;
 
   return (
-    <div className={cn(
-      "flex items-center gap-6 p-4 rounded-2xl transition-all group",
-      "bg-slate-50/50 hover:bg-slate-100/50 border border-transparent hover:border-slate-200",
-      isDimmed && "opacity-50"
-    )}>
+    <div
+      data-testid={`device-item-${device.id}`}
+      className={cn(
+        "flex items-center gap-6 p-4 rounded-2xl transition-all group",
+        "bg-slate-50/50 hover:bg-slate-100/50 border border-transparent hover:border-slate-200",
+        isDimmed && "opacity-50"
+      )}
+    >
       {/* Device icon */}
       <div className={cn(
         "w-10 h-10 rounded-xl flex items-center justify-center",
@@ -84,10 +87,10 @@ export default function DeviceListItem({
       {/* Device info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-slate-700 text-sm uppercase tracking-tight truncate">
+          <span data-testid={`device-name-${device.id}`} className="font-bold text-slate-700 text-sm uppercase tracking-tight truncate">
             {device.name}
           </span>
-          <span className="text-[8px] bg-slate-200 px-1.5 py-0.5 rounded font-bold text-slate-500 uppercase tracking-widest shrink-0">
+          <span data-testid={`device-brand-${device.id}`} className="text-[8px] bg-slate-200 px-1.5 py-0.5 rounded font-bold text-slate-500 uppercase tracking-widest shrink-0">
             {device.brand}
           </span>
         </div>
@@ -97,25 +100,29 @@ export default function DeviceListItem({
       <div className="flex items-center gap-3 shrink-0">
         <div className="flex items-center gap-2 text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-100">
           <Globe size={12} className="text-slate-300" />
-          <span className="text-[11px] font-bold font-mono tracking-tighter">{device.ip}</span>
+          <span data-testid={`device-ip-${device.id}`} className="text-[11px] font-bold font-mono tracking-tighter">{device.ip}</span>
         </div>
-        <div className="flex items-center gap-1 text-slate-400 font-mono font-bold text-[11px]">
+        <div data-testid={`device-port-${device.id}`} className="flex items-center gap-1 text-slate-400 font-mono font-bold text-[11px]">
           <Hash size={12} /> {device.port}
         </div>
       </div>
 
       {/* Status badge */}
-      <span className={cn(
-        "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm shrink-0",
-        device.is_enabled
-          ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-          : "bg-slate-100 text-slate-500 border-slate-200"
-      )}>
+      <span
+        data-testid={`device-status-${device.id}`}
+        className={cn(
+          "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm shrink-0",
+          device.is_enabled
+            ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+            : "bg-slate-100 text-slate-500 border-slate-200"
+        )}
+      >
         {device.is_enabled ? t("devices.table.active") : t("devices.table.disabled")}
       </span>
 
       {/* Toggle button */}
       <button
+        data-testid={`device-toggle-${device.id}`}
         onClick={handleToggle}
         disabled={isToggling}
         className={cn(
@@ -138,13 +145,14 @@ export default function DeviceListItem({
       {/* Actions dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="p-2 text-slate-300 hover:text-primary-600 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+          <button data-testid={`device-menu-${device.id}`} className="p-2 text-slate-300 hover:text-primary-600 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
             <MoreVertical size={16} />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48 p-2 rounded-xl">
           {onEdit && (
             <DropdownMenuItem
+              data-testid={`device-edit-${device.id}`}
               className="gap-3 p-3 rounded-lg font-bold text-xs uppercase"
               onSelect={() => onEdit(device)}
             >
@@ -153,6 +161,7 @@ export default function DeviceListItem({
             </DropdownMenuItem>
           )}
           <DropdownMenuItem
+            data-testid={`device-delete-${device.id}`}
             onSelect={handleDelete}
             className="gap-3 p-3 rounded-lg font-bold text-xs uppercase text-rose-600 focus:text-rose-600"
           >

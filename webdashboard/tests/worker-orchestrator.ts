@@ -6,6 +6,7 @@ import fs from 'fs';
 import { LoginPage } from './pom/LoginPage';
 import { Sidebar } from './pom/Sidebar';
 import { EmployeesPage } from './pom/EmployeesPage';
+import { ConnectivityPage } from './pom/ConnectivityPage';
 
 export { expect };
 
@@ -20,6 +21,7 @@ type TestFixtures = {
   loginPage: LoginPage;
   sidebar: Sidebar;
   employeesPage: EmployeesPage;
+  connectivityPage: ConnectivityPage;
   authPage: LoginPage; // Auto-authenticated page
 };
 
@@ -117,6 +119,9 @@ export const test = workerTest.extend<TestFixtures>({
   },
   employeesPage: async ({ page }, use) => {
     await use(new EmployeesPage(page));
+  },
+  connectivityPage: async ({ page }, use) => {
+    await use(new ConnectivityPage(page));
   },
 
   // Fixture that automatically logs in
