@@ -20,6 +20,11 @@ export class ConnectivityPage extends BasePage {
     await expect(this.page.getByTestId('add-agent-form')).toBeVisible();
   }
 
+  async clickAddDeviceForAgent(agentId: string) {
+    await this.page.getByTestId(`add-device-btn-${agentId}`).click();
+    await expect(this.page.getByTestId('add-device-form')).toBeVisible();
+  }
+
   async fillAgentForm(id: string, name: string, token: string) {
     await this.page.getByTestId('agent-id-input').fill(id);
     await this.page.getByTestId('agent-name-input').fill(name);

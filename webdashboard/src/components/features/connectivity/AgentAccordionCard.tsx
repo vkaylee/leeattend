@@ -6,7 +6,8 @@ import {
   Edit2,
   Trash2,
   RefreshCw,
-  HardDrive
+  HardDrive,
+  Plus
 } from "lucide-react";
 import { AuthorizedAgent, Device } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ interface AgentAccordionCardProps {
   onUpdateDevice: (id: string, data: Partial<Device>) => Promise<void>;
   onDeleteDevice: (id: string) => Promise<void>;
   onEditDevice?: (device: Device) => void;
+  onAddDevice?: (agentId: string) => void;
 }
 
 export default function AgentAccordionCard({
@@ -36,7 +38,8 @@ export default function AgentAccordionCard({
   onDelete,
   onUpdateDevice,
   onDeleteDevice,
-  onEditDevice
+  onEditDevice,
+  onAddDevice
 }: AgentAccordionCardProps) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -179,6 +182,17 @@ export default function AgentAccordionCard({
                 onEdit={onEditDevice}
               />
             ))
+          )}
+          {/* Add Device Button */}
+          {onAddDevice && (
+            <button
+              data-testid={`add-device-btn-${agent.id}`}
+              onClick={() => onAddDevice(agent.id)}
+              className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-500 hover:text-primary-600 hover:border-primary-300 hover:bg-primary-50/30 transition-all flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest"
+            >
+              <Plus size={16} />
+              {t("devices.add_btn")}
+            </button>
           )}
         </div>
       </div>
