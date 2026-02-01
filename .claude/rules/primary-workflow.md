@@ -14,14 +14,26 @@
 - **[IMPORTANT]** After creating or modifying code file, run compile command/script to check for any compile errors.
 
 #### 2. Testing
+
+**⛔ NO TEST = NO DONE** - Every feature MUST have tests before considered complete.
+
 - Delegate to `tester` agent to run tests and analyze the summary report.
   - Write comprehensive unit tests
-  - Ensure high code coverage
+  - Ensure high code coverage (80%+ target)
   - Test error scenarios
   - Validate performance requirements
+- **UI Testing:** ALWAYS add `data-testid` attributes to interactive elements before writing tests
+  - Format: `data-testid="component-name-element-type"` (kebab-case)
+  - Tests MUST use `data-testid` selectors, NOT class names or text content
 - Tests are critical for ensuring code quality and reliability, **DO NOT** ignore failing tests just to pass the build.
 - **IMPORTANT:** make sure you don't use fake data, mocks, cheats, tricks, temporary solutions, just to pass the build or github actions.
 - **IMPORTANT:** Always fix failing tests follow the recommendations and delegate to `tester` agent to run tests again, only finish your session when all tests pass.
+
+**Definition of Done:**
+- [ ] Feature implemented
+- [ ] `data-testid` added to UI components (if frontend)
+- [ ] Tests written and passing
+- [ ] `tester` agent confirms all tests pass
 
 #### 3. Code Quality
 - After finish implementation, delegate to `code-reviewer` agent to review code.

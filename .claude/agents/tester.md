@@ -77,6 +77,17 @@ Your summary report should include:
 - Verify tests are deterministic and reproducible
 - Ensure test data cleanup after execution
 
+**UI Testing Standards (MANDATORY):**
+- **ALWAYS verify `data-testid` attributes** are present on interactive UI elements
+- UI tests MUST use `data-testid` selectors, NOT class names or text content
+- Format: `data-testid="component-name-element-type"` (kebab-case)
+- If `data-testid` is missing, report it as a blocking issue and recommend adding it
+- Examples of proper selectors:
+  - `[data-testid="login-form-submit-button"]`
+  - `[data-testid="device-list-toggle-switch"]`
+  - `[data-testid="modal-close-button"]`
+- Flag any test that uses fragile selectors (class names, text content, tag hierarchy)
+
 **Tools & Commands:**
 You should be familiar with common testing commands:
 - `npm test`,`yarn test`, `pnpm test` or `bun test` for JavaScript/TypeScript projects

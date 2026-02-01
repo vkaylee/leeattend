@@ -40,3 +40,37 @@
 - Implement features according to specifications
 - Handle edge cases and error scenarios
 - **DO NOT** create new enhanced files, update to the existing files directly.
+
+## Testing Requirements (MANDATORY)
+
+**⛔ NO TEST = NO DONE** - Every feature MUST have corresponding tests before considered complete.
+
+### General Testing Rules
+- Every new feature, bug fix, or refactor MUST include tests
+- Tests must pass before marking any task as complete
+- Never skip tests or use mocks/fake data just to pass the build
+- Delegate to `tester` agent after implementation to validate
+
+### UI/Frontend Testing Standards
+- **ALWAYS use `data-testid` attributes** for element selection in tests
+- Format: `data-testid="component-name-element-type"` (kebab-case)
+- Examples:
+  - `data-testid="login-form-submit-button"`
+  - `data-testid="user-profile-avatar"`
+  - `data-testid="device-list-toggle-switch"`
+- **DO NOT** use class names, tag names, or text content for test selectors
+- Add `data-testid` to interactive elements: buttons, inputs, links, toggles
+- Add `data-testid` to dynamic content areas: lists, cards, modals
+
+### Test Coverage Requirements
+- Unit tests: Core logic, utility functions, hooks
+- Integration tests: API endpoints, database operations
+- E2E tests: Critical user flows (login, main features)
+- Minimum coverage target: 80%
+
+### Definition of Done Checklist
+- [ ] Feature implemented and working
+- [ ] Unit tests written and passing
+- [ ] `data-testid` attributes added to UI components
+- [ ] Integration/E2E tests if applicable
+- [ ] All tests pass via `./run-tests.sh`
