@@ -36,13 +36,12 @@ export async function createDevice(
 export async function updateDevice(
   id: string,
   device: Partial<Device>,
-): Promise<Device> {
+): Promise<void> {
   const response = await apiFetch(`${API_BASE_URL}/devices/${id}`, {
     method: "PUT",
     body: JSON.stringify(device),
   });
   if (!response.ok) throw new Error("Failed to update device");
-  return response.json();
 }
 
 export async function deleteDevice(id: string): Promise<void> {
