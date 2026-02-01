@@ -25,7 +25,8 @@ impl AgentService {
                     name: d.name,
                     ip: d.ip,
                     port: d.port,
-                    brand: d.brand
+                    brand: d.brand,
+                    is_enabled: d.is_enabled,
                 }
             }).collect(),
             max_concurrent_workers: max_workers

@@ -23,8 +23,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 /// Parse composite key "device_id:user_id:timestamp_unix" back to components
 /// Uses rsplit to safely handle device_id containing colons
 /// Format: device_id can contain colons, user_id and timestamp_unix cannot
-/// Returns timestamp as SQLite-compatible string format "YYYY-MM-DD HH:MM:SS"
-fn parse_composite_key(key: &str) -> Option<(String, String, String)> {
+/// Returns timestamp as i64 (Unix timestamp in UTC seconds)
+fn parse_composite_key(key: &str) -> Option<(String, String, i64)> {
     // Split from right: timestamp (last), user_id (second-to-last), device_id (rest)
     let mut parts = key.rsplitn(3, ':');
 
@@ -38,16 +38,10 @@ fn parse_composite_key(key: &str) -> Option<(String, String, String)> {
         return None; // Too many colons even for rsplit(3)
     }
 
-    // Parse Unix timestamp
+    // Parse Unix timestamp (i64)
     let timestamp_unix = timestamp_str.parse::<i64>().ok()?;
-    let datetime = chrono::DateTime::from_timestamp(timestamp_unix, 0)?
-        .naive_utc();
 
-    // CRITICAL: Format to SQLite DATETIME format (matches DB storage)
-    // This ensures the WHERE clause in UPDATE query matches exactly
-    let timestamp_formatted = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
-
-    Some((device_id.to_string(), user_id.to_string(), timestamp_formatted))
+    Some((device_id.to_string(), user_id.to_string(), timestamp_unix))
 }
 
 // Retry configuration constants
@@ -162,13 +156,18 @@ impl CentralClient {
                     }
                 }
                 for log in logs {
+                    // Convert Unix timestamp to formatted string
+                    let timestamp_str = chrono::DateTime::from_timestamp(log.timestamp, 0)
+                        .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
+                        .unwrap_or_else(|| format!("invalid_{}", log.timestamp));
+
                     let msg = CentralMessage::Attendance {
                         msg_id: log.composite_key(),
                         agent_id: sync_agent_id.clone(),
                         device_id: log.device_id.clone(),
                         data: AttendanceData {
                             user_id: crate::utils::normalize_employee_id(&log.user_id),
-                            timestamp: log.timestamp.format("%Y-%m-%d %H:%M:%S").to_string(),
+                            timestamp: timestamp_str,
                             status: log.status,
                             punch: log.punch,
                         },
@@ -309,7 +308,8 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                         info!("Deactivated {} stale devices", deactivated);
                     }
                 for d in data.devices {
-                    let _ = hybrid_db.disk_db().upsert_device(&d.device_id, &d.name, &d.ip, d.port, &d.brand).await;
+                    let timezone = d.timezone.as_deref().unwrap_or("UTC");
+                    let _ = hybrid_db.disk_db().upsert_device(&d.device_id, &d.name, &d.ip, d.port, &d.brand, timezone, d.is_enabled).await;
                 }
                 let _ = reload_tx.try_send(());
             }
@@ -322,9 +322,9 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                     }
 
                     // Update disk using composite key
-                    if let Some((device_id, user_id, timestamp_str)) = parse_composite_key(&msg_id) {
+                    if let Some((device_id, user_id, timestamp_unix)) = parse_composite_key(&msg_id) {
                         log::info!("🔍 ACK Success: device='{}', user='{}', timestamp='{}'",
-                            device_id, user_id, timestamp_str);
+                            device_id, user_id, timestamp_unix);
 
                         match sqlx::query(
                             "UPDATE zkt_raw_attendance SET is_synced = 1
@@ -332,7 +332,7 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                         )
                         .bind(&device_id)
                         .bind(&user_id)
-                        .bind(&timestamp_str)
+                        .bind(timestamp_unix)
                         .execute(hybrid_db.disk_db().get_pool())
                         .await
                         {
@@ -340,7 +340,7 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                                 let rows = result.rows_affected();
                                 if rows == 0 {
                                     log::error!("❌ UPDATE affected 0 rows! device='{}', user='{}', timestamp='{}' - Log may not exist in DB or already synced",
-                                        device_id, user_id, timestamp_str);
+                                        device_id, user_id, timestamp_unix);
                                 } else {
                                     log::debug!("✅ Marked {} row(s) as synced in DB", rows);
                                 }
@@ -359,9 +359,9 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                     }
 
                     // Reset disk using composite key
-                    if let Some((device_id, user_id, timestamp_str)) = parse_composite_key(&msg_id) {
+                    if let Some((device_id, user_id, timestamp_unix)) = parse_composite_key(&msg_id) {
                         log::warn!("⚠️ ACK Failed: Resetting device='{}', user='{}', timestamp='{}'",
-                            device_id, user_id, timestamp_str);
+                            device_id, user_id, timestamp_unix);
 
                         let _ = sqlx::query(
                             "UPDATE zkt_raw_attendance SET is_synced = 0
@@ -369,7 +369,7 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                         )
                         .bind(&device_id)
                         .bind(&user_id)
-                        .bind(&timestamp_str)
+                        .bind(timestamp_unix)
                         .execute(hybrid_db.disk_db().get_pool())
                         .await;
                     }
@@ -479,12 +479,12 @@ mod tests {
         let result = parse_composite_key(key);
         assert!(result.is_some());
 
-        let (device_id, user_id, timestamp_str) = result.unwrap();
+        let (device_id, user_id, timestamp_unix) = result.unwrap();
         assert_eq!(device_id, "DEV1");
         assert_eq!(user_id, "U001");
-        // Verify timestamp is formatted correctly for SQLite
+        // Verify timestamp is returned as i64 Unix timestamp
         // 1738314000 = 2025-01-31 09:00:00 UTC
-        assert_eq!(timestamp_str, "2025-01-31 09:00:00");
+        assert_eq!(timestamp_unix, 1738314000);
     }
 
     #[test]
@@ -494,10 +494,10 @@ mod tests {
         let result = parse_composite_key(key);
         assert!(result.is_some(), "Should parse device_id with colons");
 
-        let (device_id, user_id, timestamp_str) = result.unwrap();
+        let (device_id, user_id, timestamp_unix) = result.unwrap();
         assert_eq!(device_id, "Office:Main:Gate");
         assert_eq!(user_id, "U001");
-        assert_eq!(timestamp_str, "2025-01-31 09:00:00");
+        assert_eq!(timestamp_unix, 1738314000);
     }
 
     #[test]
@@ -507,9 +507,10 @@ mod tests {
         let result = parse_composite_key(key);
         assert!(result.is_some());
 
-        let (device_id, user_id, _) = result.unwrap();
+        let (device_id, user_id, timestamp_unix) = result.unwrap();
         assert_eq!(device_id, "Office:Gate");
         assert_eq!(user_id, "U001");
+        assert_eq!(timestamp_unix, 1738314000);
     }
 
     #[test]
@@ -695,7 +696,7 @@ mod tests {
         // Add an active device
         hybrid_db
             .disk_db()
-            .upsert_device("dev1", "Device 1", "192.168.1.100", 4370, "zkteco")
+            .upsert_device("dev1", "Device 1", "192.168.1.100", 4370, "zkteco", "UTC", true)
             .await
             .unwrap();
 
@@ -712,7 +713,7 @@ mod tests {
         // Add device then deactivate all
         hybrid_db
             .disk_db()
-            .upsert_device("dev1", "Device 1", "192.168.1.100", 4370, "zkteco")
+            .upsert_device("dev1", "Device 1", "192.168.1.100", 4370, "zkteco", "UTC", true)
             .await
             .unwrap();
 

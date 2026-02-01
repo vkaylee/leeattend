@@ -13,6 +13,7 @@ pub struct DeviceConfigPush {
     pub ip: String,
     pub port: i32,
     pub brand: String,
+    pub is_enabled: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -8,7 +8,7 @@ pub struct RawAttendanceLog {
     pub id: i64,
     pub device_id: String,
     pub user_id: String,
-    pub timestamp: chrono::NaiveDateTime,
+    pub timestamp: i64,
     pub status: Option<i32>,
     pub punch: Option<i32>,
     pub is_synced: i64,
@@ -22,7 +22,7 @@ pub struct RawAttendanceLog {
 pub struct SignatureRow {
     pub device_id: String,
     pub user_id: String,
-    pub timestamp: chrono::NaiveDateTime,
+    pub timestamp: i64,
     pub punch: Option<i32>,
     pub status: Option<i32>,
 }
@@ -33,7 +33,7 @@ pub struct FailedLog {
     pub id: i64,
     pub device_id: String,
     pub user_id: String,
-    pub timestamp: chrono::NaiveDateTime,
+    pub timestamp: i64,
     pub status: Option<i32>,
     pub punch: Option<i32>,
     pub failed_at: chrono::NaiveDateTime,
@@ -51,11 +51,16 @@ pub struct DeviceConfig {
     pub ip: String,
     pub port: i64,
     pub brand: String,
+    pub timezone: String,
     pub last_seen: Option<chrono::NaiveDateTime>,
     pub is_active: Option<bool>,
 }
 
 // Config Push Models
+fn default_enabled() -> bool {
+    true
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DeviceConfigPush {
     pub device_id: String,
@@ -63,6 +68,9 @@ pub struct DeviceConfigPush {
     pub ip: String,
     pub port: i32,
     pub brand: String,
+    pub timezone: Option<String>,
+    #[serde(default = "default_enabled")]
+    pub is_enabled: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

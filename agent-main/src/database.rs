@@ -1,7 +1,8 @@
 use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite, Error};
 use crate::models::{RawAttendanceLog, SignatureRow, DeviceConfig, AttendanceData};
 use crate::memory_store::InMemoryStore;
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, TimeZone};
+use chrono_tz::Tz;
 use serde_json;
 use std::sync::Arc;
 
@@ -68,17 +69,49 @@ impl Database {
         &self.pool
     }
 
+    /// Get device timezone from database, fallback to UTC if not found or invalid
+    pub async fn get_device_timezone(&self, device_id: &str) -> Result<Tz, Error> {
+        let timezone_str: Option<String> = sqlx::query_scalar(
+            "SELECT timezone FROM devices WHERE id = ?"
+        )
+        .bind(device_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        let tz_str = timezone_str.unwrap_or_else(|| "UTC".to_string());
+        let tz = tz_str.parse::<Tz>().unwrap_or(chrono_tz::UTC);
+        Ok(tz)
+    }
+
+    /// Convert local time string to UTC Unix timestamp
+    /// Returns i64 timestamp in seconds since Unix epoch
+    pub fn parse_local_to_utc_timestamp(local_time_str: &str, tz: Tz) -> Result<i64, String> {
+        // Try parsing with different formats
+        let naive_dt = NaiveDateTime::parse_from_str(local_time_str, "%Y-%m-%d %H:%M:%S")
+            .or_else(|_| NaiveDateTime::parse_from_str(local_time_str, "%Y-%m-%dT%H:%M:%SZ"))
+            .map_err(|e| format!("Failed to parse timestamp: {}", e))?;
+
+        // Convert to timezone-aware datetime
+        let local_dt = tz.from_local_datetime(&naive_dt)
+            .single()
+            .ok_or_else(|| format!("Ambiguous or non-existent local time: {}", local_time_str))?;
+
+        // Convert to UTC and get Unix timestamp
+        let utc_dt = local_dt.with_timezone(&chrono::Utc);
+        Ok(utc_dt.timestamp())
+    }
+
     pub async fn save_raw_attendance(
         &self,
         device_id: &str,
         data: AttendanceData,
     ) -> Result<i64, Error> {
-        // Parse timestamp first
-        let timestamp_res = NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%d %H:%M:%S")
-            .or_else(|_| NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%dT%H:%M:%SZ"));
+        // Get device timezone
+        let tz = self.get_device_timezone(device_id).await?;
 
-        let timestamp = match timestamp_res {
-            Ok(t) => t,
+        // Parse timestamp and convert to UTC Unix timestamp
+        let timestamp = match Self::parse_local_to_utc_timestamp(&data.timestamp, tz) {
+            Ok(ts) => ts,
             Err(e) => {
                 let raw_json = serde_json::to_string(&data).unwrap_or_default();
                 let error_msg = format!("Timestamp parse error: {}", e);
@@ -120,7 +153,7 @@ impl Database {
         // If inserted (not duplicate), also insert to memory store
         if res.rows_affected() > 0 {
             // Try in-memory insert (best effort, ignore errors for now)
-            let _ = self.memory_store.insert(device_id.to_string(), data);
+            let _ = self.memory_store.insert(device_id.to_string(), data, timestamp);
         }
 
         Ok(id)
@@ -135,14 +168,18 @@ impl Database {
         }
 
         // Parse and prepare all records first
-        type BatchRecord = (String, String, NaiveDateTime, Option<i32>, Option<i32>);
+        type BatchRecord = (String, String, i64, Option<i32>, Option<i32>);
         let mut records: Vec<BatchRecord> = Vec::new();
-        for (device_id, data) in &batch {
-            let timestamp_res = NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%d %H:%M:%S")
-                .or_else(|_| NaiveDateTime::parse_from_str(&data.timestamp, "%Y-%m-%dT%H:%M:%SZ"));
+        let mut batch_with_timestamps: Vec<(String, AttendanceData, i64)> = Vec::new();
 
-            if let Ok(timestamp) = timestamp_res {
+        for (device_id, data) in batch {
+            // Get device timezone
+            let tz = self.get_device_timezone(&device_id).await?;
+
+            // Parse timestamp and convert to UTC Unix timestamp
+            if let Ok(timestamp) = Self::parse_local_to_utc_timestamp(&data.timestamp, tz) {
                 records.push((device_id.clone(), data.user_id.clone(), timestamp, data.status, data.punch));
+                batch_with_timestamps.push((device_id.clone(), data.clone(), timestamp));
             }
         }
 
@@ -169,7 +206,7 @@ impl Database {
         let rows_affected = result.rows_affected() as usize;
 
         // Also insert to memory store (best effort)
-        let _ = self.memory_store.insert_batch(batch);
+        let _ = self.memory_store.insert_batch(batch_with_timestamps);
 
         Ok(rows_affected)
     }
@@ -445,23 +482,29 @@ impl Database {
         Ok(count)
     }
 
-    pub async fn upsert_device(&self, id: &str, name: &str, ip: &str, port: i32, brand: &str) -> Result<(), Error> {
+    pub async fn upsert_device(&self, id: &str, name: &str, ip: &str, port: i32, brand: &str, timezone: &str, is_enabled: bool) -> Result<(), Error> {
+        let is_active = if is_enabled { 1 } else { 0 };
         sqlx::query(
             r#"
-            INSERT INTO devices (id, name, ip, port, brand, last_seen, is_active)
-            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 1)
+            INSERT INTO devices (id, name, ip, port, brand, timezone, last_seen, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
             ON CONFLICT(id) DO UPDATE SET
                 name = excluded.name,
                 ip = excluded.ip,
-                port = excluded.port, brand = excluded.brand,
+                port = excluded.port,
+                brand = excluded.brand,
+                timezone = excluded.timezone,
                 last_seen = CURRENT_TIMESTAMP,
-                is_active = 1
+                is_active = excluded.is_active
             "#,
         )
         .bind(id)
         .bind(name)
         .bind(ip)
-        .bind(port).bind(brand)
+        .bind(port)
+        .bind(brand)
+        .bind(timezone)
+        .bind(is_active)
         .execute(&self.pool)
         .await?;
         Ok(())
@@ -509,7 +552,7 @@ impl Database {
     pub async fn get_active_devices(&self) -> Result<Vec<DeviceConfig>, Error> {
         sqlx::query_as::<_, DeviceConfig>(
             r#"
-            SELECT id, name, ip, port, brand, last_seen, is_active
+            SELECT id, name, ip, port, brand, timezone, last_seen, is_active
             FROM devices
             WHERE is_active = 1
             "#
@@ -546,14 +589,14 @@ impl Database {
     }
 
     /// Batch checkpoint: Insert unpersisted logs from memory to disk
-    /// Returns: (inserted_count, skipped_duplicates)
-    pub async fn checkpoint_batch(&self, logs: &[crate::memory_store::MemoryLog]) -> Result<(usize, usize, Vec<(String, String, chrono::NaiveDateTime)>), Error> {
+    /// Returns: (inserted_count, skipped_duplicates, composite_keys)
+    pub async fn checkpoint_batch(&self, logs: &[crate::memory_store::MemoryLog]) -> Result<(usize, usize, Vec<(String, String, i64)>), Error> {
         if logs.is_empty() {
             return Ok((0, 0, vec![]));
         }
 
         // Collect composite keys for all logs being inserted
-        let composite_keys: Vec<(String, String, chrono::NaiveDateTime)> = logs.iter()
+        let composite_keys: Vec<(String, String, i64)> = logs.iter()
             .map(|l| (l.device_id.clone(), l.user_id.clone(), l.timestamp))
             .collect();
 
@@ -680,9 +723,9 @@ mod tests {
         let db = setup_db().await;
 
         // Insert 3 devices
-        db.upsert_device("dev1", "Device 1", "192.168.1.1", 4370, "zkteco").await.unwrap();
-        db.upsert_device("dev2", "Device 2", "192.168.1.2", 4370, "zkteco").await.unwrap();
-        db.upsert_device("dev3", "Device 3", "192.168.1.3", 4370, "zkteco").await.unwrap();
+        db.upsert_device("dev1", "Device 1", "192.168.1.1", 4370, "zkteco", "UTC", true).await.unwrap();
+        db.upsert_device("dev2", "Device 2", "192.168.1.2", 4370, "zkteco", "UTC", true).await.unwrap();
+        db.upsert_device("dev3", "Device 3", "192.168.1.3", 4370, "zkteco", "UTC", true).await.unwrap();
 
         // Keep only dev1 and dev3
         let active_ids = vec!["dev1".to_string(), "dev3".to_string()];
@@ -701,8 +744,8 @@ mod tests {
     async fn test_deactivate_devices_not_in_empty_list_deactivates_all() {
         let db = setup_db().await;
 
-        db.upsert_device("dev1", "Device 1", "192.168.1.1", 4370, "zkteco").await.unwrap();
-        db.upsert_device("dev2", "Device 2", "192.168.1.2", 4370, "zkteco").await.unwrap();
+        db.upsert_device("dev1", "Device 1", "192.168.1.1", 4370, "zkteco", "UTC", true).await.unwrap();
+        db.upsert_device("dev2", "Device 2", "192.168.1.2", 4370, "zkteco", "UTC", true).await.unwrap();
 
         // Empty list = deactivate all
         let deactivated = db.deactivate_devices_not_in(&[]).await.unwrap();
@@ -716,8 +759,8 @@ mod tests {
     async fn test_deactivate_devices_not_in_no_changes_when_all_match() {
         let db = setup_db().await;
 
-        db.upsert_device("dev1", "Device 1", "192.168.1.1", 4370, "zkteco").await.unwrap();
-        db.upsert_device("dev2", "Device 2", "192.168.1.2", 4370, "zkteco").await.unwrap();
+        db.upsert_device("dev1", "Device 1", "192.168.1.1", 4370, "zkteco", "UTC", true).await.unwrap();
+        db.upsert_device("dev2", "Device 2", "192.168.1.2", 4370, "zkteco", "UTC", true).await.unwrap();
 
         // Keep all devices
         let active_ids = vec!["dev1".to_string(), "dev2".to_string()];
@@ -733,7 +776,7 @@ mod tests {
         let db = setup_db().await;
 
         // Insert with lowercase
-        db.upsert_device("office", "Office Device", "192.168.1.1", 4370, "zkteco").await.unwrap();
+        db.upsert_device("office", "Office Device", "192.168.1.1", 4370, "zkteco", "UTC", true).await.unwrap();
 
         // Keep with uppercase (different ID due to case sensitivity)
         let active_ids = vec!["OFFICE".to_string()];
@@ -1173,12 +1216,16 @@ mod tests {
         }
 
         // Create memory logs with overlapping IDs (would have caused UNIQUE constraint failure before Phase 1)
+        let timestamp_unix = NaiveDateTime::parse_from_str("2026-01-31 11:00:00", "%Y-%m-%d %H:%M:%S")
+            .unwrap()
+            .and_utc()
+            .timestamp();
         let memory_logs: Vec<crate::memory_store::MemoryLog> = (50..=150)
             .map(|i| crate::memory_store::MemoryLog {
                 id: i,  // IDs 50-100 overlap with disk!
                 device_id: "DEV2".to_string(),
                 user_id: format!("U{:03}", i + 1000),  // Different user_ids to avoid business duplicate
-                timestamp: NaiveDateTime::parse_from_str("2026-01-31 11:00:00", "%Y-%m-%d %H:%M:%S").unwrap(),
+                timestamp: timestamp_unix,
                 status: Some(1),
                 punch: Some(0),
                 is_synced: 0,
@@ -1204,18 +1251,24 @@ mod tests {
 
         // Create memory logs
         let memory_logs: Vec<crate::memory_store::MemoryLog> = (1..=5)
-            .map(|i| crate::memory_store::MemoryLog {
-                id: i,
-                device_id: "DEV1".to_string(),
-                user_id: format!("U{:03}", i),
-                timestamp: NaiveDateTime::parse_from_str(&format!("2026-01-31 10:{:02}:00", i), "%Y-%m-%d %H:%M:%S").unwrap(),
-                status: Some(1),
-                punch: Some(0),
-                is_synced: 0,
-                created_at: chrono::Utc::now().naive_utc(),
-                updated_at: None,
-                retry_count: 0,
-                persisted: false,
+            .map(|i| {
+                let timestamp_unix = NaiveDateTime::parse_from_str(&format!("2026-01-31 10:{:02}:00", i), "%Y-%m-%d %H:%M:%S")
+                    .unwrap()
+                    .and_utc()
+                    .timestamp();
+                crate::memory_store::MemoryLog {
+                    id: i,
+                    device_id: "DEV1".to_string(),
+                    user_id: format!("U{:03}", i),
+                    timestamp: timestamp_unix,
+                    status: Some(1),
+                    punch: Some(0),
+                    is_synced: 0,
+                    created_at: chrono::Utc::now().naive_utc(),
+                    updated_at: None,
+                    retry_count: 0,
+                    persisted: false,
+                }
             })
             .collect();
 
