@@ -9,6 +9,8 @@ pub async fn ensure_dev_data(pool: &PgPool) -> Result<(), sqlx::Error> {
 
     let admin_user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
     let workspace_id = Uuid::parse_str("00000000-0000-0000-0000-000000000002").unwrap();
+    let device_id_1 = Uuid::parse_str("00000000-0000-0000-0000-000000000011").unwrap();
+    let device_id_2 = Uuid::parse_str("00000000-0000-0000-0000-000000000012").unwrap();
 
     // 1. Upsert Admin User
     // Password is 'admin123' hashed with bcrypt
@@ -55,6 +57,73 @@ pub async fn ensure_dev_data(pool: &PgPool) -> Result<(), sqlx::Error> {
     .bind(workspace_id)
     .bind(admin_user_id)
     .bind(MemberRole::Owner)
+    .execute(pool)
+    .await?;
+
+    // 4. Upsert Authorized Agent (for E2E tests)
+    sqlx::query(
+        r#"
+        INSERT INTO authorized_agents (id, name, token, is_trusted, is_active, workspace_id)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (id) DO UPDATE SET
+            name = EXCLUDED.name,
+            is_trusted = EXCLUDED.is_trusted,
+            is_active = EXCLUDED.is_active
+        "#,
+    )
+    .bind("dev-agent-001")
+    .bind("Development Agent")
+    .bind("dev-token-secret")
+    .bind(true)
+    .bind(true)
+    .bind(workspace_id)
+    .execute(pool)
+    .await?;
+
+    // 5. Upsert Devices (for E2E tests)
+    sqlx::query(
+        r#"
+        INSERT INTO devices (id, agent_id, name, ip, port, is_enabled, brand, workspace_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (id) DO UPDATE SET
+            name = EXCLUDED.name,
+            ip = EXCLUDED.ip,
+            port = EXCLUDED.port,
+            is_enabled = EXCLUDED.is_enabled,
+            brand = EXCLUDED.brand
+        "#,
+    )
+    .bind(device_id_1)
+    .bind("dev-agent-001")
+    .bind("Main Entrance Clock")
+    .bind("192.168.1.100")
+    .bind(4370)
+    .bind(true)
+    .bind("zkteco")
+    .bind(workspace_id)
+    .execute(pool)
+    .await?;
+
+    sqlx::query(
+        r#"
+        INSERT INTO devices (id, agent_id, name, ip, port, is_enabled, brand, workspace_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (id) DO UPDATE SET
+            name = EXCLUDED.name,
+            ip = EXCLUDED.ip,
+            port = EXCLUDED.port,
+            is_enabled = EXCLUDED.is_enabled,
+            brand = EXCLUDED.brand
+        "#,
+    )
+    .bind(device_id_2)
+    .bind("dev-agent-001")
+    .bind("Back Door Clock")
+    .bind("192.168.1.101")
+    .bind(4370)
+    .bind(true)
+    .bind("zkteco")
+    .bind(workspace_id)
     .execute(pool)
     .await?;
 
