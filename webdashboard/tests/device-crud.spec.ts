@@ -2,12 +2,19 @@ import { test } from "./worker-orchestrator";
 import { expect } from "@playwright/test";
 import { ConnectivityPage } from "./pom/ConnectivityPage";
 
+// Increase timeout for slower E2E environment
+test.setTimeout(120000);
+
 test.describe("Device CRUD E2E Tests", () => {
   test.beforeEach(async ({ page }) => {
+    page.on('console', msg => console.log(`[BROWSER] ${msg.type().toUpperCase()}: ${msg.text()}`));
+    page.on('pageerror', err => console.log(`[BROWSER ERROR] ${err.message}`));
+
     // Login first
     await page.goto('/login');
     await page.getByTestId('fast-login-btn').click();
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 30000 });
+    // Wait for dashboard to load
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 60000 });
   });
 
   test('should display connectivity topology page', async ({ page }) => {
@@ -47,9 +54,18 @@ test.describe("Device CRUD E2E Tests", () => {
   });
 
   test('should toggle device enable/disable and verify status changes', async ({ page }) => {
+    // Handle confirmation dialog BEFORE navigating
+    page.on('dialog', async dialog => {
+      console.log(`[DIALOG] ${dialog.type()}: ${dialog.message()}`);
+      await dialog.accept();
+    });
+
     const connectivity = new ConnectivityPage(page);
     await connectivity.goto();
     await connectivity.waitForLoad();
+
+    // Wait for agents to load
+    await page.waitForTimeout(1000);
 
     // Check if there are any agents with devices
     const agentsList = page.getByTestId('agents-list');
@@ -61,46 +77,57 @@ test.describe("Device CRUD E2E Tests", () => {
     }
 
     // Expand all agents to see devices
-    await connectivity.expandAll();
-    await page.waitForTimeout(500);
+    const expandBtn = page.getByTestId('expand-all-btn');
+    if (await expandBtn.isVisible()) {
+      await connectivity.expandAll();
+    }
+    await page.waitForTimeout(1000);
 
     // Find first device
     const firstDevice = page.locator('[data-testid^="device-item-"]').first();
-    const hasDevices = await firstDevice.count() > 0;
-
-    if (!hasDevices) {
-      test.skip(true, 'No devices available for testing');
-      return;
-    }
+    await expect(firstDevice).toBeVisible({ timeout: 10000 });
 
     // Get device ID from test id attribute
     const testId = await firstDevice.getAttribute('data-testid') || '';
     const deviceId = testId.replace('device-item-', '');
 
-    // Get initial status
-    const initialStatus = await connectivity.getDeviceStatus(deviceId);
-    const wasEnabled = initialStatus.toLowerCase().includes('active');
+    // Get toggle button to check current state (button text indicates action, not state)
+    const toggleBtn = page.getByTestId(`device-toggle-${deviceId}`);
+    const statusBadge = page.getByTestId(`device-status-${deviceId}`);
 
-    // Handle confirmation dialog
-    page.on('dialog', dialog => dialog.accept());
+    // Helper to check if status indicates enabled (supports EN and VI)
+    const isEnabled = (status: string): boolean => {
+      const s = status.toLowerCase();
+      // English: "active", Vietnamese: "hoạt động" (active)
+      return s.includes('active') || s.includes('hoạt động');
+    };
 
-    // Toggle device
-    await connectivity.toggleDevice(deviceId);
-    await page.waitForTimeout(1000);
+    // Get initial status from the status badge
+    const initialStatusText = await statusBadge.textContent() || '';
+    const wasEnabled = isEnabled(initialStatusText);
+    console.log(`[TEST] Initial status: "${initialStatusText}", wasEnabled: ${wasEnabled}`);
 
-    // Verify status changed
-    const newStatus = await connectivity.getDeviceStatus(deviceId);
-    const isNowEnabled = newStatus.toLowerCase().includes('active');
+    // Click toggle and wait for the network request to complete
+    await toggleBtn.click();
 
-    expect(isNowEnabled).not.toBe(wasEnabled);
+    // Wait for status to change (poll for change rather than fixed timeout)
+    await expect(async () => {
+      const currentStatus = await statusBadge.textContent() || '';
+      const isNowEnabled = isEnabled(currentStatus);
+      console.log(`[TEST] After toggle: "${currentStatus}", isNowEnabled: ${isNowEnabled}`);
+      expect(isNowEnabled).not.toBe(wasEnabled);
+    }).toPass({ timeout: 10000 });
 
     // Toggle back to original state
-    await connectivity.toggleDevice(deviceId);
-    await page.waitForTimeout(1000);
+    await toggleBtn.click();
 
-    const finalStatus = await connectivity.getDeviceStatus(deviceId);
-    const isFinalEnabled = finalStatus.toLowerCase().includes('active');
-    expect(isFinalEnabled).toBe(wasEnabled);
+    // Wait for status to revert
+    await expect(async () => {
+      const finalStatus = await statusBadge.textContent() || '';
+      const isFinalEnabled = isEnabled(finalStatus);
+      console.log(`[TEST] After revert: "${finalStatus}", isFinalEnabled: ${isFinalEnabled}`);
+      expect(isFinalEnabled).toBe(wasEnabled);
+    }).toPass({ timeout: 10000 });
   });
 
   test('should edit device and verify changes persist', async ({ page }) => {
@@ -108,21 +135,19 @@ test.describe("Device CRUD E2E Tests", () => {
     await connectivity.goto();
     await connectivity.waitForLoad();
 
+    // Wait for data to load
+    await page.waitForTimeout(1000);
+
     // Expand all to see devices
     const expandBtn = page.getByTestId('expand-all-btn');
     if (await expandBtn.isVisible()) {
       await connectivity.expandAll();
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1000);
     }
 
     // Find first device
     const firstDevice = page.locator('[data-testid^="device-item-"]').first();
-    const hasDevices = await firstDevice.count() > 0;
-
-    if (!hasDevices) {
-      test.skip(true, 'No devices available for testing edit');
-      return;
-    }
+    await expect(firstDevice).toBeVisible({ timeout: 10000 });
 
     const testId = await firstDevice.getAttribute('data-testid') || '';
     const deviceId = testId.replace('device-item-', '');
@@ -138,18 +163,19 @@ test.describe("Device CRUD E2E Tests", () => {
     await connectivity.fillDeviceForm({ name: newName });
     await connectivity.submitDeviceForm();
 
-    // Wait for modal to close
-    await expect(page.getByTestId('edit-device-form')).not.toBeVisible({ timeout: 10000 });
+    // Wait for modal to close and data to refresh
+    await expect(page.getByTestId('edit-device-form')).not.toBeVisible({ timeout: 15000 });
+    await page.waitForTimeout(1000);
 
     // Verify name changed
-    await expect(page.getByTestId(`device-name-${deviceId}`)).toContainText(newName);
+    await expect(page.getByTestId(`device-name-${deviceId}`)).toContainText(newName, { timeout: 10000 });
 
     // Restore original name
     await connectivity.clickEditDevice(deviceId);
     await connectivity.fillDeviceForm({ name: originalName.trim() });
     await connectivity.submitDeviceForm();
 
-    await expect(page.getByTestId('edit-device-form')).not.toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('edit-device-form')).not.toBeVisible({ timeout: 15000 });
   });
 
   test('should cancel edit device form without saving', async ({ page }) => {
@@ -157,21 +183,19 @@ test.describe("Device CRUD E2E Tests", () => {
     await connectivity.goto();
     await connectivity.waitForLoad();
 
+    // Wait for data to load
+    await page.waitForTimeout(1000);
+
     // Expand all
     const expandBtn = page.getByTestId('expand-all-btn');
     if (await expandBtn.isVisible()) {
       await connectivity.expandAll();
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1000);
     }
 
     // Find first device
     const firstDevice = page.locator('[data-testid^="device-item-"]').first();
-    const hasDevices = await firstDevice.count() > 0;
-
-    if (!hasDevices) {
-      test.skip(true, 'No devices available for testing');
-      return;
-    }
+    await expect(firstDevice).toBeVisible({ timeout: 10000 });
 
     const testId = await firstDevice.getAttribute('data-testid') || '';
     const deviceId = testId.replace('device-item-', '');
@@ -186,25 +210,28 @@ test.describe("Device CRUD E2E Tests", () => {
     await connectivity.cancelDeviceForm();
 
     // Verify modal closed
-    await expect(page.getByTestId('edit-device-form')).not.toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId('edit-device-form')).not.toBeVisible({ timeout: 10000 });
 
     // Verify name unchanged
     await expect(page.getByTestId(`device-name-${deviceId}`)).toContainText(originalName.trim());
   });
 
   test('should delete device after confirmation', async ({ page }) => {
-    // Handle confirmation dialog
+    // Handle confirmation dialog BEFORE triggering it
     page.on('dialog', dialog => dialog.accept());
 
     const connectivity = new ConnectivityPage(page);
     await connectivity.goto();
     await connectivity.waitForLoad();
 
+    // Wait for data to load
+    await page.waitForTimeout(1000);
+
     // Expand all
     const expandBtn = page.getByTestId('expand-all-btn');
     if (await expandBtn.isVisible()) {
       await connectivity.expandAll();
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1000);
     }
 
     // Count devices before
@@ -221,12 +248,12 @@ test.describe("Device CRUD E2E Tests", () => {
 
     // Delete device
     await connectivity.clickDeleteDevice(deviceId);
-    await page.waitForTimeout(1000);
 
-    // Verify device is removed
-    await expect(page.getByTestId(`device-item-${deviceId}`)).not.toBeVisible({ timeout: 10000 });
+    // Wait for delete to complete
+    await expect(page.getByTestId(`device-item-${deviceId}`)).not.toBeVisible({ timeout: 15000 });
 
     // Verify count decreased
+    await page.waitForTimeout(500);
     const devicesAfter = await page.locator('[data-testid^="device-item-"]').count();
     expect(devicesAfter).toBe(devicesBefore - 1);
   });
