@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT edh.employee_id, dds.shift_id, edh.effective_date\n        FROM employee_department_history edh\n        JOIN department_default_shifts dds ON edh.department_id = dds.department_id\n        JOIN departments d ON dds.department_id = d.id\n        WHERE d.workspace_id = $1\n          AND (\n            (edh.effective_date >= $2 AND edh.effective_date <= $3)\n            OR edh.effective_date = (\n                SELECT MAX(edh2.effective_date)\n                FROM employee_department_history edh2\n                WHERE edh2.employee_id = edh.employee_id\n                  AND edh2.effective_date < $2\n            )\n          )\n        ORDER BY edh.effective_date DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "employee_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "shift_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "effective_date",
+        "type_info": "Date"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b8b3e508fdc724923d6aa707dafae96b652f42d90befef232cef8850add6842b"
+}

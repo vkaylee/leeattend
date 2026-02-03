@@ -114,7 +114,7 @@ pub async fn get_workspace_schedules(
         pattern_assignments_map.entry(row.employee_id).or_default().push(row);
     }
 
-    // 6. Fetch Department Patterns & History
+    // 6. Fetch Department Patterns & History (snapshot + range)
     let dept_patterns = sqlx::query!(
         r#"
         SELECT edh.employee_id, d.default_working_pattern_id, edh.effective_date,
@@ -123,10 +123,19 @@ pub async fn get_workspace_schedules(
         JOIN departments d ON edh.department_id = d.id
         JOIN working_pattern_details wpd ON d.default_working_pattern_id = wpd.pattern_id
         WHERE d.workspace_id = $1
-          AND edh.effective_date <= $2
+          AND (
+            (edh.effective_date >= $2 AND edh.effective_date <= $3)
+            OR edh.effective_date = (
+                SELECT MAX(edh2.effective_date)
+                FROM employee_department_history edh2
+                WHERE edh2.employee_id = edh.employee_id
+                  AND edh2.effective_date < $2
+            )
+          )
         ORDER BY edh.effective_date DESC
         "#,
         workspace_id,
+        start_date,
         end_date
     )
     .fetch_all(pool)
@@ -138,7 +147,7 @@ pub async fn get_workspace_schedules(
         dept_patterns_map.entry(row.employee_id).or_default().push(row);
     }
 
-    // 7. Fetch Department Default Shifts
+    // 7. Fetch Department Default Shifts (snapshot + range)
     let dept_fixed_shifts = sqlx::query!(
         r#"
         SELECT edh.employee_id, dds.shift_id, edh.effective_date
@@ -146,10 +155,19 @@ pub async fn get_workspace_schedules(
         JOIN department_default_shifts dds ON edh.department_id = dds.department_id
         JOIN departments d ON dds.department_id = d.id
         WHERE d.workspace_id = $1
-          AND edh.effective_date <= $2
+          AND (
+            (edh.effective_date >= $2 AND edh.effective_date <= $3)
+            OR edh.effective_date = (
+                SELECT MAX(edh2.effective_date)
+                FROM employee_department_history edh2
+                WHERE edh2.employee_id = edh.employee_id
+                  AND edh2.effective_date < $2
+            )
+          )
         ORDER BY edh.effective_date DESC
         "#,
         workspace_id,
+        start_date,
         end_date
     )
     .fetch_all(pool)
@@ -178,10 +196,25 @@ pub async fn get_workspace_schedules(
         .map(|d| ((d.pattern_id, d.day_of_week), d.shift_id))
         .collect();
 
-    // 10. Fetch Employee Department History for context
+    // 10. Fetch Employee Department History for rule context (snapshot + range)
     let all_dept_history = sqlx::query!(
-        "SELECT employee_id, department_id, effective_date FROM employee_department_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1) AND effective_date <= $2 ORDER BY effective_date DESC",
+        r#"
+        SELECT edh.employee_id, edh.department_id, edh.effective_date
+        FROM employee_department_history edh
+        WHERE edh.employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)
+          AND (
+            (edh.effective_date >= $2 AND edh.effective_date <= $3)
+            OR edh.effective_date = (
+                SELECT MAX(edh2.effective_date)
+                FROM employee_department_history edh2
+                WHERE edh2.employee_id = edh.employee_id
+                  AND edh2.effective_date < $2
+            )
+          )
+        ORDER BY edh.effective_date DESC
+        "#,
         workspace_id,
+        start_date,
         end_date
     )
     .fetch_all(pool)
