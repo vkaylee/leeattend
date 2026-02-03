@@ -403,6 +403,7 @@
     "create": "Tạo mới",
     "end_date": "Ngày kết thúc",
     "select": "Chọn",
+    "selected": "đã chọn",
     "currency": "VND",
     "amount": "Số tiền",
     "effective_date": "Ngày hiệu lực",
@@ -549,7 +550,8 @@
     "creating_account": "Đang tạo tài khoản...",
     "checking_security": "Đang kiểm tra bảo mật...",
     "session_expired": "Phiên làm việc hết hạn, đang chuyển hướng...",
-    "user_not_found": "Không tìm thấy thông tin người dùng..."
+    "user_not_found": "Không tìm thấy thông tin người dùng...",
+    "logout": "Đăng xuất"
   },
   "ess": {
     "my_profile": "Hồ sơ của tôi",
@@ -990,6 +992,7 @@
     "download_button": "Tải file",
     "run_background": "Chạy nền",
     "batches_completed": "Đã xử lý: {{completed}}/{{total}}",
+    "fallback_mode": "Cập nhật thời gian thực không khả dụng. Đang sử dụng polling.",
     "status": {
       "preparing": "Đang chuẩn bị...",
       "processing": "Đang tạo báo cáo...",
@@ -1425,6 +1428,9 @@
     "export_excel": "Xuất Excel",
     "search_placeholder": "Tìm theo tên nhân viên...",
     "no_shift": "Không có ca",
+    "date_range": "Khoảng thời gian",
+    "employees": "Nhân viên",
+    "report_type": "Loại báo cáo",
     "tabs": {
       "summary": "Tổng hợp tháng",
       "daily": "Chi tiết hàng ngày"

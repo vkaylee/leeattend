@@ -8,6 +8,7 @@ const QUEUE_KEY: &str = "report:jobs:attendance";
 const META_PREFIX: &str = "report:meta:";
 const RESULTS_PREFIX: &str = "report:results:";
 const COUNTER_PREFIX: &str = "report:counter:";
+const MERGE_FLAG_PREFIX: &str = "report:merge_triggered:";
 const DLQ_KEY: &str = "report:dlq";
 const JOB_TTL_SECS: i64 = 86400; // 24 hours
 
@@ -56,7 +57,7 @@ impl ReportQueue {
     /// Uses BLPOP for efficient waiting without polling.
     ///
     /// # Arguments
-    /// * `timeout_secs` - Maximum seconds to wait for a job
+    /// * `timeout_secs` - Maximum seconds to wait for a job (must be finite, positive)
     ///
     /// # Returns
     /// * `Ok(Some(job))` - A job was dequeued
@@ -66,8 +67,27 @@ impl ReportQueue {
         &self,
         timeout_secs: f64,
     ) -> Result<Option<ReportJob>, redis::RedisError> {
+        // Validate timeout value (Redis protocol requires valid positive number)
+        if !timeout_secs.is_finite() || timeout_secs < 0.0 {
+            return Err(redis::RedisError::from((
+                redis::ErrorKind::TypeError,
+                "Invalid timeout",
+                format!("timeout must be finite and non-negative, got: {}", timeout_secs),
+            )));
+        }
+
+        // Convert timeout to integer seconds for Redis BLPOP
+        // BLPOP expects timeout as integer in Redis protocol
+        let timeout_int = timeout_secs.round() as i64;
+
         let mut conn = self.pool.conn();
-        let result: Option<(String, String)> = conn.blpop(QUEUE_KEY, timeout_secs).await?;
+
+        // Use redis::cmd instead of blpop method to ensure correct type serialization
+        let result: Option<(String, String)> = redis::cmd("BLPOP")
+            .arg(QUEUE_KEY)
+            .arg(timeout_int)
+            .query_async(&mut conn)
+            .await?;
 
         match result {
             Some((_, json)) => {
@@ -98,7 +118,7 @@ impl ReportQueue {
         redis::pipe()
             .set(&key, json)
             .expire(&key, JOB_TTL_SECS)
-            .query_async(&mut conn)
+            .query_async::<()>(&mut conn)
             .await
     }
 
@@ -141,13 +161,28 @@ impl ReportQueue {
         let json =
             serde_json::to_string(meta).expect("JobMetadata serialization should not fail");
 
-        // SET with KEEPTTL to preserve existing expiration
-        redis::cmd("SET")
+        // Get current TTL before update (compatible with Redis 3.0+)
+        let ttl: i64 = redis::cmd("TTL")
             .arg(&key)
-            .arg(json)
-            .arg("KEEPTTL")
             .query_async(&mut conn)
             .await
+            .unwrap_or(-1);
+
+        // If key has TTL (>0), preserve it; otherwise use default
+        if ttl > 0 {
+            redis::pipe()
+                .set(&key, &json)
+                .expire(&key, ttl as i64)
+                .query_async::<()>(&mut conn)
+                .await
+        } else {
+            // Key doesn't exist or has no TTL, use default
+            redis::pipe()
+                .set(&key, &json)
+                .expire(&key, JOB_TTL_SECS)
+                .query_async::<()>(&mut conn)
+                .await
+        }
     }
 
     /// Atomically increment completed batch count.
@@ -203,6 +238,40 @@ impl ReportQueue {
         Ok(count.unwrap_or(0))
     }
 
+    /// Atomically try to set merge triggered flag.
+    /// Returns true if this call successfully set the flag (first caller wins).
+    /// Returns false if flag was already set by another worker (race condition prevented).
+    ///
+    /// # Arguments
+    /// * `parent_job_id` - Parent job ID
+    ///
+    /// # Returns
+    /// * `Ok(true)` - This worker should trigger merge
+    /// * `Ok(false)` - Another worker already triggered merge
+    pub async fn try_trigger_merge(&self, parent_job_id: Uuid) -> Result<bool, redis::RedisError> {
+        let mut conn = self.pool.conn();
+        let flag_key = format!("{}{}", MERGE_FLAG_PREFIX, parent_job_id);
+
+        // SETNX: Set key only if it doesn't exist (atomic operation)
+        // Returns 1 if key was set, 0 if key already exists
+        let was_set: bool = redis::cmd("SET")
+            .arg(&flag_key)
+            .arg("triggered")
+            .arg("NX") // Only set if not exists
+            .arg("EX") // Set expiration
+            .arg(JOB_TTL_SECS)
+            .query_async::<bool>(&mut conn)
+            .await?;
+
+        debug!(
+            job_id = %parent_job_id,
+            flag_set = was_set,
+            "Attempted to set merge trigger flag"
+        );
+
+        Ok(was_set)
+    }
+
     /// Store a batch result in the results hash.
     /// Results are keyed by batch index for ordered retrieval.
     ///
@@ -223,7 +292,7 @@ impl ReportQueue {
         redis::pipe()
             .hset(&key, &field, result)
             .expire(&key, JOB_TTL_SECS)
-            .query_async(&mut conn)
+            .query_async::<()>(&mut conn)
             .await
     }
 
@@ -291,89 +360,119 @@ impl ReportQueue {
         let counter_key = format!("{}{}", COUNTER_PREFIX, job_id);
         let failed_key = format!("{}{}:failed", COUNTER_PREFIX, job_id);
         let results_key = format!("{}{}", RESULTS_PREFIX, job_id);
-        let url_key = format!("{}{}:url", RESULTS_PREFIX, job_id);
+        let data_key = format!("{}{}:data", RESULTS_PREFIX, job_id);
+        let filename_key = format!("{}{}:filename", RESULTS_PREFIX, job_id);
+        let merge_flag_key = format!("{}{}", MERGE_FLAG_PREFIX, job_id);
 
         let _: () = redis::pipe()
             .del(&meta_key)
             .del(&counter_key)
             .del(&failed_key)
             .del(&results_key)
-            .del(&url_key)
-            .query_async(&mut conn)
+            .del(&data_key)
+            .del(&filename_key)
+            .del(&merge_flag_key)
+            .query_async::<()>(&mut conn)
             .await?;
 
         Ok(())
     }
 
-    /// Store the final result URL for a completed job.
+    /// Store the final Excel data directly in Redis for client download.
+    /// The data is base64 encoded and stored with a 1-hour TTL.
     ///
     /// # Arguments
     /// * `job_id` - Parent job ID
-    /// * `url` - Download URL for the generated report
-    pub async fn set_result_url(&self, job_id: Uuid, url: &str) -> Result<(), redis::RedisError> {
+    /// * `data` - Raw Excel bytes
+    /// * `filename` - Original filename for Content-Disposition header
+    pub async fn set_result_data(
+        &self,
+        job_id: Uuid,
+        data: &[u8],
+        filename: &str,
+    ) -> Result<(), redis::RedisError> {
+        use base64::{engine::general_purpose::STANDARD, Engine as _};
+
         let mut conn = self.pool.conn();
-        let key = format!("{}{}:url", RESULTS_PREFIX, job_id);
+        let data_key = format!("{}{}:data", RESULTS_PREFIX, job_id);
+        let filename_key = format!("{}{}:filename", RESULTS_PREFIX, job_id);
+
+        // Encode data as base64 for Redis storage
+        let encoded = STANDARD.encode(data);
 
         debug!(
             job_id = %job_id,
-            url = %url,
-            redis_key = %key,
-            "Storing result URL in Redis"
+            data_size = data.len(),
+            filename = %filename,
+            "Storing result data in Redis"
+        );
+
+        // Store both data and filename with 1-hour TTL
+        // Use pipeline for atomic operation, but with reasonable size limits
+        let encoded_size = encoded.len();
+        debug!(
+            job_id = %job_id,
+            encoded_size = encoded_size,
+            "Writing data to Redis pipeline"
         );
 
         redis::pipe()
-            .set(&key, url)
-            .expire(&key, JOB_TTL_SECS)
-            .query_async(&mut conn)
+            .set(&data_key, &encoded)
+            .expire(&data_key, 3600) // 1 hour TTL
+            .set(&filename_key, filename)
+            .expire(&filename_key, 3600)
+            .query_async::<()>(&mut conn)
             .await
             .map_err(|e| {
                 error!(
                     job_id = %job_id,
-                    redis_key = %key,
                     error = %e,
-                    "Failed to store result URL in Redis"
+                    data_size = data.len(),
+                    encoded_size = encoded_size,
+                    "Failed to store result data in Redis (timeout or error)"
                 );
                 e
-            })
-    }
-
-    /// Get the result URL for a completed job.
-    ///
-    /// # Arguments
-    /// * `job_id` - Parent job ID
-    ///
-    /// # Returns
-    /// * `Ok(Some(url))` - URL found
-    /// * `Ok(None)` - URL not set (job may not be complete)
-    pub async fn get_result_url(&self, job_id: Uuid) -> Result<Option<String>, redis::RedisError> {
-        let mut conn = self.pool.conn();
-        let key = format!("{}{}:url", RESULTS_PREFIX, job_id);
+            })?;
 
         debug!(
             job_id = %job_id,
-            redis_key = %key,
-            "Retrieving result URL from Redis"
+            "Successfully stored result data in Redis"
         );
 
-        let url: Option<String> = conn.get(&key).await.map_err(|e| {
-            error!(
-                job_id = %job_id,
-                redis_key = %key,
-                error = %e,
-                "Failed to retrieve result URL from Redis"
-            );
-            e
-        })?;
+        Ok(())
+    }
 
-        if let Some(ref url_value) = url {
-            debug!(
-                job_id = %job_id,
-                url = %url_value,
-                "Successfully retrieved result URL from Redis"
-            );
+    /// Get the Excel data for a completed job.
+    ///
+    /// # Returns
+    /// * `Ok(Some((data, filename)))` - Data and filename found
+    /// * `Ok(None)` - Data not found (job may not be complete or TTL expired)
+    pub async fn get_result_data(
+        &self,
+        job_id: Uuid,
+    ) -> Result<Option<(Vec<u8>, String)>, redis::RedisError> {
+        use base64::{engine::general_purpose::STANDARD, Engine as _};
+
+        let mut conn = self.pool.conn();
+        let data_key = format!("{}{}:data", RESULTS_PREFIX, job_id);
+        let filename_key = format!("{}{}:filename", RESULTS_PREFIX, job_id);
+
+        let encoded: Option<String> = conn.get(&data_key).await?;
+        let filename: Option<String> = conn.get(&filename_key).await?;
+
+        match (encoded, filename) {
+            (Some(enc), Some(fname)) => {
+                let data = STANDARD.decode(&enc).map_err(|e| {
+                    redis::RedisError::from((
+                        redis::ErrorKind::TypeError,
+                        "Base64 decode error",
+                        e.to_string(),
+                    ))
+                })?;
+                Ok(Some((data, fname)))
+            }
+            _ => Ok(None),
         }
-
-        Ok(url)
     }
 
     /// Delete batch results after merge completes.
@@ -452,7 +551,7 @@ impl ReportQueue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::queue::{DateRange, ReportConfig, ReportType, TaskType};
+    use crate::queue::{DateRange, ReportConfig, ReportType, TaskType, JobStatus, RedisPool};
     use chrono::NaiveDate;
 
     #[test]
@@ -542,10 +641,12 @@ mod tests {
     }
 
     #[test]
-    fn test_url_key_format() {
+    fn test_data_key_format() {
         let job_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
-        let url_key = format!("{}{}:url", RESULTS_PREFIX, job_id);
-        assert_eq!(url_key, "report:results:550e8400-e29b-41d4-a716-446655440000:url");
+        let data_key = format!("{}{}:data", RESULTS_PREFIX, job_id);
+        let filename_key = format!("{}{}:filename", RESULTS_PREFIX, job_id);
+        assert_eq!(data_key, "report:results:550e8400-e29b-41d4-a716-446655440000:data");
+        assert_eq!(filename_key, "report:results:550e8400-e29b-41d4-a716-446655440000:filename");
     }
 
     #[test]
@@ -556,13 +657,403 @@ mod tests {
         let counter_key = format!("{}{}", COUNTER_PREFIX, job_id);
         let failed_key = format!("{}{}:failed", COUNTER_PREFIX, job_id);
         let results_key = format!("{}{}", RESULTS_PREFIX, job_id);
-        let url_key = format!("{}{}:url", RESULTS_PREFIX, job_id);
+        let data_key = format!("{}{}:data", RESULTS_PREFIX, job_id);
+        let filename_key = format!("{}{}:filename", RESULTS_PREFIX, job_id);
+        let merge_flag_key = format!("{}{}", MERGE_FLAG_PREFIX, job_id);
 
         // All keys should contain the job_id
         assert!(meta_key.contains(&job_id.to_string()));
         assert!(counter_key.contains(&job_id.to_string()));
         assert!(failed_key.contains(&job_id.to_string()));
         assert!(results_key.contains(&job_id.to_string()));
-        assert!(url_key.contains(&job_id.to_string()));
+        assert!(data_key.contains(&job_id.to_string()));
+        assert!(filename_key.contains(&job_id.to_string()));
+        assert!(merge_flag_key.contains(&job_id.to_string()));
+    }
+
+    #[test]
+    fn test_merge_flag_key_format() {
+        let job_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
+        let merge_flag_key = format!("{}{}", MERGE_FLAG_PREFIX, job_id);
+        assert_eq!(
+            merge_flag_key,
+            "report:merge_triggered:550e8400-e29b-41d4-a716-446655440000"
+        );
+    }
+
+    // ====== REDIS TTL PRESERVATION TESTS (Redis 3.0+ compatibility) ======
+    // These tests verify the fix for KEEPTTL compatibility issue
+    // KEEPTTL requires Redis 6.0+, but our fix uses TTL + expire for compatibility
+
+    #[tokio::test]
+    async fn test_update_job_metadata_preserves_existing_ttl() {
+        // Test: When updating metadata with existing TTL, preserve that TTL
+        let redis_url =
+            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+        let pool = match RedisPool::new(&redis_url).await {
+            Ok(p) => p,
+            Err(_) => {
+                println!("SKIPPED: Redis not available");
+                return;
+            }
+        };
+
+        let queue = ReportQueue::new(pool.clone());
+        let job_id = Uuid::new_v4();
+        let workspace_id = Uuid::new_v4();
+
+        // Create metadata with 24h TTL
+        let mut meta = JobMetadata {
+            job_id,
+            status: JobStatus::Pending,
+            total_batches: 4,
+            completed_batches: 0,
+            failed_batches: 0,
+            workspace_id,
+            requester_id: Uuid::new_v4(),
+            report_type: ReportType::Detail,
+            date_range: None,
+            error_message: None,
+            created_at: chrono::Utc::now(),
+            completed_at: None,
+        };
+
+        queue
+            .create_job_metadata(&meta)
+            .await
+            .expect("Failed to create metadata");
+
+        // Get TTL before update
+        let mut conn = pool.conn();
+        let key = format!("{}{}",META_PREFIX, job_id);
+        let ttl_before: i64 = redis::cmd("TTL")
+            .arg(&key)
+            .query_async(&mut conn)
+            .await
+            .unwrap_or(-1);
+
+        assert!(ttl_before > 0, "Initial TTL should be > 0");
+
+        // Update metadata
+        meta.status = JobStatus::Processing;
+        meta.completed_batches = 1;
+        queue
+            .update_job_metadata(&meta)
+            .await
+            .expect("Failed to update metadata");
+
+        // Get TTL after update
+        let ttl_after: i64 = redis::cmd("TTL")
+            .arg(&key)
+            .query_async(&mut conn)
+            .await
+            .unwrap_or(-1);
+
+        // TTL should be preserved (within reasonable tolerance)
+        assert!(
+            ttl_after > 0,
+            "TTL should be preserved after update, got: {}",
+            ttl_after
+        );
+        assert!(
+            ttl_after <= ttl_before,
+            "TTL should not increase after update"
+        );
+
+        // Verify metadata was updated
+        let retrieved = queue
+            .get_job_metadata(job_id)
+            .await
+            .expect("Failed to retrieve metadata")
+            .expect("Metadata should exist");
+        assert_eq!(retrieved.completed_batches, 1);
+        assert_eq!(retrieved.status, JobStatus::Processing);
+
+        // Cleanup
+        let _: () = redis::cmd("DEL")
+            .arg(&key)
+            .query_async(&mut conn)
+            .await
+            .ok()
+            .unwrap_or(());
+    }
+
+    #[tokio::test]
+    async fn test_update_job_metadata_applies_default_ttl_when_missing() {
+        // Test: When updating metadata without TTL (new key), apply default 24h TTL
+        let redis_url =
+            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+        let pool = match RedisPool::new(&redis_url).await {
+            Ok(p) => p,
+            Err(_) => {
+                println!("SKIPPED: Redis not available");
+                return;
+            }
+        };
+
+        let queue = ReportQueue::new(pool.clone());
+        let job_id = Uuid::new_v4();
+        let workspace_id = Uuid::new_v4();
+
+        let meta = JobMetadata {
+            job_id,
+            status: JobStatus::Pending,
+            total_batches: 4,
+            completed_batches: 0,
+            failed_batches: 0,
+            workspace_id,
+            requester_id: Uuid::new_v4(),
+            report_type: ReportType::Detail,
+            date_range: None,
+            error_message: None,
+            created_at: chrono::Utc::now(),
+            completed_at: None,
+        };
+
+        // Update metadata directly (without creating first)
+        queue
+            .update_job_metadata(&meta)
+            .await
+            .expect("Failed to update metadata");
+
+        // Check that TTL was set to default
+        let mut conn = pool.conn();
+        let key = format!("{}{}",META_PREFIX, job_id);
+        let ttl: i64 = redis::cmd("TTL")
+            .arg(&key)
+            .query_async(&mut conn)
+            .await
+            .unwrap_or(-1);
+
+        assert!(
+            ttl > 0 && ttl <= JOB_TTL_SECS,
+            "TTL should be set to default ({}s), got: {}s",
+            JOB_TTL_SECS,
+            ttl
+        );
+
+        // Cleanup
+        let _: () = redis::cmd("DEL")
+            .arg(&key)
+            .query_async(&mut conn)
+            .await
+            .ok()
+            .unwrap_or(());
+    }
+
+    #[tokio::test]
+    async fn test_multiple_updates_preserve_ttl() {
+        // Test: Multiple updates should preserve and not reset TTL
+        let redis_url =
+            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+        let pool = match RedisPool::new(&redis_url).await {
+            Ok(p) => p,
+            Err(_) => {
+                println!("SKIPPED: Redis not available");
+                return;
+            }
+        };
+
+        let queue = ReportQueue::new(pool.clone());
+        let job_id = Uuid::new_v4();
+        let workspace_id = Uuid::new_v4();
+
+        let mut meta = JobMetadata {
+            job_id,
+            status: JobStatus::Pending,
+            total_batches: 4,
+            completed_batches: 0,
+            failed_batches: 0,
+            workspace_id,
+            requester_id: Uuid::new_v4(),
+            report_type: ReportType::Detail,
+            date_range: None,
+            error_message: None,
+            created_at: chrono::Utc::now(),
+            completed_at: None,
+        };
+
+        queue
+            .create_job_metadata(&meta)
+            .await
+            .expect("Failed to create metadata");
+
+        let mut conn = pool.conn();
+        let key = format!("{}{}",META_PREFIX, job_id);
+
+        // Sleep briefly to ensure TTL decreases naturally
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+        // First update
+        meta.completed_batches = 1;
+        queue
+            .update_job_metadata(&meta)
+            .await
+            .expect("First update failed");
+
+        let ttl_after_first: i64 = redis::cmd("TTL")
+            .arg(&key)
+            .query_async(&mut conn)
+            .await
+            .unwrap_or(-1);
+
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+        // Second update
+        meta.completed_batches = 2;
+        queue
+            .update_job_metadata(&meta)
+            .await
+            .expect("Second update failed");
+
+        let ttl_after_second: i64 = redis::cmd("TTL")
+            .arg(&key)
+            .query_async(&mut conn)
+            .await
+            .unwrap_or(-1);
+
+        // TTLs should be similar (within 1 second tolerance)
+        assert!(
+            ttl_after_first > 0 && ttl_after_second > 0,
+            "TTL should remain positive after updates"
+        );
+        assert!(
+            (ttl_after_first - ttl_after_second).abs() <= 2,
+            "TTL should not increase significantly: {} vs {}",
+            ttl_after_first,
+            ttl_after_second
+        );
+
+        // Cleanup
+        let _: () = redis::cmd("DEL")
+            .arg(&key)
+            .query_async(&mut conn)
+            .await
+            .ok()
+            .unwrap_or(());
+    }
+
+    #[tokio::test]
+    async fn test_update_job_status_preserves_ttl() {
+        // Test: update_job_status (which calls update_job_metadata) preserves TTL
+        let redis_url =
+            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+        let pool = match RedisPool::new(&redis_url).await {
+            Ok(p) => p,
+            Err(_) => {
+                println!("SKIPPED: Redis not available");
+                return;
+            }
+        };
+
+        let queue = ReportQueue::new(pool.clone());
+        let job_id = Uuid::new_v4();
+        let workspace_id = Uuid::new_v4();
+
+        let meta = JobMetadata {
+            job_id,
+            status: JobStatus::Pending,
+            total_batches: 4,
+            completed_batches: 0,
+            failed_batches: 0,
+            workspace_id,
+            requester_id: Uuid::new_v4(),
+            report_type: ReportType::Detail,
+            date_range: None,
+            error_message: None,
+            created_at: chrono::Utc::now(),
+            completed_at: None,
+        };
+
+        queue
+            .create_job_metadata(&meta)
+            .await
+            .expect("Failed to create metadata");
+
+        let mut conn = pool.conn();
+        let key = format!("{}{}",META_PREFIX, job_id);
+
+        // Get initial TTL
+        let ttl_before: i64 = redis::cmd("TTL")
+            .arg(&key)
+            .query_async(&mut conn)
+            .await
+            .unwrap_or(-1);
+
+        // Update status (this internally calls update_job_metadata)
+        queue
+            .update_job_status(job_id, JobStatus::Processing)
+            .await
+            .expect("Failed to update job status");
+
+        // Get TTL after status update
+        let ttl_after: i64 = redis::cmd("TTL")
+            .arg(&key)
+            .query_async(&mut conn)
+            .await
+            .unwrap_or(-1);
+
+        assert!(
+            ttl_after > 0,
+            "TTL should be preserved after status update"
+        );
+        assert!(
+            ttl_after <= ttl_before,
+            "TTL should not increase after status update"
+        );
+
+        // Cleanup
+        let _: () = redis::cmd("DEL")
+            .arg(&key)
+            .query_async(&mut conn)
+            .await
+            .ok()
+            .unwrap_or(());
+    }
+
+    #[tokio::test]
+    async fn test_redis_compatibility_ttl_method() {
+        // Test: Verify TTL command works (Redis 3.0+ compatible)
+        let redis_url =
+            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+        let pool = match RedisPool::new(&redis_url).await {
+            Ok(p) => p,
+            Err(_) => {
+                println!("SKIPPED: Redis not available");
+                return;
+            }
+        };
+
+        let mut conn = pool.conn();
+        let test_key = format!("test:ttl:{}", Uuid::new_v4());
+
+        // Set key with TTL
+        let _: () = redis::cmd("SET")
+            .arg(&test_key)
+            .arg("test_value")
+            .arg("EX")
+            .arg(100)
+            .query_async(&mut conn)
+            .await
+            .expect("Failed to set key");
+
+        // Get TTL
+        let ttl: i64 = redis::cmd("TTL")
+            .arg(&test_key)
+            .query_async(&mut conn)
+            .await
+            .expect("Failed to get TTL");
+
+        // TTL should be positive (not -1 or -2)
+        assert!(ttl > 0, "TTL should be positive, got: {}", ttl);
+        assert!(ttl <= 100, "TTL should not exceed set time, got: {}", ttl);
+
+        // Cleanup
+        let _: () = redis::cmd("DEL")
+            .arg(&test_key)
+            .query_async(&mut conn)
+            .await
+            .ok()
+            .unwrap_or(());
     }
 }

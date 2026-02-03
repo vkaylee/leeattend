@@ -264,6 +264,74 @@ Hệ thống hỗ trợ tự động tìm port khả dụng để tránh xung đ
 **Lưu ý cho Parallel Testing**:
 Cơ chế này cho phép chạy song song hàng chục Playwright workers mà không lo xung đột networking, bằng cách cấp phát cho mỗi worker một suffix định danh file port riêng biệt.
 
+---
+
+## 🌐 WebSocket Infrastructure Requirements (NEW - 2026-02-03)
+
+### Redis Version Compatibility
+- **Minimum Version**: Redis 3.0+ (for basic Pub/Sub and TTL support)
+- **Recommended Version**: Redis 6.0+ (for optimized KEEPTTL command)
+- **Configuration**:
+  ```
+  REDIS_URL=redis://localhost:6379
+  REPORT_RESULT_TTL=86400        # 24 hours
+  WEBSOCKET_TIMEOUT=600          # 10 minutes
+  ```
+
+### WebSocket Proxy Configuration (Development)
+
+**Vite Configuration (webdashboard/vite.config.ts):**
+```typescript
+proxy: {
+  // WebSocket proxy MUST come before HTTP proxy
+  '/api/ws': {
+    target: `http://127.0.0.1:${apiPort}`,
+    ws: true,  // Enable WebSocket upgrade
+    rewrite: (path) => path.replace(/^\/api/, ''),
+  },
+  // HTTP proxy comes after
+  '/api': {
+    target: `http://127.0.0.1:${apiPort}`,
+    rewrite: (path) => path.replace(/^\/api/, ''),
+  },
+}
+```
+
+**Order Matters:**
+1. WebSocket routes (`/api/ws/*`) must be processed first
+2. HTTP routes (`/api/*`) come second
+3. Failure to order correctly causes WebSocket requests to be caught by HTTP proxy
+
+### Production Deployment Checklist
+
+- [ ] Redis server is running and accessible
+- [ ] Redis version is 3.0 or higher (`redis-cli --version`)
+- [ ] WebSocket port (3000 or custom) is accessible from clients
+- [ ] Firewall allows WebSocket upgrades (HTTP 101 Switching Protocols)
+- [ ] Load balancer (if used) supports WebSocket (sticky sessions or stateless design)
+- [ ] HTTPS/WSS certificates are valid for production domain
+- [ ] Environment variables are set correctly (Redis URL, timeouts)
+
+### Monitoring & Troubleshooting
+
+**Key Metrics to Track:**
+- WebSocket connection success rate (target: >99%)
+- Fallback to HTTP polling rate (should be <1%)
+- Average export completion time
+- Worker job queue depth
+- Redis memory usage for report jobs
+
+**Common Issues:**
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| "Cannot reach WebSocket" | Proxy not configured | Verify vite.config.ts proxy order |
+| WebSocket connects then closes | Redis not running | Check Redis service status |
+| High fallback rate | Network latency or Redis slow | Check network/Redis performance |
+| Out of memory | TTL not set on job metadata | Verify `REPORT_RESULT_TTL` env var |
+
+---
+
 ## 🧪 4. Môi trường Kiểm thử (Testing Environment)
 
 Để đảm bảo chất lượng code, LeeAttend áp dụng quy trình kiểm thử nghiêm ngặt.

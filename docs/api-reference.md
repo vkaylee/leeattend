@@ -950,7 +950,7 @@ Tạo mới hoặc cập nhật một loại ca làm việc. Nếu cập nhật,
 
 #### GET /workspaces/:ws_id/reports/attendance
 Xuất báo cáo chấm công của workspace. Hỗ trợ phân trang, sắp xếp và lọc nhân viên.
-- **Query Params**: 
+- **Query Params**:
     - `start_date`: YYYY-MM-DD (Bắt buộc)
     - `end_date`: YYYY-MM-DD (Bắt buộc)
     - `type`: `summary` (mặc định) hoặc `daily`
@@ -971,6 +971,88 @@ Xuất báo cáo chấm công của workspace. Hỗ trợ phân trang, sắp x�
     - **Fields**: `employee_id`, `employee_name`, `total_work_units` (Số lượng đơn vị công nguyên), `total_leave_days`.
 - **Response Data (type=daily)**: Báo cáo chi tiết từng lượt quẹt thẻ (Work/Break) theo ngày của từng nhân viên.
     - **Fields**: `employee_id`, `employee_name`, `date`, `scheduled_start`, `scheduled_end`, `break_duration_minutes`, `break_start`, `break_end`, `is_break_auto_deduct`, `actual_punch_in`, `actual_punch_out`, `work_units` (Số lượng đơn vị công nguyên sau khi làm tròn), `status`, `generation_metadata`.
+
+---
+
+### 20.1. Real-Time Report Export (WebSocket) - NEW
+
+#### GET /ws/reports/:job_id (WebSocket)
+
+Establishes a WebSocket connection to receive real-time progress updates for a report export job.
+
+**Connection:**
+```
+GET /ws/reports/550e8400-e29b-41d4-a716-446655440000
+Upgrade: websocket
+Connection: Upgrade
+```
+
+**Protocol:**
+Messages are sent as JSON with a `type` field to discriminate message types.
+
+**Message Types:**
+
+1. **CHUNK (Batch Completion)**
+   ```json
+   {
+     "type": "CHUNK",
+     "job_id": "550e8400-e29b-41d4-a716-446655440000",
+     "batch_id": 5,
+     "batch_index": 5,
+     "total_batches": 350,
+     "progress_percentage": 1,
+     "employees_processed": 100,
+     "timestamp": "2026-02-03T10:15:30Z"
+   }
+   ```
+   **Meaning**: Batch 5 of 350 completed. 1% progress, 100 employees processed.
+
+2. **DONE (Job Completion)**
+   ```json
+   {
+     "type": "DONE",
+     "job_id": "550e8400-e29b-41d4-a716-446655440000",
+     "download_url": "https://s3.../report.xlsx?presigned=...",
+     "total_batches": 350,
+     "timestamp": "2026-02-03T10:25:15Z"
+   }
+   ```
+   **Meaning**: Report generation complete. Download link is ready (24h expiry).
+
+3. **ERROR (Failure)**
+   ```json
+   {
+     "type": "ERROR",
+     "job_id": "550e8400-e29b-41d4-a716-446655440000",
+     "error_message": "Worker process timeout or database connection lost",
+     "timestamp": "2026-02-03T10:16:00Z"
+   }
+   ```
+   **Meaning**: Report generation failed. Retry via HTTP polling or new request.
+
+**Fallback (HTTP Polling):**
+If WebSocket connection fails after 3 retries (1s, 2s, 4s backoff):
+```http
+GET /api/workspaces/:ws_id/reports/jobs/:job_id
+Response 200:
+{
+  "job_id": "550e8400-...",
+  "status": "processing",
+  "total_batches": 350,
+  "completed_batches": 127,
+  "progress_percentage": 36
+}
+```
+
+**Timeout:**
+- WebSocket connection timeout: 10 minutes (600s)
+- Job expires if not downloaded within 24 hours
+- Partial results auto-cleanup via Redis TTL
+
+**Performance:**
+- Latency: <100ms (vs 1000ms for polling)
+- API calls: 1 WebSocket upgrade (vs ~30 polling requests)
+- Network usage: ~5KB total (vs ~150KB for polling)
 
 ---
 

@@ -264,6 +264,8 @@
     "submit": "提交",
     "back_to_workspace": "返回工作区",
     "refresh": "刷新",
+    "expand_all": "全部展开",
+    "collapse_all": "全部折叠",
     "error_occurred": "发生错误",
     "processing": "正在处理...",
     "shift": "班次",
@@ -401,6 +403,7 @@
     "create": "创建",
     "end_date": "结束日期",
     "select": "选择",
+    "selected": "已选择",
     "currency": "元",
     "amount": "金额",
     "effective_date": "生效日期",
@@ -417,7 +420,9 @@
     "required": "必填",
     "forever": "永久",
     "important_note": "重要提示",
-    "no_data": "暂无数据"
+    "no_data": "暂无数据",
+    "disable": "禁用",
+    "enable": "启用"
   },
   "dashboard": {
     "title": "仪表板",
@@ -545,7 +550,8 @@
     "creating_account": "正在创建账号...",
     "checking_security": "正在进行安全检查...",
     "session_expired": "会话已过期，正在重定向...",
-    "user_not_found": "未找到用户..."
+    "user_not_found": "未找到用户...",
+    "logout": "退出登录"
   },
   "ess": {
     "my_profile": "我的个人资料",
@@ -986,6 +992,7 @@
     "download_button": "下载文件",
     "run_background": "后台运行",
     "batches_completed": "已完成: {{completed}}/{{total}}",
+    "fallback_mode": "实时更新不可用。使用标准轮询。",
     "status": {
       "preparing": "正在准备...",
       "processing": "正在生成报告...",
@@ -1073,6 +1080,10 @@
   "devices": {
     "title": "设备管理",
     "add_btn": "添加设备",
+    "confirm_disable": "您确定要禁用 {{name}} 吗？代理将停止轮询此设备。",
+    "confirm_enable": "您确定要启用 {{name}} 吗？代理将开始轮询此设备。",
+    "no_devices_for_agent": "尚未为此代理分配任何设备。",
+    "unassigned_title": "未分配的设备",
     "messages": {
       "empty_desc": "尚未记录任何物联网设备。连接考勤机以开始。"
     },
@@ -1083,7 +1094,10 @@
       "update_error": "更新设备时出错。",
       "delete_confirm": "您确定要删除此设备吗？",
       "delete_success": "设备已从系统中移除。",
-      "delete_error": "删除设备时出错。"
+      "delete_error": "删除设备时出错。",
+      "disabled": "{{name}} 已被禁用",
+      "enabled": "{{name}} 已被启用",
+      "toggle_error": "无法更新设备状态"
     },
     "form": {
       "infrastructure": "连接基础设施",
@@ -1120,6 +1134,9 @@
       "delete": "删除设备",
       "no_data": "尚未设置设备。"
     }
+  },
+  "connectivity": {
+    "empty_guide": "在您的本地网络上安装代理以连接考勤设备。从文档中下载安装程序。"
   },
   "onboarding": {
     "welcome_title": "欢迎！",
@@ -1411,6 +1428,9 @@
     "export_excel": "导出 Excel",
     "search_placeholder": "按员工姓名搜索...",
     "no_shift": "无班次",
+    "date_range": "日期范围",
+    "employees": "员工",
+    "report_type": "报告类型",
     "tabs": {
       "summary": "月度摘要",
       "daily": "每日详情"

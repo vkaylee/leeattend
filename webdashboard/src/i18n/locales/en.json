@@ -403,6 +403,7 @@
     "create": "Create",
     "end_date": "End Date",
     "select": "Select",
+    "selected": "selected",
     "currency": "USD",
     "amount": "Amount",
     "effective_date": "Effective Date",
@@ -549,7 +550,8 @@
     "creating_account": "Creating account...",
     "checking_security": "Checking security...",
     "session_expired": "Session expired, redirecting...",
-    "user_not_found": "User not found..."
+    "user_not_found": "User not found...",
+    "logout": "Logout"
   },
   "ess": {
     "my_profile": "My Profile",
@@ -990,6 +992,7 @@
     "download_button": "Download File",
     "run_background": "Run in Background",
     "batches_completed": "Batches: {{completed}}/{{total}}",
+    "fallback_mode": "Real-time updates unavailable. Using standard polling.",
     "status": {
       "preparing": "Preparing export...",
       "processing": "Generating report...",
@@ -1425,6 +1428,9 @@
     "export_excel": "Export Excel",
     "search_placeholder": "Search by employee name...",
     "no_shift": "No shift",
+    "date_range": "Date Range",
+    "employees": "Employees",
+    "report_type": "Report Type",
     "tabs": {
       "summary": "Monthly Summary",
       "daily": "Daily Details"

@@ -9,6 +9,7 @@ import {
   downloadExportReport,
 } from "../../../lib/api/attendance";
 import { cn } from "../../../lib/utils";
+import { useReportStream } from "../../../hooks/use-report-stream";
 
 interface ReportExportDialogProps {
   isOpen: boolean;
@@ -36,39 +37,88 @@ export default function ReportExportDialog({
   const [jobId, setJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [totalBatches, setTotalBatches] = useState(0);
+  const [useFallbackPolling, setUseFallbackPolling] = useState(false);
 
   // Reset state when dialog opens
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPhase("idle");
       setJobId(null);
       setError(null);
       setTotalBatches(0);
+      setUseFallbackPolling(false);
     }
   }, [isOpen]);
 
-  // Poll job status
-  const { data: jobStatus } = useQuery({
-    queryKey: ["export-job", jobId],
+  // WebSocket streaming for real-time updates
+  const {
+    status: streamStatus,
+    progress: streamProgress,
+    error: streamError,
+  } = useReportStream({
+    jobId,
+    onComplete: () => {
+      console.debug("[ReportExport] Stream completed");
+      setPhase("completed");
+    },
+    onError: (message) => {
+      console.error("[ReportExport] Stream error:", message);
+
+      // Check if max retries exceeded - fallback to polling
+      if (
+        message.includes("Max retries exceeded") ||
+        message.includes("Connection lost")
+      ) {
+        console.warn("[ReportExport] WebSocket failed, falling back to polling");
+        setUseFallbackPolling(true);
+        setError(null); // Clear error, fallback will handle
+      } else {
+        setPhase("failed");
+        setError(message);
+      }
+    },
+    maxRetries: 3,
+  });
+
+  // Map WebSocket status to export phase
+  useEffect(() => {
+    if (!jobId || useFallbackPolling) return;
+
+    // Only update phase during streaming states
+    if (streamStatus === "connecting") {
+      setPhase("starting");
+    } else if (streamStatus === "streaming") {
+      setPhase("polling"); // Keep "polling" name for UI consistency
+    } else if (streamStatus === "error" && streamError) {
+      setPhase("failed");
+      setError(streamError);
+    }
+    // Note: "completed" handled by onComplete callback
+  }, [streamStatus, streamError, jobId, useFallbackPolling]);
+
+  // Fallback polling when WebSocket fails
+  const { data: pollingStatus } = useQuery({
+    queryKey: ["export-job-fallback", jobId],
     queryFn: () => fetchExportJobStatus(wsId, jobId!),
-    enabled: !!jobId && phase === "polling",
+    enabled: !!jobId && useFallbackPolling && phase === "polling",
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      return status === "processing" || status === "pending" ? 1000 : false;
+      return status === "processing" || status === "pending" ? 2000 : false; // 2s (less aggressive)
     },
   });
 
-  // Handle job status changes
+  // Handle fallback polling status
   useEffect(() => {
-    if (!jobStatus) return;
+    if (!useFallbackPolling || !pollingStatus) return;
 
-    if (jobStatus.status === "completed") {
+    if (pollingStatus.status === "completed") {
       setPhase("completed");
-    } else if (jobStatus.status === "failed") {
+    } else if (pollingStatus.status === "failed") {
       setPhase("failed");
-      setError(jobStatus.error || t("report_export.status.failed"));
+      setError(pollingStatus.error || t("report_export.status.failed"));
     }
-  }, [jobStatus, t]);
+  }, [pollingStatus, useFallbackPolling, t]);
 
   const handleStartExport = async () => {
     setPhase("starting");
@@ -84,7 +134,7 @@ export default function ReportExportDialog({
 
       setJobId(response.job_id);
       setTotalBatches(response.total_batches);
-      setPhase("polling");
+      // Phase will be set automatically by useEffect watching streamStatus
     } catch (err) {
       setPhase("failed");
       setError(err instanceof Error ? err.message : t("report_export.status.failed"));
@@ -112,8 +162,20 @@ export default function ReportExportDialog({
     }
   };
 
-  const progress = jobStatus?.progress;
-  const percentage = progress?.percentage ?? 0;
+  // Calculate percentage from appropriate source
+  const percentage =
+    jobId && phase === "polling"
+      ? useFallbackPolling && pollingStatus?.progress?.percentage
+        ? pollingStatus.progress.percentage
+        : streamProgress
+      : 0;
+
+  // Calculate batch count
+  const completedBatches = useFallbackPolling && pollingStatus?.progress
+    ? pollingStatus.progress.completed_batches
+    : totalBatches > 0
+      ? Math.floor((streamProgress / 100) * totalBatches)
+      : 0;
 
   return (
     <Modal
@@ -123,10 +185,11 @@ export default function ReportExportDialog({
       subtitle={t("report_export.subtitle")}
       icon={<FileSpreadsheet size={24} />}
       maxWidth="md"
+      data-testid="report-export-dialog"
     >
       <div className="p-6 space-y-6">
         {/* Export Info */}
-        <div className="bg-slate-50 rounded-2xl p-4 space-y-2">
+        <div className="bg-slate-50 rounded-2xl p-4 space-y-2" data-testid="report-export-info">
           <div className="flex justify-between text-sm">
             <span className="text-slate-500">{t("reports.date_range")}:</span>
             <span className="font-medium">{startDate} ~ {endDate}</span>
@@ -147,7 +210,7 @@ export default function ReportExportDialog({
         {phase !== "idle" && (
           <div className="space-y-4">
             {/* Progress Bar */}
-            <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner">
+            <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner" data-testid="report-export-progress-bar">
               <div
                 className={cn(
                   "h-full transition-all duration-500 ease-out",
@@ -156,6 +219,7 @@ export default function ReportExportDialog({
                   "bg-primary-600 bg-gradient-to-r from-primary-500 to-primary-600"
                 )}
                 style={{ width: `${phase === "completed" ? 100 : percentage}%` }}
+                data-testid="report-export-progress-fill"
               />
             </div>
 
@@ -176,7 +240,9 @@ export default function ReportExportDialog({
                 phase === "failed" ? "text-rose-600" :
                 phase === "completed" ? "text-emerald-600" :
                 "text-slate-700"
-              )}>
+              )}
+              data-testid="report-export-status-text"
+              >
                 {phase === "starting" && t("report_export.status.preparing")}
                 {phase === "polling" && t("report_export.status.processing")}
                 {phase === "completed" && t("report_export.status.completed")}
@@ -186,10 +252,10 @@ export default function ReportExportDialog({
             </div>
 
             {/* Batch Progress */}
-            {phase === "polling" && progress && totalBatches > 0 && (
-              <p className="text-center text-sm text-slate-500">
+            {phase === "polling" && totalBatches > 0 && (
+              <p className="text-center text-sm text-slate-500" data-testid="report-export-batch-counter">
                 {t("report_export.batches_completed", {
-                  completed: progress.completed_batches,
+                  completed: completedBatches,
                   total: totalBatches,
                 })}
               </p>
@@ -197,8 +263,17 @@ export default function ReportExportDialog({
 
             {/* Error Message */}
             {error && (
-              <div className="bg-rose-50 border border-rose-200 rounded-xl p-4">
+              <div className="bg-rose-50 border border-rose-200 rounded-xl p-4" data-testid="report-export-error">
                 <p className="text-sm text-rose-700">{error}</p>
+              </div>
+            )}
+
+            {/* Fallback Mode Notification */}
+            {useFallbackPolling && phase === "polling" && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3" data-testid="report-export-fallback-notice">
+                <p className="text-xs text-amber-700">
+                  {t("report_export.fallback_mode")}
+                </p>
               </div>
             )}
           </div>
@@ -211,12 +286,14 @@ export default function ReportExportDialog({
               <button
                 onClick={onClose}
                 className="flex-1 px-6 py-3 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium"
+                data-testid="report-export-cancel-button"
               >
                 {t("common.cancel")}
               </button>
               <button
                 onClick={handleStartExport}
                 className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium"
+                data-testid="report-export-start-button"
               >
                 <Download size={18} />
                 {t("report_export.start_export")}
@@ -228,6 +305,7 @@ export default function ReportExportDialog({
             <button
               onClick={onClose}
               className="flex-1 px-6 py-3 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium"
+              data-testid="report-export-background-button"
             >
               {t("report_export.run_background")}
             </button>
@@ -238,12 +316,14 @@ export default function ReportExportDialog({
               <button
                 onClick={onClose}
                 className="flex-1 px-6 py-3 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium"
+                data-testid="report-export-close-button"
               >
                 {t("common.close")}
               </button>
               <button
                 onClick={handleDownload}
                 className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-medium"
+                data-testid="report-export-download-button"
               >
                 <Download size={18} />
                 {t("report_export.download_button")}
@@ -256,12 +336,14 @@ export default function ReportExportDialog({
               <button
                 onClick={onClose}
                 className="flex-1 px-6 py-3 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium"
+                data-testid="report-export-close-button"
               >
                 {t("common.close")}
               </button>
               <button
                 onClick={handleStartExport}
                 className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium"
+                data-testid="report-export-retry-button"
               >
                 {t("common.retry")}
               </button>
@@ -272,6 +354,7 @@ export default function ReportExportDialog({
             <button
               disabled
               className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-slate-300 text-slate-500 rounded-xl cursor-not-allowed font-medium"
+              data-testid="report-export-downloading-button"
             >
               <Loader2 size={18} className="animate-spin" />
               {t("report_export.status.downloading")}

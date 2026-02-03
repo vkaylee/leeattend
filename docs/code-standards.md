@@ -636,3 +636,183 @@ Hệ thống ưu tiên định danh tổ chức dựa trên URI để tăng tín
 
 - **Multi-Tenancy**: Luôn kiểm tra `workspace_id` trong mọi query.
 - **RBAC**: Sử dụng `MemberContext` để xác thực quyền hạn. Không hard-code check role ở tầng handler nếu có thể dùng chung logic kiểm tra quyền.
+
+---
+
+## 22. Real-Time Features & WebSocket Standards (NEW - 2026-02-03)
+
+### 22.1. WebSocket Implementation Requirements
+
+**Always Provide Fallback:**
+- WebSocket connections MUST have an automatic fallback mechanism
+- After 3 connection failures, switch to HTTP polling (or equivalent)
+- User MUST be notified when using fallback mode (e.g., amber notification banner)
+- Fallback ensures 100% reliability (zero feature failures)
+
+**Retry Strategy:**
+```typescript
+const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff
+const MAX_RETRIES = 3;
+```
+
+**Message Protocol:**
+- Use discriminated union types (JSON with `type` field)
+- Message types: `CHUNK`, `DONE`, `ERROR`, `ACK`
+- Include timestamp and job/request ID for traceability
+
+**Example Rust Implementation:**
+```rust
+#[derive(Serialize)]
+#[serde(tag = "type")]
+pub enum ReportStreamMessage {
+    #[serde(rename = "CHUNK")]
+    Chunk {
+        job_id: Uuid,
+        batch_index: usize,
+        total_batches: usize,
+        progress_percentage: u32,
+    },
+    #[serde(rename = "DONE")]
+    Done {
+        job_id: Uuid,
+        download_url: String,
+    },
+    #[serde(rename = "ERROR")]
+    Error {
+        job_id: Uuid,
+        error_message: String,
+    },
+}
+```
+
+**Example React Hook Implementation:**
+```typescript
+export function useReportStream(options: UseReportStreamOptions) {
+    const [status, setStatus] = useState<'idle' | 'connecting' | 'streaming' | 'completed' | 'error'>('idle');
+    const [progress, setProgress] = useState(0);
+    const [chunks, setChunks] = useState<ReportChunk[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [retryCount, setRetryCount] = useState(0);
+
+    // Auto-fallback after 3 failed retries
+    useEffect(() => {
+        if (retryCount >= 3) {
+            // Switch to HTTP polling
+            switchToPollingMode();
+        }
+    }, [retryCount]);
+
+    // Return reconnect function for user-initiated retries
+    return { status, progress, chunks, error, reconnect };
+}
+```
+
+### 22.2. Frontend Testing Standards for Real-Time Features
+
+**Test Requirements:**
+- Happy path: Connection established, messages received in order
+- Fallback path: WebSocket fails, HTTP polling takes over
+- Retry logic: Exponential backoff with jitter (no thundering herd)
+- Message parsing: Invalid JSON or unknown types handled gracefully
+- Connection cleanup: No memory leaks on disconnect/reconnect
+
+**Example E2E Test:**
+```typescript
+test('Report export with WebSocket fallback', async ({ page }) => {
+    // Navigate to export dialog
+    await page.goto('/employees');
+    await page.click('button:has-text("Export Report")');
+
+    // Simulate WebSocket connection failure
+    await page.context().route('**/ws/reports/**', route => {
+        route.abort('failed'); // Simulate WebSocket failure
+    });
+
+    // Submit export - should trigger fallback
+    await page.click('[data-testid="report-export-start-button"]');
+
+    // Wait for fallback notice
+    const notice = await page.waitForSelector('[data-testid="report-export-fallback-notice"]');
+    expect(notice).toContainText('Real-time updates unavailable');
+
+    // Continue polling and eventually complete
+    const download = await page.waitForSelector('[data-testid="report-export-download-button"]');
+    expect(download).toBeVisible();
+});
+```
+
+### 22.3. Data-TestID Standards for Real-Time Components
+
+**Naming Convention for WebSocket/Real-Time Features:**
+```
+[component-name]-[sub-element]-[type/action]
+
+Examples:
+"report-export-dialog"
+"report-export-progress-bar"
+"report-export-progress-fill"
+"report-export-batch-counter"
+"report-export-status-text"
+"report-export-start-button"
+"report-export-cancel-button"
+"report-export-download-button"
+"report-export-retry-button"
+"report-export-fallback-notice"
+"report-export-close-button"
+```
+
+**Kebab-Case Always:**
+```typescript
+// ✅ CORRECT
+<div data-testid="report-export-dialog">
+
+// ❌ INCORRECT
+<div data-testid="reportExportDialog">
+<div data-testid="report_export_dialog">
+<div data-testid="ReportExportDialog">
+```
+
+### 22.4. Error Handling for Real-Time Features
+
+**Never Silent Failures:**
+```typescript
+// ❌ INCORRECT - Silent failure
+socket.onerror = () => {
+    // log only, no user notification
+};
+
+// ✅ CORRECT - User-visible error
+socket.onerror = (error) => {
+    toast.error('Connection failed. Switching to polling mode.');
+    switchToFallback();
+};
+```
+
+**Graceful Degradation Pattern:**
+```typescript
+// YAGNI: Don't try to be too clever
+// Keep fallback logic simple and reliable
+
+export async function withFallback<T>(
+    primary: () => Promise<T>,
+    fallback: () => Promise<T>,
+    maxRetries: number = 3
+): Promise<T> {
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            return await primary();
+        } catch (error) {
+            if (i === maxRetries - 1) {
+                // All retries exhausted, use fallback
+                return await fallback();
+            }
+            const delay = Math.pow(2, i) * 1000;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+    throw new Error('All retry attempts exhausted');
+}
+```
+
+---
+

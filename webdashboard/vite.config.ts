@@ -99,6 +99,21 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
       strictPort: true,
       allowedHosts: ["leeattend.nport.link"],
       proxy: {
+        // WebSocket proxy for report streaming (must be before /api)
+        "/api/ws": {
+          target: wsTarget,
+          changeOrigin: true,
+          ws: true,
+          configure: (proxy: any, _options: any) => {
+            proxy.on('error', (err: Error, _req: IncomingMessage, _res: ServerResponse) => {
+              console.log('📡 Vite: WebSocket proxy error', err);
+            });
+            proxy.on('proxyReq', (_proxyReq: IncomingMessage, req: IncomingMessage, _res: ServerResponse) => {
+              console.log(`📡 Vite: Proxying WebSocket ${req.method} ${req.url} -> ${wsTarget}${req.url}`);
+            });
+          },
+        },
+        // HTTP API proxy
         "/api": {
           target: apiTarget,
           changeOrigin: true,
@@ -111,6 +126,7 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
             });
           },
         },
+        // Legacy WebSocket proxy (kept for compatibility)
         "/ws": {
           target: wsTarget,
           ws: true,
