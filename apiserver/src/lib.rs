@@ -18,61 +18,11 @@ use axum::{
 use crate::agent_manager::AgentManager;
 use crate::queue::RedisPool;
 use crate::repositories::{AgentRepository, WorkspaceRepository};
-use crate::services::{AgentService, AttendanceLogService, DynStorageProvider, ReportCoordinator};
+use crate::services::{AgentService, AttendanceLogService, ReportCoordinator};
 use axum::http::{HeaderValue, Method};
 use sqlx::PgPool;
-use std::path::PathBuf;
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
-
-/// Storage backend configuration
-#[derive(Debug, Clone)]
-pub enum StorageBackend {
-    S3 { bucket: String },
-    Local { base_path: PathBuf },
-}
-
-impl StorageBackend {
-    /// Detect storage backend from environment
-    pub fn from_env() -> Self {
-        let storage_type = std::env::var("STORAGE_TYPE").ok();
-        let s3_bucket = std::env::var("S3_BUCKET").ok();
-        let local_path = std::env::var("LOCAL_STORAGE_PATH")
-            .unwrap_or_else(|_| "./storage".to_string());
-
-        match (storage_type.as_deref(), s3_bucket) {
-            (Some("s3"), Some(bucket)) => {
-                tracing::info!("Using S3 storage with bucket: {}", bucket);
-                Self::S3 { bucket }
-            }
-            (Some("s3"), None) => panic!("STORAGE_TYPE=s3 requires S3_BUCKET to be set"),
-            (Some("local"), _) | (None, None) => {
-                tracing::info!("Using local storage at: {}", local_path);
-                Self::Local {
-                    base_path: PathBuf::from(local_path),
-                }
-            }
-            (None, Some(bucket)) => {
-                tracing::info!("Using S3 storage with bucket: {}", bucket);
-                Self::S3 { bucket }
-            }
-            _ => {
-                tracing::info!("Using local storage at: {}", local_path);
-                Self::Local {
-                    base_path: PathBuf::from(local_path),
-                }
-            }
-        }
-    }
-
-    pub fn is_local(&self) -> bool {
-        matches!(self, Self::Local { .. })
-    }
-
-    pub fn is_s3(&self) -> bool {
-        matches!(self, Self::S3 { .. })
-    }
-}
 
 pub struct AppState {
     pub agent_manager: AgentManager,
@@ -88,10 +38,6 @@ pub struct AppState {
     /// Optional ReportCoordinator for async report generation.
     /// Requires Redis to be available.
     pub coordinator: Option<Arc<ReportCoordinator>>,
-    /// Storage backend configuration (S3 or Local)
-    pub storage: StorageBackend,
-    /// Storage provider instance (initialized from storage config)
-    pub storage_provider: DynStorageProvider,
 }
 
 mod ax_auth {
@@ -482,10 +428,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/reports/jobs/:job_id/download",
             get(handlers::report_export::download_report),
         )
-        // Local file serving for non-S3 storage
+        // WebSocket endpoint for real-time report streaming
         .route(
-            "/reports/local/*key",
-            get(handlers::report_export::serve_local_report),
+            "/ws/reports/:job_id",
+            get(handlers::report_websocket::report_stream_ws),
         )
         // Worker monitoring endpoints (global infrastructure)
         .route(

@@ -6,7 +6,6 @@
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use tracing::{error, warn};
 use uuid::Uuid;
 
 use crate::queue::{
@@ -16,7 +15,7 @@ use crate::queue::{
 use crate::repositories::employee_repository;
 
 // Configuration constants for batch processing
-pub const BATCH_SIZE: usize = 20;
+pub const BATCH_SIZE: usize = 200;
 pub const JOB_TIMEOUT_SECS: u64 = 3600; // 1 hour max job duration
 pub const ESTIMATED_SECONDS_PER_BATCH: u64 = 2;
 
@@ -57,7 +56,6 @@ pub struct JobStatusResponse {
     pub job_id: Uuid,
     pub status: String,
     pub progress: JobProgress,
-    pub result_url: Option<String>,
     pub error: Option<String>,
     pub created_at: DateTime<Utc>,
     pub completed_at: Option<DateTime<Utc>>,
@@ -244,31 +242,6 @@ impl ReportCoordinator {
             0.0
         };
 
-        // Check if file is ready
-        let result_url = if meta.status == JobStatus::Completed {
-            match self.queue.get_result_url(job_id).await {
-                Ok(url) => {
-                    if url.is_none() {
-                        warn!(
-                            job_id = %job_id,
-                            "Job marked as completed but result URL not found in Redis"
-                        );
-                    }
-                    url
-                }
-                Err(e) => {
-                    error!(
-                        job_id = %job_id,
-                        error = %e,
-                        "Failed to retrieve result URL from Redis for completed job"
-                    );
-                    None
-                }
-            }
-        } else {
-            None
-        };
-
         Ok(JobStatusResponse {
             job_id: meta.job_id,
             status: format!("{:?}", meta.status).to_lowercase(),
@@ -278,7 +251,6 @@ impl ReportCoordinator {
                 failed_batches: meta.failed_batches,
                 percentage,
             },
-            result_url,
             error: meta.error_message,
             created_at: meta.created_at,
             completed_at: meta.completed_at,
@@ -358,38 +330,55 @@ impl ReportCoordinator {
         let all_done = completed_count >= meta.total_batches;
 
         if all_done {
-            tracing::info!(
-                parent_job_id = %parent_job_id,
-                completed = completed_count,
-                total = meta.total_batches,
-                "All batches complete, triggering merge"
-            );
-
-            // Enqueue merge job with date range from metadata
-            let date_range = meta.date_range.clone().unwrap_or(DateRange {
-                start: NaiveDate::from_ymd_opt(2000, 1, 1).unwrap(),
-                end: NaiveDate::from_ymd_opt(2000, 1, 1).unwrap(),
-            });
-
-            let merge_job = ReportJob::new(
-                parent_job_id,
-                0, // batch_index 0 for merge
-                TaskType::MergeResults,
-                meta.workspace_id,
-                vec![], // Not needed for merge
-                date_range,
-                ReportConfig {
-                    report_type: meta.report_type.clone(),
-                    timezone: "UTC".to_string(),
-                    rounding_policy: "floor".to_string(),
-                    work_unit_minutes: 30,
-                },
-            );
-
-            self.queue
-                .enqueue_jobs(vec![merge_job])
+            // Atomically try to set merge trigger flag
+            // This prevents race condition where multiple workers trigger merge
+            let should_trigger = self
+                .queue
+                .try_trigger_merge(parent_job_id)
                 .await
                 .map_err(|e| ReportError::QueueError(e.to_string()))?;
+
+            if should_trigger {
+                tracing::info!(
+                    parent_job_id = %parent_job_id,
+                    completed = completed_count,
+                    total = meta.total_batches,
+                    "All batches complete, triggering merge (first worker)"
+                );
+
+                // Enqueue merge job with date range from metadata
+                let date_range = meta.date_range.clone().unwrap_or(DateRange {
+                    start: NaiveDate::from_ymd_opt(2000, 1, 1).unwrap(),
+                    end: NaiveDate::from_ymd_opt(2000, 1, 1).unwrap(),
+                });
+
+                let merge_job = ReportJob::new(
+                    parent_job_id,
+                    0, // batch_index 0 for merge
+                    TaskType::MergeResults,
+                    meta.workspace_id,
+                    vec![], // Not needed for merge
+                    date_range,
+                    ReportConfig {
+                        report_type: meta.report_type.clone(),
+                        timezone: "UTC".to_string(),
+                        rounding_policy: "floor".to_string(),
+                        work_unit_minutes: 30,
+                    },
+                );
+
+                self.queue
+                    .enqueue_jobs(vec![merge_job])
+                    .await
+                    .map_err(|e| ReportError::QueueError(e.to_string()))?;
+            } else {
+                tracing::debug!(
+                    parent_job_id = %parent_job_id,
+                    completed = completed_count,
+                    total = meta.total_batches,
+                    "All batches complete, but merge already triggered by another worker (race prevented)"
+                );
+            }
         }
 
         Ok(all_done)
@@ -435,39 +424,39 @@ mod tests {
     #[test]
     fn test_batch_splitting() {
         // Simulate batch splitting logic
-        let employees: Vec<Uuid> = (0..55).map(|_| Uuid::new_v4()).collect();
+        let employees: Vec<Uuid> = (0..550).map(|_| Uuid::new_v4()).collect();
 
         let batches: Vec<Vec<Uuid>> = employees
             .chunks(BATCH_SIZE)
             .map(|chunk| chunk.to_vec())
             .collect();
 
-        // 55 employees / 20 = 2 full batches + 1 partial
+        // 550 employees / 200 = 2 full batches + 1 partial
         assert_eq!(batches.len(), 3);
-        assert_eq!(batches[0].len(), 20);
-        assert_eq!(batches[1].len(), 20);
-        assert_eq!(batches[2].len(), 15);
+        assert_eq!(batches[0].len(), 200);
+        assert_eq!(batches[1].len(), 200);
+        assert_eq!(batches[2].len(), 150);
     }
 
     #[test]
     fn test_edge_cases() {
-        // Exactly 20 employees - 1 batch
-        let employees: Vec<Uuid> = (0..20).map(|_| Uuid::new_v4()).collect();
+        // Exactly 200 employees - 1 batch
+        let employees: Vec<Uuid> = (0..200).map(|_| Uuid::new_v4()).collect();
         let batches: Vec<Vec<Uuid>> = employees
             .chunks(BATCH_SIZE)
             .map(|chunk| chunk.to_vec())
             .collect();
         assert_eq!(batches.len(), 1);
-        assert_eq!(batches[0].len(), 20);
+        assert_eq!(batches[0].len(), 200);
 
-        // 21 employees - 2 batches
-        let employees: Vec<Uuid> = (0..21).map(|_| Uuid::new_v4()).collect();
+        // 201 employees - 2 batches
+        let employees: Vec<Uuid> = (0..201).map(|_| Uuid::new_v4()).collect();
         let batches: Vec<Vec<Uuid>> = employees
             .chunks(BATCH_SIZE)
             .map(|chunk| chunk.to_vec())
             .collect();
         assert_eq!(batches.len(), 2);
-        assert_eq!(batches[0].len(), 20);
+        assert_eq!(batches[0].len(), 200);
         assert_eq!(batches[1].len(), 1);
 
         // 1 employee - 1 batch
@@ -482,8 +471,8 @@ mod tests {
 
     #[test]
     fn test_estimated_time_calculation() {
-        let total_batches = 350u32; // 7000 employees / 20
+        let total_batches = 35u32; // 7000 employees / 200
         let estimated = (total_batches as u64) * ESTIMATED_SECONDS_PER_BATCH;
-        assert_eq!(estimated, 700); // 700 seconds ~= 11.6 minutes
+        assert_eq!(estimated, 70); // 70 seconds
     }
 }

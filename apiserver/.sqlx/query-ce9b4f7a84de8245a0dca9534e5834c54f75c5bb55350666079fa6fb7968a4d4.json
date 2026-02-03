@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO attendance_daily_summaries (workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, ot_status) VALUES ($1, $2, $3, 480, 120, 'pending_employee')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ce9b4f7a84de8245a0dca9534e5834c54f75c5bb55350666079fa6fb7968a4d4"
+}

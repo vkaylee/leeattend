@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { AdjustmentRequestModal } from "../AdjustmentRequestModal";
 import { TimeEntry } from "@/lib/api/types";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastProvider } from "../../Toast";
+import { ToastProvider } from "../../ui/Toast";
 import React from "react";
 
 const mockTranslation = {

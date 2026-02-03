@@ -1,18 +1,16 @@
 //! Merge Handler
 //!
-//! Aggregates batch results into final Excel report, uploads to storage (S3 or local),
-//! and generates download URL.
+//! Aggregates batch results into final Excel report and streams directly to client via Pub/Sub.
 
 use chrono::{NaiveDate, Utc};
 use sqlx::PgPool;
 use tracing::{info, warn};
 
 use crate::models::{AttendanceSummary, DailyAttendanceReport};
-use crate::queue::{JobStatus, ReportJob, ReportQueue, ReportType};
-use crate::services::excel_writer::EXCEL_CONTENT_TYPE;
-use crate::services::{DynStorageProvider, ExcelWriter};
+use crate::queue::{JobStatus, RedisPool, ReportJob, ReportPublisher, ReportQueue, ReportType};
+use crate::services::ExcelWriter;
 
-/// Presigned URL validity duration (24 hours) - no longer used, kept for backward compatibility.
+/// Presigned URL validity duration - no longer used, kept for backward compatibility.
 const _PRESIGNED_URL_EXPIRY: std::time::Duration = std::time::Duration::from_secs(86400);
 
 /// Handler for merging batch results into final report.
@@ -25,15 +23,15 @@ impl MergeHandler {
     /// 1. Fetch all batch results from Redis
     /// 2. Deserialize and merge based on report type
     /// 3. Generate Excel file
-    /// 4. Upload to storage (S3 or local)
-    /// 5. Generate download URL
-    /// 6. Update job status to completed
+    /// 4. Store Excel data in Redis for client download
+    /// 5. Update job status to completed
+    /// 6. Publish DONE signal to Pub/Sub
     /// 7. Cleanup batch results
     pub async fn handle(
         pool: &PgPool,
         queue: &ReportQueue,
         job: &ReportJob,
-        storage: &DynStorageProvider,
+        redis: &RedisPool,
     ) -> Result<(), String> {
         let parent_job_id = job.parent_job_id;
 
@@ -92,50 +90,52 @@ impl MergeHandler {
             "Excel file generated"
         );
 
-        // 6. Build storage key
-        let storage_key = format!(
-            "{}/{}/{}/{}",
-            meta.workspace_id,
-            Utc::now().format("%Y"),
-            Utc::now().format("%m"),
-            file_name
-        );
-
-        // 7. Upload to storage (S3 or local)
-        let upload_result = storage
-            .upload(&storage_key, excel_data, EXCEL_CONTENT_TYPE)
-            .await;
-
-        let download_url = match upload_result {
-            Ok(key) => {
-                // Get download URL from storage provider
-                storage.get_download_url(&key).await.map_err(|e| {
-                    format!("Failed to generate download URL: {}", e)
-                })?
-            }
-            Err(e) => {
-                // Critical: Storage failure should fail the job, not silently discard data
-                return Err(format!("Storage upload failed: {}. Report data lost!", e));
-            }
-        };
+        // 6. Store Excel data in Redis for direct client download (TTL: 1 hour)
+        queue
+            .set_result_data(parent_job_id, &excel_data, &file_name)
+            .await
+            .map_err(|e| format!("Failed to store Excel data: {}", e))?;
 
         info!(
             parent_job_id = %parent_job_id,
-            storage_type = storage.storage_type(),
-            key = %storage_key,
-            "Report uploaded successfully"
+            file_size = excel_data.len(),
+            "Report data stored in Redis for client download"
         );
 
-        // 8. Update job metadata
-        queue
-            .set_result_url(parent_job_id, &download_url)
-            .await
-            .map_err(|e| format!("Failed to set result URL: {}", e))?;
-
+        // 7. Update job status to completed
+        info!(parent_job_id = %parent_job_id, "Updating job status to completed");
         queue
             .update_job_status(parent_job_id, JobStatus::Completed)
             .await
             .map_err(|e| format!("Failed to update job status: {}", e))?;
+        info!(parent_job_id = %parent_job_id, "Job status updated successfully");
+
+        // 8. Publish DONE signal to Pub/Sub for streaming clients
+        info!(parent_job_id = %parent_job_id, "Publishing DONE signal to clients");
+        let publisher = ReportPublisher::new(redis.clone());
+        let total_records = batch_results.iter().fold(0usize, |acc, (_, json)| {
+            // Count records in each batch (approximate from JSON array length)
+            acc + json.matches("employee_id").count()
+        });
+
+        if let Err(e) = publisher
+            .publish_done(parent_job_id, meta.total_batches, total_records)
+            .await
+        {
+            // Non-fatal: streaming clients may have disconnected
+            warn!(
+                parent_job_id = %parent_job_id,
+                error = %e,
+                "Failed to publish DONE signal (non-fatal)"
+            );
+        } else {
+            info!(
+                parent_job_id = %parent_job_id,
+                total_batches = meta.total_batches,
+                total_records = total_records,
+                "DONE signal published successfully"
+            );
+        }
 
         // 9. Cleanup batch results (optional, TTL handles this too)
         if let Err(e) = queue.delete_results(parent_job_id).await {
@@ -148,7 +148,6 @@ impl MergeHandler {
 
         info!(
             parent_job_id = %parent_job_id,
-            download_url = %download_url,
             "Merge job completed successfully"
         );
 

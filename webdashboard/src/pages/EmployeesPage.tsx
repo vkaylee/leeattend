@@ -73,6 +73,7 @@ export default function EmployeesPage() {
   useEffect(() => {
     const enrollmentId = searchParams.get("enrollment_id");
     if (enrollmentId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPrefillEnrollmentId(enrollmentId);
       setIsModalOpen(true);
       setEditingEmployee(null);

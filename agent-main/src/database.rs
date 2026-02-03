@@ -482,6 +482,7 @@ impl Database {
         Ok(count)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn upsert_device(&self, id: &str, name: &str, ip: &str, port: i32, brand: &str, timezone: &str, is_enabled: bool) -> Result<(), Error> {
         let is_active = if is_enabled { 1 } else { 0 };
         sqlx::query(
@@ -1242,7 +1243,7 @@ mod tests {
 
         let (inserted, _skipped, keys) = result.unwrap();
         assert!(inserted > 0, "Should insert logs");
-        assert!(keys.len() > 0, "Should return composite keys");
+        assert!(!keys.is_empty(), "Should return composite keys");
     }
 
     #[tokio::test]

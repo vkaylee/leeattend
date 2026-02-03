@@ -117,6 +117,10 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    // Mutex to ensure env-modifying tests don't run in parallel
+    static ENV_MUTEX: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_config_struct_fields() {
@@ -143,7 +147,9 @@ mod tests {
 
     #[test]
     fn test_config_load_from_env() {
-        // SAFETY: Test runs single-threaded, env modification is isolated
+        let _lock = ENV_MUTEX.lock().unwrap();
+
+        // SAFETY: Mutex ensures no parallel env modification
         unsafe {
             std::env::set_var("AGENT_ID", "prod-agent-001");
             std::env::set_var("AGENT_TOKEN", "secret-token-123");
@@ -178,8 +184,19 @@ mod tests {
 
     #[test]
     fn test_config_invalid_numeric_uses_default() {
-        // SAFETY: Test runs single-threaded
+        let _lock = ENV_MUTEX.lock().unwrap();
+
+        // SAFETY: Mutex ensures no parallel env modification
         unsafe {
+            // Clear all config env vars first
+            std::env::remove_var("AGENT_ID");
+            std::env::remove_var("AGENT_TOKEN");
+            std::env::remove_var("CENTRAL_SERVER_URL");
+            std::env::remove_var("DATABASE_URL");
+            std::env::remove_var("RPC_TIMEOUT_SECONDS");
+            std::env::remove_var("POLL_INTERVAL_SECONDS");
+            std::env::remove_var("MAX_CONCURRENT_WORKERS");
+
             std::env::set_var("RPC_TIMEOUT_SECONDS", "not-a-number");
             std::env::set_var("POLL_INTERVAL_SECONDS", "");
             std::env::set_var("MAX_CONCURRENT_WORKERS", "-5");

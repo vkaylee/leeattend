@@ -1,8 +1,9 @@
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sqlx::PgPool;
+use std::collections::HashMap;
 use uuid::Uuid;
-use crate::models::{PolicyRules, WorkingCondition};
+use crate::models::{EarlyArrivalStrategy, PolicyRules, WorkingCondition};
 
 #[derive(Debug, Clone)]
 pub struct StandardMonthConfig {
@@ -157,5 +158,87 @@ impl PolicyResolver {
         .await?;
 
         Ok(conditions)
+    }
+
+    /// Batch resolve attendance rules for multiple employees.
+    /// Returns a HashMap keyed by employee_id.
+    /// This eliminates N+1 queries when processing batches.
+    pub async fn resolve_attendance_rules_batch(
+        pool: &PgPool,
+        employee_ids: &[Uuid],
+        _workspace_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<HashMap<Uuid, Vec<WorkingCondition>>, sqlx::Error> {
+        if employee_ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        // Batch fetch all working conditions for all employees in date range
+        let conditions = sqlx::query_as!(
+            WorkingCondition,
+            r#"
+            SELECT id, employee_id, type as "type_", minute_allowance, is_paid, start_date, end_date
+            FROM working_conditions
+            WHERE employee_id = ANY($1)
+              AND start_date <= $3
+              AND (end_date IS NULL OR end_date >= $2)
+            ORDER BY employee_id, start_date
+            "#,
+            employee_ids,
+            start_date,
+            end_date
+        )
+        .fetch_all(pool)
+        .await?;
+
+        // Group by employee_id
+        let mut result: HashMap<Uuid, Vec<WorkingCondition>> = HashMap::with_capacity(employee_ids.len());
+        for cond in conditions {
+            result.entry(cond.employee_id).or_default().push(cond);
+        }
+
+        Ok(result)
+    }
+
+    /// Build PolicyRules from workspace defaults and working conditions.
+    /// Used after batch fetching conditions to construct rules per employee/date.
+    pub fn build_rules_from_conditions(
+        conditions: &[WorkingCondition],
+        date: NaiveDate,
+        early_arrival_strategy: EarlyArrivalStrategy,
+    ) -> PolicyRules {
+        let mut rules = PolicyRules {
+            grace_period_minutes: 15,
+            authorized_early_leave_minutes: 0,
+            is_early_leave_paid: false,
+            early_arrival_strategy,
+            is_break_auto_deduct: true,
+            is_break_overtime: false,
+            allow_early_ot: false,
+        };
+
+        // Filter conditions active on this specific date
+        for cond in conditions.iter().filter(|c| {
+            c.start_date <= date && c.end_date.is_none_or(|end| end >= date)
+        }) {
+            match cond.type_.as_str() {
+                "EARLY_LEAVE" => {
+                    if cond.minute_allowance > rules.authorized_early_leave_minutes {
+                        rules.authorized_early_leave_minutes = cond.minute_allowance;
+                        rules.is_early_leave_paid = cond.is_paid;
+                    }
+                }
+                "BREASTFEEDING" => {
+                    if cond.minute_allowance > rules.authorized_early_leave_minutes {
+                        rules.authorized_early_leave_minutes = cond.minute_allowance;
+                        rules.is_early_leave_paid = true;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        rules
     }
 }

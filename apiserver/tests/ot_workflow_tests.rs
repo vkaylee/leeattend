@@ -101,45 +101,7 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
         agent_manager.clone(),
     ));
 
-    let storage_provider = apiserver::services::create_storage_provider(&storage)
-
-
     // Setup test storage
-
-
-
-    let storage = apiserver::StorageBackend::Local {
-
-
-
-        base_path: std::path::PathBuf::from("./test_storage"),
-
-
-
-    };
-
-
-
-    let storage_provider = apiserver::services::create_storage_provider(&storage)
-
-
-
-        .await
-
-
-
-        .expect("Failed to create test storage");
-
-
-
-
-    // Setup test storage
-    let storage = apiserver::StorageBackend::Local {
-        base_path: std::path::PathBuf::from("./test_storage"),
-    };
-    let storage_provider = apiserver::services::create_storage_provider(&storage)
-        .await
-        .expect("Failed to create test storage");
 
     let app_state = Arc::new(AppState {
         agent_manager,
@@ -151,8 +113,6 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
         attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
         redis: None,
         coordinator: None,
-        storage,
-        storage_provider,
     });
 
     let app = apiserver::create_app(app_state);
@@ -208,12 +168,10 @@ async fn test_bulk_csv_ot_upload() {
     ).execute(pool).await.unwrap();
 
     // Prepare CSV
-    let csv_content = format!(
-        "employee_id,date,minutes,reason
+    let csv_content = "employee_id,date,minutes,reason
 E001,2024-01-15,120,Production line overtime - paper form #123
 E002,2024-01-16,90,Urgent order completion
-E003,2024-01-17,60,Maintenance work"
-    );
+E003,2024-01-17,60,Maintenance work".to_string();
 
     // Create multipart form data
     let boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";

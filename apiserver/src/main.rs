@@ -122,12 +122,6 @@ async fn main() {
         }
     };
 
-    // Initialize storage backend (before worker)
-    let storage = apiserver::StorageBackend::from_env();
-    let storage_provider = apiserver::services::create_storage_provider(&storage)
-        .await
-        .expect("Failed to initialize storage provider");
-
     // Initialize report worker if Redis is available
     let worker_cancel_token = CancellationToken::new();
     let (coordinator, worker_handle) = if let Some(ref redis) = redis_pool {
@@ -145,7 +139,6 @@ async fn main() {
             pool.clone(),
             worker_config,
             coordinator.clone(),
-            storage_provider.clone(),
         );
 
         (Some(coordinator), Some(worker.start(worker_cancel_token.clone())))
@@ -163,8 +156,6 @@ async fn main() {
         attendance_service,
         redis: redis_pool,
         coordinator,
-        storage,
-        storage_provider,
     });
 
     let app = create_app(state.clone());

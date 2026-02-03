@@ -36,6 +36,7 @@ pub async fn get_debug_users(
 
     #[cfg(not(debug_assertions))]
     {
+        let _ = state; // Suppress unused warning in release mode
         axum::http::StatusCode::NOT_FOUND.into_response()
     }
 }
@@ -251,6 +252,7 @@ pub async fn clear_debug_db(
 
     #[cfg(not(debug_assertions))]
     {
-        Err((axum::http::StatusCode::NOT_FOUND, "Not found".to_string()))
+        let _ = (ws_id, state, payload); // Suppress unused warnings in release mode
+        Err::<(axum::http::StatusCode, &str), _>((axum::http::StatusCode::NOT_FOUND, "Not found".to_string()))
     }
 }

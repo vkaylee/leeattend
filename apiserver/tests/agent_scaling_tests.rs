@@ -73,45 +73,7 @@ async fn spawn_app() -> (Arc<AppState>, Uuid, String) {
         agent_manager.clone(),
     ));
 
-    let storage_provider = apiserver::services::create_storage_provider(&storage)
-
-
     // Setup test storage
-
-
-
-    let storage = apiserver::StorageBackend::Local {
-
-
-
-        base_path: std::path::PathBuf::from("./test_storage"),
-
-
-
-    };
-
-
-
-    let storage_provider = apiserver::services::create_storage_provider(&storage)
-
-
-
-        .await
-
-
-
-        .expect("Failed to create test storage");
-
-
-
-
-    // Setup test storage
-    let storage = apiserver::StorageBackend::Local {
-        base_path: std::path::PathBuf::from("./test_storage"),
-    };
-    let storage_provider = apiserver::services::create_storage_provider(&storage)
-        .await
-        .expect("Failed to create test storage");
 
     let state = Arc::new(AppState {
         agent_manager,
@@ -123,8 +85,6 @@ async fn spawn_app() -> (Arc<AppState>, Uuid, String) {
         attendance_service: Arc::new(AttendanceLogService::new(db_pool.clone(), 100, 10, 1000).0),
         redis: None,
         coordinator: None,
-        storage,
-        storage_provider,
     });
 
     // Generate token

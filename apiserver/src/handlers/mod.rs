@@ -9,6 +9,7 @@ pub mod ess;
 pub mod leaves;
 pub mod payroll;
 pub mod report_export;
+pub mod report_websocket;
 pub mod worker_monitor;
 pub mod shifts;
 pub mod working_patterns;

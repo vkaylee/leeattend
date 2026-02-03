@@ -13,8 +13,8 @@ use uuid::Uuid;
 
 use crate::cache::{CacheManager, CachedWorkspaceConfig};
 use crate::domain::policy::resolver::PolicyResolver;
-use crate::models::{AttendanceSummary, DailyAttendanceReport, PolicyRules, TimeEntry};
-use crate::queue::{ReportJob, ReportQueue, ReportType};
+use crate::models::{AttendanceSummary, DailyAttendanceReport, TimeEntry};
+use crate::queue::{RedisPool, ReportJob, ReportPublisher, ReportQueue, ReportType};
 use crate::repositories::{roster_repository, time_entry_repository};
 use crate::services::AttendanceCalculator;
 
@@ -28,6 +28,7 @@ impl AttendanceHandler {
         queue: &ReportQueue,
         cache: &Arc<CacheManager>,
         job: &ReportJob,
+        redis: &RedisPool,
     ) -> Result<(), String> {
         let employee_ids = &job.employee_ids;
         let start_date = job.date_range.start;
@@ -117,6 +118,8 @@ impl AttendanceHandler {
                     &schedules,
                     &entries_map,
                     workspace_id,
+                    start_date,
+                    end_date,
                     &workspace_config,
                     tz,
                 )
@@ -130,10 +133,26 @@ impl AttendanceHandler {
             .await
             .map_err(|e| format!("Failed to store result: {}", e))?;
 
+        // 7. Publish chunk to Redis Pub/Sub for real-time streaming
+        let metadata = queue
+            .get_job_metadata(job.parent_job_id)
+            .await
+            .map_err(|e| format!("Failed to get job metadata: {}", e))?
+            .ok_or_else(|| "Job metadata not found".to_string())?;
+
+        let publisher = ReportPublisher::new(redis.clone());
+        let chunk_data: serde_json::Value = serde_json::from_str(&result_json)
+            .map_err(|e| format!("Failed to parse result JSON: {}", e))?;
+
+        publisher
+            .publish_chunk(job.parent_job_id, job.batch_index, metadata.total_batches, chunk_data)
+            .await
+            .map_err(|e| format!("Failed to publish chunk: {}", e))?;
+
         info!(
             job_id = %job.job_id,
             result_len = result_json.len(),
-            "Batch result stored"
+            "Batch result stored and published"
         );
 
         Ok(())
@@ -185,12 +204,29 @@ impl AttendanceHandler {
         })
         .collect();
 
+        // Batch fetch working conditions for all employees (eliminates N+1)
+        let conditions_map = PolicyResolver::resolve_attendance_rules_batch(
+            pool,
+            &emp_ids,
+            workspace_id,
+            start_date,
+            end_date,
+        )
+        .await
+        .map_err(|e| format!("Failed to fetch working conditions: {}", e))?;
+
         for emp_sched in schedules {
             let entries = entries_map
                 .get(&emp_sched.employee_id)
                 .cloned()
                 .unwrap_or_default();
             let mut total_units = 0i32;
+
+            // Get this employee's conditions once
+            let emp_conditions = conditions_map
+                .get(&emp_sched.employee_id)
+                .map(|v| v.as_slice())
+                .unwrap_or(&[]);
 
             for daily in &emp_sched.schedules {
                 let date = daily.date;
@@ -214,25 +250,12 @@ impl AttendanceHandler {
                         .map(|e| e.duration_minutes.unwrap_or(0))
                         .sum();
 
-                    // Resolve policy rules
-                    let mut rules = PolicyResolver::resolve_attendance_rules(
-                        pool,
-                        emp_sched.employee_id,
-                        workspace_id,
+                    // Build rules from pre-fetched conditions (no DB call)
+                    let mut rules = PolicyResolver::build_rules_from_conditions(
+                        emp_conditions,
                         date,
-                    )
-                    .await
-                    .unwrap_or(PolicyRules {
-                        grace_period_minutes: daily
-                            .early_punch_in_grace_period_minutes
-                            .unwrap_or(0),
-                        authorized_early_leave_minutes: 0,
-                        is_early_leave_paid: false,
-                        early_arrival_strategy: workspace_config.early_arrival_strategy,
-                        is_break_auto_deduct: daily.is_break_auto_deduct.unwrap_or(false),
-                        is_break_overtime: false,
-                        allow_early_ot: daily.allow_early_ot.unwrap_or(false),
-                    });
+                        workspace_config.early_arrival_strategy,
+                    );
 
                     // Override with shift-specific settings
                     if let Some(gp) = daily.early_punch_in_grace_period_minutes {
@@ -291,21 +314,42 @@ impl AttendanceHandler {
     }
 
     /// Calculate detailed daily attendance for batch of employees.
+    #[allow(clippy::too_many_arguments)]
     async fn calculate_detail(
         pool: &PgPool,
         schedules: &[crate::models::EmployeeSchedule],
         entries_map: &HashMap<Uuid, Vec<TimeEntry>>,
         workspace_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
         workspace_config: &CachedWorkspaceConfig,
         tz: Tz,
     ) -> Result<String, String> {
         let mut reports: Vec<DailyAttendanceReport> = Vec::new();
+        let emp_ids: Vec<Uuid> = schedules.iter().map(|s| s.employee_id).collect();
+
+        // Batch fetch working conditions for all employees (eliminates N+1)
+        let conditions_map = PolicyResolver::resolve_attendance_rules_batch(
+            pool,
+            &emp_ids,
+            workspace_id,
+            start_date,
+            end_date,
+        )
+        .await
+        .map_err(|e| format!("Failed to fetch working conditions: {}", e))?;
 
         for emp_sched in schedules {
             let entries = entries_map
                 .get(&emp_sched.employee_id)
                 .cloned()
                 .unwrap_or_default();
+
+            // Get this employee's conditions once
+            let emp_conditions = conditions_map
+                .get(&emp_sched.employee_id)
+                .map(|v| v.as_slice())
+                .unwrap_or(&[]);
 
             for daily in &emp_sched.schedules {
                 let date = daily.date;
@@ -338,24 +382,12 @@ impl AttendanceHandler {
                         .end_time
                         .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
 
-                    let mut rules = PolicyResolver::resolve_attendance_rules(
-                        pool,
-                        emp_sched.employee_id,
-                        workspace_id,
+                    // Build rules from pre-fetched conditions (no DB call)
+                    let mut rules = PolicyResolver::build_rules_from_conditions(
+                        emp_conditions,
                         date,
-                    )
-                    .await
-                    .unwrap_or(PolicyRules {
-                        grace_period_minutes: daily
-                            .early_punch_in_grace_period_minutes
-                            .unwrap_or(0),
-                        authorized_early_leave_minutes: 0,
-                        is_early_leave_paid: false,
-                        early_arrival_strategy: workspace_config.early_arrival_strategy,
-                        is_break_auto_deduct: daily.is_break_auto_deduct.unwrap_or(false),
-                        is_break_overtime: false,
-                        allow_early_ot: daily.allow_early_ot.unwrap_or(false),
-                    });
+                        workspace_config.early_arrival_strategy,
+                    );
 
                     if let Some(gp) = daily.early_punch_in_grace_period_minutes {
                         rules.grace_period_minutes = gp;

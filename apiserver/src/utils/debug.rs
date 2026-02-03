@@ -26,6 +26,9 @@ where
             }
         }
 
+        #[cfg(not(debug_assertions))]
+        let _ = parts; // Suppress unused warning in release mode
+
         Ok(DebugContext { mock_date: None })
     }
 }

@@ -27,45 +27,7 @@ async fn setup_test_app(pool: PgPool) -> axum::Router {
     let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
     let agent_service = Arc::new(apiserver::services::AgentService::new(agent_repo.clone(), agent_manager.clone()));
 
-    let storage_provider = apiserver::services::create_storage_provider(&storage)
-
-
     // Setup test storage
-
-
-
-    let storage = apiserver::StorageBackend::Local {
-
-
-
-        base_path: std::path::PathBuf::from("./test_storage"),
-
-
-
-    };
-
-
-
-    let storage_provider = apiserver::services::create_storage_provider(&storage)
-
-
-
-        .await
-
-
-
-        .expect("Failed to create test storage");
-
-
-
-
-    // Setup test storage
-    let storage = apiserver::StorageBackend::Local {
-        base_path: std::path::PathBuf::from("./test_storage"),
-    };
-    let storage_provider = apiserver::services::create_storage_provider(&storage)
-        .await
-        .expect("Failed to create test storage");
 
     let state = Arc::new(AppState {
         agent_manager,
@@ -77,8 +39,6 @@ async fn setup_test_app(pool: PgPool) -> axum::Router {
         attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
         redis: None,
         coordinator: None,
-        storage,
-        storage_provider,
     });
 
     create_app(state)

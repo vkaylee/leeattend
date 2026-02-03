@@ -941,7 +941,7 @@ mod tests {
         // Total = 50 inserted minus synced (up to 10)
         // Due to race conditions, synced count varies (0-10)
         let total = store.count_total();
-        assert!(total >= 40 && total <= 50, "Expected 40-50 logs, got {}", total);
+        assert!((40..=50).contains(&total), "Expected 40-50 logs, got {}", total);
     }
 
     #[test]

@@ -1,0 +1,255 @@
+"use client";
+
+import { useEffect, useRef, useState, useCallback } from "react";
+import type {
+  StreamMessage,
+  StreamStatus,
+  ChunkMessage,
+} from "@/types/report-stream";
+
+interface UseReportStreamOptions {
+  jobId: string | null;
+  onComplete?: (data: unknown[]) => void;
+  onError?: (message: string) => void;
+  maxRetries?: number;
+}
+
+interface UseReportStreamResult {
+  status: StreamStatus;
+  progress: number; // 0-100
+  chunks: unknown[];
+  error: string | null;
+  reconnect: () => void;
+}
+
+/**
+ * Build WebSocket URL for report streaming
+ * Uses wss: for HTTPS, ws: for HTTP
+ */
+function buildWebSocketUrl(jobId: string): string {
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const host = window.location.host;
+  return `${protocol}//${host}/api/ws/reports/${jobId}`;
+}
+
+/**
+ * Calculate exponential backoff delay
+ * Returns delays: 1s, 2s, 4s for retries 0, 1, 2
+ */
+function getBackoffDelay(retryCount: number): number {
+  return Math.pow(2, retryCount) * 1000;
+}
+
+/**
+ * Hook for WebSocket-based report streaming
+ * Connects to the report WebSocket endpoint and accumulates chunks
+ */
+export function useReportStream({
+  jobId,
+  onComplete,
+  onError,
+  maxRetries = 3,
+}: UseReportStreamOptions): UseReportStreamResult {
+  const [status, setStatus] = useState<StreamStatus>("idle");
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  // Expose chunks via state for consumers that need reactivity
+  const [chunks, setChunks] = useState<unknown[]>([]);
+
+  // Use refs to avoid re-renders on each chunk and prevent stale closures
+  const socketRef = useRef<WebSocket | null>(null);
+  const chunksRef = useRef<unknown[]>([]);
+  const retryCountRef = useRef(0);
+  const shouldReconnectRef = useRef(true);
+  const totalBatchesRef = useRef(0);
+
+  // Store callbacks in refs to avoid dependency issues
+  const onCompleteRef = useRef(onComplete);
+  const onErrorRef = useRef(onError);
+  onCompleteRef.current = onComplete;
+  onErrorRef.current = onError;
+
+  /**
+   * Handle incoming WebSocket message
+   */
+  const handleMessage = useCallback((event: MessageEvent) => {
+    try {
+      const message: StreamMessage = JSON.parse(event.data);
+
+      switch (message.type) {
+        case "CHUNK": {
+          const chunkMsg = message as ChunkMessage;
+          // Accumulate data from chunk
+          if (Array.isArray(chunkMsg.data)) {
+            chunksRef.current = [...chunksRef.current, ...chunkMsg.data];
+          } else {
+            chunksRef.current = [...chunksRef.current, chunkMsg.data];
+          }
+
+          // Update progress
+          totalBatchesRef.current = chunkMsg.total_batches;
+          const newProgress =
+            ((chunkMsg.batch_index + 1) / chunkMsg.total_batches) * 100;
+          setProgress(Math.min(newProgress, 100));
+          setStatus("streaming");
+
+          console.debug(
+            `[ReportStream] Received chunk ${chunkMsg.batch_index + 1}/${chunkMsg.total_batches}`
+          );
+          break;
+        }
+
+        case "DONE": {
+          setStatus("completed");
+          setProgress(100);
+          shouldReconnectRef.current = false;
+          // Update chunks state for consumers
+          setChunks([...chunksRef.current]);
+          console.debug(
+            `[ReportStream] Complete: ${message.total_records} records`
+          );
+          onCompleteRef.current?.(chunksRef.current);
+          break;
+        }
+
+        case "ERROR": {
+          setStatus("error");
+          setError(message.message);
+          shouldReconnectRef.current = false;
+          console.debug(`[ReportStream] Error: ${message.message}`);
+          onErrorRef.current?.(message.message);
+          break;
+        }
+      }
+    } catch (err) {
+      console.error("[ReportStream] Failed to parse message:", err);
+    }
+  }, []);
+
+  /**
+   * Connect to WebSocket
+   */
+  const connect = useCallback(() => {
+    if (!jobId) return;
+
+    // Clean up existing connection
+    if (socketRef.current) {
+      socketRef.current.close();
+      socketRef.current = null;
+    }
+
+    const url = buildWebSocketUrl(jobId);
+    console.debug(`[ReportStream] Connecting to ${url}`);
+
+    setStatus("connecting");
+    setError(null);
+
+    try {
+      const socket = new WebSocket(url);
+      socketRef.current = socket;
+
+      socket.onopen = () => {
+        console.debug("[ReportStream] Connected");
+        setStatus("streaming");
+        retryCountRef.current = 0; // Reset retry count on success
+      };
+
+      socket.onmessage = handleMessage;
+
+      socket.onerror = (event) => {
+        console.debug("[ReportStream] WebSocket error:", event);
+      };
+
+      socket.onclose = (event) => {
+        console.debug(
+          `[ReportStream] Connection closed: code=${event.code}, reason=${event.reason}`
+        );
+
+        // Only reconnect if not intentionally closed and not completed/errored
+        if (
+          shouldReconnectRef.current &&
+          retryCountRef.current < maxRetries &&
+          status !== "completed" &&
+          status !== "error"
+        ) {
+          const delay = getBackoffDelay(retryCountRef.current);
+          console.debug(
+            `[ReportStream] Reconnecting in ${delay}ms (attempt ${retryCountRef.current + 1}/${maxRetries})`
+          );
+
+          retryCountRef.current++;
+          setTimeout(() => {
+            if (shouldReconnectRef.current) {
+              connect();
+            }
+          }, delay);
+        } else if (
+          retryCountRef.current >= maxRetries &&
+          status !== "completed"
+        ) {
+          setStatus("error");
+          setError("Connection lost. Max retries exceeded.");
+          onErrorRef.current?.("Connection lost. Max retries exceeded.");
+        }
+      };
+    } catch (err) {
+      console.error("[ReportStream] Failed to create WebSocket:", err);
+      setStatus("error");
+      setError("Failed to establish connection");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobId, handleMessage, maxRetries]);
+
+  /**
+   * Manual reconnect function exposed to consumers
+   */
+  const reconnect = useCallback(() => {
+    retryCountRef.current = 0;
+    shouldReconnectRef.current = true;
+    chunksRef.current = [];
+    setChunks([]);
+    setProgress(0);
+    setError(null);
+    connect();
+  }, [connect]);
+
+  // Connect when jobId changes
+  useEffect(() => {
+    if (!jobId) {
+      // Reset state when jobId is cleared
+      setStatus("idle");
+      setProgress(0);
+      setError(null);
+      setChunks([]);
+      chunksRef.current = [];
+      retryCountRef.current = 0;
+      return;
+    }
+
+    // Reset for new job
+    chunksRef.current = [];
+    setChunks([]);
+    retryCountRef.current = 0;
+    shouldReconnectRef.current = true;
+    totalBatchesRef.current = 0;
+
+    connect();
+
+    // Cleanup on unmount or jobId change
+    return () => {
+      shouldReconnectRef.current = false;
+      if (socketRef.current) {
+        socketRef.current.close();
+        socketRef.current = null;
+      }
+    };
+  }, [jobId, connect]);
+
+  return {
+    status,
+    progress,
+    chunks,
+    error,
+    reconnect,
+  };
+}
