@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT edh.employee_id, dds.shift_id, edh.effective_date\n        FROM employee_department_history edh\n        JOIN department_default_shifts dds ON edh.department_id = dds.department_id\n        WHERE edh.effective_date <= $1\n        ORDER BY edh.effective_date DESC\n        ",
+  "query": "\n        SELECT edh.employee_id, dds.shift_id, edh.effective_date\n        FROM employee_department_history edh\n        JOIN department_default_shifts dds ON edh.department_id = dds.department_id\n        JOIN departments d ON dds.department_id = d.id\n        WHERE d.workspace_id = $1\n          AND edh.effective_date <= $2\n        ORDER BY edh.effective_date DESC\n        ",
   "describe": {
     "columns": [
       {
@@ -21,6 +21,7 @@
     ],
     "parameters": {
       "Left": [
+        "Uuid",
         "Date"
       ]
     },
@@ -30,5 +31,5 @@
       false
     ]
   },
-  "hash": "f6e55119d81d6030fdc8fb1ffca7889b5d3a2bb093e64c6ee06d9624a0f27902"
+  "hash": "67b47a050f6a79a902f6cb86911f35caade8d9d82e013f2c224494991069e148"
 }

@@ -731,6 +731,29 @@ time_entry_repository::get_workspace_time_entries_batch(
 ) -> HashMap<Uuid, Vec<TimeEntry>>
 ```
 
+### 19.1 Schedule Resolution Performance Optimizations (New - 2026-02-03)
+
+Two key optimizations reduce schedule computation complexity from O(N×M×K) to O(N×M×k) for `get_workspace_schedules()` and eliminate per-call DB queries in `get_effective_shift()`:
+
+#### Optimization 1: Employee-Keyed HashMap Grouping
+After fetching flat vectors of assignments, pattern details, and department history, all 5 vectors are indexed by `employee_id`:
+- `fixed_assignments` → `fixed_assignments_map: HashMap<Uuid, Vec<_>>`
+- `pattern_assignments` → `pattern_assignments_map: HashMap<Uuid, Vec<_>>`
+- `dept_patterns` → `dept_patterns_map: HashMap<Uuid, Vec<_>>`
+- `dept_fixed_shifts` → `dept_fixed_shifts_map: HashMap<Uuid, Vec<_>>`
+- `all_dept_history` → `all_dept_history_map: HashMap<Uuid, Vec<_>>`
+
+**Impact**: Inner loop (Employee × Day) previously scanned full workspace-wide vectors with `.iter().find(|a| a.employee_id == emp_id && ...)`. Now each lookup is O(1) to the per-employee slice (typically 1-3 items per employee vs 700+ in workspace), reducing inner loop from O(K) to O(k).
+
+#### Optimization 2: Composite-Key HashMap for Rule Pattern Lookups
+Pattern details pre-fetched once as `HashMap<(Uuid, i32), Option<Uuid>>` keyed by `(pattern_id, day_of_week)`:
+- In `get_workspace_schedules()`: `.get(&(pattern_id, dow))` replaces `.iter().find()` → O(1) vs O(K).
+- In `get_effective_shift()`: Eliminates per-call DB query by pre-fetching all active rule pattern details in single batch query, reusing same HashMap structure.
+
+**Semantics**: `if let Some(&shift_opt) = map.get(...)` distinguishes key-exists-with-None (day off, early return) from key-missing (fall through to next priority level).
+
+**Priority Chain Unchanged**: P1–P6 evaluation order (Roster → Individual Pattern → Dynamic Rules → Department Pattern → Fixed → Department Fixed) remains identical.
+
 ### 20. Distributed Report Processing (New - 2026-01-30)
 The system implements an asynchronous, horizontally-scalable report generation architecture to handle large workspaces (7000+ employees) without blocking API responses or causing memory exhaustion.
 

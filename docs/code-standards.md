@@ -345,6 +345,37 @@ pub async fn get_workspace_time_entries_batch(
 - Performance: Single database roundtrip
 - Lookup: O(1) via HashMap
 
+### 2.3. Composite-Key HashMap Pattern (Multi-Dimensional Indexing)
+For scenarios where lookups require multiple key components (e.g., pattern_id + day_of_week), use composite tuples as HashMap keys to achieve O(1) lookups:
+
+**Pattern:**
+```rust
+// ✅ CORRECT - Composite key for multi-dimensional lookups
+let details_map: HashMap<(Uuid, i32), Option<Uuid>> = query_results
+    .into_iter()
+    .map(|row| ((row.pattern_id, row.day_of_week), row.shift_id))
+    .collect();
+
+// O(1) lookup with compound key
+if let Some(&shift_opt) = details_map.get(&(pattern_id, dow)) {
+    // shift_opt = Some(uuid) or None (day off)
+}
+```
+
+**Anti-pattern (DO NOT USE):**
+```rust
+// ❌ INCORRECT - Nested iteration for compound lookups
+let shift = query_results.iter()
+    .find(|d| d.pattern_id == pattern_id && d.day_of_week == dow)
+    .map(|d| d.shift_id); // O(N) per lookup
+```
+
+**Semantics Note**: Use `Option<T>` as the HashMap value to distinguish:
+- **Key exists with None**: Entity mapped to "day off" (explicit null, must return early)
+- **Key missing**: No mapping found (fall through to next priority level)
+
+**Use Case**: Schedule resolution where inner loops repeatedly query pattern details across multiple (pattern_id, day_of_week) combinations. Pre-fetching and indexing eliminates per-lookup DB queries or linear scans.
+
 ### 3. Dependency Injection
 Sử dụng `Arc<dyn RepositoryTrait>` để inject vào Services. Khởi tạo toàn bộ dependencies tại `main.rs` và đưa vào `AppState`.
 
