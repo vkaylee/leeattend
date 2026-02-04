@@ -76,6 +76,7 @@ impl ReportService {
         // 3. Get schedules ONLY for paginated employees
         let schedules = roster_repository::get_workspace_schedules(
             pool,
+            None,
             workspace_id,
             start_date,
             end_date,
@@ -139,7 +140,8 @@ impl ReportService {
                     .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
 
                 // --- CALCULATION LOGIC ---
-                let mut total_payable_units = 0;
+                let mut std_work_units = 0;
+                let mut ot_work_units = 0;
 
                 if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
                     let actual_break_minutes: i32 = day_entries
@@ -195,7 +197,8 @@ impl ReportService {
                         &rules,
                     );
 
-                    total_payable_units = std_units + ot_units;
+                    std_work_units = std_units;
+                    ot_work_units = ot_units;
                 }
                 // -----------------------------
 
@@ -248,7 +251,9 @@ impl ReportService {
                     is_break_auto_deduct: daily.is_break_auto_deduct,
                     actual_punch_in: actual_punch_in.map(|t| t.with_timezone(&Utc)),
                     actual_punch_out: actual_punch_out.map(|t| t.with_timezone(&Utc)),
-                    work_units: total_payable_units,
+                    std_work_units,
+                    ot_work_units,
+                    ot_claim_status: None,
                     status,
                     generation_metadata: combined_metadata,
                 });
@@ -339,6 +344,7 @@ impl ReportService {
         // 3. Get schedules ONLY for paginated employees
         let schedules = roster_repository::get_workspace_schedules(
             pool,
+            None,
             workspace_id,
             start_date,
             end_date,

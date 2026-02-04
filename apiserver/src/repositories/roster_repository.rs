@@ -4,16 +4,15 @@ use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-// ... (existing imports)
-
 pub async fn get_workspace_schedules(
     pool: &PgPool,
+    roster_cache: Option<&crate::cache::RosterCache>,
     workspace_id: Uuid,
     start_date: NaiveDate,
     end_date: NaiveDate,
     employee_ids: Option<&Vec<Uuid>>,
 ) -> Result<Vec<EmployeeSchedule>, sqlx::Error> {
-    // 1. Fetch Employees
+    // 1. Fetch Employees (per-request — filtered by employee_ids)
     let employees = sqlx::query(
         "SELECT id, full_name, employee_id_number, tags FROM employees WHERE workspace_id = $1 AND is_active = true AND ($2::uuid[] IS NULL OR id = ANY($2))",
     )
@@ -31,26 +30,25 @@ pub async fn get_workspace_schedules(
         (id, full_name, employee_id_number, tags)
     }).collect();
 
-    // 2. Fetch all shifts (for details)
-    #[allow(clippy::type_complexity)]
-    let shifts_map: HashMap<Uuid, (String, chrono::NaiveTime, chrono::NaiveTime, i32, Option<chrono::NaiveTime>, Option<chrono::NaiveTime>, bool, i32, bool)> = sqlx::query!(
-        "SELECT id, name, start_time, end_time, break_duration_minutes, break_start, break_end, is_break_auto_deduct, early_punch_in_grace_period_minutes, allow_early_ot FROM shifts WHERE workspace_id = $1",
-        workspace_id
-    )
-    .fetch_all(pool)
-    .await?
-    .into_iter()
-    .map(|s| (s.id, (s.name, s.start_time, s.end_time, s.break_duration_minutes, s.break_start, s.break_end, s.is_break_auto_deduct, s.early_punch_in_grace_period_minutes, s.allow_early_ot)))
-    .collect();
+    // Load roster config from cache (or directly from DB if cache unavailable)
+    let roster_data = match roster_cache {
+        Some(cache) => cache
+            .get_roster_data(workspace_id, pool)
+            .await
+            .map_err(|e| sqlx::Error::Io(std::io::Error::other(e)))?,
+        None => crate::cache::build_roster_data(pool, workspace_id)
+            .await
+            .map_err(|e| sqlx::Error::Io(std::io::Error::other(e)))?,
+    };
 
-    // 3. Fetch Rosters in range
+    // 3. Fetch Rosters in range (per-request — date-bounded)
     let rosters = sqlx::query_as::<_, ShiftRoster>(
         r#"
-        SELECT sr.* 
+        SELECT sr.*
         FROM shift_rosters sr
         JOIN employees e ON sr.employee_id = e.id
-        WHERE e.workspace_id = $1 
-          AND sr.date >= $2 
+        WHERE e.workspace_id = $1
+          AND sr.date >= $2
           AND sr.date <= $3
         "#,
     )
@@ -66,167 +64,7 @@ pub async fn get_workspace_schedules(
         roster_map.insert((r.employee_id, r.date), r.shift_id);
     }
 
-    // 4. Fetch Fixed Assignments (overlapping)
-    let fixed_assignments = sqlx::query!(
-        r#"
-        SELECT employee_id, shift_id, start_date, end_date, created_at
-        FROM employee_shifts
-        WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)
-          AND start_date <= $2
-          AND (end_date IS NULL OR end_date >= $3)
-        ORDER BY created_at DESC
-        "#,
-        workspace_id,
-        end_date,
-        start_date
-    )
-    .fetch_all(pool)
-    .await?;
-
-    // Group fixed_assignments by employee_id for O(1) lookup
-    let mut fixed_assignments_map: HashMap<Uuid, Vec<_>> = HashMap::new();
-    for row in fixed_assignments {
-        fixed_assignments_map.entry(row.employee_id).or_default().push(row);
-    }
-
-    // 5. Fetch Pattern Assignments (overlapping)
-    let pattern_assignments = sqlx::query!(
-        r#"
-        SELECT ewp.employee_id, ewp.pattern_id, ewp.start_date, ewp.end_date, ewp.created_at,
-               wpd.day_of_week, wpd.shift_id as pattern_shift_id
-        FROM employee_working_patterns ewp
-        JOIN working_pattern_details wpd ON ewp.pattern_id = wpd.pattern_id
-        WHERE ewp.workspace_id = $1
-          AND ewp.start_date <= $2
-          AND (ewp.end_date IS NULL OR ewp.end_date >= $3)
-        ORDER BY ewp.created_at DESC
-        "#,
-        workspace_id,
-        end_date,
-        start_date
-    )
-    .fetch_all(pool)
-    .await?;
-
-    // Group pattern_assignments by employee_id for O(1) lookup
-    let mut pattern_assignments_map: HashMap<Uuid, Vec<_>> = HashMap::new();
-    for row in pattern_assignments {
-        pattern_assignments_map.entry(row.employee_id).or_default().push(row);
-    }
-
-    // 6. Fetch Department Patterns & History (snapshot + range)
-    let dept_patterns = sqlx::query!(
-        r#"
-        SELECT edh.employee_id, d.default_working_pattern_id, edh.effective_date,
-               wpd.day_of_week, wpd.shift_id as pattern_shift_id
-        FROM employee_department_history edh
-        JOIN departments d ON edh.department_id = d.id
-        JOIN working_pattern_details wpd ON d.default_working_pattern_id = wpd.pattern_id
-        WHERE d.workspace_id = $1
-          AND (
-            (edh.effective_date >= $2 AND edh.effective_date <= $3)
-            OR edh.effective_date = (
-                SELECT MAX(edh2.effective_date)
-                FROM employee_department_history edh2
-                WHERE edh2.employee_id = edh.employee_id
-                  AND edh2.effective_date < $2
-            )
-          )
-        ORDER BY edh.effective_date DESC
-        "#,
-        workspace_id,
-        start_date,
-        end_date
-    )
-    .fetch_all(pool)
-    .await?;
-
-    // Group dept_patterns by employee_id for O(1) lookup
-    let mut dept_patterns_map: HashMap<Uuid, Vec<_>> = HashMap::new();
-    for row in dept_patterns {
-        dept_patterns_map.entry(row.employee_id).or_default().push(row);
-    }
-
-    // 7. Fetch Department Default Shifts (snapshot + range)
-    let dept_fixed_shifts = sqlx::query!(
-        r#"
-        SELECT edh.employee_id, dds.shift_id, edh.effective_date
-        FROM employee_department_history edh
-        JOIN department_default_shifts dds ON edh.department_id = dds.department_id
-        JOIN departments d ON dds.department_id = d.id
-        WHERE d.workspace_id = $1
-          AND (
-            (edh.effective_date >= $2 AND edh.effective_date <= $3)
-            OR edh.effective_date = (
-                SELECT MAX(edh2.effective_date)
-                FROM employee_department_history edh2
-                WHERE edh2.employee_id = edh.employee_id
-                  AND edh2.effective_date < $2
-            )
-          )
-        ORDER BY edh.effective_date DESC
-        "#,
-        workspace_id,
-        start_date,
-        end_date
-    )
-    .fetch_all(pool)
-    .await?;
-
-    // Group dept_fixed_shifts by employee_id for O(1) lookup
-    let mut dept_fixed_shifts_map: HashMap<Uuid, Vec<_>> = HashMap::new();
-    for row in dept_fixed_shifts {
-        dept_fixed_shifts_map.entry(row.employee_id).or_default().push(row);
-    }
-
-    // 8. Fetch Dynamic Assignment Rules
-    let active_rules = crate::repositories::assignment_rule_repository::AssignmentRuleRepository::get_active_rules(pool, workspace_id).await?;
-
-    // 9. Fetch Pattern Details for Rules
-    let rule_patterns_details = sqlx::query!(
-        "SELECT pattern_id, day_of_week, shift_id FROM working_pattern_details WHERE pattern_id IN (SELECT pattern_id FROM assignment_rules WHERE workspace_id = $1 AND is_active = true)",
-        workspace_id
-    )
-    .fetch_all(pool)
-    .await?;
-
-    // Index rule_patterns_details by (pattern_id, day_of_week) for O(1) lookup
-    let rule_patterns_map: HashMap<(Uuid, i32), Option<Uuid>> = rule_patterns_details
-        .into_iter()
-        .map(|d| ((d.pattern_id, d.day_of_week), d.shift_id))
-        .collect();
-
-    // 10. Fetch Employee Department History for rule context (snapshot + range)
-    let all_dept_history = sqlx::query!(
-        r#"
-        SELECT edh.employee_id, edh.department_id, edh.effective_date
-        FROM employee_department_history edh
-        WHERE edh.employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)
-          AND (
-            (edh.effective_date >= $2 AND edh.effective_date <= $3)
-            OR edh.effective_date = (
-                SELECT MAX(edh2.effective_date)
-                FROM employee_department_history edh2
-                WHERE edh2.employee_id = edh.employee_id
-                  AND edh2.effective_date < $2
-            )
-          )
-        ORDER BY edh.effective_date DESC
-        "#,
-        workspace_id,
-        start_date,
-        end_date
-    )
-    .fetch_all(pool)
-    .await?;
-
-    // Group all_dept_history by employee_id for O(1) lookup
-    let mut all_dept_history_map: HashMap<Uuid, Vec<_>> = HashMap::new();
-    for row in all_dept_history {
-        all_dept_history_map.entry(row.employee_id).or_default().push(row);
-    }
-
-    // Let's iterate employees to build result
+    // Iterate employees to build result
     let mut result = Vec::new();
 
     for (emp_id, emp_full_name, emp_id_number, emp_tags) in employees {
@@ -253,7 +91,7 @@ pub async fn get_workspace_schedules(
                 let dow = chrono::Datelike::weekday(&curr_date).num_days_from_sunday() as i32;
 
                 // P2: Individual Pattern
-                let pattern = pattern_assignments_map.get(&emp_id)
+                let pattern = roster_data.pattern_assignments.get(&emp_id)
                     .and_then(|v| v.iter().find(|a| {
                         a.start_date <= curr_date
                             && a.end_date.is_none_or(|ed| ed >= curr_date)
@@ -261,7 +99,7 @@ pub async fn get_workspace_schedules(
                     }));
 
                 if let Some(p) = pattern {
-                    effective_shift_id = p.pattern_shift_id;
+                    effective_shift_id = p.shift_id;
                     source = "pattern".to_string();
                     traces.push(crate::models::ScheduleTrace {
                         rule_id: Some(p.pattern_id),
@@ -272,7 +110,7 @@ pub async fn get_workspace_schedules(
                     });
                 } else {
                     // P3: Dynamic Rules
-                    let emp_dept_id = all_dept_history_map.get(&emp_id)
+                    let emp_dept_id = roster_data.dept_history.get(&emp_id)
                         .and_then(|v| v.iter().find(|h| h.effective_date <= curr_date))
                         .map(|h| h.department_id);
                     let match_ctx = crate::services::rule_evaluator::EmployeeMatchContext {
@@ -284,16 +122,16 @@ pub async fn get_workspace_schedules(
                     let (matched_rule, rule_traces) =
                         crate::services::rule_evaluator::RuleEvaluator::resolve_with_trace(
                             &match_ctx,
-                            &active_rules,
+                            &roster_data.active_rules,
                         );
                     traces.extend(rule_traces);
 
                     let mut p3_applied = false;
                     if let Some(rule) = matched_rule {
                         // Key-present guard: key-absent = pattern has no detail
-                        // for this dow → fall through to P4. Key-present with
+                        // for this dow -> fall through to P4. Key-present with
                         // None = explicit day off.
-                        if let Some(&shift_opt) = rule_patterns_map.get(&(rule.pattern_id, dow)) {
+                        if let Some(&shift_opt) = roster_data.rule_patterns.get(&(rule.pattern_id, dow)) {
                             effective_shift_id = shift_opt;
                             source = "assignment_rule".to_string();
                             p3_applied = true;
@@ -302,14 +140,14 @@ pub async fn get_workspace_schedules(
 
                     if !p3_applied {
                         // P4: Department Pattern
-                        let dept_p = dept_patterns_map.get(&emp_id)
+                        let dept_p = roster_data.dept_patterns.get(&emp_id)
                             .and_then(|v| v.iter().find(|a| {
                                 a.effective_date <= curr_date
                                     && a.day_of_week == dow
                             }));
 
                         if let Some(dp) = dept_p {
-                            effective_shift_id = dp.pattern_shift_id;
+                            effective_shift_id = dp.shift_id;
                             source = "department_pattern".to_string();
                             traces.push(crate::models::ScheduleTrace {
                                 rule_id: dp.default_working_pattern_id,
@@ -320,7 +158,7 @@ pub async fn get_workspace_schedules(
                             });
                         } else {
                             // P5: Fixed (Individual)
-                            let fixed = fixed_assignments_map.get(&emp_id)
+                            let fixed = roster_data.fixed_assignments.get(&emp_id)
                                 .and_then(|v| v.iter().find(|a| {
                                     a.start_date <= curr_date
                                         && a.end_date.is_none_or(|ed| ed >= curr_date)
@@ -338,7 +176,7 @@ pub async fn get_workspace_schedules(
                                 });
                             } else {
                                 // P6: Department Fixed
-                                let dept_f = dept_fixed_shifts_map.get(&emp_id)
+                                let dept_f = roster_data.dept_fixed_shifts.get(&emp_id)
                                     .and_then(|v| v.iter().find(|a| {
                                         a.effective_date <= curr_date
                                     }));
@@ -377,27 +215,16 @@ pub async fn get_workspace_schedules(
             };
 
             if let Some(sid) = effective_shift_id {
-                if let Some((
-                    name,
-                    start,
-                    end,
-                    duration,
-                    b_start,
-                    b_end,
-                    auto_deduct,
-                    grace,
-                    allow_ot,
-                )) = shifts_map.get(&sid)
-                {
-                    sched.shift_name = Some(name.clone());
-                    sched.start_time = Some(*start);
-                    sched.end_time = Some(*end);
-                    sched.break_duration_minutes = Some(*duration);
-                    sched.break_start = *b_start;
-                    sched.break_end = *b_end;
-                    sched.is_break_auto_deduct = Some(*auto_deduct);
-                    sched.early_punch_in_grace_period_minutes = Some(*grace);
-                    sched.allow_early_ot = Some(*allow_ot);
+                if let Some(shift) = roster_data.shifts.get(&sid) {
+                    sched.shift_name = Some(shift.name.clone());
+                    sched.start_time = Some(shift.start_time);
+                    sched.end_time = Some(shift.end_time);
+                    sched.break_duration_minutes = Some(shift.break_duration_minutes);
+                    sched.break_start = shift.break_start;
+                    sched.break_end = shift.break_end;
+                    sched.is_break_auto_deduct = Some(shift.is_break_auto_deduct);
+                    sched.early_punch_in_grace_period_minutes = Some(shift.early_punch_in_grace_period_minutes);
+                    sched.allow_early_ot = Some(shift.allow_early_ot);
                 }
             }
 

@@ -36,10 +36,11 @@ impl AttendanceSummaryService {
         // We use the existing repo method but filter for just one employee/date implicitly
         // Optimization: Create a more specific repo method later if needed.
         let schedules = roster_repository::get_workspace_schedules(
-            pool, 
-            workspace_id, 
-            date, 
-            date, 
+            pool,
+            None,
+            workspace_id,
+            date,
+            date,
             Some(&vec![employee_id])
         )
         .await

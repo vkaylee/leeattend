@@ -26,6 +26,11 @@ pub async fn create_pattern(
     let pattern = service::create_working_pattern(&state.db, ctx.workspace_id, req)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    if let Some(cache) = &state.roster_cache {
+        cache.invalidate(ctx.workspace_id).await;
+    }
+
     Ok((StatusCode::CREATED, Json(pattern)))
 }
 
@@ -63,6 +68,11 @@ pub async fn assign_pattern(
     let assignment = service::assign_pattern(&state.db, ctx.workspace_id, employee_id, req)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    if let Some(cache) = &state.roster_cache {
+        cache.invalidate(ctx.workspace_id).await;
+    }
+
     Ok(Json(assignment))
 }
 
@@ -78,6 +88,11 @@ pub async fn bulk_assign_pattern(
     let result = service::bulk_assign_pattern(&state.db, ctx.workspace_id, req)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    if let Some(cache) = &state.roster_cache {
+        cache.invalidate(ctx.workspace_id).await;
+    }
+
     Ok(Json(result))
 }
 
@@ -106,5 +121,10 @@ pub async fn delete_pattern(
             tracing::error!("Failed to delete pattern: {}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
+
+    if let Some(cache) = &state.roster_cache {
+        cache.invalidate(ctx.workspace_id).await;
+    }
+
     Ok(StatusCode::NO_CONTENT)
 }

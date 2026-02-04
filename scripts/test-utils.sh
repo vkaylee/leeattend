@@ -17,16 +17,61 @@ export LOG_DIR="$PROJECT_ROOT/.test_logs"
 
 mkdir -p "$LOG_DIR"
 
-# --- Resource Auto-Detection ---
+# ==============================================================================
+# Timeout Configuration (in seconds)
+# ==============================================================================
+export TIMEOUT_LINT=${TIMEOUT_LINT:-180}           # 3 min per lint task
+export TIMEOUT_UNIT=${TIMEOUT_UNIT:-180}           # 3 min per unit test task
+export TIMEOUT_INTEGRATION=${TIMEOUT_INTEGRATION:-300}  # 5 min per integration task
+export TIMEOUT_BUILD=${TIMEOUT_BUILD:-600}         # 10 min for pre-compilation
+export TIMEOUT_DB_WAIT=${TIMEOUT_DB_WAIT:-120}     # 2 min for DB ready check
+export TIMEOUT_MIGRATION=${TIMEOUT_MIGRATION:-120} # 2 min for migrations
+export TIMEOUT_GLOBAL=${TIMEOUT_GLOBAL:-1800}      # 30 min global timeout
+
+# ==============================================================================
+# WSL I/O Optimization
+# ==============================================================================
+
+# Detect WSL environment
+is_wsl() {
+    if grep -qiE "(microsoft|wsl)" /proc/version 2>/dev/null; then
+        return 0
+    fi
+    if [[ -n "${WSL_DISTRO_NAME:-}" ]]; then
+        return 0
+    fi
+    return 1
+}
+
+# Run command with low I/O priority (WSL optimization)
+run_low_io() {
+    if is_wsl && command -v ionice &>/dev/null; then
+        ionice -c 3 "$@"
+    else
+        "$@"
+    fi
+}
+
+# Run command with timeout and optional low I/O priority
+run_with_timeout() {
+    local timeout_sec=$1
+    shift
+    if is_wsl && command -v ionice &>/dev/null; then
+        timeout --signal=KILL "${timeout_sec}s" ionice -c 3 "$@"
+    else
+        timeout --signal=KILL "${timeout_sec}s" "$@"
+    fi
+}
+
+# ==============================================================================
+# Resource Auto-Detection
+# ==============================================================================
 CPU_CORES=$(nproc)
-# Get Total Memory in GB (integer)
-# Use robust awk to handle spaces
 TOTAL_MEM_KB=$(awk "/MemTotal/ {print \$2}" /proc/meminfo)
 TOTAL_MEM_GB=$((TOTAL_MEM_KB / 1024 / 1024))
 
 if [ -z "${NUM_WORKERS:-}" ]; then
     # Rule 1: Memory Bottleneck (conservative: 1 worker per 4GB RAM)
-    # Rust linking is very RAM heavy. 8GB RAM -> 2 Workers max.
     WORKERS_BY_RAM=$((TOTAL_MEM_GB / 4))
     [ $WORKERS_BY_RAM -lt 1 ] && WORKERS_BY_RAM=1
 
@@ -42,10 +87,10 @@ if [ -z "${NUM_WORKERS:-}" ]; then
         export NUM_WORKERS=$WORKERS_BY_CPU
         REASON="CPU Limit (${CPU_CORES} Cores)"
     fi
-    
+
     # Cap at 4 for stability unless overridden
     if [ $NUM_WORKERS -gt 4 ]; then NUM_WORKERS=4; fi
-    
+
     echo -e "${YELLOW}⚙️ Auto-tuned NUM_WORKERS to $NUM_WORKERS ($REASON)${NC}"
 else
     echo -e "${YELLOW}⚙️ Using provided NUM_WORKERS: $NUM_WORKERS${NC}"
@@ -71,18 +116,31 @@ show_log_sequential() {
     echo -e "${BOLD}-----------------------${NC}"
 }
 
+# Determine timeout based on phase name
+get_phase_timeout() {
+    local phase_name="$1"
+    case "$phase_name" in
+        *Lint*) echo "$TIMEOUT_LINT" ;;
+        *Unit*) echo "$TIMEOUT_UNIT" ;;
+        *Integration*|*E2E*) echo "$TIMEOUT_INTEGRATION" ;;
+        *) echo "$TIMEOUT_UNIT" ;;
+    esac
+}
+
 # Core runner: Executes tasks. Run sequentially if NUM_WORKERS=1, else parallel.
 # Usage: run_parallel_ordered "Phase Name" "FilterTag" "Job1|Dir|Cmd" "Job2|Dir|Cmd" ...
 run_parallel_ordered() {
     local phase_name="$1"
     local filter="${2:-}"
     shift 2
-    
+
     local pids=()
     local logs=()
     local names=()
-    
+    local task_timeout=$(get_phase_timeout "$phase_name")
+
     echo -e "\n${YELLOW}${BOLD}🚀 $phase_name${NC}"
+    echo -e "${BLUE}⏱️ Task timeout: ${task_timeout}s${NC}"
     if [ -n "$filter" ]; then
         echo -e "${BLUE}🔍 Filtering jobs matching: $filter${NC}"
     fi
@@ -95,7 +153,7 @@ run_parallel_ordered() {
     else
         echo -e "${BLUE}⚡ Running tasks in PARALLEL (Max $NUM_WORKERS workers implicit logic)${NC}"
     fi
-    
+
     for task in "$@"; do
         local name=$(echo "$task" | cut -d"|" -f2)
         local dir=$(echo "$task" | cut -d"|" -f3)
@@ -109,16 +167,24 @@ run_parallel_ordered() {
                  continue
              fi
         fi
-        
+
         local log_file="$LOG_DIR/${phase_name// /_}_$name.log"
-        echo -e "  [${BLUE}START${NC}] $name"
-        
+        echo -e "  [${BLUE}START${NC}] $name (timeout: ${task_timeout}s)"
+
         if [ "$RUN_SERIAL" = "true" ]; then
-            # SERIAL EXECUTION
-            # We cd to PROJECT_ROOT first to ensure relative paths work
-            (cd "$PROJECT_ROOT/$dir" && eval "$cmd") > "$log_file" 2>&1
+            # SERIAL EXECUTION with timeout and low I/O priority
+            (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd") > "$log_file" 2>&1
             local status=$?
-            
+
+            # Exit code 137 = killed by timeout (SIGKILL after timeout)
+            if [ $status -eq 137 ] || [ $status -eq 124 ]; then
+                echo -e "\n${RED}⏰ Task \"$name\" TIMED OUT after ${task_timeout}s${NC}"
+                echo "=== TIMEOUT: Task exceeded ${task_timeout}s ===" >> "$log_file"
+                cat "$log_file"
+                echo -e "${RED}Aborting pipeline due to timeout.${NC}"
+                exit 124
+            fi
+
             # Special case for pytest
             if [[ "$name" == *"agent-zk-worker"* && $status -eq 5 ]]; then status=0; fi
 
@@ -131,9 +197,8 @@ run_parallel_ordered() {
                 show_log_sequential "$name" "$log_file" $status
             fi
         else
-            # PARALLEL EXECUTION
-            # We cd to PROJECT_ROOT first to ensure relative paths work
-            (cd "$PROJECT_ROOT/$dir" && eval "$cmd") > "$log_file" 2>&1 & 
+            # PARALLEL EXECUTION with timeout and low I/O priority
+            (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd") > "$log_file" 2>&1 &
             pids+=($!)
             logs+=("$log_file")
             names+=("$name")
@@ -149,7 +214,7 @@ run_parallel_ordered() {
         echo -e "${YELLOW}⚠️ No jobs matched the filter in this phase.${NC}"
         return 0
     fi
-    
+
     local phase_status=0
     for i in "${!pids[@]}"; do
         local pid="${pids[$i]}"
@@ -163,23 +228,30 @@ run_parallel_ordered() {
         else
              cat "$log"
         fi
-        
+
         wait "$pid"
         local status=$?
-        
+
+        # Exit code 137 = killed by timeout (SIGKILL)
+        if [ $status -eq 137 ] || [ $status -eq 124 ]; then
+            echo -e "\n${RED}⏰ Task \"$name\" TIMED OUT after ${task_timeout}s${NC}"
+            phase_status=124
+            continue
+        fi
+
         # Special case for pytest: exit code 5 means "no tests collected"
         if [[ "$name" == *"agent-zk-worker"* && $status -eq 5 ]]; then
             status=0
         fi
 
         show_log_sequential "$name" "$log" $status
-        
+
         if [ $status -ne 0 ]; then
             echo -e "\n${RED}❌ Task \"$name\" failed with status $status.${NC}"
             phase_status=$status
         fi
     done
-    
+
     if [ $phase_status -ne 0 ]; then
         echo -e "${RED}Aborting pipeline due to phase failure.${NC}"
         exit $phase_status

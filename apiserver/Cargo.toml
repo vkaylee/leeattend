@@ -33,6 +33,7 @@ rust_xlsxwriter = "0.79"
 aws-sdk-s3 = "1.68"
 aws-config = "1.5"
 base64 = "0.22.1"
+moka = { version = "0.12", features = ["future"] }
 
 [lints.rust]
 warnings = "deny"

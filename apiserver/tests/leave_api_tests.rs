@@ -58,6 +58,7 @@ async fn setup_app() -> (TestDatabase, TestFactory, axum::Router) {
         attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
         redis: None,
         coordinator: None,
+        roster_cache: None,
     });
 
     let app = apiserver::create_app(app_state);

@@ -37,7 +37,9 @@ const DETAIL_COLUMNS: ExcelColumn[] = [
   { header: "Scheduled End", key: "scheduled_end", width: 15 },
   { header: "Actual In", key: "actual_in", width: 12 },
   { header: "Actual Out", key: "actual_out", width: 12 },
-  { header: "Work Units", key: "work_units", width: 12 },
+  { header: "Std Units", key: "std_work_units", width: 12 },
+  { header: "OT Units", key: "ot_work_units", width: 12 },
+  { header: "OT Status", key: "ot_claim_status", width: 12 },
   { header: "Status", key: "status", width: 12 },
 ];
 

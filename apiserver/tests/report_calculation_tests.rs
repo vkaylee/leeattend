@@ -36,6 +36,7 @@ async fn spawn_app() -> (String, TestDatabase) {
         attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
         redis: None,
         coordinator: None,
+        roster_cache: None,
     });
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -156,7 +157,7 @@ async fn test_report_calculation_grace_period_and_break() {
     // Break 60m. Net = 480m.
     // Unit size 1 -> 480 units.
     assert_eq!(
-        report[0].work_units, 480,
+        report[0].std_work_units, 480,
         "Expected 480 units (8h) after grace period and break deduction"
     );
 }
@@ -283,7 +284,7 @@ async fn test_report_calculation_rounding() {
     // Rounding 15m Floor: 554 -> 540m.
     // 540 / 15 = 36 units.
     assert_eq!(
-        report[0].work_units, 36,
+        report[0].std_work_units, 36,
         "Expected 36 units after floor rounding (554m -> 540m / 15)"
     );
 }

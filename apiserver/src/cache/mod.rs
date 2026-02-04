@@ -5,11 +5,16 @@
 
 mod manager;
 mod redis_cache;
+mod roster_cache;
 mod shift_cache;
 mod workspace_cache;
 
 pub use manager::CacheManager;
 pub use redis_cache::RedisCache;
+pub use roster_cache::{
+    build_roster_data, RosterCache, RosterData, RosterDeptFixedShift, RosterDeptHistory,
+    RosterDeptPattern, RosterFixedAssignment, RosterPatternEntry, RosterShift,
+};
 pub use shift_cache::{CachedShift, ShiftCache};
 pub use workspace_cache::{CachedWorkspaceConfig, WorkspaceCache};
 

@@ -324,7 +324,9 @@ mod tests {
             is_break_auto_deduct: None,
             actual_punch_in: None,
             actual_punch_out: None,
-            work_units: 8,
+            std_work_units: 8,
+            ot_work_units: 0,
+            ot_claim_status: None,
             status: "present".to_string(),
             generation_metadata: None,
         };
@@ -340,7 +342,9 @@ mod tests {
             is_break_auto_deduct: None,
             actual_punch_in: None,
             actual_punch_out: None,
-            work_units: 8,
+            std_work_units: 8,
+            ot_work_units: 0,
+            ot_claim_status: None,
             status: "present".to_string(),
             generation_metadata: None,
         };

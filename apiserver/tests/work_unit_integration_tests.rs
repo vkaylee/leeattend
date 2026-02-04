@@ -115,7 +115,7 @@ async fn test_work_unit_integer_integrity_flow() {
     // Assert
     assert_eq!(reports_data.len(), 1);
     assert_eq!(
-        reports_data[0].work_units, 1,
+        reports_data[0].std_work_units, 1,
         "Should have 1 work unit (1 minute)"
     );
 

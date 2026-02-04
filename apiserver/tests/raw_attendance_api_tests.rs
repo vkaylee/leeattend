@@ -52,6 +52,7 @@ async fn setup_test_context() -> (
         attendance_service: Arc::new(AttendanceLogService::new(pool.clone(), 100, 10, 1000).0),
         redis: None,
         coordinator: None,
+        roster_cache: None,
     });
 
     let base_time = Utc.with_ymd_and_hms(2026, 1, 14, 8, 0, 0).unwrap();

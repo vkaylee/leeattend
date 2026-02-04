@@ -89,8 +89,8 @@ setup_ram_disk() {
     echo -e "${YELLOW}${BOLD}⚡ WSL detected - Enabling RAM Disk optimization${NC}"
     echo -e "${BLUE}  Moving migrations to /dev/shm to avoid Disk I/O overload...${NC}"
 
-    # Set trap for cleanup on exit/interrupt
-    trap cleanup_ram_disk EXIT INT TERM
+    # Note: Trap is set by combined_cleanup in main script, not here
+    # This avoids trap stacking issues
 
     WSL_MODE_ACTIVE=true
 
@@ -144,9 +144,19 @@ show_help() {
     echo -e "  ${GREEN}--web${NC}          Run tests for Web component (Vite, Playwright)"
     echo -e "  ${GREEN}--help${NC}         Show this help message"
     echo -e "  ${GREEN}--no-ram${NC}       Disable RAM disk optimization (even on WSL)"
+    echo -e "  ${GREEN}--timeout=N${NC}    Set global timeout in seconds (default: 1800 = 30min)"
+    echo ""
+    echo -e "${BOLD}Timeout Configuration (env vars):${NC}"
+    echo -e "  TIMEOUT_LINT=180         Per lint task (default: 3 min)"
+    echo -e "  TIMEOUT_UNIT=180         Per unit test task (default: 3 min)"
+    echo -e "  TIMEOUT_INTEGRATION=300  Per integration task (default: 5 min)"
+    echo -e "  TIMEOUT_BUILD=600        Pre-compilation (default: 10 min)"
+    echo -e "  TIMEOUT_DB_WAIT=120      Database ready wait (default: 2 min)"
+    echo -e "  TIMEOUT_GLOBAL=1800      Global timeout (default: 30 min)"
     echo ""
     echo -e "${BOLD}WSL Optimization:${NC}"
     echo -e "  On WSL, migrations are auto-moved to RAM (/dev/shm) to avoid I/O overload."
+    echo -e "  Tests run with low I/O priority (ionice -c 3) to prevent system freeze."
     echo -e "  Backups are created and restored automatically on exit/interrupt."
     echo ""
     echo -e "${BOLD}Pattern:${NC}"
@@ -157,6 +167,7 @@ show_help() {
     echo -e "  ./run-tests.sh --api robustness   # Lint all API, then run 'robustness' tests"
     echo -e "  ./run-tests.sh --web login        # Lint all Web, then run 'login' tests"
     echo -e "  ./run-tests.sh --all"
+    echo -e "  TIMEOUT_GLOBAL=600 ./run-tests.sh --api  # 10 min global timeout"
 }
 
 run_lint() {
@@ -183,6 +194,7 @@ run_integration() {
 # --- Main Logic ---
 
 DISABLE_RAM_DISK=false
+GLOBAL_TIMEOUT=${TIMEOUT_GLOBAL:-1800}
 
 if [ $# -eq 0 ]; then
     show_help
@@ -193,10 +205,12 @@ FILTER=""
 MODE=""
 PATTERN="${2:-}"
 
-# Check for --no-ram flag
+# Parse flags
 for arg in "$@"; do
     if [[ "$arg" == "--no-ram" ]]; then
         DISABLE_RAM_DISK=true
+    elif [[ "$arg" == --timeout=* ]]; then
+        GLOBAL_TIMEOUT="${arg#*=}"
     fi
 done
 
@@ -241,22 +255,63 @@ case "$1" in
 esac
 
 echo -e "${BLUE}${BOLD}🚀 Starting LeeAttend Test Suite in [$MODE] mode${NC}"
+echo -e "${BLUE}⏱️ Global timeout: ${GLOBAL_TIMEOUT}s ($(( GLOBAL_TIMEOUT / 60 )) min)${NC}"
 if [ -n "$PATTERN" ]; then
     echo -e "${BLUE}🎯 Specific test pattern: ${YELLOW}$PATTERN${NC}"
 fi
 echo -e "${BLUE}================================================================${NC}"
+
+# Export timeout vars for sub-scripts
+export TIMEOUT_GLOBAL="$GLOBAL_TIMEOUT"
+export TIMEOUT_LINT="${TIMEOUT_LINT:-180}"
+export TIMEOUT_UNIT="${TIMEOUT_UNIT:-180}"
+export TIMEOUT_INTEGRATION="${TIMEOUT_INTEGRATION:-300}"
+export TIMEOUT_BUILD="${TIMEOUT_BUILD:-600}"
+export TIMEOUT_DB_WAIT="${TIMEOUT_DB_WAIT:-120}"
+
+# Set initial trap for RAM disk cleanup (before setup_ram_disk runs)
+trap cleanup_ram_disk EXIT INT TERM
 
 # Setup RAM disk for WSL optimization (unless disabled)
 if [[ "$DISABLE_RAM_DISK" != "true" ]]; then
     setup_ram_disk
 fi
 
-# Lint luôn chạy trên toàn bộ component (không lọc theo pattern)
-run_lint "$FILTER"
+# Global timeout watchdog (background process)
+MAIN_PID=$$
+WATCHDOG_PID=""
 
-# Unit & Integration sẽ nhận pattern để lọc test case
+global_timeout_watchdog() {
+    sleep "$GLOBAL_TIMEOUT"
+    echo -e "\n${RED}================================================================${NC}"
+    echo -e "${RED}${BOLD}⏰ GLOBAL TIMEOUT: Test suite exceeded ${GLOBAL_TIMEOUT}s limit${NC}"
+    echo -e "${RED}================================================================${NC}"
+    # Kill only the main process, let cleanup trap handle the rest
+    kill -TERM "$MAIN_PID" 2>/dev/null || true
+}
+
+# Start watchdog in background
+global_timeout_watchdog &
+WATCHDOG_PID=$!
+
+# Combined cleanup handler (now includes watchdog)
+combined_cleanup() {
+    # Kill watchdog first (if it exists)
+    if [[ -n "$WATCHDOG_PID" ]]; then
+        kill "$WATCHDOG_PID" 2>/dev/null || true
+    fi
+    # Then cleanup RAM disk
+    cleanup_ram_disk
+}
+trap combined_cleanup EXIT INT TERM
+
+# Run all test phases
+run_lint "$FILTER"
 run_unit "$FILTER:$PATTERN"
 run_integration "$FILTER:$PATTERN"
+
+# Kill watchdog since we succeeded
+kill "$WATCHDOG_PID" 2>/dev/null || true
 
 echo -e "\n${BLUE}================================================================${NC}"
 echo -e "${GREEN}${BOLD}🎉 All tests for [$MODE] passed successfully!${NC}"

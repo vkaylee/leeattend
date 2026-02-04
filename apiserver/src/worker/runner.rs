@@ -14,7 +14,7 @@ use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
-use crate::cache::CacheManager;
+use crate::cache::{CacheManager, RosterCache};
 use crate::queue::{RedisPool, ReportJob, ReportQueue, TaskType};
 use crate::services::ReportCoordinator;
 use crate::worker::handlers::{AttendanceHandler, MergeHandler};
@@ -124,6 +124,8 @@ pub struct ReportWorker {
     config: WorkerConfig,
     coordinator: Arc<ReportCoordinator>,
     cache: Arc<CacheManager>,
+    /// Optional roster cache shared with the main app state.
+    roster_cache: Option<Arc<RosterCache>>,
     worker_id: Uuid,
     hostname: String,
     current_status: Arc<Mutex<WorkerStatus>>,
@@ -137,6 +139,7 @@ impl ReportWorker {
         db: PgPool,
         config: WorkerConfig,
         coordinator: Arc<ReportCoordinator>,
+        roster_cache: Option<Arc<RosterCache>>,
     ) -> Self {
         let cache = Arc::new(CacheManager::new(redis.clone(), db.clone()));
         let hostname = std::env::var("HOSTNAME")
@@ -150,6 +153,7 @@ impl ReportWorker {
             config,
             coordinator,
             cache,
+            roster_cache,
             worker_id: Uuid::new_v4(),
             hostname,
             current_status: Arc::new(Mutex::new(WorkerStatus::Idle)),
@@ -372,7 +376,7 @@ impl ReportWorker {
         // Route to appropriate handler
         let result = match job.task_type {
             TaskType::AttendanceReport => {
-                AttendanceHandler::handle(&self.db, &self.queue, &self.cache, &job, &self.redis).await
+                AttendanceHandler::handle(&self.db, &self.queue, &self.cache, &job, &self.redis, self.roster_cache.as_deref()).await
             }
             TaskType::MergeResults => {
                 MergeHandler::handle(&self.db, &self.queue, &job, &self.redis).await

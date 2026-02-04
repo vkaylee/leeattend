@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, start_time, end_time, break_duration_minutes, break_start, break_end, is_break_auto_deduct, early_punch_in_grace_period_minutes, allow_early_ot FROM shifts WHERE workspace_id = $1",
+  "query": "\n        SELECT id, name, start_time, end_time, break_duration_minutes,\n               break_start, break_end, is_break_auto_deduct,\n               early_punch_in_grace_period_minutes, allow_early_ot\n        FROM shifts WHERE workspace_id = $1\n        ",
   "describe": {
     "columns": [
       {
@@ -72,5 +72,5 @@
       false
     ]
   },
-  "hash": "de56b3ef03bc0ad796263c0d6b4f2b1403ccabf519bc5365d7bcde1ffc15ab73"
+  "hash": "768a4321c697246e0ec25af18ca2180f90d63cf3ab1ef746c0e0e0eee66aca4f"
 }

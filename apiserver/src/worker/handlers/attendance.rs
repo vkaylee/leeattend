@@ -11,7 +11,7 @@ use sqlx::PgPool;
 use tracing::info;
 use uuid::Uuid;
 
-use crate::cache::{CacheManager, CachedWorkspaceConfig};
+use crate::cache::{CacheManager, CachedWorkspaceConfig, RosterCache};
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{AttendanceSummary, DailyAttendanceReport, TimeEntry};
 use crate::queue::{RedisPool, ReportJob, ReportPublisher, ReportQueue, ReportType};
@@ -29,6 +29,7 @@ impl AttendanceHandler {
         cache: &Arc<CacheManager>,
         job: &ReportJob,
         redis: &RedisPool,
+        roster_cache: Option<&RosterCache>,
     ) -> Result<(), String> {
         let employee_ids = &job.employee_ids;
         let start_date = job.date_range.start;
@@ -46,6 +47,7 @@ impl AttendanceHandler {
         // 1. Fetch schedules for this batch's employees
         let schedules = roster_repository::get_workspace_schedules(
             pool,
+            roster_cache,
             workspace_id,
             start_date,
             end_date,
@@ -366,7 +368,8 @@ impl AttendanceHandler {
                     .last()
                     .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
 
-                let mut total_payable_units = 0;
+                let mut std_work_units = 0;
+                let mut ot_work_units = 0;
 
                 if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
                     let actual_break_minutes: i32 = day_entries
@@ -421,7 +424,8 @@ impl AttendanceHandler {
                         &rules,
                     );
 
-                    total_payable_units = std_units + ot_units;
+                    std_work_units = std_units;
+                    ot_work_units = ot_units;
                 }
 
                 let mut status = "absent".to_string();
@@ -474,7 +478,9 @@ impl AttendanceHandler {
                     is_break_auto_deduct: daily.is_break_auto_deduct,
                     actual_punch_in: actual_punch_in.map(|t| t.with_timezone(&Utc)),
                     actual_punch_out: actual_punch_out.map(|t| t.with_timezone(&Utc)),
-                    work_units: total_payable_units,
+                    std_work_units,
+                    ot_work_units,
+                    ot_claim_status: None,
                     status,
                     generation_metadata: combined_metadata,
                 });
@@ -593,7 +599,9 @@ mod tests {
             is_break_auto_deduct: Some(true),
             actual_punch_in: None,
             actual_punch_out: None,
-            work_units: 0,
+            std_work_units: 0,
+            ot_work_units: 0,
+            ot_claim_status: None,
             status: "absent".to_string(),
             generation_metadata: None,
         }];
@@ -603,7 +611,8 @@ mod tests {
 
         assert_eq!(decoded.len(), 1);
         assert_eq!(decoded[0].status, "absent");
-        assert_eq!(decoded[0].work_units, 0);
+        assert_eq!(decoded[0].std_work_units, 0);
+        assert_eq!(decoded[0].ot_work_units, 0);
     }
 
     #[test]

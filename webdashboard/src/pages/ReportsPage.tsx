@@ -788,11 +788,11 @@ export default function ReportsPage() {
 
 
 
-                              <div className="font-mono font-bold text-primary-600 text-base tracking-tighter leading-none">{formatUnitsToHours(row.work_units, workUnitMinutes)}h</div>
+                              <div className="font-mono font-bold text-primary-600 text-base tracking-tighter leading-none">{formatUnitsToHours(row.std_work_units + row.ot_work_units, workUnitMinutes)}h</div>
 
 
 
-                              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest opacity-60">{row.work_units}U</span>
+                              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest opacity-60">{row.std_work_units + row.ot_work_units}U</span>
 
 
 
@@ -1000,7 +1000,7 @@ export default function ReportsPage() {
 
                 ? filteredData.reduce((acc: number, r: any) => acc + r.total_work_units, 0)
 
-                : filteredData.reduce((acc: number, r: any) => acc + r.work_units, 0),
+                : filteredData.reduce((acc: number, r: any) => acc + r.std_work_units + r.ot_work_units, 0),
 
               workUnitMinutes
 

@@ -122,6 +122,11 @@ async fn main() {
         }
     };
 
+    // Roster cache (requires Redis; shared between app state and worker)
+    let roster_cache = redis_pool.as_ref().map(|rpool| {
+        Arc::new(apiserver::cache::RosterCache::new(rpool.clone()))
+    });
+
     // Initialize report worker if Redis is available
     let worker_cancel_token = CancellationToken::new();
     let (coordinator, worker_handle) = if let Some(ref redis) = redis_pool {
@@ -139,6 +144,7 @@ async fn main() {
             pool.clone(),
             worker_config,
             coordinator.clone(),
+            roster_cache.clone(),
         );
 
         (Some(coordinator), Some(worker.start(worker_cancel_token.clone())))
@@ -156,6 +162,7 @@ async fn main() {
         attendance_service,
         redis: redis_pool,
         coordinator,
+        roster_cache,
     });
 
     let app = create_app(state.clone());

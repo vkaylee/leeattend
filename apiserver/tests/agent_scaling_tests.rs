@@ -85,6 +85,7 @@ async fn spawn_app() -> (Arc<AppState>, Uuid, String) {
         attendance_service: Arc::new(AttendanceLogService::new(db_pool.clone(), 100, 10, 1000).0),
         redis: None,
         coordinator: None,
+        roster_cache: None,
     });
 
     // Generate token

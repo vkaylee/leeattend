@@ -554,6 +554,42 @@ mod tests {
     use crate::queue::{DateRange, ReportConfig, ReportType, TaskType, JobStatus, RedisPool};
     use chrono::NaiveDate;
 
+    // Helper to create test Redis pool with 5s timeout (avoids 60s+ hang when Redis unavailable)
+    async fn get_test_redis() -> Option<RedisPool> {
+        let redis_url =
+            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+
+        match tokio::time::timeout(
+            tokio::time::Duration::from_secs(5),
+            RedisPool::new(&redis_url),
+        )
+        .await
+        {
+            Ok(Ok(pool)) => match tokio::time::timeout(
+                tokio::time::Duration::from_secs(5),
+                pool.health_check(),
+            )
+            .await
+            {
+                Ok(Ok(())) => Some(pool),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    macro_rules! setup_redis_or_skip {
+        () => {{
+            match get_test_redis().await {
+                Some(pool) => pool,
+                None => {
+                    println!("SKIPPED: Redis not available (5s timeout)");
+                    return;
+                }
+            }
+        }};
+    }
+
     #[test]
     fn test_queue_key_constants() {
         assert_eq!(QUEUE_KEY, "report:jobs:attendance");
@@ -688,16 +724,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_job_metadata_preserves_existing_ttl() {
         // Test: When updating metadata with existing TTL, preserve that TTL
-        let redis_url =
-            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
-        let pool = match RedisPool::new(&redis_url).await {
-            Ok(p) => p,
-            Err(_) => {
-                println!("SKIPPED: Redis not available");
-                return;
-            }
-        };
-
+        let pool = setup_redis_or_skip!();
         let queue = ReportQueue::new(pool.clone());
         let job_id = Uuid::new_v4();
         let workspace_id = Uuid::new_v4();
@@ -781,16 +808,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_job_metadata_applies_default_ttl_when_missing() {
         // Test: When updating metadata without TTL (new key), apply default 24h TTL
-        let redis_url =
-            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
-        let pool = match RedisPool::new(&redis_url).await {
-            Ok(p) => p,
-            Err(_) => {
-                println!("SKIPPED: Redis not available");
-                return;
-            }
-        };
-
+        let pool = setup_redis_or_skip!();
         let queue = ReportQueue::new(pool.clone());
         let job_id = Uuid::new_v4();
         let workspace_id = Uuid::new_v4();
@@ -844,16 +862,7 @@ mod tests {
     #[tokio::test]
     async fn test_multiple_updates_preserve_ttl() {
         // Test: Multiple updates should preserve and not reset TTL
-        let redis_url =
-            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
-        let pool = match RedisPool::new(&redis_url).await {
-            Ok(p) => p,
-            Err(_) => {
-                println!("SKIPPED: Redis not available");
-                return;
-            }
-        };
-
+        let pool = setup_redis_or_skip!();
         let queue = ReportQueue::new(pool.clone());
         let job_id = Uuid::new_v4();
         let workspace_id = Uuid::new_v4();
@@ -936,16 +945,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_job_status_preserves_ttl() {
         // Test: update_job_status (which calls update_job_metadata) preserves TTL
-        let redis_url =
-            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
-        let pool = match RedisPool::new(&redis_url).await {
-            Ok(p) => p,
-            Err(_) => {
-                println!("SKIPPED: Redis not available");
-                return;
-            }
-        };
-
+        let pool = setup_redis_or_skip!();
         let queue = ReportQueue::new(pool.clone());
         let job_id = Uuid::new_v4();
         let workspace_id = Uuid::new_v4();
@@ -1014,16 +1014,7 @@ mod tests {
     #[tokio::test]
     async fn test_redis_compatibility_ttl_method() {
         // Test: Verify TTL command works (Redis 3.0+ compatible)
-        let redis_url =
-            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
-        let pool = match RedisPool::new(&redis_url).await {
-            Ok(p) => p,
-            Err(_) => {
-                println!("SKIPPED: Redis not available");
-                return;
-            }
-        };
-
+        let pool = setup_redis_or_skip!();
         let mut conn = pool.conn();
         let test_key = format!("test:ttl:{}", Uuid::new_v4());
 

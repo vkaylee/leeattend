@@ -88,7 +88,8 @@ describe("excel-builder", () => {
         scheduled_end: "17:00",
         actual_in: "08:55",
         actual_out: "17:10",
-        work_units: 8,
+        std_work_units: 8,
+        ot_work_units: 0,
         status: "present",
       },
       {
@@ -98,7 +99,8 @@ describe("excel-builder", () => {
         scheduled_end: "17:00",
         actual_in: "09:15",
         actual_out: "17:00",
-        work_units: 7.75,
+        std_work_units: 7,
+        ot_work_units: 0,
         status: "late",
       },
       {
@@ -108,7 +110,8 @@ describe("excel-builder", () => {
         scheduled_end: "17:00",
         actual_in: null,
         actual_out: null,
-        work_units: 0,
+        std_work_units: 0,
+        ot_work_units: 0,
         status: "absent",
       },
     ];
@@ -167,15 +170,15 @@ describe("excel-builder", () => {
       // Verify workbook creation
       expect(mockWorkbook.addWorksheet).toHaveBeenCalledWith("Detail");
 
-      // Verify worksheet columns set (detail has 8 columns)
-      expect(mockWorksheet.columns).toHaveLength(8);
+      // Verify worksheet columns set (detail has 10 columns)
+      expect(mockWorksheet.columns).toHaveLength(10);
       expect(mockWorksheet.columns[0].header).toBe("Date");
       expect(mockWorksheet.columns[1].header).toBe("Employee Name");
-      expect(mockWorksheet.columns[7].header).toBe("Status");
+      expect(mockWorksheet.columns[9].header).toBe("Status");
 
       // Verify title and header rows
       expect(mockGetCell).toHaveBeenCalledWith("A1");
-      expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(1, 1, 1, 8);
+      expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(1, 1, 1, 10);
 
       // Verify data rows
       expect(mockGetRow).toHaveBeenCalledWith(5); // First data row
@@ -346,7 +349,8 @@ describe("excel-builder", () => {
           scheduled_end: null,
           actual_in: null,
           actual_out: null,
-          work_units: 0,
+          std_work_units: 0,
+          ot_work_units: 0,
           status: "off",
         },
       ];
@@ -383,7 +387,8 @@ describe("excel-builder", () => {
           scheduled_end: "17:00",
           actual_in: "08:55",
           actual_out: "17:10",
-          work_units: 8,
+          std_work_units: 8,
+          ot_work_units: 0,
           status: "present",
         };
 
@@ -420,7 +425,8 @@ describe("excel-builder", () => {
           scheduled_end: "17:00",
           actual_in: "08:55",
           actual_out: "17:10",
-          work_units: 8,
+          std_work_units: 8,
+          ot_work_units: 0,
           status: "present",
         };
 
@@ -463,7 +469,8 @@ describe("excel-builder", () => {
           scheduled_end: null,
           actual_in: null,
           actual_out: null,
-          work_units: 0,
+          std_work_units: 0,
+          ot_work_units: 0,
           status: "off",
         };
 
@@ -478,7 +485,8 @@ describe("excel-builder", () => {
           scheduled_end: "17:00",
           actual_in: "08:55",
           actual_out: "17:10",
-          work_units: 8,
+          std_work_units: 8,
+          ot_work_units: 0,
           status: "present",
           extra_field: "value",
         };
@@ -502,7 +510,8 @@ describe("excel-builder", () => {
           scheduled_end: "17:00",
           actual_in: "08:55",
           actual_out: "17:10",
-          work_units: 8,
+          std_work_units: 8,
+          ot_work_units: 0,
           status: "present",
         };
 

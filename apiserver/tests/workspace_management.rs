@@ -48,6 +48,7 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
         attendance_service: Arc::new(AttendanceLogService::new(db_pool.clone(), 100, 10, 1000).0),
         redis: None,
         coordinator: None,
+        roster_cache: None,
     });
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")

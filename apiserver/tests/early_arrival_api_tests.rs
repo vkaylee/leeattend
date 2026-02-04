@@ -37,6 +37,7 @@ async fn spawn_app() -> (String, Uuid, Uuid, TestFactory, TestDatabase) {
         attendance_service: Arc::new(AttendanceLogService::new(db_pool.clone(), 100, 10, 1000).0),
         redis: None,
         coordinator: None,
+        roster_cache: None,
     });
 
     let app = apiserver::create_app(state);

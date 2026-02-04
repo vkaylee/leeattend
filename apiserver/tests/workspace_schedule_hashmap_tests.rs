@@ -89,7 +89,7 @@ async fn test_multi_source_and_pattern_day_off() {
 
     // --- Monday ---
     let sched =
-        roster_repository::get_workspace_schedules(&pool, ws_id, monday(), monday(), None)
+        roster_repository::get_workspace_schedules(&pool, None, ws_id, monday(), monday(), None)
             .await
             .unwrap();
 
@@ -107,7 +107,7 @@ async fn test_multi_source_and_pattern_day_off() {
 
     // --- Sunday: emp2 pattern day-off (NULL shift_id in pattern_assignments_map path) ---
     let sched_sun =
-        roster_repository::get_workspace_schedules(&pool, ws_id, sunday(), sunday(), None)
+        roster_repository::get_workspace_schedules(&pool, None, ws_id, sunday(), sunday(), None)
             .await
             .unwrap();
     let e2_sun = sched_sun.iter().find(|s| s.employee_id == emp2).unwrap();
@@ -214,7 +214,7 @@ async fn test_dept_pattern_fixed_and_dept_fixed() {
     .unwrap();
 
     let sched =
-        roster_repository::get_workspace_schedules(&pool, ws_id, monday(), monday(), None)
+        roster_repository::get_workspace_schedules(&pool, None, ws_id, monday(), monday(), None)
             .await
             .unwrap();
 
@@ -306,7 +306,7 @@ async fn test_dynamic_rule_via_workspace_schedules() {
 
     // Monday: rule matches, composite-key (pattern_id, 1) → shift_rule
     let sched =
-        roster_repository::get_workspace_schedules(&pool, ws_id, monday(), monday(), None)
+        roster_repository::get_workspace_schedules(&pool, None, ws_id, monday(), monday(), None)
             .await
             .unwrap();
     let day = &sched.iter().find(|s| s.employee_id == emp).unwrap().schedules[0];
@@ -315,7 +315,7 @@ async fn test_dynamic_rule_via_workspace_schedules() {
 
     // Sunday: rule matches, composite-key (pattern_id, 0) → None (day off)
     let sched_sun =
-        roster_repository::get_workspace_schedules(&pool, ws_id, sunday(), sunday(), None)
+        roster_repository::get_workspace_schedules(&pool, None, ws_id, sunday(), sunday(), None)
             .await
             .unwrap();
     let day_sun = &sched_sun.iter().find(|s| s.employee_id == emp).unwrap().schedules[0];
@@ -329,7 +329,7 @@ async fn test_dynamic_rule_via_workspace_schedules() {
     // rule_patterns_map → fall through P4/P5/P6 (none set up) → source "none"
     let wednesday = NaiveDate::from_ymd_opt(2026, 1, 7).unwrap(); // confirmed Wednesday
     let sched_wed =
-        roster_repository::get_workspace_schedules(&pool, ws_id, wednesday, wednesday, None)
+        roster_repository::get_workspace_schedules(&pool, None, ws_id, wednesday, wednesday, None)
             .await
             .unwrap();
     let day_wed = &sched_wed.iter().find(|s| s.employee_id == emp).unwrap().schedules[0];

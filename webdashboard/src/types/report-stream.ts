@@ -48,7 +48,9 @@ export interface DetailRow {
   scheduled_end: string | null;
   actual_in: string | null;
   actual_out: string | null;
-  work_units: number;
+  std_work_units: number;
+  ot_work_units: number;
+  ot_claim_status?: string | null;
   status: string;
 }
 

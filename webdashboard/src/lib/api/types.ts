@@ -228,7 +228,9 @@ export interface DailyAttendanceReport {
   is_break_auto_deduct: boolean | null;
   actual_punch_in: string | null;
   actual_punch_out: string | null;
-  work_units: number;
+  std_work_units: number;
+  ot_work_units: number;
+  ot_claim_status?: string | null;
   status: string;
   generation_metadata?: any;
 }

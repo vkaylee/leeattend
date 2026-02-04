@@ -680,7 +680,10 @@ pub struct DailyAttendanceReport {
     pub is_break_auto_deduct: Option<bool>,
     pub actual_punch_in: Option<DateTime<Utc>>,
     pub actual_punch_out: Option<DateTime<Utc>>,
-    pub work_units: i32,
+    pub std_work_units: i32,
+    pub ot_work_units: i32,
+    #[serde(default)]
+    pub ot_claim_status: Option<String>,
     pub status: String,
     pub generation_metadata: Option<serde_json::Value>,
 }

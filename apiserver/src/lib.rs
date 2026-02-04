@@ -38,6 +38,8 @@ pub struct AppState {
     /// Optional ReportCoordinator for async report generation.
     /// Requires Redis to be available.
     pub coordinator: Option<Arc<ReportCoordinator>>,
+    /// Optional roster cache (requires Redis). Falls back to direct DB on None.
+    pub roster_cache: Option<Arc<crate::cache::RosterCache>>,
 }
 
 mod ax_auth {

@@ -45,7 +45,7 @@ pub async fn create_shift(
     }
 
     let workspace_id = ctx.workspace_id;
-    match crate::services::shift_service::ShiftService::create_shift(
+    let shift = crate::services::shift_service::ShiftService::create_shift(
         &state.db,
         workspace_id,
         req.name,
@@ -59,11 +59,13 @@ pub async fn create_shift(
         req.early_punch_in_grace_period_minutes,
         req.allow_early_ot,
     )
-    .await
-    {
-        Ok(shift) => Ok((StatusCode::CREATED, Json(shift))),
-        Err(e) => Err(e),
+    .await?;
+
+    if let Some(cache) = &state.roster_cache {
+        cache.invalidate(workspace_id).await;
     }
+
+    Ok((StatusCode::CREATED, Json(shift)))
 }
 
 pub async fn update_shift(
@@ -75,17 +77,20 @@ pub async fn update_shift(
     if !ctx.is_admin_or_owner() {
         return Err(StatusCode::FORBIDDEN);
     }
-    match crate::services::shift_service::ShiftService::update_shift(&state.db, shift_id, req).await
-    {
-        Ok(shift) => Ok(Json(shift)),
-        Err(status) => Err(status),
+    let shift =
+        crate::services::shift_service::ShiftService::update_shift(&state.db, shift_id, req).await?;
+
+    if let Some(cache) = &state.roster_cache {
+        cache.invalidate(ctx.workspace_id).await;
     }
+
+    Ok(Json(shift))
 }
 
 pub async fn assign_shift(
     State(state): State<Arc<AppState>>,
     Path(_ws_id): Path<Uuid>,
-    MemberContext { .. }: MemberContext,
+    ctx: MemberContext,
     Json(req): Json<AssignShiftRequest>,
 ) -> impl IntoResponse {
     match crate::services::shift_service::ShiftService::assign_shift(
@@ -97,7 +102,12 @@ pub async fn assign_shift(
     )
     .await
     {
-        Ok(_) => StatusCode::OK.into_response(),
+        Ok(_) => {
+            if let Some(cache) = &state.roster_cache {
+                cache.invalidate(ctx.workspace_id).await;
+            }
+            StatusCode::OK.into_response()
+        }
         Err(status) => status.into_response(),
     }
 }
@@ -121,6 +131,7 @@ pub async fn get_workspace_schedules(
 
     let schedules = crate::repositories::roster_repository::get_workspace_schedules(
         &state.db,
+        state.roster_cache.as_deref(),
         workspace_id,
         start_date,
         end_date,
@@ -204,6 +215,10 @@ pub async fn upsert_roster(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+    if let Some(cache) = &state.roster_cache {
+        cache.invalidate(ctx.workspace_id).await;
+    }
+
     Ok(Json(saved))
 }
 
@@ -223,6 +238,10 @@ pub async fn bulk_upsert_roster(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
+    if let Some(cache) = &state.roster_cache {
+        cache.invalidate(ctx.workspace_id).await;
+    }
+
     Ok(StatusCode::OK)
 }
 
@@ -240,6 +259,10 @@ pub async fn delete_roster(
             error!("Failed to delete roster: {:?}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
+
+    if let Some(cache) = &state.roster_cache {
+        cache.invalidate(ctx.workspace_id).await;
+    }
 
     Ok(StatusCode::NO_CONTENT)
 }

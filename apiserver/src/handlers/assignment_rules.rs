@@ -38,13 +38,18 @@ pub async fn create_assignment_rule(
     }
 
     match AssignmentRuleRepository::create_rule(&state.db, ws_id, &req).await {
-        Ok(rule) => (StatusCode::CREATED, Json(rule)).into_response(),
+        Ok(rule) => {
+            if let Some(cache) = &state.roster_cache {
+                cache.invalidate(ws_id).await;
+            }
+            (StatusCode::CREATED, Json(rule)).into_response()
+        }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
 
 pub async fn update_assignment_rule(
-    Path((_ws_id, rule_id)): Path<(Uuid, Uuid)>,
+    Path((ws_id, rule_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<UpdateAssignmentRuleRequest>,
@@ -54,13 +59,18 @@ pub async fn update_assignment_rule(
     }
 
     match AssignmentRuleRepository::update_rule(&state.db, rule_id, &req).await {
-        Ok(rule) => Json(rule).into_response(),
+        Ok(rule) => {
+            if let Some(cache) = &state.roster_cache {
+                cache.invalidate(ws_id).await;
+            }
+            Json(rule).into_response()
+        }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
 
 pub async fn delete_assignment_rule(
-    Path((_ws_id, rule_id)): Path<(Uuid, Uuid)>,
+    Path((ws_id, rule_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
 ) -> impl IntoResponse {
@@ -69,7 +79,12 @@ pub async fn delete_assignment_rule(
     }
 
     match AssignmentRuleRepository::delete_rule(&state.db, rule_id).await {
-        Ok(_) => StatusCode::NO_CONTENT.into_response(),
+        Ok(_) => {
+            if let Some(cache) = &state.roster_cache {
+                cache.invalidate(ws_id).await;
+            }
+            StatusCode::NO_CONTENT.into_response()
+        }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
