@@ -156,27 +156,34 @@ Estimated coverage based on passing tests:
 
 ## Critical Issues Identified
 
-### 🔴 BLOCKING: Redis Timeout in Report Tests
-**Severity:** CRITICAL  
-**File:** `/home/elt1541/leeattend/apiserver/tests/report_comprehensive_system_tests.rs`  
-**Impact:** Prevents full API test suite execution  
-**Affected Tests:** 4 (test_base64_data_storage_pipeline, test_blpop_timeout_infinity_invalid, test_batch_result_storage_type_safety, test_batch_accumulation_before_merge)
+### 🔴 BLOCKING: Redis Not Running - Missing Infrastructure
+**Severity:** CRITICAL
+**Root Cause Identified:** Redis server is not running
+- `redis-cli ping` returns: "Could not connect to Redis at 127.0.0.1:6379: Connection refused"
+- docker-compose.test.yml only defines PostgreSQL, NOT Redis
+- Test setup attempts to connect and hangs indefinitely: `RedisPool::new(&redis_url).await.expect("Failed to connect to Redis")`
+
+**File:** `/home/elt1541/leeattend/apiserver/tests/report_comprehensive_system_tests.rs`
+**Impact:** Prevents full API test suite execution
+**Affected Tests:** 4 tests fail silently due to Redis unavailability
+1. test_base64_data_storage_pipeline (line 121)
+2. test_blpop_timeout_infinity_invalid (line 198)
+3. test_batch_result_storage_type_safety (line 88)
+4. test_batch_accumulation_before_merge (line 365)
 
 **Evidence:**
-- Tests hang at 60+ second mark
-- All four failures in same test file related to Redis queue
-- Parent process terminates test suite and cleans up
+- All four tests timeout after 60+ seconds
+- Tests all depend on `setup_redis()` which tries to connect to unreachable Redis
+- Connection attempt blocks indefinitely waiting for timeout
+- Parent process gives up and terminates test suite
 
-**Diagnosis:**
-The tests likely:
-1. Establish Redis connection in `setup_redis()` 
-2. Call queue operations that should return quickly
-3. Block indefinitely instead of returning/timing out
-
-Possible causes:
-- Redis server not running or not accessible
-- Queue method implementation has infinite loop or blocking operation
-- Test database not properly isolated from real Redis
+**Root Cause Analysis:**
+The test infrastructure is incomplete:
+1. Test suite expects Redis at redis://127.0.0.1:6379
+2. `.env.test` file does not exist with Redis configuration
+3. docker-compose.test.yml missing Redis service
+4. Tests have no mock/fallback for when Redis is unavailable
+5. Queue operations use actual Redis library without test doubles
 
 ### 🟠 WARNING: Web Dashboard Test Linting Hangs
 **Severity:** HIGH  
@@ -260,25 +267,58 @@ Possible causes:
 
 ## Recommendations & Next Steps
 
-### Priority 1: CRITICAL - Fix Redis Timeout Tests
+### Priority 1: CRITICAL - Add Redis to Test Infrastructure
+**Status:** Root cause confirmed - Redis not running
+
 **Action Items:**
-1. Verify Redis server is running and accessible
-   ```bash
-   redis-cli ping
+1. Add Redis service to docker-compose.test.yml:
+   ```yaml
+   redis:
+     image: redis:7-alpine
+     ports:
+       - "6379:6379"
+     healthcheck:
+       test: ["CMD", "redis-cli", "ping"]
+       interval: 2s
+       timeout: 5s
+       retries: 5
    ```
-2. Check Redis connection in test setup
-   ```bash
-   echo $REDIS_URL
+
+2. Create `.env.test` file if missing with Redis URL:
    ```
-3. Add debug logging to `queue.get_result_data()` and `queue.dequeue_job()`
-4. Consider adding timeout wrapper to Redis operations
-5. Verify BLPOP timeout validation logic in ReportQueue
+   REDIS_URL=redis://127.0.0.1:6379
+   ```
 
-**File to Debug:**
-- `/home/elt1541/leeattend/apiserver/src/queue.rs` - Review BLPOP timeout handling
-- `/home/elt1541/leeattend/apiserver/tests/report_comprehensive_system_tests.rs` - Review setup_redis()
+3. Update run-tests.sh to start Redis container before tests:
+   ```bash
+   docker-compose -f docker-compose.test.yml up -d redis
+   # Wait for healthcheck
+   sleep 5
+   ```
 
-**Expected Outcome:** All 4 tests should complete within <5s each
+4. Add cleanup to run-tests.sh:
+   ```bash
+   docker-compose -f docker-compose.test.yml down redis
+   ```
+
+**Alternative - Skip Tests Temporarily:**
+If Redis setup is not possible immediately, mark tests as `#[ignore]`:
+   ```rust
+   #[tokio::test]
+   #[ignore]  // Redis not available in CI environment
+   async fn test_base64_data_storage_pipeline() { ... }
+   ```
+
+**Files to Modify:**
+- `/home/elt1541/leeattend/docker-compose.test.yml` - Add Redis service
+- `/home/elt1541/leeattend/.env.test` - Create with Redis URL
+- `/home/elt1541/leeattend/run-tests.sh` - Add Redis startup/cleanup
+- `/home/elt1541/leeattend/apiserver/tests/report_comprehensive_system_tests.rs` - Optional: Add #[ignore]
+
+**Expected Outcome:**
+- Redis available at 127.0.0.1:6379 before tests run
+- All 4 tests complete within 1-5s each
+- No more timeouts or connection refused errors
 
 ### Priority 2: HIGH - Investigate Web Linting Hang
 **Action Items:**
@@ -305,23 +345,22 @@ Possible causes:
 
 ## Unresolved Questions
 
-1. **Q: Why are Redis tests hanging indefinitely?**
-   - Is Redis server actually running?
-   - Is REDIS_URL environment variable set correctly?
-   - Does setup_redis() properly validate connection?
-
-2. **Q: What causes web dashboard linting to hang?**
+1. **Q: What causes web dashboard linting to hang?** (Still unresolved)
    - Is there a circular dependency in imports?
    - Are there syntax errors that confuse ESLint parser?
    - Is the linting configuration in a loop?
 
-3. **Q: Are the timeout values in BLPOP tests correct?**
-   - Why test with f64::INFINITY if it should be rejected?
-   - Are timeout validations being bypassed?
-
-4. **Q: Should work_unit_integration_tests.rs timeout too?**
+2. **Q: Should work_unit_integration_tests.rs timeout too?** (Still unresolved)
    - Why does filtering for "work_unit" also timeout?
-   - Are there other problematic tests in that suite?
+   - Are there other problematic tests in that suite that also need Redis?
+
+3. **Q: Is Redis mock available for unit tests?** (Recommended investigation)
+   - Should tests use mockredis library instead of actual Redis?
+   - Are there other test dependencies that should use mocks?
+
+4. **Q: Why is Redis required for report_comprehensive_system_tests?** (Design question)
+   - Should these integration tests use in-memory Redis mock?
+   - Should queue operations be abstracted for testing?
 
 ---
 
