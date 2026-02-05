@@ -95,7 +95,7 @@ pub async fn delete_policy_definition(
     .execute(pool)
     .await?;
 
-    let result = sqlx::query!(
+    let result: sqlx::postgres::PgQueryResult = sqlx::query!(
         r#"
         DELETE FROM leave_policy_definitions
         WHERE id = $1 AND workspace_id = $2

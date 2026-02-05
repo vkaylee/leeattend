@@ -229,7 +229,7 @@ pub async fn get_employee_salary_components(
     employee_id: Uuid,
     reference_date: NaiveDate,
 ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
-    let rows = sqlx::query!(
+    let rows: Vec<_> = sqlx::query!(
         r#"SELECT 
             esc.id as esc_id, esc.employee_id, esc.component_definition_id, esc.amount, esc.effective_date, esc.created_at as "esc_created_at!", esc.updated_at as "esc_updated_at!",
             scd.id as scd_id, scd.workspace_id, scd.name, scd.code, scd.is_base_for_ot, scd.is_taxable, scd.created_at as "scd_created_at!", scd.updated_at as "scd_updated_at!"
@@ -339,7 +339,7 @@ pub async fn get_salary_components_history(
     start_date: NaiveDate,
     end_date: NaiveDate,
 ) -> Result<Vec<(EmployeeSalaryComponent, SalaryComponentDefinition)>, sqlx::Error> {
-    let rows = sqlx::query!(
+    let rows: Vec<_> = sqlx::query!(
         r#"SELECT 
             esc.id as esc_id, esc.employee_id, esc.component_definition_id, esc.amount, esc.effective_date, esc.created_at as "esc_created_at!", esc.updated_at as "esc_updated_at!",
             scd.id as scd_id, scd.workspace_id, scd.name, scd.code, scd.is_base_for_ot, scd.is_taxable, scd.created_at as "scd_created_at!", scd.updated_at as "scd_updated_at!"

@@ -456,43 +456,45 @@ mod tests {
     async fn test_signatures_survive_restart_simulation() {
         // Use shared in-memory SQLite with UUID for test isolation
         // Note: This simulates restart by creating two separate HybridDatabase instances
-        // sharing the same in-memory DB via cache=shared
+        // sharing the same in-memory DB via cache=shared.
+        // IMPORTANT: We must keep the first instance alive to maintain the DB connection,
+        // as in-memory SQLite loses data when all connections close.
         let db_url = format!("sqlite:file:{}?mode=memory&cache=shared", uuid::Uuid::new_v4());
 
         // Phase 1: Create and checkpoint logs
-        {
-            let hybrid = HybridDatabase::new(&db_url, 1000).await.unwrap();
+        let hybrid1 = HybridDatabase::new(&db_url, 1000).await.unwrap();
 
-            for i in 1..=10 {
-                let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
-                hybrid.save_raw_attendance("DEV1", data).await.unwrap();
-            }
-
-            // Checkpoint to disk
-            hybrid.checkpoint().await.unwrap();
-
-            // Mark some as synced
-            let logs = hybrid.get_unsynced_logs(5);
-            let ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
-            hybrid.mark_in_flight(&ids);
-            hybrid.mark_synced(&ids);
-
-            // Final flush
-            hybrid.flush_all().await.unwrap();
+        for i in 1..=10 {
+            let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+            hybrid1.save_raw_attendance("DEV1", data).await.unwrap();
         }
 
-        // Phase 2: Simulate restart
-        {
-            let hybrid = HybridDatabase::new(&db_url, 1000).await.unwrap();
+        // Checkpoint to disk
+        hybrid1.checkpoint().await.unwrap();
 
-            // All 10 signatures should be loaded
-            assert_eq!(hybrid.memory_store().count_signatures(), 10);
+        // Mark some as synced
+        let logs = hybrid1.get_unsynced_logs(5);
+        let ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
+        hybrid1.mark_in_flight(&ids);
+        hybrid1.mark_synced(&ids);
 
-            // Try to insert duplicate of synced log
-            let data = make_attendance("U001", "2026-01-29 10:00:00");
-            let result = hybrid.save_raw_attendance("DEV1", data).await;
-            assert!(matches!(result, Err(StoreError::Duplicate)));
-        }
+        // Final flush
+        hybrid1.flush_all().await.unwrap();
+
+        // Phase 2: Simulate restart - create new instance while keeping hybrid1 alive
+        // This simulates app restart: new memory store, but shared persistent DB
+        let hybrid2 = HybridDatabase::new(&db_url, 1000).await.unwrap();
+
+        // All 10 signatures should be loaded from disk
+        assert_eq!(hybrid2.memory_store().count_signatures(), 10);
+
+        // Try to insert duplicate of synced log
+        let data = make_attendance("U001", "2026-01-29 10:00:00");
+        let result = hybrid2.save_raw_attendance("DEV1", data).await;
+        assert!(matches!(result, Err(StoreError::Duplicate)));
+
+        // Keep hybrid1 alive until end of test to maintain DB connection
+        drop(hybrid1);
     }
 
     // ===== Phase 3: Checkpoint Refactor Tests =====

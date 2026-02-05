@@ -494,12 +494,14 @@ pub async fn get_effective_shift(
 
         if !rules.is_empty() {
             // Pre-fetch pattern details for all active rules in one batch query
-            let rule_patterns_map: HashMap<(Uuid, i32), Option<Uuid>> = sqlx::query!(
+            let raw_rows: Vec<_> = sqlx::query!(
                 "SELECT pattern_id, day_of_week, shift_id FROM working_pattern_details WHERE pattern_id IN (SELECT pattern_id FROM assignment_rules WHERE workspace_id = $1 AND is_active = true)",
                 info.workspace_id
             )
             .fetch_all(pool)
-            .await?
+            .await?;
+
+            let rule_patterns_map: HashMap<(Uuid, i32), Option<Uuid>> = raw_rows
             .into_iter()
             .map(|d| ((d.pattern_id, d.day_of_week), d.shift_id))
             .collect();

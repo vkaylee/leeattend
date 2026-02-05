@@ -115,8 +115,8 @@ impl PairingService {
                     end_m += 1440;
                 }
 
-                let mut bs_m = s.break_start.map(|t| t.hour() * 60 + t.minute());
-                let mut be_m = s.break_end.map(|t| t.hour() * 60 + t.minute());
+                let mut bs_m = s.break_start.map(|t: chrono::NaiveTime| t.hour() * 60 + t.minute());
+                let mut be_m = s.break_end.map(|t: chrono::NaiveTime| t.hour() * 60 + t.minute());
 
                 // Handle break overnight transition if needed
                 if let (Some(bs), Some(be)) = (bs_m, be_m) {
@@ -160,7 +160,7 @@ impl PairingService {
 
         let next_day_utc = (start_of_day_local + Duration::days(1)).with_timezone(&Utc);
 
-        let logs = sqlx::query!(
+        let logs: Vec<_> = sqlx::query!(
             "SELECT id, punch_time, (raw_data->'punch')::text as punch_str FROM raw_attendance_logs WHERE employee_id = $1 AND punch_time >= $2 AND punch_time < $3 ORDER BY punch_time ASC",
             employee_id,
             window_start_utc,
@@ -188,7 +188,7 @@ impl PairingService {
                 let duration_since_start = log_local.signed_duration_since(start_of_day_local);
 
                 // Extract punch type from metadata if present
-                let punch_type = log.punch_str.and_then(|s| s.parse::<i32>().ok());
+                let punch_type = log.punch_str.and_then(|s: String| s.parse::<i32>().ok());
 
                 filtered_log_events.push(pairing_algo::LogEvent {
                     id: log.id,

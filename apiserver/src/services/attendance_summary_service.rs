@@ -130,14 +130,14 @@ impl AttendanceSummaryService {
         }
 
         // 5. Upsert into DB
-        let existing = sqlx::query_as!(
+        let existing: Option<AttendanceDailySummary> = sqlx::query_as!(
             AttendanceDailySummary,
             "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, created_at, updated_at FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
             employee_id, date
         )
         .fetch_optional(pool)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e: sqlx::Error| e.to_string())?;
 
         let new_status = match existing {
             Some(ref s) => {
@@ -156,7 +156,7 @@ impl AttendanceSummaryService {
             }
         };
 
-        sqlx::query!(
+        let _result: sqlx::postgres::PgQueryResult = sqlx::query!(
             r#"
             INSERT INTO attendance_daily_summaries (
                 workspace_id, employee_id, date, 
@@ -182,7 +182,7 @@ impl AttendanceSummaryService {
         )
         .execute(pool)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e: sqlx::Error| e.to_string())?;
 
         Ok(())
     }
@@ -194,7 +194,7 @@ impl AttendanceSummaryService {
         claimed_minutes: i32,
         reason: Option<String>,
     ) -> Result<(), String> {
-        let result = sqlx::query!(
+        let result: sqlx::postgres::PgQueryResult = sqlx::query!(
             r#"
             UPDATE attendance_daily_summaries
             SET 
@@ -211,7 +211,7 @@ impl AttendanceSummaryService {
         )
         .execute(pool)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e: sqlx::Error| e.to_string())?;
 
         if result.rows_affected() == 0 {
             return Err("Record not found".to_string());
@@ -227,7 +227,7 @@ impl AttendanceSummaryService {
         manager_note: Option<String>,
         status: OtStatus // Approved or Rejected
     ) -> Result<(), String> {
-        let result = sqlx::query!(
+        let result: sqlx::postgres::PgQueryResult = sqlx::query!(
             r#"
             UPDATE attendance_daily_summaries
             SET
@@ -245,7 +245,7 @@ impl AttendanceSummaryService {
         )
         .execute(pool)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e: sqlx::Error| e.to_string())?;
 
         if result.rows_affected() == 0 {
             return Err("Record not found".to_string());
@@ -265,14 +265,14 @@ impl AttendanceSummaryService {
         allow_exceed: bool,
     ) -> Result<AttendanceDailySummary, String> {
         // 1. Check existing summary
-        let existing = sqlx::query_as!(
+        let existing: Option<AttendanceDailySummary> = sqlx::query_as!(
             AttendanceDailySummary,
             "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, created_at, updated_at FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
             employee_id, date
         )
         .fetch_optional(pool)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e: sqlx::Error| e.to_string())?;
 
         // 2. Validate against system detected (if not allowing exceed)
         if !allow_exceed {
@@ -289,7 +289,7 @@ impl AttendanceSummaryService {
         let now = Utc::now();
 
         // 3. Upsert with paper form metadata
-        let result = sqlx::query_as!(
+        let result: AttendanceDailySummary = sqlx::query_as!(
             AttendanceDailySummary,
             r#"
             INSERT INTO attendance_daily_summaries (
@@ -319,7 +319,7 @@ impl AttendanceSummaryService {
         )
         .fetch_one(pool)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e: sqlx::Error| e.to_string())?;
 
         Ok(result)
     }

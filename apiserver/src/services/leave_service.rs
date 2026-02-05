@@ -57,7 +57,7 @@ impl LeaveService {
         leave_type_id: Option<Uuid>,
     ) -> Result<Vec<LeaveHistoryItem>, StatusCode> {
         // Get Accruals & Adjustments with leave type info via FK join
-        let logs = sqlx::query!(
+        let logs: Vec<_> = sqlx::query!(
             r#"
             SELECT lal.id, lal.accrual_date, lal.amount, lt.name as leave_type_name,
                    lal.notes, lal.created_at, lal.policy_assignment_id
@@ -79,7 +79,7 @@ impl LeaveService {
         })?;
 
         // Get Usage (Approved Requests) with leave type info via FK join
-        let requests = sqlx::query!(
+        let requests: Vec<_> = sqlx::query!(
             r#"
             SELECT lr.id, lr.start_date, lr.end_date, lt.name as leave_type_name,
                    lr.reason, lr.created_at

@@ -96,7 +96,7 @@ impl AttendanceAdjustmentService {
                     duration_minutes = Some(duration.num_minutes() as i32);
                 }
 
-                let workspace_id = sqlx::query_scalar!("SELECT workspace_id FROM employees WHERE id = $1", request.employee_id).fetch_one(pool).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                let workspace_id: Uuid = sqlx::query_scalar!("SELECT workspace_id FROM employees WHERE id = $1", request.employee_id).fetch_one(pool).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
                 let entry = TimeEntry {
                     id: Uuid::new_v4(),
                     employee_id: request.employee_id,

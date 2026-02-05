@@ -19,5 +19,5 @@ fi
 run_parallel_ordered "Phase 1 (Unit Tests)" "$COMPONENT_FILTER" \
     "1|apiserver|apiserver|SQLX_OFFLINE=true cargo test --lib $TEST_PATTERN" \
     "2|agent-main|agent-main|SQLX_OFFLINE=true cargo test --lib $TEST_PATTERN" \
-    "3|agent-zk-worker|agent-zk-worker|venv/bin/pytest -k \"$TEST_PATTERN\"" \
+    "3|agent-zk-worker|agent-zk-worker|if [ -x ./venv/bin/python3 ]; then ./venv/bin/python3 -m pytest -k \"$TEST_PATTERN\"; else echo 'SKIP: venv not setup - run: python3 -m venv venv && ./venv/bin/pip install pytest' && exit 0; fi" \
     "4|webdashboard|webdashboard|npm run test -- $TEST_PATTERN --passWithNoTests"

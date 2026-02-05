@@ -86,6 +86,7 @@ impl std::fmt::Display for ReportError {
 impl std::error::Error for ReportError {}
 
 /// Workspace config subset for report generation.
+#[derive(sqlx::FromRow)]
 struct WorkspaceConfig {
     timezone: String,
     rounding_policy: String,
@@ -400,14 +401,15 @@ impl ReportCoordinator {
         &self,
         workspace_id: Uuid,
     ) -> Result<WorkspaceConfig, ReportError> {
-        let row = sqlx::query!(
+        let row = sqlx::query_as!(
+            WorkspaceConfig,
             r#"SELECT timezone, rounding_policy, work_unit_minutes
                FROM workspaces WHERE id = $1"#,
             workspace_id
         )
         .fetch_one(&self.db)
         .await
-        .map_err(|e| ReportError::DatabaseError(e.to_string()))?;
+        .map_err(|e: sqlx::Error| ReportError::DatabaseError(e.to_string()))?;
 
         Ok(WorkspaceConfig {
             timezone: row.timezone,

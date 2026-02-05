@@ -309,7 +309,7 @@ pub async fn delete_employee(
     id: Uuid,
     workspace_id: Uuid,
 ) -> Result<u64, sqlx::Error> {
-    let result = query!(
+    let result: sqlx::postgres::PgQueryResult = query!(
         "DELETE FROM employees WHERE id = $1 AND workspace_id = $2",
         id,
         workspace_id
