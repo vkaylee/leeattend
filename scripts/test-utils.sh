@@ -71,25 +71,9 @@ TOTAL_MEM_KB=$(awk "/MemTotal/ {print \$2}" /proc/meminfo)
 TOTAL_MEM_GB=$((TOTAL_MEM_KB / 1024 / 1024))
 
 if [ -z "${NUM_WORKERS:-}" ]; then
-    # Rule 1: Memory Bottleneck (conservative: 1 worker per 4GB RAM)
-    WORKERS_BY_RAM=$((TOTAL_MEM_GB / 4))
-    [ $WORKERS_BY_RAM -lt 1 ] && WORKERS_BY_RAM=1
-
-    # Rule 2: CPU Bottleneck (conservative: 1 worker per 2 cores)
-    WORKERS_BY_CPU=$((CPU_CORES / 2))
-    [ $WORKERS_BY_CPU -lt 1 ] && WORKERS_BY_CPU=1
-
-    # Take the minimum of the two constraints
-    if [ $WORKERS_BY_RAM -lt $WORKERS_BY_CPU ]; then
-        export NUM_WORKERS=$WORKERS_BY_RAM
-        REASON="RAM Limit (${TOTAL_MEM_GB}GB)"
-    else
-        export NUM_WORKERS=$WORKERS_BY_CPU
-        REASON="CPU Limit (${CPU_CORES} Cores)"
-    fi
-
-    # Cap at 4 for stability unless overridden
-    if [ $NUM_WORKERS -gt 4 ]; then NUM_WORKERS=4; fi
+    # Default to available CPU cores as requested
+    export NUM_WORKERS=$CPU_CORES
+    REASON="Matching CPU Cores"
 
     echo -e "${YELLOW}⚙️ Auto-tuned NUM_WORKERS to $NUM_WORKERS ($REASON)${NC}"
 else

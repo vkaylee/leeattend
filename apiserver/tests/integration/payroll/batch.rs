@@ -1,0 +1,68 @@
+//! Payroll batch calculation tests
+
+use crate::integration::common::app::spawn_app_with_factory;
+use crate::integration::common::db::TestDatabase;
+use crate::integration::common::factory::TestFactory;
+use apiserver::models::{BatchCalculatePayrollRequest, BatchCalculatePayrollResponse};
+use reqwest::StatusCode;
+use rust_decimal::Decimal;
+use uuid::Uuid;
+
+#[tokio::test]
+async fn test_batch_calculate_payroll() {
+    let (address, _, user_id, factory, pool): (String, Uuid, Uuid, TestFactory, TestDatabase) = spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+    let auth_token = factory.auth().create_token(user_id);
+
+    // 1. Create employees
+    let emp1_id = factory.employee()
+        .with_workspace(ws_id)
+        .with_full_name("Emp1")
+        .with_employee_id_number("E001")
+        .create().await;
+        
+    let emp2_id = factory.employee()
+        .with_workspace(ws_id)
+        .with_full_name("Emp2")
+        .with_employee_id_number("E002")
+        .create().await;
+
+    // 2. Setup base salary
+    let sc_def_id: Uuid = sqlx::query_scalar(
+        "INSERT INTO salary_component_definitions (workspace_id, name, code) VALUES ($1, 'Base', 'BASE') RETURNING id"
+    ).bind(ws_id).fetch_one(&pool.pool).await.unwrap();
+
+    sqlx::query("INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)")
+        .bind(emp1_id).bind(sc_def_id).bind(Decimal::from(10_000_000)).bind(chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap())
+        .execute(&pool.pool).await.unwrap();
+        
+    sqlx::query("INSERT INTO employee_salary_components (employee_id, component_definition_id, amount, effective_date) VALUES ($1, $2, $3, $4)")
+        .bind(emp2_id).bind(sc_def_id).bind(Decimal::from(12_000_000)).bind(chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap())
+        .execute(&pool.pool).await.unwrap();
+
+    // 3. Test Batch Calculation
+    let req_body = BatchCalculatePayrollRequest {
+        employee_ids: vec![emp1_id, emp2_id],
+        year: 2026,
+        month: 1,
+    };
+
+    let res = client
+        .post(format!("{}/api/workspaces/{}/payroll/calculate-batch", address, ws_id))
+        .header("Authorization", format!("Bearer {}", auth_token))
+        .json(&req_body)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), StatusCode::OK);
+    
+    let batch_res: BatchCalculatePayrollResponse = res.json().await.unwrap();
+    assert_eq!(batch_res.results.len(), 2);
+    
+    for result in batch_res.results {
+        assert_eq!(result.status, "success");
+        assert!(result.payslip.is_some());
+    }
+}

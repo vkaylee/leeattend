@@ -1,0 +1,93 @@
+//! Workspace theme and settings tests
+
+use crate::integration::common::app::spawn_app_with_factory;
+use crate::integration::common::db::TestDatabase;
+use crate::integration::common::factory::TestFactory;
+use apiserver::services::workspace_service::WorkspaceService;
+use reqwest::StatusCode;
+use uuid::Uuid;
+
+#[tokio::test]
+async fn test_workspace_theme_color_update() {
+    let (address, workspace_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) = spawn_app_with_factory().await;
+    let client = reqwest::Client::new();
+
+    // 1. Check default color (Violet #7c3aed)
+    let response = client
+        .get(format!("{}/api/workspaces/{}", address, workspace_id))
+        .header("X-User-Id", user_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let workspace: serde_json::Value = response.json().await.unwrap();
+    assert_eq!(workspace["theme_primary_color"], "#7c3aed");
+
+    // 2. Update to new color (Emerald #059669)
+    let new_color = "#059669";
+    let response = client
+        .patch(format!("{}/api/workspaces/{}", address, workspace_id))
+        .header("X-User-Id", user_id.to_string())
+        .json(&serde_json::json!({ "theme_primary_color": new_color }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let workspace: serde_json::Value = response.json().await.unwrap();
+    assert_eq!(workspace["theme_primary_color"], new_color);
+
+    // 3. Verify persistence
+    let response = client
+        .get(format!("{}/api/workspaces/{}", address, workspace_id))
+        .header("X-User-Id", user_id.to_string())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let workspace: serde_json::Value = response.json().await.unwrap();
+    assert_eq!(workspace["theme_primary_color"], new_color);
+}
+
+#[tokio::test]
+async fn test_update_workspace_time_format() {
+    let test_db = TestDatabase::new().await;
+    let pool = test_db.pool();
+    let factory = TestFactory::new(pool.clone());
+
+    let user_id: Uuid = factory.user().create().await;
+    let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
+
+    // 1. Verify default time format is 24h
+    let ws: apiserver::models::Workspace =
+        sqlx::query_as("SELECT * FROM workspaces WHERE id = $1")
+            .bind(ws_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(ws.time_format, "24h");
+
+    // 2. Update to 12h
+    let updated_ws = WorkspaceService::update_workspace(
+        &pool,
+        ws_id,
+        None, None, None, None,
+        Some("12h".to_string()),
+        None, None, None, None, None,
+    )
+    .await
+    .expect("Failed to update workspace");
+
+    assert_eq!(updated_ws.time_format, "12h");
+
+    // 3. Verify persistence
+    let persisted_ws: apiserver::models::Workspace =
+        sqlx::query_as("SELECT * FROM workspaces WHERE id = $1")
+            .bind(ws_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(persisted_ws.time_format, "12h");
+}

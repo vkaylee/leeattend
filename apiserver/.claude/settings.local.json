@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cargo check:*)",
+      "Bash(git restore:*)",
+      "Bash(./run-tests.sh:*)",
+      "Bash(cargo nextest list:*)",
+      "Bash(timeout 900 bash:*)",
+      "Bash(tee:*)",
+      "Bash(test:*)",
+      "Bash(bash:*)",
+      "Bash(TIMEOUT_LINT=300 ./scripts/test-lint.sh:*)",
+      "Bash(TIMEOUT_LINT=60 ./scripts/test-lint.sh:*)",
+      "Bash(echo:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(SQLX_OFFLINE=true timeout 60s cargo test:*)",
+      "Bash(TIMEOUT_UNIT=300 ./scripts/test-unit.sh:*)"
+    ]
+  }
+}
