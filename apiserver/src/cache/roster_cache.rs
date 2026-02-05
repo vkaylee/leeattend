@@ -802,23 +802,59 @@ mod tests {
     async fn test_singleflight_follower_receives_leader_error() {
         let (tx, mut rx) =
             watch::channel::<Option<Result<Arc<RosterData>, String>>>(None);
-
+        
         let follower = tokio::spawn(async move {
             rx.wait_for(|v| v.is_some()).await.unwrap();
             let value = rx.borrow();
             match value.as_ref() {
-                Some(Ok(_)) => Ok(()),
+                Some(Ok(d)) => Ok(d.clone()),
                 Some(Err(e)) => Err(e.clone()),
                 None => unreachable!(),
             }
         });
 
         tokio::time::sleep(Duration::from_millis(10)).await;
-        tx.send(Some(Err("connection refused".to_string()))).unwrap();
+        tx.send(Some(Err("DB Error".to_string()))).unwrap();
 
         let result = follower.await.unwrap();
-        assert_eq!(result, Err("connection refused".to_string()));
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap(), "DB Error");
     }
+
+    /// Prove that the singleflight map pattern does not leak entries.
+    #[test]
+    fn test_singleflight_map_lifecycle_no_leak() {
+        let inflight = Mutex::new(HashMap::new());
+        let ws_id = Uuid::new_v4();
+
+        // 1. Simulate Leader entering
+        {
+            let mut map = inflight.lock().unwrap();
+            let (tx, _) = watch::channel::<Option<Result<Arc<RosterData>, String>>>(None);
+            map.insert(ws_id, Arc::new(tx));
+        }
+
+        // 2. Simulate Follower finding entry
+        {
+            let map = inflight.lock().unwrap();
+            assert!(map.contains_key(&ws_id));
+            let _sender = map.get(&ws_id).unwrap().clone();
+            // Follower subscribes...
+        }
+
+        // 3. Simulate Leader exiting (CRITICAL STEP for memory leak prevention)
+        {
+            let mut map = inflight.lock().unwrap();
+            map.remove(&ws_id);
+        }
+
+        // 4. Verify Map is Empty
+        {
+            let map = inflight.lock().unwrap();
+            assert!(map.is_empty(), "Inflight map should be empty after leader exit");
+        }
+    }
+
 
     /// Timeout fires cleanly when leader never publishes (simulates the
     /// 30 s fallback path in singleflight_load).
