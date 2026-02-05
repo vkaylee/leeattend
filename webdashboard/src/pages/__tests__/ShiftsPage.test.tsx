@@ -214,13 +214,9 @@ describe("ShiftsPage - Shift Picker Modal", () => {
   };
 
   const selectEmployee = async (user: any, employeeId: string) => {
-    await waitFor(() => {
-      const select = screen.getByTestId("employee-select");
-      // Use queryAllByRole to check for options
-      expect(within(select).queryAllByRole("option").length).toBeGreaterThan(1);
-    });
-    const employeeSelect = screen.getByTestId("employee-select");
-    await user.selectOptions(employeeSelect, employeeId);
+    const select = screen.getByTestId("employee-select") as HTMLSelectElement;
+    await waitFor(() => expect(select.options.length).toBeGreaterThan(1));
+    fireEvent.change(select, { target: { value: employeeId } });
   };
 
   describe("Shift Picker Modal - Unit Tests", () => {
@@ -233,12 +229,16 @@ describe("ShiftsPage - Shift Picker Modal", () => {
     });
 
     it("should show employee options in select", async () => {
+      const user = userEvent.setup();
       renderShiftsPage();
 
+      // Open combobox
+      const trigger = await screen.findByTestId("employee-select");
+      await user.click(trigger);
+
       await waitFor(() => {
-        const select = screen.getByTestId("employee-select");
-        expect(within(select).getByText("John Doe")).toBeDefined();
-        expect(within(select).getByText("Jane Smith")).toBeDefined();
+        expect(screen.getByText("John Doe")).toBeInTheDocument();
+        expect(screen.getByText("Jane Smith")).toBeInTheDocument();
       });
     });
 

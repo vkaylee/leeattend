@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  CalendarRange, 
-  Plus, 
-  Clock, 
-  Calendar, 
-  User, 
-  Trash2, 
+import {
+  CalendarRange,
+  Plus,
+  Clock,
+  Calendar,
+  User,
+  Trash2,
   Save,
   ChevronRight,
   ChevronLeft,
@@ -20,10 +20,10 @@ import {
   Zap,
   Building2
 } from "lucide-react";
-import { 
-  fetchEmployees, 
-  fetchShifts, 
-  assignShift, 
+import {
+  fetchEmployees,
+  fetchShifts,
+  assignShift,
   createShift,
   updateShift,
   fetchWorkspace,
@@ -70,15 +70,15 @@ export default function ShiftsPage() {
   const toast = useToast();
   const { formatDate, formatTime, formatDateTime } = useDateTimeFormatter();
   const [activeTab, setActiveTab] = useState<TabType>("weekly-roster");
-  
+
   // Selection states
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
-  
+
   // Shift Picker Modal State
   const [isShiftPickerOpen, setIsShiftPickerOpen] = useState(false);
   const [targetDates, setTargetDates] = useState<string[]>([]);
-  
+
   // Weekly Roster Navigation
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -87,7 +87,7 @@ export default function ShiftsPage() {
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-01'));
   const [endDate, setEndDate] = useState<string>("");
   const [isForever, setIsForever] = useState(true);
-  
+
   // Create Shift Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newShiftName, setNewShiftName] = useState("");
@@ -384,7 +384,7 @@ export default function ShiftsPage() {
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{t("shifts.current_week_roster")}</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 <div className="w-56">
                   <Combobox options={[{ value: "copy-prev", label: t("shifts.actions.copy_previous"), icon: <Copy className="w-4 h-4" /> }, { value: "assign-all", label: t("shifts.actions.assign_all_week"), icon: <CalendarIcon className="w-4 h-4" /> }, { value: "clear-week", label: t("shifts.actions.clear_week"), icon: <Trash className="w-4 h-4" /> }]} onChange={(val) => { if (val === "copy-prev") handleCopyPreviousWeek(); else if (val === "clear-week") handleAssignAllWeek(null); else if (val === "assign-all") { setTargetDates(weekDays.map(d => format(d, 'yyyy-MM-dd'))); setIsShiftPickerOpen(true); } }} placeholder={t("common.quick_actions")} className="h-10 bg-slate-100 border-slate-200 text-[10px] py-2 px-3 rounded-xl uppercase tracking-tighter" />

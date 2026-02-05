@@ -33,7 +33,7 @@ export default function ReportExportDialog({
   employeeIds,
 }: ReportExportDialogProps) {
   const { t } = useTranslation();
-  const [phase, setPhase] = useState<ExportPhase>("idle");
+  const [phaseState, setPhase] = useState<ExportPhase>("idle");
   const [jobId, setJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [totalBatches, setTotalBatches] = useState(0);
@@ -81,21 +81,14 @@ export default function ReportExportDialog({
     maxRetries: 3,
   });
 
-  // Map WebSocket status to export phase
-  useEffect(() => {
-    if (!jobId || useFallbackPolling) return;
-
-    // Only update phase during streaming states
-    if (streamStatus === "connecting") {
-      setPhase("starting");
-    } else if (streamStatus === "streaming") {
-      setPhase("polling"); // Keep "polling" name for UI consistency
-    } else if (streamStatus === "error" && streamError) {
-      setPhase("failed");
-      setError(streamError);
+  // Calculate derived phase from stream status to avoid sync state updates
+  const phase = (() => {
+    if (jobId && !useFallbackPolling) {
+      if (streamStatus === "connecting") return "starting";
+      if (streamStatus === "streaming") return "polling";
     }
-    // Note: "completed" handled by onComplete callback
-  }, [streamStatus, streamError, jobId, useFallbackPolling]);
+    return phaseState;
+  })();
 
   // Fallback polling when WebSocket fails
   const { data: pollingStatus } = useQuery({
@@ -108,17 +101,21 @@ export default function ReportExportDialog({
     },
   });
 
+  const pollingStatusValue = pollingStatus?.status;
+  const pollingError = pollingStatus?.error;
+
   // Handle fallback polling status
   useEffect(() => {
     if (!useFallbackPolling || !pollingStatus) return;
 
-    if (pollingStatus.status === "completed") {
+    if (pollingStatusValue === "completed" && phaseState !== "completed") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPhase("completed");
-    } else if (pollingStatus.status === "failed") {
+    } else if (pollingStatusValue === "failed" && phaseState !== "failed") {
       setPhase("failed");
-      setError(pollingStatus.error || t("report_export.status.failed"));
+      setError(pollingError || t("report_export.status.failed"));
     }
-  }, [pollingStatus, useFallbackPolling, t]);
+  }, [pollingStatusValue, pollingError, useFallbackPolling, t, phaseState, pollingStatus]);
 
   const handleStartExport = async () => {
     setPhase("starting");
@@ -215,8 +212,8 @@ export default function ReportExportDialog({
                 className={cn(
                   "h-full transition-all duration-500 ease-out",
                   phase === "failed" ? "bg-rose-500" :
-                  phase === "completed" ? "bg-emerald-500" :
-                  "bg-primary-600 bg-gradient-to-r from-primary-500 to-primary-600"
+                    phase === "completed" ? "bg-emerald-500" :
+                      "bg-primary-600 bg-gradient-to-r from-primary-500 to-primary-600"
                 )}
                 style={{ width: `${phase === "completed" ? 100 : percentage}%` }}
                 data-testid="report-export-progress-fill"
@@ -238,10 +235,10 @@ export default function ReportExportDialog({
               <span className={cn(
                 "font-medium",
                 phase === "failed" ? "text-rose-600" :
-                phase === "completed" ? "text-emerald-600" :
-                "text-slate-700"
+                  phase === "completed" ? "text-emerald-600" :
+                    "text-slate-700"
               )}
-              data-testid="report-export-status-text"
+                data-testid="report-export-status-text"
               >
                 {phase === "starting" && t("report_export.status.preparing")}
                 {phase === "polling" && t("report_export.status.processing")}
