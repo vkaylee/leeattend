@@ -18,6 +18,22 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: 'zh', name: 'Chinese', nativeName: '中文', flag: '🇨🇳' },
 ];
 
+// Helper to normalize language codes (e.g. 'en-US' -> 'en')
+function normalizeLanguage(lang: string | undefined): SupportedLanguage {
+  if (!lang) return 'vi';
+
+  // 1. Check for exact match
+  const exactMatch = SUPPORTED_LANGUAGES.find(l => l.code === lang);
+  if (exactMatch) return exactMatch.code;
+
+  // 2. Check for prefix match (e.g. 'en-US' matches 'en')
+  const prefixMatch = SUPPORTED_LANGUAGES.find(l => lang.startsWith(l.code));
+  if (prefixMatch) return prefixMatch.code;
+
+  // 3. Fallback
+  return 'vi';
+}
+
 /**
  * Hook for managing language switching with API sync
  * - Changes i18n language immediately for responsive UI
@@ -30,13 +46,13 @@ export function useLanguage() {
 
   // Local state to trigger re-renders when language changes
   const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>(
-    (i18n.language || 'vi') as SupportedLanguage
+    normalizeLanguage(i18n.language)
   );
 
   // Sync state with i18n language changes
   useEffect(() => {
     const handleLanguageChanged = (lng: string) => {
-      setCurrentLanguage(lng as SupportedLanguage);
+      setCurrentLanguage(normalizeLanguage(lng));
     };
 
     i18n.on('languageChanged', handleLanguageChanged);
