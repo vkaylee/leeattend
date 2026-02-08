@@ -13,10 +13,10 @@ if [[ "$COMPONENT_FILTER" == "$TEST_PATTERN" ]]; then
     TEST_PATTERN=""
 fi
 
-# Default URL for host-based tests
-export DATABASE_URL="postgres://test_user:test_password@localhost:5433/leeattend_test_template"
+# Default URL for internal tests
+export DATABASE_URL="postgres://test_user:test_password@test_db:5432/leeattend_test_template"
 
-APISERVER_INT_CMD="cargo test --test '*' $TEST_PATTERN -- --test-threads $NUM_WORKERS"
+APISERVER_INT_CMD="cargo nextest run --test '*' $TEST_PATTERN --no-tests=pass"
 PW_CMD="npx playwright test ${PW_ARGS:-} --workers $NUM_WORKERS"
 
 if [[ "${USE_DOCKER:-}" == "true" ]]; then
@@ -39,13 +39,13 @@ if [[ "${USE_DOCKER:-}" == "true" ]]; then
         sleep 1
     done
 
-    APISERVER_INT_CMD="$DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL apiserver_test bash -c \"cargo test --test '*' $TEST_PATTERN -- --test-threads $NUM_WORKERS\""
+    APISERVER_INT_CMD="$DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL apiserver_test bash -c \"cargo nextest run --test '*' $TEST_PATTERN --no-tests=pass\""
     # Web E2E usually runs better in its own container or on host with specific display setup
     PW_CMD="$DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx playwright test ${PW_ARGS:-} --workers $NUM_WORKERS\""
 fi
 
 echo -e "  Pre-compiling backend for integration tests (timeout: ${TIMEOUT_BUILD}s)..."
-run_with_timeout "$TIMEOUT_BUILD" bash -c "cd '$PROJECT_ROOT/apiserver' && cargo test --no-run -j ${CARGO_BUILD_JOBS:-2}" > "$LOG_DIR/prebuild.log" 2>&1
+run_with_timeout "$TIMEOUT_BUILD" bash -c "cd '$PROJECT_ROOT/apiserver' && SQLX_OFFLINE=true cargo test --no-run -j ${CARGO_BUILD_JOBS:-2}" > "$LOG_DIR/prebuild.log" 2>&1
 prebuild_exit_code=$?
 
 export RUST_TEST_THREADS=$NUM_WORKERS

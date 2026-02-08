@@ -42,7 +42,8 @@ const workerTest = base.extend<{}, WorkerFixtures>({
 
     // 1. Start Backend
     // Calculate isolated database URL for this worker
-    const isolatedDbUrl = `postgres://test_user:test_password@localhost:5433/test_database_e2e_${workerIndex}`;
+    // URL for database connection inside Docker
+    const isolatedDbUrl = `postgres://test_user:test_password@test_db:5432/test_database_e2e_${workerIndex}`;
     const binaryPath = path.resolve(__dirname, '../../apiserver/target/debug/apiserver');
     
     const backend = spawn(binaryPath, [], {

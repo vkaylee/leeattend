@@ -102,36 +102,42 @@ LeeAttend is a high-performance attendance and payroll system split into three p
 
 ## 🧪 Testing Infrastructure
 
-- **Unified Orchestrator**: `./run-tests.sh` handles linting, unit tests, and E2E tests.
-- **Auto-Environment**: Automatically provisions isolated Docker Postgres instances for parallel testing.
-- **Scope**:
-    - **Unit**: Rust (`cargo test`), Frontend (`vitest`).
-    - **E2E**: Playwright for web flows.
-    - **Integration**: API tests with real database backing.
+LeeAttend employs a state-of-the-art testing infrastructure optimized for speed, reliability, and isolation, specifically tailored for WSL2 environments.
+
+- **Unified Orchestrator**: `./run-tests.sh` centralizes linting, unit testing, and integration/E2E tests.
+- **Cargo Nextest**: High-performance test runner for Rust, providing better parallelism and isolated process execution for 2x faster suite completion.
+- **Full Containerization**: All tests (Unit & Integration) run inside Docker containers, ensuring a "clean-room" environment.
+- **Advanced RAM Disk Optimization**: Migrations, SQLx metadata (`.sqlx`), and logs (`.test_logs`) are automatically moved to memory (`/dev/shm`), eliminating WSL2 Disk I/O bottlenecks.
+- **Docker Build Optimization**: Integrated `cargo-chef` for multi-stage builds, caching Rust dependencies separately from source code to reduce rebuild times from minutes to seconds.
+- **Internal Database Networking**: Removed host port mapping (`5433:5432`) for the test database; all services communicate via internal Docker network for enhanced security and cleanliness.
+- **SQLx Offline Pre-compilation**: Host-side builds use pre-prepared metadata, removing the need for a live database during the compilation phase.
+- **Postgres Performance Tuning**: Test databases are optimized with `fsync=off`, `synchronous_commit=off`, and `full_page_writes=off` for maximum data throughput.
 
 ## 📂 Directory Structure Highlights
 
 ```
 .
 ├── agent-main/              # Rust Edge Orchestrator
+│   ├── .dockerignore        # Build exclusions (target, node_modules)
+│   └── Dockerfile.test      # Multi-stage chef-optimized build
 ├── agent-zk-worker/         # ZKTeco Python Sidecar
 ├── agent-mock-worker/       # Simulation Sidecar (New)
 ├── apiserver/               # Rust Backend
-│   ├── migrations/          # SQLx Migrations
+│   ├── .dockerignore        # Build exclusions
+│   ├── .sqlx/               # Prepared metadata (RAM-backed in tests)
+│   ├── migrations/          # SQLx Migrations (RAM-backed in tests)
 │   ├── src/                 # Source Code
+│   ├── Dockerfile.test      # Multi-stage chef-optimized build
 │   └── tests/               # Integration Tests
-├── agent-main/              # Rust Edge Orchestrator
-├── agent-zk-worker/         # Python Hardware Interface
 ├── webdashboard/            # React Frontend
+│   ├── .dockerignore        # Build exclusions
 │   ├── src/components/      # UI Components (organized by concern)
-│   │   ├── ui/              # Generic primitives (Modal, Toast, Tabs)
-│   │   ├── common/          # Shared components (AuthGuard, WorkspaceGuard)
-│   │   ├── layout/          # Layout components (MainLayout, Sidebar)
-│   │   └── features/        # Business domain components
 │   ├── src/pages/           # Route Pages
+│   ├── Dockerfile.test      # E2E test container
 │   └── tests/               # Playwright E2E Tests
-├── docs/                    # Documentation
-└── plans/                   # Feature Plans & Reports
+├── .test_logs/              # Test logs (RAM-backed)
+├── run-tests.sh             # Main orchestrator (RAM setup/cleanup)
+└── setup-test-env.sh        # Infrastructure provisioner (Containerized)
 ```
 
 ## 🔄 Real-Time Features (NEW - Feb 2026)

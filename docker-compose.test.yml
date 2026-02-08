@@ -1,12 +1,12 @@
 services:
   test_db:
-    image: postgres:16-alpine
+    image: postgres:16
+    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
     environment:
       POSTGRES_DB: test_database
       POSTGRES_USER: test_user
       POSTGRES_PASSWORD: test_password
-    ports:
-      - "5433:5432"
+      POSTGRES_HOST_AUTH_METHOD: trust
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U test_user -d test_database"]
       interval: 5s
@@ -33,6 +33,7 @@ services:
       - ./apiserver:/app
       - apiserver-target:/app/target
       - sccache-storage:/sccache
+      - test-logs:/app/.test_logs
 
   agent_test:
     build:
@@ -49,6 +50,7 @@ services:
       - ./agent-main:/app
       - agent-target:/app/target
       - sccache-storage:/sccache
+      - test-logs:/app/.test_logs
 
   web_test:
     build:
@@ -61,8 +63,15 @@ services:
     volumes:
       - ./webdashboard:/app
       - /app/node_modules
+      - test-logs:/app/.test_logs
 
 volumes:
   apiserver-target:
   agent-target:
   sccache-storage:
+  test-logs:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=128m"

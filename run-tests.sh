@@ -25,10 +25,12 @@ PROJECT_NAME="leeattend"
 RAM_DISK_BASE="/dev/shm/${PROJECT_NAME}_migrations"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Directories containing migrations
+# Directories containing migrations and metadata
 MIGRATION_DIRS=(
     "${SCRIPT_DIR}/apiserver/migrations"
     "${SCRIPT_DIR}/agent-main/migrations"
+    "${SCRIPT_DIR}/apiserver/.sqlx"
+    "${SCRIPT_DIR}/.test_logs"
 )
 
 # Track what we've symlinked for cleanup
@@ -293,7 +295,7 @@ echo -e "${BLUE}================================================================
 # Export timeout vars for sub-scripts
 export TIMEOUT_GLOBAL="$GLOBAL_TIMEOUT"
 export TIMEOUT_LINT="${TIMEOUT_LINT:-600}"
-export TIMEOUT_UNIT="${TIMEOUT_UNIT:-1200}"
+export TIMEOUT_UNIT="${TIMEOUT_UNIT:-1800}"
 export TIMEOUT_INTEGRATION="${TIMEOUT_INTEGRATION:-1200}"
 export TIMEOUT_BUILD="${TIMEOUT_BUILD:-600}"
 export TIMEOUT_DB_WAIT="${TIMEOUT_DB_WAIT:-120}"

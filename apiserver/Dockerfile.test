@@ -1,11 +1,22 @@
-FROM rust:latest
-
+FROM rust:latest AS chef
+RUN cargo install cargo-chef
+# Install system dependencies needed for compiling many Rust crates
+RUN apt-get update && apt-get install -y build-essential clang mold libssl-dev pkg-config postgresql-client curl tar && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y build-essential clang mold libssl-dev pkg-config postgresql-client curl tar && rm -rf /var/lib/apt/lists/*
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
 
-# Install sccache
+FROM chef AS cacher
+COPY --from=planner /app/recipe.json recipe.json
+# Build dependencies
+RUN cargo chef cook --tests --recipe-path recipe.json
+
+FROM chef AS builder
+# Install extra tools only needed for the runner
+RUN cargo install sqlx-cli --no-default-features --features postgres
+RUN curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C /usr/local/bin
 RUN curl -L https://github.com/mozilla/sccache/releases/download/v0.8.2/sccache-v0.8.2-x86_64-unknown-linux-musl.tar.gz | tar xz \
     && mv sccache-v0.8.2-x86_64-unknown-linux-musl/sccache /usr/local/bin/sccache \
     && chmod +x /usr/local/bin/sccache
@@ -13,19 +24,13 @@ RUN curl -L https://github.com/mozilla/sccache/releases/download/v0.8.2/sccache-
 ENV RUSTC_WRAPPER=sccache
 ENV SCCACHE_DIR=/sccache
 
-# Copy dependency definitions
-COPY Cargo.toml Cargo.lock ./
-
-# Create a dummy main.rs to build dependencies and cache them
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo build --tests
-RUN rm -rf src
-
-# Copy the actual source code
 COPY . .
+# Copy pre-compiled dependencies from cacher
+COPY --from=cacher /app/target target
+COPY --from=cacher $CARGO_HOME $CARGO_HOME
 
-# Update the timestamp of the source code to ensure cargo rebuilds it
-RUN touch src/main.rs
+# Build actual app
+RUN cargo build --tests
 
-# Default command to run tests using the runner script
+# Default command
 CMD ["./test-runner.sh"]

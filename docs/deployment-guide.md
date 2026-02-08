@@ -334,27 +334,31 @@ proxy: {
 
 ## 🧪 4. Môi trường Kiểm thử (Testing Environment)
 
-Để đảm bảo chất lượng code, LeeAttend áp dụng quy trình kiểm thử nghiêm ngặt.
+Để đảm bảo chất lượng code, LeeAttend áp dụng quy trình kiểm thử nghiêm ngặt dựa trên hạ tầng Docker.
 
 ### 🚀 Nguyên tắc Vàng
 - **Mandatory Passing**: 100% các bài test (Rust, Python, React) **BẮT BUỘC** phải PASS trước khi commit.
-- **Isolation**: Kiểm thử tích hợp (Integration tests) chạy trên một database hoàn toàn biệt lập, không được phép chạm vào database development (`leeattzkt`).
+- **Isolation**: Mọi bài test đều chạy trong container. Không được phép chạy test trực tiếp trên host nếu có tương tác Database.
+- **Unified Entry Point**: Luôn sử dụng `./run-tests.sh` để thực thi.
 
-### ⚙️ Cấu hình Test (apiserver/.env.test)
-Trong môi trường phát triển, bạn cần cấu hình file `.env.test` để trỏ tới một PostgreSQL server dùng riêng cho việc tạo database tạm:
+### ⚙️ Quy trình chạy Test (Tự động hoàn toàn)
+Bạn không cần cấu hình file `.env.test` thủ công. Hệ thống tự động quản lý vòng đời của hạ tầng test:
 
-```env
-# URL gốc để tạo các database test ngẫu nhiên (Yêu cầu quyền CREATEDB)
-DATABASE_URL_FOR_TEST_GENERATION=postgres://user:pass@localhost:5434/postgres
+```bash
+# Chạy toàn bộ (Lint + Unit + Integration + E2E)
+./run-tests.sh --all
 
-# Safety net: Chốt chặn an toàn cho các công cụ mặc định
-DATABASE_URL=postgres://user:pass@localhost:5434/postgres
+# Chạy riêng Backend (Rust + Python)
+./run-tests.sh --api [pattern]
+
+# Chạy riêng Frontend (Playwright)
+./run-tests.sh --web [pattern]
 ```
 
-### 🛠 Lệnh chạy kiểm thử
-- **Backend**: `cd apiserver && cargo test`
-- **Frontend**: `cd webdashboard && npm test`
-- **Worker**: `cd agent-zk-worker && source venv/bin/activate && pytest` (Bắt buộc qua venv)
+### ⚡ Tối ưu hóa (Key Features)
+- **RAM Disk**: Tự động chuyển log và migrations lên RAM để tăng tốc.
+- **Nextest**: Sử dụng `cargo nextest` cho hiệu năng vượt trội.
+- **Chef Cache**: Tối ưu hóa Docker build cache cho dependencies.
 
 ---
 

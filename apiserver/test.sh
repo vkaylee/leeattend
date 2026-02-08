@@ -41,12 +41,12 @@ cleanup() {
 trap cleanup EXIT
 
 DB_CONTAINER_NAME="test_db"
-DB_PORT="5433"
+DB_PORT="5432"
 DB_USER="test_user"
 DB_PASSWORD="test_password"
 DB_NAME="test_database"
 
-DATABASE_URL="postgres://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}"
+DATABASE_URL="postgres://${DB_USER}:${DB_PASSWORD}@test_db:${DB_PORT}/${DB_NAME}"
 
 echo "Starting test database..."
 docker compose -f "$COMPOSE_FILE" up -d "$DB_CONTAINER_NAME"

@@ -19,7 +19,8 @@ export TIMEOUT_MIGRATION=${TIMEOUT_MIGRATION:-120} # 2 min for migrations
 export TIMEOUT_SQLX_PREPARE=${TIMEOUT_SQLX_PREPARE:-180} # 3 min for sqlx prepare
 
 # Common Variables
-export DATABASE_URL="postgres://test_user:test_password@localhost:5433/test_database"
+export DATABASE_URL="postgres://test_user:test_password@test_db:5432/test_database"
+export PGPASSWORD="test_password"
 export CARGO_BUILD_JOBS=2
 CPU_CORES=$(nproc)
 export NUM_WORKERS=${NUM_WORKERS:-$(( CPU_CORES / 4 ))}
@@ -51,7 +52,8 @@ leeattend_cleanup() {
 leeattend_setup() {
     echo -e "${BLUE}🏗️ [Parent] Setting up Postgres Environment...${NC}"
 
-    docker compose -f "$COMPOSE_FILE" up -d test_db > /dev/null 2>&1
+    # We need apiserver_test up to run migrations inside it
+    docker compose -f "$COMPOSE_FILE" up -d test_db apiserver_test > /dev/null 2>&1
 
     echo -n "  Waiting for database to be ready (timeout: ${TIMEOUT_DB_WAIT}s)..."
     local db_wait_start=$(date +%s)
@@ -69,39 +71,42 @@ leeattend_setup() {
     echo -e "  Creating isolated databases for $NUM_WORKERS workers..."
 
     # Create template database for Rust tests
-    docker compose -f "$COMPOSE_FILE" exec test_db psql -U test_user -d test_database -c "DROP DATABASE IF EXISTS leeattend_test_template;" > /dev/null 2>&1 || true
-    docker compose -f "$COMPOSE_FILE" exec test_db psql -U test_user -d test_database -c "CREATE DATABASE leeattend_test_template;" > /dev/null 2>&1 || true
+    docker compose -f "$COMPOSE_FILE" exec -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "DROP DATABASE IF EXISTS leeattend_test_template;" > /dev/null 2>&1 || true
+    docker compose -f "$COMPOSE_FILE" exec -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "CREATE DATABASE leeattend_test_template;" > /dev/null 2>&1 || true
 
     for i in $(seq 0 $((NUM_WORKERS-1))); do
-        docker compose -f "$COMPOSE_FILE" exec test_db psql -U test_user -d test_database -c "DROP DATABASE IF EXISTS test_database_e2e_$i;" > /dev/null 2>&1 || true
-        docker compose -f "$COMPOSE_FILE" exec test_db psql -U test_user -d test_database -c "CREATE DATABASE test_database_e2e_$i;" > /dev/null 2>&1 || true
+        docker compose -f "$COMPOSE_FILE" exec -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "DROP DATABASE IF EXISTS test_database_e2e_$i;" > /dev/null 2>&1 || true
+        docker compose -f "$COMPOSE_FILE" exec -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "CREATE DATABASE test_database_e2e_$i;" > /dev/null 2>&1 || true
     done
 
-    echo -e "  Running migrations (timeout: ${TIMEOUT_MIGRATION}s per batch)..."
-    if ! run_with_timeout "$TIMEOUT_MIGRATION" bash -c "cd apiserver && sqlx migrate run --database-url '$DATABASE_URL'" > "$LOG_DIR/parent_mig_main.log" 2>&1; then
-        echo -e "${RED}❌ Main migration TIMED OUT or FAILED. Check $LOG_DIR/parent_mig_main.log${NC}"
-        cat "$LOG_DIR/parent_mig_main.log"
-        exit 124
+    # Internal URLs
+    local MAIN_DB_URL="postgres://test_user:test_password@test_db:5432/test_database?sslmode=disable"
+    local TEMPLATE_DB_URL="postgres://test_user:test_password@test_db:5432/leeattend_test_template?sslmode=disable"
+
+    echo -e "  Running migrations..."
+    if ! docker compose -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$MAIN_DB_URL' > .test_logs/parent_mig_main.log 2>&1"; then
+        echo -e "${RED}❌ Main migration FAILED. Logs from container:${NC}"
+        docker compose -f "$COMPOSE_FILE" exec -T apiserver_test cat .test_logs/parent_mig_main.log
+        exit 1
     fi
-    if ! run_with_timeout "$TIMEOUT_MIGRATION" bash -c "cd apiserver && sqlx migrate run --database-url 'postgres://test_user:test_password@localhost:5433/leeattend_test_template'" > "$LOG_DIR/parent_mig_template.log" 2>&1; then
-        echo -e "${RED}❌ Template migration TIMED OUT or FAILED. Check $LOG_DIR/parent_mig_template.log${NC}"
-        cat "$LOG_DIR/parent_mig_template.log"
-        exit 124
+    if ! docker compose -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$TEMPLATE_DB_URL' > .test_logs/parent_mig_template.log 2>&1"; then
+        echo -e "${RED}❌ Template migration FAILED. Logs from container:${NC}"
+        docker compose -f "$COMPOSE_FILE" exec -T apiserver_test cat .test_logs/parent_mig_template.log
+        exit 1
     fi
 
-    echo -e "  Preparing SQLx cache (timeout: ${TIMEOUT_SQLX_PREPARE}s)..."
-    if ! run_with_timeout "$TIMEOUT_SQLX_PREPARE" bash -c "cd apiserver && DATABASE_URL='postgres://test_user:test_password@localhost:5433/leeattend_test_template' cargo sqlx prepare -- --all-targets" > "$LOG_DIR/parent_sqlx_prepare.log" 2>&1; then
-        echo -e "${YELLOW}⚠️ SQLx prepare timed out or failed (non-fatal, using cached). Check $LOG_DIR/parent_sqlx_prepare.log${NC}"
-    fi
+    echo -e "  Preparing SQLx cache..."
+    docker compose -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" -e DATABASE_URL="$TEMPLATE_DB_URL" apiserver_test bash -c "cargo sqlx prepare -- --all-targets > .test_logs/parent_sqlx_prepare.log 2>&1" || echo -e "${YELLOW}⚠️ SQLx prepare failed (non-fatal).${NC}"
 
     # Ensure no connections hang on template for CREATE DATABASE TEMPLATE usage
-    docker compose -f "$COMPOSE_FILE" exec test_db psql -U test_user -d test_database -c "REVOKE CONNECT ON DATABASE leeattend_test_template FROM public;" > /dev/null 2>&1
-    docker compose -f "$COMPOSE_FILE" exec test_db psql -U test_user -d test_database -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'leeattend_test_template' AND pid <> pg_backend_pid();" > /dev/null 2>&1
+    docker compose -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "REVOKE CONNECT ON DATABASE leeattend_test_template FROM public;" > /dev/null 2>&1
+    docker compose -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'leeattend_test_template' AND pid <> pg_backend_pid();" > /dev/null 2>&1
 
     for i in $(seq 0 $((NUM_WORKERS-1))); do
-        if ! run_with_timeout "$TIMEOUT_MIGRATION" bash -c "cd apiserver && sqlx migrate run --database-url 'postgres://test_user:test_password@localhost:5433/test_database_e2e_$i'" > "$LOG_DIR/parent_mig_e2e_$i.log" 2>&1; then
-            echo -e "${RED}❌ E2E DB $i migration TIMED OUT or FAILED. Check $LOG_DIR/parent_mig_e2e_$i.log${NC}"
-            exit 124
+        local E2E_DB_URL="postgres://test_user:test_password@test_db:5432/test_database_e2e_$i?sslmode=disable"
+        if ! docker compose -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$E2E_DB_URL' > .test_logs/parent_mig_e2e_$i.log 2>&1"; then
+            echo -e "${RED}❌ E2E DB $i migration FAILED.${NC}"
+            exit 1
         fi
     done
 

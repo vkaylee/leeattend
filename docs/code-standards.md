@@ -403,47 +403,32 @@ Sử dụng `Arc<dyn RepositoryTrait>` để inject vào Services. Khởi tạo 
 
 ## Testing Standards
 
-## 🧪 Unified Test Orchestrator (`run-tests.sh`)
+### 🧪 Unified Test Orchestrator (`run-tests.sh`)
 
 To ensure high-quality delivery and fast feedback loops, the project uses a unified test orchestrator. This tool handles environment setup (Postgres in Docker), parallel execution, and result aggregation.
 
-### ⚠️ WSL Performance Protocol (CRITICAL)
+#### ⚠️ WSL Performance Protocol (CRITICAL)
 
 > **This project runs on WSL with severe Disk I/O issues (1GB/s read causing system freeze).**
 
 **Mandatory Rules:**
-1. **NEVER** run `cargo test`, `cargo nextest`, `pytest`, or any test command directly
-2. **ALWAYS** use `./run-tests.sh` for ALL testing requests (unit, integration, e2e)
-3. The script automatically moves migrations to RAM (`/dev/shm`) to prevent system freeze
-4. For DB-related test code, prefer `sqlite::memory:` or tmpfs for Postgres
+1. **NEVER** run `cargo test`, `cargo nextest`, `pytest`, or any test command directly.
+2. **ALWAYS** use `./run-tests.sh` for ALL testing requests (unit, integration, e2e).
+3. The script automatically moves migrations, `.sqlx` metadata, and `.test_logs` to RAM (`/dev/shm`) to prevent system freeze and ensure host-container sync.
 
-**Why This Matters:**
-- Direct test execution triggers massive Disk I/O on WSL's VirtioFS
-- This causes system freeze, requiring hard restart
-- The `run-tests.sh` script handles RAM disk setup/cleanup transparently
+#### 1. Test Execution & Tools
+- **Nextest**: The project uses `cargo nextest` for all Rust tests. It provides better parallelism, faster execution, and isolated process management.
+- **Docker Isolation**: All tests (Unit & Integration) run inside Docker containers.
+- **Internal Networking**: Database connections use internal hostnames (e.g., `test_db:5432`). Host port mapping is disabled.
+- **Database Performance**: Test databases are tuned for speed with `fsync=off`, `synchronous_commit=off`, and `full_page_writes=off`.
 
-### 1. Usage & Modes
-Running `./run-tests.sh` without arguments displays the help menu. It supports these modes:
-- `--all`: Runs the full suite (Lint -> Unit -> Integration/E2E).
-- `--api`: Focuses on backend components (`apiserver`, `agent-main`, `agent-zk-worker`).
-- `--web`: Focuses on frontend components (`webdashboard`, Playwright E2E).
-- `--no-ram`: Disables RAM disk optimization (not recommended on WSL).
+#### 2. SQLx & Offline Mode
+- **Container-First Setup**: All migrations and metadata preparation (`sqlx prepare`) happen inside the `apiserver_test` container.
+- **Offline Compilation**: Host-side pre-compilation uses `SQLX_OFFLINE=true` to utilize the metadata prepared by the container. This eliminates the need for a host-reachable database.
 
-### 2. Selective Testing (Pattern Matching)
-You can append a **Pattern** as the second argument to run specific test files or cases:
-- `./run-tests.sh --api robustness`: Lints all API code, then runs only tests containing "robustness".
-- `./run-tests.sh --web attendance`: Lints all Web code, then runs only Playwright/Vitest tests containing "attendance".
-
-### 3. Execution Pipeline
-The orchestrator always follows this order:
-1. **Phase 0 (Linting)**: **Mandatory**. Runs even if a pattern is provided. Ensuring code standards is non-negotiable.
-2. **Phase 1 (Unit Tests)**: Fast, offline tests.
-3. **Phase 3 (Integration & E2E)**: Automatically invokes `./setup-test-env.sh` to spin up Docker containers, run migrations, and provide isolated databases.
-
-### 4. For AI Agents & CI
-- **Automated Verification**: Before considering a task complete, AI agents MUST run the relevant suite (e.g., `./run-tests.sh --api` after backend changes).
-- **Environment Management**: Do not attempt to manually start Postgres or run migrations for tests. Let `run-tests.sh` handle the lifecycle.
-- **Fail-Fast**: The runner will abort immediately if any task in a phase fails, facilitating quick debugging.
+#### 3. Logs & Debugging
+- **Memory-Backed Logs**: All logs are written to `.test_logs/` (backed by RAM).
+- **Container Logs**: Use `docker compose logs` or inspect `.test_logs/` to debug failures within the Docker environment.
 
 ### 🚀 Mandatory Passing Tests
 - **Zero Tolerance**: Tất cả các bài kiểm tra (Unit tests, Integration tests, Frontend tests) **BẮT BUỘC** phải vượt qua (PASS) trước khi thực hiện bất kỳ lệnh commit hoặc merge nào. Code có test thất bại sẽ không được chấp nhận.

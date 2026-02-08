@@ -63,23 +63,29 @@ If you need to verify UI changes or fix loading issues:
 - [Deployment Guide](docs/deployment-guide.md)
 
 ## 🧪 Testing
-Run the unified test suite with automatic environment management:
+
+The project uses a highly optimized testing infrastructure designed for speed and reliability, especially on WSL2.
+
+### Prerequisites
+- Docker & Docker Compose
+- Rust (for host-side compilation)
+
+### Running Tests
+Always use the unified orchestrator:
 ```bash
-./run-tests.sh --all             # Run everything (Lint + Unit + Integration)
-./run-tests.sh --api [pattern]   # Run only API/Backend tests
-./run-tests.sh --web [pattern]   # Run only Web/Frontend/E2E tests
+./run-tests.sh --all             # Run full suite
+./run-tests.sh --api [pattern]   # Run backend tests (cargo nextest)
+./run-tests.sh --web [pattern]   # Run frontend & E2E tests (playwright)
 ```
 
-> **Note**: The test runner automatically detects your system resources (RAM/CPU) and tunes concurrency to prevent system freezes. On low-memory systems (<8GB), it automatically switches to serial execution for stability.
+### Key Features
+- **Cargo Nextest**: Modern test runner for faster, isolated Rust tests.
+- **Docker Isolation**: All tests run inside containers. Database is internal (`test_db:5432`) with no host port mapping.
+- **RAM Disk Optimization**: Migrations, SQLx metadata, and logs are automatically moved to RAM (`/dev/shm`) to prevent WSL Disk I/O freezes.
+- **Offline Compilation**: Host-side builds use pre-prepared metadata, removing the need for a live database during compilation.
 
-*Note: Linting (Phase 0) is mandatory and runs before tests in all modes.*
-
-Manual execution (Internal scripts):
-```bash
-./scripts/test-lint.sh      # Phase 0
-./scripts/test-unit.sh      # Phase 1
-./setup-test-env.sh ./scripts/test-integration.sh # Phase 3 (needs DB environment)
-```
+### ⚠️ WSL Performance Note
+On WSL2, direct test execution (`cargo test`) will likely freeze your system due to Disk I/O issues. **Always use `./run-tests.sh`**.
 
 ## 📝 Changelog
 See [CHANGELOG.md](./CHANGELOG.md) for version history.
