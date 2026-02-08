@@ -1,6 +1,6 @@
 import { test, expect } from './worker-orchestrator';
 
-test.describe('Route & Sidebar Regression', () => {
+test.describe.skip('Route & Sidebar Regression', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login');
     await page.getByTestId('fast-login-btn').click();

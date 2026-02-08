@@ -71,9 +71,10 @@ TOTAL_MEM_KB=$(awk "/MemTotal/ {print \$2}" /proc/meminfo)
 TOTAL_MEM_GB=$((TOTAL_MEM_KB / 1024 / 1024))
 
 if [ -z "${NUM_WORKERS:-}" ]; then
-    # Default to available CPU cores as requested
-    export NUM_WORKERS=$CPU_CORES
-    REASON="Matching CPU Cores"
+    # Default to 1/4 of available CPU cores to prevent system freeze
+    export NUM_WORKERS=$(( CPU_CORES / 4 ))
+    [ $NUM_WORKERS -lt 1 ] && export NUM_WORKERS=1
+    REASON="1/4 of System Cores"
 
     echo -e "${YELLOW}⚙️ Auto-tuned NUM_WORKERS to $NUM_WORKERS ($REASON)${NC}"
 else

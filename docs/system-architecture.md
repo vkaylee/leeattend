@@ -401,6 +401,34 @@ Khi gặp lỗi giao diện, AI Agent nên thực hiện các bước sau:
 4.  Chạy Playwright Debug: `npx playwright test tests/debug-ui.spec.ts`.
 
 5.  **Dọn dẹp:** Sử dụng `pkill -f "AI_MANAGED=true"` để tắt chính xác các server do AI tạo ra, tránh giết nhầm server của người dùng.
+### 18. Mock API Intercept Layer (Frontend Isolation)
+To enable 100% independent frontend development and stable testing in resource-constrained environments (like Docker containers), the system implements a **Mock API Layer** using Playwright Intercept.
+
+#### 18.1. Architecture
+Instead of connecting to a live Rust backend, the frontend in test mode interacts with a simulated API layer controlled by Playwright:
+```ascii
+[ Frontend UI ] <--- fetch() --- [ Playwright Intercept (page.route) ]
+                                          │
+                                          ▼
+                                [ mocks/api-intercept.ts ]
+                                          │
+                                          ▼
+                                [ mocks/mock-data.ts ]
+```
+
+#### 18.2. Key Features
+- **Deterministic Responses**: All API calls (Auth, Employees, Attendance, etc.) return consistent, predefined data from `mock-data.ts`.
+- **Zero Backend Dependency**: E2E tests can run without Postgres, Redis, or the apiserver binary.
+- **Vite Proxy Bypass**: In test mode (`isTest = true`), Vite's proxy configuration is automatically disabled to allow Playwright to handle all `/api/*` requests directly.
+- **Multi-language Support**: Mock data and intercept logic are designed to support both English and Vietnamese localization flows.
+
+#### 18.3. Implementation Details
+- **Location**: `webdashboard/tests/mocks/`
+- **Global Setup**: Initialized via `base.beforeEach` in `worker-orchestrator.ts`.
+- **Regex Routing**: Uses flexible regex patterns to match API endpoints while allowing static assets (JS/CSS) to be served normally by Vite.
+
+---
+
 ## 🤖 Edge Agent Architecture
 
 ### 1. Inverted Master-Sidecar Communication

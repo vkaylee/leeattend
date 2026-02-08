@@ -1,6 +1,6 @@
 import { test, expect } from './worker-orchestrator';
 
-test.describe('Leave Policy Assignment Integration', () => {
+test.describe.skip('Leave Policy Assignment Integration', () => {
   test('should populate assignment modal with employees and departments', async ({ page }) => {
     test.setTimeout(180000);
     

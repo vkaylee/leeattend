@@ -457,10 +457,10 @@ We use a **Dynamic Test Database** pattern to ensure test isolation and allow pa
 
 ### End-to-End Tests (Playwright)
 
-For E2E stability and performance, we adhere to the **Isolated Parallel Environment** standard:
+For E2E stability and performance, we adhere to the **Isolated Sequential Environment** standard:
 
-1. **Multi-DB Isolation**: Mỗi worker E2E chạy trên một database Postgres hoàn toàn độc lập (`test_database_e2e_N`) được setup tự động bởi `run-tests.sh`.
-2. **Pre-compiled Binary**: E2E workers thực thi file binary backend đã được build sẵn thay vì dùng `cargo run` để tránh xung đột file lock của Rust compiler.
+1. **Sequential Execution (Rule of 1)**: In Docker or restricted environments, Playwright **MUST** run with exactly one worker (`--workers 1`). This eliminates CPU/RAM contention and race conditions in Mock API intercepts.
+2. **Mock API Architecture**: Frontend E2E tests are 100% decoupled from the backend using Playwright's `page.route`. All API responses must be mocked in `tests/mocks/api-intercept.ts`.
 3. **Architecture (POM & Fixtures)**:
     - **Page Object Model (POM)**: BẮT BUỘC đóng gói selector và hành động vào các class trong `tests/pom/` (ví dụ: `LoginPage`, `EmployeesPage`).
     - **Custom Fixtures**: Sử dụng Playwright Fixtures để inject Page Objects vào test. Ưu tiên sử dụng `authPage` để tự động login cho các test yêu cầu quyền admin.
@@ -475,9 +475,20 @@ For E2E stability and performance, we adhere to the **Isolated Parallel Environm
 5. **Navigation Reliability**: 
     - Ưu tiên sử dụng `page.goto('/target-path')` trong các test regression để bỏ qua các animation của sidebar hoặc menu lồng nhau, giúp test chạy nhanh và ổn định hơn.
 6. **Resilient Timeouts**: 
-    - **Global Test Timeout**: 15 giây (tối ưu để phát hiện lỗi nhanh).
-    - **API Response Timeout**: 10 giây (centralized via `apiFetch`).
+    - **Global Test Timeout**: 90 giây (Docker environment overhead).
+    - **Expect Timeout**: 10 giây.
     - Các test phức tạp có thể sử dụng `test.slow()` để nhân 3 timeout mặc định.
+
+### Unit Testing Standards (Frontend)
+
+To ensure tests pass across different locales and environments:
+
+1. **Multi-language Matchers**: Always use regex for text matching that supports both English and Vietnamese.
+   - ❌ `getByText("Submit")`
+   - ✅ `getByText(/Submit|Gửi/i)`
+2. **Stable Date Logic**: Always use `en-GB` with `hourCycle: h23` for ISO date string conversions to avoid "24:00" vs "00:00" discrepancies.
+3. **Query Mocks**: Mock all `useQuery` dependencies (like `fetchEmployees`) even if they aren't the primary focus of the test, to avoid unexpected loading states or "No Data" messages.
+4. **Bail Policy**: Vitest is configured with `bail: 1` to fail fast and save CI resources.
 
 ### API Standardization (Frontend)
 

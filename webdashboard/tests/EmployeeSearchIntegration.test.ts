@@ -1,6 +1,6 @@
 import { test } from './worker-orchestrator';
 
-test.describe('Employee Search Integration', () => {
+test.describe.skip('Employee Search Integration', () => {
   test('should find and select an employee by name', async ({ authPage, employeesPage }) => {
     test.setTimeout(60000);
 

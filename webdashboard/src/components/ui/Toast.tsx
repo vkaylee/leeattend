@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useRef, useEffect } from 'react';
 import { CheckCircle2, XCircle, Info, AlertTriangle, X } from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -25,9 +25,15 @@ import { useTranslation } from 'react-i18next';
 export function ToastProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const timeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   const remove = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
+    const timeout = timeouts.current.get(id);
+    if (timeout) {
+      clearTimeout(timeout);
+      timeouts.current.delete(id);
+    }
   }, []);
 
   const show = useCallback((message: string, type: ToastType = 'info', title?: string) => {
@@ -35,8 +41,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => [...prev, { id, type, message, title }]);
     
     // Tự động đóng sau 5 giây
-    setTimeout(() => remove(id), 5000);
+    const timeoutId = setTimeout(() => remove(id), 5000);
+    timeouts.current.set(id, timeoutId);
   }, [remove]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    const currentTimeouts = timeouts.current;
+    return () => {
+      currentTimeouts.forEach((timeout) => clearTimeout(timeout));
+      currentTimeouts.clear();
+    };
+  }, []);
 
   const success = (msg: string, title?: string) => show(msg, 'success', title || t('common.success'));
   const error = (msg: string, title?: string) => show(msg, 'error', title || t('common.error'));

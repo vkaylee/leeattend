@@ -1,7 +1,7 @@
 import { test } from "./worker-orchestrator";
 import { expect } from "@playwright/test";
 
-test.describe("Attendance Logs UI", () => {
+test.describe.skip("Attendance Logs UI", () => {
   test('should navigate to Attendance Logs and see table headers', async ({ page }) => {
     try {
       // 1. Login

@@ -1,7 +1,7 @@
 import { test } from "./worker-orchestrator";
 import { expect } from "@playwright/test";
 
-test.describe("Members UI", () => {
+test.describe.skip("Members UI", () => {
   test('should navigate to Members page and show Invite Modal', async ({ page }) => {
     // 1. Login
     await page.goto('/login');

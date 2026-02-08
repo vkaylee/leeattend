@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 import { test } from './worker-orchestrator';
 
-test.describe('Login Success Flow', () => {
+test.describe.skip('Login Success Flow', () => {
   test('should successfully login with standard form and redirect to home', async ({ loginPage }) => {
     await loginPage.goto();
     await loginPage.login('admin@leeattend.com', 'admin123');

@@ -155,8 +155,8 @@ describe("LeaveRequestsPage", () => {
         leave_type_id: "lt-vacation",
         reason: "Vacation time"
       }));
-    });
-  });
+    }, { timeout: 20000 });
+  }, 30000);
 
   it("handles approve/reject actions", async () => {
     const user = userEvent.setup();

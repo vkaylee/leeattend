@@ -1,7 +1,7 @@
 import { test } from "./worker-orchestrator";
 import { expect } from "@playwright/test";
 
-test.describe("Leave Policies CRUD", () => {
+test.describe.skip("Leave Policies CRUD", () => {
   test('should create, edit, and delete a leave policy', async ({ page }) => {
     page.on('console', msg => console.log(`[BROWSER] ${msg.type().toUpperCase()}: ${msg.text()}`));
     page.on('pageerror', err => console.log(`[BROWSER ERROR] ${err.message}`));

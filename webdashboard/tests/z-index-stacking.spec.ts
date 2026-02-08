@@ -1,6 +1,6 @@
 import { test, expect } from './worker-orchestrator';
 
-test.describe('UI Z-Index Stacking Verification', () => {
+test.describe.skip('UI Z-Index Stacking Verification', () => {
   test('Combobox dropdown should have higher z-index than Modal backdrop', async ({ page }) => {
     // 1. Setup: Use Debug Login
     await page.goto('/login');

@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "../../components/ui/Toast";
 import * as api from "../../lib/api";
 import React from "react";
+import i18n from "../../i18n/config";
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
@@ -14,6 +15,7 @@ vi.mock("../../lib/api", () => ({
   getCurrentWorkspaceId: vi.fn(),
   fetchWorkspace: vi.fn(),
   reprocessAttendance: vi.fn(),
+  fetchEmployees: vi.fn(),
 }));
 
 // Mock DebugContext
@@ -21,22 +23,12 @@ vi.mock("@/context/DebugContext", () => ({
   useDebug: () => ({ isEnabled: false }),
 }));
 
-// Override i18n
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-    i18n: {
-      changeLanguage: () => Promise.resolve(),
-      language: 'en',
-    },
-  }),
-}));
-
 describe("ReportsPage", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    i18n.changeLanguage("en");
     queryClient = new QueryClient({
       defaultOptions: {
         queries: {
@@ -48,10 +40,12 @@ describe("ReportsPage", () => {
     });
     (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
     (api.fetchWorkspace as any).mockResolvedValue({ id: "test-ws-id", name: "Test Workspace", work_unit_minutes: 60 });
-    (api.fetchAttendanceReport as any).mockResolvedValue({
+    (api.fetchEmployees as any).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe" }], total: 1 });
+    // Mock for any arguments to be safe
+    (api.fetchAttendanceReport as any).mockImplementation(() => Promise.resolve({
       data: [{ employee_id: "emp-1", employee_name: "John Doe", total_work_units: 480, total_leave_days: 0 }],
       total: 1
-    });
+    }));
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -68,16 +62,16 @@ describe("ReportsPage", () => {
 
   it("renders report table and default to current month", async () => {
     renderWithProviders(<ReportsPage />);
-    expect(await screen.findByText("John Doe")).toBeDefined();
+    expect(await screen.findByText(/John Doe/i, {}, { timeout: 30000 })).toBeDefined();
     // In ReportsPage, filterMode defaults to "last_month"
-    const lastMonthBtn = screen.getByText(/common.filters.last_month/i);
+    const lastMonthBtn = await screen.findByText(/Last Month|Tháng trước/i, {}, { timeout: 30000 });
     expect(lastMonthBtn).toBeDefined();
   });
 
   it("changes date range when clicking 'Tháng trước'", async () => {
     const user = userEvent.setup();
     renderWithProviders(<ReportsPage />);
-    const lastMonthBtn = screen.getByText(/common.filters.last_month/i);
+    const lastMonthBtn = await screen.findByText(/Last Month|Tháng trước/i);
     await user.click(lastMonthBtn);
     expect(api.fetchAttendanceReport).toHaveBeenCalled();
   });
@@ -85,9 +79,9 @@ describe("ReportsPage", () => {
   it("shows custom date inputs when clicking 'Tùy chỉnh'", async () => {
     const user = userEvent.setup();
     renderWithProviders(<ReportsPage />);
-    const customBtn = screen.getByText(/common.filters.custom/i);
+    const customBtn = await screen.findByText(/Custom|Tùy chỉnh/i);
     await user.click(customBtn);
-    expect(await screen.findByText(/common.from_date/i)).toBeDefined();
+    expect(await screen.findByText(/From Date|Từ ngày/i)).toBeDefined();
   });
 
   it("defaults pageSize to the number of days in the month", async () => {

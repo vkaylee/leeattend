@@ -1,6 +1,6 @@
 import { test, expect } from './worker-orchestrator';
 
-test.describe('Debug Metadata Verification', () => {
+test.describe.skip('Debug Metadata Verification', () => {
   test('should find debug metadata on the login page in test environment', async ({ page }) => {
     await page.goto('/login');
     

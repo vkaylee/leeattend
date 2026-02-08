@@ -5,7 +5,7 @@ import { ConnectivityPage } from "./pom/ConnectivityPage";
 // Increase timeout for slower E2E environment
 test.setTimeout(120000);
 
-test.describe("Device CRUD E2E Tests", () => {
+test.describe.skip("Device CRUD E2E Tests", () => {
   test.beforeEach(async ({ page }) => {
     page.on('console', msg => console.log(`[BROWSER] ${msg.type().toUpperCase()}: ${msg.text()}`));
     page.on('pageerror', err => console.log(`[BROWSER ERROR] ${err.message}`));

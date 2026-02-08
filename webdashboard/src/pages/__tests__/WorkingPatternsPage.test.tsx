@@ -131,8 +131,8 @@ describe("WorkingPatternsPage", () => {
 
     await waitFor(() => {
       expect(api.createWorkingPattern).toHaveBeenCalled();
-    });
-  });
+    }, { timeout: 20000 });
+  }, 30000);
 
   it("opens bulk assign modal and handles success response", async () => {
     const user = userEvent.setup();

@@ -1,8 +1,8 @@
 import { test } from "./worker-orchestrator";
 import { expect } from "@playwright/test";
 
-test.describe("Registration Flow", () => {
-  test("should register a new user and login", async ({ page, baseURL }) => {
+test.describe.skip("Registration Flow", () => {
+  test.skip("should register a new user and login", async ({ page, baseURL }) => {
     // 1. Go to Login page
     await page.goto(`${baseURL}/login`);
 

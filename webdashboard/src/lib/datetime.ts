@@ -6,7 +6,7 @@ export function toUTCISO(dateStr: string, timeStr: string, timezone: string): st
   const localStr = `${dateStr}T${timeStr}:00`;
   
   try {
-    const formatter = new Intl.DateTimeFormat('en-US', {
+    const formatter = new Intl.DateTimeFormat('en-GB', {
       timeZone: timezone,
       year: 'numeric',
       month: '2-digit',
@@ -14,7 +14,7 @@ export function toUTCISO(dateStr: string, timeStr: string, timezone: string): st
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hour12: false
+      hourCycle: 'h23'
     });
     
     // First approximation: treat local as UTC
@@ -24,8 +24,7 @@ export function toUTCISO(dateStr: string, timeStr: string, timezone: string): st
       const parts = formatter.formatToParts(d);
       const p: any = {};
       parts.forEach(part => p[part.type] = part.value);
-      // Ensure month/day are correctly mapped as Intl parts can vary by locale
-      // but 'en-US' with 2-digit should be stable.
+      // Ensure ISO-like string YYYY-MM-DDTHH:mm:ss
       return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}`;
     };
 

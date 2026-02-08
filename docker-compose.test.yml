@@ -24,6 +24,7 @@ services:
         condition: service_healthy
     tty: true
     entrypoint: tail -f /dev/null
+    working_dir: /workspace/apiserver
     environment:
       - DATABASE_URL=postgres://test_user:test_password@test_db:5432/test_database
       - RUST_LOG=info
@@ -32,10 +33,10 @@ services:
       - RUSTC_WRAPPER=sccache
       - CARGO_INCREMENTAL=0
     volumes:
-      - ./apiserver:/app
-      - apiserver-target:/app/target
+      - ${PWD}/apiserver:/workspace/apiserver
+      - apiserver-target:/workspace/apiserver/target
       - sccache-storage:/sccache
-      - test-logs:/app/.test_logs
+      - test-logs:/workspace/apiserver/.test_logs
 
   agent_test:
     build:
@@ -43,6 +44,7 @@ services:
       dockerfile: Dockerfile.test
     tty: true
     entrypoint: tail -f /dev/null
+    working_dir: /workspace/agent-main
     environment:
       - "DATABASE_URL=sqlite::memory:"
       - "CENTRAL_SERVER_URL=ws://apiserver_test:3001/api/ws"
@@ -51,10 +53,10 @@ services:
       - RUSTC_WRAPPER=sccache
       - CARGO_INCREMENTAL=0
     volumes:
-      - ./agent-main:/app
-      - agent-target:/app/target
+      - ${PWD}/agent-main:/workspace/agent-main
+      - agent-target:/workspace/agent-main/target
       - sccache-storage:/sccache
-      - test-logs:/app/.test_logs
+      - test-logs:/workspace/agent-main/.test_logs
 
   web_test:
     build:
@@ -62,12 +64,13 @@ services:
       dockerfile: Dockerfile.test
     tty: true
     entrypoint: tail -f /dev/null
+    working_dir: /workspace/webdashboard
     environment:
       - CI=true
     volumes:
-      - ./webdashboard:/app
-      - /app/node_modules
-      - test-logs:/app/.test_logs
+      - ${PWD}/webdashboard:/workspace/webdashboard
+      - /workspace/webdashboard/node_modules
+      - test-logs:/workspace/webdashboard/.test_logs
 
 volumes:
   apiserver-target:

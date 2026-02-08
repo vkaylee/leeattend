@@ -177,19 +177,43 @@ export USE_DOCKER=true
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export DOCKER_COMPOSE_CMD="docker compose -f $PROJECT_ROOT/docker-compose.test.yml"
 
+wait_for_web_test() {
+    if [[ "${USE_DOCKER:-}" == "true" ]]; then
+        echo -e "${BLUE}⏳ Waiting for web dependencies (npm ci) to complete...${NC}"
+        local timeout=300
+        local start_time=$SECONDS
+        while ! $DOCKER_COMPOSE_CMD exec -T web_test ls /workspace/webdashboard/node_modules/.bin/eslint > /dev/null 2>&1; do
+            if (( SECONDS - start_time > timeout )); then
+                echo -e "${RED}❌ Timeout waiting for web dependencies!${NC}"
+                return 1
+            fi
+            sleep 2
+        done
+        echo -e "${GREEN}✅ Web dependencies ready.${NC}"
+    fi
+}
+
 run_lint() {
     local filter=$1
     echo -e "\n${BLUE}🔹 Running Linting [$filter]...${NC}"
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         echo -e "${BLUE}🏗️ Ensuring Docker containers are up for Linting...${NC}"
-        local services="test_db"
-        if [[ "$filter" == *"apiserver"* || "$filter" == *"api"* ]]; then services="$services apiserver_test"; fi
-        if [[ "$filter" == *"agent"* || "$filter" == *"api"* ]]; then services="$services agent_test"; fi
-        if [[ "$filter" == *"web"* ]]; then services="$services web_test"; fi
-        if [[ "$filter" == "" || "$filter" == "all" || "$filter" == "api" ]]; then services="test_db apiserver_test agent_test web_test"; fi
+        local services=""
+        local need_web=false
+        
+        if [[ "$filter" == *"web"* ]]; then
+            services="web_test"
+            need_web=true
+        elif [[ "$filter" == *"apiserver"* || "$filter" == *"agent"* || "$filter" == *"api"* ]]; then
+            services="apiserver_test agent_test"
+        else
+            services="apiserver_test agent_test web_test"
+            need_web=true
+        fi
         
         $DOCKER_COMPOSE_CMD up -d $services
+        if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
     fi
 
     ./scripts/test-lint.sh "$filter"
@@ -201,17 +225,25 @@ run_unit() {
     
     if [[ "$USE_DOCKER" == "true" ]]; then
         echo -e "${BLUE}🏗️ Ensuring Docker containers are up...${NC}"
-        local services="test_db"
-        if [[ "$filter" == *"apiserver"* || "$filter" == *"api"* ]]; then services="$services apiserver_test"; fi
-        if [[ "$filter" == *"agent"* || "$filter" == *"api"* ]]; then services="$services agent_test"; fi
-        if [[ "$filter" == *"web"* ]]; then services="$services web_test"; fi
-        if [[ "$filter" == "" || "$filter" == "all" || "$filter" == "api" ]]; then services="test_db apiserver_test agent_test web_test"; fi
+        local services=""
+        local need_web=false
+        
+        if [[ "$filter" == *"web"* ]]; then
+            services="web_test"
+            need_web=true
+        elif [[ "$filter" == *"apiserver"* || "$filter" == *"agent"* || "$filter" == *"api"* ]]; then
+            # Unit tests cho API/Agent thường không cần DB thật (dùng memory), 
+            # nhưng ta bật apiserver_test/agent_test container để chạy code trong đó
+            services="apiserver_test agent_test"
+        else
+            services="apiserver_test agent_test web_test"
+            need_web=true
+        fi
         
         $DOCKER_COMPOSE_CMD up -d $services
+        if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
     fi
     
-    # Run unit tests
-    # Use NUM_WORKERS to auto-detect cores (default behavior)
     ./scripts/test-unit.sh "$filter"
 }
 
@@ -221,17 +253,33 @@ run_integration() {
     
     if [[ "$USE_DOCKER" == "true" ]]; then
         echo -e "${BLUE}🏗️ Ensuring Docker environment for Integration tests...${NC}"
-        local services="test_db"
-        if [[ "$filter" == *"apiserver"* || "$filter" == *"api"* ]]; then services="$services apiserver_test"; fi
-        if [[ "$filter" == *"agent"* || "$filter" == *"api"* ]]; then services="$services agent_test"; fi
-        if [[ "$filter" == *"web"* ]]; then services="$services web_test"; fi
-        if [[ "$filter" == "" || "$filter" == "all" || "$filter" == "api" ]]; then services="test_db apiserver_test agent_test web_test"; fi
+        local services=""
+        local need_web=false
+        
+        if [[ "$filter" == *"web"* ]]; then
+            # Web E2E dùng Mock API, KHÔNG cần DB và Backend thật
+            services="web_test"
+            need_web=true
+        else
+            # Integration tests cho API bắt buộc cần DB thật
+            services="test_db apiserver_test agent_test"
+            if [[ "$filter" == "" || "$filter" == "all" || "$filter" == "api" ]]; then 
+                services="$services web_test"
+                need_web=true
+            fi
+        fi
 
         $DOCKER_COMPOSE_CMD up -d $services
+        if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
     fi
 
-    # Integration tests always require the DB environment
-    ./setup-test-env.sh "./scripts/test-integration.sh \"$filter\""
+    if [[ "$filter" == *"web"* ]]; then
+        # Chạy thẳng E2E không cần setup-test-env (vì không cần DB isolated cho từng worker)
+        ./scripts/test-integration.sh "$filter"
+    else
+        # Integration tests cho API vẫn cần môi trường thực
+        ./setup-test-env.sh "./scripts/test-integration.sh \"$filter\""
+    fi
 }
 
 # --- Main Logic ---

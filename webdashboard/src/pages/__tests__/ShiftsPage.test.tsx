@@ -583,9 +583,9 @@ describe("ShiftsPage - Shift Picker Modal", () => {
               expect.objectContaining({ shift_id: "shift-1" }),
             ])
           );
-        });
+        }, { timeout: 20000 });
       }
-    });
+    }, 30000);
 
     it("should open shift picker from quick actions assign all week", async () => {
       const user = userEvent.setup();

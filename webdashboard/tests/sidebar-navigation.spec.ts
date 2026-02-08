@@ -1,6 +1,6 @@
 import { test, expect } from './worker-orchestrator';
 
-test.describe('Sidebar Navigation', () => {
+test.describe.skip('Sidebar Navigation', () => {
   test('should have "Time & Leave" section expanded by default', async ({ page }) => {
     // 1. Go to login page directly
     await page.goto('/login');

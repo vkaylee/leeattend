@@ -79,16 +79,16 @@ describe("Date Format Integration", () => {
       limit: 50,
     });
     (api.fetchWorkspace as any).mockResolvedValue({ date_format: "DD/MM/YYYY", timezone: "UTC" });
-    (api.fetchRawAttendanceLogs as any).mockResolvedValue({
+    (api.fetchRawAttendanceLogs as any).mockImplementation(() => Promise.resolve({
       data: [{ id: "l-1", punch_time: "2026-01-15T08:00:00Z", device_id: "dev-1", source: "device", employee_id: "emp-1" }],
       total: 1,
       page: 1,
       limit: 50
-    });
+    }));
 
     renderWithProviders(<AttendanceLogsPage />);
     
-    expect(await screen.findByText("15/01/2026")).toBeInTheDocument();
+    expect(await screen.findByText(/15\/01\/2026/)).toBeInTheDocument();
   });
 
   it("renders dates in YYYY-MM-DD format when workspace setting is YYYY-MM-DD", async () => {
@@ -99,16 +99,16 @@ describe("Date Format Integration", () => {
       limit: 50,
     });
     (api.fetchWorkspace as any).mockResolvedValue({ date_format: "YYYY-MM-DD", timezone: "UTC" });
-    (api.fetchRawAttendanceLogs as any).mockResolvedValue({
+    (api.fetchRawAttendanceLogs as any).mockImplementation(() => Promise.resolve({
       data: [{ id: "l-1", punch_time: "2026-01-15T08:00:00Z", device_id: "dev-1", source: "device", employee_id: "emp-1" }],
       total: 1,
       page: 1,
       limit: 50
-    });
+    }));
 
     renderWithProviders(<AttendanceLogsPage />);
     
-    expect(await screen.findByText("2026-01-15")).toBeInTheDocument();
+    expect(await screen.findByText(/2026-01-15/)).toBeInTheDocument();
   });
 
   it("renders month/year correctly in PayrollPage", async () => {

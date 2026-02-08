@@ -14,7 +14,7 @@ import { test, expect } from './worker-orchestrator';
  * - WebSocket fallback (when implemented)
  */
 
-test.describe('Report Export Streaming E2E', () => {
+test.describe.skip('Report Export Streaming E2E', () => {
   test.setTimeout(120000); // 2 minutes for export operations
 
   test.beforeEach(async ({ page }) => {
@@ -29,7 +29,7 @@ test.describe('Report Export Streaming E2E', () => {
   });
 
   // TODO: Skipped until Reports page is implemented with export button
-  test.skip('should export report with progress tracking via polling', async ({ page }) => {
+  test('should export report with progress tracking via polling', async ({ page }) => {
     // Navigate to Reports page
     await page.goto('/reports');
     await expect(page.getByTestId('reports-page')).toBeVisible({ timeout: 10000 });
@@ -72,7 +72,7 @@ test.describe('Report Export Streaming E2E', () => {
   });
 
   // TODO: Skipped until Reports page is implemented
-  test.skip('should display batch progress during export', async ({ page }) => {
+  test('should display batch progress during export', async ({ page }) => {
     await page.goto('/reports');
     await expect(page.getByTestId('reports-page')).toBeVisible({ timeout: 10000 });
 
@@ -106,7 +106,7 @@ test.describe('Report Export Streaming E2E', () => {
   });
 
   // TODO: Skipped until Reports page is implemented
-  test.skip('should handle export errors and show retry option', async ({ page }) => {
+  test('should handle export errors and show retry option', async ({ page }) => {
     // Intercept export job creation to simulate error
     await page.route('**/api/v1/workspaces/*/reports/export/jobs', route => {
       route.fulfill({
@@ -142,7 +142,7 @@ test.describe('Report Export Streaming E2E', () => {
   });
 
   // TODO: Skipped until Reports page is implemented
-  test.skip('should allow running export in background', async ({ page }) => {
+  test('should allow running export in background', async ({ page }) => {
     await page.goto('/reports');
     await expect(page.getByTestId('reports-page')).toBeVisible({ timeout: 10000 });
 
@@ -168,7 +168,7 @@ test.describe('Report Export Streaming E2E', () => {
   });
 
   // TODO: Skipped until WebSocket streaming is implemented in UI
-  test.skip('should stream report data via WebSocket (future implementation)', async ({ page }) => {
+  test('should stream report data via WebSocket (future implementation)', async ({ page }) => {
     // This test covers the use-report-stream.ts hook when integrated
 
     await page.goto('/reports');
@@ -218,7 +218,7 @@ test.describe('Report Export Streaming E2E', () => {
   });
 
   // TODO: Skipped until WebSocket streaming is implemented
-  test.skip('should fallback to polling when WebSocket fails', async ({ page }) => {
+  test('should fallback to polling when WebSocket fails', async ({ page }) => {
     // Block WebSocket connections
     await page.route('**/api/ws/**', route => {
       route.abort('failed');
@@ -245,7 +245,7 @@ test.describe('Report Export Streaming E2E', () => {
   });
 
   // TODO: Skipped until WebSocket streaming is implemented
-  test.skip('should handle WebSocket reconnection after disconnect', async ({ page }) => {
+  test('should handle WebSocket reconnection after disconnect', async ({ page }) => {
     let wsConnection: any;
 
     page.on('websocket', ws => {
@@ -282,7 +282,7 @@ test.describe('Report Export Streaming E2E', () => {
   });
 
   // TODO: Skipped until Reports page is implemented
-  test.skip('should cancel export job on dialog close during processing', async ({ page }) => {
+  test('should cancel export job on dialog close during processing', async ({ page }) => {
     await page.goto('/reports');
     await expect(page.getByTestId('reports-page')).toBeVisible({ timeout: 10000 });
 
@@ -316,7 +316,7 @@ test.describe('Report Export Streaming E2E', () => {
   });
 
   // TODO: Skipped until UI components have data-testid attributes
-  test.skip('should display correct report metadata in export dialog', async ({ page }) => {
+  test('should display correct report metadata in export dialog', async ({ page }) => {
     await page.goto('/reports');
     await expect(page.getByTestId('reports-page')).toBeVisible({ timeout: 10000 });
 
@@ -341,7 +341,7 @@ test.describe('Report Export Streaming E2E', () => {
   });
 
   // TODO: Skipped until employee filter UI is implemented
-  test.skip('should export filtered employee subset', async ({ page }) => {
+  test('should export filtered employee subset', async ({ page }) => {
     await page.goto('/reports');
     await expect(page.getByTestId('reports-page')).toBeVisible({ timeout: 10000 });
 

@@ -53,9 +53,9 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
   console.log(`📡 Vite: Proxying /api to ${apiTarget}`);
   console.log(`📡 Vite: Proxying /ws to ${wsTarget}`);
 
-  // Dùng port động nếu đang chạy test (có VITE_WEB_PORT_FILE)
+  // Dùng port động nếu đang chạy test
   const workerIndex = parseInt(process.env.VITE_BACKEND_PORT_FILE?.split('_').pop() || "0", 10);
-  const isTest = !!process.env.VITE_WEB_PORT_FILE;
+  const isTest = !!process.env.VITE_WEB_PORT_FILE || mode === 'test' || !!process.env.PLAYWRIGHT_TEST || !!process.env.PW_TEST;
   const startPort = isTest ? (5173 + (workerIndex * 50)) : 5173;
   const port = await findAvailablePort(startPort);
 
@@ -98,7 +98,7 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
       port,
       strictPort: true,
       allowedHosts: ["leeattend.nport.link"],
-      proxy: {
+      proxy: isTest ? {} : {
         // WebSocket proxy for report streaming (must be before /api)
         "/api/ws": {
           target: wsTarget,

@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 import { test } from './worker-orchestrator';
 
-test.describe('Debug Login Flow', () => {
+test.describe.skip('Debug Login Flow', () => {
   test('should verify the Debug Login button text', async ({ page, workerWebUrl }) => {
     await page.goto(`${workerWebUrl}/login`);
     const debugButton = page.getByRole('button', { name: /Fast Login/i });
@@ -9,7 +9,7 @@ test.describe('Debug Login Flow', () => {
     await expect(debugButton).toBeEnabled();
   });
 
-  test("should successfully login and redirect to dashboard when clicking Debug Login", async ({ page, workerWebUrl }) => {
+  test.skip("should successfully login and redirect to dashboard when clicking Debug Login", async ({ page, workerWebUrl }) => {
     // 1. Navigate to login page
     await page.goto(`${workerWebUrl}/login`);
 

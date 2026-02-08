@@ -23,34 +23,36 @@ if [[ "${USE_DOCKER:-}" == "true" ]]; then
     # In Docker, we connect to 'test_db' service and template DB
     DOCKER_DB_URL="postgres://test_user:test_password@test_db:5432/leeattend_test_template"
     
-    # START API SERVER IN BACKGROUND FOR AGENT INTEGRATION TESTS
-    # We need to start the server inside the container so the Agent can talk to it
-    echo -e "  ${BLUE}🚀 Starting API Server in background inside Docker...${NC}"
-    $DOCKER_COMPOSE_CMD exec -d -e DATABASE_URL=$DOCKER_DB_URL apiserver_test bash -c "cargo run --bin apiserver > /app/apiserver.log 2>&1"
-    
-    # Wait for server to be ready
-    echo -n "  Waiting for API Server (timeout: 60s)..."
-    for i in {1..60}; do
-        if $DOCKER_COMPOSE_CMD exec -T apiserver_test curl -s http://localhost:3001/health > /dev/null; then
-            echo " Ready!"
-            break
-        fi
-        echo -n "."
-        sleep 1
-    done
+    if [[ "$COMPONENT_FILTER" != *"web"* ]]; then
+        # START API SERVER IN BACKGROUND FOR AGENT INTEGRATION TESTS
+        echo -e "  ${BLUE}🚀 Starting API Server in background inside Docker...${NC}"
+        $DOCKER_COMPOSE_CMD exec -d -e DATABASE_URL=$DOCKER_DB_URL apiserver_test bash -c "cargo run --bin apiserver > /workspace/apiserver/apiserver.log 2>&1"
+        
+        # Wait for server to be ready
+        echo -n "  Waiting for API Server (timeout: 60s)..."
+        for i in {1..60}; do
+            if $DOCKER_COMPOSE_CMD exec -T apiserver_test curl -s http://localhost:3001/health > /dev/null; then
+                echo " Ready!"
+                break
+            fi
+            echo -n "."
+            sleep 1
+        done
+    fi
 
     APISERVER_INT_CMD="$DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL apiserver_test bash -c \"cargo nextest run --test '*' $TEST_PATTERN --no-tests=pass\""
-    # Web E2E usually runs better in its own container or on host with specific display setup
-    PW_CMD="$DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx playwright test ${PW_ARGS:-} --workers $NUM_WORKERS\""
+    PW_CMD="$DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx playwright test ${PW_ARGS:-} --workers 1\""
 fi
 
-echo -e "  Pre-compiling backend for integration tests (timeout: ${TIMEOUT_BUILD}s)..."
-if [[ "${USE_DOCKER:-}" == "true" ]]; then
-    $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "SQLX_OFFLINE=true cargo test --no-run -j ${CARGO_BUILD_JOBS:-2}" > "$LOG_DIR/prebuild.log" 2>&1
-else
-    run_with_timeout "$TIMEOUT_BUILD" bash -c "cd '$PROJECT_ROOT/apiserver' && SQLX_OFFLINE=true cargo test --no-run -j ${CARGO_BUILD_JOBS:-2}" > "$LOG_DIR/prebuild.log" 2>&1
+if [[ "$COMPONENT_FILTER" != *"web"* ]]; then
+    echo -e "  Pre-compiling backend for integration tests (timeout: ${TIMEOUT_BUILD}s)..."
+    if [[ "${USE_DOCKER:-}" == "true" ]]; then
+        $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "SQLX_OFFLINE=true cargo test --no-run -j ${CARGO_BUILD_JOBS:-2}" > "$LOG_DIR/prebuild.log" 2>&1
+    else
+        run_with_timeout "$TIMEOUT_BUILD" bash -c "cd '$PROJECT_ROOT/apiserver' && SQLX_OFFLINE=true cargo test --no-run -j ${CARGO_BUILD_JOBS:-2}" > "$LOG_DIR/prebuild.log" 2>&1
+    fi
+    prebuild_exit_code=$?
 fi
-prebuild_exit_code=$?
 
 export RUST_TEST_THREADS=$NUM_WORKERS
 

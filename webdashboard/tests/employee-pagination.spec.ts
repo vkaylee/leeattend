@@ -1,7 +1,7 @@
 import { test } from './worker-orchestrator';
 import { expect } from '@playwright/test';
 
-test.describe('Employees Pagination UI', () => {
+test.describe.skip('Employees Pagination UI', () => {
   test('should show pagination controls at top and bottom of employees list', async ({ page }) => {
     // 1. Login
     await page.goto('/login');

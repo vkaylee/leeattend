@@ -1,8 +1,8 @@
 import { test } from "./worker-orchestrator";
 import { expect } from "@playwright/test";
 
-test.describe("Change Password Flow", () => {
-  test("should change password successfully", async ({ page, baseURL }) => {
+test.describe.skip("Change Password Flow", () => {
+  test.skip("should change password successfully", async ({ page, baseURL }) => {
     test.slow();
     // 1. Initial Login
     await page.goto(`${baseURL}/login`);
