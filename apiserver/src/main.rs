@@ -25,7 +25,8 @@ impl Drop for PortFileGuard {
 
 #[tokio::main]
 async fn main() {
-    dotenvy::dotenv().ok();
+    // Load .env and override system environment variables to avoid conflicts
+    apiserver::utils::init_env();
 
     tracing_subscriber::registry()
         .with(

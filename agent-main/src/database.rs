@@ -269,13 +269,33 @@ impl Database {
     /// Load all signatures for dedup index (startup only - Phase 3)
     /// Returns minimal data: device_id, user_id, timestamp, punch, status for all logs
     pub async fn get_all_signatures(&self) -> Result<Vec<SignatureRow>, Error> {
+        // Optimization: Only load signatures for ACTIVE devices to save memory.
+        let rows = sqlx::query_as::<_, SignatureRow>(
+            r#"
+            SELECT r.device_id, r.user_id, r.timestamp, r.punch, r.status
+            FROM zkt_raw_attendance r
+            JOIN devices d ON r.device_id = d.id
+            WHERE d.is_active = 1
+            ORDER BY r.id ASC
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows)
+    }
+
+    /// Get signatures for a specific device (for runtime loading when enabling device)
+    pub async fn get_signatures_for_device(&self, device_id: &str) -> Result<Vec<SignatureRow>, Error> {
         let rows = sqlx::query_as::<_, SignatureRow>(
             r#"
             SELECT device_id, user_id, timestamp, punch, status
             FROM zkt_raw_attendance
+            WHERE device_id = ?
             ORDER BY id ASC
-            "#,
+            "#
         )
+        .bind(device_id)
         .fetch_all(&self.pool)
         .await?;
 
@@ -292,6 +312,34 @@ impl Database {
         .await?;
 
         Ok(count)
+    }
+
+    /// Count unsynced logs for a specific device
+    pub async fn count_unsynced_logs_for_device(&self, device_id: &str) -> Result<i64, Error> {
+        let count = sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(*) FROM zkt_raw_attendance WHERE is_synced = 0 AND device_id = ?"
+        )
+        .bind(device_id)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(count)
+    }
+
+    /// Get unsynced logs for a specific device (for runtime loading when enabling device)
+    pub async fn get_unsynced_logs_for_device(&self, device_id: &str) -> Result<Vec<RawAttendanceLog>, Error> {
+        let rows = sqlx::query_as::<_, RawAttendanceLog>(
+            r#"
+            SELECT id, device_id, user_id, timestamp, status, punch,
+                   is_synced, created_at, updated_at, retry_count
+            FROM zkt_raw_attendance
+            WHERE is_synced = 0 AND device_id = ?
+            ORDER BY id ASC
+            "#
+        )
+        .bind(device_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
     }
 
     /// Count total logs for a specific device (for polling coordination)
@@ -1285,5 +1333,52 @@ mod tests {
             assert_eq!(device_id, "DEV1");
             assert_eq!(user_id, &format!("U{:03}", i + 1));
         }
+    }
+
+    #[tokio::test]
+    async fn test_count_unsynced_logs_for_device() {
+        let db = setup_db().await;
+
+        // Setup devices first (required for timezone lookup in save_raw_attendance)
+        db.upsert_device("Device A", "Device A", "127.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
+        db.upsert_device("Device B", "Device B", "127.0.0.2", 4370, "zkteco", "UTC", true).await.unwrap();
+
+        // Device A: 5 unsynced, 2 synced
+        for i in 1..=5 {
+            let data = AttendanceData {
+                user_id: format!("U_A_{}", i),
+                timestamp: format!("2026-01-28 10:{:02}:00", i),
+                status: Some(1),
+                punch: Some(1),
+            };
+            db.save_raw_attendance("Device A", data).await.unwrap();
+        }
+        // Mark 2 synced
+        let logs_a = db.get_unsynced_logs(2).await.unwrap();
+        let ids_a: Vec<i64> = logs_a.iter().map(|l| l.id).collect();
+        db.mark_synced(&ids_a).await.unwrap();
+
+        // Device B: 3 unsynced
+        for i in 1..=3 {
+            let data = AttendanceData {
+                user_id: format!("U_B_{}", i),
+                timestamp: format!("2026-01-28 11:{:02}:00", i),
+                status: Some(1),
+                punch: Some(1),
+            };
+            db.save_raw_attendance("Device B", data).await.unwrap();
+        }
+
+        // Verify Device A count (5 inserted - 2 synced = 3 unsynced)
+        let count_a = db.count_unsynced_logs_for_device("Device A").await.unwrap();
+        assert_eq!(count_a, 3, "Device A should have 3 unsynced logs");
+
+        // Verify Device B count (3 inserted - 0 synced = 3 unsynced)
+        let count_b = db.count_unsynced_logs_for_device("Device B").await.unwrap();
+        assert_eq!(count_b, 3, "Device B should have 3 unsynced logs");
+
+        // Verify Non-existent Device count
+        let count_c = db.count_unsynced_logs_for_device("Device C").await.unwrap();
+        assert_eq!(count_c, 0, "Non-existent device should have 0 unsynced logs");
     }
 }

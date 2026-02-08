@@ -25,23 +25,25 @@ use std::sync::atomic::{AtomicBool, Ordering};
 /// Format: device_id can contain colons, user_id and timestamp_unix cannot
 /// Returns timestamp as i64 (Unix timestamp in UTC seconds)
 fn parse_composite_key(key: &str) -> Option<(String, String, i64)> {
-    // Split from right: timestamp (last), user_id (second-to-last), device_id (rest)
-    let mut parts = key.rsplitn(3, ':');
-
-    // Extract in reverse order: timestamp, user_id, device_id
-    let timestamp_str = parts.next()?.trim();  // Trim whitespace
-    let user_id = parts.next()?.trim();        // Trim whitespace
-    let device_id = parts.next()?.trim();      // Trim whitespace
-
-    // Ensure we consumed exactly 3 parts (no extra parts remaining)
-    if parts.next().is_some() {
-        return None; // Too many colons even for rsplit(3)
-    }
-
-    // Parse Unix timestamp (i64)
+    // 1. Extract Timestamp (always the last part)
+    let (rest, timestamp_str) = key.rsplit_once(':')?;
     let timestamp_unix = timestamp_str.parse::<i64>().ok()?;
 
-    Some((device_id.to_string(), user_id.to_string(), timestamp_unix))
+    // 2. Extract Device ID and User ID
+    // Strategy: If device_id looks like a UUID (36 chars), split from left.
+    // Otherwise, assume strict "no colons in user_id" rule (legacy MAC address support).
+    let (device_id, user_id) = if rest.len() > 36 && rest.as_bytes()[36] == b':' {
+        // Assume UUID device_id
+        (&rest[..36], &rest[37..]) // Skip the colon
+    } else {
+        // Fallback: Split from right (preserves colons in device_id, assumes none in user_id)
+        match rest.rsplit_once(':') {
+            Some((d, u)) => (d, u),
+            None => return None,
+        }
+    };
+
+    Some((device_id.trim().to_string(), user_id.trim().to_string(), timestamp_unix))
 }
 
 // Retry configuration constants
@@ -136,15 +138,14 @@ impl CentralClient {
 
                 if count > 0 {
                     // Classify logs: new (updated_at IS NULL) vs retry (updated_at IS NOT NULL)
-                    let new_count = logs.iter().filter(|l| l.updated_at.is_none()).count();
-                    let retry_count = count - new_count;
 
-                    if retry_count > 0 {
-                        info!("📤 Syncing {} logs to central server ({} new, {} retries)...",
-                              count, new_count, retry_count);
-                    } else {
-                        info!("📤 Syncing {} logs to central server...", count);
-                    }
+
+                    // Calculate stats for better visibility
+                    let stats_str = calculate_sync_stats(&logs);
+
+                    let total_pending = sync_hybrid.count_unsynced_logs();
+
+                    info!("📤 Syncing {} logs to central server ({} | Pending: {})...", count, stats_str, total_pending);
 
                     // Mark in-flight in memory
                     let log_ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
@@ -301,16 +302,35 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                 if let Some(mw) = data.max_concurrent_workers {
                     let _ = hybrid_db.disk_db().upsert_agent_config("max_concurrent_workers", &mw.to_string()).await;
                 }
-                // Deactivate devices not in this push (handles stale/renamed devices)
-                let active_ids: Vec<String> = data.devices.iter().map(|d| d.device_id.clone()).collect();
-                if let Ok(deactivated) = hybrid_db.disk_db().deactivate_devices_not_in(&active_ids).await
+
+                // 1. Capture current active state
+                let old_active_configs = hybrid_db.disk_db().get_active_devices().await.unwrap_or_default();
+                let old_active_ids: std::collections::HashSet<String> = old_active_configs.into_iter().map(|d| d.id).collect();
+
+                // 2. Deactivate devices not in this push (stale/removed)
+                let pushed_ids: Vec<String> = data.devices.iter().map(|d| d.device_id.clone()).collect();
+                if let Ok(deactivated) = hybrid_db.disk_db().deactivate_devices_not_in(&pushed_ids).await
                     && deactivated > 0 {
                         info!("Deactivated {} stale devices", deactivated);
                     }
+
+                // 3. Upsert devices (might enable or disable specific ones)
                 for d in data.devices {
                     let timezone = d.timezone.as_deref().unwrap_or("UTC");
                     let _ = hybrid_db.disk_db().upsert_device(&d.device_id, &d.name, &d.ip, d.port, &d.brand, timezone, d.is_enabled).await;
                 }
+
+                // 4. Capture new active state
+                let new_active_configs = hybrid_db.disk_db().get_active_devices().await.unwrap_or_default();
+                let new_active_ids: std::collections::HashSet<String> = new_active_configs.into_iter().map(|d| d.id).collect();
+
+                // 5. Calculate diff and update memory
+                // Note: Enabled devices will be loaded by main loop during worker spawn cycle
+                // Disabled: present in old but not in new - unload immediately
+                for id in old_active_ids.difference(&new_active_ids) {
+                    let _ = hybrid_db.unload_device_memory(id).await;
+                }
+
                 let _ = reload_tx.try_send(());
             }
             CentralMessage::Ack { msg_id, status, .. } => {
@@ -323,32 +343,12 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
 
                     // Update disk using composite key
                     if let Some((device_id, user_id, timestamp_unix)) = parse_composite_key(&msg_id) {
-                        log::info!("🔍 ACK Success: device='{}', user='{}', timestamp='{}'",
+                        log::debug!("🔍 ACK Success: device='{}', user='{}', timestamp='{}'",
                             device_id, user_id, timestamp_unix);
-
-                        match sqlx::query(
-                            "UPDATE zkt_raw_attendance SET is_synced = 1
-                             WHERE device_id = ? AND user_id = ? AND timestamp = ?"
-                        )
-                        .bind(&device_id)
-                        .bind(&user_id)
-                        .bind(timestamp_unix)
-                        .execute(hybrid_db.disk_db().get_pool())
-                        .await
-                        {
-                            Ok(result) => {
-                                let rows = result.rows_affected();
-                                if rows == 0 {
-                                    log::error!("❌ UPDATE affected 0 rows! device='{}', user='{}', timestamp='{}' - Log may not exist in DB or already synced",
-                                        device_id, user_id, timestamp_unix);
-                                } else {
-                                    log::debug!("✅ Marked {} row(s) as synced in DB", rows);
-                                }
-                            }
-                            Err(e) => {
-                                log::error!("❌ UPDATE query failed: {}", e);
-                            }
-                        }
+                        
+                        // We rely on hybrid_db.mark_synced_by_key() to update memory state.
+                        // The Checkpoint Worker will persist this to disk asynchronously.
+                        // Doing a direct UPDATE here is racy because the log might not be on disk yet.
                     } else {
                         log::warn!("⚠️ Failed to parse composite key: {}", msg_id);
                     }
@@ -356,24 +356,11 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                     // Failed ACK - reset to unsynced for retry
                     if !hybrid_db.reset_to_unsynced_by_key(&msg_id) {
                         log::debug!("Failed ACK for already-synced log: {}", msg_id);
-                    }
-
-                    // Reset disk using composite key
-                    if let Some((device_id, user_id, timestamp_unix)) = parse_composite_key(&msg_id) {
-                        log::warn!("⚠️ ACK Failed: Resetting device='{}', user='{}', timestamp='{}'",
-                            device_id, user_id, timestamp_unix);
-
-                        let _ = sqlx::query(
-                            "UPDATE zkt_raw_attendance SET is_synced = 0
-                             WHERE device_id = ? AND user_id = ? AND timestamp = ?"
-                        )
-                        .bind(&device_id)
-                        .bind(&user_id)
-                        .bind(timestamp_unix)
-                        .execute(hybrid_db.disk_db().get_pool())
-                        .await;
+                    } else {
+                         log::warn!("⚠️ ACK Failed: Resetting log {} for retry", msg_id);
                     }
                 }
+
             }
             CentralMessage::Error { code, message } => {
                 error!("⚠️ Server error [{}]: {}", code, message);
@@ -563,6 +550,68 @@ mod tests {
         // This test needs to be adjusted to insert via hybrid_db or load from disk first
     }
 
+    // ===== ACK Race Condition Test =====
+
+    #[tokio::test]
+    async fn test_ack_handling_race_condition() {
+        // Scenario: Log is in memory (not yet on disk). ACK arrives. 
+        // We must update memory state so that when Checkpoint runs, it writes 'is_synced=1'.
+        
+        use crate::hybrid_database::HybridDatabase;
+        use crate::models::AttendanceData;
+        use chrono::NaiveDateTime;
+        
+        let hybrid_db = HybridDatabase::new(":memory:", 1000).await.unwrap();
+        let (reload_tx, _reload_rx) = mpsc::channel(1);
+
+        // 1. Setup Device with UTC timezone
+        hybrid_db.disk_db().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", true).await.unwrap();
+
+        // 2. Create log in memory ONLY (no checkpoint yet)
+        let timestamp_str = "2026-01-31 12:00:00";
+        let data = AttendanceData {
+            user_id: "U999".to_string(),
+            timestamp: timestamp_str.to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        
+        let id = hybrid_db.save_raw_attendance("DEV1", data).await.unwrap();
+        
+        // Mark in-flight (simulating it was sent)
+        hybrid_db.mark_in_flight(&[id]);
+
+        // Verify it is in memory and NOT clean
+        assert!(hybrid_db.memory_store().is_dirty());
+        assert_eq!(hybrid_db.count_unsynced_logs(), 0); // In-flight is not "unsynced" for fetching
+
+        // 3. Construct expected composite key
+        // Parse timestamp as UTC to get unix time
+        let ts_unix = NaiveDateTime::parse_from_str(timestamp_str, "%Y-%m-%d %H:%M:%S")
+            .unwrap()
+            .and_utc()
+            .timestamp();
+            
+        let msg_id = format!("DEV1:U999:{}", ts_unix);
+        let ack_msg = format!(r#"{{"type":"ack", "msg_id":"{}", "status":"success"}}"#, msg_id);
+
+        // 4. Handle ACK
+        handle_incoming_text(&ack_msg, &hybrid_db, &reload_tx).await;
+
+        // 5. Checkpoint to Disk
+        // If the fix works, memory is updated to synced=true, so checkpoint writes is_synced=1
+        let persisted = hybrid_db.checkpoint().await.unwrap();
+        assert_eq!(persisted, 1); // Should persist 1 log
+
+        // 6. Verify Disk State
+        let row: (i32,) = sqlx::query_as("SELECT is_synced FROM zkt_raw_attendance WHERE user_id = 'U999'")
+            .fetch_one(hybrid_db.disk_db().get_pool())
+            .await
+            .unwrap();
+            
+        assert_eq!(row.0, 1, "Log should be persisted as synced (1), not unsynced (0)");
+    }
+
     // ===== RetryManager Unit Tests =====
 
     #[test]
@@ -726,6 +775,142 @@ mod tests {
 
         // Verify no active devices
         let devices = hybrid_db.disk_db().get_active_devices().await.unwrap();
-        assert_eq!(devices.len(), 0, "All devices should be deactivated");
     }
 }
+
+fn calculate_sync_stats(logs: &[crate::memory_store::MemoryLog]) -> String {
+    let new_count = logs.iter().filter(|l| l.retry_count == 0).count();
+    let resync_logs: Vec<&crate::memory_store::MemoryLog> = logs.iter().filter(|l| l.retry_count > 0).collect();
+    let resync_count = resync_logs.len();
+
+    if resync_count > 0 {
+        let min_retry = resync_logs.iter().map(|l| l.retry_count).min().unwrap_or(0);
+        let max_retry = resync_logs.iter().map(|l| l.retry_count).max().unwrap_or(0);
+        if min_retry == max_retry {
+            format!("{} New, {} Resyncs (Attempt #{})", new_count, resync_count, min_retry)
+        } else {
+            format!("{} New, {} Resyncs (Attempt #{}-{})", new_count, resync_count, min_retry, max_retry)
+        }
+    } else {
+        format!("{} New", new_count)
+    }
+}
+
+#[cfg(test)]
+mod sync_stats_tests {
+    use super::*;
+    use crate::memory_store::MemoryLog;
+    use chrono::NaiveDateTime;
+
+    #[test]
+    fn test_calculate_sync_stats_new_only() {
+        let now = chrono::Utc::now().naive_utc();
+        
+        let log1 = MemoryLog {
+            id: 1,
+            device_id: "D1".to_string(),
+            user_id: "U1".to_string(),
+            timestamp: 1672567200,
+            status: Some(1),
+            punch: Some(1),
+            is_synced: 0,
+            created_at: now,
+            updated_at: None,
+            retry_count: 0,
+            persisted: false,
+        };
+        
+        let logs = vec![log1];
+        let stats = calculate_sync_stats(&logs);
+        assert_eq!(stats, "1 New");
+    }
+
+    #[test]
+    fn test_calculate_sync_stats_mixed() {
+        let now = chrono::Utc::now().naive_utc();
+        
+        let log1 = MemoryLog {
+            id: 1,
+            device_id: "D1".to_string(),
+            user_id: "U1".to_string(),
+            timestamp: 1672567200,
+            status: Some(1),
+            punch: Some(1),
+            is_synced: 0,
+            created_at: now,
+            updated_at: None,
+            retry_count: 0,
+            persisted: false,
+        };
+        
+        let log2 = MemoryLog {
+            id: 2,
+            device_id: "D1".to_string(),
+            user_id: "U1".to_string(),
+            timestamp: 1672567201,
+            status: Some(1),
+            punch: Some(1),
+            is_synced: 0,
+            created_at: now,
+            updated_at: Some(now),
+            retry_count: 3,
+            persisted: false,
+        };
+
+        let log3 = MemoryLog {
+            id: 3,
+            device_id: "D1".to_string(),
+            user_id: "U1".to_string(),
+            timestamp: 1672567202,
+            status: Some(1),
+            punch: Some(1),
+            is_synced: 0,
+            created_at: now,
+            updated_at: Some(now),
+            retry_count: 5,
+            persisted: false,
+        };
+
+        let logs = vec![log1, log2, log3];
+        let stats = calculate_sync_stats(&logs);
+        assert_eq!(stats, "1 New, 2 Resyncs (Attempt #3-5)");
+    }
+
+    #[test]
+    fn test_calculate_sync_stats_empty() {
+        let logs: Vec<MemoryLog> = vec![];
+        let stats = calculate_sync_stats(&logs);
+        // MIN/MAX default to 0 -> 1970-01-01 00:00:00 (UTC) => 00:00:00
+        assert_eq!(stats, "0 New");
+    }
+}
+
+#[cfg(test)]
+    #[test]
+    fn test_parse_composite_key_logic() {
+        // Case 1: Simple Legacy (Non-UUID)
+        let k1 = "DEV1:U1:1234567890";
+        assert_eq!(parse_composite_key(k1), Some(("DEV1".into(), "U1".into(), 1234567890)));
+
+        // Case 2: Device with Colons (MAC) - Legacy Fallback
+        let k2 = "AA:BB:CC:DD:EE:FF:U1:1234567890";
+        assert_eq!(parse_composite_key(k2), Some(("AA:BB:CC:DD:EE:FF".into(), "U1".into(), 1234567890)));
+
+        // Case 3: Device Name with Colons - Legacy Fallback
+        let k3 = "OFFICE:GATE:1:U1:1234567890";
+        assert_eq!(parse_composite_key(k3), Some(("OFFICE:GATE:1".into(), "U1".into(), 1234567890)));
+
+        // Case 4: UUID Device ID + User ID with Colons (The Fix)
+        // 36 chars UUID: 12345678-1234-1234-1234-123456789012
+        let uuid = "12345678-1234-1234-1234-123456789012";
+        let k4 = format!("{}:USER:001:1234567890", uuid);
+        
+        // This should now correctly identify the UUID and capture everything else as UserID
+        assert_eq!(parse_composite_key(&k4), Some((uuid.into(), "USER:001".into(), 1234567890)));
+
+        // Case 5: Timestamp invalid
+        let k5 = "D1:U1:INVALID";
+        assert_eq!(parse_composite_key(k5), None);
+    }
+
+

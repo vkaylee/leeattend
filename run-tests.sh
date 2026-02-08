@@ -170,6 +170,11 @@ show_help() {
     echo -e "  TIMEOUT_GLOBAL=600 ./run-tests.sh --api  # 10 min global timeout"
 }
 
+# --- Environment Setup ---
+export USE_DOCKER=true
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export DOCKER_COMPOSE_CMD="docker compose -f $PROJECT_ROOT/docker-compose.test.yml"
+
 run_lint() {
     local filter=$1
     echo -e "\n${BLUE}🔹 Running Linting [$filter]...${NC}"
@@ -179,15 +184,39 @@ run_lint() {
 run_unit() {
     local filter=$1
     echo -e "\n${BLUE}🔹 Running Unit Tests [$filter]...${NC}"
+    
+    if [[ "$USE_DOCKER" == "true" ]]; then
+        echo -e "${BLUE}🏗️ Ensuring Docker containers are up...${NC}"
+        local services="test_db"
+        if [[ "$filter" == *"apiserver"* || "$filter" == *"api"* ]]; then services="$services apiserver_test"; fi
+        if [[ "$filter" == *"agent"* || "$filter" == *"api"* ]]; then services="$services agent_test"; fi
+        if [[ "$filter" == *"web"* ]]; then services="$services web_test"; fi
+        if [[ "$filter" == "" || "$filter" == "all" || "$filter" == "api" ]]; then services="test_db apiserver_test agent_test web_test"; fi
+        
+        $DOCKER_COMPOSE_CMD up -d $services
+    fi
+    
+    # Run unit tests
+    # Use NUM_WORKERS to auto-detect cores (default behavior)
     ./scripts/test-unit.sh "$filter"
 }
 
 run_integration() {
     local filter=$1
     echo -e "\n${BLUE}🔹 Running Integration & E2E Tests [$filter]...${NC}"
+    
+    if [[ "$USE_DOCKER" == "true" ]]; then
+        echo -e "${BLUE}🏗️ Ensuring Docker environment for Integration tests...${NC}"
+        local services="test_db"
+        if [[ "$filter" == *"apiserver"* || "$filter" == *"api"* ]]; then services="$services apiserver_test"; fi
+        if [[ "$filter" == *"agent"* || "$filter" == *"api"* ]]; then services="$services agent_test"; fi
+        if [[ "$filter" == *"web"* ]]; then services="$services web_test"; fi
+        if [[ "$filter" == "" || "$filter" == "all" || "$filter" == "api" ]]; then services="test_db apiserver_test agent_test web_test"; fi
+
+        $DOCKER_COMPOSE_CMD up -d $services
+    fi
+
     # Integration tests always require the DB environment
-    # We pass the arguments as separate words, but setup-test-env.sh uses eval "$@"
-    # which is generally dangerous but we can make it work by being careful.
     ./setup-test-env.sh "./scripts/test-integration.sh \"$filter\""
 }
 
@@ -263,9 +292,9 @@ echo -e "${BLUE}================================================================
 
 # Export timeout vars for sub-scripts
 export TIMEOUT_GLOBAL="$GLOBAL_TIMEOUT"
-export TIMEOUT_LINT="${TIMEOUT_LINT:-180}"
-export TIMEOUT_UNIT="${TIMEOUT_UNIT:-180}"
-export TIMEOUT_INTEGRATION="${TIMEOUT_INTEGRATION:-300}"
+export TIMEOUT_LINT="${TIMEOUT_LINT:-600}"
+export TIMEOUT_UNIT="${TIMEOUT_UNIT:-1200}"
+export TIMEOUT_INTEGRATION="${TIMEOUT_INTEGRATION:-1200}"
 export TIMEOUT_BUILD="${TIMEOUT_BUILD:-600}"
 export TIMEOUT_DB_WAIT="${TIMEOUT_DB_WAIT:-120}"
 

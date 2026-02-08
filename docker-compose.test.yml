@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   test_db:
     image: postgres:16-alpine
@@ -7,7 +6,7 @@ services:
       POSTGRES_USER: test_user
       POSTGRES_PASSWORD: test_password
     ports:
-      - "5433:5432" # Use a different port to avoid conflicts
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U test_user -d test_database"]
       interval: 5s
@@ -15,3 +14,55 @@ services:
       retries: 5
     tmpfs: 
       - /var/lib/postgresql/data
+
+  apiserver_test:
+    build:
+      context: ./apiserver
+      dockerfile: Dockerfile.test
+    depends_on:
+      test_db:
+        condition: service_healthy
+    tty: true
+    entrypoint: tail -f /dev/null
+    environment:
+      - DATABASE_URL=postgres://test_user:test_password@test_db:5432/test_database
+      - RUST_LOG=info
+      - SQLX_OFFLINE=true
+      - SCCACHE_DIR=/sccache
+    volumes:
+      - ./apiserver:/app
+      - apiserver-target:/app/target
+      - sccache-storage:/sccache
+
+  agent_test:
+    build:
+      context: ./agent-main
+      dockerfile: Dockerfile.test
+    tty: true
+    entrypoint: tail -f /dev/null
+    environment:
+      - "DATABASE_URL=sqlite::memory:"
+      - "CENTRAL_SERVER_URL=ws://apiserver_test:3001/api/ws"
+      - RUST_LOG=info
+      - SCCACHE_DIR=/sccache
+    volumes:
+      - ./agent-main:/app
+      - agent-target:/app/target
+      - sccache-storage:/sccache
+
+  web_test:
+    build:
+      context: ./webdashboard
+      dockerfile: Dockerfile.test
+    tty: true
+    entrypoint: tail -f /dev/null
+    environment:
+      - CI=true
+    volumes:
+      - ./webdashboard:/app
+      - /app/node_modules
+
+volumes:
+  apiserver-target:
+  agent-target:
+  sccache-storage:

@@ -11,15 +11,17 @@ use agent::hybrid_database::HybridDatabase;
 use agent::models;
 use agent::retry::{get_sidecar_retry_delay, SIDECAR_MAX_RETRY_COUNT, SIDECAR_STABILITY_THRESHOLD_SECS};
 use agent::crash_recovery::{CrashMarker, recover_from_crash};
+use agent::adaptive_polling::AdaptivePollingState;
 use serde_json::json;
 use log::{info, error, warn};
-use dotenvy::dotenv;
+// use dotenvy::dotenv;
 use tokio_util::sync::CancellationToken;
 use tokio::net::TcpListener;
 use tokio::sync::{mpsc, Semaphore};
 
 #[derive(Clone)]
 struct WorkerConfig {
+    id: String,
     name: String,
     brand: String,
     ip: String,
@@ -29,7 +31,7 @@ struct WorkerConfig {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dotenv().ok();
+    agent::utils::init_env();
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     // Check for CLI commands
@@ -271,6 +273,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             info!("📡 Found {} devices, max {} concurrent workers", db_devices.len(), current_max_workers);
         }
 
+        // Runtime optimization: Load memory for active devices before spawning
+        for d in &db_devices {
+            if let Err(e) = hybrid_db.load_device_memory(&d.id).await {
+                error!("Failed to load memory for device {}: {}", d.id, e);
+            }
+        }
+
         let workers: Vec<WorkerConfig> = db_devices.into_iter().map(|d| {
             let sidecar_script = match d.brand.as_str() {
                 "zkteco" => "../agent-zk-worker/zk_worker.py".to_string(),
@@ -278,6 +287,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 _ => "../agent-zk-worker/zk_worker.py".to_string(),
             };
             WorkerConfig {
+                id: d.id.clone(),
                 name: d.name,
                 brand: d.brand,
                 ip: d.ip,
@@ -394,6 +404,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     // Key format: "user_id:timestamp" (device_id is implicit per worker)
                     let mut seen_logs: HashSet<String> = HashSet::new();
 
+                    // Adaptive polling: reduce frequency when no new data
+                    let mut polling_state = AdaptivePollingState::new();
+
                     while !token.is_cancelled() {
                         // Acquire semaphore permit for this poll cycle (fair round-robin)
                         // Released at end of loop iteration, allowing other devices to poll
@@ -408,9 +421,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         retry_count = 0;
                                     }
 
+                                let mut new_count = 0;
                                 if let Some(logs) = res.as_array().filter(|l| !l.is_empty()) {
                                     let fetched_count = logs.len();
-                                    let mut new_count = 0;
                                     let mut duplicate_count = 0;
 
                                     // Filter duplicates before sending to queue
@@ -420,8 +433,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                             let key = format!("{}:{}", attendance.user_id, attendance.timestamp);
 
                                             if seen_logs.insert(key) {
-                                                // New log - send to queue
-                                                let _ = log_tx.send((worker.name.clone(), attendance)).await;
+                                                // New log - send to queue using unique device ID (not name)
+                                                let _ = log_tx.send((worker.id.clone(), attendance)).await;
                                                 new_count += 1;
                                             } else {
                                                 // Duplicate - skip
@@ -431,11 +444,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     }
 
                                     if duplicate_count > 0 {
-                                        info!("[{}] Fetched {} logs ({} new, {} duplicates filtered)",
-                                              worker.name, fetched_count, new_count, duplicate_count);
+                                        info!("[{}] Fetched {} logs ({} new, {} duplicates filtered) [interval: {}s]",
+                                              worker.name, fetched_count, new_count, duplicate_count, polling_state.interval());
                                     } else {
-                                        info!("[{}] Fetched {} logs", worker.name, fetched_count);
+                                        info!("[{}] Fetched {} logs [interval: {}s]", worker.name, fetched_count, polling_state.interval());
                                     }
+                                }
+
+                                // Adaptive polling: adjust interval based on new data
+                                let (new_interval, changed) = polling_state.update(new_count > 0);
+                                if changed && new_count == 0 {
+                                    info!("[{}] No new data for {} polls, increasing interval: {}s",
+                                          worker.name, polling_state.consecutive_no_new_data, new_interval);
                                 }
                             }
                             Err(e) => {
@@ -446,7 +466,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                         // Release permit before sleeping to allow other devices to poll
                         drop(_permit);
-                        sleep(Duration::from_secs(5)).await;
+                        sleep(Duration::from_secs(polling_state.interval())).await;
                     }
 
                     let _ = sidecar.kill().await;

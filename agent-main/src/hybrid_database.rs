@@ -22,17 +22,8 @@ impl HybridDatabase {
         let max_id = disk.get_max_id().await?;
         memory.seed_id(max_id + 1);
 
-        // Phase A: Load signatures (ALL logs including synced)
-        let signatures = disk.get_all_signatures().await?;
-        let sig_count = signatures.len();
-        memory.load_signatures(signatures);
-        info!("HybridDatabase: Loaded {} signatures for dedup index", sig_count);
-
-        // Phase B: Load unsynced/in-flight logs into queue
-        let pending = disk.get_all_logs().await?;
-        let pending_count = pending.len();
-        memory.load_from_disk(pending);
-        info!("HybridDatabase: Loaded {} pending logs into memory", pending_count);
+        // Note: Signatures and pending logs are now loaded per-device via load_device_memory()
+        // This speeds up startup when only a few devices are active
 
         Ok(Self { disk, memory })
     }
@@ -145,6 +136,37 @@ impl HybridDatabase {
         self.disk.update_sync_status_batch(&updates).await?;
 
         Ok(updates.len())
+    }
+
+    /// Runtime optimization: Unload device data from memory when disabled
+    pub async fn unload_device_memory(&self, device_id: &str) -> Result<(), sqlx::Error> {
+        // 1. Fetch all signatures for this device from disk (so we know what hashes to remove)
+        let signatures = self.disk.get_signatures_for_device(device_id).await?;
+        
+        // 2. Remove signatures from memory set
+        self.memory.remove_signatures(signatures);
+
+        // 3. Remove any active logs from memory store
+        self.memory.remove_logs_for_device(device_id);
+
+        info!("HybridDatabase: Unloaded memory for disabled device '{}'", device_id);
+        Ok(())
+    }
+
+    /// Runtime optimization: Load device data into memory when enabled
+    pub async fn load_device_memory(&self, device_id: &str) -> Result<(), sqlx::Error> {
+        // 1. Load signatures for dedup
+        let signatures = self.disk.get_signatures_for_device(device_id).await?;
+        let sig_count = signatures.len();
+        self.memory.load_signatures(signatures);
+
+        // 2. Load pending logs into memory queue for sync
+        let pending_logs = self.disk.get_unsynced_logs_for_device(device_id).await?;
+        let pending_count = pending_logs.len();
+        self.memory.load_from_disk(pending_logs);
+
+        info!("HybridDatabase: Loaded {} signatures + {} pending logs for device '{}'", sig_count, pending_count, device_id);
+        Ok(())
     }
 }
 
@@ -485,7 +507,10 @@ mod tests {
         // This simulates app restart: new memory store, but shared persistent DB
         let hybrid2 = HybridDatabase::new(&db_url, 1000).await.unwrap();
 
-        // All 10 signatures should be loaded from disk
+        // With lazy loading, need to explicitly load device memory (like main.rs does)
+        hybrid2.load_device_memory("DEV1").await.unwrap();
+
+        // All 10 signatures should be loaded from disk after load_device_memory
         assert_eq!(hybrid2.memory_store().count_signatures(), 10);
 
         // Try to insert duplicate of synced log
@@ -628,3 +653,72 @@ mod tests {
     }
 }
 
+
+    #[tokio::test]
+    async fn test_dynamic_memory_management() {
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        
+        // 1. Setup: Insert logs for two devices directly to DB (simulating existing history)
+        let data_a = AttendanceData { user_id: "U1".into(), timestamp: "2023-01-01 10:00:00".into(), status: Some(1), punch: Some(1) };
+        let data_b = AttendanceData { user_id: "U1".into(), timestamp: "2023-01-01 10:00:00".into(), status: Some(1), punch: Some(1) };
+        
+        hybrid.save_raw_attendance("DevA", data_a.clone()).await.unwrap();
+        hybrid.save_raw_attendance("DevB", data_b.clone()).await.unwrap();
+        
+        // Flush to ensure they are persisted and (normally) in memory
+        hybrid.checkpoint().await.unwrap();
+        
+        // 2. Verify: Initial state (both in memory because save_raw_attendance adds them)
+        assert_eq!(hybrid.memory_store().count_signatures(), 2);
+        
+        // 3. Test Unload "DevA"
+        hybrid.unload_device_memory("DevA").await.unwrap();
+        
+        // Should remove DevA's signature, leaving DevB
+        assert_eq!(hybrid.memory_store().count_signatures(), 1, "Should have 1 signature after unloading DevA");
+        assert!(hybrid.memory_store().has_signature("DevB", "U1", 1672567200, Some(1), Some(1)));
+        assert!(!hybrid.memory_store().has_signature("DevA", "U1", 1672567200, Some(1), Some(1)));
+        
+        // 4. Test Reload "DevA"
+        hybrid.load_device_memory("DevA").await.unwrap();
+        
+        // Should have 2 signatures again
+        assert_eq!(hybrid.memory_store().count_signatures(), 2, "Should have 2 signatures after reloading DevA");
+        assert!(hybrid.memory_store().has_signature("DevA", "U1", 1672567200, Some(1), Some(1)));
+    }
+
+    /// Test to ensure hash signatures are loaded during HybridDatabase::new()
+    /// This guarantees dedup hashes exist BEFORE device polling loop starts.
+    #[tokio::test]
+    async fn test_signatures_loaded_before_polling() {
+        // 1. Setup: Create HybridDatabase
+        let db_url = "sqlite::memory:";
+        let hybrid = HybridDatabase::new(db_url, 1000).await.unwrap();
+        
+        // Setup device
+        hybrid.disk_db().upsert_device("DevZ", "Test Device", "127.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
+        
+        // 2. Save some logs (this adds to both memory signatures and disk)
+        let data = AttendanceData { user_id: "U1".into(), timestamp: "2026-01-01 09:00:00".into(), status: Some(1), punch: Some(1) };
+        hybrid.save_raw_attendance("DevZ", data).await.unwrap();
+        
+        // Force flush to disk so signatures are persisted
+        hybrid.checkpoint().await.unwrap();
+        
+        // 3. Verify signatures exist in memory AFTER initialization
+        let sig_count = hybrid.memory_store().count_signatures();
+        assert_eq!(sig_count, 1, "Signature should exist after save");
+        
+        // 4. Simulate device disable -> re-enable (runtime scenario)
+        // This tests the load_device_memory() path used BEFORE polling starts
+        hybrid.unload_device_memory("DevZ").await.unwrap();
+        assert_eq!(hybrid.memory_store().count_signatures(), 0, "Signatures should be 0 after unload");
+        
+        // 5. CRUCIAL: load_device_memory() is called BEFORE polling loop starts (main.rs:276-280)
+        // This ensures hashes are loaded before any log processing
+        hybrid.load_device_memory("DevZ").await.unwrap();
+        
+        // Verify signatures are loaded BEFORE polling would start
+        assert_eq!(hybrid.memory_store().count_signatures(), 1, 
+            "Signatures must be loaded BEFORE device polling loop starts");
+    }

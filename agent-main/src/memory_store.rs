@@ -8,7 +8,7 @@ use crate::models::{RawAttendanceLog, AttendanceData, SignatureRow};
 use std::sync::Arc;
 use std::hash::{Hash, Hasher};
 use rustc_hash::FxHasher;
-use log::warn;
+
 /// Maximum retry delay cap in seconds (5 minutes)
 const MAX_RETRY_DELAY_SECS: i64 = 300;
 
@@ -173,6 +173,42 @@ impl InMemoryStore {
             let sig = Self::compute_signature(&row.device_id, &row.user_id, row.timestamp, row.punch, row.status);
             self.signatures.insert(sig);
         }
+    }
+
+    /// Remove a batch of signatures (Runtime optimization: unload disabled devices)
+    pub fn remove_signatures(&self, rows: Vec<SignatureRow>) {
+        for row in rows {
+            let sig = Self::compute_signature(&row.device_id, &row.user_id, row.timestamp, row.punch, row.status);
+            self.signatures.remove(&sig);
+        }
+    }
+
+    /// Remove all logs and indices for a specific device (Runtime optimization)
+    /// Cleans up: logs, composite_index, and updates counts.
+    /// Does NOT remove signatures from the independent set (caller must use remove_signatures for that)
+    pub fn remove_logs_for_device(&self, device_id: &str) {
+        let mut to_remove = Vec::new();
+        
+        // 1. Identify logs to remove
+        for entry in self.logs.iter() {
+            if entry.device_id == device_id {
+                to_remove.push((*entry.key(), entry.composite_key_hash()));
+            }
+        }
+
+        // 2. Remove them
+        let count = to_remove.len();
+        let mut unsynced = self.unsynced_index.write();
+        let mut inflight = self.inflight_index.write();
+
+        for (id, composite_hash) in to_remove {
+            self.logs.remove(&id);
+            self.composite_index.remove(&composite_hash);
+            unsynced.remove(&id);
+            inflight.remove(&id);
+        }
+
+        self.count.fetch_sub(count, Ordering::SeqCst);
     }
 
     /// Load existing logs from disk into memory (startup recovery)
@@ -418,15 +454,14 @@ impl InMemoryStore {
                 .unwrap_or(false);
 
             if !should_remove {
-                // Log not persisted yet - skip removal but log warning
-                if let Some(log) = self.logs.get(&id) {
-                    warn!(
-                        "Attempted to sync unpersisted log id={} device={} - keeping in memory until disk checkpoint",
-                        id, log.device_id
-                    );
-                    // Keep in inflight state, will be retried
-                    continue;
+                // Log not persisted yet - mark as synced so checkpoint persists it correctly
+                if let Some(mut log) = self.logs.get_mut(&id) {
+                    log.is_synced = 1;
+                    log.updated_at = Some(chrono::Utc::now().naive_utc());
                 }
+                // Remove from inflight so it's not retried/reset
+                inflight.remove(&id);
+                continue;
             }
 
             // Get composite hash before removing
@@ -469,16 +504,23 @@ impl InMemoryStore {
     /// Format: "device_id:user_id:timestamp_unix"
     /// Uses rsplit to safely handle device_id containing colons
     pub fn get_id_by_composite_key(&self, composite_key: &str) -> Option<i64> {
-        // Split from right: timestamp (last), user_id (second-to-last), device_id (rest)
-        let mut parts = composite_key.rsplitn(3, ':');
-
-        // Extract in reverse order: timestamp, user_id, device_id
-        let timestamp_str = parts.next()?;
-        let user_id = parts.next()?;
-        let device_id = parts.next()?;
-
-        // Parse timestamp
+        // 1. Extract Timestamp (always the last part)
+        let (rest, timestamp_str) = composite_key.rsplit_once(':')?;
         let timestamp_unix: i64 = timestamp_str.parse().ok()?;
+
+        // 2. Extract Device ID and User ID
+        // Strategy: If device_id looks like a UUID (36 chars), split from left.
+        // Otherwise, assume strict "no colons in user_id" rule (legacy MAC address support).
+        let (device_id, user_id) = if rest.len() > 36 && rest.as_bytes()[36] == b':' {
+            // Assume UUID device_id
+            (&rest[..36], &rest[37..]) // Skip the colon
+        } else {
+            // Fallback: Split from right (preserves colons in device_id, assumes none in user_id)
+            match rest.rsplit_once(':') {
+                Some((d, u)) => (d, u),
+                None => return None,
+            }
+        };
 
         let hash = MemoryLog::compute_composite_hash(device_id, user_id, timestamp_unix);
         self.composite_index.get(&hash).map(|entry| *entry)

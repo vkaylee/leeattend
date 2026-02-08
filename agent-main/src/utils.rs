@@ -1,16 +1,22 @@
+/// Initializes the environment variables from the .env file, overriding existing ones.
+pub fn init_env() {
+    init_env_from_path(".env");
+}
+
+/// Initializes the environment variables from a specific path, overriding existing ones.
+pub fn init_env_from_path(path: impl AsRef<std::path::Path>) {
+    if let Ok(entries) = dotenvy::from_path_iter(path) {
+        for (key, value) in entries.flatten() {
+            unsafe {
+                std::env::set_var(key, value);
+            }
+        }
+    } else {
+        dotenvy::dotenv().ok();
+    }
+}
+
 /// Normalize employee ID by trimming whitespace and removing leading zeros if purely numeric
-///
-/// The central server expects normalized IDs without leading zeros for numeric IDs.
-/// This function matches the normalization logic in the API server.
-///
-/// Examples:
-/// - "0058" -> "58"
-/// - "0026" -> "26"
-/// - "  123  " -> "123"
-/// - "1234" -> "1234"
-/// - "0000" -> "0" (special case: all zeros becomes single zero)
-/// - "EMP001" -> "EMP001" (alphanumeric: preserved as-is)
-/// - "00A1" -> "00A1" (not purely numeric: preserved)
 pub fn normalize_employee_id(id: &str) -> String {
     let trimmed = id.trim();
     if trimmed.is_empty() {
