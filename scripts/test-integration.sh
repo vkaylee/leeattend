@@ -45,7 +45,11 @@ if [[ "${USE_DOCKER:-}" == "true" ]]; then
 fi
 
 echo -e "  Pre-compiling backend for integration tests (timeout: ${TIMEOUT_BUILD}s)..."
-run_with_timeout "$TIMEOUT_BUILD" bash -c "cd '$PROJECT_ROOT/apiserver' && SQLX_OFFLINE=true cargo test --no-run -j ${CARGO_BUILD_JOBS:-2}" > "$LOG_DIR/prebuild.log" 2>&1
+if [[ "${USE_DOCKER:-}" == "true" ]]; then
+    $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "SQLX_OFFLINE=true cargo test --no-run -j ${CARGO_BUILD_JOBS:-2}" > "$LOG_DIR/prebuild.log" 2>&1
+else
+    run_with_timeout "$TIMEOUT_BUILD" bash -c "cd '$PROJECT_ROOT/apiserver' && SQLX_OFFLINE=true cargo test --no-run -j ${CARGO_BUILD_JOBS:-2}" > "$LOG_DIR/prebuild.log" 2>&1
+fi
 prebuild_exit_code=$?
 
 export RUST_TEST_THREADS=$NUM_WORKERS

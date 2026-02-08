@@ -29,6 +29,8 @@ services:
       - RUST_LOG=info
       - SQLX_OFFLINE=true
       - SCCACHE_DIR=/sccache
+      - RUSTC_WRAPPER=sccache
+      - CARGO_INCREMENTAL=0
     volumes:
       - ./apiserver:/app
       - apiserver-target:/app/target
@@ -46,6 +48,8 @@ services:
       - "CENTRAL_SERVER_URL=ws://apiserver_test:3001/api/ws"
       - RUST_LOG=info
       - SCCACHE_DIR=/sccache
+      - RUSTC_WRAPPER=sccache
+      - CARGO_INCREMENTAL=0
     volumes:
       - ./agent-main:/app
       - agent-target:/app/target

@@ -180,6 +180,18 @@ export DOCKER_COMPOSE_CMD="docker compose -f $PROJECT_ROOT/docker-compose.test.y
 run_lint() {
     local filter=$1
     echo -e "\n${BLUE}🔹 Running Linting [$filter]...${NC}"
+
+    if [[ "${USE_DOCKER:-}" == "true" ]]; then
+        echo -e "${BLUE}🏗️ Ensuring Docker containers are up for Linting...${NC}"
+        local services="test_db"
+        if [[ "$filter" == *"apiserver"* || "$filter" == *"api"* ]]; then services="$services apiserver_test"; fi
+        if [[ "$filter" == *"agent"* || "$filter" == *"api"* ]]; then services="$services agent_test"; fi
+        if [[ "$filter" == *"web"* ]]; then services="$services web_test"; fi
+        if [[ "$filter" == "" || "$filter" == "all" || "$filter" == "api" ]]; then services="test_db apiserver_test agent_test web_test"; fi
+        
+        $DOCKER_COMPOSE_CMD up -d $services
+    fi
+
     ./scripts/test-lint.sh "$filter"
 }
 
