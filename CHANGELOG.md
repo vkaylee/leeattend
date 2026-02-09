@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Added
+- **Production Environment Setup**:
+    - **Dockerized Deployment**: Implemented a comprehensive `docker-compose.yml` for production, orchestrating API Server, Frontend (Nginx), PostgreSQL, and Redis.
+    - **Multi-Stage Dockerfiles**: Created optimized, security-focused Dockerfiles for `apiserver` and `webdashboard`.
+    - **Automated Reverse Proxy**: Configured Nginx within the frontend container to handle SPA routing and API/WebSocket proxying.
+    - **Production Config Template**: Added `.env.example.prod` for standardized environment management.
 - **Testing Infrastructure Enhancements**:
     - **Smart Worker Pool**: Implemented a real worker pool in `run_parallel_ordered` to strictly respect `NUM_WORKERS` limit.
     - **Parallel Execution Capping**: Added hard limits (1-2 workers) to prevent WSL Disk I/O overload and system freezes.

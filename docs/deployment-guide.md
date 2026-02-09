@@ -364,4 +364,47 @@ Bạn không cần cấu hình file `.env.test` thủ công. Hệ thống tự �
 
 ## 🔑 Security Considerations
 
+## 🐳 3. Docker Compose Production Deployment (Recommended)
+
+This is the most reliable way to deploy LeeAttend in a production environment. It packages all services, including the database and Redis, into a single, orchestrated environment.
+
+### Prerequisites
+- Docker and Docker Compose (V2) installed.
+- Domain name pointed to your server IP (optional but recommended).
+
+### 🚀 Setup Steps
+
+1. **Clone and Prepare**:
+   ```bash
+   # Copy the example environment file
+   cp .env.example.prod .env
+   ```
+
+2. **Configure Environment Variables**:
+   Edit the `.env` file and set secure values:
+   - `DB_PASSWORD`: Set a strong database password.
+   - `DB_USER`: (Optional) Change the default user.
+   - `RUST_LOG`: Set to `info` or `warn` for production.
+
+3. **Build and Launch**:
+   ```bash
+   # Build images and start services in detached mode
+   docker compose up --build -d
+   ```
+
+### 🏗 Architecture in Docker
+- **`webdashboard`**: React Frontend served by Nginx (Port 80).
+- **`apiserver`**: Rust API Server (Internal Port 3000).
+- **`db`**: PostgreSQL 16 database with persistent volume `postgres_data`.
+- **`redis`**: Redis 7 for task queuing with persistent volume `redis_data`.
+- **`agent-main`**: Edge Orchestrator connected via WebSocket.
+
+### 🔄 Automatic Proxy & Routing
+The Nginx server in the `webdashboard` container acts as a reverse proxy:
+- Requests to `/` go to the React App.
+- Requests to `/api` are forwarded to the `apiserver`.
+- WebSocket upgrades for `/api/ws` are handled automatically.
+
+---
+
 ## 🛡 Xử lý sự cố (Troubleshooting)

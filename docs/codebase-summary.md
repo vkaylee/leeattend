@@ -81,6 +81,11 @@ LeeAttend is a high-performance attendance and payroll system split into three p
     - **ESS Portal**: Self-service for employees to view attendance, payslips, and request leave.
     - **Performance**: Server-side pagination and fuzzy search for large employee datasets (5000+ records).
 
+### 5. Production Infrastructure (Dockerized)
+- **Containerization**: Standardized Dockerfiles for `apiserver` and `webdashboard` using multi-stage builds to minimize image size and maximize security.
+- **Orchestration**: `docker-compose.yml` provides a turn-key production environment including PostgreSQL, Redis, and automated Nginx reverse proxying.
+- **Reverse Proxy**: Nginx integration for serving static frontend assets and routing API/WebSocket traffic to the backend.
+
 ## 🛡️ Security & Multi-Tenancy
 
 - **Row-Level Isolation**: All tenant-specific tables (Time Entries, Employees, Shifts, etc.) enforce a mandatory `workspace_id`.
