@@ -3,6 +3,12 @@
 ## [Unreleased]
 
 ### Added
+- **Testing Infrastructure Enhancements**:
+    - **Smart Worker Pool**: Implemented a real worker pool in `run_parallel_ordered` to strictly respect `NUM_WORKERS` limit.
+    - **Parallel Execution Capping**: Added hard limits (1-2 workers) to prevent WSL Disk I/O overload and system freezes.
+    - **Comprehensive Summary Report**: Added a colorized summary table at the end of test runs showing Task Name, Status (PASSED/FAILED/TIMEOUT), and Duration.
+    - **Persistent Results Tracking**: Implemented file-based results tracking (`.test_logs/results.txt`) to preserve task metadata across subshells and phases.
+    - **Real-time Progress Indicator**: Added active task tracking with `[WAIT] Running: ...` status updates for better visibility during parallel execution.
 - **Webdashboard Testing Stabilization**:
     - **Mock API Architecture**: Implemented full backend mocking using Playwright Intercept (`page.route`). Frontend tests are now 100% decoupled from Rust backend and database.
     - **Strict 1-Worker Policy**: Playwright is now forced to run with a single worker in Docker to eliminate resource contention and flakiness.

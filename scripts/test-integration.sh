@@ -41,20 +41,18 @@ if [[ "${USE_DOCKER:-}" == "true" ]]; then
     fi
 
     APISERVER_INT_CMD="$DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL apiserver_test bash -c \"cargo nextest run --test '*' $TEST_PATTERN --no-tests=pass\""
-    PW_CMD="$DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx playwright test ${PW_ARGS:-} --workers 1\""
+    PW_CMD="$DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx playwright test ${PW_ARGS:-} --workers $NUM_WORKERS\""
 fi
 
 if [[ "$COMPONENT_FILTER" != *"web"* ]]; then
     echo -e "  Pre-compiling backend for integration tests (timeout: ${TIMEOUT_BUILD}s)..."
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "SQLX_OFFLINE=true cargo test --no-run -j ${CARGO_BUILD_JOBS:-2}" > "$LOG_DIR/prebuild.log" 2>&1
+        $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "SQLX_OFFLINE=true cargo test --no-run -j $CARGO_BUILD_JOBS" > "$LOG_DIR/prebuild.log" 2>&1
     else
-        run_with_timeout "$TIMEOUT_BUILD" bash -c "cd '$PROJECT_ROOT/apiserver' && SQLX_OFFLINE=true cargo test --no-run -j ${CARGO_BUILD_JOBS:-2}" > "$LOG_DIR/prebuild.log" 2>&1
+        run_with_timeout "$TIMEOUT_BUILD" bash -c "cd '$PROJECT_ROOT/apiserver' && SQLX_OFFLINE=true cargo test --no-run -j $CARGO_BUILD_JOBS" > "$LOG_DIR/prebuild.log" 2>&1
     fi
     prebuild_exit_code=$?
 fi
-
-export RUST_TEST_THREADS=$NUM_WORKERS
 
 # For Playwright, we use -g for grep if pattern is provided
 PW_ARGS=""

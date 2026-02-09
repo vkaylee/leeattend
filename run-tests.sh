@@ -368,6 +368,10 @@ if [[ "$DISABLE_RAM_DISK" != "true" ]]; then
     setup_ram_disk
 fi
 
+# Clear previous results
+mkdir -p "$PROJECT_ROOT/.test_logs"
+rm -f "$PROJECT_ROOT/.test_logs/results.txt"
+
 # Global timeout watchdog (background process)
 MAIN_PID=$$
 WATCHDOG_PID=""
@@ -403,6 +407,10 @@ run_integration "$FILTER:$PATTERN"
 
 # Kill watchdog since we succeeded
 kill "$WATCHDOG_PID" 2>/dev/null || true
+
+# Print final results summary
+source "$SCRIPT_DIR/scripts/test-utils.sh"
+print_summary_table
 
 echo -e "\n${BLUE}================================================================${NC}"
 echo -e "${GREEN}${BOLD}🎉 All tests for [$MODE] passed successfully!${NC}"

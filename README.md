@@ -79,10 +79,11 @@ Always use the unified orchestrator:
 ```
 
 ### Key Features
+- **Smart Worker Pool**: High-efficiency orchestrator that strictly respects `NUM_WORKERS` limits (auto-capped at 2 for WSL stability).
+- **Comprehensive Summary Report**: Generates a detailed, colorized report at the end of every run with per-task status and duration.
 - **Cargo Nextest**: Modern test runner for faster, isolated Rust tests.
 - **Docker Isolation**: All tests run inside containers. Database is internal (`test_db:5432`) with no host port mapping.
 - **RAM Disk Optimization**: Migrations, SQLx metadata, and logs are automatically moved to RAM (`/dev/shm`) to prevent WSL Disk I/O freezes.
-- **Offline Compilation**: Host-side builds use pre-prepared metadata, removing the need for a live database during compilation.
 
 ### ⚠️ WSL Performance Note
 On WSL2, direct test execution (`cargo test`) will likely freeze your system due to Disk I/O issues. **Always use `./run-tests.sh`**.

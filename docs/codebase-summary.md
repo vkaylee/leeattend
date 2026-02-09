@@ -105,6 +105,9 @@ LeeAttend is a high-performance attendance and payroll system split into three p
 LeeAttend employs a state-of-the-art testing infrastructure optimized for speed, reliability, and isolation, specifically tailored for WSL2 environments.
 
 - **Unified Orchestrator**: `./run-tests.sh` centralizes linting, unit testing, and integration/E2E tests.
+- **Smart Worker Pool**: High-efficiency orchestrator that strictly respects `NUM_WORKERS` limits (auto-capped at 2 for WSL/stability) using a real-time task queue.
+- **Comprehensive Summary Report**: Generates a detailed, colorized report at the end of every run, providing a snapshot of every task's status and execution duration.
+- **Real-time Monitoring**: Provides live progress updates for parallel tasks (`[WAIT] Running: ...`), improving visibility during long-running suites.
 - **Cargo Nextest**: High-performance test runner for Rust, providing better parallelism and isolated process execution for 2x faster suite completion.
 - **Full Containerization**: All tests (Unit & Integration) run inside Docker containers, ensuring a "clean-room" environment.
 - **Mock API Architecture (Frontend)**: Webdashboard E2E tests use **Playwright Intercept** (`page.route`) to mock all backend API calls. This enables 100% independent frontend testing without requiring a live Rust backend or database.

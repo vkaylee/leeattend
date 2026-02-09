@@ -74,15 +74,62 @@ if [ -z "${NUM_WORKERS:-}" ]; then
     # Default to 1/4 of available CPU cores to prevent system freeze
     export NUM_WORKERS=$(( CPU_CORES / 4 ))
     [ $NUM_WORKERS -lt 1 ] && export NUM_WORKERS=1
-    REASON="1/4 of System Cores"
+    
+    # Cap at 2 workers as requested by user
+    if [ $NUM_WORKERS -gt 2 ]; then
+        export NUM_WORKERS=2
+        REASON="Capped at 2 workers"
+    else
+        REASON="1/4 of System Cores"
+    fi
 
     echo -e "${YELLOW}⚙️ Auto-tuned NUM_WORKERS to $NUM_WORKERS ($REASON)${NC}"
 else
+    # Also cap user-provided NUM_WORKERS to 2 if it's higher
+    if [ "$NUM_WORKERS" -gt 2 ]; then
+        echo -e "${YELLOW}⚠️ Provided NUM_WORKERS ($NUM_WORKERS) exceeds limit. Capping to 2.${NC}"
+        export NUM_WORKERS=2
+    fi
     echo -e "${YELLOW}⚙️ Using provided NUM_WORKERS: $NUM_WORKERS${NC}"
 fi
 
 # Set Cargo Build Jobs to match workers to prevent thrashing
 export CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS:-$NUM_WORKERS}
+export RUST_TEST_THREADS=$NUM_WORKERS
+
+# Results Tracking
+export RESULTS_FILE="$LOG_DIR/results.txt"
+
+add_task_result() {
+    # Append to file: Name|Status|Duration
+    echo "$1|$2|$3" >> "$RESULTS_FILE"
+}
+
+print_summary_table() {
+    echo -e "\n${BOLD}================================================================${NC}"
+    echo -e "${BOLD}                     TEST EXECUTION SUMMARY                     ${NC}"
+    echo -e "${BOLD}================================================================${NC}"
+    printf "${BOLD}%-30s | %-10s | %-10s${NC}\n" "Task Name" "Status" "Duration"
+    echo "----------------------------------------------------------------"
+
+    if [ -f "$RESULTS_FILE" ]; then
+        while IFS='|' read -r name status duration; do
+            local status_fmt=""
+            if [ "$status" == "PASSED" ]; then
+                status_fmt="${GREEN}PASSED${NC}"
+            elif [ "$status" == "TIMED OUT" ]; then
+                status_fmt="${RED}TIMEOUT${NC}"
+            else
+                status_fmt="${RED}FAILED${NC}"
+            fi
+
+            printf "%-30s | %-10b | %-10s\n" "$name" "$status_fmt" "${duration}s"
+        done < "$RESULTS_FILE"
+    else
+        echo -e "${YELLOW}No results found in $RESULTS_FILE${NC}"
+    fi
+    echo -e "${BOLD}================================================================${NC}\n"
+}
 
 # Helper to print log sequentially
 show_log_sequential() {
@@ -136,111 +183,162 @@ run_parallel_ordered() {
         RUN_SERIAL=true
         echo -e "${YELLOW}⚠️ Low resources (Workers=1). Running tasks SEQUENTIALLY to prevent freeze.${NC}"
     else
-        echo -e "${BLUE}⚡ Running tasks in PARALLEL (Max $NUM_WORKERS workers implicit logic)${NC}"
+        echo -e "${BLUE}⚡ Running tasks in PARALLEL (Max $NUM_WORKERS workers)${NC}"
     fi
 
-    for task in "$@"; do
-        local name=$(echo "$task" | cut -d"|" -f2)
-        local dir=$(echo "$task" | cut -d"|" -f3)
-        local cmd=$(echo "$task" | cut -d"|" -f4-)
+    local tasks=("$@")
+    local total_tasks=${#tasks[@]}
+    local current_task=0
+    local running_pids=()
+    local running_logs=()
+    local running_names=()
+    local running_starts=()
+    local completed_count=0
 
-        # Filtering logic
-        if [ -n "$filter" ]; then
-             if echo "$name" | grep -qE "$filter" || echo "$dir" | grep -qE "$filter"; then
-                 : # Match found
-             else
-                 continue
-             fi
-        fi
+    while [ $completed_count -lt $total_tasks ]; do
+        # Start new tasks if we have room in the pool
+        while [ ${#running_pids[@]} -lt "$NUM_WORKERS" ] && [ $current_task -lt $total_tasks ]; do
+            local task="${tasks[$current_task]}"
+            current_task=$((current_task + 1))
 
-        local log_file="$LOG_DIR/${phase_name// /_}_$name.log"
-        echo -e "  [${BLUE}START${NC}] $name (timeout: ${task_timeout}s)"
+            local name=$(echo "$task" | cut -d"|" -f2)
+            local dir=$(echo "$task" | cut -d"|" -f3)
+            local cmd=$(echo "$task" | cut -d"|" -f4-)
+
+            # Filtering logic
+            if [ -n "$filter" ]; then
+                 if ! (echo "$name" | grep -qE "$filter" || echo "$dir" | grep -qE "$filter"); then
+                     completed_count=$((completed_count + 1))
+                     continue
+                 fi
+            fi
+
+            local log_file="$LOG_DIR/${phase_name// /_}_$name.log"
+            local start_time=$SECONDS
+            echo -e "  [${BLUE}START${NC}] $name (timeout: ${task_timeout}s)"
+
+            if [ "$RUN_SERIAL" = "true" ]; then
+                # SERIAL EXECUTION with timeout and low I/O priority
+                (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd") > "$log_file" 2>&1
+                local status=$?
+                local duration=$(( SECONDS - start_time ))
+
+                # Exit code 137 = killed by timeout (SIGKILL after timeout)
+                if [ $status -eq 137 ] || [ $status -eq 124 ]; then
+                    echo -e "\n${RED}⏰ Task \"$name\" TIMED OUT after ${task_timeout}s${NC}"
+                    add_task_result "$name" "TIMED OUT" "$duration"
+                    echo "=== TIMEOUT: Task exceeded ${task_timeout}s ===" >> "$log_file"
+                    cat "$log_file"
+                    echo -e "${RED}Aborting pipeline due to timeout.${NC}"
+                    print_summary_table
+                    exit 124
+                fi
+
+                # Special case for pytest
+                if [[ "$name" == *"agent-zk-worker"* && $status -eq 5 ]]; then status=0; fi
+
+                if [ $status -ne 0 ]; then
+                    echo -e "\n${RED}❌ Task \"$name\" failed with status $status.${NC}"
+                    add_task_result "$name" "FAILED" "$duration"
+                    cat "$log_file"
+                    echo -e "${RED}Aborting pipeline due to phase failure.${NC}"
+                    print_summary_table
+                    exit $status
+                else
+                    show_log_sequential "$name" "$log_file" $status
+                    add_task_result "$name" "PASSED" "$duration"
+                    completed_count=$((completed_count + 1))
+                fi
+            else
+                # PARALLEL EXECUTION with timeout and low I/O priority
+                (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd") > "$log_file" 2>&1 &
+                running_pids+=($!)
+                running_logs+=("$log_file")
+                running_names+=("$name")
+                running_starts+=("$start_time")
+            fi
+        done
 
         if [ "$RUN_SERIAL" = "true" ]; then
-            # SERIAL EXECUTION with timeout and low I/O priority
-            (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd") > "$log_file" 2>&1
-            local status=$?
-
-            # Exit code 137 = killed by timeout (SIGKILL after timeout)
-            if [ $status -eq 137 ] || [ $status -eq 124 ]; then
-                echo -e "\n${RED}⏰ Task \"$name\" TIMED OUT after ${task_timeout}s${NC}"
-                echo "=== TIMEOUT: Task exceeded ${task_timeout}s ===" >> "$log_file"
-                cat "$log_file"
-                echo -e "${RED}Aborting pipeline due to timeout.${NC}"
-                exit 124
-            fi
-
-            # Special case for pytest
-            if [[ "$name" == *"agent-zk-worker"* && $status -eq 5 ]]; then status=0; fi
-
-            if [ $status -ne 0 ]; then
-                echo -e "\n${RED}❌ Task \"$name\" failed with status $status.${NC}"
-                cat "$log_file"
-                echo -e "${RED}Aborting pipeline due to phase failure.${NC}"
-                exit $status
-            else
-                show_log_sequential "$name" "$log_file" $status
-            fi
-        else
-            # PARALLEL EXECUTION with timeout and low I/O priority
-            (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd") > "$log_file" 2>&1 &
-            pids+=($!)
-            logs+=("$log_file")
-            names+=("$name")
-        fi
-    done
-
-    if [ "$RUN_SERIAL" = "true" ]; then
-        echo -e "\n${GREEN}✅ $phase_name Completed Successfully!${NC}"
-        return 0
-    fi
-
-    if [ ${#pids[@]} -eq 0 ]; then
-        echo -e "${YELLOW}⚠️ No jobs matched the filter in this phase.${NC}"
-        return 0
-    fi
-
-    local phase_status=0
-    for i in "${!pids[@]}"; do
-        local pid="${pids[$i]}"
-        local log="${logs[$i]}"
-        local name="${names[$i]}"
-
-        echo -e "\n${BOLD}--- Real-time Log for: $name ---${NC}"
-        # Stream log if process is still running
-        if kill -0 "$pid" 2>/dev/null; then
-             tail -n +1 -f "$log" --pid="$pid"
-        else
-             cat "$log"
-        fi
-
-        wait "$pid"
-        local status=$?
-
-        # Exit code 137 = killed by timeout (SIGKILL)
-        if [ $status -eq 137 ] || [ $status -eq 124 ]; then
-            echo -e "\n${RED}⏰ Task \"$name\" TIMED OUT after ${task_timeout}s${NC}"
-            phase_status=124
             continue
         fi
 
-        # Special case for pytest: exit code 5 means "no tests collected"
-        if [[ "$name" == *"agent-zk-worker"* && $status -eq 5 ]]; then
-            status=0
-        fi
+        # Wait for at least one task to complete
+        if [ ${#running_pids[@]} -gt 0 ]; then
+            local still_running_pids=()
+            local still_running_logs=()
+            local still_running_names=()
+            local still_running_starts=()
+            local finished_any=false
 
-        show_log_sequential "$name" "$log" $status
+            for i in "${!running_pids[@]}"; do
+                local pid="${running_pids[$i]}"
+                local log="${running_logs[$i]}"
+                local name="${running_names[$i]}"
+                local start="${running_starts[$i]}"
 
-        if [ $status -ne 0 ]; then
-            echo -e "\n${RED}❌ Task \"$name\" failed with status $status.${NC}"
-            phase_status=$status
+                if ! kill -0 "$pid" 2>/dev/null; then
+                    # Task finished
+                    wait "$pid"
+                    local status=$?
+                    local duration=$(( SECONDS - start ))
+
+                    # Exit code 137 = killed by timeout (SIGKILL)
+                    if [ $status -eq 137 ] || [ $status -eq 124 ]; then
+                        echo -e "\n${RED}⏰ Task \"$name\" TIMED OUT after ${task_timeout}s${NC}"
+                        add_task_result "$name" "TIMED OUT" "$duration"
+                        cat "$log"
+                        print_summary_table
+                        exit 124
+                    fi
+
+                    # Special case for pytest: exit code 5 means "no tests collected"
+                    if [[ "$name" == *"agent-zk-worker"* && $status -eq 5 ]]; then
+                        status=0
+                    fi
+
+                    show_log_sequential "$name" "$log" $status
+
+                    if [ $status -ne 0 ]; then
+                        echo -e "\n${RED}❌ Task \"$name\" failed with status $status.${NC}"
+                        add_task_result "$name" "FAILED" "$duration"
+                        cat "$log"
+                        echo -e "${RED}Aborting pipeline due to phase failure.${NC}"
+                        print_summary_table
+                        exit $status
+                    fi
+
+                    add_task_result "$name" "PASSED" "$duration"
+                    completed_count=$((completed_count + 1))
+                    finished_any=true
+                else
+                    still_running_pids+=("$pid")
+                    still_running_logs+=("$log")
+                    still_running_names+=("$name")
+                    still_running_starts+=("$start")
+                fi
+            done
+
+            running_pids=("${still_running_pids[@]}")
+            running_logs=("${still_running_logs[@]}")
+            running_names=("${still_running_names[@]}")
+            running_starts=("${still_running_starts[@]}")
+
+            if [ "$finished_any" = "false" ]; then
+                local running_str=""
+                for n in "${running_names[@]}"; do
+                    running_str="${running_str}${n} "
+                done
+                echo -ne "  [${BLUE}WAIT${NC}] Running: $running_str \r"
+                sleep 1
+            fi
+        else
+            # No tasks running and no more tasks to start
+            if [ $current_task -ge $total_tasks ]; then
+                break
+            fi
         fi
     done
-
-    if [ $phase_status -ne 0 ]; then
-        echo -e "${RED}Aborting pipeline due to phase failure.${NC}"
-        exit $phase_status
-    fi
 
     echo -e "\n${GREEN}✅ $phase_name Completed Successfully!${NC}"
     return 0
