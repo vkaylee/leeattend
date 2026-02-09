@@ -2,6 +2,8 @@ use apiserver::queue::RedisPool;
 use apiserver::services::{AttendanceImportService, AttendanceLogService, ReportCoordinator};
 use apiserver::worker::{ReportWorker, WorkerConfig};
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
+use apiserver::openapi::ApiDoc;
+use utoipa::OpenApi;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
@@ -25,6 +27,14 @@ impl Drop for PortFileGuard {
 
 #[tokio::main]
 async fn main() {
+    // Check for openapi generation flag before everything else
+    if std::env::args().any(|arg| arg == "gen-openapi") {
+        let openapi_json = ApiDoc::openapi().to_pretty_json().expect("Failed to generate OpenAPI JSON");
+        println!("{}", openapi_json);
+        std::fs::write("openapi.json", openapi_json).expect("Failed to write openapi.json");
+        return;
+    }
+
     // Load .env and override system environment variables to avoid conflicts
     apiserver::utils::init_env();
 

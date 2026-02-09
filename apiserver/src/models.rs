@@ -1,9 +1,10 @@
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[derive(
-    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
+    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display, ToSchema,
 )]
 #[sqlx(type_name = "member_role_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -14,7 +15,7 @@ pub enum MemberRole {
 }
 
 #[derive(
-    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
+    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display, ToSchema,
 )]
 #[sqlx(type_name = "leave_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -25,7 +26,7 @@ pub enum LeaveStatus {
 }
 
 #[derive(
-    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
+    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display, ToSchema,
 )]
 #[sqlx(type_name = "adjustment_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -36,7 +37,7 @@ pub enum AdjustmentStatus {
 }
 
 #[derive(
-    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
+    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display, ToSchema,
 )]
 #[sqlx(type_name = "log_source_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -47,7 +48,7 @@ pub enum LogSource {
 }
 
 #[derive(
-    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
+    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display, ToSchema,
 )]
 #[sqlx(type_name = "import_job_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -59,7 +60,7 @@ pub enum ImportJobStatus {
 }
 
 #[derive(
-    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
+    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display, ToSchema,
 )]
 #[sqlx(type_name = "leave_transaction_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -70,7 +71,7 @@ pub enum LeaveTransactionType {
     CarryOver,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct WorkspaceStats {
     pub total_employees: i64,
     pub present_today: i64,
@@ -78,24 +79,24 @@ pub struct WorkspaceStats {
     pub estimated_monthly_payroll: rust_decimal::Decimal,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct EmployeeSearchQuery {
     pub q: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct PaginationParams {
     pub page: Option<i64>,
     pub limit: Option<i64>,
     pub q: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct GenericResponse {
     pub message: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct DeviceStatus {
     pub device_id: String,
     pub status: String,
@@ -103,7 +104,7 @@ pub struct DeviceStatus {
     pub error: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct AgentStatus {
     pub agent_id: String,
     pub last_seen: DateTime<Utc>,
@@ -111,7 +112,7 @@ pub struct AgentStatus {
     pub devices: Vec<DeviceStatus>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone, ToSchema)]
 pub struct AuthorizedAgent {
     pub id: String,
     pub name: String,
@@ -126,7 +127,7 @@ pub struct AuthorizedAgent {
     pub max_concurrent_workers: i32,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct UpdateAuthorizedAgentRequest {
     pub name: Option<String>,
     pub token: Option<String>,
@@ -135,7 +136,7 @@ pub struct UpdateAuthorizedAgentRequest {
     pub max_concurrent_workers: Option<i32>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct CreateAuthorizedAgentRequest {
     pub id: String,
     pub name: String,
@@ -144,12 +145,12 @@ pub struct CreateAuthorizedAgentRequest {
     pub max_concurrent_workers: Option<i32>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct TrustAgentRequest {
     pub is_trusted: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone, ToSchema)]
 pub struct Device {
     pub id: Uuid,
     pub agent_id: String,
@@ -165,7 +166,7 @@ pub struct Device {
     pub max_concurrent_workers: i32,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateDeviceRequest {
     pub agent_id: String,
     pub name: String,
@@ -176,7 +177,7 @@ pub struct CreateDeviceRequest {
     pub max_concurrent_workers: Option<i32>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateDeviceRequest {
     pub name: Option<String>,
     pub ip: Option<String>,
@@ -185,7 +186,7 @@ pub struct UpdateDeviceRequest {
     pub is_enabled: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display, ToSchema)]
 #[sqlx(type_name = "early_arrival_strategy_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum EarlyArrivalStrategy {

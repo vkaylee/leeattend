@@ -4,6 +4,7 @@ pub mod dev_initialization;
 pub mod domain;
 pub mod handlers;
 pub mod models;
+pub mod openapi;
 pub mod queue;
 pub mod repositories;
 pub mod services;

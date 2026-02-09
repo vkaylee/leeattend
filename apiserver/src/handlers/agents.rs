@@ -18,7 +18,7 @@ use tokio::time::Duration;
 use crate::agent_manager::AgentCommand;
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    AuthorizedAgent, CreateAuthorizedAgentRequest, CreateDeviceRequest, Device, TrustAgentRequest,
+    AgentStatus, AuthorizedAgent, CreateAuthorizedAgentRequest, CreateDeviceRequest, Device, TrustAgentRequest,
     UpdateAuthorizedAgentRequest, UpdateDeviceRequest,
 };
 use crate::services::AgentLogEntry;
@@ -199,6 +199,13 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
 
 // --- Agent Handlers ---
 
+#[utoipa::path(
+    get,
+    path = "/agents",
+    responses(
+        (status = 200, description = "List all agents status", body = [AgentStatus])
+    )
+)]
 pub async fn get_agents(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let agents = state.agent_manager.get_all_agents_status().await;
     Json(agents)
@@ -228,6 +235,13 @@ pub async fn send_command(
 
 // --- Device Management Handlers ---
 
+#[utoipa::path(
+    get,
+    path = "/devices",
+    responses(
+        (status = 200, description = "List all devices", body = [Device])
+    )
+)]
 pub async fn get_devices(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
