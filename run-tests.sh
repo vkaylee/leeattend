@@ -203,7 +203,8 @@ run_lint() {
         local need_web=false
         
         if [[ "$filter" == *"web"* ]]; then
-            services="web_test"
+            # We need apiserver_test for api-sync even if testing web
+            services="web_test apiserver_test"
             need_web=true
         elif [[ "$filter" == *"apiserver"* || "$filter" == *"agent"* || "$filter" == *"api"* ]]; then
             services="apiserver_test agent_test"
