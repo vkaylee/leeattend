@@ -1,6 +1,6 @@
 import path from "path";
 import react from "@vitejs/plugin-react";
-import { defineConfig, loadEnv, ConfigEnv } from "vite";
+import { defineConfig, ConfigEnv } from "vite";
 import fs from "fs";
 import net from "node:net";
 import { IncomingMessage, ServerResponse } from "http"; // Correct types for proxy handlers
@@ -29,9 +29,8 @@ async function findAvailablePort(
 
 //@ts-expect-error - legacy next.js config override during transition to vite
 export default defineConfig(async ({ mode }: ConfigEnv) => {
-  // Load env variables based on mode (development, production, etc.)
-  const env = loadEnv(mode, process.cwd());
-  const viteApiUrl = env.VITE_API_URL;
+  // Use process.env directly since we are in Docker and don't want to load .env files
+  const viteApiUrl = process.env.VITE_API_URL;
 
   // Tự động tìm port của API từ file Discovery nếu không có biến môi trường
   let apiPort = "";
@@ -94,7 +93,7 @@ export default defineConfig(async ({ mode }: ConfigEnv) => {
       },
     },
     server: {
-      host: env.VITE_DEV_SERVER_HOST || "127.0.0.1",
+      host: process.env.VITE_DEV_SERVER_HOST || "127.0.0.1",
       port,
       strictPort: true,
       allowedHosts: ["leeattend.nport.link"],

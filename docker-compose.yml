@@ -62,7 +62,7 @@ services:
   agent-main:
     build:
       context: ./agent-main
-      dockerfile: Dockerfile.test # Temporary until production Dockerfile is refined
+      dockerfile: Dockerfile
     restart: always
     depends_on:
       - apiserver

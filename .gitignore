@@ -11,6 +11,8 @@
 # Logs
 *.log
 logs/
+.test_logs/
+.env.bak
 agent_boot.log
 apiserver_boot.log
 debug.log

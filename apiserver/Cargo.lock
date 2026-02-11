@@ -55,7 +55,6 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "csv",
- "dotenvy",
  "futures-util",
  "http",
  "json-patch",

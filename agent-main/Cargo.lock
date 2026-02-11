@@ -9,7 +9,6 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "dashmap",
- "dotenvy",
  "env_logger",
  "futures",
  "futures-util",

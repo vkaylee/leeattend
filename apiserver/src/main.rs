@@ -6,6 +6,7 @@ use apiserver::openapi::ApiDoc;
 use utoipa::OpenApi;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
+use tokio::time::timeout;
 use tokio_util::sync::CancellationToken;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -35,8 +36,7 @@ async fn main() {
         return;
     }
 
-    // Load .env and override system environment variables to avoid conflicts
-    apiserver::utils::init_env();
+
 
     tracing_subscriber::registry()
         .with(
@@ -101,30 +101,39 @@ async fn main() {
     let attendance_service = Arc::new(attendance_service);
 
     // Initialize Redis for distributed job processing (optional)
+    tracing::info!("Initializing Redis connection...");
     let redis_pool = match std::env::var("REDIS_URL") {
-        Ok(url) => match RedisPool::new(&url).await {
-            Ok(pool) => {
-                // Verify connection with health check
-                match pool.health_check().await {
-                    Ok(()) => {
-                        tracing::info!("Redis connected for distributed processing");
-                        Some(pool)
+        Ok(url) => {
+            tracing::info!("Connecting to Redis at {}", url);
+            match timeout(std::time::Duration::from_secs(5), RedisPool::new(&url)).await {
+                Ok(pool_result) => match pool_result {
+                    Ok(pool) => {
+                         // Verify connection with health check
+                        tracing::info!("Redis pool created, checking health...");
+                        match timeout(std::time::Duration::from_secs(5), pool.health_check()).await {
+                            Ok(Ok(())) => {
+                                tracing::info!("Redis connected for distributed processing");
+                                Some(pool)
+                            }
+                            Ok(Err(e)) => {
+                                tracing::warn!("Redis health check failed: {}", e);
+                                None
+                            }
+                            Err(_) => {
+                                tracing::warn!("Redis health check timed out");
+                                None
+                            }
+                        }
                     }
                     Err(e) => {
-                        tracing::warn!(
-                            "Redis health check failed, falling back to sync processing: {}",
-                            e
-                        );
+                        tracing::warn!("Redis connection failed: {}", e);
                         None
                     }
+                },
+                Err(_) => {
+                    tracing::warn!("Redis connection timed out");
+                    None
                 }
-            }
-            Err(e) => {
-                tracing::warn!(
-                    "Redis connection failed, falling back to sync processing: {}",
-                    e
-                );
-                None
             }
         },
         Err(_) => {
@@ -132,6 +141,7 @@ async fn main() {
             None
         }
     };
+    tracing::info!("Redis initialization complete");
 
     // Roster cache (requires Redis; shared between app state and worker)
     let roster_cache = redis_pool.as_ref().map(|rpool| {
@@ -200,7 +210,10 @@ async fn main() {
                     listener = Some(l);
                     break;
                 }
-                Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => continue,
+                Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
+                    tracing::warn!("Port {} is in use, trying next port", port);
+                    continue
+                },
                 Err(e) => panic!("Failed to bind to {}: {}", addr_str, e),
             }
         }
