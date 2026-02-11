@@ -63,7 +63,7 @@ services:
       - SQLX_OFFLINE=true
     volumes:
       - ./apiserver:/app
-      - apiserver-cargo-registry:/usr/local/cargo/registry
+      - ${CARGO_HOME:-${HOME}/.cargo}/registry:/usr/local/cargo/registry
       - apiserver-target:/app/target
       - ./apiserver/storage:/app/storage
     expose:
@@ -88,7 +88,7 @@ services:
       - RUST_LOG=info,sqlx::query=error
     volumes:
       - ./agent-main:/app
-      - agent-cargo-registry:/usr/local/cargo/registry
+      - ${CARGO_HOME:-${HOME}/.cargo}/registry:/usr/local/cargo/registry
       - agent-target:/app/target
       - agent_dev_data:/app/data
 
@@ -129,8 +129,6 @@ volumes:
   postgres_dev_data:
   redis_dev_data:
   agent_dev_data:
-  apiserver-cargo-registry:
   apiserver-target:
-  agent-cargo-registry:
   agent-target:
   webdashboard-node-modules:
