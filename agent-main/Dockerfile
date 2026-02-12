@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Multi-stage build for Rust Agent
-FROM rust:1.85 AS builder
+FROM rust:1.88 AS builder
 
 WORKDIR /app
 RUN apt-get update && apt-get install -y build-essential pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
