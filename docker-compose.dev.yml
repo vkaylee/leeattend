@@ -50,7 +50,7 @@ services:
       - WORKER_MAX_CONCURRENT=4
       - ALLOWED_ORIGINS=http://localhost:3000,https://tauri.localhost,http://localhost:3001
       - RUST_LOG=apiserver=debug,tower_http=debug,sqlx=info
-      - JWT_SECRET=supersecret
+      - JWT_SECRET=${JWT_SECRET:-changeme}
       - AGENT_LOG_FLUSH_MS=100
       - AGENT_LOG_BATCH_SIZE=100
       - AGENT_LOG_BUFFER_CAPACITY=1000

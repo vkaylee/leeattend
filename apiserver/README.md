@@ -39,13 +39,13 @@ To remove the service, run `uninstall_service.bat` as Administrator.
 ### Running the Server
 
 #### Development mode (with auto-reload)
-We recommend using `cargo-watch` for development:
+We recommend using [bacon](https://github.com/Canop/bacon) for development. It's more efficient than `cargo-watch` and handles process termination better:
 ```bash
-# Install cargo-watch if you haven't
-cargo install cargo-watch
+# Install bacon if you haven't
+cargo install bacon
 
-# Run with auto-reload
-cargo watch -x run
+# Run with auto-reload (using configuration in bacon.toml)
+bacon run
 ```
 
 #### Standard run

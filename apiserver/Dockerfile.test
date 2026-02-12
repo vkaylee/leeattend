@@ -1,4 +1,4 @@
-FROM rust:latest AS chef
+FROM rust:1.85 AS chef
 RUN cargo install cargo-chef
 # Install system dependencies
 RUN apt-get update && apt-get install -y build-essential clang mold libssl-dev pkg-config postgresql-client curl tar && rm -rf /var/lib/apt/lists/*
@@ -19,8 +19,8 @@ RUN cargo chef cook --tests --recipe-path recipe.json
 FROM chef AS builder
 WORKDIR /workspace/apiserver
 # Install extra tools only needed for the runner
-RUN cargo install sqlx-cli --no-default-features --features postgres
-RUN curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C /usr/local/bin
+RUN cargo install sqlx-cli --locked --no-default-features --features postgres
+RUN curl -LsSf https://get.nexte.st/0.9.96/linux | tar zxf - -C /usr/local/bin
 RUN curl -L https://github.com/mozilla/sccache/releases/download/v0.8.2/sccache-v0.8.2-x86_64-unknown-linux-musl.tar.gz | tar xz \
     && mv sccache-v0.8.2-x86_64-unknown-linux-musl/sccache /usr/local/bin/sccache \
     && chmod +x /usr/local/bin/sccache

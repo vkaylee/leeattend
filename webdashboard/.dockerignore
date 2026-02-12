@@ -3,3 +3,6 @@ target/
 .git/
 .test_logs/
 dist/
+.env*
+*.log
+.DS_Store

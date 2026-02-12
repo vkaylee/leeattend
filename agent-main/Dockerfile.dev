@@ -1,10 +1,10 @@
-FROM rust:latest
+FROM rust:1.85
 
 # Install clang and mold
-# mold is available in Debian Bookworm (which rust:latest is based on)
+# mold is available in Debian Bookworm (which rust:1.85 is based on)
 RUN apt-get update && apt-get install -y clang mold && rm -rf /var/lib/apt/lists/*
 
-# Pre-install cargo-watch for development
-RUN cargo install cargo-watch
+# Pre-install bacon for development
+RUN cargo install bacon
 
 WORKDIR /app
