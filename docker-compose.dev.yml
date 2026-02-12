@@ -7,8 +7,6 @@ services:
       POSTGRES_DB: ${DB_NAME:-leeatt}
       POSTGRES_USER: ${DB_USER:-lee}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-password_required}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,8 +19,6 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     command: redis-server --appendonly yes
-    ports:
-      - "6379:6379"
     volumes:
       - redis_dev_data:/data
     healthcheck:
@@ -44,15 +40,13 @@ services:
         condition: service_healthy
     command: >
       bash -c "
-        cargo watch --ignore .api_port -x run
+        bacon run
       "
     environment:
       - API_HOST=0.0.0.0
       - API_PORT=3000
-      - DATABASE_URL=postgres://leeatt:leeattp@192.168.2.5:5434/leeattzkt
-      # - DATABASE_URL=postgres://${DB_USER:-lee}:${DB_PASSWORD:-password_required}@db:5432/${DB_NAME:-leeatt}
-      - REDIS_URL=redis://192.168.2.198:6379
-      # - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgres://${DB_USER:-lee}:${DB_PASSWORD:-password_required}@db:5432/${DB_NAME:-leeatt}
+      - REDIS_URL=redis://redis:6379
       - WORKER_MAX_CONCURRENT=4
       - ALLOWED_ORIGINS=http://localhost:3000,https://tauri.localhost,http://localhost:3001
       - RUST_LOG=apiserver=debug,tower_http=debug,sqlx=info
@@ -79,7 +73,7 @@ services:
       - apiserver
     command: >
       bash -c "
-        cargo watch --ignore .api_port -x run
+        bacon run
       "
     environment:
       - CENTRAL_SERVER_URL=ws://apiserver:3000/api/ws
