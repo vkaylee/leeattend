@@ -37,7 +37,7 @@ services:
       redis:
         condition: service_healthy
     environment:
-      - DATABASE_URL=postgres://${DB_USER:-admin}:${DB_PASSWORD:-password_required}@db:5432/${DB_NAME:-leeattend}
+      - DATABASE_URL=${DATABASE_URL:-postgres://${DB_USER:-admin}:${DB_PASSWORD:-password_required}@db:5432/${DB_NAME:-leeattend}}
       - REDIS_URL=redis://redis:6379
       - API_HOST=0.0.0.0
       - API_PORT=3000

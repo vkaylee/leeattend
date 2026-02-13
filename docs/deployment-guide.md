@@ -385,6 +385,7 @@ This is the most reliable way to deploy LeeAttend in a production environment. I
    - `DB_PASSWORD`: Set a strong database password.
    - `JWT_SECRET`: Set a secure JWT secret.
    - `DB_NAME`, `DB_USER`: (Optional) Change defaults.
+   - `DATABASE_URL`: (Optional) Override full connection string, takes priority over `DB_*` vars.
 
 3. **Build and Launch**:
    ```bash
