@@ -70,11 +70,10 @@ impl Database {
     pub async fn upsert_agent_config(&self, key: &str, value: &str) -> Result<(), Error> {
         sqlx::query(
             r#"
-            INSERT INTO agent_config (key, value, updated_at)
-            VALUES (?, ?, CURRENT_TIMESTAMP)
+            INSERT INTO agent_config (key, value)
+            VALUES (?, ?)
             ON CONFLICT(key) DO UPDATE SET
-                value = excluded.value,
-                updated_at = CURRENT_TIMESTAMP
+                value = excluded.value
             "#,
         )
         .bind(key)
@@ -94,19 +93,20 @@ impl Database {
         Ok(value)
     }
 
+    /// Clear local config on startup to sync fresh from Server
+    /// - Clears ALL agent_config entries (agent will use defaults until ConfigPush)
+    /// - Deactivates all devices (wait for fresh device list from Server)
     pub async fn clear_startup_config(&self) -> Result<(), Error> {
-        sqlx::query(
-            r#"
-            DELETE FROM agent_config
-            WHERE key IN (
-                'central_server_url', 'central_api_key', 'workspace_id',
-                'sync_interval_secs', 'poll_interval_secs', 'log_level',
-                'max_retries', 'agent_id', 'agent_name'
-            )
-            "#,
-        )
-        .execute(&self.pool)
-        .await?;
+        // Clear all config entries
+        sqlx::query("DELETE FROM agent_config")
+            .execute(&self.pool)
+            .await?;
+
+        // Deactivate all devices
+        sqlx::query("UPDATE devices SET is_active = 0 WHERE is_active = 1")
+            .execute(&self.pool)
+            .await?;
+
         Ok(())
     }
 
