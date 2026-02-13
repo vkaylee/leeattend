@@ -3,85 +3,13 @@ use parking_lot::RwLock;
 use std::collections::{BTreeSet, HashMap};
 use std::sync::atomic::{AtomicI64, AtomicUsize, AtomicBool, Ordering};
 use std::time::Instant;
-use chrono::NaiveDateTime;
-use crate::models::{RawAttendanceLog, AttendanceData, SignatureRow};
 use std::sync::Arc;
 use std::hash::{Hash, Hasher};
 use rustc_hash::FxHasher;
+use crate::models::{RawAttendanceLog, AttendanceData, SignatureRow};
 
-/// Maximum retry delay cap in seconds (5 minutes)
-const MAX_RETRY_DELAY_SECS: i64 = 300;
-
-/// Maximum bit shift for exponential backoff (2^8 = 256s, then capped to 300s)
-const MAX_RETRY_SHIFT: i64 = 8;
-
-/// Jitter percentage (±10%)
-const JITTER_PERCENT: f64 = 0.10;
-
-/// Calculate exponential backoff delay with jitter.
-/// Formula: min(2^retry_count, MAX_RETRY_DELAY_SECS) ± 10% jitter
-///
-/// Delay progression: 1s → 2s → 4s → 8s → 16s → 32s → 64s → 128s → 256s → 300s (capped)
-fn calculate_backoff_with_jitter(retry_count: i64) -> i64 {
-    use rand::Rng;
-
-    // Base delay: 2^retry_count, capped at MAX_RETRY_SHIFT bits
-    let base_delay = (1i64 << retry_count.min(MAX_RETRY_SHIFT)).min(MAX_RETRY_DELAY_SECS);
-
-    // Apply ±10% jitter to prevent thundering herd
-    let jitter_range = (base_delay as f64 * JITTER_PERCENT) as i64;
-    if jitter_range > 0 {
-        let jitter = rand::thread_rng().gen_range(-jitter_range..=jitter_range);
-        // Ensure delay is at least 1 second
-        (base_delay + jitter).max(1)
-    } else {
-        base_delay
-    }
-}
-
-/// In-memory log with sync status and persistence tracking
-#[derive(Clone, Debug)]
-pub struct MemoryLog {
-    pub id: i64,
-    pub device_id: String,
-    pub user_id: String,
-    pub timestamp: i64,  // Unix timestamp (UTC seconds)
-    pub status: Option<i32>,
-    pub punch: Option<i32>,
-    pub is_synced: i64,           // 0=unsynced, 1=synced, 2=in_flight
-    pub created_at: NaiveDateTime,
-    pub updated_at: Option<NaiveDateTime>,
-    pub retry_count: i64,
-    pub persisted: bool,          // true if already on disk
-}
-
-impl MemoryLog {
-    /// Generate composite key string for ACK correlation
-    /// Format: "device_id:user_id:timestamp_unix"
-    pub fn composite_key(&self) -> String {
-        format!(
-            "{}:{}:{}",
-            self.device_id,
-            self.user_id,
-            self.timestamp
-        )
-    }
-
-    /// Compute hash of composite key components for memory index
-    /// Uses FxHasher for fast, deterministic hashing
-    pub fn composite_key_hash(&self) -> u64 {
-        Self::compute_composite_hash(&self.device_id, &self.user_id, self.timestamp)
-    }
-
-    /// Static method to compute composite key hash from components
-    fn compute_composite_hash(device_id: &str, user_id: &str, timestamp: i64) -> u64 {
-        let mut hasher = FxHasher::default();
-        device_id.hash(&mut hasher);
-        user_id.hash(&mut hasher);
-        timestamp.hash(&mut hasher);
-        hasher.finish()
-    }
-}
+use super::types::{MemoryLog, StoreError};
+use super::backoff::calculate_backoff_with_jitter;
 
 /// In-memory store for attendance logs with FIFO ordering
 pub struct InMemoryStore {
@@ -95,28 +23,6 @@ pub struct InMemoryStore {
     count: AtomicUsize,
     max_capacity: usize,
 }
-
-/// Error types for store operations
-#[derive(Debug)]
-pub enum StoreError {
-    CapacityExceeded,
-    InvalidTimestamp,
-    NotFound,
-    Duplicate,
-}
-
-impl std::fmt::Display for StoreError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            StoreError::CapacityExceeded => write!(f, "Store capacity exceeded"),
-            StoreError::InvalidTimestamp => write!(f, "Invalid timestamp format"),
-            StoreError::NotFound => write!(f, "Log not found"),
-            StoreError::Duplicate => write!(f, "Duplicate log rejected"),
-        }
-    }
-}
-
-impl std::error::Error for StoreError {}
 
 impl InMemoryStore {
     /// Create a new in-memory store with specified capacity
