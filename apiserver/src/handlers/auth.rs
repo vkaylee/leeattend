@@ -25,7 +25,7 @@ pub async fn register(
     let existing_user = match user_repository::get_user_by_email(&state.db, &req.email).await {
         Ok(u) => u,
         Err(e) => {
-            eprintln!("Error checking existing user: {:?}", e);
+            eprintln!("Error checking existing user: {e:?}");
             return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
         }
     };
@@ -112,7 +112,7 @@ pub async fn login(
         Ok(Some(u)) => u,
         Ok(None) => return (StatusCode::UNAUTHORIZED, "Invalid email or password").into_response(),
         Err(e) => {
-            eprintln!("Error fetching user: {:?}", e);
+            eprintln!("Error fetching user: {e:?}");
             return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
         }
     };
@@ -170,7 +170,7 @@ pub async fn change_password(
         Ok(Some(u)) => u,
         Ok(None) => return (StatusCode::NOT_FOUND, "User not found").into_response(),
         Err(e) => {
-            eprintln!("Error fetching user for password change: {:?}", e);
+            eprintln!("Error fetching user for password change: {e:?}");
             return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response();
         }
     };

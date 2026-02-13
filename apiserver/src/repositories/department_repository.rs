@@ -65,19 +65,19 @@ pub async fn update_department(
     let mut next_bind = 1;
 
     if name.is_some() {
-        updates.push(format!("name = ${}", next_bind));
+        updates.push(format!("name = ${next_bind}"));
         next_bind += 1;
     }
     if description.is_some() {
-        updates.push(format!("description = ${}", next_bind));
+        updates.push(format!("description = ${next_bind}"));
         next_bind += 1;
     }
     if manager_id.is_some() {
-        updates.push(format!("manager_id = ${}", next_bind));
+        updates.push(format!("manager_id = ${next_bind}"));
         next_bind += 1;
     }
     if default_working_pattern_id.is_some() {
-        updates.push(format!("default_working_pattern_id = ${}", next_bind));
+        updates.push(format!("default_working_pattern_id = ${next_bind}"));
         next_bind += 1;
     }
 

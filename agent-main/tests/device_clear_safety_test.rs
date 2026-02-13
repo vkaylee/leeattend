@@ -150,6 +150,6 @@ fn test_safety_requirement_documented() {
 
     // This test always passes - it's documentation
     for rule in safety_rules {
-        println!("✅ SAFETY RULE: {}", rule);
+        println!("✅ SAFETY RULE: {rule}");
     }
 }

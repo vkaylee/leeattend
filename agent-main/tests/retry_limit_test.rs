@@ -164,8 +164,8 @@ async fn test_valid_retries_not_moved_to_dlq() {
     // Insert 3 logs with different retry counts
     for i in 1..=3 {
         let data = AttendanceData {
-            user_id: format!("U{}", i),
-            timestamp: format!("2026-01-28 10:0{}:00", i),
+            user_id: format!("U{i}"),
+            timestamp: format!("2026-01-28 10:0{i}:00"),
             status: Some(1),
             punch: Some(0),
         };
@@ -208,7 +208,7 @@ async fn test_batch_dlq_move() {
     // Insert 20 logs
     for i in 1..=20 {
         let data = AttendanceData {
-            user_id: format!("U{:03}", i),
+            user_id: format!("U{i:03}"),
             timestamp: format!("2026-01-28 11:{:02}:00", i % 60),
             status: Some(1),
             punch: Some(0),

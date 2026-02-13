@@ -314,7 +314,7 @@ impl PairingService {
 /// Convert local date/time to timezone-aware DateTime, handling DST edge cases
 fn local_to_tz(tz: &Tz, date: NaiveDate, h: u32, m: u32, s: u32) -> Result<DateTime<Tz>, sqlx::Error> {
     let naive = date.and_hms_opt(h, m, s)
-        .ok_or_else(|| sqlx::Error::Protocol(format!("Invalid time: {}:{}:{}", h, m, s)))?;
+        .ok_or_else(|| sqlx::Error::Protocol(format!("Invalid time: {h}:{m}:{s}")))?;
     match tz.from_local_datetime(&naive) {
         chrono::LocalResult::Single(dt) => Ok(dt),
         chrono::LocalResult::Ambiguous(dt, _) => Ok(dt),

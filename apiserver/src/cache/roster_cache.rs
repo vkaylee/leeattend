@@ -122,7 +122,7 @@ pub async fn build_roster_data(pool: &PgPool, workspace_id: Uuid) -> Result<Arc<
     )
     .fetch_all(pool)
     .await
-    .map_err(|e| format!("shifts: {}", e))?;
+    .map_err(|e| format!("shifts: {e}"))?;
 
     let shifts: HashMap<Uuid, RosterShift> = shift_rows
         .into_iter()
@@ -156,7 +156,7 @@ pub async fn build_roster_data(pool: &PgPool, workspace_id: Uuid) -> Result<Arc<
     )
     .fetch_all(pool)
     .await
-    .map_err(|e| format!("fixed_assignments: {}", e))?;
+    .map_err(|e| format!("fixed_assignments: {e}"))?;
 
     let mut fixed_assignments: HashMap<Uuid, Vec<RosterFixedAssignment>> = HashMap::new();
     for r in fixed_rows {
@@ -184,7 +184,7 @@ pub async fn build_roster_data(pool: &PgPool, workspace_id: Uuid) -> Result<Arc<
     )
     .fetch_all(pool)
     .await
-    .map_err(|e| format!("pattern_assignments: {}", e))?;
+    .map_err(|e| format!("pattern_assignments: {e}"))?;
 
     let mut pattern_assignments: HashMap<Uuid, Vec<RosterPatternEntry>> = HashMap::new();
     for r in pattern_rows {
@@ -215,7 +215,7 @@ pub async fn build_roster_data(pool: &PgPool, workspace_id: Uuid) -> Result<Arc<
     )
     .fetch_all(pool)
     .await
-    .map_err(|e| format!("dept_patterns: {}", e))?;
+    .map_err(|e| format!("dept_patterns: {e}"))?;
 
     let mut dept_patterns: HashMap<Uuid, Vec<RosterDeptPattern>> = HashMap::new();
     for r in dept_pattern_rows {
@@ -244,7 +244,7 @@ pub async fn build_roster_data(pool: &PgPool, workspace_id: Uuid) -> Result<Arc<
     )
     .fetch_all(pool)
     .await
-    .map_err(|e| format!("dept_fixed_shifts: {}", e))?;
+    .map_err(|e| format!("dept_fixed_shifts: {e}"))?;
 
     let mut dept_fixed_shifts: HashMap<Uuid, Vec<RosterDeptFixedShift>> = HashMap::new();
     for r in dept_fixed_rows {
@@ -264,7 +264,7 @@ pub async fn build_roster_data(pool: &PgPool, workspace_id: Uuid) -> Result<Arc<
             workspace_id,
         )
         .await
-        .map_err(|e| format!("active_rules: {}", e))?;
+        .map_err(|e| format!("active_rules: {e}"))?;
 
     // Q7 — rule_patterns
     let rule_pattern_rows = sqlx::query!(
@@ -280,7 +280,7 @@ pub async fn build_roster_data(pool: &PgPool, workspace_id: Uuid) -> Result<Arc<
     )
     .fetch_all(pool)
     .await
-    .map_err(|e| format!("rule_patterns: {}", e))?;
+    .map_err(|e| format!("rule_patterns: {e}"))?;
 
     let rule_patterns: HashMap<(Uuid, i32), Option<Uuid>> = rule_pattern_rows
         .into_iter()
@@ -299,7 +299,7 @@ pub async fn build_roster_data(pool: &PgPool, workspace_id: Uuid) -> Result<Arc<
     )
     .fetch_all(pool)
     .await
-    .map_err(|e| format!("dept_history: {}", e))?;
+    .map_err(|e| format!("dept_history: {e}"))?;
 
     let mut dept_history: HashMap<Uuid, Vec<RosterDeptHistory>> = HashMap::new();
     for r in dept_history_rows {
@@ -363,7 +363,7 @@ impl RosterCache {
 
     /// Redis key for the version stamp of a workspace's roster data.
     fn version_key(workspace_id: Uuid) -> String {
-        format!("roster:version:{}", workspace_id)
+        format!("roster:version:{workspace_id}")
     }
 
     /// Read the current version stamp from Redis.

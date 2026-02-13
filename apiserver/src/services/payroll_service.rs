@@ -365,7 +365,7 @@ impl PayrollService {
                         employee_id: emp_id,
                         status: "error".to_string(),
                         payslip: None,
-                        error_message: Some(format!("HTTP Error: {}", status)),
+                        error_message: Some(format!("HTTP Error: {status}")),
                     },
                 }
             });
@@ -379,7 +379,7 @@ impl PayrollService {
 /// Convert local date/time to UTC DateTime, handling DST edge cases
 fn local_to_utc(tz: &Tz, date: NaiveDate, h: u32, m: u32, s: u32) -> Result<DateTime<Utc>, String> {
     let naive = date.and_hms_opt(h, m, s)
-        .ok_or_else(|| format!("Invalid time: {}:{}:{}", h, m, s))?;
+        .ok_or_else(|| format!("Invalid time: {h}:{m}:{s}"))?;
     match tz.from_local_datetime(&naive) {
         chrono::LocalResult::Single(dt) => Ok(dt.with_timezone(&Utc)),
         chrono::LocalResult::Ambiguous(dt, _) => Ok(dt.with_timezone(&Utc)),

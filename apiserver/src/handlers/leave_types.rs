@@ -47,7 +47,7 @@ pub async fn list_leave_types(
     .await
     .map(Json)
     .map_err(|e| {
-        eprintln!("Error fetching leave types: {}", e);
+        eprintln!("Error fetching leave types: {e}");
         StatusCode::INTERNAL_SERVER_ERROR
     })
 }
@@ -85,7 +85,7 @@ pub async fn create_leave_type(
     match result {
         Ok(lt) => (StatusCode::CREATED, Json(lt)).into_response(),
         Err(e) => {
-            eprintln!("Error creating leave type: {}", e);
+            eprintln!("Error creating leave type: {e}");
             (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
         }
     }
@@ -122,7 +122,7 @@ pub async fn update_leave_type_config(
         Ok(Some(lt)) => (StatusCode::OK, Json(lt)).into_response(),
         Ok(None) => (StatusCode::NOT_FOUND, "Leave type not found").into_response(),
         Err(e) => {
-            eprintln!("Error updating leave type: {}", e);
+            eprintln!("Error updating leave type: {e}");
             (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
         }
     }
@@ -154,7 +154,7 @@ pub async fn delete_leave_type(
         Ok(res) if res.rows_affected() > 0 => StatusCode::NO_CONTENT.into_response(),
         Ok(_) => (StatusCode::NOT_FOUND, "Leave type not found").into_response(),
         Err(e) => {
-            eprintln!("Error deleting leave type: {}", e);
+            eprintln!("Error deleting leave type: {e}");
             (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
         }
     }

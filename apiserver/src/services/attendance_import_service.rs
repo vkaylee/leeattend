@@ -127,7 +127,7 @@ impl AttendanceImportService {
                     job_id,
                     job.processed_rows,
                     ImportJobStatus::Failed,
-                    Some(format!("Could not read file: {:?}", e)),
+                    Some(format!("Could not read file: {e:?}")),
                 )
                 .await;
                 return Err(());
@@ -178,8 +178,7 @@ impl AttendanceImportService {
 
                 if emp_id_number.is_empty() || emp_dt_str.is_empty() {
                     errors.push(format!(
-                        "Dòng {}: Thiếu mã nhân viên hoặc thời gian",
-                        current_line
+                        "Dòng {current_line}: Thiếu mã nhân viên hoặc thời gian"
                     ));
                     continue;
                 }
@@ -199,8 +198,7 @@ impl AttendanceImportService {
                     }
                     Err(e) => {
                         errors.push(format!(
-                            "Dòng {} (NV {}): {} [Dữ liệu gốc: '{}']",
-                            current_line, emp_id_number, e, emp_dt_str
+                            "Dòng {current_line} (NV {emp_id_number}): {e} [Dữ liệu gốc: '{emp_dt_str}']"
                         ));
                     }
                 };
@@ -308,7 +306,7 @@ impl AttendanceImportService {
         }
 
         if skipped_rows > 0 {
-            errors.push(format!("Đã bỏ qua {} dòng (trùng lặp hoặc NV không tồn tại).", skipped_rows));
+            errors.push(format!("Đã bỏ qua {skipped_rows} dòng (trùng lặp hoặc NV không tồn tại)."));
         }
 
         let status = if processed_rows > 0 || errors.is_empty() {
@@ -354,7 +352,7 @@ impl AttendanceImportService {
                     job_id,
                     0,
                     ImportJobStatus::Failed,
-                    Some(format!("Could not read file: {:?}", e)),
+                    Some(format!("Could not read file: {e:?}")),
                 )
                 .await;
                 return Err(());
@@ -390,8 +388,7 @@ impl AttendanceImportService {
 
                 if id_number.is_empty() || full_name.is_empty() {
                     errors.push(format!(
-                        "Dòng {}: Thiếu ID hoặc Tên nhân viên",
-                        current_line
+                        "Dòng {current_line}: Thiếu ID hoặc Tên nhân viên"
                     ));
                     continue;
                 }
@@ -462,9 +459,9 @@ impl AttendanceImportService {
         
         let mut final_log = if errors.is_empty() { None } else { Some(errors.join("\n")) };
         if skipped_rows > 0 {
-             let skip_msg = format!("Đã bỏ qua {} nhân viên trùng mã.", skipped_rows);
+             let skip_msg = format!("Đã bỏ qua {skipped_rows} nhân viên trùng mã.");
              final_log = Some(match final_log {
-                 Some(log) => format!("{}\n{}", log, skip_msg),
+                 Some(log) => format!("{log}\n{skip_msg}"),
                  None => skip_msg
              });
         }
@@ -486,12 +483,12 @@ impl AttendanceImportService {
                 Some(Data::String(s)) => s.clone(),
                 Some(Data::Float(f)) => f.to_string(),
                 Some(Data::Int(i)) => i.to_string(),
-                _ => { errors.push(format!("Dòng {}: Thiếu ID nhân viên", current_line)); continue; }
+                _ => { errors.push(format!("Dòng {current_line}: Thiếu ID nhân viên")); continue; }
             };
             let id_number = normalize_employee_id(&raw_id);
             let full_name = match row.get(1) {
                 Some(Data::String(s)) => s.trim().to_string(),
-                _ => { errors.push(format!("Dòng {}: Thiếu Tên nhân viên", current_line)); continue; }
+                _ => { errors.push(format!("Dòng {current_line}: Thiếu Tên nhân viên")); continue; }
             };
             let hire_date = match row.get(2) {
                 Some(Data::String(s)) => {
@@ -560,7 +557,7 @@ impl AttendanceImportService {
                 Some(Data::Float(f)) => f.to_string(),
                 Some(Data::Int(i)) => i.to_string(),
                 _ => {
-                    errors.push(format!("Dòng {}: Thiếu mã nhân viên", current_line));
+                    errors.push(format!("Dòng {current_line}: Thiếu mã nhân viên"));
                     continue;
                 }
             };
@@ -576,8 +573,7 @@ impl AttendanceImportService {
                     Ok(dt) => Some(dt),
                     Err(e) => {
                         errors.push(format!(
-                            "Dòng {} (NV {}): {} [Dữ liệu gốc: '{}']",
-                            current_line, emp_id_number, e, s
+                            "Dòng {current_line} (NV {emp_id_number}): {e} [Dữ liệu gốc: '{s}']"
                         ));
                         None
                     }
@@ -590,14 +586,13 @@ impl AttendanceImportService {
                             _ => Some(DateTime::<Utc>::from_naive_utc_and_offset(naive, Utc)),
                         }
                     } else {
-                        errors.push(format!("Dòng {} (NV {}): Không phải định dạng ngày giờ hợp lệ [Dữ liệu gốc: '{}']", current_line, emp_id_number, cell_data));
+                        errors.push(format!("Dòng {current_line} (NV {emp_id_number}): Không phải định dạng ngày giờ hợp lệ [Dữ liệu gốc: '{cell_data}']"));
                         None
                     }
                 }
                 _ => {
                     errors.push(format!(
-                        "Dòng {} (NV {}): Thiếu dữ liệu thời gian",
-                        current_line, emp_id_number
+                        "Dòng {current_line} (NV {emp_id_number}): Thiếu dữ liệu thời gian"
                     ));
                     None
                 }

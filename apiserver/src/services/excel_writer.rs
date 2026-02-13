@@ -51,7 +51,7 @@ impl ExcelWriter {
             .write_string_with_format(
                 0,
                 0,
-                format!("Attendance Summary Report - {}", workspace_name),
+                format!("Attendance Summary Report - {workspace_name}"),
                 &title_format,
             )
             .map_err(|e| e.to_string())?;
@@ -91,7 +91,7 @@ impl ExcelWriter {
 
         workbook
             .save_to_buffer()
-            .map_err(|e| format!("Excel write error: {}", e))
+            .map_err(|e| format!("Excel write error: {e}"))
     }
 
     /// Multi-sheet detail report: "Timesheet View" (matrix) + "Raw Details" (list).
@@ -105,7 +105,7 @@ impl ExcelWriter {
         Self::write_raw_details(&mut workbook, reports, workspace_name, date_range)?;
         workbook
             .save_to_buffer()
-            .map_err(|e| format!("Excel write error: {}", e))
+            .map_err(|e| format!("Excel write error: {e}"))
     }
 
     /// Sheet 1 "Timesheet View": Matrix — rows = employees (sorted), cols = days.
@@ -144,7 +144,7 @@ impl ExcelWriter {
             .write_string_with_format(
                 0,
                 0,
-                format!("Timesheet View - {}", workspace_name),
+                format!("Timesheet View - {workspace_name}"),
                 &title_fmt,
             )
             .map_err(|e| e.to_string())?;
@@ -198,7 +198,7 @@ impl ExcelWriter {
 
             for (day_idx, date) in dates.iter().enumerate() {
                 if let Some(&(std_u, ot_u)) = day_map.get(date) {
-                    let text = format!("{} / {}", std_u, ot_u);
+                    let text = format!("{std_u} / {ot_u}");
                     let fmt = if ot_u > 0 { &ot_fmt } else { &cell_fmt };
                     worksheet
                         .write_string_with_format(row, (day_idx + 1) as u16, &text, fmt)
@@ -257,7 +257,7 @@ impl ExcelWriter {
             .write_string_with_format(
                 0,
                 0,
-                format!("Raw Details - {}", workspace_name),
+                format!("Raw Details - {workspace_name}"),
                 &title_fmt,
             )
             .map_err(|e| e.to_string())?;

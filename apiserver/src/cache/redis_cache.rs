@@ -56,12 +56,12 @@ impl RedisCache {
     /// Set a value in cache with TTL, serializing to JSON.
     pub async fn set<T: Serialize>(&self, key: &str, value: &T, ttl: Duration) -> Result<(), String> {
         let json = serde_json::to_string(value)
-            .map_err(|e| format!("Serialize error: {}", e))?;
+            .map_err(|e| format!("Serialize error: {e}"))?;
 
         let mut conn = self.pool.conn();
         conn.set_ex::<_, _, ()>(key, json, ttl.as_secs())
             .await
-            .map_err(|e| format!("Redis SET error: {}", e))?;
+            .map_err(|e| format!("Redis SET error: {e}"))?;
 
         debug!(key = key, ttl_secs = ttl.as_secs(), "Cache set");
         Ok(())
@@ -72,7 +72,7 @@ impl RedisCache {
         let mut conn = self.pool.conn();
         conn.del::<_, ()>(key)
             .await
-            .map_err(|e| format!("Redis DEL error: {}", e))?;
+            .map_err(|e| format!("Redis DEL error: {e}"))?;
 
         debug!(key = key, "Cache invalidated");
         Ok(())
@@ -127,7 +127,7 @@ mod tests {
     #[test]
     fn test_workspace_key_format() {
         let workspace_id = uuid::Uuid::new_v4();
-        let key = format!("cache:workspace:{}", workspace_id);
+        let key = format!("cache:workspace:{workspace_id}");
         assert!(key.starts_with("cache:workspace:"));
         assert!(key.contains(&workspace_id.to_string()));
     }
@@ -135,7 +135,7 @@ mod tests {
     #[test]
     fn test_shift_key_format() {
         let workspace_id = uuid::Uuid::new_v4();
-        let key = format!("cache:shifts:{}", workspace_id);
+        let key = format!("cache:shifts:{workspace_id}");
         assert!(key.starts_with("cache:shifts:"));
     }
 

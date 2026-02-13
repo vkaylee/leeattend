@@ -24,7 +24,7 @@ impl CrashMarker {
             ".".to_string()
         };
 
-        let path = format!("{}/{}", dir, CRASH_MARKER_FILE);
+        let path = format!("{dir}/{CRASH_MARKER_FILE}");
         Self { path }
     }
 
@@ -74,7 +74,7 @@ pub async fn recover_from_crash(db: &crate::database::Database) -> Result<u64, s
 
     let total = reset_count + stale_count;
     if total > 0 {
-        warn!("Crash recovery: Reset {} in-flight logs to pending", total);
+        warn!("Crash recovery: Reset {total} in-flight logs to pending");
     }
 
     Ok(total)

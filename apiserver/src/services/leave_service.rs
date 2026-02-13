@@ -37,7 +37,7 @@ impl LeaveService {
         )
         .await
         .map_err(|e| {
-            eprintln!("SQLx Error in get_workspace_balances: {:?}", e);
+            eprintln!("SQLx Error in get_workspace_balances: {e:?}");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
@@ -74,7 +74,7 @@ impl LeaveService {
         .fetch_all(pool)
         .await
         .map_err(|e| {
-            eprintln!("SQLx Error in get_employee_leave_history logs: {:?}", e);
+            eprintln!("SQLx Error in get_employee_leave_history logs: {e:?}");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
@@ -97,7 +97,7 @@ impl LeaveService {
         .fetch_all(pool)
         .await
         .map_err(|e| {
-            eprintln!("SQLx Error in get_employee_leave_history requests: {:?}", e);
+            eprintln!("SQLx Error in get_employee_leave_history requests: {e:?}");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
@@ -218,7 +218,7 @@ impl LeaveService {
         leave_request_repository::create_leave_request(pool, &request)
             .await
             .map_err(|e| {
-            eprintln!("SQLx Error in get_workspace_balances: {:?}", e);
+            eprintln!("SQLx Error in get_workspace_balances: {e:?}");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
@@ -251,7 +251,7 @@ impl LeaveService {
         )
         .await
         .map_err(|e| {
-            eprintln!("SQLx Error in get_workspace_balances: {:?}", e);
+            eprintln!("SQLx Error in get_workspace_balances: {e:?}");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
@@ -275,7 +275,7 @@ impl LeaveService {
                     shift_id: None,
                     date: current_date,
                     status: "on_leave".to_string(),
-                    notes: Some(format!("Nghỉ phép: {}", leave_type_name)),
+                    notes: Some(format!("Nghỉ phép: {leave_type_name}")),
                     created_at: Utc::now(),
                     updated_at: Utc::now(),
                 };
@@ -283,7 +283,7 @@ impl LeaveService {
                 let _ = roster_repository::upsert_roster(pool, &roster)
                     .await
                     .map_err(|e| {
-            eprintln!("SQLx Error in get_workspace_balances: {:?}", e);
+            eprintln!("SQLx Error in get_workspace_balances: {e:?}");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 

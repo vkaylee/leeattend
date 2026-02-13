@@ -95,7 +95,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if crash_marker.check_crash() {
         warn!("⚠️ Detected previous crash or unclean shutdown");
         if let Some(info) = crash_marker.read_crash_info() {
-            warn!("Previous session info:\n{}", info);
+            warn!("Previous session info:\n{info}");
         }
     }
 
@@ -108,25 +108,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if crash_marker.check_crash() {
         let recovered = recover_from_crash(hybrid_db.disk_db()).await
             .expect("Failed to recover from crash");
-        info!("✅ Crash recovery complete: {} logs reset", recovered);
+        info!("✅ Crash recovery complete: {recovered} logs reset");
     }
 
     // Write new crash marker
     if let Err(e) = crash_marker.write() {
-        warn!("Failed to write crash marker: {}", e);
+        warn!("Failed to write crash marker: {e}");
     }
 
     // Clear startup config: Agent should NOT use stale database config.
     // Server will send ConfigPush after Handshake with fresh configuration.
     if let Err(e) = hybrid_db.disk_db().clear_startup_config().await {
-        warn!("Failed to clear startup config: {}", e);
+        warn!("Failed to clear startup config: {e}");
     } else {
         info!("🔄 Cleared local config on startup - waiting for ConfigPush from Server...");
     }
 
     // Use defaults until ConfigPush arrives (database config was just cleared)
     let mut current_max_workers = config.max_concurrent_workers;
-    info!("⚙️ Using default Max Workers: {} (until ConfigPush)", current_max_workers);
+    info!("⚙️ Using default Max Workers: {current_max_workers} (until ConfigPush)");
 
     let (central_client, central_rx, mut reload_rx) = CentralClient::new(
         config.central_server_url.clone(),
@@ -157,7 +157,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 if buffer.len() >= 100 {
                                     let to_save = std::mem::replace(&mut buffer, Vec::with_capacity(100));
                                     if let Err(e) = writer_hybrid.save_raw_attendance_batch(to_save).await {
-                                        error!("Failed to save batch to memory: {}", e);
+                                        error!("Failed to save batch to memory: {e}");
                                     }
                                     // Yield to let sync loop acquire lock
                                     sleep(Duration::from_millis(10)).await;
@@ -170,7 +170,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         if !buffer.is_empty() {
                             let to_save = std::mem::replace(&mut buffer, Vec::with_capacity(100));
                             if let Err(e) = writer_hybrid.save_raw_attendance_batch(to_save).await {
-                                error!("Failed to save timed batch to memory: {}", e);
+                                error!("Failed to save timed batch to memory: {e}");
                             }
                         }
                     }
@@ -197,11 +197,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         match checkpoint_hybrid.checkpoint().await {
                             Ok(count) => {
                                 if count > 0 {
-                                    info!("💾 Checkpoint: {} logs persisted to disk", count);
+                                    info!("💾 Checkpoint: {count} logs persisted to disk");
                                 }
                             }
                             Err(e) => {
-                                error!("❌ Checkpoint failed: {}", e);
+                                error!("❌ Checkpoint failed: {e}");
                             }
                         }
                     }
@@ -209,8 +209,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 _ = checkpoint_cancel.cancelled() => {
                     info!("💾 Checkpoint Worker: Final flush...");
                     match checkpoint_hybrid.flush_all().await {
-                        Ok(count) => info!("✅ Final flush: {} logs written", count),
-                        Err(e) => error!("❌ Final flush failed: {}", e),
+                        Ok(count) => info!("✅ Final flush: {count} logs written"),
+                        Err(e) => error!("❌ Final flush failed: {e}"),
                     }
                     info!("💾 Checkpoint Worker stopped");
                     break;
@@ -239,11 +239,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     match cleanup_hybrid.disk_db().cleanup_old_synced_logs(365).await {
                         Ok(deleted) => {
                             if deleted > 0 {
-                                info!("🧹 Disk cleanup: removed {} old synced logs (>365 days)", deleted);
+                                info!("🧹 Disk cleanup: removed {deleted} old synced logs (>365 days)");
                             }
                         }
                         Err(e) => {
-                            error!("❌ Disk cleanup failed: {}", e);
+                            error!("❌ Disk cleanup failed: {e}");
                         }
                     }
                 }
@@ -261,7 +261,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let db_devices = match hybrid_db.disk_db().get_active_devices().await {
             Ok(devices) => devices,
             Err(e) => {
-                error!("Failed to load devices from DB: {}", e);
+                error!("Failed to load devices from DB: {e}");
                 sleep(Duration::from_secs(10)).await;
                 continue;
             }
@@ -487,7 +487,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     && let Ok(new_val) = s.parse::<usize>()
                     && new_val != current_max_workers
                 {
-                    info!("⚡ Updating Max Workers: {} -> {}", current_max_workers, new_val);
+                    info!("⚡ Updating Max Workers: {current_max_workers} -> {new_val}");
                     current_max_workers = new_val;
                 }
 
@@ -508,7 +508,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Remove crash marker on clean exit
     if let Err(e) = crash_marker.remove() {
-        warn!("Failed to remove crash marker: {}", e);
+        warn!("Failed to remove crash marker: {e}");
     }
     info!("✅ Clean shutdown complete.");
 
@@ -800,9 +800,9 @@ async fn handle_dlq_stats_command(db: &Database) -> Result<(), Box<dyn std::erro
     println!("║                    DEAD LETTER QUEUE STATISTICS                              ║");
     println!("╚══════════════════════════════════════════════════════════════════════════════╝");
     println!();
-    println!("Total DLQ entries: {}", total_dlq);
-    println!("  - Last hour: {}", recent_1h);
-    println!("  - Last 24 hours: {}", recent_24h);
+    println!("Total DLQ entries: {total_dlq}");
+    println!("  - Last hour: {recent_1h}");
+    println!("  - Last 24 hours: {recent_24h}");
     println!();
 
     if total_dlq == 0 {
@@ -850,13 +850,13 @@ async fn handle_dlq_stats_command(db: &Database) -> Result<(), Box<dyn std::erro
     // Health assessment
     println!("Health Assessment:");
     if recent_1h > 20 {
-        println!("  ⚠️  CRITICAL: {} logs moved to DLQ in last hour", recent_1h);
+        println!("  ⚠️  CRITICAL: {recent_1h} logs moved to DLQ in last hour");
         println!("      Action: Check central server status immediately");
     } else if recent_24h > 100 {
-        println!("  ⚠️  WARNING: {} logs moved to DLQ in last 24h", recent_24h);
+        println!("  ⚠️  WARNING: {recent_24h} logs moved to DLQ in last 24h");
         println!("      Action: Investigate failure reasons and trends");
     } else if total_dlq > 1000 {
-        println!("  ℹ️  INFO: {} total DLQ entries (consider cleanup)", total_dlq);
+        println!("  ℹ️  INFO: {total_dlq} total DLQ entries (consider cleanup)");
         println!("      Action: Archive old entries or investigate patterns");
     } else {
         println!("  ✅ HEALTHY: Low DLQ growth rate");
@@ -910,8 +910,8 @@ async fn handle_config_command(db: &Database, args: &[String]) -> Result<(), Box
 
         println!();
         match value {
-            Some(v) => println!("{} = {}", key, v),
-            None => println!("{} not set (using default)", key),
+            Some(v) => println!("{key} = {v}"),
+            None => println!("{key} not set (using default)"),
         }
         println!();
     } else if args.len() == 4 {
@@ -921,7 +921,7 @@ async fn handle_config_command(db: &Database, args: &[String]) -> Result<(), Box
 
         db.upsert_agent_config(key, value).await?;
         println!();
-        println!("✅ Configuration updated: {} = {}", key, value);
+        println!("✅ Configuration updated: {key} = {value}");
         println!("   Note: Agent restart may be required for some settings");
         println!();
     } else {
@@ -980,34 +980,34 @@ async fn handle_status_command(db: &Database) -> Result<(), Box<dyn std::error::
     println!();
 
     println!("Sync Queue Status:");
-    println!("  Total logs in database:  {}", total_logs);
-    println!("  ├─ Synced (✅):           {}", synced);
-    println!("  ├─ In-flight (⏳):        {}", in_flight);
-    println!("  └─ Unsynced (📤):         {}", unsynced);
+    println!("  Total logs in database:  {total_logs}");
+    println!("  ├─ Synced (✅):           {synced}");
+    println!("  ├─ In-flight (⏳):        {in_flight}");
+    println!("  └─ Unsynced (📤):         {unsynced}");
     println!("     ├─ New logs:          {} ({:.1}%)", new_logs, if unsynced > 0 { (new_logs as f64 / unsynced as f64) * 100.0 } else { 0.0 });
-    println!("     └─ Retrying:          {} ({:.1}%)", retry_logs, retry_rate);
+    println!("     └─ Retrying:          {retry_logs} ({retry_rate:.1}%)");
     println!();
 
     println!("Dead Letter Queue (DLQ):");
-    println!("  Total failed:            {}", dlq_total);
-    println!("  Last 24 hours:           {}", dlq_24h);
+    println!("  Total failed:            {dlq_total}");
+    println!("  Last 24 hours:           {dlq_24h}");
     println!();
 
     // Health indicator
     println!("System Health:");
     if retry_rate > 70.0 {
-        println!("  ⚠️  CRITICAL: High retry rate ({:.1}%)", retry_rate);
+        println!("  ⚠️  CRITICAL: High retry rate ({retry_rate:.1}%)");
         println!("      Action: Check central server connectivity");
     } else if retry_rate > 30.0 {
-        println!("  ⚠️  WARNING: Elevated retry rate ({:.1}%)", retry_rate);
+        println!("  ⚠️  WARNING: Elevated retry rate ({retry_rate:.1}%)");
         println!("      Action: Monitor central server");
     } else if dlq_24h > 50 {
-        println!("  ⚠️  WARNING: {} logs moved to DLQ in 24h", dlq_24h);
+        println!("  ⚠️  WARNING: {dlq_24h} logs moved to DLQ in 24h");
         println!("      Action: Review DLQ stats");
     } else {
         println!("  ✅ HEALTHY: System operating normally");
-        println!("      Retry rate: {:.1}%", retry_rate);
-        println!("      DLQ growth (24h): {} entries", dlq_24h);
+        println!("      Retry rate: {retry_rate:.1}%");
+        println!("      DLQ growth (24h): {dlq_24h} entries");
     }
     println!();
 
@@ -1016,7 +1016,7 @@ async fn handle_status_command(db: &Database) -> Result<(), Box<dyn std::error::
 
 fn truncate(s: &str, max_len: usize) -> String {
     if s.len() <= max_len {
-        format!("{:width$}", s, width = max_len)
+        format!("{s:max_len$}")
     } else {
         format!("{}…", &s[..max_len - 1])
     }

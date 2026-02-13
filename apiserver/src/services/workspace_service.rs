@@ -23,7 +23,7 @@ impl WorkspaceService {
                 .map_err(|e| e.to_string())?;
 
         if !user_exists {
-            return Err(format!("User with ID {} does not exist", owner_id));
+            return Err(format!("User with ID {owner_id} does not exist"));
         }
 
         let mut tx = db.begin().await.map_err(|e| e.to_string())?;
@@ -109,7 +109,7 @@ impl WorkspaceService {
         let mut arg_idx = 1;
 
         if name.is_some() {
-            query.push_str(&format!("name = ${}", arg_idx));
+            query.push_str(&format!("name = ${arg_idx}"));
             arg_idx += 1;
             has_fields = true;
         }
@@ -117,7 +117,7 @@ impl WorkspaceService {
             if has_fields {
                 query.push_str(", ");
             }
-            query.push_str(&format!("work_unit_minutes = ${}", arg_idx));
+            query.push_str(&format!("work_unit_minutes = ${arg_idx}"));
             arg_idx += 1;
             has_fields = true;
         }
@@ -125,7 +125,7 @@ impl WorkspaceService {
             if has_fields {
                 query.push_str(", ");
             }
-            query.push_str(&format!("rounding_policy = ${}", arg_idx));
+            query.push_str(&format!("rounding_policy = ${arg_idx}"));
             arg_idx += 1;
             has_fields = true;
         }
@@ -133,7 +133,7 @@ impl WorkspaceService {
             if has_fields {
                 query.push_str(", ");
             }
-            query.push_str(&format!("date_format = ${}", arg_idx));
+            query.push_str(&format!("date_format = ${arg_idx}"));
             arg_idx += 1;
             has_fields = true;
         }
@@ -141,7 +141,7 @@ impl WorkspaceService {
             if has_fields {
                 query.push_str(", ");
             }
-            query.push_str(&format!("time_format = ${}", arg_idx));
+            query.push_str(&format!("time_format = ${arg_idx}"));
             arg_idx += 1;
             has_fields = true;
         }
@@ -149,7 +149,7 @@ impl WorkspaceService {
             if has_fields {
                 query.push_str(", ");
             }
-            query.push_str(&format!("timezone = ${}", arg_idx));
+            query.push_str(&format!("timezone = ${arg_idx}"));
             arg_idx += 1;
             has_fields = true;
         }
@@ -157,7 +157,7 @@ impl WorkspaceService {
             if has_fields {
                 query.push_str(", ");
             }
-            query.push_str(&format!("theme_primary_color = ${}", arg_idx));
+            query.push_str(&format!("theme_primary_color = ${arg_idx}"));
             arg_idx += 1;
             has_fields = true;
         }
@@ -165,7 +165,7 @@ impl WorkspaceService {
             if has_fields {
                 query.push_str(", ");
             }
-            query.push_str(&format!("default_language = ${}", arg_idx));
+            query.push_str(&format!("default_language = ${arg_idx}"));
             arg_idx += 1;
             has_fields = true;
         }
@@ -173,7 +173,7 @@ impl WorkspaceService {
             if has_fields {
                 query.push_str(", ");
             }
-            query.push_str(&format!("pairing_algorithm = ${}", arg_idx));
+            query.push_str(&format!("pairing_algorithm = ${arg_idx}"));
             arg_idx += 1;
             has_fields = true;
         }
@@ -181,7 +181,7 @@ impl WorkspaceService {
             if has_fields {
                 query.push_str(", ");
             }
-            query.push_str(&format!("early_arrival_strategy = ${}", arg_idx));
+            query.push_str(&format!("early_arrival_strategy = ${arg_idx}"));
             arg_idx += 1;
             has_fields = true;
         }
@@ -190,7 +190,7 @@ impl WorkspaceService {
             return Err("No fields to update".to_string());
         }
 
-        query.push_str(&format!(" WHERE id = ${} RETURNING *", arg_idx));
+        query.push_str(&format!(" WHERE id = ${arg_idx} RETURNING *"));
 
         let mut q = sqlx::query_as::<_, Workspace>(&query);
 

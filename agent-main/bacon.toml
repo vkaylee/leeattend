@@ -1,0 +1,27 @@
+# Bacon configuration for LeeAttend AgentMain
+
+[jobs.check]
+command = ["cargo", "check", "--color", "always"]
+need_stdout = false
+
+[jobs.check-all]
+command = ["cargo", "check", "--all-targets", "--color", "always"]
+need_stdout = false
+
+[jobs.test]
+command = ["cargo", "test", "--color", "always"]
+need_stdout = true
+
+[jobs.run]
+command = [
+    "cargo", "run",
+    "--color", "always",
+]
+need_stdout = true
+allow_warnings = true
+watch = ["src", "Cargo.toml", "migrations"]
+ignore = [".api_port", "target", ".git"]
+on_change_strategy = "kill_then_restart"
+
+# Default job is 'check'
+default_job = "check"

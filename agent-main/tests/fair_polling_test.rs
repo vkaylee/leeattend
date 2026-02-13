@@ -55,7 +55,7 @@ async fn test_fair_round_robin_polling() {
     assert_eq!(a_count, total_cycles, "Device A should complete all polls");
     assert_eq!(b_count, total_cycles, "Device B should complete all polls");
 
-    println!("✅ Fair polling verified: Device A={}, Device B={}", a_count, b_count);
+    println!("✅ Fair polling verified: Device A={a_count}, Device B={b_count}");
 }
 
 /// Test that without releasing permit between cycles, one device dominates.
@@ -109,9 +109,9 @@ async fn test_unfair_polling_without_release() {
     // A should have polled 5 times
     // B should have polled fewer times (starved during A's run)
     assert_eq!(a_count, 5, "Device A completed all its polls");
-    assert!(b_count < 5, "Device B was starved (got {} polls, should be < 5)", b_count);
+    assert!(b_count < 5, "Device B was starved (got {b_count} polls, should be < 5)");
 
-    println!("✅ Unfair polling verified: A={}, B={} (B starved as expected)", a_count, b_count);
+    println!("✅ Unfair polling verified: A={a_count}, B={b_count} (B starved as expected)");
 }
 
 /// Test semaphore with multiple permits allows parallel polling.
@@ -173,5 +173,5 @@ async fn test_parallel_polling_with_multiple_permits() {
     assert_eq!(b_count, 5, "Device B should complete all polls");
     assert_eq!(max_c, 2, "Both devices should have polled concurrently");
 
-    println!("✅ Parallel polling verified: A={}, B={}, max_concurrent={}", a_count, b_count, max_c);
+    println!("✅ Parallel polling verified: A={a_count}, B={b_count}, max_concurrent={max_c}");
 }

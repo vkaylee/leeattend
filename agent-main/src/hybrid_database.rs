@@ -149,7 +149,7 @@ impl HybridDatabase {
         // 3. Remove any active logs from memory store
         self.memory.remove_logs_for_device(device_id);
 
-        info!("HybridDatabase: Unloaded memory for disabled device '{}'", device_id);
+        info!("HybridDatabase: Unloaded memory for disabled device '{device_id}'");
         Ok(())
     }
 
@@ -165,7 +165,7 @@ impl HybridDatabase {
         let pending_count = pending_logs.len();
         self.memory.load_from_disk(pending_logs);
 
-        info!("HybridDatabase: Loaded {} signatures + {} pending logs for device '{}'", sig_count, pending_count, device_id);
+        info!("HybridDatabase: Loaded {sig_count} signatures + {pending_count} pending logs for device '{device_id}'");
         Ok(())
     }
 }
@@ -211,7 +211,7 @@ mod tests {
             .map(|i| {
                 (
                     "DEV1".to_string(),
-                    make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00"),
+                    make_attendance(&format!("U{i:03}"), "2026-01-29 10:00:00"),
                 )
             })
             .collect();
@@ -239,7 +239,7 @@ mod tests {
 
         // Save logs
         for i in 1..=10 {
-            let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+            let data = make_attendance(&format!("U{i:03}"), "2026-01-29 10:00:00");
             hybrid.save_raw_attendance("DEV1", data).await.unwrap();
         }
 
@@ -259,7 +259,7 @@ mod tests {
 
         // 1. Save logs
         for i in 1..=5 {
-            let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+            let data = make_attendance(&format!("U{i:03}"), "2026-01-29 10:00:00");
             hybrid.save_raw_attendance("DEV1", data).await.unwrap();
         }
         assert_eq!(hybrid.count_unsynced_logs(), 5);
@@ -289,7 +289,7 @@ mod tests {
 
         // Phase 1: Save and checkpoint
         for i in 1..=5 {
-            let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+            let data = make_attendance(&format!("U{i:03}"), "2026-01-29 10:00:00");
             hybrid.save_raw_attendance("DEV1", data).await.unwrap();
         }
 
@@ -327,7 +327,7 @@ mod tests {
 
         // Save logs
         for i in 1..=5 {
-            let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+            let data = make_attendance(&format!("U{i:03}"), "2026-01-29 10:00:00");
             hybrid.save_raw_attendance("DEV1", data).await.unwrap();
         }
 
@@ -367,9 +367,9 @@ mod tests {
         // Save from different devices
         for dev_idx in 1..=3 {
             for user_idx in 1..=2 {
-                let device = format!("DEV{}", dev_idx);
+                let device = format!("DEV{dev_idx}");
                 let data = make_attendance(
-                    &format!("U{}{}", dev_idx, user_idx),
+                    &format!("U{dev_idx}{user_idx}"),
                     "2026-01-29 10:00:00"
                 );
                 hybrid.save_raw_attendance(&device, data).await.unwrap();
@@ -392,7 +392,7 @@ mod tests {
             .map(|i| {
                 (
                     "DEV1".to_string(),
-                    make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00"),
+                    make_attendance(&format!("U{i:03}"), "2026-01-29 10:00:00"),
                 )
             })
             .collect();
@@ -411,7 +411,7 @@ mod tests {
         // Save 5 logs
         let mut ids = Vec::new();
         for i in 1..=5 {
-            let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+            let data = make_attendance(&format!("U{i:03}"), "2026-01-29 10:00:00");
             let id = hybrid.save_raw_attendance("DEV1", data).await.unwrap();
             ids.push(id);
         }
@@ -438,7 +438,7 @@ mod tests {
 
         // Save logs
         for i in 1..=3 {
-            let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+            let data = make_attendance(&format!("U{i:03}"), "2026-01-29 10:00:00");
             hybrid.save_raw_attendance("DEV1", data).await.unwrap();
         }
 
@@ -487,7 +487,7 @@ mod tests {
         let hybrid1 = HybridDatabase::new(&db_url, 1000).await.unwrap();
 
         for i in 1..=10 {
-            let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+            let data = make_attendance(&format!("U{i:03}"), "2026-01-29 10:00:00");
             hybrid1.save_raw_attendance("DEV1", data).await.unwrap();
         }
 
@@ -531,7 +531,7 @@ mod tests {
         // Pre-populate disk with logs having specific IDs
         for i in 1..=100 {
             let data = AttendanceData {
-                user_id: format!("U{:03}", i),
+                user_id: format!("U{i:03}"),
                 timestamp: "2026-01-31 10:00:00".to_string(),
                 status: Some(1),
                 punch: Some(0),
@@ -566,8 +566,8 @@ mod tests {
         // Insert logs to memory
         for i in 0..10 {
             let data = AttendanceData {
-                user_id: format!("U{:03}", i),
-                timestamp: format!("2026-01-31 10:{:02}:00", i),
+                user_id: format!("U{i:03}"),
+                timestamp: format!("2026-01-31 10:{i:02}:00"),
                 status: Some(1),
                 punch: Some(0),
             };
@@ -616,7 +616,7 @@ mod tests {
             .unwrap()
             .and_utc()
             .timestamp();
-        let key = format!("DEV1:U001:{}", ts_unix);
+        let key = format!("DEV1:U001:{ts_unix}");
 
         // Simulate failed ACK - reset to unsynced
         assert!(hybrid.reset_to_unsynced_by_key(&key));
@@ -632,7 +632,7 @@ mod tests {
         // Insert 1000 logs
         for i in 0..1000 {
             let data = AttendanceData {
-                user_id: format!("U{:06}", i),
+                user_id: format!("U{i:06}"),
                 timestamp: format!("2026-01-31 {:02}:{:02}:{:02}", i / 3600, (i % 3600) / 60, i % 60),
                 status: Some(1),
                 punch: Some(0),
@@ -648,7 +648,7 @@ mod tests {
         assert_eq!(inserted, 1000);
         assert!(
             elapsed.as_millis() < 500,  // Should be well under 500ms
-            "Checkpoint took {:?}, expected < 500ms", elapsed
+            "Checkpoint took {elapsed:?}, expected < 500ms"
         );
     }
 }

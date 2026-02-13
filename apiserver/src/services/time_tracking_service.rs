@@ -103,7 +103,7 @@ impl TimeTrackingService {
         time_entry_repository::create_time_entry(pool, &entry)
             .await
             .map_err(|e| {
-                eprintln!("Error punching in: {:?}", e);
+                eprintln!("Error punching in: {e:?}");
                 StatusCode::INTERNAL_SERVER_ERROR
             })?;
 
@@ -144,7 +144,7 @@ impl TimeTrackingService {
         time_entry_repository::update_time_entry(pool, &entry)
             .await
             .map_err(|e| {
-                eprintln!("Error punching out: {:?}", e);
+                eprintln!("Error punching out: {e:?}");
                 StatusCode::INTERNAL_SERVER_ERROR
             })?;
 

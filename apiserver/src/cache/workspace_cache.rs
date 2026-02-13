@@ -34,7 +34,7 @@ impl WorkspaceCache {
 
     /// Generate cache key for a workspace.
     fn key(workspace_id: Uuid) -> String {
-        format!("cache:workspace:{}", workspace_id)
+        format!("cache:workspace:{workspace_id}")
     }
 
     /// Get workspace config, using cache-aside pattern.
@@ -63,7 +63,7 @@ impl WorkspaceCache {
                 )
                 .fetch_one(&db)
                 .await
-                .map_err(|e| format!("Failed to fetch workspace config: {}", e))?;
+                .map_err(|e| format!("Failed to fetch workspace config: {e}"))?;
 
                 Ok(CachedWorkspaceConfig {
                     id: row.id,

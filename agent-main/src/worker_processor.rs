@@ -43,7 +43,7 @@ pub async fn process_fetched_logs(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::NaiveDateTime;
+    
 
     #[tokio::test]
     async fn test_process_logs_uses_correct_id() {

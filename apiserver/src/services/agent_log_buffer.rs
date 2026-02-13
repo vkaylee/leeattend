@@ -196,7 +196,7 @@ async fn parse_log_entry(pool: &PgPool, entry: &AgentLogEntry) -> Result<ParsedL
             ));
         }
         Err(e) => {
-            return Err(format!("Database error finding employee: {}", e));
+            return Err(format!("Database error finding employee: {e}"));
         }
     };
 

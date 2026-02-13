@@ -54,14 +54,14 @@ impl AttendanceHandler {
             Some(employee_ids),
         )
         .await
-        .map_err(|e| format!("Failed to fetch schedules: {}", e))?;
+        .map_err(|e| format!("Failed to fetch schedules: {e}"))?;
 
         // 2. Get workspace config from cache (cache-aside pattern)
         let workspace_config = cache
             .workspace
             .get(workspace_id)
             .await
-            .map_err(|e| format!("Failed to get workspace config: {}", e))?;
+            .map_err(|e| format!("Failed to get workspace config: {e}"))?;
 
         let tz: Tz = workspace_config
             .timezone
@@ -97,7 +97,7 @@ impl AttendanceHandler {
             end_dt,
         )
         .await
-        .map_err(|e| format!("Failed to fetch time entries: {}", e))?;
+        .map_err(|e| format!("Failed to fetch time entries: {e}"))?;
 
         // 5. Calculate based on report type
         let result_json = match job.config.report_type {
@@ -133,23 +133,23 @@ impl AttendanceHandler {
         queue
             .store_result(job.parent_job_id, job.batch_index, &result_json)
             .await
-            .map_err(|e| format!("Failed to store result: {}", e))?;
+            .map_err(|e| format!("Failed to store result: {e}"))?;
 
         // 7. Publish chunk to Redis Pub/Sub for real-time streaming
         let metadata = queue
             .get_job_metadata(job.parent_job_id)
             .await
-            .map_err(|e| format!("Failed to get job metadata: {}", e))?
+            .map_err(|e| format!("Failed to get job metadata: {e}"))?
             .ok_or_else(|| "Job metadata not found".to_string())?;
 
         let publisher = ReportPublisher::new(redis.clone());
         let chunk_data: serde_json::Value = serde_json::from_str(&result_json)
-            .map_err(|e| format!("Failed to parse result JSON: {}", e))?;
+            .map_err(|e| format!("Failed to parse result JSON: {e}"))?;
 
         publisher
             .publish_chunk(job.parent_job_id, job.batch_index, metadata.total_batches, chunk_data)
             .await
-            .map_err(|e| format!("Failed to publish chunk: {}", e))?;
+            .map_err(|e| format!("Failed to publish chunk: {e}"))?;
 
         info!(
             job_id = %job.job_id,
@@ -196,7 +196,7 @@ impl AttendanceHandler {
         .bind(end_date)
         .fetch_all(pool)
         .await
-        .map_err(|e| format!("Failed to fetch leave data: {}", e))?
+        .map_err(|e| format!("Failed to fetch leave data: {e}"))?
         .into_iter()
         .map(|row| {
             (
@@ -215,7 +215,7 @@ impl AttendanceHandler {
             end_date,
         )
         .await
-        .map_err(|e| format!("Failed to fetch working conditions: {}", e))?;
+        .map_err(|e| format!("Failed to fetch working conditions: {e}"))?;
 
         for emp_sched in schedules {
             let entries = entries_map
@@ -312,7 +312,7 @@ impl AttendanceHandler {
             });
         }
 
-        serde_json::to_string(&summaries).map_err(|e| format!("Failed to serialize: {}", e))
+        serde_json::to_string(&summaries).map_err(|e| format!("Failed to serialize: {e}"))
     }
 
     /// Calculate detailed daily attendance for batch of employees.
@@ -339,7 +339,7 @@ impl AttendanceHandler {
             end_date,
         )
         .await
-        .map_err(|e| format!("Failed to fetch working conditions: {}", e))?;
+        .map_err(|e| format!("Failed to fetch working conditions: {e}"))?;
 
         for emp_sched in schedules {
             let entries = entries_map
@@ -487,7 +487,7 @@ impl AttendanceHandler {
             }
         }
 
-        serde_json::to_string(&reports).map_err(|e| format!("Failed to serialize: {}", e))
+        serde_json::to_string(&reports).map_err(|e| format!("Failed to serialize: {e}"))
     }
 }
 

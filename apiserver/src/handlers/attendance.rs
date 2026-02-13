@@ -527,8 +527,7 @@ pub async fn submit_attendance_adjustment(
     Json(req): Json<CreateAttendanceAdjustmentRequest>,
 ) -> impl IntoResponse {
     println!(
-        "SUBMIT_ADJUSTMENT_HANDLER_REACHED: ws_id={}, user_id={}",
-        workspace_id, user_id
+        "SUBMIT_ADJUSTMENT_HANDLER_REACHED: ws_id={workspace_id}, user_id={user_id}"
     );
     match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::submit_request(
         &state.db,
@@ -572,7 +571,7 @@ pub async fn get_my_attendance_adjustments(
     UserId(user_id): UserId,
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
-    println!("GET_MY_ADJUSTMENTS_REACHED: id={}, user_id={}", id, user_id);
+    println!("GET_MY_ADJUSTMENTS_REACHED: id={id}, user_id={user_id}");
     match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::get_my_requests(
         &state.db, id,
     )
@@ -982,7 +981,7 @@ pub async fn bulk_upload_paper_ot(
                 errors.push(BulkOtEntryError {
                     line_number,
                     employee_id: employee_id_str,
-                    error_message: format!("Invalid date format: {}. Expected YYYY-MM-DD", date_str),
+                    error_message: format!("Invalid date format: {date_str}. Expected YYYY-MM-DD"),
                 });
                 continue;
             }
@@ -1006,7 +1005,7 @@ pub async fn bulk_upload_paper_ot(
                 errors.push(BulkOtEntryError {
                     line_number,
                     employee_id: employee_id_str,
-                    error_message: format!("Invalid minutes value: {}", minutes_str),
+                    error_message: format!("Invalid minutes value: {minutes_str}"),
                 });
                 continue;
             }
@@ -1065,7 +1064,7 @@ pub async fn bulk_upload_paper_ot(
                 errors.push(BulkOtEntryError {
                     line_number,
                     employee_id: employee_id_str,
-                    error_message: format!("Database error: {}", e),
+                    error_message: format!("Database error: {e}"),
                 });
                 continue;
             }
@@ -1087,8 +1086,7 @@ pub async fn bulk_upload_paper_ot(
                     line_number,
                     employee_id: employee_id_str,
                     error_message: format!(
-                        "Claimed {} minutes exceeds system detected {} minutes",
-                        minutes, system_detected
+                        "Claimed {minutes} minutes exceeds system detected {system_detected} minutes"
                     ),
                 });
                 continue;

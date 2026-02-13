@@ -77,8 +77,8 @@ impl std::fmt::Display for ReportError {
             ReportError::NoEmployees => write!(f, "No active employees found for report"),
             ReportError::JobNotFound => write!(f, "Job not found"),
             ReportError::CannotCancel => write!(f, "Cannot cancel completed or failed job"),
-            ReportError::QueueError(e) => write!(f, "Queue error: {}", e),
-            ReportError::DatabaseError(e) => write!(f, "Database error: {}", e),
+            ReportError::QueueError(e) => write!(f, "Queue error: {e}"),
+            ReportError::DatabaseError(e) => write!(f, "Database error: {e}"),
         }
     }
 }
@@ -216,8 +216,7 @@ impl ReportCoordinator {
             total_batches,
             estimated_seconds,
             status_url: format!(
-                "/api/workspaces/{}/reports/jobs/{}",
-                workspace_id, parent_job_id
+                "/api/workspaces/{workspace_id}/reports/jobs/{parent_job_id}"
             ),
         })
     }

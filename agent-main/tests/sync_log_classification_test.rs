@@ -9,8 +9,8 @@ async fn test_sync_log_classification_new_vs_retry() {
     // Insert 5 logs without updated_at (new logs)
     for i in 1..=5 {
         let data = AttendanceData {
-            user_id: format!("U{}", i),
-            timestamp: format!("2026-01-28 08:0{}:00", i),
+            user_id: format!("U{i}"),
+            timestamp: format!("2026-01-28 08:0{i}:00"),
             status: Some(1),
             punch: Some(0),
         };
@@ -45,8 +45,8 @@ async fn test_sync_log_classification_new_vs_retry() {
 
     println!("✅ Sync log classification test passed:");
     println!("   Total unsynced: {}", all_unsynced.len());
-    println!("   New logs: {}", new_count);
-    println!("   Retry logs: {}", retry_count);
+    println!("   New logs: {new_count}");
+    println!("   Retry logs: {retry_count}");
 }
 
 /// Test that log classification appears in sync messages.
@@ -57,8 +57,8 @@ async fn test_sync_message_includes_classification() {
     // Insert 10 new logs
     for i in 1..=10 {
         let data = AttendanceData {
-            user_id: format!("U{}", i),
-            timestamp: format!("2026-01-28 09:{}:00", i),
+            user_id: format!("U{i}"),
+            timestamp: format!("2026-01-28 09:{i}:00"),
             status: Some(1),
             punch: Some(0),
         };
@@ -87,7 +87,7 @@ async fn test_sync_message_includes_classification() {
     assert_eq!(message, "📤 Syncing 10 logs to central server...");
 
     println!("✅ Sync message format test passed:");
-    println!("   Message: {}", message);
+    println!("   Message: {message}");
 }
 
 /// Test high retry count scenario (system health indicator).
@@ -98,7 +98,7 @@ async fn test_high_retry_count_detection() {
     // Insert 100 logs
     for i in 1..=100 {
         let data = AttendanceData {
-            user_id: format!("U{}", i),
+            user_id: format!("U{i}"),
             timestamp: format!("2026-01-28 10:{:02}:{:02}", i / 60, i % 60),
             status: Some(1),
             punch: Some(0),
@@ -134,6 +134,6 @@ async fn test_high_retry_count_detection() {
     println!("✅ High retry count detection test passed:");
     println!("   Total: {}", all_unsynced.len());
     println!("   New: {} ({}%)", new_count, (new_count as f64 / all_unsynced.len() as f64) * 100.0);
-    println!("   Retry: {} ({:.1}%)", retry_count, retry_rate);
+    println!("   Retry: {retry_count} ({retry_rate:.1}%)");
     println!("   ⚠️ Health: UNHEALTHY (high retry rate)");
 }

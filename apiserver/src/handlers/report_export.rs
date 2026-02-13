@@ -111,11 +111,11 @@ fn map_report_error(err: ReportError) -> (StatusCode, String) {
         ),
         ReportError::QueueError(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Queue error: {}", e),
+            format!("Queue error: {e}"),
         ),
         ReportError::DatabaseError(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Database error: {}", e),
+            format!("Database error: {e}"),
         ),
     }
 }
@@ -310,7 +310,7 @@ pub async fn download_report(
                             ),
                             (
                                 header::CONTENT_DISPOSITION,
-                                &format!("attachment; filename=\"{}\"", filename),
+                                &format!("attachment; filename=\"{filename}\""),
                             ),
                         ],
                         body,

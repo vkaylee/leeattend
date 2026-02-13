@@ -31,7 +31,7 @@ async fn test_queue_backpressure_behavior() {
     tx.send(3).await.unwrap();
     let elapsed = start.elapsed();
     
-    assert!(elapsed >= Duration::from_millis(200), "Producer should have blocked until consumer finished 1st item. Elapsed: {:?}", elapsed);
+    assert!(elapsed >= Duration::from_millis(200), "Producer should have blocked until consumer finished 1st item. Elapsed: {elapsed:?}");
     
     assert_eq!(processed_count.load(Ordering::SeqCst), 1);
     

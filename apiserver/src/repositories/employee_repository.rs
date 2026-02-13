@@ -18,7 +18,7 @@ pub async fn find_by_number(
     employee_id_number: &str,
 ) -> Result<Option<Employee>, sqlx::Error> {
     let normalized_id = normalize_employee_id(employee_id_number);
-    let query = format!("{} WHERE e.workspace_id = $1 AND e.employee_id_number = $2", EMPLOYEE_SELECT_QUERY);
+    let query = format!("{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND e.employee_id_number = $2");
     sqlx::query_as::<_, Employee>(&query)
         .bind(workspace_id)
         .bind(normalized_id)
@@ -164,8 +164,7 @@ pub async fn get_employee_by_id_number(
 ) -> Result<Option<Employee>, sqlx::Error> {
     let normalized_id = normalize_employee_id(id_number);
     let query = format!(
-        "{} WHERE e.employee_id_number = $1 AND e.workspace_id = $2",
-        EMPLOYEE_SELECT_QUERY
+        "{EMPLOYEE_SELECT_QUERY} WHERE e.employee_id_number = $1 AND e.workspace_id = $2"
     );
     query_as::<_, Employee>(&query)
         .bind(normalized_id)
@@ -180,8 +179,7 @@ pub async fn get_employee_by_id(
     workspace_id: Uuid,
 ) -> Result<Option<Employee>, sqlx::Error> {
     let query = format!(
-        "{} WHERE e.id = $1 AND e.workspace_id = $2",
-        EMPLOYEE_SELECT_QUERY
+        "{EMPLOYEE_SELECT_QUERY} WHERE e.id = $1 AND e.workspace_id = $2"
     );
     query_as::<_, Employee>(&query)
         .bind(id)
@@ -204,12 +202,11 @@ pub async fn get_all_employees(
         }
     }
 
-    let count_sql = format!("SELECT COUNT(*) FROM employees e {}", where_clause);
+    let count_sql = format!("SELECT COUNT(*) FROM employees e {where_clause}");
     let mut count_query = query_scalar::<_, i64>(&count_sql).bind(workspace_id);
 
     let sql = format!(
-        "{} {} ORDER BY e.full_name LIMIT $3 OFFSET $4",
-        EMPLOYEE_SELECT_QUERY, where_clause
+        "{EMPLOYEE_SELECT_QUERY} {where_clause} ORDER BY e.full_name LIMIT $3 OFFSET $4"
     );
     let mut db_query = query_as::<_, Employee>(&sql).bind(workspace_id);
 
@@ -325,8 +322,7 @@ pub async fn get_active_employees(
     workspace_id: Uuid,
 ) -> Result<Vec<Employee>, sqlx::Error> {
     let query = format!(
-        "{} WHERE e.workspace_id = $1 AND e.is_active = true ORDER BY e.full_name",
-        EMPLOYEE_SELECT_QUERY
+        "{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND e.is_active = true ORDER BY e.full_name"
     );
     query_as::<_, Employee>(&query)
         .bind(workspace_id)
@@ -489,9 +485,8 @@ pub async fn get_paginated_employee_ids(
         r#"SELECT id, full_name FROM employees
            WHERE workspace_id = $1 AND is_active = true
            AND ($2::uuid[] IS NULL OR id = ANY($2))
-           ORDER BY full_name {}
-           LIMIT $3 OFFSET $4"#,
-        order_dir
+           ORDER BY full_name {order_dir}
+           LIMIT $3 OFFSET $4"#
     );
 
     let employees = query_as::<_, EmployeeBasicInfo>(&sql)

@@ -98,7 +98,7 @@ impl AgentManager {
                 .map_err(|e| e.to_string())?;
             Ok(())
         } else {
-            Err(format!("Agent {} not found or offline", agent_id))
+            Err(format!("Agent {agent_id} not found or offline"))
         }
     }
 
@@ -134,7 +134,7 @@ impl AgentManager {
                 .map_err(|e| e.to_string())?;
             Ok(())
         } else {
-            Err(format!("Agent {} not found or offline", agent_id))
+            Err(format!("Agent {agent_id} not found or offline"))
         }
     }
     pub async fn shutdown(&self) {

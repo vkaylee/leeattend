@@ -70,14 +70,14 @@ pub async fn get_monitor_stats(
 
     // 2. Get today's stats counters
     let today = Utc::now().format("%Y-%m-%d").to_string();
-    let completed_key = format!("{}{}", STATS_COMPLETED_PREFIX, today);
-    let failed_key = format!("{}{}", STATS_FAILED_PREFIX, today);
+    let completed_key = format!("{STATS_COMPLETED_PREFIX}{today}");
+    let failed_key = format!("{STATS_FAILED_PREFIX}{today}");
 
     let completed_today: u64 = conn.get(&completed_key).await.unwrap_or(0);
     let failed_today: u64 = conn.get(&failed_key).await.unwrap_or(0);
 
     // 3. Scan all worker heartbeat keys
-    let pattern = format!("{}*", WORKER_HEARTBEAT_PREFIX);
+    let pattern = format!("{WORKER_HEARTBEAT_PREFIX}*");
     let worker_keys = scan_keys(&mut conn, &pattern).await;
 
     // 4. Get worker statuses and count
@@ -126,7 +126,7 @@ pub async fn get_worker_list(
     let mut conn = redis.conn();
 
     // Scan all worker heartbeat keys
-    let pattern = format!("{}*", WORKER_HEARTBEAT_PREFIX);
+    let pattern = format!("{WORKER_HEARTBEAT_PREFIX}*");
     let worker_keys = scan_keys(&mut conn, &pattern).await;
 
     if worker_keys.is_empty() {
@@ -234,8 +234,8 @@ mod tests {
 
         // Test daily key format
         let today = "2026-01-30";
-        let completed_key = format!("{}{}", STATS_COMPLETED_PREFIX, today);
-        let failed_key = format!("{}{}", STATS_FAILED_PREFIX, today);
+        let completed_key = format!("{STATS_COMPLETED_PREFIX}{today}");
+        let failed_key = format!("{STATS_FAILED_PREFIX}{today}");
 
         assert_eq!(completed_key, "stats:completed:2026-01-30");
         assert_eq!(failed_key, "stats:failed:2026-01-30");

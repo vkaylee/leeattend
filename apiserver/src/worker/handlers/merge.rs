@@ -44,14 +44,14 @@ impl MergeHandler {
         let meta = queue
             .get_job_metadata(parent_job_id)
             .await
-            .map_err(|e| format!("Failed to get job metadata: {}", e))?
+            .map_err(|e| format!("Failed to get job metadata: {e}"))?
             .ok_or("Job metadata not found")?;
 
         // 2. Fetch all batch results from Redis
         let batch_results = queue
             .get_all_results(parent_job_id)
             .await
-            .map_err(|e| format!("Failed to get batch results: {}", e))?;
+            .map_err(|e| format!("Failed to get batch results: {e}"))?;
 
         if batch_results.is_empty() {
             warn!(parent_job_id = %parent_job_id, "No batch results found for merge");
@@ -94,7 +94,7 @@ impl MergeHandler {
         queue
             .set_result_data(parent_job_id, &excel_data, &file_name)
             .await
-            .map_err(|e| format!("Failed to store Excel data: {}", e))?;
+            .map_err(|e| format!("Failed to store Excel data: {e}"))?;
 
         info!(
             parent_job_id = %parent_job_id,
@@ -107,7 +107,7 @@ impl MergeHandler {
         queue
             .update_job_status(parent_job_id, JobStatus::Completed)
             .await
-            .map_err(|e| format!("Failed to update job status: {}", e))?;
+            .map_err(|e| format!("Failed to update job status: {e}"))?;
         info!(parent_job_id = %parent_job_id, "Job status updated successfully");
 
         // 8. Publish DONE signal to Pub/Sub for streaming clients
@@ -165,7 +165,7 @@ impl MergeHandler {
 
         for (batch_key, json) in batch_results {
             let batch: Vec<AttendanceSummary> = serde_json::from_str(json).map_err(|e| {
-                format!("Parse error for {}: {}", batch_key, e)
+                format!("Parse error for {batch_key}: {e}")
             })?;
             all_summaries.extend(batch);
         }
@@ -201,7 +201,7 @@ impl MergeHandler {
 
         for (batch_key, json) in batch_results {
             let batch: Vec<DailyAttendanceReport> = serde_json::from_str(json).map_err(|e| {
-                format!("Parse error for {}: {}", batch_key, e)
+                format!("Parse error for {batch_key}: {e}")
             })?;
             all_reports.extend(batch);
         }

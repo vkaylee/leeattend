@@ -81,8 +81,7 @@ async fn test_multiple_employee_id_formats() {
         let normalized = normalize_employee_id(&logs[i].user_id);
         assert_eq!(
             normalized, *expected_normalized,
-            "ID {} should normalize to {}",
-            original_id, expected_normalized
+            "ID {original_id} should normalize to {expected_normalized}"
         );
     }
 
@@ -119,8 +118,7 @@ async fn test_normalization_preserves_regular_ids() {
         let normalized = normalize_employee_id(&logs[i].user_id);
         assert_eq!(
             normalized, *expected_id,
-            "Regular ID {} should remain unchanged",
-            expected_id
+            "Regular ID {expected_id} should remain unchanged"
         );
     }
 

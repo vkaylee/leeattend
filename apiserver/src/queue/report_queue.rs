@@ -72,7 +72,7 @@ impl ReportQueue {
             return Err(redis::RedisError::from((
                 redis::ErrorKind::TypeError,
                 "Invalid timeout",
-                format!("timeout must be finite and non-negative, got: {}", timeout_secs),
+                format!("timeout must be finite and non-negative, got: {timeout_secs}"),
             )));
         }
 
@@ -135,7 +135,7 @@ impl ReportQueue {
         job_id: Uuid,
     ) -> Result<Option<JobMetadata>, redis::RedisError> {
         let mut conn = self.pool.conn();
-        let key = format!("{}{}", META_PREFIX, job_id);
+        let key = format!("{META_PREFIX}{job_id}");
         let json: Option<String> = conn.get(&key).await?;
 
         match json {
@@ -195,7 +195,7 @@ impl ReportQueue {
     /// The new completed count after increment.
     pub async fn increment_completed(&self, parent_job_id: Uuid) -> Result<u32, redis::RedisError> {
         let mut conn = self.pool.conn();
-        let counter_key = format!("{}{}", COUNTER_PREFIX, parent_job_id);
+        let counter_key = format!("{COUNTER_PREFIX}{parent_job_id}");
 
         // Set TTL on first increment (counter may not exist yet)
         // Use tuple destructuring to handle pipe response (incr returns u32, expire returns i32)
@@ -218,7 +218,7 @@ impl ReportQueue {
     /// The new failed count after increment.
     pub async fn increment_failed(&self, parent_job_id: Uuid) -> Result<u32, redis::RedisError> {
         let mut conn = self.pool.conn();
-        let failed_key = format!("{}{}:failed", COUNTER_PREFIX, parent_job_id);
+        let failed_key = format!("{COUNTER_PREFIX}{parent_job_id}:failed");
 
         // Use tuple destructuring to handle pipe response (incr returns u32, expire returns i32)
         let (count, _): (u32, i32) = redis::pipe()
@@ -233,7 +233,7 @@ impl ReportQueue {
     /// Get current completed count for a job.
     pub async fn get_completed_count(&self, parent_job_id: Uuid) -> Result<u32, redis::RedisError> {
         let mut conn = self.pool.conn();
-        let counter_key = format!("{}{}", COUNTER_PREFIX, parent_job_id);
+        let counter_key = format!("{COUNTER_PREFIX}{parent_job_id}");
         let count: Option<u32> = conn.get(&counter_key).await?;
         Ok(count.unwrap_or(0))
     }
@@ -250,7 +250,7 @@ impl ReportQueue {
     /// * `Ok(false)` - Another worker already triggered merge
     pub async fn try_trigger_merge(&self, parent_job_id: Uuid) -> Result<bool, redis::RedisError> {
         let mut conn = self.pool.conn();
-        let flag_key = format!("{}{}", MERGE_FLAG_PREFIX, parent_job_id);
+        let flag_key = format!("{MERGE_FLAG_PREFIX}{parent_job_id}");
 
         // SETNX: Set key only if it doesn't exist (atomic operation)
         // Returns 1 if key was set, 0 if key already exists
@@ -286,8 +286,8 @@ impl ReportQueue {
         result: &str,
     ) -> Result<(), redis::RedisError> {
         let mut conn = self.pool.conn();
-        let key = format!("{}{}", RESULTS_PREFIX, parent_job_id);
-        let field = format!("batch_{:05}", batch_index);
+        let key = format!("{RESULTS_PREFIX}{parent_job_id}");
+        let field = format!("batch_{batch_index:05}");
 
         redis::pipe()
             .hset(&key, &field, result)
@@ -309,7 +309,7 @@ impl ReportQueue {
         parent_job_id: Uuid,
     ) -> Result<Vec<(String, String)>, redis::RedisError> {
         let mut conn = self.pool.conn();
-        let key = format!("{}{}", RESULTS_PREFIX, parent_job_id);
+        let key = format!("{RESULTS_PREFIX}{parent_job_id}");
         let results: Vec<(String, String)> = conn.hgetall(&key).await?;
 
         // Sort by batch key for consistent ordering
@@ -356,13 +356,13 @@ impl ReportQueue {
     pub async fn cleanup_job(&self, job_id: Uuid) -> Result<(), redis::RedisError> {
         let mut conn = self.pool.conn();
 
-        let meta_key = format!("{}{}", META_PREFIX, job_id);
-        let counter_key = format!("{}{}", COUNTER_PREFIX, job_id);
-        let failed_key = format!("{}{}:failed", COUNTER_PREFIX, job_id);
-        let results_key = format!("{}{}", RESULTS_PREFIX, job_id);
-        let data_key = format!("{}{}:data", RESULTS_PREFIX, job_id);
-        let filename_key = format!("{}{}:filename", RESULTS_PREFIX, job_id);
-        let merge_flag_key = format!("{}{}", MERGE_FLAG_PREFIX, job_id);
+        let meta_key = format!("{META_PREFIX}{job_id}");
+        let counter_key = format!("{COUNTER_PREFIX}{job_id}");
+        let failed_key = format!("{COUNTER_PREFIX}{job_id}:failed");
+        let results_key = format!("{RESULTS_PREFIX}{job_id}");
+        let data_key = format!("{RESULTS_PREFIX}{job_id}:data");
+        let filename_key = format!("{RESULTS_PREFIX}{job_id}:filename");
+        let merge_flag_key = format!("{MERGE_FLAG_PREFIX}{job_id}");
 
         let _: () = redis::pipe()
             .del(&meta_key)
@@ -394,8 +394,8 @@ impl ReportQueue {
         use base64::{engine::general_purpose::STANDARD, Engine as _};
 
         let mut conn = self.pool.conn();
-        let data_key = format!("{}{}:data", RESULTS_PREFIX, job_id);
-        let filename_key = format!("{}{}:filename", RESULTS_PREFIX, job_id);
+        let data_key = format!("{RESULTS_PREFIX}{job_id}:data");
+        let filename_key = format!("{RESULTS_PREFIX}{job_id}:filename");
 
         // Encode data as base64 for Redis storage
         let encoded = STANDARD.encode(data);
@@ -454,8 +454,8 @@ impl ReportQueue {
         use base64::{engine::general_purpose::STANDARD, Engine as _};
 
         let mut conn = self.pool.conn();
-        let data_key = format!("{}{}:data", RESULTS_PREFIX, job_id);
-        let filename_key = format!("{}{}:filename", RESULTS_PREFIX, job_id);
+        let data_key = format!("{RESULTS_PREFIX}{job_id}:data");
+        let filename_key = format!("{RESULTS_PREFIX}{job_id}:filename");
 
         let encoded: Option<String> = conn.get(&data_key).await?;
         let filename: Option<String> = conn.get(&filename_key).await?;
@@ -482,7 +482,7 @@ impl ReportQueue {
     /// * `parent_job_id` - Parent job ID whose results should be deleted
     pub async fn delete_results(&self, parent_job_id: Uuid) -> Result<(), redis::RedisError> {
         let mut conn = self.pool.conn();
-        let key = format!("{}{}", RESULTS_PREFIX, parent_job_id);
+        let key = format!("{RESULTS_PREFIX}{parent_job_id}");
         let _: () = conn.del(&key).await?;
         Ok(())
     }
@@ -492,7 +492,7 @@ impl ReportQueue {
     pub async fn increment_daily_completed(&self) -> Result<u64, redis::RedisError> {
         let mut conn = self.pool.conn();
         let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
-        let key = format!("{}{}", STATS_COMPLETED_PREFIX, today);
+        let key = format!("{STATS_COMPLETED_PREFIX}{today}");
 
         // Use tuple destructuring to handle pipe response (incr returns u64, expire returns i32)
         let (count, _): (u64, i32) = redis::pipe()
@@ -509,7 +509,7 @@ impl ReportQueue {
     pub async fn increment_daily_failed(&self) -> Result<u64, redis::RedisError> {
         let mut conn = self.pool.conn();
         let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
-        let key = format!("{}{}", STATS_FAILED_PREFIX, today);
+        let key = format!("{STATS_FAILED_PREFIX}{today}");
 
         // Use tuple destructuring to handle pipe response (incr returns u64, expire returns i32)
         let (count, _): (u64, i32) = redis::pipe()
@@ -603,22 +603,22 @@ mod tests {
     #[test]
     fn test_meta_key_format() {
         let job_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
-        let key = format!("{}{}", META_PREFIX, job_id);
+        let key = format!("{META_PREFIX}{job_id}");
         assert_eq!(key, "report:meta:550e8400-e29b-41d4-a716-446655440000");
     }
 
     #[test]
     fn test_results_key_format() {
         let job_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
-        let key = format!("{}{}", RESULTS_PREFIX, job_id);
+        let key = format!("{RESULTS_PREFIX}{job_id}");
         assert_eq!(key, "report:results:550e8400-e29b-41d4-a716-446655440000");
     }
 
     #[test]
     fn test_counter_key_format() {
         let job_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
-        let counter_key = format!("{}{}", COUNTER_PREFIX, job_id);
-        let failed_key = format!("{}{}:failed", COUNTER_PREFIX, job_id);
+        let counter_key = format!("{COUNTER_PREFIX}{job_id}");
+        let failed_key = format!("{COUNTER_PREFIX}{job_id}:failed");
 
         assert_eq!(counter_key, "report:counter:550e8400-e29b-41d4-a716-446655440000");
         assert_eq!(failed_key, "report:counter:550e8400-e29b-41d4-a716-446655440000:failed");
@@ -627,13 +627,13 @@ mod tests {
     #[test]
     fn test_batch_field_format() {
         let batch_index = 42u32;
-        let field = format!("batch_{:05}", batch_index);
+        let field = format!("batch_{batch_index:05}");
         assert_eq!(field, "batch_00042");
 
         // Test sorting order
         let fields: Vec<String> = vec![9, 0, 100, 1, 10]
             .into_iter()
-            .map(|i| format!("batch_{:05}", i))
+            .map(|i| format!("batch_{i:05}"))
             .collect();
         let mut sorted = fields.clone();
         sorted.sort();
@@ -679,8 +679,8 @@ mod tests {
     #[test]
     fn test_data_key_format() {
         let job_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
-        let data_key = format!("{}{}:data", RESULTS_PREFIX, job_id);
-        let filename_key = format!("{}{}:filename", RESULTS_PREFIX, job_id);
+        let data_key = format!("{RESULTS_PREFIX}{job_id}:data");
+        let filename_key = format!("{RESULTS_PREFIX}{job_id}:filename");
         assert_eq!(data_key, "report:results:550e8400-e29b-41d4-a716-446655440000:data");
         assert_eq!(filename_key, "report:results:550e8400-e29b-41d4-a716-446655440000:filename");
     }
@@ -689,13 +689,13 @@ mod tests {
     fn test_cleanup_key_list() {
         let job_id = Uuid::new_v4();
 
-        let meta_key = format!("{}{}", META_PREFIX, job_id);
-        let counter_key = format!("{}{}", COUNTER_PREFIX, job_id);
-        let failed_key = format!("{}{}:failed", COUNTER_PREFIX, job_id);
-        let results_key = format!("{}{}", RESULTS_PREFIX, job_id);
-        let data_key = format!("{}{}:data", RESULTS_PREFIX, job_id);
-        let filename_key = format!("{}{}:filename", RESULTS_PREFIX, job_id);
-        let merge_flag_key = format!("{}{}", MERGE_FLAG_PREFIX, job_id);
+        let meta_key = format!("{META_PREFIX}{job_id}");
+        let counter_key = format!("{COUNTER_PREFIX}{job_id}");
+        let failed_key = format!("{COUNTER_PREFIX}{job_id}:failed");
+        let results_key = format!("{RESULTS_PREFIX}{job_id}");
+        let data_key = format!("{RESULTS_PREFIX}{job_id}:data");
+        let filename_key = format!("{RESULTS_PREFIX}{job_id}:filename");
+        let merge_flag_key = format!("{MERGE_FLAG_PREFIX}{job_id}");
 
         // All keys should contain the job_id
         assert!(meta_key.contains(&job_id.to_string()));
@@ -710,7 +710,7 @@ mod tests {
     #[test]
     fn test_merge_flag_key_format() {
         let job_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
-        let merge_flag_key = format!("{}{}", MERGE_FLAG_PREFIX, job_id);
+        let merge_flag_key = format!("{MERGE_FLAG_PREFIX}{job_id}");
         assert_eq!(
             merge_flag_key,
             "report:merge_triggered:550e8400-e29b-41d4-a716-446655440000"
@@ -752,7 +752,7 @@ mod tests {
 
         // Get TTL before update
         let mut conn = pool.conn();
-        let key = format!("{}{}",META_PREFIX, job_id);
+        let key = format!("{META_PREFIX}{job_id}");
         let ttl_before: i64 = redis::cmd("TTL")
             .arg(&key)
             .query_async(&mut conn)
@@ -779,8 +779,7 @@ mod tests {
         // TTL should be preserved (within reasonable tolerance)
         assert!(
             ttl_after > 0,
-            "TTL should be preserved after update, got: {}",
-            ttl_after
+            "TTL should be preserved after update, got: {ttl_after}"
         );
         assert!(
             ttl_after <= ttl_before,
@@ -836,7 +835,7 @@ mod tests {
 
         // Check that TTL was set to default
         let mut conn = pool.conn();
-        let key = format!("{}{}",META_PREFIX, job_id);
+        let key = format!("{META_PREFIX}{job_id}");
         let ttl: i64 = redis::cmd("TTL")
             .arg(&key)
             .query_async(&mut conn)
@@ -845,9 +844,7 @@ mod tests {
 
         assert!(
             ttl > 0 && ttl <= JOB_TTL_SECS,
-            "TTL should be set to default ({}s), got: {}s",
-            JOB_TTL_SECS,
-            ttl
+            "TTL should be set to default ({JOB_TTL_SECS}s), got: {ttl}s"
         );
 
         // Cleanup
@@ -888,7 +885,7 @@ mod tests {
             .expect("Failed to create metadata");
 
         let mut conn = pool.conn();
-        let key = format!("{}{}",META_PREFIX, job_id);
+        let key = format!("{META_PREFIX}{job_id}");
 
         // Sleep briefly to ensure TTL decreases naturally
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
@@ -928,9 +925,7 @@ mod tests {
         );
         assert!(
             (ttl_after_first - ttl_after_second).abs() <= 2,
-            "TTL should not increase significantly: {} vs {}",
-            ttl_after_first,
-            ttl_after_second
+            "TTL should not increase significantly: {ttl_after_first} vs {ttl_after_second}"
         );
 
         // Cleanup
@@ -971,7 +966,7 @@ mod tests {
             .expect("Failed to create metadata");
 
         let mut conn = pool.conn();
-        let key = format!("{}{}",META_PREFIX, job_id);
+        let key = format!("{META_PREFIX}{job_id}");
 
         // Get initial TTL
         let ttl_before: i64 = redis::cmd("TTL")
@@ -1036,8 +1031,8 @@ mod tests {
             .expect("Failed to get TTL");
 
         // TTL should be positive (not -1 or -2)
-        assert!(ttl > 0, "TTL should be positive, got: {}", ttl);
-        assert!(ttl <= 100, "TTL should not exceed set time, got: {}", ttl);
+        assert!(ttl > 0, "TTL should be positive, got: {ttl}");
+        assert!(ttl <= 100, "TTL should not exceed set time, got: {ttl}");
 
         // Cleanup
         let _: () = redis::cmd("DEL")

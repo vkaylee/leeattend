@@ -50,9 +50,9 @@ async fn test_channel_no_accumulation_when_consumed() {
     let c = consumed.load(Ordering::SeqCst);
 
     // Consumer should have processed all or nearly all messages
-    assert!(c >= p - 100, "Consumer lagging too far behind: produced={}, consumed={}", p, c);
+    assert!(c >= p - 100, "Consumer lagging too far behind: produced={p}, consumed={c}");
 
-    println!("✅ Channel consumption test passed: produced={}, consumed={}", p, c);
+    println!("✅ Channel consumption test passed: produced={p}, consumed={c}");
 }
 
 /// Test that slow consumer causes backpressure, not unbounded memory growth.
@@ -95,7 +95,7 @@ async fn test_channel_backpressure_prevents_memory_growth() {
     // Producer should have been blocked multiple times (backpressure working)
     assert!(blocked_count > 0, "Producer was never blocked - backpressure not working");
 
-    println!("✅ Backpressure test passed: producer blocked {} times", blocked_count);
+    println!("✅ Backpressure test passed: producer blocked {blocked_count} times");
 }
 
 /// Test that batch buffer is cleared after processing.
@@ -110,7 +110,7 @@ async fn test_batch_buffer_cleared_after_processing() {
     for cycle in 0..10 {
         // Fill buffer (simulates receiving logs)
         for i in 0..100 {
-            buffer.push(format!("log_{}_{}", cycle, i));
+            buffer.push(format!("log_{cycle}_{i}"));
         }
 
         max_buffer_size = max_buffer_size.max(buffer.len());
@@ -122,7 +122,7 @@ async fn test_batch_buffer_cleared_after_processing() {
         buffer.clear();
 
         // Verify buffer is empty after processing
-        assert_eq!(buffer.len(), 0, "Buffer not cleared after cycle {}", cycle);
+        assert_eq!(buffer.len(), 0, "Buffer not cleared after cycle {cycle}");
     }
 
     // Buffer capacity may grow, but len should always return to 0
@@ -130,7 +130,7 @@ async fn test_batch_buffer_cleared_after_processing() {
     assert_eq!(total_processed, 1000, "Should have processed 1000 items");
     assert_eq!(max_buffer_size, 100, "Max buffer size should be 100 (batch size)");
 
-    println!("✅ Batch buffer test passed: processed={}, max_size={}", total_processed, max_buffer_size);
+    println!("✅ Batch buffer test passed: processed={total_processed}, max_size={max_buffer_size}");
 }
 
 /// Test that Vec with capacity doesn't leak when using swap pattern.
@@ -163,7 +163,7 @@ async fn test_vec_swap_pattern_no_leak() {
     assert_eq!(processed_buffers, 100);
     assert_eq!(buffer.len(), 0);
 
-    println!("✅ Vec swap pattern test passed: {} buffers processed", processed_buffers);
+    println!("✅ Vec swap pattern test passed: {processed_buffers} buffers processed");
 }
 
 /// Test that database query results don't accumulate in caller.
@@ -227,13 +227,12 @@ async fn test_semaphore_permits_returned() {
 
     // All permits should be returned
     let available = semaphore.available_permits();
-    assert_eq!(available, 2, "Not all permits returned: {} available", available);
+    assert_eq!(available, 2, "Not all permits returned: {available} available");
 
     let total_acquisitions = acquisitions.load(Ordering::SeqCst);
     assert_eq!(total_acquisitions, 50, "Should have 50 acquisitions");
 
-    println!("✅ Semaphore permit lifecycle test passed: {} acquisitions, {} permits available",
-             total_acquisitions, available);
+    println!("✅ Semaphore permit lifecycle test passed: {total_acquisitions} acquisitions, {available} permits available");
 }
 
 /// Test that spawned tasks complete and don't accumulate.
@@ -262,9 +261,9 @@ async fn test_spawned_tasks_complete() {
     assert!(result.is_ok(), "Tasks didn't complete in time - possible leak");
 
     let count = completed.load(Ordering::SeqCst);
-    assert_eq!(count, 100, "Not all tasks completed: {}", count);
+    assert_eq!(count, 100, "Not all tasks completed: {count}");
 
-    println!("✅ Spawned tasks completion test passed: {} tasks completed", count);
+    println!("✅ Spawned tasks completion test passed: {count} tasks completed");
 }
 
 /// Test that cancellation token properly stops loops.
@@ -304,7 +303,7 @@ async fn test_cancellation_stops_loop() {
 
     assert_eq!(count_at_cancel, count_after, "Loop continued after cancellation!");
 
-    println!("✅ Cancellation test passed: loop stopped at iteration {}", count_at_cancel);
+    println!("✅ Cancellation test passed: loop stopped at iteration {count_at_cancel}");
 }
 
 /// Test that channel sender drop causes receiver to exit.
@@ -420,7 +419,7 @@ async fn test_simulated_agent_loop_memory_stability() {
     assert!(processed > 0, "No logs processed");
 
     // Verify max pending stayed bounded (< 2x batch size indicates no accumulation)
-    assert!(max_p < 300, "Max pending too high ({}), possible accumulation", max_p);
+    assert!(max_p < 300, "Max pending too high ({max_p}), possible accumulation");
 
-    println!("✅ Simulated agent loop test passed: processed={}, max_pending={}", processed, max_p);
+    println!("✅ Simulated agent loop test passed: processed={processed}, max_pending={max_p}");
 }

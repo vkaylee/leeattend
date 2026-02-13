@@ -79,7 +79,7 @@ impl WorkerClient {
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
 
         if let Some(error) = response.error {
-            return Err(std::io::Error::other(format!("RPC Error: {}", error)));
+            return Err(std::io::Error::other(format!("RPC Error: {error}")));
         }
 
         Ok(response.result.unwrap_or(Value::Null))

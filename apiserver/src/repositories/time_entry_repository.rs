@@ -114,15 +114,15 @@ pub async fn get_paginated_logs(
     let mut param_idx = 2;
 
     if p_employee_id.is_some() {
-        sql.push_str(&format!(" AND employee_id = ${}", param_idx));
+        sql.push_str(&format!(" AND employee_id = ${param_idx}"));
         param_idx += 1;
     }
     if p_from.is_some() {
-        sql.push_str(&format!(" AND punch_in_time >= ${}", param_idx));
+        sql.push_str(&format!(" AND punch_in_time >= ${param_idx}"));
         param_idx += 1;
     }
     if p_to.is_some() {
-        sql.push_str(&format!(" AND punch_in_time <= ${}", param_idx));
+        sql.push_str(&format!(" AND punch_in_time <= ${param_idx}"));
         param_idx += 1;
     }
 
@@ -161,15 +161,15 @@ pub async fn count_logs(
     let mut param_idx = 2;
 
     if p_employee_id.is_some() {
-        sql.push_str(&format!(" AND employee_id = ${}", param_idx));
+        sql.push_str(&format!(" AND employee_id = ${param_idx}"));
         param_idx += 1;
     }
     if p_from.is_some() {
-        sql.push_str(&format!(" AND punch_in_time >= ${}", param_idx));
+        sql.push_str(&format!(" AND punch_in_time >= ${param_idx}"));
         param_idx += 1;
     }
     if p_to.is_some() {
-        sql.push_str(&format!(" AND punch_in_time <= ${}", param_idx));
+        sql.push_str(&format!(" AND punch_in_time <= ${param_idx}"));
         // NO param_idx += 1 here as it's the last one
     }
 

@@ -59,7 +59,7 @@ pub async fn clear_debug_db(
                     "DELETE FROM attendance_import_jobs WHERE workspace_id = $1",
                 ];
                  for q in queries {
-                    sqlx::query(q).bind(ws_id).execute(&mut *tx).await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Error executing {}: {}", q, e)))?;
+                    sqlx::query(q).bind(ws_id).execute(&mut *tx).await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Error executing {q}: {e}")))?;
                 }
             }
             "payroll" => {
@@ -70,7 +70,7 @@ pub async fn clear_debug_db(
                     // But if 'payroll' implies resetting all payroll history, we might want to keep the config.
                 ];
                 for q in queries {
-                    sqlx::query(q).bind(ws_id).execute(&mut *tx).await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Error executing {}: {}", q, e)))?;
+                    sqlx::query(q).bind(ws_id).execute(&mut *tx).await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Error executing {q}: {e}")))?;
                 }
             }
             "rosters" => {
@@ -81,7 +81,7 @@ pub async fn clear_debug_db(
                     // Wiping 'rosters' usually implies wiping the generated schedule.
                 ];
                 for q in queries {
-                    sqlx::query(q).bind(ws_id).execute(&mut *tx).await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Error executing {}: {}", q, e)))?;
+                    sqlx::query(q).bind(ws_id).execute(&mut *tx).await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Error executing {q}: {e}")))?;
                 }
             }
             "employees" => {
@@ -113,7 +113,7 @@ pub async fn clear_debug_db(
                     "DELETE FROM employees WHERE workspace_id = $1",
                 ];
                 for q in queries {
-                    sqlx::query(q).bind(ws_id).execute(&mut *tx).await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Error executing {}: {}", q, e)))?;
+                    sqlx::query(q).bind(ws_id).execute(&mut *tx).await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Error executing {q}: {e}")))?;
                 }
             }
             "full_reset" => {
@@ -159,7 +159,7 @@ pub async fn clear_debug_db(
                 ];
                 
                 for q in queries {
-                    sqlx::query(q).bind(ws_id).execute(&mut *tx).await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Error executing {}: {}", q, e)))?;
+                    sqlx::query(q).bind(ws_id).execute(&mut *tx).await.map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Error executing {q}: {e}")))?;
                 }
             }
             "seed" => {
@@ -221,7 +221,7 @@ pub async fn clear_debug_db(
                      .bind(code)
                      .execute(&mut *tx)
                      .await
-                     .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to insert employee: {}", e)))?;
+                     .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to insert employee: {e}")))?;
                     
                      // Assign Department
                      sqlx::query(

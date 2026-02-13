@@ -41,7 +41,7 @@ mod tests {
     fn test_openapi_generation() {
         let openapi = ApiDoc::openapi();
         let json = openapi.to_json().expect("Failed to serialize OpenAPI to JSON");
-        println!("Generated JSON: {}", json);
+        println!("Generated JSON: {json}");
         
         // Basic sanity checks
         assert!(json.contains("\"openapi\":") || json.contains("\"openapi\" :"));

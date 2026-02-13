@@ -39,8 +39,8 @@ async fn test_batch_worker_flushes_on_timeout() {
 
     for i in 0..3 {
         log_tx.send(("D1".to_string(), AttendanceData {
-            user_id: format!("U{}", i),
-            timestamp: format!("2026-01-01 10:00:0{}", i),
+            user_id: format!("U{i}"),
+            timestamp: format!("2026-01-01 10:00:0{i}"),
             status: Some(1),
             punch: Some(1),
         })).await.unwrap();

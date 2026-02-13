@@ -117,7 +117,7 @@ impl CentralClient {
 
                 if let Ok(moved) = sync_hybrid.disk_db().move_expired_logs_to_dlq(max_retries, ttl_minutes).await {
                     if moved > 0 {
-                        warn!("⚠️ Moved {} expired logs to dead letter queue (max_retries={}, ttl={}m)", moved, max_retries, ttl_minutes);
+                        warn!("⚠️ Moved {moved} expired logs to dead letter queue (max_retries={max_retries}, ttl={ttl_minutes}m)");
                     }
                 }
 
@@ -125,7 +125,7 @@ impl CentralClient {
                 if last_stale_check.elapsed() >= Duration::from_secs(60) {
                     let reset_count = sync_hybrid.memory_store().reset_stale_inflight(Duration::from_secs(300));
                     if reset_count > 0 {
-                        warn!("⚠️ Reset {} stale in-flight logs (>5min)", reset_count);
+                        warn!("⚠️ Reset {reset_count} stale in-flight logs (>5min)");
                     }
                     last_stale_check = Instant::now();
                 }
@@ -145,7 +145,7 @@ impl CentralClient {
 
                     let total_pending = sync_hybrid.count_unsynced_logs();
 
-                    info!("📤 Syncing {} logs to central server ({} | Pending: {})...", count, stats_str, total_pending);
+                    info!("📤 Syncing {count} logs to central server ({stats_str} | Pending: {total_pending})...");
 
                     // Mark in-flight in memory
                     let log_ids: Vec<i64> = logs.iter().map(|l| l.id).collect();
@@ -153,7 +153,7 @@ impl CentralClient {
 
                     let mem_latency = start.elapsed();
                     if mem_latency.as_millis() > 5 {
-                        warn!("⚠️ Sync cycle memory latency: {:?} (target: <5ms)", mem_latency);
+                        warn!("⚠️ Sync cycle memory latency: {mem_latency:?} (target: <5ms)");
                     }
                 }
                 for log in logs {
@@ -226,7 +226,7 @@ impl CentralClient {
                 let delay = manager.get_delay();
                 if delay > Duration::from_secs(0) { sleep(delay).await; }
 
-                info!("Connecting to Central Server at {}...", url);
+                info!("Connecting to Central Server at {url}...");
                 match connect_central(&url, &agent_id, &token).await {
                     Ok((ws_stream, _)) => {
                         info!("✅ Connected to Central Server.");
@@ -264,11 +264,11 @@ impl CentralClient {
                                             if write.send(Message::Pong(p)).await.is_err() { break; }
                                         }
                                         Some(Ok(Message::Close(f))) => {
-                                            warn!("🚪 Server closed connection: {:?}", f);
+                                            warn!("🚪 Server closed connection: {f:?}");
                                             break;
                                         }
                                         Some(Err(e)) => {
-                                            error!("❌ WS Error: {}", e);
+                                            error!("❌ WS Error: {e}");
                                             break;
                                         }
                                         None => {
@@ -284,7 +284,7 @@ impl CentralClient {
                         manager.record_dropped_prematurely();
                     }
                     Err(e) => {
-                        error!("❌ Connection failed: {}", e);
+                        error!("❌ Connection failed: {e}");
                         ws_connected.store(false, Ordering::Relaxed);
                         manager.record_connection_failed();
                     }
@@ -311,7 +311,7 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                 let pushed_ids: Vec<String> = data.devices.iter().map(|d| d.device_id.clone()).collect();
                 if let Ok(deactivated) = hybrid_db.disk_db().deactivate_devices_not_in(&pushed_ids).await
                     && deactivated > 0 {
-                        info!("Deactivated {} stale devices", deactivated);
+                        info!("Deactivated {deactivated} stale devices");
                     }
 
                 // 3. Upsert devices (might enable or disable specific ones)
@@ -338,32 +338,31 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                 if status.as_deref() == Some("success") {
                     // Update memory
                     if !hybrid_db.mark_synced_by_key(&msg_id) {
-                        log::debug!("ACK for already-synced log (disk update OK): {}", msg_id);
+                        log::debug!("ACK for already-synced log (disk update OK): {msg_id}");
                     }
 
                     // Update disk using composite key
                     if let Some((device_id, user_id, timestamp_unix)) = parse_composite_key(&msg_id) {
-                        log::debug!("🔍 ACK Success: device='{}', user='{}', timestamp='{}'",
-                            device_id, user_id, timestamp_unix);
+                        log::debug!("🔍 ACK Success: device='{device_id}', user='{user_id}', timestamp='{timestamp_unix}'");
                         
                         // We rely on hybrid_db.mark_synced_by_key() to update memory state.
                         // The Checkpoint Worker will persist this to disk asynchronously.
                         // Doing a direct UPDATE here is racy because the log might not be on disk yet.
                     } else {
-                        log::warn!("⚠️ Failed to parse composite key: {}", msg_id);
+                        log::warn!("⚠️ Failed to parse composite key: {msg_id}");
                     }
                 } else {
                     // Failed ACK - reset to unsynced for retry
                     if !hybrid_db.reset_to_unsynced_by_key(&msg_id) {
-                        log::debug!("Failed ACK for already-synced log: {}", msg_id);
+                        log::debug!("Failed ACK for already-synced log: {msg_id}");
                     } else {
-                         log::warn!("⚠️ ACK Failed: Resetting log {} for retry", msg_id);
+                         log::warn!("⚠️ ACK Failed: Resetting log {msg_id} for retry");
                     }
                 }
 
             }
             CentralMessage::Error { code, message } => {
-                error!("⚠️ Server error [{}]: {}", code, message);
+                error!("⚠️ Server error [{code}]: {message}");
             }
             _ => {}
         }
@@ -381,8 +380,8 @@ async fn connect_central(url: &str, agent_id: &str, token: &str) -> Result<(WebS
         Duration::from_secs(CONNECTION_TIMEOUT_SECS),
         connect_future
     ).await
-        .map_err(|_| format!("Connection timeout after {} seconds", CONNECTION_TIMEOUT_SECS))?
-        .map_err(|e| format!("WebSocket connection error: {}", e))?;
+        .map_err(|_| format!("Connection timeout after {CONNECTION_TIMEOUT_SECS} seconds"))?
+        .map_err(|e| format!("WebSocket connection error: {e}"))?;
 
     Ok((ws_stream, response))
 }
@@ -442,7 +441,7 @@ impl RetryManager {
         if let Some(since) = self.stable_since {
             if since.elapsed() >= Duration::from_secs(STABILITY_THRESHOLD_SECS)
                 && self.retry_count > 0 {
-                    info!("Connection stable for {}s, resetting retry count", STABILITY_THRESHOLD_SECS);
+                    info!("Connection stable for {STABILITY_THRESHOLD_SECS}s, resetting retry count");
                     self.retry_count = 0;
                 }
                 // Keep stable_since as-is to avoid repeated reset logs
@@ -592,8 +591,8 @@ mod tests {
             .and_utc()
             .timestamp();
             
-        let msg_id = format!("DEV1:U999:{}", ts_unix);
-        let ack_msg = format!(r#"{{"type":"ack", "msg_id":"{}", "status":"success"}}"#, msg_id);
+        let msg_id = format!("DEV1:U999:{ts_unix}");
+        let ack_msg = format!(r#"{{"type":"ack", "msg_id":"{msg_id}", "status":"success"}}"#);
 
         // 4. Handle ACK
         handle_incoming_text(&ack_msg, &hybrid_db, &reload_tx).await;
@@ -774,7 +773,7 @@ mod tests {
             .unwrap();
 
         // Verify no active devices
-        let devices = hybrid_db.disk_db().get_active_devices().await.unwrap();
+        let _devices = hybrid_db.disk_db().get_active_devices().await.unwrap();
     }
 }
 
@@ -787,12 +786,12 @@ fn calculate_sync_stats(logs: &[crate::memory_store::MemoryLog]) -> String {
         let min_retry = resync_logs.iter().map(|l| l.retry_count).min().unwrap_or(0);
         let max_retry = resync_logs.iter().map(|l| l.retry_count).max().unwrap_or(0);
         if min_retry == max_retry {
-            format!("{} New, {} Resyncs (Attempt #{})", new_count, resync_count, min_retry)
+            format!("{new_count} New, {resync_count} Resyncs (Attempt #{min_retry})")
         } else {
-            format!("{} New, {} Resyncs (Attempt #{}-{})", new_count, resync_count, min_retry, max_retry)
+            format!("{new_count} New, {resync_count} Resyncs (Attempt #{min_retry}-{max_retry})")
         }
     } else {
-        format!("{} New", new_count)
+        format!("{new_count} New")
     }
 }
 
@@ -800,7 +799,7 @@ fn calculate_sync_stats(logs: &[crate::memory_store::MemoryLog]) -> String {
 mod sync_stats_tests {
     use super::*;
     use crate::memory_store::MemoryLog;
-    use chrono::NaiveDateTime;
+    
 
     #[test]
     fn test_calculate_sync_stats_new_only() {
@@ -903,7 +902,7 @@ mod sync_stats_tests {
         // Case 4: UUID Device ID + User ID with Colons (The Fix)
         // 36 chars UUID: 12345678-1234-1234-1234-123456789012
         let uuid = "12345678-1234-1234-1234-123456789012";
-        let k4 = format!("{}:USER:001:1234567890", uuid);
+        let k4 = format!("{uuid}:USER:001:1234567890");
         
         // This should now correctly identify the UUID and capture everything else as UserID
         assert_eq!(parse_composite_key(&k4), Some((uuid.into(), "USER:001".into(), 1234567890)));

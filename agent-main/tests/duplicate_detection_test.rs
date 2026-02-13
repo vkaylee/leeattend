@@ -23,9 +23,9 @@ async fn test_duplicate_detection_filters_repeated_logs() {
 
     let mut sent_count_p1 = 0;
     for (user_id, timestamp) in &poll1_logs {
-        let key = format!("{}:{}", user_id, timestamp);
+        let key = format!("{user_id}:{timestamp}");
         if seen_logs.insert(key) {
-            tx.send((device_name.clone(), format!("{}:{}", user_id, timestamp))).await.unwrap();
+            tx.send((device_name.clone(), format!("{user_id}:{timestamp}"))).await.unwrap();
             sent_count_p1 += 1;
         }
     }
@@ -45,9 +45,9 @@ async fn test_duplicate_detection_filters_repeated_logs() {
     let mut sent_count_p2 = 0;
     let mut dup_count_p2 = 0;
     for (user_id, timestamp) in &poll2_logs {
-        let key = format!("{}:{}", user_id, timestamp);
+        let key = format!("{user_id}:{timestamp}");
         if seen_logs.insert(key) {
-            tx.send((device_name.clone(), format!("{}:{}", user_id, timestamp))).await.unwrap();
+            tx.send((device_name.clone(), format!("{user_id}:{timestamp}"))).await.unwrap();
             sent_count_p2 += 1;
         } else {
             dup_count_p2 += 1;
@@ -73,9 +73,9 @@ async fn test_duplicate_detection_filters_repeated_logs() {
     let mut sent_count_p3 = 0;
     let mut dup_count_p3 = 0;
     for (user_id, timestamp) in &poll3_logs {
-        let key = format!("{}:{}", user_id, timestamp);
+        let key = format!("{user_id}:{timestamp}");
         if seen_logs.insert(key) {
-            tx.send((device_name.clone(), format!("{}:{}", user_id, timestamp))).await.unwrap();
+            tx.send((device_name.clone(), format!("{user_id}:{timestamp}"))).await.unwrap();
             sent_count_p3 += 1;
         } else {
             dup_count_p3 += 1;
@@ -93,10 +93,10 @@ async fn test_duplicate_detection_filters_repeated_logs() {
     assert_eq!(received, 10, "Total: 10 unique logs should be in queue (5+2+3)");
 
     println!("✅ Duplicate detection test passed:");
-    println!("   Poll 1: {} sent, 0 filtered", sent_count_p1);
-    println!("   Poll 2: {} sent, {} filtered", sent_count_p2, dup_count_p2);
-    println!("   Poll 3: {} sent, {} filtered", sent_count_p3, dup_count_p3);
-    println!("   Total: {} unique logs in queue", received);
+    println!("   Poll 1: {sent_count_p1} sent, 0 filtered");
+    println!("   Poll 2: {sent_count_p2} sent, {dup_count_p2} filtered");
+    println!("   Poll 3: {sent_count_p3} sent, {dup_count_p3} filtered");
+    println!("   Total: {received} unique logs in queue");
 }
 
 /// Test memory efficiency: HashSet size stays bounded.
@@ -178,5 +178,5 @@ async fn test_multiple_devices_independent_deduplication() {
     println!("✅ Multiple devices test passed:");
     println!("   OFFICE: {} unique logs", seen_office.len());
     println!("   XUONG 1: {} unique logs", seen_xuong.len());
-    println!("   Total queued: {}", received);
+    println!("   Total queued: {received}");
 }

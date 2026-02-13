@@ -40,7 +40,7 @@ impl ShiftCache {
 
     /// Generate cache key for shifts of a workspace.
     fn key(workspace_id: Uuid) -> String {
-        format!("cache:shifts:{}", workspace_id)
+        format!("cache:shifts:{workspace_id}")
     }
 
     /// Get all shifts for workspace as a HashMap for O(1) lookup by shift ID.
@@ -73,7 +73,7 @@ impl ShiftCache {
                 )
                 .fetch_all(&db)
                 .await
-                .map_err(|e| format!("Failed to fetch shifts: {}", e))?;
+                .map_err(|e| format!("Failed to fetch shifts: {e}"))?;
 
                 let shifts: Vec<CachedShift> = rows
                     .into_iter()

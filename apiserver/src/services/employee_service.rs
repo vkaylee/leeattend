@@ -90,7 +90,7 @@ impl EmployeeService {
             user_repository::get_user_by_id(pool, user_id)
                 .await
                 .map_err(|e| {
-                    eprintln!("Error checking user_id for new employee: {:?}", e);
+                    eprintln!("Error checking user_id for new employee: {e:?}");
                     StatusCode::INTERNAL_SERVER_ERROR
                 })?
                 .ok_or(StatusCode::BAD_REQUEST)?; // User not found
@@ -117,7 +117,7 @@ impl EmployeeService {
         employee_repository::create_employee_tx(&mut tx, &employee)
             .await
             .map_err(|e| {
-                eprintln!("Error creating employee: {:?}", e);
+                eprintln!("Error creating employee: {e:?}");
                 StatusCode::INTERNAL_SERVER_ERROR
             })?;
         tx.commit()
@@ -230,7 +230,7 @@ impl EmployeeService {
         employee_repository::get_employee_by_id(pool, id, workspace_id)
             .await
             .map_err(|e| {
-                eprintln!("Error getting employee: {:?}", e);
+                eprintln!("Error getting employee: {e:?}");
                 StatusCode::INTERNAL_SERVER_ERROR
             })?
             .ok_or(StatusCode::NOT_FOUND)
@@ -246,7 +246,7 @@ impl EmployeeService {
         employee_repository::get_all_employees(pool, workspace_id, search_query, page, limit)
             .await
             .map_err(|e| {
-                eprintln!("Error getting all employees: {:?}", e);
+                eprintln!("Error getting all employees: {e:?}");
                 StatusCode::INTERNAL_SERVER_ERROR
             })
     }
@@ -262,7 +262,7 @@ impl EmployeeService {
             user_repository::get_user_by_id(pool, user_id)
                 .await
                 .map_err(|e| {
-                    eprintln!("Error checking user_id for update employee: {:?}", e);
+                    eprintln!("Error checking user_id for update employee: {e:?}");
                     StatusCode::INTERNAL_SERVER_ERROR
                 })?
                 .ok_or(StatusCode::BAD_REQUEST)?; // User not found
@@ -282,7 +282,7 @@ impl EmployeeService {
         )
         .await
         .map_err(|e| {
-            eprintln!("Error updating employee: {:?}", e);
+            eprintln!("Error updating employee: {e:?}");
             StatusCode::INTERNAL_SERVER_ERROR
         })?
         .ok_or(StatusCode::NOT_FOUND)?;
@@ -311,7 +311,7 @@ impl EmployeeService {
         let rows_affected = employee_repository::delete_employee(pool, id, workspace_id)
             .await
             .map_err(|e| {
-                eprintln!("Error deleting employee: {:?}", e);
+                eprintln!("Error deleting employee: {e:?}");
                 StatusCode::INTERNAL_SERVER_ERROR
             })?;
 

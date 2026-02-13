@@ -152,7 +152,7 @@ impl AttendanceLogService {
             }
             Err(e) => {
                 // Case 4: Database error → Agent should retry
-                let msg = format!("Database error finding employee: {}", e);
+                let msg = format!("Database error finding employee: {e}");
                 error!("{}", msg);
                 return Err(msg);
             }
@@ -163,7 +163,7 @@ impl AttendanceLogService {
             Ok(dt) => dt,
             Err(e) => {
                 // Case 3: Validation error → Log with fingerprint (NOT retry)
-                let msg = format!("Failed to parse timestamp '{}': {}", punch_time_raw, e);
+                let msg = format!("Failed to parse timestamp '{punch_time_raw}': {e}");
                 error!("{}", msg);
 
                 let fingerprint = Self::calculate_fingerprint(
@@ -179,7 +179,7 @@ impl AttendanceLogService {
                     device_id,
                     raw_data,
                     &msg,
-                    &format!("{:?}", source),
+                    &format!("{source:?}"),
                     &fingerprint,
                 ).await;
 
@@ -219,7 +219,7 @@ impl AttendanceLogService {
                 Ok(false)
             }
             Err(e) => {
-                let msg = format!("Failed to save raw attendance log: {}", e);
+                let msg = format!("Failed to save raw attendance log: {e}");
                 error!("{}", msg);
                 Err(msg)
             }
@@ -279,7 +279,7 @@ impl AttendanceLogService {
         .bind(employee_id_number)
         .fetch_all(pool)
         .await
-        .map_err(|e| format!("Failed to fetch staged logs: {}", e))?;
+        .map_err(|e| format!("Failed to fetch staged logs: {e}"))?;
 
         if staged_logs.is_empty() {
             return Ok(0);

@@ -29,19 +29,18 @@ fn benchmark_insert_latency() {
     let start = Instant::now();
     let timestamp_unix = parse_timestamp_to_unix("2026-01-29 10:00:00");
     for i in 0..1000 {
-        let data = make_attendance(&format!("U{:05}", i), "2026-01-29 10:00:00");
+        let data = make_attendance(&format!("U{i:05}"), "2026-01-29 10:00:00");
         store.insert(format!("DEV{}", i % 10), data, timestamp_unix).unwrap();
     }
     let elapsed = start.elapsed();
 
     let avg_latency_us = elapsed.as_micros() / 1000;
-    println!("Average insert latency: {}us", avg_latency_us);
+    println!("Average insert latency: {avg_latency_us}us");
 
     // Assert sub-millisecond latency target
     assert!(
         avg_latency_us < 1000,
-        "Insert latency too high: {}us (target: <1000us)",
-        avg_latency_us
+        "Insert latency too high: {avg_latency_us}us (target: <1000us)"
     );
 }
 
@@ -52,7 +51,7 @@ fn benchmark_query_latency() {
     // Populate with 10K logs
     let timestamp_unix = parse_timestamp_to_unix("2026-01-29 10:00:00");
     for i in 0..10_000 {
-        let data = make_attendance(&format!("U{:05}", i), "2026-01-29 10:00:00");
+        let data = make_attendance(&format!("U{i:05}"), "2026-01-29 10:00:00");
         store.insert(format!("DEV{}", i % 10), data, timestamp_unix).unwrap();
     }
 
@@ -63,13 +62,12 @@ fn benchmark_query_latency() {
     let elapsed = start.elapsed();
 
     let avg_latency_us = elapsed.as_micros() / 100;
-    println!("Average query latency (500 logs): {}us", avg_latency_us);
+    println!("Average query latency (500 logs): {avg_latency_us}us");
 
     // Assert sub-millisecond latency target
     assert!(
         avg_latency_us < 1000,
-        "Query latency too high: {}us (target: <1000us)",
-        avg_latency_us
+        "Query latency too high: {avg_latency_us}us (target: <1000us)"
     );
 }
 
@@ -80,7 +78,7 @@ fn benchmark_memory_usage() {
     // Insert 50K logs
     let timestamp_unix = parse_timestamp_to_unix("2026-01-29 10:00:00");
     for i in 0..50_000 {
-        let data = make_attendance(&format!("U{:05}", i), "2026-01-29 10:00:00");
+        let data = make_attendance(&format!("U{i:05}"), "2026-01-29 10:00:00");
         store.insert(format!("DEV{}", i % 100), data, timestamp_unix).unwrap();
     }
 
@@ -104,7 +102,7 @@ fn benchmark_batch_insert_latency() {
                 let offset = batch_idx * 100 + i;
                 (
                     format!("DEV{}", offset % 10),
-                    make_attendance(&format!("U{:05}", offset), "2026-01-29 10:00:00"),
+                    make_attendance(&format!("U{offset:05}"), "2026-01-29 10:00:00"),
                     timestamp_unix,
                 )
             })
@@ -115,7 +113,7 @@ fn benchmark_batch_insert_latency() {
     let elapsed = start.elapsed();
 
     let avg_latency_us = elapsed.as_micros() / 10_000; // 10K operations
-    println!("Average batch insert latency: {}us", avg_latency_us);
+    println!("Average batch insert latency: {avg_latency_us}us");
 
     assert!(avg_latency_us < 1000);
 }
@@ -127,7 +125,7 @@ fn benchmark_mark_operations() {
     // Insert 5K logs
     let timestamp_unix = parse_timestamp_to_unix("2026-01-29 10:00:00");
     for i in 0..5_000 {
-        let data = make_attendance(&format!("U{:05}", i), "2026-01-29 10:00:00");
+        let data = make_attendance(&format!("U{i:05}"), "2026-01-29 10:00:00");
         store.insert(format!("DEV{}", i % 10), data, timestamp_unix).unwrap();
     }
 
@@ -143,7 +141,7 @@ fn benchmark_mark_operations() {
     let elapsed = start.elapsed();
 
     let avg_latency_us = elapsed.as_micros() / 100;
-    println!("Average mark_in_flight latency: {}us", avg_latency_us);
+    println!("Average mark_in_flight latency: {avg_latency_us}us");
 
     assert!(avg_latency_us < 1000);
 }
@@ -156,7 +154,7 @@ async fn integration_full_sync_workflow() {
 
     // Phase 1: Collect logs
     for i in 1..=100 {
-        let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+        let data = make_attendance(&format!("U{i:03}"), "2026-01-29 10:00:00");
         hybrid.save_raw_attendance("DEV1", data).await.unwrap();
     }
     assert_eq!(hybrid.count_unsynced_logs(), 100);
@@ -189,7 +187,7 @@ async fn integration_restart_recovery_with_inflight() {
 
     // Save and mark some as in-flight
     for i in 1..=10 {
-        let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+        let data = make_attendance(&format!("U{i:03}"), "2026-01-29 10:00:00");
         hybrid.save_raw_attendance("DEV1", data).await.unwrap();
     }
 
@@ -218,9 +216,9 @@ async fn integration_concurrent_device_writes() {
         let hybrid = hybrid.clone();
         let handle = tokio::spawn(async move {
             for user_idx in 1..=20 {
-                let device = format!("DEV{}", dev_idx);
+                let device = format!("DEV{dev_idx}");
                 let data = make_attendance(
-                    &format!("D{}U{:03}", dev_idx, user_idx),
+                    &format!("D{dev_idx}U{user_idx:03}"),
                     "2026-01-29 10:00:00"
                 );
                 hybrid.save_raw_attendance(&device, data).await.ok();
@@ -243,7 +241,7 @@ async fn integration_checkpoint_under_load() {
 
     // Insert large batch
     for i in 0..1000 {
-        let data = make_attendance(&format!("U{:05}", i), "2026-01-29 10:00:00");
+        let data = make_attendance(&format!("U{i:05}"), "2026-01-29 10:00:00");
         hybrid.save_raw_attendance("DEV1", data).await.unwrap();
     }
 
@@ -251,7 +249,7 @@ async fn integration_checkpoint_under_load() {
     let checkpointed = hybrid.checkpoint().await.unwrap();
     let elapsed = start.elapsed();
 
-    println!("Checkpointed {} logs in {:?}", checkpointed, elapsed);
+    println!("Checkpointed {checkpointed} logs in {elapsed:?}");
 
     assert_eq!(checkpointed, 1000);
     // Checkpoint should complete in reasonable time
@@ -269,7 +267,7 @@ async fn integration_mixed_sync_states() {
 
     // Insert 30 logs
     for i in 1..=30 {
-        let data = make_attendance(&format!("U{:03}", i), "2026-01-29 10:00:00");
+        let data = make_attendance(&format!("U{i:03}"), "2026-01-29 10:00:00");
         let id = hybrid.save_raw_attendance("DEV1", data).await.unwrap();
         if i <= 10 {
             synced_ids.push(id);
@@ -330,7 +328,7 @@ fn edge_case_get_unsynced_after_all_synced() {
     // Insert and sync all
     let timestamp_unix = parse_timestamp_to_unix("2026-01-29 10:00:00");
     for i in 1..=3 {
-        let data = make_attendance(&format!("U{}", i), "2026-01-29 10:00:00");
+        let data = make_attendance(&format!("U{i}"), "2026-01-29 10:00:00");
         store.insert("D1".to_string(), data, timestamp_unix).unwrap();
     }
 
@@ -352,7 +350,7 @@ fn edge_case_cleanup_synced_no_old_logs() {
     // Insert recent logs
     let timestamp_unix = parse_timestamp_to_unix("2026-01-29 10:00:00");
     for i in 1..=3 {
-        let data = make_attendance(&format!("U{}", i), "2026-01-29 10:00:00");
+        let data = make_attendance(&format!("U{i}"), "2026-01-29 10:00:00");
         store.insert("D1".to_string(), data, timestamp_unix).unwrap();
     }
 

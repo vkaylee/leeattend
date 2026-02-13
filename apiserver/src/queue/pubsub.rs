@@ -125,7 +125,7 @@ impl ReportPublisher {
 
     /// Get the channel name for a job.
     pub fn channel_name(job_id: Uuid) -> String {
-        format!("{}{}", STREAM_CHANNEL_PREFIX, job_id)
+        format!("{STREAM_CHANNEL_PREFIX}{job_id}")
     }
 
     /// Publish a chunk of data to the stream.

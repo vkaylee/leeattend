@@ -89,12 +89,12 @@ impl Database {
         // Try parsing with different formats
         let naive_dt = NaiveDateTime::parse_from_str(local_time_str, "%Y-%m-%d %H:%M:%S")
             .or_else(|_| NaiveDateTime::parse_from_str(local_time_str, "%Y-%m-%dT%H:%M:%SZ"))
-            .map_err(|e| format!("Failed to parse timestamp: {}", e))?;
+            .map_err(|e| format!("Failed to parse timestamp: {e}"))?;
 
         // Convert to timezone-aware datetime
         let local_dt = tz.from_local_datetime(&naive_dt)
             .single()
-            .ok_or_else(|| format!("Ambiguous or non-existent local time: {}", local_time_str))?;
+            .ok_or_else(|| format!("Ambiguous or non-existent local time: {local_time_str}"))?;
 
         // Convert to UTC and get Unix timestamp
         let utc_dt = local_dt.with_timezone(&chrono::Utc);
@@ -114,7 +114,7 @@ impl Database {
             Ok(ts) => ts,
             Err(e) => {
                 let raw_json = serde_json::to_string(&data).unwrap_or_default();
-                let error_msg = format!("Timestamp parse error: {}", e);
+                let error_msg = format!("Timestamp parse error: {e}");
 
                 sqlx::query(
                     r#"
@@ -485,9 +485,9 @@ impl Database {
         // Insert into failed_logs table
         for log in &expired {
             let failure_reason = if log.retry_count >= max_retries {
-                format!("Max retries exceeded ({})", max_retries)
+                format!("Max retries exceeded ({max_retries})")
             } else {
-                format!("TTL exceeded ({}m)", ttl_minutes)
+                format!("TTL exceeded ({ttl_minutes}m)")
             };
 
             sqlx::query(
@@ -846,7 +846,7 @@ mod tests {
         // Insert 3 unsynced logs
         for i in 1..=3 {
             let data = AttendanceData {
-                user_id: format!("U{}", i),
+                user_id: format!("U{i}"),
                 timestamp: "2026-01-28 10:00:00".into(),
                 status: Some(1),
                 punch: Some(1),
@@ -881,7 +881,7 @@ mod tests {
         // Insert 150 unsynced logs (more than typical batch size)
         for i in 1..=150 {
             let data = AttendanceData {
-                user_id: format!("U{}", i),
+                user_id: format!("U{i}"),
                 timestamp: format!("2026-01-28 10:{:02}:00", i % 60),
                 status: Some(1),
                 punch: Some(1),
@@ -920,7 +920,7 @@ mod tests {
         let mut ids = Vec::new();
         for i in 1..=50 {
             let data = AttendanceData {
-                user_id: format!("U{}", i),
+                user_id: format!("U{i}"),
                 timestamp: "2026-01-28 10:00:00".into(),
                 status: Some(1),
                 punch: Some(1),
@@ -961,7 +961,7 @@ mod tests {
         // Insert 200 logs
         for i in 1..=200 {
             let data = AttendanceData {
-                user_id: format!("U{}", i),
+                user_id: format!("U{i}"),
                 timestamp: format!("2026-01-28 10:{:02}:00", i % 60),
                 status: Some(1),
                 punch: Some(1),
@@ -1005,7 +1005,7 @@ mod tests {
         // Insert 150 logs
         for i in 1..=150 {
             let data = AttendanceData {
-                user_id: format!("U{}", i),
+                user_id: format!("U{i}"),
                 timestamp: format!("2026-01-28 11:{:02}:00", i % 60),
                 status: Some(1),
                 punch: Some(1),
@@ -1081,7 +1081,7 @@ mod tests {
         // Insert 10 logs
         for i in 1..=10 {
             let data = AttendanceData {
-                user_id: format!("U{}", i),
+                user_id: format!("U{i}"),
                 timestamp: "2026-01-28 13:00:00".into(),
                 status: Some(1),
                 punch: Some(1),
@@ -1128,8 +1128,8 @@ mod tests {
         // Insert 10 logs with proper datetime format
         for i in 1..=10 {
             let data = AttendanceData {
-                user_id: format!("U{}", i),
-                timestamp: format!("2026-01-01 08:{:02}:00", i),
+                user_id: format!("U{i}"),
+                timestamp: format!("2026-01-01 08:{i:02}:00"),
                 status: Some(1),
                 punch: Some(0),
             };
@@ -1194,7 +1194,7 @@ mod tests {
         // Insert 15 logs
         for i in 1..=15 {
             let data = AttendanceData {
-                user_id: format!("U{}", i),
+                user_id: format!("U{i}"),
                 timestamp: "2026-01-28 14:00:00".into(),
                 status: Some(1),
                 punch: Some(1),
@@ -1256,7 +1256,7 @@ mod tests {
         // Pre-populate disk with logs having IDs 1-100
         for i in 1..=100 {
             let data = AttendanceData {
-                user_id: format!("U{:03}", i),
+                user_id: format!("U{i:03}"),
                 timestamp: "2026-01-31 10:00:00".to_string(),
                 status: Some(1),
                 punch: Some(0),
@@ -1301,14 +1301,14 @@ mod tests {
         // Create memory logs
         let memory_logs: Vec<crate::memory_store::MemoryLog> = (1..=5)
             .map(|i| {
-                let timestamp_unix = NaiveDateTime::parse_from_str(&format!("2026-01-31 10:{:02}:00", i), "%Y-%m-%d %H:%M:%S")
+                let timestamp_unix = NaiveDateTime::parse_from_str(&format!("2026-01-31 10:{i:02}:00"), "%Y-%m-%d %H:%M:%S")
                     .unwrap()
                     .and_utc()
                     .timestamp();
                 crate::memory_store::MemoryLog {
                     id: i,
                     device_id: "DEV1".to_string(),
-                    user_id: format!("U{:03}", i),
+                    user_id: format!("U{i:03}"),
                     timestamp: timestamp_unix,
                     status: Some(1),
                     punch: Some(0),
@@ -1346,8 +1346,8 @@ mod tests {
         // Device A: 5 unsynced, 2 synced
         for i in 1..=5 {
             let data = AttendanceData {
-                user_id: format!("U_A_{}", i),
-                timestamp: format!("2026-01-28 10:{:02}:00", i),
+                user_id: format!("U_A_{i}"),
+                timestamp: format!("2026-01-28 10:{i:02}:00"),
                 status: Some(1),
                 punch: Some(1),
             };
@@ -1361,8 +1361,8 @@ mod tests {
         // Device B: 3 unsynced
         for i in 1..=3 {
             let data = AttendanceData {
-                user_id: format!("U_B_{}", i),
-                timestamp: format!("2026-01-28 11:{:02}:00", i),
+                user_id: format!("U_B_{i}"),
+                timestamp: format!("2026-01-28 11:{i:02}:00"),
                 status: Some(1),
                 punch: Some(1),
             };

@@ -48,12 +48,12 @@ async fn test_db_writer_channel_survives_reload() {
 
     // Simulate workers sending across "restart"
     for i in 1..=10 {
-        log_tx.send((format!("device_{}", i), format!("data_{}", i))).await.unwrap();
+        log_tx.send((format!("device_{i}"), format!("data_{i}"))).await.unwrap();
     }
 
     // Simulate restart (new workers use same channel)
     for i in 11..=20 {
-        log_tx.send((format!("device_{}", i), format!("data_{}", i))).await.unwrap();
+        log_tx.send((format!("device_{i}"), format!("data_{i}"))).await.unwrap();
     }
 
     // Close channel

@@ -33,8 +33,8 @@ impl Config {
         });
 
         let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| {
-            let default_db = format!("sqlite:{}.db?mode=rwc", agent_id);
-            fallbacks.push(format!("DATABASE_URL (mặc định: {})", default_db));
+            let default_db = format!("sqlite:{agent_id}.db?mode=rwc");
+            fallbacks.push(format!("DATABASE_URL (mặc định: {default_db})"));
             default_db
         });
 
@@ -48,7 +48,7 @@ impl Config {
             if Path::new(rel_path).exists() {
                 rel_path.to_string()
             } else {
-                fallbacks.push(format!("PYTHON_PATH (mặc định: {})", fallback_path));
+                fallbacks.push(format!("PYTHON_PATH (mặc định: {fallback_path})"));
                 fallback_path.to_string()
             }
         });
@@ -71,7 +71,7 @@ impl Config {
         if !fallbacks.is_empty() {
             warn!("⚠️  PHÁT HIỆN THIẾU CẤU HÌNH .ENV - SỬ DỤNG GIÁ TRỊ MẶC ĐỊNH:");
             for f in fallbacks {
-                warn!("   👉 {}", f);
+                warn!("   👉 {f}");
             }
             warn!("------------------------------------------------------------");
         }

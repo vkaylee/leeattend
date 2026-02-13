@@ -22,7 +22,6 @@ pub struct TestDatabase {
 #[allow(dead_code)]
 impl TestDatabase {
     pub async fn new() -> Self {
-        dotenvy::from_filename(".env.test").ok();
         let base_url = std::env::var("DATABASE_URL_FOR_TEST_GENERATION")
             .or_else(|_| std::env::var("DATABASE_URL"))
             .expect("DATABASE_URL_FOR_TEST_GENERATION or DATABASE_URL must be set");

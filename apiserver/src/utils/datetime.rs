@@ -32,7 +32,7 @@ pub fn parse_datetime_with_tz(
     // 2. Parse as Naive if no offset is found
     let tz: Tz = workspace_tz
         .parse()
-        .map_err(|_| format!("Múi giờ không hợp lệ: {}", workspace_tz))?;
+        .map_err(|_| format!("Múi giờ không hợp lệ: {workspace_tz}"))?;
 
     let date_pref = preferred_date_fmt.unwrap_or("DD/MM/YYYY").to_uppercase();
     let time_pref = preferred_time_fmt.unwrap_or("24h");
@@ -52,7 +52,7 @@ pub fn parse_datetime_with_tz(
 
     for df in &date_fmts {
         for tf in &time_fmts {
-            priority_fmts.push(format!("{} {}", df, tf));
+            priority_fmts.push(format!("{df} {tf}"));
         }
     }
 

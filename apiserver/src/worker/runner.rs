@@ -580,7 +580,7 @@ mod tests {
     #[test]
     fn test_heartbeat_key_format() {
         let worker_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
-        let key = format!("{}{}", WORKER_HEARTBEAT_PREFIX, worker_id);
+        let key = format!("{WORKER_HEARTBEAT_PREFIX}{worker_id}");
         assert_eq!(key, "monitor:worker:550e8400-e29b-41d4-a716-446655440000");
     }
 
