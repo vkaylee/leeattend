@@ -1082,6 +1082,11 @@
     "add_btn": "Add Device",
     "confirm_disable": "Are you sure you want to disable {{name}}? The agent will stop polling this device.",
     "confirm_enable": "Are you sure you want to enable {{name}}? The agent will start polling this device.",
+    "modal": {
+      "disable_title": "Disable Device",
+      "enable_title": "Enable Device",
+      "delete_title": "Delete Device"
+    },
     "no_devices_for_agent": "No devices assigned to this agent yet.",
     "unassigned_title": "Unassigned Devices",
     "messages": {

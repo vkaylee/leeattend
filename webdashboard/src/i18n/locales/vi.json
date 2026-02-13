@@ -1082,6 +1082,11 @@
     "add_btn": "Thêm thiết bị",
     "confirm_disable": "Xác nhận tắt {{name}}? Agent sẽ ngừng đồng bộ thiết bị này.",
     "confirm_enable": "Xác nhận bật {{name}}? Agent sẽ bắt đầu đồng bộ thiết bị này.",
+    "modal": {
+      "disable_title": "Tắt thiết bị",
+      "enable_title": "Bật thiết bị",
+      "delete_title": "Xóa thiết bị"
+    },
     "no_devices_for_agent": "Chưa có thiết bị nào được gán cho agent này.",
     "unassigned_title": "Thiết bị chưa gán",
     "messages": {

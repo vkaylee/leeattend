@@ -7,7 +7,9 @@ import {
   MoreVertical,
   Edit2,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Power,
+  AlertTriangle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -18,6 +20,7 @@ import {
 import { Device } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
+import Modal from "@/components/ui/Modal";
 
 interface DeviceListItemProps {
   device: Device;
@@ -37,11 +40,11 @@ export default function DeviceListItem({
   const { t } = useTranslation();
   const toast = useToast();
   const [isToggling, setIsToggling] = useState(false);
+  const [showToggleModal, setShowToggleModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  async function handleToggle() {
-    const confirmKey = device.is_enabled ? "devices.confirm_disable" : "devices.confirm_enable";
-    if (!confirm(t(confirmKey, { name: device.name }))) return;
-
+  async function handleToggleConfirm() {
+    setShowToggleModal(false);
     setIsToggling(true);
     try {
       await onUpdate(device.id, { is_enabled: !device.is_enabled });
@@ -54,8 +57,8 @@ export default function DeviceListItem({
     }
   }
 
-  async function handleDelete() {
-    if (!confirm(t("devices.toast.delete_confirm"))) return;
+  async function handleDeleteConfirm() {
+    setShowDeleteModal(false);
     try {
       await onDelete(device.id);
       toast.success(t("devices.toast.delete_success"));
@@ -123,7 +126,7 @@ export default function DeviceListItem({
       {/* Toggle button */}
       <button
         data-testid={`device-toggle-${device.id}`}
-        onClick={handleToggle}
+        onClick={() => setShowToggleModal(true)}
         disabled={isToggling}
         className={cn(
           "px-3 py-1.5 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all border shadow-sm",
@@ -162,7 +165,7 @@ export default function DeviceListItem({
           )}
           <DropdownMenuItem
             data-testid={`device-delete-${device.id}`}
-            onSelect={handleDelete}
+            onSelect={() => setShowDeleteModal(true)}
             className="gap-3 p-3 rounded-lg font-bold text-xs uppercase text-rose-600 focus:text-rose-600"
           >
             <Trash2 size={14} />
@@ -170,6 +173,71 @@ export default function DeviceListItem({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Enable/Disable confirmation modal */}
+      <Modal
+        isOpen={showToggleModal}
+        onClose={() => setShowToggleModal(false)}
+        title={t(device.is_enabled ? "devices.modal.disable_title" : "devices.modal.enable_title")}
+        icon={<Power size={20} />}
+        maxWidth="sm"
+        testId="device-toggle-modal"
+      >
+        <p className="text-sm text-slate-600 mb-6">
+          {t(device.is_enabled ? "devices.confirm_disable" : "devices.confirm_enable", { name: device.name })}
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            data-testid="device-toggle-modal-cancel"
+            onClick={() => setShowToggleModal(false)}
+            className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
+          >
+            {t("common.cancel")}
+          </button>
+          <button
+            data-testid="device-toggle-modal-confirm"
+            onClick={handleToggleConfirm}
+            className={cn(
+              "px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-xl transition-colors",
+              device.is_enabled
+                ? "bg-rose-600 text-white hover:bg-rose-700"
+                : "bg-emerald-600 text-white hover:bg-emerald-700"
+            )}
+          >
+            {device.is_enabled ? t("common.disable") : t("common.enable")}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Delete confirmation modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title={t("devices.modal.delete_title")}
+        icon={<AlertTriangle size={20} />}
+        maxWidth="sm"
+        testId="device-delete-modal"
+      >
+        <p className="text-sm text-slate-600 mb-6">
+          {t("devices.toast.delete_confirm", { name: device.name })}
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            data-testid="device-delete-modal-cancel"
+            onClick={() => setShowDeleteModal(false)}
+            className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
+          >
+            {t("common.cancel")}
+          </button>
+          <button
+            data-testid="device-delete-modal-confirm"
+            onClick={handleDeleteConfirm}
+            className="px-4 py-2 text-xs font-bold uppercase tracking-widest bg-rose-600 text-white hover:bg-rose-700 rounded-xl transition-colors"
+          >
+            {t("devices.table.delete")}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

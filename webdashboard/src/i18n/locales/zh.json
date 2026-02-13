@@ -1082,6 +1082,11 @@
     "add_btn": "添加设备",
     "confirm_disable": "您确定要禁用 {{name}} 吗？代理将停止轮询此设备。",
     "confirm_enable": "您确定要启用 {{name}} 吗？代理将开始轮询此设备。",
+    "modal": {
+      "disable_title": "禁用设备",
+      "enable_title": "启用设备",
+      "delete_title": "删除设备"
+    },
     "no_devices_for_agent": "尚未为此代理分配任何设备。",
     "unassigned_title": "未分配的设备",
     "messages": {
