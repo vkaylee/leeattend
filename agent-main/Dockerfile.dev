@@ -4,7 +4,7 @@ FROM rust:1.88
 # mold is available in Debian Bookworm (which rust:1.88 is based on)
 RUN apt-get update && apt-get install -y clang mold && rm -rf /var/lib/apt/lists/*
 
-# Pre-install bacon for development
-RUN cargo install bacon
+# Pre-install cargo-watch for hot-reloading in Docker (bacon is TUI-only, swallows logs)
+RUN cargo install cargo-watch
 
 WORKDIR /app

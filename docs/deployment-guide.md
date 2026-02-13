@@ -377,14 +377,14 @@ This is the most reliable way to deploy LeeAttend in a production environment. I
 1. **Clone and Prepare**:
    ```bash
    # Copy the example environment file
-   cp .env.example.prod .env
+   cp .env.example .env
    ```
 
 2. **Configure Environment Variables**:
    Edit the `.env` file and set secure values:
    - `DB_PASSWORD`: Set a strong database password.
-   - `DB_USER`: (Optional) Change the default user.
-   - `RUST_LOG`: Set to `info` or `warn` for production.
+   - `JWT_SECRET`: Set a secure JWT secret.
+   - `DB_NAME`, `DB_USER`: (Optional) Change defaults.
 
 3. **Build and Launch**:
    ```bash
