@@ -43,9 +43,10 @@ services:
         cargo watch -w src -x run
       "
     environment:
+      - RUST_BACKTRACE=1
       - API_HOST=0.0.0.0
       - API_PORT=3000
-      - DATABASE_URL=${DATABASE_URL:-postgres://${DB_USER:-admin}:${DB_PASSWORD:-dev_password}@db:5432/${DB_NAME:-leeattend}}
+      - DATABASE_URL=${API_DATABASE_URL:-postgres://${DB_USER:-admin}:${DB_PASSWORD:-dev_password}@db:5432/${DB_NAME:-leeattend}}
       - REDIS_URL=redis://redis:6379
       - WORKER_MAX_CONCURRENT=4
       - ALLOWED_ORIGINS=http://localhost:3000,https://tauri.localhost,http://localhost:3001

@@ -139,7 +139,31 @@
       "Bash(npx vitest:*)",
       "Bash(VITEST_POOL_OPTIONS='{\"\"threads\"\":false}' timeout 60 npx vitest run:*)",
       "Bash(DATABASE_URL=\"postgres://test_user:test_password@localhost:5433/leeattend_test_template\" cargo test:*)",
-      "Bash(DATABASE_URL=\"postgres://test_user:test_password@localhost:5433/leeattend_test_template\" cargo sqlx:*)"
+      "Bash(DATABASE_URL=\"postgres://test_user:test_password@localhost:5433/leeattend_test_template\" cargo sqlx:*)",
+      "Bash(\"/home/elt1541/lee/leeattend/.env\" << 'EOF'\n\n# JWT\nJWT_SECRET=supersecret\nEOF)",
+      "Bash(export USE_DOCKER=true:*)",
+      "Bash(export DOCKER_COMPOSE_CMD=\"docker compose -f /home/elt1541/lee/leeattend/docker-compose.test.yml\")",
+      "Bash($DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"SQLX_OFFLINE=true cargo run -- gen-openapi > ../openapi.json\")",
+      "Bash($DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx openapi-typescript ../openapi.json -o ./src/types/api-generated.ts\")",
+      "Bash(NUM_WORKERS=1 ./run-tests.sh:*)",
+      "Bash(sudo chown:*)",
+      "Bash(sudo rm:*)",
+      "Bash(CARGO_TARGET_DIR=/tmp/agent-target CARGO_TARGET_DIR=/tmp/agent-target cargo check:*)",
+      "Bash(docker run:*)",
+      "Bash(gh auth status:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(git rm:*)",
+      "Bash(/home/elt1541/lee/leeattend/run-tests.sh:*)",
+      "Bash(npx --yes esbuild:*)",
+      "Bash(/home/elt1541/lee/leeattend/.env << 'EOF'\n# Database Configuration \\(used by docker-compose\\)\nDB_NAME=leeattend\nDB_USER=admin\nDB_PASSWORD=change_this_password_immediately\n\n# JWT\nJWT_SECRET=supersecret\nEOF)",
+      "Bash(/home/elt1541/lee/leeattend/.env << 'EOF'\n# Production secrets \\(required by docker-compose.yml\\)\nDB_PASSWORD=change_this_password_immediately\nJWT_SECRET=supersecret\n\n# Dev server port \\(optional, used by docker-compose.dev.yml\\)\n# DEV_PORT=8080\nEOF)",
+      "Bash(/home/elt1541/lee/leeattend/.env << 'EOF'\n# Infrastructure \\(used by docker-compose via ${VAR:-fallback}\\)\nDB_NAME=leeattend\nDB_USER=admin\nDB_PASSWORD=change_this_password_immediately\nJWT_SECRET=supersecret\n\n# Dev server port \\(optional\\)\n# DEV_PORT=8080\nEOF)",
+      "Bash(/home/elt1541/lee/leeattend/.env << 'EOF'\n# Infrastructure \\(used by docker-compose via ${VAR:-fallback}\\)\nDB_NAME=leeattend\nDB_USER=admin\nDB_PASSWORD=change_this_password_immediately\nJWT_SECRET=supersecret\n\n# Override full DATABASE_URL \\(optional, takes priority over DB_* vars\\)\n# DATABASE_URL=postgres://user:pass@host:5432/dbname\n\n# Dev server port \\(optional\\)\n# DEV_PORT=8080\nEOF)",
+      "Bash(/home/elt1541/lee/leeattend/.env << 'EOF'\n# Infrastructure \\(used by docker-compose via ${VAR:-fallback}\\)\nDB_NAME=leeattend\nDB_USER=admin\nDB_PASSWORD=change_this_password_immediately\nJWT_SECRET=supersecret\n\n# Override full DATABASE_URL \\(optional, takes priority over DB_* vars\\)\nDATABASE_URL=postgres://user:pass@host:5432/dbname\n\n# Override agent-main DATABASE_URL \\(optional\\)\n# AGENT_DATABASE_URL=sqlite:///app/data/agent.db?mode=rwc\n\n# Dev server port \\(optional\\)\nDEV_PORT=8080\nEOF)",
+      "Bash(/home/elt1541/lee/leeattend/.env << 'EOF'\n# Infrastructure \\(used by docker-compose via ${VAR:-fallback}\\)\nDB_NAME=leeattend\nDB_USER=admin\nDB_PASSWORD=change_this_password_immediately\nJWT_SECRET=supersecret\n\n# Override full DATABASE_URL \\(optional, takes priority over DB_* vars\\)\nDATABASE_URL=postgres://user:pass@host:5432/dbname\n\n# Agent configuration \\(optional\\)\n# AGENT_ID=test-agent\n# AGENT_TOKEN=test-token\n# AGENT_CENTRAL_SERVER_URL=ws://apiserver:3000/api/ws\n# AGENT_DATABASE_URL=sqlite:///app/data/agent.db?mode=rwc\n# AGENT_RPC_TIMEOUT_SECONDS=300\n\n# Dev server port \\(optional\\)\nDEV_PORT=8080\nEOF)",
+      "Bash(/home/elt1541/lee/leeattend/.env << 'EOF'\n# Infrastructure \\(used by docker-compose via ${VAR:-fallback}\\)\nDB_NAME=leeattend\nDB_USER=admin\nDB_PASSWORD=change_this_password_immediately\nJWT_SECRET=supersecret\n\n# Override full DATABASE_URL \\(optional, takes priority over DB_* vars\\)\nDATABASE_URL=postgres://user:pass@host:5432/dbname\n\n# CORS allowed origins \\(production\\)\n# ALLOWED_ORIGINS=https://tauri.localhost\n\n# Agent configuration \\(optional\\)\n# AGENT_ID=test-agent\n# AGENT_TOKEN=test-token\n# AGENT_CENTRAL_SERVER_URL=ws://apiserver:3000/api/ws\n# AGENT_DATABASE_URL=sqlite:///app/data/agent.db?mode=rwc\n# AGENT_RPC_TIMEOUT_SECONDS=300\n\n# Dev server port \\(optional\\)\nDEV_PORT=8080\nEOF)",
+      "Bash(/home/elt1541/lee/leeattend/.env << 'EOF'\n# Infrastructure \\(used by docker-compose via ${VAR:-fallback}\\)\nDB_NAME=leeattend\nDB_USER=admin\nDB_PASSWORD=change_this_password_immediately\nJWT_SECRET=supersecret\n\n# Override apiserver DATABASE_URL \\(optional, takes priority over DB_* vars\\)\n# API_DATABASE_URL=postgres://user:pass@host:5432/dbname\n\n# CORS allowed origins \\(production\\)\n# ALLOWED_ORIGINS=https://tauri.localhost\n\n# Agent configuration \\(optional\\)\n# AGENT_ID=test-agent\n# AGENT_TOKEN=test-token\n# AGENT_CENTRAL_SERVER_URL=ws://apiserver:3000/api/ws\n# AGENT_DATABASE_URL=sqlite:///app/data/agent.db?mode=rwc\n# AGENT_RPC_TIMEOUT_SECONDS=300\n\n# Dev server port \\(optional\\)\nDEV_PORT=8080\nEOF)",
+      "Bash(docker volume ls:*)"
     ]
   }
 }
