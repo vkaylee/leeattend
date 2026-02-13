@@ -4,6 +4,9 @@
 # Shared Test Utilities
 # ==============================================================================
 
+# Debug: trace ERR for set -e failures
+trap 'echo "DEBUG_ERR: line=$LINENO cmd=$BASH_COMMAND exit=$?" >> /tmp/test-err-trace.log' ERR
+
 # ANSI Color Codes
 export GREEN="\033[0;32m"
 export RED="\033[0;31m"
@@ -234,9 +237,6 @@ run_parallel_ordered() {
                     exit 124
                 fi
 
-                # Special case for pytest
-                if [[ "$name" == *"agent-zk-worker"* && $status -eq 5 ]]; then status=0; fi
-
                 if [ $status -ne 0 ]; then
                     echo -e "\n${RED}❌ Task \"$name\" failed with status $status.${NC}"
                     add_task_result "$name" "FAILED" "$duration"
@@ -290,11 +290,6 @@ run_parallel_ordered() {
                         cat "$log"
                         print_summary_table
                         exit 124
-                    fi
-
-                    # Special case for pytest: exit code 5 means "no tests collected"
-                    if [[ "$name" == *"agent-zk-worker"* && $status -eq 5 ]]; then
-                        status=0
                     fi
 
                     show_log_sequential "$name" "$log" $status

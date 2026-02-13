@@ -37,6 +37,9 @@ docker compose -f docker-compose.test.yml exec apiserver_test cargo nextest run 
 docker compose -f docker-compose.test.yml exec agent_test cargo clippy --all-targets
 docker compose -f docker-compose.test.yml exec apiserver_test cargo check
 
+# agent-zk-worker (Python) runs inside agent_test container
+docker compose -f docker-compose.test.yml exec agent_test bash -c "cd /workspace/agent-zk-worker && pip3 install --break-system-packages -q -r requirements.txt && python3 -m pytest"
+
 # Check container logs for test output
 docker compose -f docker-compose.test.yml logs agent_test --tail=100
 docker compose -f docker-compose.test.yml logs apiserver_test --tail=100

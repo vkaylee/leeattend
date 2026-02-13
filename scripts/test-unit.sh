@@ -18,18 +18,23 @@ fi
 
 APISERVER_CMD="SQLX_OFFLINE=true cargo nextest run --lib $TEST_PATTERN --no-tests=pass"
 AGENT_MAIN_CMD="SQLX_OFFLINE=true cargo nextest run --lib $TEST_PATTERN --no-tests=pass"
-AGENT_ZK_CMD="if [ -x ./venv/bin/python3 ]; then ./venv/bin/python3 -m pytest -k \"$TEST_PATTERN\"; else echo 'SKIP: venv not setup' && exit 0; fi"
+# agent-zk-worker: install deps then run pytest inside agent_test container
+AGENT_ZK_PATTERN=""
+if [ -n "$TEST_PATTERN" ]; then AGENT_ZK_PATTERN="-k \"$TEST_PATTERN\""; fi
+AGENT_ZK_CMD="cd /workspace/agent-zk-worker && pip3 install --break-system-packages -q -r requirements.txt && python3 -m pytest $AGENT_ZK_PATTERN"
 WEB_CMD="npm run test -- $TEST_PATTERN --passWithNoTests"
 
 if [[ "${USE_DOCKER:-}" == "true" ]]; then
     # For Unit Tests, we set CENTRAL_SERVER_URL to invalid to prevent retry loops if tests mistakenly try to connect
     APISERVER_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"SQLX_OFFLINE=true cargo nextest run --lib $TEST_PATTERN --no-tests=pass\""
     AGENT_MAIN_CMD="$DOCKER_COMPOSE_CMD exec -T -e CENTRAL_SERVER_URL=ws://unit-test-invalid:3000 agent_test bash -c \"SQLX_OFFLINE=true cargo nextest run --lib $TEST_PATTERN --no-tests=pass\""
+    # agent-zk-worker runs inside agent_test container (Python installed in Dockerfile.test)
+    AGENT_ZK_CMD="$DOCKER_COMPOSE_CMD exec -T agent_test bash -c \"cd /workspace/agent-zk-worker && pip3 install --break-system-packages -q -r requirements.txt && python3 -m pytest $AGENT_ZK_PATTERN\""
     WEB_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run test -- $TEST_PATTERN --passWithNoTests"
 fi
 
 run_parallel_ordered "Phase 1 (Unit Tests)" "$COMPONENT_FILTER" \
     "1|apiserver|apiserver|$APISERVER_CMD" \
     "2|agent-main|agent-main|$AGENT_MAIN_CMD" \
-    "3|agent-zk-worker|agent-zk-worker|$AGENT_ZK_CMD" \
+    "3|agent-zk-worker|agent-main|$AGENT_ZK_CMD" \
     "4|webdashboard|webdashboard|$WEB_CMD"

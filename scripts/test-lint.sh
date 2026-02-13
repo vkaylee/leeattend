@@ -15,10 +15,10 @@ if [[ "${USE_DOCKER:-}" == "true" ]]; then
     WEB_LINT_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run lint"
     WEB_TYPECHECK_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run type-check"
     
-    # API Sync in 2 steps for Docker:
-    # 1. Generate JSON in apiserver container (has Rust)
-    # 2. Generate TS in web container (has Node)
-    SYNC_API_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"SQLX_OFFLINE=true cargo run -- gen-openapi > ../openapi.json\" && $DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx openapi-typescript ../openapi.json -o ./src/types/api-generated.ts\""
+    # API Sync via shared volume between apiserver_test and web_test:
+    # 1. Generate JSON in apiserver container → /workspace/shared/openapi.json
+    # 2. Generate TS types in web container from shared volume
+    SYNC_API_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"SQLX_OFFLINE=true cargo run -- gen-openapi > /workspace/shared/openapi.json\" && $DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx openapi-typescript /workspace/shared/openapi.json -o ./src/types/api-generated.ts\""
 fi
 
 run_parallel_ordered "Phase 0 Linting" "${1:-}" \

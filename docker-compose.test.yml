@@ -37,6 +37,7 @@ services:
       - apiserver-target:/workspace/apiserver/target
       - sccache-storage:/sccache
       - test-logs:/workspace/apiserver/.test_logs
+      - shared-data:/workspace/shared
 
   agent_test:
     build:
@@ -54,6 +55,7 @@ services:
       - CARGO_INCREMENTAL=0
     volumes:
       - ${PWD}/agent-main:/workspace/agent-main
+      - ${PWD}/agent-zk-worker:/workspace/agent-zk-worker
       - agent-target:/workspace/agent-main/target
       - sccache-storage:/sccache
       - test-logs:/workspace/agent-main/.test_logs
@@ -71,11 +73,13 @@ services:
       - ${PWD}/webdashboard:/workspace/webdashboard
       - /workspace/webdashboard/node_modules
       - test-logs:/workspace/webdashboard/.test_logs
+      - shared-data:/workspace/shared
 
 volumes:
   apiserver-target:
   agent-target:
   sccache-storage:
+  shared-data:
   test-logs:
     driver: local
     driver_opts:

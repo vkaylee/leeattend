@@ -1,7 +1,7 @@
 FROM rust:1.88 AS chef
 RUN cargo install cargo-chef
-# Install system dependencies
-RUN apt-get update && apt-get install -y build-essential clang mold libssl-dev pkg-config curl tar && rm -rf /var/lib/apt/lists/*
+# Install system dependencies (includes Python for agent-zk-worker tests)
+RUN apt-get update && apt-get install -y build-essential clang mold libssl-dev pkg-config curl tar python3 python3-pip python3-venv && rm -rf /var/lib/apt/lists/*
 RUN rustup component add clippy rustfmt
 WORKDIR /workspace/agent-main
 
