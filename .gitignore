@@ -37,6 +37,9 @@ out/
 build/
 .eslintcache
 
+# Generated Files
+openapi.json
+
 # Project Specific
 agent/devices.json
 webdashboard/.env.local

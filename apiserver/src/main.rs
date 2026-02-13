@@ -31,8 +31,7 @@ async fn main() {
     // Check for openapi generation flag before everything else
     if std::env::args().any(|arg| arg == "gen-openapi") {
         let openapi_json = ApiDoc::openapi().to_pretty_json().expect("Failed to generate OpenAPI JSON");
-        println!("{}", openapi_json);
-        std::fs::write("openapi.json", openapi_json).expect("Failed to write openapi.json");
+        println!("{openapi_json}");
         return;
     }
 
@@ -204,7 +203,7 @@ async fn main() {
         let max_port = preferred_port + 100;
 
         for port in preferred_port..max_port {
-            let addr_str = format!("{}:{}", host, port);
+            let addr_str = format!("{host}:{port}");
             match tokio::net::TcpListener::bind(&addr_str).await {
                 Ok(l) => {
                     listener = Some(l);
@@ -214,7 +213,7 @@ async fn main() {
                     tracing::warn!("Port {} is in use, trying next port", port);
                     continue
                 },
-                Err(e) => panic!("Failed to bind to {}: {}", addr_str, e),
+                Err(e) => panic!("Failed to bind to {addr_str}: {e}"),
             }
         }
         listener.expect("Could not find an available port")
