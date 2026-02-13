@@ -1,0 +1,316 @@
+use axum::{
+    extract::{Multipart, Path, State},
+    http::StatusCode,
+    response::{IntoResponse, Json},
+};
+use chrono::NaiveDate;
+use serde::Deserialize;
+use std::sync::Arc;
+use tracing::error;
+use uuid::Uuid;
+
+use crate::handlers::common::MemberContext;
+use crate::models::{BulkOtEntryError, BulkOtUploadResult, MemberRole};
+use crate::repositories::workspace_repository::WorkspaceRepository;
+use crate::AppState;
+
+const MAX_BULK_UPLOAD_ROWS: usize = 10_000;
+const MAX_BULK_UPLOAD_FILE_SIZE: usize = 10 * 1024 * 1024; // 10MB
+
+#[derive(Deserialize)]
+pub struct EnterPaperOtRequest {
+    pub date: NaiveDate,
+    pub claimed_minutes: i32,
+    pub reason: String,
+    #[serde(default)]
+    pub allow_exceed_system_detected: bool,
+    pub paper_form_photo_url: Option<String>,
+}
+
+pub async fn enter_paper_ot(
+    State(state): State<Arc<AppState>>,
+    Path((ws_id, employee_id)): Path<(Uuid, Uuid)>,
+    MemberContext { user_id, .. }: MemberContext,
+    Json(req): Json<EnterPaperOtRequest>,
+) -> Result<impl IntoResponse, StatusCode> {
+    // 1. RBAC: Admin/Owner only
+    let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository { pool: state.db.clone() }
+        .find_primary_role(ws_id, user_id)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::FORBIDDEN)?;
+
+    if !matches!(role, MemberRole::Admin | MemberRole::Owner) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    // 2. Validate employee exists in workspace
+    let _employee = crate::repositories::employee_repository::get_employee_by_id(&state.db, employee_id, ws_id)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    // 3. Validate minutes
+    if req.claimed_minutes <= 0 {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    // 4. Call service
+    let result = crate::services::attendance_summary_service::AttendanceSummaryService::enter_paper_ot(
+        &state.db,
+        employee_id,
+        req.date,
+        req.claimed_minutes,
+        req.reason,
+        user_id,
+        req.paper_form_photo_url,
+        req.allow_exceed_system_detected,
+    )
+    .await
+    .map_err(|e| {
+        error!("Enter Paper OT Error: {}", e);
+        StatusCode::BAD_REQUEST
+    })?;
+
+    Ok(Json(result))
+}
+
+pub async fn bulk_upload_paper_ot(
+    State(state): State<Arc<AppState>>,
+    Path(ws_id): Path<Uuid>,
+    MemberContext { user_id, .. }: MemberContext,
+    mut multipart: Multipart,
+) -> Result<impl IntoResponse, StatusCode> {
+    // 1. RBAC: Admin/Owner only
+    let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
+        pool: state.db.clone(),
+    }
+    .find_primary_role(ws_id, user_id)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    .ok_or(StatusCode::FORBIDDEN)?;
+
+    if !matches!(role, MemberRole::Admin | MemberRole::Owner) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    // 2. Extract CSV file from multipart
+    let mut csv_data: Option<Vec<u8>> = None;
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|_| StatusCode::BAD_REQUEST)?
+    {
+        let name = field.name().unwrap_or("").to_string();
+        if name == "file" {
+            let data = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+
+            // File size limit check
+            if data.len() > MAX_BULK_UPLOAD_FILE_SIZE {
+                return Err(StatusCode::PAYLOAD_TOO_LARGE);
+            }
+
+            csv_data = Some(data.to_vec());
+            break;
+        }
+    }
+
+    let csv_bytes = csv_data.ok_or(StatusCode::BAD_REQUEST)?;
+
+    // 3. Parse CSV
+    let csv_str = String::from_utf8(csv_bytes)
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    let mut rdr = csv::Reader::from_reader(csv_str.as_bytes());
+
+    // Collect all rows first to validate count
+    let mut rows: Vec<(usize, csv::StringRecord)> = Vec::new();
+    for (idx, result) in rdr.records().enumerate() {
+        let record = result.map_err(|_| StatusCode::BAD_REQUEST)?;
+        rows.push((idx + 2, record)); // +2 because CSV line 1 is header, records start at line 2
+
+        if rows.len() > MAX_BULK_UPLOAD_ROWS {
+            return Err(StatusCode::PAYLOAD_TOO_LARGE);
+        }
+    }
+
+    let total_rows = rows.len();
+    let mut errors: Vec<BulkOtEntryError> = Vec::new();
+    let mut success_count = 0;
+
+    // Track duplicates within this upload
+    let mut seen_keys: std::collections::HashSet<(String, NaiveDate)> = std::collections::HashSet::new();
+
+    // 4. Process each row
+    for (line_number, record) in rows {
+        // Parse fields
+        let employee_id_str = record.get(0).unwrap_or("").trim().to_string();
+        let date_str = record.get(1).unwrap_or("").trim();
+        let minutes_str = record.get(2).unwrap_or("").trim();
+        let reason = record.get(3).unwrap_or("").trim().to_string();
+
+        // Validation: Check for empty fields
+        if employee_id_str.is_empty() {
+            errors.push(BulkOtEntryError {
+                line_number,
+                employee_id: employee_id_str,
+                error_message: "Employee ID is required".to_string(),
+            });
+            continue;
+        }
+
+        // Parse date
+        let date = match NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
+            Ok(d) => d,
+            Err(_) => {
+                errors.push(BulkOtEntryError {
+                    line_number,
+                    employee_id: employee_id_str,
+                    error_message: format!("Invalid date format: {date_str}. Expected YYYY-MM-DD"),
+                });
+                continue;
+            }
+        };
+
+        // Check future date
+        let today = chrono::Utc::now().date_naive();
+        if date > today {
+            errors.push(BulkOtEntryError {
+                line_number,
+                employee_id: employee_id_str.clone(),
+                error_message: "Date cannot be in the future".to_string(),
+            });
+            continue;
+        }
+
+        // Parse minutes
+        let minutes: i32 = match minutes_str.parse() {
+            Ok(m) => m,
+            Err(_) => {
+                errors.push(BulkOtEntryError {
+                    line_number,
+                    employee_id: employee_id_str,
+                    error_message: format!("Invalid minutes value: {minutes_str}"),
+                });
+                continue;
+            }
+        };
+
+        // Validate minutes
+        if minutes <= 0 {
+            errors.push(BulkOtEntryError {
+                line_number,
+                employee_id: employee_id_str,
+                error_message: "Minutes must be greater than 0".to_string(),
+            });
+            continue;
+        }
+
+        // Validate reason
+        if reason.is_empty() {
+            errors.push(BulkOtEntryError {
+                line_number,
+                employee_id: employee_id_str,
+                error_message: "Reason is required".to_string(),
+            });
+            continue;
+        }
+
+        // Check for duplicate in this upload
+        let key = (employee_id_str.clone(), date);
+        if seen_keys.contains(&key) {
+            errors.push(BulkOtEntryError {
+                line_number,
+                employee_id: employee_id_str,
+                error_message: "Duplicate entry in this upload".to_string(),
+            });
+            continue;
+        }
+        seen_keys.insert(key);
+
+        // Find employee by employee_id_number
+        let employee = match crate::repositories::employee_repository::get_employee_by_id_number(
+            &state.db,
+            &employee_id_str,
+            ws_id,
+        )
+        .await
+        {
+            Ok(Some(emp)) => emp,
+            Ok(None) => {
+                errors.push(BulkOtEntryError {
+                    line_number,
+                    employee_id: employee_id_str,
+                    error_message: "Employee not found in workspace".to_string(),
+                });
+                continue;
+            }
+            Err(e) => {
+                errors.push(BulkOtEntryError {
+                    line_number,
+                    employee_id: employee_id_str,
+                    error_message: format!("Database error: {e}"),
+                });
+                continue;
+            }
+        };
+
+        // Validate against system_detected_ot_minutes
+        let existing_summary = sqlx::query!(
+            "SELECT system_detected_ot_minutes FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
+            employee.id,
+            date
+        )
+        .fetch_optional(&state.db)
+        .await;
+
+        if let Ok(Some(summary)) = existing_summary {
+            let system_detected = summary.system_detected_ot_minutes;
+            if minutes > system_detected {
+                errors.push(BulkOtEntryError {
+                    line_number,
+                    employee_id: employee_id_str,
+                    error_message: format!(
+                        "Claimed {minutes} minutes exceeds system detected {system_detected} minutes"
+                    ),
+                });
+                continue;
+            }
+        }
+
+        // Call enter_paper_ot service
+        match crate::services::attendance_summary_service::AttendanceSummaryService::enter_paper_ot(
+            &state.db,
+            employee.id,
+            date,
+            minutes,
+            reason,
+            user_id,
+            None, // No photo URL for bulk upload
+            false, // Don't allow exceed for bulk upload
+        )
+        .await
+        {
+            Ok(_) => {
+                success_count += 1;
+            }
+            Err(e) => {
+                errors.push(BulkOtEntryError {
+                    line_number,
+                    employee_id: employee_id_str,
+                    error_message: e,
+                });
+            }
+        }
+    }
+
+    // 5. Return result
+    let result = BulkOtUploadResult {
+        total_rows,
+        success_count,
+        failed_count: errors.len(),
+        errors,
+    };
+
+    Ok(Json(result))
+}
