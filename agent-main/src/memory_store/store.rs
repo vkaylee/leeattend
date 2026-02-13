@@ -17,6 +17,7 @@ pub struct InMemoryStore {
     signatures: DashSet<u64>,  // Hash signatures for deduplication
     composite_index: DashMap<u64, i64>,  // composite_key_hash -> memory_id for ACK correlation
     unsynced_index: Arc<RwLock<BTreeSet<i64>>>,
+    unpersisted_index: Arc<RwLock<BTreeSet<i64>>>,
     inflight_index: Arc<RwLock<HashMap<i64, Instant>>>,
     next_id: AtomicI64,
     dirty: AtomicBool,
@@ -32,6 +33,7 @@ impl InMemoryStore {
             signatures: DashSet::with_capacity(max_capacity),
             composite_index: DashMap::with_capacity(max_capacity),
             unsynced_index: Arc::new(RwLock::new(BTreeSet::new())),
+            unpersisted_index: Arc::new(RwLock::new(BTreeSet::new())),
             inflight_index: Arc::new(RwLock::new(HashMap::new())),
             next_id: AtomicI64::new(1),
             dirty: AtomicBool::new(false),
@@ -97,7 +99,7 @@ impl InMemoryStore {
         
         // 1. Identify logs to remove
         for entry in self.logs.iter() {
-            if entry.device_id == device_id {
+            if &*entry.device_id == device_id {
                 to_remove.push((*entry.key(), entry.composite_key_hash()));
             }
         }
@@ -105,12 +107,14 @@ impl InMemoryStore {
         // 2. Remove them
         let count = to_remove.len();
         let mut unsynced = self.unsynced_index.write();
+        let mut unpersisted = self.unpersisted_index.write();
         let mut inflight = self.inflight_index.write();
 
         for (id, composite_hash) in to_remove {
             self.logs.remove(&id);
             self.composite_index.remove(&composite_hash);
             unsynced.remove(&id);
+            unpersisted.remove(&id);
             inflight.remove(&id);
         }
 
@@ -132,8 +136,8 @@ impl InMemoryStore {
 
             let memory_log = MemoryLog {
                 id: log.id,
-                device_id: log.device_id.clone(),
-                user_id: log.user_id.clone(),
+                device_id: Arc::from(log.device_id.as_str()),
+                user_id: Arc::from(log.user_id.as_str()),
                 timestamp: log.timestamp,
                 status: log.status,
                 punch: log.punch,
@@ -180,10 +184,13 @@ impl InMemoryStore {
         let id = self.next_id.fetch_add(1, Ordering::SeqCst);
         let now = chrono::Utc::now().naive_utc();
 
+        // Compute composite hash BEFORE moving strings into Arc
+        let composite_hash = MemoryLog::compute_composite_hash(&device_id, &data.user_id, timestamp_utc);
+
         let log = MemoryLog {
             id,
-            device_id: device_id.clone(),
-            user_id: data.user_id.clone(),
+            device_id: Arc::from(device_id.as_str()),
+            user_id: Arc::from(data.user_id.as_str()),
             timestamp: timestamp_utc,
             status: data.status,
             punch: data.punch,
@@ -194,12 +201,10 @@ impl InMemoryStore {
             persisted: false,
         };
 
-        // Compute composite key hash for ACK correlation
-        let composite_hash = MemoryLog::compute_composite_hash(&device_id, &data.user_id, timestamp_utc);
-
         self.logs.insert(id, log);
         self.composite_index.insert(composite_hash, id);
         self.unsynced_index.write().insert(id);
+        self.unpersisted_index.write().insert(id);
         self.count.fetch_add(1, Ordering::SeqCst);
         self.dirty.store(true, Ordering::SeqCst);
 
@@ -220,6 +225,7 @@ impl InMemoryStore {
 
         let mut inserted = 0;
         let mut unsynced = self.unsynced_index.write();
+        let mut unpersisted = self.unpersisted_index.write();
 
         for (device_id, data, timestamp_utc) in batch.into_iter() {
             if inserted >= available {
@@ -240,8 +246,8 @@ impl InMemoryStore {
 
             let log = MemoryLog {
                 id,
-                device_id,
-                user_id: data.user_id,
+                device_id: Arc::from(device_id.as_str()),
+                user_id: Arc::from(data.user_id.as_str()),
                 timestamp: timestamp_utc,
                 status: data.status,
                 punch: data.punch,
@@ -254,6 +260,7 @@ impl InMemoryStore {
 
             self.logs.insert(id, log);
             unsynced.insert(id);
+            unpersisted.insert(id);
             inserted += 1;
         }
 
@@ -455,20 +462,22 @@ impl InMemoryStore {
         }
     }
 
-    /// Get all unpersisted logs for checkpointing
+    /// Get all unpersisted logs for checkpointing (O(k) via index, not O(n) full scan)
     pub fn get_unpersisted(&self) -> Vec<MemoryLog> {
-        self.logs.iter()
-            .filter(|entry| !entry.persisted)
-            .map(|entry| entry.clone())
+        let unpersisted = self.unpersisted_index.read();
+        unpersisted.iter()
+            .filter_map(|id| self.logs.get(id).map(|entry| entry.clone()))
             .collect()
     }
 
     /// Mark logs as persisted after successful checkpoint
     pub fn mark_persisted(&self, ids: &[i64]) {
+        let mut unpersisted = self.unpersisted_index.write();
         for &id in ids {
             if let Some(mut log) = self.logs.get_mut(&id) {
                 log.persisted = true;
             }
+            unpersisted.remove(&id);
         }
     }
 
@@ -611,9 +620,9 @@ mod tests {
         assert_eq!(logs.len(), 3);
 
         // Verify FIFO order
-        assert_eq!(logs[0].user_id, "FIRST");
-        assert_eq!(logs[1].user_id, "SECOND");
-        assert_eq!(logs[2].user_id, "THIRD");
+        assert_eq!(&*logs[0].user_id, "FIRST");
+        assert_eq!(&*logs[1].user_id, "SECOND");
+        assert_eq!(&*logs[2].user_id, "THIRD");
 
         // Verify IDs are ascending
         assert!(logs[1].id > logs[0].id);
@@ -1203,7 +1212,7 @@ mod tests {
         // Only NEW should be returned (RETRY is in backoff)
         let logs = store.get_unsynced(10);
         assert_eq!(logs.len(), 1);
-        assert_eq!(logs[0].user_id, "NEW");
+        assert_eq!(&*logs[0].user_id, "NEW");
     }
 
     // ===== Phase 1: Signature Tests =====
@@ -1523,8 +1532,8 @@ mod tests {
     fn test_composite_key_format() {
         let log = MemoryLog {
             id: 1,
-            device_id: "DEV1".to_string(),
-            user_id: "U001".to_string(),
+            device_id: "DEV1".into(),
+            user_id: "U001".into(),
             timestamp: ts("2026-01-31 10:00:00"),
             status: Some(1),
             punch: Some(0),

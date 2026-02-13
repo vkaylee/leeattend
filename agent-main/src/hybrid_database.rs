@@ -355,9 +355,9 @@ mod tests {
 
         // Verify FIFO order
         assert_eq!(logs.len(), 3);
-        assert_eq!(logs[0].user_id, "FIRST");
-        assert_eq!(logs[1].user_id, "SECOND");
-        assert_eq!(logs[2].user_id, "THIRD");
+        assert_eq!(&*logs[0].user_id, "FIRST");
+        assert_eq!(&*logs[1].user_id, "SECOND");
+        assert_eq!(&*logs[2].user_id, "THIRD");
     }
 
     #[tokio::test]

@@ -555,8 +555,8 @@ mod tests {
         let memory_logs: Vec<crate::memory_store::MemoryLog> = (50..=150)
             .map(|i| crate::memory_store::MemoryLog {
                 id: i,
-                device_id: "DEV2".to_string(),
-                user_id: format!("U{:03}", i + 1000),
+                device_id: "DEV2".into(),
+                user_id: std::sync::Arc::from(format!("U{:03}", i + 1000).as_str()),
                 timestamp: timestamp_unix,
                 status: Some(1),
                 punch: Some(0),
@@ -587,8 +587,8 @@ mod tests {
                     .timestamp();
                 crate::memory_store::MemoryLog {
                     id: i,
-                    device_id: "DEV1".to_string(),
-                    user_id: format!("U{i:03}"),
+                    device_id: "DEV1".into(),
+                    user_id: std::sync::Arc::from(format!("U{i:03}").as_str()),
                     timestamp: timestamp_unix,
                     status: Some(1),
                     punch: Some(0),

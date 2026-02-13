@@ -141,7 +141,7 @@ impl CentralClient {
                     let msg = CentralMessage::Attendance {
                         msg_id: log.composite_key(),
                         agent_id: sync_agent_id.clone(),
-                        device_id: log.device_id.clone(),
+                        device_id: log.device_id.to_string(),
                         data: AttendanceData {
                             user_id: crate::utils::normalize_employee_id(&log.user_id),
                             timestamp: timestamp_str,

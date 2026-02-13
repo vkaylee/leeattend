@@ -4,6 +4,7 @@ use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Instant;
 use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
 use tokio::process::Command;
 use tokio::time::{sleep, Duration};
 use agent::worker_client::WorkerClient;
@@ -402,9 +403,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         continue;
                     }
 
-                    // In-memory duplicate detection: tracks seen logs to avoid sending duplicates to queue
-                    // Key format: "user_id:timestamp" (device_id is implicit per worker)
-                    let mut seen_logs: HashSet<String> = HashSet::new();
+                    // In-memory duplicate detection: hash-based keys (8 bytes each instead of ~40 for String)
+                    // Hash of (user_id, timestamp) — device_id is implicit per worker
+                    let mut seen_logs: HashSet<u64> = HashSet::with_capacity(5_000);
+                    const SEEN_LOGS_CAP: usize = 10_000;
 
                     // Adaptive polling: reduce frequency when no new data
                     let mut polling_state = AdaptivePollingState::new();
@@ -429,20 +431,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     let mut duplicate_count = 0;
 
                                     // Filter duplicates before sending to queue
-                                    for log in logs {
-                                        if let Ok(attendance) = serde_json::from_value::<models::AttendanceData>(log.clone()) {
-                                            // Create unique key: user_id:timestamp
-                                            let key = format!("{}:{}", attendance.user_id, attendance.timestamp);
+                                    // Consume array values to avoid clone; use hash-based dedup key
+                                    let logs_owned: Vec<serde_json::Value> = logs.to_vec();
+                                    for log_val in logs_owned {
+                                        if let Ok(attendance) = serde_json::from_value::<models::AttendanceData>(log_val) {
+                                            // Hash-based dedup key (8 bytes vs ~40 for String)
+                                            let mut hasher = rustc_hash::FxHasher::default();
+                                            attendance.user_id.hash(&mut hasher);
+                                            attendance.timestamp.hash(&mut hasher);
+                                            let key = hasher.finish();
 
                                             if seen_logs.insert(key) {
-                                                // New log - send to queue using unique device ID (not name)
                                                 let _ = log_tx.send((worker.id.clone(), attendance)).await;
                                                 new_count += 1;
                                             } else {
-                                                // Duplicate - skip
                                                 duplicate_count += 1;
                                             }
                                         }
+                                    }
+
+                                    // Eviction: clear when exceeding cap (secondary dedup; memory store signatures are primary)
+                                    if seen_logs.len() > SEEN_LOGS_CAP {
+                                        seen_logs.clear();
+                                        info!("[{}] Cleared seen_logs cache (>{} entries)", worker.name, SEEN_LOGS_CAP);
                                     }
 
                                     if duplicate_count > 0 {

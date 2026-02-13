@@ -268,7 +268,7 @@ mod tests {
     fn test_calculate_sync_stats_new_only() {
         let now = chrono::Utc::now().naive_utc();
         let log1 = MemoryLog {
-            id: 1, device_id: "D1".to_string(), user_id: "U1".to_string(),
+            id: 1, device_id: "D1".into(), user_id: "U1".into(),
             timestamp: 1672567200, status: Some(1), punch: Some(1),
             is_synced: 0, created_at: now, updated_at: None, retry_count: 0, persisted: false,
         };
@@ -281,17 +281,17 @@ mod tests {
     fn test_calculate_sync_stats_mixed() {
         let now = chrono::Utc::now().naive_utc();
         let log1 = MemoryLog {
-            id: 1, device_id: "D1".to_string(), user_id: "U1".to_string(),
+            id: 1, device_id: "D1".into(), user_id: "U1".into(),
             timestamp: 1672567200, status: Some(1), punch: Some(1),
             is_synced: 0, created_at: now, updated_at: None, retry_count: 0, persisted: false,
         };
         let log2 = MemoryLog {
-            id: 2, device_id: "D1".to_string(), user_id: "U1".to_string(),
+            id: 2, device_id: "D1".into(), user_id: "U1".into(),
             timestamp: 1672567201, status: Some(1), punch: Some(1),
             is_synced: 0, created_at: now, updated_at: Some(now), retry_count: 3, persisted: false,
         };
         let log3 = MemoryLog {
-            id: 3, device_id: "D1".to_string(), user_id: "U1".to_string(),
+            id: 3, device_id: "D1".into(), user_id: "U1".into(),
             timestamp: 1672567202, status: Some(1), punch: Some(1),
             is_synced: 0, created_at: now, updated_at: Some(now), retry_count: 5, persisted: false,
         };

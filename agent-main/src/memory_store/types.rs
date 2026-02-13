@@ -1,13 +1,14 @@
 use chrono::NaiveDateTime;
 use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 use rustc_hash::FxHasher;
 
 /// In-memory log with sync status and persistence tracking
 #[derive(Clone, Debug)]
 pub struct MemoryLog {
     pub id: i64,
-    pub device_id: String,
-    pub user_id: String,
+    pub device_id: Arc<str>,
+    pub user_id: Arc<str>,
     pub timestamp: i64,  // Unix timestamp (UTC seconds)
     pub status: Option<i32>,
     pub punch: Option<i32>,

@@ -91,8 +91,8 @@ impl Database {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 "#
             )
-            .bind(&log.device_id)
-            .bind(&log.user_id)
+            .bind(&*log.device_id)
+            .bind(&*log.user_id)
             .bind(log.timestamp)
             .bind(log.status)
             .bind(log.punch)
@@ -105,7 +105,7 @@ impl Database {
 
             if result.rows_affected() > 0 {
                 inserted += 1;
-                composite_keys.push((log.device_id.clone(), log.user_id.clone(), log.timestamp));
+                composite_keys.push((log.device_id.to_string(), log.user_id.to_string(), log.timestamp));
             } else {
                 skipped += 1;
             }

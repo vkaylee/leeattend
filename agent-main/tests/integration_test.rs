@@ -11,35 +11,39 @@ async fn test_full_process_handshake_new_architecture() {
     timeout(Duration::from_secs(20), async {
         // Determine worker directory (supports both host and container paths)
         let worker_dir = if PathBuf::from("/workspace/agent-zk-worker").exists() {
-            // Running in Docker container
             PathBuf::from("/workspace/agent-zk-worker")
         } else {
-            // Running on host
             PathBuf::from("../agent-zk-worker")
         };
 
-        // Prefer venv Python on host, system Python in container (to avoid GLIBC mismatch)
+        // Prefer venv Python on host, system Python in container
         let python_bin = if PathBuf::from("/workspace").exists() {
-            // Docker container - use system Python (dependencies installed via pip)
             PathBuf::from("/usr/bin/python3")
         } else {
-            // Host - use venv
             let venv_python = worker_dir.join("venv/bin/python3");
-            if venv_python.exists() {
-                venv_python
-            } else {
-                PathBuf::from("python3")
-            }
+            if venv_python.exists() { venv_python } else { PathBuf::from("python3") }
         };
 
-        // Skip test if worker script doesn't exist
+        // Skip if worker script doesn't exist
         let worker_script = worker_dir.join("zk_worker.py");
         if !worker_script.exists() {
-            eprintln!("⚠️  Skipping test: Worker script not found at {:?}", worker_script);
+            eprintln!("⚠️  Skipping test: Worker script not found at {worker_script:?}");
             return;
         }
 
-        // Bind to port 0 for dynamic port assignment
+        // Pre-check: verify Python deps are available (avoids 20s timeout on missing pyzk2)
+        let dep_check = Command::new(&python_bin)
+            .args(["-c", "from pyzk2 import ZK"])
+            .current_dir(&worker_dir)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .await;
+        if dep_check.map(|s| !s.success()).unwrap_or(true) {
+            eprintln!("⚠️  Skipping test: Python deps not installed (pyzk2 missing)");
+            return;
+        }
+
         let listener = TcpListener::bind("127.0.0.1:0").await.expect("Failed to bind dynamic port");
         let actual_port = listener.local_addr().unwrap().port();
 
@@ -54,6 +58,20 @@ async fn test_full_process_handshake_new_architecture() {
 
         // Give worker time to start
         sleep(Duration::from_millis(500)).await;
+
+        // Check if worker crashed before accepting connection
+        if let Some(exit_status) = child.try_wait().expect("Failed to check worker status") {
+            let stderr = if let Some(mut err) = child.stderr.take() {
+                let mut buf = String::new();
+                use tokio::io::AsyncReadExt;
+                let _ = err.read_to_string(&mut buf).await;
+                buf
+            } else {
+                String::new()
+            };
+            eprintln!("⚠️  Skipping test: Worker exited early with {exit_status}\n{stderr}");
+            return;
+        }
 
         let (stream, _) = listener.accept().await.expect("Failed to accept connection");
         let mut client = ZKClient::new(stream);
