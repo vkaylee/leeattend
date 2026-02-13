@@ -25,7 +25,7 @@ LeeAttend is a high-performance attendance and payroll system split into three p
 - **Core Responsibility**: Lightweight process running at physical locations. It manages multiple Python sidecars (ZKTeco, Mock, etc.) via JSON-RPC 2.0, buffers attendance logs locally, and syncs data to the Central Server.
 - **Key Modules**:
     - **main.rs**: Orchestrator loop managing device polling, worker lifecycle, and configuration reloading
-    - **central_client.rs**: WebSocket connection to Central Server with `RetryManager` for connection resilience (30s timeout, 60s stability threshold)
+    - **central_client.rs**: WebSocket connection to Central Server with split read/write tasks (prevents ACK starvation), `RetryManager` for connection resilience (30s timeout, 60s stability threshold)
     - **worker_client.rs**: JSON-RPC 2.0 client for sidecar communication (5min read, 30s write timeout)
     - **retry.rs**: Reusable exponential backoff with jitter (2s-60s delays, ±25% jitter) for sidecar retries
     - **memory_store.rs**: In-memory DashMap-based log storage with signature cache deduplication (DashSet<u64>)
@@ -34,7 +34,7 @@ LeeAttend is a high-performance attendance and payroll system split into three p
     - **config.rs**: Environment-based configuration loading with defaults
 - **Features**:
     - **Sidecar Resilience**: Exponential backoff retry (max 10 retries, formula: 2^retry_count capped at 60s) with 30s stability threshold
-    - **Central Sync**: WebSocket with auto-reconnect (max 10 retries) and ACK-based delivery confirmation
+    - **Central Sync**: WebSocket with split read/write tasks (no ACK starvation), auto-reconnect (max 10 retries), and ACK-based delivery confirmation
     - **Signature Cache Deduplication**: Hash-based duplicate detection (FxHash u64) with 96% memory savings (0.8MB vs 20MB for 100K logs)
     - **Two-Phase Startup**: Phase A loads signatures from disk, Phase B loads unsynced queue
     - **Offline Buffering**: Queues logs locally during network unavailability
@@ -46,8 +46,8 @@ LeeAttend is a high-performance attendance and payroll system split into three p
     - **Log Cleanup**: Automatic deletion of synced logs older than 365 days (daily task)
     - **FIFO Guarantee**: ORDER BY id ASC ensures logs sync in exact device order
     - **CLI Commands**: `--help`, `failed-logs [limit]`, `failed [limit]` for log inspection
-- **Test Coverage**: 67 tests (39 library + 28 integration) including duplicate detection, memory leak detection
-- **Agent Test Coverage**: 178 tests total including signature cache deduplication and exponential backoff
+- **Test Coverage**: 71 tests (39 library + 32 integration) including duplicate detection, memory leak detection, WebSocket split read/write
+- **Agent Test Coverage**: 182 tests total including signature cache deduplication, exponential backoff, and ACK starvation prevention
 
 ### 3. Sidecar Workers (Device Connectors)
 - **Languages**: Python 3.10+

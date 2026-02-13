@@ -26,7 +26,14 @@ The agent maintains a persistent WebSocket connection to the Central Server for 
 - **Jitter**: ±25% jitter applied to all backoff delays to prevent thundering herd effect
 - **Max Retries**: 10 attempts before manual intervention
 
-**Retry Manager Implementation** (`src/central_client.rs`):
+**Split Read/Write Architecture (Fixed 2026-02-13):**
+The WS Connection Manager uses independent tokio tasks for reading and writing to prevent ACK starvation:
+- **Read Task**: Dedicated task for receiving ACKs and server messages. Ensures ACKs are processed concurrently, even when outgoing queue is busy.
+- **Write Task**: Dedicated task for sending outgoing attendance logs and heartbeats.
+- **Graceful Shutdown**: Uses `oneshot` channel to preserve `mpsc::Receiver` across reconnections. Write task returns rx on shutdown, enabling seamless reconnect.
+- **Bug Fix**: Previous `select!` loop starved read branch when sync loop queued many outgoing messages, causing ACKs to never be received and logs stuck as unsynced.
+
+**Retry Manager Implementation** (`src/central_client/connection.rs`):
 - Tracks `retry_count` (0-10) and `stable_since` timestamp
 - Resets retry count to 0 after connection remains stable for 60 seconds
 - Logs all connection state transitions with structured error messages

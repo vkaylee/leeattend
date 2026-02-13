@@ -198,9 +198,20 @@ impl CentralClient {
         let ws_connected = self.is_connected.clone();
         tokio::spawn(async move {
             let mut manager = RetryManager::new();
+            let mut rx_opt: Option<mpsc::Receiver<CentralMessage>> = Some(rx);
+
             loop {
                 let delay = manager.get_delay();
                 if delay > Duration::from_secs(0) { sleep(delay).await; }
+
+                // Take the receiver; if unavailable, connection is unrecoverable
+                let rx = match rx_opt.take() {
+                    Some(r) => r,
+                    None => {
+                        error!("❌ Lost message receiver, cannot reconnect");
+                        break;
+                    }
+                };
 
                 info!("Connecting to Central Server at {url}...");
                 match connect_central(&url, &agent_id, &token).await {
@@ -208,7 +219,7 @@ impl CentralClient {
                         info!("✅ Connected to Central Server.");
                         ws_connected.store(true, Ordering::Relaxed);
                         manager.record_connection_established();
-                        let (mut write, mut read) = ws_stream.split();
+                        let (mut write, read) = ws_stream.split();
 
                         let handshake = CentralMessage::Handshake {
                             agent_id: agent_id.clone(),
@@ -219,40 +230,80 @@ impl CentralClient {
                             if write.send(Message::Text(text.into())).await.is_err() {
                                 ws_connected.store(false, Ordering::Relaxed);
                                 manager.record_connection_failed();
+                                rx_opt = Some(rx);
                                 continue;
                             }
                         }
 
-                        loop {
-                            tokio::select! {
-                                Some(out_msg) = rx.recv() => {
-                                    if let Ok(text) = serde_json::to_string(&out_msg) {
-                                        if write.send(Message::Text(text.into())).await.is_err() { break; }
+                        // Split into independent read/write tasks to prevent
+                        // outgoing messages from starving incoming ACK processing.
+                        // Use a shutdown signal so write_task can gracefully return rx.
+                        let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+
+                        let read_hybrid = hybrid_db.clone();
+                        let read_reload_tx = conn_reload_tx.clone();
+                        let mut read_task = tokio::spawn(async move {
+                            let mut read = read;
+                            while let Some(msg) = read.next().await {
+                                match msg {
+                                    Ok(Message::Text(text)) => {
+                                        handle_incoming_text(&text, &read_hybrid, &read_reload_tx).await;
+                                    }
+                                    Ok(Message::Ping(_)) => {
+                                        // Pong is handled automatically by tungstenite
+                                    }
+                                    Ok(Message::Close(f)) => {
+                                        warn!("🚪 Server closed connection: {f:?}");
+                                        break;
+                                    }
+                                    Err(e) => {
+                                        error!("❌ WS Read Error: {e}");
+                                        break;
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        });
+
+                        let mut write_task = tokio::spawn(async move {
+                            let mut rx = rx;
+                            let mut shutdown_rx = shutdown_rx;
+                            loop {
+                                tokio::select! {
+                                    msg = rx.recv() => {
+                                        match msg {
+                                            Some(out_msg) => {
+                                                if let Ok(text) = serde_json::to_string(&out_msg) {
+                                                    if write.send(Message::Text(text.into())).await.is_err() {
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            None => break,
+                                        }
+                                    }
+                                    _ = &mut shutdown_rx => {
+                                        break; // Graceful shutdown, rx preserved
                                     }
                                 }
-                                in_msg = read.next() => {
-                                    match in_msg {
-                                        Some(Ok(Message::Text(text))) => {
-                                            handle_incoming_text(&text, &hybrid_db, &conn_reload_tx).await;
-                                            manager.record_stable();
-                                        }
-                                        Some(Ok(Message::Ping(p))) => {
-                                            if write.send(Message::Pong(p)).await.is_err() { break; }
-                                        }
-                                        Some(Ok(Message::Close(f))) => {
-                                            warn!("🚪 Server closed connection: {f:?}");
-                                            break;
-                                        }
-                                        Some(Err(e)) => {
-                                            error!("❌ WS Error: {e}");
-                                            break;
-                                        }
-                                        None => {
-                                            warn!("🔌 WS stream ended.");
-                                            break;
-                                        }
-                                        _ => {}
-                                    }
+                            }
+                            rx // Return receiver for reuse on reconnect
+                        });
+
+                        // Wait for either task to finish (connection broken)
+                        tokio::select! {
+                            _ = &mut read_task => {
+                                warn!("🔌 WS read loop ended.");
+                                let _ = shutdown_tx.send(()); // Signal write_task to stop gracefully
+                                if let Ok(returned_rx) = write_task.await {
+                                    rx_opt = Some(returned_rx);
+                                }
+                            }
+                            result = &mut write_task => {
+                                warn!("🔌 WS write loop ended.");
+                                read_task.abort();
+                                if let Ok(returned_rx) = result {
+                                    rx_opt = Some(returned_rx);
                                 }
                             }
                         }
@@ -263,6 +314,7 @@ impl CentralClient {
                         error!("❌ Connection failed: {e}");
                         ws_connected.store(false, Ordering::Relaxed);
                         manager.record_connection_failed();
+                        rx_opt = Some(rx);
                     }
                 }
             }
