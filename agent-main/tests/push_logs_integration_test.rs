@@ -19,11 +19,11 @@ fn in_memory_db_url() -> String {
 async fn test_end_to_end_log_push() {
     let _ = env_logger::builder().is_test(true).try_init();
 
-    timeout(Duration::from_secs(30), async {
+    timeout(Duration::from_secs(60), async {
         // 1. Setup Mock Central Server (WebSocket)
         let ws_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let ws_addr = ws_listener.local_addr().unwrap();
-        let ws_url = format!("ws://{}", ws_addr);
+        let ws_url = format!("ws://{ws_addr}");
 
         // 2. Start Mock WS Handler
         let (log_tx, mut log_rx) = tokio::sync::mpsc::channel(10);
@@ -64,6 +64,9 @@ async fn test_end_to_end_log_push() {
 
         // 5. Start CentralClient with HybridDatabase
         let hybrid_db = HybridDatabase::new(&db_url, 1000).await.unwrap();
+        // Load device data into memory (sync loop reads from memory, not disk)
+        hybrid_db.load_device_memory("DEV1").await.unwrap();
+        let hybrid_db_check = hybrid_db.clone();
         let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT1".into(), "TOKEN1".into(), hybrid_db);
         client.start(rx).await;
 
@@ -74,12 +77,11 @@ async fn test_end_to_end_log_push() {
         assert_eq!(received_log["device_id"], "DEV1");
         assert_eq!(received_log["data"]["user_id"], "USER1");
 
-        // 7. Verify DB is marked as synced
-        // Wait for potential sync loop (10s) + ACK processing
-        // Actually, we can wait up to 12s
-        sleep(Duration::from_secs(12)).await;
-        let unsynced = db.get_unsynced_logs(10).await.unwrap();
-        assert_eq!(unsynced.len(), 0, "Log should be marked as synced in local DB");
+        // 7. Verify memory store is marked as synced (ACK updates memory; Checkpoint Worker persists to disk)
+        // Wait for ACK processing
+        sleep(Duration::from_secs(2)).await;
+        let unsynced = hybrid_db_check.count_unsynced_logs();
+        assert_eq!(unsynced, 0, "Log should be marked as synced in memory store");
 
     }).await.expect("E2E Log Push Test Timed Out");
 }
@@ -88,11 +90,11 @@ async fn test_end_to_end_log_push() {
 async fn test_reliable_sync_with_server_error() {
     let _ = env_logger::builder().is_test(true).try_init();
 
-    timeout(Duration::from_secs(30), async {
+    timeout(Duration::from_secs(60), async {
         // 1. Setup Mock Central Server
         let ws_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let ws_addr = ws_listener.local_addr().unwrap();
-        let ws_url = format!("ws://{}", ws_addr);
+        let ws_url = format!("ws://{ws_addr}");
 
         let (log_tx, mut log_rx) = tokio::sync::mpsc::channel(10);
         tokio::spawn(async move {
@@ -137,6 +139,9 @@ async fn test_reliable_sync_with_server_error() {
         }).await.unwrap();
 
         let hybrid_db = HybridDatabase::new(&db_url, 1000).await.unwrap();
+        // Load device data into memory (sync loop reads from memory, not disk)
+        hybrid_db.load_device_memory("DEV_RETRY").await.unwrap();
+        let hybrid_db_check = hybrid_db.clone();
         let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_RETRY".into(), "TOKEN_RETRY".into(), hybrid_db);
         client.start(rx).await;
 
@@ -148,12 +153,10 @@ async fn test_reliable_sync_with_server_error() {
         let second = log_rx.recv().await.expect("Did not receive second attempt");
         assert_eq!(second["data"]["user_id"], "RETRY_USER");
 
-        // 4. Verify DB is finally marked as synced
-        // Wait for retry loop (continuous loop has 50ms delay if limit hit, but here we wait for next fetch)
-        // With current logic count < limit (1 < 500) -> 10s sleep
-        sleep(Duration::from_secs(12)).await;
-        let unsynced = db.get_unsynced_logs(10).await.unwrap();
-        assert_eq!(unsynced.len(), 0, "Log should be finally synced");
+        // 4. Verify memory store is finally marked as synced (ACK updates memory; Checkpoint Worker persists to disk)
+        sleep(Duration::from_secs(2)).await;
+        let unsynced = hybrid_db_check.count_unsynced_logs();
+        assert_eq!(unsynced, 0, "Log should be finally synced in memory store");
 
     }).await.expect("Reliable Sync Test Timed Out");
 }

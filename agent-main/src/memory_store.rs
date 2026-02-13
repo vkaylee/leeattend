@@ -259,19 +259,17 @@ impl InMemoryStore {
     /// Insert a new attendance log. Returns assigned ID.
     /// Accepts pre-converted UTC Unix timestamp (i64) to avoid re-parsing
     pub fn insert(&self, device_id: String, data: AttendanceData, timestamp_utc: i64) -> Result<i64, StoreError> {
-        // Compute signature and check for duplicate
-        let signature = Self::compute_signature(&device_id, &data.user_id, timestamp_utc, data.punch, data.status);
-        if self.signatures.contains(&signature) {
-            return Err(StoreError::Duplicate);
-        }
-
-        // Check capacity (backpressure)
+        // Check capacity first (before inserting signature)
         if self.count.load(Ordering::Relaxed) >= self.max_capacity {
             return Err(StoreError::CapacityExceeded);
         }
 
-        // Add signature FIRST (before log)
-        self.signatures.insert(signature);
+        // Atomic check+insert signature to prevent TOCTOU race on duplicates
+        let signature = Self::compute_signature(&device_id, &data.user_id, timestamp_utc, data.punch, data.status);
+        if !self.signatures.insert(signature) {
+            // insert() returns false if value already existed
+            return Err(StoreError::Duplicate);
+        }
 
         let id = self.next_id.fetch_add(1, Ordering::SeqCst);
         let now = chrono::Utc::now().naive_utc();
@@ -464,8 +462,11 @@ impl InMemoryStore {
                 continue;
             }
 
-            // Get composite hash before removing
+            // Get composite hash and log data before removing
             let composite_hash = self.logs.get(&id).map(|log| log.composite_key_hash());
+            let _signature_to_remove = self.logs.get(&id).map(|log| {
+                Self::compute_signature(&log.device_id, &log.user_id, log.timestamp, log.punch, log.status)
+            });
 
             // Remove from memory (log no longer needed)
             self.logs.remove(&id);
@@ -478,11 +479,13 @@ impl InMemoryStore {
             // Remove from inflight
             inflight.remove(&id);
 
+            // Note: Signature is NOT removed - preserved for dedup protection
+            // This allows the system to reject re-insertions of the same data even after sync
+
             // Decrement count
             self.count.fetch_sub(1, Ordering::SeqCst);
         }
 
-        // Note: Signature is NOT removed - preserved for dedup protection
         self.dirty.store(true, Ordering::SeqCst);
     }
 
@@ -662,7 +665,7 @@ mod tests {
         // Insert 2 logs (should succeed)
         for i in 1..=2 {
             let data = AttendanceData {
-                user_id: format!("U{}", i),
+                user_id: format!("U{i}"),
                 timestamp: "2026-01-29 10:00:00".to_string(),
                 status: Some(1),
                 punch: Some(1),
@@ -718,7 +721,7 @@ mod tests {
         // Insert 3 logs
         for i in 1..=3 {
             let data = AttendanceData {
-                user_id: format!("U{}", i),
+                user_id: format!("U{i}"),
                 timestamp: "2026-01-29 10:00:00".to_string(),
                 status: Some(1),
                 punch: Some(1),
@@ -833,7 +836,7 @@ mod tests {
         // Insert 2 logs (unpersisted)
         for i in 1..=2 {
             let data = AttendanceData {
-                user_id: format!("U{}", i),
+                user_id: format!("U{i}"),
                 timestamp: "2026-01-29 10:00:00".to_string(),
                 status: Some(1),
                 punch: Some(1),
@@ -860,7 +863,7 @@ mod tests {
         // Insert 3 logs
         for i in 1..=3 {
             let data = AttendanceData {
-                user_id: format!("U{}", i),
+                user_id: format!("U{i}"),
                 timestamp: "2026-01-29 10:00:00".to_string(),
                 status: Some(1),
                 punch: Some(1),
@@ -946,7 +949,7 @@ mod tests {
         let handle = thread::spawn(move || {
             for i in 0..50 {
                 let data = AttendanceData {
-                    user_id: format!("U{:03}", i),
+                    user_id: format!("U{i:03}"),
                     timestamp: "2026-01-29 10:00:00".to_string(),
                     status: Some(1),
                     punch: Some(1),
@@ -983,7 +986,7 @@ mod tests {
         // Total = 50 inserted minus synced (up to 10)
         // Due to race conditions, synced count varies (0-10)
         let total = store.count_total();
-        assert!((40..=50).contains(&total), "Expected 40-50 logs, got {}", total);
+        assert!((40..=50).contains(&total), "Expected 40-50 logs, got {total}");
     }
 
     #[test]
@@ -993,7 +996,7 @@ mod tests {
         // Insert and mark in-flight
         for i in 1..=3 {
             let data = AttendanceData {
-                user_id: format!("U{:03}", i),
+                user_id: format!("U{i:03}"),
                 timestamp: "2026-01-29 10:00:00".to_string(),
                 status: Some(1),
                 punch: Some(1),
@@ -1031,7 +1034,7 @@ mod tests {
         let id = store.insert("D1".to_string(), data, ts("2026-01-29 10:00:00")).unwrap();
 
         // Should be at least 1000 + gap (1000 ID gap)
-        assert!(id >= 2000, "ID {} should be >= 2000", id);
+        assert!(id >= 2000, "ID {id} should be >= 2000");
     }
 
     #[test]
@@ -1042,7 +1045,7 @@ mod tests {
         let mut ids = Vec::new();
         for i in 1..=5 {
             let data = AttendanceData {
-                user_id: format!("U{:03}", i),
+                user_id: format!("U{i:03}"),
                 timestamp: "2026-01-29 10:00:00".to_string(),
                 status: Some(1),
                 punch: Some(1),
@@ -1075,7 +1078,7 @@ mod tests {
         // Insert 10 logs
         for i in 1..=10 {
             let data = AttendanceData {
-                user_id: format!("U{:03}", i),
+                user_id: format!("U{i:03}"),
                 timestamp: "2026-01-29 10:00:00".to_string(),
                 status: Some(1),
                 punch: Some(1),
@@ -1599,7 +1602,7 @@ mod tests {
             match handle.join().unwrap() {
                 Ok(_) => success_count += 1,
                 Err(StoreError::Duplicate) => duplicate_count += 1,
-                Err(e) => panic!("Unexpected error: {:?}", e),
+                Err(e) => panic!("Unexpected error: {e:?}"),
             }
         }
 
@@ -1646,7 +1649,7 @@ mod tests {
 
         // Construct expected composite key
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let expected_key = format!("DEV1:U001:{}", timestamp_unix);
+        let expected_key = format!("DEV1:U001:{timestamp_unix}");
 
         // Lookup should return the inserted ID
         assert_eq!(store.get_id_by_composite_key(&expected_key), Some(id));
@@ -1676,7 +1679,7 @@ mod tests {
 
         // Construct composite key
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let key = format!("DEV1:U001:{}", timestamp_unix);
+        let key = format!("DEV1:U001:{timestamp_unix}");
 
         // Mark synced by key should return true
         assert!(store.mark_synced_by_key(&key));
@@ -1705,7 +1708,7 @@ mod tests {
 
         // Construct composite key
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let key = format!("DEV1:U001:{}", timestamp_unix);
+        let key = format!("DEV1:U001:{timestamp_unix}");
 
         // Reset to unsynced by key
         assert!(store.reset_to_unsynced_by_key(&key));
@@ -1767,7 +1770,7 @@ mod tests {
 
         // Construct composite key string
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let key = format!("DEV1:U001:{}", timestamp_unix);
+        let key = format!("DEV1:U001:{timestamp_unix}");
 
         // Lookup by string should parse and compute hash internally
         assert_eq!(store.get_id_by_composite_key(&key), Some(id));
@@ -1791,7 +1794,7 @@ mod tests {
 
         // Construct composite key (will have multiple colons)
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let key = format!("{}:U001:{}", device_id, timestamp_unix);
+        let key = format!("{device_id}:U001:{timestamp_unix}");
         // key = "Office:Main:Gate:U001:1738314000"
 
         // Lookup should work correctly with rsplit parsing
@@ -1810,7 +1813,7 @@ mod tests {
         // Insert 100 logs with different device/user/timestamp combinations
         for i in 0..100 {
             let device = format!("DEV{}", i % 10);
-            let user = format!("U{:03}", i);
+            let user = format!("U{i:03}");
             let timestamp = format!("2026-01-31 10:{:02}:00", i % 60);
 
             let data = AttendanceData {
@@ -1824,7 +1827,7 @@ mod tests {
             let id = store.insert(device.clone(), data, timestamp_unix).unwrap();
             inserted_ids.push(id);
 
-            let key = format!("{}:{}:{}", device, user, timestamp_unix);
+            let key = format!("{device}:{user}:{timestamp_unix}");
             composite_keys.push(key);
         }
 
@@ -1845,15 +1848,14 @@ mod tests {
         // Generate 1000 different composite keys
         let base_ts = ts("2026-01-31 10:00:00");
         for i in 0..1000 {
-            let device = format!("DEVICE_{}", i);
-            let user = format!("USER_{}", i);
+            let device = format!("DEVICE_{i}");
+            let user = format!("USER_{i}");
             let timestamp_unix = base_ts + i;
 
             let hash = MemoryLog::compute_composite_hash(&device, &user, timestamp_unix);
 
             assert!(hashes.insert(hash),
-                "Hash collision detected for device={}, user={}, ts={}",
-                device, user, timestamp_unix);
+                "Hash collision detected for device={device}, user={user}, ts={timestamp_unix}");
         }
 
         assert_eq!(hashes.len(), 1000, "All hashes should be unique");
@@ -1921,7 +1923,7 @@ mod tests {
 
         // Construct key
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let key = format!("DEV1:U001:{}", timestamp_unix);
+        let key = format!("DEV1:U001:{timestamp_unix}");
 
         // Before sync, lookup works
         assert_eq!(store.get_id_by_composite_key(&key), Some(id));
@@ -2011,8 +2013,8 @@ mod tests {
         let mut ids = Vec::new();
         for i in 0..5 {
             let data = AttendanceData {
-                user_id: format!("U{:03}", i),
-                timestamp: format!("2026-01-31 10:{:02}:00", i),
+                user_id: format!("U{i:03}"),
+                timestamp: format!("2026-01-31 10:{i:02}:00"),
                 status: Some(1),
                 punch: Some(0),
             };
@@ -2077,7 +2079,7 @@ mod tests {
         // Fill to 80%
         for i in 0..80 {
             let data = AttendanceData {
-                user_id: format!("U{:03}", i),
+                user_id: format!("U{i:03}"),
                 timestamp: format!("2026-01-31 {:02}:{:02}:00", i / 60, i % 60),
                 status: Some(1),
                 punch: Some(0),
@@ -2101,7 +2103,7 @@ mod tests {
         // Insert 1000 logs
         for i in 0..1000 {
             let data = AttendanceData {
-                user_id: format!("U{:04}", i),
+                user_id: format!("U{i:04}"),
                 timestamp: format!("2026-01-31 {:02}:{:02}:{:02}",
                     (i / 3600) % 24, (i / 60) % 60, i % 60),
                 status: Some(1),
@@ -2139,7 +2141,7 @@ mod tests {
         // Phase 1: Initial inserts
         for i in 0..100 {
             let data = AttendanceData {
-                user_id: format!("U{:03}", i),
+                user_id: format!("U{i:03}"),
                 timestamp: format!("2026-01-31 10:{:02}:00", i % 60),
                 status: Some(1),
                 punch: Some(0),
@@ -2177,8 +2179,8 @@ mod tests {
         let mut ids = Vec::new();
         for i in 0..3 {
             let data = AttendanceData {
-                user_id: format!("U{:03}", i),
-                timestamp: format!("2026-01-31 10:{:02}:00", i),
+                user_id: format!("U{i:03}"),
+                timestamp: format!("2026-01-31 10:{i:02}:00"),
                 status: Some(1),
                 punch: Some(0),
             };
@@ -2266,8 +2268,8 @@ mod tests {
         let mut ids = Vec::new();
         for i in 0..4 {
             let data = AttendanceData {
-                user_id: format!("U{:03}", i),
-                timestamp: format!("2026-01-31 10:{:02}:00", i),
+                user_id: format!("U{i:03}"),
+                timestamp: format!("2026-01-31 10:{i:02}:00"),
                 status: Some(1),
                 punch: Some(0),
             };
@@ -2326,8 +2328,8 @@ mod tests {
         let mut ids = Vec::new();
         for i in 0..3 {
             let data = AttendanceData {
-                user_id: format!("U{:03}", i),
-                timestamp: format!("2026-01-31 10:{:02}:00", i),
+                user_id: format!("U{i:03}"),
+                timestamp: format!("2026-01-31 10:{i:02}:00"),
                 status: Some(1),
                 punch: Some(0),
             };
@@ -2368,8 +2370,8 @@ mod tests {
         let mut ids = Vec::new();
         for i in 0..5 {
             let data = AttendanceData {
-                user_id: format!("U{:03}", i),
-                timestamp: format!("2026-01-31 10:{:02}:00", i),
+                user_id: format!("U{i:03}"),
+                timestamp: format!("2026-01-31 10:{i:02}:00"),
                 status: Some(1),
                 punch: Some(0),
             };
@@ -2425,8 +2427,8 @@ mod tests {
         let mut ids = Vec::new();
         for i in 0..6 {
             let data = AttendanceData {
-                user_id: format!("U{:03}", i),
-                timestamp: format!("2026-01-31 10:{:02}:00", i),
+                user_id: format!("U{i:03}"),
+                timestamp: format!("2026-01-31 10:{i:02}:00"),
                 status: Some(1),
                 punch: Some(0),
             };
@@ -2467,8 +2469,8 @@ mod tests {
         let mut ids = Vec::new();
         for i in 0..3 {
             let data = AttendanceData {
-                user_id: format!("U{:03}", i),
-                timestamp: format!("2026-01-31 10:{:02}:00", i),
+                user_id: format!("U{i:03}"),
+                timestamp: format!("2026-01-31 10:{i:02}:00"),
                 status: Some(1),
                 punch: Some(0),
             };
