@@ -30,7 +30,6 @@ Your role is to analyze user requirements, delegate tasks to appropriate sub-age
 ./run-tests.sh --web          # Web tests (Vite + Playwright)
 ./run-tests.sh --all          # All tests
 ./run-tests.sh --api auth     # API tests filtered by "auth"
-./run-tests.sh --no-ram --api # Disable RAM optimization (not recommended on WSL)
 
 # Running specific tests directly inside containers (for debugging/verification)
 docker compose -f docker-compose.test.yml exec agent_test cargo nextest run <test_name>
@@ -47,7 +46,7 @@ docker compose -f docker-compose.test.yml logs apiserver_test --tail=100
 - Host has NO Rust toolchain — `cargo` commands only work inside containers
 - Direct test execution on host triggers massive Disk I/O on WSL's VirtioFS
 - This causes system freeze, requiring hard restart
-- The `run-tests.sh` script handles Docker orchestration + RAM disk setup/cleanup transparently
+- The `run-tests.sh` script handles Docker orchestration transparently
 
 ## Workflows
 

@@ -83,10 +83,8 @@ Always use the unified orchestrator:
 - **Comprehensive Summary Report**: Generates a detailed, colorized report at the end of every run with per-task status and duration.
 - **Cargo Nextest**: Modern test runner for faster, isolated Rust tests.
 - **Docker Isolation**: All tests run inside containers. Database is internal (`test_db:5432`) with no host port mapping.
-- **RAM Disk Optimization**: Migrations, SQLx metadata, and logs are automatically moved to RAM (`/dev/shm`) to prevent WSL Disk I/O freezes.
-
 ### ⚠️ WSL Performance Note
-On WSL2, direct test execution (`cargo test`) will likely freeze your system due to Disk I/O issues. **Always use `./run-tests.sh`**.
+On WSL2, direct test execution (`cargo test`) will likely freeze your system due to Disk I/O issues. **Always use `./run-tests.sh`** which runs tests inside Docker containers.
 
 ## 📝 Changelog
 See [CHANGELOG.md](./CHANGELOG.md) for version history.

@@ -117,7 +117,6 @@ LeeAttend employs a state-of-the-art testing infrastructure optimized for speed,
 - **Full Containerization**: All tests (Unit & Integration) run inside Docker containers, ensuring a "clean-room" environment.
 - **Mock API Architecture (Frontend)**: Webdashboard E2E tests use **Playwright Intercept** (`page.route`) to mock all backend API calls. This enables 100% independent frontend testing without requiring a live Rust backend or database.
 - **Strict 1-Worker Execution**: Playwright is forced to use a single worker (`--workers 1`) in Docker environments to eliminate resource contention and provide 100% reliable results.
-- **Advanced RAM Disk Optimization**: Migrations, SQLx metadata (`.sqlx`), and logs (`.test_logs`) are automatically moved to memory (`/dev/shm`), eliminating WSL2 Disk I/O bottlenecks.
 - **Docker Build Optimization**: Integrated `cargo-chef` for multi-stage builds, caching Rust dependencies separately from source code to reduce rebuild times from minutes to seconds.
 - **Internal Database Networking**: Removed host port mapping (`5433:5432`) for the test database; all services communicate via internal Docker network for enhanced security and cleanliness.
 - **SQLx Offline Pre-compilation**: Host-side builds use pre-prepared metadata, removing the need for a live database during the compilation phase.

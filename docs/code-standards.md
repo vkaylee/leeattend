@@ -414,7 +414,7 @@ To ensure high-quality delivery and fast feedback loops, the project uses a unif
 **Mandatory Rules:**
 1. **NEVER** run `cargo test`, `cargo nextest`, `pytest`, or any test command directly.
 2. **ALWAYS** use `./run-tests.sh` for ALL testing requests (unit, integration, e2e).
-3. The script automatically moves migrations, `.sqlx` metadata, and `.test_logs` to RAM (`/dev/shm`) to prevent system freeze and ensure host-container sync.
+3. All tests run inside Docker containers to avoid WSL2 Disk I/O bottlenecks.
 
 #### 1. Test Execution & Tools
 - **Nextest**: The project uses `cargo nextest` for all Rust tests. It provides better parallelism, faster execution, and isolated process management.

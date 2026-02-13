@@ -23,7 +23,6 @@
 - **Unified Test Infrastructure v3**:
     - **Full Containerization**: All tests now run inside Docker containers, ensuring clean environments and isolation.
     - **Cargo Nextest Integration**: Switched to `nextest` for 2x faster Rust test execution and better process management.
-    - **Advanced RAM Disk Optimization**: Automatically moves `.sqlx` metadata and `.test_logs` to RAM, solving WSL2 Disk I/O bottlenecks.
     - **Docker Build Optimization**: Integrated `cargo-chef` for multi-stage builds, caching Rust dependencies separately from source code to reduce build times from minutes to seconds.
     - **Internal Networking**: Removed host port mapping (`5433:5432`) for the test database; all services now communicate via internal Docker network.
     - **Postgres Tuning**: Optimized test database with `fsync=off` and `synchronous_commit=off` for maximum data throughput.

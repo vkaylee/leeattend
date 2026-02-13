@@ -356,7 +356,7 @@ Bạn không cần cấu hình file `.env.test` thủ công. Hệ thống tự �
 ```
 
 ### ⚡ Tối ưu hóa (Key Features)
-- **RAM Disk**: Tự động chuyển log và migrations lên RAM để tăng tốc.
+- **Docker Isolation**: Tất cả tests chạy trong Docker containers để tránh I/O bottleneck trên WSL.
 - **Nextest**: Sử dụng `cargo nextest` cho hiệu năng vượt trội.
 - **Chef Cache**: Tối ưu hóa Docker build cache cho dependencies.
 

@@ -995,28 +995,22 @@ LeeAttend utilizes a high-performance, container-first testing architecture desi
 
 ### 1. Hybrid Orchestration Model
 The system uses a "Host-Orchestrated, Container-Executed" model:
-- **Host**: Manages RAM disk setup, triggers pre-compilation (offline), and directs Docker via `run-tests.sh`.
+- **Host**: Orchestrates Docker containers via `run-tests.sh`.
 - **Container**: Executes all unit and integration tests in a strictly isolated environment with tuned infrastructure.
 
-### 2. WSL2 Performance Protocol (RAM Disk)
-To bypass the severe Disk I/O bottlenecks of WSL2 (VirtioFS), critical high-frequency directories are automatically symlinked to RAM (`/dev/shm`):
-- **`.test_logs/`**: All stdout/stderr from test runners.
-- **`apiserver/migrations/`**: Prevents I/O spikes during database setup.
-- **`apiserver/.sqlx/`**: Ensures extremely fast metadata reading for offline compilation.
-
-### 3. Containerized Setup & internal Networking
+### 2. Containerized Setup & internal Networking
 Database preparation is fully encapsulated within the `apiserver_test` container:
 - **`sqlx-cli` Integration**: Migrations and metadata preparation (`sqlx prepare`) happen internally.
 - **Internal Database**: Postgres (`test_db`) is only accessible within the Docker network (`test_db:5432`). No host ports are exposed, preventing conflicts with system databases.
 - **`trust` Authentication**: Simplified internal connectivity using `POSTGRES_HOST_AUTH_METHOD: trust` for the test subnet.
 
-### 4. High-Performance Execution (`cargo-nextest`)
+### 3. High-Performance Execution (`cargo-nextest`)
 All Rust tests are executed using `nextest`, which provides:
 - **Process Isolation**: Each test runs in its own process, preventing environment pollution.
 - **Smart Scheduling**: Optimized CPU utilization, reducing suite duration by ~50%.
 - **Status-Level Control**: Configured with `--no-tests=pass` to support modular parallel filtering without artificial failures.
 
-### 5. Multi-Stage Build Optimization (`cargo-chef`)
+### 4. Multi-Stage Build Optimization (`cargo-chef`)
 Docker image build times are minimized through a 3-stage `cargo-chef` strategy:
 1. **Planner**: Identifies dependencies (Cargo.lock).
 2. **Cacher**: Compiles all third-party crates into a reusable layer.

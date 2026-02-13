@@ -3,7 +3,6 @@
 # ==============================================================================
 # Unified Test Orchestrator for LeeAttend
 # Optimized for selective testing and auto-environment setup.
-# Includes WSL2 RAM Disk optimization to avoid Disk I/O overload.
 # ==============================================================================
 
 set -euo pipefail
@@ -16,125 +15,7 @@ BLUE='\033[0;34m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
-# ==============================================================================
-# WSL2 RAM Disk Optimization
-# Moves migrations to /dev/shm to avoid 1GB/s Disk I/O causing system freeze
-# ==============================================================================
-
-PROJECT_NAME="leeattend"
-RAM_DISK_BASE="/dev/shm/${PROJECT_NAME}_migrations"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Directories containing migrations and metadata
-MIGRATION_DIRS=(
-    "${SCRIPT_DIR}/apiserver/migrations"
-    "${SCRIPT_DIR}/agent-main/migrations"
-    "${SCRIPT_DIR}/apiserver/.sqlx"
-    "${SCRIPT_DIR}/.test_logs"
-)
-
-# Track what we've symlinked for cleanup
-declare -a SYMLINKED_DIRS=()
-WSL_MODE_ACTIVE=false
-
-# Detect WSL environment
-is_wsl() {
-    if grep -qiE "(microsoft|wsl)" /proc/version 2>/dev/null; then
-        return 0
-    fi
-    if [[ -n "${WSL_DISTRO_NAME:-}" ]]; then
-        return 0
-    fi
-    return 1
-}
-
-# Cleanup function - restore original directories from backup
-cleanup_ram_disk() {
-    if [[ "$WSL_MODE_ACTIVE" != "true" ]]; then
-        return 0
-    fi
-
-    echo -e "\n${BLUE}🔄 Restoring migration directories from backup...${NC}"
-
-    for dir in "${SYMLINKED_DIRS[@]}"; do
-        local backup_dir="${dir}_backup"
-
-        # Remove symlink if it exists
-        if [[ -L "$dir" ]]; then
-            rm -f "$dir"
-        fi
-
-        # Restore from backup
-        if [[ -d "$backup_dir" ]]; then
-            mv "$backup_dir" "$dir"
-            echo -e "  ${GREEN}✓${NC} Restored: $dir"
-        fi
-    done
-
-    # Cleanup RAM disk
-    if [[ -d "$RAM_DISK_BASE" ]]; then
-        rm -rf "$RAM_DISK_BASE"
-        echo -e "  ${GREEN}✓${NC} Cleaned up RAM disk: $RAM_DISK_BASE"
-    fi
-
-    WSL_MODE_ACTIVE=false
-    echo -e "${GREEN}✓ Cleanup complete${NC}"
-}
-
-# Setup RAM disk for migrations
-setup_ram_disk() {
-    if ! is_wsl; then
-        echo -e "${BLUE}ℹ Not running on WSL, skipping RAM disk optimization${NC}"
-        return 0
-    fi
-
-    echo -e "${YELLOW}${BOLD}⚡ WSL detected - Enabling RAM Disk optimization${NC}"
-    echo -e "${BLUE}  Moving migrations to /dev/shm to avoid Disk I/O overload...${NC}"
-
-    # Note: Trap is set by combined_cleanup in main script, not here
-    # This avoids trap stacking issues
-
-    WSL_MODE_ACTIVE=true
-
-    # Create RAM disk base directory
-    mkdir -p "$RAM_DISK_BASE"
-
-    for dir in "${MIGRATION_DIRS[@]}"; do
-        if [[ ! -d "$dir" ]]; then
-            echo -e "  ${YELLOW}⚠${NC} Skipping (not found): $dir"
-            continue
-        fi
-
-        local dir_name=$(basename "$dir")
-        local parent_name=$(basename "$(dirname "$dir")")
-        local ram_target="${RAM_DISK_BASE}/${parent_name}_${dir_name}"
-        local backup_dir="${dir}_backup"
-
-        # Safety check: don't proceed if backup already exists (previous failed run)
-        if [[ -d "$backup_dir" ]]; then
-            echo -e "  ${RED}⚠${NC} Backup already exists: $backup_dir"
-            echo -e "  ${YELLOW}  Restoring previous backup first...${NC}"
-            if [[ -L "$dir" ]]; then
-                rm -f "$dir"
-            fi
-            mv "$backup_dir" "$dir"
-        fi
-
-        # Copy to RAM disk
-        cp -r "$dir" "$ram_target"
-
-        # Backup original directory
-        mv "$dir" "$backup_dir"
-
-        # Create symlink to RAM disk
-        ln -s "$ram_target" "$dir"
-
-        SYMLINKED_DIRS+=("$dir")
-        echo -e "  ${GREEN}✓${NC} RAM-linked: $dir -> $ram_target"
-    done
-
-    echo -e "${GREEN}✓ RAM disk setup complete${NC}\n"
-}
 
 show_help() {
     echo -e "${BLUE}${BOLD}🚀 LeeAttend Test Runner${NC}"
@@ -145,7 +26,6 @@ show_help() {
     echo -e "  ${GREEN}--api${NC}          Run tests for API components (Rust, Python)"
     echo -e "  ${GREEN}--web${NC}          Run tests for Web component (Vite, Playwright)"
     echo -e "  ${GREEN}--help${NC}         Show this help message"
-    echo -e "  ${GREEN}--no-ram${NC}       Disable RAM disk optimization (even on WSL)"
     echo -e "  ${GREEN}--timeout=N${NC}    Set global timeout in seconds (default: 1800 = 30min)"
     echo ""
     echo -e "${BOLD}Timeout Configuration (env vars):${NC}"
@@ -155,11 +35,6 @@ show_help() {
     echo -e "  TIMEOUT_BUILD=600        Pre-compilation (default: 10 min)"
     echo -e "  TIMEOUT_DB_WAIT=120      Database ready wait (default: 2 min)"
     echo -e "  TIMEOUT_GLOBAL=1800      Global timeout (default: 30 min)"
-    echo ""
-    echo -e "${BOLD}WSL Optimization:${NC}"
-    echo -e "  On WSL, migrations are auto-moved to RAM (/dev/shm) to avoid I/O overload."
-    echo -e "  Tests run with low I/O priority (ionice -c 3) to prevent system freeze."
-    echo -e "  Backups are created and restored automatically on exit/interrupt."
     echo ""
     echo -e "${BOLD}Pattern:${NC}"
     echo -e "  Optional. Filter test cases by name (e.g., 'auth', 'attendance')."
@@ -285,7 +160,6 @@ run_integration() {
 
 # --- Main Logic ---
 
-DISABLE_RAM_DISK=false
 GLOBAL_TIMEOUT=${TIMEOUT_GLOBAL:-1800}
 
 if [ $# -eq 0 ]; then
@@ -299,9 +173,7 @@ PATTERN="${2:-}"
 
 # Parse flags
 for arg in "$@"; do
-    if [[ "$arg" == "--no-ram" ]]; then
-        DISABLE_RAM_DISK=true
-    elif [[ "$arg" == --timeout=* ]]; then
+    if [[ "$arg" == --timeout=* ]]; then
         GLOBAL_TIMEOUT="${arg#*=}"
     fi
 done
@@ -322,22 +194,6 @@ case "$1" in
     --help)
         show_help
         exit 0
-        ;;
-    --no-ram)
-        # Handle --no-ram as first arg with mode as second
-        if [[ -n "${2:-}" && "$2" != "--no-ram" ]]; then
-            case "$2" in
-                --all) MODE="all"; FILTER="" ;;
-                --api) MODE="api"; FILTER="apiserver|agent" ;;
-                --web) MODE="web"; FILTER="webdashboard" ;;
-                *) echo -e "${RED}Unknown option: $2${NC}"; show_help; exit 1 ;;
-            esac
-            PATTERN="${3:-}"
-        else
-            echo -e "${RED}--no-ram requires a mode (--api, --web, --all)${NC}"
-            show_help
-            exit 1
-        fi
         ;;
     *)
         echo -e "${RED}Unknown option: $1${NC}"
@@ -361,14 +217,6 @@ export TIMEOUT_INTEGRATION="${TIMEOUT_INTEGRATION:-1200}"
 export TIMEOUT_BUILD="${TIMEOUT_BUILD:-600}"
 export TIMEOUT_DB_WAIT="${TIMEOUT_DB_WAIT:-120}"
 
-# Set initial trap for RAM disk cleanup (before setup_ram_disk runs)
-trap cleanup_ram_disk EXIT INT TERM
-
-# Setup RAM disk for WSL optimization (unless disabled)
-if [[ "$DISABLE_RAM_DISK" != "true" ]]; then
-    setup_ram_disk
-fi
-
 # Clear previous results
 mkdir -p "$PROJECT_ROOT/.test_logs"
 rm -f "$PROJECT_ROOT/.test_logs/results.txt"
@@ -390,16 +238,13 @@ global_timeout_watchdog() {
 global_timeout_watchdog &
 WATCHDOG_PID=$!
 
-# Combined cleanup handler (now includes watchdog)
-combined_cleanup() {
-    # Kill watchdog first (if it exists)
+# Cleanup handler: kill watchdog on exit
+cleanup() {
     if [[ -n "$WATCHDOG_PID" ]]; then
         kill "$WATCHDOG_PID" 2>/dev/null || true
     fi
-    # Then cleanup RAM disk
-    cleanup_ram_disk
 }
-trap combined_cleanup EXIT INT TERM
+trap cleanup EXIT INT TERM
 
 # Run all test phases
 run_lint "$FILTER"
