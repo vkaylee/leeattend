@@ -11,6 +11,9 @@ use crate::models::{RawAttendanceLog, AttendanceData, SignatureRow};
 use super::types::{MemoryLog, StoreError};
 use super::backoff::calculate_backoff_with_jitter;
 
+/// Pending sync update entry: (device_id, user_id, timestamp, is_synced)
+type PendingSyncUpdates = Arc<RwLock<Vec<(Arc<str>, Arc<str>, i64, i64)>>>;
+
 /// In-memory store for attendance logs with FIFO ordering
 pub struct InMemoryStore {
     logs: DashMap<i64, MemoryLog>,
@@ -19,7 +22,7 @@ pub struct InMemoryStore {
     unsynced_index: Arc<RwLock<BTreeSet<i64>>>,
     unpersisted_index: Arc<RwLock<BTreeSet<i64>>>,
     inflight_index: Arc<RwLock<HashMap<i64, Instant>>>,
-    pending_sync_updates: Arc<RwLock<Vec<(Arc<str>, Arc<str>, i64, i64)>>>, // (device_id, user_id, timestamp, is_synced)
+    pending_sync_updates: PendingSyncUpdates,
     next_id: AtomicI64,
     dirty: AtomicBool,
     count: AtomicUsize,
