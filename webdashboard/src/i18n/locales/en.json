@@ -348,6 +348,15 @@
       "slate": "Slate",
       "black": "Black"
     },
+    "theme": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System",
+      "mode": "Dark Mode",
+      "light_desc": "Always use light mode",
+      "dark_desc": "Always use dark mode",
+      "system_desc": "Follow system preference"
+    },
     "pagination": {
       "showing": "Showing",
       "out_of": "of",

@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Settings2, Save, Clock, Palette, Globe, Calendar, Languages } from "lucide-react";
+import { Settings2, Save, Clock, Palette, Globe, Calendar, Languages, Sun, Moon, Monitor } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { fetchWorkspace, updateWorkspace, getCurrentWorkspaceId, Workspace } from "@/lib/api";
 import { Combobox } from "@/components/ui/Combobox";
 import { useTheme } from "@/hooks/use-theme";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { useDarkModeContext } from "@/context/use-dark-mode-context";
+import type { ThemeMode } from "@/hooks/use-dark-mode";
 
 type TabType = "localization" | "appearance";
 
@@ -130,9 +132,49 @@ function GeneralSettingsContent({ workspace }: { workspace: Workspace }) {
                 </div>
               </div>
               <div className="p-8 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-inner"><p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed italic uppercase tracking-tight opacity-80">{t("common.workspace_settings.theme_desc")}</p></div>
+
+              {/* Dark Mode Preference */}
+              <DarkModeSelector />
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** Dark mode preference selector with light/system/dark options */
+function DarkModeSelector() {
+  const { t } = useTranslation();
+  const { mode, setMode } = useDarkModeContext();
+
+  const options: { value: ThemeMode; icon: React.ReactNode; label: string; desc: string }[] = [
+    { value: 'light', icon: <Sun size={20} />, label: t('common.theme.light', 'Light'), desc: t('common.theme.light_desc', 'Always use light mode') },
+    { value: 'system', icon: <Monitor size={20} />, label: t('common.theme.system', 'System'), desc: t('common.theme.system_desc', 'Follow system preference') },
+    { value: 'dark', icon: <Moon size={20} />, label: t('common.theme.dark', 'Dark'), desc: t('common.theme.dark_desc', 'Always use dark mode') },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t('common.theme.mode', 'Dark Mode')}</label>
+      <div className="grid grid-cols-3 gap-4" data-testid="dark-mode-selector">
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => setMode(opt.value)}
+            data-testid={`dark-mode-option-${opt.value}`}
+            className={cn(
+              "flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all active:scale-95",
+              mode === opt.value
+                ? "border-primary-500 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 shadow-lg shadow-primary-100 dark:shadow-black/30"
+                : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 hover:border-slate-200 dark:hover:border-slate-700 hover:text-slate-600 dark:hover:text-slate-300"
+            )}
+          >
+            {opt.icon}
+            <span className="text-xs font-bold uppercase tracking-widest">{opt.label}</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">{opt.desc}</span>
+          </button>
+        ))}
       </div>
     </div>
   );

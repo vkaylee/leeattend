@@ -348,6 +348,15 @@
       "slate": "Xám chì",
       "black": "Đen"
     },
+    "theme": {
+      "light": "Sáng",
+      "dark": "Tối",
+      "system": "Hệ thống",
+      "mode": "Chế độ tối",
+      "light_desc": "Luôn dùng giao diện sáng",
+      "dark_desc": "Luôn dùng giao diện tối",
+      "system_desc": "Theo cài đặt hệ thống"
+    },
     "pagination": {
       "showing": "Hiển thị",
       "out_of": "trên",

@@ -1,9 +1,11 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
-import { Menu, ChevronRight as BreadcrumbSeparator, Bell, ChevronLeft, ChevronRight } from "lucide-react";
+import { Menu, ChevronRight as BreadcrumbSeparator, Bell, ChevronLeft, ChevronRight, Sun, Moon, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { useDarkModeContext } from "@/context/use-dark-mode-context";
+import type { ThemeMode } from "@/hooks/use-dark-mode";
 
 interface NavbarProps {
   currentWorkspaceName: string;
@@ -57,6 +59,9 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
       </div>
       
       <div className="flex items-center gap-6 ml-auto">
+        {/* Theme Toggle */}
+        <ThemeToggle />
+
         {/* Language Switcher */}
         <LanguageSwitcher />
 
@@ -78,5 +83,38 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
         </div>
       </div>
     </header>
+  );
+}
+
+/** Segmented theme toggle: Light / System / Dark */
+function ThemeToggle() {
+  const { mode, setMode } = useDarkModeContext();
+  const { t } = useTranslation();
+
+  const options: { value: ThemeMode; icon: React.ReactNode; label: string }[] = [
+    { value: 'light', icon: <Sun size={14} />, label: t('common.theme.light', 'Light') },
+    { value: 'system', icon: <Monitor size={14} />, label: t('common.theme.system', 'System') },
+    { value: 'dark', icon: <Moon size={14} />, label: t('common.theme.dark', 'Dark') },
+  ];
+
+  return (
+    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner" data-testid="theme-toggle">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          onClick={() => setMode(opt.value)}
+          title={opt.label}
+          data-testid={`theme-toggle-${opt.value}`}
+          className={cn(
+            "p-2 rounded-lg transition-all flex items-center gap-1.5",
+            mode === opt.value
+              ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-700"
+              : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+          )}
+        >
+          {opt.icon}
+        </button>
+      ))}
+    </div>
   );
 }
