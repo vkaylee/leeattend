@@ -66,7 +66,7 @@ pub async fn get_department_payroll_configs(
     .fetch_all(&state.db)
     .await
     {
-        Ok(configs) => Json(configs).into_response(),
+        Ok(configs) => Json::<Vec<crate::models::DepartmentPayrollConfig>>(configs).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
@@ -87,7 +87,7 @@ pub async fn get_employee_payroll_configs(
     .fetch_all(&state.db)
     .await
     {
-        Ok(configs) => Json(configs).into_response(),
+        Ok(configs) => Json::<Vec<crate::models::EmployeePayrollConfig>>(configs).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
