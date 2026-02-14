@@ -34,6 +34,7 @@ pub struct CentralClient {
     agent_id: String,
     token: String,
     hybrid_db: HybridDatabase,
+    inflight_timeout_secs: u64,
     tx: mpsc::Sender<CentralMessage>,
     reload_tx: mpsc::Sender<()>,
     is_connected: Arc<AtomicBool>,
@@ -41,11 +42,11 @@ pub struct CentralClient {
 
 #[allow(clippy::collapsible_if)]
 impl CentralClient {
-    pub fn new(url: String, agent_id: String, token: String, hybrid_db: HybridDatabase) -> (Self, mpsc::Receiver<CentralMessage>, mpsc::Receiver<()>) {
+    pub fn new(url: String, agent_id: String, token: String, hybrid_db: HybridDatabase, inflight_timeout_secs: u64) -> (Self, mpsc::Receiver<CentralMessage>, mpsc::Receiver<()>) {
         let (tx, rx) = mpsc::channel(100);
         let (reload_tx, reload_rx) = mpsc::channel(1);
         let is_connected = Arc::new(AtomicBool::new(false));
-        (Self { url, agent_id, token, hybrid_db, tx, reload_tx, is_connected }, rx, reload_rx)
+        (Self { url, agent_id, token, hybrid_db, inflight_timeout_secs, tx, reload_tx, is_connected }, rx, reload_rx)
     }
 
     pub async fn start(self, rx: mpsc::Receiver<CentralMessage>) {
@@ -61,13 +62,13 @@ impl CentralClient {
         let sync_tx = tx.clone();
         let sync_agent_id = agent_id.clone();
         let connected = self.is_connected.clone();
+        let inflight_timeout_secs = self.inflight_timeout_secs;
         tokio::spawn(async move {
             let mut last_stale_check = Instant::now();
 
             loop {
                 if !connected.load(Ordering::Relaxed) {
-                    warn!("🔴 Sync loop waiting - not connected to central server");
-                    sleep(Duration::from_secs(5)).await;
+                    sleep(Duration::from_secs(1)).await;
                     continue;
                 }
 
@@ -100,7 +101,7 @@ impl CentralClient {
 
                 // Periodic stale in-flight reset (every 60 seconds)
                 if last_stale_check.elapsed() >= Duration::from_secs(60) {
-                    let reset_count = sync_hybrid.memory_store().reset_stale_inflight(Duration::from_secs(300));
+                    let reset_count = sync_hybrid.memory_store().reset_stale_inflight(Duration::from_secs(inflight_timeout_secs));
                     if reset_count > 0 {
                         warn!("⚠️ Reset {reset_count} stale in-flight logs (>5min)");
                     }

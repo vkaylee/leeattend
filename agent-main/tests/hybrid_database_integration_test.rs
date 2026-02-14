@@ -150,7 +150,7 @@ fn benchmark_mark_operations() {
 
 #[tokio::test]
 async fn integration_full_sync_workflow() {
-    let hybrid = HybridDatabase::new("sqlite::memory:", 10_000).await.unwrap();
+    let hybrid = HybridDatabase::new("sqlite::memory:", 10_000, 90).await.unwrap();
 
     // Phase 1: Collect logs
     for i in 1..=100 {
@@ -183,7 +183,7 @@ async fn integration_restart_recovery_with_inflight() {
     // This test verifies the checkpoint mechanism works correctly.
     let db_url = "sqlite::memory:";
 
-    let hybrid = HybridDatabase::new(db_url, 1000).await.unwrap();
+    let hybrid = HybridDatabase::new(db_url, 1000, 90).await.unwrap();
 
     // Save and mark some as in-flight
     for i in 1..=10 {
@@ -207,7 +207,7 @@ async fn integration_restart_recovery_with_inflight() {
 
 #[tokio::test]
 async fn integration_concurrent_device_writes() {
-    let hybrid = HybridDatabase::new("sqlite::memory:", 10_000).await.unwrap();
+    let hybrid = HybridDatabase::new("sqlite::memory:", 10_000, 90).await.unwrap();
 
     // Simulate 5 devices writing simultaneously
     let mut handles = vec![];
@@ -237,7 +237,7 @@ async fn integration_concurrent_device_writes() {
 
 #[tokio::test]
 async fn integration_checkpoint_under_load() {
-    let hybrid = HybridDatabase::new("sqlite::memory:", 10_000).await.unwrap();
+    let hybrid = HybridDatabase::new("sqlite::memory:", 10_000, 90).await.unwrap();
 
     // Insert large batch
     for i in 0..1000 {
@@ -258,7 +258,7 @@ async fn integration_checkpoint_under_load() {
 
 #[tokio::test]
 async fn integration_mixed_sync_states() {
-    let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+    let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
     // Create mixed states
     let mut synced_ids = Vec::new();
@@ -394,7 +394,7 @@ fn edge_case_multiple_timestamp_formats() {
 
 #[tokio::test]
 async fn edge_case_checkpoint_empty_store() {
-    let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+    let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
     // Checkpoint without any logs
     let result = hybrid.checkpoint().await.unwrap();
@@ -404,7 +404,7 @@ async fn edge_case_checkpoint_empty_store() {
 
 #[tokio::test]
 async fn edge_case_flush_all_empty_store() {
-    let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+    let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
     // Flush without any logs
     let result = hybrid.flush_all().await.unwrap();

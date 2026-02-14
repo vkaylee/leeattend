@@ -103,7 +103,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Initialize HybridDatabase (memory + disk)
-    let hybrid_db = HybridDatabase::new(&config.database_url, 100_000)
+    let hybrid_db = HybridDatabase::new(&config.database_url, 100_000, config.signature_ttl_days)
         .await
         .expect("Failed to initialize HybridDatabase");
 
@@ -136,6 +136,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         config.agent_id.clone(),
         config.agent_token.clone(),
         hybrid_db.clone(),
+        config.inflight_timeout_secs,
     );
     central_client.start(central_rx).await;
 
@@ -252,6 +253,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 _ = cleanup_cancel.cancelled() => {
                     info!("🧹 Disk Cleanup Worker stopped");
+                    break;
+                }
+            }
+        }
+    });
+
+    // --- Signature Eviction Worker (TTL-based Memory Cleanup) ---
+    let evict_hybrid = hybrid_db.clone();
+    let evict_cancel = cancel_token.clone();
+    let evict_interval_hours = config.signature_cleanup_hours;
+    tokio::spawn(async move {
+        info!("🧹 Signature Eviction Worker started (every {evict_interval_hours}h)");
+
+        let evict_interval = Duration::from_secs(evict_interval_hours * 3600);
+        let mut evict_timer = tokio::time::interval(evict_interval);
+
+        // Skip immediate tick on startup
+        evict_timer.tick().await;
+
+        loop {
+            tokio::select! {
+                _ = evict_timer.tick() => {
+                    let (evicted, before, after) = evict_hybrid.evict_old_signatures();
+                    if evicted > 0 {
+                        info!("🧹 Signature eviction: removed {evicted} expired signatures ({before} -> {after})");
+                    }
+                }
+                _ = evict_cancel.cancelled() => {
+                    info!("🧹 Signature Eviction Worker stopped");
                     break;
                 }
             }
@@ -405,8 +435,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     // In-memory duplicate detection: hash-based keys (8 bytes each instead of ~40 for String)
                     // Hash of (user_id, timestamp) — device_id is implicit per worker
-                    let mut seen_logs: HashSet<u64> = HashSet::with_capacity(5_000);
-                    const SEEN_LOGS_CAP: usize = 10_000;
+                    let mut seen_logs: HashSet<u64> = HashSet::with_capacity(32_000);
+                    const SEEN_LOGS_CAP: usize = 100_000;
 
                     // Adaptive polling: reduce frequency when no new data
                     let mut polling_state = AdaptivePollingState::new();

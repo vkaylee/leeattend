@@ -68,11 +68,11 @@ async fn test_concurrent_ack_processing_during_bulk_send() {
             }).await.unwrap();
         }
 
-        let hybrid_db = HybridDatabase::new(&db_url, 1000).await.unwrap();
+        let hybrid_db = HybridDatabase::new(&db_url, 1000, 90).await.unwrap();
         hybrid_db.load_device_memory("DEV_BULK").await.unwrap();
         let hybrid_check = hybrid_db.clone();
 
-        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_BULK".into(), "TOKEN".into(), hybrid_db);
+        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_BULK".into(), "TOKEN".into(), hybrid_db, 300);
         client.start(rx).await;
 
         // Wait for all ACKs to be processed (server counter confirms delivery)
@@ -152,10 +152,10 @@ async fn test_reconnect_after_server_close() {
             punch: Some(1),
         }).await.unwrap();
 
-        let hybrid_db = HybridDatabase::new(&db_url, 1000).await.unwrap();
+        let hybrid_db = HybridDatabase::new(&db_url, 1000, 90).await.unwrap();
         hybrid_db.load_device_memory("DEV_RC").await.unwrap();
 
-        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_RC".into(), "TOKEN".into(), hybrid_db);
+        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_RC".into(), "TOKEN".into(), hybrid_db, 300);
         client.start(rx).await;
 
         // Wait for the log to be ACKed on second connection
@@ -193,12 +193,12 @@ async fn test_connection_failure_preserves_receiver() {
             punch: Some(1),
         }).await.unwrap();
 
-        let hybrid_db = HybridDatabase::new(&db_url, 1000).await.unwrap();
+        let hybrid_db = HybridDatabase::new(&db_url, 1000, 90).await.unwrap();
         hybrid_db.load_device_memory("DEV_FAIL").await.unwrap();
         let hybrid_check = hybrid_db.clone();
 
         let ws_url = format!("ws://{failing_addr}");
-        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_FAIL".into(), "TOKEN".into(), hybrid_db);
+        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_FAIL".into(), "TOKEN".into(), hybrid_db, 300);
         client.start(rx).await;
 
         // Let it fail a few connection attempts
@@ -263,10 +263,10 @@ async fn test_no_ack_starvation_under_load() {
             }).await.unwrap();
         }
 
-        let hybrid_db = HybridDatabase::new(&db_url, 1000).await.unwrap();
+        let hybrid_db = HybridDatabase::new(&db_url, 1000, 90).await.unwrap();
         hybrid_db.load_device_memory("DEV_LOAD").await.unwrap();
 
-        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_LOAD".into(), "TOKEN".into(), hybrid_db);
+        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_LOAD".into(), "TOKEN".into(), hybrid_db, 300);
         client.start(rx).await;
 
         // Wait for server to ACK all 50 logs

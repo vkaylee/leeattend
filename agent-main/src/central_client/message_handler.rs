@@ -90,7 +90,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_incoming_error() {
-        let hybrid_db = HybridDatabase::new(":memory:", 1000).await.unwrap();
+        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.unwrap();
         let (reload_tx, _reload_rx) = mpsc::channel(1);
 
         let error_msg = r#"{"type":"error", "code":"INVALID_TOKEN", "message":"Invalid token provided"}"#;
@@ -99,7 +99,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_incoming_ack_failure() {
-        let hybrid_db = HybridDatabase::new(":memory:", 1000).await.unwrap();
+        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.unwrap();
         let (reload_tx, _reload_rx) = mpsc::channel(1);
 
         sqlx::query("INSERT INTO zkt_raw_attendance (id, device_id, user_id, timestamp, is_synced) VALUES (999, 'dev1', 'user1', '2026-01-27 10:00:00', 2)")
@@ -117,7 +117,7 @@ mod tests {
     async fn test_ack_handling_race_condition() {
         use chrono::NaiveDateTime;
 
-        let hybrid_db = HybridDatabase::new(":memory:", 1000).await.unwrap();
+        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.unwrap();
         let (reload_tx, _reload_rx) = mpsc::channel(1);
 
         hybrid_db.disk_db().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", true).await.unwrap();
@@ -159,7 +159,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_sync_blocked_when_no_active_devices() {
-        let hybrid_db = HybridDatabase::new(":memory:", 1000).await.unwrap();
+        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.unwrap();
 
         sqlx::query(
             "INSERT INTO zkt_raw_attendance (id, device_id, user_id, timestamp, is_synced) VALUES (1, 'dev1', 'user1', '2026-01-29 10:00:00', 0)"
@@ -176,7 +176,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_sync_allowed_when_devices_configured() {
-        let hybrid_db = HybridDatabase::new(":memory:", 1000).await.unwrap();
+        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.unwrap();
 
         hybrid_db
             .disk_db()
@@ -191,7 +191,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_sync_blocked_after_devices_deactivated() {
-        let hybrid_db = HybridDatabase::new(":memory:", 1000).await.unwrap();
+        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.unwrap();
 
         hybrid_db
             .disk_db()

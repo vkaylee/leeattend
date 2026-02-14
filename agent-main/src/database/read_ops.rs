@@ -46,17 +46,20 @@ impl Database {
 
     /// Load all signatures for dedup index (startup only - Phase 3)
     /// Returns minimal data: device_id, user_id, timestamp, punch, status for all logs
-    pub async fn get_all_signatures(&self) -> Result<Vec<SignatureRow>, Error> {
+    /// Only loads signatures within TTL window to bound memory usage
+    pub async fn get_all_signatures(&self, ttl_days: i64) -> Result<Vec<SignatureRow>, Error> {
+        let cutoff = chrono::Utc::now().timestamp() - (ttl_days * 86400);
         // Optimization: Only load signatures for ACTIVE devices to save memory.
         let rows = sqlx::query_as::<_, SignatureRow>(
             r#"
             SELECT r.device_id, r.user_id, r.timestamp, r.punch, r.status
             FROM zkt_raw_attendance r
             JOIN devices d ON r.device_id = d.id
-            WHERE d.is_active = 1
+            WHERE d.is_active = 1 AND r.timestamp > ?
             ORDER BY r.id ASC
             "#,
         )
+        .bind(cutoff)
         .fetch_all(&self.pool)
         .await?;
 
@@ -64,16 +67,19 @@ impl Database {
     }
 
     /// Get signatures for a specific device (for runtime loading when enabling device)
-    pub async fn get_signatures_for_device(&self, device_id: &str) -> Result<Vec<SignatureRow>, Error> {
+    /// Only loads signatures within TTL window to bound memory usage
+    pub async fn get_signatures_for_device(&self, device_id: &str, ttl_days: i64) -> Result<Vec<SignatureRow>, Error> {
+        let cutoff = chrono::Utc::now().timestamp() - (ttl_days * 86400);
         let rows = sqlx::query_as::<_, SignatureRow>(
             r#"
             SELECT device_id, user_id, timestamp, punch, status
             FROM zkt_raw_attendance
-            WHERE device_id = ?
+            WHERE device_id = ? AND timestamp > ?
             ORDER BY id ASC
             "#
         )
         .bind(device_id)
+        .bind(cutoff)
         .fetch_all(&self.pool)
         .await?;
 

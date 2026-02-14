@@ -11,6 +11,9 @@ pub struct Config {
     pub rpc_timeout_seconds: u64,
     pub poll_interval_seconds: u64,
     pub max_concurrent_workers: usize,
+    pub signature_ttl_days: i64,
+    pub signature_cleanup_hours: u64,
+    pub inflight_timeout_secs: u64,
 }
 
 impl Config {
@@ -68,6 +71,21 @@ impl Config {
             .parse()
             .unwrap_or(60);
 
+        let signature_ttl_days = env::var("SIGNATURE_TTL_DAYS")
+            .unwrap_or_default()
+            .parse()
+            .unwrap_or(90);
+
+        let signature_cleanup_hours = env::var("SIGNATURE_CLEANUP_HOURS")
+            .unwrap_or_default()
+            .parse()
+            .unwrap_or(24);
+
+        let inflight_timeout_secs = env::var("INFLIGHT_TIMEOUT_SECS")
+            .unwrap_or_default()
+            .parse()
+            .unwrap_or(300);
+
         if !fallbacks.is_empty() {
             warn!("⚠️  PHÁT HIỆN THIẾU CẤU HÌNH .ENV - SỬ DỤNG GIÁ TRỊ MẶC ĐỊNH:");
             for f in fallbacks {
@@ -85,6 +103,9 @@ impl Config {
             rpc_timeout_seconds,
             poll_interval_seconds,
             max_concurrent_workers,
+            signature_ttl_days,
+            signature_cleanup_hours,
+            inflight_timeout_secs,
         }
     }
 
@@ -102,6 +123,12 @@ impl Config {
         info!("RPC Timeout        : {}s", self.rpc_timeout_seconds);
         info!("Poll Interval      : {}s", self.poll_interval_seconds);
         info!("Max Workers        : {}", self.max_concurrent_workers);
+        info!("------------------------------------------------------------");
+        info!("🧹 MEMORY MANAGEMENT");
+        info!("------------------------------------------------------------");
+        info!("Signature TTL      : {} days", self.signature_ttl_days);
+        info!("Signature Cleanup  : every {}h", self.signature_cleanup_hours);
+        info!("Inflight Timeout   : {}s", self.inflight_timeout_secs);
         info!("------------------------------------------------------------");
         info!("🔄 RETRY & BACKOFF CONSTANTS");
         info!("------------------------------------------------------------");
@@ -133,6 +160,9 @@ mod tests {
             rpc_timeout_seconds: 30,
             poll_interval_seconds: 60,
             max_concurrent_workers: 5,
+            signature_ttl_days: 90,
+            signature_cleanup_hours: 24,
+            inflight_timeout_secs: 300,
         };
 
         assert_eq!(config.agent_id, "test-agent");
@@ -143,6 +173,9 @@ mod tests {
         assert_eq!(config.rpc_timeout_seconds, 30);
         assert_eq!(config.poll_interval_seconds, 60);
         assert_eq!(config.max_concurrent_workers, 5);
+        assert_eq!(config.signature_ttl_days, 90);
+        assert_eq!(config.signature_cleanup_hours, 24);
+        assert_eq!(config.inflight_timeout_secs, 300);
     }
 
     #[test]
@@ -158,6 +191,9 @@ mod tests {
             std::env::set_var("RPC_TIMEOUT_SECONDS", "45");
             std::env::set_var("POLL_INTERVAL_SECONDS", "120");
             std::env::set_var("MAX_CONCURRENT_WORKERS", "10");
+            std::env::set_var("SIGNATURE_TTL_DAYS", "30");
+            std::env::set_var("SIGNATURE_CLEANUP_HOURS", "12");
+            std::env::set_var("INFLIGHT_TIMEOUT_SECS", "600");
         }
 
         let config = Config::load();
@@ -169,6 +205,9 @@ mod tests {
         assert_eq!(config.rpc_timeout_seconds, 45);
         assert_eq!(config.poll_interval_seconds, 120);
         assert_eq!(config.max_concurrent_workers, 10);
+        assert_eq!(config.signature_ttl_days, 30);
+        assert_eq!(config.signature_cleanup_hours, 12);
+        assert_eq!(config.inflight_timeout_secs, 600);
 
         // Cleanup
         unsafe {
@@ -179,6 +218,9 @@ mod tests {
             std::env::remove_var("RPC_TIMEOUT_SECONDS");
             std::env::remove_var("POLL_INTERVAL_SECONDS");
             std::env::remove_var("MAX_CONCURRENT_WORKERS");
+            std::env::remove_var("SIGNATURE_TTL_DAYS");
+            std::env::remove_var("SIGNATURE_CLEANUP_HOURS");
+            std::env::remove_var("INFLIGHT_TIMEOUT_SECS");
         }
     }
 
@@ -196,10 +238,16 @@ mod tests {
             std::env::remove_var("RPC_TIMEOUT_SECONDS");
             std::env::remove_var("POLL_INTERVAL_SECONDS");
             std::env::remove_var("MAX_CONCURRENT_WORKERS");
+            std::env::remove_var("SIGNATURE_TTL_DAYS");
+            std::env::remove_var("SIGNATURE_CLEANUP_HOURS");
+            std::env::remove_var("INFLIGHT_TIMEOUT_SECS");
 
             std::env::set_var("RPC_TIMEOUT_SECONDS", "not-a-number");
             std::env::set_var("POLL_INTERVAL_SECONDS", "");
             std::env::set_var("MAX_CONCURRENT_WORKERS", "-5");
+            std::env::set_var("SIGNATURE_TTL_DAYS", "abc");
+            std::env::set_var("SIGNATURE_CLEANUP_HOURS", "");
+            std::env::set_var("INFLIGHT_TIMEOUT_SECS", "-1");
         }
 
         let config = Config::load();
@@ -209,12 +257,18 @@ mod tests {
         assert_eq!(config.poll_interval_seconds, 60);
         // "-5" parses as invalid for usize, falls back to default
         assert_eq!(config.max_concurrent_workers, 5);
+        assert_eq!(config.signature_ttl_days, 90);
+        assert_eq!(config.signature_cleanup_hours, 24);
+        assert_eq!(config.inflight_timeout_secs, 300);
 
         // Cleanup
         unsafe {
             std::env::remove_var("RPC_TIMEOUT_SECONDS");
             std::env::remove_var("POLL_INTERVAL_SECONDS");
             std::env::remove_var("MAX_CONCURRENT_WORKERS");
+            std::env::remove_var("SIGNATURE_TTL_DAYS");
+            std::env::remove_var("SIGNATURE_CLEANUP_HOURS");
+            std::env::remove_var("INFLIGHT_TIMEOUT_SECS");
         }
     }
 
@@ -229,6 +283,9 @@ mod tests {
             rpc_timeout_seconds: 30,
             poll_interval_seconds: 60,
             max_concurrent_workers: 5,
+            signature_ttl_days: 90,
+            signature_cleanup_hours: 24,
+            inflight_timeout_secs: 300,
         };
 
         // Should not panic
