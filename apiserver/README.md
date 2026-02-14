@@ -40,13 +40,9 @@ To remove the service, run `uninstall_service.bat` as Administrator.
 
 #### Development mode (with auto-reload)
 
-**Local (with terminal):** Use [bacon](https://github.com/Canop/bacon) for a TUI experience:
-```bash
-cargo install bacon
-bacon run
-```
 
-**Docker containers:** Use [cargo-watch](https://github.com/watchexec/cargo-watch) (bacon is TUI-only, incompatible with non-interactive containers):
+
+**Docker containers:** Use [cargo-watch](https://github.com/watchexec/cargo-watch):
 ```bash
 cargo install cargo-watch
 cargo watch -x run

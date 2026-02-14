@@ -87,7 +87,7 @@ async fn test_concurrent_ack_processing_during_bulk_send() {
         // Give ACKs time to propagate back to agent memory
         sleep(Duration::from_secs(1)).await;
         let unsynced = hybrid_check.count_unsynced_logs();
-        assert_eq!(unsynced, 0, "All logs should be marked synced in memory, got {} unsynced", unsynced);
+        assert_eq!(unsynced, 0, "All logs should be marked synced in memory, got {unsynced} unsynced");
     }).await.expect("Concurrent ACK test timed out");
 }
 

@@ -24,6 +24,7 @@ use super::retry_manager::{RetryManager, calculate_sync_stats};
 
 // Retry configuration constants
 pub(super) const CONNECTION_TIMEOUT_SECS: u64 = 30;
+#[allow(dead_code)]
 pub(super) const STABILITY_THRESHOLD_SECS: u64 = 60;
 pub(super) const MAX_RETRY_DELAY_SECS: u64 = 60;
 pub(super) const MAX_RETRY_COUNT: u32 = 10;
@@ -47,7 +48,7 @@ impl CentralClient {
         (Self { url, agent_id, token, hybrid_db, tx, reload_tx, is_connected }, rx, reload_rx)
     }
 
-    pub async fn start(self, mut rx: mpsc::Receiver<CentralMessage>) {
+    pub async fn start(self, rx: mpsc::Receiver<CentralMessage>) {
         let url = self.url.clone();
         let agent_id = self.agent_id.clone();
         let token = self.token.clone();
@@ -266,6 +267,7 @@ impl CentralClient {
                         });
 
                         let mut write_task = tokio::spawn(async move {
+                            #[allow(unused_mut)]
                             let mut rx = rx;
                             let mut shutdown_rx = shutdown_rx;
                             loop {

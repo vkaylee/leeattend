@@ -81,6 +81,7 @@ impl RetryManager {
         self.record_connection_failed();
     }
 
+    #[allow(dead_code)]
     pub(super) fn record_stable(&mut self) {
         if let Some(since) = self.stable_since {
             if since.elapsed() >= Duration::from_secs(STABILITY_THRESHOLD_SECS)
