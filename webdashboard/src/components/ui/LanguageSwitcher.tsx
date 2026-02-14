@@ -33,8 +33,8 @@ export function LanguageSwitcher({ compact = false, className }: LanguageSwitche
           data-testid="language-switcher-trigger"
           className={cn(
             'flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium',
-            'bg-slate-50 border border-slate-100 shadow-sm',
-            'text-slate-600 hover:text-primary-600 hover:bg-white hover:border-primary-100',
+            'bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm',
+            'text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-white dark:hover:bg-slate-700 hover:border-primary-100 dark:hover:border-primary-800',
             'transition-all duration-200 active:scale-95',
             'focus:outline-none focus:ring-2 focus:ring-primary-500/20',
             className
@@ -51,7 +51,7 @@ export function LanguageSwitcher({ compact = false, className }: LanguageSwitche
           <ChevronDown
             size={14}
             className={cn(
-              'text-slate-400 transition-transform duration-200',
+              'text-slate-400 dark:text-slate-500 transition-transform duration-200',
               open && 'rotate-180 text-primary-500'
             )}
           />
@@ -62,7 +62,7 @@ export function LanguageSwitcher({ compact = false, className }: LanguageSwitche
         <Popover.Content
           className={cn(
             'z-[10000] min-w-[180px] overflow-hidden rounded-2xl',
-            'bg-white border border-slate-100 shadow-xl',
+            'bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 shadow-xl dark:shadow-black/30',
             'animate-in fade-in zoom-in-95 duration-200'
           )}
           sideOffset={8}
@@ -79,8 +79,8 @@ export function LanguageSwitcher({ compact = false, className }: LanguageSwitche
                   'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm',
                   'transition-colors duration-150',
                   currentOption.code === lang.code
-                    ? 'bg-primary-50 text-primary-600 font-semibold'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    ? 'bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 font-semibold'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
                 )}
               >
                 <span className="text-base">{lang.flag}</span>

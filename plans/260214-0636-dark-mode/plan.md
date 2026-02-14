@@ -3,7 +3,7 @@ title: "Dark Mode Implementation"
 description: "Full-app dark mode with system preference detection and manual toggle"
 status: in-progress
 priority: P2
-effort: 8h
+effort: 6h
 branch: main
 tags: [frontend, ui, dark-mode, tailwind]
 created: 2026-02-14
@@ -33,7 +33,7 @@ created: 2026-02-14
 |---|-------|--------|--------|------|
 | 1 | Foundation (CSS vars, dark variant, FOUC, hook) | ✅ complete | 1.5h | [phase-01](phase-01-foundation.md) |
 | 2 | Core Layout (Navbar, Sidebar, MainLayout) | ✅ complete | 1.5h | [phase-02](phase-02-core-layout.md) |
-| 3 | UI Primitives (Modal, Toast, Dropdown, etc) | pending | 1h | [phase-03](phase-03-ui-primitives.md) |
+| 3 | UI Primitives (Modal, Toast, Dropdown, etc) | ✅ complete | 1h | [phase-03](phase-03-ui-primitives.md) |
 | 4 | Feature Pages (all page components) | pending | 2h | [phase-04](phase-04-feature-pages.md) |
 | 5 | Settings & Toggle (Navbar toggle + Settings page) | pending | 1h | [phase-05](phase-05-settings-and-toggle.md) |
 | 6 | Testing (unit + visual verification) | pending | 1h | [phase-06](phase-06-testing.md) |

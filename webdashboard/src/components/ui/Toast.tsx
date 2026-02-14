@@ -80,24 +80,24 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
   };
 
   const bgColors = {
-    success: 'bg-emerald-50 border-emerald-100',
-    error: 'bg-rose-50 border-rose-100',
-    info: 'bg-primary-50 border-blue-100',
-    warning: 'bg-amber-50 border-amber-100',
+    success: 'bg-emerald-50 border-emerald-100 dark:bg-emerald-950 dark:border-emerald-900',
+    error: 'bg-rose-50 border-rose-100 dark:bg-rose-950 dark:border-rose-900',
+    info: 'bg-primary-50 border-blue-100 dark:bg-blue-950 dark:border-blue-900',
+    warning: 'bg-amber-50 border-amber-100 dark:bg-amber-950 dark:border-amber-900',
   };
 
   return (
     <div 
       role="status"
-      className={`pointer-events-auto flex items-start gap-4 p-4 rounded-[24px] border shadow-xl shadow-slate-200/50 animate-in slide-in-from-right-8 duration-300 ${bgColors[toast.type]}`}
+      className={`pointer-events-auto flex items-start gap-4 p-4 rounded-[24px] border shadow-xl shadow-slate-200/50 dark:shadow-black/30 animate-in slide-in-from-right-8 duration-300 ${bgColors[toast.type]}`}
     >
       <div className="shrink-0 mt-0.5">{icons[toast.type]}</div>
       <div className="flex-1">
-        {toast.title && <div className="text-sm font-bold text-slate-700 mb-0.5 uppercase tracking-tight">{toast.title}</div>}
-        <div className="text-sm text-slate-600 font-medium leading-relaxed">{toast.message}</div>
+        {toast.title && <div className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-0.5 uppercase tracking-tight">{toast.title}</div>}
+        <div className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed">{toast.message}</div>
       </div>
-      <button onClick={onClose} className="shrink-0 p-1 hover:bg-white/50 rounded-lg transition-colors">
-        <X className="w-4 h-4 text-slate-500" />
+      <button onClick={onClose} className="shrink-0 p-1 hover:bg-white/50 dark:hover:bg-slate-700/50 rounded-lg transition-colors">
+        <X className="w-4 h-4 text-slate-500 dark:text-slate-400" />
       </button>
     </div>
   );

@@ -57,7 +57,7 @@ export default function Sheet({
         <div 
           data-testid="sheet-panel"
           className={cn(
-            "pointer-events-auto w-screen max-w-md transform transition duration-500 ease-in-out bg-white shadow-premium-2xl flex flex-col h-full",
+            "pointer-events-auto w-screen max-w-md transform transition duration-500 ease-in-out bg-white dark:bg-slate-900 shadow-premium-2xl flex flex-col h-full",
             side === "right" 
               ? (isOpen ? "translate-x-0 rounded-l-[3rem]" : "translate-x-full rounded-l-[3rem]")
               : (isOpen ? "translate-x-0 rounded-r-[3rem]" : "-translate-x-full rounded-r-[3rem]"),
@@ -66,19 +66,19 @@ export default function Sheet({
           onClick={(e) => e.stopPropagation()}
         >
            {/* Header */}
-          <div className="flex items-center justify-between p-10 border-b border-slate-50 bg-slate-50/30">
+          <div className="flex items-center justify-between p-10 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-primary-50 flex items-center justify-center text-primary-600 shadow-inner border border-primary-100/50">
+              <div className="w-12 h-12 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-inner border border-primary-100/50 dark:border-primary-800/50">
                 <Menu size={24} />
               </div>
               <div>
                 {title && (
-                  <h2 className="text-xl font-bold text-slate-700 tracking-tight uppercase">
+                  <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 tracking-tight uppercase">
                     {title}
                   </h2>
                 )}
                 {subtitle && (
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 opacity-70">
+                  <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1 opacity-70">
                     {subtitle}
                   </p>
                 )}
@@ -86,7 +86,7 @@ export default function Sheet({
             </div>
             <button
               onClick={onClose}
-              className="p-3 bg-white hover:bg-slate-50 rounded-xl transition-all shadow-md border border-slate-100 text-slate-500 hover:text-rose-600 active:scale-90"
+              className="p-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all shadow-md border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 active:scale-90"
             >
               <X className="w-5 h-5" />
             </button>

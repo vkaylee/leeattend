@@ -12,9 +12,10 @@
 
 ## Overview
 - **Priority**: P1 (overlays render on top of everything)
-- **Status**: pending
-- **Effort**: 1h
+- **Status**: ✅ COMPLETE (2026-02-14)
+- **Effort**: 1h (completed on schedule)
 - **Description**: Add dark mode variants to all shared UI primitives: Modal, Toast, Combobox, Sheet, dropdown-menu, Tabs, LanguageSwitcher.
+- **Review Link**: [Code Review Report](reports/code-reviewer-260214-1226-phase3-ui-primitives.md)
 
 ## Key Insights
 - `modal-content` and `glass-premium` utilities already updated in Phase 1 CSS; this phase handles component-level classes
@@ -121,14 +122,20 @@ Likely uses Radix UI primitives. Add dark variants to:
 - Dropdown: follow dropdown-menu pattern
 
 ## Todo List
-- [ ] Update Modal.tsx with dark variants
-- [ ] Update Toast.tsx with dark variants per toast type
-- [ ] Update Combobox.tsx (panel, input, options)
-- [ ] Update Sheet.tsx
-- [ ] Update dropdown-menu.tsx
-- [ ] Update Tabs.tsx
-- [ ] Update LanguageSwitcher.tsx
-- [ ] Visual test: open each component in dark mode
+- [x] Update Modal.tsx with dark variants
+- [x] Update Toast.tsx with dark variants per toast type
+- [x] Update Combobox.tsx (panel, input, options)
+- [x] Update Sheet.tsx
+- [x] Update dropdown-menu.tsx
+- [x] Update Tabs.tsx
+- [x] Update LanguageSwitcher.tsx
+- [x] Visual test: open each component in dark mode
+- [x] Code review: 465 tests passing, ESLint clean, score 9/10
+
+**Minor Recommendations (Optional Polish):**
+- [ ] Combobox: Add `dark:text-primary-300` to check icon (Line 99)
+- [ ] Toast: Consolidate info variant to primary palette (Line 85)
+- [ ] Combobox: Consolidate duplicate bg/text classes (Lines 87-90)
 
 ## Success Criteria
 - All overlays render on dark background without white flashes

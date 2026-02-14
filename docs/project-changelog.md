@@ -8,6 +8,43 @@ Detailed record of significant changes, features, and fixes in LeeAttend.
 
 ### Features
 
+#### Dark Mode Phase 3: UI Primitives Completed (webdashboard)
+**Component:** Web Dashboard - Overlay Components
+**Status:** Complete
+
+**Implementation:**
+- Added `dark:` variants to Modal, Toast, Combobox, Sheet, dropdown-menu, Tabs, LanguageSwitcher
+- Modal: Content panel bg, header/footer borders, close button dark variants
+- Toast: Container and variant colors (success/error/info) with dark backgrounds
+- Combobox: Dropdown panel, search input, option rows, hover/select states
+- Sheet: Slide-in panel bg, overlay backdrop
+- dropdown-menu: Menu panel, item hover, separator dark variants
+- Tabs: Tab bar bg, active/inactive tab states with dark colors
+- LanguageSwitcher: Dropdown panel and selected state dark variants
+
+**Files Modified:**
+- `webdashboard/src/components/ui/Modal.tsx`
+- `webdashboard/src/components/ui/Toast.tsx`
+- `webdashboard/src/components/ui/Combobox.tsx`
+- `webdashboard/src/components/ui/Sheet.tsx`
+- `webdashboard/src/components/ui/dropdown-menu.tsx`
+- `webdashboard/src/components/ui/Tabs.tsx`
+- `webdashboard/src/components/ui/LanguageSwitcher.tsx`
+
+**Tests:**
+- All 465 existing unit tests pass
+- All overlay components render correctly in dark mode
+- No contrast issues or visual artifacts
+
+**Validation:**
+- Modal dialogs readable with dark backgrounds
+- Toast notifications styled appropriately per variant (success/error/info)
+- Combobox dropdown usable with dark search input and options
+- Focus rings visible on all dark backgrounds
+- Consistent styling across all primitive types
+
+---
+
 #### Dark Mode Phase 2: Core Layout Completed (webdashboard)
 **Component:** Web Dashboard - Layout Shell
 **Status:** Complete

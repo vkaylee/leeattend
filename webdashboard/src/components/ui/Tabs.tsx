@@ -34,8 +34,8 @@ export function TabsTrigger({ value, children }: { value: string; children: Reac
       onClick={() => context.onValueChange(value)}
       className={`px-4 py-2 text-sm font-bold transition-all border-b-2 -mb-[2px] ${
         isActive
-          ? "border-primary-500 text-primary-600"
-          : "border-transparent text-slate-500 hover:text-slate-600"
+          ? "border-primary-500 text-primary-600 dark:text-primary-400"
+          : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
       }`}
     >
       {children}

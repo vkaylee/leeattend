@@ -64,10 +64,10 @@ export default function Modal({
       >
         {/* Header */}
         {(title || icon) && (
-          <div className="flex items-center justify-between p-8 border-b border-slate-50">
+          <div className="flex items-center justify-between p-8 border-b border-slate-50 dark:border-slate-800">
             <div className="flex items-center gap-4">
               {icon && (
-                <div className="bg-primary-50 p-3 rounded-2xl text-primary-600">
+                <div className="bg-primary-50 dark:bg-primary-900/30 p-3 rounded-2xl text-primary-600 dark:text-primary-400">
                   {icon}
                 </div>
               )}
@@ -86,9 +86,9 @@ export default function Modal({
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-slate-100 rounded-full transition-colors group"
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors group"
             >
-              <X className="w-5 h-5 text-slate-300 group-hover:text-primary-700" />
+              <X className="w-5 h-5 text-slate-300 dark:text-slate-500 group-hover:text-primary-700 dark:group-hover:text-primary-400" />
             </button>
           </div>
         )}
