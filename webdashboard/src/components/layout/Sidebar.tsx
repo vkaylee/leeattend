@@ -97,22 +97,22 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
   ];
 
   return (
-    <div className={cn("fixed inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-slate-100 transition-all duration-300 shadow-xl shadow-slate-200/50", isCollapsed ? "w-20" : "w-72", !isOpen && "-translate-x-full lg:translate-x-0")}>
-      <div className="flex h-24 items-center justify-between px-6 border-b border-slate-50">
-        {!isCollapsed && <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-500 shadow-lg shadow-primary-200 flex items-center justify-center text-white font-black text-xl tracking-tighter italic">L</div><span className="text-xl font-black tracking-tighter text-slate-800 uppercase italic">Lee<span className="text-primary-600">Attend</span></span></div>}
-        <button onClick={onClose} className="lg:hidden p-2 text-slate-400 hover:text-slate-600 bg-slate-50 rounded-xl transition-colors"><X className="h-5 w-5" /></button>
+    <div className={cn("fixed inset-y-0 left-0 z-50 flex flex-col bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-slate-800 transition-all duration-300 shadow-xl shadow-slate-200/50 dark:shadow-black/30", isCollapsed ? "w-20" : "w-72", !isOpen && "-translate-x-full lg:translate-x-0")}>
+      <div className="flex h-24 items-center justify-between px-6 border-b border-slate-50 dark:border-slate-800">
+        {!isCollapsed && <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-500 shadow-lg shadow-primary-200 flex items-center justify-center text-white font-black text-xl tracking-tighter italic">L</div><span className="text-xl font-black tracking-tighter text-slate-800 dark:text-slate-200 uppercase italic">Lee<span className="text-primary-600 dark:text-primary-400">Attend</span></span></div>}
+        <button onClick={onClose} className="lg:hidden p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-800 rounded-xl transition-colors"><X className="h-5 w-5" /></button>
       </div>
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-6 space-y-8">
         {menuItems.map((item) => (
           <div key={item.label}>
             {item.section ? (
               <div className="space-y-2">
-                {!isCollapsed && <button onClick={() => toggleSection(item.section!)} data-testid={item.testId} className="flex w-full items-center justify-between px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.25em] hover:text-primary-600 transition-colors group"><div className="flex items-center gap-2">{item.sectionIcon && <item.sectionIcon className="h-3 w-3 opacity-50 group-hover:opacity-100" />}<span>{item.label}</span></div>{openSections[item.section] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}</button>}
+                {!isCollapsed && <button onClick={() => toggleSection(item.section!)} data-testid={item.testId} className="flex w-full items-center justify-between px-4 py-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.25em] hover:text-primary-600 dark:hover:text-primary-400 transition-colors group"><div className="flex items-center gap-2">{item.sectionIcon && <item.sectionIcon className="h-3 w-3 opacity-50 group-hover:opacity-100" />}<span>{item.label}</span></div>{openSections[item.section] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}</button>}
                 {(openSections[item.section] || isCollapsed) && (
                   <div className="space-y-1">
                     {item.items?.map((subItem) => (
-                      <Link key={subItem.to} to={subItem.to} data-testid={subItem.testId} className={cn("flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group", location.pathname === subItem.to ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700")}>
-                        <div className={cn("p-2 rounded-xl transition-colors", location.pathname === subItem.to ? "bg-white shadow-sm" : "bg-slate-50 group-hover:bg-white")}>{subItem.icon && <subItem.icon className="h-4 w-4" />}</div>
+                      <Link key={subItem.to} to={subItem.to} data-testid={subItem.testId} className={cn("flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group", location.pathname === subItem.to ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 shadow-sm shadow-primary-100/50" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200")}>
+                        <div className={cn("p-2 rounded-xl transition-colors", location.pathname === subItem.to ? "bg-white dark:bg-primary-900/30 shadow-sm" : "bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700")}>{subItem.icon && <subItem.icon className="h-4 w-4" />}</div>
                         {!isCollapsed && <span className="font-bold text-sm truncate">{subItem.label}</span>}
                       </Link>
                     ))}
@@ -120,16 +120,16 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
                 )}
               </div>
             ) : (
-              <Link to={item.to!} data-testid={item.testId} className={cn("flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group", (item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to!)) ? "bg-primary-50 text-primary-600 shadow-sm shadow-primary-100/50" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700")}>
-                <div className={cn("p-2 rounded-xl transition-colors", (item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to!)) ? "bg-white shadow-sm" : "bg-slate-50 group-hover:bg-white")}>{item.icon && <item.icon className="h-4 w-4" />}</div>
+              <Link to={item.to!} data-testid={item.testId} className={cn("flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group", (item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to!)) ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-300 shadow-sm shadow-primary-100/50" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200")}>
+                <div className={cn("p-2 rounded-xl transition-colors", (item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to!)) ? "bg-white dark:bg-primary-900/30 shadow-sm" : "bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700")}>{item.icon && <item.icon className="h-4 w-4" />}</div>
                 {!isCollapsed && <span className="font-bold text-sm truncate">{item.label}</span>}
               </Link>
             )}
           </div>
         ))}
       </div>
-      <div className="p-4 border-t border-slate-50">
-        <button onClick={handleLogout} className="flex w-full items-center gap-3 px-4 py-4 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all duration-300 group"><div className="p-2 rounded-xl bg-slate-50 group-hover:bg-white transition-colors"><LogOut className="h-4 w-4" /></div>{!isCollapsed && <span className="font-bold text-sm uppercase tracking-widest">{t("common.logout")}</span>}</button>
+      <div className="p-4 border-t border-slate-50 dark:border-slate-800">
+        <button onClick={handleLogout} className="flex w-full items-center gap-3 px-4 py-4 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-2xl transition-all duration-300 group"><div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:group-hover:bg-slate-700 transition-colors"><LogOut className="h-4 w-4" /></div>{!isCollapsed && <span className="font-bold text-sm uppercase tracking-widest">{t("common.logout")}</span>}</button>
       </div>
     </div>
   );

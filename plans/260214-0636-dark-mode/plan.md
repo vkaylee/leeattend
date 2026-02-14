@@ -32,7 +32,7 @@ created: 2026-02-14
 | # | Phase | Status | Effort | File |
 |---|-------|--------|--------|------|
 | 1 | Foundation (CSS vars, dark variant, FOUC, hook) | ✅ complete | 1.5h | [phase-01](phase-01-foundation.md) |
-| 2 | Core Layout (Navbar, Sidebar, MainLayout) | pending | 1.5h | [phase-02](phase-02-core-layout.md) |
+| 2 | Core Layout (Navbar, Sidebar, MainLayout) | ✅ complete | 1.5h | [phase-02](phase-02-core-layout.md) |
 | 3 | UI Primitives (Modal, Toast, Dropdown, etc) | pending | 1h | [phase-03](phase-03-ui-primitives.md) |
 | 4 | Feature Pages (all page components) | pending | 2h | [phase-04](phase-04-feature-pages.md) |
 | 5 | Settings & Toggle (Navbar toggle + Settings page) | pending | 1h | [phase-05](phase-05-settings-and-toggle.md) |

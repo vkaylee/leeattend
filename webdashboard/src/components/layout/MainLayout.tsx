@@ -87,10 +87,10 @@ export default function MainLayout() {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen bg-[#fcfcfd] text-slate-700 font-sans relative overflow-x-hidden">
+    <div className="flex min-h-screen bg-background text-foreground font-sans relative overflow-x-hidden">
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-500"
+          className="fixed inset-0 bg-slate-900/50 dark:bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-500"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -131,12 +131,12 @@ export default function MainLayout() {
         maxWidth="lg"
       >
         <div className="space-y-8">
-          <p className="text-sm text-slate-500 font-medium px-1">{t("common.select_workspace_desc")}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium px-1">{t("common.select_workspace_desc")}</p>
           <WorkspaceSwitcher />
-          <div className="pt-6 border-t border-slate-50 flex justify-end">
+          <div className="pt-6 border-t border-slate-50 dark:border-slate-800 flex justify-end">
             <button 
               onClick={() => setShowSwitcher(false)}
-              className="px-8 py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
+              className="px-8 py-3 bg-slate-100 dark:bg-slate-800 text-foreground/70 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
             >
               {t("common.close")}
             </button>

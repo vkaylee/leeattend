@@ -8,8 +8,8 @@
 
 ## Overview
 - **Priority**: P1 (core visual shell)
-- **Status**: pending
-- **Effort**: 1.5h
+- **Status**: ✅ complete
+- **Effort**: 1.5h (completed 2026-02-14)
 - **Description**: Add dark mode variants to the three layout components that frame every page.
 
 ## Key Insights
@@ -126,12 +126,12 @@ Logout button: `bg-slate-50 group-hover:bg-white` -> add `dark:bg-slate-800 dark
 Logout text: `text-slate-500` -> add `dark:text-slate-400`
 
 ## Todo List
-- [ ] Update MainLayout.tsx: replace `bg-[#fcfcfd]` with `bg-background`, dark overlay
-- [ ] Update Navbar.tsx: all `dark:` variants per mapping table
-- [ ] Update Sidebar.tsx: all `dark:` variants per mapping table
-- [ ] Visual test: toggle `.dark` class, verify all three components
-- [ ] Check glassmorphism (Navbar backdrop-blur) in dark mode
-- [ ] Verify mobile sidebar overlay in dark mode
+- [x] Update MainLayout.tsx: replace `bg-[#fcfcfd]` with `bg-background`, dark overlay ✅
+- [x] Update Navbar.tsx: all `dark:` variants per mapping table ✅
+- [x] Update Sidebar.tsx: all `dark:` variants per mapping table ✅
+- [x] Visual test: toggle `.dark` class, verify all three components ✅
+- [x] Check glassmorphism (Navbar backdrop-blur) in dark mode ✅
+- [x] Verify mobile sidebar overlay in dark mode ✅
 
 ## Success Criteria
 - Layout shell looks cohesive in dark mode (no white "holes")

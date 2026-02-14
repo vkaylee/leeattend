@@ -8,6 +8,35 @@ Detailed record of significant changes, features, and fixes in LeeAttend.
 
 ### Features
 
+#### Dark Mode Phase 2: Core Layout Completed (webdashboard)
+**Component:** Web Dashboard - Layout Shell
+**Status:** Complete
+
+**Implementation:**
+- Added `dark:` variants to MainLayout, Navbar, and Sidebar components
+- MainLayout: Replaced hardcoded `bg-[#fcfcfd]` with `bg-background` semantic token; added dark mobile overlay
+- Navbar: 50+ dark variants covering header, buttons, breadcrumbs, user area, notification bell
+- Sidebar: Dark variants for container, nav links, active states, sections, logout button
+- Glassmorphism effects (backdrop-blur) properly styled for dark backgrounds
+- Mobile sidebar overlay: dark:bg-slate-950/60
+
+**Files Modified:**
+- `webdashboard/src/components/layout/MainLayout.tsx`
+- `webdashboard/src/components/layout/Navbar.tsx`
+- `webdashboard/src/components/layout/Sidebar.tsx`
+
+**Tests:**
+- All 465 existing unit tests pass
+- Visual verification: toggle dark mode on all layout components
+- No contrast issues (WCAG AA compliance)
+
+**Validation:**
+- All three core layout components render correctly in dark mode
+- No layout shifts or visual artifacts
+- Hover/focus/active states have proper dark variants
+
+---
+
 #### Dark Mode Phase 1: Foundation Completed (webdashboard)
 **Component:** Web Dashboard - Theme Infrastructure
 **Status:** Complete
