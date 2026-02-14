@@ -314,10 +314,11 @@ run_parallel_ordered() {
                 fi
             done
 
-            running_pids=("${still_running_pids[@]}")
-            running_logs=("${still_running_logs[@]}")
-            running_names=("${still_running_names[@]}")
-            running_starts=("${still_running_starts[@]}")
+            running_pids=(${still_running_pids[@]+"${still_running_pids[@]}"})
+            running_logs=(${still_running_logs[@]+"${still_running_logs[@]}"})
+            running_names=(${still_running_names[@]+"${still_running_names[@]}"})
+            running_starts=(${still_running_starts[@]+"${still_running_starts[@]}"})
+
 
             if [ "$finished_any" = "false" ]; then
                 local running_str=""
