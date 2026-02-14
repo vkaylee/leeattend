@@ -1,4 +1,4 @@
-use dashmap::{DashMap, DashSet};
+use dashmap::DashMap;
 use parking_lot::RwLock;
 use std::collections::{BTreeSet, HashMap};
 use std::sync::atomic::{AtomicI64, AtomicUsize, AtomicBool, Ordering};
@@ -14,11 +14,12 @@ use super::backoff::calculate_backoff_with_jitter;
 /// In-memory store for attendance logs with FIFO ordering
 pub struct InMemoryStore {
     logs: DashMap<i64, MemoryLog>,
-    signatures: DashSet<u64>,  // Hash signatures for deduplication
+    signatures: DashMap<u64, i64>,  // Hash signature -> timestamp_utc for dedup + TTL eviction
     composite_index: DashMap<u64, i64>,  // composite_key_hash -> memory_id for ACK correlation
     unsynced_index: Arc<RwLock<BTreeSet<i64>>>,
     unpersisted_index: Arc<RwLock<BTreeSet<i64>>>,
     inflight_index: Arc<RwLock<HashMap<i64, Instant>>>,
+    pending_sync_updates: Arc<RwLock<Vec<(Arc<str>, Arc<str>, i64, i64)>>>, // (device_id, user_id, timestamp, is_synced)
     next_id: AtomicI64,
     dirty: AtomicBool,
     count: AtomicUsize,
@@ -30,11 +31,12 @@ impl InMemoryStore {
     pub fn new(max_capacity: usize) -> Self {
         Self {
             logs: DashMap::with_capacity(max_capacity / 2),
-            signatures: DashSet::with_capacity(max_capacity),
+            signatures: DashMap::with_capacity(max_capacity),
             composite_index: DashMap::with_capacity(max_capacity),
             unsynced_index: Arc::new(RwLock::new(BTreeSet::new())),
             unpersisted_index: Arc::new(RwLock::new(BTreeSet::new())),
             inflight_index: Arc::new(RwLock::new(HashMap::new())),
+            pending_sync_updates: Arc::new(RwLock::new(Vec::new())),
             next_id: AtomicI64::new(1),
             dirty: AtomicBool::new(false),
             count: AtomicUsize::new(0),
@@ -58,7 +60,7 @@ impl InMemoryStore {
     /// Check if a signature already exists (public for testing)
     pub fn has_signature(&self, device_id: &str, user_id: &str, timestamp: i64, punch: Option<i32>, status: Option<i32>) -> bool {
         let sig = Self::compute_signature(device_id, user_id, timestamp, punch, status);
-        self.signatures.contains(&sig)
+        self.signatures.contains_key(&sig)
     }
 
     /// Get signature count (for monitoring)
@@ -79,7 +81,7 @@ impl InMemoryStore {
     pub fn load_signatures(&self, rows: Vec<SignatureRow>) {
         for row in rows {
             let sig = Self::compute_signature(&row.device_id, &row.user_id, row.timestamp, row.punch, row.status);
-            self.signatures.insert(sig);
+            self.signatures.insert(sig, row.timestamp);
         }
     }
 
@@ -132,7 +134,7 @@ impl InMemoryStore {
 
             // Add signature for ALL loaded logs (including synced ones)
             let signature = Self::compute_signature(&log.device_id, &log.user_id, log.timestamp, log.punch, log.status);
-            self.signatures.insert(signature);
+            self.signatures.insert(signature, log.timestamp);
 
             let memory_log = MemoryLog {
                 id: log.id,
@@ -176,9 +178,10 @@ impl InMemoryStore {
 
         // Atomic check+insert signature to prevent TOCTOU race on duplicates
         let signature = Self::compute_signature(&device_id, &data.user_id, timestamp_utc, data.punch, data.status);
-        if !self.signatures.insert(signature) {
-            // insert() returns false if value already existed
-            return Err(StoreError::Duplicate);
+        use dashmap::mapref::entry::Entry;
+        match self.signatures.entry(signature) {
+            Entry::Occupied(_) => return Err(StoreError::Duplicate),
+            Entry::Vacant(e) => { e.insert(timestamp_utc); }
         }
 
         let id = self.next_id.fetch_add(1, Ordering::SeqCst);
@@ -234,12 +237,12 @@ impl InMemoryStore {
 
             // Check for duplicate
             let signature = Self::compute_signature(&device_id, &data.user_id, timestamp_utc, data.punch, data.status);
-            if self.signatures.contains(&signature) {
+            if self.signatures.contains_key(&signature) {
                 continue; // Skip duplicate
             }
 
             // Add signature FIRST
-            self.signatures.insert(signature);
+            self.signatures.insert(signature, timestamp_utc);
 
             let id = self.next_id.fetch_add(1, Ordering::SeqCst);
             let now = chrono::Utc::now().naive_utc();
@@ -357,12 +360,24 @@ impl InMemoryStore {
     /// Safety: Only removes logs that are already persisted to disk
     pub fn mark_synced(&self, ids: &[i64]) {
         let mut inflight = self.inflight_index.write();
+        let mut pending_updates = self.pending_sync_updates.write();
 
         for &id in ids {
             // Safety check: only remove if persisted to disk
             let should_remove = self.logs.get(&id)
                 .map(|log| log.persisted)
                 .unwrap_or(false);
+
+            if should_remove {
+                if let Some(log) = self.logs.get(&id) {
+                    pending_updates.push((
+                        log.device_id.clone(),
+                        log.user_id.clone(),
+                        log.timestamp,
+                        1,
+                    ));
+                }
+            }
 
             if !should_remove {
                 // Log not persisted yet - mark as synced so checkpoint persists it correctly
@@ -409,6 +424,14 @@ impl InMemoryStore {
 
         if let Some(mut log) = self.logs.get_mut(&id) {
             log.is_synced = 0;
+            if log.persisted {
+                self.pending_sync_updates.write().push((
+                    log.device_id.clone(),
+                    log.user_id.clone(),
+                    log.timestamp,
+                    0,
+                ));
+            }
         }
         unsynced.insert(id);
         inflight.remove(&id);
@@ -491,6 +514,11 @@ impl InMemoryStore {
         self.dirty.store(false, Ordering::SeqCst);
     }
 
+    /// Get and clear pending sync status updates for disk persistence
+    pub fn get_and_clear_pending_sync_updates(&self) -> Vec<(Arc<str>, Arc<str>, i64, i64)> {
+        self.pending_sync_updates.write().drain(..).collect()
+    }
+
     /// Reset in-flight logs that have been stuck for too long
     pub fn reset_stale_inflight(&self, timeout: std::time::Duration) -> usize {
         let now = std::time::Instant::now();
@@ -510,6 +538,15 @@ impl InMemoryStore {
         }
 
         to_reset.len()
+    }
+
+    /// Evict signatures older than TTL. Returns (evicted, before, after).
+    pub fn evict_old_signatures(&self, ttl_secs: i64) -> (usize, usize, usize) {
+        let threshold = chrono::Utc::now().timestamp() - ttl_secs;
+        let before = self.signatures.len();
+        self.signatures.retain(|_hash, ts| *ts >= threshold);
+        let after = self.signatures.len();
+        (before - after, before, after)
     }
 
     /// Remove synced logs older than threshold (memory cleanup)
@@ -2416,5 +2453,211 @@ mod tests {
 
         // NOW all logs are removed (persisted + synced)
         assert_eq!(store.count_total(), 0, "All logs removed after checkpoint + sync");
+    }
+
+    // ===== Signature Eviction (TTL) Tests =====
+
+    #[test]
+    fn test_evict_old_signatures_removes_expired() {
+        let store = InMemoryStore::new(1000);
+
+        // Insert a signature with old timestamp (200 days ago)
+        let old_ts = chrono::Utc::now().timestamp() - (200 * 86400);
+        let data_old = AttendanceData {
+            user_id: "OLD_USER".to_string(),
+            timestamp: "2025-01-01 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        store.insert("D1".to_string(), data_old, old_ts).unwrap();
+
+        // Insert a signature with recent timestamp (1 day ago)
+        let recent_ts = chrono::Utc::now().timestamp() - 86400;
+        let data_recent = AttendanceData {
+            user_id: "RECENT_USER".to_string(),
+            timestamp: "2026-02-13 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        store.insert("D1".to_string(), data_recent, recent_ts).unwrap();
+
+        assert_eq!(store.count_signatures(), 2);
+
+        // Evict signatures older than 90 days
+        let ttl_secs = 90 * 86400;
+        let (evicted, before, after) = store.evict_old_signatures(ttl_secs);
+
+        assert_eq!(evicted, 1, "Should evict 1 old signature");
+        assert_eq!(before, 2);
+        assert_eq!(after, 1);
+        assert_eq!(store.count_signatures(), 1);
+    }
+
+    #[test]
+    fn test_evict_old_signatures_keeps_all_when_within_ttl() {
+        let store = InMemoryStore::new(1000);
+
+        // Insert signatures with recent timestamps
+        let ts1 = chrono::Utc::now().timestamp() - 3600; // 1 hour ago
+        let ts2 = chrono::Utc::now().timestamp() - 7200; // 2 hours ago
+
+        let data1 = AttendanceData {
+            user_id: "U1".to_string(),
+            timestamp: "2026-02-14 09:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        let data2 = AttendanceData {
+            user_id: "U2".to_string(),
+            timestamp: "2026-02-14 08:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+
+        store.insert("D1".to_string(), data1, ts1).unwrap();
+        store.insert("D1".to_string(), data2, ts2).unwrap();
+
+        // Evict with 90-day TTL — nothing should be evicted
+        let (evicted, _, _) = store.evict_old_signatures(90 * 86400);
+        assert_eq!(evicted, 0);
+        assert_eq!(store.count_signatures(), 2);
+    }
+
+    #[test]
+    fn test_evict_old_signatures_empty_store() {
+        let store = InMemoryStore::new(1000);
+
+        let (evicted, before, after) = store.evict_old_signatures(90 * 86400);
+
+        assert_eq!(evicted, 0);
+        assert_eq!(before, 0);
+        assert_eq!(after, 0);
+    }
+
+    #[test]
+    fn test_evict_old_signatures_evicts_all_when_all_expired() {
+        let store = InMemoryStore::new(1000);
+
+        // Insert signatures all older than 100 days
+        for i in 0..5 {
+            let old_ts = chrono::Utc::now().timestamp() - (200 * 86400) - i;
+            let data = AttendanceData {
+                user_id: format!("U{i}"),
+                timestamp: "2025-01-01 10:00:00".to_string(),
+                status: Some(1),
+                punch: Some(0),
+            };
+            store.insert("D1".to_string(), data, old_ts).unwrap();
+        }
+
+        assert_eq!(store.count_signatures(), 5);
+
+        let (evicted, _, after) = store.evict_old_signatures(90 * 86400);
+
+        assert_eq!(evicted, 5);
+        assert_eq!(after, 0);
+    }
+
+    #[test]
+    fn test_evict_allows_reinsertion_of_evicted_signature() {
+        let store = InMemoryStore::new(1000);
+
+        // Insert with old timestamp
+        let old_ts = chrono::Utc::now().timestamp() - (200 * 86400);
+        let data = AttendanceData {
+            user_id: "U1".to_string(),
+            timestamp: "2025-01-01 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        store.insert("D1".to_string(), data.clone(), old_ts).unwrap();
+
+        // Verify duplicate rejected before eviction
+        let dup_result = store.insert("D1".to_string(), data.clone(), old_ts);
+        assert!(matches!(dup_result, Err(StoreError::Duplicate)));
+
+        // Evict
+        store.evict_old_signatures(90 * 86400);
+        assert_eq!(store.count_signatures(), 0);
+
+        // Re-insertion should succeed after eviction
+        let result = store.insert("D1".to_string(), data, old_ts);
+        assert!(result.is_ok(), "Should allow reinsertion after eviction");
+        assert_eq!(store.count_signatures(), 1);
+    }
+
+    #[test]
+    fn test_evict_does_not_affect_active_logs() {
+        let store = InMemoryStore::new(1000);
+
+        // Insert a log with old timestamp (will have signature evicted)
+        let old_ts = chrono::Utc::now().timestamp() - (200 * 86400);
+        let data = AttendanceData {
+            user_id: "U1".to_string(),
+            timestamp: "2025-01-01 10:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        let id = store.insert("D1".to_string(), data, old_ts).unwrap();
+
+        // Log is in memory and unsynced
+        assert_eq!(store.count_total(), 1);
+        assert_eq!(store.count_unsynced(), 1);
+
+        // Evict old signatures
+        store.evict_old_signatures(90 * 86400);
+
+        // Signature evicted but log still present
+        assert_eq!(store.count_signatures(), 0);
+        assert_eq!(store.count_total(), 1, "Log must not be removed by eviction");
+        assert_eq!(store.count_unsynced(), 1);
+
+        // Log can still be fetched and synced
+        let logs = store.get_unsynced(10);
+        assert_eq!(logs.len(), 1);
+        assert_eq!(logs[0].id, id);
+    }
+
+    #[test]
+    fn test_dashmap_signature_stores_timestamp() {
+        let store = InMemoryStore::new(1000);
+
+        let ts_val = chrono::Utc::now().timestamp() - 3600;
+        let data = AttendanceData {
+            user_id: "U1".to_string(),
+            timestamp: "2026-02-14 09:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        store.insert("D1".to_string(), data, ts_val).unwrap();
+
+        // Verify the timestamp is stored in the DashMap value
+        let sig = InMemoryStore::compute_signature("D1", "U1", ts_val, Some(0), Some(1));
+        let stored_ts = store.signatures.get(&sig).map(|entry| *entry.value());
+        assert_eq!(stored_ts, Some(ts_val), "Timestamp should be stored as signature value");
+    }
+
+    #[test]
+    fn test_load_signatures_stores_timestamps() {
+        let store = InMemoryStore::new(1000);
+        let ts_val = 1700000000i64;
+
+        let rows = vec![
+            SignatureRow {
+                device_id: "D1".to_string(),
+                user_id: "U1".to_string(),
+                timestamp: ts_val,
+                punch: Some(0),
+                status: Some(1),
+            },
+        ];
+
+        store.load_signatures(rows);
+        assert_eq!(store.count_signatures(), 1);
+
+        // Verify the timestamp was stored
+        let sig = InMemoryStore::compute_signature("D1", "U1", ts_val, Some(0), Some(1));
+        let stored_ts = store.signatures.get(&sig).map(|entry| *entry.value());
+        assert_eq!(stored_ts, Some(ts_val));
     }
 }

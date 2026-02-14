@@ -11,10 +11,11 @@ use log::info;
 pub struct HybridDatabase {
     disk: Database,
     memory: Arc<InMemoryStore>,
+    signature_ttl_days: i64,
 }
 
 impl HybridDatabase {
-    pub async fn new(database_url: &str, max_memory_logs: usize) -> Result<Self, sqlx::Error> {
+    pub async fn new(database_url: &str, max_memory_logs: usize, signature_ttl_days: i64) -> Result<Self, sqlx::Error> {
         let disk = Database::new(database_url).await?;
         let memory = Arc::new(InMemoryStore::new(max_memory_logs));
 
@@ -25,7 +26,7 @@ impl HybridDatabase {
         // Note: Signatures and pending logs are now loaded per-device via load_device_memory()
         // This speeds up startup when only a few devices are active
 
-        Ok(Self { disk, memory })
+        Ok(Self { disk, memory, signature_ttl_days })
     }
 
     pub fn memory_store(&self) -> Arc<InMemoryStore> {
@@ -106,19 +107,31 @@ impl HybridDatabase {
 
     /// Checkpoint unpersisted logs to disk
     pub async fn checkpoint(&self) -> Result<usize, sqlx::Error> {
-        let unpersisted = self.memory.get_unpersisted();
-        if unpersisted.is_empty() {
-            return Ok(0);
+        let mut total_changes = 0;
+
+        // 1. Handle status updates for already-persisted logs (e.g. marked as synced)
+        let updates = self.memory.get_and_clear_pending_sync_updates();
+        if !updates.is_empty() {
+            self.disk.update_sync_status_batch(&updates).await?;
+            total_changes += updates.len();
         }
 
-        let (inserted, _skipped, _composite_keys) = self.disk.checkpoint_batch(&unpersisted).await?;
+        // 2. Handle new unpersisted logs
+        let unpersisted = self.memory.get_unpersisted();
+        if !unpersisted.is_empty() {
+            let (inserted, _skipped, _composite_keys) = self.disk.checkpoint_batch(&unpersisted).await?;
 
-        // Mark as persisted in memory
-        let ids: Vec<i64> = unpersisted.iter().map(|l| l.id).collect();
-        self.memory.mark_persisted(&ids);
-        self.memory.clear_dirty();
+            // Mark as persisted in memory
+            let ids: Vec<i64> = unpersisted.iter().map(|l| l.id).collect();
+            self.memory.mark_persisted(&ids);
+            total_changes += inserted;
+        }
 
-        Ok(inserted)
+        if total_changes > 0 {
+            self.memory.clear_dirty();
+        }
+
+        Ok(total_changes)
     }
 
     /// Full flush on shutdown
@@ -126,11 +139,11 @@ impl HybridDatabase {
         // First checkpoint any unpersisted
         self.checkpoint().await?;
 
-        // Then update disk with final sync states
+        // Then update disk with final sync states using composite keys
         let all_logs = self.memory.get_all();
-        let updates: Vec<(i64, i64)> = all_logs.iter()
+        let updates: Vec<(Arc<str>, Arc<str>, i64, i64)> = all_logs.iter()
             .filter(|l| l.persisted)  // Only update already-persisted logs
-            .map(|l| (l.id, l.is_synced))
+            .map(|l| (l.device_id.clone(), l.user_id.clone(), l.timestamp, l.is_synced))
             .collect();
 
         self.disk.update_sync_status_batch(&updates).await?;
@@ -138,10 +151,15 @@ impl HybridDatabase {
         Ok(updates.len())
     }
 
+    /// Evict signatures older than TTL. Returns (evicted, before, after).
+    pub fn evict_old_signatures(&self) -> (usize, usize, usize) {
+        self.memory.evict_old_signatures(self.signature_ttl_days * 86400)
+    }
+
     /// Runtime optimization: Unload device data from memory when disabled
     pub async fn unload_device_memory(&self, device_id: &str) -> Result<(), sqlx::Error> {
-        // 1. Fetch all signatures for this device from disk (so we know what hashes to remove)
-        let signatures = self.disk.get_signatures_for_device(device_id).await?;
+        // 1. Fetch ALL signatures for this device (no TTL filter — unload must remove everything)
+        let signatures = self.disk.get_signatures_for_device(device_id, 36500).await?;
         
         // 2. Remove signatures from memory set
         self.memory.remove_signatures(signatures);
@@ -155,8 +173,8 @@ impl HybridDatabase {
 
     /// Runtime optimization: Load device data into memory when enabled
     pub async fn load_device_memory(&self, device_id: &str) -> Result<(), sqlx::Error> {
-        // 1. Load signatures for dedup
-        let signatures = self.disk.get_signatures_for_device(device_id).await?;
+        // 1. Load signatures for dedup (only within TTL window)
+        let signatures = self.disk.get_signatures_for_device(device_id, self.signature_ttl_days).await?;
         let sig_count = signatures.len();
         self.memory.load_signatures(signatures);
 
@@ -186,14 +204,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_hybrid_new() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
         assert_eq!(hybrid.count_unsynced_logs(), 0);
         assert!(!hybrid.memory_store().is_dirty());
     }
 
     #[tokio::test]
     async fn test_hybrid_save_single() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
         let data = make_attendance("U001", "2026-01-29 10:00:00");
         let id = hybrid.save_raw_attendance("DEV1", data).await.unwrap();
@@ -205,7 +223,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_hybrid_save_batch() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
         let batch: Vec<(String, AttendanceData)> = (1..=5)
             .map(|i| {
@@ -224,7 +242,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_hybrid_checkpoint_empty() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
         // Checkpoint with no logs
         let checkpointed = hybrid.checkpoint().await.unwrap();
@@ -235,7 +253,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_hybrid_checkpoint_with_logs() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
         // Save logs
         for i in 1..=10 {
@@ -255,7 +273,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_hybrid_full_workflow() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
         // 1. Save logs
         for i in 1..=5 {
@@ -285,7 +303,7 @@ mod tests {
     async fn test_hybrid_restart_recovery() {
         // Note: In-memory SQLite doesn't persist between connections
         // This test verifies the recovery mechanism works with the same connection
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
         // Phase 1: Save and checkpoint
         for i in 1..=5 {
@@ -307,7 +325,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_hybrid_reset_to_unsynced_after_inflight() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
         // Save and mark in-flight
         let data = make_attendance("U001", "2026-01-29 10:00:00");
@@ -323,7 +341,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_hybrid_flush_all() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
         // Save logs
         for i in 1..=5 {
@@ -341,7 +359,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_hybrid_get_unsynced_fifo_order() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
         // Save in specific order
         let users = vec!["FIRST", "SECOND", "THIRD"];
@@ -362,7 +380,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_hybrid_multiple_devices() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
         // Save from different devices
         for dev_idx in 1..=3 {
@@ -385,7 +403,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_hybrid_capacity_enforcement() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 5).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 5, 90).await.unwrap();
 
         // Try to save more than capacity
         let batch: Vec<(String, AttendanceData)> = (1..=10)
@@ -406,7 +424,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_hybrid_partial_sync() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
         // Save 5 logs
         let mut ids = Vec::new();
@@ -434,7 +452,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_hybrid_checkpoint_idempotent() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
         // Save logs
         for i in 1..=3 {
@@ -454,7 +472,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_full_dedup_lifecycle() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
         let data = make_attendance("U001", "2026-01-29 10:00:00");
 
@@ -484,7 +502,7 @@ mod tests {
         let db_url = format!("sqlite:file:{}?mode=memory&cache=shared", uuid::Uuid::new_v4());
 
         // Phase 1: Create and checkpoint logs
-        let hybrid1 = HybridDatabase::new(&db_url, 1000).await.unwrap();
+        let hybrid1 = HybridDatabase::new(&db_url, 1000, 90).await.unwrap();
 
         for i in 1..=10 {
             let data = make_attendance(&format!("U{i:03}"), "2026-01-29 10:00:00");
@@ -505,7 +523,7 @@ mod tests {
 
         // Phase 2: Simulate restart - create new instance while keeping hybrid1 alive
         // This simulates app restart: new memory store, but shared persistent DB
-        let hybrid2 = HybridDatabase::new(&db_url, 1000).await.unwrap();
+        let hybrid2 = HybridDatabase::new(&db_url, 1000, 90).await.unwrap();
 
         // With lazy loading, need to explicitly load device memory (like main.rs does)
         hybrid2.load_device_memory("DEV1").await.unwrap();
@@ -526,7 +544,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_checkpoint_no_id_collision() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
         // Pre-populate disk with logs having specific IDs
         for i in 1..=100 {
@@ -561,7 +579,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_full_checkpoint_ack_flow_with_composite_key() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
         // Insert logs to memory
         for i in 0..10 {
@@ -596,7 +614,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_ack_failure_resets_to_unsynced() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
         let data = AttendanceData {
             user_id: "U001".to_string(),
@@ -627,7 +645,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_checkpoint_performance_1000_logs() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 10000).await.unwrap();
+        let hybrid = HybridDatabase::new("sqlite::memory:", 10000, 90).await.unwrap();
 
         // Insert 1000 logs
         for i in 0..1000 {
@@ -656,7 +674,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_dynamic_memory_management() {
-        let hybrid = HybridDatabase::new("sqlite::memory:", 1000).await.unwrap();
+        // Use large TTL to avoid filtering out old test timestamps (2023)
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 3650).await.unwrap();
         
         // 1. Setup: Insert logs for two devices directly to DB (simulating existing history)
         let data_a = AttendanceData { user_id: "U1".into(), timestamp: "2023-01-01 10:00:00".into(), status: Some(1), punch: Some(1) };
@@ -693,7 +712,7 @@ mod tests {
     async fn test_signatures_loaded_before_polling() {
         // 1. Setup: Create HybridDatabase
         let db_url = "sqlite::memory:";
-        let hybrid = HybridDatabase::new(db_url, 1000).await.unwrap();
+        let hybrid = HybridDatabase::new(db_url, 1000, 90).await.unwrap();
         
         // Setup device
         hybrid.disk_db().upsert_device("DevZ", "Test Device", "127.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
@@ -719,6 +738,248 @@ mod tests {
         hybrid.load_device_memory("DevZ").await.unwrap();
         
         // Verify signatures are loaded BEFORE polling would start
-        assert_eq!(hybrid.memory_store().count_signatures(), 1, 
+        assert_eq!(hybrid.memory_store().count_signatures(), 1,
             "Signatures must be loaded BEFORE device polling loop starts");
+    }
+
+    // ===== Signature Eviction & TTL Tests =====
+
+    #[tokio::test]
+    async fn test_hybrid_evict_old_signatures() {
+        // TTL = 1 day — signatures older than 1 day will be evicted
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 1).await.unwrap();
+
+        // Insert with recent timestamp (within TTL)
+        let recent_ts = chrono::Utc::now().timestamp() - 3600; // 1 hour ago
+        let recent_data = AttendanceData {
+            user_id: "RECENT".to_string(),
+            timestamp: "2026-02-14 09:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        hybrid.memory_store().insert("D1".to_string(), recent_data, recent_ts).unwrap();
+
+        // Insert with old timestamp (outside TTL)
+        let old_ts = chrono::Utc::now().timestamp() - (3 * 86400); // 3 days ago
+        let old_data = AttendanceData {
+            user_id: "OLD".to_string(),
+            timestamp: "2026-02-11 09:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        hybrid.memory_store().insert("D1".to_string(), old_data, old_ts).unwrap();
+
+        assert_eq!(hybrid.memory_store().count_signatures(), 2);
+
+        // Evict — should remove the old one
+        let (evicted, before, after) = hybrid.evict_old_signatures();
+        assert_eq!(evicted, 1);
+        assert_eq!(before, 2);
+        assert_eq!(after, 1);
+    }
+
+    #[tokio::test]
+    async fn test_ttl_filtered_load_excludes_old_synced_signatures() {
+        // TTL = 7 days
+        // Tests that SYNCED old signatures are not reloaded (only signature query applies TTL).
+        // Unsynced logs are always reloaded via get_unsynced_logs_for_device regardless of TTL.
+        let db_url = format!("sqlite:file:{}?mode=memory&cache=shared", uuid::Uuid::new_v4());
+        let hybrid = HybridDatabase::new(&db_url, 1000, 7).await.unwrap();
+
+        // Setup device
+        hybrid.disk_db().upsert_device("DEV1", "Test", "127.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
+
+        // Insert recent log (2 days ago — within TTL)
+        let recent_ts = chrono::Utc::now().timestamp() - (2 * 86400);
+        let recent_data = AttendanceData {
+            user_id: "RECENT_USER".to_string(),
+            timestamp: "2026-02-12 09:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        let recent_id = hybrid.memory_store().insert("DEV1".to_string(), recent_data, recent_ts).unwrap();
+
+        // Insert old log (30 days ago — outside TTL)
+        let old_ts = chrono::Utc::now().timestamp() - (30 * 86400);
+        let old_data = AttendanceData {
+            user_id: "OLD_USER".to_string(),
+            timestamp: "2026-01-15 09:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        let old_id = hybrid.memory_store().insert("DEV1".to_string(), old_data, old_ts).unwrap();
+
+        // Checkpoint to disk, then mark synced via proper flow
+        hybrid.checkpoint().await.unwrap();
+        hybrid.mark_in_flight(&[recent_id, old_id]);
+        hybrid.mark_synced(&[recent_id, old_id]);
+        // flush_all now correctly updates disk using composite keys
+        hybrid.flush_all().await.unwrap();
+
+        assert_eq!(hybrid.memory_store().count_signatures(), 2);
+
+        // Verify both signatures in memory before unload
+        assert_eq!(hybrid.memory_store().count_signatures(), 2, "Both signatures before unload");
+
+        // Unload device (clears memory)
+        hybrid.unload_device_memory("DEV1").await.unwrap();
+        assert_eq!(hybrid.memory_store().count_signatures(), 0, "All signatures cleared after unload");
+
+        // Reload — TTL filter on signature query should only load recent
+        hybrid.load_device_memory("DEV1").await.unwrap();
+
+        // Only recent signature loaded (old synced one filtered by TTL)
+        assert_eq!(hybrid.memory_store().count_signatures(), 1,
+            "Only recent signatures within TTL should be loaded from synced logs");
+
+        // Recent log dedup still works
+        let recent_data2 = AttendanceData {
+            user_id: "RECENT_USER".to_string(),
+            timestamp: "2026-02-12 09:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        let result = hybrid.memory_store().insert("DEV1".to_string(), recent_data2, recent_ts);
+        assert!(matches!(result, Err(crate::memory_store::StoreError::Duplicate)),
+            "Recent signature should still provide dedup protection");
+
+        // Old log reinsertion succeeds (signature expired by TTL)
+        let old_data2 = AttendanceData {
+            user_id: "OLD_USER".to_string(),
+            timestamp: "2026-01-15 09:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        let result = hybrid.memory_store().insert("DEV1".to_string(), old_data2, old_ts);
+        assert!(result.is_ok(),
+            "Old signature beyond TTL should allow reinsertion");
+    }
+
+    #[tokio::test]
+    async fn test_evict_preserves_dedup_for_recent_signatures() {
+        // TTL = 90 days
+        let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
+
+        // Insert several recent logs
+        for i in 0..5 {
+            let ts = chrono::Utc::now().timestamp() - (i * 3600);
+            let data = AttendanceData {
+                user_id: format!("U{i}"),
+                timestamp: format!("2026-02-14 {:02}:00:00", 10 - i),
+                status: Some(1),
+                punch: Some(0),
+            };
+            hybrid.memory_store().insert("D1".to_string(), data, ts).unwrap();
+        }
+
+        // Evict — nothing should be evicted (all within 90 days)
+        let (evicted, _, _) = hybrid.evict_old_signatures();
+        assert_eq!(evicted, 0);
+        assert_eq!(hybrid.memory_store().count_signatures(), 5);
+
+        // Dedup still works for all
+        for i in 0..5 {
+            let ts = chrono::Utc::now().timestamp() - (i * 3600);
+            let data = AttendanceData {
+                user_id: format!("U{i}"),
+                timestamp: format!("2026-02-14 {:02}:00:00", 10 - i),
+                status: Some(1),
+                punch: Some(0),
+            };
+            let result = hybrid.memory_store().insert("D1".to_string(), data, ts);
+            assert!(matches!(result, Err(crate::memory_store::StoreError::Duplicate)),
+                "Recent signature U{i} should still block duplicates");
+        }
+    }
+
+    /// Verify flush_all persists sync status to disk via composite keys
+    /// (not memory IDs which differ from disk auto-increment IDs)
+    #[tokio::test]
+    async fn test_flush_all_updates_disk_sync_status_via_composite_keys() {
+        let db_url = format!("sqlite:file:{}?mode=memory&cache=shared", uuid::Uuid::new_v4());
+        let hybrid = HybridDatabase::new(&db_url, 1000, 90).await.unwrap();
+
+        // Setup device
+        hybrid.disk_db().upsert_device("DEV1", "Test", "127.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
+
+        // Insert 3 logs
+        let ts_base = chrono::Utc::now().timestamp();
+        let mut ids = Vec::new();
+        for i in 0..3 {
+            let data = AttendanceData {
+                user_id: format!("U{i:03}"),
+                timestamp: format!("2026-02-15 0{}:00:00", i + 1),
+                status: Some(1),
+                punch: Some(0),
+            };
+            let id = hybrid.memory_store().insert("DEV1".to_string(), data, ts_base + i).unwrap();
+            ids.push(id);
+        }
+
+        // Checkpoint to disk (disk assigns its own auto-increment IDs)
+        hybrid.checkpoint().await.unwrap();
+
+        // Verify memory IDs differ from disk IDs
+        let disk_ids: Vec<i64> = sqlx::query_scalar("SELECT id FROM zkt_raw_attendance ORDER BY id")
+            .fetch_all(hybrid.disk_db().get_pool())
+            .await
+            .unwrap();
+        assert_ne!(ids, disk_ids, "Memory IDs should differ from disk auto-increment IDs");
+
+        // Mark as synced (persisted logs get removed from memory, composite keys queued)
+        hybrid.mark_in_flight(&ids);
+        hybrid.mark_synced(&ids);
+
+        // flush_all should propagate sync status to disk using composite keys
+        hybrid.flush_all().await.unwrap();
+
+        // Verify disk rows have is_synced=1
+        let unsynced_count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM zkt_raw_attendance WHERE is_synced != 1"
+        )
+        .fetch_one(hybrid.disk_db().get_pool())
+        .await
+        .unwrap();
+
+        assert_eq!(unsynced_count, 0, "All disk rows should be is_synced=1 after flush_all");
+    }
+
+    /// Verify checkpoint propagates pending_sync_updates (from reset_to_unsynced) to disk
+    #[tokio::test]
+    async fn test_checkpoint_propagates_reset_to_unsynced_via_composite_keys() {
+        let db_url = format!("sqlite:file:{}?mode=memory&cache=shared", uuid::Uuid::new_v4());
+        let hybrid = HybridDatabase::new(&db_url, 1000, 90).await.unwrap();
+
+        hybrid.disk_db().upsert_device("DEV1", "Test", "127.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
+
+        let ts = chrono::Utc::now().timestamp();
+        let data = AttendanceData {
+            user_id: "U001".to_string(),
+            timestamp: "2026-02-15 09:00:00".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        let id = hybrid.memory_store().insert("DEV1".to_string(), data, ts).unwrap();
+
+        // Checkpoint to disk
+        hybrid.checkpoint().await.unwrap();
+
+        // Mark in-flight (is_synced=2)
+        hybrid.mark_in_flight(&[id]);
+
+        // Simulate failed sync — reset back to unsynced (queues composite key update)
+        hybrid.reset_to_unsynced(id);
+
+        // Checkpoint should propagate the reset to disk
+        hybrid.checkpoint().await.unwrap();
+
+        // Verify disk row is back to is_synced=0
+        let sync_status: i64 = sqlx::query_scalar(
+            "SELECT is_synced FROM zkt_raw_attendance WHERE device_id = 'DEV1' AND user_id = 'U001'"
+        )
+        .fetch_one(hybrid.disk_db().get_pool())
+        .await
+        .unwrap();
+
+        assert_eq!(sync_status, 0, "Disk row should be reset to is_synced=0 after checkpoint");
     }

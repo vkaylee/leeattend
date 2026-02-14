@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use sqlx::Error;
 
 use super::Database;
@@ -115,8 +116,9 @@ impl Database {
         Ok((inserted, skipped, composite_keys))
     }
 
-    /// Batch update sync status for multiple logs
-    pub async fn update_sync_status_batch(&self, updates: &[(i64, i64)]) -> Result<(), Error> {
+    /// Batch update sync status for multiple logs using composite keys
+    /// Tuple: (device_id, user_id, timestamp, is_synced)
+    pub async fn update_sync_status_batch(&self, updates: &[(Arc<str>, Arc<str>, i64, i64)]) -> Result<(), Error> {
         if updates.is_empty() {
             return Ok(());
         }
@@ -124,10 +126,12 @@ impl Database {
         let mut tx = self.pool.begin().await?;
 
         for chunk in updates.chunks(100) {
-            for &(id, is_synced) in chunk {
-                sqlx::query("UPDATE zkt_raw_attendance SET is_synced = ? WHERE id = ?")
+            for (device_id, user_id, timestamp, is_synced) in chunk {
+                sqlx::query("UPDATE zkt_raw_attendance SET is_synced = ? WHERE device_id = ? AND user_id = ? AND timestamp = ?")
                     .bind(is_synced)
-                    .bind(id)
+                    .bind(&**device_id)
+                    .bind(&**user_id)
+                    .bind(timestamp)
                     .execute(&mut *tx)
                     .await?;
             }
