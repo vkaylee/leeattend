@@ -15,13 +15,13 @@ export default function InfraLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-800">
       {/* Top bar */}
-      <header className="h-16 bg-white border-b border-slate-100 px-6 flex items-center justify-between">
+      <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link
             to="/"
-            className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
+            className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700 transition-colors"
           >
             <ArrowLeft size={18} />
             <span className="text-sm font-medium">{t("common.back_to_workspace")}</span>
@@ -32,14 +32,14 @@ export default function InfraLayout() {
           <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-500 shadow-lg shadow-primary-200 flex items-center justify-center text-white font-black text-xl tracking-tighter italic">
             L
           </div>
-          <span className="text-xl font-black tracking-tighter text-slate-800 uppercase italic">
-            Lee<span className="text-primary-600">Attend</span>
+          <span className="text-xl font-black tracking-tighter text-slate-800 dark:text-slate-100 uppercase italic">
+            Lee<span className="text-primary-600 dark:text-primary-400">Attend</span>
           </span>
         </div>
 
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 text-slate-500 hover:text-rose-600 transition-colors"
+          className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 transition-colors"
         >
           <LogOut size={18} />
           <span className="text-sm font-medium">{t("auth.logout")}</span>

@@ -134,18 +134,18 @@ E002,2026-01-28,90,Urgent order completion`;
     <Dialog.Root open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 border border-slate-100 bg-white p-6 shadow-xl rounded-[2rem] max-h-[90vh] overflow-y-auto">
-          <Dialog.Title className="text-xl font-bold text-slate-800 uppercase tracking-tight flex items-center gap-2">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl rounded-[2rem] max-h-[90vh] overflow-y-auto">
+          <Dialog.Title className="text-xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight flex items-center gap-2">
             <Upload className="w-5 h-5" />
             {t("approvals.bulk_upload.title") || "Bulk Upload OT"}
           </Dialog.Title>
-          <Dialog.Description className="text-sm text-slate-500 mt-1">
+          <Dialog.Description className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             {t("approvals.bulk_upload.description") || "Upload CSV file to enter multiple OT claims at once"}
           </Dialog.Description>
 
           <button
             onClick={handleClose}
-            className="absolute right-4 top-4 p-2 rounded-full hover:bg-slate-100"
+            className="absolute right-4 top-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
           >
             <X className="h-4 w-4" />
           </button>
@@ -155,7 +155,7 @@ E002,2026-01-28,90,Urgent order completion`;
             <div className="flex justify-center">
               <button
                 onClick={downloadTemplate}
-                className="px-6 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2"
+                className="px-6 py-3 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2"
               >
                 <Download className="w-4 h-4" />
                 {t("approvals.bulk_upload.download_template") || "Download CSV Template"}
@@ -170,15 +170,15 @@ E002,2026-01-28,90,Urgent order completion`;
                 onDragLeave={handleDragLeave}
                 className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
                   isDragOver
-                    ? "border-primary-500 bg-primary-50"
-                    : "border-slate-200 hover:border-primary-400"
+                    ? "border-primary-500 bg-primary-50 dark:bg-primary-950"
+                    : "border-slate-200 dark:border-slate-700 hover:border-primary-400"
                 }`}
               >
                 {selectedFile ? (
                   <div className="space-y-3">
-                    <FileText className="w-12 h-12 text-primary-600 mx-auto" />
-                    <p className="text-sm font-bold text-slate-700">{selectedFile.name}</p>
-                    <p className="text-xs text-slate-500">
+                    <FileText className="w-12 h-12 text-primary-600 dark:text-primary-400 mx-auto" />
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{selectedFile.name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       {(selectedFile.size / 1024).toFixed(2)} KB
                     </p>
                     <button
@@ -186,18 +186,18 @@ E002,2026-01-28,90,Urgent order completion`;
                         e.stopPropagation();
                         setSelectedFile(null);
                       }}
-                      className="text-xs text-rose-600 hover:underline"
+                      className="text-xs text-rose-600 dark:text-rose-300 hover:underline"
                     >
                       {t("common.remove") || "Remove"}
                     </button>
                   </div>
                 ) : (
                   <>
-                    <Upload className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-                    <p className="text-sm font-bold text-slate-700 mb-1">
+                    <Upload className="w-12 h-12 text-slate-400 dark:text-slate-500 mx-auto mb-3" />
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">
                       {t("approvals.bulk_upload.drag_drop") || "Drag and drop CSV file here"}
                     </p>
-                    <p className="text-xs text-slate-500 mb-4">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
                       {t("approvals.bulk_upload.or_click") || "or click to browse"}
                     </p>
                     <input
@@ -243,9 +243,9 @@ E002,2026-01-28,90,Urgent order completion`;
 
             {/* Error Message */}
             {error && (
-              <div className="flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-xl p-4">
-                <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
-                <p className="text-xs font-bold text-rose-600 uppercase tracking-wide">{error}</p>
+              <div className="flex items-center gap-3 bg-rose-50 dark:bg-rose-950 border border-rose-200 rounded-xl p-4">
+                <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-300 flex-shrink-0" />
+                <p className="text-xs font-bold text-rose-600 dark:text-rose-300 uppercase tracking-wide">{error}</p>
               </div>
             )}
 
@@ -253,30 +253,30 @@ E002,2026-01-28,90,Urgent order completion`;
             {uploadResult && (
               <div className="space-y-4">
                 {/* Summary */}
-                <div className="bg-slate-50 rounded-xl p-4 space-y-2">
-                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 space-y-2">
+                  <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
                     {t("approvals.bulk_upload.result_summary") || "Upload Summary"}
                   </h3>
                   <div className="grid grid-cols-3 gap-3 text-center">
-                    <div className="bg-white rounded-lg p-3 border border-slate-100">
-                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">
+                    <div className="bg-white dark:bg-slate-900 rounded-lg p-3 border border-slate-100 dark:border-slate-800">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
                         {t("approvals.bulk_upload.total") || "Total"}
                       </p>
-                      <p className="text-2xl font-bold text-slate-700">{uploadResult.total_rows}</p>
+                      <p className="text-2xl font-bold text-slate-700 dark:text-slate-200">{uploadResult.total_rows}</p>
                     </div>
-                    <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
-                      <p className="text-xs text-emerald-600 uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
+                    <div className="bg-emerald-50 dark:bg-emerald-950 rounded-lg p-3 border border-emerald-200 dark:border-emerald-800">
+                      <p className="text-xs text-emerald-600 dark:text-emerald-300 uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
                         <CheckCircle2 className="w-3 h-3" />
                         {t("approvals.bulk_upload.success") || "Success"}
                       </p>
-                      <p className="text-2xl font-bold text-emerald-700">{uploadResult.success_count}</p>
+                      <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{uploadResult.success_count}</p>
                     </div>
-                    <div className="bg-rose-50 rounded-lg p-3 border border-rose-200">
-                      <p className="text-xs text-rose-600 uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
+                    <div className="bg-rose-50 dark:bg-rose-950 rounded-lg p-3 border border-rose-200">
+                      <p className="text-xs text-rose-600 dark:text-rose-300 uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
                         <XCircle className="w-3 h-3" />
                         {t("approvals.bulk_upload.failed") || "Failed"}
                       </p>
-                      <p className="text-2xl font-bold text-rose-700">{uploadResult.failed_count}</p>
+                      <p className="text-2xl font-bold text-rose-700 dark:text-rose-300">{uploadResult.failed_count}</p>
                     </div>
                   </div>
                 </div>
@@ -285,43 +285,43 @@ E002,2026-01-28,90,Urgent order completion`;
                 {uploadResult.errors.length > 0 && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+                      <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
                         {t("approvals.bulk_upload.error_details") || "Error Details"}
                       </h3>
                       <button
                         onClick={downloadErrorReport}
-                        className="px-4 py-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2"
+                        className="px-4 py-2 rounded-xl bg-rose-100 dark:bg-rose-900 hover:bg-rose-200 text-rose-700 dark:text-rose-300 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2"
                       >
                         <Download className="w-3 h-3" />
                         {t("approvals.bulk_upload.download_errors") || "Download Errors"}
                       </button>
                     </div>
 
-                    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden max-h-64 overflow-y-auto">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden max-h-64 overflow-y-auto">
                       <table className="w-full text-left">
-                        <thead className="bg-slate-50 sticky top-0">
+                        <thead className="bg-slate-50 dark:bg-slate-800 sticky top-0">
                           <tr>
-                            <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                            <th className="px-4 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                               {t("approvals.bulk_upload.line") || "Line"}
                             </th>
-                            <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                            <th className="px-4 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                               {t("common.employee") || "Employee ID"}
                             </th>
-                            <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                            <th className="px-4 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                               {t("common.error") || "Error"}
                             </th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                           {uploadResult.errors.map((err, idx) => (
-                            <tr key={idx} className="hover:bg-slate-50">
-                              <td className="px-4 py-2 text-xs font-mono text-slate-600">
+                            <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800">
+                              <td className="px-4 py-2 text-xs font-mono text-slate-600 dark:text-slate-300">
                                 {err.line_number}
                               </td>
-                              <td className="px-4 py-2 text-xs font-mono text-slate-600">
+                              <td className="px-4 py-2 text-xs font-mono text-slate-600 dark:text-slate-300">
                                 {err.employee_id}
                               </td>
-                              <td className="px-4 py-2 text-xs text-rose-600">
+                              <td className="px-4 py-2 text-xs text-rose-600 dark:text-rose-300">
                                 {err.error_message}
                               </td>
                             </tr>
@@ -334,9 +334,9 @@ E002,2026-01-28,90,Urgent order completion`;
 
                 {/* Success Message */}
                 {uploadResult.success_count > 0 && (
-                  <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-                    <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide">
+                  <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-300 flex-shrink-0" />
+                    <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
                       {t("approvals.bulk_upload.success_message", { count: uploadResult.success_count }) ||
                         `${uploadResult.success_count} OT claims entered successfully`}
                     </p>
@@ -360,7 +360,7 @@ E002,2026-01-28,90,Urgent order completion`;
               ) : (
                 <button
                   onClick={handleClose}
-                  className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-100"
+                  className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                 >
                   {t("common.cancel") || "Cancel"}
                 </button>

@@ -48,66 +48,66 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
 
   const getTransactionColor = (type: string) => {
     switch (type) {
-      case "accrual": return "bg-emerald-50 text-emerald-600 border-emerald-100";
-      case "usage": return "bg-rose-50 text-rose-600 border-rose-100";
-      case "adjustment": return "bg-amber-50 text-amber-600 border-amber-100";
-      case "carry_over": return "bg-blue-50 text-blue-600 border-blue-100";
-      default: return "bg-slate-50 text-slate-500 border-slate-100";
+      case "accrual": return "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800";
+      case "usage": return "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100 dark:border-rose-800";
+      case "adjustment": return "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800";
+      case "carry_over": return "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800";
+      default: return "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800";
     }
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`${t("leave_balances.history.title")}: ${employeeName}`} subtitle={t("leave_balances.history.subtitle")} icon={<History size={24} />} maxWidth="2xl">
       <div className="space-y-8 pt-4 animate-in fade-in duration-500">
-        <div className="flex bg-slate-100/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50 shadow-inner">
-          <button onClick={() => setActiveTab("history")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'history' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}>{t("leave_balances.history.tab_history")}</button>
-          <button onClick={() => setActiveTab("adjust")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'adjust' ? "bg-white text-primary-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-700")}>{t("leave_balances.history.tab_adjust")}</button>
+        <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
+          <button onClick={() => setActiveTab("history")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'history' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}>{t("leave_balances.history.tab_history")}</button>
+          <button onClick={() => setActiveTab("adjust")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'adjust' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}>{t("leave_balances.history.tab_adjust")}</button>
         </div>
 
         {activeTab === "history" ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {isLoading ? (
-              <div className="p-20 text-center"><Loader2 className="animate-spin w-10 h-10 text-primary-600 mx-auto" /></div>
+              <div className="p-20 text-center"><Loader2 className="animate-spin w-10 h-10 text-primary-600 dark:text-primary-400 mx-auto" /></div>
             ) : history.length > 0 ? (
-              <div className="bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm">
+              <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] overflow-hidden shadow-sm">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50/50 border-b border-slate-100">
-                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("common.date")}</th>
-                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">{t("common.type")}</th>
-                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">{t("common.total")}</th>
-                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("common.reason")}</th>
+                    <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("common.date")}</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">{t("common.type")}</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">{t("common.total")}</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("common.reason")}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                     {history.map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
-                        <td className="px-6 py-5 text-xs font-bold text-slate-500 font-mono uppercase">{formatDate(item.date)}</td>
+                      <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                        <td className="px-6 py-5 text-xs font-bold text-slate-500 dark:text-slate-400 font-mono uppercase">{formatDate(item.date)}</td>
                         <td className="px-6 py-5 text-center"><span className={cn("px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border", getTransactionColor(item.transaction_type))}>{item.transaction_type}</span></td>
-                        <td className={cn("px-6 py-5 text-right font-bold text-sm font-mono tracking-tighter", item.amount > 0 ? "text-emerald-600" : "text-rose-600")}>{item.amount > 0 ? "+" : ""}{item.amount}</td>
-                        <td className="px-6 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-tighter max-w-[200px] truncate" title={item.reason || ""}>{item.reason || "-"}</td>
+                        <td className={cn("px-6 py-5 text-right font-bold text-sm font-mono tracking-tighter", item.amount > 0 ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300")}>{item.amount > 0 ? "+" : ""}{item.amount}</td>
+                        <td className="px-6 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter max-w-[200px] truncate" title={item.reason || ""}>{item.reason || "-"}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <div className="py-20 text-center border-2 border-dashed border-slate-100 rounded-[2.5rem] bg-slate-50/30 flex flex-col items-center"><Info size={32} className="text-slate-200 mb-4" /><p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t("leave_balances.history.no_history")}</p></div>
+              <div className="py-20 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center"><Info size={32} className="text-slate-200 dark:text-slate-700 mb-4" /><p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t("leave_balances.history.no_history")}</p></div>
             )}
           </div>
         ) : (
           <form onSubmit={handleAdjustSubmit} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-3">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("leave_balances.history.action_label")}</label>
-                <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100/50 rounded-2xl border border-slate-200/50 shadow-inner">
-                  <button type="button" onClick={() => setAdjustForm({ ...adjustForm, type: "add" })} className={cn("flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all", adjustForm.type === "add" ? "bg-white text-emerald-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-600")}><Plus size={14} /> {t("leave_balances.history.add")}</button>
-                  <button type="button" onClick={() => setAdjustForm({ ...adjustForm, type: "deduct" })} className={cn("flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all", adjustForm.type === "deduct" ? "bg-white text-rose-600 shadow-sm border border-slate-100" : "text-slate-500 hover:text-slate-600")}><Minus size={14} /> {t("leave_balances.history.deduct")}</button>
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("leave_balances.history.action_label")}</label>
+                <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 dark:bg-slate-700/50 rounded-2xl border border-slate-200 dark:border-slate-700/50 shadow-inner">
+                  <button type="button" onClick={() => setAdjustForm({ ...adjustForm, type: "add" })} className={cn("flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all", adjustForm.type === "add" ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-300 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600")}><Plus size={14} /> {t("leave_balances.history.add")}</button>
+                  <button type="button" onClick={() => setAdjustForm({ ...adjustForm, type: "deduct" })} className={cn("flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all", adjustForm.type === "deduct" ? "bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-300 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600")}><Minus size={14} /> {t("leave_balances.history.deduct")}</button>
                 </div>
               </div>
               <div className="space-y-3">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("leave_requests.policy.table.type")}</label>
-                <select value={adjustForm.leave_type_id} onChange={(e) => setAdjustForm({...adjustForm, leave_type_id: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm">
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.table.type")}</label>
+                <select value={adjustForm.leave_type_id} onChange={(e) => setAdjustForm({...adjustForm, leave_type_id: e.target.value})} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm">
                   <option value="">{t("common.select")}</option>
                   {leaveTypes.map(lt => <option key={lt.id} value={lt.id}>{lt.name}</option>)}
                 </select>
@@ -116,23 +116,23 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-3">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("leave_balances.history.amount_placeholder").split('.')[0]}</label>
-                <input type="number" step="0.5" min="0.5" required value={adjustForm.amount} onChange={(e) => setAdjustForm({...adjustForm, amount: e.target.value})} placeholder={t("leave_balances.history.amount_placeholder")} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-bold text-sm font-mono" />
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("leave_balances.history.amount_placeholder").split('.')[0]}</label>
+                <input type="number" step="0.5" min="0.5" required value={adjustForm.amount} onChange={(e) => setAdjustForm({...adjustForm, amount: e.target.value})} placeholder={t("leave_balances.history.amount_placeholder")} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm font-mono" />
               </div>
               <div className="space-y-3">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("common.date")}</label>
-                <div className="relative group"><input type="date" required value={adjustForm.date} onChange={(e) => setAdjustForm({...adjustForm, date: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none transition-all font-bold text-sm" /><Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-primary-500 transition-colors" /></div>
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.date")}</label>
+                <div className="relative group"><input type="date" required value={adjustForm.date} onChange={(e) => setAdjustForm({...adjustForm, date: e.target.value})} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm" /><Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" /></div>
               </div>
             </div>
 
             <div className="space-y-3">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">{t("leave_balances.history.reason_label")}</label>
-              <div className="relative group"><textarea required rows={3} placeholder={t("leave_balances.history.reason_placeholder")} value={adjustForm.reason} onChange={(e) => setAdjustForm({...adjustForm, reason: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white outline-none font-medium text-sm transition-all resize-none shadow-sm" /><MessageSquare className="absolute right-4 top-4 w-4 h-4 text-slate-200 group-focus-within:text-primary-500 transition-colors" /></div>
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("leave_balances.history.reason_label")}</label>
+              <div className="relative group"><textarea required rows={3} placeholder={t("leave_balances.history.reason_placeholder")} value={adjustForm.reason} onChange={(e) => setAdjustForm({...adjustForm, reason: e.target.value})} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none font-medium text-sm transition-all resize-none shadow-sm" /><MessageSquare className="absolute right-4 top-4 w-4 h-4 text-slate-200 dark:text-slate-700 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" /></div>
             </div>
 
-            <div className="flex gap-4 pt-4 border-t border-slate-50">
-              <button type="button" onClick={onClose} className="flex-1 px-8 py-4 bg-white border border-slate-200 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">{t("common.cancel")}</button>
-              <button type="submit" disabled={adjustMutation.isPending} className="flex-1 bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3">{adjustMutation.isPending ? <Loader2 className="animate-spin w-5 h-5" /> : <Shield size={18} />} {t("leave_balances.history.confirm_btn")}</button>
+            <div className="flex gap-4 pt-4 border-t border-slate-50 dark:border-slate-800">
+              <button type="button" onClick={onClose} className="flex-1 px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">{t("common.cancel")}</button>
+              <button type="submit" disabled={adjustMutation.isPending} className="flex-1 bg-primary-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-slate-200 dark:shadow-black/30 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3">{adjustMutation.isPending ? <Loader2 className="animate-spin w-5 h-5" /> : <Shield size={18} />} {t("leave_balances.history.confirm_btn")}</button>
             </div>
           </form>
         )}

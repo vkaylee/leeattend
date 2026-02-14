@@ -309,7 +309,7 @@ export default function ShiftsPage() {
 
   const employeeOptions = employees.map(emp => ({
     value: emp.id, label: emp.full_name, description: emp.employee_id_number,
-    icon: <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">{emp.full_name[0]}</div>
+    icon: <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500 dark:text-slate-400">{emp.full_name[0]}</div>
   })) || [];
 
   return (
@@ -317,11 +317,11 @@ export default function ShiftsPage() {
       {/* Header section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 data-testid="shifts-title" className="text-3xl font-bold text-slate-700 tracking-tight">{t("shifts.title")}</h1>
-          <p className="text-slate-500 mt-1">{t("shifts.subtitle")}</p>
+          <h1 data-testid="shifts-title" className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tight">{t("shifts.title")}</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">{t("shifts.subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/workspace/settings/time?tab=patterns" className="bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2 border border-slate-200 shadow-sm transition-all">
+          <Link to="/workspace/settings/time?tab=patterns" className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2 border border-slate-200 dark:border-slate-700 shadow-sm transition-all">
             <CalendarRange className="w-4 h-4" />
             <span className="text-xs uppercase tracking-widest">{t("patterns.manage_btn")}</span>
           </Link>
@@ -333,14 +333,14 @@ export default function ShiftsPage() {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex items-center gap-1 bg-slate-100/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50">
-        <button onClick={() => setActiveTab("weekly-roster")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'weekly-roster' ? 'bg-white text-primary-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>
+      <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50">
+        <button onClick={() => setActiveTab("weekly-roster")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'weekly-roster' ? 'bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700'}`}>
           <LayoutGrid size={14} /> {t("shifts.tabs.weekly_roster")}
         </button>
-        <button onClick={() => setActiveTab("assignments")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'assignments' ? 'bg-white text-primary-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>
+        <button onClick={() => setActiveTab("assignments")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'assignments' ? 'bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700'}`}>
           <Zap size={14} /> {t("shifts.tabs.fixed_assignments", "Patterns & Rules")}
         </button>
-        <button onClick={() => setActiveTab("directory")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'directory' ? 'bg-white text-primary-600 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>
+        <button onClick={() => setActiveTab("directory")} className={`flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'directory' ? 'bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700'}`}>
           <List size={14} /> {t("shifts.tabs.directory")}
         </button>
       </div>
@@ -348,16 +348,16 @@ export default function ShiftsPage() {
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
         {activeTab !== "directory" && (
           <div className="max-w-md mb-8">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block ml-1">{t("common.employees")}</label>
-            <Combobox data-testid="employee-select" options={employeeOptions} value={selectedEmployee?.id} onChange={(id) => setSelectedEmployee(employees.find(e => e.id === id) || null)} placeholder={t("shifts.empty_state.title")} searchPlaceholder={t("common.search_employee")} className="bg-white border-slate-200 shadow-sm h-12 rounded-[20px]" />
+            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block ml-1">{t("common.employees")}</label>
+            <Combobox data-testid="employee-select" options={employeeOptions} value={selectedEmployee?.id} onChange={(id) => setSelectedEmployee(employees.find(e => e.id === id) || null)} placeholder={t("shifts.empty_state.title")} searchPlaceholder={t("common.search_employee")} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-sm h-12 rounded-[20px]" />
           </div>
         )}
 
         {!selectedEmployee && activeTab !== "directory" ? (
-          <div className="bg-white border border-slate-200 rounded-[40px] h-[500px] flex flex-col items-center justify-center text-center p-12 shadow-sm">
-            <div className="bg-slate-50 p-6 rounded-[32px] mb-6 animate-pulse text-slate-300"><User className="w-12 h-12" /></div>
-            <h3 className="text-xl font-bold text-slate-700">{t("shifts.empty_state.title")}</h3>
-            <p className="text-slate-500 mt-2 max-w-xs mx-auto text-sm">{t("shifts.empty_state.desc")}</p>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-[40px] h-[500px] flex flex-col items-center justify-center text-center p-12 shadow-sm">
+            <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-[32px] mb-6 animate-pulse text-slate-300 dark:text-slate-600"><User className="w-12 h-12" /></div>
+            <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200">{t("shifts.empty_state.title")}</h3>
+            <p className="text-slate-500 dark:text-slate-400 mt-2 max-w-xs mx-auto text-sm">{t("shifts.empty_state.desc")}</p>
           </div>
         ) : activeTab === "weekly-roster" ? (
           /* TAB: WEEKLY ROSTER */

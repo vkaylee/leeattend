@@ -80,7 +80,7 @@ export const DebugToolbar: React.FC = () => {
           <Terminal size={16} className="text-blue-400" />
           <span className="text-xs font-bold tracking-wider uppercase">Debug Suite v2.0</span>
         </div>
-        <button onClick={() => setIsOpen(false)} className="hover:text-slate-500">
+        <button onClick={() => setIsOpen(false)} className="hover:text-slate-500 dark:text-slate-400">
           <X size={16} />
         </button>
       </div>
@@ -89,7 +89,7 @@ export const DebugToolbar: React.FC = () => {
       <div className="px-4 pt-4">
         <div className="flex items-center justify-between p-2 bg-slate-800/50 rounded-lg">
           <div className="flex items-center gap-2">
-            <Power size={14} className={isEnabled ? "text-green-400" : "text-slate-500"} />
+            <Power size={14} className={isEnabled ? "text-green-400" : "text-slate-500 dark:text-slate-400"} />
             <span className="text-xs font-medium">Global Debug Mode</span>
           </div>
           <button
@@ -98,7 +98,7 @@ export const DebugToolbar: React.FC = () => {
               isEnabled ? "bg-green-600" : "bg-slate-600"
             }`}
           >
-            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${
+            <div className={`absolute top-1 w-3 h-3 bg-white dark:bg-slate-900 rounded-full transition-all ${
               isEnabled ? "left-6" : "left-1"
             }`} />
           </button>
@@ -110,7 +110,7 @@ export const DebugToolbar: React.FC = () => {
         <button 
           onClick={() => setActiveTab("identity")}
           className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-tight flex items-center justify-center gap-1.5 transition-colors ${
-            activeTab === "identity" ? "bg-slate-800 text-blue-400 border-b-2 border-blue-400" : "text-slate-500 hover:text-slate-300"
+            activeTab === "identity" ? "bg-slate-800 text-blue-400 border-b-2 border-blue-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-300 dark:text-slate-600"
           }`}
         >
           <User size={12} /> Identity
@@ -118,7 +118,7 @@ export const DebugToolbar: React.FC = () => {
         <button 
           onClick={() => setActiveTab("time")}
           className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-tight flex items-center justify-center gap-1.5 transition-colors ${
-            activeTab === "time" ? "bg-slate-800 text-purple-400 border-b-2 border-purple-400" : "text-slate-500 hover:text-slate-300"
+            activeTab === "time" ? "bg-slate-800 text-purple-400 border-b-2 border-purple-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-300 dark:text-slate-600"
           }`}
         >
           <Calendar size={12} /> Time
@@ -126,7 +126,7 @@ export const DebugToolbar: React.FC = () => {
         <button 
           onClick={() => setActiveTab("database")}
           className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-tight flex items-center justify-center gap-1.5 transition-colors ${
-            activeTab === "database" ? "bg-slate-800 text-red-400 border-b-2 border-red-400" : "text-slate-500 hover:text-slate-300"
+            activeTab === "database" ? "bg-slate-800 text-red-400 border-b-2 border-red-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-300 dark:text-slate-600"
           }`}
         >
           <Database size={12} /> Database
@@ -137,7 +137,7 @@ export const DebugToolbar: React.FC = () => {
         {activeTab === "identity" && (
           <div className="space-y-3 animate-in fade-in duration-300">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase flex items-center gap-1">
                 Select User
               </label>
               <select 
@@ -160,7 +160,7 @@ export const DebugToolbar: React.FC = () => {
                 />
                 <button
                   onClick={() => setImpersonateId(tempId)}
-                  className="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded text-[10px] font-bold"
+                  className="bg-blue-600 hover:bg-blue-50 dark:bg-blue-950 px-3 py-1.5 rounded text-[10px] font-bold"
                 >
                   Apply
                 </button>
@@ -172,7 +172,7 @@ export const DebugToolbar: React.FC = () => {
         {activeTab === "time" && (
           <div className="space-y-3 animate-in fade-in duration-300">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase flex items-center gap-1">
                 Travel to Date
               </label>
               <div className="flex gap-2">
@@ -184,12 +184,12 @@ export const DebugToolbar: React.FC = () => {
                 />
                 <button
                   onClick={() => setMockDate(tempDate)}
-                  className="bg-purple-600 hover:bg-purple-500 px-3 py-1.5 rounded text-[10px] font-bold"
+                  className="bg-purple-600 hover:bg-purple-50 dark:bg-purple-950 px-3 py-1.5 rounded text-[10px] font-bold"
                 >
                   Apply
                 </button>
               </div>
-              <p className="text-[9px] text-slate-500 italic mt-2">
+              <p className="text-[9px] text-slate-500 dark:text-slate-400 italic mt-2">
                 Note: Mock date affects payroll segments and policy resolution.
               </p>
             </div>
@@ -206,7 +206,7 @@ export const DebugToolbar: React.FC = () => {
                 className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
                 title="Clear attendance logs and time entries"
               >
-                <Trash2 size={12} className="text-slate-500 group-hover:text-amber-400" />
+                <Trash2 size={12} className="text-slate-500 dark:text-slate-400 group-hover:text-amber-400" />
                 <span className="text-[8px] font-bold uppercase">Logs</span>
               </button>
               <button
@@ -215,7 +215,7 @@ export const DebugToolbar: React.FC = () => {
                 className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
                 title="Clear payroll history"
               >
-                <Trash2 size={12} className="text-slate-500 group-hover:text-amber-400" />
+                <Trash2 size={12} className="text-slate-500 dark:text-slate-400 group-hover:text-amber-400" />
                 <span className="text-[8px] font-bold uppercase">Payroll</span>
               </button>
               <button
@@ -224,7 +224,7 @@ export const DebugToolbar: React.FC = () => {
                 className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded transition-colors group"
                 title="Clear schedules and rosters"
               >
-                <Trash2 size={12} className="text-slate-500 group-hover:text-amber-400" />
+                <Trash2 size={12} className="text-slate-500 dark:text-slate-400 group-hover:text-amber-400" />
                 <span className="text-[8px] font-bold uppercase">Rosters</span>
               </button>
             </div>
@@ -274,14 +274,14 @@ export const DebugToolbar: React.FC = () => {
             setTempDate("");
             window.location.reload();
           }}
-          className="flex-1 flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 py-2 rounded text-[10px] font-bold text-slate-300"
+          className="flex-1 flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 py-2 rounded text-[10px] font-bold text-slate-300 dark:text-slate-600"
         >
           <RefreshCcw size={12} /> Clear Settings
         </button>
         {isEnabled && (
           <button
             onClick={() => window.location.reload()}
-            className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-500 py-2 rounded text-[10px] font-bold"
+            className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-50 dark:bg-blue-950 py-2 rounded text-[10px] font-bold"
           >
             Reload UI
           </button>

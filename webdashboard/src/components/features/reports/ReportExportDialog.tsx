@@ -186,18 +186,18 @@ export default function ReportExportDialog({
     >
       <div className="p-6 space-y-6">
         {/* Export Info */}
-        <div className="bg-slate-50 rounded-2xl p-4 space-y-2" data-testid="report-export-info">
+        <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 space-y-2" data-testid="report-export-info">
           <div className="flex justify-between text-sm">
-            <span className="text-slate-500">{t("reports.date_range")}:</span>
+            <span className="text-slate-500 dark:text-slate-400">{t("reports.date_range")}:</span>
             <span className="font-medium">{startDate} ~ {endDate}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-slate-500">{t("reports.report_type")}:</span>
+            <span className="text-slate-500 dark:text-slate-400">{t("reports.report_type")}:</span>
             <span className="font-medium capitalize">{reportType}</span>
           </div>
           {employeeIds && employeeIds.length > 0 && (
             <div className="flex justify-between text-sm">
-              <span className="text-slate-500">{t("reports.employees")}:</span>
+              <span className="text-slate-500 dark:text-slate-400">{t("reports.employees")}:</span>
               <span className="font-medium">{employeeIds.length} {t("common.selected")}</span>
             </div>
           )}
@@ -207,12 +207,12 @@ export default function ReportExportDialog({
         {phase !== "idle" && (
           <div className="space-y-4">
             {/* Progress Bar */}
-            <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner" data-testid="report-export-progress-bar">
+            <div className="h-4 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner" data-testid="report-export-progress-bar">
               <div
                 className={cn(
                   "h-full transition-all duration-500 ease-out",
-                  phase === "failed" ? "bg-rose-500" :
-                    phase === "completed" ? "bg-emerald-500" :
+                  phase === "failed" ? "bg-rose-50 dark:bg-rose-950" :
+                    phase === "completed" ? "bg-emerald-50 dark:bg-emerald-950" :
                       "bg-primary-600 bg-gradient-to-r from-primary-500 to-primary-600"
                 )}
                 style={{ width: `${phase === "completed" ? 100 : percentage}%` }}
@@ -223,20 +223,20 @@ export default function ReportExportDialog({
             {/* Status */}
             <div className="flex items-center justify-center gap-3">
               {phase === "starting" || phase === "polling" ? (
-                <Loader2 className="w-5 h-5 text-primary-600 animate-spin" />
+                <Loader2 className="w-5 h-5 text-primary-600 dark:text-primary-400 animate-spin" />
               ) : phase === "completed" ? (
                 <CheckCircle2 className="w-5 h-5 text-emerald-500" />
               ) : phase === "failed" ? (
                 <AlertCircle className="w-5 h-5 text-rose-500" />
               ) : phase === "downloading" ? (
-                <Loader2 className="w-5 h-5 text-primary-600 animate-spin" />
+                <Loader2 className="w-5 h-5 text-primary-600 dark:text-primary-400 animate-spin" />
               ) : null}
 
               <span className={cn(
                 "font-medium",
-                phase === "failed" ? "text-rose-600" :
-                  phase === "completed" ? "text-emerald-600" :
-                    "text-slate-700"
+                phase === "failed" ? "text-rose-600 dark:text-rose-300" :
+                  phase === "completed" ? "text-emerald-600 dark:text-emerald-300" :
+                    "text-slate-700 dark:text-slate-200"
               )}
                 data-testid="report-export-status-text"
               >
@@ -250,7 +250,7 @@ export default function ReportExportDialog({
 
             {/* Batch Progress */}
             {phase === "polling" && totalBatches > 0 && (
-              <p className="text-center text-sm text-slate-500" data-testid="report-export-batch-counter">
+              <p className="text-center text-sm text-slate-500 dark:text-slate-400" data-testid="report-export-batch-counter">
                 {t("report_export.batches_completed", {
                   completed: completedBatches,
                   total: totalBatches,
@@ -260,15 +260,15 @@ export default function ReportExportDialog({
 
             {/* Error Message */}
             {error && (
-              <div className="bg-rose-50 border border-rose-200 rounded-xl p-4" data-testid="report-export-error">
-                <p className="text-sm text-rose-700">{error}</p>
+              <div className="bg-rose-50 dark:bg-rose-950 border border-rose-200 rounded-xl p-4" data-testid="report-export-error">
+                <p className="text-sm text-rose-700 dark:text-rose-300">{error}</p>
               </div>
             )}
 
             {/* Fallback Mode Notification */}
             {useFallbackPolling && phase === "polling" && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3" data-testid="report-export-fallback-notice">
-                <p className="text-xs text-amber-700">
+              <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 rounded-xl p-3" data-testid="report-export-fallback-notice">
+                <p className="text-xs text-amber-700 dark:text-amber-300">
                   {t("report_export.fallback_mode")}
                 </p>
               </div>
@@ -282,7 +282,7 @@ export default function ReportExportDialog({
             <>
               <button
                 onClick={onClose}
-                className="flex-1 px-6 py-3 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium"
+                className="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
                 data-testid="report-export-cancel-button"
               >
                 {t("common.cancel")}
@@ -301,7 +301,7 @@ export default function ReportExportDialog({
           {(phase === "starting" || phase === "polling") && (
             <button
               onClick={onClose}
-              className="flex-1 px-6 py-3 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium"
+              className="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
               data-testid="report-export-background-button"
             >
               {t("report_export.run_background")}
@@ -312,7 +312,7 @@ export default function ReportExportDialog({
             <>
               <button
                 onClick={onClose}
-                className="flex-1 px-6 py-3 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium"
+                className="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
                 data-testid="report-export-close-button"
               >
                 {t("common.close")}
@@ -332,7 +332,7 @@ export default function ReportExportDialog({
             <>
               <button
                 onClick={onClose}
-                className="flex-1 px-6 py-3 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium"
+                className="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
                 data-testid="report-export-close-button"
               >
                 {t("common.close")}
@@ -350,7 +350,7 @@ export default function ReportExportDialog({
           {phase === "downloading" && (
             <button
               disabled
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-slate-300 text-slate-500 rounded-xl cursor-not-allowed font-medium"
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-slate-300 text-slate-500 dark:text-slate-400 rounded-xl cursor-not-allowed font-medium"
               data-testid="report-export-downloading-button"
             >
               <Loader2 size={18} className="animate-spin" />

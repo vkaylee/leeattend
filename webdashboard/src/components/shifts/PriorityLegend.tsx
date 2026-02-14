@@ -7,11 +7,11 @@ export const PriorityLegend: React.FC = () => {
   const { t } = useTranslation();
 
   const priorities = [
-    { label: t("shifts.traceability.p100_manual"), priority: 100, color: "bg-purple-500", isActive: true },
-    { label: t("shifts.traceability.p80_pattern"), priority: 80, color: "bg-blue-500", isActive: true },
-    { label: t("shifts.traceability.p60_rules"), priority: 60, color: "bg-indigo-500", isActive: true },
-    { label: t("shifts.traceability.p40_dept_pattern"), priority: 40, color: "bg-slate-500", isActive: true },
-    { label: t("shifts.traceability.p20_fixed"), priority: 20, color: "bg-emerald-500", isActive: true },
+    { label: t("shifts.traceability.p100_manual"), priority: 100, color: "bg-purple-50 dark:bg-purple-950", isActive: true },
+    { label: t("shifts.traceability.p80_pattern"), priority: 80, color: "bg-blue-50 dark:bg-blue-950", isActive: true },
+    { label: t("shifts.traceability.p60_rules"), priority: 60, color: "bg-indigo-50 dark:bg-indigo-950", isActive: true },
+    { label: t("shifts.traceability.p40_dept_pattern"), priority: 40, color: "bg-slate-50 dark:bg-slate-8000", isActive: true },
+    { label: t("shifts.traceability.p20_fixed"), priority: 20, color: "bg-emerald-50 dark:bg-emerald-950", isActive: true },
     { label: t("shifts.traceability.p10_dept_fixed"), priority: 10, color: "bg-slate-400", isActive: true },
   ];
 

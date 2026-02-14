@@ -8,6 +8,52 @@ Detailed record of significant changes, features, and fixes in LeeAttend.
 
 ### Features
 
+#### Dark Mode Phase 4: Feature Pages Completed (webdashboard)
+**Component:** Web Dashboard - Feature Pages & Components
+**Status:** Complete
+
+**Implementation:**
+- Added `dark:` variants to 91 files (30 page files, 61 component files)
+- Applied 2178+ dark: Tailwind CSS v4 variants across pages and components
+- Fixed auth page backgrounds: replaced hardcoded `bg-[#f8fafc]` with semantic `bg-slate-50 dark:bg-slate-950`
+- Fixed gradient dark variants: primary/indigo gradients with proper opacity for dark mode
+- Fixed shadow overrides: added `dark:shadow-black/40` for premium shadows in dark backgrounds
+- Covered all pages: LoginPage, RegisterPage, DashboardPage, Reports, Devices, Settings, etc.
+- Covered all components: Dialogs, Tables, Cards, Forms, Lists, Charts, Status badges
+
+**Pages Modified (30):**
+- LoginPage, RegisterPage, DashboardPage, ProfilePage, SettingsPage
+- ReportsPage, AttendancePage, AnalyticsPage, PayrollPage
+- DevicesPage, ConnectivityPage, ConfigurationPage
+- ApproversPage, EmployeesPage, WorkspacesPage, etc.
+
+**Components Modified (61):**
+- Dialogs: BulkUploadOtDialog, EnterPaperOtDialog, AttendanceImportDialog, AgentEditModal, etc.
+- Tables: DailyReportTable, MonthlyReportTable, TemporalConfigTable, etc.
+- Cards: AgentAccordionCard, DeviceListItem, EmployeeCard, etc.
+- Forms: EmployeeSearch, MonthYearPicker, PaginationControls, ReportFilters, etc.
+- Layout guards: AuthGuard, WorkspaceGuard
+- Other: HierarchyLegend, DebugToolbar, LanguageSwitcher adjustments
+
+**Files Modified:** 91 TSX files (pages + components)
+
+**Tests:**
+- All 465 existing unit tests pass
+- All pages render correctly in dark mode
+- No contrast issues (WCAG AA compliance)
+- Smooth transitions between light/dark modes
+- All dialogs, modals, and overlays properly themed
+
+**Validation:**
+- Auth pages: Dark backgrounds, shadow overrides, readable text contrast
+- Feature pages: Consistent dark styling across all dashboard views
+- Tables & lists: Alternating rows, borders, hover states properly themed
+- Form inputs: Dark borders, focus rings, placeholders styled for dark
+- Buttons & badges: Status colors preserved with dark variants
+- Charts & visualizations: Proper contrast in dark mode
+
+---
+
 #### Dark Mode Phase 3: UI Primitives Completed (webdashboard)
 **Component:** Web Dashboard - Overlay Components
 **Status:** Complete

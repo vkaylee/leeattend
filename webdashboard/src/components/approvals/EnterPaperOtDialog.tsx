@@ -72,23 +72,23 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
     <Dialog.Root open={open} onOpenChange={(o) => { if (!o) resetForm(); onOpenChange(o); }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 border border-slate-100 bg-white p-6 shadow-xl rounded-[2rem]">
-          <Dialog.Title className="text-xl font-bold text-slate-800 uppercase tracking-tight flex items-center gap-2">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl rounded-[2rem]">
+          <Dialog.Title className="text-xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-tight flex items-center gap-2">
             <FileText className="w-5 h-5" />
             {t("approvals.paper_ot.title") || "Enter Paper OT Form"}
           </Dialog.Title>
-          <Dialog.Description className="text-sm text-slate-500 mt-1">
+          <Dialog.Description className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             {t("approvals.paper_ot.description") || "Enter overtime claim from signed paper form"}
           </Dialog.Description>
 
-          <button onClick={() => onOpenChange(false)} className="absolute right-4 top-4 p-2 rounded-full hover:bg-slate-100">
+          <button onClick={() => onOpenChange(false)} className="absolute right-4 top-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
             <X className="h-4 w-4" />
           </button>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-5">
             {/* Employee Selector */}
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
                 {t("common.employee") || "Employee"}
               </label>
               <EmployeeSearch
@@ -101,24 +101,24 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
 
             {/* Date Picker */}
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
                 {t("common.date") || "Date"}
               </label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                <Calendar className="absolute left-3 top-3 h-4 w-4 text-slate-400 dark:text-slate-500" />
                 <input
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   max={format(new Date(), "yyyy-MM-dd")}
-                  className="w-full pl-10 h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm focus:ring-2 focus:ring-primary-600"
+                  className="w-full pl-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 text-sm focus:ring-2 focus:ring-primary-600"
                 />
               </div>
             </div>
 
             {/* Minutes Input */}
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
                 {t("approvals.paper_ot.minutes") || "OT Minutes"}
               </label>
               <input
@@ -126,39 +126,39 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
                 value={minutes || ""}
                 onChange={(e) => setMinutes(parseInt(e.target.value) || 0)}
                 min={1}
-                className="w-full h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-mono focus:ring-2 focus:ring-primary-600"
+                className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 text-sm font-mono focus:ring-2 focus:ring-primary-600"
                 placeholder="120"
               />
             </div>
 
             {/* Reason Textarea */}
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
                 {t("common.reason") || "Reason"}
               </label>
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={3}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm resize-none focus:ring-2 focus:ring-primary-600"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm resize-none focus:ring-2 focus:ring-primary-600"
                 placeholder={t("approvals.paper_ot.reason_placeholder") || "Paper form #1234 - Production line"}
               />
             </div>
 
             {/* Photo Upload Placeholder (Optional) */}
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
                 {t("approvals.paper_ot.photo") || "Paper Form Photo (Optional)"}
               </label>
-              <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-primary-400 transition-colors cursor-not-allowed opacity-50">
-                <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                <p className="text-xs text-slate-500">{t("approvals.paper_ot.photo_coming_soon") || "Photo upload coming soon"}</p>
+              <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-4 text-center hover:border-primary-400 transition-colors cursor-not-allowed opacity-50">
+                <Upload className="w-8 h-8 text-slate-400 dark:text-slate-500 mx-auto mb-2" />
+                <p className="text-xs text-slate-500 dark:text-slate-400">{t("approvals.paper_ot.photo_coming_soon") || "Photo upload coming soon"}</p>
               </div>
             </div>
 
             {/* Error Message */}
             {error && (
-              <div className="text-xs font-bold text-rose-500 uppercase tracking-wide bg-rose-50 p-3 rounded-lg">
+              <div className="text-xs font-bold text-rose-500 uppercase tracking-wide bg-rose-50 dark:bg-rose-950 p-3 rounded-lg">
                 {error}
               </div>
             )}
@@ -168,7 +168,7 @@ export function EnterPaperOtDialog({ open, onOpenChange, onSuccess }: Props) {
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
-                className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 hover:bg-slate-100"
+                className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 {t("common.cancel") || "Cancel"}
               </button>

@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 const FormRow = ({ label, children, info }: { label: string; children: React.ReactNode; info?: string }) => (
   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center group">
     <div className="md:col-span-4 md:text-right">
-      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-primary-600 transition-colors">
+      <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
         {label}
       </label>
     </div>
@@ -19,7 +19,7 @@ const FormRow = ({ label, children, info }: { label: string; children: React.Rea
       <div className="w-full max-w-md">
         {children}
       </div>
-      {info && <p className="text-[9px] text-slate-400 italic font-medium ml-1 mt-1">{info}</p>}
+      {info && <p className="text-[9px] text-slate-400 dark:text-slate-500 italic font-medium ml-1 mt-1">{info}</p>}
     </div>
   </div>
 );
@@ -76,7 +76,7 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
     }
   };
 
-  if (isLoading) return <div className="p-12 text-center text-slate-400 animate-pulse font-bold uppercase tracking-widest text-[10px]">Loading policies...</div>;
+  if (isLoading) return <div className="p-12 text-center text-slate-400 dark:text-slate-500 animate-pulse font-bold uppercase tracking-widest text-[10px]">Loading policies...</div>;
 
   return (
     <div className="space-y-6">
@@ -86,7 +86,7 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {policies.length === 0 ? (
-          <div className="col-span-full py-20 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2.5rem] flex flex-col items-center justify-center text-slate-400">
+          <div className="col-span-full py-20 bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2.5rem] flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
             <ShieldCheck size={40} className="mb-4 opacity-20" />
             <p className="text-xs font-bold uppercase tracking-widest">No policies defined yet</p>
           </div>
@@ -94,27 +94,27 @@ export function LeavePolicyManager({ wsId }: LeavePolicyManagerProps) {
           const type = leaveTypes.find(t => t.id === policy.leave_type_id);
           const bonusCount = policy.rule_config.seniority_bonus?.length || 0;
           return (
-            <div key={policy.id} className="relative flex flex-col justify-between rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm hover:shadow-md transition-all group">
+            <div key={policy.id} className="relative flex flex-col justify-between rounded-[2rem] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-7 shadow-sm hover:shadow-md transition-all group">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center rounded-lg bg-primary-50 px-2.5 py-1 text-[9px] font-bold text-primary-600 uppercase tracking-widest border border-primary-100 shadow-sm">
+                  <span className="inline-flex items-center rounded-lg bg-primary-50 dark:bg-primary-950 px-2.5 py-1 text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest border border-primary-100 dark:border-primary-800 shadow-sm">
                     {type?.name || "Unknown"}
                   </span>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button data-testid="edit-policy-btn" onClick={() => setEditingPolicy(policy)} className="p-2 text-slate-400 hover:text-primary-600 bg-slate-50 rounded-xl border border-slate-100"><Edit2 size={16} /></button>
-                    <button data-testid="delete-policy-btn" onClick={() => { if (confirm("Delete this policy?")) deleteMutation.mutate(policy.id); }} className="p-2 text-slate-400 hover:text-rose-600 bg-slate-50 rounded-xl border border-slate-100"><Trash2 size={16} /></button>
+                    <button data-testid="edit-policy-btn" onClick={() => setEditingPolicy(policy)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:text-primary-400 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800"><Edit2 size={16} /></button>
+                    <button data-testid="delete-policy-btn" onClick={() => { if (confirm("Delete this policy?")) deleteMutation.mutate(policy.id); }} className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800"><Trash2 size={16} /></button>
                   </div>
                 </div>
-                <h3 className="mt-5 text-lg font-bold text-slate-800 tracking-tight leading-none uppercase">{policy.name}</h3>
+                <h3 className="mt-5 text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-none uppercase">{policy.name}</h3>
                 
-                <div className="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
+                <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-slate-400"><Clock size={14} /><span className="text-[10px] font-bold uppercase tracking-widest">Base Accrual</span></div>
-                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{policy.rule_config.accrual_amount} / {policy.rule_config.frequency}</span>
+                    <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500"><Clock size={14} /><span className="text-[10px] font-bold uppercase tracking-widest">Base Accrual</span></div>
+                    <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest">{policy.rule_config.accrual_amount} / {policy.rule_config.frequency}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-slate-400"><Milestone size={14} /><span className="text-[10px] font-bold uppercase tracking-widest">Bonus Steps</span></div>
-                    <span className="text-[10px] font-bold text-primary-600 uppercase tracking-widest">{bonusCount} steps</span>
+                    <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500"><Milestone size={14} /><span className="text-[10px] font-bold uppercase tracking-widest">Bonus Steps</span></div>
+                    <span className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest">{bonusCount} steps</span>
                   </div>
                 </div>
               </div>
@@ -189,15 +189,15 @@ function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: 
         {/* IDENTITY */}
         <div className="space-y-8">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-xl bg-primary-50 flex items-center justify-center text-primary-600"><LayoutGrid size={18} /></div>
-            <h4 className="text-sm font-black text-slate-800 uppercase tracking-tighter">Identity</h4>
+            <div className="h-8 w-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400"><LayoutGrid size={18} /></div>
+            <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter">Identity</h4>
           </div>
           <div className="space-y-6 px-2">
             <FormRow label="Policy Name">
-              <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold outline-none focus:ring-4 focus:ring-primary-500/5 transition-all h-[54px]" id="policy-name" placeholder="e.g. Standard Policy" />
+              <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold outline-none focus:ring-4 focus:ring-primary-500/5 transition-all h-[54px]" id="policy-name" placeholder="e.g. Standard Policy" />
             </FormRow>
             <FormRow label="Leave Type">
-              <Combobox options={leaveTypes.map((t: any) => ({ value: t.id, label: t.name }))} value={formData.leave_type_id} onChange={(val) => setFormData({...formData, leave_type_id: val})} className="bg-white border-slate-200 h-[54px] rounded-xl" />
+              <Combobox options={leaveTypes.map((t: any) => ({ value: t.id, label: t.name }))} value={formData.leave_type_id} onChange={(val) => setFormData({...formData, leave_type_id: val})} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-[54px] rounded-xl" />
             </FormRow>
           </div>
         </div>
@@ -205,25 +205,25 @@ function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: 
         {/* ACCRUAL RULES */}
         <div className="space-y-8">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600"><Clock size={18} /></div>
-            <h4 className="text-sm font-black text-slate-800 uppercase tracking-tighter">Accrual Logic</h4>
+            <div className="h-8 w-8 rounded-xl bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center text-emerald-600 dark:text-emerald-300"><Clock size={18} /></div>
+            <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter">Accrual Logic</h4>
           </div>
-          <div className="bg-slate-50/50 p-10 rounded-[2.5rem] border border-slate-100 space-y-6">
+          <div className="bg-slate-50 dark:bg-slate-800/50 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 space-y-6">
             <FormRow label="Base Amount" info="Days to grant per period">
-              <input required type="number" step="0.1" id="annual-entitlement" value={formData.accrual_amount} onChange={(e) => setFormData({...formData, accrual_amount: parseFloat(e.target.value)})} className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold font-mono text-center h-[54px]" />
+              <input required type="number" step="0.1" id="annual-entitlement" value={formData.accrual_amount} onChange={(e) => setFormData({...formData, accrual_amount: parseFloat(e.target.value)})} className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold font-mono text-center h-[54px]" />
             </FormRow>
             <FormRow label="Frequency">
-              <select value={formData.frequency} onChange={(e) => setFormData({...formData, frequency: e.target.value})} className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold uppercase h-[54px]">
+              <select value={formData.frequency} onChange={(e) => setFormData({...formData, frequency: e.target.value})} className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold uppercase h-[54px]">
                 <option value="monthly">Monthly</option>
                 <option value="quarterly">Quarterly</option>
                 <option value="yearly">Yearly</option>
               </select>
             </FormRow>
             <FormRow label="Min Days Work" info="Threshold to receive accrual">
-              <input required type="number" step="0.5" value={formData.min_work_days_threshold} onChange={(e) => setFormData({...formData, min_work_days_threshold: parseFloat(e.target.value)})} className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold font-mono text-center text-amber-600 h-[54px]" />
+              <input required type="number" step="0.5" value={formData.min_work_days_threshold} onChange={(e) => setFormData({...formData, min_work_days_threshold: parseFloat(e.target.value)})} className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold font-mono text-center text-amber-600 dark:text-amber-300 h-[54px]" />
             </FormRow>
             <FormRow label="Carry Limit" info="Max days to carry over next year">
-              <input required type="number" value={formData.carry_over_limit} onChange={(e) => setFormData({...formData, carry_over_limit: parseInt(e.target.value)})} className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold font-mono text-center h-[54px]" />
+              <input required type="number" value={formData.carry_over_limit} onChange={(e) => setFormData({...formData, carry_over_limit: parseInt(e.target.value)})} className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold font-mono text-center h-[54px]" />
             </FormRow>
           </div>
         </div>
@@ -232,27 +232,27 @@ function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: 
         <div className="space-y-8">
           <div className="flex justify-between items-center px-1">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600"><Milestone size={18} /></div>
-              <h4 className="text-sm font-black text-slate-800 uppercase tracking-tighter">Service Bonuses</h4>
+              <div className="h-8 w-8 rounded-xl bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center text-indigo-600"><Milestone size={18} /></div>
+              <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tighter">Service Bonuses</h4>
             </div>
             <button type="button" onClick={addBonusMilestone} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"><Plus size={12} /> Add Row</button>
           </div>
           
           <div className="space-y-8 px-2">
             {seniorityBonus.length === 0 ? (
-              <div className="py-10 text-center bg-white border-2 border-dashed border-slate-100 rounded-[2rem] text-slate-400 italic text-xs">No bonus milestones defined.</div>
+              <div className="py-10 text-center bg-white dark:bg-slate-900 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[2rem] text-slate-400 dark:text-slate-500 italic text-xs">No bonus milestones defined.</div>
             ) : seniorityBonus.map((bonus, idx) => (
-              <div key={idx} className="space-y-6 pt-8 first:pt-0 border-t first:border-0 border-slate-100 animate-in slide-in-from-right-2 duration-300 relative group/row">
-                <div className="absolute -left-4 top-10 font-black text-[8px] text-slate-300 uppercase vertical-text tracking-widest">Row {idx + 1}</div>
+              <div key={idx} className="space-y-6 pt-8 first:pt-0 border-t first:border-0 border-slate-100 dark:border-slate-800 animate-in slide-in-from-right-2 duration-300 relative group/row">
+                <div className="absolute -left-4 top-10 font-black text-[8px] text-slate-300 dark:text-slate-600 uppercase vertical-text tracking-widest">Row {idx + 1}</div>
                 
                 <FormRow label="After Months">
-                  <input type="number" value={bonus.months} onChange={(e) => updateBonusMilestone(idx, "months", parseInt(e.target.value))} className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold font-mono text-center h-[54px] focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none" />
+                  <input type="number" value={bonus.months} onChange={(e) => updateBonusMilestone(idx, "months", parseInt(e.target.value))} className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold font-mono text-center h-[54px] focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none" />
                 </FormRow>
                 
                 <FormRow label="Bonus Amount">
                   <div className="flex gap-4 w-full max-w-md">
-                    <input type="number" step="0.5" value={bonus.bonus_amount} onChange={(e) => updateBonusMilestone(idx, "bonus_amount", parseFloat(e.target.value))} className="flex-1 rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold font-mono text-center text-primary-600 h-[54px] focus:ring-4 focus:ring-primary-500/5 transition-all outline-none" />
-                    <button type="button" onClick={() => removeBonusMilestone(idx)} className="p-4 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all h-[54px] flex items-center justify-center border border-transparent hover:border-rose-100 shadow-sm hover:shadow-md"><Trash2 size={18} /></button>
+                    <input type="number" step="0.5" value={bonus.bonus_amount} onChange={(e) => updateBonusMilestone(idx, "bonus_amount", parseFloat(e.target.value))} className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm font-bold font-mono text-center text-primary-600 dark:text-primary-400 h-[54px] focus:ring-4 focus:ring-primary-500/5 transition-all outline-none" />
+                    <button type="button" onClick={() => removeBonusMilestone(idx)} className="p-4 text-slate-300 dark:text-slate-600 hover:text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:bg-rose-950 rounded-2xl transition-all h-[54px] flex items-center justify-center border border-transparent hover:border-rose-100 dark:border-rose-800 shadow-sm hover:shadow-md"><Trash2 size={18} /></button>
                   </div>
                 </FormRow>
               </div>
@@ -261,8 +261,8 @@ function PolicyModal({ isOpen, onClose, leaveTypes, policy, onSave, isSaving }: 
         </div>
 
         {/* FOOTER */}
-        <div className="flex justify-end gap-4 pt-8 border-t border-slate-100 sticky bottom-0 bg-white pb-2">
-          <button type="button" onClick={onClose} className="px-8 py-3 text-xs font-bold text-slate-400 uppercase tracking-[0.2em] hover:text-slate-600">Cancel</button>
+        <div className="flex justify-end gap-4 pt-8 border-t border-slate-100 dark:border-slate-800 sticky bottom-0 bg-white dark:bg-slate-900 pb-2">
+          <button type="button" onClick={onClose} className="px-8 py-3 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] hover:text-slate-600 dark:hover:text-slate-300 dark:text-slate-600">Cancel</button>
           <button type="submit" data-testid="save-policy-btn" disabled={isSaving} className="rounded-2xl bg-primary-600 px-10 py-4 text-xs font-black text-white uppercase tracking-[0.2em] shadow-2xl shadow-primary-200 hover:bg-primary-700 active:scale-95 transition-all">
             {isSaving ? "Saving..." : (policy ? "Update Policy" : "Create Policy")}
           </button>

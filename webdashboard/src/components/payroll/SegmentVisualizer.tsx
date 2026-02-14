@@ -28,7 +28,7 @@ export default function SegmentVisualizer({ segments, periodStart, periodEnd, cl
   if (totalDays <= 0) return null;
 
   return (
-    <div className={cn("w-full h-2.5 bg-slate-100/80 rounded-full flex overflow-hidden shadow-inner border border-slate-200/50", className)}>
+    <div className={cn("w-full h-2.5 bg-slate-100 dark:bg-slate-700/80 rounded-full flex overflow-hidden shadow-inner border border-slate-200 dark:border-slate-700/50", className)}>
       {segments.map((seg, idx) => {
         const segStart = parseISO(seg.start_date);
         const segEnd = parseISO(seg.end_date);

@@ -70,12 +70,12 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
   };
 
   return (
-    <div className='mt-6 space-y-4 border-t border-slate-100 pt-6'>
+    <div className='mt-6 space-y-4 border-t border-slate-100 dark:border-slate-800 pt-6'>
       <div className='flex items-center justify-between'>
-        <h4 className='text-sm font-bold uppercase tracking-[0.2em] text-slate-500'>{t('payroll.rules')}</h4>
+        <h4 className='text-sm font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400'>{t('payroll.rules')}</h4>
         <button
           onClick={() => setIsAdding(!isAdding)}
-          className='flex items-center gap-1.5 text-xs font-bold text-primary-600 hover:text-primary-700 transition-colors'
+          className='flex items-center gap-1.5 text-xs font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:text-primary-300 transition-colors'
         >
           <Plus size={14} />
           {t('payroll.add_rule')}
@@ -83,21 +83,21 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
       </div>
 
       {isAdding && (
-        <div className='bg-slate-50/50 rounded-2xl p-4 border border-slate-100 space-y-4 animate-in zoom-in-95 duration-200'>
+        <div className='bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 space-y-4 animate-in zoom-in-95 duration-200'>
           <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
             <div className='space-y-1.5'>
-              <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500'>
+              <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400'>
                 <Hash size={10}/> Priority
               </label>
               <input 
                 type='number' 
                 value={priority} 
                 onChange={e => setPriority(parseInt(e.target.value))}
-                className='w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-500'
+                className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-500'
               />
             </div>
             <div className='space-y-1.5'>
-              <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500'>
+              <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400'>
                 <Percent size={10}/> Multiplier
               </label>
               <input 
@@ -105,29 +105,29 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
                 step='0.1'
                 value={multiplier} 
                 onChange={e => setMultiplier(parseFloat(e.target.value))}
-                className='w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-500'
+                className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-500'
               />
             </div>
             <div className='space-y-1.5'>
-              <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500'>
+              <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400'>
                 <Clock size={10}/> Start
               </label>
               <input 
                 type='time' 
                 value={startTime} 
                 onChange={e => setStartTime(e.target.value)}
-                className='w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-500'
+                className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-500'
               />
             </div>
             <div className='space-y-1.5'>
-              <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500'>
+              <label className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400'>
                 <Clock size={10}/> End
               </label>
               <input 
                 type='time' 
                 value={endTime} 
                 onChange={e => setEndTime(e.target.value)}
-                className='w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-500'
+                className='w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-500'
               />
             </div>
           </div>
@@ -140,7 +140,7 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
                   onClick={() => toggleDay(d.bit)}
                   className={cn(
                     'w-7 h-7 rounded-lg text-[10px] font-bold transition-all',
-                    (days & d.bit) ? 'bg-primary-600 text-white shadow-sm' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300'
+                    (days & d.bit) ? 'bg-primary-600 text-white shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                   )}
                 >
                   {d.label}
@@ -154,9 +154,9 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
                   type='checkbox' 
                   checked={isHoliday} 
                   onChange={e => setIsHoliday(e.target.checked)}
-                  className='w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500'
+                  className='w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-primary-600 dark:text-primary-400 focus:ring-primary-500'
                 />
-                <span className='text-xs font-bold text-slate-500 group-hover:text-slate-700 transition-colors'>Holiday Only</span>
+                <span className='text-xs font-bold text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700 transition-colors'>Holiday Only</span>
               </label>
               
               <button
@@ -180,16 +180,16 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
 
       <div className='space-y-2'>
         {rules.sort((a, b) => b.priority - a.priority).map((rule: OvertimeRule) => (
-          <div key={rule.id} className='flex items-center justify-between p-3 bg-slate-50/30 rounded-xl border border-slate-100/50 hover:bg-white transition-all'>
+          <div key={rule.id} className='flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-100 dark:border-slate-800/50 hover:bg-white dark:hover:bg-slate-900 transition-all'>
             <div className='flex items-center gap-4'>
-              <div className='px-2 py-1 bg-primary-50 text-primary-700 rounded-lg text-[10px] font-bold'>
+              <div className='px-2 py-1 bg-primary-50 dark:bg-primary-950 text-primary-700 dark:text-primary-300 rounded-lg text-[10px] font-bold'>
                 {rule.multiplier}x
               </div>
               <div className='flex flex-col'>
-                <span className='text-xs font-bold text-slate-700'>
+                <span className='text-xs font-bold text-slate-700 dark:text-slate-200'>
                   {rule.time_start || '00:00'} - {rule.time_end || '23:59'}
                 </span>
-                <span className='text-[10px] text-slate-500 font-medium'>
+                <span className='text-[10px] text-slate-500 dark:text-slate-400 font-medium'>
                   Priority: {rule.priority} | {rule.is_holiday ? 'Holidays Only' : 'Regular Days'}
                 </span>
               </div>
@@ -198,7 +198,7 @@ export default function OvertimeRuleEditor({ wsId, policyId, rules }: OvertimeRu
           </div>
         ))}
         {rules.length === 0 && !isAdding && (
-          <p className='text-center py-4 text-xs text-slate-500 font-medium italic'>No rules defined yet.</p>
+          <p className='text-center py-4 text-xs text-slate-500 dark:text-slate-400 font-medium italic'>No rules defined yet.</p>
         )}
       </div>
     </div>

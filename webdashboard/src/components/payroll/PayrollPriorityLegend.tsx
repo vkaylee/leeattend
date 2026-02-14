@@ -14,13 +14,13 @@ export const PayrollPriorityLegend: React.FC<PayrollPriorityLegendProps> = ({ ac
     { 
       label: t("payroll.traceability.individual_policy", "Individual Policy"), 
       priority: 100, 
-      color: "bg-purple-500",
+      color: "bg-purple-50 dark:bg-purple-950",
       isActive: activeSource === 'individual'
     },
     { 
       label: t("payroll.traceability.department_policy", "Department Policy"), 
       priority: 50, 
-      color: "bg-blue-500",
+      color: "bg-blue-50 dark:bg-blue-950",
       isActive: activeSource === 'department'
     },
     { 

@@ -69,7 +69,7 @@ export default function AgentAccordionCard({
     <div
       data-testid={`agent-card-${agent.id}`}
       className={cn(
-        "bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden transition-all",
+        "bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden transition-all",
         "hover:shadow-lg hover:shadow-primary-100/20",
         !agent.is_active && "opacity-50 grayscale"
       )}
@@ -81,7 +81,7 @@ export default function AgentAccordionCard({
         className="flex items-center gap-6 p-8 cursor-pointer group"
       >
         {/* Chevron */}
-        <div className="text-slate-400 group-hover:text-primary-600 transition-colors">
+        <div className="text-slate-400 dark:text-slate-500 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
           {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
         </div>
 
@@ -89,18 +89,18 @@ export default function AgentAccordionCard({
         <div className={cn(
           "w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner border transition-all",
           agent.is_active
-            ? "bg-primary-50 text-primary-600 border-primary-100/50 group-hover:scale-110"
-            : "bg-slate-100 text-slate-500 border-slate-200"
+            ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 border-primary-100 dark:border-primary-800/50 group-hover:scale-110"
+            : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700"
         )}>
           <Server size={24} />
         </div>
 
         {/* Agent info */}
         <div className="flex-1 min-w-0">
-          <div data-testid={`agent-name-${agent.id}`} className="font-bold text-slate-700 text-sm uppercase tracking-tight truncate">
+          <div data-testid={`agent-name-${agent.id}`} className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-tight truncate">
             {agent.name}
           </div>
-          <div className="text-[10px] text-slate-500 font-mono font-bold uppercase opacity-70">
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold uppercase opacity-70">
             ID: {agent.id}
           </div>
         </div>
@@ -112,34 +112,34 @@ export default function AgentAccordionCard({
             className={cn(
               "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm",
               agent.is_trusted
-                ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                : "bg-amber-50 text-amber-600 border-amber-100"
+                ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800"
+                : "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800"
             )}
           >
             {agent.is_trusted ? t("common.agents.status.trusted") : t("common.agents.status.pending")}
           </span>
           {!agent.is_active && (
-            <span data-testid={`agent-inactive-badge-${agent.id}`} className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border bg-slate-100 text-slate-500 border-slate-200">
+            <span data-testid={`agent-inactive-badge-${agent.id}`} className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700">
               {t("common.status_inactive")}
             </span>
           )}
         </div>
 
         {/* Device count badge */}
-        <div data-testid={`agent-device-count-${agent.id}`} className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg shrink-0">
-          <HardDrive size={14} className="text-slate-400" />
-          <span className="text-xs font-bold text-slate-600">{devices.length}</span>
+        <div data-testid={`agent-device-count-${agent.id}`} className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700 px-3 py-1.5 rounded-lg shrink-0">
+          <HardDrive size={14} className="text-slate-400 dark:text-slate-500" />
+          <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{devices.length}</span>
         </div>
 
         {/* Last seen */}
-        <div className="flex items-center gap-2 text-slate-500 text-[10px] font-mono font-bold uppercase bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 shrink-0">
+        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[10px] font-mono font-bold uppercase bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800 shrink-0">
           <RefreshCw size={12} />
           {agent.last_seen_at ? new Date(agent.last_seen_at).toLocaleString() : t("common.never")}
         </div>
 
         {/* Action buttons - show on hover */}
         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all shrink-0" onClick={e => e.stopPropagation()}>
-          <button data-testid={`agent-edit-${agent.id}`} onClick={() => onEdit(agent)} className="p-3 bg-white text-slate-500 hover:text-primary-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90" title={t("common.edit")}>
+          <button data-testid={`agent-edit-${agent.id}`} onClick={() => onEdit(agent)} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.edit")}>
             <Edit2 size={18} />
           </button>
           <button
@@ -148,13 +148,13 @@ export default function AgentAccordionCard({
             className={cn(
               "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest border shadow-sm transition-all active:scale-95",
               agent.is_trusted
-                ? "text-rose-600 hover:bg-rose-50 border-rose-100 bg-white"
+                ? "text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:bg-rose-950 border-rose-100 dark:border-rose-800 bg-white dark:bg-slate-900"
                 : "bg-emerald-600 text-white border-transparent hover:bg-emerald-700"
             )}
           >
             {agent.is_trusted ? t("common.revoke") : t("common.approve")}
           </button>
-          <button data-testid={`agent-delete-${agent.id}`} onClick={handleDelete} className="p-3 bg-white text-slate-500 hover:text-rose-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90" title={t("common.delete")}>
+          <button data-testid={`agent-delete-${agent.id}`} onClick={handleDelete} className="p-3 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90" title={t("common.delete")}>
             <Trash2 size={18} />
           </button>
         </div>
@@ -165,10 +165,10 @@ export default function AgentAccordionCard({
         "overflow-hidden transition-all duration-300",
         isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
       )}>
-        <div className="border-t border-slate-100 mx-8" />
+        <div className="border-t border-slate-100 dark:border-slate-800 mx-8" />
         <div className="p-8 pt-6 space-y-3">
           {devices.length === 0 ? (
-            <div className="text-center py-8 text-slate-400 text-xs font-bold uppercase tracking-widest">
+            <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-widest">
               {t("devices.no_devices_for_agent")}
             </div>
           ) : (
@@ -188,7 +188,7 @@ export default function AgentAccordionCard({
             <button
               data-testid={`add-device-btn-${agent.id}`}
               onClick={() => onAddDevice(agent.id)}
-              className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-500 hover:text-primary-600 hover:border-primary-300 hover:bg-primary-50/30 transition-all flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest"
+              className="w-full py-4 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 hover:border-primary-300 hover:bg-primary-50 dark:bg-primary-950/30 transition-all flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest"
             >
               <Plus size={16} />
               {t("devices.add_btn")}

@@ -76,62 +76,62 @@ export default function AssignmentRulesPage() {
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
         <div className="space-y-1">
-          <h1 data-testid="assignment-rules-title" className="text-4xl font-bold tracking-tighter text-slate-700 uppercase leading-none">{t("rules.title")}</h1>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em] opacity-60">{t("rules.subtitle")}</p>
+          <h1 data-testid="assignment-rules-title" className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none">{t("rules.title")}</h1>
+          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("rules.subtitle")}</p>
         </div>
-        <button onClick={openCreateModal} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 active:scale-95"><Plus size={18} /> {t("rules.create_btn").toUpperCase()}</button>
+        <button onClick={openCreateModal} className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"><Plus size={18} /> {t("rules.create_btn").toUpperCase()}</button>
       </div>
 
-      <div className="bg-white border border-slate-100 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700">
+      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm dark:shadow-black/10 animate-in slide-in-from-bottom-8 duration-700">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-slate-50/50 border-b border-slate-100">
-              <th className="px-10 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">{t("rules.table.priority")}</th>
-              <th className="px-8 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">{t("rules.table.name")}</th>
-              <th className="px-8 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">{t("rules.table.pattern")}</th>
-              <th className="px-8 py-6 text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">{t("rules.table.conditions")}</th>
-              <th className="px-10 py-6 border-b border-slate-100"></th>
+            <tr className="bg-slate-50 dark:bg-slate-800/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+              <th className="px-10 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">{t("rules.table.priority")}</th>
+              <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">{t("rules.table.name")}</th>
+              <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">{t("rules.table.pattern")}</th>
+              <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">{t("rules.table.conditions")}</th>
+              <th className="px-10 py-6 border-b border-slate-100 dark:border-slate-800"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50">
+          <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
             {rules?.map((rule) => (
-              <tr key={rule.id} className="hover:bg-slate-50/50 transition-all group">
-                <td className="px-10 py-6"><span className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-xl text-[10px] font-bold tracking-tight border border-slate-200 shadow-inner font-mono uppercase">P{rule.priority}</span></td>
+              <tr key={rule.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:hover:bg-slate-800/50 transition-all group">
+                <td className="px-10 py-6"><span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-xl text-[10px] font-bold tracking-tight border border-slate-200 dark:border-slate-700 shadow-inner font-mono uppercase">P{rule.priority}</span></td>
                 <td className="px-8 py-6">
-                  <div className="font-bold text-slate-700 text-sm tracking-tight uppercase leading-none mb-1.5">{rule.name}</div>
-                  {!rule.is_active && <span className="text-[8px] font-bold uppercase text-rose-600 tracking-widest bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">{t("common.inactive").toUpperCase()}</span>}
+                  <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none mb-1.5">{rule.name}</div>
+                  {!rule.is_active && <span className="text-[8px] font-bold uppercase text-rose-600 dark:text-rose-300 tracking-widest bg-rose-50 dark:bg-rose-950 px-2 py-0.5 rounded-full border border-rose-100 dark:border-rose-800">{t("common.inactive").toUpperCase()}</span>}
                 </td>
-                <td className="px-8 py-6"><span className="bg-primary-50 text-primary-600 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-primary-100 shadow-sm">{patterns?.find(p => p.id === rule.pattern_id)?.name.toUpperCase() || "UNKNOWN"}</span></td>
+                <td className="px-8 py-6"><span className="bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-primary-100 dark:border-primary-800 shadow-sm dark:shadow-black/10">{patterns?.find(p => p.id === rule.pattern_id)?.name.toUpperCase() || "UNKNOWN"}</span></td>
                 <td className="px-8 py-6">
                   <div className="flex flex-wrap gap-2.5">
                     {rule.conditions.department_id && (
-                      <span className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest border border-blue-100 flex items-center gap-2 shadow-sm"><Building2 size={12} className="opacity-50" /> {departments?.find(d => d.id === rule.conditions.department_id)?.name.toUpperCase()}</span>
+                      <span className="bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-300 px-3 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest border border-blue-100 dark:border-blue-800 flex items-center gap-2 shadow-sm dark:shadow-black/10"><Building2 size={12} className="opacity-50" /> {departments?.find(d => d.id === rule.conditions.department_id)?.name.toUpperCase()}</span>
                     )}
-                    {rule.conditions.tags?.map(tag => (<span key={tag} className="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest border border-emerald-100 shadow-sm">#{tag.toUpperCase()}</span>))}
+                    {rule.conditions.tags?.map(tag => (<span key={tag} className="bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 px-3 py-1.5 rounded-[10px] text-[9px] font-bold uppercase tracking-widest border border-emerald-100 dark:border-emerald-800 shadow-sm dark:shadow-black/10">#{tag.toUpperCase()}</span>))}
                     {!rule.conditions.department_id && (!rule.conditions.tags || rule.conditions.tags.length === 0) && (
-                      <span className="text-slate-300 text-[10px] font-bold uppercase tracking-[0.2em] italic opacity-60">{t("rules.match_all")}</span>
+                      <span className="text-slate-300 dark:text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em] italic opacity-60">{t("rules.match_all")}</span>
                     )}
                   </div>
                 </td>
                 <td className="px-10 py-6 text-right">
                   <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-                    <button onClick={() => openEditModal(rule)} className="p-3 bg-white text-slate-500 hover:text-primary-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90" title={t("common.edit")}><Settings2 size={18} /></button>
-                    <button onClick={() => { if(confirm(t("common.confirm_delete"))) deleteMutation.mutate(rule.id); }} className="p-3 bg-white text-slate-500 hover:text-rose-600 rounded-xl shadow-md border border-slate-100 transition-all active:scale-90" title={t("common.delete")}><Trash2 size={18} /></button>
+                    <button onClick={() => openEditModal(rule)} className="p-3 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-xl shadow-md dark:shadow-black/20 border border-slate-100 dark:border-slate-700 transition-all active:scale-90" title={t("common.edit")}><Settings2 size={18} /></button>
+                    <button onClick={() => { if(confirm(t("common.confirm_delete"))) deleteMutation.mutate(rule.id); }} className="p-3 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl shadow-md dark:shadow-black/20 border border-slate-100 dark:border-slate-700 transition-all active:scale-90" title={t("common.delete")}><Trash2 size={18} /></button>
                   </div>
                 </td>
               </tr>
             ))}
             {(!rules || rules.length === 0) && !rulesLoading && (
-              <tr><td colSpan={5} className="px-10 py-32 text-center bg-slate-50/30 flex flex-col items-center"><Zap size={40} className="text-slate-200 mb-4" /><p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t("rules.empty_list")}</p></td></tr>
+              <tr><td colSpan={5} className="px-10 py-32 text-center bg-slate-50 dark:bg-slate-800/30 dark:bg-slate-800/30 flex flex-col items-center"><Zap size={40} className="text-slate-200 dark:text-slate-700 mb-4" /><p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t("rules.empty_list")}</p></td></tr>
             )}
           </tbody>
         </table>
       </div>
 
-      <div className="p-8 bg-blue-50/50 border border-blue-100 rounded-[2.5rem] flex gap-6 shadow-inner animate-in fade-in slide-in-from-bottom-4 duration-1000">
-        <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-blue-600 shadow-sm border border-blue-100 shrink-0"><AlertCircle size={24} /></div>
-        <div className="text-xs text-blue-900 leading-relaxed font-medium pt-1">
-          <p className="font-bold uppercase tracking-[0.2em] mb-2 text-blue-950 opacity-80">{t("common.did_you_know")}</p>
+      <div className="p-8 bg-blue-50 dark:bg-blue-950/50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-900 rounded-[2.5rem] flex gap-6 shadow-inner animate-in fade-in slide-in-from-bottom-4 duration-1000">
+        <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm dark:shadow-black/10 border border-blue-100 dark:border-blue-900 shrink-0"><AlertCircle size={24} /></div>
+        <div className="text-xs text-blue-900 dark:text-blue-200 leading-relaxed font-medium pt-1">
+          <p className="font-bold uppercase tracking-[0.2em] mb-2 text-blue-950 dark:text-blue-100 opacity-80">{t("common.did_you_know")}</p>
           <p className="opacity-70 font-bold uppercase tracking-tight">{t("rules.info_priority")}</p>
         </div>
       </div>
@@ -147,33 +147,33 @@ export default function AssignmentRulesPage() {
         <div className="space-y-6 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("rules.form.name", "Rule Name")}</label>
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("rules.form.name", "Rule Name")}</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t("rules.form.name_placeholder")}
-                className="w-full bg-slate-50 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 focus:ring-2 focus:ring-primary-500 transition-all"
+                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all"
               />
             </div>
-            
+
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("rules.form.priority")}</label>
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("rules.form.priority")}</label>
               <input
                 type="number"
                 value={priority}
                 onChange={(e) => setPriority(parseInt(e.target.value))}
-                className="w-full bg-slate-50 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 focus:ring-2 focus:ring-primary-500 transition-all"
+                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t("rules.form.pattern")}</label>
+            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("rules.form.pattern")}</label>
             <select
               value={patternId}
               onChange={(e) => setPatternId(e.target.value)}
-              className="w-full bg-slate-50 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 focus:ring-2 focus:ring-primary-500 transition-all"
+              className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all"
             >
               <option value="">{t("patterns.form.select_pattern_placeholder")}</option>
               {patterns?.map(p => (
@@ -182,18 +182,18 @@ export default function AssignmentRulesPage() {
             </select>
           </div>
 
-          <div className="bg-slate-50 rounded-[32px] p-6 border border-slate-100 space-y-4">
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+          <div className="bg-slate-50 dark:bg-slate-800 rounded-[32px] p-6 border border-slate-100 dark:border-slate-800 space-y-4">
+            <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
               <Filter size={14} /> {t("rules.conditions_title")}
             </h4>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500">{t("common.department")}</label>
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{t("common.department")}</label>
                 <select
                   value={conditions.department_id || ""}
                   onChange={(e) => setConditions({ ...conditions, department_id: e.target.value || undefined })}
-                  className="w-full bg-white border border-slate-100 rounded-xl px-4 py-2 text-sm font-bold"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 dark:text-slate-200"
                 >
                   <option value="">{t("common.all_departments")}</option>
                   {departments?.map(d => (
@@ -203,7 +203,7 @@ export default function AssignmentRulesPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500">{t("common.tags")}</label>
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{t("common.tags")}</label>
                 <input
                   type="text"
                   value={conditions.tags?.join(", ") || ""}
@@ -212,12 +212,12 @@ export default function AssignmentRulesPage() {
                     setConditions({ ...conditions, tags: tags.length > 0 ? tags : undefined });
                   }}
                   placeholder={t("rules.form.tags_placeholder")}
-                  className="w-full bg-white border border-slate-100 rounded-xl px-4 py-2 text-sm font-bold"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 dark:text-slate-200"
                 />
               </div>
             </div>
-            
-            <p className="text-[10px] text-slate-500 italic">
+
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 italic">
               {t("rules.condition_help")}
             </p>
           </div>
@@ -225,7 +225,7 @@ export default function AssignmentRulesPage() {
           <div className="flex gap-3 pt-2">
             <button
               onClick={closeModal}
-              className="flex-1 px-6 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all"
+              className="flex-1 px-6 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
             >
               {t("common.cancel")}
             </button>

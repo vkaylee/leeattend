@@ -101,20 +101,20 @@ export default function PayslipModal({
             [class*="text-[8px]"] { font-size: 4px; }
 
             /* Colors */
-            .text-slate-700 { color: #0f172a; }
-            .text-slate-500 { color: #64748b; }
-            .text-slate-500 { color: #94a3b8; }
-            .text-slate-300 { color: #cbd5e1; }
-            .text-emerald-700 { color: #047857; }
-            .text-emerald-600 { color: #059669; }
-            .text-rose-600 { color: #e11d48; }
-            .text-amber-700 { color: #b45309; }
+            .text-slate-700 dark:text-slate-200 { color: #0f172a; }
+            .text-slate-500 dark:text-slate-400 { color: #64748b; }
+            .text-slate-500 dark:text-slate-400 { color: #94a3b8; }
+            .text-slate-300 dark:text-slate-600 { color: #cbd5e1; }
+            .text-emerald-700 dark:text-emerald-300 { color: #047857; }
+            .text-emerald-600 dark:text-emerald-300 { color: #059669; }
+            .text-rose-600 dark:text-rose-300 { color: #e11d48; }
+            .text-amber-700 dark:text-amber-300 { color: #b45309; }
 
-            .bg-white { background: white; }
+            .bg-white dark:bg-slate-900 { background: white; }
             .bg-slate-900 { background: #0f172a; }
-            .bg-slate-50 { background: #f8fafc; }
-            .bg-emerald-50 { background: #ecfdf5; }
-            .bg-amber-50 { background: #fffbeb; }
+            .bg-slate-50 dark:bg-slate-800 { background: #f8fafc; }
+            .bg-emerald-50 dark:bg-emerald-950 { background: #ecfdf5; }
+            .bg-amber-50 dark:bg-amber-950 { background: #fffbeb; }
 
             /* Layout */
             .flex { display: flex; }
@@ -169,11 +169,11 @@ export default function PayslipModal({
             .border-b-2 { border-bottom: 1px solid; }
             .border-t-2 { border-top: 1px solid; }
             .border-slate-900 { border-color: #0f172a; }
-            .border-slate-100 { border-color: #f1f5f9; }
-            .border-slate-200 { border-color: #e2e8f0; }
-            .border-slate-50 { border-color: #f8fafc; }
-            .border-emerald-100 { border-color: #d1fae5; }
-            .border-amber-100 { border-color: #fef3c7; }
+            .border-slate-100 dark:border-slate-800 { border-color: #f1f5f9; }
+            .border-slate-200 dark:border-slate-700 { border-color: #e2e8f0; }
+            .border-slate-50 dark:border-slate-800 { border-color: #f8fafc; }
+            .border-emerald-100 dark:border-emerald-800 { border-color: #d1fae5; }
+            .border-amber-100 dark:border-amber-800 { border-color: #fef3c7; }
 
             /* Border radius - smaller for compact */
             .rounded-full { border-radius: 9999px; }
@@ -241,7 +241,7 @@ export default function PayslipModal({
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog.Portal>
         <Dialog.Overlay className='fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] animate-in fade-in duration-300 print:hidden' />
-        <Dialog.Content data-testid="payslip-modal" className='fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[900px] max-h-[90vh] bg-slate-100 rounded-[2rem] shadow-2xl z-[101] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 print:static print:translate-x-0 print:translate-y-0 print:max-h-none print:w-auto print:bg-white print:shadow-none print:rounded-none'>
+        <Dialog.Content data-testid="payslip-modal" className='fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[900px] max-h-[90vh] bg-slate-100 dark:bg-slate-700 rounded-[2rem] shadow-2xl z-[101] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 print:static print:translate-x-0 print:translate-y-0 print:max-h-none print:w-auto print:bg-white dark:bg-slate-900 print:shadow-none print:rounded-none'>
           
           <Dialog.Title className="sr-only">Official Payslip Preview</Dialog.Title>
           <Dialog.Description className="sr-only">
@@ -249,11 +249,11 @@ export default function PayslipModal({
           </Dialog.Description>
 
           {/* Action Bar */}
-          <div className='p-6 bg-white border-b border-slate-200 flex items-center justify-between print:hidden'>
+          <div className='p-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between print:hidden'>
             <div className='flex items-center gap-4'>
               <div>
-                <h2 className='text-sm font-bold uppercase tracking-widest text-slate-500'>Official Payslip Preview</h2>
-                <p className='text-xs font-bold text-slate-600 mt-1'>
+                <h2 className='text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400'>Official Payslip Preview</h2>
+                <p className='text-xs font-bold text-slate-600 dark:text-slate-300 mt-1'>
                   {t('common.month')} {formatMonthYear(payslip.period_start)}
                 </p>
               </div>
@@ -267,7 +267,7 @@ export default function PayslipModal({
                 <Printer size={14} /> Print Payslip
               </button>
               <Dialog.Close asChild>
-                <button data-testid="payslip-close-btn" className='w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 hover:text-rose-600 transition-all'>
+                <button data-testid="payslip-close-btn" className='w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:text-rose-300 transition-all'>
                   <X size={20} />
                 </button>
               </Dialog.Close>
@@ -276,7 +276,7 @@ export default function PayslipModal({
 
           {/* Scrollable Document Area */}
           <div className='flex-1 overflow-y-auto p-4 md:p-12 print:p-0 print:overflow-visible'>
-             <div ref={printRef} className='bg-white rounded-2xl shadow-sm overflow-hidden print:shadow-none print:rounded-none'>
+             <div ref={printRef} className='bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden print:shadow-none print:rounded-none'>
                 <PayslipDocument
                   employee={employee}
                   payslip={payslip}
@@ -286,8 +286,8 @@ export default function PayslipModal({
           </div>
           
           {/* Footer Warning */}
-          <div className='p-4 bg-amber-50 border-t border-amber-100 text-center print:hidden'>
-            <p className='text-[9px] font-bold text-amber-700 uppercase tracking-widest'>
+          <div className='p-4 bg-amber-50 dark:bg-amber-950 border-t border-amber-100 dark:border-amber-800 text-center print:hidden'>
+            <p className='text-[9px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-widest'>
               Use the print button above to save as PDF or print a physical copy.
             </p>
           </div>

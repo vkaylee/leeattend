@@ -59,32 +59,32 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
     },
   });
 
-  if (isTypesLoading) return <div className="py-12 text-center text-slate-400 animate-pulse">Loading leave types...</div>;
+  if (isTypesLoading) return <div className="py-12 text-center text-slate-400 dark:text-slate-500 animate-pulse">Loading leave types...</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center px-1">
-         <p className="text-xs font-medium text-slate-500 max-w-md italic">Define the categories of leave available in your organization (e.g., Annual Leave, Sick Leave).</p>
+         <p className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-md italic">Define the categories of leave available in your organization (e.g., Annual Leave, Sick Leave).</p>
          <button onClick={() => setIsAddingType(true)} className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase tracking-widest hover:bg-primary-700 transition-all shadow-lg shadow-primary-100"><Plus size={14} /> Add Leave Type</button>
       </div>
       
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {leaveTypes.map((type) => (
-          <div key={type.id} className="relative flex flex-col justify-between rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm hover:shadow-md transition-all group">
+          <div key={type.id} className="relative flex flex-col justify-between rounded-[2rem] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-7 shadow-sm hover:shadow-md transition-all group">
             <div>
               <div className="flex items-center justify-between">
-                <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl shadow-inner", type.is_paid ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100")}>
+                <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl shadow-inner", type.is_paid ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800" : "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border border-amber-100 dark:border-amber-800")}>
                   {type.is_paid ? <Wallet size={20} /> : <AlertTriangle size={20} />}
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => setEditingType(type)} className="p-2 text-slate-400 hover:text-primary-600 bg-slate-50 rounded-xl border border-slate-100"><Edit2 size={16} /></button>
-                  <button onClick={() => setDeletingType(type)} className="p-2 text-slate-400 hover:text-rose-600 bg-slate-50 rounded-xl border border-slate-100"><Trash2 size={16} /></button>
+                  <button onClick={() => setEditingType(type)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:text-primary-400 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800"><Edit2 size={16} /></button>
+                  <button onClick={() => setDeletingType(type)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:text-rose-300 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800"><Trash2 size={16} /></button>
                 </div>
               </div>
-              <h3 className="mt-5 text-lg font-bold text-slate-800 tracking-tight leading-none uppercase">{type.name}</h3>
-              <p className="mt-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Code: {type.code}</p>
+              <h3 className="mt-5 text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-none uppercase">{type.name}</h3>
+              <p className="mt-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Code: {type.code}</p>
               <div className="mt-4 flex gap-2">
-                 <span className={cn("px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border", type.is_paid ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-amber-50 text-amber-700 border-amber-100")}>{type.is_paid ? "Paid" : "Unpaid"}</span>
+                 <span className={cn("px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border", type.is_paid ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800" : "bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-800")}>{type.is_paid ? "Paid" : "Unpaid"}</span>
               </div>
             </div>
           </div>
@@ -97,7 +97,7 @@ export function LeaveTypeManager({ wsId }: LeaveTypeManagerProps) {
         <Modal isOpen={true} onClose={() => setDeletingType(null)} title="Confirm Delete">
           <div className="p-8">
             <p className="text-sm">Are you sure you want to delete "{deletingType.name}"?</p>
-            <div className="mt-8 flex justify-end gap-3"><button onClick={() => setDeletingType(null)} className="px-6 py-2 text-xs font-bold text-slate-400">Cancel</button><button onClick={() => deleteTypeMutation.mutate(deletingType.id)} className="rounded-xl bg-rose-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase">Delete</button></div>
+            <div className="mt-8 flex justify-end gap-3"><button onClick={() => setDeletingType(null)} className="px-6 py-2 text-xs font-bold text-slate-400 dark:text-slate-500">Cancel</button><button onClick={() => deleteTypeMutation.mutate(deletingType.id)} className="rounded-xl bg-rose-600 px-6 py-2.5 text-[10px] font-bold text-white uppercase">Delete</button></div>
           </div>
         </Modal>
       )}

@@ -377,8 +377,10 @@ LeeAttend sử dụng chiến lược định danh Workspace ưu tiên đường
   - **Desktop App**: Chạy như ứng dụng Windows native (Tauri).
   - **Standalone Server**: Chạy như một Web Server độc lập (Rust Wrapper), không cần cài đặt Node.js hay bất kỳ runtime nào khác.
 
-### 3.1. Dark Mode System (Phase 1 - Feb 2026)
+### 3.1. Dark Mode System (Phases 1-4 - Feb 2026)
 Hệ thống hỗ trợ giao diện sáng/tối với tính năng lưu trữ và đồng bộ tự động:
+
+**Core Infrastructure (Phase 1):**
 - **Context API**: `DarkModeContext` quản lý trạng thái theme toàn ứng dụng
 - **Hook Consumer**: `use-dark-mode.ts` cung cấp `isDark` state và hàm `toggleDarkMode()`
 - **Persistence**: Lưu trữ lựa chọn vào localStorage với key `theme-preference`
@@ -387,13 +389,26 @@ Hệ thống hỗ trợ giao diện sáng/tối với tính năng lưu trữ và
 - **FOUC Prevention**: Inline script trong `index.html` ngăn flash of unstyled content trên page load
 - **Cross-Tab Sync**: Sử dụng sự kiện `storage` để cập nhật theme khi thay đổi ở tab khác
 
-**Implementation:**
+**Layout & UI Primitives (Phases 2-3):**
+- MainLayout, Navbar, Sidebar: 50+ dark variants covering layout structure
+- Modal, Toast, Combobox, Sheet, dropdown-menu, Tabs, LanguageSwitcher: Full overlay support
+- 465+ dark: CSS classes applied with WCAG AA compliance
+
+**Feature Pages (Phase 4):**
+- 91 files updated (30 pages, 61 components)
+- 2178+ dark: variants applied across auth, dashboards, reports, devices, settings
+- Consistent styling: gradient dark variants, shadow overrides, semantic color palette
+- All interactive elements properly themed: buttons, inputs, badges, tables, charts
+
+**Implementation Files:**
 - `src/context/dark-mode-context-definition.ts` - Context type definition
 - `src/context/use-dark-mode-context.ts` - useContext wrapper
 - `src/context/DarkModeContext.tsx` - Provider component
 - `src/hooks/use-dark-mode.ts` - Public consumer hook
 - `src/index.css` - Dark variant CSS variables
 - `index.html` - FOUC prevention script
+- `src/pages/*` - All 30+ feature pages
+- `src/components/**/*` - All 60+ components
 
 ## Data Flow
 ... (giữ nguyên) ...

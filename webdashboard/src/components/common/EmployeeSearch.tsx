@@ -100,7 +100,7 @@ export function EmployeeSearch({
       value: emp.id,
       label: emp.full_name,
       description: emp.employee_id_number,
-      icon: <User className='h-4 w-4 text-slate-500' />,
+      icon: <User className='h-4 w-4 text-slate-500 dark:text-slate-400' />,
     }));
 
   const extraOptions = selectedMeta
@@ -110,7 +110,7 @@ export function EmployeeSearch({
       value: m.id,
       label: m.full_name,
       description: m.employee_id_number,
-      icon: <User className='h-4 w-4 text-slate-500' />,
+      icon: <User className='h-4 w-4 text-slate-500 dark:text-slate-400' />,
     }));
 
   const options = [...extraOptions, ...baseOptions];
@@ -135,7 +135,7 @@ export function EmployeeSearch({
             return (
               <div
                 key={id}
-                className='flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium border border-slate-200'
+                className='flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700'
               >
                 <span>{meta?.full_name || id}</span>
                 <button

@@ -40,14 +40,14 @@ export default function ReportFilters({
   return (
     <>
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
-        <div className="flex bg-slate-100/50 p-1.5 rounded-[22px] w-fit border border-slate-200/50 shadow-inner">
+        <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
           <button
             onClick={() => onReportTypeChange("summary")}
             className={cn(
               "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
               reportType === 'summary'
-                ? "bg-white text-primary-600 shadow-sm border border-slate-100"
-                : "text-slate-500 hover:text-slate-700"
+                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
             )}
           >
             <List size={14} /> {t("reports.tabs.summary")}
@@ -58,16 +58,16 @@ export default function ReportFilters({
             className={cn(
               "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
               reportType === 'daily'
-                ? "bg-white text-primary-600 shadow-sm border border-slate-100"
-                : "text-slate-500 hover:text-slate-700"
+                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
             )}
           >
             <TableProperties size={14} /> {t("reports.tabs.daily")}
           </button>
         </div>
 
-        <div className="flex flex-col md:flex-row md:items-center gap-6 bg-white p-3 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-900/5 pr-6">
-          <div className="flex items-center bg-slate-100/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200/50">
+        <div className="flex flex-col md:flex-row md:items-center gap-6 bg-white dark:bg-slate-900 p-3 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-900/5 pr-6">
+          <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200 dark:border-slate-700/50">
             {["this_month", "last_month"].map(mode => (
               <button
                 key={mode}
@@ -75,15 +75,15 @@ export default function ReportFilters({
                 className={cn(
                   "px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
                   filterMode === mode
-                    ? "bg-white text-primary-600 shadow-sm border border-slate-100"
-                    : "text-slate-500 hover:text-slate-700"
+                    ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
                 )}
               >
                 {t(`common.filters.${mode}`).toUpperCase()}
               </button>
             ))}
 
-            <div className="h-6 w-px bg-slate-200 mx-2 opacity-50" />
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-600 mx-2 opacity-50" />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -91,8 +91,8 @@ export default function ReportFilters({
                   className={cn(
                     "flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
                     filterMode === "specific_month"
-                      ? "bg-white text-primary-600 shadow-sm border border-slate-100"
-                      : "text-slate-500 hover:text-slate-700"
+                      ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
                   )}
                 >
                   <CalendarRange size={14} />
@@ -103,7 +103,7 @@ export default function ReportFilters({
               </DropdownMenuTrigger>
 
               <DropdownMenuContent
-                className="w-80 p-4 rounded-[2.5rem] shadow-premium-2xl border-slate-100 bg-white/95 backdrop-blur-xl"
+                className="w-80 p-4 rounded-[2.5rem] shadow-premium-2xl border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/95 backdrop-blur-xl"
                 align="end"
                 sideOffset={12}
               >
@@ -120,15 +120,15 @@ export default function ReportFilters({
               className={cn(
                 "px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
                 filterMode === "custom"
-                  ? "bg-white text-primary-600 shadow-sm border border-slate-100"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
               )}
             >
               {t("common.filters.custom").toUpperCase()}
             </button>
           </div>
 
-          <div className="h-10 w-px bg-slate-100 hidden md:block opacity-50" />
+          <div className="h-10 w-px bg-slate-100 dark:bg-slate-700 hidden md:block opacity-50" />
 
           <div className="w-full md:w-80">
             <EmployeeSearch
@@ -144,27 +144,27 @@ export default function ReportFilters({
       </div>
 
       {filterMode === "custom" && (
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-primary-900/5 grid grid-cols-1 md:grid-cols-2 gap-10 animate-in slide-in-from-top-4 duration-500 max-w-2xl">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-primary-900/5 grid grid-cols-1 md:grid-cols-2 gap-10 animate-in slide-in-from-top-4 duration-500 max-w-2xl">
           <div className="space-y-3 px-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
               <Calendar size={12} /> {t("common.from_date")}
             </label>
             <input
               type="date"
               value={dateRange.start}
               onChange={(e) => onDateRangeChange({ ...dateRange, start: e.target.value })}
-              className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white transition-all font-bold text-sm shadow-inner"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-sm shadow-inner"
             />
           </div>
           <div className="space-y-3 px-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
               <Calendar size={12} /> {t("common.to_date")}
             </label>
             <input
               type="date"
               value={dateRange.end}
               onChange={(e) => onDateRangeChange({ ...dateRange, end: e.target.value })}
-              className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white transition-all font-bold text-sm shadow-inner"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 transition-all font-bold text-sm shadow-inner"
             />
           </div>
         </div>

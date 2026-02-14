@@ -37,7 +37,7 @@ export default function PayrollSettingsSection({ wsId }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
         <TemporalConfigTable 
           title={t("common.payroll.settings.title")}
           records={history.map(h => ({
@@ -49,8 +49,8 @@ export default function PayrollSettingsSection({ wsId }: Props) {
           onSave={handleSavePolicy}
         />
 
-        <div className="mt-8 p-6 bg-blue-50/50 border border-blue-100 rounded-2xl flex gap-4">
-          <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+        <div className="mt-8 p-6 bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-800 rounded-2xl flex gap-4">
+          <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 shrink-0">
             <ShieldAlert size={20} />
           </div>
           <div className="text-xs text-blue-800 leading-relaxed font-medium">
