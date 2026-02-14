@@ -10,6 +10,7 @@ set -euo pipefail
 # --- Configuration ---
 export PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export COMPOSE_FILE="$PROJECT_ROOT/docker-compose.test.yml"
+export COMPOSE_PROJECT_NAME="leeattend-test"
 export LOG_DIR="$PROJECT_ROOT/.test_logs"
 mkdir -p "$LOG_DIR"
 
@@ -44,7 +45,7 @@ run_with_timeout() {
 
 leeattend_cleanup() {
     echo -e "\n${YELLOW}🧹 [Parent] Cleaning up test environment...${NC}"
-    docker compose -f "$COMPOSE_FILE" down -v > /dev/null 2>&1
+    docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" down -v > /dev/null 2>&1
     rm -f apiserver/.api_port* webdashboard/.web_port*
     echo -e "${GREEN}✅ Cleanup complete.${NC}"
 }
@@ -53,11 +54,11 @@ leeattend_setup() {
     echo -e "${BLUE}🏗️ [Parent] Setting up Postgres Environment...${NC}"
 
     # We need apiserver_test up to run migrations inside it
-    docker compose -f "$COMPOSE_FILE" up -d test_db apiserver_test > /dev/null 2>&1
+    docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" up -d test_db apiserver_test > /dev/null 2>&1
 
     echo -n "  Waiting for database to be ready (timeout: ${TIMEOUT_DB_WAIT}s)..."
     local db_wait_start=$(date +%s)
-    until docker compose -f "$COMPOSE_FILE" exec test_db pg_isready -U test_user -d test_database > /dev/null 2>&1; do
+    until docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" exec test_db pg_isready -U test_user -d test_database > /dev/null 2>&1; do
         printf "."
         sleep 1
         local elapsed=$(($(date +%s) - db_wait_start))
@@ -71,12 +72,12 @@ leeattend_setup() {
     echo -e "  Creating isolated databases for $NUM_WORKERS workers..."
 
     # Create template database for Rust tests
-    docker compose -f "$COMPOSE_FILE" exec -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "DROP DATABASE IF EXISTS leeattend_test_template;" > /dev/null 2>&1 || true
-    docker compose -f "$COMPOSE_FILE" exec -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "CREATE DATABASE leeattend_test_template;" > /dev/null 2>&1 || true
+    docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" exec -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "DROP DATABASE IF EXISTS leeattend_test_template;" > /dev/null 2>&1 || true
+    docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" exec -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "CREATE DATABASE leeattend_test_template;" > /dev/null 2>&1 || true
 
     for i in $(seq 0 $((NUM_WORKERS-1))); do
-        docker compose -f "$COMPOSE_FILE" exec -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "DROP DATABASE IF EXISTS test_database_e2e_$i;" > /dev/null 2>&1 || true
-        docker compose -f "$COMPOSE_FILE" exec -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "CREATE DATABASE test_database_e2e_$i;" > /dev/null 2>&1 || true
+        docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" exec -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "DROP DATABASE IF EXISTS test_database_e2e_$i;" > /dev/null 2>&1 || true
+        docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" exec -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "CREATE DATABASE test_database_e2e_$i;" > /dev/null 2>&1 || true
     done
 
     # Internal URLs
@@ -84,27 +85,27 @@ leeattend_setup() {
     local TEMPLATE_DB_URL="postgres://test_user:test_password@test_db:5432/leeattend_test_template?sslmode=disable"
 
     echo -e "  Running migrations..."
-    if ! docker compose -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$MAIN_DB_URL' > .test_logs/parent_mig_main.log 2>&1"; then
+    if ! docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$MAIN_DB_URL' > .test_logs/parent_mig_main.log 2>&1"; then
         echo -e "${RED}❌ Main migration FAILED. Logs from container:${NC}"
-        docker compose -f "$COMPOSE_FILE" exec -T apiserver_test cat .test_logs/parent_mig_main.log
+        docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" exec -T apiserver_test cat .test_logs/parent_mig_main.log
         exit 1
     fi
-    if ! docker compose -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$TEMPLATE_DB_URL' > .test_logs/parent_mig_template.log 2>&1"; then
+    if ! docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$TEMPLATE_DB_URL' > .test_logs/parent_mig_template.log 2>&1"; then
         echo -e "${RED}❌ Template migration FAILED. Logs from container:${NC}"
-        docker compose -f "$COMPOSE_FILE" exec -T apiserver_test cat .test_logs/parent_mig_template.log
+        docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" exec -T apiserver_test cat .test_logs/parent_mig_template.log
         exit 1
     fi
 
     echo -e "  Preparing SQLx cache..."
-    docker compose -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" -e DATABASE_URL="$TEMPLATE_DB_URL" apiserver_test bash -c "cargo sqlx prepare -- --all-targets > .test_logs/parent_sqlx_prepare.log 2>&1" || echo -e "${YELLOW}⚠️ SQLx prepare failed (non-fatal).${NC}"
+    docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" -e DATABASE_URL="$TEMPLATE_DB_URL" apiserver_test bash -c "cargo sqlx prepare -- --all-targets > .test_logs/parent_sqlx_prepare.log 2>&1" || echo -e "${YELLOW}⚠️ SQLx prepare failed (non-fatal).${NC}"
 
     # Ensure no connections hang on template for CREATE DATABASE TEMPLATE usage
-    docker compose -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "REVOKE CONNECT ON DATABASE leeattend_test_template FROM public;" > /dev/null 2>&1
-    docker compose -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'leeattend_test_template' AND pid <> pg_backend_pid();" > /dev/null 2>&1
+    docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "REVOKE CONNECT ON DATABASE leeattend_test_template FROM public;" > /dev/null 2>&1
+    docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'leeattend_test_template' AND pid <> pg_backend_pid();" > /dev/null 2>&1
 
     for i in $(seq 0 $((NUM_WORKERS-1))); do
         local E2E_DB_URL="postgres://test_user:test_password@test_db:5432/test_database_e2e_$i?sslmode=disable"
-        if ! docker compose -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$E2E_DB_URL' > .test_logs/parent_mig_e2e_$i.log 2>&1"; then
+        if ! docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" apiserver_test bash -c "sqlx migrate run --database-url '$E2E_DB_URL' > .test_logs/parent_mig_e2e_$i.log 2>&1"; then
             echo -e "${RED}❌ E2E DB $i migration FAILED.${NC}"
             exit 1
         fi
