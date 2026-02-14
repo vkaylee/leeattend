@@ -73,7 +73,15 @@ LeeAttend is a high-performance attendance and payroll system split into three p
     - `src/components/payroll/` - Payroll-specific components
     - `src/components/leave/` - Leave management components
     - `src/components/employees/` - Employee management components
+- **Theming Infrastructure** (NEW - Feb 2026):
+    - `src/context/dark-mode-context-definition.ts` - Context type definition
+    - `src/context/use-dark-mode-context.ts` - useContext consumer hook
+    - `src/context/DarkModeContext.tsx` - Provider component wrapping App
+    - `src/hooks/use-dark-mode.ts` - Public hook for theme toggle and state
+    - Dark mode CSS variables in `src/index.css` with Tailwind semantic tokens
+    - FOUC prevention script in `index.html`
 - **Key Features**:
+    - **Dark Mode System**: Complete theme infrastructure with localStorage persistence and system preference detection (Phase 1)
     - **Leave Policy Manager**: Centralized management of leave types and policies.
     - **Overtime Policy Manager**: Visual editor for complex overtime rules.
     - **Official Payslip UI**: High-fidelity, print-ready payslip generation using Radix-UI.

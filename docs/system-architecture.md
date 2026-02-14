@@ -372,10 +372,28 @@ LeeAttend sử dụng chiến lược định danh Workspace ưu tiên đường
 - **Responsibility**: Quản lý cấu hình, phê duyệt Agent và theo dõi dữ liệu chấm công.
 - **Stack**: **React 19** + **Vite**, **Tauri** (Desktop Wrapper), **Tailwind CSS 4**.
 - **Architecture**: Single Page Application (SPA) sử dụng **React Router 7** để điều hướng client-side.
-- **Mode**: 
+- **Mode**:
   - **SPA Build**: Build thành static assets (HTML/JS/CSS).
   - **Desktop App**: Chạy như ứng dụng Windows native (Tauri).
   - **Standalone Server**: Chạy như một Web Server độc lập (Rust Wrapper), không cần cài đặt Node.js hay bất kỳ runtime nào khác.
+
+### 3.1. Dark Mode System (Phase 1 - Feb 2026)
+Hệ thống hỗ trợ giao diện sáng/tối với tính năng lưu trữ và đồng bộ tự động:
+- **Context API**: `DarkModeContext` quản lý trạng thái theme toàn ứng dụng
+- **Hook Consumer**: `use-dark-mode.ts` cung cấp `isDark` state và hàm `toggleDarkMode()`
+- **Persistence**: Lưu trữ lựa chọn vào localStorage với key `theme-preference`
+- **System Preference**: Phát hiện cài đặt hệ thống thông qua `matchMedia('(prefers-color-scheme: dark)')`
+- **CSS Variables**: Tailwind dark variant với semantic tokens (background, foreground, card, sidebar)
+- **FOUC Prevention**: Inline script trong `index.html` ngăn flash of unstyled content trên page load
+- **Cross-Tab Sync**: Sử dụng sự kiện `storage` để cập nhật theme khi thay đổi ở tab khác
+
+**Implementation:**
+- `src/context/dark-mode-context-definition.ts` - Context type definition
+- `src/context/use-dark-mode-context.ts` - useContext wrapper
+- `src/context/DarkModeContext.tsx` - Provider component
+- `src/hooks/use-dark-mode.ts` - Public consumer hook
+- `src/index.css` - Dark variant CSS variables
+- `index.html` - FOUC prevention script
 
 ## Data Flow
 ... (giữ nguyên) ...

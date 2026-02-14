@@ -4,6 +4,45 @@ Detailed record of significant changes, features, and fixes in LeeAttend.
 
 ---
 
+## 2026-02-14
+
+### Features
+
+#### Dark Mode Phase 1: Foundation Completed (webdashboard)
+**Component:** Web Dashboard - Theme Infrastructure
+**Status:** Complete
+
+**Implementation:**
+- CSS dark variant registration via `@variant dark (&:where(.dark, .dark *))`
+- `.dark` class CSS variable overrides (background, foreground, card, sidebar tokens)
+- Semantic token registration in `@theme` for Tailwind integration
+- FOUC prevention inline script in `index.html` with system preference detection
+- `use-dark-mode.ts` hook: localStorage persistence, matchMedia sync, cross-tab sync
+- DarkModeContext split into 3 files: provider, definition, consumer hook
+- DarkModeProvider wired into App.tsx
+
+**Files Created:**
+- `webdashboard/src/hooks/use-dark-mode.ts` (213 lines)
+- `webdashboard/src/context/DarkModeContext.tsx` (split into 3 files for ESLint compliance)
+
+**Files Modified:**
+- `webdashboard/src/index.css` (dark variant, CSS vars, semantic tokens)
+- `webdashboard/index.html` (FOUC script, transition class)
+- `webdashboard/src/App.tsx` (DarkModeProvider wrapper)
+
+**Tests:**
+- All 465 existing unit tests pass
+- 2 E2E baseline tests validated
+- ESLint: Clean, no issues
+
+**Validation:**
+- System preference detection verified
+- Cross-tab sync confirmed
+- Private browsing safety tested
+- FOUC elimination validated on hard refresh
+
+---
+
 ## 2026-02-13
 
 ### Bug Fixes

@@ -1,10 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="transition-colors duration-200">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LeeAttend Dashboard</title>
+    <script>
+      (function() {
+        try {
+          var storedTheme = localStorage.getItem('theme_mode');
+          var isDark = storedTheme === 'dark' ||
+            (!storedTheme || storedTheme === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (isDark) document.documentElement.classList.add('dark');
+        } catch(e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
