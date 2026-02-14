@@ -25,6 +25,7 @@ show_help() {
     echo -e "  ${GREEN}--all${NC}          Run all tests (Lint, Unit, Integration, E2E)"
     echo -e "  ${GREEN}--api${NC}          Run tests for API components (Rust, Python)"
     echo -e "  ${GREEN}--web${NC}          Run tests for Web component (Vite, Playwright)"
+    echo -e "  ${GREEN}--clean${NC}        Clean up containers and volumes (run this standalone)"
     echo -e "  ${GREEN}--help${NC}         Show this help message"
     echo -e "  ${GREEN}--timeout=N${NC}    Set global timeout in seconds (default: 1800 = 30min)"
     echo ""
@@ -191,6 +192,12 @@ case "$1" in
         MODE="web"
         FILTER="webdashboard"
         ;;
+    --clean)
+        echo -e "${BLUE}${BOLD}🧹 Cleaning up test containers and volumes...${NC}"
+        $DOCKER_COMPOSE_CMD down --volumes --remove-orphans
+        echo -e "${GREEN}✅ Cleanup complete!${NC}"
+        exit 0
+        ;;
     --help)
         show_help
         exit 0
@@ -238,10 +245,19 @@ global_timeout_watchdog() {
 global_timeout_watchdog &
 WATCHDOG_PID=$!
 
-# Cleanup handler: kill watchdog on exit
+# Cleanup handler: kill watchdog and stop containers on exit
 cleanup() {
+    echo -e "\n${BLUE}🧹 Cleaning up test containers...${NC}"
+
+    # Kill watchdog
     if [[ -n "$WATCHDOG_PID" ]]; then
         kill "$WATCHDOG_PID" 2>/dev/null || true
+    fi
+
+    # Stop and remove test containers
+    if [[ "${USE_DOCKER:-}" == "true" ]]; then
+        $DOCKER_COMPOSE_CMD down --remove-orphans 2>/dev/null || true
+        echo -e "${GREEN}✅ Test containers cleaned up.${NC}"
     fi
 }
 trap cleanup EXIT INT TERM
