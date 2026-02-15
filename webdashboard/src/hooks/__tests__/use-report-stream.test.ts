@@ -62,7 +62,7 @@ describe("useReportStream Hook", () => {
       expect(result.current.status).toMatch(/connecting|error/);
 
       // Change to null
-      rerender({ jobId: null as any });
+      rerender({ jobId: null });
 
       // Should return to idle
       expect(result.current.status).toBe("idle");
@@ -197,7 +197,7 @@ describe("useReportStream Hook", () => {
   describe("Data Accumulation", () => {
     it("should accumulate chunks in correct order", () => {
       // Test chunk accumulation logic
-      const chunks: any[] = [];
+      const chunks: unknown[] = [];
 
       // Simulate receiving chunks
       const chunkData1 = [{ id: 1 }, { id: 2 }];
@@ -209,13 +209,13 @@ describe("useReportStream Hook", () => {
       chunks.push(...chunkData3);
 
       expect(chunks).toHaveLength(6);
-      expect(chunks[0]?.id).toBe(1);
-      expect(chunks[5]?.id).toBe(6);
+      expect((chunks[0] as { id: number })?.id).toBe(1);
+      expect((chunks[5] as { id: number })?.id).toBe(6);
     });
 
     it("should handle array and object chunk data", () => {
       // Test both array and object data types
-      const chunks: any[] = [];
+      const chunks: unknown[] = [];
 
       // Array data
       chunks.push(...[{ id: 1 }]);

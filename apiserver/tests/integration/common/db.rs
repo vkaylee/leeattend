@@ -43,10 +43,7 @@ impl TestDatabase {
             .expect("Failed to connect to Postgres admin");
 
         // Use template database to avoid running migrations
-        let sql = format!(
-            "CREATE DATABASE \"{}\" TEMPLATE leeattend_test_template",
-            db_name
-        );
+        let sql = format!("CREATE DATABASE \"{db_name}\" TEMPLATE leeattend_test_template");
         let create_result = connection.execute(sql.as_str()).await;
 
         if let Err(e) = create_result {

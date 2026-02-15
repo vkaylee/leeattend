@@ -74,6 +74,7 @@ impl TestFactory {
     }
 }
 
+#[derive(Default)]
 pub struct AuthHelper;
 
 impl AuthHelper {

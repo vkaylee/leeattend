@@ -20,5 +20,5 @@ async fn test_repository_pagination() {
     }
 
     // This is a generic test pattern, actual repo call depends on implementation
-    assert!(true);
+    
 }

@@ -12,7 +12,7 @@ COPY .sqlx ./.sqlx
 
 # Build with BuildKit cache mounts for cargo registry + target dir
 # Dependencies are cached across builds → only changed source recompiles
-ENV SQLX_OFFLINE=true
+ENV SQLX_OFFLINE=false
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/target \
     cargo build --release && \

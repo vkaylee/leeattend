@@ -15,7 +15,7 @@
       "Bash(find:*)",
       "Bash(ls:*)",
       "Bash(wc:*)",
-      "Bash(SQLX_OFFLINE=true timeout 60s cargo test:*)",
+      "Bash(SQLX_OFFLINE=false timeout 60s cargo test:*)",
       "Bash(TIMEOUT_UNIT=300 ./scripts/test-unit.sh:*)"
     ]
   }

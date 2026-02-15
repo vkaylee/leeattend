@@ -7,7 +7,7 @@
 - **Zero-Warning Policy**: Dự án thực thi chính sách không cảnh báo nghiêm ngặt. Code phải vượt qua `cargo clippy -- -D warnings` trước khi commit.
 - **Test Module Placement**: Luôn đặt khối `mod tests` ở cuối tệp tin để tránh cảnh báo Clippy về việc sắp xếp các mục sau module test.
 - **Type Complexity**: Tránh các kiểu dữ liệu lồng nhau quá sâu (ví dụ: `OnceLock<Arc<Mutex<HashSet<...>>>>`). Hãy sử dụng `type` alias để cải thiện khả năng đọc và bảo trì.
-- **SQLx Metadata**: Khi thay đổi schema database, phải chạy `cargo sqlx prepare` để cập nhật metadata trong `.sqlx/`, đảm bảo linting offline hoạt động chính xác.
+- **SQLx Validation (Online Mode)**: Dự án ưu tiên sử dụng Database thật (trên RAM/tmpfs) để kiểm tra lỗi câu lệnh SQL trực tiếp trong quá trình biên dịch. Không còn yêu cầu duy trì thư mục `.sqlx/` cho môi trường phát triển và kiểm thử.
 - **Method Size (Rule of 30)**: Một hàm không nên dài quá 30 dòng code. Nếu dài hơn, hãy cân nhắc tách nhỏ ra các private methods hoặc helper functions.
 - **Single Responsibility (SRP)**: Một hàm chỉ làm một việc duy nhất. Tên hàm phải phản ánh đúng hành động (ví dụ: `validate_agent_token` thay vì `check_agent`).
 
@@ -422,9 +422,9 @@ To ensure high-quality delivery and fast feedback loops, the project uses a unif
 - **Internal Networking**: Database connections use internal hostnames (e.g., `test_db:5432`). Host port mapping is disabled.
 - **Database Performance**: Test databases are tuned for speed with `fsync=off`, `synchronous_commit=off`, and `full_page_writes=off`.
 
-#### 2. SQLx & Offline Mode
-- **Container-First Setup**: All migrations and metadata preparation (`sqlx prepare`) happen inside the `apiserver_test` container.
-- **Offline Compilation**: Host-side pre-compilation uses `SQLX_OFFLINE=true` to utilize the metadata prepared by the container. This eliminates the need for a host-reachable database.
+#### 2. SQLx & Online Validation
+- **Container-First Setup**: All migrations happen inside the `apiserver_test` container against a live database.
+- **Online Compilation**: Host-side pre-compilation and test execution uses `SQLX_OFFLINE=false` to ensure queries are validated against the actual database schema. This eliminates the risk of outdated cache files.
 
 #### 3. Logs & Debugging
 - **Memory-Backed Logs**: All logs are written to `.test_logs/` (backed by RAM).
