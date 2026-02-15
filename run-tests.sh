@@ -225,7 +225,11 @@ export TIMEOUT_BUILD="${TIMEOUT_BUILD:-600}"
 export TIMEOUT_DB_WAIT="${TIMEOUT_DB_WAIT:-120}"
 
 # Clear previous results
-mkdir -p "$PROJECT_ROOT/.test_logs"
+if [[ -L "$PROJECT_ROOT/.test_logs" ]]; then
+    mkdir -p "$(readlink "$PROJECT_ROOT/.test_logs")"
+else
+    mkdir -p "$PROJECT_ROOT/.test_logs"
+fi
 rm -f "$PROJECT_ROOT/.test_logs/results.txt"
 
 # Global timeout watchdog (background process)
@@ -247,17 +251,18 @@ WATCHDOG_PID=$!
 
 # Cleanup handler: kill watchdog and stop containers on exit
 cleanup() {
-    echo -e "\n${BLUE}🧹 Cleaning up test containers...${NC}"
+    echo -e "\n${BLUE}🧹 Cleaning up test containers and volumes...${NC}"
 
     # Kill watchdog
-    if [[ -n "$WATCHDOG_PID" ]]; then
+    if [[ -n "${WATCHDOG_PID:-}" ]]; then
         kill "$WATCHDOG_PID" 2>/dev/null || true
     fi
 
-    # Stop and remove test containers
+    # Stop and remove test containers, volumes, and orphans
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        $DOCKER_COMPOSE_CMD down --remove-orphans 2>/dev/null || true
-        echo -e "${GREEN}✅ Test containers cleaned up.${NC}"
+        # Use a short timeout to force shutdown if containers are stuck
+        $DOCKER_COMPOSE_CMD down --volumes --remove-orphans --timeout 5 2>/dev/null || true
+        echo -e "${GREEN}✅ Environment cleaned up.${NC}"
     fi
 }
 trap cleanup EXIT INT TERM

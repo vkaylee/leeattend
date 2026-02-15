@@ -10,6 +10,10 @@ WEB_TYPECHECK_CMD="npm run type-check"
 SYNC_API_CMD="./scripts/sync-api.sh"
 
 if [[ "${USE_DOCKER:-}" == "true" ]]; then
+    # Ensure database is migrated before clippy
+    echo "🗄️ Migrating test database..."
+    $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "sqlx migrate run"
+    
     APISERVER_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"SQLX_OFFLINE=false cargo clippy -- -D warnings\""
     AGENT_MAIN_CMD="$DOCKER_COMPOSE_CMD exec -T agent_test bash -c \"SQLX_OFFLINE=false cargo clippy -- -D warnings\""
     WEB_LINT_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run lint"

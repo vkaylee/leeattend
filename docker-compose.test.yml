@@ -13,7 +13,7 @@ services:
       timeout: 5s
       retries: 5
     tmpfs: 
-      - /var/lib/postgresql/data
+      - /var/lib/postgresql/data:size=1536M
 
   apiserver_test:
     build:
@@ -36,7 +36,7 @@ services:
       - ${PWD}/apiserver:/workspace/apiserver
       - apiserver-target:/workspace/apiserver/target
       - sccache-storage:/sccache
-      - test-logs:/workspace/apiserver/.test_logs
+      - ./.test_logs:/workspace/apiserver/.test_logs
       - shared-data:/workspace/shared
 
   agent_test:
@@ -58,7 +58,7 @@ services:
       - ${PWD}/agent-zk-worker:/workspace/agent-zk-worker
       - agent-target:/workspace/agent-main/target
       - sccache-storage:/sccache
-      - test-logs:/workspace/agent-main/.test_logs
+      - ./.test_logs:/workspace/agent-main/.test_logs
 
   web_test:
     build:
@@ -71,18 +71,38 @@ services:
       - CI=true
     volumes:
       - ${PWD}/webdashboard:/workspace/webdashboard
-      - /workspace/webdashboard/node_modules
-      - test-logs:/workspace/webdashboard/.test_logs
+      - web-node-modules:/workspace/webdashboard/node_modules
+      - ./.test_logs:/workspace/webdashboard/.test_logs
       - shared-data:/workspace/shared
 
 volumes:
   apiserver-target:
-  agent-target:
-  sccache-storage:
-  shared-data:
-  test-logs:
     driver: local
     driver_opts:
       type: tmpfs
       device: tmpfs
-      o: "size=128m"
+      o: "size=3072M"
+  agent-target:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=1536M"
+  sccache-storage:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=1024M"
+  shared-data:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=64M"
+  web-node-modules:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=800M"
