@@ -130,6 +130,16 @@ pub async fn force_reprocess_attendance(
         return Err(StatusCode::FORBIDDEN);
     }
 
+    const MAX_REPROCESS_DAYS: i64 = 90;
+
+    let date_range = (query.end_date - query.start_date).num_days();
+    if date_range < 0 {
+        return Err(StatusCode::BAD_REQUEST); // end before start
+    }
+    if date_range > MAX_REPROCESS_DAYS {
+        return Err(StatusCode::BAD_REQUEST); // too large
+    }
+
     let workspace = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
         pool: state.db.clone(),
     }
