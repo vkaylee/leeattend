@@ -74,25 +74,14 @@ TOTAL_MEM_KB=$(awk "/MemTotal/ {print \$2}" /proc/meminfo)
 TOTAL_MEM_GB=$((TOTAL_MEM_KB / 1024 / 1024))
 
 if [ -z "${NUM_WORKERS:-}" ]; then
-    # Default to 1/4 of available CPU cores to prevent system freeze
-    export NUM_WORKERS=$(( CPU_CORES / 4 ))
+    # Default to 1/2 of available CPU cores now that we use RAM volumes
+    export NUM_WORKERS=$(( CPU_CORES / 2 ))
     [ $NUM_WORKERS -lt 1 ] && export NUM_WORKERS=1
     
-    # Cap at 2 workers as requested by user
-    if [ $NUM_WORKERS -gt 2 ]; then
-        export NUM_WORKERS=2
-        REASON="Capped at 2 workers"
-    else
-        REASON="1/4 of System Cores"
-    fi
-
+    REASON="1/2 of System Cores"
     echo -e "${YELLOW}⚙️ Auto-tuned NUM_WORKERS to $NUM_WORKERS ($REASON)${NC}"
 else
-    # Also cap user-provided NUM_WORKERS to 2 if it's higher
-    if [ "$NUM_WORKERS" -gt 2 ]; then
-        echo -e "${YELLOW}⚠️ Provided NUM_WORKERS ($NUM_WORKERS) exceeds limit. Capping to 2.${NC}"
-        export NUM_WORKERS=2
-    fi
+    # Respect user-provided NUM_WORKERS without capping
     echo -e "${YELLOW}⚙️ Using provided NUM_WORKERS: $NUM_WORKERS${NC}"
 fi
 
