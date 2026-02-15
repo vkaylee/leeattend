@@ -2,6 +2,7 @@ pub mod agent_manager;
 pub mod cache;
 pub mod dev_initialization;
 pub mod domain;
+pub mod errors;
 pub mod handlers;
 pub mod models;
 pub mod openapi;
