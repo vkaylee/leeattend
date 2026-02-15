@@ -13,18 +13,15 @@
 - **DO NOT** create new enhanced files, update to the existing files directly.
 - **[IMPORTANT]** After creating or modifying code file, run compile command/script to check for any compile errors.
 
-#### 2. Testing
+#### 2. Testing & Verification
 
-**⛔ NO TEST = NO DONE** - Every feature MUST have tests before considered complete.
+**⛔ NO TEST = NO DONE** - Every feature MUST pass tests in the RAM-based Docker environment.
 
-- Delegate to `tester` agent to run tests and analyze the summary report.
-  - Write comprehensive unit tests
-  - Ensure high code coverage (80%+ target)
-  - Test error scenarios
-  - Validate performance requirements
-- **UI Testing:** ALWAYS add `data-testid` attributes to interactive elements before writing tests
-  - Format: `data-testid="component-name-element-type"` (kebab-case)
-  - Tests MUST use `data-testid` selectors, NOT class names or text content
+- **Execution:** Always use `./run-tests.sh` (which handles RAM setup/cleanup).
+- **Failure Analysis:** If tests fail, you MUST use `./scripts/debug-logs.sh --errors` to find the root cause.
+- **Persistence:** Logs are in RAM; reading them via `debug-logs.sh` is mandatory for post-mortem analysis.
+- **UI Testing:** ALWAYS add `data-testid` attributes to interactive elements before writing tests.
+- **Coverage:** Target 80%+; never use fake data or cheats to bypass failures.
 - Tests are critical for ensuring code quality and reliability, **DO NOT** ignore failing tests just to pass the build.
 - **IMPORTANT:** make sure you don't use fake data, mocks, cheats, tricks, temporary solutions, just to pass the build or github actions.
 - **IMPORTANT:** Always fix failing tests follow the recommendations and delegate to `tester` agent to run tests again, only finish your session when all tests pass.

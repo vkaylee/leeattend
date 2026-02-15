@@ -43,13 +43,18 @@
 
 ## Testing Requirements (MANDATORY)
 
-**⛔ NO TEST = NO DONE** - Every feature MUST have corresponding tests before considered complete.
+**⛔ NO TEST = NO DONE** - Every feature MUST have corresponding tests verified in the RAM environment before considered complete.
+
+### Core Protocol (WSL/RAM)
+- **DOCKER ONLY:** NEVER run `cargo`, `pytest`, or `npm` on the host. Host execution will freeze the system due to WSL I/O issues.
+- **MIGRATIONS:** Always run migrations inside the container before linting/testing.
+- **CLEANUP:** Use `./run-tests.sh --clean` if RAM volumes are full or corrupted.
 
 ### General Testing Rules
-- Every new feature, bug fix, or refactor MUST include tests
-- Tests must pass before marking any task as complete
-- Never skip tests or use mocks/fake data just to pass the build
-- Delegate to `tester` agent after implementation to validate
+- Every new feature, bug fix, or refactor MUST include tests.
+- Tests must pass before marking any task as complete.
+- **[CRITICAL]** If tests fail, you MUST use `./scripts/debug-logs.sh --errors` to investigate. Do not guess the cause.
+- Use `cargo nextest` inside Docker for faster, isolated Rust testing.
 
 ### UI/Frontend Testing Standards
 - **ALWAYS use `data-testid` attributes** for element selection in tests

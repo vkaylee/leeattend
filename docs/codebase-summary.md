@@ -115,10 +115,12 @@ LeeAttend is a high-performance attendance and payroll system split into three p
 
 ## 🧪 Testing Infrastructure
 
-LeeAttend employs a state-of-the-art testing infrastructure optimized for speed, reliability, and isolation, specifically tailored for WSL2 environments.
+LeeAttend employs a high-performance testing infrastructure optimized for speed, reliability, and SSD longevity, specifically tailored for WSL2 environments.
 
-- **Unified Orchestrator**: `./run-tests.sh` centralizes linting, unit testing, and integration/E2E tests.
-- **Smart Worker Pool**: High-efficiency orchestrator that strictly respects `NUM_WORKERS` limits (auto-capped at 2 for WSL/stability) using a real-time task queue.
+- **RAM-First Execution (tmpfs):** To bypass WSL's VirtioFS performance bottlenecks, all heavy I/O directories are mounted in RAM (Rust `target/`, `sccache`, `node_modules`, and PostgreSQL data).
+- **Persistent RAM Logs:** Test logs are stored in `/tmp/leeattend-test-logs` (RAM) and symlinked to `.test_logs/`. Use `./scripts/debug-logs.sh` for fast analysis.
+- **Unified Orchestrator:** `./run-tests.sh` centralizes all tests with automatic RAM cleanup on exit.
+- **Smart Worker Pool:** High-efficiency orchestrator that strictly respects `NUM_WORKERS` limits (auto-capped at 2 for WSL/stability).
 - **Comprehensive Summary Report**: Generates a detailed, colorized report at the end of every run, providing a snapshot of every task's status and execution duration.
 - **Real-time Monitoring**: Provides live progress updates for parallel tasks (`[WAIT] Running: ...`), improving visibility during long-running suites.
 - **Cargo Nextest**: High-performance test runner for Rust, providing better parallelism and isolated process execution for 2x faster suite completion.

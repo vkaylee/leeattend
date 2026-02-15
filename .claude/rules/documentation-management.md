@@ -1,7 +1,8 @@
 # Project Documentation Management
 
-### Roadmap & Changelog Maintenance
-- **Project Roadmap** (`./docs/development-roadmap.md`): Living document tracking project phases, milestones, and progress
+### Core Governance
+- **Project OS** (`./PROJECT_OS.md`): **The Single Source of Truth (SSOT)** for infrastructure, RAM protocol, testing mandates, and debugging workflows. **Mandatory maintenance required** if any test or build processes change.
+- **Project Roadmap** (`./docs/development-roadmap.md`): Living document tracking progress.
 - **Project Changelog** (`./docs/project-changelog.md`): Detailed record of all significant changes, features, and fixes
 - **System Architecture** (`./docs/system-architecture.md`): Detailed record of all significant changes, features, and fixes
 - **Code Standards** (`./docs/code-standards.md`): Detailed record of all significant changes, features, and fixes
