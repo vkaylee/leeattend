@@ -1,6 +1,6 @@
 //! Report calculation tests
 
-use crate::integration::common::app::spawn_app;
+use crate::common::app::spawn_app;
 
 use chrono::{Datelike, NaiveTime, TimeZone, Utc};
 use reqwest::StatusCode;
@@ -9,7 +9,7 @@ use reqwest::StatusCode;
 async fn test_report_calculation_grace_period_and_break() {
     let (address, test_db) = spawn_app().await;
     let pool = test_db.pool();
-    let factory = crate::integration::common::factory::TestFactory::new(pool.clone());
+    let factory = crate::common::factory::TestFactory::new(pool.clone());
     let client = reqwest::Client::new();
 
     let user_id = factory.user().create().await;

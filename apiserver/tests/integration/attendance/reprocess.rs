@@ -1,8 +1,8 @@
 //! Attendance Reprocess API integration tests
 
-use crate::integration::common::app::setup_app_tower;
-use crate::integration::common::db::TestDatabase;
-use crate::integration::common::factory::TestFactory;
+use crate::common::app::setup_app_tower;
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
 use apiserver::models::{LogSource, RawAttendanceLog};
 use apiserver::AppState;
 use axum::http::{Request, StatusCode};

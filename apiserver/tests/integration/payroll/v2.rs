@@ -1,7 +1,7 @@
 //! Payroll multi-segment legacy support
 
-use crate::integration::common::db::TestDatabase;
-use crate::integration::common::factory::TestFactory;
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
 use apiserver::services::payroll_service::PayrollService;
 use apiserver::repositories::payroll_repository;
 use chrono::{NaiveDate, TimeZone, Utc};

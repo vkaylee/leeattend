@@ -1,6 +1,6 @@
 //! Health Check integration tests
 
-use crate::integration::common::app::spawn_app;
+use crate::common::app::spawn_app;
 use reqwest::StatusCode;
 
 #[tokio::test]

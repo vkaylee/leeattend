@@ -1,6 +1,6 @@
 //! Report system logic tests (Queue, Redis, etc.)
 
-use crate::integration::common::db::TestDatabase;
+use crate::common::db::TestDatabase;
 use apiserver::queue::{ReportJob, ReportType, TaskType, DateRange, RedisPool};
 use chrono::NaiveDate;
 use uuid::Uuid;

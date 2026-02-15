@@ -1,7 +1,7 @@
 //! Roster cache build data tests
 
-use crate::integration::common::db::TestDatabase;
-use crate::integration::common::factory::TestFactory;
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
 use apiserver::cache::build_roster_data;
 
 

@@ -1,8 +1,8 @@
 //! Attendance Log API integration tests
 
-use crate::integration::common::app::setup_app_tower;
-use crate::integration::common::db::TestDatabase;
-use crate::integration::common::factory::TestFactory;
+use crate::common::app::setup_app_tower;
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
 use apiserver::AppState;
 use axum::http::StatusCode;
 use std::sync::Arc;
@@ -31,7 +31,7 @@ async fn test_get_attendance_logs_filtering_and_pagination() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{}/employees/{}/attendance", ws_id, emp_id))
+                .uri(format!("/api/workspaces/{}/attendance/logs?employee_id={}", ws_id, emp_id))
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -56,7 +56,7 @@ async fn test_get_attendance_logs_unauthorized() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{}/employees/{}/attendance", ws_id, emp_id))
+                .uri(format!("/api/workspaces/{}/attendance/logs?employee_id={}", ws_id, emp_id))
                 .header("X-User-Id", other_user.to_string()) // Unauthorized user
                 .body(axum::body::Body::empty())
                 .unwrap(),

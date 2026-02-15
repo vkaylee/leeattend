@@ -1,8 +1,8 @@
 //! OT Workflow integration tests
 
-use crate::integration::common::app::setup_app_tower;
-use crate::integration::common::db::TestDatabase;
-use crate::integration::common::factory::TestFactory;
+use crate::common::app::setup_app_tower;
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
 use apiserver::AppState;
 use apiserver::models::{OtStatus, AttendanceDailySummary};
 use axum::http::StatusCode;

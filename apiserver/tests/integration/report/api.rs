@@ -1,6 +1,6 @@
 //! Report API integration tests
 
-use crate::integration::common::app::spawn_app;
+use crate::common::app::spawn_app;
 use chrono::{Datelike, NaiveTime, TimeZone, Utc};
 use reqwest::StatusCode;
 
@@ -8,7 +8,7 @@ use reqwest::StatusCode;
 async fn test_get_daily_attendance_report_with_break_times() {
     let (address, test_db) = spawn_app().await;
     let pool = test_db.pool();
-    let factory = crate::integration::common::factory::TestFactory::new(pool.clone());
+    let factory = crate::common::factory::TestFactory::new(pool.clone());
     let client = reqwest::Client::new();
 
     // 1. Setup
@@ -65,7 +65,7 @@ async fn test_get_daily_attendance_report_with_break_times() {
 async fn test_get_workspace_attendance_summary() {
     let (address, test_db) = spawn_app().await;
     let pool = test_db.pool();
-    let factory = crate::integration::common::factory::TestFactory::new(pool.clone());
+    let factory = crate::common::factory::TestFactory::new(pool.clone());
     let client = reqwest::Client::new();
 
     let user_id = factory.user().create().await;

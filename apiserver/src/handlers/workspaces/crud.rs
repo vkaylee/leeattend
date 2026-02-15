@@ -15,7 +15,7 @@ use crate::{AppState, UserId};
 pub async fn get_workspace_stats(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, (StatusCode, String)> {
     // 1. Total Employees
     let total_employees: i64 = sqlx::query_scalar(
         "SELECT COUNT(*) FROM employees WHERE workspace_id = $1 AND is_active = TRUE",
@@ -27,19 +27,20 @@ pub async fn get_workspace_stats(
 
     // 2. Present Today (Employees with at least one punch-in today)
     let today = Utc::now().date_naive();
+    let start_of_day = today
+        .and_hms_opt(0, 0, 0)
+        .and_then(|t| t.and_local_timezone(Utc).single())
+        .ok_or((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Invalid date calculation".to_string(),
+        ))?;
+
     let present_today: i64 = sqlx::query_scalar(
         "SELECT COUNT(DISTINCT employee_id) FROM time_entries
          WHERE punch_in_time >= $1
          AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $2)",
     )
-    .bind(
-        today
-            .and_hms_opt(0, 0, 0)
-            .expect("midnight is valid")
-            .and_local_timezone(Utc)
-            .single()
-            .expect("UTC has no DST ambiguity"),
-    )
+    .bind(start_of_day)
     .bind(workspace_id)
     .fetch_one(&state.db)
     .await
@@ -76,23 +77,8 @@ pub async fn get_workspace_stats(
                      AND esc.effective_date = latest.max_date
             WHERE esc.employee_id IN (SELECT id FROM active_emps)
             GROUP BY esc.employee_id
-        ),
-        legacy_payroll AS (
-            SELECT s.employee_id, s.base_salary as total_amount
-            FROM salary_history s
-            INNER JOIN (
-                SELECT employee_id, MAX(effective_date) as max_date
-                FROM salary_history
-                GROUP BY employee_id
-            ) latest ON s.employee_id = latest.employee_id AND s.effective_date = latest.max_date
-            WHERE s.employee_id IN (SELECT id FROM active_emps)
-            AND s.employee_id NOT IN (SELECT employee_id FROM dynamic_payroll)
         )
-        SELECT COALESCE(SUM(total_amount), 0) FROM (
-            SELECT total_amount FROM dynamic_payroll
-            UNION ALL
-            SELECT total_amount FROM legacy_payroll
-        ) combined
+        SELECT COALESCE(SUM(total_amount), 0) FROM dynamic_payroll
         "#
     )
     .bind(workspace_id)
@@ -100,12 +86,12 @@ pub async fn get_workspace_stats(
     .await
     .unwrap_or(rust_decimal::Decimal::ZERO);
 
-    Json(WorkspaceStats {
+    Ok(Json(WorkspaceStats {
         total_employees,
         present_today,
         pending_leave_requests: pending_leave,
         estimated_monthly_payroll: payroll,
-    })
+    }))
 }
 
 pub async fn get_workspaces(

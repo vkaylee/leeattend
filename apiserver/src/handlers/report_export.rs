@@ -251,7 +251,11 @@ pub async fn get_job_status(
         .map_err(map_report_error)?;
 
     // Verify job belongs to this workspace
-    let queue = crate::queue::ReportQueue::new(state.redis.as_ref().unwrap().clone());
+    let redis = state.redis.as_ref().ok_or((
+        StatusCode::SERVICE_UNAVAILABLE,
+        "Redis not available".to_string(),
+    ))?;
+    let queue = crate::queue::ReportQueue::new(redis.clone());
     let metadata = queue
         .get_job_metadata(job_id)
         .await

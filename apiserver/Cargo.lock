@@ -57,6 +57,7 @@ dependencies = [
  "csv",
  "futures-util",
  "http",
+ "http-body-util",
  "json-patch",
  "jsonwebtoken",
  "moka",

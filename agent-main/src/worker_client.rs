@@ -62,7 +62,8 @@ impl WorkerClient {
             id,
         };
 
-        let mut request_str = serde_json::to_string(&request).unwrap();
+        let mut request_str = serde_json::to_string(&request)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
         request_str.push('\n');
         self.stream.write_all(request_str.as_bytes())?;
         self.stream.flush()?;

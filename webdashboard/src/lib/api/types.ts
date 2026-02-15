@@ -244,9 +244,12 @@ export interface Shift {
   start_time: string;
   end_time: string;
   break_duration_minutes: number;
-  break_start?: string;
-  break_end?: string;
+  break_start?: string | null;
+  break_end?: string | null;
   is_break_auto_deduct?: boolean;
+  is_break_overtime?: boolean;
+  is_correction?: boolean;
+  effective_date?: string;
   early_punch_in_grace_period_minutes?: number;
   created_at: string;
   updated_at: string;

@@ -1,11 +1,11 @@
 //! Agent token update integration tests
 
-use crate::integration::common::app::spawn_app_with_factory;
+use crate::common::app::spawn_app_with_factory;
 use reqwest::StatusCode;
 
 use uuid::Uuid;
-use crate::integration::common::db::TestDatabase;
-use crate::integration::common::factory::TestFactory;
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
 
 #[tokio::test]
 async fn test_agent_token_update() {

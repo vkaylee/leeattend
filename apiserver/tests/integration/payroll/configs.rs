@@ -1,15 +1,13 @@
 //! Integration tests for payroll config CRUD endpoints
 //! Tests GET/POST for department and employee payroll configs
 
-use crate::integration::common::app::setup_app_tower;
-use crate::integration::common::db::TestDatabase;
-use crate::integration::common::factory::TestFactory;
+use crate::common::app::setup_app_tower;
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
 use apiserver::AppState;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
-use chrono::NaiveDate;
 use http_body_util::BodyExt;
-use rust_decimal::Decimal;
 use serde_json::json;
 use std::sync::Arc;
 use tower::ServiceExt;

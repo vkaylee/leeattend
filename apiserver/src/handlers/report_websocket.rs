@@ -7,7 +7,8 @@ use axum::{
         ws::{Message, WebSocket, WebSocketUpgrade},
         Path, Query, State,
     },
-    response::Response,
+    http::StatusCode,
+    response::{IntoResponse, Response},
 };
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
@@ -39,20 +40,14 @@ pub async fn report_stream_ws(
     let token = match query.token.as_deref() {
         Some(t) => t,
         None => {
-            return Response::builder()
-                .status(401)
-                .body("Missing authentication token".into())
-                .unwrap();
+            return (StatusCode::UNAUTHORIZED, "Missing authentication token").into_response();
         }
     };
 
     let _user_id = match crate::services::auth_service::AuthService::verify_token(token, &state.jwt_secret) {
         Ok(uid) => uid,
         Err(_) => {
-            return Response::builder()
-                .status(401)
-                .body("Invalid or expired token".into())
-                .unwrap();
+            return (StatusCode::UNAUTHORIZED, "Invalid or expired token").into_response();
         }
     };
 
@@ -60,10 +55,11 @@ pub async fn report_stream_ws(
     let redis = match &state.redis {
         Some(redis) => redis.clone(),
         None => {
-            return Response::builder()
-                .status(503)
-                .body("Streaming not available: Redis not configured".into())
-                .unwrap();
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                "Streaming not available: Redis not configured",
+            )
+                .into_response();
         }
     };
 

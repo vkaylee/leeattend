@@ -1,8 +1,8 @@
 //! RBAC integration tests
 
-use crate::integration::common::app::setup_app_tower;
-use crate::integration::common::db::TestDatabase;
-use crate::integration::common::factory::TestFactory;
+use crate::common::app::setup_app_tower;
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
 use apiserver::AppState;
 use apiserver::models::MemberRole;
 use axum::http::StatusCode;
@@ -36,7 +36,7 @@ async fn test_rbac_admin_access() {
     // Test Member Update (Should Fail)
     let res = app.clone().oneshot(
         axum::http::Request::builder()
-            .method("PUT")
+            .method("PATCH")
             .uri(format!("/api/workspaces/{}", ws_id))
             .header("X-User-Id", member_id.to_string())
             .header("Content-Type", "application/json")

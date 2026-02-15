@@ -55,7 +55,7 @@ services:
       - AGENT_LOG_FLUSH_MS=100
       - AGENT_LOG_BATCH_SIZE=100
       - AGENT_LOG_BUFFER_CAPACITY=1000
-      - SQLX_OFFLINE=true
+      - SQLX_OFFLINE=false
     volumes:
       - ./apiserver:/app
       - cargo-registry:/usr/local/cargo/registry

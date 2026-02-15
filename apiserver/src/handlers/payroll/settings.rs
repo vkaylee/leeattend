@@ -32,8 +32,8 @@ pub async fn get_payroll_settings_history(
 ) -> impl IntoResponse {
     match sqlx::query_as!(
         crate::models::PayrollSettings,
-        r#"SELECT workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, effective_date, created_at as "created_at!", updated_at as "updated_at!" 
-           FROM payroll_settings 
+        r#"SELECT workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, effective_date, created_at as "created_at!", updated_at as "updated_at!"
+           FROM payroll_settings
            WHERE workspace_id = $1
            ORDER BY effective_date DESC"#,
         workspace_id
@@ -41,7 +41,7 @@ pub async fn get_payroll_settings_history(
     .fetch_all(&state.db)
     .await
     {
-        Ok(history) => Json(history).into_response(),
+        Ok(history) => Json::<Vec<crate::models::PayrollSettings>>(history).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }

@@ -1,7 +1,7 @@
 //! Roster pattern resolution tests
 
-use crate::integration::common::db::TestDatabase;
-use crate::integration::common::factory::TestFactory;
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
 use apiserver::repositories::working_pattern_repository;
 use chrono::NaiveDate;
 

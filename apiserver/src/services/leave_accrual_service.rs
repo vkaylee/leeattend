@@ -255,23 +255,23 @@ impl LeaveAccrualService {
                                                 12,
                                                 1,
                                             )
-                                            .unwrap()
+                                            .ok_or_else(|| sqlx::Error::Protocol("Invalid date calculation (prev year)".to_string()))?
                                         } else {
                                             NaiveDate::from_ymd_opt(
                                                 current_check_date.year(),
                                                 current_check_date.month() - 1,
                                                 1,
                                             )
-                                            .unwrap()
+                                            .ok_or_else(|| sqlx::Error::Protocol("Invalid date calculation (prev month)".to_string()))?
                                         };
                                         let end = NaiveDate::from_ymd_opt(
                                             current_check_date.year(),
                                             current_check_date.month(),
                                             1,
                                         )
-                                        .unwrap()
+                                        .ok_or_else(|| sqlx::Error::Protocol("Invalid date calculation (current month start)".to_string()))?
                                         .pred_opt()
-                                        .unwrap();
+                                        .ok_or_else(|| sqlx::Error::Protocol("Invalid date calculation (predecessor)".to_string()))?;
                                         (prev_month_date, end)
                                     } else {
                                         let start = NaiveDate::from_ymd_opt(
@@ -279,7 +279,7 @@ impl LeaveAccrualService {
                                             current_check_date.month(),
                                             1,
                                         )
-                                        .unwrap();
+                                        .ok_or_else(|| sqlx::Error::Protocol("Invalid date calculation (start)".to_string()))?;
                                         (start, current_check_date)
                                     }
                                 }

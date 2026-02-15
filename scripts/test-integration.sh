@@ -31,7 +31,7 @@ if [[ "${USE_DOCKER:-}" == "true" ]]; then
         # Wait for server to be ready
         echo -n "  Waiting for API Server (timeout: 60s)..."
         for i in {1..60}; do
-            if $DOCKER_COMPOSE_CMD exec -T apiserver_test curl -s http://localhost:3001/health > /dev/null; then
+            if $DOCKER_COMPOSE_CMD exec -T apiserver_test curl -s http://localhost:3000/api/health > /dev/null; then
                 echo " Ready!"
                 break
             fi
@@ -47,9 +47,9 @@ fi
 if [[ "$COMPONENT_FILTER" != *"web"* ]]; then
     echo -e "  Pre-compiling backend for integration tests (timeout: ${TIMEOUT_BUILD}s)..."
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "SQLX_OFFLINE=true cargo test --no-run -j $CARGO_BUILD_JOBS" > "$LOG_DIR/prebuild.log" 2>&1
+        $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "SQLX_OFFLINE=false cargo test --no-run -j $CARGO_BUILD_JOBS" > "$LOG_DIR/prebuild.log" 2>&1
     else
-        run_with_timeout "$TIMEOUT_BUILD" bash -c "cd '$PROJECT_ROOT/apiserver' && SQLX_OFFLINE=true cargo test --no-run -j $CARGO_BUILD_JOBS" > "$LOG_DIR/prebuild.log" 2>&1
+        run_with_timeout "$TIMEOUT_BUILD" bash -c "cd '$PROJECT_ROOT/apiserver' && SQLX_OFFLINE=false cargo test --no-run -j $CARGO_BUILD_JOBS" > "$LOG_DIR/prebuild.log" 2>&1
     fi
     prebuild_exit_code=$?
 fi

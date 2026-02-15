@@ -1,7 +1,7 @@
 //! Attendance Log Service integration tests
 
-use crate::integration::common::db::TestDatabase;
-use crate::integration::common::factory::TestFactory;
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
 use apiserver::models::LogSource;
 use apiserver::repositories::raw_attendance_log_repository;
 use apiserver::services::attendance_log_service::AttendanceLogService;

@@ -1,7 +1,7 @@
 //! Authentication password change integration tests
 
-use crate::integration::common::app::spawn_app;
-use crate::integration::common::db::TestDatabase;
+use crate::common::app::spawn_app;
+use crate::common::db::TestDatabase;
 use apiserver::models::{AuthResponse, ChangePasswordRequest, LoginRequest, RegisterRequest};
 
 #[tokio::test]

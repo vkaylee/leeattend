@@ -23,11 +23,16 @@ import {
   deleteRoster,
   getCurrentWorkspaceId,
   fetchWorkingPatterns,
-  assignPattern,
-  Employee,
-  Shift
-} from "../lib/api";
-import { useToast } from "../components/ui/Toast";
+  assignPattern
+} from "@/lib/api";
+import {
+  AssignPatternRequest,
+  Shift,
+  ShiftRoster,
+  EmployeeSchedule,
+  Employee
+} from "@/lib/api/types";
+import { useToast } from "@/components/ui/Toast";
 import { format, addDays } from "date-fns";
 import { Combobox } from "@/components/ui/Combobox";
 import { ShiftList } from "../components/shifts/ShiftList";
@@ -135,7 +140,7 @@ export default function ShiftsPage() {
 
   // Mutations
   const assignPatternMutation = useMutation({
-    mutationFn: (data: any) => assignPattern(wsId, selectedEmployee!.id, data),
+    mutationFn: (data: AssignPatternRequest) => assignPattern(wsId, selectedEmployee!.id, data),
     onSuccess: () => {
       toast.success(t("shifts.messages.assign_success"));
       setSelectedPatternId("");
@@ -144,28 +149,28 @@ export default function ShiftsPage() {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
-    onError: (error: any) => toast.error(error.message, t("shifts.messages.assign_error"))
+    onError: (error: Error) => toast.error(error.message, t("shifts.messages.assign_error"))
   });
 
   const rosterMutation = useMutation({
-    mutationFn: (data: any) => upsertRoster(wsId, selectedEmployee!.id, data),
+    mutationFn: (data: { date: string; shift_id: string | null; notes?: string }) => upsertRoster(wsId, selectedEmployee!.id, data),
     onSuccess: () => {
       toast.success(t("shifts.messages.update_roster_success"));
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
-    onError: (error: any) => toast.error(error.message, t("shifts.messages.update_roster_error"))
+    onError: (error: Error) => toast.error(error.message, t("shifts.messages.update_roster_error"))
   });
 
   const bulkRosterMutation = useMutation({
-    mutationFn: (items: any[]) => bulkUpsertRoster(wsId, selectedEmployee!.id, items),
+    mutationFn: (items: Array<{ date: string; shift_id: string | null }>) => bulkUpsertRoster(wsId, selectedEmployee!.id, items),
     onSuccess: () => {
       toast.success(t("shifts.messages.bulk_update_success"));
       setSelectedDays([]);
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
-    onError: (error: any) => toast.error(error.message, t("shifts.messages.bulk_update_error"))
+    onError: (error: Error) => toast.error(error.message, t("shifts.messages.bulk_update_error"))
   });
 
   const deleteRosterMutation = useMutation({
@@ -175,11 +180,11 @@ export default function ShiftsPage() {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
-    onError: (error: any) => toast.error(error.message, t("shifts.messages.remove_override_error"))
+    onError: (error: Error) => toast.error(error.message, t("shifts.messages.remove_override_error"))
   });
 
   const createShiftMutation = useMutation({
-    mutationFn: (data: any) => createShift(wsId, data),
+    mutationFn: (data: Partial<Shift>) => createShift(wsId, data),
     onSuccess: () => {
       toast.success(t("shifts.messages.create_shift_success", { name: newShiftName }));
       setNewShiftName("");
@@ -194,11 +199,11 @@ export default function ShiftsPage() {
       setActiveTab("directory");
       queryClient.invalidateQueries({ queryKey: ["shifts", wsId] });
     },
-    onError: (error: any) => toast.error(error.message, t("shifts.messages.create_shift_error"))
+    onError: (error: Error) => toast.error(error.message, t("shifts.messages.create_shift_error"))
   });
 
   const updateShiftMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string, data: any }) => updateShift(wsId, id, data),
+    mutationFn: ({ id, data }: { id: string, data: Partial<Shift> }) => updateShift(wsId, id, data),
     onSuccess: () => {
       toast.success(t("shifts.messages.update_shift_success"));
       setEditingShift(null);
@@ -206,7 +211,7 @@ export default function ShiftsPage() {
       queryClient.invalidateQueries({ queryKey: ["schedules"] });
       queryClient.invalidateQueries({ queryKey: ["assignment_history"] });
     },
-    onError: (error: any) => toast.error(error.message, t("shifts.messages.update_shift_error"))
+    onError: (error: Error) => toast.error(error.message, t("shifts.messages.update_shift_error"))
   });
 
   // Handlers
@@ -253,7 +258,7 @@ export default function ShiftsPage() {
       name: newShiftName, start_time: newShiftStart + ":00", end_time: newShiftEnd + ":00",
       break_duration_minutes: newShiftBreak,
       early_punch_in_grace_period_minutes: newShiftGrace,
-      break_is_overtime: false,
+      is_break_overtime: false,
       ...(isFixedBreak && newBreakStart && newBreakEnd ? {
         break_start: newBreakStart + ":00",
         break_end: newBreakEnd + ":00"
@@ -270,7 +275,7 @@ export default function ShiftsPage() {
         name: newShiftName, start_time: newShiftStart, end_time: newShiftEnd,
         break_duration_minutes: newShiftBreak,
         early_punch_in_grace_period_minutes: newShiftGrace,
-        break_is_overtime: false,
+        is_break_overtime: false,
         ...(isFixedBreak && newBreakStart && newBreakEnd ? {
           break_start: newBreakStart,
           break_end: newBreakEnd

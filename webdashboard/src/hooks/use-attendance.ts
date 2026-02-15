@@ -6,10 +6,17 @@ import {
   bulkUploadPaperOt,
 } from "@/lib/api";
 import { getCurrentWorkspaceId } from "@/lib/api/helpers";
+import { AttendanceDailySummary, OtStatus } from "@/lib/api/types";
+
+interface SummaryParams {
+  start: string;
+  end: string;
+  employeeId?: string;
+}
 
 export const attendanceKeys = {
   all: ["attendance"] as const,
-  summaries: (params: any) => [...attendanceKeys.all, "summaries", params] as const,
+  summaries: (params: SummaryParams) => [...attendanceKeys.all, "summaries", params] as const,
 };
 
 // --- OT Manager Hooks ---
@@ -27,7 +34,7 @@ export function useAttendanceSummaries(start: string, end: string, employeeId?: 
   });
 
   return {
-    summaries: query.data || [],
+    summaries: (query.data || []) as AttendanceDailySummary[],
     isLoading: query.isLoading,
     isError: query.isError,
     refetch: query.refetch,

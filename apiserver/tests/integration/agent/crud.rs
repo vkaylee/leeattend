@@ -1,8 +1,8 @@
 //! Agent CRUD integration tests
 
-use crate::integration::common::app::spawn_app_with_factory;
-use crate::integration::common::db::TestDatabase;
-use crate::integration::common::factory::TestFactory;
+use crate::common::app::spawn_app_with_factory;
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
 use apiserver::models::MemberRole;
 use reqwest::StatusCode;
 use uuid::Uuid;

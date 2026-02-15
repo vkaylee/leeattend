@@ -1,7 +1,7 @@
 //! Leave accrual integration tests
 
-use crate::integration::common::db::TestDatabase;
-use crate::integration::common::factory::TestFactory;
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
 use apiserver::services::leave_accrual_service::LeaveAccrualService;
 use chrono::{NaiveDate, TimeZone, Utc};
 

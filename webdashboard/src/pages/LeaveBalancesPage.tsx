@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { fetchWorkspaceLeaveBalances, getCurrentWorkspaceId, triggerAccrualRun, WorkspaceLeaveBalance } from "@/lib/api";
+import { fetchWorkspaceLeaveBalances, getCurrentWorkspaceId, triggerAccrualRun } from "@/lib/api";
+import { WorkspaceLeaveBalance } from "@/lib/api/types";
 import { Search, Filter, History, PlayCircle, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { LeaveHistoryModal } from "@/components/leave/LeaveHistoryModal";
 import { LeaveBalanceDetailModal } from "@/components/leave/LeaveBalanceDetailModal";
@@ -107,7 +108,7 @@ export default function LeaveBalancesPage() {
                 <tr><td colSpan={5} className="px-6 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</td></tr>
               ) : balances.length === 0 ? (
                 <tr><td colSpan={5} className="px-6 py-32 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</td></tr>
-              ) : (balances as any[]).map((balance: any, idx: number) => (
+              ) : (balances as WorkspaceLeaveBalance[]).map((balance, idx) => (
                 <DesktopBalanceRow
                   key={`${balance.employee_id}-${balance.leave_type_id}-${idx}`}
                   balance={balance}
@@ -125,7 +126,7 @@ export default function LeaveBalancesPage() {
             <div className="px-5 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">{t("common.loading")}</div>
           ) : balances.length === 0 ? (
             <div className="px-5 py-32 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</div>
-          ) : (balances as any[]).map((balance: any, idx: number) => (
+          ) : (balances as WorkspaceLeaveBalance[]).map((balance, idx) => (
             <MobileBalanceCard
               key={`${balance.employee_id}-${balance.leave_type_id}-${idx}`}
               balance={balance}

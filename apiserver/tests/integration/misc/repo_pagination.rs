@@ -1,7 +1,7 @@
 //! Repository Pagination integration tests
 
-use crate::integration::common::db::TestDatabase;
-use crate::integration::common::factory::TestFactory;
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
 use apiserver::repositories::SqlxWorkspaceRepository;
 use std::sync::Arc;
 

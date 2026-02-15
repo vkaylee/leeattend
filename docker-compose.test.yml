@@ -28,7 +28,7 @@ services:
     environment:
       - DATABASE_URL=postgres://test_user:test_password@test_db:5432/test_database
       - RUST_LOG=info
-      - SQLX_OFFLINE=true
+      - SQLX_OFFLINE=false
       - SCCACHE_DIR=/sccache
       - RUSTC_WRAPPER=sccache
       - CARGO_INCREMENTAL=0

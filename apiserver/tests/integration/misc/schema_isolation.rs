@@ -1,6 +1,6 @@
 //! Schema Isolation integration tests
 
-use crate::integration::common::db::TestDatabase;
+use crate::common::db::TestDatabase;
 
 #[tokio::test]
 async fn test_schema_isolation_between_tests() {

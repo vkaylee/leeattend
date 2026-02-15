@@ -360,7 +360,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             continue;
                         }
                     };
-                    let rpc_port = listener.local_addr().unwrap().port();
+                    let rpc_port = match listener.local_addr() {
+                        Ok(addr) => addr.port(),
+                        Err(e) => {
+                            error!("[{}] Failed to get local address: {}", worker.name, e);
+                            retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
+                            continue;
+                        }
+                    };
 
                     info!("[{}] Spawning sidecar ({}) on RPC port {}...", worker.name, worker.brand, rpc_port);
 
@@ -444,7 +451,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     while !token.is_cancelled() {
                         // Acquire semaphore permit for this poll cycle (fair round-robin)
                         // Released at end of loop iteration, allowing other devices to poll
-                        let _permit = sem.acquire().await.unwrap();
+                        let _permit = match sem.acquire().await {
+                            Ok(p) => p,
+                            Err(_) => {
+                                error!("[{}] Semaphore closed, stopping worker", worker.name);
+                                return;
+                            }
+                        };
 
                         match client.call("device.get_logs", json!({})) {
                             Ok(res) => {

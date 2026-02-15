@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { fetchRawAttendanceLogs, fetchEmployees, getCurrentWorkspaceId, fetchDevices, fetchStagingLogs, resolveStagingLog, dismissStagingLog } from "@/lib/api";
+import { RawAttendanceLog } from "@/lib/api/types";
 import { format, endOfMonth } from "date-fns";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import {
@@ -271,7 +272,7 @@ export default function AttendanceLogsPage() {
                   ) : data?.data.length === 0 ? (
                     <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</td></tr>
                   ) : (
-                    data?.data.map((log: any) => (
+                    data?.data.map((log: RawAttendanceLog) => (
                       <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-4">

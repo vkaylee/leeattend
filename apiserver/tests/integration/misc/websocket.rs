@@ -1,6 +1,6 @@
 //! Websocket integration tests
 
-use crate::integration::common::app::spawn_app;
+use crate::common::app::spawn_app;
 // use tungstenite::connect; 
 // Skipping actual websocket connection logic for now to avoid dependency issues if duplicates exist
 // Just a placeholder test for now until we migrate the full logic

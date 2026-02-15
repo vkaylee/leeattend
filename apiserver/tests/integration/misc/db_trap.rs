@@ -1,6 +1,6 @@
 //! DB Trap integration tests
 
-use crate::integration::common::db::TestDatabase;
+use crate::common::db::TestDatabase;
 
 #[tokio::test]
 async fn test_db_trap_prevents_accidental_production_wipe() {

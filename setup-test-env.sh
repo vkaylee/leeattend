@@ -96,8 +96,8 @@ leeattend_setup() {
         exit 1
     fi
 
-    echo -e "  Preparing SQLx cache..."
-    docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" -e DATABASE_URL="$TEMPLATE_DB_URL" apiserver_test bash -c "cargo sqlx prepare -- --all-targets > .test_logs/parent_sqlx_prepare.log 2>&1" || echo -e "${YELLOW}⚠️ SQLx prepare failed (non-fatal).${NC}"
+    # echo -e "  Preparing SQLx cache..."
+    # docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" -e DATABASE_URL="$TEMPLATE_DB_URL" apiserver_test bash -c "cargo sqlx prepare -- --all-targets > .test_logs/parent_sqlx_prepare.log 2>&1" || echo -e "${YELLOW}⚠️ SQLx prepare failed (non-fatal).${NC}"
 
     # Ensure no connections hang on template for CREATE DATABASE TEMPLATE usage
     docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "REVOKE CONNECT ON DATABASE leeattend_test_template FROM public;" > /dev/null 2>&1

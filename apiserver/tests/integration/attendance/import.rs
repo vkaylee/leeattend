@@ -1,7 +1,7 @@
 //! Attendance Import integration tests
 
-use crate::integration::common::db::TestDatabase;
-use crate::integration::common::factory::TestFactory;
+use crate::common::db::TestDatabase;
+use crate::common::factory::TestFactory;
 use apiserver::services::attendance_import_service::AttendanceImportService;
 use apiserver::models::{AttendanceImportJob, ImportJobStatus};
 use apiserver::repositories::import_job_repository;
