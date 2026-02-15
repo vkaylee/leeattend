@@ -25,7 +25,7 @@ impl AssignmentRuleRepository {
             req.pattern_id,
             req.name,
             req.priority,
-            serde_json::to_value(&req.conditions).unwrap()
+            serde_json::to_value(&req.conditions).map_err(|e| sqlx::Error::Decode(Box::new(e)))?
         )
         .fetch_one(pool)
         .await?;
@@ -95,7 +95,7 @@ impl AssignmentRuleRepository {
             req.pattern_id,
             req.name,
             req.priority,
-            req.conditions.as_ref().map(|c| serde_json::to_value(c).unwrap()),
+            req.conditions.as_ref().map(|c| serde_json::to_value(c).map_err(|e| sqlx::Error::Decode(Box::new(e)))).transpose()?,
             req.is_active,
             id
         )
