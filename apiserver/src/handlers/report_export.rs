@@ -19,7 +19,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::handlers::common::MemberContext;
-use crate::queue::{ReportQueue, ReportType};
+use crate::queue::ReportType;
 use crate::services::report_coordinator::{
     CreateReportJobRequest, JobProgress as CoordinatorJobProgress, ReportCoordinator, ReportError,
 };
@@ -232,7 +232,7 @@ pub async fn create_export_job(
 /// Poll job status. Returns current progress and status.
 pub async fn get_job_status(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, job_id)): Path<(Uuid, Uuid)>,
+    Path((ws_id, job_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> Result<Json<JobStatusResponse>, (StatusCode, String)> {
     // RBAC: Require Admin or Owner
@@ -250,6 +250,21 @@ pub async fn get_job_status(
         .await
         .map_err(map_report_error)?;
 
+    // Verify job belongs to this workspace
+    let queue = crate::queue::ReportQueue::new(state.redis.as_ref().unwrap().clone());
+    let metadata = queue
+        .get_job_metadata(job_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "Job not found".to_string()))?;
+
+    if metadata.workspace_id != ws_id {
+        return Err((
+            StatusCode::FORBIDDEN,
+            "Job does not belong to this workspace".to_string(),
+        ));
+    }
+
     Ok(Json(JobStatusResponse {
         job_id: status.job_id,
         status: status.status,
@@ -266,7 +281,7 @@ pub async fn get_job_status(
 /// Returns 202 if job not yet complete, 410 if failed.
 pub async fn download_report(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, job_id)): Path<(Uuid, Uuid)>,
+    Path((ws_id, job_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     // RBAC: Require Admin or Owner
@@ -279,6 +294,27 @@ pub async fn download_report(
 
     let coordinator = get_coordinator(&state)?;
 
+    // Get Redis pool for workspace validation
+    let redis = state.redis.as_ref().ok_or((
+        StatusCode::SERVICE_UNAVAILABLE,
+        "Redis not available".to_string(),
+    ))?;
+
+    // Verify job belongs to this workspace
+    let queue = crate::queue::ReportQueue::new(redis.clone());
+    let metadata = queue
+        .get_job_metadata(job_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "Job not found".to_string()))?;
+
+    if metadata.workspace_id != ws_id {
+        return Err((
+            StatusCode::FORBIDDEN,
+            "Job does not belong to this workspace".to_string(),
+        ));
+    }
+
     let status = coordinator
         .get_job_status(job_id)
         .await
@@ -286,14 +322,7 @@ pub async fn download_report(
 
     match status.status.as_str() {
         "completed" => {
-            // Get Redis pool from state
-            let redis = state.redis.as_ref().ok_or((
-                StatusCode::SERVICE_UNAVAILABLE,
-                "Redis not available".to_string(),
-            ))?;
-
-            // Fetch Excel data from Redis
-            let queue = ReportQueue::new(redis.clone());
+            // Fetch Excel data from Redis (queue already initialized above)
             let result = queue
                 .get_result_data(job_id)
                 .await
@@ -345,7 +374,7 @@ pub async fn download_report(
 /// Returns 404 if job not found, 409 if already completed.
 pub async fn cancel_job(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, job_id)): Path<(Uuid, Uuid)>,
+    Path((ws_id, job_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
 ) -> Result<StatusCode, (StatusCode, String)> {
     // RBAC: Require Admin or Owner
@@ -357,6 +386,30 @@ pub async fn cancel_job(
     }
 
     let coordinator = get_coordinator(&state)?;
+
+    // Verify job belongs to this workspace
+    let queue = crate::queue::ReportQueue::new(
+        state
+            .redis
+            .as_ref()
+            .ok_or((
+                StatusCode::SERVICE_UNAVAILABLE,
+                "Redis not available".to_string(),
+            ))?
+            .clone(),
+    );
+    let metadata = queue
+        .get_job_metadata(job_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "Job not found".to_string()))?;
+
+    if metadata.workspace_id != ws_id {
+        return Err((
+            StatusCode::FORBIDDEN,
+            "Job does not belong to this workspace".to_string(),
+        ));
+    }
 
     coordinator
         .cancel_job(job_id)

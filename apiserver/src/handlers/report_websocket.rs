@@ -32,9 +32,30 @@ pub struct WsQuery {
 pub async fn report_stream_ws(
     ws: WebSocketUpgrade,
     Path(job_id): Path<Uuid>,
-    Query(_query): Query<WsQuery>,
+    Query(query): Query<WsQuery>,
     State(state): State<Arc<AppState>>,
 ) -> Response {
+    // Validate authentication token
+    let token = match query.token.as_deref() {
+        Some(t) => t,
+        None => {
+            return Response::builder()
+                .status(401)
+                .body("Missing authentication token".into())
+                .unwrap();
+        }
+    };
+
+    let _user_id = match crate::services::auth_service::AuthService::verify_token(token, &state.jwt_secret) {
+        Ok(uid) => uid,
+        Err(_) => {
+            return Response::builder()
+                .status(401)
+                .body("Invalid or expired token".into())
+                .unwrap();
+        }
+    };
+
     // Check if Redis is available
     let redis = match &state.redis {
         Some(redis) => redis.clone(),
@@ -46,7 +67,7 @@ pub async fn report_stream_ws(
         }
     };
 
-    info!(job_id = %job_id, "WebSocket upgrade request for report stream");
+    info!(job_id = %job_id, user_id = %_user_id, "WebSocket upgrade request for report stream");
 
     ws.on_upgrade(move |socket| handle_report_socket(socket, job_id, redis))
 }

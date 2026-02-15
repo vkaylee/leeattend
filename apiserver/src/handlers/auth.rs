@@ -296,12 +296,29 @@ pub async fn get_user_profile(
     }
 }
 
-pub async fn get_users(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+pub async fn get_users(
+    State(state): State<Arc<AppState>>,
+    UserId(_user_id): UserId,
+) -> impl IntoResponse {
     match sqlx::query_as::<_, User>("SELECT * FROM users ORDER BY created_at DESC")
         .fetch_all(&state.db)
         .await
     {
-        Ok(users) => Json(users).into_response(),
+        Ok(users) => {
+            let user_responses: Vec<UserResponse> = users
+                .into_iter()
+                .map(|u| UserResponse {
+                    id: u.id,
+                    email: u.email,
+                    full_name: u.full_name,
+                    avatar_url: u.avatar_url,
+                    bio: u.bio,
+                    preferred_language: u.preferred_language,
+                    created_at: u.created_at,
+                })
+                .collect();
+            Json(user_responses).into_response()
+        }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
