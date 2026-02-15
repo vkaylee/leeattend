@@ -1,6 +1,7 @@
 use axum::http::StatusCode;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
+use futures_util::stream::{self, StreamExt};
 use rust_decimal::prelude::FromPrimitive;
 use rust_decimal::Decimal;
 use sqlx::PgPool;
@@ -200,9 +201,11 @@ impl PayrollService {
                                                 is_break_overtime: entry.is_break_overtime,
                                                 allow_early_ot: s.allow_early_ot,
                                             });
-                                        
-                                        // Override with shift data
-                                        rules.grace_period_minutes = s.early_punch_in_grace_period_minutes;
+
+                                        // Override with shift data only if explicitly configured (non-zero)
+                                        if s.early_punch_in_grace_period_minutes > 0 {
+                                            rules.grace_period_minutes = s.early_punch_in_grace_period_minutes;
+                                        }
                                         rules.is_break_auto_deduct = s.is_break_auto_deduct;
                                         rules.is_break_overtime = entry.is_break_overtime;
                                         rules.allow_early_ot = s.allow_early_ot;
@@ -227,21 +230,29 @@ impl PayrollService {
                                                     r
                                                 };
 
-                                                let hourly_rate = if std_config.std_working_days.is_zero() || std_config.hours_per_day.is_zero() { 
-                                                    Decimal::ZERO 
-                                                } else { 
-                                                    (segment_ot_base / std_config.std_working_days) / std_config.hours_per_day 
+                                                let hourly_rate = if std_config.std_working_days.is_zero() || std_config.hours_per_day.is_zero() {
+                                                    Decimal::ZERO
+                                                } else {
+                                                    (segment_ot_base / std_config.std_working_days) / std_config.hours_per_day
                                                 };
 
-                                                let mut ot_intervals = Vec::new();
+                                                // Handle overnight OT properly using split_interval_by_day
+                                                let mut total_ot_pay = Decimal::ZERO;
                                                 if punch_in < start {
-                                                    ot_intervals.push((punch_in.time(), std::cmp::min(punch_out, start).time()));
+                                                    let ot_end = std::cmp::min(punch_out, start);
+                                                    let daily_splits = OvertimeEngine::split_interval_by_day(punch_in, ot_end, &tz);
+                                                    for (date, intervals) in daily_splits {
+                                                        total_ot_pay += OvertimeEngine::calculate_overtime_pay_from_times(&rules, date, false, &intervals, hourly_rate);
+                                                    }
                                                 }
                                                 if punch_out > end {
-                                                    ot_intervals.push((std::cmp::max(punch_in, end).time(), punch_out.time()));
+                                                    let ot_start = std::cmp::max(punch_in, end);
+                                                    let daily_splits = OvertimeEngine::split_interval_by_day(ot_start, punch_out, &tz);
+                                                    for (date, intervals) in daily_splits {
+                                                        total_ot_pay += OvertimeEngine::calculate_overtime_pay_from_times(&rules, date, false, &intervals, hourly_rate);
+                                                    }
                                                 }
-
-                                                segment_ot_pay += OvertimeEngine::calculate_overtime_pay_from_times(&rules, current_date, false, &ot_intervals, hourly_rate);
+                                                segment_ot_pay += total_ot_pay;
                                             } else {
                                                 let hourly_rate = if std_config.std_working_days.is_zero() || std_config.hours_per_day.is_zero() { Decimal::ZERO } else { (segment_ot_base / std_config.std_working_days) / std_config.hours_per_day };
                                                 segment_ot_pay += (Decimal::from(ot_u) * Decimal::from(workspace.work_unit_minutes) / Decimal::from(60)) * hourly_rate * Decimal::from_f64(1.5).unwrap_or(Decimal::new(15, 1));
@@ -318,10 +329,13 @@ impl PayrollService {
             }
         }
 
+        // TODO: Implement deduction calculation when deduction policies are defined
+        let deductions_amount = Decimal::ZERO;
+
         let payslip = Payslip {
             id: Uuid::new_v4(), employee_id, period_start: start_date, period_end: end_date,
             base_pay_amount: total_base_pay, overtime_pay_amount: total_overtime_pay,
-            deductions_amount: Decimal::ZERO, net_pay_amount: total_base_pay + total_overtime_pay + total_incentive_amount,
+            deductions_amount, net_pay_amount: total_base_pay + total_overtime_pay + total_incentive_amount - deductions_amount,
             standard_units: total_std_units, overtime_units: total_ot_units,
             status: "draft".to_string(), created_at: Utc::now(), updated_at: Utc::now(),
         };
@@ -348,30 +362,32 @@ impl PayrollService {
         year: i32,
         month: u32,
     ) -> crate::models::BatchCalculatePayrollResponse {
-        use futures_util::future::join_all;
+        const MAX_CONCURRENT_PAYROLL: usize = 10;
 
-        let mut tasks = Vec::new();
-        for emp_id in employee_ids {
-            let pool_clone = pool.clone();
-            tasks.push(async move {
-                match Self::calculate_monthly_payslip(&pool_clone, emp_id, workspace_id, year, month).await {
-                    Ok(payslip) => crate::models::BatchCalculateResult {
-                        employee_id: emp_id,
-                        status: "success".to_string(),
-                        payslip: Some(payslip),
-                        error_message: None,
-                    },
-                    Err(status) => crate::models::BatchCalculateResult {
-                        employee_id: emp_id,
-                        status: "error".to_string(),
-                        payslip: None,
-                        error_message: Some(format!("HTTP Error: {status}")),
-                    },
+        let results: Vec<_> = stream::iter(employee_ids)
+            .map(|emp_id| {
+                let pool_clone = pool.clone();
+                async move {
+                    match Self::calculate_monthly_payslip(&pool_clone, emp_id, workspace_id, year, month).await {
+                        Ok(payslip) => crate::models::BatchCalculateResult {
+                            employee_id: emp_id,
+                            status: "success".to_string(),
+                            payslip: Some(payslip),
+                            error_message: None,
+                        },
+                        Err(status) => crate::models::BatchCalculateResult {
+                            employee_id: emp_id,
+                            status: "error".to_string(),
+                            payslip: None,
+                            error_message: Some(format!("HTTP Error: {status}")),
+                        },
+                    }
                 }
-            });
-        }
+            })
+            .buffer_unordered(MAX_CONCURRENT_PAYROLL)
+            .collect()
+            .await;
 
-        let results = join_all(tasks).await;
         crate::models::BatchCalculatePayrollResponse { results }
     }
 }
