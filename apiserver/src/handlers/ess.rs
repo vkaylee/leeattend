@@ -1,22 +1,13 @@
-//! Employee Self-Service (ESS) Handler Module
-//!
-//! Provides endpoints for employees to manage their own data:
-//! - Profile viewing and editing
-//! - Emergency contacts management
-//! - Document upload/download
-//! - Payslip viewing
-//! - Attendance history
-//! - Leave balance and requests
-
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    Json,
+    response::{IntoResponse, Json},
 };
 use chrono::{Datelike, NaiveDate};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::errors::{AppError, AppResult};
 use crate::handlers::EmployeeContext;
 use crate::models::{
     CreateEmergencyContactRequest, Employee, EmployeeDocument, EmployeeEmergencyContact,
@@ -24,15 +15,13 @@ use crate::models::{
 };
 use crate::AppState;
 
-type ApiResult<T> = Result<Json<T>, (StatusCode, String)>;
-
 // --- Profile Endpoints ---
 
 /// Get the current employee's complete profile
 pub async fn get_my_profile(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
-) -> ApiResult<MyProfileResponse> {
+) -> AppResult<Json<MyProfileResponse>> {
     // Get employee record
     let emp = sqlx::query_as::<_, Employee>(
         r#"
@@ -51,8 +40,7 @@ pub async fn get_my_profile(
     )
     .bind(employee.employee_id)
     .fetch_one(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    .await?;
 
     // Get profile (may not exist yet)
     let profile = sqlx::query_as::<_, EmployeeProfile>(
@@ -60,8 +48,7 @@ pub async fn get_my_profile(
     )
     .bind(employee.employee_id)
     .fetch_optional(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    .await?;
 
     // Get emergency contacts
     let contacts = sqlx::query_as::<_, EmployeeEmergencyContact>(
@@ -69,8 +56,7 @@ pub async fn get_my_profile(
     )
     .bind(employee.employee_id)
     .fetch_all(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    .await?;
 
     Ok(Json(MyProfileResponse {
         employee: emp,
@@ -84,7 +70,7 @@ pub async fn update_my_profile(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
     Json(req): Json<UpdateEmployeeProfileRequest>,
-) -> ApiResult<EmployeeProfile> {
+) -> AppResult<Json<EmployeeProfile>> {
     // Upsert profile (create if not exists, update if exists)
     let profile = sqlx::query_as::<_, EmployeeProfile>(
         r#"
@@ -113,8 +99,7 @@ pub async fn update_my_profile(
     .bind(&req.bank_account_number)
     .bind(&req.bank_branch)
     .fetch_one(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    .await?;
 
     Ok(Json(profile))
 }
@@ -125,14 +110,13 @@ pub async fn update_my_profile(
 pub async fn get_my_emergency_contacts(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
-) -> ApiResult<Vec<EmployeeEmergencyContact>> {
+) -> AppResult<Json<Vec<EmployeeEmergencyContact>>> {
     let contacts = sqlx::query_as::<_, EmployeeEmergencyContact>(
         "SELECT * FROM employee_emergency_contacts WHERE employee_id = $1 ORDER BY is_primary DESC, created_at",
     )
     .bind(employee.employee_id)
     .fetch_all(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    .await?;
 
     Ok(Json(contacts))
 }
@@ -142,7 +126,7 @@ pub async fn add_emergency_contact(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
     Json(req): Json<CreateEmergencyContactRequest>,
-) -> Result<(StatusCode, Json<EmployeeEmergencyContact>), (StatusCode, String)> {
+) -> AppResult<impl IntoResponse> {
     let is_primary = req.is_primary.unwrap_or(false);
 
     // If setting as primary, unset other primary contacts first
@@ -152,8 +136,7 @@ pub async fn add_emergency_contact(
         )
         .bind(employee.employee_id)
         .execute(&state.db)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        .await?;
     }
 
     let contact = sqlx::query_as::<_, EmployeeEmergencyContact>(
@@ -169,8 +152,7 @@ pub async fn add_emergency_contact(
     .bind(&req.phone)
     .bind(is_primary)
     .fetch_one(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    .await?;
 
     Ok((StatusCode::CREATED, Json(contact)))
 }
@@ -180,18 +162,17 @@ pub async fn delete_emergency_contact(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
     Path(contact_id): Path<Uuid>,
-) -> Result<StatusCode, (StatusCode, String)> {
+) -> AppResult<StatusCode> {
     // Verify ownership and delete
     let result =
         sqlx::query("DELETE FROM employee_emergency_contacts WHERE id = $1 AND employee_id = $2")
             .bind(contact_id)
             .bind(employee.employee_id)
             .execute(&state.db)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            .await?;
 
     if result.rows_affected() == 0 {
-        return Err((StatusCode::NOT_FOUND, "Contact not found".to_string()));
+        return Err(AppError::NotFound("Contact not found".to_string()));
     }
 
     Ok(StatusCode::NO_CONTENT)
@@ -203,20 +184,16 @@ pub async fn delete_emergency_contact(
 pub async fn get_my_documents(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
-) -> ApiResult<Vec<EmployeeDocument>> {
+) -> AppResult<Json<Vec<EmployeeDocument>>> {
     let docs = sqlx::query_as::<_, EmployeeDocument>(
         "SELECT * FROM employee_documents WHERE employee_id = $1 AND is_active = true ORDER BY created_at DESC",
     )
     .bind(employee.employee_id)
     .fetch_all(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    .await?;
 
     Ok(Json(docs))
 }
-
-// Note: Document upload/download handlers require multipart handling
-// and will be implemented in phase 4.
 
 // --- Payslips Endpoints ---
 
@@ -224,14 +201,13 @@ pub async fn get_my_documents(
 pub async fn get_my_payslips(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
-) -> ApiResult<Vec<crate::models::Payslip>> {
+) -> AppResult<Json<Vec<crate::models::Payslip>>> {
     let payslips = sqlx::query_as::<_, crate::models::Payslip>(
         "SELECT * FROM payslips WHERE employee_id = $1 ORDER BY period_start DESC",
     )
     .bind(employee.employee_id)
     .fetch_all(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    .await?;
 
     Ok(Json(payslips))
 }
@@ -249,7 +225,7 @@ pub async fn get_my_attendance(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
     axum::extract::Query(query): axum::extract::Query<AttendanceQuery>,
-) -> ApiResult<Vec<TimeEntry>> {
+) -> AppResult<Json<Vec<TimeEntry>>> {
     let start = query
         .start_date
         .unwrap_or_else(|| chrono::Utc::now().date_naive() - chrono::Duration::days(30));
@@ -270,8 +246,7 @@ pub async fn get_my_attendance(
     .bind(start)
     .bind(end)
     .fetch_all(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    .await?;
 
     Ok(Json(entries))
 }
@@ -293,7 +268,7 @@ pub struct EssLeaveBalance {
 pub async fn get_my_leave_balances(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
-) -> ApiResult<Vec<EssLeaveBalance>> {
+) -> AppResult<Json<Vec<EssLeaveBalance>>> {
     let year = chrono::Utc::now().year();
 
     let balances = sqlx::query_as::<_, EssLeaveBalance>(
@@ -327,8 +302,7 @@ pub async fn get_my_leave_balances(
     .bind(employee.employee_id)
     .bind(year)
     .fetch_all(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    .await?;
 
     Ok(Json(balances))
 }
@@ -337,14 +311,13 @@ pub async fn get_my_leave_balances(
 pub async fn ess_get_my_leave_requests(
     State(state): State<Arc<AppState>>,
     employee: EmployeeContext,
-) -> ApiResult<Vec<crate::models::LeaveRequest>> {
+) -> AppResult<Json<Vec<crate::models::LeaveRequest>>> {
     let requests = sqlx::query_as::<_, crate::models::LeaveRequest>(
         "SELECT * FROM leave_requests WHERE employee_id = $1 ORDER BY created_at DESC",
     )
     .bind(employee.employee_id)
     .fetch_all(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    .await?;
 
     Ok(Json(requests))
 }

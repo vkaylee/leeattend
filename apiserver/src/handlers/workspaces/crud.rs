@@ -1,12 +1,12 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
-    response::{IntoResponse, Json},
+    response::Json,
 };
 use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{CreateWorkspaceRequest, UpdateWorkspaceRequest, Workspace, WorkspaceStats};
 use crate::services::WorkspaceService;
@@ -15,7 +15,7 @@ use crate::{AppState, UserId};
 pub async fn get_workspace_stats(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
-) -> Result<impl IntoResponse, (StatusCode, String)> {
+) -> AppResult<Json<WorkspaceStats>> {
     // 1. Total Employees
     let total_employees: i64 = sqlx::query_scalar(
         "SELECT COUNT(*) FROM employees WHERE workspace_id = $1 AND is_active = TRUE",
@@ -30,10 +30,7 @@ pub async fn get_workspace_stats(
     let start_of_day = today
         .and_hms_opt(0, 0, 0)
         .and_then(|t| t.and_local_timezone(Utc).single())
-        .ok_or((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Invalid date calculation".to_string(),
-        ))?;
+        .ok_or_else(|| AppError::Internal("Invalid date calculation".to_string()))?;
 
     let present_today: i64 = sqlx::query_scalar(
         "SELECT COUNT(DISTINCT employee_id) FROM time_entries
@@ -97,7 +94,7 @@ pub async fn get_workspace_stats(
 pub async fn get_workspaces(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
-) -> Result<Json<Vec<Workspace>>, (StatusCode, String)> {
+) -> AppResult<Json<Vec<Workspace>>> {
     let workspaces = sqlx::query_as::<_, Workspace>(
         "SELECT w.* FROM workspaces w
          JOIN workspace_members wm ON w.id = wm.workspace_id
@@ -105,8 +102,7 @@ pub async fn get_workspaces(
     )
     .bind(user_id)
     .fetch_all(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    .await?;
 
     Ok(Json(workspaces))
 }
@@ -115,13 +111,13 @@ pub async fn get_workspace_by_id(
     State(state): State<Arc<AppState>>,
     Path(ws_id): Path<Uuid>,
     UserId(_user_id): UserId,
-) -> Result<Json<Workspace>, (StatusCode, String)> {
+) -> AppResult<Json<Workspace>> {
     let workspace = state
         .workspace_repo
         .get_workspace_by_id(ws_id)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?
-        .ok_or((StatusCode::NOT_FOUND, "Workspace not found".to_string()))?;
+        .map_err(AppError::Internal)?
+        .ok_or_else(|| AppError::NotFound("Workspace not found".to_string()))?;
 
     Ok(Json(workspace))
 }
@@ -130,20 +126,22 @@ pub async fn create_workspace(
     State(state): State<Arc<AppState>>,
     UserId(user_id): UserId,
     Json(req): Json<CreateWorkspaceRequest>,
-) -> Result<Json<Workspace>, (StatusCode, String)> {
-    match WorkspaceService::create_workspace(&state.db, &req.name, user_id).await {
-        Ok(ws) => Ok(Json(ws)),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e)),
-    }
+) -> AppResult<Json<Workspace>> {
+    WorkspaceService::create_workspace(&state.db, &req.name, user_id).await
+        .map(Json)
+        .map_err(AppError::from)
 }
 
 pub async fn update_workspace(
     State(state): State<Arc<AppState>>,
     Path(ws_id): Path<Uuid>,
-    UserId(_user_id): UserId,
+    ctx: MemberContext,
     Json(req): Json<UpdateWorkspaceRequest>,
-) -> Result<Json<Workspace>, (StatusCode, String)> {
-    let ws = crate::services::workspace_service::WorkspaceService::update_workspace(
+) -> AppResult<Json<Workspace>> {
+    if !ctx.is_admin_or_owner() {
+        return Err(AppError::Forbidden("Admin or Owner role required to update workspace".to_string()));
+    }
+    crate::services::workspace_service::WorkspaceService::update_workspace(
         &state.db,
         ws_id,
         req.name,
@@ -158,7 +156,6 @@ pub async fn update_workspace(
         req.early_arrival_strategy,
     )
     .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
-
-    Ok(Json(ws))
+    .map(Json)
+    .map_err(AppError::from)
 }

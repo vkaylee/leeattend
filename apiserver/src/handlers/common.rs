@@ -1,10 +1,10 @@
 use crate::models::{GenericResponse, MemberRole};
 use crate::{AppState, UserId};
+use crate::errors::{AppError, AppResult};
 use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts},
-    http::{request::Parts, StatusCode},
-    response::IntoResponse,
+    http::request::Parts,
     Json,
 };
 use sqlx;
@@ -20,7 +20,7 @@ impl<S> FromRequestParts<S> for WorkspaceId
 where
     S: Send + Sync,
 {
-    type Rejection = (StatusCode, String);
+    type Rejection = AppError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         // 1. Try to extract from Path parameters first (e.g., /workspaces/:ws_id/...)
@@ -42,17 +42,14 @@ where
             .headers
             .get("X-Workspace-Id")
             .and_then(|h| h.to_str().ok())
-            .ok_or((
-                StatusCode::BAD_REQUEST,
+            .ok_or_else(|| {
+                AppError::Validation(
                 "Missing Workspace Context. Provide 'ws_id' in path or 'X-Workspace-Id' header."
-                    .to_string(),
-            ))?;
+                    .to_string())
+            })?;
 
         let workspace_id = Uuid::parse_str(workspace_id_str).map_err(|_| {
-            (
-                StatusCode::BAD_REQUEST,
-                "Invalid Workspace ID format".to_string(),
-            )
+            AppError::Validation("Invalid Workspace ID format".to_string())
         })?;
 
         Ok(WorkspaceId(workspace_id))
@@ -81,7 +78,7 @@ where
     S: Send + Sync,
     Arc<AppState>: FromRef<S>,
 {
-    type Rejection = (StatusCode, String);
+    type Rejection = AppError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let UserId(user_id) = UserId::from_request_parts(parts, state).await?;
@@ -94,18 +91,17 @@ where
             .workspace_repo
             .find_primary_role(workspace_id, user_id)
             .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?
-            .ok_or((
-                StatusCode::FORBIDDEN,
-                "Not a member of this workspace".to_string(),
-            ))?;
+            .map_err(AppError::from)?
+            .ok_or_else(|| {
+                AppError::Forbidden("Not a member of this workspace".to_string())
+            })?;
 
         // 2. Fetch Active Extra Roles
         let all_extra_roles = app_state
             .workspace_repo
             .find_extra_roles(workspace_id, user_id)
             .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+            .map_err(AppError::from)?;
 
         let mut roles: Vec<MemberRole> = all_extra_roles
             .into_iter()
@@ -139,7 +135,7 @@ where
     S: Send + Sync,
     Arc<AppState>: FromRef<S>,
 {
-    type Rejection = (StatusCode, String);
+    type Rejection = AppError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let UserId(user_id) = UserId::from_request_parts(parts, state).await?;
@@ -158,11 +154,10 @@ where
         .bind(workspace_id)
         .fetch_optional(&app_state.db)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((
-            StatusCode::FORBIDDEN,
-            "No employee record linked to your account".to_string(),
-        ))?;
+        .map_err(AppError::Sqlx)?
+        .ok_or_else(|| {
+            AppError::Forbidden("No employee record linked to your account".to_string())
+        })?;
 
         Ok(EmployeeContext {
             user_id,
@@ -174,9 +169,9 @@ where
 
 // --- Basic Handlers ---
 
-pub async fn health_check() -> impl IntoResponse {
+pub async fn health_check() -> AppResult<Json<GenericResponse>> {
     let response = GenericResponse {
         message: "API Server is running!".to_string(),
     };
-    Json(response)
+    Ok(Json(response))
 }

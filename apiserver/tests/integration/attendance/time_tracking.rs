@@ -7,7 +7,8 @@ use apiserver::services::auth_service::AuthService;
 use apiserver::AppState;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
-use chrono::{Local, NaiveDate, NaiveTime, Utc};
+use chrono::{NaiveDate, NaiveTime, Utc, Duration};
+use chrono_tz::Tz;
 use serde_json::json;
 use std::sync::Arc;
 use tower::ServiceExt;
@@ -37,7 +38,7 @@ async fn test_punch_in_grace_period_enforcement() {
         .assign_to_employee(employee_id, test_date)
         .await;
 
-    let token = AuthService::generate_token(user_id, "test_secret", 3600).unwrap();
+    let token = AuthService::generate_token(user_id, "test_secret_tower", 3600).unwrap();
 
     // Try to punch in at 08:30 -> Should fail (400) because 08:30 < 08:55
     let punch_payload = json!({
@@ -45,14 +46,15 @@ async fn test_punch_in_grace_period_enforcement() {
         "entry_type": "work"
     });
 
-    let real_now = Utc::now().with_timezone(&Local);
+    let tz: Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
+    let real_now = Utc::now().with_timezone(&tz);
     let today = real_now.date_naive();
     let future_start = NaiveTime::from_hms_opt(23, 59, 0).unwrap(); // Far in the future today
 
     // Ensure we don't rollover if it's already very late
     let (test_date, test_start) = if real_now.time() > NaiveTime::from_hms_opt(23, 0, 0).unwrap() {
         (
-            today + chrono::Duration::days(1),
+            today + Duration::days(1),
             NaiveTime::from_hms_opt(12, 0, 0).unwrap(),
         )
     } else {
@@ -83,7 +85,7 @@ async fn test_punch_in_grace_period_enforcement() {
         .unwrap();
 
     // Set start_time to now + 4 hours (definitely in future, so grace period prevents punch in)
-    let test_start_time = (real_now + chrono::Duration::hours(4)).time();
+    let test_start_time = (real_now + Duration::hours(4)).time();
 
     sqlx::query("UPDATE shifts SET start_time = $1 WHERE id = $2")
         .bind(test_start_time)

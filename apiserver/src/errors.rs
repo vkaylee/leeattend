@@ -37,6 +37,43 @@ pub enum AppError {
     ServiceUnavailable(String),
 }
 
+impl From<String> for AppError {
+    fn from(s: String) -> Self {
+        Self::Internal(s)
+    }
+}
+
+impl From<&str> for AppError {
+    fn from(s: &str) -> Self {
+        Self::Internal(s.to_string())
+    }
+}
+
+impl From<redis::RedisError> for AppError {
+    fn from(err: redis::RedisError) -> Self {
+        Self::Redis(err.to_string())
+    }
+}
+
+impl From<std::io::Error> for AppError {
+    fn from(err: std::io::Error) -> Self {
+        Self::Internal(err.to_string())
+    }
+}
+
+impl From<(StatusCode, String)> for AppError {
+    fn from((status, message): (StatusCode, String)) -> Self {
+        match status.as_u16() {
+            401 => Self::Auth(message),
+            403 => Self::Forbidden(message),
+            404 => Self::NotFound(message),
+            409 => Self::Conflict(message),
+            400 => Self::Validation(message),
+            _ => Self::Internal(message),
+        }
+    }
+}
+
 impl AppError {
     pub fn status_code(&self) -> StatusCode {
         match self {

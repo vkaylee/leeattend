@@ -44,9 +44,11 @@ async fn test_upload_attendance_csv_api() {
         .create()
         .await;
 
+    let now = chrono::Utc::now();
+    let csv_date = now.format("%d/%m/%Y %H:%M").to_string();
     let csv_content = format!(
-        "empNo,empName,empDt\n{},Test User,11/01/2026 14:00",
-        emp_id_number
+        "empNo,empName,empDt\n{},Test User,{}",
+        emp_id_number, csv_date
     );
     let (content_type, body) = create_multipart_body("test.csv", &csv_content);
 

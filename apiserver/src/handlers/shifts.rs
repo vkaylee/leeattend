@@ -6,13 +6,13 @@ use axum::{
 use chrono::NaiveDate;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tracing::error;
 use uuid::Uuid;
 
+use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
     AssignShiftRequest, AssignmentHistory, BulkRosterRequest, CreateRosterRequest,
-    CreateShiftRequest, EmployeeSchedule, ShiftRoster, UpdateShiftRequest,
+    CreateShiftRequest, EmployeeSchedule, ShiftRoster, UpdateShiftRequest, Shift,
 };
 use crate::AppState;
 
@@ -22,16 +22,15 @@ pub async fn get_shifts(
     State(state): State<Arc<AppState>>,
     Path(_ws_id): Path<Uuid>,
     MemberContext { workspace_id, .. }: MemberContext,
-) -> impl IntoResponse {
-    match crate::services::shift_service::ShiftService::get_workspace_shifts(
+) -> AppResult<Json<Vec<Shift>>> {
+    let shifts = crate::services::shift_service::ShiftService::get_workspace_shifts(
         &state.db,
         workspace_id,
     )
     .await
-    {
-        Ok(shifts) => Json(shifts).into_response(),
-        Err(status) => status.into_response(),
-    }
+    .map_err(|s| AppError::from((s, "Failed to get workspace shifts".to_string())))?;
+    
+    Ok(Json(shifts))
 }
 
 pub async fn create_shift(
@@ -39,9 +38,9 @@ pub async fn create_shift(
     Path(_ws_id): Path<Uuid>,
     ctx: MemberContext,
     Json(req): Json<CreateShiftRequest>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> AppResult<impl IntoResponse> {
     if !ctx.is_admin_or_owner() {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AppError::Forbidden("Forbidden".to_string()));
     }
 
     let workspace_id = ctx.workspace_id;
@@ -59,7 +58,8 @@ pub async fn create_shift(
         req.early_punch_in_grace_period_minutes,
         req.allow_early_ot,
     )
-    .await?;
+    .await
+    .map_err(|s| AppError::from((s, "Failed to create shift".to_string())))?;
 
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(workspace_id).await;
@@ -73,12 +73,12 @@ pub async fn update_shift(
     Path((_ws_id, shift_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<UpdateShiftRequest>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> AppResult<Json<Shift>> {
     if !ctx.is_admin_or_owner() {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AppError::Forbidden("Forbidden".to_string()));
     }
-    let shift =
-        crate::services::shift_service::ShiftService::update_shift(&state.db, shift_id, req).await?;
+    let shift = crate::services::shift_service::ShiftService::update_shift(&state.db, shift_id, req).await
+        .map_err(|s| AppError::from((s, "Failed to update shift".to_string())))?;
 
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
@@ -92,8 +92,8 @@ pub async fn assign_shift(
     Path(_ws_id): Path<Uuid>,
     ctx: MemberContext,
     Json(req): Json<AssignShiftRequest>,
-) -> impl IntoResponse {
-    match crate::services::shift_service::ShiftService::assign_shift(
+) -> AppResult<StatusCode> {
+    crate::services::shift_service::ShiftService::assign_shift(
         &state.db,
         req.employee_id,
         req.shift_id,
@@ -101,15 +101,13 @@ pub async fn assign_shift(
         req.end_date,
     )
     .await
-    {
-        Ok(_) => {
-            if let Some(cache) = &state.roster_cache {
-                cache.invalidate(ctx.workspace_id).await;
-            }
-            StatusCode::OK.into_response()
-        }
-        Err(status) => status.into_response(),
+    .map_err(|s| AppError::from((s, "Failed to assign shift".to_string())))?;
+
+    if let Some(cache) = &state.roster_cache {
+        cache.invalidate(ctx.workspace_id).await;
     }
+    
+    Ok(StatusCode::OK)
 }
 
 // --- Roster Handlers ---
@@ -118,16 +116,16 @@ pub async fn get_workspace_schedules(
     State(state): State<Arc<AppState>>,
     Path(workspace_id): Path<Uuid>,
     Query(params): Query<HashMap<String, String>>,
-) -> Result<Json<Vec<EmployeeSchedule>>, StatusCode> {
+) -> AppResult<Json<Vec<EmployeeSchedule>>> {
     let start_date = params
         .get("start_date")
         .and_then(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
-        .ok_or(StatusCode::BAD_REQUEST)?;
+        .ok_or_else(|| AppError::Validation("Missing or invalid start_date".to_string()))?;
 
     let end_date = params
         .get("end_date")
         .and_then(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
-        .ok_or(StatusCode::BAD_REQUEST)?;
+        .ok_or_else(|| AppError::Validation("Missing or invalid end_date".to_string()))?;
 
     let schedules = crate::repositories::roster_repository::get_workspace_schedules(
         &state.db,
@@ -137,11 +135,7 @@ pub async fn get_workspace_schedules(
         end_date,
         None,
     )
-    .await
-    .map_err(|e| {
-        error!("Failed to get workspace schedules: {:?}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    .await?;
 
     Ok(Json(schedules))
 }
@@ -149,17 +143,13 @@ pub async fn get_workspace_schedules(
 pub async fn get_assignment_history(
     State(state): State<Arc<AppState>>,
     Path(workspace_id): Path<Uuid>,
-) -> Result<Json<Vec<AssignmentHistory>>, StatusCode> {
+) -> AppResult<Json<Vec<AssignmentHistory>>> {
     let history = crate::repositories::roster_repository::get_assignment_history(
         &state.db,
         workspace_id,
         50, // Limit to last 50 entries
     )
-    .await
-    .map_err(|e| {
-        error!("Failed to get assignment history: {:?}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    .await?;
 
     Ok(Json(history))
 }
@@ -168,7 +158,7 @@ pub async fn get_employee_rosters(
     State(state): State<Arc<AppState>>,
     Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
     Query(params): Query<std::collections::HashMap<String, String>>,
-) -> Result<Json<Vec<ShiftRoster>>, StatusCode> {
+) -> AppResult<Json<Vec<ShiftRoster>>> {
     let start_date = params
         .get("start_date")
         .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
@@ -185,8 +175,7 @@ pub async fn get_employee_rosters(
         start_date,
         end_date,
     )
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    .await?;
 
     Ok(Json(rosters))
 }
@@ -196,9 +185,9 @@ pub async fn upsert_roster(
     Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<CreateRosterRequest>,
-) -> Result<Json<ShiftRoster>, StatusCode> {
+) -> AppResult<Json<ShiftRoster>> {
     if !ctx.is_admin_or_owner() {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AppError::Forbidden("Forbidden".to_string()));
     }
     let roster = ShiftRoster {
         id: Uuid::new_v4(),
@@ -211,9 +200,7 @@ pub async fn upsert_roster(
         updated_at: chrono::Utc::now(),
     };
 
-    let saved = crate::repositories::roster_repository::upsert_roster(&state.db, &roster)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let saved = crate::repositories::roster_repository::upsert_roster(&state.db, &roster).await?;
 
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
@@ -227,16 +214,11 @@ pub async fn bulk_upsert_roster(
     Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Json(req): Json<BulkRosterRequest>,
-) -> Result<StatusCode, StatusCode> {
+) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AppError::Forbidden("Forbidden".to_string()));
     }
-    crate::repositories::roster_repository::bulk_upsert_roster(&state.db, employee_id, req.items)
-        .await
-        .map_err(|e| {
-            error!("Failed to bulk upsert roster: {:?}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    crate::repositories::roster_repository::bulk_upsert_roster(&state.db, employee_id, req.items).await?;
 
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
@@ -249,16 +231,11 @@ pub async fn delete_roster(
     State(state): State<Arc<AppState>>,
     Path((_ws_id, employee_id, date)): Path<(Uuid, Uuid, NaiveDate)>,
     ctx: MemberContext,
-) -> Result<StatusCode, StatusCode> {
+) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AppError::Forbidden("Forbidden".to_string()));
     }
-    crate::repositories::roster_repository::delete_roster(&state.db, employee_id, date)
-        .await
-        .map_err(|e| {
-            error!("Failed to delete roster: {:?}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    crate::repositories::roster_repository::delete_roster(&state.db, employee_id, date).await?;
 
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(ctx.workspace_id).await;

@@ -13,15 +13,19 @@
 
 ### 1.1. Error Handling Best Practices
 - **NO `.unwrap()` in Production Code**: Avoid `.unwrap()` and `.expect()` in handler/service/repository code. Use `?` operator or explicit error handling instead.
+- **Mandatory `AppError` Pattern**: All API handlers MUST return `AppResult<T>` (alias for `Result<T, AppError>`).
   ```rust
-  // ❌ INCORRECT (can panic)
-  let date = NaiveDate::from_ymd_opt(year, month, 1).unwrap();
-
-  // ✅ CORRECT (graceful error)
-  let Some(date) = NaiveDate::from_ymd_opt(year, month, 1) else {
-      return Err("Invalid date".into());
-  };
+  // ✅ CORRECT - Unified error handling
+  pub async fn my_handler(State(state): State<Arc<AppState>>) -> AppResult<Json<MyResponse>> {
+      let data = service::get_data(&state.db).await?; // Auto-converts to AppError
+      Ok(Json(data))
+  }
   ```
+- **Conversion with `?`**: `AppError` implements `From<sqlx::Error>`, so database errors can be propagated using `?`. For other error types, use `.map_err()`:
+  ```rust
+  let result = some_external_lib().map_err(|e| AppError::Internal(e.to_string()))?;
+  ```
+- **Error Response Format**: Centralized in `errors.rs`, ensuring all errors follow the `{ "error": { "code": "...", "message": "..." } }` schema.
 - **Exception for Constants**: `.expect("message")` is acceptable for infallible constant values:
   ```rust
   // ✅ OK - midnight is always valid

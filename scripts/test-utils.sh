@@ -18,6 +18,9 @@ export NC="\033[0m" # No Color
 export PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export LOG_DIR="$PROJECT_ROOT/.test_logs"
 
+# Source debug utilities
+source "$PROJECT_ROOT/scripts/debug-logs.sh"
+
 mkdir -p "$LOG_DIR"
 
 # ==============================================================================
@@ -151,6 +154,34 @@ get_phase_timeout() {
     esac
 }
 
+# Helper to handle task failure
+on_task_failure() {
+    local name=$1
+    local log_file=$2
+    local status=$3
+
+    echo -e "\n${RED}${BOLD}❌ Task \"$name\" failed with status $status.${NC}"
+    
+    # Use debug utilities
+    echo -e "${YELLOW}--- Debug Info for $name ---${NC}"
+    leeattend_debug_file "$log_file"
+    echo -e "${YELLOW}----------------------------${NC}"
+}
+
+# Helper to handle task timeout
+on_task_timeout() {
+    local name=$1
+    local log_file=$2
+    local timeout=$3
+
+    echo -e "\n${RED}${BOLD}⏰ Task \"$name\" TIMED OUT after ${timeout}s${NC}"
+    
+    # Use debug utilities
+    echo -e "${YELLOW}--- Debug Info for $name (Last seen) ---${NC}"
+    leeattend_debug_file "$log_file"
+    echo -e "${YELLOW}---------------------------------------${NC}"
+}
+
 # Core runner: Executes tasks. Run sequentially if NUM_WORKERS=1, else parallel.
 # Usage: run_parallel_ordered "Phase Name" "FilterTag" "Job1|Dir|Cmd" "Job2|Dir|Cmd" ...
 run_parallel_ordered() {
@@ -217,19 +248,17 @@ run_parallel_ordered() {
 
                 # Exit code 137 = killed by timeout (SIGKILL after timeout)
                 if [ $status -eq 137 ] || [ $status -eq 124 ]; then
-                    echo -e "\n${RED}⏰ Task \"$name\" TIMED OUT after ${task_timeout}s${NC}"
                     add_task_result "$name" "TIMED OUT" "$duration"
                     echo "=== TIMEOUT: Task exceeded ${task_timeout}s ===" >> "$log_file"
-                    cat "$log_file"
+                    on_task_timeout "$name" "$log_file" "$task_timeout"
                     echo -e "${RED}Aborting pipeline due to timeout.${NC}"
                     print_summary_table
                     exit 124
                 fi
 
                 if [ $status -ne 0 ]; then
-                    echo -e "\n${RED}❌ Task \"$name\" failed with status $status.${NC}"
+                    on_task_failure "$name" "$log_file" "$status"
                     add_task_result "$name" "FAILED" "$duration"
-                    cat "$log_file"
                     echo -e "${RED}Aborting pipeline due to phase failure.${NC}"
                     print_summary_table
                     exit $status
@@ -274,9 +303,8 @@ run_parallel_ordered() {
 
                     # Exit code 137 = killed by timeout (SIGKILL)
                     if [ $status -eq 137 ] || [ $status -eq 124 ]; then
-                        echo -e "\n${RED}⏰ Task \"$name\" TIMED OUT after ${task_timeout}s${NC}"
                         add_task_result "$name" "TIMED OUT" "$duration"
-                        cat "$log"
+                        on_task_timeout "$name" "$log" "$task_timeout"
                         print_summary_table
                         exit 124
                     fi
@@ -284,9 +312,8 @@ run_parallel_ordered() {
                     show_log_sequential "$name" "$log" $status
 
                     if [ $status -ne 0 ]; then
-                        echo -e "\n${RED}❌ Task \"$name\" failed with status $status.${NC}"
+                        on_task_failure "$name" "$log" "$status"
                         add_task_result "$name" "FAILED" "$duration"
-                        cat "$log"
                         echo -e "${RED}Aborting pipeline due to phase failure.${NC}"
                         print_summary_table
                         exit $status

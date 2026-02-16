@@ -1,14 +1,15 @@
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    response::{IntoResponse, Json},
+    response::Json,
 };
 use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::AddMemberRequest;
+use crate::models::{AddMemberRequest, WorkspaceMemberDetail};
 use crate::AppState;
 
 #[derive(Debug, Deserialize)]
@@ -20,8 +21,8 @@ pub async fn get_workspace_members(
     Path(_ws_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
-) -> impl IntoResponse {
-    match sqlx::query_as::<_, crate::models::WorkspaceMemberDetail>(
+) -> AppResult<Json<Vec<WorkspaceMemberDetail>>> {
+    let members = sqlx::query_as::<_, WorkspaceMemberDetail>(
         "SELECT wm.workspace_id, wm.user_id, wm.role, u.email, u.full_name, u.avatar_url
          FROM workspace_members wm
          JOIN users u ON wm.user_id = u.id
@@ -29,11 +30,9 @@ pub async fn get_workspace_members(
     )
     .bind(workspace_id)
     .fetch_all(&state.db)
-    .await
-    {
-        Ok(members) => Json(members).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
+    .await?;
+
+    Ok(Json(members))
 }
 
 pub async fn add_workspace_member(
@@ -41,36 +40,28 @@ pub async fn add_workspace_member(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<AddMemberRequest>,
-) -> impl IntoResponse {
+) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return (StatusCode::FORBIDDEN, "Only admins can invite members").into_response();
+        return Err(AppError::Forbidden("Only admins can invite members".to_string()));
     }
 
-    let user_id: Uuid = match sqlx::query_scalar("SELECT id FROM users WHERE email = $1")
+    let user_id: Uuid = sqlx::query_scalar("SELECT id FROM users WHERE email = $1")
         .bind(&req.email)
         .fetch_optional(&state.db)
-        .await
-    {
-        Ok(Some(id)) => id,
-        Ok(None) => {
-            return (StatusCode::NOT_FOUND, "User with this email not found").into_response();
-        }
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    };
+        .await?
+        .ok_or_else(|| AppError::NotFound("User with this email not found".to_string()))?;
 
     // 3. Add to workspace
-    match sqlx::query(
+    sqlx::query(
         "INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
     )
     .bind(ctx.workspace_id)
     .bind(user_id)
     .bind(req.role)
     .execute(&state.db)
-    .await
-    {
-        Ok(_) => StatusCode::CREATED.into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
+    .await?;
+
+    Ok(StatusCode::CREATED)
 }
 
 pub async fn update_workspace_member_role(
@@ -78,53 +69,37 @@ pub async fn update_workspace_member_role(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<UpdateMemberRoleRequest>,
-) -> impl IntoResponse {
+) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return (
-            StatusCode::FORBIDDEN,
-            "Only admins can change roles".to_string(),
-        )
-            .into_response();
+        return Err(AppError::Forbidden("Only admins can change roles".to_string()));
     }
 
-    match state
-        .workspace_repo
+    state.workspace_repo
         .update_member_role(ctx.workspace_id, user_id, req.role)
         .await
-    {
-        Ok(_) => StatusCode::OK.into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
-    }
+        .map_err(AppError::from)?;
+
+    Ok(StatusCode::OK)
 }
 
 pub async fn remove_workspace_member(
     Path((_ws_id, user_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-) -> impl IntoResponse {
+) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return (
-            StatusCode::FORBIDDEN,
-            "Only admins can remove members".to_string(),
-        )
-            .into_response();
+        return Err(AppError::Forbidden("Only admins can remove members".to_string()));
     }
 
     // Don't allow removing yourself (prevent lockout if only one admin, though owner should probably remain)
     if user_id == ctx.user_id {
-        return (
-            StatusCode::BAD_REQUEST,
-            "You cannot remove yourself from the workspace".to_string(),
-        )
-            .into_response();
+        return Err(AppError::Validation("You cannot remove yourself from the workspace".to_string()));
     }
 
-    match state
-        .workspace_repo
+    state.workspace_repo
         .remove_member(ctx.workspace_id, user_id)
         .await
-    {
-        Ok(_) => StatusCode::NO_CONTENT.into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
-    }
+        .map_err(AppError::from)?;
+
+    Ok(StatusCode::NO_CONTENT)
 }

@@ -81,11 +81,12 @@ async fn test_overnight_ot_payroll_calculation() {
     .unwrap();
 
     // Create time entry spanning midnight: Jan 5 22:00 -> Jan 6 06:00
+    let tz: chrono_tz::Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
     factory
         .time_entry()
         .with_employee(employee_id)
-        .with_punch_in(Utc.with_ymd_and_hms(2026, 1, 5, 22, 0, 0).unwrap())
-        .with_punch_out(Utc.with_ymd_and_hms(2026, 1, 6, 6, 0, 0).unwrap())
+        .with_punch_in(tz.with_ymd_and_hms(2026, 1, 5, 22, 0, 0).unwrap().with_timezone(&Utc))
+        .with_punch_out(tz.with_ymd_and_hms(2026, 1, 6, 6, 0, 0).unwrap().with_timezone(&Utc))
         .create()
         .await;
 

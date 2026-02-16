@@ -4,7 +4,6 @@
 
 use axum::{
     extract::State,
-    http::StatusCode,
     Json,
 };
 use chrono::{DateTime, Utc};
@@ -13,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::errors::{AppError, AppResult};
 use crate::AppState;
 
 // Redis key patterns for monitoring
@@ -55,12 +55,9 @@ pub struct MonitorStatsResponse {
 /// Route: GET /monitor/stats
 pub async fn get_monitor_stats(
     State(state): State<Arc<AppState>>,
-) -> Result<Json<MonitorStatsResponse>, (StatusCode, String)> {
+) -> AppResult<Json<MonitorStatsResponse>> {
     let redis = state.redis.as_ref().ok_or_else(|| {
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            "Redis not available".to_string(),
-        )
+        AppError::ServiceUnavailable("Redis not available".to_string())
     })?;
 
     let mut conn = redis.conn();
@@ -115,12 +112,9 @@ pub async fn get_monitor_stats(
 /// Route: GET /monitor/workers
 pub async fn get_worker_list(
     State(state): State<Arc<AppState>>,
-) -> Result<Json<Vec<WorkerHeartbeat>>, (StatusCode, String)> {
+) -> AppResult<Json<Vec<WorkerHeartbeat>>> {
     let redis = state.redis.as_ref().ok_or_else(|| {
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            "Redis not available".to_string(),
-        )
+        AppError::ServiceUnavailable("Redis not available".to_string())
     })?;
 
     let mut conn = redis.conn();

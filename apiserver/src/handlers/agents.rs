@@ -16,6 +16,7 @@ use uuid::Uuid;
 use tokio::time::Duration;
 
 use crate::agent_manager::AgentCommand;
+use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
     AgentStatus, AuthorizedAgent, CreateAuthorizedAgentRequest, CreateDeviceRequest, Device, TrustAgentRequest,
@@ -206,16 +207,16 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
         (status = 200, description = "List all agents status", body = [AgentStatus])
     )
 )]
-pub async fn get_agents(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+pub async fn get_agents(State(state): State<Arc<AppState>>) -> AppResult<Json<Vec<AgentStatus>>> {
     let agents = state.agent_manager.get_all_agents_status().await;
-    Json(agents)
+    Ok(Json(agents))
 }
 
 pub async fn send_command(
     Path(agent_id): Path<String>,
     State(state): State<Arc<AppState>>,
     Json(command_request): Json<serde_json::Value>,
-) -> impl IntoResponse {
+) -> AppResult<impl IntoResponse> {
     let command = AgentCommand {
         id: Uuid::new_v4().to_string(),
         r#type: "command".to_string(),
@@ -227,10 +228,10 @@ pub async fn send_command(
         data: command_request.get("data").cloned(),
     };
 
-    match state.agent_manager.send_command(&agent_id, command).await {
-        Ok(_) => (StatusCode::OK, "Command sent").into_response(),
-        Err(e) => (StatusCode::NOT_FOUND, e).into_response(),
-    }
+    state.agent_manager.send_command(&agent_id, command).await
+        .map_err(AppError::NotFound)?;
+    
+    Ok((StatusCode::OK, "Command sent"))
 }
 
 // --- Device Management Handlers ---
@@ -245,28 +246,26 @@ pub async fn send_command(
 pub async fn get_devices(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
-) -> impl IntoResponse {
-    match sqlx::query_as::<_, Device>(
+) -> AppResult<Json<Vec<Device>>> {
+    let devices = sqlx::query_as::<_, Device>(
         "SELECT * FROM devices WHERE workspace_id = $1 ORDER BY created_at DESC",
     )
     .bind(workspace_id)
     .fetch_all(&state.db)
-    .await
-    {
-        Ok(devices) => Json(devices).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
+    .await?;
+
+    Ok(Json(devices))
 }
 
 pub async fn create_device(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<CreateDeviceRequest>,
-) -> impl IntoResponse {
+) -> AppResult<impl IntoResponse> {
     let id = Uuid::new_v4();
     let port = req.port.unwrap_or(4370);
 
-    match sqlx::query(
+    sqlx::query(
         "INSERT INTO devices (id, agent_id, name, ip, port, workspace_id, brand) VALUES ($1, $2, $3, $4, $5, $6, $7)",
     )
     .bind(id)
@@ -275,16 +274,13 @@ pub async fn create_device(
     .bind(&req.ip)
     .bind(port)
     .bind(workspace_id)
-        .bind(req.brand.unwrap_or_else(|| "zkteco".to_string()))
+    .bind(req.brand.unwrap_or_else(|| "zkteco".to_string()))
     .execute(&state.db)
-    .await
-    {
-        Ok(_) => {
-            let _ = state.agent_service.notify_config_update(&req.agent_id).await;
-            (StatusCode::CREATED, Json(serde_json::json!({ "id": id }))).into_response()
-        }
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
+    .await?;
+
+    let _ = state.agent_service.notify_config_update(&req.agent_id).await;
+    
+    Ok((StatusCode::CREATED, Json(serde_json::json!({ "id": id }))))
 }
 
 pub async fn update_device(
@@ -292,18 +288,15 @@ pub async fn update_device(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<UpdateDeviceRequest>,
-) -> impl IntoResponse {
-    let current_device = match sqlx::query_as::<_, Device>(
+) -> AppResult<impl IntoResponse> {
+    let current_device = sqlx::query_as::<_, Device>(
         "SELECT * FROM devices WHERE id = $1 AND workspace_id = $2",
     )
     .bind(id)
     .bind(workspace_id)
     .fetch_one(&state.db)
     .await
-    {
-        Ok(d) => d,
-        Err(_) => return StatusCode::NOT_FOUND.into_response(),
-    };
+    .map_err(|_| AppError::NotFound("Device not found".to_string()))?;
 
     let name = req.name.unwrap_or(current_device.name);
     let ip = req.ip.unwrap_or(current_device.ip);
@@ -311,54 +304,49 @@ pub async fn update_device(
     let is_enabled = req.is_enabled.unwrap_or(current_device.is_enabled);
     let brand = req.brand.unwrap_or(current_device.brand);
 
-    match sqlx::query(
+    sqlx::query(
         "UPDATE devices SET name = $1, ip = $2, port = $3, is_enabled = $4, brand = $5 WHERE id = $6 AND workspace_id = $7",
     )
     .bind(name)
     .bind(ip)
     .bind(port)
     .bind(is_enabled)
-        .bind(brand)
+    .bind(brand)
     .bind(id)
     .bind(workspace_id)
     .execute(&state.db)
-    .await
-    {
-        Ok(_) => {
-            let _ = state.agent_service.notify_config_update(&current_device.agent_id).await;
-            StatusCode::OK.into_response()
-        }
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
+    .await?;
+
+    let _ = state.agent_service.notify_config_update(&current_device.agent_id).await;
+    
+    Ok(StatusCode::OK)
 }
 
 pub async fn delete_device(
     Path(id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
-) -> impl IntoResponse {
+) -> AppResult<impl IntoResponse> {
     let agent_id: Option<String> =
         sqlx::query_scalar("SELECT agent_id FROM devices WHERE id = $1 AND workspace_id = $2")
             .bind(id)
             .bind(workspace_id)
             .fetch_optional(&state.db)
-            .await
-            .unwrap_or(None);
+            .await?;
 
-    match sqlx::query("DELETE FROM devices WHERE id = $1 AND workspace_id = $2")
+    let res = sqlx::query("DELETE FROM devices WHERE id = $1 AND workspace_id = $2")
         .bind(id)
         .bind(workspace_id)
         .execute(&state.db)
-        .await
-    {
-        Ok(res) if res.rows_affected() > 0 => {
-            if let Some(aid) = agent_id {
-                let _ = state.agent_service.notify_config_update(&aid).await;
-            }
-            StatusCode::NO_CONTENT.into_response()
+        .await?;
+
+    if res.rows_affected() > 0 {
+        if let Some(aid) = agent_id {
+            let _ = state.agent_service.notify_config_update(&aid).await;
         }
-        Ok(_) => StatusCode::NOT_FOUND.into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        Err(AppError::NotFound("Device not found".to_string()))
     }
 }
 
@@ -373,7 +361,7 @@ pub async fn get_authorized_agents(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
     Query(params): Query<GetAgentsQueryParams>,
-) -> impl IntoResponse {
+) -> AppResult<Json<Vec<AuthorizedAgent>>> {
     let include_inactive = params.include_inactive.unwrap_or(false);
 
     let query = if include_inactive {
@@ -384,22 +372,20 @@ pub async fn get_authorized_agents(
             .to_string()
     };
 
-    match sqlx::query_as::<_, AuthorizedAgent>(&query)
+    let agents = sqlx::query_as::<_, AuthorizedAgent>(&query)
         .bind(workspace_id)
         .fetch_all(&state.db)
-        .await
-    {
-        Ok(agents) => Json(agents).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
+        .await?;
+
+    Ok(Json(agents))
 }
 
 pub async fn create_authorized_agent(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<CreateAuthorizedAgentRequest>,
-) -> impl IntoResponse {
-    match sqlx::query(
+) -> AppResult<impl IntoResponse> {
+    sqlx::query(
         "INSERT INTO authorized_agents (id, name, token, workspace_id, max_concurrent_workers) VALUES ($1, $2, $3, $4, $5)",
     )
     .bind(&req.id)
@@ -408,15 +394,12 @@ pub async fn create_authorized_agent(
     .bind(workspace_id)
     .bind(req.max_concurrent_workers.unwrap_or(2))
     .execute(&state.db)
-    .await
-    {
-        Ok(_) => (
-            StatusCode::CREATED,
-            Json(serde_json::json!({ "id": req.id })),
-        )
-            .into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
+    .await?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::json!({ "id": req.id })),
+    ))
 }
 
 pub async fn update_agent_trust(
@@ -424,24 +407,23 @@ pub async fn update_agent_trust(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<TrustAgentRequest>,
-) -> impl IntoResponse {
-    match sqlx::query(
+) -> AppResult<impl IntoResponse> {
+    let res = sqlx::query(
         "UPDATE authorized_agents SET is_trusted = $1 WHERE id = $2 AND workspace_id = $3",
     )
     .bind(req.is_trusted)
     .bind(&id)
     .bind(workspace_id)
     .execute(&state.db)
-    .await
-    {
-        Ok(res) if res.rows_affected() > 0 => {
-            if !req.is_trusted {
-                state.agent_manager.remove_agent(&id).await;
-            }
-            StatusCode::OK.into_response()
+    .await?;
+
+    if res.rows_affected() > 0 {
+        if !req.is_trusted {
+            state.agent_manager.remove_agent(&id).await;
         }
-        Ok(_) => StatusCode::NOT_FOUND.into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        Ok(StatusCode::OK)
+    } else {
+        Err(AppError::NotFound("Agent not found".to_string()))
     }
 }
 
@@ -449,19 +431,17 @@ pub async fn get_authorized_agent_by_id(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
-) -> impl IntoResponse {
-    match sqlx::query_as::<_, AuthorizedAgent>(
+) -> AppResult<Json<AuthorizedAgent>> {
+    let agent = sqlx::query_as::<_, AuthorizedAgent>(
         "SELECT * FROM authorized_agents WHERE id = $1 AND workspace_id = $2",
     )
     .bind(id)
     .bind(workspace_id)
     .fetch_optional(&state.db)
-    .await
-    {
-        Ok(Some(agent)) => Json(agent).into_response(),
-        Ok(None) => StatusCode::NOT_FOUND.into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
+    .await?
+    .ok_or_else(|| AppError::NotFound("Agent not found".to_string()))?;
+
+    Ok(Json(agent))
 }
 
 pub async fn update_authorized_agent(
@@ -469,7 +449,7 @@ pub async fn update_authorized_agent(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<UpdateAuthorizedAgentRequest>,
-) -> impl IntoResponse {
+) -> AppResult<Json<AuthorizedAgent>> {
     let mut query_builder: sqlx::query_builder::QueryBuilder<sqlx::Postgres> =
         sqlx::query_builder::QueryBuilder::new("UPDATE authorized_agents SET ");
     let mut has_fields_to_update = false;
@@ -513,7 +493,7 @@ pub async fn update_authorized_agent(
     }
 
     if !has_fields_to_update {
-        return (StatusCode::BAD_REQUEST, "No fields to update").into_response();
+        return Err(AppError::Validation("No fields to update".to_string()));
     }
 
     query_builder.push(" WHERE id = ");
@@ -522,44 +502,39 @@ pub async fn update_authorized_agent(
     query_builder.push_bind(workspace_id);
     query_builder.push(" RETURNING *");
 
-    match query_builder
+    let agent = query_builder
         .build_query_as::<AuthorizedAgent>()
         .fetch_optional(&state.db)
-        .await
+        .await?
+        .ok_or_else(|| AppError::NotFound("Agent not found".to_string()))?;
+
+    if (req.is_trusted == Some(false) || req.is_active == Some(false))
+        && state.agent_manager.is_online(&agent.id).await
     {
-        Ok(Some(agent)) => {
-            if (req.is_trusted == Some(false) || req.is_active == Some(false))
-                && state.agent_manager.is_online(&agent.id).await
-            {
-                state.agent_manager.remove_agent(&agent.id).await;
-            } else {
-                let _ = state.agent_service.notify_config_update(&agent.id).await;
-            }
-            Json(agent).into_response()
-        }
-        Ok(None) => StatusCode::NOT_FOUND.into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        state.agent_manager.remove_agent(&agent.id).await;
+    } else {
+        let _ = state.agent_service.notify_config_update(&agent.id).await;
     }
+    Ok(Json(agent))
 }
 
 pub async fn delete_authorized_agent(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
-) -> impl IntoResponse {
-    match sqlx::query(
+) -> AppResult<impl IntoResponse> {
+    let res = sqlx::query(
         "UPDATE authorized_agents SET is_active = FALSE WHERE id = $1 AND workspace_id = $2",
     )
     .bind(&id)
     .bind(workspace_id)
     .execute(&state.db)
-    .await
-    {
-        Ok(res) if res.rows_affected() > 0 => {
-            state.agent_manager.remove_agent(&id).await;
-            StatusCode::NO_CONTENT.into_response()
-        }
-        Ok(_) => StatusCode::NOT_FOUND.into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    .await?;
+
+    if res.rows_affected() > 0 {
+        state.agent_manager.remove_agent(&id).await;
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        Err(AppError::NotFound("Agent not found".to_string()))
     }
 }

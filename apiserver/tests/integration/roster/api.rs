@@ -44,8 +44,16 @@ async fn test_bulk_upsert_roster_api() {
 
     assert_eq!(res.status(), StatusCode::OK);
 
-    // 4. Verify DB
-    let rosters: Vec<ShiftRoster> = res.json().await.unwrap();
+    // 4. Verify via GET (handler returns no body, just status code)
+    let get_res = client
+        .get(format!("{}/api/workspaces/{}/employees/{}/rosters", address, workspace_id, emp_id))
+        .header("Authorization", format!("Bearer {}", auth_token))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(get_res.status(), StatusCode::OK);
+    let rosters: Vec<ShiftRoster> = get_res.json().await.unwrap();
     assert_eq!(rosters.len(), 1);
     assert_eq!(rosters[0].shift_id, Some(shift_id));
 }

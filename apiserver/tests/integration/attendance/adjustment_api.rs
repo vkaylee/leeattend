@@ -31,7 +31,7 @@ async fn test_attendance_adjustment_lifecycle() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{}/adjustments", ws_id))
+                .uri(format!("/api/workspaces/{}/attendance/adjustments", ws_id))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())

@@ -91,6 +91,22 @@ async fn test_leave_balances() {
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
     let emp_id: Uuid = factory.employee().with_workspace(ws_id).create().await;
 
+    // Create a balance manually
+    let vacation_id: Uuid = sqlx::query_scalar!(
+        "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
+        ws_id
+    )
+    .fetch_one(&factory.pool)
+    .await
+    .unwrap();
+
+    factory.leave_balance()
+        .with_employee(emp_id)
+        .with_leave_type(vacation_id)
+        .with_entitlement(12)
+        .create()
+        .await;
+
     let response = app
         .clone()
         .oneshot(

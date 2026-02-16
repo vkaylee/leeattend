@@ -41,6 +41,13 @@
 - Handle edge cases and error scenarios
 - **DO NOT** create new enhanced files, update to the existing files directly.
 
+## 🦀 Rust Backend Standards
+- **[MANDATORY] Error Handling**: All API handlers MUST return `AppResult<T>` using the `AppError` pattern defined in `apiserver/src/errors.rs`. 
+  - Never return `(StatusCode, String)` for errors. 
+  - Propagate errors using `?`.
+- **Multi-Tenancy**: Every database query MUST include `workspace_id` filtering.
+- **SQLx Validation**: Prefer live DB validation during compilation (tmpfs database).
+
 ## Testing Requirements (MANDATORY)
 
 **⛔ NO TEST = NO DONE** - Every feature MUST have corresponding tests verified in the RAM environment before considered complete.

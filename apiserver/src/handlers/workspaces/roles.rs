@@ -1,11 +1,12 @@
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    response::{IntoResponse, Json},
+    response::Json,
 };
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{AssignRoleRequest, MemberExtraRole};
 use crate::services::WorkspaceService;
@@ -15,7 +16,7 @@ pub async fn get_member_roles(
     Path((_ws_id, user_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-) -> impl IntoResponse {
+) -> AppResult<Json<serde_json::Value>> {
     match WorkspaceService::get_member_roles(
         state.workspace_repo.as_ref(),
         ctx.workspace_id,
@@ -23,13 +24,12 @@ pub async fn get_member_roles(
     )
     .await
     {
-        Ok((primary, extra)) => Json(serde_json::json!({
+        Ok((primary, extra)) => Ok(Json(serde_json::json!({
             "primary": primary,
             "extra": extra
-        }))
-        .into_response(),
-        Err(e) if e == "NOT_FOUND" => StatusCode::NOT_FOUND.into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+        }))),
+        Err(e) if e == "NOT_FOUND" => Err(AppError::NotFound("Member not found".to_string())),
+        Err(e) => Err(AppError::from(e)),
     }
 }
 
@@ -38,20 +38,16 @@ pub async fn assign_extra_role(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<AssignRoleRequest>,
-) -> impl IntoResponse {
+) -> AppResult<(StatusCode, Json<MemberExtraRole>)> {
     if !ctx.is_admin_or_owner() {
-        return (StatusCode::FORBIDDEN, "Only admins can assign roles").into_response();
+        return Err(AppError::Forbidden("Only admins can assign roles".to_string()));
     }
 
     if req.expires_at <= chrono::Utc::now() {
-        return (
-            StatusCode::BAD_REQUEST,
-            "Expiration time must be in the future".to_string(),
-        )
-            .into_response();
+        return Err(AppError::Validation("Expiration time must be in the future".to_string()));
     }
 
-    match sqlx::query_as::<_, MemberExtraRole>(
+    let extra_role = sqlx::query_as::<_, MemberExtraRole>(
         "INSERT INTO member_extra_roles (workspace_id, user_id, role, expires_at) VALUES ($1, $2, $3, $4) RETURNING *"
     )
     .bind(ctx.workspace_id)
@@ -59,30 +55,29 @@ pub async fn assign_extra_role(
     .bind(req.role)
     .bind(req.expires_at)
     .fetch_one(&state.db)
-    .await
-    {
-        Ok(extra_role) => (StatusCode::CREATED, Json(extra_role)).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
+    .await?;
+
+    Ok((StatusCode::CREATED, Json(extra_role)))
 }
 
 pub async fn revoke_extra_role(
     Path((_ws_id, _user_id, role_id)): Path<(Uuid, Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-) -> impl IntoResponse {
+) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return (StatusCode::FORBIDDEN, "Only admins can revoke roles").into_response();
+        return Err(AppError::Forbidden("Only admins can revoke roles".to_string()));
     }
 
-    match sqlx::query("DELETE FROM member_extra_roles WHERE id = $1 AND workspace_id = $2")
+    let res = sqlx::query("DELETE FROM member_extra_roles WHERE id = $1 AND workspace_id = $2")
         .bind(role_id)
         .bind(ctx.workspace_id)
         .execute(&state.db)
-        .await
-    {
-        Ok(res) if res.rows_affected() > 0 => StatusCode::NO_CONTENT.into_response(),
-        Ok(_) => StatusCode::NOT_FOUND.into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        .await?;
+
+    if res.rows_affected() > 0 {
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        Err(AppError::NotFound("Role not found".to_string()))
     }
 }

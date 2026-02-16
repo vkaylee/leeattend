@@ -1,13 +1,13 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
-    response::{IntoResponse, Json},
+    response::Json,
 };
 use chrono::NaiveDate;
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::AppState;
 
@@ -16,9 +16,9 @@ pub async fn get_attendance_report(
     Path(workspace_id): Path<Uuid>,
     MemberContext { .. }: MemberContext,
     Query(params): Query<HashMap<String, String>>,
-) -> Result<impl IntoResponse, StatusCode> {
-    let start_date_str = params.get("start_date").ok_or(StatusCode::BAD_REQUEST)?;
-    let end_date_str = params.get("end_date").ok_or(StatusCode::BAD_REQUEST)?;
+) -> AppResult<Json<serde_json::Value>> {
+    let start_date_str = params.get("start_date").ok_or_else(|| AppError::Validation("Missing start_date".to_string()))?;
+    let end_date_str = params.get("end_date").ok_or_else(|| AppError::Validation("Missing end_date".to_string()))?;
     let report_type = params.get("type").map(|s| s.as_str()).unwrap_or("summary");
 
     let page = params.get("page").and_then(|s| s.parse::<i64>().ok());
@@ -36,12 +36,13 @@ pub async fn get_attendance_report(
     });
 
     let start_date = NaiveDate::parse_from_str(start_date_str, "%Y-%m-%d")
-        .map_err(|_| StatusCode::BAD_REQUEST)?;
+        .map_err(|_| AppError::Validation("Invalid start_date format".to_string()))?;
     let end_date =
-        NaiveDate::parse_from_str(end_date_str, "%Y-%m-%d").map_err(|_| StatusCode::BAD_REQUEST)?;
+        NaiveDate::parse_from_str(end_date_str, "%Y-%m-%d")
+        .map_err(|_| AppError::Validation("Invalid end_date format".to_string()))?;
 
     if report_type == "daily" {
-        match crate::services::ReportService::get_daily_attendance_report(
+        let report = crate::services::ReportService::get_daily_attendance_report(
             &state.db,
             workspace_id,
             start_date,
@@ -51,12 +52,11 @@ pub async fn get_attendance_report(
             employee_ids,
         )
         .await
-        {
-            Ok(report) => Ok(Json(report).into_response()),
-            Err(e) => Err(e),
-        }
+        .map_err(|s| AppError::from((s, "Failed to get daily report".to_string())))?;
+        
+        Ok(Json(serde_json::to_value(report).map_err(|e| AppError::from(e.to_string()))?))
     } else {
-        match crate::services::ReportService::get_workspace_attendance_summary(
+        let summary = crate::services::ReportService::get_workspace_attendance_summary(
             &state.db,
             workspace_id,
             start_date,
@@ -67,9 +67,8 @@ pub async fn get_attendance_report(
             employee_ids,
         )
         .await
-        {
-            Ok(summary) => Ok(Json(summary).into_response()),
-            Err(e) => Err(e),
-        }
+        .map_err(|s| AppError::from((s, "Failed to get summary report".to_string())))?;
+        
+        Ok(Json(serde_json::to_value(summary).map_err(|e| AppError::from(e.to_string()))?))
     }
 }

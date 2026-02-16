@@ -1,14 +1,14 @@
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
-    response::{IntoResponse, Json},
+    response::Json,
 };
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::Deserialize;
 use std::sync::Arc;
-use tracing::error;
 use uuid::Uuid;
 
+use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::AppState;
@@ -27,7 +27,7 @@ pub async fn get_attendance_logs(
     Path(_ws_id): Path<Uuid>,
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<AttendanceLogQuery>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> AppResult<Json<serde_json::Value>> {
     let limit = query.limit.unwrap_or(20);
     let page = query.page.unwrap_or(1);
     let offset = (page - 1) * limit;
@@ -41,11 +41,7 @@ pub async fn get_attendance_logs(
         limit,
         offset,
     )
-    .await
-    .map_err(|e| {
-        error!("GET_LOGS_ERROR: {:?}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    .await?;
 
     let total = crate::repositories::time_entry_repository::count_logs(
         &state.db,
@@ -54,11 +50,7 @@ pub async fn get_attendance_logs(
         query.from,
         query.to,
     )
-    .await
-    .map_err(|e| {
-        error!("COUNT_LOGS_ERROR: {:?}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    .await?;
 
     Ok(Json(serde_json::json!({
         "data": logs,
@@ -73,7 +65,7 @@ pub async fn get_raw_attendance_logs(
     Path(_ws_id): Path<Uuid>,
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<AttendanceLogQuery>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> AppResult<Json<serde_json::Value>> {
     let limit = query.limit.unwrap_or(20);
     let page = query.page.unwrap_or(1);
     let offset = (page - 1) * limit;
@@ -87,11 +79,7 @@ pub async fn get_raw_attendance_logs(
         limit,
         offset,
     )
-    .await
-    .map_err(|e| {
-        error!("GET_RAW_LOGS_ERROR: {:?}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    .await?;
 
     let total = crate::repositories::raw_attendance_log_repository::count_raw_logs(
         &state.db,
@@ -100,11 +88,7 @@ pub async fn get_raw_attendance_logs(
         query.from,
         query.to,
     )
-    .await
-    .map_err(|e| {
-        error!("COUNT_RAW_LOGS_ERROR: {:?}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    .await?;
 
     Ok(Json(serde_json::json!({
         "data": logs,
@@ -125,19 +109,19 @@ pub async fn force_reprocess_attendance(
     Path((_ws_id, employee_id)): Path<(Uuid, Uuid)>,
     ctx: MemberContext,
     Query(query): Query<ReprocessQuery>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AppError::Forbidden("Forbidden".to_string()));
     }
 
     const MAX_REPROCESS_DAYS: i64 = 90;
 
     let date_range = (query.end_date - query.start_date).num_days();
     if date_range < 0 {
-        return Err(StatusCode::BAD_REQUEST); // end before start
+        return Err(AppError::Validation("end_date must be after start_date".to_string()));
     }
     if date_range > MAX_REPROCESS_DAYS {
-        return Err(StatusCode::BAD_REQUEST); // too large
+        return Err(AppError::Validation(format!("Max reprocess range is {MAX_REPROCESS_DAYS} days")));
     }
 
     let workspace = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
@@ -145,13 +129,13 @@ pub async fn force_reprocess_attendance(
     }
     .get_workspace_by_id(ctx.workspace_id)
     .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-    .ok_or(StatusCode::NOT_FOUND)?;
+    .map_err(AppError::from)?
+    .ok_or_else(|| AppError::NotFound("Workspace not found".to_string()))?;
 
     let tz: chrono_tz::Tz = workspace
         .timezone
         .parse()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|_| AppError::from("Invalid timezone configuration"))?;
 
     let mut curr_date = query.start_date;
     while curr_date <= query.end_date {
@@ -163,7 +147,7 @@ pub async fn force_reprocess_attendance(
             &workspace.pairing_algorithm,
         )
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| AppError::from(format!("Processing failed for {curr_date}: {e}")))?;
 
         if let Some(next) = curr_date.succ_opt() {
             curr_date = next;

@@ -1,3 +1,12 @@
+use crate::errors::{AppError, AppResult};
+use crate::handlers::common::MemberContext;
+use crate::models::{
+    CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmployeeDepartmentHistory, 
+    PaginatedResponse, PaginationParams, RehireEmployeeRequest, TransferEmployeeRequest, UpdateEmployeeRequest,
+    WorkingCondition, EmploymentPeriod,
+};
+use crate::services::employee_service::EmployeeService;
+use crate::AppState;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -6,20 +15,14 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::handlers::common::MemberContext;
-use crate::models::{
-    CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmployeeDepartmentHistory, 
-    PaginatedResponse, PaginationParams, RehireEmployeeRequest, TransferEmployeeRequest, UpdateEmployeeRequest,
-};
 pub async fn get_working_conditions(
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
-) -> impl IntoResponse {
-    match EmployeeService::get_working_conditions(&state.db, id, workspace_id).await {
-        Ok(conditions) => Json(conditions).into_response(),
-        Err(status) => status.into_response(),
-    }
+) -> AppResult<Json<Vec<WorkingCondition>>> {
+    let conditions = EmployeeService::get_working_conditions(&state.db, id, workspace_id).await
+        .map_err(|s| AppError::from((s, "Failed to get working conditions".to_string())))?;
+    Ok(Json(conditions))
 }
 
 pub async fn create_working_condition(
@@ -27,31 +30,27 @@ pub async fn create_working_condition(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<CreateWorkingConditionRequest>,
-) -> impl IntoResponse {
+) -> AppResult<impl IntoResponse> {
     if !ctx.is_admin_or_owner() {
-        return (StatusCode::FORBIDDEN, "Only admins can manage policies").into_response();
+        return Err(AppError::Forbidden("Only admins can manage policies".to_string()));
     }
-    match EmployeeService::create_working_condition(&state.db, id, ctx.workspace_id, req).await {
-        Ok(cond) => (StatusCode::CREATED, Json(cond)).into_response(),
-        Err(status) => status.into_response(),
-    }
+    let cond = EmployeeService::create_working_condition(&state.db, id, ctx.workspace_id, req).await
+        .map_err(|s| AppError::from((s, "Failed to create working condition".to_string())))?;
+    Ok((StatusCode::CREATED, Json(cond)))
 }
 
 pub async fn delete_working_condition(
     Path((_ws_id, id, cond_id)): Path<(Uuid, Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-) -> impl IntoResponse {
+) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return StatusCode::FORBIDDEN.into_response();
+        return Err(AppError::Forbidden("Forbidden".to_string()));
     }
-    match EmployeeService::delete_working_condition(&state.db, id, ctx.workspace_id, cond_id).await {
-        Ok(_) => StatusCode::NO_CONTENT.into_response(),
-        Err(status) => status.into_response(),
-    }
+    EmployeeService::delete_working_condition(&state.db, id, ctx.workspace_id, cond_id).await
+        .map_err(|s| AppError::from((s, "Failed to delete working condition".to_string())))?;
+    Ok(StatusCode::NO_CONTENT)
 }
-use crate::services::employee_service::EmployeeService;
-use crate::AppState;
 
 // --- Employee Management Handlers ---
 
@@ -60,30 +59,28 @@ pub async fn get_employees(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<PaginationParams>,
-) -> impl IntoResponse {
+) -> AppResult<Json<PaginatedResponse<Employee>>> {
     let page = query.page.unwrap_or(1);
     let limit = query.limit.unwrap_or(50);
-    match EmployeeService::get_all_employees(&state.db, workspace_id, query.q, page, limit).await {
-        Ok((data, total)) => Json(PaginatedResponse {
-            data,
-            total: total as usize,
-            page,
-            limit,
-        })
-        .into_response(),
-        Err(status) => status.into_response(),
-    }
+    let (data, total) = EmployeeService::get_all_employees(&state.db, workspace_id, query.q, page, limit).await
+        .map_err(|s| AppError::from((s, "Failed to get employees".to_string())))?;
+    
+    Ok(Json(PaginatedResponse {
+        data,
+        total: total as usize,
+        page,
+        limit,
+    }))
 }
 
 pub async fn get_employee(
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
-) -> Result<Json<Employee>, StatusCode> {
-    match EmployeeService::get_employee_by_id(&state.db, id, workspace_id).await {
-        Ok(employee) => Ok(Json(employee)),
-        Err(status) => Err(status),
-    }
+) -> AppResult<Json<Employee>> {
+    let employee = EmployeeService::get_employee_by_id(&state.db, id, workspace_id).await
+        .map_err(|_| AppError::NotFound("Employee not found".to_string()))?;
+    Ok(Json(employee))
 }
 
 pub async fn create_employee(
@@ -91,14 +88,13 @@ pub async fn create_employee(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<CreateEmployeeRequest>,
-) -> impl IntoResponse {
+) -> AppResult<impl IntoResponse> {
     if !ctx.is_admin_or_owner() {
-        return (StatusCode::FORBIDDEN, "Only admins can create employees").into_response();
+        return Err(AppError::Forbidden("Only admins can create employees".to_string()));
     }
-    match EmployeeService::create_employee(&state.db, ctx.workspace_id, req).await {
-        Ok(employee) => (StatusCode::CREATED, Json(employee)).into_response(),
-        Err(status) => status.into_response(),
-    }
+    let employee = EmployeeService::create_employee(&state.db, ctx.workspace_id, req).await
+        .map_err(|s| AppError::from((s, "Failed to create employee".to_string())))?;
+    Ok((StatusCode::CREATED, Json(employee)))
 }
 
 pub async fn update_employee(
@@ -106,40 +102,37 @@ pub async fn update_employee(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<UpdateEmployeeRequest>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> AppResult<Json<Employee>> {
     if !ctx.is_admin_or_owner() {
-        return Ok((StatusCode::FORBIDDEN, "Only admins can update employees").into_response());
+        return Err(AppError::Forbidden("Only admins can update employees".to_string()));
     }
-    match EmployeeService::update_employee(&state.db, id, ctx.workspace_id, req).await {
-        Ok(employee) => Ok(Json(employee).into_response()),
-        Err(status) => Err(status),
-    }
+    let employee = EmployeeService::update_employee(&state.db, id, ctx.workspace_id, req).await
+        .map_err(|s| AppError::from((s, "Failed to update employee".to_string())))?;
+    Ok(Json(employee))
 }
 
 pub async fn delete_employee(
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-) -> Result<StatusCode, StatusCode> {
+) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AppError::Forbidden("Forbidden".to_string()));
     }
     let workspace_id = ctx.workspace_id;
-    match EmployeeService::delete_employee(&state.db, id, workspace_id).await {
-        Ok(_) => Ok(StatusCode::NO_CONTENT),
-        Err(status) => Err(status),
-    }
+    EmployeeService::delete_employee(&state.db, id, workspace_id).await
+        .map_err(|_| AppError::NotFound("Employee not found".to_string()))?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn get_employee_history(
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
-) -> impl IntoResponse {
-    match EmployeeService::get_employment_history(&state.db, id, workspace_id).await {
-        Ok(history) => Json(history).into_response(),
-        Err(status) => status.into_response(),
-    }
+) -> AppResult<Json<Vec<EmploymentPeriod>>> {
+    let history = EmployeeService::get_employment_history(&state.db, id, workspace_id).await
+        .map_err(|s| AppError::from((s, "Failed to get employment history".to_string())))?;
+    Ok(Json(history))
 }
 
 pub async fn rehire_employee(
@@ -147,25 +140,23 @@ pub async fn rehire_employee(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<RehireEmployeeRequest>,
-) -> impl IntoResponse {
+) -> AppResult<Json<Employee>> {
     if !ctx.is_admin_or_owner() {
-        return (StatusCode::FORBIDDEN, "Only admins can re-hire employees").into_response();
+        return Err(AppError::Forbidden("Only admins can re-hire employees".to_string()));
     }
-    match EmployeeService::rehire_employee(&state.db, id, ctx.workspace_id, req).await {
-        Ok(employee) => Json(employee).into_response(),
-        Err(status) => status.into_response(),
-    }
+    let employee = EmployeeService::rehire_employee(&state.db, id, ctx.workspace_id, req).await
+        .map_err(|s| AppError::from((s, "Failed to rehire employee".to_string())))?;
+    Ok(Json(employee))
 }
 
 pub async fn get_employee_department_history(
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
-) -> Result<Json<Vec<EmployeeDepartmentHistory>>, StatusCode> {
-    match EmployeeService::get_department_history(&state.db, id, workspace_id).await {
-        Ok(history) => Ok(Json(history)),
-        Err(status) => Err(status),
-    }
+) -> AppResult<Json<Vec<EmployeeDepartmentHistory>>> {
+    let history = EmployeeService::get_department_history(&state.db, id, workspace_id).await
+        .map_err(|s| AppError::from((s, "Failed to get department history".to_string())))?;
+    Ok(Json(history))
 }
 
 pub async fn transfer_employee(
@@ -173,12 +164,11 @@ pub async fn transfer_employee(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<TransferEmployeeRequest>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> AppResult<Json<EmployeeDepartmentHistory>> {
     if !ctx.is_admin_or_owner() {
-        return Ok((StatusCode::FORBIDDEN, "Only admins can transfer employees").into_response());
+        return Err(AppError::Forbidden("Only admins can transfer employees".to_string()));
     }
-    match EmployeeService::transfer_employee(&state.db, id, ctx.workspace_id, req).await {
-        Ok(history) => Ok(Json(history).into_response()),
-        Err(status) => Err(status),
-    }
+    let history = EmployeeService::transfer_employee(&state.db, id, ctx.workspace_id, req).await
+        .map_err(|s| AppError::from((s, "Failed to transfer employee".to_string())))?;
+    Ok(Json(history))
 }

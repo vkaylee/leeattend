@@ -31,7 +31,7 @@ pub async fn register(
 
     // 2. Hash password
     let password_hash = AuthService::hash_password(&req.password)
-        .map_err(AppError::Internal)?;
+        .map_err(AppError::from)?;
 
     // 3. Begin transaction for atomicity
     let mut tx = state.db.begin().await?;
@@ -60,7 +60,7 @@ pub async fn register(
         Ok(t) => t,
         Err(e) => {
             let _ = tx.rollback().await;
-            return Err(AppError::Internal(e));
+            return Err(AppError::from(e));
         }
     };
 
@@ -80,7 +80,7 @@ pub async fn register(
 
     // 7. Generate access token (stateless, no DB write needed)
     let access_token = AuthService::generate_token(user.id, &state.jwt_secret, 60)
-        .map_err(AppError::Internal)?;
+        .map_err(AppError::from)?;
 
     Ok(Json(AuthResponse {
         access_token,
@@ -112,10 +112,10 @@ pub async fn login(
     };
 
     let access_token = AuthService::generate_token(user.id, &state.jwt_secret, 60)
-        .map_err(AppError::Internal)?;
+        .map_err(AppError::from)?;
 
     let refresh_token = AuthService::create_session(&state.db, user.id).await
-        .map_err(AppError::Internal)?;
+        .map_err(AppError::from)?;
 
     Ok(Json(AuthResponse {
         access_token,
@@ -149,7 +149,7 @@ pub async fn change_password(
 
     // 3. Hash new password
     let new_hash = AuthService::hash_password(&req.new_password)
-        .map_err(AppError::Internal)?;
+        .map_err(AppError::from)?;
 
     // 4. Update DB
     sqlx::query("UPDATE users SET password_hash = $1 WHERE id = $2")
@@ -173,7 +173,7 @@ pub async fn logout(
 ) -> AppResult<StatusCode> {
     AuthService::revoke_session(&state.db, &req.refresh_token).await
         .map(|_| StatusCode::OK)
-        .map_err(AppError::Internal)
+        .map_err(AppError::from)
 }
 
 pub async fn get_me(

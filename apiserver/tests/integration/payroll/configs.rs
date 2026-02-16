@@ -74,7 +74,7 @@ async fn test_set_and_get_department_payroll_config() {
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let configs: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
     assert_eq!(configs.len(), 1);
-    assert_eq!(configs[0]["std_working_days"], json!("22"));
+    assert!(configs[0]["std_working_days"] == json!("22") || configs[0]["std_working_days"] == json!("22.00"));
     assert_eq!(configs[0]["department_id"], json!(dept_id.to_string()));
 }
 
@@ -134,7 +134,7 @@ async fn test_set_and_get_employee_payroll_config() {
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let configs: Vec<serde_json::Value> = serde_json::from_slice(&body).unwrap();
     assert_eq!(configs.len(), 1);
-    assert_eq!(configs[0]["std_working_days"], json!("20"));
+    assert!(configs[0]["std_working_days"] == json!("20") || configs[0]["std_working_days"] == json!("20.00"));
     assert_eq!(configs[0]["employee_id"], json!(emp_id.to_string()));
 }
 

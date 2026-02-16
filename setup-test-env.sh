@@ -135,6 +135,16 @@ run_within_env() {
             trap leeattend_cleanup EXIT INT TERM
         fi
 
+        # If the command starts with leeattend_run_, we need to source the scripts
+        # because functions are not exported to the subshell eval.
+        local cmd="$1"
+        if [[ "$cmd" == leeattend_run_* ]]; then
+            source "$PROJECT_ROOT/scripts/test-utils.sh"
+            source "$PROJECT_ROOT/scripts/test-lint.sh"
+            source "$PROJECT_ROOT/scripts/test-unit.sh"
+            source "$PROJECT_ROOT/scripts/test-integration.sh"
+        fi
+
         # Thực thi lệnh
         eval "$@"
     else

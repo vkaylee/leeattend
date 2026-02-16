@@ -7,7 +7,8 @@ use axum::{
         ws::{Message, WebSocket, WebSocketUpgrade},
         Path, Query, State,
     },
-    http::StatusCode,
+    http::{Request, StatusCode},
+    middleware::Next,
     response::{IntoResponse, Response},
 };
 use futures_util::{SinkExt, StreamExt};
@@ -27,16 +28,14 @@ pub struct WsQuery {
     pub token: Option<String>,
 }
 
-/// WebSocket upgrade handler for report streaming.
-///
-/// Route: GET /ws/reports/:job_id
-pub async fn report_stream_ws(
-    ws: WebSocketUpgrade,
-    Path(job_id): Path<Uuid>,
-    Query(query): Query<WsQuery>,
+/// Middleware that validates JWT token from query params before WebSocket upgrade.
+/// This runs before the WebSocketUpgrade extractor, ensuring auth errors return 401.
+pub async fn ws_auth_middleware(
     State(state): State<Arc<AppState>>,
+    Query(query): Query<WsQuery>,
+    request: Request<axum::body::Body>,
+    next: Next,
 ) -> Response {
-    // Validate authentication token
     let token = match query.token.as_deref() {
         Some(t) => t,
         None => {
@@ -44,12 +43,26 @@ pub async fn report_stream_ws(
         }
     };
 
-    let _user_id = match crate::services::auth_service::AuthService::verify_token(token, &state.jwt_secret) {
-        Ok(uid) => uid,
-        Err(_) => {
-            return (StatusCode::UNAUTHORIZED, "Invalid or expired token").into_response();
-        }
-    };
+    match crate::services::auth_service::AuthService::verify_token(token, &state.jwt_secret) {
+        Ok(_) => next.run(request).await,
+        Err(_) => (StatusCode::UNAUTHORIZED, "Invalid or expired token").into_response(),
+    }
+}
+
+/// WebSocket upgrade handler for report streaming.
+///
+/// Route: GET /ws/reports/:job_id
+/// Note: Auth is handled by ws_auth_middleware applied as a layer on this route.
+pub async fn report_stream_ws(
+    ws: WebSocketUpgrade,
+    Path(job_id): Path<Uuid>,
+    Query(query): Query<WsQuery>,
+    State(state): State<Arc<AppState>>,
+) -> Response {
+    // Token already validated by middleware, extract user_id
+    let user_id = query.token.as_deref()
+        .and_then(|t| crate::services::auth_service::AuthService::verify_token(t, &state.jwt_secret).ok())
+        .unwrap_or_default();
 
     // Check if Redis is available
     let redis = match &state.redis {
@@ -63,7 +76,7 @@ pub async fn report_stream_ws(
         }
     };
 
-    info!(job_id = %job_id, user_id = %_user_id, "WebSocket upgrade request for report stream");
+    info!(job_id = %job_id, user_id = %user_id, "WebSocket upgrade request for report stream");
 
     ws.on_upgrade(move |socket| handle_report_socket(socket, job_id, redis))
 }
@@ -83,7 +96,7 @@ async fn handle_report_socket(
             warn!(job_id = %job_id, error = %e, "Failed to subscribe to report stream");
             let error_msg = serde_json::json!({
                 "type": "ERROR",
-                "message": format!("Failed to subscribe: {}", e),
+                "message": format!("Failed to subscribe: {e}"),
                 "batch_index": null
             });
             let _ = sender.send(Message::Text(error_msg.to_string())).await;

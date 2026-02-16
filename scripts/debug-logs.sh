@@ -1,54 +1,76 @@
 #!/bin/bash
-LOG_DIR=".test_logs"
 
-show_help() {
-    echo "Usage: ./scripts/debug-logs.sh [option]"
-    echo "Options:"
-    echo "  --list          List all available log files"
-    echo "  --last          Show the content of the most recent log file"
-    echo "  --cat [name]    Show the content of a specific log file"
-    echo "  --errors        Search for errors/panics in all logs"
-    echo "  --tail [N]      Tail the most recent log file (default 20 lines)"
+# ==============================================================================
+# LeeAttend Debug Log Utilities
+# This script defines methods for analyzing test logs.
+# Sourced by other scripts, not intended for direct execution.
+# ==============================================================================
+
+# Default log directory if not set
+DEBUG_LOG_DIR="${LOG_DIR:-.test_logs}"
+
+# Colors (with defaults)
+BLUE="${BLUE:-\033[0;34m}"
+YELLOW="${YELLOW:-\033[1;33m}"
+RED="${RED:-\033[0;31m}"
+NC="${NC:-\033[0m}"
+
+leeattend_debug_list() {
+    local dir="${1:-$DEBUG_LOG_DIR}"
+    echo -e "${BLUE}📁 Listing all logs in $dir:${NC}"
+    ls -lh "$dir"
 }
 
-if [ ! -d "$LOG_DIR" ]; then
-    echo "Error: Log directory $LOG_DIR not found."
-    exit 1
-fi
+leeattend_debug_last() {
+    local dir="${1:-$DEBUG_LOG_DIR}"
+    local last_log=$(ls -t "$dir"/*.log 2>/dev/null | head -n 1)
+    if [ -n "$last_log" ]; then
+        echo -e "${BLUE}📄 Content of last log: $last_log${NC}"
+        cat "$last_log"
+    else
+        echo -e "${YELLOW}No log files found in $dir.${NC}"
+    fi
+}
 
-case "$1" in
-    --list)
-        ls -lh "$LOG_DIR"
-        ;;
-    --last)
-        LAST_LOG=$(ls -t "$LOG_DIR"/*.log 2>/dev/null | head -n 1)
-        if [ -n "$LAST_LOG" ]; then
-            echo "--- Content of $LAST_LOG ---"
-            cat "$LAST_LOG"
-        else
-            echo "No log files found."
-        fi
-        ;;
-    --cat)
-        FILE=$(ls "$LOG_DIR"/*"$2"* 2>/dev/null | head -n 1)
-        if [ -n "$FILE" ] && [ -f "$FILE" ]; then
-            cat "$FILE"
-        else
-            echo "File matching *$2* not found in $LOG_DIR"
-        fi
-        ;;
-    --errors)
-        echo "🔍 Searching for errors in $LOG_DIR..."
-        grep -Ei "error|panic|failed|exception" "$LOG_DIR"/*.log
-        ;;
-    --tail)
-        N=${2:-20}
-        LAST_LOG=$(ls -t "$LOG_DIR"/*.log 2>/dev/null | head -n 1)
-        if [ -n "$LAST_LOG" ]; then
-            tail -n "$N" "$LAST_LOG"
-        fi
-        ;;
-    *)
-        show_help
-        ;;
-esac
+leeattend_debug_cat() {
+    local pattern="$1"
+    local dir="${2:-$DEBUG_LOG_DIR}"
+    local file=$(ls "$dir"/*"$pattern"* 2>/dev/null | head -n 1)
+    if [ -n "$file" ] && [ -f "$file" ]; then
+        echo -e "${BLUE}📄 Content of log: $file${NC}"
+        cat "$file"
+    else
+        echo -e "${RED}File matching *$pattern* not found in $dir${NC}"
+    fi
+}
+
+leeattend_debug_file() {
+    local file="$1"
+    if [ -f "$file" ]; then
+        echo -e "${BLUE}📄 Analyzing file: $file${NC}"
+        # Search for errors in this specific log
+        grep -Ei "error|panic|failed|exception|backtrace" "$file" || tail -n 20 "$file"
+    else
+        echo -e "${RED}File not found: $file${NC}"
+    fi
+}
+
+leeattend_debug_errors() {
+    local dir="${1:-$DEBUG_LOG_DIR}"
+    echo -e "${YELLOW}🔍 Searching for errors/panics in $dir...${NC}"
+    # Using GREP_COLORS to highlight errors if supported
+    grep -Ei "error|panic|failed|exception|backtrace" "$dir"/*.log || echo "No common error patterns found."
+}
+
+leeattend_debug_tail() {
+    local n="${1:-20}"
+    local dir="${2:-$DEBUG_LOG_DIR}"
+    local last_log=$(ls -t "$dir"/*.log 2>/dev/null | head -n 1)
+    if [ -n "$last_log" ]; then
+        echo -e "${BLUE}📄 Last $n lines of $last_log:${NC}"
+        tail -n "$n" "$last_log"
+    else
+        echo -e "${YELLOW}No log files found in $dir.${NC}"
+    fi
+}
+

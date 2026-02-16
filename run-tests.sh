@@ -53,6 +53,12 @@ export USE_DOCKER=true
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export DOCKER_COMPOSE_CMD="docker compose -p leeattend-test -f $PROJECT_ROOT/docker-compose.test.yml"
 
+# Source all script modules
+source "$PROJECT_ROOT/scripts/test-utils.sh"
+source "$PROJECT_ROOT/scripts/test-lint.sh"
+source "$PROJECT_ROOT/scripts/test-unit.sh"
+source "$PROJECT_ROOT/scripts/test-integration.sh"
+
 wait_for_web_test() {
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         echo -e "${BLUE}⏳ Waiting for web dependencies (npm ci) to complete...${NC}"
@@ -93,7 +99,7 @@ run_lint() {
         if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
     fi
 
-    ./scripts/test-lint.sh "$filter"
+    leeattend_run_lint "$filter"
 }
 
 run_unit() {
@@ -121,7 +127,7 @@ run_unit() {
         if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
     fi
     
-    ./scripts/test-unit.sh "$filter"
+    leeattend_run_unit "$filter"
 }
 
 run_integration() {
@@ -152,10 +158,10 @@ run_integration() {
 
     if [[ "$filter" == *"web"* ]]; then
         # Chạy thẳng E2E không cần setup-test-env (vì không cần DB isolated cho từng worker)
-        ./scripts/test-integration.sh "$filter"
+        leeattend_run_integration "$filter"
     else
         # Integration tests cho API vẫn cần môi trường thực
-        ./setup-test-env.sh "./scripts/test-integration.sh \"$filter\""
+        ./setup-test-env.sh "leeattend_run_integration \"$filter\""
     fi
 }
 
@@ -276,7 +282,6 @@ run_integration "$FILTER:$PATTERN"
 kill "$WATCHDOG_PID" 2>/dev/null || true
 
 # Print final results summary
-source "$SCRIPT_DIR/scripts/test-utils.sh"
 print_summary_table
 
 echo -e "\n${BLUE}================================================================${NC}"

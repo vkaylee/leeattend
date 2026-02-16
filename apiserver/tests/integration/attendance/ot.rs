@@ -29,6 +29,7 @@ async fn test_ot_claim_approval_workflow() {
 
     // 2. Employee Claims OT
     let claim_req = serde_json::json!({
+        "date": date.to_string(),
         "claimed_minutes": 60,
         "reason": "Project deadline"
     });
@@ -36,7 +37,7 @@ async fn test_ot_claim_approval_workflow() {
     let res = app.clone().oneshot(
         axum::http::Request::builder()
             .method("POST")
-            .uri(format!("/api/workspaces/{}/employees/{}/attendance/{}/ot-claim", ws_id, emp_id, date))
+            .uri(format!("/api/workspaces/{}/attendance/claim-ot/{}", ws_id, emp_id))
             .header("Content-Type", "application/json")
             .header("X-User-Id", user_id.to_string())
             .body(axum::body::Body::from(claim_req.to_string()))

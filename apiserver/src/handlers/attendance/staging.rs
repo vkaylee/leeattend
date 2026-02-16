@@ -1,14 +1,14 @@
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
-    response::{IntoResponse, Json},
+    response::Json,
 };
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use std::sync::Arc;
-use tracing::error;
 use uuid::Uuid;
 
+use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::repositories::staging_log_repository::{self, StagingLog};
 use crate::AppState;
@@ -61,30 +61,22 @@ pub async fn get_staging_logs(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Query(query): Query<StagingLogsQuery>,
-) -> impl IntoResponse {
+) -> AppResult<Json<StagingLogsResponse>> {
     if !ctx.is_admin_or_owner() {
-        return (StatusCode::FORBIDDEN, "Admin access required").into_response();
+        return Err(AppError::Forbidden("Admin access required".to_string()));
     }
 
     let page = query.page.unwrap_or(1);
     let limit = query.limit.unwrap_or(50);
 
-    let logs = match staging_log_repository::get_pending_staging_logs(
+    let logs = staging_log_repository::get_pending_staging_logs(
         &state.db,
         ctx.workspace_id,
         limit,
-    ).await {
-        Ok(logs) => logs,
-        Err(e) => {
-            error!("Failed to fetch staging logs: {}", e);
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-        }
-    };
+    ).await?;
 
-    let total = match staging_log_repository::count_pending_staging_logs(&state.db, ctx.workspace_id).await {
-        Ok(count) => count,
-        Err(_) => logs.len() as i64,
-    };
+    let total = staging_log_repository::count_pending_staging_logs(&state.db, ctx.workspace_id).await
+        .unwrap_or(logs.len() as i64);
 
     let response = StagingLogsResponse {
         data: logs.into_iter().map(StagingLogResponse::from).collect(),
@@ -93,7 +85,7 @@ pub async fn get_staging_logs(
         limit,
     };
 
-    Json(response).into_response()
+    Ok(Json(response))
 }
 
 #[derive(Debug, Deserialize)]
@@ -108,29 +100,23 @@ pub async fn resolve_staging_log(
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(req): Json<ResolveStagingLogRequest>,
-) -> impl IntoResponse {
+) -> AppResult<(StatusCode, &'static str)> {
     if !ctx.is_admin_or_owner() {
-        return (StatusCode::FORBIDDEN, "Admin access required").into_response();
+        return Err(AppError::Forbidden("Admin access required".to_string()));
     }
 
     // 1. Get staging log
-    let staged = match sqlx::query_as::<_, StagingLog>(
+    let staged = sqlx::query_as::<_, StagingLog>(
         "SELECT id, workspace_id, device_id, raw_user_id, punch_time, raw_data, fingerprint, status, created_at FROM attendance_staging_logs WHERE id = $1 AND workspace_id = $2"
     )
     .bind(log_id)
     .bind(ctx.workspace_id)
     .fetch_optional(&state.db)
-    .await {
-        Ok(Some(log)) => log,
-        Ok(None) => return (StatusCode::NOT_FOUND, "Staging log not found").into_response(),
-        Err(e) => {
-            error!("Failed to fetch staging log: {}", e);
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-        }
-    };
+    .await?
+    .ok_or_else(|| AppError::NotFound("Staging log not found".to_string()))?;
 
     if staged.status != "pending" {
-        return (StatusCode::BAD_REQUEST, "Log already processed").into_response();
+        return Err(AppError::Validation("Log already processed".to_string()));
     }
 
     // 2. Create RawAttendanceLog
@@ -150,21 +136,15 @@ pub async fn resolve_staging_log(
     };
 
     // 3. Insert to raw_attendance_logs
-    match raw_attendance_log_repository::create_raw_log(&state.db, &raw_log).await {
-        Ok(_) => {
-            // Mark staging log as processed
-            let _ = staging_log_repository::update_staging_status(&state.db, log_id, "processed").await;
+    raw_attendance_log_repository::create_raw_log(&state.db, &raw_log).await?;
+    
+    // Mark staging log as processed
+    let _ = staging_log_repository::update_staging_status(&state.db, log_id, "processed").await;
 
-            // Trigger pairing
-            let _ = PairingService::process_new_raw_log(&state.db, &raw_log).await;
+    // Trigger pairing
+    let _ = PairingService::process_new_raw_log(&state.db, &raw_log).await;
 
-            (StatusCode::OK, "Log resolved successfully").into_response()
-        }
-        Err(e) => {
-            error!("Failed to resolve staging log: {}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, "Failed to resolve log").into_response()
-        }
-    }
+    Ok((StatusCode::OK, "Log resolved successfully"))
 }
 
 /// DELETE /workspaces/:ws_id/attendance/staging-logs/:id
@@ -173,16 +153,11 @@ pub async fn dismiss_staging_log(
     Path((_ws_id, log_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-) -> impl IntoResponse {
+) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return StatusCode::FORBIDDEN;
+        return Err(AppError::Forbidden("Forbidden".to_string()));
     }
 
-    match staging_log_repository::update_staging_status(&state.db, log_id, "dismissed").await {
-        Ok(_) => StatusCode::NO_CONTENT,
-        Err(e) => {
-            error!("Failed to dismiss staging log: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        }
-    }
+    staging_log_repository::update_staging_status(&state.db, log_id, "dismissed").await?;
+    Ok(StatusCode::NO_CONTENT)
 }

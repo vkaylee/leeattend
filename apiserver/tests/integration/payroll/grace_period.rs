@@ -82,11 +82,12 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
     .unwrap();
 
     // Punch in 5 minutes early (8:55 AM)
+    let tz: chrono_tz::Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
     factory
         .time_entry()
         .with_employee(employee_id)
-        .with_punch_in(Utc.with_ymd_and_hms(2026, 1, 5, 8, 55, 0).unwrap())
-        .with_punch_out(Utc.with_ymd_and_hms(2026, 1, 5, 17, 0, 0).unwrap())
+        .with_punch_in(tz.with_ymd_and_hms(2026, 1, 5, 8, 55, 0).unwrap().with_timezone(&Utc))
+        .with_punch_out(tz.with_ymd_and_hms(2026, 1, 5, 17, 0, 0).unwrap().with_timezone(&Utc))
         .create()
         .await;
 
@@ -172,11 +173,12 @@ async fn test_grace_period_nonzero_shift_overrides() {
     .unwrap();
 
     // Punch in 10 minutes early (8:50 AM) - within 15-min grace
+    let tz: chrono_tz::Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
     factory
         .time_entry()
         .with_employee(employee_id)
-        .with_punch_in(Utc.with_ymd_and_hms(2026, 1, 5, 8, 50, 0).unwrap())
-        .with_punch_out(Utc.with_ymd_and_hms(2026, 1, 5, 17, 0, 0).unwrap())
+        .with_punch_in(tz.with_ymd_and_hms(2026, 1, 5, 8, 50, 0).unwrap().with_timezone(&Utc))
+        .with_punch_out(tz.with_ymd_and_hms(2026, 1, 5, 17, 0, 0).unwrap().with_timezone(&Utc))
         .create()
         .await;
 

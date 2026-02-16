@@ -1,36 +1,34 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
-    response::{IntoResponse, Json},
+    response::Json,
 };
 use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::UpdatePayrollSettingsRequest;
+use crate::models::{UpdatePayrollSettingsRequest, PayrollSettings};
 use crate::AppState;
 
 pub async fn get_payroll_settings(
     Path(workspace_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
-) -> impl IntoResponse {
-    match crate::repositories::payroll_repository::get_payroll_settings(&state.db, workspace_id)
-        .await
-    {
-        Ok(Some(settings)) => Json(settings).into_response(),
-        Ok(None) => StatusCode::NOT_FOUND.into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
+) -> AppResult<Json<PayrollSettings>> {
+    let settings = crate::repositories::payroll_repository::get_payroll_settings(&state.db, workspace_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Settings not found".to_string()))?;
+    
+    Ok(Json(settings))
 }
 
 pub async fn get_payroll_settings_history(
     Path(workspace_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
-) -> impl IntoResponse {
-    match sqlx::query_as!(
+) -> AppResult<Json<Vec<PayrollSettings>>> {
+    let history = sqlx::query_as!(
         crate::models::PayrollSettings,
         r#"SELECT workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, effective_date, created_at as "created_at!", updated_at as "updated_at!"
            FROM payroll_settings
@@ -39,11 +37,9 @@ pub async fn get_payroll_settings_history(
         workspace_id
     )
     .fetch_all(&state.db)
-    .await
-    {
-        Ok(history) => Json::<Vec<crate::models::PayrollSettings>>(history).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
+    .await?;
+
+    Ok(Json(history))
 }
 
 pub async fn update_payroll_settings(
@@ -51,7 +47,7 @@ pub async fn update_payroll_settings(
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
     Json(req): Json<UpdatePayrollSettingsRequest>,
-) -> impl IntoResponse {
+) -> AppResult<Json<PayrollSettings>> {
     // Get current settings first to fill in missing fields if needed
     let effective_date = req.effective_date.unwrap_or_else(|| Utc::now().date_naive());
     let current =
@@ -84,7 +80,7 @@ pub async fn update_payroll_settings(
             .unwrap_or(rust_decimal::Decimal::from(8))
     });
 
-    match crate::repositories::payroll_repository::update_payroll_settings(
+    let settings = crate::repositories::payroll_repository::update_payroll_settings(
         &state.db,
         workspace_id,
         mode,
@@ -93,9 +89,7 @@ pub async fn update_payroll_settings(
         hours_per_day,
         effective_date,
     )
-    .await
-    {
-        Ok(settings) => Json(settings).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-    }
+    .await?;
+    
+    Ok(Json(settings))
 }

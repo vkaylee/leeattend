@@ -52,7 +52,7 @@ async fn test_get_daily_attendance_report_with_break_times() {
 
     // 5. Fetch Request
     let response = client
-        .get(format!("{}/api/workspaces/{}/reports/daily-attendance?start_date={}&end_date={}", address, workspace_id, now, now))
+        .get(format!("{}/api/workspaces/{}/reports/attendance?type=daily&start_date={}&end_date={}", address, workspace_id, now, now))
         .header("Authorization", format!("Bearer {}", auth_token))
         .send()
         .await
@@ -73,7 +73,7 @@ async fn test_get_workspace_attendance_summary() {
     let auth_token = factory.auth().create_token(user_id);
 
     let response = client
-        .get(format!("{}/api/workspaces/{}/reports/attendance-summary?date={}", address, workspace_id, Utc::now().format("%Y-%m-%d")))
+        .get(format!("{}/api/workspaces/{}/reports/attendance?type=summary&start_date={}&end_date={}", address, workspace_id, Utc::now().format("%Y-%m-%d"), Utc::now().format("%Y-%m-%d")))
         .header("Authorization", format!("Bearer {}", auth_token))
         .send()
         .await

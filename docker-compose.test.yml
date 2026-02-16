@@ -12,8 +12,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    tmpfs: 
-      - /var/lib/postgresql/data:size=1536M
+    tmpfs:
+      - /var/lib/postgresql/data:size=2048M
 
   apiserver_test:
     build:

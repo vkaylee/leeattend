@@ -1,16 +1,16 @@
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
-    response::{IntoResponse, Json},
+    response::Json,
 };
 use chrono::NaiveDate;
 use serde::Deserialize;
 use std::sync::Arc;
-use tracing::error;
 use uuid::Uuid;
 
+use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::MemberRole;
+use crate::models::{MemberRole, AttendanceDailySummary};
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::AppState;
 
@@ -26,12 +26,11 @@ pub async fn claim_ot(
     Path((ws_id, employee_id)): Path<(Uuid, Uuid)>,
     MemberContext { user_id, .. }: MemberContext,
     Json(req): Json<ClaimOtRequest>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> AppResult<StatusCode> {
     // 1. Verify ownership (Employee can only claim for themselves) or Admin
     let employee = crate::repositories::employee_repository::get_employee_by_id(&state.db, employee_id, ws_id)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .ok_or(StatusCode::NOT_FOUND)?;
+        .await?
+        .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
     if let Some(uid) = employee.user_id {
         if uid != user_id {
@@ -40,7 +39,7 @@ pub async fn claim_ot(
                 .find_primary_role(ws_id, user_id).await.unwrap_or(None);
 
              if !matches!(role, Some(MemberRole::Admin) | Some(MemberRole::Owner)) {
-                 return Err(StatusCode::FORBIDDEN);
+                 return Err(AppError::Forbidden("Forbidden".to_string()));
              }
         }
     } else {
@@ -48,7 +47,7 @@ pub async fn claim_ot(
             .find_primary_role(ws_id, user_id).await.unwrap_or(None);
 
          if !matches!(role, Some(MemberRole::Admin) | Some(MemberRole::Owner)) {
-             return Err(StatusCode::FORBIDDEN);
+             return Err(AppError::Forbidden("Forbidden".to_string()));
          }
     }
 
@@ -60,10 +59,7 @@ pub async fn claim_ot(
         req.reason,
     )
     .await
-    .map_err(|e| {
-        error!("Claim OT Error: {}", e);
-        StatusCode::BAD_REQUEST
-    })?;
+    .map_err(|e| AppError::Validation(format!("Claim OT Error: {e}")))?;
 
     Ok(StatusCode::OK)
 }
@@ -81,19 +77,19 @@ pub async fn approve_ot(
     Path((ws_id, employee_id)): Path<(Uuid, Uuid)>,
     MemberContext { user_id, .. }: MemberContext,
     Json(req): Json<ApproveOtRequest>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> AppResult<StatusCode> {
     // RBAC: Only Admin/Owner/Manager
      let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository { pool: state.db.clone() }
         .find_primary_role(ws_id, user_id).await.unwrap_or(None);
 
      if !matches!(role, Some(MemberRole::Admin) | Some(MemberRole::Owner)) {
-         return Err(StatusCode::FORBIDDEN);
+         return Err(AppError::Forbidden("Forbidden".to_string()));
      }
 
     let status_enum = match req.status.as_str() {
         "approved" => crate::models::OtStatus::Approved,
         "rejected" => crate::models::OtStatus::Rejected,
-        _ => return Err(StatusCode::BAD_REQUEST),
+        _ => return Err(AppError::Validation("Invalid status".to_string())),
     };
 
     crate::services::attendance_summary_service::AttendanceSummaryService::approve_ot(
@@ -105,10 +101,7 @@ pub async fn approve_ot(
         status_enum,
     )
     .await
-    .map_err(|e| {
-        error!("Approve OT Error: {}", e);
-        StatusCode::BAD_REQUEST
-    })?;
+    .map_err(|e| AppError::Validation(format!("Approve OT Error: {e}")))?;
 
     Ok(StatusCode::OK)
 }
@@ -125,11 +118,13 @@ pub async fn get_attendance_summaries(
     Path(ws_id): Path<Uuid>,
     MemberContext { user_id, .. }: MemberContext,
     Query(query): Query<SummaryQuery>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> AppResult<Json<Vec<AttendanceDailySummary>>> {
 
     // RBAC and ID Resolution
     let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository { pool: state.db.clone() }
-        .find_primary_role(ws_id, user_id).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?.ok_or(StatusCode::FORBIDDEN)?;
+        .find_primary_role(ws_id, user_id)
+        .await?
+        .ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?;
 
     let is_admin = matches!(role, MemberRole::Admin | MemberRole::Owner);
 
@@ -138,13 +133,13 @@ pub async fn get_attendance_summaries(
     } else {
         // Find my employee ID
         let emp_record = sqlx::query!("SELECT id FROM employees WHERE workspace_id = $1 AND user_id = $2", ws_id, user_id)
-            .fetch_optional(&state.db).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .fetch_optional(&state.db).await?;
 
-        let my_id = emp_record.ok_or(StatusCode::FORBIDDEN)?.id;
+        let my_id = emp_record.ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?.id;
 
         if let Some(req_id) = query.employee_id {
             if req_id != my_id {
-                return Err(StatusCode::FORBIDDEN);
+                return Err(AppError::Forbidden("Forbidden".to_string()));
             }
         }
         Some(my_id)
@@ -157,7 +152,7 @@ pub async fn get_attendance_summaries(
             ws_id, emp_id, query.start_date, query.end_date
         )
         .fetch_all(&state.db)
-        .await
+        .await?
     } else {
         sqlx::query_as!(
             crate::models::AttendanceDailySummary,
@@ -165,12 +160,8 @@ pub async fn get_attendance_summaries(
             ws_id, query.start_date, query.end_date
         )
         .fetch_all(&state.db)
-        .await
-    }
-    .map_err(|e| {
-        error!("Get Summaries Error: {}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+        .await?
+    };
 
     Ok(Json(summaries))
 }

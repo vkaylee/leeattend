@@ -93,7 +93,7 @@ impl AuthHelper {
         jsonwebtoken::encode(
             &jsonwebtoken::Header::default(),
             &claims,
-            &jsonwebtoken::EncodingKey::from_secret("test_secret_123".as_ref()),
+            &jsonwebtoken::EncodingKey::from_secret("test_secret_tower".as_ref()),
         )
         .unwrap()
     }

@@ -13,6 +13,7 @@ pub mod utils;
 pub mod worker;
 
 use axum::{
+    middleware,
     routing::{delete, get, patch, post, put},
     Router,
 };
@@ -433,9 +434,11 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(handlers::report_export::download_report),
         )
         // WebSocket endpoint for real-time report streaming
+        // Auth middleware runs before WebSocketUpgrade extractor to return 401 properly
         .route(
             "/ws/reports/:job_id",
-            get(handlers::report_websocket::report_stream_ws),
+            get(handlers::report_websocket::report_stream_ws)
+                .layer(middleware::from_fn_with_state(state.clone(), handlers::report_websocket::ws_auth_middleware)),
         )
         // Worker monitoring endpoints (global infrastructure)
         .route(

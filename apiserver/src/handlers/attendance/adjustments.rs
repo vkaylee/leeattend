@@ -1,15 +1,16 @@
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
-    response::{IntoResponse, Json},
+    response::Json,
 };
-use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use serde::Deserialize;
+use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    AdjustmentStatus, ApproveAttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest,
+    AdjustmentStatus, ApproveAttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest, AttendanceAdjustmentRequest,
 };
 use crate::UserId;
 use crate::AppState;
@@ -20,21 +21,17 @@ pub async fn submit_attendance_adjustment(
     UserId(user_id): UserId,
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<CreateAttendanceAdjustmentRequest>,
-) -> impl IntoResponse {
-    println!(
-        "SUBMIT_ADJUSTMENT_HANDLER_REACHED: ws_id={workspace_id}, user_id={user_id}"
-    );
-    match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::submit_request(
+) -> AppResult<(StatusCode, Json<AttendanceAdjustmentRequest>)> {
+    let adjustment = crate::services::attendance_adjustment_service::AttendanceAdjustmentService::submit_request(
         &state.db,
         workspace_id,
         user_id,
         req,
     )
     .await
-    {
-        Ok(adjustment) => Ok((StatusCode::CREATED, Json(adjustment))),
-        Err(e) => Err(e),
-    }
+    .map_err(|s| AppError::from((s, "Failed to submit adjustment".to_string())))?;
+    
+    Ok((StatusCode::CREATED, Json(adjustment)))
 }
 
 pub async fn approve_attendance_adjustment(
@@ -43,11 +40,11 @@ pub async fn approve_attendance_adjustment(
     UserId(user_id): UserId,
     ctx: MemberContext,
     Json(req): Json<ApproveAttendanceAdjustmentRequest>,
-) -> impl IntoResponse {
+) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AppError::Forbidden("Forbidden".to_string()));
     }
-    match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::approve_request(
+    crate::services::attendance_adjustment_service::AttendanceAdjustmentService::approve_request(
         &state.db,
         ctx.workspace_id,
         user_id,
@@ -55,25 +52,23 @@ pub async fn approve_attendance_adjustment(
         req.status,
     )
     .await
-    {
-        Ok(_) => Ok(StatusCode::OK.into_response()),
-        Err(e) => Err(e),
-    }
+    .map_err(|s| AppError::from((s, "Failed to approve adjustment".to_string())))?;
+    
+    Ok(StatusCode::OK)
 }
 
 pub async fn get_my_attendance_adjustments(
     Path(id): Path<Uuid>,
-    UserId(user_id): UserId,
+    UserId(_user_id): UserId,
     State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
-    println!("GET_MY_ADJUSTMENTS_REACHED: id={id}, user_id={user_id}");
-    match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::get_my_requests(
+) -> AppResult<Json<Vec<AttendanceAdjustmentRequest>>> {
+    let requests = crate::services::attendance_adjustment_service::AttendanceAdjustmentService::get_my_requests(
         &state.db, id,
     )
-    .await {
-        Ok(requests) => Json(requests).into_response(),
-        Err(status) => status.into_response(),
-    }
+    .await
+    .map_err(|s| AppError::from((s, "Failed to get adjustments".to_string())))?;
+    
+    Ok(Json(requests))
 }
 
 #[derive(Deserialize)]
@@ -86,9 +81,11 @@ pub async fn get_workspace_attendance_adjustments(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<AdjustmentStatusQuery>,
-) -> impl IntoResponse {
-    match crate::services::attendance_adjustment_service::AttendanceAdjustmentService::get_workspace_requests(&state.db, workspace_id, query.status).await {
-        Ok(requests) => Json(requests).into_response(),
-        Err(status) => status.into_response(),
-    }
+) -> AppResult<Json<Vec<AttendanceAdjustmentRequest>>> {
+    let requests = crate::services::attendance_adjustment_service::AttendanceAdjustmentService::get_workspace_requests(
+        &state.db, workspace_id, query.status
+    ).await
+    .map_err(|s| AppError::from((s, "Failed to get workspace adjustments".to_string())))?;
+    
+    Ok(Json(requests))
 }

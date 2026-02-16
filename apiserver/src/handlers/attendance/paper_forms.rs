@@ -1,16 +1,15 @@
 use axum::{
     extract::{Multipart, Path, State},
-    http::StatusCode,
-    response::{IntoResponse, Json},
+    response::Json,
 };
 use chrono::NaiveDate;
 use serde::Deserialize;
 use std::sync::Arc;
-use tracing::error;
 use uuid::Uuid;
 
+use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::{BulkOtEntryError, BulkOtUploadResult, MemberRole};
+use crate::models::{BulkOtEntryError, BulkOtUploadResult, MemberRole, AttendanceDailySummary};
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::AppState;
 
@@ -32,27 +31,25 @@ pub async fn enter_paper_ot(
     Path((ws_id, employee_id)): Path<(Uuid, Uuid)>,
     MemberContext { user_id, .. }: MemberContext,
     Json(req): Json<EnterPaperOtRequest>,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> AppResult<Json<AttendanceDailySummary>> {
     // 1. RBAC: Admin/Owner only
     let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository { pool: state.db.clone() }
         .find_primary_role(ws_id, user_id)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .ok_or(StatusCode::FORBIDDEN)?;
+        .await?
+        .ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?;
 
     if !matches!(role, MemberRole::Admin | MemberRole::Owner) {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AppError::Forbidden("Forbidden".to_string()));
     }
 
     // 2. Validate employee exists in workspace
     let _employee = crate::repositories::employee_repository::get_employee_by_id(&state.db, employee_id, ws_id)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .ok_or(StatusCode::NOT_FOUND)?;
+        .await?
+        .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
     // 3. Validate minutes
     if req.claimed_minutes <= 0 {
-        return Err(StatusCode::BAD_REQUEST);
+        return Err(AppError::Validation("Minutes must be greater than 0".to_string()));
     }
 
     // 4. Call service
@@ -67,10 +64,7 @@ pub async fn enter_paper_ot(
         req.allow_exceed_system_detected,
     )
     .await
-    .map_err(|e| {
-        error!("Enter Paper OT Error: {}", e);
-        StatusCode::BAD_REQUEST
-    })?;
+    .map_err(|e| AppError::Validation(format!("Enter Paper OT Error: {e}")))?;
 
     Ok(Json(result))
 }
@@ -80,18 +74,17 @@ pub async fn bulk_upload_paper_ot(
     Path(ws_id): Path<Uuid>,
     MemberContext { user_id, .. }: MemberContext,
     mut multipart: Multipart,
-) -> Result<impl IntoResponse, StatusCode> {
+) -> AppResult<Json<BulkOtUploadResult>> {
     // 1. RBAC: Admin/Owner only
     let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
         pool: state.db.clone(),
     }
     .find_primary_role(ws_id, user_id)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-    .ok_or(StatusCode::FORBIDDEN)?;
+    .await?
+    .ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?;
 
     if !matches!(role, MemberRole::Admin | MemberRole::Owner) {
-        return Err(StatusCode::FORBIDDEN);
+        return Err(AppError::Forbidden("Forbidden".to_string()));
     }
 
     // 2. Extract CSV file from multipart
@@ -99,15 +92,16 @@ pub async fn bulk_upload_paper_ot(
     while let Some(field) = multipart
         .next_field()
         .await
-        .map_err(|_| StatusCode::BAD_REQUEST)?
+        .map_err(|e| AppError::Validation(format!("Multipart error: {e}")))?
     {
         let name = field.name().unwrap_or("").to_string();
         if name == "file" {
-            let data = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+            let data = field.bytes().await
+                .map_err(|e| AppError::Validation(format!("Failed to read file bytes: {e}")))?;
 
             // File size limit check
             if data.len() > MAX_BULK_UPLOAD_FILE_SIZE {
-                return Err(StatusCode::PAYLOAD_TOO_LARGE);
+                return Err(AppError::Validation("File too large".to_string()));
             }
 
             csv_data = Some(data.to_vec());
@@ -115,22 +109,22 @@ pub async fn bulk_upload_paper_ot(
         }
     }
 
-    let csv_bytes = csv_data.ok_or(StatusCode::BAD_REQUEST)?;
+    let csv_bytes = csv_data.ok_or_else(|| AppError::Validation("No file uploaded".to_string()))?;
 
     // 3. Parse CSV
     let csv_str = String::from_utf8(csv_bytes)
-        .map_err(|_| StatusCode::BAD_REQUEST)?;
+        .map_err(|e| AppError::Validation(format!("Invalid UTF-8 in CSV: {e}")))?;
 
     let mut rdr = csv::Reader::from_reader(csv_str.as_bytes());
 
     // Collect all rows first to validate count
     let mut rows: Vec<(usize, csv::StringRecord)> = Vec::new();
     for (idx, result) in rdr.records().enumerate() {
-        let record = result.map_err(|_| StatusCode::BAD_REQUEST)?;
+        let record = result.map_err(|e| AppError::Validation(format!("CSV parsing error at row {}: {e}", idx + 2)))?;
         rows.push((idx + 2, record)); // +2 because CSV line 1 is header, records start at line 2
 
         if rows.len() > MAX_BULK_UPLOAD_ROWS {
-            return Err(StatusCode::PAYLOAD_TOO_LARGE);
+            return Err(AppError::Validation(format!("Max {MAX_BULK_UPLOAD_ROWS} rows allowed")));
         }
     }
 
