@@ -348,8 +348,8 @@ impl ReportCoordinator {
 
                 // Enqueue merge job with date range from metadata
                 let date_range = meta.date_range.clone().unwrap_or(DateRange {
-                    start: NaiveDate::from_ymd_opt(2000, 1, 1).unwrap(),
-                    end: NaiveDate::from_ymd_opt(2000, 1, 1).unwrap(),
+                    start: NaiveDate::from_ymd_opt(2000, 1, 1).expect("2000-01-01 is valid"),
+                    end: NaiveDate::from_ymd_opt(2000, 1, 1).expect("2000-01-01 is valid"),
                 });
 
                 let merge_job = ReportJob::new(

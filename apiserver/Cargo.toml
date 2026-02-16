@@ -39,6 +39,9 @@ thiserror = "2.0.18"
 [lints.rust]
 warnings = "deny"
 
+[lints.clippy]
+unwrap_used = "deny"
+
 [dev-dependencies]
 http = "1.4.0"
 http-body-util = "0.1"

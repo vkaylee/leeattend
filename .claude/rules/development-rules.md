@@ -42,10 +42,13 @@
 - **DO NOT** create new enhanced files, update to the existing files directly.
 
 ## 🦀 Rust Backend Standards
-- **[MANDATORY] Error Handling**: All API handlers MUST return `AppResult<T>` using the `AppError` pattern defined in `apiserver/src/errors.rs`. 
-  - Never return `(StatusCode, String)` for errors. 
+- **[MANDATORY] Security Checklist**: See `.claude/rules/rust-security-checklist.md` for the full checklist that MUST be verified on every handler/service/repository change.
+- **[MANDATORY] Error Handling**: All API handlers MUST return `AppResult<T>` using the `AppError` pattern defined in `apiserver/src/errors.rs`.
+  - Never return `(StatusCode, String)` for errors.
   - Propagate errors using `?`.
+- **[MANDATORY] Clippy Denies**: `unwrap_used` is denied at compile time (allowed in tests). Use `?`, `.map_err()`, or `.expect("reason")` instead of `.unwrap()`.
 - **Multi-Tenancy**: Every database query MUST include `workspace_id` filtering.
+- **Pagination**: All list endpoints MUST clamp: `limit.clamp(1, 100)`, `page.max(1)`.
 - **SQLx Validation**: Prefer live DB validation during compilation (tmpfs database).
 
 ## Testing Requirements (MANDATORY)

@@ -1,4 +1,5 @@
 //! Integration test modules organized by domain.
+#![allow(clippy::unwrap_used)]
 
 pub mod common;
 

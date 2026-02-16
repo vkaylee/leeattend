@@ -1,3 +1,6 @@
+// Allow .unwrap() in test code — only production code is denied
+#![cfg_attr(test, allow(clippy::unwrap_used))]
+
 pub mod agent_manager;
 pub mod cache;
 pub mod dev_initialization;

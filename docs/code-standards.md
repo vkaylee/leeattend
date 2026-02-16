@@ -668,6 +668,28 @@ Hệ thống ưu tiên định danh tổ chức dựa trên URI để tăng tín
 - **Multi-Tenancy**: Luôn kiểm tra `workspace_id` trong mọi query.
 - **RBAC**: Sử dụng `MemberContext` để xác thực quyền hạn. Không hard-code check role ở tầng handler nếu có thể dùng chung logic kiểm tra quyền.
 
+### Security Anti-Patterns (Rust Backend)
+
+The following patterns are **FORBIDDEN** and enforced by Clippy lints in `Cargo.toml`:
+
+| Anti-Pattern | Why Dangerous | Correct Alternative |
+|---|---|---|
+| `.unwrap()` in handler/service/repo | Panics crash the server | Use `?` or `.map_err()` |
+| `let _ = db_operation.await` | Silently swallows DB errors | Use `?` or `if let Err(e) = ... { tracing::error!(...) }` |
+| Query without `workspace_id` | Cross-tenant data leak | Always include `WHERE workspace_id = $N` |
+| `limit.unwrap_or(20)` without clamp | Memory DoS with limit=999999 | `limit.unwrap_or(20).clamp(1, 100)` |
+| Password without length check | bcrypt DoS with >1MB input | Validate 8-128 chars before hashing |
+| `format!()` with user input in SQL | SQL injection | Use `sqlx::query!` with `$N` bind params |
+| Check-then-act without row lock | Race condition / double-processing | Use `FOR UPDATE NOWAIT` in transaction |
+| `(StatusCode, String)` error return | Bypasses centralized error handling | Return `AppResult<T>` with `AppError` |
+
+**Compile-Time Enforcement** (`apiserver/Cargo.toml`):
+```toml
+[lints.clippy]
+unwrap_used = "deny"  # Blocks .unwrap() at compile time (allowed in tests via #![cfg_attr])
+```
+**AI-Enforced** (code review): `let _ =` on critical DB ops should use error logging instead.
+
 ---
 
 ## 22. Real-Time Features & WebSocket Standards (NEW - 2026-02-03)

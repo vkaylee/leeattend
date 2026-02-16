@@ -35,8 +35,8 @@ impl OvertimeEngine {
         }
 
         let mut time_points = std::collections::BTreeSet::new();
-        time_points.insert(NaiveTime::from_hms_opt(0, 0, 0).unwrap());
-        time_points.insert(NaiveTime::from_hms_opt(23, 59, 59).unwrap());
+        time_points.insert(NaiveTime::from_hms_opt(0, 0, 0).expect("midnight is valid"));
+        time_points.insert(NaiveTime::from_hms_opt(23, 59, 59).expect("23:59:59 is valid"));
 
         for rule in &active_rules {
             if let Some(start) = rule.time_start {
@@ -55,13 +55,13 @@ impl OvertimeEngine {
             let end = sorted_points[i + 1];
             
             let mid_secs = (start.num_seconds_from_midnight() + end.num_seconds_from_midnight()) / 2;
-            let mid_time = NaiveTime::from_num_seconds_from_midnight_opt(mid_secs, 0).unwrap();
+            let mid_time = NaiveTime::from_num_seconds_from_midnight_opt(mid_secs, 0).expect("midpoint time is valid");
 
             let best_rule = active_rules
                 .iter()
                 .filter(|r| {
-                    let r_start = r.time_start.unwrap_or(NaiveTime::from_hms_opt(0, 0, 0).unwrap());
-                    let r_end = r.time_end.unwrap_or(NaiveTime::from_hms_opt(23, 59, 59).unwrap());
+                    let r_start = r.time_start.unwrap_or(NaiveTime::from_hms_opt(0, 0, 0).expect("midnight is valid"));
+                    let r_end = r.time_end.unwrap_or(NaiveTime::from_hms_opt(23, 59, 59).expect("23:59:59 is valid"));
                     
                     if r_start <= r_end {
                         mid_time >= r_start && mid_time < r_end
@@ -170,7 +170,7 @@ impl OvertimeEngine {
             // Special case for NaiveTime max
             let s_time = current.time();
             let e_time = if segment_end.date_naive() > date {
-                NaiveTime::from_hms_opt(23, 59, 59).unwrap()
+                NaiveTime::from_hms_opt(23, 59, 59).expect("23:59:59 is valid")
             } else {
                 segment_end.time()
             };
@@ -271,7 +271,7 @@ mod tests {
         assert_eq!(days[0].1[0].0, NaiveTime::from_hms_opt(22, 0, 0).unwrap());
         
         assert_eq!(days[1].0, NaiveDate::from_ymd_opt(2026, 1, 27).unwrap());
-        assert_eq!(days[1].1[0].0, NaiveTime::from_hms_opt(0, 0, 0).unwrap());
+        assert_eq!(days[1].1[0].0, NaiveTime::from_hms_opt(0, 0, 0).expect("midnight is valid"));
         assert_eq!(days[1].1[0].1, NaiveTime::from_hms_opt(2, 0, 0).unwrap());
     }
 }
