@@ -141,9 +141,9 @@ impl HybridDatabase {
 
         // Then update disk with final sync states using composite keys
         let all_logs = self.memory.get_all();
-        let updates: Vec<(Arc<str>, Arc<str>, i64, i64)> = all_logs.iter()
+        let updates: Vec<(Arc<str>, Arc<str>, i64, Option<i32>, Option<i32>, i64)> = all_logs.iter()
             .filter(|l| l.persisted)  // Only update already-persisted logs
-            .map(|l| (l.device_id.clone(), l.user_id.clone(), l.timestamp, l.is_synced))
+            .map(|l| (l.device_id.clone(), l.user_id.clone(), l.timestamp, l.punch, l.status, l.is_synced))
             .collect();
 
         self.disk.update_sync_status_batch(&updates).await?;

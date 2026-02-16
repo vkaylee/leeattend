@@ -11,8 +11,8 @@ use crate::models::{RawAttendanceLog, AttendanceData, SignatureRow};
 use super::types::{MemoryLog, StoreError};
 use super::backoff::calculate_backoff_with_jitter;
 
-/// Pending sync update entry: (device_id, user_id, timestamp, is_synced)
-type PendingSyncUpdates = Arc<RwLock<Vec<(Arc<str>, Arc<str>, i64, i64)>>>;
+/// Pending sync update entry: (device_id, user_id, timestamp, punch, status, is_synced)
+type PendingSyncUpdates = Arc<RwLock<Vec<(Arc<str>, Arc<str>, i64, Option<i32>, Option<i32>, i64)>>>;
 
 /// In-memory store for attendance logs with FIFO ordering
 pub struct InMemoryStore {
@@ -154,12 +154,14 @@ impl InMemoryStore {
             };
 
             // Compute composite key hash for ACK correlation
-            let composite_hash = MemoryLog::compute_composite_hash(&log.device_id, &log.user_id, log.timestamp);
+            let composite_hash = MemoryLog::compute_composite_hash(&log.device_id, &log.user_id, log.timestamp, log.punch, log.status);
 
             // Update indices based on sync status
             if log.is_synced == 0 {
+                log::debug!("load_from_disk: adding log ID {} to unsynced_index", log.id);
                 unsynced.insert(log.id);
             } else if log.is_synced == 2 {
+                log::debug!("load_from_disk: adding log ID {} to inflight_index", log.id);
                 inflight.insert(log.id, Instant::now());
             }
 
@@ -191,7 +193,7 @@ impl InMemoryStore {
         let now = chrono::Utc::now().naive_utc();
 
         // Compute composite hash BEFORE moving strings into Arc
-        let composite_hash = MemoryLog::compute_composite_hash(&device_id, &data.user_id, timestamp_utc);
+        let composite_hash = MemoryLog::compute_composite_hash(&device_id, &data.user_id, timestamp_utc, data.punch, data.status);
 
         let log = MemoryLog {
             id,
@@ -250,6 +252,9 @@ impl InMemoryStore {
             let id = self.next_id.fetch_add(1, Ordering::SeqCst);
             let now = chrono::Utc::now().naive_utc();
 
+            // Compute composite hash for ACK correlation
+            let composite_hash = MemoryLog::compute_composite_hash(&device_id, &data.user_id, timestamp_utc, data.punch, data.status);
+
             let log = MemoryLog {
                 id,
                 device_id: Arc::from(device_id.as_str()),
@@ -265,6 +270,7 @@ impl InMemoryStore {
             };
 
             self.logs.insert(id, log);
+            self.composite_index.insert(composite_hash, id);
             unsynced.insert(id);
             unpersisted.insert(id);
             inserted += 1;
@@ -280,6 +286,10 @@ impl InMemoryStore {
     /// Get unsynced logs in FIFO order (by ID) with exponential backoff filtering
     pub fn get_unsynced(&self, limit: usize) -> Vec<MemoryLog> {
         let unsynced = self.unsynced_index.read();
+        let count = unsynced.len();
+        if count > 0 {
+            log::debug!("get_unsynced: found {} IDs in unsynced_index", count);
+        }
         let mut result = Vec::with_capacity(limit);
         let now = chrono::Utc::now().naive_utc();
 
@@ -297,6 +307,8 @@ impl InMemoryStore {
                     }
                 }
                 result.push(log.clone());
+            } else {
+                log::warn!("⚠️ get_unsynced: log ID {} found in unsynced_index but NOT in logs map", id);
             }
         }
 
@@ -377,6 +389,8 @@ impl InMemoryStore {
                         log.device_id.clone(),
                         log.user_id.clone(),
                         log.timestamp,
+                        log.punch,
+                        log.status,
                         1,
                     ));
                 }
@@ -432,6 +446,8 @@ impl InMemoryStore {
                     log.device_id.clone(),
                     log.user_id.clone(),
                     log.timestamp,
+                    log.punch,
+                    log.status,
                     0,
                 ));
             }
@@ -443,11 +459,19 @@ impl InMemoryStore {
     }
 
     /// Get memory ID by composite key string (parses and computes hash)
-    /// Format: "device_id:user_id:timestamp_unix"
+    /// Format: "device_id:user_id:timestamp_unix:punch:status"
     /// Uses rsplit to safely handle device_id containing colons
     pub fn get_id_by_composite_key(&self, composite_key: &str) -> Option<i64> {
-        // 1. Extract Timestamp (always the last part)
-        let (rest, timestamp_str) = composite_key.rsplit_once(':')?;
+        let mut parts = composite_key.rsplitn(4, ':');
+        
+        // 1. Extract status, punch, timestamp
+        let status_str = parts.next()?;
+        let punch_str = parts.next()?;
+        let timestamp_str = parts.next()?;
+        let rest = parts.next()?; // device_id:user_id
+
+        let status: Option<i32> = status_str.parse().ok().filter(|&v| v != -1);
+        let punch: Option<i32> = punch_str.parse().ok().filter(|&v| v != -1);
         let timestamp_unix: i64 = timestamp_str.parse().ok()?;
 
         // 2. Extract Device ID and User ID
@@ -464,7 +488,7 @@ impl InMemoryStore {
             }
         };
 
-        let hash = MemoryLog::compute_composite_hash(device_id, user_id, timestamp_unix);
+        let hash = MemoryLog::compute_composite_hash(device_id, user_id, timestamp_unix, punch, status);
         self.composite_index.get(&hash).map(|entry| *entry)
     }
 
@@ -518,7 +542,7 @@ impl InMemoryStore {
     }
 
     /// Get and clear pending sync status updates for disk persistence
-    pub fn get_and_clear_pending_sync_updates(&self) -> Vec<(Arc<str>, Arc<str>, i64, i64)> {
+    pub fn get_and_clear_pending_sync_updates(&self) -> Vec<(Arc<str>, Arc<str>, i64, Option<i32>, Option<i32>, i64)> {
         self.pending_sync_updates.write().drain(..).collect()
     }
 
@@ -1586,7 +1610,8 @@ mod tests {
 
         let key = log.composite_key();
         assert!(key.starts_with("DEV1:U001:"));
-        assert!(key.ends_with(&log.timestamp.to_string()));
+        assert!(key.contains(&log.timestamp.to_string()));
+        assert!(key.ends_with(":0:1"));
     }
 
     #[test]
@@ -1604,7 +1629,7 @@ mod tests {
 
         // Construct expected composite key
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let expected_key = format!("DEV1:U001:{timestamp_unix}");
+        let expected_key = format!("DEV1:U001:{}:0:1", timestamp_unix);
 
         // Lookup should return the inserted ID
         assert_eq!(store.get_id_by_composite_key(&expected_key), Some(id));
@@ -1634,7 +1659,7 @@ mod tests {
 
         // Construct composite key
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let key = format!("DEV1:U001:{timestamp_unix}");
+        let key = format!("DEV1:U001:{}:0:1", timestamp_unix);
 
         // Mark synced by key should return true
         assert!(store.mark_synced_by_key(&key));
@@ -1663,7 +1688,7 @@ mod tests {
 
         // Construct composite key
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let key = format!("DEV1:U001:{timestamp_unix}");
+        let key = format!("DEV1:U001:{}:0:1", timestamp_unix);
 
         // Reset to unsynced by key
         assert!(store.reset_to_unsynced_by_key(&key));
@@ -1677,8 +1702,8 @@ mod tests {
         // Verify hash computation is deterministic
         let timestamp = ts("2026-01-31 10:00:00");
 
-        let hash1 = MemoryLog::compute_composite_hash("DEV1", "U001", timestamp);
-        let hash2 = MemoryLog::compute_composite_hash("DEV1", "U001", timestamp);
+        let hash1 = MemoryLog::compute_composite_hash("DEV1", "U001", timestamp, Some(0), Some(1));
+        let hash2 = MemoryLog::compute_composite_hash("DEV1", "U001", timestamp, Some(0), Some(1));
 
         assert_eq!(hash1, hash2, "Hash must be deterministic");
     }
@@ -1688,9 +1713,9 @@ mod tests {
         // Verify different components produce different hashes
         let timestamp = ts("2026-01-31 10:00:00");
 
-        let hash1 = MemoryLog::compute_composite_hash("DEV1", "U001", timestamp);
-        let hash2 = MemoryLog::compute_composite_hash("DEV2", "U001", timestamp);  // Different device
-        let hash3 = MemoryLog::compute_composite_hash("DEV1", "U002", timestamp);  // Different user
+        let hash1 = MemoryLog::compute_composite_hash("DEV1", "U001", timestamp, Some(0), Some(1));
+        let hash2 = MemoryLog::compute_composite_hash("DEV2", "U001", timestamp, Some(0), Some(1));  // Different device
+        let hash3 = MemoryLog::compute_composite_hash("DEV1", "U002", timestamp, Some(0), Some(1));  // Different user
 
         assert_ne!(hash1, hash2, "Different devices must have different hashes");
         assert_ne!(hash1, hash3, "Different users must have different hashes");
@@ -1703,8 +1728,8 @@ mod tests {
         let ts1 = ts("2026-01-31 10:00:00");
         let ts2 = ts("2026-01-31 10:00:01");
 
-        let hash1 = MemoryLog::compute_composite_hash("DEV1", "U001", ts1);
-        let hash2 = MemoryLog::compute_composite_hash("DEV1", "U001", ts2);
+        let hash1 = MemoryLog::compute_composite_hash("DEV1", "U001", ts1, Some(0), Some(1));
+        let hash2 = MemoryLog::compute_composite_hash("DEV1", "U001", ts2, Some(0), Some(1));
 
         assert_ne!(hash1, hash2, "Different timestamps must have different hashes");
     }
@@ -1725,7 +1750,7 @@ mod tests {
 
         // Construct composite key string
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let key = format!("DEV1:U001:{timestamp_unix}");
+        let key = format!("DEV1:U001:{}:0:1", timestamp_unix);
 
         // Lookup by string should parse and compute hash internally
         assert_eq!(store.get_id_by_composite_key(&key), Some(id));
@@ -1749,8 +1774,8 @@ mod tests {
 
         // Construct composite key (will have multiple colons)
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let key = format!("{device_id}:U001:{timestamp_unix}");
-        // key = "Office:Main:Gate:U001:1738314000"
+        let key = format!("{}:U001:{}:0:1", device_id, timestamp_unix);
+        // key = "Office:Main:Gate:U001:1738314000:0:1"
 
         // Lookup should work correctly with rsplit parsing
         assert_eq!(store.get_id_by_composite_key(&key), Some(id),
@@ -1782,7 +1807,7 @@ mod tests {
             let id = store.insert(device.clone(), data, timestamp_unix).unwrap();
             inserted_ids.push(id);
 
-            let key = format!("{device}:{user}:{timestamp_unix}");
+            let key = format!("{}:{}:{}:0:1", device, user, timestamp_unix);
             composite_keys.push(key);
         }
 
@@ -1807,7 +1832,7 @@ mod tests {
             let user = format!("USER_{i}");
             let timestamp_unix = base_ts + i;
 
-            let hash = MemoryLog::compute_composite_hash(&device, &user, timestamp_unix);
+            let hash = MemoryLog::compute_composite_hash(&device, &user, timestamp_unix, Some(0), Some(1));
 
             assert!(hashes.insert(hash),
                 "Hash collision detected for device={device}, user={user}, ts={timestamp_unix}");
@@ -1851,10 +1876,10 @@ mod tests {
         store.load_from_disk(logs);
 
         // Verify lookups work for loaded logs
-        let key1 = format!("DEV1:U001:{}",
+        let key1 = format!("DEV1:U001:{}:0:1",
             NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S")
                 .unwrap().and_utc().timestamp());
-        let key2 = format!("DEV2:U002:{}",
+        let key2 = format!("DEV2:U002:{}:0:1",
             NaiveDateTime::parse_from_str("2026-01-31 11:00:00", "%Y-%m-%d %H:%M:%S")
                 .unwrap().and_utc().timestamp());
 
@@ -1878,7 +1903,7 @@ mod tests {
 
         // Construct key
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let key = format!("DEV1:U001:{timestamp_unix}");
+        let key = format!("DEV1:U001:{}:0:1", timestamp_unix);
 
         // Before sync, lookup works
         assert_eq!(store.get_id_by_composite_key(&key), Some(id));
@@ -2662,5 +2687,83 @@ mod tests {
         let sig = InMemoryStore::compute_signature("D1", "U1", ts_val, Some(0), Some(1));
         let stored_ts = store.signatures.get(&sig).map(|entry| *entry.value());
         assert_eq!(stored_ts, Some(ts_val));
+    }
+
+    #[test]
+    fn test_batch_insert_ack_correlation() {
+        let store = InMemoryStore::new(1000);
+
+        let timestamp_unix = ts("2026-01-31 10:00:00");
+        let batch = vec![
+            ("DEV1".to_string(), AttendanceData {
+                user_id: "U001".to_string(),
+                timestamp: "2026-01-31 10:00:00".to_string(),
+                status: Some(1),
+                punch: Some(0), // check-in
+            }, timestamp_unix),
+            ("DEV1".to_string(), AttendanceData {
+                user_id: "U001".to_string(),
+                timestamp: "2026-01-31 10:00:00".to_string(),
+                status: Some(1),
+                punch: Some(1), // check-out at the SAME second
+            }, timestamp_unix),
+        ];
+
+        // 1. Insert batch
+        let inserted = store.insert_batch(batch).unwrap();
+        assert_eq!(inserted, 2, "Both logs should be inserted");
+
+        // 2. Verify both are in composite_index with unique keys
+        let key1 = format!("DEV1:U001:{}:0:1", timestamp_unix);
+        let key2 = format!("DEV1:U001:{}:1:1", timestamp_unix);
+
+        let id1 = store.get_id_by_composite_key(&key1);
+        let id2 = store.get_id_by_composite_key(&key2);
+
+        assert!(id1.is_some(), "First log should be found by composite key");
+        assert!(id2.is_some(), "Second log should be found by composite key");
+        assert_ne!(id1, id2, "IDs must be unique");
+
+        // 3. Verify sync works for batch-inserted logs
+        store.mark_persisted(&[id1.unwrap(), id2.unwrap()]);
+        
+        assert!(store.mark_synced_by_key(&key1), "Should successfully mark first log as synced");
+        assert!(store.mark_synced_by_key(&key2), "Should successfully mark second log as synced");
+
+        // 4. Verify memory cleared
+        assert_eq!(store.count_total(), 0, "Both logs should be removed from memory after sync");
+    }
+
+    #[test]
+    fn test_composite_key_parsing_edge_cases() {
+        let store = InMemoryStore::new(100);
+        
+        // Test with UUID device_id
+        let uuid = "786b2a80-c6a0-4681-a27d-dc1fc876bcf8";
+        let key = format!("{}:USER1:1738314000:0:1", uuid);
+        
+        let timestamp_unix = 1738314000;
+        let data = AttendanceData {
+            user_id: "USER1".to_string(),
+            timestamp: "ignored".to_string(),
+            status: Some(1),
+            punch: Some(0),
+        };
+        
+        let id = store.insert(uuid.to_string(), data, timestamp_unix).unwrap();
+        assert_eq!(store.get_id_by_composite_key(&key), Some(id));
+
+        // Test with device_id containing colons (non-UUID)
+        let device_id = "MAC:AA:BB:CC:DD:EE:FF";
+        let key2 = format!("{}:USER2:1738314000:-1:-1", device_id);
+        let data2 = AttendanceData {
+            user_id: "USER2".to_string(),
+            timestamp: "ignored".to_string(),
+            status: None,
+            punch: None,
+        };
+        
+        let id2 = store.insert(device_id.to_string(), data2, timestamp_unix).unwrap();
+        assert_eq!(store.get_id_by_composite_key(&key2), Some(id2), "Should handle device_id with colons");
     }
 }

@@ -5,9 +5,9 @@ use uuid::Uuid;
 
 pub async fn create_raw_log(pool: &PgPool, log: &RawAttendanceLog) -> Result<bool, sqlx::Error> {
     let result = query(
-        "INSERT INTO raw_attendance_logs (id, workspace_id, employee_id, punch_time, source, device_id, raw_data, created_at) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         ON CONFLICT (workspace_id, employee_id, punch_time) DO NOTHING"
+        "INSERT INTO raw_attendance_logs (id, workspace_id, employee_id, punch_time, source, device_id, raw_data, created_at, punch, status) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         ON CONFLICT (workspace_id, employee_id, punch_time, punch, status) DO NOTHING"
     )
     .bind(log.id)
     .bind(log.workspace_id)
@@ -17,6 +17,8 @@ pub async fn create_raw_log(pool: &PgPool, log: &RawAttendanceLog) -> Result<boo
     .bind(&log.device_id)
     .bind(&log.raw_data)
     .bind(log.created_at)
+    .bind(log.punch)
+    .bind(log.status)
     .execute(pool)
     .await?;
 
@@ -129,7 +131,7 @@ pub async fn create_raw_logs_batch(
     }
 
     let mut query_builder: QueryBuilder<sqlx::Postgres> = QueryBuilder::new(
-        "INSERT INTO raw_attendance_logs (id, workspace_id, employee_id, punch_time, source, device_id, raw_data, created_at) ",
+        "INSERT INTO raw_attendance_logs (id, workspace_id, employee_id, punch_time, source, device_id, raw_data, created_at, punch, status) ",
     );
 
     query_builder.push_values(logs.iter(), |mut b, log| {
@@ -140,10 +142,12 @@ pub async fn create_raw_logs_batch(
             .push_bind(log.source)
             .push_bind(&log.device_id)
             .push_bind(&log.raw_data)
-            .push_bind(log.created_at);
+            .push_bind(log.created_at)
+            .push_bind(log.punch)
+            .push_bind(log.status);
     });
 
-    query_builder.push(" ON CONFLICT (workspace_id, employee_id, punch_time) DO NOTHING");
+    query_builder.push(" ON CONFLICT (workspace_id, employee_id, punch_time, punch, status) DO NOTHING");
 
     let result = query_builder.build().execute(pool).await?;
 

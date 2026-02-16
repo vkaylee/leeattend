@@ -21,28 +21,32 @@ pub struct MemoryLog {
 
 impl MemoryLog {
     /// Generate composite key string for ACK correlation
-    /// Format: "device_id:user_id:timestamp_unix"
+    /// Format: "device_id:user_id:timestamp_unix:punch:status"
     pub fn composite_key(&self) -> String {
         format!(
-            "{}:{}:{}",
+            "{}:{}:{}:{}:{}",
             self.device_id,
             self.user_id,
-            self.timestamp
+            self.timestamp,
+            self.punch.unwrap_or(-1),
+            self.status.unwrap_or(-1)
         )
     }
 
     /// Compute hash of composite key components for memory index
     /// Uses FxHasher for fast, deterministic hashing
     pub fn composite_key_hash(&self) -> u64 {
-        Self::compute_composite_hash(&self.device_id, &self.user_id, self.timestamp)
+        Self::compute_composite_hash(&self.device_id, &self.user_id, self.timestamp, self.punch, self.status)
     }
 
     /// Static method to compute composite key hash from components
-    pub(crate) fn compute_composite_hash(device_id: &str, user_id: &str, timestamp: i64) -> u64 {
+    pub(crate) fn compute_composite_hash(device_id: &str, user_id: &str, timestamp: i64, punch: Option<i32>, status: Option<i32>) -> u64 {
         let mut hasher = FxHasher::default();
         device_id.hash(&mut hasher);
         user_id.hash(&mut hasher);
         timestamp.hash(&mut hasher);
+        punch.hash(&mut hasher);
+        status.hash(&mut hasher);
         hasher.finish()
     }
 }

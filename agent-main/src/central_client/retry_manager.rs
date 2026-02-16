@@ -4,13 +4,21 @@ use rand::Rng;
 
 use super::connection::{MAX_RETRY_DELAY_SECS, MAX_RETRY_COUNT, STABILITY_THRESHOLD_SECS};
 
-/// Parse composite key "device_id:user_id:timestamp_unix" back to components
+/// Parse composite key "device_id:user_id:timestamp_unix:punch:status" back to components
 /// Uses rsplit to safely handle device_id containing colons
-/// Format: device_id can contain colons, user_id and timestamp_unix cannot
+/// Format: device_id can contain colons, user_id, timestamp_unix, punch, and status cannot
 /// Returns timestamp as i64 (Unix timestamp in UTC seconds)
-pub(super) fn parse_composite_key(key: &str) -> Option<(String, String, i64)> {
-    // 1. Extract Timestamp (always the last part)
-    let (rest, timestamp_str) = key.rsplit_once(':')?;
+pub(super) fn parse_composite_key(key: &str) -> Option<(String, String, i64, Option<i32>, Option<i32>)> {
+    let mut parts = key.rsplitn(4, ':');
+    
+    // 1. Extract status, punch, timestamp
+    let status_str = parts.next()?;
+    let punch_str = parts.next()?;
+    let timestamp_str = parts.next()?;
+    let rest = parts.next()?; // device_id:user_id
+
+    let status: Option<i32> = status_str.parse().ok().filter(|&v| v != -1);
+    let punch: Option<i32> = punch_str.parse().ok().filter(|&v| v != -1);
     let timestamp_unix = timestamp_str.parse::<i64>().ok()?;
 
     // 2. Extract Device ID and User ID
@@ -27,7 +35,7 @@ pub(super) fn parse_composite_key(key: &str) -> Option<(String, String, i64)> {
         }
     };
 
-    Some((device_id.trim().to_string(), user_id.trim().to_string(), timestamp_unix))
+    Some((device_id.trim().to_string(), user_id.trim().to_string(), timestamp_unix, punch, status))
 }
 
 pub(super) struct RetryManager {
@@ -122,40 +130,46 @@ mod tests {
 
     #[test]
     fn test_parse_composite_key_normal() {
-        let key = "DEV1:U001:1738314000";
+        let key = "DEV1:U001:1738314000:0:1";
         let result = parse_composite_key(key);
         assert!(result.is_some());
-        let (device_id, user_id, timestamp_unix) = result.unwrap();
+        let (device_id, user_id, timestamp_unix, punch, status) = result.unwrap();
         assert_eq!(device_id, "DEV1");
         assert_eq!(user_id, "U001");
         assert_eq!(timestamp_unix, 1738314000);
+        assert_eq!(punch, Some(0));
+        assert_eq!(status, Some(1));
     }
 
     #[test]
     fn test_parse_composite_key_with_colon_in_device_id() {
-        let key = "Office:Main:Gate:U001:1738314000";
+        let key = "Office:Main:Gate:U001:1738314000:-1:-1";
         let result = parse_composite_key(key);
         assert!(result.is_some(), "Should parse device_id with colons");
-        let (device_id, user_id, timestamp_unix) = result.unwrap();
+        let (device_id, user_id, timestamp_unix, punch, status) = result.unwrap();
         assert_eq!(device_id, "Office:Main:Gate");
         assert_eq!(user_id, "U001");
         assert_eq!(timestamp_unix, 1738314000);
+        assert_eq!(punch, None);
+        assert_eq!(status, None);
     }
 
     #[test]
     fn test_parse_composite_key_single_colon_device() {
-        let key = "Office:Gate:U001:1738314000";
+        let key = "Office:Gate:U001:1738314000:0:1";
         let result = parse_composite_key(key);
         assert!(result.is_some());
-        let (device_id, user_id, timestamp_unix) = result.unwrap();
+        let (device_id, user_id, timestamp_unix, punch, status) = result.unwrap();
         assert_eq!(device_id, "Office:Gate");
         assert_eq!(user_id, "U001");
         assert_eq!(timestamp_unix, 1738314000);
+        assert_eq!(punch, Some(0));
+        assert_eq!(status, Some(1));
     }
 
     #[test]
     fn test_parse_composite_key_invalid_timestamp() {
-        let key = "DEV1:U001:not_a_number";
+        let key = "DEV1:U001:not_a_number:0:1";
         let result = parse_composite_key(key);
         assert!(result.is_none(), "Invalid timestamp should return None");
     }
@@ -173,20 +187,20 @@ mod tests {
 
     #[test]
     fn test_parse_composite_key_logic() {
-        let k1 = "DEV1:U1:1234567890";
-        assert_eq!(parse_composite_key(k1), Some(("DEV1".into(), "U1".into(), 1234567890)));
+        let k1 = "DEV1:U1:1234567890:0:1";
+        assert_eq!(parse_composite_key(k1), Some(("DEV1".into(), "U1".into(), 1234567890, Some(0), Some(1))));
 
-        let k2 = "AA:BB:CC:DD:EE:FF:U1:1234567890";
-        assert_eq!(parse_composite_key(k2), Some(("AA:BB:CC:DD:EE:FF".into(), "U1".into(), 1234567890)));
+        let k2 = "AA:BB:CC:DD:EE:FF:U1:1234567890:-1:-1";
+        assert_eq!(parse_composite_key(k2), Some(("AA:BB:CC:DD:EE:FF".into(), "U1".into(), 1234567890, None, None)));
 
-        let k3 = "OFFICE:GATE:1:U1:1234567890";
-        assert_eq!(parse_composite_key(k3), Some(("OFFICE:GATE:1".into(), "U1".into(), 1234567890)));
+        let k3 = "OFFICE:GATE:1:U1:1234567890:0:1";
+        assert_eq!(parse_composite_key(k3), Some(("OFFICE:GATE:1".into(), "U1".into(), 1234567890, Some(0), Some(1))));
 
         let uuid = "12345678-1234-1234-1234-123456789012";
-        let k4 = format!("{uuid}:USER:001:1234567890");
-        assert_eq!(parse_composite_key(&k4), Some((uuid.into(), "USER:001".into(), 1234567890)));
+        let k4 = format!("{uuid}:USER:001:1234567890:0:1");
+        assert_eq!(parse_composite_key(&k4), Some((uuid.into(), "USER:001".into(), 1234567890, Some(0), Some(1))));
 
-        let k5 = "D1:U1:INVALID";
+        let k5 = "D1:U1:INVALID:0:1";
         assert_eq!(parse_composite_key(k5), None);
     }
 

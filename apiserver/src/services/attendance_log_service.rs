@@ -188,6 +188,9 @@ impl AttendanceLogService {
         };
 
         // 3. Create RawAttendanceLog
+        let punch = raw_data.as_ref().and_then(|d| d["punch"].as_i64()).map(|v| v as i32).unwrap_or(-1);
+        let status = raw_data.as_ref().and_then(|d| d["status"].as_i64()).map(|v| v as i32).unwrap_or(-1);
+
         let raw_log = RawAttendanceLog {
             id: Uuid::new_v4(),
             workspace_id,
@@ -196,6 +199,8 @@ impl AttendanceLogService {
             source,
             device_id,
             raw_data,
+            punch,
+            status,
             created_at: Utc::now(),
         };
 
@@ -236,6 +241,9 @@ impl AttendanceLogService {
         device_id: Option<String>,
         raw_data: Option<serde_json::Value>,
     ) -> Result<bool, String> {
+        let punch = raw_data.as_ref().and_then(|d| d["punch"].as_i64()).map(|v| v as i32).unwrap_or(-1);
+        let status = raw_data.as_ref().and_then(|d| d["status"].as_i64()).map(|v| v as i32).unwrap_or(-1);
+
         let raw_log = RawAttendanceLog {
             id: Uuid::new_v4(),
             workspace_id,
@@ -244,6 +252,8 @@ impl AttendanceLogService {
             source,
             device_id,
             raw_data,
+            punch,
+            status,
             created_at: Utc::now(),
         };
 
@@ -290,6 +300,9 @@ impl AttendanceLogService {
 
         for staged in &staged_logs {
             // 2. Create RawAttendanceLog from staging
+            let punch = staged.raw_data.as_ref().and_then(|d| d["punch"].as_i64()).map(|v| v as i32).unwrap_or(-1);
+            let status = staged.raw_data.as_ref().and_then(|d| d["status"].as_i64()).map(|v| v as i32).unwrap_or(-1);
+
             let raw_log = RawAttendanceLog {
                 id: Uuid::new_v4(),
                 workspace_id,
@@ -298,6 +311,8 @@ impl AttendanceLogService {
                 source: LogSource::Device,
                 device_id: staged.device_id.clone(),
                 raw_data: staged.raw_data.clone(),
+                punch,
+                status,
                 created_at: Utc::now(),
             };
 

@@ -1065,6 +1065,8 @@ pub struct RawAttendanceLog {
     pub source: LogSource,
     pub device_id: Option<String>,
     pub raw_data: Option<serde_json::Value>,
+    pub punch: i32,
+    pub status: i32,
     pub created_at: DateTime<Utc>,
 }
 

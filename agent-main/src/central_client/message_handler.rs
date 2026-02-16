@@ -7,8 +7,10 @@ use crate::hybrid_database::HybridDatabase;
 use super::retry_manager::parse_composite_key;
 
 pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload_tx: &mpsc::Sender<()>) {
+    log::debug!("Received message from central: {}", text);
     if let Ok(msg) = serde_json::from_str::<CentralMessage>(text) {
         match msg {
+            // ... (rest of the match remains same, but I need to include enough context for replace)
             CentralMessage::ConfigPush { data } => {
                 info!("Received ConfigPush with {} devices", data.devices.len());
                 if let Some(mw) = data.max_concurrent_workers {
@@ -54,8 +56,8 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                     }
 
                     // Update disk using composite key
-                    if let Some((device_id, user_id, timestamp_unix)) = parse_composite_key(&msg_id) {
-                        log::debug!("🔍 ACK Success: device='{device_id}', user='{user_id}', timestamp='{timestamp_unix}'");
+                    if let Some((device_id, user_id, timestamp_unix, punch, status)) = parse_composite_key(&msg_id) {
+                        log::debug!("🔍 ACK Success: device='{device_id}', user='{user_id}', timestamp='{timestamp_unix}', punch={:?}, status={:?}", punch, status);
 
                         // We rely on hybrid_db.mark_synced_by_key() to update memory state.
                         // The Checkpoint Worker will persist this to disk asynchronously.
@@ -78,6 +80,8 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
             }
             _ => {}
         }
+    } else {
+        log::error!("❌ Failed to parse message from central: {}", text);
     }
 }
 

@@ -209,6 +209,9 @@ async fn parse_log_entry(pool: &PgPool, entry: &AgentLogEntry) -> Result<ParsedL
     )
     .map_err(|e| format!("Failed to parse timestamp '{}': {}", entry.punch_time_raw, e))?;
 
+    let punch = entry.raw_data.as_ref().and_then(|d| d["punch"].as_i64()).map(|v| v as i32).unwrap_or(-1);
+    let status = entry.raw_data.as_ref().and_then(|d| d["status"].as_i64()).map(|v| v as i32).unwrap_or(-1);
+
     let raw_log = RawAttendanceLog {
         id: Uuid::new_v4(),
         workspace_id: entry.workspace_id,
@@ -217,6 +220,8 @@ async fn parse_log_entry(pool: &PgPool, entry: &AgentLogEntry) -> Result<ParsedL
         source: LogSource::Device,
         device_id: entry.device_id.clone(),
         raw_data: entry.raw_data.clone(),
+        punch,
+        status,
         created_at: Utc::now(),
     };
 

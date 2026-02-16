@@ -117,8 +117,8 @@ impl Database {
     }
 
     /// Batch update sync status for multiple logs using composite keys
-    /// Tuple: (device_id, user_id, timestamp, is_synced)
-    pub async fn update_sync_status_batch(&self, updates: &[(Arc<str>, Arc<str>, i64, i64)]) -> Result<(), Error> {
+    /// Tuple: (device_id, user_id, timestamp, punch, status, is_synced)
+    pub async fn update_sync_status_batch(&self, updates: &[(Arc<str>, Arc<str>, i64, Option<i32>, Option<i32>, i64)]) -> Result<(), Error> {
         if updates.is_empty() {
             return Ok(());
         }
@@ -126,12 +126,14 @@ impl Database {
         let mut tx = self.pool.begin().await?;
 
         for chunk in updates.chunks(100) {
-            for (device_id, user_id, timestamp, is_synced) in chunk {
-                sqlx::query("UPDATE zkt_raw_attendance SET is_synced = ? WHERE device_id = ? AND user_id = ? AND timestamp = ?")
+            for (device_id, user_id, timestamp, punch, status, is_synced) in chunk {
+                sqlx::query("UPDATE zkt_raw_attendance SET is_synced = ? WHERE device_id = ? AND user_id = ? AND timestamp = ? AND punch IS ? AND status IS ?")
                     .bind(is_synced)
                     .bind(&**device_id)
                     .bind(&**user_id)
                     .bind(timestamp)
+                    .bind(punch)
+                    .bind(status)
                     .execute(&mut *tx)
                     .await?;
             }
