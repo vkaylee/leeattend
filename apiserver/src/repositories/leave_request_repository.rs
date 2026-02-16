@@ -130,7 +130,8 @@ pub async fn get_approved_leave_breakdown(
 ) -> Result<LeaveBreakdown, sqlx::Error> {
     let rows = sqlx::query(
         r#"
-        SELECT lt.code as leave_type_code, SUM(lr.end_date - lr.start_date + 1) as days
+        SELECT lt.code as leave_type_code, 
+               SUM(LEAST(lr.end_date, $3) - GREATEST(lr.start_date, $2) + 1) as days
         FROM leave_requests lr
         JOIN leave_types lt ON lr.leave_type_id = lt.id
         WHERE lr.employee_id = $1

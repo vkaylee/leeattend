@@ -101,7 +101,7 @@ impl PolicyResolver {
             .ok_or_else(|| sqlx::Error::RowNotFound)?;
 
         // 2. Get Employee Special Conditions
-        let conditions = Self::resolve_working_conditions(pool, employee_id, date).await?;
+        let conditions = Self::resolve_working_conditions(pool, employee_id, workspace_id, date).await?;
 
         // 3. Merge logic
         let mut rules = PolicyRules {
@@ -140,18 +140,22 @@ impl PolicyResolver {
     pub async fn resolve_working_conditions(
         pool: &PgPool,
         employee_id: Uuid,
+        workspace_id: Uuid,
         date: NaiveDate,
     ) -> Result<Vec<WorkingCondition>, sqlx::Error> {
         let conditions = sqlx::query_as!(
             WorkingCondition,
             r#"
-            SELECT id, employee_id, type as "type_", minute_allowance, is_paid, start_date, end_date
-            FROM working_conditions 
-            WHERE employee_id = $1 
-              AND start_date <= $2 
-              AND (end_date IS NULL OR end_date >= $2)
+            SELECT wc.id, wc.employee_id, wc.type as "type_", wc.minute_allowance, wc.is_paid, wc.start_date, wc.end_date
+            FROM working_conditions wc
+            JOIN employees e ON wc.employee_id = e.id
+            WHERE wc.employee_id = $1 
+              AND e.workspace_id = $2
+              AND wc.start_date <= $3 
+              AND (wc.end_date IS NULL OR wc.end_date >= $3)
             "#,
             employee_id,
+            workspace_id,
             date
         )
         .fetch_all(pool)
@@ -166,7 +170,7 @@ impl PolicyResolver {
     pub async fn resolve_attendance_rules_batch(
         pool: &PgPool,
         employee_ids: &[Uuid],
-        _workspace_id: Uuid,
+        workspace_id: Uuid,
         start_date: NaiveDate,
         end_date: NaiveDate,
     ) -> Result<HashMap<Uuid, Vec<WorkingCondition>>, sqlx::Error> {
@@ -178,14 +182,17 @@ impl PolicyResolver {
         let conditions = sqlx::query_as!(
             WorkingCondition,
             r#"
-            SELECT id, employee_id, type as "type_", minute_allowance, is_paid, start_date, end_date
-            FROM working_conditions
-            WHERE employee_id = ANY($1)
-              AND start_date <= $3
-              AND (end_date IS NULL OR end_date >= $2)
-            ORDER BY employee_id, start_date
+            SELECT wc.id, wc.employee_id, wc.type as "type_", wc.minute_allowance, wc.is_paid, wc.start_date, wc.end_date
+            FROM working_conditions wc
+            JOIN employees e ON wc.employee_id = e.id
+            WHERE wc.employee_id = ANY($1)
+              AND e.workspace_id = $2
+              AND wc.start_date <= $4
+              AND (wc.end_date IS NULL OR wc.end_date >= $3)
+            ORDER BY wc.employee_id, wc.start_date
             "#,
             employee_ids,
+            workspace_id,
             start_date,
             end_date
         )

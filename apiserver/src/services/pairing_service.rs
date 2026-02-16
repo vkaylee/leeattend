@@ -143,13 +143,14 @@ impl PairingService {
         let start_of_day_utc = start_of_day_local.with_timezone(&Utc);
         
         let (window_start_utc, window_end_utc) = if let Some(s) = &shift_config {
-            // Use shift start/end with a generous 6-hour buffer
-            let buffer_mins = 360; // 6 hours
-            let start_mins = s.start_minutes - buffer_mins;
-            let end_mins = s.end_minutes + buffer_mins;
+            // Use shift start/end with a generous buffer to allow for early/late punches.
+            // 6 hours is generous enough for most workplaces but bounded to avoid picking up logs from other days.
+            const LOG_SEARCH_BUFFER_MINUTES: i64 = 360; 
+            let start_mins = s.start_minutes as i64 - LOG_SEARCH_BUFFER_MINUTES;
+            let end_mins = s.end_minutes as i64 + LOG_SEARCH_BUFFER_MINUTES;
             
-            let s_utc = (start_of_day_local + Duration::minutes(start_mins as i64)).with_timezone(&Utc);
-            let e_utc = (start_of_day_local + Duration::minutes(end_mins as i64)).with_timezone(&Utc);
+            let s_utc = (start_of_day_local + Duration::minutes(start_mins)).with_timezone(&Utc);
+            let e_utc = (start_of_day_local + Duration::minutes(end_mins)).with_timezone(&Utc);
             (s_utc, e_utc)
         } else {
             // Fallback to strict 24h if no shift
@@ -172,13 +173,18 @@ impl PairingService {
         // 3. Filter and Linearize Logs
         let mut filtered_log_events = Vec::new();
         if !logs.is_empty() {
-            let mut last_minute: Option<i64> = None;
+            let mut last_key: Option<(i64, Option<i32>)> = None;
 
             for log in logs {
-                // Deduplicate by minute
+                // Extract punch type from metadata if present
+                let punch_type = log.punch_str.and_then(|s: String| s.parse::<i32>().ok());
+
+                // Deduplicate by minute AND punch type
+                // This allows quick corrections (e.g. IN followed by OUT in same minute)
                 let current_minute = log.punch_time.timestamp() / 60;
-                if let Some(lm) = last_minute {
-                    if current_minute == lm {
+                let current_key = (current_minute, punch_type);
+                if let Some(lk) = last_key {
+                    if current_key == lk {
                         continue;
                     }
                 }
@@ -187,16 +193,13 @@ impl PairingService {
                 let log_local = log.punch_time.with_timezone(&tz);
                 let duration_since_start = log_local.signed_duration_since(start_of_day_local);
 
-                // Extract punch type from metadata if present
-                let punch_type = log.punch_str.and_then(|s: String| s.parse::<i32>().ok());
-
                 filtered_log_events.push(pairing_algo::LogEvent {
                     id: log.id,
                     minutes: duration_since_start.num_minutes() as i32,
                     punch_type,
                 });
 
-                last_minute = Some(current_minute);
+                last_key = Some(current_key);
             }
         }
 
@@ -319,11 +322,16 @@ fn local_to_tz(tz: &Tz, date: NaiveDate, h: u32, m: u32, s: u32) -> Result<DateT
         chrono::LocalResult::Single(dt) => Ok(dt),
         chrono::LocalResult::Ambiguous(dt, _) => Ok(dt),
         chrono::LocalResult::None => {
-            // DST gap - shift forward 1 hour
-            let shifted = naive + Duration::hours(1);
-            tz.from_local_datetime(&shifted)
-                .single()
-                .ok_or_else(|| sqlx::Error::Protocol("Cannot resolve DST gap".to_string()))
+            // DST gap - shift forward in 15-minute increments until valid time found
+            // This is more robust for 30-min or other non-standard DST zones.
+            let mut shifted = naive;
+            for _ in 0..8 { // Try up to 2 hours
+                shifted += Duration::minutes(15);
+                if let chrono::LocalResult::Single(dt) = tz.from_local_datetime(&shifted) {
+                    return Ok(dt);
+                }
+            }
+            Err(sqlx::Error::Protocol("Cannot resolve DST gap after 2 hours of searching".to_string()))
         }
     }
 }

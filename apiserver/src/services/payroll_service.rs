@@ -306,11 +306,15 @@ impl PayrollService {
         let mut incentive_results = Vec::new();
         let mut total_incentive_amount = Decimal::ZERO;
 
-        if !active_policies.is_empty() {
-            // Need a context for evaluation
-            let leave_breakdown = leave_request_repository::get_approved_leave_breakdown(pool, employee_id, start_date, end_date).await
-                .unwrap_or(leave_request_repository::LeaveBreakdown { total_days: 0.0, unpaid_days: 0.0, sick_days: 0.0 });
+        // Fetch leave breakdown once for the entire period
+        let leave_breakdown = leave_request_repository::get_approved_leave_breakdown(pool, employee_id, start_date, end_date)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to fetch leave breakdown for employee {}: {}", employee_id, e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
 
+        if !active_policies.is_empty() {
             let context = IncentiveContext {
                 total_work_units: total_std_units,
                 total_leave_days: leave_breakdown.total_days,
@@ -329,8 +333,15 @@ impl PayrollService {
             }
         }
 
-        // TODO: Implement deduction calculation when deduction policies are defined
-        let deductions_amount = Decimal::ZERO;
+        // 8. Deductions Calculation (Unpaid Leave)
+        // For simplicity, we calculate deduction based on the LATEST segment's daily rate
+        let mut deductions_amount = Decimal::ZERO;
+        if leave_breakdown.unpaid_days > 0.0 {
+            if let Some(last_snap) = segment_snapshots.last() {
+                let daily_rate = if last_snap.4.is_zero() { Decimal::ZERO } else { last_snap.3 / last_snap.4 };
+                deductions_amount = daily_rate * Decimal::from_f64(leave_breakdown.unpaid_days).unwrap_or(Decimal::ZERO);
+            }
+        }
 
         let payslip = Payslip {
             id: Uuid::new_v4(), employee_id, period_start: start_date, period_end: end_date,

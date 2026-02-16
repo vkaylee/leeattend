@@ -59,12 +59,14 @@ pub async fn report_stream_ws(
     Query(query): Query<WsQuery>,
     State(state): State<Arc<AppState>>,
 ) -> Response {
-    // Token already validated by middleware, extract user_id
-    let user_id = query.token.as_deref()
-        .and_then(|t| crate::services::auth_service::AuthService::verify_token(t, &state.jwt_secret).ok())
-        .unwrap_or_default();
+    // 1. Authenticate user and extract ID
+    let user_id = match query.token.as_deref()
+        .and_then(|t| crate::services::auth_service::AuthService::verify_token(t, &state.jwt_secret).ok()) {
+            Some(uid) => uid,
+            None => return (StatusCode::UNAUTHORIZED, "Invalid or missing token").into_response(),
+        };
 
-    // Check if Redis is available
+    // 2. Check if Redis is available
     let redis = match &state.redis {
         Some(redis) => redis.clone(),
         None => {
@@ -76,7 +78,30 @@ pub async fn report_stream_ws(
         }
     };
 
-    info!(job_id = %job_id, user_id = %user_id, "WebSocket upgrade request for report stream");
+    // 3. Verify job ownership
+    let queue = crate::queue::ReportQueue::new(redis.clone());
+    let metadata = match queue.get_job_metadata(job_id).await {
+        Ok(Some(m)) => m,
+        Ok(None) => return (StatusCode::NOT_FOUND, "Job not found").into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, format!("Queue error: {e}")).into_response(),
+    };
+
+    // Check if user belongs to the workspace of this job
+    let is_member = match state.workspace_repo.find_primary_role(metadata.workspace_id, user_id).await {
+        Ok(Some(_)) => true,
+        Ok(None) => false,
+        Err(e) => {
+            warn!(error = %e, "Failed to verify workspace membership");
+            return (StatusCode::INTERNAL_SERVER_ERROR, "Auth check failed").into_response();
+        }
+    };
+
+    if !is_member {
+        warn!(job_id = %job_id, user_id = %user_id, "Unauthorized WS access attempt");
+        return (StatusCode::FORBIDDEN, "Not authorized to access this report stream").into_response();
+    }
+
+    info!(job_id = %job_id, user_id = %user_id, "WebSocket upgrade authorized for report stream");
 
     ws.on_upgrade(move |socket| handle_report_socket(socket, job_id, redis))
 }

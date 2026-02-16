@@ -167,6 +167,13 @@ export default function AttendanceLogsPage() {
     const emp = employees.find(e => e.id === log.employee_id); 
     return emp ? emp.employee_id_number : ""; 
   };
+
+  const getDeviceName = (deviceId?: string | null) => {
+    if (!deviceId) return "";
+    const device = devicesData?.find(d => d.id === deviceId);
+    return device ? device.name : "";
+  };
+
   const totalPages = activeTab === "recorded"
     ? Math.ceil((data?.total || 0) / limit)
     : Math.ceil((stagingData?.total || 0) / limit);

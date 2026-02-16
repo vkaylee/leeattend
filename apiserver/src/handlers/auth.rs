@@ -32,6 +32,21 @@ fn validate_password(password: &str) -> AppResult<()> {
             format!("Password must not exceed {MAX_PASSWORD_LEN} characters"),
         ));
     }
+    
+    // Simple strength check: must have at least one digit or special char
+    if !password.chars().any(|c| c.is_ascii_digit() || c.is_ascii_punctuation()) {
+        return Err(AppError::Validation(
+            "Password must contain at least one digit or special character".to_string(),
+        ));
+    }
+    
+    Ok(())
+}
+
+fn validate_email(email: &str) -> AppResult<()> {
+    if email.is_empty() || !email.contains('@') || !email.contains('.') {
+        return Err(AppError::Validation("Invalid email format".to_string()));
+    }
     Ok(())
 }
 
@@ -41,7 +56,11 @@ pub async fn register(
     State(state): State<Arc<AppState>>,
     Json(req): Json<RegisterRequest>,
 ) -> AppResult<Json<AuthResponse>> {
-    // 1. Validate password strength
+    // 1. Validation
+    if req.full_name.trim().is_empty() {
+        return Err(AppError::Validation("Full name is required".to_string()));
+    }
+    validate_email(&req.email)?;
     validate_password(&req.password)?;
 
     // 2. Check if email exists
@@ -269,8 +288,7 @@ pub async fn get_user_profile(
 
 pub async fn get_users(
     State(state): State<Arc<AppState>>,
-    UserId(_user_id): UserId,
-    workspace_id: crate::handlers::common::WorkspaceId,
+    ctx: crate::handlers::common::MemberContext,
 ) -> AppResult<Json<Vec<UserResponse>>> {
     // Scope to workspace members only to prevent cross-tenant data exposure
     let users = sqlx::query_as::<_, User>(
@@ -279,7 +297,7 @@ pub async fn get_users(
          WHERE wm.workspace_id = $1 \
          ORDER BY u.created_at DESC"
     )
-    .bind(workspace_id.0)
+    .bind(ctx.workspace_id)
     .fetch_all(&state.db)
     .await?;
 
