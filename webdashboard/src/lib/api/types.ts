@@ -138,6 +138,7 @@ export interface RawAttendanceLog {
   created_at: string;
   employee_full_name?: string;
   employee_id_number?: string;
+  device_name?: string;
 }
 
 export interface LeaveRequest {

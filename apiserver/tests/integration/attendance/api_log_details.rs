@@ -47,14 +47,24 @@ async fn test_attendance_logs_include_employee_details() {
     };
     time_entry_repository::create_time_entry(&pool, &entry).await.unwrap();
 
-    // 2. Create a RawAttendanceLog
+    // 2. Create a Device and a RawAttendanceLog
+    let device_id = Uuid::new_v4();
+    let device_name = "FRONT ENTRANCE DEVICE";
+    sqlx::query("INSERT INTO devices (id, name, agent_id, ip, workspace_id) VALUES ($1, $2, 'test-agent', '127.0.0.1', $3)")
+        .bind(device_id)
+        .bind(device_name)
+        .bind(ws_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
     let raw_log = RawAttendanceLog {
         id: Uuid::new_v4(),
         workspace_id: ws_id,
         employee_id: emp_id,
         punch_time: Utc::now(),
         source: LogSource::Device,
-        device_id: Some("test-device".to_string()),
+        device_id: Some(device_id.to_string()),
         raw_data: None,
         punch: 0,
         status: 0,
@@ -99,4 +109,5 @@ async fn test_attendance_logs_include_employee_details() {
     let item = &data[0];
     assert_eq!(item["employee_full_name"], emp_name);
     assert_eq!(item["employee_id_number"], emp_id_num);
+    assert_eq!(item["device_name"], device_name);
 }

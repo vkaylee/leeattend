@@ -61,9 +61,11 @@ pub async fn get_paginated_raw_logs(
             SELECT 
                 rl.*, 
                 e.full_name as employee_full_name, 
-                e.employee_id_number 
+                e.employee_id_number,
+                d.name as device_name
             FROM raw_attendance_logs rl
             JOIN employees e ON rl.employee_id = e.id
+            LEFT JOIN devices d ON rl.device_id = d.id::text
             WHERE rl.workspace_id = 
         "#);
     query_builder.push_bind(workspace_id);

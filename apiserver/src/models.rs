@@ -1103,6 +1103,7 @@ pub struct RawAttendanceLogWithEmployee {
     pub created_at: DateTime<Utc>,
     pub employee_full_name: String,
     pub employee_id_number: String,
+    pub device_name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
