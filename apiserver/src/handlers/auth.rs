@@ -270,10 +270,18 @@ pub async fn get_user_profile(
 pub async fn get_users(
     State(state): State<Arc<AppState>>,
     UserId(_user_id): UserId,
+    workspace_id: crate::handlers::common::WorkspaceId,
 ) -> AppResult<Json<Vec<UserResponse>>> {
-    let users = sqlx::query_as::<_, User>("SELECT * FROM users ORDER BY created_at DESC")
-        .fetch_all(&state.db)
-        .await?;
+    // Scope to workspace members only to prevent cross-tenant data exposure
+    let users = sqlx::query_as::<_, User>(
+        "SELECT u.* FROM users u \
+         JOIN workspace_members wm ON u.id = wm.user_id \
+         WHERE wm.workspace_id = $1 \
+         ORDER BY u.created_at DESC"
+    )
+    .bind(workspace_id.0)
+    .fetch_all(&state.db)
+    .await?;
 
     let user_responses: Vec<UserResponse> = users
         .into_iter()
@@ -366,9 +374,9 @@ pub async fn get_dev_super_user(State(state): State<Arc<AppState>>) -> AppResult
         workspace_id
     );
 
-    // Sinh JWT cho dev mode
-    let access_token =
-        AuthService::generate_token(user_id, &state.jwt_secret, 60 * 24 * 7).unwrap_or_default();
+    // Generate JWT for dev mode
+    let access_token = AuthService::generate_token(user_id, &state.jwt_secret, 60 * 24 * 7)
+        .map_err(|e| AppError::Internal(format!("Dev token generation failed: {e}")))?;
 
     Ok(Json(json!({
         "user_id": user_id,

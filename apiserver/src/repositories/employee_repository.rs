@@ -478,7 +478,8 @@ pub async fn get_paginated_employee_ids(
     .await?;
 
     // Data query with pagination and dynamic ORDER BY
-    // Note: Using format!() for ORDER direction since sqlx doesn't support binding ORDER direction
+    // SAFETY: order_dir is a hardcoded &str ("DESC" or "ASC"), never user input.
+    // sqlx doesn't support binding ORDER direction as a parameter.
     let offset = (page - 1) * limit;
     let order_dir = if sort_desc { "DESC" } else { "ASC" };
     let sql = format!(
