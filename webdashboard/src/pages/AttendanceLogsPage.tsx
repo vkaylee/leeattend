@@ -157,14 +157,16 @@ export default function AttendanceLogsPage() {
     },
   });
 
-  const getDeviceName = (id?: string | null) => {
-    if (!id) return null;
-    const device = devicesData?.find(d => d.id === id);
-    return device ? device.name : null;
+  const getEmployeeName = (log: RawAttendanceLog) => { 
+    if (log.employee_full_name) return log.employee_full_name;
+    const emp = employees.find(e => e.id === log.employee_id); 
+    return emp ? emp.full_name : t("common.system"); 
   };
-
-  const getEmployeeName = (id: string) => { const emp = employees.find(e => e.id === id); return emp ? emp.full_name : t("common.system"); };
-  const getEmployeeID = (id: string) => { const emp = employees.find(e => e.id === id); return emp ? emp.employee_id_number : ""; };
+  const getEmployeeID = (log: RawAttendanceLog) => { 
+    if (log.employee_id_number) return log.employee_id_number;
+    const emp = employees.find(e => e.id === log.employee_id); 
+    return emp ? emp.employee_id_number : ""; 
+  };
   const totalPages = activeTab === "recorded"
     ? Math.ceil((data?.total || 0) / limit)
     : Math.ceil((stagingData?.total || 0) / limit);
@@ -284,8 +286,8 @@ export default function AttendanceLogsPage() {
                           </div>
                         </td>
                         <td className="px-8 py-5">
-                          <div className="font-bold text-slate-800 dark:text-slate-100 text-sm tracking-tight uppercase">{getEmployeeName(log.employee_id)}</div>
-                          <div className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mt-0.5">{getEmployeeID(log.employee_id) || "SYSTEM"}</div>
+                          <div className="font-bold text-slate-800 dark:text-slate-100 text-sm tracking-tight uppercase">{getEmployeeName(log)}</div>
+                          <div className="text-[9px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mt-0.5">{getEmployeeID(log) || "SYSTEM"}</div>
                         </td>
                         <td className="px-8 py-5">
                           <div className="flex flex-col gap-1">

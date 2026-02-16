@@ -123,6 +123,8 @@ export interface TimeEntry {
   generation_metadata?: any;
   created_at: string;
   updated_at: string;
+  employee_full_name?: string;
+  employee_id_number?: string;
 }
 
 export interface RawAttendanceLog {
@@ -134,6 +136,8 @@ export interface RawAttendanceLog {
   device_id?: string;
   raw_data?: any;
   created_at: string;
+  employee_full_name?: string;
+  employee_id_number?: string;
 }
 
 export interface LeaveRequest {

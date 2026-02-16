@@ -12,6 +12,7 @@
 *.log
 logs/
 .test_logs/
+plans/reports/tester-*.md
 .env.bak
 agent_boot.log
 apiserver_boot.log
@@ -62,3 +63,6 @@ agent/venv_linux/
 agent-zk-worker/venv_linux/
 webdashboard/repomix-output.xml
 .sqlx
+
+.gemini/
+gha-creds-*.json

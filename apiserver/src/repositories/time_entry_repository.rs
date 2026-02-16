@@ -1,4 +1,4 @@
-use crate::models::TimeEntry;
+use crate::models::{TimeEntry, TimeEntryWithEmployee};
 use chrono::{DateTime, Utc};
 use sqlx::{query, query_as, query_scalar, PgPool};
 use std::collections::HashMap;
@@ -107,32 +107,39 @@ pub async fn get_paginated_logs(
     p_to: Option<DateTime<Utc>>,
     p_limit: i64,
     p_offset: i64,
-) -> Result<Vec<TimeEntry>, sqlx::Error> {
-    let mut sql = "SELECT * FROM time_entries 
-                  WHERE workspace_id = $1"
-        .to_string();
+) -> Result<Vec<TimeEntryWithEmployee>, sqlx::Error> {
+    let mut sql = r#"
+        SELECT 
+            te.*, 
+            e.full_name as employee_full_name, 
+            e.employee_id_number 
+        FROM time_entries te
+        JOIN employees e ON te.employee_id = e.id
+        WHERE te.workspace_id = $1
+    "#
+    .to_string();
     let mut param_idx = 2;
 
     if p_employee_id.is_some() {
-        sql.push_str(&format!(" AND employee_id = ${param_idx}"));
+        sql.push_str(&format!(" AND te.employee_id = ${param_idx}"));
         param_idx += 1;
     }
     if p_from.is_some() {
-        sql.push_str(&format!(" AND punch_in_time >= ${param_idx}"));
+        sql.push_str(&format!(" AND te.punch_in_time >= ${param_idx}"));
         param_idx += 1;
     }
     if p_to.is_some() {
-        sql.push_str(&format!(" AND punch_in_time <= ${param_idx}"));
+        sql.push_str(&format!(" AND te.punch_in_time <= ${param_idx}"));
         param_idx += 1;
     }
 
     sql.push_str(&format!(
-        " ORDER BY punch_in_time DESC LIMIT ${} OFFSET ${}",
+        " ORDER BY te.punch_in_time DESC LIMIT ${} OFFSET ${}",
         param_idx,
         param_idx + 1
     ));
 
-    let mut query = query_as::<_, TimeEntry>(&sql).bind(workspace_id);
+    let mut query = query_as::<_, TimeEntryWithEmployee>(&sql).bind(workspace_id);
 
     if let Some(id) = p_employee_id {
         query = query.bind(id);

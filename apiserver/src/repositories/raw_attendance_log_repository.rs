@@ -1,4 +1,4 @@
-use crate::models::RawAttendanceLog;
+use crate::models::{RawAttendanceLog, RawAttendanceLogWithEmployee};
 use chrono::{DateTime, Utc};
 use sqlx::{query, query_as, PgPool, QueryBuilder};
 use uuid::Uuid;
@@ -55,33 +55,41 @@ pub async fn get_paginated_raw_logs(
     p_to: Option<DateTime<Utc>>,
     p_limit: i64,
     p_offset: i64,
-) -> Result<Vec<RawAttendanceLog>, sqlx::Error> {
+) -> Result<Vec<RawAttendanceLogWithEmployee>, sqlx::Error> {
     let mut query_builder: sqlx::QueryBuilder<sqlx::Postgres> =
-        sqlx::QueryBuilder::new("SELECT * FROM raw_attendance_logs WHERE workspace_id = ");
+        sqlx::QueryBuilder::new(r#"
+            SELECT 
+                rl.*, 
+                e.full_name as employee_full_name, 
+                e.employee_id_number 
+            FROM raw_attendance_logs rl
+            JOIN employees e ON rl.employee_id = e.id
+            WHERE rl.workspace_id = 
+        "#);
     query_builder.push_bind(workspace_id);
 
     if let Some(emp_id) = p_employee_id {
-        query_builder.push(" AND employee_id = ");
+        query_builder.push(" AND rl.employee_id = ");
         query_builder.push_bind(emp_id);
     }
 
     if let Some(from) = p_from {
-        query_builder.push(" AND punch_time >= ");
+        query_builder.push(" AND rl.punch_time >= ");
         query_builder.push_bind(from);
     }
 
     if let Some(to) = p_to {
-        query_builder.push(" AND punch_time <= ");
+        query_builder.push(" AND rl.punch_time <= ");
         query_builder.push_bind(to);
     }
 
-    query_builder.push(" ORDER BY punch_time DESC LIMIT ");
+    query_builder.push(" ORDER BY rl.punch_time DESC LIMIT ");
     query_builder.push_bind(p_limit);
     query_builder.push(" OFFSET ");
     query_builder.push_bind(p_offset);
 
     query_builder
-        .build_query_as::<RawAttendanceLog>()
+        .build_query_as::<RawAttendanceLogWithEmployee>()
         .fetch_all(pool)
         .await
 }
