@@ -308,11 +308,11 @@ impl AttendanceLogService {
                     dates_to_reprocess.insert(staged.punch_time.date_naive());
 
                     // Mark staging log as processed
-                    let _ = staging_log_repository::update_staging_status(pool, staged.id, "processed").await;
+                    let _ = staging_log_repository::update_staging_status(pool, staged.id, staged.workspace_id, "processed").await;
                 }
                 Ok(false) => {
                     // Duplicate - still mark as processed
-                    let _ = staging_log_repository::update_staging_status(pool, staged.id, "processed").await;
+                    let _ = staging_log_repository::update_staging_status(pool, staged.id, staged.workspace_id, "processed").await;
                 }
                 Err(e) => {
                     error!("Failed to claim staged log {}: {}", staged.id, e);

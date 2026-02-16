@@ -68,18 +68,41 @@ pub async fn get_pending_staging_logs(
     .await
 }
 
-/// Update staging log status (e.g., 'processed', 'dismissed')
+/// Update staging log status with workspace_id filtering for multi-tenant safety.
+/// Returns true if a row was actually updated.
 pub async fn update_staging_status(
     pool: &PgPool,
     id: Uuid,
+    workspace_id: Uuid,
     status: &str,
-) -> Result<(), sqlx::Error> {
-    sqlx::query("UPDATE attendance_staging_logs SET status = $1 WHERE id = $2")
-        .bind(status)
-        .bind(id)
-        .execute(pool)
-        .await?;
-    Ok(())
+) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query(
+        "UPDATE attendance_staging_logs SET status = $1 WHERE id = $2 AND workspace_id = $3",
+    )
+    .bind(status)
+    .bind(id)
+    .bind(workspace_id)
+    .execute(pool)
+    .await?;
+    Ok(result.rows_affected() > 0)
+}
+
+/// Update staging log status within an existing transaction.
+pub async fn update_staging_status_tx(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    id: Uuid,
+    workspace_id: Uuid,
+    status: &str,
+) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query(
+        "UPDATE attendance_staging_logs SET status = $1 WHERE id = $2 AND workspace_id = $3",
+    )
+    .bind(status)
+    .bind(id)
+    .bind(workspace_id)
+    .execute(&mut **tx)
+    .await?;
+    Ok(result.rows_affected() > 0)
 }
 
 /// Count pending staging logs for a workspace

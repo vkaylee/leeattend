@@ -60,8 +60,8 @@ pub async fn get_employees(
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<PaginationParams>,
 ) -> AppResult<Json<PaginatedResponse<Employee>>> {
-    let page = query.page.unwrap_or(1);
-    let limit = query.limit.unwrap_or(50);
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 100);
     let (data, total) = EmployeeService::get_all_employees(&state.db, workspace_id, query.q, page, limit).await
         .map_err(|s| AppError::from((s, "Failed to get employees".to_string())))?;
     

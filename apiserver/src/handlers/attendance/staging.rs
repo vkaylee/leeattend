@@ -66,8 +66,8 @@ pub async fn get_staging_logs(
         return Err(AppError::Forbidden("Admin access required".to_string()));
     }
 
-    let page = query.page.unwrap_or(1);
-    let limit = query.limit.unwrap_or(50);
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(50).clamp(1, 100);
 
     let logs = staging_log_repository::get_pending_staging_logs(
         &state.db,
@@ -75,8 +75,7 @@ pub async fn get_staging_logs(
         limit,
     ).await?;
 
-    let total = staging_log_repository::count_pending_staging_logs(&state.db, ctx.workspace_id).await
-        .unwrap_or(logs.len() as i64);
+    let total = staging_log_repository::count_pending_staging_logs(&state.db, ctx.workspace_id).await?;
 
     let response = StagingLogsResponse {
         data: logs.into_iter().map(StagingLogResponse::from).collect(),
@@ -94,7 +93,8 @@ pub struct ResolveStagingLogRequest {
 }
 
 /// POST /workspaces/:ws_id/attendance/staging-logs/:id/resolve
-/// Manually assign a staging log to an employee
+/// Manually assign a staging log to an employee.
+/// Uses FOR UPDATE NOWAIT to prevent double-resolve race conditions.
 pub async fn resolve_staging_log(
     Path((_ws_id, log_id)): Path<(Uuid, Uuid)>,
     State(state): State<Arc<AppState>>,
@@ -105,14 +105,30 @@ pub async fn resolve_staging_log(
         return Err(AppError::Forbidden("Admin access required".to_string()));
     }
 
-    // 1. Get staging log
+    use crate::models::{LogSource, RawAttendanceLog};
+    use crate::repositories::raw_attendance_log_repository;
+    use crate::services::pairing_service::PairingService;
+
+    // Use transaction to ensure atomicity of read-check-insert-update
+    let mut tx = state.db.begin().await?;
+
+    // 1. Lock and fetch staging log (FOR UPDATE NOWAIT prevents concurrent resolve)
     let staged = sqlx::query_as::<_, StagingLog>(
-        "SELECT id, workspace_id, device_id, raw_user_id, punch_time, raw_data, fingerprint, status, created_at FROM attendance_staging_logs WHERE id = $1 AND workspace_id = $2"
+        "SELECT id, workspace_id, device_id, raw_user_id, punch_time, raw_data, fingerprint, status, created_at \
+         FROM attendance_staging_logs WHERE id = $1 AND workspace_id = $2 FOR UPDATE NOWAIT"
     )
     .bind(log_id)
     .bind(ctx.workspace_id)
-    .fetch_optional(&state.db)
-    .await?
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(|e| {
+        // NOWAIT returns a specific error if row is already locked
+        if e.to_string().contains("could not obtain lock") {
+            AppError::Conflict("Log is being processed by another request".to_string())
+        } else {
+            AppError::from(e)
+        }
+    })?
     .ok_or_else(|| AppError::NotFound("Staging log not found".to_string()))?;
 
     if staged.status != "pending" {
@@ -120,10 +136,6 @@ pub async fn resolve_staging_log(
     }
 
     // 2. Create RawAttendanceLog
-    use crate::models::{LogSource, RawAttendanceLog};
-    use crate::repositories::raw_attendance_log_repository;
-    use crate::services::pairing_service::PairingService;
-
     let raw_log = RawAttendanceLog {
         id: Uuid::new_v4(),
         workspace_id: ctx.workspace_id,
@@ -135,14 +147,19 @@ pub async fn resolve_staging_log(
         created_at: Utc::now(),
     };
 
-    // 3. Insert to raw_attendance_logs
+    // 3. Insert raw log within transaction
     raw_attendance_log_repository::create_raw_log(&state.db, &raw_log).await?;
-    
-    // Mark staging log as processed
-    let _ = staging_log_repository::update_staging_status(&state.db, log_id, "processed").await;
 
-    // Trigger pairing
-    let _ = PairingService::process_new_raw_log(&state.db, &raw_log).await;
+    // 4. Mark staging log as processed within transaction
+    staging_log_repository::update_staging_status_tx(&mut tx, log_id, ctx.workspace_id, "processed").await?;
+
+    // 5. Commit transaction
+    tx.commit().await?;
+
+    // 6. Trigger pairing (post-commit side effect, log errors but don't fail the response)
+    if let Err(e) = PairingService::process_new_raw_log(&state.db, &raw_log).await {
+        tracing::error!(log_id = %log_id, error = %e, "Failed to trigger pairing after staging resolve");
+    }
 
     Ok((StatusCode::OK, "Log resolved successfully"))
 }
@@ -158,6 +175,13 @@ pub async fn dismiss_staging_log(
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
 
-    staging_log_repository::update_staging_status(&state.db, log_id, "dismissed").await?;
+    let updated = staging_log_repository::update_staging_status(
+        &state.db, log_id, ctx.workspace_id, "dismissed",
+    ).await?;
+
+    if !updated {
+        return Err(AppError::NotFound("Staging log not found".to_string()));
+    }
+
     Ok(StatusCode::NO_CONTENT)
 }

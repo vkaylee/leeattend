@@ -28,8 +28,8 @@ pub async fn get_attendance_logs(
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<AttendanceLogQuery>,
 ) -> AppResult<Json<serde_json::Value>> {
-    let limit = query.limit.unwrap_or(20);
-    let page = query.page.unwrap_or(1);
+    let limit = query.limit.unwrap_or(20).clamp(1, 100);
+    let page = query.page.unwrap_or(1).max(1);
     let offset = (page - 1) * limit;
 
     let logs = crate::repositories::time_entry_repository::get_paginated_logs(
@@ -66,8 +66,8 @@ pub async fn get_raw_attendance_logs(
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<AttendanceLogQuery>,
 ) -> AppResult<Json<serde_json::Value>> {
-    let limit = query.limit.unwrap_or(20);
-    let page = query.page.unwrap_or(1);
+    let limit = query.limit.unwrap_or(20).clamp(1, 100);
+    let page = query.page.unwrap_or(1).max(1);
     let offset = (page - 1) * limit;
 
     let logs = crate::repositories::raw_attendance_log_repository::get_paginated_raw_logs(

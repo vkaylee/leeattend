@@ -219,7 +219,7 @@ async fn main() {
         listener.expect("Could not find an available port")
     };
 
-    let actual_addr = listener.local_addr().unwrap();
+    let actual_addr = listener.local_addr().expect("Failed to get listener local address");
     if std::fs::write(&port_file_name, actual_addr.port().to_string()).is_ok() {
         tracing::info!("Actual listening on {}", actual_addr);
     }
@@ -231,7 +231,7 @@ async fn main() {
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
-        .unwrap();
+        .expect("Server exited with error");
 
     // Graceful shutdown sequence
     tracing::info!("Starting graceful shutdown...");

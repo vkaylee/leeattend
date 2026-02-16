@@ -16,20 +16,42 @@ use crate::repositories::user_repository;
 use crate::services::auth_service::AuthService;
 use crate::{AppState, UserId};
 
+// --- Password Validation ---
+
+const MIN_PASSWORD_LEN: usize = 8;
+const MAX_PASSWORD_LEN: usize = 128;
+
+fn validate_password(password: &str) -> AppResult<()> {
+    if password.len() < MIN_PASSWORD_LEN {
+        return Err(AppError::Validation(
+            format!("Password must be at least {MIN_PASSWORD_LEN} characters"),
+        ));
+    }
+    if password.len() > MAX_PASSWORD_LEN {
+        return Err(AppError::Validation(
+            format!("Password must not exceed {MAX_PASSWORD_LEN} characters"),
+        ));
+    }
+    Ok(())
+}
+
 // --- Auth Handlers ---
 
 pub async fn register(
     State(state): State<Arc<AppState>>,
     Json(req): Json<RegisterRequest>,
 ) -> AppResult<Json<AuthResponse>> {
-    // 1. Check if email exists
+    // 1. Validate password strength
+    validate_password(&req.password)?;
+
+    // 2. Check if email exists
     let existing_user = user_repository::get_user_by_email(&state.db, &req.email).await?;
 
     if existing_user.is_some() {
         return Err(AppError::Conflict("Email already exists".to_string()));
     }
 
-    // 2. Hash password
+    // 3. Hash password
     let password_hash = AuthService::hash_password(&req.password)
         .map_err(AppError::from)?;
 
@@ -147,19 +169,24 @@ pub async fn change_password(
         return Err(AppError::Auth("Mật khẩu cũ không chính xác".to_string()));
     }
 
-    // 3. Hash new password
+    // 3. Validate new password strength
+    validate_password(&req.new_password)?;
+
+    // 4. Hash new password
     let new_hash = AuthService::hash_password(&req.new_password)
         .map_err(AppError::from)?;
 
-    // 4. Update DB
+    // 5. Update DB
     sqlx::query("UPDATE users SET password_hash = $1 WHERE id = $2")
         .bind(new_hash)
         .bind(user_id)
         .execute(&state.db)
         .await?;
 
-    // 5. Revoke all sessions (Force re-login)
-    let _ = AuthService::revoke_all_sessions_for_user(&state.db, user_id).await;
+    // 6. Revoke all sessions (Force re-login)
+    if let Err(e) = AuthService::revoke_all_sessions_for_user(&state.db, user_id).await {
+        tracing::error!(user_id = %user_id, error = %e, "Failed to revoke sessions after password change");
+    }
 
     Ok((
         StatusCode::OK,
