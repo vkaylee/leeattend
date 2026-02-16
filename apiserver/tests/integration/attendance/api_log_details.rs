@@ -14,7 +14,7 @@ use uuid::Uuid;
 use serde_json::Value;
 
 #[tokio::test]
-async fn test_attendance_logs_include_employee_details() {
+async fn test_attendance_logs_include_employee_details() -> Result<(), Box<dyn std::error::Error>> {
     let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
     let pool = test_db.pool();
 
@@ -45,7 +45,7 @@ async fn test_attendance_logs_include_employee_details() {
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
-    time_entry_repository::create_time_entry(&pool, &entry).await.unwrap();
+    time_entry_repository::create_time_entry(&pool, &entry).await?;
 
     // 2. Create a Device and a RawAttendanceLog
     let device_id = Uuid::new_v4();
@@ -55,8 +55,7 @@ async fn test_attendance_logs_include_employee_details() {
         .bind(device_name)
         .bind(ws_id)
         .execute(&pool)
-        .await
-        .unwrap();
+        .await?;
 
     let raw_log = RawAttendanceLog {
         id: Uuid::new_v4(),
@@ -70,7 +69,7 @@ async fn test_attendance_logs_include_employee_details() {
         status: 0,
         created_at: Utc::now(),
     };
-    raw_attendance_log_repository::create_raw_log(&pool, &raw_log).await.unwrap();
+    raw_attendance_log_repository::create_raw_log(&pool, &raw_log).await?;
 
     // 3. Request /attendance/logs and verify fields
     let response = app.clone().oneshot(
@@ -78,14 +77,14 @@ async fn test_attendance_logs_include_employee_details() {
             .method("GET")
             .uri(format!("/api/workspaces/{ws_id}/attendance/logs"))
             .header("X-User-Id", user_id.to_string())
-            .body(axum::body::Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+            .body(axum::body::Body::empty())?,
+    ).await?;
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body: Value = serde_json::from_slice(&axum::body::to_bytes(response.into_body(), 1024*1024).await.unwrap()).unwrap();
-    let data = body["data"].as_array().unwrap();
-    assert!(data.len() >= 1);
+    let body_bytes = axum::body::to_bytes(response.into_body(), 1024*1024).await?;
+    let body: Value = serde_json::from_slice(&body_bytes)?;
+    let data = body["data"].as_array().ok_or("Data should be an array")?;
+    assert!(!data.is_empty());
     
     let item = &data[0];
     assert_eq!(item["employee_full_name"], emp_name);
@@ -97,17 +96,18 @@ async fn test_attendance_logs_include_employee_details() {
             .method("GET")
             .uri(format!("/api/workspaces/{ws_id}/attendance/raw-logs"))
             .header("X-User-Id", user_id.to_string())
-            .body(axum::body::Body::empty())
-            .unwrap(),
-    ).await.unwrap();
+            .body(axum::body::Body::empty())?,
+    ).await?;
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body: Value = serde_json::from_slice(&axum::body::to_bytes(response.into_body(), 1024*1024).await.unwrap()).unwrap();
-    let data = body["data"].as_array().unwrap();
-    assert!(data.len() >= 1);
+    let body_bytes = axum::body::to_bytes(response.into_body(), 1024*1024).await?;
+    let body: Value = serde_json::from_slice(&body_bytes)?;
+    let data = body["data"].as_array().ok_or("Data should be an array")?;
+    assert!(!data.is_empty());
     
     let item = &data[0];
     assert_eq!(item["employee_full_name"], emp_name);
     assert_eq!(item["employee_id_number"], emp_id_num);
     assert_eq!(item["device_name"], device_name);
+    Ok(())
 }
