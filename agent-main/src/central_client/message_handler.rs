@@ -1,4 +1,4 @@
-use log::{error, info};
+use log::{debug, error, info, warn};
 use tokio::sync::mpsc;
 
 use crate::models::CentralMessage;
@@ -7,7 +7,7 @@ use crate::hybrid_database::HybridDatabase;
 use super::retry_manager::parse_composite_key;
 
 pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload_tx: &mpsc::Sender<()>) {
-    log::debug!("Received message from central: {}", text);
+    debug!("Received message from central: {text}");
     if let Ok(msg) = serde_json::from_str::<CentralMessage>(text) {
         match msg {
             // ... (rest of the match remains same, but I need to include enough context for replace)
@@ -52,25 +52,25 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                 if status.as_deref() == Some("success") {
                     // Update memory
                     if !hybrid_db.mark_synced_by_key(&msg_id) {
-                        log::debug!("ACK for already-synced log (disk update OK): {msg_id}");
+                        debug!("ACK for already-synced log (disk update OK): {msg_id}");
                     }
 
                     // Update disk using composite key
                     if let Some((device_id, user_id, timestamp_unix, punch, status)) = parse_composite_key(&msg_id) {
-                        log::debug!("🔍 ACK Success: device='{device_id}', user='{user_id}', timestamp='{timestamp_unix}', punch={:?}, status={:?}", punch, status);
+                        debug!("🔍 ACK Success: device='{device_id}', user='{user_id}', timestamp='{timestamp_unix}', punch={punch:?}, status={status:?}");
 
                         // We rely on hybrid_db.mark_synced_by_key() to update memory state.
                         // The Checkpoint Worker will persist this to disk asynchronously.
                         // Doing a direct UPDATE here is racy because the log might not be on disk yet.
                     } else {
-                        log::warn!("⚠️ Failed to parse composite key: {msg_id}");
+                        warn!("⚠️ Failed to parse composite key: {msg_id}");
                     }
                 } else {
                     // Failed ACK - reset to unsynced for retry
                     if !hybrid_db.reset_to_unsynced_by_key(&msg_id) {
-                        log::debug!("Failed ACK for already-synced log: {msg_id}");
+                        debug!("Failed ACK for already-synced log: {msg_id}");
                     } else {
-                         log::warn!("⚠️ ACK Failed: Resetting log {msg_id} for retry");
+                         warn!("⚠️ ACK Failed: Resetting log {msg_id} for retry");
                     }
                 }
 
@@ -81,7 +81,7 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
             _ => {}
         }
     } else {
-        log::error!("❌ Failed to parse message from central: {}", text);
+        error!("❌ Failed to parse message from central: {text}");
     }
 }
 
@@ -94,7 +94,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_incoming_error() {
-        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.unwrap();
+        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.expect("DB setup failed");
         let (reload_tx, _reload_rx) = mpsc::channel(1);
 
         let error_msg = r#"{"type":"error", "code":"INVALID_TOKEN", "message":"Invalid token provided"}"#;
@@ -103,15 +103,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_incoming_ack_failure() {
-        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.unwrap();
+        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.expect("DB setup failed");
         let (reload_tx, _reload_rx) = mpsc::channel(1);
 
-        sqlx::query("INSERT INTO zkt_raw_attendance (id, device_id, user_id, timestamp, is_synced) VALUES (999, 'dev1', 'user1', '2026-01-27 10:00:00', 2)")
+        sqlx::query("INSERT INTO zkt_raw_attendance (id, device_id, user_id, timestamp, punch, status, is_synced) VALUES (999, 'dev1', 'user1', '2026-01-27 10:00:00', -1, -1, 2)")
             .execute(hybrid_db.disk_db().get_pool())
             .await
-            .unwrap();
+            .expect("INSERT failed");
 
-        let ack_error = r#"{"type":"ack", "msg_id":"999", "status":"error", "error":"Server overloaded"}"#;
+        let ack_error = r#"{"type":"ack", "msg_id":"dev1:user1:1737972000:-1:-1", "status":"error", "error":"Server overloaded"}"#;
         handle_incoming_text(ack_error, &hybrid_db, &reload_tx).await;
 
         let _logs = hybrid_db.get_unsynced_logs(10);
@@ -121,10 +121,10 @@ mod tests {
     async fn test_ack_handling_race_condition() {
         use chrono::NaiveDateTime;
 
-        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.unwrap();
+        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.expect("DB setup failed");
         let (reload_tx, _reload_rx) = mpsc::channel(1);
 
-        hybrid_db.disk_db().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", true).await.unwrap();
+        hybrid_db.disk_db().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", true).await.expect("upsert failed");
 
         let timestamp_str = "2026-01-31 12:00:00";
         let data = AttendanceData {
@@ -134,45 +134,45 @@ mod tests {
             punch: Some(0),
         };
 
-        let id = hybrid_db.save_raw_attendance("DEV1", data).await.unwrap();
+        let id = hybrid_db.save_raw_attendance("DEV1", data).await.expect("save failed");
         hybrid_db.mark_in_flight(&[id]);
 
         assert!(hybrid_db.memory_store().is_dirty());
         assert_eq!(hybrid_db.count_unsynced_logs(), 0);
 
         let ts_unix = NaiveDateTime::parse_from_str(timestamp_str, "%Y-%m-%d %H:%M:%S")
-            .unwrap()
+            .expect("parse failed")
             .and_utc()
             .timestamp();
 
-        let msg_id = format!("DEV1:U999:{ts_unix}");
+        let msg_id = format!("DEV1:U999:{ts_unix}:0:1");
         let ack_msg = format!(r#"{{"type":"ack", "msg_id":"{msg_id}", "status":"success"}}"#);
 
         handle_incoming_text(&ack_msg, &hybrid_db, &reload_tx).await;
 
-        let persisted = hybrid_db.checkpoint().await.unwrap();
+        let persisted = hybrid_db.checkpoint().await.expect("checkpoint failed");
         assert_eq!(persisted, 1);
 
         let row: (i32,) = sqlx::query_as("SELECT is_synced FROM zkt_raw_attendance WHERE user_id = 'U999'")
             .fetch_one(hybrid_db.disk_db().get_pool())
             .await
-            .unwrap();
+            .expect("fetch failed");
 
         assert_eq!(row.0, 1, "Log should be persisted as synced (1), not unsynced (0)");
     }
 
     #[tokio::test]
     async fn test_sync_blocked_when_no_active_devices() {
-        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.unwrap();
+        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.expect("DB setup failed");
 
         sqlx::query(
             "INSERT INTO zkt_raw_attendance (id, device_id, user_id, timestamp, is_synced) VALUES (1, 'dev1', 'user1', '2026-01-29 10:00:00', 0)"
         )
         .execute(hybrid_db.disk_db().get_pool())
         .await
-        .unwrap();
+        .expect("INSERT failed");
 
-        let devices = hybrid_db.disk_db().get_active_devices().await.unwrap();
+        let devices = hybrid_db.disk_db().get_active_devices().await.expect("get failed");
         assert_eq!(devices.len(), 0, "Should have no active devices initially");
 
         let _logs = hybrid_db.get_unsynced_logs(10);
@@ -180,35 +180,35 @@ mod tests {
 
     #[tokio::test]
     async fn test_sync_allowed_when_devices_configured() {
-        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.unwrap();
+        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.expect("DB setup failed");
 
         hybrid_db
             .disk_db()
             .upsert_device("dev1", "Device 1", "192.168.1.100", 4370, "zkteco", "UTC", true)
             .await
-            .unwrap();
+            .expect("upsert failed");
 
-        let devices = hybrid_db.disk_db().get_active_devices().await.unwrap();
+        let devices = hybrid_db.disk_db().get_active_devices().await.expect("get failed");
         assert_eq!(devices.len(), 1, "Should have 1 active device");
         assert_eq!(devices[0].id, "dev1");
     }
 
     #[tokio::test]
     async fn test_sync_blocked_after_devices_deactivated() {
-        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.unwrap();
+        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.expect("DB setup failed");
 
         hybrid_db
             .disk_db()
             .upsert_device("dev1", "Device 1", "192.168.1.100", 4370, "zkteco", "UTC", true)
             .await
-            .unwrap();
+            .expect("upsert failed");
 
         hybrid_db
             .disk_db()
             .deactivate_devices_not_in(&[])
             .await
-            .unwrap();
+            .expect("deactivate failed");
 
-        let _devices = hybrid_db.disk_db().get_active_devices().await.unwrap();
+        let _devices = hybrid_db.disk_db().get_active_devices().await.expect("get failed");
     }
 }

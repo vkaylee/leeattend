@@ -214,8 +214,8 @@ mod tests {
             policy_id: Uuid::new_v4(),
             priority,
             multiplier,
-            time_start: start.map(|s| NaiveTime::parse_from_str(s, "%H:%M:%S").unwrap()),
-            time_end: end.map(|s| NaiveTime::parse_from_str(s, "%H:%M:%S").unwrap()),
+            time_start: start.map(|s| NaiveTime::parse_from_str(s, "%H:%M:%S").expect("valid mock time")),
+            time_end: end.map(|s| NaiveTime::parse_from_str(s, "%H:%M:%S").expect("valid mock time")),
             days_of_week: days,
             is_holiday: false,
             created_at: None,
@@ -225,7 +225,7 @@ mod tests {
 
     #[test]
     fn test_priority_resolution() {
-        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap(); // Monday
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).expect("valid date"); // Monday
         let rules = vec![
             mock_rule(1, Decimal::new(15, 1), None, None, 127), // Base 1.5x all day
             mock_rule(10, Decimal::new(20, 1), Some("22:00:00"), Some("06:00:00"), 127), // Night 2.0x (Overnight)
@@ -241,14 +241,14 @@ mod tests {
 
     #[test]
     fn test_pay_calculation() {
-        let date = NaiveDate::from_ymd_opt(2026, 1, 26).unwrap();
+        let date = NaiveDate::from_ymd_opt(2026, 1, 26).expect("valid date");
         let rules = vec![
             mock_rule(1, Decimal::new(15, 1), Some("17:00:00"), Some("22:00:00"), 127),
             mock_rule(10, Decimal::new(20, 1), Some("22:00:00"), Some("06:00:00"), 127),
         ];
 
         let ot_intervals = vec![
-            (NaiveTime::from_hms_opt(18, 0, 0).unwrap(), NaiveTime::from_hms_opt(23, 0, 0).unwrap()),
+            (NaiveTime::from_hms_opt(18, 0, 0).expect("valid time"), NaiveTime::from_hms_opt(23, 0, 0).expect("valid time")),
         ];
 
         let hourly_rate = Decimal::new(100, 0);
@@ -261,17 +261,17 @@ mod tests {
     fn test_split_interval_by_day() {
         use chrono_tz::UTC;
         use chrono::TimeZone;
-        let start = UTC.with_ymd_and_hms(2026, 1, 26, 22, 0, 0).unwrap();
-        let end = UTC.with_ymd_and_hms(2026, 1, 27, 2, 0, 0).unwrap();
+        let start = UTC.with_ymd_and_hms(2026, 1, 26, 22, 0, 0).single().expect("valid date");
+        let end = UTC.with_ymd_and_hms(2026, 1, 27, 2, 0, 0).single().expect("valid date");
         
         let days = OvertimeEngine::split_interval_by_day(start, end, &UTC);
         
         assert_eq!(days.len(), 2);
-        assert_eq!(days[0].0, NaiveDate::from_ymd_opt(2026, 1, 26).unwrap());
-        assert_eq!(days[0].1[0].0, NaiveTime::from_hms_opt(22, 0, 0).unwrap());
+        assert_eq!(days[0].0, NaiveDate::from_ymd_opt(2026, 1, 26).expect("valid date"));
+        assert_eq!(days[0].1[0].0, NaiveTime::from_hms_opt(22, 0, 0).expect("valid time"));
         
-        assert_eq!(days[1].0, NaiveDate::from_ymd_opt(2026, 1, 27).unwrap());
+        assert_eq!(days[1].0, NaiveDate::from_ymd_opt(2026, 1, 27).expect("valid date"));
         assert_eq!(days[1].1[0].0, NaiveTime::from_hms_opt(0, 0, 0).expect("midnight is valid"));
-        assert_eq!(days[1].1[0].1, NaiveTime::from_hms_opt(2, 0, 0).unwrap());
+        assert_eq!(days[1].1[0].1, NaiveTime::from_hms_opt(2, 0, 0).expect("valid time"));
     }
 }

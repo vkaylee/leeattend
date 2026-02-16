@@ -26,7 +26,7 @@ async fn test_rbac_admin_access() {
     let res = app.clone().oneshot(
         axum::http::Request::builder()
             .method("GET")
-            .uri(format!("/api/workspaces/{}", ws_id)) // Workspace details usually require at least Member, but Update requires Admin
+            .uri(format!("/api/workspaces/{ws_id}")) // Workspace details usually require at least Member, but Update requires Admin
             .header("X-User-Id", admin_id.to_string())
             .body(axum::body::Body::empty())
             .unwrap()
@@ -37,7 +37,7 @@ async fn test_rbac_admin_access() {
     let res = app.clone().oneshot(
         axum::http::Request::builder()
             .method("PATCH")
-            .uri(format!("/api/workspaces/{}", ws_id))
+            .uri(format!("/api/workspaces/{ws_id}"))
             .header("X-User-Id", member_id.to_string())
             .header("Content-Type", "application/json")
             .body(axum::body::Body::from(serde_json::json!({"name": "New Name"}).to_string()))

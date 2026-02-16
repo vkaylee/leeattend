@@ -21,8 +21,7 @@ async fn test_import_csv_with_line_errors() {
     factory.employee().with_workspace(ws_id).with_employee_id_number(emp_id_number).create().await;
 
     let csv_content = format!(
-        "empNo,empName,empDt\n{},User 1,14/01/2026 08:00\n{},User 1,not-a-date\n{},User 1,",
-        emp_id_number, emp_id_number, emp_id_number
+        "empNo,empName,empDt\n{emp_id_number},User 1,14/01/2026 08:00\n{emp_id_number},User 1,not-a-date\n{emp_id_number},User 1,"
     );
 
     let file_path = format!("storage/test_imports/{}.csv", uuid::Uuid::new_v4());

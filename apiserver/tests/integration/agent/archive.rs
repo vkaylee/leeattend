@@ -21,7 +21,7 @@ async fn test_agent_archive_and_restore() {
 
     // 1. Soft Delete (Archive)
     let response = client
-        .delete(format!("{}/api/authorized-agents/{}", address, agent_id))
+        .delete(format!("{address}/api/authorized-agents/{agent_id}"))
         .header("X-Workspace-Id", workspace_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .send()
@@ -31,7 +31,7 @@ async fn test_agent_archive_and_restore() {
 
     // 2. List agents (should be empty by default)
     let response = client
-        .get(format!("{}/api/authorized-agents", address))
+        .get(format!("{address}/api/authorized-agents"))
         .header("X-Workspace-Id", workspace_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .send()
@@ -43,8 +43,7 @@ async fn test_agent_archive_and_restore() {
     // 3. List agents with include_inactive=true
     let response = client
         .get(format!(
-            "{}/api/authorized-agents?include_inactive=true",
-            address
+            "{address}/api/authorized-agents?include_inactive=true"
         ))
         .header("X-Workspace-Id", workspace_id.to_string())
         .header("X-User-Id", user_id.to_string())
@@ -58,7 +57,7 @@ async fn test_agent_archive_and_restore() {
 
     // 4. Restore Agent
     let response = client
-        .patch(format!("{}/api/authorized-agents/{}", address, agent_id))
+        .patch(format!("{address}/api/authorized-agents/{agent_id}"))
         .header("X-Workspace-Id", workspace_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .json(&serde_json::json!({ "is_active": true }))
@@ -69,7 +68,7 @@ async fn test_agent_archive_and_restore() {
 
     // 5. List agents again (should now show up)
     let response = client
-        .get(format!("{}/api/authorized-agents", address))
+        .get(format!("{address}/api/authorized-agents"))
         .header("X-Workspace-Id", workspace_id.to_string())
         .header("X-User-Id", user_id.to_string())
         .send()

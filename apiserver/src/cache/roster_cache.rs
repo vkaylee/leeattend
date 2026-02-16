@@ -520,7 +520,7 @@ mod tests {
 
     #[test]
     fn test_version_key_format() {
-        let ws_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
+        let ws_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").expect("valid UUID constant");
         let key = RosterCache::version_key(ws_id);
         assert_eq!(key, "roster:version:550e8400-e29b-41d4-a716-446655440000");
     }
@@ -536,11 +536,11 @@ mod tests {
     fn test_roster_shift_construction() {
         let shift = RosterShift {
             name: "Morning".to_string(),
-            start_time: chrono::NaiveTime::from_hms_opt(8, 0, 0).unwrap(),
-            end_time: chrono::NaiveTime::from_hms_opt(17, 0, 0).unwrap(),
+            start_time: chrono::NaiveTime::from_hms_opt(8, 0, 0).expect("valid time"),
+            end_time: chrono::NaiveTime::from_hms_opt(17, 0, 0).expect("valid time"),
             break_duration_minutes: 60,
-            break_start: Some(chrono::NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
-            break_end: Some(chrono::NaiveTime::from_hms_opt(13, 0, 0).unwrap()),
+            break_start: Some(chrono::NaiveTime::from_hms_opt(12, 0, 0).expect("valid time")),
+            break_end: Some(chrono::NaiveTime::from_hms_opt(13, 0, 0).expect("valid time")),
             is_break_auto_deduct: true,
             early_punch_in_grace_period_minutes: 15,
             allow_early_ot: false,
@@ -560,8 +560,8 @@ mod tests {
     fn test_roster_fixed_assignment_construction() {
         let assignment = RosterFixedAssignment {
             shift_id: Uuid::new_v4(),
-            start_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            end_date: Some(chrono::NaiveDate::from_ymd_opt(2026, 12, 31).unwrap()),
+            start_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
+            end_date: Some(chrono::NaiveDate::from_ymd_opt(2026, 12, 31).expect("valid date")),
         };
         assert!(assignment.end_date.is_some());
     }
@@ -570,7 +570,7 @@ mod tests {
     fn test_roster_pattern_entry_construction() {
         let entry = RosterPatternEntry {
             pattern_id: Uuid::new_v4(),
-            start_date: chrono::NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+            start_date: chrono::NaiveDate::from_ymd_opt(2026, 2, 1).expect("valid date"),
             end_date: None,
             day_of_week: 1, // Monday
             shift_id: Some(Uuid::new_v4()),
@@ -583,7 +583,7 @@ mod tests {
     fn test_roster_dept_pattern_construction() {
         let entry = RosterDeptPattern {
             default_working_pattern_id: Some(Uuid::new_v4()),
-            effective_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(),
+            effective_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 15).expect("valid date"),
             day_of_week: 3,
             shift_id: None,
         };
@@ -596,7 +596,7 @@ mod tests {
         let shift_id = Uuid::new_v4();
         let entry = RosterDeptFixedShift {
             shift_id,
-            effective_date: chrono::NaiveDate::from_ymd_opt(2026, 3, 1).unwrap(),
+            effective_date: chrono::NaiveDate::from_ymd_opt(2026, 3, 1).expect("valid date"),
         };
         assert_eq!(entry.shift_id, shift_id);
     }
@@ -606,7 +606,7 @@ mod tests {
         let dept_id = Uuid::new_v4();
         let entry = RosterDeptHistory {
             department_id: dept_id,
-            effective_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            effective_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).expect("valid date"),
         };
         assert_eq!(entry.department_id, dept_id);
     }
@@ -622,13 +622,13 @@ mod tests {
         for i in 0..2 {
             fixed.entry(emp_a).or_default().push(RosterFixedAssignment {
                 shift_id: Uuid::new_v4(),
-                start_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1 + i).unwrap(),
+                start_date: chrono::NaiveDate::from_ymd_opt(2026, 1, 1 + i).expect("valid date"),
                 end_date: None,
             });
         }
         fixed.entry(emp_b).or_default().push(RosterFixedAssignment {
             shift_id: Uuid::new_v4(),
-            start_date: chrono::NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+            start_date: chrono::NaiveDate::from_ymd_opt(2026, 2, 1).expect("valid date"),
             end_date: None,
         });
 
@@ -710,7 +710,7 @@ mod tests {
         });
 
         assert!(hit.is_some(), "Should hit when stored version == remote version");
-        assert!(Arc::ptr_eq(&hit.unwrap(), &data));
+        assert!(Arc::ptr_eq(&hit.expect("should hit"), &data));
     }
 
     /// Slow path: entry is skipped when local version != remote version.
@@ -780,7 +780,7 @@ mod tests {
         let data = Arc::new(make_empty_roster_data());
 
         let follower = tokio::spawn(async move {
-            rx.wait_for(|v| v.is_some()).await.unwrap();
+            rx.wait_for(|v| v.is_some()).await.expect("watch channel failed");
             let value = rx.borrow();
             match value.as_ref() {
                 Some(Ok(d)) => Ok(d.clone()),
@@ -791,9 +791,9 @@ mod tests {
 
         // Brief delay so follower is blocked, then leader publishes
         tokio::time::sleep(Duration::from_millis(10)).await;
-        tx.send(Some(Ok(data.clone()))).unwrap();
+        tx.send(Some(Ok(data.clone()))).expect("send failed");
 
-        let result = follower.await.unwrap().unwrap();
+        let result = follower.await.expect("follower panicked").expect("result error");
         assert!(Arc::ptr_eq(&result, &data));
     }
 
@@ -804,7 +804,7 @@ mod tests {
             watch::channel::<Option<Result<Arc<RosterData>, String>>>(None);
         
         let follower = tokio::spawn(async move {
-            rx.wait_for(|v| v.is_some()).await.unwrap();
+            rx.wait_for(|v| v.is_some()).await.expect("watch channel failed");
             let value = rx.borrow();
             match value.as_ref() {
                 Some(Ok(d)) => Ok(d.clone()),
@@ -814,11 +814,11 @@ mod tests {
         });
 
         tokio::time::sleep(Duration::from_millis(10)).await;
-        tx.send(Some(Err("DB Error".to_string()))).unwrap();
+        tx.send(Some(Err("DB Error".to_string()))).expect("send failed");
 
-        let result = follower.await.unwrap();
+        let result = follower.await.expect("follower panicked");
         assert!(result.is_err());
-        assert_eq!(result.err().unwrap(), "DB Error");
+        assert_eq!(result.expect_err("should be error"), "DB Error");
     }
 
     /// Prove that the singleflight map pattern does not leak entries.
@@ -829,28 +829,28 @@ mod tests {
 
         // 1. Simulate Leader entering
         {
-            let mut map = inflight.lock().unwrap();
+            let mut map = inflight.lock().expect("mutex poisoned");
             let (tx, _) = watch::channel::<Option<Result<Arc<RosterData>, String>>>(None);
             map.insert(ws_id, Arc::new(tx));
         }
 
         // 2. Simulate Follower finding entry
         {
-            let map = inflight.lock().unwrap();
+            let map = inflight.lock().expect("mutex poisoned");
             assert!(map.contains_key(&ws_id));
-            let _sender = map.get(&ws_id).unwrap().clone();
+            let _sender = map.get(&ws_id).expect("should exist").clone();
             // Follower subscribes...
         }
 
         // 3. Simulate Leader exiting (CRITICAL STEP for memory leak prevention)
         {
-            let mut map = inflight.lock().unwrap();
+            let mut map = inflight.lock().expect("mutex poisoned");
             map.remove(&ws_id);
         }
 
         // 4. Verify Map is Empty
         {
-            let map = inflight.lock().unwrap();
+            let map = inflight.lock().expect("mutex poisoned");
             assert!(map.is_empty(), "Inflight map should be empty after leader exit");
         }
     }

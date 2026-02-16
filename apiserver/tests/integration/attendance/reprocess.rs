@@ -28,15 +28,17 @@ async fn test_force_reprocess_attendance_api() {
 
     // 1. Create raw logs WITHOUT processing them (bypass service)
     let logs = vec![start_time, end_time];
-    for punch in logs {
+    for punch_time in logs {
         let raw_log = RawAttendanceLog {
             id: Uuid::new_v4(),
             workspace_id: ws_id,
             employee_id: emp_id,
-            punch_time: punch,
+            punch_time,
             source: LogSource::Manual,
             device_id: None,
             raw_data: None,
+            punch: -1,
+            status: -1,
             created_at: Utc::now(),
         };
         apiserver::repositories::raw_attendance_log_repository::create_raw_log(&factory.pool, &raw_log)
@@ -60,8 +62,7 @@ async fn test_force_reprocess_attendance_api() {
             Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/workspaces/{}/attendance/reprocess/{}?start_date={}&end_date={}",
-                    ws_id, emp_id, base_date, base_date
+                    "/api/workspaces/{ws_id}/attendance/reprocess/{emp_id}?start_date={base_date}&end_date={base_date}"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())

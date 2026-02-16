@@ -20,8 +20,8 @@ async fn test_employee_pagination_logic() {
     // Create 25 employees (sorted by name)
     for i in 0..25 {
         let employee_id = Uuid::new_v4();
-        let name = format!("User {:02}", i);
-        let id_num = format!("EMP{:02}", i);
+        let name = format!("User {i:02}");
+        let id_num = format!("EMP{i:02}");
         
         sqlx::query(
             r#"INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, created_at, updated_at) 
@@ -49,7 +49,7 @@ async fn test_employee_pagination_logic() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{}/employees?page=1&limit=10", ws_id))
+                .uri(format!("/api/workspaces/{ws_id}/employees?page=1&limit=10"))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -69,7 +69,7 @@ async fn test_employee_pagination_logic() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{}/employees?page=3&limit=10", ws_id))
+                .uri(format!("/api/workspaces/{ws_id}/employees?page=3&limit=10"))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -93,8 +93,8 @@ async fn test_employee_search_limit() {
 
     for i in 0..60 {
         let employee_id = Uuid::new_v4();
-        let name = format!("SearchTest User {:02}", i);
-        let id_num = format!("ST{:02}", i);
+        let name = format!("SearchTest User {i:02}");
+        let id_num = format!("ST{i:02}");
         
         sqlx::query(
             r#"INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, created_at, updated_at) 
@@ -121,7 +121,7 @@ async fn test_employee_search_limit() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{}/employees?q=SearchTest", ws_id))
+                .uri(format!("/api/workspaces/{ws_id}/employees?q=SearchTest"))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())

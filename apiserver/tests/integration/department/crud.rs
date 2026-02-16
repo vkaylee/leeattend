@@ -15,8 +15,7 @@ async fn test_department_crud() {
     // 1. Create a department
     let response = client
         .post(format!(
-            "{}/api/workspaces/{}/departments",
-            address, workspace_id
+            "{address}/api/workspaces/{workspace_id}/departments"
         ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
@@ -36,8 +35,7 @@ async fn test_department_crud() {
     // 2. List departments
     let response = client
         .get(format!(
-            "{}/api/workspaces/{}/departments",
-            address, workspace_id
+            "{address}/api/workspaces/{workspace_id}/departments"
         ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
@@ -52,8 +50,7 @@ async fn test_department_crud() {
     // 3. Update department
     let response = client
         .patch(format!(
-            "{}/api/workspaces/{}/departments/{}",
-            address, workspace_id, dept_id
+            "{address}/api/workspaces/{workspace_id}/departments/{dept_id}"
         ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
@@ -71,8 +68,7 @@ async fn test_department_crud() {
     // 4. Delete department
     let response = client
         .delete(format!(
-            "{}/api/workspaces/{}/departments/{}",
-            address, workspace_id, dept_id
+            "{address}/api/workspaces/{workspace_id}/departments/{dept_id}"
         ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
@@ -85,8 +81,7 @@ async fn test_department_crud() {
     // 5. Verify deletion
     let response = client
         .get(format!(
-            "{}/api/workspaces/{}/departments",
-            address, workspace_id
+            "{address}/api/workspaces/{workspace_id}/departments"
         ))
         .header("X-User-Id", user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
@@ -112,8 +107,7 @@ async fn test_department_rbac() {
     // Member tries to create a department - should fail
     let response = client
         .post(format!(
-            "{}/api/workspaces/{}/departments",
-            address, workspace_id
+            "{address}/api/workspaces/{workspace_id}/departments"
         ))
         .header("X-User-Id", member_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
@@ -137,8 +131,7 @@ async fn test_department_rbac() {
     // Member tries to update - should fail
     let response = client
         .patch(format!(
-            "{}/api/workspaces/{}/departments/{}",
-            address, workspace_id, dept_id
+            "{address}/api/workspaces/{workspace_id}/departments/{dept_id}"
         ))
         .header("X-User-Id", member_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
@@ -154,8 +147,7 @@ async fn test_department_rbac() {
     // Member tries to delete - should fail
     let response = client
         .delete(format!(
-            "{}/api/workspaces/{}/departments/{}",
-            address, workspace_id, dept_id
+            "{address}/api/workspaces/{workspace_id}/departments/{dept_id}"
         ))
         .header("X-User-Id", member_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())

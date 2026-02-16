@@ -106,7 +106,7 @@ mod tests {
     #[test]
     fn test_parse_with_z() {
         let dt =
-            parse_datetime_with_tz("2026-01-16T10:00:00Z", "Asia/Ho_Chi_Minh", None, None).unwrap();
+            parse_datetime_with_tz("2026-01-16T10:00:00Z", "Asia/Ho_Chi_Minh", None, None).expect("valid ISO datetime");
         assert_eq!(dt.to_rfc3339(), "2026-01-16T10:00:00+00:00");
     }
 
@@ -119,7 +119,7 @@ mod tests {
             Some("DD/MM/YYYY"),
             Some("24h"),
         )
-        .unwrap();
+        .expect("valid VN datetime");
         assert_eq!(dt.to_rfc3339(), "2026-01-16T01:00:00+00:00");
     }
 
@@ -132,7 +132,7 @@ mod tests {
             Some("MM/DD/YYYY"),
             Some("12h"),
         )
-        .unwrap();
+        .expect("valid US datetime");
         assert_eq!(dt.to_rfc3339(), "2026-01-01T04:00:00+00:00");
     }
 
@@ -145,7 +145,7 @@ mod tests {
             Some("YYYY-MM-DD"),
             Some("24h"),
         )
-        .unwrap();
+        .expect("valid ISO naive datetime");
         assert_eq!(dt.to_rfc3339(), "2026-01-16T01:00:00+00:00");
     }
 
@@ -153,7 +153,7 @@ mod tests {
     fn test_parse_invalid_timezone() {
         let res = parse_datetime_with_tz("16/01/2026 08:00", "Invalid/Zone", None, None);
         assert!(res.is_err());
-        assert!(res.unwrap_err().contains("Múi giờ không hợp lệ"));
+        assert!(res.expect_err("should be error").contains("Múi giờ không hợp lệ"));
     }
 
     #[test]
@@ -167,7 +167,7 @@ mod tests {
             Some("24h"),
         );
         assert!(res.is_err());
-        assert!(res.unwrap_err().contains("thay đổi giờ mùa hè"));
+        assert!(res.expect_err("should be error").contains("thay đổi giờ mùa hè"));
     }
 
     #[test]

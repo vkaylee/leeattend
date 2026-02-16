@@ -31,7 +31,7 @@ async fn test_get_attendance_logs_filtering_and_pagination() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{}/attendance/logs?employee_id={}", ws_id, emp_id))
+                .uri(format!("/api/workspaces/{ws_id}/attendance/logs?employee_id={emp_id}"))
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
                 .unwrap(),
@@ -56,7 +56,7 @@ async fn test_get_attendance_logs_unauthorized() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{}/attendance/logs?employee_id={}", ws_id, emp_id))
+                .uri(format!("/api/workspaces/{ws_id}/attendance/logs?employee_id={emp_id}"))
                 .header("X-User-Id", other_user.to_string()) // Unauthorized user
                 .body(axum::body::Body::empty())
                 .unwrap(),

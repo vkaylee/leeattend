@@ -37,7 +37,7 @@ async fn test_ot_claim_approval_workflow() {
     let res = app.clone().oneshot(
         axum::http::Request::builder()
             .method("POST")
-            .uri(format!("/api/workspaces/{}/attendance/claim-ot/{}", ws_id, emp_id))
+            .uri(format!("/api/workspaces/{ws_id}/attendance/claim-ot/{emp_id}"))
             .header("Content-Type", "application/json")
             .header("X-User-Id", user_id.to_string())
             .body(axum::body::Body::from(claim_req.to_string()))

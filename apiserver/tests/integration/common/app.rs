@@ -52,7 +52,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
         axum::serve(listener, app).await.unwrap();
     });
 
-    (format!("http://127.0.0.1:{}", port), test_db)
+    (format!("http://127.0.0.1:{port}"), test_db)
 }
 
 /// App spawn with factory - returns address, workspace_id, user_id, factory, and TestDatabase
@@ -107,7 +107,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
     });
 
     (
-        format!("http://127.0.0.1:{}", port),
+        format!("http://127.0.0.1:{port}"),
         workspace_id,
         user_id,
         factory,

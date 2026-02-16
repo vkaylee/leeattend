@@ -40,3 +40,64 @@ async fn test_process_log_success_with_timezone() {
     // 08:00:00+07:00 -> 01:00:00 UTC
     assert_eq!(logs[0].punch_time, Utc.with_ymd_and_hms(2026, 1, 23, 1, 0, 0).unwrap());
 }
+
+#[tokio::test]
+async fn test_same_second_punch_with_different_status_allowed() {
+    let test_db = TestDatabase::new().await;
+    let pool = test_db.pool();
+    let factory = TestFactory::new(pool.clone());
+
+    let workspace_id = factory.workspace().create().await;
+    let _employee_id = factory.employee().with_workspace(workspace_id).with_employee_id_number("EMP001").create().await;
+
+    let punch_time_raw = "2026-01-23 08:00:00";
+    
+    // 1. First punch (check-in)
+    let res1 = AttendanceLogService::process_log(
+        &pool,
+        workspace_id,
+        "EMP001",
+        punch_time_raw,
+        LogSource::Device,
+        Some("DEV_01".to_string()),
+        Some(serde_json::json!({"punch": 0, "status": 1})),
+        "UTC",
+        Some("YYYY-MM-DD"),
+        Some("24h")
+    ).await;
+    assert!(res1.unwrap(), "First log should be saved");
+
+    // 2. Second punch at EXACTLY same time but different status (check-out)
+    let res2 = AttendanceLogService::process_log(
+        &pool,
+        workspace_id,
+        "EMP001",
+        punch_time_raw,
+        LogSource::Device,
+        Some("DEV_01".to_string()),
+        Some(serde_json::json!({"punch": 1, "status": 1})),
+        "UTC",
+        Some("YYYY-MM-DD"),
+        Some("24h")
+    ).await;
+    assert!(res2.unwrap(), "Second log at same second with different punch should be saved");
+
+    // 3. Exact duplicate (same time, punch, status) - should be skipped
+    let res3 = AttendanceLogService::process_log(
+        &pool,
+        workspace_id,
+        "EMP001",
+        punch_time_raw,
+        LogSource::Device,
+        Some("DEV_01".to_string()),
+        Some(serde_json::json!({"punch": 0, "status": 1})),
+        "UTC",
+        Some("YYYY-MM-DD"),
+        Some("24h")
+    ).await;
+    assert!(!res3.unwrap(), "Exact duplicate should be skipped (Ok(false))");
+
+    // 4. Verify both unique logs are in DB
+    let logs = raw_attendance_log_repository::get_paginated_raw_logs(&pool, workspace_id, None, None, None, 10, 0).await.unwrap();
+    assert_eq!(logs.len(), 2, "DB should contain exactly 2 unique logs for the same second");
+}

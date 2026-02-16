@@ -35,8 +35,8 @@ async fn test_bulk_upsert_roster_api() {
 
     // 3. Send Request
     let res = client
-        .post(format!("{}/api/workspaces/{}/employees/{}/rosters/bulk", address, workspace_id, emp_id))
-        .header("Authorization", format!("Bearer {}", auth_token))
+        .post(format!("{address}/api/workspaces/{workspace_id}/employees/{emp_id}/rosters/bulk"))
+        .header("Authorization", format!("Bearer {auth_token}"))
         .json(&req)
         .send()
         .await
@@ -46,8 +46,8 @@ async fn test_bulk_upsert_roster_api() {
 
     // 4. Verify via GET (handler returns no body, just status code)
     let get_res = client
-        .get(format!("{}/api/workspaces/{}/employees/{}/rosters", address, workspace_id, emp_id))
-        .header("Authorization", format!("Bearer {}", auth_token))
+        .get(format!("{address}/api/workspaces/{workspace_id}/employees/{emp_id}/rosters"))
+        .header("Authorization", format!("Bearer {auth_token}"))
         .send()
         .await
         .unwrap();

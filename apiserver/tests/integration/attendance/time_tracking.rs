@@ -96,8 +96,8 @@ async fn test_punch_in_grace_period_enforcement() {
 
     let req = Request::builder()
         .method("POST")
-        .uri(format!("/api/workspaces/{}/time/punch-in", ws_id))
-        .header("Authorization", format!("Bearer {}", token))
+        .uri(format!("/api/workspaces/{ws_id}/time/punch-in"))
+        .header("Authorization", format!("Bearer {token}"))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("Content-Type", "application/json")
         .body(Body::from(serde_json::to_string(&punch_payload).unwrap()))
@@ -126,8 +126,8 @@ async fn test_punch_in_grace_period_enforcement() {
 
     let req2 = Request::builder()
         .method("POST")
-        .uri(format!("/api/workspaces/{}/time/punch-in", ws_id))
-        .header("Authorization", format!("Bearer {}", token))
+        .uri(format!("/api/workspaces/{ws_id}/time/punch-in"))
+        .header("Authorization", format!("Bearer {token}"))
         .header("X-Workspace-Id", ws_id.to_string())
         .header("Content-Type", "application/json")
         .body(Body::from(serde_json::to_string(&punch_payload).unwrap()))

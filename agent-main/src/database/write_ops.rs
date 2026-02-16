@@ -41,7 +41,7 @@ impl Database {
             r#"
             INSERT INTO zkt_raw_attendance (device_id, user_id, timestamp, status, punch)
             VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(device_id, user_id, timestamp) DO NOTHING
+            ON CONFLICT(device_id, user_id, timestamp, punch, status) DO NOTHING
             "#,
         )
         .bind(device_id)
@@ -95,7 +95,7 @@ impl Database {
         let mut tx = self.pool.begin().await?;
         let placeholders: Vec<&str> = records.iter().map(|_| "(?, ?, ?, ?, ?)").collect();
         let query = format!(
-            "INSERT INTO zkt_raw_attendance (device_id, user_id, timestamp, status, punch) VALUES {} ON CONFLICT(device_id, user_id, timestamp) DO NOTHING",
+            "INSERT INTO zkt_raw_attendance (device_id, user_id, timestamp, status, punch) VALUES {} ON CONFLICT(device_id, user_id, timestamp, punch, status) DO NOTHING",
             placeholders.join(",")
         );
 

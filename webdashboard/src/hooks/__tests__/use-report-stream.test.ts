@@ -54,8 +54,8 @@ describe("useReportStream Hook", () => {
   describe("State Transitions with jobId Changes", () => {
     it("should reset state when jobId becomes null", async () => {
       const { result, rerender } = renderHook(
-        ({ jobId }) => useReportStream({ jobId }),
-        { initialProps: { jobId: "test-job" } }
+        ({ jobId }: { jobId: string | null }) => useReportStream({ jobId }),
+        { initialProps: { jobId: "test-job" as string | null } }
       );
 
       // When jobId is set, it will try to connect
@@ -74,8 +74,8 @@ describe("useReportStream Hook", () => {
     it("should reset chunks and progress on new jobId", async () => {
       // Manually set up the state transition without relying on actual WebSocket
       const { result, rerender } = renderHook(
-        ({ jobId }) => useReportStream({ jobId }),
-        { initialProps: { jobId: "job-1" } }
+        ({ jobId }: { jobId: string | null }) => useReportStream({ jobId }),
+        { initialProps: { jobId: "job-1" as string | null } }
       );
 
       const initialStatus = result.current.status;

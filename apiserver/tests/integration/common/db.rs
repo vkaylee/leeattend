@@ -47,14 +47,14 @@ impl TestDatabase {
         let create_result = connection.execute(sql.as_str()).await;
 
         if let Err(e) = create_result {
-            eprintln!("Warning: Failed to create database from template: {}. Falling back to manual migration.", e);
-            let sql_fallback = format!("CREATE DATABASE \"{}\"", db_name);
+            eprintln!("Warning: Failed to create database from template: {e}. Falling back to manual migration.");
+            let sql_fallback = format!("CREATE DATABASE \"{db_name}\"");
             connection
                 .execute(sql_fallback.as_str())
                 .await
                 .expect("Failed to create test database even with fallback");
 
-            let db_url = format!("{}/{}", base_connection_string, db_name);
+            let db_url = format!("{base_connection_string}/{db_name}");
             let pool = PgPool::connect(&db_url)
                 .await
                 .expect("Failed to connect to the new test database");
@@ -80,7 +80,7 @@ impl TestDatabase {
             dbs.insert((db_name.clone(), base_url.clone()));
         }
 
-        let db_url = format!("{}/{}", base_connection_string, db_name);
+        let db_url = format!("{base_connection_string}/{db_name}");
         let pool = PgPool::connect(&db_url)
             .await
             .expect("Failed to connect to the new test database");
@@ -111,7 +111,7 @@ impl TestDatabase {
 
                 for (db_name, admin_url) in dbs_to_cleanup {
                     if let Err(e) = Self::cleanup_database_async(&db_name, &admin_url).await {
-                        eprintln!("Signal cleanup failed for {}: {}", db_name, e);
+                        eprintln!("Signal cleanup failed for {db_name}: {e}");
                     }
                 }
                 std::process::exit(1);
@@ -129,13 +129,12 @@ impl TestDatabase {
 
         // Terminate all connections to the target database
         let kill_sql = format!(
-            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{}' AND pid <> pg_backend_pid()",
-            db_name
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{db_name}' AND pid <> pg_backend_pid()"
         );
         let _ = conn.execute(kill_sql.as_str()).await;
 
         // Drop the database
-        let drop_sql = format!("DROP DATABASE IF EXISTS \"{}\"", db_name);
+        let drop_sql = format!("DROP DATABASE IF EXISTS \"{db_name}\"");
         conn.execute(drop_sql.as_str()).await?;
 
         Ok(())
@@ -149,7 +148,7 @@ impl TestDatabase {
             let db_name_clone = db_name.clone();
             handle.spawn(async move {
                 if let Err(e) = Self::cleanup_database_async(&db_name_clone, &admin_url).await {
-                    eprintln!("Async cleanup failed for {}: {}", db_name_clone, e);
+                    eprintln!("Async cleanup failed for {db_name_clone}: {e}");
                 }
             });
         } else {
@@ -161,7 +160,7 @@ impl TestDatabase {
                 if let Ok(rt) = rt {
                     rt.block_on(async {
                         if let Err(e) = Self::cleanup_database_async(&db_name, &admin_url).await {
-                            eprintln!("Sync cleanup failed for {}: {}", db_name, e);
+                            eprintln!("Sync cleanup failed for {db_name}: {e}");
                         }
                     });
                 }

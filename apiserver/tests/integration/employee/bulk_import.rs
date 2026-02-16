@@ -16,18 +16,17 @@ fn create_multipart_body(filename: &str, content: &str) -> (String, Vec<u8>) {
     let boundary = "boundary123";
     let mut body = Vec::new();
 
-    body.extend_from_slice(format!("--{}\r\n", boundary).as_bytes());
+    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
     body.extend_from_slice(
         format!(
-            "Content-Disposition: form-data; name=\"file\"; filename=\"{}\"\r\n\r\n",
-            filename
+            "Content-Disposition: form-data; name=\"file\"; filename=\"{filename}\"\r\n\r\n"
         )
         .as_bytes(),
     );
     body.extend_from_slice(content.as_bytes());
-    body.extend_from_slice(format!("\r\n--{}--\r\n", boundary).as_bytes());
+    body.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
 
-    (format!("multipart/form-data; boundary={}", boundary), body)
+    (format!("multipart/form-data; boundary={boundary}"), body)
 }
 
 #[tokio::test]
@@ -46,7 +45,7 @@ async fn test_upload_employee_csv_api() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{}/employees/upload", ws_id))
+                .uri(format!("/api/workspaces/{ws_id}/employees/upload"))
                 .header("Content-Type", content_type)
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -115,7 +114,7 @@ async fn test_upload_employee_duplicate_id_skips() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{}/employees/upload", ws_id))
+                .uri(format!("/api/workspaces/{ws_id}/employees/upload"))
                 .header("Content-Type", content_type)
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())

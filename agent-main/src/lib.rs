@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity)]
+
 pub mod adaptive_polling;
 pub mod central_client;
 pub mod config;

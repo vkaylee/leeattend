@@ -23,7 +23,7 @@ async fn test_agent_crud_operations() {
     });
 
     let response = client
-        .post(format!("{}/api/authorized-agents", address))
+        .post(format!("{address}/api/authorized-agents"))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .json(&create_body)
@@ -35,7 +35,7 @@ async fn test_agent_crud_operations() {
 
     // 2. Lấy Agent theo ID
     let response = client
-        .get(format!("{}/api/authorized-agents/{}", address, agent_id))
+        .get(format!("{address}/api/authorized-agents/{agent_id}"))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .send()
@@ -52,7 +52,7 @@ async fn test_agent_crud_operations() {
     });
 
     let response = client
-        .patch(format!("{}/api/authorized-agents/{}", address, agent_id))
+        .patch(format!("{address}/api/authorized-agents/{agent_id}"))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .json(&update_body)
@@ -64,7 +64,7 @@ async fn test_agent_crud_operations() {
 
     // 4. Soft Delete
     let response = client
-        .delete(format!("{}/api/authorized-agents/{}", address, agent_id))
+        .delete(format!("{address}/api/authorized-agents/{agent_id}"))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .send()
@@ -82,7 +82,7 @@ async fn test_workspace_isolation() {
 
     // Create second workspace
     let ws_2_resp = client
-        .post(format!("{}/api/workspaces", address))
+        .post(format!("{address}/api/workspaces"))
         .header(user_header.0, user_header.1.clone())
         .json(&serde_json::json!({ "name": "Second Workspace" }))
         .send()
@@ -93,7 +93,7 @@ async fn test_workspace_isolation() {
 
     // 1. Create agent in WS 1
     client
-        .post(format!("{}/api/authorized-agents", address))
+        .post(format!("{address}/api/authorized-agents"))
         .header("X-Workspace-Id", workspace_id_1.to_string())
         .header(user_header.0, user_header.1.clone())
         .json(&serde_json::json!({ "id": "A1", "name": "Agent 1", "token": "T1" }))
@@ -103,7 +103,7 @@ async fn test_workspace_isolation() {
 
     // 2. Create agent in WS 2
     client
-        .post(format!("{}/api/authorized-agents", address))
+        .post(format!("{address}/api/authorized-agents"))
         .header("X-Workspace-Id", workspace_id_2.to_string())
         .header(user_header.0, user_header.1.clone())
         .json(&serde_json::json!({ "id": "A2", "name": "Agent 2", "token": "T2" }))
@@ -113,7 +113,7 @@ async fn test_workspace_isolation() {
 
     // 3. List agents from WS 1
     let resp_1 = client
-        .get(format!("{}/api/authorized-agents", address))
+        .get(format!("{address}/api/authorized-agents"))
         .header("X-Workspace-Id", workspace_id_1.to_string())
         .header(user_header.0, user_header.1.clone())
         .send()
@@ -125,7 +125,7 @@ async fn test_workspace_isolation() {
 
     // 4. List agents from WS 2
     let resp_2 = client
-        .get(format!("{}/api/authorized-agents", address))
+        .get(format!("{address}/api/authorized-agents"))
         .header("X-Workspace-Id", workspace_id_2.to_string())
         .header(user_header.0, user_header.1.clone())
         .send()
@@ -154,8 +154,7 @@ async fn test_rbac_member_cannot_invite() {
     // 3. Try to invite someone as this member
     let response = client
         .post(format!(
-            "{}/api/workspaces/{}/members",
-            address, workspace_id
+            "{address}/api/workspaces/{workspace_id}/members"
         ))
         .header("X-User-Id", member_user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())

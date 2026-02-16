@@ -22,7 +22,7 @@ async fn test_ws_report_missing_token_returns_401() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(format!("/api/ws/reports/{}", fake_job_id))
+                .uri(format!("/api/ws/reports/{fake_job_id}"))
                 .header("Connection", "Upgrade")
                 .header("Upgrade", "websocket")
                 .header("Sec-WebSocket-Version", "13")
@@ -48,8 +48,7 @@ async fn test_ws_report_invalid_token_returns_401() {
             Request::builder()
                 .method("GET")
                 .uri(format!(
-                    "/api/ws/reports/{}?token=invalid_token_abc123",
-                    fake_job_id
+                    "/api/ws/reports/{fake_job_id}?token=invalid_token_abc123"
                 ))
                 .header("Connection", "Upgrade")
                 .header("Upgrade", "websocket")
@@ -84,8 +83,7 @@ async fn test_ws_report_valid_token_passes_auth() {
             Request::builder()
                 .method("GET")
                 .uri(format!(
-                    "/api/ws/reports/{}?token={}",
-                    fake_job_id, valid_token
+                    "/api/ws/reports/{fake_job_id}?token={valid_token}"
                 ))
                 .header("Connection", "Upgrade")
                 .header("Upgrade", "websocket")

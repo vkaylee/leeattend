@@ -35,7 +35,7 @@ async fn test_create_export_job_requires_admin_role() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{}/reports/export", ws_id))
+                .uri(format!("/api/workspaces/{ws_id}/reports/export"))
                 .header("Content-Type", "application/json")
                 .header("X-User-Id", member_id.to_string())
                 .header("X-Workspace-Id", ws_id.to_string())
@@ -68,7 +68,7 @@ async fn test_create_export_job_without_redis_returns_503() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{}/reports/export", ws_id))
+                .uri(format!("/api/workspaces/{ws_id}/reports/export"))
                 .header("Content-Type", "application/json")
                 .header("X-User-Id", admin_id.to_string())
                 .header("X-Workspace-Id", ws_id.to_string())
@@ -95,7 +95,7 @@ async fn test_get_job_status_without_redis_returns_503() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{}/reports/jobs/{}", ws_id, fake_job_id))
+                .uri(format!("/api/workspaces/{ws_id}/reports/jobs/{fake_job_id}"))
                 .header("X-User-Id", admin_id.to_string())
                 .header("X-Workspace-Id", ws_id.to_string())
                 .body(Body::empty())
@@ -121,7 +121,7 @@ async fn test_cancel_job_without_redis_returns_503() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/workspaces/{}/reports/jobs/{}", ws_id, fake_job_id))
+                .uri(format!("/api/workspaces/{ws_id}/reports/jobs/{fake_job_id}"))
                 .header("X-User-Id", admin_id.to_string())
                 .header("X-Workspace-Id", ws_id.to_string())
                 .body(Body::empty())
@@ -148,8 +148,7 @@ async fn test_download_report_without_redis_returns_503() {
             Request::builder()
                 .method("GET")
                 .uri(format!(
-                    "/api/workspaces/{}/reports/jobs/{}/download",
-                    ws_id, fake_job_id
+                    "/api/workspaces/{ws_id}/reports/jobs/{fake_job_id}/download"
                 ))
                 .header("X-User-Id", admin_id.to_string())
                 .header("X-Workspace-Id", ws_id.to_string())

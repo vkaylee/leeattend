@@ -16,18 +16,17 @@ fn create_multipart_body(filename: &str, content: &str) -> (String, Vec<u8>) {
     let boundary = "boundary123";
     let mut body = Vec::new();
 
-    body.extend_from_slice(format!("--{}\r\n", boundary).as_bytes());
+    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
     body.extend_from_slice(
         format!(
-            "Content-Disposition: form-data; name=\"file\"; filename=\"{}\"\r\n\r\n",
-            filename
+            "Content-Disposition: form-data; name=\"file\"; filename=\"{filename}\"\r\n\r\n"
         )
         .as_bytes(),
     );
     body.extend_from_slice(content.as_bytes());
-    body.extend_from_slice(format!("\r\n--{}--\r\n", boundary).as_bytes());
+    body.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
 
-    (format!("multipart/form-data; boundary={}", boundary), body)
+    (format!("multipart/form-data; boundary={boundary}"), body)
 }
 
 #[tokio::test]
@@ -47,8 +46,7 @@ async fn test_upload_attendance_csv_api() {
     let now = chrono::Utc::now();
     let csv_date = now.format("%d/%m/%Y %H:%M").to_string();
     let csv_content = format!(
-        "empNo,empName,empDt\n{},Test User,{}",
-        emp_id_number, csv_date
+        "empNo,empName,empDt\n{emp_id_number},Test User,{csv_date}"
     );
     let (content_type, body) = create_multipart_body("test.csv", &csv_content);
 
@@ -57,7 +55,7 @@ async fn test_upload_attendance_csv_api() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{}/attendance/upload", ws_id))
+                .uri(format!("/api/workspaces/{ws_id}/attendance/upload"))
                 .header("Content-Type", content_type)
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())

@@ -175,7 +175,7 @@ mod tests {
             Some("24h"),
         );
         assert!(dt.is_ok());
-        let dt = dt.unwrap();
+        let dt = dt.expect("parsing failed");
         // 14:00 VN = 07:00 UTC
         assert_eq!(dt.hour(), 7);
     }
@@ -190,6 +190,6 @@ mod tests {
             None,
         );
         assert!(dt.is_ok());
-        assert_eq!(dt.unwrap().hour(), 8);
+        assert_eq!(dt.expect("parsing failed").hour(), 8);
     }
 }

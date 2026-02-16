@@ -288,7 +288,7 @@ impl InMemoryStore {
         let unsynced = self.unsynced_index.read();
         let count = unsynced.len();
         if count > 0 {
-            log::debug!("get_unsynced: found {} IDs in unsynced_index", count);
+            log::debug!("get_unsynced: found {count} IDs in unsynced_index");
         }
         let mut result = Vec::with_capacity(limit);
         let now = chrono::Utc::now().naive_utc();
@@ -308,7 +308,7 @@ impl InMemoryStore {
                 }
                 result.push(log.clone());
             } else {
-                log::warn!("⚠️ get_unsynced: log ID {} found in unsynced_index but NOT in logs map", id);
+                log::warn!("⚠️ get_unsynced: log ID {id} found in unsynced_index but NOT in logs map");
             }
         }
 
@@ -1629,7 +1629,7 @@ mod tests {
 
         // Construct expected composite key
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let expected_key = format!("DEV1:U001:{}:0:1", timestamp_unix);
+        let expected_key = format!("DEV1:U001:{timestamp_unix}:0:1");
 
         // Lookup should return the inserted ID
         assert_eq!(store.get_id_by_composite_key(&expected_key), Some(id));
@@ -1659,7 +1659,7 @@ mod tests {
 
         // Construct composite key
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let key = format!("DEV1:U001:{}:0:1", timestamp_unix);
+        let key = format!("DEV1:U001:{timestamp_unix}:0:1");
 
         // Mark synced by key should return true
         assert!(store.mark_synced_by_key(&key));
@@ -1688,7 +1688,7 @@ mod tests {
 
         // Construct composite key
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let key = format!("DEV1:U001:{}:0:1", timestamp_unix);
+        let key = format!("DEV1:U001:{timestamp_unix}:0:1");
 
         // Reset to unsynced by key
         assert!(store.reset_to_unsynced_by_key(&key));
@@ -1750,7 +1750,7 @@ mod tests {
 
         // Construct composite key string
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let key = format!("DEV1:U001:{}:0:1", timestamp_unix);
+        let key = format!("DEV1:U001:{timestamp_unix}:0:1");
 
         // Lookup by string should parse and compute hash internally
         assert_eq!(store.get_id_by_composite_key(&key), Some(id));
@@ -1774,7 +1774,7 @@ mod tests {
 
         // Construct composite key (will have multiple colons)
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let key = format!("{}:U001:{}:0:1", device_id, timestamp_unix);
+        let key = format!("{device_id}:U001:{timestamp_unix}:0:1");
         // key = "Office:Main:Gate:U001:1738314000:0:1"
 
         // Lookup should work correctly with rsplit parsing
@@ -1807,7 +1807,7 @@ mod tests {
             let id = store.insert(device.clone(), data, timestamp_unix).unwrap();
             inserted_ids.push(id);
 
-            let key = format!("{}:{}:{}:0:1", device, user, timestamp_unix);
+            let key = format!("{device}:{user}:{timestamp_unix}:0:1");
             composite_keys.push(key);
         }
 
@@ -1903,7 +1903,7 @@ mod tests {
 
         // Construct key
         let timestamp_unix = ts("2026-01-29 10:00:00");
-        let key = format!("DEV1:U001:{}:0:1", timestamp_unix);
+        let key = format!("DEV1:U001:{timestamp_unix}:0:1");
 
         // Before sync, lookup works
         assert_eq!(store.get_id_by_composite_key(&key), Some(id));
@@ -2714,8 +2714,8 @@ mod tests {
         assert_eq!(inserted, 2, "Both logs should be inserted");
 
         // 2. Verify both are in composite_index with unique keys
-        let key1 = format!("DEV1:U001:{}:0:1", timestamp_unix);
-        let key2 = format!("DEV1:U001:{}:1:1", timestamp_unix);
+        let key1 = format!("DEV1:U001:{timestamp_unix}:0:1");
+        let key2 = format!("DEV1:U001:{timestamp_unix}:1:1");
 
         let id1 = store.get_id_by_composite_key(&key1);
         let id2 = store.get_id_by_composite_key(&key2);
@@ -2740,7 +2740,7 @@ mod tests {
         
         // Test with UUID device_id
         let uuid = "786b2a80-c6a0-4681-a27d-dc1fc876bcf8";
-        let key = format!("{}:USER1:1738314000:0:1", uuid);
+        let key = format!("{uuid}:USER1:1738314000:0:1");
         
         let timestamp_unix = 1738314000;
         let data = AttendanceData {
@@ -2755,7 +2755,7 @@ mod tests {
 
         // Test with device_id containing colons (non-UUID)
         let device_id = "MAC:AA:BB:CC:DD:EE:FF";
-        let key2 = format!("{}:USER2:1738314000:-1:-1", device_id);
+        let key2 = format!("{device_id}:USER2:1738314000:-1:-1");
         let data2 = AttendanceData {
             user_id: "USER2".to_string(),
             timestamp: "ignored".to_string(),

@@ -37,7 +37,7 @@ async fn test_agent_scaling_config() {
         .method("POST")
         .uri("/api/authorized-agents")
         .header("Content-Type", "application/json")
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Authorization", format!("Bearer {token}"))
         .header("X-Workspace-Id", workspace_id.to_string())
         .body(Body::from(create_req.to_string()))
         .unwrap();
@@ -62,9 +62,9 @@ async fn test_agent_scaling_config() {
 
     let req = Request::builder()
         .method("PATCH")
-        .uri(format!("/api/authorized-agents/{}", agent_id))
+        .uri(format!("/api/authorized-agents/{agent_id}"))
         .header("Content-Type", "application/json")
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Authorization", format!("Bearer {token}"))
         .header("X-Workspace-Id", workspace_id.to_string())
         .body(Body::from(update_req.to_string()))
         .unwrap();
@@ -89,9 +89,9 @@ async fn test_agent_scaling_config() {
 
     let req = Request::builder()
         .method("PATCH")
-        .uri(format!("/api/authorized-agents/{}", agent_id))
+        .uri(format!("/api/authorized-agents/{agent_id}"))
         .header("Content-Type", "application/json")
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Authorization", format!("Bearer {token}"))
         .header("X-Workspace-Id", workspace_id.to_string())
         .body(Body::from(update_req.to_string()))
         .unwrap();

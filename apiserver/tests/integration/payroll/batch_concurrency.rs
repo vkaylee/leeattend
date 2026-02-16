@@ -34,8 +34,8 @@ async fn test_batch_payroll_handles_many_employees() {
         let emp_id = factory
             .employee()
             .with_workspace(ws_id)
-            .with_full_name(&format!("Employee {}", i))
-            .with_employee_id_number(&format!("E{:03}", i))
+            .with_full_name(&format!("Employee {i}"))
+            .with_employee_id_number(&format!("E{i:03}"))
             .create()
             .await;
 
@@ -63,10 +63,9 @@ async fn test_batch_payroll_handles_many_employees() {
 
     let res = client
         .post(format!(
-            "{}/api/workspaces/{}/payroll/calculate-batch",
-            address, ws_id
+            "{address}/api/workspaces/{ws_id}/payroll/calculate-batch"
         ))
-        .header("Authorization", format!("Bearer {}", auth_token))
+        .header("Authorization", format!("Bearer {auth_token}"))
         .json(&req_body)
         .send()
         .await

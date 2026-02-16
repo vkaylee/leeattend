@@ -19,7 +19,7 @@ async fn test_workspace_creation_and_membership() {
 
     // 1. Create new workspace
     let response = client
-        .post(format!("{}/api/workspaces", address))
+        .post(format!("{address}/api/workspaces"))
         .header("X-User-Id", user_id.to_string())
         .json(&serde_json::json!({ "name": "New Ventures" }))
         .send()
@@ -32,7 +32,7 @@ async fn test_workspace_creation_and_membership() {
 
     // 2. Check member list
     let response = client
-        .get(format!("{}/api/workspaces/{}/members", address, ws_id))
+        .get(format!("{address}/api/workspaces/{ws_id}/members"))
         .header("X-User-Id", user_id.to_string())
         .send()
         .await
@@ -52,7 +52,7 @@ async fn test_create_workspace_with_non_existent_user() {
     let fake_user_id = Uuid::new_v4();
 
     let response = client
-        .post(format!("{}/api/workspaces", address))
+        .post(format!("{address}/api/workspaces"))
         .header("X-User-Id", fake_user_id.to_string())
         .json(&serde_json::json!({ "name": "Ghost Workspace" }))
         .send()
@@ -79,7 +79,7 @@ async fn test_workspace_rbac_flow() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PATCH")
-                .uri(format!("/api/workspaces/{}/members/{}", ws_id, member_id))
+                .uri(format!("/api/workspaces/{ws_id}/members/{member_id}"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", member_id.to_string())
@@ -98,7 +98,7 @@ async fn test_workspace_rbac_flow() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PATCH")
-                .uri(format!("/api/workspaces/{}/members/{}", ws_id, member_id))
+                .uri(format!("/api/workspaces/{ws_id}/members/{member_id}"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", owner_id.to_string())

@@ -193,11 +193,11 @@ mod tests {
     fn dt(h: u32, m: u32) -> DateTime<Utc> {
         Utc.from_local_datetime(
             &NaiveDate::from_ymd_opt(2026, 1, 1)
-                .unwrap()
-                .and_time(NaiveTime::from_hms_opt(h, m, 0).unwrap()),
+                .expect("valid date")
+                .and_time(NaiveTime::from_hms_opt(h, m, 0).expect("valid time")),
         )
         .single()
-        .unwrap()
+        .expect("non-ambiguous time")
     }
 
     fn mock_rules() -> PolicyRules {

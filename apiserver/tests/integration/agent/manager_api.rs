@@ -46,7 +46,7 @@ async fn test_agent_commands_api() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/agent/{}/command", agent_id))
+                .uri(format!("/api/agent/{agent_id}/command"))
                 .header("Content-Type", "application/json")
                 .body(axum::body::Body::from(command_req.to_string()))
                 .unwrap(),
@@ -65,7 +65,7 @@ async fn test_agent_commands_api() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/agent/{}/command", agent_id))
+                .uri(format!("/api/agent/{agent_id}/command"))
                 .header("Content-Type", "application/json")
                 .body(axum::body::Body::from(command_req.to_string()))
                 .unwrap(),

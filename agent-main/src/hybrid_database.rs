@@ -631,10 +631,10 @@ mod tests {
 
         // Construct composite key using Unix timestamp directly
         let ts_unix = NaiveDateTime::parse_from_str("2026-01-31 10:00:00", "%Y-%m-%d %H:%M:%S")
-            .unwrap()
+            .expect("parse failed")
             .and_utc()
             .timestamp();
-        let key = format!("DEV1:U001:{ts_unix}");
+        let key = format!("DEV1:U001:{ts_unix}:0:1");
 
         // Simulate failed ACK - reset to unsynced
         assert!(hybrid.reset_to_unsynced_by_key(&key));

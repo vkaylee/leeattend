@@ -61,7 +61,13 @@ source "$PROJECT_ROOT/scripts/test-integration.sh"
 
 wait_for_web_test() {
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        echo -e "${BLUE}⏳ Waiting for web dependencies (npm ci) to complete...${NC}"
+        # Check if node_modules exists, if not run npm install
+        if ! $DOCKER_COMPOSE_CMD exec -T web_test ls /workspace/webdashboard/node_modules/.bin/eslint > /dev/null 2>&1; then
+            echo -e "${BLUE}📦 Installing web dependencies (npm install)...${NC}"
+            $DOCKER_COMPOSE_CMD exec -T web_test npm install --no-audit --no-fund
+        fi
+
+        echo -e "${BLUE}⏳ Waiting for web dependencies to be ready...${NC}"
         local timeout=300
         local start_time=$SECONDS
         while ! $DOCKER_COMPOSE_CMD exec -T web_test ls /workspace/webdashboard/node_modules/.bin/eslint > /dev/null 2>&1; do

@@ -110,8 +110,7 @@ async fn test_get_employee_payslips_api() {
             axum::http::Request::builder()
                 .method("GET")
                 .uri(format!(
-                    "/api/workspaces/{}/employees/{}/payslips",
-                    ws_id, emp_id
+                    "/api/workspaces/{ws_id}/employees/{emp_id}/payslips"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -129,8 +128,7 @@ async fn test_get_employee_payslips_api() {
             axum::http::Request::builder()
                 .method("POST")
                 .uri(format!(
-                    "/api/workspaces/{}/employees/{}/calculate-payroll?year=2026&month=1",
-                    ws_id, emp_id
+                    "/api/workspaces/{ws_id}/employees/{emp_id}/calculate-payroll?year=2026&month=1"
                 ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())

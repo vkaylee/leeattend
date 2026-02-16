@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use futures_util::{ SinkExt, StreamExt };
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 use tokio::time::{sleep, timeout};
@@ -164,7 +164,7 @@ impl CentralClient {
                 // Log backoff status for monitoring
                 let backoff_count = sync_hybrid.memory_store().count_in_backoff();
                 if backoff_count > 0 {
-                    log::debug!("⏳ {} logs in backoff, {} eligible for sync", backoff_count, unsynced_count - backoff_count);
+                    debug!("⏳ {} logs in backoff, {} eligible for sync", backoff_count, unsynced_count - backoff_count);
                 }
 
                 let sleep_duration = if count == 0 {

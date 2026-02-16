@@ -27,7 +27,7 @@ async fn test_update_authorized_agent_fields() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PATCH")
-                .uri(format!("/api/authorized-agents/{}", agent_id))
+                .uri(format!("/api/authorized-agents/{agent_id}"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -55,7 +55,7 @@ async fn test_update_authorized_agent_fields() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PATCH")
-                .uri(format!("/api/authorized-agents/{}", agent_id))
+                .uri(format!("/api/authorized-agents/{agent_id}"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
@@ -162,7 +162,7 @@ async fn test_delete_authorized_agent() {
         .oneshot(
             axum::http::Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/authorized-agents/{}", agent_id))
+                .uri(format!("/api/authorized-agents/{agent_id}"))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -217,7 +217,7 @@ async fn test_update_authorized_agent_no_fields() {
         .oneshot(
             axum::http::Request::builder()
                 .method("PATCH")
-                .uri(format!("/api/authorized-agents/{}", agent_id))
+                .uri(format!("/api/authorized-agents/{agent_id}"))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())

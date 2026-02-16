@@ -136,6 +136,9 @@ pub async fn resolve_staging_log(
     }
 
     // 2. Create RawAttendanceLog
+    let punch = staged.raw_data.as_ref().and_then(|d| d["punch"].as_i64()).map(|v| v as i32).unwrap_or(-1);
+    let status = staged.raw_data.as_ref().and_then(|d| d["status"].as_i64()).map(|v| v as i32).unwrap_or(-1);
+
     let raw_log = RawAttendanceLog {
         id: Uuid::new_v4(),
         workspace_id: ctx.workspace_id,
@@ -144,6 +147,8 @@ pub async fn resolve_staging_log(
         source: LogSource::Device,
         device_id: staged.device_id,
         raw_data: staged.raw_data,
+        punch,
+        status,
         created_at: Utc::now(),
     };
 
