@@ -62,7 +62,7 @@ pub async fn create_leave_type(
 
     let config = req.policy_config.unwrap_or_default();
 
-    let lt = sqlx::query_as!(
+    let lt: LeaveType = sqlx::query_as!(
         LeaveType,
         r#"
         INSERT INTO leave_types (workspace_id, code, name, is_paid, policy_config)

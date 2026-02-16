@@ -21,13 +21,13 @@ leeattend_run_unit() {
     
     local AGENT_ZK_PATTERN=""
     if [ -n "$TEST_PATTERN" ]; then AGENT_ZK_PATTERN="-k \"$TEST_PATTERN\""; fi
-    local AGENT_ZK_CMD="cd /workspace/agent-zk-worker && pip3 install --break-system-packages -q -r requirements.txt && python3 -m pytest $AGENT_ZK_PATTERN"
+    local AGENT_ZK_CMD="cd /workspace/agent-zk-worker && pip3 install --break-system-packages -q -r requirements.txt && (python3 -m pytest $AGENT_ZK_PATTERN || [ \$? -eq 5 ])"
     local WEB_CMD="npm run test -- $TEST_PATTERN --passWithNoTests"
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        APISERVER_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"SQLX_OFFLINE=false cargo nextest run --lib $TEST_PATTERN --no-tests=pass\""
-        AGENT_MAIN_CMD="$DOCKER_COMPOSE_CMD exec -T -e CENTRAL_SERVER_URL=ws://unit-test-invalid:3000 agent_test bash -c \"SQLX_OFFLINE=false cargo nextest run --lib $TEST_PATTERN --no-tests=pass\""
-        AGENT_ZK_CMD="$DOCKER_COMPOSE_CMD exec -T agent_test bash -c \"cd /workspace/agent-zk-worker && pip3 install --break-system-packages -q -r requirements.txt && python3 -m pytest $AGENT_ZK_PATTERN\""
+        APISERVER_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"SQLX_OFFLINE=false cargo nextest run --lib $TEST_PATTERN --no-tests=pass || [ \$? -eq 4 ]\""
+        AGENT_MAIN_CMD="$DOCKER_COMPOSE_CMD exec -T -e CENTRAL_SERVER_URL=ws://unit-test-invalid:3000 agent_test bash -c \"SQLX_OFFLINE=false cargo nextest run --lib $TEST_PATTERN --no-tests=pass || [ \$? -eq 4 ]\""
+        AGENT_ZK_CMD="$DOCKER_COMPOSE_CMD exec -T agent_test bash -c \"cd /workspace/agent-zk-worker && pip3 install --break-system-packages -q -r requirements.txt && (python3 -m pytest $AGENT_ZK_PATTERN || [ \$? -eq 5 ])\""
         WEB_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run test -- $TEST_PATTERN --passWithNoTests"
     fi
 

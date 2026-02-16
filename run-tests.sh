@@ -25,6 +25,7 @@ show_help() {
     echo -e "  ${GREEN}--all${NC}          Run all tests (Lint, Unit, Integration, E2E)"
     echo -e "  ${GREEN}--api${NC}          Run tests for API components (Rust, Python)"
     echo -e "  ${GREEN}--web${NC}          Run tests for Web component (Vite, Playwright)"
+    echo -e "  ${GREEN}--integration${NC}  Run ONLY Integration & E2E tests"
     echo -e "  ${GREEN}--clean${NC}        Clean up containers and volumes (run this standalone)"
     echo -e "  ${GREEN}--help${NC}         Show this help message"
     echo -e "  ${GREEN}--timeout=N${NC}    Set global timeout in seconds (default: 1800 = 30min)"
@@ -204,6 +205,10 @@ case "$1" in
         MODE="web"
         FILTER="webdashboard"
         ;;
+    --integration)
+        MODE="integration"
+        FILTER="apiserver|agent" # Only relevant components for integration
+        ;;
     --clean)
         echo -e "${BLUE}${BOLD}🧹 Cleaning up test containers and volumes...${NC}"
         $DOCKER_COMPOSE_CMD down --volumes --remove-orphans
@@ -280,8 +285,10 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # Run all test phases
-run_lint "$FILTER"
-run_unit "$FILTER:$PATTERN"
+if [[ "$MODE" != "integration" ]]; then
+    run_lint "$FILTER"
+    run_unit "$FILTER:$PATTERN"
+fi
 run_integration "$FILTER:$PATTERN"
 
 # Kill watchdog since we succeeded

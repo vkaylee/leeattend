@@ -2,6 +2,7 @@ mod adjustment_api;
 mod api_log;
 mod api_upload;
 mod import;
+mod import_claim_logs;
 mod ot;
 mod pairing;
 mod reprocess;

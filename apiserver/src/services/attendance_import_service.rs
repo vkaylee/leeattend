@@ -438,11 +438,27 @@ impl AttendanceImportService {
         
         for emp in pending_employees {
             match Self::process_employee_import_row(&pool, job, &emp).await {
-                Ok(inserted) => {
-                    if inserted {
+                Ok(maybe_id) => {
+                    let employee_id = if let Some(id) = maybe_id {
                         processed_rows += 1;
+                        id
                     } else {
                         skipped_rows += 1;
+                        // If already exists, we still want to try claiming logs for this ID
+                        match employee_repository::get_employee_by_id_number(&pool, &emp.id_number, job.workspace_id).await {
+                            Ok(Some(e)) => e.id,
+                            _ => continue,
+                        }
+                    };
+                    
+                    // Auto-claim any staged logs for this employee
+                    if let Err(e) = crate::services::attendance_log_service::AttendanceLogService::claim_staged_logs(
+                        &pool,
+                        job.workspace_id,
+                        employee_id,
+                        &emp.id_number,
+                    ).await {
+                        error!("Failed to auto-claim logs for employee {}: {}", emp.id_number, e);
                     }
                     
                     if (processed_rows + skipped_rows) % 10 == 0 {
@@ -516,11 +532,12 @@ impl AttendanceImportService {
         pool: &PgPool,
         job: &AttendanceImportJob,
         emp: &PendingEmployee,
-    ) -> Result<bool, String> {
+    ) -> Result<Option<Uuid>, String> {
         let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
 
+        let employee_id = Uuid::new_v4();
         let employee = Employee {
-            id: Uuid::new_v4(),
+            id: employee_id,
             workspace_id: job.workspace_id,
             user_id: None,
             full_name: emp.full_name.clone(),
@@ -539,7 +556,11 @@ impl AttendanceImportService {
 
         tx.commit().await.map_err(|e| e.to_string())?;
 
-        Ok(inserted)
+        if inserted {
+            Ok(Some(employee_id))
+        } else {
+            Ok(None)
+        }
     }
 
     fn parse_excel_range(
