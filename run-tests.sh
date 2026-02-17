@@ -15,6 +15,11 @@ BLUE='\033[0;34m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
+# Support NO_COLOR standard
+if [[ -n "${NO_COLOR:-}" ]]; then
+    GREEN='' RED='' YELLOW='' BLUE='' BOLD='' NC=''
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 show_help() {
@@ -28,6 +33,7 @@ show_help() {
     echo -e "  ${GREEN}--integration${NC}  Run ONLY Integration & E2E tests"
     echo -e "  ${GREEN}--test=NAME${NC}    Run specific test(s) by name/pattern"
     echo -e "  ${GREEN}--clean${NC}        Clean up containers and volumes (run this standalone)"
+    echo -e "  ${GREEN}--no-color${NC}     Disable color output"
     echo -e "  ${GREEN}--help${NC}         Show this help message"
     echo -e "  ${GREEN}--timeout=N${NC}    Set global timeout in seconds (default: 1800 = 30min)"
     echo ""
@@ -196,6 +202,9 @@ for arg in "$@"; do
         GLOBAL_TIMEOUT="${arg#*=}"
     elif [[ "$arg" == --test=* ]]; then
         PATTERN="${arg#*=}"
+    elif [[ "$arg" == "--no-color" ]]; then
+        export NO_COLOR=1
+        GREEN='' RED='' YELLOW='' BLUE='' BOLD='' NC=''
     elif [[ "$arg" == --* ]]; then
         # Handle modes
         case "$arg" in

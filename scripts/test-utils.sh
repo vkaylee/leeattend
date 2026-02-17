@@ -15,6 +15,10 @@ export BLUE="\033[0;34m"
 export BOLD="\033[1m"
 export NC="\033[0m" # No Color
 
+if [[ -n "${NO_COLOR:-}" ]]; then
+    export GREEN='' RED='' YELLOW='' BLUE='' BOLD='' NC=''
+fi
+
 export PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export LOG_DIR="$PROJECT_ROOT/.test_logs"
 
