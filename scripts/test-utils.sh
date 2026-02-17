@@ -168,9 +168,21 @@ on_task_failure() {
     # Show concise summary of failures in this specific file
     leeattend_summarize_failures "$(dirname "$log_file")" | grep -A 10 "$name"
     
-    echo -e "${YELLOW}--- Quick Debug View for $name ---${NC}"
-    leeattend_debug_file "$log_file"
-    echo -e "${YELLOW}----------------------------${NC}"
+    echo -e "${YELLOW}--- FULL LOG CONTENT FOR $name ---${NC}"
+    if [ -f "$log_file" ]; then
+        # If log is huge, show last 200 lines, otherwise show all
+        local line_count=$(wc -l < "$log_file")
+        if [ "$line_count" -gt 200 ]; then
+            echo -e "${BLUE}(Log is large, showing last 200 lines)${NC}"
+            tail -n 200 "$log_file"
+        else
+            cat "$log_file"
+        fi
+    else
+        echo -e "${RED}Log file not found: $log_file${NC}"
+    fi
+    echo -e "${YELLOW}----------------------------------${NC}"
+    
     echo -e "${BLUE}💡 Tip: Full log at $log_file${NC}"
     echo -e "${BLUE}💡 Tip: Run 'cat .test_logs/latest-failure.log' to see full error.${NC}"
 }
@@ -186,10 +198,14 @@ on_task_timeout() {
     # Create symlink for easier access
     ln -sf "$log_file" "$LOG_DIR/latest-failure.log"
 
-    # Use debug utilities
-    echo -e "${YELLOW}--- Debug Info for $name (Last seen) ---${NC}"
-    leeattend_debug_file "$log_file"
-    echo -e "${YELLOW}---------------------------------------${NC}"
+    echo -e "${YELLOW}--- LOG CONTENT (LAST SEEN) FOR $name ---${NC}"
+    if [ -f "$log_file" ]; then
+        tail -n 100 "$log_file"
+    else
+        echo -e "${RED}Log file not found: $log_file${NC}"
+    fi
+    echo -e "${YELLOW}-----------------------------------------${NC}"
+    
     echo -e "${BLUE}💡 Tip: Full log at $log_file${NC}"
     echo -e "${BLUE}💡 Tip: Run 'cat .test_logs/latest-failure.log' to see where it hung.${NC}"
 }
@@ -262,8 +278,10 @@ run_parallel_ordered() {
 
             if [ "$RUN_SERIAL" = "true" ]; then
                 # SERIAL EXECUTION
+                set +e
                 (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd") > "$log_file" 2>&1
                 local status=$?
+                set -e
                 local duration=$(( SECONDS - start_time ))
 
                 if [ $status -eq 137 ] || [ $status -eq 124 ]; then
@@ -309,8 +327,10 @@ run_parallel_ordered() {
                 local start="${running_starts[$i]}"
 
                 if ! kill -0 "$pid" 2>/dev/null; then
+                    set +e
                     wait "$pid"
                     local status=$?
+                    set -e
                     local duration=$(( SECONDS - start ))
 
                     if [ $status -eq 137 ] || [ $status -eq 124 ]; then
@@ -324,6 +344,7 @@ run_parallel_ordered() {
                     if [ $status -ne 0 ]; then
                         on_task_failure "$name" "$log" "$status"
                         add_task_result "$name" "FAILED" "$duration"
+                        sleep 2
                         exit $status
                     fi
 

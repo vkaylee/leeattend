@@ -184,50 +184,43 @@ fi
 
 FILTER=""
 MODE=""
-PATTERN="${2:-}"
+PATTERN=""
 
-# Parse flags
+# Parse flags and find mode/pattern
 for arg in "$@"; do
     if [[ "$arg" == --timeout=* ]]; then
         GLOBAL_TIMEOUT="${arg#*=}"
     elif [[ "$arg" == --test=* ]]; then
         PATTERN="${arg#*=}"
+    elif [[ "$arg" == --* ]]; then
+        # Handle modes
+        case "$arg" in
+            --all) MODE="all"; FILTER="";;
+            --api) MODE="api"; FILTER="apiserver|agent";;
+            --web) MODE="web"; FILTER="webdashboard";;
+            --integration) MODE="integration"; FILTER="apiserver|agent";;
+            --clean)
+                echo -e "${BLUE}${BOLD}🧹 Cleaning up test containers and volumes...${NC}"
+                $DOCKER_COMPOSE_CMD down --volumes --remove-orphans
+                echo -e "${GREEN}✅ Cleanup complete!${NC}"
+                exit 0
+                ;;
+            --help) show_help; exit 0;;
+        esac
+    else
+        # If it's not a flag and we haven't set a pattern via --test, 
+        # then it's the legacy positional pattern
+        if [ -z "$PATTERN" ]; then
+            PATTERN="$arg"
+        fi
     fi
 done
 
-case "$1" in
-    --all)
-        MODE="all"
-        FILTER=""
-        ;;
-    --api)
-        MODE="api"
-        FILTER="apiserver|agent"
-        ;;
-    --web)
-        MODE="web"
-        FILTER="webdashboard"
-        ;;
-    --integration)
-        MODE="integration"
-        FILTER="apiserver|agent" # Only relevant components for integration
-        ;;
-    --clean)
-        echo -e "${BLUE}${BOLD}🧹 Cleaning up test containers and volumes...${NC}"
-        $DOCKER_COMPOSE_CMD down --volumes --remove-orphans
-        echo -e "${GREEN}✅ Cleanup complete!${NC}"
-        exit 0
-        ;;
-    --help)
-        show_help
-        exit 0
-        ;;
-    *)
-        echo -e "${RED}Unknown option: $1${NC}"
-        show_help
-        exit 1
-        ;;
-esac
+if [ -z "$MODE" ]; then
+    echo -e "${RED}Error: No mode specified (e.g., --all, --api, --web)${NC}"
+    show_help
+    exit 1
+fi
 
 echo -e "${BLUE}${BOLD}🚀 Starting LeeAttend Test Suite in [$MODE] mode${NC}"
 echo -e "${BLUE}⏱️ Global timeout: ${GLOBAL_TIMEOUT}s ($(( GLOBAL_TIMEOUT / 60 )) min)${NC}"
