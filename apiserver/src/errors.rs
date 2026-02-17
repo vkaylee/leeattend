@@ -108,12 +108,18 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = self.status_code();
         let code = self.error_code();
-        let message = self.to_string();
-
-        // Log internal errors for debugging
-        if status.is_server_error() {
-            error!(error = ?self, "Internal API Error");
-        }
+        
+        // Determine the message to send to the client
+        let message = match &self {
+            // Hide internal details in production
+            Self::Sqlx(_) | Self::Redis(_) | Self::Internal(_) => {
+                // Log the full error for debugging
+                error!(error = ?self, "Internal API Error");
+                "An internal server error occurred.".to_string()
+            }
+            // Safe to expose messages for client errors
+            _ => self.to_string(),
+        };
 
         let body = Json(json!({
             "error": {

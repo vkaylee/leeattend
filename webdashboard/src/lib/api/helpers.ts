@@ -137,6 +137,36 @@ export async function apiFetch(
     clearTimeout(id);
     
     if (response.status === 401) {
+      // Attempt to refresh token
+      const refreshToken = getRefreshToken();
+      if (refreshToken) {
+        try {
+          const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refresh_token: refreshToken }),
+          });
+
+          if (refreshResponse.ok) {
+            const data = await refreshResponse.json();
+            setAccessToken(data.access_token);
+            setRefreshToken(data.refresh_token);
+
+            // Retry original request with new token
+            const retryHeaders = { ...headers, Authorization: `Bearer ${data.access_token}` };
+            const retryResponse = await fetch(fullUrl, {
+              ...fetchOptions,
+              headers: retryHeaders,
+              signal: controller.signal
+            });
+            clearTimeout(id);
+            return retryResponse;
+          }
+        } catch (e) {
+          console.error("Token refresh failed", e);
+        }
+      }
+      
       console.warn("Session expired (401). Redirecting to login...");
       clearAuthSession();
       if (window.location.pathname !== "/login") {

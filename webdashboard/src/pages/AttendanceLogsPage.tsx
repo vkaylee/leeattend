@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { fetchRawAttendanceLogs, fetchEmployees, getCurrentWorkspaceId, fetchDevices, fetchStagingLogs, resolveStagingLog, dismissStagingLog } from "@/lib/api";
-import { RawAttendanceLog } from "@/lib/api/types";
+import { RawAttendanceLog, Employee } from "@/lib/api/types";
 import { format, endOfMonth } from "date-fns";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import {
@@ -107,6 +107,16 @@ export default function AttendanceLogsPage() {
   const { data: employeesData } = useQuery({ queryKey: ["employees", wsId], queryFn: () => fetchEmployees(wsId!, 1, 3000), enabled: !!wsId });
   const employees = employeesData?.data || [];
 
+  // Optimized lookup map to prevent O(N) search in render loop
+  const employeeMap = useMemo(() => {
+    const map = new Map<string, Employee>();
+    const emps = employeesData?.data || [];
+    emps.forEach(emp => {
+      map.set(emp.id, emp);
+    });
+    return map;
+  }, [employeesData?.data]);
+
   const { data, isLoading } = useQuery({
     queryKey: ["attendance-raw-logs", wsId, employeeId, dateRange, page],
     queryFn: () => {
@@ -159,12 +169,12 @@ export default function AttendanceLogsPage() {
 
   const getEmployeeName = (log: RawAttendanceLog) => { 
     if (log.employee_full_name) return log.employee_full_name;
-    const emp = employees.find(e => e.id === log.employee_id); 
+    const emp = employeeMap.get(log.employee_id); 
     return emp ? emp.full_name : t("common.system"); 
   };
   const getEmployeeID = (log: RawAttendanceLog) => { 
     if (log.employee_id_number) return log.employee_id_number;
-    const emp = employees.find(e => e.id === log.employee_id); 
+    const emp = employeeMap.get(log.employee_id); 
     return emp ? emp.employee_id_number : ""; 
   };
 
