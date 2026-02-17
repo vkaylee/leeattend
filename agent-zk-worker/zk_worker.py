@@ -65,8 +65,10 @@ class ZKWorkerClient:
     async def run(self):
         while True:
             try:
-                logger.info(f"🔗 Connecting to Master at {self.master_addr}:{self.master_port}...")
-                reader, self.writer = await asyncio.open_connection(self.master_addr, self.master_port)
+                # Security: Default to localhost for Master connection if not specified
+                master_host = self.master_addr if self.master_addr else "127.0.0.1"
+                logger.info(f"🔗 Connecting to Master at {master_host}:{self.master_port}...")
+                reader, self.writer = await asyncio.open_connection(master_host, self.master_port)
                 logger.info("✅ Connected to Master")
                 await self.handle_requests(reader)
             except Exception as e:
@@ -75,9 +77,17 @@ class ZKWorkerClient:
 
     async def handle_requests(self, reader):
         tasks = set()
+        # Security: Limit maximum line size to 64KB
+        MAX_LINE_SIZE = 65536
         try:
             while True:
-                data = await reader.readline()
+                # Use readuntil instead of readline to have control over buffer size
+                try:
+                    data = await reader.readuntil(b'\n')
+                except asyncio.LimitOverrunError:
+                    logger.error("❌ Request line too long. Closing connection.")
+                    break
+                
                 if not data: break
                 line = data.decode().strip()
                 if not line: continue
@@ -87,7 +97,8 @@ class ZKWorkerClient:
                 tasks.add(task)
                 task.add_done_callback(lambda t: (tasks.discard(t), self.semaphore.release()))
         except Exception as e:
-            logger.error(f"❌ Error in handle_requests: {e}")
+            if not isinstance(e, asyncio.IncompleteReadError):
+                logger.error(f"❌ Error in handle_requests: {e}")
         finally:
             if tasks:
                 logger.info("Waiting for pending tasks to complete...")

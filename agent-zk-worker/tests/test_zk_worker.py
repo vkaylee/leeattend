@@ -57,7 +57,7 @@ async def test_handle_requests_device_connect(zk_worker_instance):
     reader = AsyncMock()
     zk_worker_instance.writer = create_mock_writer()
     request = {'jsonrpc': '2.0', 'method': 'device.connect', 'params': {'ip': '1.1.1.1'}, 'id': 1}
-    reader.readline.side_effect = [json.dumps(request).encode() + b'\n', b'']
+    reader.readuntil.side_effect = [json.dumps(request).encode() + b'\n', b'']
     with patch('zk_worker.ZKService', autospec=True) as MockZKService:
         mock_service_instance = MockZKService.return_value
         mock_service_instance.connect = AsyncMock()
@@ -73,7 +73,7 @@ async def test_handle_requests_method_not_found(zk_worker_instance):
     reader = AsyncMock()
     zk_worker_instance.writer = create_mock_writer()
     request = {'jsonrpc': '2.0', 'method': 'invalid_method', 'params': {}, 'id': 1}
-    reader.readline.side_effect = [json.dumps(request).encode() + b'\n', b'']
+    reader.readuntil.side_effect = [json.dumps(request).encode() + b'\n', b'']
     await zk_worker_instance.handle_requests(reader)
     response = json.loads(zk_worker_instance.writer.write.call_args[0][0].decode().strip())
     assert response['error']['code'] == -32601
@@ -83,7 +83,7 @@ async def test_handle_requests_empty_line(zk_worker_instance):
     reader = AsyncMock()
     zk_worker_instance.writer = create_mock_writer()
     request = {'jsonrpc': '2.0', 'method': 'common.ping', 'params': {}, 'id': 1}
-    reader.readline.side_effect = [b'\n', json.dumps(request).encode() + b'\n', b'']
+    reader.readuntil.side_effect = [b'\n', json.dumps(request).encode() + b'\n', b'']
     await zk_worker_instance.handle_requests(reader)
     zk_worker_instance.writer.write.assert_called_once()
     response = json.loads(zk_worker_instance.writer.write.call_args[0][0].decode().strip())
@@ -95,7 +95,7 @@ async def test_zk_worker_run(zk_worker_instance):
         mock_reader = AsyncMock()
         mock_writer = create_mock_writer()
         mock_open.return_value = (mock_reader, mock_writer)
-        mock_reader.readline.side_effect = [b'']
+        mock_reader.readuntil.side_effect = [b'']
         task = asyncio.create_task(zk_worker_instance.run())
         await asyncio.sleep(0.1)
         task.cancel()

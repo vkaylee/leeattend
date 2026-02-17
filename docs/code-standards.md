@@ -679,9 +679,35 @@ The following patterns are **FORBIDDEN** and enforced by Clippy lints in `Cargo.
 | Query without `workspace_id` | Cross-tenant data leak | Always include `WHERE workspace_id = $N` |
 | `limit.unwrap_or(20)` without clamp | Memory DoS with limit=999999 | `limit.unwrap_or(20).clamp(1, 100)` |
 | Password without length check | bcrypt DoS with >1MB input | Validate 8-128 chars before hashing |
-| `format!()` with user input in SQL | SQL injection | Use `sqlx::query!` with `$N` bind params |
-| Check-then-act without row lock | Race condition / double-processing | Use `FOR UPDATE NOWAIT` in transaction |
-| `(StatusCode, String)` error return | Bypasses centralized error handling | Return `AppResult<T>` with `AppError` |
+| Unbounded file upload | Memory DoS (OOM crash) | Use `field.bytes().await` with `MAX_FILE_SIZE` (e.g. 10MB) |
+| Public ID-based command | Unauthorized control (Broken Auth) | Use `MemberContext` and verify ID belongs to `workspace_id` |
+| TCP `readline()` | Memory DoS on long lines | Use `readuntil(b'\n')` with `limit` (e.g. 64KB) |
+
+### 2.4. Frontend Performance: O(1) Lookup Pattern
+Khi hiển thị danh sách lớn (ví dụ: Logs) cần tham chiếu thông tin từ danh sách khác (ví dụ: Employees), **KHÔNG** sử dụng `.find()` bên trong vòng lặp render (độ phức tạp O(N*M)).
+
+**Correct Pattern:**
+```typescript
+// ✅ CORRECT - Use useMemo to create a Map for O(1) lookup
+const lookupMap = useMemo(() => {
+  const map = new Map<string, Entity>();
+  items.forEach(item => map.set(item.id, item));
+  return map;
+}, [items]);
+
+// Inside render loop:
+const name = lookupMap.get(id)?.name;
+```
+
+**Anti-pattern:**
+```typescript
+// ❌ INCORRECT - O(N) lookup inside O(M) loop
+{logs.map(log => (
+  <div key={log.id}>
+    {employees.find(e => e.id === log.employee_id)?.name}
+  </div>
+))}
+```
 
 **Compile-Time Enforcement** (`apiserver/Cargo.toml`):
 ```toml

@@ -215,8 +215,22 @@ pub async fn get_agents(State(state): State<Arc<AppState>>) -> AppResult<Json<Ve
 pub async fn send_command(
     Path(agent_id): Path<String>,
     State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
     Json(command_request): Json<serde_json::Value>,
 ) -> AppResult<impl IntoResponse> {
+    // Verify that the agent belongs to this workspace
+    let agent_exists = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM authorized_agents WHERE id = $1 AND workspace_id = $2 AND is_active = TRUE)"
+    )
+    .bind(&agent_id)
+    .bind(ctx.workspace_id)
+    .fetch_one(&state.db)
+    .await?;
+
+    if !agent_exists {
+        return Err(AppError::NotFound("Agent not found in this workspace".to_string()));
+    }
+
     let command = AgentCommand {
         id: Uuid::new_v4().to_string(),
         r#type: "command".to_string(),

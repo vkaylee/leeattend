@@ -62,7 +62,7 @@ async def run_worker_test(max_parallel, requests_count):
         requests.append(json.dumps(req).encode() + b"\n")
     requests.append(b"") # End of stream
     
-    reader.readline.side_effect = requests
+    reader.readuntil.side_effect = requests
     
     # Mock ZKService to be slow
     with patch("zk_worker.ZKService", side_effect=SlowZKService):
