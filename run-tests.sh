@@ -56,10 +56,14 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export DOCKER_COMPOSE_CMD="docker compose -p leeattend-test -f $PROJECT_ROOT/docker-compose.test.yml"
 
 # Source all script modules
-source "$PROJECT_ROOT/scripts/test-utils.sh"
-source "$PROJECT_ROOT/scripts/test-lint.sh"
-source "$PROJECT_ROOT/scripts/test-unit.sh"
-source "$PROJECT_ROOT/scripts/test-integration.sh"
+for script in "test-utils.sh" "test-lint.sh" "test-unit.sh" "test-integration.sh"; do
+    if [[ -f "$PROJECT_ROOT/scripts/$script" ]]; then
+        source "$PROJECT_ROOT/scripts/$script"
+    else
+        echo -e "${RED}❌ Missing required script: $script${NC}"
+        exit 1
+    fi
+done
 
 wait_for_web_test() {
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
@@ -70,7 +74,7 @@ wait_for_web_test() {
         fi
 
         echo -e "${BLUE}⏳ Waiting for web dependencies to be ready...${NC}"
-        local timeout=300
+        local timeout="${TIMEOUT_WEB_READY:-300}"
         local start_time=$SECONDS
         while ! $DOCKER_COMPOSE_CMD exec -T web_test ls /workspace/webdashboard/node_modules/.bin/eslint > /dev/null 2>&1; do
             if (( SECONDS - start_time > timeout )); then
@@ -177,7 +181,7 @@ run_integration() {
 
 GLOBAL_TIMEOUT=${TIMEOUT_GLOBAL:-1800}
 
-if [ $# -eq 0 ]; then
+if [[ $# -eq 0 ]]; then
     show_help
     exit 0
 fi
@@ -210,13 +214,13 @@ for arg in "$@"; do
     else
         # If it's not a flag and we haven't set a pattern via --test, 
         # then it's the legacy positional pattern
-        if [ -z "$PATTERN" ]; then
+        if [[ -z "$PATTERN" ]]; then
             PATTERN="$arg"
         fi
     fi
 done
 
-if [ -z "$MODE" ]; then
+if [[ -z "$MODE" ]]; then
     echo -e "${RED}Error: No mode specified (e.g., --all, --api, --web)${NC}"
     show_help
     exit 1
@@ -224,7 +228,7 @@ fi
 
 echo -e "${BLUE}${BOLD}🚀 Starting LeeAttend Test Suite in [$MODE] mode${NC}"
 echo -e "${BLUE}⏱️ Global timeout: ${GLOBAL_TIMEOUT}s ($(( GLOBAL_TIMEOUT / 60 )) min)${NC}"
-if [ -n "$PATTERN" ]; then
+if [[ -n "$PATTERN" ]]; then
     echo -e "${BLUE}🎯 Specific test pattern: ${YELLOW}$PATTERN${NC}"
 fi
 echo -e "${BLUE}================================================================${NC}"
@@ -236,6 +240,7 @@ export TIMEOUT_UNIT="${TIMEOUT_UNIT:-1800}"
 export TIMEOUT_INTEGRATION="${TIMEOUT_INTEGRATION:-1200}"
 export TIMEOUT_BUILD="${TIMEOUT_BUILD:-600}"
 export TIMEOUT_DB_WAIT="${TIMEOUT_DB_WAIT:-120}"
+export TIMEOUT_WEB_READY="${TIMEOUT_WEB_READY:-300}"
 
 # Clear previous results
 if [[ -L "$PROJECT_ROOT/.test_logs" ]]; then
@@ -254,7 +259,7 @@ global_timeout_watchdog() {
     echo -e "\n${RED}================================================================${NC}"
     echo -e "${RED}${BOLD}⏰ GLOBAL TIMEOUT: Test suite exceeded ${GLOBAL_TIMEOUT}s limit${NC}"
     echo -e "${RED}================================================================${NC}"
-    # Kill only the main process, let cleanup trap handle the rest
+    # Kill the main process, let cleanup trap handle the rest
     kill -TERM "$MAIN_PID" 2>/dev/null || true
 }
 
@@ -264,19 +269,25 @@ WATCHDOG_PID=$!
 
 # Cleanup handler: kill watchdog and stop containers on exit
 cleanup() {
-    echo -e "\n${BLUE}🧹 Cleaning up test containers and volumes...${NC}"
+    local exit_code=$?
+    echo -e "\n${BLUE}🧹 Cleaning up test environment...${NC}"
 
-    # Kill watchdog
+    # Kill watchdog safely
     if [[ -n "${WATCHDOG_PID:-}" ]]; then
-        kill "$WATCHDOG_PID" 2>/dev/null || true
+        kill "$WATCHDOG_PID" 2>/dev/null && wait "$WATCHDOG_PID" 2>/dev/null || true
+        WATCHDOG_PID=""
     fi
 
     # Stop and remove test containers, volumes, and orphans
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        # Use a short timeout to force shutdown if containers are stuck
-        $DOCKER_COMPOSE_CMD down --volumes --remove-orphans --timeout 5 2>/dev/null || true
+        # Remove silent redirection to allow visibility of cleanup issues
+        $DOCKER_COMPOSE_CMD down --volumes --remove-orphans --timeout 5 || {
+            echo -e "${YELLOW}⚠️  Warning: Cleanup encountered some issues.${NC}"
+        }
         echo -e "${GREEN}✅ Environment cleaned up.${NC}"
     fi
+    
+    exit "$exit_code"
 }
 trap cleanup EXIT INT TERM
 
