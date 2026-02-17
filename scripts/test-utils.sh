@@ -189,9 +189,27 @@ run_parallel_ordered() {
     local filter="${2:-}"
     shift 2
 
-    local pids=()
-    local logs=()
-    local names=()
+    local tasks=("$@")
+    local filtered_tasks=()
+    
+    # 1. Pre-filter tasks
+    for task in "${tasks[@]}"; do
+        local name=$(echo "$task" | cut -d"|" -f2)
+        local dir=$(echo "$task" | cut -d"|" -f3)
+        if [ -n "$filter" ]; then
+            if (echo "$name" | grep -qE "$filter" || echo "$dir" | grep -qE "$filter"); then
+                filtered_tasks+=("$task")
+            fi
+        else
+            filtered_tasks+=("$task")
+        fi
+    done
+
+    local total_tasks=${#filtered_tasks[@]}
+    if [ "$total_tasks" -eq 0 ]; then
+        return 0
+    fi
+
     local task_timeout=$(get_phase_timeout "$phase_name")
 
     echo -e "\n${YELLOW}${BOLD}🚀 $phase_name${NC}"
@@ -209,8 +227,6 @@ run_parallel_ordered() {
         echo -e "${BLUE}⚡ Running tasks in PARALLEL (Max $NUM_WORKERS workers)${NC}"
     fi
 
-    local tasks=("$@")
-    local total_tasks=${#tasks[@]}
     local current_task=0
     local running_pids=()
     local running_logs=()
@@ -221,46 +237,33 @@ run_parallel_ordered() {
     while [ $completed_count -lt $total_tasks ]; do
         # Start new tasks if we have room in the pool
         while [ ${#running_pids[@]} -lt "$NUM_WORKERS" ] && [ $current_task -lt $total_tasks ]; do
-            local task="${tasks[$current_task]}"
+            local task="${filtered_tasks[$current_task]}"
             current_task=$((current_task + 1))
 
             local name=$(echo "$task" | cut -d"|" -f2)
             local dir=$(echo "$task" | cut -d"|" -f3)
             local cmd=$(echo "$task" | cut -d"|" -f4-)
 
-            # Filtering logic
-            if [ -n "$filter" ]; then
-                 if ! (echo "$name" | grep -qE "$filter" || echo "$dir" | grep -qE "$filter"); then
-                     completed_count=$((completed_count + 1))
-                     continue
-                 fi
-            fi
-
             local log_file="$LOG_DIR/${phase_name// /_}_$name.log"
             local start_time=$SECONDS
             echo -e "  [${BLUE}START${NC}] $name (timeout: ${task_timeout}s)"
 
             if [ "$RUN_SERIAL" = "true" ]; then
-                # SERIAL EXECUTION with timeout and low I/O priority
+                # SERIAL EXECUTION
                 (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd") > "$log_file" 2>&1
                 local status=$?
                 local duration=$(( SECONDS - start_time ))
 
-                # Exit code 137 = killed by timeout (SIGKILL after timeout)
                 if [ $status -eq 137 ] || [ $status -eq 124 ]; then
                     add_task_result "$name" "TIMED OUT" "$duration"
                     echo "=== TIMEOUT: Task exceeded ${task_timeout}s ===" >> "$log_file"
                     on_task_timeout "$name" "$log_file" "$task_timeout"
-                    echo -e "${RED}Aborting pipeline due to timeout.${NC}"
-                    print_summary_table
                     exit 124
                 fi
 
                 if [ $status -ne 0 ]; then
                     on_task_failure "$name" "$log_file" "$status"
                     add_task_result "$name" "FAILED" "$duration"
-                    echo -e "${RED}Aborting pipeline due to phase failure.${NC}"
-                    print_summary_table
                     exit $status
                 else
                     show_log_sequential "$name" "$log_file" $status
@@ -268,7 +271,7 @@ run_parallel_ordered() {
                     completed_count=$((completed_count + 1))
                 fi
             else
-                # PARALLEL EXECUTION with timeout and low I/O priority
+                # PARALLEL EXECUTION
                 (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd") > "$log_file" 2>&1 &
                 running_pids+=($!)
                 running_logs+=("$log_file")
@@ -277,9 +280,7 @@ run_parallel_ordered() {
             fi
         done
 
-        if [ "$RUN_SERIAL" = "true" ]; then
-            continue
-        fi
+        if [ "$RUN_SERIAL" = "true" ]; then continue; fi
 
         # Wait for at least one task to complete
         if [ ${#running_pids[@]} -gt 0 ]; then
@@ -296,16 +297,13 @@ run_parallel_ordered() {
                 local start="${running_starts[$i]}"
 
                 if ! kill -0 "$pid" 2>/dev/null; then
-                    # Task finished
                     wait "$pid"
                     local status=$?
                     local duration=$(( SECONDS - start ))
 
-                    # Exit code 137 = killed by timeout (SIGKILL)
                     if [ $status -eq 137 ] || [ $status -eq 124 ]; then
                         add_task_result "$name" "TIMED OUT" "$duration"
                         on_task_timeout "$name" "$log" "$task_timeout"
-                        print_summary_table
                         exit 124
                     fi
 
@@ -314,8 +312,6 @@ run_parallel_ordered() {
                     if [ $status -ne 0 ]; then
                         on_task_failure "$name" "$log" "$status"
                         add_task_result "$name" "FAILED" "$duration"
-                        echo -e "${RED}Aborting pipeline due to phase failure.${NC}"
-                        print_summary_table
                         exit $status
                     fi
 
@@ -335,23 +331,16 @@ run_parallel_ordered() {
             running_names=(${still_running_names[@]+"${still_running_names[@]}"})
             running_starts=(${still_running_starts[@]+"${still_running_starts[@]}"})
 
-
             if [ "$finished_any" = "false" ]; then
                 local running_str=""
-                for n in "${running_names[@]}"; do
-                    running_str="${running_str}${n} "
-                done
+                for n in "${running_names[@]}"; do running_str="${running_str}${n} "; done
                 echo -ne "  [${BLUE}WAIT${NC}] Running: $running_str \r"
                 sleep 1
-            fi
-        else
-            # No tasks running and no more tasks to start
-            if [ $current_task -ge $total_tasks ]; then
-                break
             fi
         fi
     done
 
-    echo -e "\n${GREEN}✅ $phase_name Completed Successfully!${NC}"
+    echo -ne "                                                                \r"
+    echo -e "${GREEN}✅ $phase_name Completed Successfully!${NC}"
     return 0
 }

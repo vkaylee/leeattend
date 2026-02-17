@@ -48,6 +48,8 @@ async fn test_agent_commands_api() {
                 .method("POST")
                 .uri(format!("/api/agent/{agent_id}/command"))
                 .header("Content-Type", "application/json")
+                .header("X-User-Id", user_id.to_string())
+                .header("X-Workspace-Id", ws_id.to_string())
                 .body(axum::body::Body::from(command_req.to_string()))
                 .unwrap(),
         )
@@ -67,6 +69,8 @@ async fn test_agent_commands_api() {
                 .method("POST")
                 .uri(format!("/api/agent/{agent_id}/command"))
                 .header("Content-Type", "application/json")
+                .header("X-User-Id", user_id.to_string())
+                .header("X-Workspace-Id", ws_id.to_string())
                 .body(axum::body::Body::from(command_req.to_string()))
                 .unwrap(),
         )

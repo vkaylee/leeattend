@@ -26,6 +26,7 @@ show_help() {
     echo -e "  ${GREEN}--api${NC}          Run tests for API components (Rust, Python)"
     echo -e "  ${GREEN}--web${NC}          Run tests for Web component (Vite, Playwright)"
     echo -e "  ${GREEN}--integration${NC}  Run ONLY Integration & E2E tests"
+    echo -e "  ${GREEN}--test=NAME${NC}    Run specific test(s) by name/pattern"
     echo -e "  ${GREEN}--clean${NC}        Clean up containers and volumes (run this standalone)"
     echo -e "  ${GREEN}--help${NC}         Show this help message"
     echo -e "  ${GREEN}--timeout=N${NC}    Set global timeout in seconds (default: 1800 = 30min)"
@@ -189,6 +190,8 @@ PATTERN="${2:-}"
 for arg in "$@"; do
     if [[ "$arg" == --timeout=* ]]; then
         GLOBAL_TIMEOUT="${arg#*=}"
+    elif [[ "$arg" == --test=* ]]; then
+        PATTERN="${arg#*=}"
     fi
 done
 
