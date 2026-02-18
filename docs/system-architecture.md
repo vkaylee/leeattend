@@ -48,12 +48,12 @@ The agent spawns brand-specific Rust workers (ZKTeco, Mock) that poll biometric 
 - **Exponential Backoff**: 2s, 4s, 8s, 16s, 32s, 60s (capped)
 - **Jitter**: ±25% on all delays
 
-**Sidecar Retry Module** (`src/retry.rs`):
+**Worker Retry Module** (`src/retry.rs`):
 ```rust
-pub const SIDECAR_MAX_RETRY_DELAY_SECS: u64 = 60;
-pub const SIDECAR_MAX_RETRY_COUNT: u32 = 10;
-pub const SIDECAR_STABILITY_THRESHOLD_SECS: u64 = 30;
-pub fn get_sidecar_retry_delay(retry_count: u32) -> Duration
+pub const WORKER_MAX_RETRY_DELAY_SECS: u64 = 60;
+pub const WORKER_MAX_RETRY_COUNT: u32 = 10;
+pub const WORKER_STABILITY_THRESHOLD_SECS: u64 = 30;
+pub fn get_worker_retry_delay(retry_count: u32) -> Duration
 ```
 
 Each worker maintains independent retry tracking:
@@ -63,7 +63,7 @@ Each worker maintains independent retry tracking:
 - Successful polling for 30s → reset retry count to 0
 
 #### 2.3 Worker Client Improvements
-The `WorkerClient` struct handles RPC communication with sidecars:
+The `WorkerClient` struct handles RPC communication with workers:
 
 - **Read Timeout**: 5 minutes (300s) for slow device connections
 - **Write Timeout**: 30 seconds for RPC requests
@@ -73,11 +73,11 @@ The `WorkerClient` struct handles RPC communication with sidecars:
 #### 2.4 Failure Recovery Paths
 All failure points increment retry count and apply exponential backoff:
 
-1. **Bind failure** → Retry sidecar spawn
-2. **Sidecar spawn failure** → Retry with backoff
-3. **Connection accept timeout** → Kill sidecar, retry with backoff
-4. **Stream conversion error** → Kill sidecar, retry with backoff
-5. **Client creation error** → Kill sidecar, retry with backoff
+1. **Bind failure** → Retry worker start
+2. **Worker start failure** → Retry with backoff
+3. **Connection accept timeout** → Kill worker, retry with backoff
+4. **Stream conversion error** → Kill worker, retry with backoff
+5. **Client creation error** → Kill worker, retry with backoff
 6. **Device.connect RPC error** → Kill worker, retry with backoff
 7. **Device.get_logs RPC error** → Kill worker, retry with backoff
 8. **Connection drop** → Kill worker, retry with backoff
@@ -322,7 +322,7 @@ Every request can include an optional `X-Debug-Mock-Date` header. This is parsed
 ## Infrastructure Diagram
 ```ascii
 [ Web Dashboard ] <--- REST API + WebSocket ---> [ API Server ] <--- WebSocket (Outbound Only) ---> [ Agent (Rust) ] <--- JSON-RPC (TCP) ---> [ Multi-Brand Workers ] <---> [ ZKTeco Devices ]
- (Tauri Desktop)       (Real-time Report Progress)  (Rust)                                          (Orchestrator)                        (Sidecar Driver)
+ (Tauri Desktop)       (Real-time Report Progress)  (Rust)                                          (Orchestrator)                        (Worker Driver)
                                                         │
                                                   [ Redis Pub/Sub ]
                                                    (Job Messages)
@@ -335,7 +335,7 @@ Every request can include an optional `X-Debug-Mock-Date` header. This is parsed
 ```
 
 ## 1. Agent (Client Side)
-Hệ thống sử dụng mô hình **Sidecar Architecture** để tối ưu hóa hiệu năng và độ ổn định:
+Hệ thống sử dụng mô hình **Worker Architecture** để tối ưu hóa hiệu năng và độ ổn định:
 
 ### 1.1. Rust Agent (Main Orchestrator)
 - **Responsibility**: Quản lý vòng đời ứng dụng, kết nối WebSocket tới Server trung tâm, quản lý cơ sở dữ liệu local (SQLite), thực thi logic nghiệp vụ (đồng bộ dữ liệu, retry, cấu hình) và điều phối các driver.
@@ -475,14 +475,13 @@ Instead of connecting to a live Rust backend, the frontend in test mode interact
 The system utilizes a modern Rust-only architecture where the Rust Orchestrator (`agent-main`) manages internal Rust worker tasks (`agent-zk-worker-rs`). 
 
 To ensure maximum reliability and ease of deployment, the communication model is inverted:
-- **Rust as Server**: The Orchestrator opens a TCP Server on a **dynamic port** (assigned by the OS at runtime, port 0).
-- **Python as Client**: The Python sidecar receives this port via a command-line argument and proactively connects to the Master.
-- **Bi-directional JSON-RPC**: Once the connection is established, the Master sends control requests (fetch logs, sync time) while the Sidecar can optionally push real-time events back to the Master over the same stream.
+- **Worker as Client**: The Rust worker receives connection details and proactively connects to the Orchestrator.
+- **Bi-directional JSON-RPC**: Once the connection is established, the Orchestrator sends control requests (fetch logs, sync time) while the worker can optionally push real-time events back to the Orchestrator over the same stream.
 - **Zero Conflict**: Dynamic port assignment allows multiple Agents to run on the same physical gateway without port collision or manual configuration.
 
 ### 2. Reliable Data Sync (Log-Forwarding Pattern)
 The Agent follows a "Local-First" approach to ensure data safety during internet outages:
-1. **Fetch**: The Orchestrator polls logs from physical devices via the Python Sidecar.
+1. **Fetch**: The Orchestrator polls logs from physical devices via the Rust Worker.
 2. **Commit**: Logs are immediately persisted to a local SQLite database with `is_synced = 0`.
 3. **Sync Loop**: A background task in `CentralClient` continuously polls the local DB for unsynced records.
 4. **Push & ACK**: Logs are pushed to the Cloud WebSocket API. The record is only marked as `is_synced = 1` once a valid `type: "ack"` is received from the server.
@@ -490,11 +489,9 @@ The Agent follows a "Local-First" approach to ensure data safety during internet
 ---
 
 
-### 0. Graceful Shutdown & Lifecycle Management
-To ensure data integrity and clean process termination, both the Edge Agent and the Central Server implement proactive signal handling:
-- **Signal Propagation**: Upon receiving `SIGINT` (Ctrl+C) or `SIGTERM`, the Orchestrator (`agent-main`) triggers a `CancellationToken`. This immediately signals all background tasks (WebSocket sync, device polling, heartbeat) to stop after their current unit of work.
-- **Sidecar Cleanup**: The Orchestrator explicitly kills the Python sidecar process and waits for its exit, preventing "zombie" processes from lingering on the host system.
-- **Stateless Exit**: The Python worker proactively closes hardware connections and its control stream safely before exiting.
+- **Lifecycle Management**: The Orchestrator ensuring clean termination of all active hardware connections.
+- **Worker Cleanup**: The Orchestrator explicitly waits for worker exit, preventing "zombie" processes from lingering on the host system.
+- **Stateless Exit**: The worker proactively closes hardware connections and its control stream safely before exiting.
 
 ### 17. High-Performance Edge Ingestion
 To handle high-traffic environments (30k+ logs), the Edge Agent employs an optimized ingestion pipeline:
@@ -650,26 +647,26 @@ Trigger PairingService for all affected dates
 - Actions: Assign to existing employee, Create new employee, Delete
 - "Create Employee" button redirects to employee form with pre-filled enrollment ID
 
-### 18. Multi-Brand Sidecar Support (New)
+### 18. Multi-Brand Worker Support (New)
 The Edge Agent has been evolved from a monolithic ZK-only driver to a modular, multi-brand orchestrator.
 
 #### 18.1. Standardized JSON-RPC 2.0 Contract
 All biometric workers (ZKTeco, Hikvision, Mock, etc.) must implement a standardized JSON-RPC 2.0 interface:
 - **`common.*` namespace**: Heartbeats and lifecycle checks (`common.ping`).
 - **`device.*` namespace**: Low-level hardware operations (`device.connect`, `device.get_logs`, `device.get_time`).
-- **Isolation**: Each sidecar handles exactly one physical device connection, ensuring that a crash in one driver does not affect other devices.
+- **Isolation**: Each worker handles exactly one physical device connection, ensuring that a crash in one driver does not affect other devices.
 
 #### 18.2. Parallel Polling Architecture
-The Orchestrator (`agent-main`) utilizes `tokio` tasks and `futures::join_all` to communicate with multiple sidecars concurrently:
+The Orchestrator (`agent-main`) utilizes `tokio` tasks and `futures::join_all` to communicate with multiple workers concurrently:
 - **Concurrency**: Logs are fetched from all configured devices in parallel, drastically reducing the total polling cycle time.
 - **Resource Management**: Each worker process is spawned with piped stdout/stderr, allowing the Orchestrator to capture and prefix logs for better observability.
 
 #### 18.3. Dynamic Reconfiguration \& Execution Strategy (New)
 The Edge Agent now supports hot-reloading of its worker configuration and fine-grained resource control:
 - **Database-Driven Configuration**: Instead of hardcoded values, the Orchestrator loads active workers from its local SQLite database.
-- **Hot-Reloading**: When the dashboard pushes a configuration change, the Orchestrator receives a signal via `CentralClient`, gracefully shuts down all current sidecars, and spawns new ones based on the updated DB state.
+- **Hot-Reloading**: When the dashboard pushes a configuration change, the Orchestrator receives a signal via `CentralClient`, gracefully shuts down all current workers, and spawns new ones based on the updated DB state.
 - **Execution Strategy (Bounded Parallelism)**:
-    - **Concurrency Control**: A `Semaphore` is used to limit the number of sidecar processes active at any given time.
+    - **Concurrency Control**: A `Semaphore` is used to limit the number of worker processes active at any given time.
     - **Sequential Polling**: Setting `MAX_CONCURRENT_WORKERS = 1` forces the agent to poll devices one-by-one, minimizing RAM usage.
     - **Parallel Polling**: Setting `MAX_CONCURRENT_WORKERS > 1` enables high-throughput polling for gateways with sufficient resources.
 
