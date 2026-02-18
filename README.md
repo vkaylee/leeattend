@@ -29,32 +29,43 @@ leeattend/
 5.  **docs**: Tài liệu hướng dẫn chi tiết.
 
 
-## 🤖 For AI Agents: How to Debug UI
+## 🤖 For AI Agents: How to Run Commands
 
-If you need to verify UI changes or fix loading issues:
+> ⚠️ **NEVER** run `cargo`, `npm`, or `pytest` directly on the host. Always use Docker containers. See [PROJECT_OS.md](./PROJECT_OS.md) for details.
 
-1.  **Ensure Backend is running**: 
-    ```bash
-    AI_MANAGED=true (cd apiserver && cargo run) > /tmp/backend.log 2>&1 &
-    ```
-2.  **Ensure Frontend is running**: 
-    ```bash
-    AI_MANAGED=true (cd webdashboard && npm run dev) > /tmp/frontend.log 2>&1 &
-    ```
-3.  **Run Automated Debug**:
-    ```bash
-    cd webdashboard
-    npx playwright test tests/debug-ui.spec.ts --reporter=line
-    ```
-4.  **Parallel E2E Testing**: To run all tests in isolated parallel workers:
-    ```bash
-    cd webdashboard
-    npx playwright test --workers=2
-    ```
-5.  **🚨 IMPORTANT: Cleanup**: After testing, kill ONLY the AI-managed processes:
-    ```bash
-    pkill -f "AI_MANAGED=true" || true
-    ```
+### Start the dev environment
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+### Running commands inside containers
+```bash
+# Rust (apiserver) — build, test, lint, migrations
+docker compose -f docker-compose.dev.yml exec apiserver cargo build
+docker compose -f docker-compose.dev.yml exec apiserver cargo test
+docker compose -f docker-compose.dev.yml exec apiserver cargo clippy -- -D warnings
+docker compose -f docker-compose.dev.yml exec apiserver cargo sqlx migrate run
+
+# Rust (agent-main)
+docker compose -f docker-compose.dev.yml exec agent-main cargo build
+docker compose -f docker-compose.dev.yml exec agent-main cargo test
+
+# Node.js (webdashboard) — install, build, lint, test
+docker compose -f docker-compose.dev.yml exec webdashboard npm install
+docker compose -f docker-compose.dev.yml exec webdashboard npm run build
+docker compose -f docker-compose.dev.yml exec webdashboard npm run lint
+docker compose -f docker-compose.dev.yml exec webdashboard npx playwright test
+```
+
+### Debug UI flows
+```bash
+docker compose -f docker-compose.dev.yml exec webdashboard npx playwright test tests/debug-ui.spec.ts --reporter=line
+```
+
+### Stop the dev environment
+```bash
+docker compose -f docker-compose.dev.yml down
+```
 
 
 ## 📖 Documentation
