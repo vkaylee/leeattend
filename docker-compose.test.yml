@@ -55,7 +55,6 @@ services:
       - CARGO_INCREMENTAL=0
     volumes:
       - ${PWD}/agent-main:/workspace/agent-main
-      - ${PWD}/agent-zk-worker:/workspace/agent-zk-worker
       - agent-target:/workspace/agent-main/target
       - sccache-storage:/sccache
       - ./.test_logs:/workspace/agent-main/.test_logs

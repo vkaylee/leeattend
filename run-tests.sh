@@ -150,6 +150,9 @@ run_unit() {
 
 run_integration() {
     local filter=$1
+
+    # Force sequential for integration to save resources and ensure stability
+    export NUM_WORKERS=1
     echo -e "\n${BLUE}🔹 Running Integration & E2E Tests [$filter]...${NC}"
     
     if [[ "$USE_DOCKER" == "true" ]]; then
