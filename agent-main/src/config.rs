@@ -1,14 +1,12 @@
 use std::env;
 use log::{info, warn};
-use std::path::Path;
+// use std::path::Path;
 
 pub struct Config {
     pub agent_id: String,
     pub agent_token: String,
     pub central_server_url: String,
     pub database_url: String,
-    pub python_path: String,
-    pub rpc_timeout_seconds: u64,
     pub poll_interval_seconds: u64,
     pub max_concurrent_workers: usize,
     pub signature_ttl_days: i64,
@@ -41,25 +39,6 @@ impl Config {
             default_db
         });
 
-        let python_path = env::var("PYTHON_PATH").unwrap_or_else(|_| {
-            let (rel_path, fallback_path) = if cfg!(target_os = "windows") {
-                ("../agent-zk-worker/venv/Scripts/python.exe", "../agent-zk-worker/.venv/Scripts/python.exe")
-            } else {
-                ("../agent-zk-worker/venv/bin/python3", "../agent-zk-worker/venv_linux/bin/python3")
-            };
-
-            if Path::new(rel_path).exists() {
-                rel_path.to_string()
-            } else {
-                fallbacks.push(format!("PYTHON_PATH (mặc định: {fallback_path})"));
-                fallback_path.to_string()
-            }
-        });
-
-        let rpc_timeout_seconds = env::var("RPC_TIMEOUT_SECONDS")
-            .unwrap_or_default()
-            .parse()
-            .unwrap_or(30);
 
         let max_concurrent_workers = env::var("MAX_CONCURRENT_WORKERS")
             .unwrap_or_default()
@@ -99,8 +78,6 @@ impl Config {
             agent_token,
             central_server_url,
             database_url,
-            python_path,
-            rpc_timeout_seconds,
             poll_interval_seconds,
             max_concurrent_workers,
             signature_ttl_days,
@@ -116,11 +93,9 @@ impl Config {
         info!("Agent ID           : {}", self.agent_id);
         info!("Central Server URL : {}", self.central_server_url);
         info!("Database URL       : {}", self.database_url);
-        info!("Python Path        : {}", self.python_path);
         info!("------------------------------------------------------------");
         info!("⚙️  RUNTIME SETTINGS");
         info!("------------------------------------------------------------");
-        info!("RPC Timeout        : {}s", self.rpc_timeout_seconds);
         info!("Poll Interval      : {}s", self.poll_interval_seconds);
         info!("Max Workers        : {}", self.max_concurrent_workers);
         info!("------------------------------------------------------------");
@@ -156,8 +131,6 @@ mod tests {
             agent_token: "test-token".to_string(),
             central_server_url: "ws://localhost:3001/api/ws".to_string(),
             database_url: "sqlite:test.db".to_string(),
-            python_path: "/usr/bin/python3".to_string(),
-            rpc_timeout_seconds: 30,
             poll_interval_seconds: 300,
             max_concurrent_workers: 5,
             signature_ttl_days: 90,
@@ -169,9 +142,7 @@ mod tests {
         assert_eq!(config.agent_token, "test-token");
         assert_eq!(config.central_server_url, "ws://localhost:3001/api/ws");
         assert_eq!(config.database_url, "sqlite:test.db");
-        assert_eq!(config.python_path, "/usr/bin/python3");
-        assert_eq!(config.rpc_timeout_seconds, 30);
-        assert_eq!(config.poll_interval_seconds, 60);
+        assert_eq!(config.poll_interval_seconds, 300);
         assert_eq!(config.max_concurrent_workers, 5);
         assert_eq!(config.signature_ttl_days, 90);
         assert_eq!(config.signature_cleanup_hours, 24);
@@ -188,7 +159,6 @@ mod tests {
             std::env::set_var("AGENT_TOKEN", "secret-token-123");
             std::env::set_var("CENTRAL_SERVER_URL", "wss://prod.example.com/ws");
             std::env::set_var("DATABASE_URL", "sqlite:prod.db");
-            std::env::set_var("RPC_TIMEOUT_SECONDS", "45");
             std::env::set_var("POLL_INTERVAL_SECONDS", "120");
             std::env::set_var("MAX_CONCURRENT_WORKERS", "10");
             std::env::set_var("SIGNATURE_TTL_DAYS", "30");
@@ -202,7 +172,6 @@ mod tests {
         assert_eq!(config.agent_token, "secret-token-123");
         assert_eq!(config.central_server_url, "wss://prod.example.com/ws");
         assert_eq!(config.database_url, "sqlite:prod.db");
-        assert_eq!(config.rpc_timeout_seconds, 45);
         assert_eq!(config.poll_interval_seconds, 120);
         assert_eq!(config.max_concurrent_workers, 10);
         assert_eq!(config.signature_ttl_days, 30);
@@ -215,7 +184,6 @@ mod tests {
             std::env::remove_var("AGENT_TOKEN");
             std::env::remove_var("CENTRAL_SERVER_URL");
             std::env::remove_var("DATABASE_URL");
-            std::env::remove_var("RPC_TIMEOUT_SECONDS");
             std::env::remove_var("POLL_INTERVAL_SECONDS");
             std::env::remove_var("MAX_CONCURRENT_WORKERS");
             std::env::remove_var("SIGNATURE_TTL_DAYS");
@@ -242,7 +210,6 @@ mod tests {
             std::env::remove_var("SIGNATURE_CLEANUP_HOURS");
             std::env::remove_var("INFLIGHT_TIMEOUT_SECS");
 
-            std::env::set_var("RPC_TIMEOUT_SECONDS", "not-a-number");
             std::env::set_var("POLL_INTERVAL_SECONDS", "");
             std::env::set_var("MAX_CONCURRENT_WORKERS", "-5");
             std::env::set_var("SIGNATURE_TTL_DAYS", "abc");
@@ -253,7 +220,6 @@ mod tests {
         let config = Config::load();
 
         // Should fall back to defaults for invalid values
-        assert_eq!(config.rpc_timeout_seconds, 30);
         assert_eq!(config.poll_interval_seconds, 300);
         // "-5" parses as invalid for usize, falls back to default
         assert_eq!(config.max_concurrent_workers, 5);
@@ -279,8 +245,6 @@ mod tests {
             agent_token: "token".to_string(),
             central_server_url: "ws://localhost".to_string(),
             database_url: "sqlite:test.db".to_string(),
-            python_path: "/usr/bin/python3".to_string(),
-            rpc_timeout_seconds: 30,
             poll_interval_seconds: 300,
             max_concurrent_workers: 5,
             signature_ttl_days: 90,

@@ -71,7 +71,6 @@ services:
       - apiserver
     command: >
       bash -c "
-        pip3 install --break-system-packages -q -r /agent-zk-worker/requirements.txt &&
         cargo watch -w src -x run
       "
     environment:
@@ -84,7 +83,6 @@ services:
       - RUST_LOG=info,sqlx::query=error
     volumes:
       - ./agent-main:/app
-      - ./agent-zk-worker:/agent-zk-worker
       - cargo-registry:/usr/local/cargo/registry
       - agent-target:/app/target
       - agent_dev_data:/app/data

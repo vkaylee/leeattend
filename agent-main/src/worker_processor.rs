@@ -9,7 +9,6 @@ pub struct WorkerConfig {
     pub brand: String,
     pub ip: String,
     pub port: u32,
-    pub sidecar_script: String,
 }
 
 /// Process fetched logs: Deduplicate and send to queue using correct Device ID
@@ -55,7 +54,6 @@ mod tests {
             brand: "test".to_string(),
             ip: "1.2.3.4".to_string(),
             port: 80,
-            sidecar_script: "script.py".to_string(),
         };
 
         let mut seen = HashSet::new();
@@ -85,7 +83,7 @@ mod tests {
     async fn test_deduplication_logic() {
         let (tx, _rx) = mpsc::channel(10);
         let config = WorkerConfig {
-            id: "id".into(), name: "name".into(), brand: "b".into(), ip: "i".into(), port: 0, sidecar_script: "s".into() 
+            id: "id".into(), name: "name".into(), brand: "b".into(), ip: "i".into(), port: 0, 
         };
         let mut seen = HashSet::new();
 

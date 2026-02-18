@@ -1,13 +1,14 @@
 mod cli;
+mod zk_worker;
+mod mock_worker;
 
-use std::process::Stdio;
+// use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Instant;
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
-use tokio::process::Command;
+// use tokio::process::Command;
 use tokio::time::{sleep, Duration};
-use agent::worker_client::WorkerClient;
 use agent::database::Database;
 use agent::central_client::CentralClient;
 use agent::hybrid_database::HybridDatabase;
@@ -19,9 +20,52 @@ use serde_json::json;
 use log::{info, error, warn};
 // use dotenvy::dotenv;
 use tokio_util::sync::CancellationToken;
-use tokio::net::TcpListener;
 use tokio::sync::{mpsc, Semaphore};
 use dashmap::DashMap;
+
+enum WorkerAdapter {
+    Zk(zk_worker::ZkWorker),
+    Mock(mock_worker::MockWorker),
+}
+
+impl WorkerAdapter {
+    async fn call(&mut self, method: &str, params: serde_json::Value) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
+        match self {
+            WorkerAdapter::Zk(worker) => {
+                match method {
+                    "device.connect" => {
+                        let ip = params["ip"].as_str().unwrap_or("");
+                        let port = params["port"].as_u64().unwrap_or(4370) as u16;
+                        worker.connect(ip, port).await.map(|_| serde_json::json!(true)).map_err(|e| e.into())
+                    },
+                    "device.get_logs" => {
+                        worker.get_attendance_logs().await.map(serde_json::Value::Array).map_err(|e| e.into())
+                    },
+                    "device.get_info" => {
+                        worker.get_info().await.map_err(|e| e.into())
+                    },
+                    _ => Err(format!("Unknown method: {method}").into())
+                }
+            }
+            WorkerAdapter::Mock(worker) => {
+                 match method {
+                    "device.connect" => {
+                        let ip = params["ip"].as_str().unwrap_or("");
+                        let port = params["port"].as_u64().unwrap_or(4370) as u16;
+                        worker.connect(ip, port).await.map(|_| serde_json::json!(true)).map_err(|e| e.into())
+                    },
+                    "device.get_logs" => {
+                        worker.get_attendance_logs().await.map(serde_json::Value::Array).map_err(|e| e.into())
+                    },
+                    "device.get_info" => {
+                        worker.get_info().await.map_err(|e| e.into())
+                    },
+                    _ => Err(format!("Unknown method: {method}").into())
+                }
+            }
+        }
+    }
+}
 
 #[derive(Clone)]
 struct WorkerConfig {
@@ -30,7 +74,6 @@ struct WorkerConfig {
     brand: String,
     ip: String,
     port: u32,
-    sidecar_script: String,
 }
 
 #[tokio::main]
@@ -438,18 +481,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         let workers: Vec<WorkerConfig> = db_devices.into_iter().map(|d| {
-            let sidecar_script = match d.brand.as_str() {
-                "zkteco" => "../agent-zk-worker/zk_worker.py".to_string(),
-                "mock" => "../agent-mock-worker/mock_worker.py".to_string(),
-                _ => "../agent-zk-worker/zk_worker.py".to_string(),
-            };
             WorkerConfig {
                 id: d.id.clone(),
                 name: d.name,
                 brand: d.brand,
                 ip: d.ip,
                 port: d.port as u32,
-                sidecar_script,
             }
         }).collect();
 
@@ -460,7 +497,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let status_tx = status_tx.clone();
             let hybrid_db = hybrid_db.clone();
             let token = worker_cancel_token.clone();
-            let python_path = config.python_path.clone();
             let sem = semaphore.clone();
 
             tokio::spawn(async move {
@@ -478,96 +514,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         sleep(delay).await;
                     }
 
-                    let listener = match TcpListener::bind("127.0.0.1:0").await {
-                        Ok(l) => l,
-                        Err(e) => {
-                            error!("[{}] Failed to bind local RPC listener: {}", worker.name, e);
-                            retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
-                            continue;
-                        }
-                    };
-                    let rpc_port = match listener.local_addr() {
-                        Ok(addr) => addr.port(),
-                        Err(e) => {
-                            error!("[{}] Failed to get local address: {}", worker.name, e);
-                            retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
-                            continue;
-                        }
-                    };
+                    let mut adapter: WorkerAdapter;
+                    
+                    if worker.brand == "mock" {
+                        adapter = WorkerAdapter::Mock(mock_worker::MockWorker::new());
+                    } else {
+                        // Default to ZKTeco
+                        adapter = WorkerAdapter::Zk(zk_worker::ZkWorker::new());
+                    }
 
-                    info!("[{}] Spawning sidecar ({}) on RPC port {}...", worker.name, worker.brand, rpc_port);
-
-                    let mut sidecar = match Command::new(&python_path)
-                        .arg(&worker.sidecar_script)
-                        .arg(rpc_port.to_string())
-                        .stdout(Stdio::piped())
-                        .stderr(Stdio::piped())
-                        .spawn() {
-                            Ok(s) => s,
-                            Err(e) => {
-                                error!("[{}] Failed to spawn sidecar: {}", worker.name, e);
-                                retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
-                                continue;
-                            }
-                        };
-
-                    let stream = tokio::select! {
-                        res = listener.accept() => {
-                            match res {
-                                Ok((s, _)) => s,
-                                Err(e) => {
-                                    error!("[{}] Accept error: {}", worker.name, e);
-                                    let _ = sidecar.kill().await;
-                                    retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
-                                    continue;
-                                }
-                            }
-                        }
-                        _ = sleep(Duration::from_secs(10)) => {
-                            error!("[{}] Sidecar connection timeout", worker.name);
-                            let _ = sidecar.kill().await;
-                            retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
-                            continue;
-                        }
-                        _ = token.cancelled() => {
-                            let _ = sidecar.kill().await;
-                            return;
-                        }
-                    };
-
-                    // Convert tokio TcpStream to std TcpStream for WorkerClient
-                    let std_stream = match stream.into_std() {
-                        Ok(s) => s,
-                        Err(e) => {
-                            error!("[{}] Failed to convert stream: {}", worker.name, e);
-                            let _ = sidecar.kill().await;
-                            retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
-                            continue;
-                        }
-                    };
-
-                    let mut client = match WorkerClient::from_stream(std_stream) {
-                        Ok(c) => c,
-                        Err(e) => {
-                            error!("[{}] Failed to create client: {}", worker.name, e);
-                            let _ = sidecar.kill().await;
-                            retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
-                            continue;
-                        }
-                    };
-
-                    info!("[{}] Sidecar connected and ready.", worker.name);
+                    info!("[{}] Worker ready.", worker.name);
                     stable_since = Some(Instant::now());
 
-                    if let Err(e) = client.call("device.connect", json!({"ip": worker.ip, "port": worker.port})) {
+                    if let Err(e) = adapter.call("device.connect", json!({"ip": worker.ip, "port": worker.port})).await {
                         error!("[{}] Device connection failed: {}", worker.name, e);
-                        let _ = sidecar.kill().await;
                         retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
                         continue;
                     }
 
                     // Send initial status update immediately
-                    if let Ok(mut info) = client.call("device.get_info", json!({})) {
+                    if let Ok(mut info) = adapter.call("device.get_info", json!({})).await {
                         // NEW: Persist to local SQLite
                         if let Some(obj) = info.as_object() {
                             let _ = hybrid_db.disk_db().update_device_metadata(
@@ -625,7 +591,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                         // Periodically fetch device info (every 5 polls or when just connected)
                         if poll_count % 5 == 1 {
-                            if let Ok(mut info) = client.call("device.get_info", json!({})) {
+                        if let Ok(mut info) = adapter.call("device.get_info", json!({})).await {
                                 // NEW: Persist to local SQLite
                                 if let Some(obj) = info.as_object() {
                                     let _ = hybrid_db.disk_db().update_device_metadata(
@@ -660,7 +626,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                         }
 
-                        match client.call("device.get_logs", json!({})) {
+                        match adapter.call("device.get_logs", json!({})).await {
                             Ok(res) => {
                                 // Check stability and reset retry count if stable
                                 if let Some(since) = stable_since
@@ -747,7 +713,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         sleep(Duration::from_secs(polling_state.interval())).await;
                     }
 
-                    let _ = sidecar.kill().await;
                     if !token.is_cancelled() {
                         // Report connecting status during retry delay
                         let _ = status_tx.send(models::DeviceStatus {

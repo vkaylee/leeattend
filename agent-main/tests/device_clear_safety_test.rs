@@ -41,51 +41,6 @@ async fn test_device_logs_never_cleared() {
     assert_eq!(clears, 0, "Device logs should NEVER be cleared (safety requirement)");
 }
 
-#[tokio::test]
-async fn test_worker_client_has_no_clear_method() {
-    // This test documents that WorkerClient intentionally does NOT
-    // implement a clear_logs method
-
-    use agent::worker_client::WorkerClient;
-    use std::net::TcpListener;
-    use std::thread;
-    use std::io::{BufRead, BufReader, Write};
-
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    let addr = listener.local_addr().unwrap();
-
-    // Mock sidecar that would reject clear_logs if called
-    let server_handle = thread::spawn(move || {
-        let (mut stream, _) = listener.accept().unwrap();
-        let mut reader = BufReader::new(stream.try_clone().unwrap());
-        let mut line = String::new();
-        reader.read_line(&mut line).unwrap();
-
-        // Parse request
-        let req: serde_json::Value = serde_json::from_str(&line).unwrap();
-        let method = req["method"].as_str().unwrap();
-
-        // If someone tries to call clear_logs, return error
-        let response = if method == "device.clear_logs" {
-            format!(r#"{{"jsonrpc":"2.0","error":{{"code":-32601,"message":"Method device.clear_logs not implemented (safety)"}},"id":{}}}"#, req["id"])
-        } else {
-            format!(r#"{{"jsonrpc":"2.0","result":"ok","id":{}}}"#, req["id"])
-        };
-
-        stream.write_all(response.as_bytes()).unwrap();
-        stream.write_all(b"\n").unwrap();
-        stream.flush().unwrap();
-    });
-
-    let stream = std::net::TcpStream::connect(addr).unwrap();
-    let mut client = WorkerClient::from_stream(stream).unwrap();
-
-    // Normal operations work
-    let result = client.call("device.connect", serde_json::json!({"ip": "192.168.1.1", "port": 4370}));
-    assert!(result.is_ok(), "Normal operations should work");
-
-    server_handle.join().unwrap();
-}
 
 #[tokio::test]
 async fn test_polling_loop_never_calls_clear() {

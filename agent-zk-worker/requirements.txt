@@ -1,6 +1,0 @@
-python-dotenv
-pyzk2
-psutil
-pytest
-pytest-asyncio
-pytest-timeout
