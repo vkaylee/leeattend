@@ -342,13 +342,11 @@ Hệ thống sử dụng mô hình **Worker Architecture** để tối ưu hóa 
 - **Persistence**: Trực tiếp quản lý file `attendance.db` thông qua thư viện `sqlx`. Mọi log từ thiết bị đều được Rust lưu trữ trước khi đồng bộ lên Cloud.
 - **Reliability**: Tích hợp cơ chế **Exponential Backoff** và **Heartbeat** mạnh mẽ để duy trì kết nối WebSocket ổn định.
 
-### 1.2. Rust ZK Worker (Stateless Thin Driver)
-- **Responsibility**: Đóng vai trò là một driver phần cứng thuần túy, cung cấp API JSON-RPC để giao tiếp với thiết bị ZKTeco (Native Rust).
-- **Simplified Architecture**: Đã được viết lại hoàn toàn bằng Rust để loại bỏ sự phụ thuộc vào Python và tăng hiệu năng.
-- **Stateless**: Worker này không còn quản lý Database, không có logic đồng bộ Cloud và không lưu trữ trạng thái. Mọi dữ liệu thu thập được sẽ được trả về ngay lập tức cho Rust Agent.
-- **Communication**: Kết nối với Rust Agent qua giao thức **JSON-RPC 2.0** chạy trên Localhost TCP.
-- **Isolation**: Đảm bảo lỗi từ driver phần cứng không ảnh hưởng đến logic nghiệp vụ chính của Agent.
-... (giữ nguyên) ...
+### 1.2. Integrated ZK Worker (via rustzk)
+- **Responsibility**: Giao tiếp trực tiếp với thiết bị ZKTeco thông qua thư viện `rustzk` (crate), không cần worker process riêng.
+- **Simplified Architecture**: Loại bỏ hoàn toàn sự phụ thuộc vào worker process riêng biệt (`agent-zk-worker-rs` đã được gỡ bỏ) — tất cả giao tiếp phần cứng chạy trực tiếp trong `agent-main`.
+- **Stateless Driver**: Logic driver ZK không quản lý database hay trạng thái riêng; chỉ thu thập dữ liệu và trả về cho orchestrator.
+- **Isolation via spawn_blocking**: Sử dụng `tokio::task::spawn_blocking` để đảm bảo các I/O đồng bộ với thiết bị không block async runtime.
 
 ## 2. API Server (Server Side)
 Core backend viết bằng **Rust** sử dụng framework **Axum**.
@@ -472,7 +470,7 @@ Instead of connecting to a live Rust backend, the frontend in test mode interact
 ## 🤖 Edge Agent Architecture
 
 ### 1. Unified Rust Architecture
-The system utilizes a modern Rust-only architecture where the Rust Orchestrator (`agent-main`) manages internal Rust worker tasks (`agent-zk-worker-rs`). 
+The system utilizes a modern Rust-only architecture where the Rust Orchestrator (`agent-main`) handles all ZK device communication directly via the `rustzk` crate, without a separate worker process.
 
 To ensure maximum reliability and ease of deployment, the communication model is inverted:
 - **Worker as Client**: The Rust worker receives connection details and proactively connects to the Orchestrator.

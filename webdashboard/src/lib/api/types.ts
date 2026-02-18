@@ -6,6 +6,7 @@ export interface DeviceStatus {
   info?: {
     users_count: number;
     logs_count: number;
+    logs_capacity?: number;
     device_time: string;
     firmware: string;
     mac?: string;

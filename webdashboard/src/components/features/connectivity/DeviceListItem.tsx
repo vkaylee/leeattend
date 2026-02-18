@@ -94,8 +94,8 @@ export default function DeviceListItem({
       data-testid={`device-item-${device.id}`}
       className={cn(
         "relative flex flex-col p-5 rounded-[1.5rem] transition-all group border-2",
-        isDimmed 
-          ? "bg-slate-50/50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800 opacity-60" 
+        isDimmed
+          ? "bg-slate-50/50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800 opacity-60"
           : "bg-white dark:bg-slate-900 border-transparent hover:border-primary-100 dark:hover:border-primary-900 shadow-sm",
       )}
     >
@@ -104,7 +104,7 @@ export default function DeviceListItem({
         <div className="flex items-center gap-3 min-w-0">
           <div className={cn(
             "w-10 h-10 rounded-xl flex items-center justify-center border shadow-inner shrink-0",
-            status?.status === "online" 
+            status?.status === "online"
               ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 border-emerald-100 dark:border-emerald-800"
               : "bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700"
           )}>
@@ -164,13 +164,15 @@ export default function DeviceListItem({
           </div>
         </div>
 
-        {/* Logs */}
+        {/* Logs / Capacity */}
         <div className="flex flex-col gap-1 min-w-[80px]">
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Logs</span>
+          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Logs / Cap</span>
           <div className="flex items-center gap-1.5">
             <ClipboardList size={12} className="text-amber-400" />
             <span className="text-sm font-black text-amber-600">
-              {!status ? "--" : (typeof status.info?.logs_count === 'number' && status.info.logs_count >= 0 ? status.info.logs_count : "N/A")}
+              {!status ? "--" : (typeof status.info?.logs_count === 'number' && status.info.logs_count >= 0
+                ? (<>{status.info.logs_count.toLocaleString()}{typeof status.info?.logs_capacity === 'number' && status.info.logs_capacity > 0 ? <span className="text-slate-400 font-bold text-[10px]"> / {status.info.logs_capacity.toLocaleString()}</span> : ''}</>)
+                : "N/A")}
             </span>
           </div>
         </div>

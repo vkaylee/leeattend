@@ -31,11 +31,14 @@ const mockStatus: DeviceStatus = {
   info: {
     users_count: 42,
     logs_count: 1337,
+    logs_capacity: 50000,
     device_time: "2023-01-01 10:00:00",
     firmware: "FW 1.2",
     last_sync: "2023-01-01 10:00:01",
   },
 };
+
+const LOGS_LABEL = "Logs / Cap";
 
 describe("DeviceListItem", () => {
   it("renders basic device info", () => {
@@ -43,8 +46,8 @@ describe("DeviceListItem", () => {
       <ToastProvider>
         <DeviceListItem
           device={mockDevice}
-          onUpdate={async () => {}}
-          onDelete={async () => {}}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
         />
       </ToastProvider>
     );
@@ -58,14 +61,13 @@ describe("DeviceListItem", () => {
         <DeviceListItem
           device={mockDevice}
           status={mockStatus}
-          onUpdate={async () => {}}
-          onDelete={async () => {}}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
         />
       </ToastProvider>
     );
     expect(screen.getByText("2023-01-01 10:00:00")).toBeDefined();
     expect(screen.getByText("42")).toBeDefined();
-    expect(screen.getByText("1337")).toBeDefined();
     expect(screen.getByText("vFW 1.2")).toBeDefined();
   });
 
@@ -75,13 +77,12 @@ describe("DeviceListItem", () => {
         <DeviceListItem
           device={mockDevice}
           status={undefined}
-          onUpdate={async () => {}}
-          onDelete={async () => {}}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
         />
       </ToastProvider>
     );
-    // Find by the exact text "--"
-    const logsValue = screen.getByText("Logs").nextElementSibling?.textContent;
+    const logsValue = screen.getByText(LOGS_LABEL).nextElementSibling?.textContent;
     expect(logsValue).toContain("--");
   });
 
@@ -95,13 +96,12 @@ describe("DeviceListItem", () => {
         <DeviceListItem
           device={mockDevice}
           status={statusWithNull}
-          onUpdate={async () => {}}
-          onDelete={async () => {}}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
         />
       </ToastProvider>
     );
-    // Check text inside the Logs section specifically
-    const logsValue = screen.getByText("Logs").nextElementSibling?.textContent;
+    const logsValue = screen.getByText(LOGS_LABEL).nextElementSibling?.textContent;
     expect(logsValue).toContain("N/A");
   });
 
@@ -115,12 +115,75 @@ describe("DeviceListItem", () => {
         <DeviceListItem
           device={mockDevice}
           status={statusWithZero}
-          onUpdate={async () => {}}
-          onDelete={async () => {}}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
         />
       </ToastProvider>
     );
-    const logsValue = screen.getByText("Logs").nextElementSibling?.textContent;
+    const logsValue = screen.getByText(LOGS_LABEL).nextElementSibling?.textContent;
     expect(logsValue).toContain("0");
+  });
+
+  // ===== LOGS/CAPACITY TESTS =====
+
+  it("renders logs count with capacity when both are available", () => {
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={mockDevice}
+          status={mockStatus}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    const logsSection = screen.getByText(LOGS_LABEL).nextElementSibling;
+    const text = logsSection?.textContent || "";
+    // Should show logs_count and capacity with separator
+    expect(text).toContain("1,337");
+    expect(text).toContain("50,000");
+    expect(text).toContain("/");
+  });
+
+  it("renders only logs count when logs_capacity is missing", () => {
+    const statusNoCapacity: DeviceStatus = {
+      ...mockStatus,
+      info: { ...mockStatus.info!, logs_capacity: undefined },
+    };
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={mockDevice}
+          status={statusNoCapacity}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    const logsSection = screen.getByText(LOGS_LABEL).nextElementSibling;
+    const text = logsSection?.textContent || "";
+    expect(text).toContain("1,337");
+    expect(text).not.toContain("/");
+  });
+
+  it("renders only logs count when logs_capacity is 0", () => {
+    const statusZeroCapacity: DeviceStatus = {
+      ...mockStatus,
+      info: { ...mockStatus.info!, logs_capacity: 0 },
+    };
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={mockDevice}
+          status={statusZeroCapacity}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    const logsSection = screen.getByText(LOGS_LABEL).nextElementSibling;
+    const text = logsSection?.textContent || "";
+    expect(text).toContain("1,337");
+    expect(text).not.toContain("/");
   });
 });

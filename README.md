@@ -6,12 +6,8 @@ A comprehensive attendance management system comprising a local agent for ZKTeco
 
 ```
 leeattend/
-├── agent-main/       # Rust Agent Orchestrator (Main Entry Point)
-│   └── Manages Python Sidecar processes
-│
-├── agent-zk-worker-rs/ # Rust ZK Worker (New)
-│   ├── High-performance ZK protocol implementation
-│   └── Native Rust hardware communication
+├── agent-main/       # Rust Agent Orchestrator + ZK Device Worker
+│   └── Native Rust hardware communication via rustzk
 │
 ├── apiserver/        # Rust API Server (Runs on Central Cloud/Server)
 │   ├── High-performance REST API (Axum)
@@ -23,9 +19,8 @@ leeattend/
 ## Dự án bao gồm các thành phần:
 
 1.  **apiserver**: Viết bằng **Rust (Axum)**, chịu trách nhiệm quản lý Agent, nhận log và cung cấp API cho Dashboard.
-2.  **agent-main**: Viết bằng **Rust**, đóng vai trò Agent Orchestrator quản lý tiến trình.
-3.  **agent-zk-worker-rs**: Viết bằng **Rust**, chứa logic xử lý thiết bị ZKTeco (Native Rust) và đồng bộ dữ liệu.
-4.  **webdashboard**: Viết bằng **React (Vite)**, giao diện web để quản lý và theo dõi hệ thống.
+2.  **agent-main**: Viết bằng **Rust**, đóng vai trò Agent Orchestrator + ZK Worker giao tiếp thiết bị ZKTeco trực tiếp qua `rustzk`.
+3.  **webdashboard**: Viết bằng **React (Vite)**, giao diện web để quản lý và theo dõi hệ thống.
 5.  **docs**: Tài liệu hướng dẫn chi tiết.
 
 

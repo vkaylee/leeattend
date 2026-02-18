@@ -30,6 +30,7 @@ impl MockWorker {
         Ok(serde_json::json!({
             "users_count": 100,
             "logs_count": 500,
+            "logs_capacity": 10000,
             "device_time": Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
             "firmware": "MOCK_FW_v1.0",
             "mac": "00:00:00:00:00:00",

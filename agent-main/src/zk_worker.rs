@@ -131,7 +131,7 @@ impl ZkWorker {
         let res: Result<(ZK, bool, NaiveDateTime), _> = tokio::task::spawn_blocking(move || {
             let now = chrono::Local::now().naive_local();
             
-            // Manual set_time implementation matches what was verified in agent-zk-worker-rs
+            // Manual set_time implementation using ZK binary protocol
             use chrono::Datelike;
             use chrono::Timelike;
             
@@ -173,6 +173,7 @@ impl ZkWorker {
         })?;
 
         let res = tokio::task::spawn_blocking(move || {
+            let _ = zk.read_sizes(); // populate capacity fields (rec_cap, users_cap, etc.)
             let users_count = zk.get_users().map(|u| u.len()).unwrap_or(0);
             let logs_count = zk.get_attendance().map(|l| l.len()).unwrap_or(0);
             let time = zk.get_time().map(|t| t.to_string().replace("T", " ")).unwrap_or("N/A".to_string());
@@ -185,6 +186,7 @@ impl ZkWorker {
             let info = serde_json::json!({
                 "users_count": users_count,
                 "logs_count": logs_count,
+                "logs_capacity": zk.rec_cap,
                 "device_time": time,
                 "firmware": firmware,
                 "mac": mac,

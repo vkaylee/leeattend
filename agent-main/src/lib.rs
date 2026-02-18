@@ -13,4 +13,5 @@ pub mod retry;
 pub mod utils;
 
 pub mod worker_processor;
+pub mod mock_worker;
 
