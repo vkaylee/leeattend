@@ -5,8 +5,8 @@
 ### 0. Graceful Shutdown & Lifecycle Management
 To ensure data integrity and clean process termination, both the Edge Agent and the Central Server implement proactive signal handling:
 - **Signal Propagation**: Upon receiving `SIGINT` (Ctrl+C) or `SIGTERM`, the Orchestrator (`agent-main`) triggers a `CancellationToken`. This immediately signals all background tasks (WebSocket sync, device polling, heartbeat) to stop after their current unit of work.
-- **Sidecar Cleanup**: The Orchestrator explicitly kills the Python sidecar process and waits for its exit, preventing "zombie" processes from lingering on the host system.
-- **Stateless Exit**: The Python worker uses an `asyncio.Event` to stop its JSON-RPC server and close hardware connections safely before exiting.
+- **Worker Management**: All hardware workers are managed as concurrent Rust tasks. The Orchestrator ensures clean termination of all active hardware connections upon shutdown.
+- **Stateless Exit**: Workers close hardware connections safely and notify the orchestrator before exiting.
 
 ### 1. Guaranteed Delivery (ACK Protocol)
 - Agent chỉ đánh dấu log là `is_synced = 1` sau khi nhận được bản tin `type: "ack"` từ Server.
@@ -38,8 +38,8 @@ The WS Connection Manager uses independent tokio tasks for reading and writing t
 - Resets retry count to 0 after connection remains stable for 60 seconds
 - Logs all connection state transitions with structured error messages
 
-#### 2.2 Sidecar (Device Worker) Connection
-The agent spawns brand-specific Python sidecars (ZKTeco, Mock) that poll biometric devices:
+#### 2.2 Device Worker Connection
+The agent spawns brand-specific Rust workers (ZKTeco, Mock) that poll biometric devices:
 
 - **RPC Protocol**: JSON-RPC 2.0 over TCP (loopback at 127.0.0.1)
 - **Max Retry Delay**: 60 seconds (capped)
@@ -57,9 +57,9 @@ pub fn get_sidecar_retry_delay(retry_count: u32) -> Duration
 ```
 
 Each worker maintains independent retry tracking:
-- Initial sidecar spawn failure → increment retry count, apply backoff, restart
-- Sidecar connection timeout (>10s) → increment retry count, kill process, restart
-- Device polling error → increment retry count, kill sidecar, restart
+- Initial worker start failure → increment retry count, apply backoff, restart
+- Worker timeout (>10s) → increment retry count, restart
+- Device polling error → increment retry count, restart
 - Successful polling for 30s → reset retry count to 0
 
 #### 2.3 Worker Client Improvements
@@ -78,9 +78,9 @@ All failure points increment retry count and apply exponential backoff:
 3. **Connection accept timeout** → Kill sidecar, retry with backoff
 4. **Stream conversion error** → Kill sidecar, retry with backoff
 5. **Client creation error** → Kill sidecar, retry with backoff
-6. **Device.connect RPC error** → Kill sidecar, retry with backoff
-7. **Device.get_logs RPC error** → Kill sidecar, retry with backoff
-8. **Connection drop** → Kill sidecar, retry with backoff
+6. **Device.connect RPC error** → Kill worker, retry with backoff
+7. **Device.get_logs RPC error** → Kill worker, retry with backoff
+8. **Connection drop** → Kill worker, retry with backoff
 
 The system is designed to tolerate transient network issues, slow hardware, and temporary service unavailability without manual intervention.
 
@@ -342,11 +342,11 @@ Hệ thống sử dụng mô hình **Sidecar Architecture** để tối ưu hóa
 - **Persistence**: Trực tiếp quản lý file `attendance.db` thông qua thư viện `sqlx`. Mọi log từ thiết bị đều được Rust lưu trữ trước khi đồng bộ lên Cloud.
 - **Reliability**: Tích hợp cơ chế **Exponential Backoff** và **Heartbeat** mạnh mẽ để duy trì kết nối WebSocket ổn định.
 
-### 1.2. Python ZK Worker (Stateless Thin Driver)
-- **Responsibility**: Đóng vai trò là một driver phần cứng thuần túy, cung cấp API JSON-RPC để giao tiếp với thiết bị ZKTeco thông qua thư viện `pyzk2`.
-- **Simplified Architecture**: Đã được refactor để loại bỏ hoàn toàn các phụ thuộc không cần thiết (`models`, `device_manager`). Chỉ giữ lại `ZKWorker` (RPC Server) và `ZKService` (ZK Protocol wrapper).
+### 1.2. Rust ZK Worker (Stateless Thin Driver)
+- **Responsibility**: Đóng vai trò là một driver phần cứng thuần túy, cung cấp API JSON-RPC để giao tiếp với thiết bị ZKTeco (Native Rust).
+- **Simplified Architecture**: Đã được viết lại hoàn toàn bằng Rust để loại bỏ sự phụ thuộc vào Python và tăng hiệu năng.
 - **Stateless**: Worker này không còn quản lý Database, không có logic đồng bộ Cloud và không lưu trữ trạng thái. Mọi dữ liệu thu thập được sẽ được trả về ngay lập tức cho Rust Agent.
-- **Communication**: Kết nối với Rust Agent qua giao thức **JSON-RPC 2.0** chạy trên Localhost TCP (Port 5000).
+- **Communication**: Kết nối với Rust Agent qua giao thức **JSON-RPC 2.0** chạy trên Localhost TCP.
 - **Isolation**: Đảm bảo lỗi từ driver phần cứng không ảnh hưởng đến logic nghiệp vụ chính của Agent.
 ... (giữ nguyên) ...
 
@@ -471,8 +471,8 @@ Instead of connecting to a live Rust backend, the frontend in test mode interact
 
 ## 🤖 Edge Agent Architecture
 
-### 1. Inverted Master-Sidecar Communication
-The system utilizes a hybrid Rust/Python architecture where the Rust Orchestrator (`agent-main`) acts as the "Master" and the Python script (`agent-zk-worker`) acts as the "Sidecar". 
+### 1. Unified Rust Architecture
+The system utilizes a modern Rust-only architecture where the Rust Orchestrator (`agent-main`) manages internal Rust worker tasks (`agent-zk-worker-rs`). 
 
 To ensure maximum reliability and ease of deployment, the communication model is inverted:
 - **Rust as Server**: The Orchestrator opens a TCP Server on a **dynamic port** (assigned by the OS at runtime, port 0).

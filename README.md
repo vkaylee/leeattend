@@ -9,9 +9,9 @@ leeattend/
 ├── agent-main/       # Rust Agent Orchestrator (Main Entry Point)
 │   └── Manages Python Sidecar processes
 │
-├── agent-zk-worker/  # Python ZK Worker (Sidecar)
-│   ├── Connects to ZKTeco devices
-│   └── Syncs data to Central Server
+├── agent-zk-worker-rs/ # Rust ZK Worker (New)
+│   ├── High-performance ZK protocol implementation
+│   └── Native Rust hardware communication
 │
 ├── apiserver/        # Rust API Server (Runs on Central Cloud/Server)
 │   ├── High-performance REST API (Axum)
@@ -24,7 +24,7 @@ leeattend/
 
 1.  **apiserver**: Viết bằng **Rust (Axum)**, chịu trách nhiệm quản lý Agent, nhận log và cung cấp API cho Dashboard.
 2.  **agent-main**: Viết bằng **Rust**, đóng vai trò Agent Orchestrator quản lý tiến trình.
-3.  **agent-zk-worker**: Viết bằng **Python**, chứa logic xử lý thiết bị ZKTeco và đồng bộ dữ liệu.
+3.  **agent-zk-worker-rs**: Viết bằng **Rust**, chứa logic xử lý thiết bị ZKTeco (Native Rust) và đồng bộ dữ liệu.
 4.  **webdashboard**: Viết bằng **React (Vite)**, giao diện web để quản lý và theo dõi hệ thống.
 5.  **docs**: Tài liệu hướng dẫn chi tiết.
 
