@@ -1716,7 +1716,9 @@
       "delete_error": "Lỗi khi xóa thiết bị.",
       "disabled": "Đã tắt {{name}}",
       "enabled": "Đã bật {{name}}",
-      "toggle_error": "Không thể cập nhật trạng thái thiết bị"
+      "toggle_error": "Không thể cập nhật trạng thái thiết bị",
+      "refresh_sent": "Đã gửi lệnh làm mới dữ liệu.",
+      "refresh_error": "Lỗi khi gửi lệnh làm mới."
     },
     "form": {
       "infrastructure": "Hạ tầng kết nối",

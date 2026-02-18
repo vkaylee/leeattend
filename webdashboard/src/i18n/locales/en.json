@@ -1716,7 +1716,9 @@
       "delete_error": "Error deleting device.",
       "disabled": "{{name}} has been disabled",
       "enabled": "{{name}} has been enabled",
-      "toggle_error": "Failed to update device status"
+      "toggle_error": "Failed to update device status",
+      "refresh_sent": "Refresh command sent.",
+      "refresh_error": "Failed to send refresh command."
     },
     "form": {
       "infrastructure": "Connection Infrastructure",

@@ -21,6 +21,7 @@ use log::{info, error, warn};
 use tokio_util::sync::CancellationToken;
 use tokio::net::TcpListener;
 use tokio::sync::{mpsc, Semaphore};
+use dashmap::DashMap;
 
 #[derive(Clone)]
 struct WorkerConfig {
@@ -107,6 +108,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await
         .expect("Failed to initialize HybridDatabase");
 
+    // ONE-TIME FIX: Reset any legacy -1 counts in DB to 0
+    let _ = sqlx::query("UPDATE devices SET logs_count = 0 WHERE logs_count = -1").execute(hybrid_db.disk_db().get_pool()).await;
+    let _ = sqlx::query("UPDATE devices SET users_count = 0 WHERE users_count = -1").execute(hybrid_db.disk_db().get_pool()).await;
+
     // Perform crash recovery if needed
     if crash_marker.check_crash() {
         let recovered = recover_from_crash(hybrid_db.disk_db()).await
@@ -131,20 +136,117 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut current_max_workers = config.max_concurrent_workers;
     info!("⚙️ Using default Max Workers: {current_max_workers} (until ConfigPush)");
 
+    let command_registry = Arc::new(DashMap::new());
     let (central_client, central_rx, mut reload_rx) = CentralClient::new(
         config.central_server_url.clone(),
         config.agent_id.clone(),
         config.agent_token.clone(),
         hybrid_db.clone(),
         config.inflight_timeout_secs,
+        command_registry.clone(),
     );
-    central_client.start(central_rx).await;
+    
+    // Get tx before moving central_client into start task
+    let sr_central_tx = central_client.get_tx();
+    let central_client_task = central_client.start(central_rx);
+    tokio::spawn(central_client_task);
 
     // --- DB Writer Worker (Batch Mode) ---
     // Use Arc<AtomicBool> to ensure only one writer starts
     let writer_started = Arc::new(std::sync::atomic::AtomicBool::new(false));
     let (log_tx, mut log_rx) = mpsc::channel::<(String, models::AttendanceData)>(10000);
+    let (status_tx, mut status_rx) = mpsc::channel::<models::DeviceStatus>(100);
     let writer_hybrid = hybrid_db.clone();
+
+    // --- Status Reporting Task ---
+    let sr_agent_id = config.agent_id.clone();
+    let device_memory = Arc::new(DashMap::<String, models::DeviceStatus>::new());
+    let task_device_memory = device_memory.clone();
+    // Cache to track what we last sent to the central server to avoid redundant traffic
+    let last_sent_memory = Arc::new(DashMap::<String, (String, i64)>::new()); 
+
+    tokio::spawn(async move {
+        info!("📊 Status Reporting Task started (Push-on-change mode)");
+        // Periodic safety heartbeat (every 5 minutes) even if no changes
+        let mut heartbeat_interval = tokio::time::interval(Duration::from_secs(300));
+        heartbeat_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+
+        loop {
+            tokio::select! {
+                status = status_rx.recv() => {
+                    if let Some(s) = status {
+                        let id = s.device_id.clone();
+                        let mut has_changed = false;
+
+                        // 1. Update local cache and detect change
+                        task_device_memory.entry(id.clone())
+                            .and_modify(|existing| {
+                                // Important: determine if critical data changed before updating
+                                let new_logs = s.info.as_ref().and_then(|i| i["logs_count"].as_i64()).unwrap_or(-1);
+                                
+                                let last_info = last_sent_memory.get(&id);
+                                if last_info.is_none() || 
+                                   last_info.as_ref().unwrap().0 != s.status || 
+                                   last_info.as_ref().unwrap().1 != new_logs 
+                                {
+                                    has_changed = true;
+                                    last_sent_memory.insert(id.clone(), (s.status.clone(), new_logs));
+                                }
+
+                                existing.status = s.status.clone();
+                                existing.last_sync = s.last_sync;
+                                existing.error = s.error.clone();
+                                if let Some(new_info) = s.info.clone() {
+                                    if let Some(existing_info) = existing.info.as_mut() {
+                                        if let (Some(e_obj), Some(n_obj)) = (existing_info.as_object_mut(), new_info.as_object()) {
+                                            for (k, v) in n_obj {
+                                                if (k == "logs_count" || k == "users_count") && v.as_i64() == Some(-1) {
+                                                    continue;
+                                                }
+                                                e_obj.insert(k.clone(), v.clone());
+                                            }
+                                        }
+                                    } else {
+                                        existing.info = Some(new_info);
+                                    }
+                                }
+                            })
+                            .or_insert_with(|| {
+                                has_changed = true;
+                                let new_logs = s.info.as_ref().and_then(|i| i["logs_count"].as_i64()).unwrap_or(-1);
+                                last_sent_memory.insert(id.clone(), (s.status.clone(), new_logs));
+                                s
+                            });
+                        
+                        // 2. Only push to Cloud if something meaningful changed
+                        if has_changed {
+                            let devices: Vec<models::DeviceStatus> = task_device_memory.iter().map(|r| r.value().clone()).collect();
+                            let msg = models::CentralMessage::StatusUpdate {
+                                agent_id: sr_agent_id.clone(),
+                                devices,
+                                timestamp: chrono::Utc::now().to_rfc3339(),
+                            };
+                            let _ = sr_central_tx.send(msg).await;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                _ = heartbeat_interval.tick() => {
+                    // Safety heartbeat: send current state every 5 mins regardless of changes
+                    if !task_device_memory.is_empty() {
+                        let devices: Vec<models::DeviceStatus> = task_device_memory.iter().map(|r| r.value().clone()).collect();
+                        let msg = models::CentralMessage::StatusUpdate {
+                            agent_id: sr_agent_id.clone(),
+                            devices,
+                            timestamp: chrono::Utc::now().to_rfc3339(),
+                        };
+                        let _ = sr_central_tx.send(msg).await;
+                    }
+                }
+            }
+        }
+    });
 
     if !writer_started.swap(true, std::sync::atomic::Ordering::SeqCst) {
         tokio::spawn(async move {
@@ -311,6 +413,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Err(e) = hybrid_db.load_device_memory(&d.id).await {
                 error!("Failed to load memory for device {}: {}", d.id, e);
             }
+            
+            // NEW: Seed the real-time status memory from database if metadata exists
+            if let Some(serial) = &d.serial {
+                let info = json!({
+                    "mac": d.mac.as_deref().unwrap_or("N/A"),
+                    "serial": serial,
+                    "firmware": d.firmware.as_deref().unwrap_or("N/A"),
+                    "platform": d.platform.as_deref().unwrap_or("N/A"),
+                    "hw_name": d.hw_name.as_deref().unwrap_or("N/A"),
+                    "users_count": d.users_count.unwrap_or(0),
+                    "logs_count": d.logs_count.unwrap_or(0),
+                    "device_time": "Last Known",
+                    "last_sync": d.last_info_update.map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string()).unwrap_or_else(|| "N/A".to_string())
+                });
+                device_memory.insert(d.id.to_lowercase(), models::DeviceStatus {
+                    device_id: d.id.to_lowercase(),
+                    status: "offline".to_string(), // Initially offline until worker connects
+                    last_sync: None,
+                    error: None,
+                    info: Some(info),
+                });
+            }
         }
 
         let workers: Vec<WorkerConfig> = db_devices.into_iter().map(|d| {
@@ -333,6 +457,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         for worker in workers {
             let log_tx = log_tx.clone();
+            let status_tx = status_tx.clone();
+            let hybrid_db = hybrid_db.clone();
             let token = worker_cancel_token.clone();
             let python_path = config.python_path.clone();
             let sem = semaphore.clone();
@@ -440,6 +566,41 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         continue;
                     }
 
+                    // Send initial status update immediately
+                    if let Ok(mut info) = client.call("device.get_info", json!({})) {
+                        // NEW: Persist to local SQLite
+                        if let Some(obj) = info.as_object() {
+                            let _ = hybrid_db.disk_db().update_device_metadata(
+                                &worker.id,
+                                obj.get("mac").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                obj.get("serial").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                obj.get("firmware").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                obj.get("platform").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                obj.get("hw_name").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                obj.get("users_count").and_then(|v| v.as_i64()).unwrap_or(0),
+                                obj.get("logs_count").and_then(|v| v.as_i64()).unwrap_or(0),
+                            ).await;
+                        }
+
+                        // ENRICH: If sidecar returns -1 for logs_count, try to get from DB
+                        if info["logs_count"].as_i64() == Some(-1) {
+                            if let Ok(Some(meta)) = hybrid_db.disk_db().get_device_metadata(&worker.id).await {
+                                info["logs_count"] = json!(meta.logs_count.unwrap_or(0));
+                                info["users_count"] = json!(meta.users_count.unwrap_or(0));
+                            }
+                        }
+
+                        let status = models::DeviceStatus {
+                            device_id: worker.id.to_lowercase(),
+                            status: "online".to_string(),
+                            last_sync: Some(chrono::Utc::now()),
+                            error: None,
+                            info: Some(info),
+                        };
+
+                        let _ = status_tx.send(status).await;
+                    }
+
                     // In-memory duplicate detection: hash-based keys (8 bytes each instead of ~40 for String)
                     // Hash of (user_id, timestamp) — device_id is implicit per worker
                     let mut seen_logs: HashSet<u64> = HashSet::with_capacity(32_000);
@@ -447,6 +608,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     // Adaptive polling: reduce frequency when no new data
                     let mut polling_state = AdaptivePollingState::new();
+                    let mut poll_count = 0;
 
                     while !token.is_cancelled() {
                         // Acquire semaphore permit for this poll cycle (fair round-robin)
@@ -459,6 +621,45 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                         };
 
+                        poll_count += 1;
+
+                        // Periodically fetch device info (every 5 polls or when just connected)
+                        if poll_count % 5 == 1 {
+                            if let Ok(mut info) = client.call("device.get_info", json!({})) {
+                                // NEW: Persist to local SQLite
+                                if let Some(obj) = info.as_object() {
+                                    let _ = hybrid_db.disk_db().update_device_metadata(
+                                        &worker.id,
+                                        obj.get("mac").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                        obj.get("serial").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                        obj.get("firmware").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                        obj.get("platform").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                        obj.get("hw_name").and_then(|v| v.as_str()).unwrap_or("N/A"),
+                                        obj.get("users_count").and_then(|v| v.as_i64()).unwrap_or(0),
+                                        obj.get("logs_count").and_then(|v| v.as_i64()).unwrap_or(0),
+                                    ).await;
+                                }
+
+                                // ENRICH: If sidecar returns -1 for logs_count, try to get from DB
+                                if info["logs_count"].as_i64() == Some(-1) {
+                                    if let Ok(Some(meta)) = hybrid_db.disk_db().get_device_metadata(&worker.id).await {
+                                        info["logs_count"] = json!(meta.logs_count.unwrap_or(0));
+                                        info["users_count"] = json!(meta.users_count.unwrap_or(0));
+                                    }
+                                }
+
+                                let status = models::DeviceStatus {
+                                    device_id: worker.id.to_lowercase(),
+                                    status: "online".to_string(),
+                                    last_sync: Some(chrono::Utc::now()),
+                                    error: None,
+                                    info: Some(info),
+                                };
+
+                                let _ = status_tx.send(status).await;
+                            }
+                        }
+
                         match client.call("device.get_logs", json!({})) {
                             Ok(res) => {
                                 // Check stability and reset retry count if stable
@@ -469,44 +670,65 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     }
 
                                 let mut new_count = 0;
-                                if let Some(logs) = res.as_array().filter(|l| !l.is_empty()) {
+                                if let Some(logs) = res.as_array() {
                                     let fetched_count = logs.len();
                                     let mut duplicate_count = 0;
 
-                                    // Filter duplicates before sending to queue
-                                    // Consume array values to avoid clone; use hash-based dedup key
-                                    let logs_owned: Vec<serde_json::Value> = logs.to_vec();
-                                    for log_val in logs_owned {
-                                        if let Ok(attendance) = serde_json::from_value::<models::AttendanceData>(log_val) {
-                                            // Hash-based dedup key (8 bytes vs ~40 for String)
-                                            let mut hasher = rustc_hash::FxHasher::default();
-                                            attendance.user_id.hash(&mut hasher);
-                                            attendance.timestamp.hash(&mut hasher);
-                                            let key = hasher.finish();
-
-                                            if seen_logs.insert(key) {
-                                                let _ = log_tx.send((worker.id.clone(), attendance)).await;
-                                                new_count += 1;
-                                            } else {
-                                                duplicate_count += 1;
-                                            }
-                                        }
-                                    }
-
-                                    // Eviction: clear when exceeding cap (secondary dedup; memory store signatures are primary)
-                                    if seen_logs.len() > SEEN_LOGS_CAP {
-                                        seen_logs.clear();
-                                        info!("[{}] Cleared seen_logs cache (>{} entries)", worker.name, SEEN_LOGS_CAP);
-                                    }
-
-                                    if duplicate_count > 0 {
-                                        info!("[{}] Fetched {} logs ({} new, {} duplicates filtered) [interval: {}s]",
-                                              worker.name, fetched_count, new_count, duplicate_count, polling_state.interval());
-                                    } else {
-                                        info!("[{}] Fetched {} logs [interval: {}s]", worker.name, fetched_count, polling_state.interval());
-                                    }
-                                }
-
+                                                                                                            // Update hardware snapshot count in DB (preserve users_count by passing -1)
+                                                                                                            let _ = hybrid_db.disk_db().update_device_counts(&worker.id, -1, fetched_count as i64).await;
+                                                                        
+                                                                                                            // NEW: Trigger immediate status reporting with the fresh count
+                                                                                                            let mut quick_info = json!({
+                                                                                                                "logs_count": fetched_count,
+                                                                                                            });
+                                                                                                            // Enrich users_count from DB if possible
+                                                                                                            if let Ok(Some(meta)) = hybrid_db.disk_db().get_device_metadata(&worker.id).await {
+                                                                                                                quick_info["users_count"] = json!(meta.users_count.unwrap_or(0));
+                                                                                                                if let Some(mac) = meta.mac { quick_info["mac"] = json!(mac); }
+                                                                                                            }
+                                                                        
+                                                                                                            let _ = status_tx.send(models::DeviceStatus {
+                                                                                                                device_id: worker.id.to_lowercase(),
+                                                                                                                status: "online".to_string(),
+                                                                                                                last_sync: Some(chrono::Utc::now()),
+                                                                                                                error: None,
+                                                                                                                info: Some(quick_info),
+                                                                                                            }).await;
+                                                                        
+                                                                                                            if !logs.is_empty() {                                                                            // Filter duplicates before sending to queue
+                                                                            // Consume array values to avoid clone; use hash-based dedup key
+                                                                            let logs_owned: Vec<serde_json::Value> = logs.to_vec();
+                                                                            for log_val in logs_owned {
+                                                                                if let Ok(attendance) = serde_json::from_value::<models::AttendanceData>(log_val) {
+                                                                                    // Hash-based dedup key (8 bytes vs ~40 for String)
+                                                                                    let mut hasher = rustc_hash::FxHasher::default();
+                                                                                    attendance.user_id.hash(&mut hasher);
+                                                                                    attendance.timestamp.hash(&mut hasher);
+                                                                                    let key = hasher.finish();
+                                    
+                                                                                    if seen_logs.insert(key) {
+                                                                                        let _ = log_tx.send((worker.id.clone(), attendance)).await;
+                                                                                        new_count += 1;
+                                                                                    } else {
+                                                                                        duplicate_count += 1;
+                                                                                    }
+                                                                                }
+                                                                            }
+                                    
+                                                                            // Eviction: clear when exceeding cap (secondary dedup; memory store signatures are primary)
+                                                                            if seen_logs.len() > SEEN_LOGS_CAP {
+                                                                                seen_logs.clear();
+                                                                                info!("[{}] Cleared seen_logs cache (>{} entries)", worker.name, SEEN_LOGS_CAP);
+                                                                            }
+                                    
+                                                                            if duplicate_count > 0 {
+                                                                                info!("[{}] Fetched {} logs ({} new, {} duplicates filtered) [interval: {}s]",
+                                                                                      worker.name, fetched_count, new_count, duplicate_count, polling_state.interval());
+                                                                            } else {
+                                                                                info!("[{}] Fetched {} logs [interval: {}s]", worker.name, fetched_count, polling_state.interval());
+                                                                            }
+                                                                        }
+                                                                    }
                                 // Adaptive polling: adjust interval based on new data
                                 let (new_interval, changed) = polling_state.update(new_count > 0);
                                 if changed && new_count == 0 {
@@ -527,6 +749,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     let _ = sidecar.kill().await;
                     if !token.is_cancelled() {
+                        // Report connecting status during retry delay
+                        let _ = status_tx.send(models::DeviceStatus {
+                            device_id: worker.id.to_lowercase(),
+                            status: "connecting".to_string(),
+                            last_sync: None,
+                            error: Some("Sidecar connection lost, reconnecting...".to_string()),
+                            info: None,
+                        }).await;
+
                         warn!("[{}] Sidecar connection lost, restarting...", worker.name);
                         retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
                     }
@@ -564,7 +795,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Remove crash marker on clean exit
     if let Err(e) = crash_marker.remove() {
-        warn!("Failed to remove crash marker: {e}");
+        warn!("Failed to write crash marker: {e}");
     }
     info!("✅ Clean shutdown complete.");
 

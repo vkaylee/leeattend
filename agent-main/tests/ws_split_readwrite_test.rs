@@ -9,6 +9,7 @@ use agent::central_client::CentralClient;
 use agent::models::AttendanceData;
 use uuid::Uuid;
 use std::sync::Arc;
+use dashmap::DashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// Create an in-memory SQLite URL with shared cache for parallel test isolation
@@ -72,7 +73,7 @@ async fn test_concurrent_ack_processing_during_bulk_send() {
         hybrid_db.load_device_memory("DEV_BULK").await.unwrap();
         let hybrid_check = hybrid_db.clone();
 
-        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_BULK".into(), "TOKEN".into(), hybrid_db, 300);
+        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_BULK".into(), "TOKEN".into(), hybrid_db, 300, Arc::new(DashMap::new()));
         client.start(rx).await;
 
         // Wait for all ACKs to be processed (server counter confirms delivery)
@@ -155,7 +156,7 @@ async fn test_reconnect_after_server_close() {
         let hybrid_db = HybridDatabase::new(&db_url, 1000, 90).await.unwrap();
         hybrid_db.load_device_memory("DEV_RC").await.unwrap();
 
-        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_RC".into(), "TOKEN".into(), hybrid_db, 300);
+        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_RC".into(), "TOKEN".into(), hybrid_db, 300, Arc::new(DashMap::new()));
         client.start(rx).await;
 
         // Wait for the log to be ACKed on second connection
@@ -198,7 +199,7 @@ async fn test_connection_failure_preserves_receiver() {
         let hybrid_check = hybrid_db.clone();
 
         let ws_url = format!("ws://{failing_addr}");
-        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_FAIL".into(), "TOKEN".into(), hybrid_db, 300);
+        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_FAIL".into(), "TOKEN".into(), hybrid_db, 300, Arc::new(DashMap::new()));
         client.start(rx).await;
 
         // Let it fail a few connection attempts
@@ -266,7 +267,7 @@ async fn test_no_ack_starvation_under_load() {
         let hybrid_db = HybridDatabase::new(&db_url, 1000, 90).await.unwrap();
         hybrid_db.load_device_memory("DEV_LOAD").await.unwrap();
 
-        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_LOAD".into(), "TOKEN".into(), hybrid_db, 300);
+        let (client, rx, _reload_rx) = CentralClient::new(ws_url, "AGENT_LOAD".into(), "TOKEN".into(), hybrid_db, 300, Arc::new(DashMap::new()));
         client.start(rx).await;
 
         // Wait for server to ACK all 50 logs

@@ -8,6 +8,7 @@ import {
   updateAuthorizedAgent,
   fetchAgents,
   AuthorizedAgent,
+  sendAgentCommand,
 } from "@/lib/api";
 
 export const agentsKeys = {
@@ -60,6 +61,11 @@ export function useAuthorizedAgents() {
     },
   });
 
+  const sendCommandMutation = useMutation({
+    mutationFn: ({ id, command }: { id: string; command: any }) =>
+      sendAgentCommand(id, command),
+  });
+
   return {
     agents: agentsQuery.data ?? [],
     isLoading: agentsQuery.isLoading,
@@ -73,11 +79,13 @@ export function useAuthorizedAgents() {
     updateTrust: updateTrustMutation.mutateAsync,
     deleteAgent: deleteMutation.mutateAsync,
     updateAgent: updateMutation.mutateAsync,
+    sendCommand: sendCommandMutation.mutateAsync,
 
     isCreating: createMutation.isPending,
     isUpdatingTrust: updateTrustMutation.isPending,
     isDeleting: deleteMutation.isPending,
     isUpdating: updateMutation.isPending,
+    isSendingCommand: sendCommandMutation.isPending,
   };
 }
 

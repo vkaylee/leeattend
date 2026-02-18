@@ -1,0 +1,14 @@
+# Solution Documentation Schema
+problem_types:
+  - bug_fix
+  - feature_enhancement
+  - performance_optimization
+  - security_patch
+  - infrastructure_change
+
+root_causes:
+  - logic_error
+  - missing_feature
+  - resource_exhaustion
+  - dependency_issue
+  - configuration_error

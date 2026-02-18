@@ -211,4 +211,34 @@ mod tests {
 
         let _devices = hybrid_db.disk_db().get_active_devices().await.expect("get failed");
     }
+
+    #[tokio::test]
+    async fn test_device_metadata_persistence() {
+        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.expect("DB setup failed");
+        let db = hybrid_db.disk_db();
+        
+        // Setup initial device
+        db.upsert_device("dev_123", "Test Device", "1.1.1.1", 4370, "zkteco", "UTC", true).await.unwrap();
+
+        // Update metadata
+        db.update_device_metadata(
+            "dev_123", 
+            "00:11:22:33:44:55", 
+            "SN123456", 
+            "v1.0", 
+            "Linux", 
+            "xFace100", 
+            100, 
+            5000
+        ).await.unwrap();
+
+        // Retrieve and verify
+        let devices = db.get_active_devices().await.unwrap();
+        let dev = devices.iter().find(|d| d.id == "dev_123").unwrap();
+        
+        assert_eq!(dev.mac.as_deref(), Some("00:11:22:33:44:55"));
+        assert_eq!(dev.serial.as_deref(), Some("SN123456"));
+        assert_eq!(dev.users_count, Some(100));
+        assert_eq!(dev.hw_name.as_deref(), Some("xFace100"));
+    }
 }

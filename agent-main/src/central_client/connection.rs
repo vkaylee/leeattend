@@ -22,6 +22,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use super::message_handler::handle_incoming_text;
 use super::retry_manager::{RetryManager, calculate_sync_stats};
 
+use dashmap::DashMap;
+
 // Retry configuration constants
 pub(super) const CONNECTION_TIMEOUT_SECS: u64 = 30;
 #[allow(dead_code)]
@@ -38,15 +40,21 @@ pub struct CentralClient {
     tx: mpsc::Sender<CentralMessage>,
     reload_tx: mpsc::Sender<()>,
     is_connected: Arc<AtomicBool>,
+    #[allow(dead_code)]
+    command_registry: Arc<DashMap<String, mpsc::Sender<CentralMessage>>>,
 }
 
 #[allow(clippy::collapsible_if)]
 impl CentralClient {
-    pub fn new(url: String, agent_id: String, token: String, hybrid_db: HybridDatabase, inflight_timeout_secs: u64) -> (Self, mpsc::Receiver<CentralMessage>, mpsc::Receiver<()>) {
+    pub fn new(url: String, agent_id: String, token: String, hybrid_db: HybridDatabase, inflight_timeout_secs: u64, command_registry: Arc<DashMap<String, mpsc::Sender<CentralMessage>>>) -> (Self, mpsc::Receiver<CentralMessage>, mpsc::Receiver<()>) {
         let (tx, rx) = mpsc::channel(100);
         let (reload_tx, reload_rx) = mpsc::channel(1);
         let is_connected = Arc::new(AtomicBool::new(false));
-        (Self { url, agent_id, token, hybrid_db, inflight_timeout_secs, tx, reload_tx, is_connected }, rx, reload_rx)
+        (Self { url, agent_id, token, hybrid_db, inflight_timeout_secs, tx, reload_tx, is_connected, command_registry }, rx, reload_rx)
+    }
+
+    pub fn get_tx(&self) -> mpsc::Sender<CentralMessage> {
+        self.tx.clone()
     }
 
     pub async fn start(self, rx: mpsc::Receiver<CentralMessage>) {

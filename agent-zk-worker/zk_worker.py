@@ -12,8 +12,9 @@ class ZKService:
     def __init__(self, ip: str, port: int = 4370):
         self.ip = ip
         self.port = port
-        self.zk = ZK(ip, port=port, timeout=5, force_udp=True, ommit_ping=True)
+        self.zk = ZK(ip, port=port, timeout=30, force_udp=True, ommit_ping=True)
         self.conn = None
+        self.last_attendance_count = -1
 
     async def connect(self):
         if not self.conn:
@@ -31,6 +32,7 @@ class ZKService:
     async def get_attendance_logs(self):
         conn = await self.connect()
         raw_logs = await asyncio.to_thread(conn.get_attendance)
+        self.last_attendance_count = len(raw_logs)
         logs = []
         for log in raw_logs:
             logs.append({
@@ -52,6 +54,62 @@ class ZKService:
         await asyncio.to_thread(conn.set_time, now)
         return now.strftime("%Y-%m-%d %H:%M:%S")
 
+    async def get_info(self):
+        conn = await self.connect()
+        
+        async def safe_call(func, default="Unknown"):
+            try:
+                return await asyncio.to_thread(func)
+            except Exception as e:
+                logger.warning(f"Failed to fetch info: {e}")
+                return default
+
+        # Logs Count
+        logs_count = self.last_attendance_count
+        try:
+            if hasattr(conn, 'get_attendance_count'):
+                hw_count = await asyncio.to_thread(conn.get_attendance_count)
+                if hw_count >= 0:
+                    logs_count = hw_count
+                    self.last_attendance_count = hw_count # Sync back to cache
+        except Exception as e:
+            logger.warning(f"Failed to get logs count: {e}")
+
+        # Users Count
+        users_count = 0
+        try:
+            if hasattr(conn, 'get_users_count'):
+                users_count = await asyncio.to_thread(conn.get_users_count)
+            else:
+                users = await asyncio.to_thread(conn.get_users)
+                users_count = len(users)
+        except Exception as e:
+            logger.warning(f"Failed to get user count: {e}")
+
+        # Firmware & Time
+        firmware = await safe_call(getattr(conn, 'get_firmware_version', lambda: "N/A"))
+        device_time = await safe_call(conn.get_time, "N/A")
+        if device_time != "N/A" and hasattr(device_time, 'strftime'):
+             device_time = device_time.strftime("%Y-%m-%d %H:%M:%S")
+
+        # Additional Identifiers
+        mac = await safe_call(conn.get_mac, "N/A")
+        serial = await safe_call(conn.get_serialnumber, "N/A")
+        platform = await safe_call(conn.get_platform, "N/A")
+        hw_name = await safe_call(conn.get_device_name, "N/A")
+
+        return {
+            "users_count": users_count,
+            "logs_count": logs_count,
+            "device_time": str(device_time),
+            "firmware": str(firmware),
+            "mac": str(mac),
+            "serial": str(serial),
+            "platform": str(platform),
+            "hw_name": str(hw_name),
+            "last_sync": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+
 class ZKWorkerClient:
     def __init__(self, master_addr="127.0.0.1", master_port=5000, max_parallel=1):
         self.master_addr = master_addr
@@ -68,17 +126,21 @@ class ZKWorkerClient:
                 # Security: Default to localhost for Master connection if not specified
                 master_host = self.master_addr if self.master_addr else "127.0.0.1"
                 logger.info(f"🔗 Connecting to Master at {master_host}:{self.master_port}...")
-                reader, self.writer = await asyncio.open_connection(master_host, self.master_port)
-                logger.info("✅ Connected to Master")
+                # Increase limit to 10MB
+                reader, self.writer = await asyncio.open_connection(master_host, self.master_port, limit=10*1024*1024)
+                logger.info(f"✅ Connected to Master on port {self.master_port}")
                 await self.handle_requests(reader)
+            except ConnectionRefusedError:
+                logger.error(f"❌ Connection refused on port {self.master_port}. Is Master running?")
+                await asyncio.sleep(5)
             except Exception as e:
                 logger.error(f"❌ Connection error: {e}. Retrying in 5s...")
                 await asyncio.sleep(5)
 
     async def handle_requests(self, reader):
         tasks = set()
-        # Security: Limit maximum line size to 64KB
-        MAX_LINE_SIZE = 65536
+        # Security: Limit maximum line size to 10MB (enough for ~50k logs)
+        MAX_LINE_SIZE = 10 * 1024 * 1024
         try:
             while True:
                 # Use readuntil instead of readline to have control over buffer size
@@ -131,6 +193,9 @@ class ZKWorkerClient:
                 elif method == "device.sync_time":
                     if not self.service: raise Exception("Device not connected")
                     result = await self.service.sync_time()
+                elif method == "device.get_info":
+                    if not self.service: raise Exception("Device not connected")
+                    result = await self.service.get_info()
                 else:
                     error = {"code": -32601, "message": f"Method {method} not found"}
             except Exception as e:

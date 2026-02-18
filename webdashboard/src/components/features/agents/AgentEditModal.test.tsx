@@ -45,6 +45,8 @@ describe("AgentEditModal", () => {
       isCreating: false,
       updateTrust: vi.fn() as any,
       isUpdatingTrust: false,
+      sendCommand: vi.fn() as any,
+      isSendingCommand: false,
     });
 
     renderWithClient(
@@ -86,6 +88,8 @@ describe("AgentEditModal", () => {
       isCreating: false,
       updateTrust: vi.fn() as any,
       isUpdatingTrust: false,
+      sendCommand: vi.fn() as any,
+      isSendingCommand: false,
     });
 
     renderWithClient(

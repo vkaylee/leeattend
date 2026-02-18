@@ -69,7 +69,7 @@ impl Config {
         let poll_interval_seconds = env::var("POLL_INTERVAL_SECONDS")
             .unwrap_or_default()
             .parse()
-            .unwrap_or(60);
+            .unwrap_or(300);
 
         let signature_ttl_days = env::var("SIGNATURE_TTL_DAYS")
             .unwrap_or_default()
@@ -158,7 +158,7 @@ mod tests {
             database_url: "sqlite:test.db".to_string(),
             python_path: "/usr/bin/python3".to_string(),
             rpc_timeout_seconds: 30,
-            poll_interval_seconds: 60,
+            poll_interval_seconds: 300,
             max_concurrent_workers: 5,
             signature_ttl_days: 90,
             signature_cleanup_hours: 24,
@@ -254,7 +254,7 @@ mod tests {
 
         // Should fall back to defaults for invalid values
         assert_eq!(config.rpc_timeout_seconds, 30);
-        assert_eq!(config.poll_interval_seconds, 60);
+        assert_eq!(config.poll_interval_seconds, 300);
         // "-5" parses as invalid for usize, falls back to default
         assert_eq!(config.max_concurrent_workers, 5);
         assert_eq!(config.signature_ttl_days, 90);
@@ -281,7 +281,7 @@ mod tests {
             database_url: "sqlite:test.db".to_string(),
             python_path: "/usr/bin/python3".to_string(),
             rpc_timeout_seconds: 30,
-            poll_interval_seconds: 60,
+            poll_interval_seconds: 300,
             max_concurrent_workers: 5,
             signature_ttl_days: 90,
             signature_cleanup_hours: 24,

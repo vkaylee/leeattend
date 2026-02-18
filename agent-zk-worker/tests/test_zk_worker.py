@@ -90,6 +90,72 @@ async def test_handle_requests_empty_line(zk_worker_instance):
     assert response['result'] == 'pong'
 
 @pytest.mark.asyncio
+async def test_handle_requests_get_info(zk_worker_instance):
+    reader = AsyncMock()
+    zk_worker_instance.writer = create_mock_writer()
+    request = {'jsonrpc': '2.0', 'method': 'device.get_info', 'params': {}, 'id': 1}
+    reader.readuntil.side_effect = [json.dumps(request).encode() + b'\n', b'']
+    
+    with patch('zk_worker.ZKService', autospec=True) as MockZKService:
+        mock_service_instance = MockZKService.return_value
+        mock_service_instance.get_info = AsyncMock(return_value={
+            "users_count": 10,
+            "logs_count": 100,
+            "device_time": "2023-01-01 10:00:00",
+            "firmware": "Ver 1.0",
+            "last_sync": "2023-01-01 10:00:01"
+        })
+        zk_worker_instance.service = mock_service_instance
+        
+        await zk_worker_instance.handle_requests(reader)
+        
+        response = json.loads(zk_worker_instance.writer.write.call_args[0][0].decode().strip())
+        assert response['result']['users_count'] == 10
+        assert response['result']['firmware'] == "Ver 1.0"
+
+@pytest.mark.asyncio
+async def test_zk_service_get_info_fallback(zk_service_instance, mock_zk_client):
+    mock_conn = mock_zk_client.connect.return_value
+    zk_service_instance.conn = mock_conn
+    zk_service_instance.last_attendance_count = 55
+    
+    # Mock dependencies
+    mock_conn.get_users.return_value = []
+    mock_conn.get_time.return_value = MagicMock()
+    mock_conn.get_time.return_value.strftime.return_value = "2023-01-01 00:00:00"
+    mock_conn.get_mac.return_value = "MAC"
+    mock_conn.get_serialnumber.return_value = "SN"
+    mock_conn.get_platform.return_value = "PL"
+    mock_conn.get_device_name.return_value = "NAME"
+    
+    # Simulate missing get_attendance_count and get_firmware_version
+    if hasattr(mock_conn, 'get_attendance_count'):
+        del mock_conn.get_attendance_count
+    if hasattr(mock_conn, 'get_firmware_version'):
+        del mock_conn.get_firmware_version
+        
+    info = await zk_service_instance.get_info()
+    
+    assert info['logs_count'] == 55
+    assert info['firmware'] == "N/A"
+
+@pytest.mark.asyncio
+async def test_zk_service_get_info_rejects_negative_one(zk_service_instance, mock_zk_client):
+    mock_conn = mock_zk_client.connect.return_value
+    zk_service_instance.conn = mock_conn
+    # Previously seen 100 logs
+    zk_service_instance.last_attendance_count = 100
+    
+    # Simulate hardware returning -1 (error)
+    mock_conn.get_attendance_count = MagicMock(return_value=-1)
+    
+    info = await zk_service_instance.get_info()
+    
+    # Should stay 100, not become -1
+    assert info['logs_count'] == 100
+    assert zk_service_instance.last_attendance_count == 100
+
+@pytest.mark.asyncio
 async def test_zk_worker_run(zk_worker_instance):
     with patch('asyncio.open_connection', new_callable=AsyncMock) as mock_open:
         mock_reader = AsyncMock()

@@ -112,11 +112,80 @@ impl Database {
 
     pub async fn get_active_devices(&self) -> Result<Vec<DeviceConfig>, Error> {
         let devices = sqlx::query_as::<_, DeviceConfig>(
-            "SELECT id, name, ip, port, brand, timezone, last_seen, is_active FROM devices WHERE is_active = 1"
+            "SELECT * FROM devices WHERE is_active = 1"
         )
         .fetch_all(&self.pool)
         .await?;
         Ok(devices)
+    }
+
+    pub async fn get_device_metadata(&self, id: &str) -> Result<Option<DeviceConfig>, Error> {
+        let device = sqlx::query_as::<_, DeviceConfig>(
+            "SELECT * FROM devices WHERE LOWER(id) = LOWER(?)"
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(device)
+    }
+
+    pub async fn update_device_metadata(
+        &self, 
+        id: &str, 
+        mac: &str, 
+        serial: &str, 
+        fw: &str, 
+        plt: &str, 
+        hw: &str, 
+        users: i64, 
+        logs: i64
+    ) -> Result<(), Error> {
+        sqlx::query(
+            r#"
+            UPDATE devices SET 
+                mac = ?, 
+                serial = ?, 
+                firmware = ?, 
+                platform = ?, 
+                hw_name = ?, 
+                users_count = ?, 
+                logs_count = ?, 
+                last_info_update = CURRENT_TIMESTAMP 
+            WHERE id = ?
+            "#
+        )
+        .bind(mac)
+        .bind(serial)
+        .bind(fw)
+        .bind(plt)
+        .bind(hw)
+        .bind(users)
+        .bind(logs)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn update_device_counts(&self, id: &str, users: i64, logs: i64) -> Result<(), Error> {
+        sqlx::query(
+            r#"
+            UPDATE devices SET 
+                users_count = CASE WHEN ? >= 0 THEN ? ELSE users_count END,
+                logs_count = CASE WHEN ? >= 0 THEN ? ELSE logs_count END,
+                last_info_update = CURRENT_TIMESTAMP 
+            WHERE LOWER(id) = LOWER(?)
+            "#
+        )
+        .bind(users)
+        .bind(users)
+        .bind(logs)
+        .bind(logs)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
     }
 
     pub async fn deactivate_devices_not_in(&self, active_ids: &[String]) -> Result<u64, Error> {

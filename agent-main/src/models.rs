@@ -54,6 +54,14 @@ pub struct DeviceConfig {
     pub timezone: String,
     pub last_seen: Option<chrono::NaiveDateTime>,
     pub is_active: Option<bool>,
+    pub mac: Option<String>,
+    pub serial: Option<String>,
+    pub firmware: Option<String>,
+    pub platform: Option<String>,
+    pub hw_name: Option<String>,
+    pub users_count: Option<i64>,
+    pub logs_count: Option<i64>,
+    pub last_info_update: Option<chrono::NaiveDateTime>,
 }
 
 // Config Push Models
@@ -107,15 +115,30 @@ pub enum CentralMessage {
     ConfigPush {
         data: ConfigData,
     },
+    StatusUpdate {
+        agent_id: String,
+        devices: Vec<DeviceStatus>,
+        timestamp: String,
+    },
     Command {
         id: String,
         method: String,
-        params: Option<Value>,
+        device_id: Option<String>,
+        data: Option<Value>,
     },
     Error {
         code: String,
         message: String,
     },
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DeviceStatus {
+    pub device_id: String,
+    pub status: String,
+    pub last_sync: Option<chrono::DateTime<chrono::Utc>>,
+    pub error: Option<String>,
+    pub info: Option<serde_json::Value>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

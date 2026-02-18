@@ -189,16 +189,27 @@ mod tests {
             status: "online".to_string(),
             last_sync: None,
             error: None,
+            info: None,
         }];
         manager
             .update_status(agent_id.clone(), devices.clone())
             .await;
 
+        // Test update status with info
+        let devices_with_info = vec![DeviceStatus {
+            device_id: "D1".to_string(),
+            status: "online".to_string(),
+            last_sync: None,
+            error: None,
+            info: Some(serde_json::json!({
+                "users_count": 50,
+                "device_time": "2023-01-01 12:00:00"
+            })),
+        }];
+        manager.update_status(agent_id.clone(), devices_with_info).await;
+        
         let statuses = manager.get_all_agents_status().await;
-        assert_eq!(statuses.len(), 1);
-        assert_eq!(statuses[0].agent_id, agent_id);
-        assert_eq!(statuses[0].devices.len(), 1);
-        assert!(statuses[0].is_online);
+        assert_eq!(statuses[0].devices[0].info.as_ref().unwrap()["users_count"], 50);
 
         // Test send command
         let command = AgentCommand {

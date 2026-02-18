@@ -98,6 +98,7 @@ export interface components {
         DeviceStatus: {
             device_id: string;
             error?: string | null;
+            info?: unknown;
             /** Format: date-time */
             last_sync?: string | null;
             status: string;

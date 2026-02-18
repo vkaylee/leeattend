@@ -1716,7 +1716,9 @@
       "delete_error": "删除设备时出错。",
       "disabled": "{{name}} 已被禁用",
       "enabled": "{{name}} 已被启用",
-      "toggle_error": "无法更新设备状态"
+      "toggle_error": "无法更新设备状态",
+      "refresh_sent": "刷新命令已发送。",
+      "refresh_error": "无法发送刷新命令。"
     },
     "form": {
       "infrastructure": "连接基础设施",

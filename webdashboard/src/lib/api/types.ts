@@ -3,6 +3,17 @@ export interface DeviceStatus {
   status: "online" | "offline";
   last_sync?: string;
   error?: string;
+  info?: {
+    users_count: number;
+    logs_count: number;
+    device_time: string;
+    firmware: string;
+    mac?: string;
+    serial?: string;
+    platform?: string;
+    hw_name?: string;
+    last_sync: string;
+  };
 }
 
 export interface AgentStatus {

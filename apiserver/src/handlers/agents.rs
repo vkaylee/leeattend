@@ -95,15 +95,20 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                             if let (Some(id), Some(devices_json)) =
                                 (v["agent_id"].as_str(), v["devices"].as_array())
                             {
-                                let devices: Vec<crate::models::DeviceStatus> =
-                                    serde_json::from_value(serde_json::Value::Array(
-                                        devices_json.clone(),
-                                    ))
-                                    .unwrap_or_default();
-                                let _ = state_clone
-                                    .agent_manager
-                                    .update_status(id.to_string(), devices)
-                                    .await;
+                                match serde_json::from_value::<Vec<crate::models::DeviceStatus>>(serde_json::Value::Array(
+                                    devices_json.clone(),
+                                )) {
+                                    Ok(devices) => {
+                                        info!("Received status update from agent {} with {} devices", id, devices.len());
+                                        let _ = state_clone
+                                            .agent_manager
+                                            .update_status(id.to_string(), devices)
+                                            .await;
+                                    },
+                                    Err(e) => {
+                                        warn!("Failed to parse status update from agent {}: {}", id, e);
+                                    }
+                                }
                             }
                         } else if v["type"] == "heartbeat" {
                             if let Some(id) = v["agent_id"].as_str() {
@@ -245,7 +250,7 @@ pub async fn send_command(
     state.agent_manager.send_command(&agent_id, command).await
         .map_err(AppError::NotFound)?;
     
-    Ok((StatusCode::OK, "Command sent"))
+    Ok((StatusCode::OK, Json(serde_json::json!({ "message": "Command sent" }))))
 }
 
 // --- Device Management Handlers ---

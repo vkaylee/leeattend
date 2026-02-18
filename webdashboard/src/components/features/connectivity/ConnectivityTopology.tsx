@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, Share2, Server, HardDrive, AlertCircle, Cpu, Edit2 } from "lucide-react";
-import { useAuthorizedAgents } from "@/hooks/use-agents";
+import { useAuthorizedAgents, useAgentsStatus } from "@/hooks/use-agents";
 import { useDevices } from "@/hooks/use-devices";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
@@ -25,8 +25,53 @@ export default function ConnectivityTopology() {
     createAgent,
     updateTrust,
     deleteAgent,
-    updateAgent
+    updateAgent,
+    sendCommand
   } = useAuthorizedAgents();
+
+  const { agents: agentsStatus, refetch: refetchStatus } = useAgentsStatus();
+
+  // Create a map of device_id -> status for easy lookup
+  const deviceStatusMap = useMemo(() => {
+    const map: Record<string, any> = {};
+    agentsStatus.forEach(agent => {
+      agent.devices.forEach(dev => {
+        map[dev.device_id.toLowerCase()] = dev;
+      });
+    });
+    if (Object.keys(map).length > 0) {
+      console.log("Device status mapping overview:");
+      console.table(Object.values(map).map(d => ({ 
+        id: d.device_id, 
+        status: d.status, 
+        has_info: !!d.info, 
+        users: d.info?.users_count, 
+        logs: d.info?.logs_count 
+      })));
+    }
+    return map;
+  }, [agentsStatus]);
+
+  async function handleRefreshDevice(agentId: string, deviceId: string) {
+    try {
+      console.log(`Refreshing device ${deviceId} on agent ${agentId}`);
+      await sendCommand({
+        id: agentId,
+        command: {
+          method: "device.get_info",
+          device_id: deviceId,
+          data: {}
+        }
+      });
+      toast.success(t("devices.toast.refresh_sent"));
+      // Refresh status after a short delay
+      setTimeout(refetchStatus, 2000);
+    } catch (e: any) {
+      console.error("Refresh failed:", e);
+      const msg = e?.message || "";
+      toast.error(`${t("devices.toast.refresh_error")} (${msg})`);
+    }
+  }
 
   const {
     devices,
@@ -263,11 +308,12 @@ export default function ConnectivityTopology() {
         </div>
       ) : (
         <div data-testid="agents-list" className="space-y-4">
-          {agents.map(agent => (
+            {agents.map(agent => (
             <AgentAccordionCard
               key={agent.id}
               agent={agent}
               devices={groupedDevices[agent.id] || []}
+              deviceStatuses={deviceStatusMap}
               isExpanded={expandedAgents.has(agent.id)}
               onToggleExpand={() => toggleExpanded(agent.id)}
               onEdit={handleEditAgent}
@@ -276,6 +322,7 @@ export default function ConnectivityTopology() {
               onUpdateDevice={handleUpdateDevice}
               onDeleteDevice={handleDeleteDevice}
               onEditDevice={setEditingDevice}
+              onRefreshDevice={(deviceId) => handleRefreshDevice(agent.id, deviceId)}
               onAddDevice={(agentId) => {
                 setNewDevice({ ...newDevice, agent_id: agentId });
                 setShowAddDeviceForm(true);

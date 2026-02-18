@@ -34,6 +34,6 @@ leeattend_run_unit() {
     run_parallel_ordered "Phase 1 (Unit Tests)" "$COMPONENT_FILTER" \
         "1|apiserver|apiserver|$APISERVER_CMD" \
         "2|agent-main|agent-main|$AGENT_MAIN_CMD" \
-        "3|agent-zk-worker|agent-main|$AGENT_ZK_CMD" \
+        "3|agent-zk-worker|agent-zk-worker|$AGENT_ZK_CMD" \
         "4|webdashboard|webdashboard|$WEB_CMD"
 }

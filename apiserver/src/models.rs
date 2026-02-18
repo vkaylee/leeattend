@@ -102,6 +102,7 @@ pub struct DeviceStatus {
     pub status: String,
     pub last_sync: Option<DateTime<Utc>>,
     pub error: Option<String>,
+    pub info: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
