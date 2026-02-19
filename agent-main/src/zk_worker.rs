@@ -1,7 +1,6 @@
 use rustzk::ZK;
 use serde_json::Value;
 use log::{info, warn, debug};
-use chrono::NaiveDateTime;
 
 // Simple error type to match the previous JsonRpcError structure for compatibility
 #[derive(Debug)]
@@ -108,7 +107,8 @@ impl ZkWorker {
         match res {
             Ok((zk_instance, Ok(time))) => {
                 self.zk = Some(zk_instance);
-                Ok(time.to_string().replace("T", " "))
+                // time is DateTime<FixedOffset>
+                Ok(time.naive_local().to_string().replace("T", " "))
             }
             Ok((zk_instance, Err(e))) => {
                 self.zk = Some(zk_instance);
@@ -122,51 +122,6 @@ impl ZkWorker {
         }
     }
 
-    #[allow(dead_code)]
-    pub async fn sync_time(&mut self) -> Result<String, ZkError> {
-        let mut zk = self.zk.take().ok_or(ZkError {
-            message: "Device not connected".to_string(),
-        })?;
-
-        let res: Result<(ZK, bool, NaiveDateTime), _> = tokio::task::spawn_blocking(move || {
-            let now = chrono::Local::now().naive_local();
-            
-            // Manual set_time implementation using ZK binary protocol
-            use chrono::Datelike;
-            use chrono::Timelike;
-            
-            let time = ((now.year() % 100) as u32 * 12 * 31 + ((now.month() - 1) * 31) + now.day() - 1) * (24 * 60 * 60) +
-                (now.hour() * 60 + now.minute()) * 60 +
-                now.second();
-            
-            let payload = time.to_le_bytes().to_vec();
-            // Use constants from rustzk
-            use rustzk::constants::{CMD_SET_TIME, CMD_ACK_OK};
-            let success = match zk.send_command(CMD_SET_TIME, payload) {
-                Ok(res) => res.command == CMD_ACK_OK,
-                Err(_) => false,
-            };
-            
-            (zk, success, now)
-        }).await;
-
-        match res {
-            Ok((zk_instance, true, now)) => {
-                self.zk = Some(zk_instance);
-                Ok(now.to_string().replace("T", " "))
-            }
-            Ok((zk_instance, false, _)) => {
-                self.zk = Some(zk_instance);
-                Err(ZkError {
-                    message: "Failed to set time".to_string(),
-                })
-            }
-            Err(e) => Err(ZkError {
-                message: format!("Task join error: {e}"),
-            }),
-        }
-    }
-    
     pub async fn get_info(&mut self) -> Result<Value, ZkError> {
         let mut zk = self.zk.take().ok_or(ZkError {
             message: "Device not connected".to_string(),
@@ -183,12 +138,12 @@ impl ZkWorker {
             
             let time = match zk.get_time() {
                 Ok(t) => {
-                    let s = t.to_string().replace("T", " ");
+                    let s = t.naive_local().to_string().replace("T", " ");
                     debug!("get_time success: {s}");
                     s
                 },
                 Err(e) => {
-                    warn!("get_time failed: {e:?}");
+                    debug!("get_time unavailable (device RTC may be unset or use non-standard encoding): {e:?}");
                     "N/A".to_string()
                 }
             };
