@@ -53,7 +53,7 @@ impl HybridDatabase {
 
     /// Batch save - goes to memory first
     /// Converts local time to UTC Unix timestamp using device timezone for each log
-    pub async fn save_raw_attendance_batch(&self, batch: Vec<(String, AttendanceData)>) -> Result<usize, StoreError> {
+    pub async fn save_raw_attendance_batch(&self, batch: Vec<(Arc<String>, AttendanceData)>) -> Result<usize, StoreError> {
         let mut batch_with_timestamps = Vec::new();
 
         for (device_id, data) in batch {
@@ -225,10 +225,10 @@ mod tests {
     async fn test_hybrid_save_batch() {
         let hybrid = HybridDatabase::new("sqlite::memory:", 1000, 90).await.unwrap();
 
-        let batch: Vec<(String, AttendanceData)> = (1..=5)
+        let batch: Vec<(Arc<String>, AttendanceData)> = (1..=5)
             .map(|i| {
                 (
-                    "DEV1".to_string(),
+                    Arc::new("DEV1".to_string()),
                     make_attendance(&format!("U{i:03}"), "2026-01-29 10:00:00"),
                 )
             })
@@ -406,10 +406,10 @@ mod tests {
         let hybrid = HybridDatabase::new("sqlite::memory:", 5, 90).await.unwrap();
 
         // Try to save more than capacity
-        let batch: Vec<(String, AttendanceData)> = (1..=10)
+        let batch: Vec<(Arc<String>, AttendanceData)> = (1..=10)
             .map(|i| {
                 (
-                    "DEV1".to_string(),
+                    Arc::new("DEV1".to_string()),
                     make_attendance(&format!("U{i:03}"), "2026-01-29 10:00:00"),
                 )
             })

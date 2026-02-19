@@ -126,7 +126,7 @@ impl Worker for ZkWorker {
         }
     }
 
-    async fn get_attendance_logs(&mut self) -> Result<Vec<Value>, Box<dyn std::error::Error + Send + Sync>> {
+    async fn get_attendance_logs(&mut self) -> Result<Vec<crate::models::AttendanceData>, Box<dyn std::error::Error + Send + Sync>> {
         let ip = self.ip.clone();
         let mut zk = self.zk.take().ok_or(ZkError {
             message: "Device not connected".to_string(),
@@ -143,17 +143,23 @@ impl Worker for ZkWorker {
             Ok(Ok((zk_instance, Ok(logs)))) => {
                 self.zk = Some(zk_instance);
                 debug!("[{ip}] Successfully fetched {} logs", logs.len());
+
+                // Optimization: Pre-allocate vector
+                let mut models_logs = Vec::with_capacity(logs.len());
                 
-                let json_logs: Vec<Value> = logs.into_iter().map(|log| {
-                    serde_json::json!({
-                        "user_id": log.user_id,
-                        "timestamp": log.timestamp.to_string().replace("T", " "),
-                        "status": log.status,
-                        "punch": log.punch
-                    })
-                }).collect();
+                for log in logs {
+                    models_logs.push(crate::models::AttendanceData {
+                        user_id: log.user_id,
+                        // Optimization: Use to_string() directly, assuming rustzk format is close enough
+                        // or better yet, format it directly without intermediate allocations if possible.
+                        // rustzk timestamp is likely NaiveDateTime.
+                        timestamp: log.timestamp.to_string().replace("T", " "), 
+                        status: Some(log.status as i32),
+                        punch: Some(log.punch as i32),
+                    });
+                }
                 
-                Ok(json_logs)
+                Ok(models_logs)
             }
             Ok(Ok((zk_instance, Err(e)))) => {
                 self.zk = Some(zk_instance);

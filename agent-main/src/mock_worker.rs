@@ -26,14 +26,14 @@ impl Worker for MockWorker {
         Ok(true)
     }
 
-    async fn get_attendance_logs(&mut self) -> Result<Vec<Value>, Box<dyn std::error::Error + Send + Sync>> {
+    async fn get_attendance_logs(&mut self) -> Result<Vec<crate::models::AttendanceData>, Box<dyn std::error::Error + Send + Sync>> {
         // Return a static mock log similar to the Python version
-        let log = serde_json::json!({
-            "user_id": "999",
-            "timestamp": Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
-            "status": 1,
-            "punch": 1
-        });
+        let log = crate::models::AttendanceData {
+            user_id: "999".to_string(),
+            timestamp: Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+            status: Some(1),
+            punch: Some(1),
+        };
         Ok(vec![log])
     }
 

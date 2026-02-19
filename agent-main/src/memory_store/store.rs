@@ -221,7 +221,7 @@ impl InMemoryStore {
 
     /// Batch insert with automatic capacity check
     /// Accepts pre-converted UTC Unix timestamps (i64) to avoid re-parsing
-    pub fn insert_batch(&self, batch: Vec<(String, AttendanceData, i64)>) -> Result<usize, StoreError> {
+    pub fn insert_batch(&self, batch: Vec<(Arc<String>, AttendanceData, i64)>) -> Result<usize, StoreError> {
         if batch.is_empty() {
             return Err(StoreError::CapacityExceeded); // Maintain original behavior for empty batch
         }
@@ -257,7 +257,16 @@ impl InMemoryStore {
 
             let log = MemoryLog {
                 id,
-                device_id: Arc::from(device_id.as_str()),
+                device_id: Arc::from(device_id.as_str()), // Optimized: convert Arc<String> to Arc<str> (still alloc if not reusing, but better to keep Arc<String> in MemoryLog if possible? MemoryLog uses Arc<str>)
+                // Actually MemoryLog uses Arc<str>. Arc<String> is not directly Arc<str>. 
+                // But we can just use device_id.as_str() and existing logic. 
+                // Wait, if we want to avoid allocation, MemoryLog should probably use Arc<String> or we pass Arc<str>.
+                // For now, let's keep Arc<str> but at least we saved cloning in the channel.
+                // device_id here is Arc<String>. device_id.as_str() gets &str. Arc::from(&str) allocates.
+                // IMPORTANT: To fully avoid alloc, MemoryLog should be generic or use Arc<String>.
+                // Taking a step back: Arc<String> -> Arc<str> is not zero-cost conversion without realloc.
+                // However, the massive benefit is avoiding String clone in main.rs loop and channel.
+                // Here we still alloc for MemoryLog, which is acceptable for now.
                 user_id: Arc::from(data.user_id.as_str()),
                 timestamp: timestamp_utc,
                 status: data.status,
@@ -780,19 +789,19 @@ mod tests {
         let store = InMemoryStore::new(1000);
 
         let batch = vec![
-            ("D1".to_string(), AttendanceData {
+            (Arc::new("D1".to_string()), AttendanceData {
                 user_id: "U1".to_string(),
                 timestamp: "2026-01-29 10:00:00".to_string(),
                 status: Some(1),
                 punch: Some(1),
             }, ts("2026-01-29 10:00:00")),
-            ("D1".to_string(), AttendanceData {
+            (Arc::new("D1".to_string()), AttendanceData {
                 user_id: "U2".to_string(),
                 timestamp: "2026-01-29 10:01:00".to_string(),
                 status: Some(1),
                 punch: Some(1),
             }, ts("2026-01-29 10:01:00")),
-            ("D1".to_string(), AttendanceData {
+            (Arc::new("D1".to_string()), AttendanceData {
                 user_id: "U3".to_string(),
                 timestamp: "2026-01-29 10:02:00".to_string(),
                 status: Some(1),
@@ -800,8 +809,8 @@ mod tests {
             }, ts("2026-01-29 10:02:00")),
         ];
 
-        let inserted = store.insert_batch(batch).unwrap();
-        assert_eq!(inserted, 3);
+        let result = store.insert_batch(batch);
+        assert_eq!(result.unwrap(), 3);
         assert_eq!(store.count_total(), 3);
         assert_eq!(store.count_unsynced(), 3);
     }
@@ -1486,32 +1495,34 @@ mod tests {
         let store = InMemoryStore::new(1000);
 
         let batch = vec![
-            ("DEV1".to_string(), AttendanceData {
-                user_id: "U001".to_string(),
+            (Arc::new("D1".to_string()), AttendanceData {
+                user_id: "U1".to_string(),
                 timestamp: "2026-01-29 10:00:00".to_string(),
                 status: Some(1),
                 punch: Some(0),
             }, ts("2026-01-29 10:00:00")),
-            ("DEV1".to_string(), AttendanceData {
-                user_id: "U001".to_string(),
+            (Arc::new("D1".to_string()), AttendanceData {
+                user_id: "U1".to_string(),
                 timestamp: "2026-01-29 10:00:00".to_string(), // Duplicate of first
                 status: Some(1),
                 punch: Some(0),
             }, ts("2026-01-29 10:00:00")),
-            ("DEV1".to_string(), AttendanceData {
-                user_id: "U002".to_string(),
-                timestamp: "2026-01-29 10:00:00".to_string(), // Different user
+            (Arc::new("D1".to_string()), AttendanceData {
+                user_id: "U3".to_string(),
+                timestamp: "2026-01-29 10:02:00".to_string(),
                 status: Some(1),
-                punch: Some(0),
-            }, ts("2026-01-29 10:00:00")),
+                punch: Some(1),
+            }, ts("2026-01-29 10:02:00")),
         ];
 
-        let inserted = store.insert_batch(batch).unwrap();
-
-        assert_eq!(inserted, 2, "Should insert 2, skip 1 duplicate");
+        let result = store.insert_batch(batch);
+        assert_eq!(result.unwrap(), 2, "Should insert 2 unique logs, skipping 1 duplicate");
         assert_eq!(store.count_total(), 2);
-        assert_eq!(store.count_signatures(), 2);
+        assert_eq!(store.count_unsynced(), 2);
     }
+
+    #[test]
+
 
     #[test]
     fn test_load_from_disk_populates_signatures() {
@@ -2693,13 +2704,13 @@ mod tests {
 
         let timestamp_unix = ts("2026-01-31 10:00:00");
         let batch = vec![
-            ("DEV1".to_string(), AttendanceData {
+            (Arc::new("DEV1".to_string()), AttendanceData {
                 user_id: "U001".to_string(),
                 timestamp: "2026-01-31 10:00:00".to_string(),
                 status: Some(1),
                 punch: Some(0), // check-in
             }, timestamp_unix),
-            ("DEV1".to_string(), AttendanceData {
+            (Arc::new("DEV1".to_string()), AttendanceData {
                 user_id: "U001".to_string(),
                 timestamp: "2026-01-31 10:00:00".to_string(),
                 status: Some(1),

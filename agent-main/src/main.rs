@@ -26,7 +26,7 @@ use agent::mock_worker;
 
 #[derive(Clone)]
 struct WorkerConfig {
-    id: String,
+    id: Arc<String>,
     name: String,
     brand: String,
     ip: String,
@@ -155,7 +155,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // --- DB Writer Worker (Batch Mode) ---
     // Use Arc<AtomicBool> to ensure only one writer starts
     let writer_started = Arc::new(std::sync::atomic::AtomicBool::new(false));
-    let (log_tx, mut log_rx) = mpsc::channel::<(String, models::AttendanceData)>(10000);
+    let (log_tx, mut log_rx) = mpsc::channel::<(Arc<String>, models::AttendanceData)>(10000);
     // Removed status_tx and status_rx channels for periodic reporting
     let writer_hybrid = hybrid_db.clone();
 
@@ -330,7 +330,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let workers: Vec<WorkerConfig> = db_devices.into_iter().map(|d| {
             WorkerConfig {
-                id: d.id.clone(),
+                id: Arc::new(d.id.clone()),
                 name: d.name,
                 brand: d.brand,
                 ip: d.ip,
@@ -485,20 +485,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     if !logs_vec.is_empty() {
                                         // Filter duplicates before sending to queue
                                         // Consume array values to avoid clone; use hash-based dedup key
-                                        for log_val in logs_vec {
-                                            if let Ok(attendance) = serde_json::from_value::<models::AttendanceData>(log_val) {
-                                                // Hash-based dedup key (8 bytes vs ~40 for String)
-                                                let mut hasher = rustc_hash::FxHasher::default();
-                                                attendance.user_id.hash(&mut hasher);
-                                                attendance.timestamp.hash(&mut hasher);
-                                                let key = hasher.finish();
-                            
-                                                if seen_logs.insert(key) {
-                                                    let _ = log_tx.send((worker.id.clone(), attendance)).await;
-                                                    new_count += 1;
-                                                } else {
-                                                    duplicate_count += 1;
-                                                }
+                                        for attendance in logs_vec {
+                                            // Hash-based dedup key (8 bytes vs ~40 for String)
+                                            let mut hasher = rustc_hash::FxHasher::default();
+                                            attendance.user_id.hash(&mut hasher);
+                                            attendance.timestamp.hash(&mut hasher);
+                                            let key = hasher.finish();
+                        
+                                            if seen_logs.insert(key) {
+                                                let _ = log_tx.send((worker.id.clone(), attendance)).await;
+                                                new_count += 1;
+                                            } else {
+                                                duplicate_count += 1;
                                             }
                                         }
                     

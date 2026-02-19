@@ -97,11 +97,11 @@ fn benchmark_batch_insert_latency() {
     let start = Instant::now();
     let timestamp_unix = parse_timestamp_to_unix("2026-01-29 10:00:00");
     for batch_idx in 0..100 {
-        let batch: Vec<(String, AttendanceData, i64)> = (0..100)
+        let batch: Vec<(std::sync::Arc<String>, AttendanceData, i64)> = (0..100)
             .map(|i| {
                 let offset = batch_idx * 100 + i;
                 (
-                    format!("DEV{}", offset % 10),
+                    std::sync::Arc::new(format!("DEV{}", offset % 10)),
                     make_attendance(&format!("U{offset:05}"), "2026-01-29 10:00:00"),
                     timestamp_unix,
                 )
@@ -297,7 +297,7 @@ async fn integration_mixed_sync_states() {
 fn edge_case_empty_batch_insert() {
     let store = InMemoryStore::new(1000);
 
-    let batch: Vec<(String, AttendanceData, i64)> = vec![];
+    let batch: Vec<(std::sync::Arc<String>, AttendanceData, i64)> = vec![];
     let result = store.insert_batch(batch);
 
     assert!(result.is_err());

@@ -74,7 +74,7 @@ impl Database {
         // Parse and prepare all records first
         type BatchRecord = (String, String, i64, Option<i32>, Option<i32>);
         let mut records: Vec<BatchRecord> = Vec::new();
-        let mut batch_with_timestamps: Vec<(String, AttendanceData, i64)> = Vec::new();
+        let mut batch_with_timestamps: Vec<(std::sync::Arc<String>, AttendanceData, i64)> = Vec::new();
 
         for (device_id, data) in batch {
             // Get device timezone
@@ -83,7 +83,7 @@ impl Database {
             // Parse timestamp and convert to UTC Unix timestamp
             if let Ok(timestamp) = Self::parse_local_to_utc_timestamp(&data.timestamp, tz) {
                 records.push((device_id.clone(), data.user_id.clone(), timestamp, data.status, data.punch));
-                batch_with_timestamps.push((device_id.clone(), data.clone(), timestamp));
+                batch_with_timestamps.push((std::sync::Arc::new(device_id.clone()), data.clone(), timestamp));
             }
         }
 
