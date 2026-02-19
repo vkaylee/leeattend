@@ -24,7 +24,7 @@ use tokio::sync::{mpsc, Semaphore};
 use dashmap::DashMap;
 
 enum WorkerAdapter {
-    Zk(zk_worker::ZkWorker),
+    Zk(Box<zk_worker::ZkWorker>),
     Mock(mock_worker::MockWorker),
 }
 
@@ -409,7 +409,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         adapter = WorkerAdapter::Mock(mock_worker::MockWorker::new());
                     } else {
                         // Default to ZKTeco
-                        adapter = WorkerAdapter::Zk(zk_worker::ZkWorker::new());
+                        adapter = WorkerAdapter::Zk(Box::default());
                     }
 
                     info!("[{}] Worker ready.", worker.name);

@@ -1,4 +1,5 @@
 use crate::errors::{AppError, AppResult};
+#[allow(unused_imports)]
 use axum::{extract::{State, Path}, Json, response::IntoResponse, http::StatusCode};
 use std::sync::Arc;
 use crate::AppState;
@@ -208,6 +209,6 @@ pub async fn clear_debug_db(
     #[cfg(not(debug_assertions))]
     {
         let _ = (ws_id, state, payload); 
-        Err(AppError::NotFound("Not found".to_string()))
+        Err::<(), AppError>(AppError::NotFound("Not found".to_string()))
     }
 }

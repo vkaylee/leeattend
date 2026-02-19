@@ -199,8 +199,8 @@ export default function DeviceListItem({
             <span className="text-sm font-black text-amber-600">
               {displayInfo ? (
                 <>
-                  {(displayInfo.logs_count ?? 0).toLocaleString()}
-                  {typeof displayInfo.logs_capacity === 'number' && (
+                  {displayInfo.logs_count != null ? displayInfo.logs_count.toLocaleString() : "N/A"}
+                  {typeof displayInfo.logs_capacity === 'number' && displayInfo.logs_capacity > 0 && (
                     <span className="text-slate-400 font-bold text-[10px]"> / {displayInfo.logs_capacity.toLocaleString()}</span>
                   )}
                 </>

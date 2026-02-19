@@ -30,6 +30,35 @@ pub struct AgentLogEntry {
     pub time_fmt: String,
 }
 
+impl AgentLogEntry {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        workspace_id: Uuid,
+        employee_id_number: String,
+        punch_time_raw: String,
+        device_id: Option<String>,
+        raw_data: Option<serde_json::Value>,
+        timezone: String,
+        date_fmt: String,
+        time_fmt: String,
+    ) -> Self {
+        Self {
+            workspace_id,
+            employee_id_number: Self::sanitize_string(employee_id_number),
+            punch_time_raw: Self::sanitize_string(punch_time_raw),
+            device_id: device_id.map(Self::sanitize_string),
+            raw_data,
+            timezone,
+            date_fmt,
+            time_fmt,
+        }
+    }
+
+    fn sanitize_string(s: String) -> String {
+        s.replace('\0', "").trim().to_string()
+    }
+}
+
 /// Buffered channel for agent logs with bounded capacity
 #[derive(Clone)]
 pub struct AgentLogBuffer {
@@ -261,5 +290,23 @@ mod tests {
 
         // Receiver should return None when sender is dropped
         assert!(receiver.recv().await.is_none());
+    }
+
+    #[test]
+    fn test_sanitize_agent_log_entry() {
+        let entry = AgentLogEntry::new(
+            Uuid::new_v4(),
+            "EMP\0001 ".to_string(), // Null byte and trailing space
+            "2026-01-26\0 09:00:00".to_string(),
+            Some("D\01".to_string()),
+            None,
+            "UTC".to_string(),
+            "YYYY-MM-DD".to_string(),
+            "24h".to_string(),
+        );
+
+        assert_eq!(entry.employee_id_number, "EMP001");
+        assert_eq!(entry.punch_time_raw, "2026-01-26 09:00:00");
+        assert_eq!(entry.device_id, Some("D1".to_string()));
     }
 }

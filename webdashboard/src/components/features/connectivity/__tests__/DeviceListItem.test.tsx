@@ -38,7 +38,7 @@ const mockStatus: DeviceStatus = {
   },
 };
 
-const LOGS_LABEL = "Logs / Cap";
+const LOGS_LABEL = "Logs / Capacity";
 
 describe("DeviceListItem", () => {
   it("renders basic device info", () => {
