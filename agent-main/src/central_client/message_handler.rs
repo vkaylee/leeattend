@@ -6,7 +6,7 @@ use crate::hybrid_database::HybridDatabase;
 
 use super::retry_manager::parse_composite_key;
 
-pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload_tx: &mpsc::Sender<()>) {
+pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload_tx: &mpsc::Sender<()>, central_tx: &mpsc::Sender<CentralMessage>) {
     debug!("Received message from central: {text}");
     if let Ok(msg) = serde_json::from_str::<CentralMessage>(text) {
         match msg {
@@ -78,6 +78,63 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
             CentralMessage::Error { code, message } => {
                 error!("⚠️ Server error [{code}]: {message}");
             }
+            CentralMessage::Command { id, method, device_id, .. } => {
+                info!("Received command {id}: {method} (device: {device_id:?})");
+                if method == "get_device_info" {
+                    if let Some(did) = device_id {
+                        match hybrid_db.disk_db().get_device_metadata(&did).await {
+                            Ok(Some(meta)) => {
+                                let info = serde_json::json!({
+                                    "mac": meta.mac,
+                                    "serial": meta.serial,
+                                    "firmware": meta.firmware,
+                                    "platform": meta.platform,
+                                    "hw_name": meta.hw_name,
+                                    "users_count": meta.users_count,
+                                    "logs_count": meta.logs_count,
+                                    "users_capacity": meta.users_capacity,
+                                    "logs_capacity": meta.logs_capacity,
+                                    "device_time": meta.device_time,
+                                    "last_info_update": meta.last_info_update,
+                                });
+                                let response = CentralMessage::CommandResponse {
+                                    command_id: id,
+                                    status: "success".to_string(),
+                                    data: Some(info),
+                                    error: None,
+                                };
+                                let _ = central_tx.send(response).await;
+                            }
+                            Ok(None) => {
+                                let response = CentralMessage::CommandResponse {
+                                    command_id: id,
+                                    status: "error".to_string(),
+                                    data: None,
+                                    error: Some("Device metadata not found".to_string()),
+                                };
+                                let _ = central_tx.send(response).await;
+                            }
+                            Err(e) => {
+                                let response = CentralMessage::CommandResponse {
+                                    command_id: id,
+                                    status: "error".to_string(),
+                                    data: None,
+                                    error: Some(e.to_string()),
+                                };
+                                let _ = central_tx.send(response).await;
+                            }
+                        }
+                    } else {
+                        let response = CentralMessage::CommandResponse {
+                            command_id: id,
+                            status: "error".to_string(),
+                            data: None,
+                            error: Some("device_id is required for get_device_info".to_string()),
+                        };
+                        let _ = central_tx.send(response).await;
+                    }
+                }
+            }
             _ => {}
         }
     } else {
@@ -98,7 +155,8 @@ mod tests {
         let (reload_tx, _reload_rx) = mpsc::channel(1);
 
         let error_msg = r#"{"type":"error", "code":"INVALID_TOKEN", "message":"Invalid token provided"}"#;
-        handle_incoming_text(error_msg, &hybrid_db, &reload_tx).await;
+        let (central_tx, _central_rx) = mpsc::channel(1);
+        handle_incoming_text(error_msg, &hybrid_db, &reload_tx, &central_tx).await;
     }
 
     #[tokio::test]
@@ -112,7 +170,8 @@ mod tests {
             .expect("INSERT failed");
 
         let ack_error = r#"{"type":"ack", "msg_id":"dev1:user1:1737972000:-1:-1", "status":"error", "error":"Server overloaded"}"#;
-        handle_incoming_text(ack_error, &hybrid_db, &reload_tx).await;
+        let (central_tx, _central_rx) = mpsc::channel(1);
+        handle_incoming_text(ack_error, &hybrid_db, &reload_tx, &central_tx).await;
 
         let _logs = hybrid_db.get_unsynced_logs(10);
     }
@@ -148,7 +207,8 @@ mod tests {
         let msg_id = format!("DEV1:U999:{ts_unix}:0:1");
         let ack_msg = format!(r#"{{"type":"ack", "msg_id":"{msg_id}", "status":"success"}}"#);
 
-        handle_incoming_text(&ack_msg, &hybrid_db, &reload_tx).await;
+        let (central_tx, _central_rx) = mpsc::channel(1);
+        handle_incoming_text(&ack_msg, &hybrid_db, &reload_tx, &central_tx).await;
 
         let persisted = hybrid_db.checkpoint().await.expect("checkpoint failed");
         assert_eq!(persisted, 1);
@@ -229,7 +289,10 @@ mod tests {
             "Linux", 
             "xFace100", 
             100, 
-            5000
+            5000,
+            1000,
+            10000,
+            "2023-01-01 12:00:00"
         ).await.unwrap();
 
         // Retrieve and verify
@@ -239,6 +302,54 @@ mod tests {
         assert_eq!(dev.mac.as_deref(), Some("00:11:22:33:44:55"));
         assert_eq!(dev.serial.as_deref(), Some("SN123456"));
         assert_eq!(dev.users_count, Some(100));
+        assert_eq!(dev.users_capacity, Some(1000));
+        assert_eq!(dev.logs_capacity, Some(10000));
+        assert_eq!(dev.device_time.as_deref(), Some("2023-01-01 12:00:00"));
         assert_eq!(dev.hw_name.as_deref(), Some("xFace100"));
+    }
+
+    #[tokio::test]
+    async fn test_handle_get_device_info_command() {
+        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.expect("DB setup failed");
+        let (reload_tx, _reload_rx) = mpsc::channel(1);
+        let (central_tx, mut central_rx) = mpsc::channel(1);
+        
+        // Setup config to avoid foreign key issues if any (though ConfigPush usually handles this)
+        // Here we just insert directly.
+        
+        // Setup device with metadata
+        hybrid_db.disk_db().upsert_device("dev_info_test", "Test Device", "1.2.3.4", 4370, "zkteco", "UTC", true).await.unwrap();
+        
+        hybrid_db.disk_db().update_device_metadata(
+            "dev_info_test", "MAC_ADDR", "SERIAL_NUM", "FW_VER", "PLATFORM", "HW_NAME", 
+            50, 500, 1000, 10000, "2023-10-27 10:00:00"
+        ).await.unwrap();
+
+        // Simulate get_device_info command
+        let cmd_json = r#"{
+            "type": "command",
+            "id": "cmd_123",
+            "method": "get_device_info",
+            "device_id": "dev_info_test",
+            "params": {}
+        }"#;
+
+        handle_incoming_text(cmd_json, &hybrid_db, &reload_tx, &central_tx).await;
+
+        // Verify response
+        if let Some(CentralMessage::CommandResponse { command_id, status, data, error }) = central_rx.recv().await {
+            assert_eq!(command_id, "cmd_123");
+            assert_eq!(status, "success");
+            assert!(error.is_none());
+            
+            let info = data.expect("Should have data");
+            assert_eq!(info["mac"], "MAC_ADDR");
+            assert_eq!(info["users_count"], 50);
+            assert_eq!(info["users_capacity"], 1000);
+            assert_eq!(info["logs_capacity"], 10000);
+            assert_eq!(info["device_time"], "2023-10-27 10:00:00");
+        } else {
+            panic!("Expected CommandResponse");
+        }
     }
 }

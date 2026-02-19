@@ -138,7 +138,10 @@ impl Database {
         plt: &str, 
         hw: &str, 
         users: i64, 
-        logs: i64
+        logs: i64,
+        users_cap: i64,
+        logs_cap: i64,
+        time: &str
     ) -> Result<(), Error> {
         sqlx::query(
             r#"
@@ -150,6 +153,9 @@ impl Database {
                 hw_name = ?, 
                 users_count = ?, 
                 logs_count = ?, 
+                users_capacity = ?,
+                logs_capacity = ?,
+                device_time = ?,
                 last_info_update = CURRENT_TIMESTAMP 
             WHERE id = ?
             "#
@@ -161,6 +167,9 @@ impl Database {
         .bind(hw)
         .bind(users)
         .bind(logs)
+        .bind(users_cap)
+        .bind(logs_cap)
+        .bind(time)
         .bind(id)
         .execute(&self.pool)
         .await?;

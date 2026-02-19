@@ -383,8 +383,7 @@ impl InMemoryStore {
                 .map(|log| log.persisted)
                 .unwrap_or(false);
 
-            if should_remove {
-                if let Some(log) = self.logs.get(&id) {
+            if should_remove && let Some(log) = self.logs.get(&id) {
                     pending_updates.push((
                         log.device_id.clone(),
                         log.user_id.clone(),
@@ -394,7 +393,6 @@ impl InMemoryStore {
                         1,
                     ));
                 }
-            }
 
             if !should_remove {
                 // Log not persisted yet - mark as synced so checkpoint persists it correctly

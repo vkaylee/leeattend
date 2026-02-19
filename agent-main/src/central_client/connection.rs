@@ -252,12 +252,13 @@ impl CentralClient {
 
                         let read_hybrid = hybrid_db.clone();
                         let read_reload_tx = conn_reload_tx.clone();
+                        let read_tx = tx.clone();
                         let mut read_task = tokio::spawn(async move {
                             let mut read = read;
                             while let Some(msg) = read.next().await {
                                 match msg {
                                     Ok(Message::Text(text)) => {
-                                        handle_incoming_text(&text, &read_hybrid, &read_reload_tx).await;
+                                        handle_incoming_text(&text, &read_hybrid, &read_reload_tx, &read_tx).await;
                                     }
                                     Ok(Message::Ping(_)) => {
                                         // Pong is handled automatically by tungstenite

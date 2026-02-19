@@ -200,6 +200,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             put(handlers::update_device).delete(handlers::delete_device),
         )
         .route(
+            "/devices/:id/info",
+            get(handlers::get_device_info_on_demand),
+        )
+        .route(
             "/authorized-agents",
             get(handlers::get_authorized_agents).post(handlers::create_authorized_agent),
         )

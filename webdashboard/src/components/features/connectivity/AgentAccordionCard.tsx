@@ -28,6 +28,7 @@ interface AgentAccordionCardProps {
   onEditDevice?: (device: Device) => void;
   onRefreshDevice?: (deviceId: string) => void;
   onAddDevice?: (agentId: string) => void;
+  isOnline: boolean;
 }
 
 export default function AgentAccordionCard({
@@ -43,7 +44,8 @@ export default function AgentAccordionCard({
   onDeleteDevice,
   onEditDevice,
   onRefreshDevice,
-  onAddDevice
+  onAddDevice,
+  isOnline
 }: AgentAccordionCardProps) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -182,14 +184,14 @@ export default function AgentAccordionCard({
                   key={device.id}
                   device={device}
                   status={deviceStatuses[device.id.toLowerCase()]}
-                  parentAgentActive={agent.is_active}
+                  parentAgentActive={isOnline}
                   onUpdate={onUpdateDevice}
                   onDelete={onDeleteDevice}
                   onEdit={onEditDevice}
                   onRefresh={onRefreshDevice}
                 />
               ))}
-              
+
               {/* Add Device Button - Horizontal Style */}
               {onAddDevice && (
                 <button

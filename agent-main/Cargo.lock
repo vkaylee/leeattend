@@ -373,6 +373,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "encoding_rs"
+version = "0.8.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75030f3c4f45dafd7586dd6780965a8c7e8e285a5ecb86713e63a79c5b2766f3"
+dependencies = [
+ "cfg-if",
+]
+
+[[package]]
 name = "env_filter"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1444,13 +1453,14 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
 name = "rustzk"
-version = "0.1.5"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd0d5da548cda02be17e86568ef12ef876bade57f1aa2367a2b01a9abe5c43d5"
+checksum = "b9f6c8176521d515e98166e7a9949a63e3f50585db81e5ec32ad85858cd96995"
 dependencies = [
  "bitflags",
  "byteorder",
  "chrono",
+ "encoding_rs",
  "thiserror 1.0.69",
 ]
 

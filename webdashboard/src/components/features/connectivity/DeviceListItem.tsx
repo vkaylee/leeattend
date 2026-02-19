@@ -26,6 +26,8 @@ import { Device, DeviceStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
 import Modal from "@/components/ui/Modal";
+import { useDeviceInfo, devicesKeys } from "@/hooks/use-devices";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface DeviceListItemProps {
   device: Device;
@@ -48,16 +50,32 @@ export default function DeviceListItem({
 }: DeviceListItemProps) {
   const { t } = useTranslation();
   const toast = useToast();
+  const queryClient = useQueryClient();
   const [isToggling, setIsToggling] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showToggleModal, setShowToggleModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // Fetch detailed info on demand - enable only if the managing agent is online
+  const { data: deviceInfo, refetch: refetchInfo, error: infoError } = useDeviceInfo(device.id, parentAgentActive);
+
+  // Merge status.info (heartbeat data) with deviceInfo (on-demand data)
+  const displayInfo = deviceInfo || status?.info;
+
+  // DEBUG: Inspect displayInfo
+  if (deviceInfo || status?.info) {
+    console.log(`[DeviceListItem] ${device.name} displayInfo:`, displayInfo);
+  }
 
   async function handleRefresh() {
     if (!onRefresh) return;
     setIsRefreshing(true);
     try {
       await onRefresh(device.id);
+      // Invalidate the query to trigger a refetch after the agent has time to respond
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: devicesKeys.info(device.id) });
+      }, 2000);
     } finally {
       setTimeout(() => setIsRefreshing(false), 2000);
     }
@@ -157,22 +175,36 @@ export default function DeviceListItem({
       <div className="flex flex-wrap gap-y-6 gap-x-8">
         {/* Users */}
         <div className="flex flex-col gap-1 min-w-[80px]">
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Users</span>
+          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Users / Capacity</span>
           <div className="flex items-center gap-1.5">
             <User size={12} className="text-slate-300" />
-            <span className="text-sm font-black text-slate-700 dark:text-slate-200">{status?.info ? status.info.users_count : "--"}</span>
+            <span className="text-sm font-black text-slate-700 dark:text-slate-200">
+              {displayInfo ? (
+                <>
+                  {(displayInfo.users_count ?? 0).toLocaleString()}
+                  {typeof displayInfo.users_capacity === 'number' && (
+                    <span className="text-slate-400 font-bold text-[10px]"> / {displayInfo.users_capacity.toLocaleString()}</span>
+                  )}
+                </>
+              ) : "--"}
+            </span>
           </div>
         </div>
 
         {/* Logs / Capacity */}
         <div className="flex flex-col gap-1 min-w-[80px]">
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Logs / Cap</span>
+          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Logs / Capacity</span>
           <div className="flex items-center gap-1.5">
             <ClipboardList size={12} className="text-amber-400" />
             <span className="text-sm font-black text-amber-600">
-              {!status ? "--" : (typeof status.info?.logs_count === 'number' && status.info.logs_count >= 0
-                ? (<>{status.info.logs_count.toLocaleString()}{typeof status.info?.logs_capacity === 'number' && status.info.logs_capacity > 0 ? <span className="text-slate-400 font-bold text-[10px]"> / {status.info.logs_capacity.toLocaleString()}</span> : ''}</>)
-                : "N/A")}
+              {displayInfo ? (
+                <>
+                  {(displayInfo.logs_count ?? 0).toLocaleString()}
+                  {typeof displayInfo.logs_capacity === 'number' && (
+                    <span className="text-slate-400 font-bold text-[10px]"> / {displayInfo.logs_capacity.toLocaleString()}</span>
+                  )}
+                </>
+              ) : "--"}
             </span>
           </div>
         </div>
@@ -182,7 +214,7 @@ export default function DeviceListItem({
           <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Device Time</span>
           <div className="flex items-center gap-1.5 text-primary-600 dark:text-primary-400">
             <Clock size={12} />
-            <span className="text-[10px] font-mono font-black tracking-tighter">{status?.info?.device_time || "--:--:--"}</span>
+            <span className="text-[10px] font-mono font-black tracking-tighter">{displayInfo?.device_time || "--:--:--"}</span>
           </div>
         </div>
 
@@ -191,7 +223,7 @@ export default function DeviceListItem({
           <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Serial Number</span>
           <div className="flex items-center gap-1.5">
             <Terminal size={12} className="text-slate-300" />
-            <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 truncate">{status?.info?.serial || "N/A"}</span>
+            <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 truncate">{displayInfo?.serial || "N/A"}</span>
           </div>
         </div>
 
@@ -200,7 +232,7 @@ export default function DeviceListItem({
           <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">MAC Address</span>
           <div className="flex items-center gap-1.5">
             <Globe size={12} className="text-slate-300" />
-            <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 truncate">{status?.info?.mac || "N/A"}</span>
+            <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 truncate">{displayInfo?.mac || "N/A"}</span>
           </div>
         </div>
 
@@ -208,8 +240,8 @@ export default function DeviceListItem({
         <div className="flex flex-col gap-1 min-w-[120px]">
           <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Hardware / FW</span>
           <div className="flex flex-wrap gap-1">
-            <span className="text-[9px] font-black px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-slate-500 border border-slate-200/50 dark:border-slate-700/50">{status?.info?.hw_name || "N/A"}</span>
-            <span className="text-[9px] font-black px-1.5 py-0.5 bg-primary-50 dark:bg-primary-950 text-primary-600 rounded border border-primary-100/50">v{status?.info?.firmware || "?.?"}</span>
+            <span className="text-[9px] font-black px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-slate-500 border border-slate-200/50 dark:border-slate-700/50">{displayInfo?.hw_name || "N/A"}</span>
+            <span className="text-[9px] font-black px-1.5 py-0.5 bg-primary-50 dark:bg-primary-950 text-primary-600 rounded border border-primary-100/50">v{displayInfo?.firmware || "?.?"}</span>
           </div>
         </div>
       </div>
@@ -217,12 +249,12 @@ export default function DeviceListItem({
       {/* 3. FOOTER: Quick Toggle */}
       <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800/50 flex items-center justify-between">
         <div className="text-[10px] font-bold text-slate-400">
-          {status?.info ? (
+          {displayInfo ? (
             <span className="text-emerald-500 flex items-center gap-1.5">
-              <Activity size={10} /> Dữ liệu đồng bộ lúc {status.info.last_sync}
+              <Activity size={10} /> {deviceInfo ? "Dữ liệu real-time" : "Dữ liệu từ Agent"}
             </span>
           ) : (
-            <span className="italic">Đang đợi Agent phản hồi...</span>
+            <span className="italic">Đang tải thông tin thiết bị...</span>
           )}
         </div>
         <button

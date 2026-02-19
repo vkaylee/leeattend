@@ -61,6 +61,9 @@ pub struct DeviceConfig {
     pub hw_name: Option<String>,
     pub users_count: Option<i64>,
     pub logs_count: Option<i64>,
+    pub users_capacity: Option<i64>,
+    pub logs_capacity: Option<i64>,
+    pub device_time: Option<String>,
     pub last_info_update: Option<chrono::NaiveDateTime>,
 }
 
@@ -125,6 +128,12 @@ pub enum CentralMessage {
         method: String,
         device_id: Option<String>,
         data: Option<Value>,
+    },
+    CommandResponse {
+        command_id: String,
+        status: String,
+        data: Option<Value>,
+        error: Option<String>,
     },
     Error {
         code: String,

@@ -38,9 +38,9 @@ async fn test_concurrent_ack_processing_during_bulk_send() {
                 let _ = ws_stream.next().await; // Handshake
 
                 while let Some(Ok(msg)) = ws_stream.next().await {
-                    if let Message::Text(text) = msg {
-                        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&text) {
-                            if val["type"] == "attendance" {
+                    if let Message::Text(text) = msg
+                        && let Ok(val) = serde_json::from_str::<serde_json::Value>(&text)
+                        && val["type"] == "attendance" {
                                 let ack = json!({
                                     "type": "ack",
                                     "msg_id": val["msg_id"],
@@ -48,8 +48,6 @@ async fn test_concurrent_ack_processing_during_bulk_send() {
                                 });
                                 ws_stream.send(Message::Text(ack.to_string().into())).await.unwrap();
                                 ack_count_server.fetch_add(1, Ordering::Relaxed);
-                            }
-                        }
                     }
                 }
             }
@@ -125,9 +123,9 @@ async fn test_reconnect_after_server_close() {
                 conn_count_server.fetch_add(1, Ordering::Relaxed);
 
                 while let Some(Ok(msg)) = ws_stream.next().await {
-                    if let Message::Text(text) = msg {
-                        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&text) {
-                            if val["type"] == "attendance" {
+                    if let Message::Text(text) = msg
+                        && let Ok(val) = serde_json::from_str::<serde_json::Value>(&text)
+                        && val["type"] == "attendance" {
                                 let ack = json!({
                                     "type": "ack",
                                     "msg_id": val["msg_id"],
@@ -135,8 +133,6 @@ async fn test_reconnect_after_server_close() {
                                 });
                                 ws_stream.send(Message::Text(ack.to_string().into())).await.unwrap();
                                 ack_sent_clone.fetch_add(1, Ordering::Relaxed);
-                            }
-                        }
                     }
                 }
             }
@@ -231,9 +227,9 @@ async fn test_no_ack_starvation_under_load() {
                 let _ = ws_stream.next().await; // Handshake
 
                 while let Some(Ok(msg)) = ws_stream.next().await {
-                    if let Message::Text(text) = msg {
-                        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&text) {
-                            if val["type"] == "attendance" {
+                    if let Message::Text(text) = msg
+                        && let Ok(val) = serde_json::from_str::<serde_json::Value>(&text)
+                        && val["type"] == "attendance" {
                                 // Simulate server processing time
                                 sleep(Duration::from_millis(2)).await;
                                 let ack = json!({
@@ -243,8 +239,6 @@ async fn test_no_ack_starvation_under_load() {
                                 });
                                 ws_stream.send(Message::Text(ack.to_string().into())).await.unwrap();
                                 total_acked_server.fetch_add(1, Ordering::Relaxed);
-                            }
-                        }
                     }
                 }
             }

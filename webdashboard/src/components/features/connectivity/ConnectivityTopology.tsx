@@ -31,24 +31,12 @@ export default function ConnectivityTopology() {
 
   const { agents: agentsStatus, refetch: refetchStatus } = useAgentsStatus();
 
-  // Create a map of device_id -> status for easy lookup
-  const deviceStatusMap = useMemo(() => {
-    const map: Record<string, any> = {};
-    agentsStatus.forEach(agent => {
-      agent.devices.forEach(dev => {
-        map[dev.device_id.toLowerCase()] = dev;
-      });
+  // Create a map of agent_id -> online status for easy lookup
+  const agentOnlineMap = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    agentsStatus.forEach(a => {
+      map[a.agent_id] = a.is_online;
     });
-    if (Object.keys(map).length > 0) {
-      console.log("Device status mapping overview:");
-      console.table(Object.values(map).map(d => ({ 
-        id: d.device_id, 
-        status: d.status, 
-        has_info: !!d.info, 
-        users: d.info?.users_count, 
-        logs: d.info?.logs_count 
-      })));
-    }
     return map;
   }, [agentsStatus]);
 
@@ -58,7 +46,7 @@ export default function ConnectivityTopology() {
       await sendCommand({
         id: agentId,
         command: {
-          method: "device.get_info",
+          method: "get_device_info",
           device_id: deviceId,
           data: {}
         }
@@ -308,12 +296,12 @@ export default function ConnectivityTopology() {
         </div>
       ) : (
         <div data-testid="agents-list" className="space-y-4">
-            {agents.map(agent => (
+          {agents.map(agent => (
             <AgentAccordionCard
               key={agent.id}
               agent={agent}
               devices={groupedDevices[agent.id] || []}
-              deviceStatuses={deviceStatusMap}
+              isOnline={agentOnlineMap[agent.id] || false}
               isExpanded={expandedAgents.has(agent.id)}
               onToggleExpand={() => toggleExpanded(agent.id)}
               onEdit={handleEditAgent}

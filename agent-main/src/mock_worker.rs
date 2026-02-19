@@ -4,6 +4,12 @@ use chrono::Local;
 
 pub struct MockWorker;
 
+impl Default for MockWorker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockWorker {
     pub fn new() -> Self {
         Self
@@ -29,6 +35,7 @@ impl MockWorker {
     pub async fn get_info(&self) -> Result<Value, String> {
         Ok(serde_json::json!({
             "users_count": 100,
+            "users_capacity": 1000,
             "logs_count": 500,
             "logs_capacity": 10000,
             "device_time": Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
@@ -39,5 +46,22 @@ impl MockWorker {
             "hw_name": "MOCK_DEVICE",
             "last_sync": Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
         }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_mock_worker_capacity() {
+        let worker = MockWorker::new();
+        let info = worker.get_info().await.expect("Failed to get info");
+        
+        assert_eq!(info["users_count"], 100);
+        assert_eq!(info["users_capacity"], 1000);
+        assert_eq!(info["logs_capacity"], 10000);
+        assert!(info["device_time"].is_string());
+        assert_ne!(info["device_time"], "N/A");
     }
 }

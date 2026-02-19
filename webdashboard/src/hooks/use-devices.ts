@@ -1,8 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchDevices, createDevice, updateDevice, deleteDevice, Device } from "@/lib/api";
+import {
+  fetchDevices,
+  createDevice,
+  updateDevice,
+  deleteDevice,
+  Device,
+  fetchDeviceInfo,
+} from "@/lib/api";
 
 export const devicesKeys = {
   all: ["devices"] as const,
+  info: (id: string) => ["devices", id, "info"] as const,
 };
 
 export function useDevices() {
@@ -42,11 +50,21 @@ export function useDevices() {
     refetch: devicesQuery.refetch,
 
     createDevice: createMutation.mutateAsync,
-    updateDevice: (id: string, data: Partial<Device>) => updateMutation.mutateAsync({ id, data }),
+    updateDevice: (id: string, data: Partial<Device>) =>
+      updateMutation.mutateAsync({ id, data }),
     deleteDevice: deleteMutation.mutateAsync,
 
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
   };
+}
+
+export function useDeviceInfo(id: string, enabled: boolean = true) {
+  return useQuery({
+    queryKey: devicesKeys.info(id),
+    queryFn: () => fetchDeviceInfo(id),
+    enabled: !!id && enabled,
+    staleTime: 60000, // Cache for 1 minute
+  });
 }

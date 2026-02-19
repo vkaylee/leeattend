@@ -5,6 +5,7 @@ export interface DeviceStatus {
   error?: string;
   info?: {
     users_count: number;
+    users_capacity?: number;
     logs_count: number;
     logs_capacity?: number;
     device_time: string;

@@ -190,7 +190,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     
     // Get tx before moving central_client into start task
-    let sr_central_tx = central_client.get_tx();
+    // sr_central_tx removed as status reporting task is gone
     let central_client_task = central_client.start(central_rx);
     tokio::spawn(central_client_task);
 
@@ -198,98 +198,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Use Arc<AtomicBool> to ensure only one writer starts
     let writer_started = Arc::new(std::sync::atomic::AtomicBool::new(false));
     let (log_tx, mut log_rx) = mpsc::channel::<(String, models::AttendanceData)>(10000);
-    let (status_tx, mut status_rx) = mpsc::channel::<models::DeviceStatus>(100);
+    // Removed status_tx and status_rx channels for periodic reporting
     let writer_hybrid = hybrid_db.clone();
 
-    // --- Status Reporting Task ---
-    let sr_agent_id = config.agent_id.clone();
-    let device_memory = Arc::new(DashMap::<String, models::DeviceStatus>::new());
-    let task_device_memory = device_memory.clone();
-    // Cache to track what we last sent to the central server to avoid redundant traffic
-    let last_sent_memory = Arc::new(DashMap::<String, (String, i64)>::new()); 
-
-    tokio::spawn(async move {
-        info!("📊 Status Reporting Task started (Push-on-change mode)");
-        // Periodic safety heartbeat (every 5 minutes) even if no changes
-        let mut heartbeat_interval = tokio::time::interval(Duration::from_secs(300));
-        heartbeat_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-
-        loop {
-            tokio::select! {
-                status = status_rx.recv() => {
-                    if let Some(s) = status {
-                        let id = s.device_id.clone();
-                        let mut has_changed = false;
-
-                        // 1. Update local cache and detect change
-                        task_device_memory.entry(id.clone())
-                            .and_modify(|existing| {
-                                // Important: determine if critical data changed before updating
-                                let new_logs = s.info.as_ref().and_then(|i| i["logs_count"].as_i64()).unwrap_or(-1);
-                                
-                                let last_info = last_sent_memory.get(&id);
-                                if last_info.is_none() || 
-                                   last_info.as_ref().unwrap().0 != s.status || 
-                                   last_info.as_ref().unwrap().1 != new_logs 
-                                {
-                                    has_changed = true;
-                                    last_sent_memory.insert(id.clone(), (s.status.clone(), new_logs));
-                                }
-
-                                existing.status = s.status.clone();
-                                existing.last_sync = s.last_sync;
-                                existing.error = s.error.clone();
-                                if let Some(new_info) = s.info.clone() {
-                                    if let Some(existing_info) = existing.info.as_mut() {
-                                        if let (Some(e_obj), Some(n_obj)) = (existing_info.as_object_mut(), new_info.as_object()) {
-                                            for (k, v) in n_obj {
-                                                if (k == "logs_count" || k == "users_count") && v.as_i64() == Some(-1) {
-                                                    continue;
-                                                }
-                                                e_obj.insert(k.clone(), v.clone());
-                                            }
-                                        }
-                                    } else {
-                                        existing.info = Some(new_info);
-                                    }
-                                }
-                            })
-                            .or_insert_with(|| {
-                                has_changed = true;
-                                let new_logs = s.info.as_ref().and_then(|i| i["logs_count"].as_i64()).unwrap_or(-1);
-                                last_sent_memory.insert(id.clone(), (s.status.clone(), new_logs));
-                                s
-                            });
-                        
-                        // 2. Only push to Cloud if something meaningful changed
-                        if has_changed {
-                            let devices: Vec<models::DeviceStatus> = task_device_memory.iter().map(|r| r.value().clone()).collect();
-                            let msg = models::CentralMessage::StatusUpdate {
-                                agent_id: sr_agent_id.clone(),
-                                devices,
-                                timestamp: chrono::Utc::now().to_rfc3339(),
-                            };
-                            let _ = sr_central_tx.send(msg).await;
-                        }
-                    } else {
-                        break;
-                    }
-                }
-                _ = heartbeat_interval.tick() => {
-                    // Safety heartbeat: send current state every 5 mins regardless of changes
-                    if !task_device_memory.is_empty() {
-                        let devices: Vec<models::DeviceStatus> = task_device_memory.iter().map(|r| r.value().clone()).collect();
-                        let msg = models::CentralMessage::StatusUpdate {
-                            agent_id: sr_agent_id.clone(),
-                            devices,
-                            timestamp: chrono::Utc::now().to_rfc3339(),
-                        };
-                        let _ = sr_central_tx.send(msg).await;
-                    }
-                }
-            }
-        }
-    });
+    // Removed status_reporting_task
 
     if !writer_started.swap(true, std::sync::atomic::Ordering::SeqCst) {
         tokio::spawn(async move {
@@ -456,28 +368,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Err(e) = hybrid_db.load_device_memory(&d.id).await {
                 error!("Failed to load memory for device {}: {}", d.id, e);
             }
-            
-            // NEW: Seed the real-time status memory from database if metadata exists
-            if let Some(serial) = &d.serial {
-                let info = json!({
-                    "mac": d.mac.as_deref().unwrap_or("N/A"),
-                    "serial": serial,
-                    "firmware": d.firmware.as_deref().unwrap_or("N/A"),
-                    "platform": d.platform.as_deref().unwrap_or("N/A"),
-                    "hw_name": d.hw_name.as_deref().unwrap_or("N/A"),
-                    "users_count": d.users_count.unwrap_or(0),
-                    "logs_count": d.logs_count.unwrap_or(0),
-                    "device_time": "Last Known",
-                    "last_sync": d.last_info_update.map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string()).unwrap_or_else(|| "N/A".to_string())
-                });
-                device_memory.insert(d.id.to_lowercase(), models::DeviceStatus {
-                    device_id: d.id.to_lowercase(),
-                    status: "offline".to_string(), // Initially offline until worker connects
-                    last_sync: None,
-                    error: None,
-                    info: Some(info),
-                });
-            }
         }
 
         let workers: Vec<WorkerConfig> = db_devices.into_iter().map(|d| {
@@ -494,7 +384,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         for worker in workers {
             let log_tx = log_tx.clone();
-            let status_tx = status_tx.clone();
             let hybrid_db = hybrid_db.clone();
             let token = worker_cancel_token.clone();
             let sem = semaphore.clone();
@@ -533,7 +422,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
 
                     // Send initial status update immediately
-                    if let Ok(mut info) = adapter.call("device.get_info", json!({})).await {
+                    if let Ok(info) = adapter.call("device.get_info", json!({})).await {
                         // NEW: Persist to local SQLite
                         if let Some(obj) = info.as_object() {
                             let _ = hybrid_db.disk_db().update_device_metadata(
@@ -545,26 +434,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 obj.get("hw_name").and_then(|v| v.as_str()).unwrap_or("N/A"),
                                 obj.get("users_count").and_then(|v| v.as_i64()).unwrap_or(0),
                                 obj.get("logs_count").and_then(|v| v.as_i64()).unwrap_or(0),
+                                obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
+                                obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
+                                obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A")
                             ).await;
                         }
 
-                        // ENRICH: If sidecar returns -1 for logs_count, try to get from DB
-                        if info["logs_count"].as_i64() == Some(-1) {
-                            if let Ok(Some(meta)) = hybrid_db.disk_db().get_device_metadata(&worker.id).await {
-                                info["logs_count"] = json!(meta.logs_count.unwrap_or(0));
-                                info["users_count"] = json!(meta.users_count.unwrap_or(0));
-                            }
-                        }
-
-                        let status = models::DeviceStatus {
-                            device_id: worker.id.to_lowercase(),
-                            status: "online".to_string(),
-                            last_sync: Some(chrono::Utc::now()),
-                            error: None,
-                            info: Some(info),
-                        };
-
-                        let _ = status_tx.send(status).await;
+                        // Removed periodic status send
                     }
 
                     // In-memory duplicate detection: hash-based keys (8 bytes each instead of ~40 for String)
@@ -590,8 +466,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         poll_count += 1;
 
                         // Periodically fetch device info (every 5 polls or when just connected)
-                        if poll_count % 5 == 1 {
-                        if let Ok(mut info) = adapter.call("device.get_info", json!({})).await {
+                        if poll_count % 5 == 1 && let Ok(mut info) = adapter.call("device.get_info", json!({})).await {
                                 // NEW: Persist to local SQLite
                                 if let Some(obj) = info.as_object() {
                                     let _ = hybrid_db.disk_db().update_device_metadata(
@@ -603,27 +478,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         obj.get("hw_name").and_then(|v| v.as_str()).unwrap_or("N/A"),
                                         obj.get("users_count").and_then(|v| v.as_i64()).unwrap_or(0),
                                         obj.get("logs_count").and_then(|v| v.as_i64()).unwrap_or(0),
+                                        obj.get("users_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
+                                        obj.get("logs_capacity").and_then(|v| v.as_i64()).unwrap_or(0),
+                                        obj.get("device_time").and_then(|v| v.as_str()).unwrap_or("N/A")
                                     ).await;
                                 }
 
                                 // ENRICH: If sidecar returns -1 for logs_count, try to get from DB
-                                if info["logs_count"].as_i64() == Some(-1) {
-                                    if let Ok(Some(meta)) = hybrid_db.disk_db().get_device_metadata(&worker.id).await {
-                                        info["logs_count"] = json!(meta.logs_count.unwrap_or(0));
-                                        info["users_count"] = json!(meta.users_count.unwrap_or(0));
-                                    }
+                                if info["logs_count"].as_i64() == Some(-1) && let Ok(Some(meta)) = hybrid_db.disk_db().get_device_metadata(&worker.id).await {
+                                    info["logs_count"] = json!(meta.logs_count.unwrap_or(0));
+                                    info["users_count"] = json!(meta.users_count.unwrap_or(0));
                                 }
 
-                                let status = models::DeviceStatus {
-                                    device_id: worker.id.to_lowercase(),
-                                    status: "online".to_string(),
-                                    last_sync: Some(chrono::Utc::now()),
-                                    error: None,
-                                    info: Some(info),
-                                };
-
-                                let _ = status_tx.send(status).await;
-                            }
+                                // Removed periodic status send
                         }
 
                         match adapter.call("device.get_logs", json!({})).await {
@@ -653,13 +520,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                                                                                                 if let Some(mac) = meta.mac { quick_info["mac"] = json!(mac); }
                                                                                                             }
                                                                         
-                                                                                                            let _ = status_tx.send(models::DeviceStatus {
-                                                                                                                device_id: worker.id.to_lowercase(),
-                                                                                                                status: "online".to_string(),
-                                                                                                                last_sync: Some(chrono::Utc::now()),
-                                                                                                                error: None,
-                                                                                                                info: Some(quick_info),
-                                                                                                            }).await;
+                                                    // Removed periodic status send
                                                                         
                                                                                                             if !logs.is_empty() {                                                                            // Filter duplicates before sending to queue
                                                                             // Consume array values to avoid clone; use hash-based dedup key
@@ -714,14 +575,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
 
                     if !token.is_cancelled() {
-                        // Report connecting status during retry delay
-                        let _ = status_tx.send(models::DeviceStatus {
-                            device_id: worker.id.to_lowercase(),
-                            status: "connecting".to_string(),
-                            last_sync: None,
-                            error: Some("Sidecar connection lost, reconnecting...".to_string()),
-                            info: None,
-                        }).await;
+                        // Removed periodic status send
 
                         warn!("[{}] Sidecar connection lost, restarting...", worker.name);
                         retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);

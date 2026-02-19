@@ -1,6 +1,6 @@
 use rustzk::ZK;
 use serde_json::Value;
-use log::info;
+use log::{info, warn, debug};
 use chrono::NaiveDateTime;
 
 // Simple error type to match the previous JsonRpcError structure for compatibility
@@ -37,7 +37,7 @@ impl ZkWorker {
         let mut zk = ZK::new(&ip, port);
         
         let res = tokio::task::spawn_blocking(move || {
-            let res = zk.connect(false); // false = UDP
+            let res = zk.connect(rustzk::ZKProtocol::Auto); 
             (zk, res)
         }).await;
 
@@ -173,10 +173,26 @@ impl ZkWorker {
         })?;
 
         let res = tokio::task::spawn_blocking(move || {
-            let _ = zk.read_sizes(); // populate capacity fields (rec_cap, users_cap, etc.)
+            match zk.read_sizes() {
+                Ok(_) => debug!("read_sizes success: users_cap={}, rec_cap={}", zk.users_cap, zk.rec_cap),
+                Err(e) => warn!("read_sizes failed: {e:?}"),
+            }
+            
             let users_count = zk.get_users().map(|u| u.len()).unwrap_or(0);
             let logs_count = zk.get_attendance().map(|l| l.len()).unwrap_or(0);
-            let time = zk.get_time().map(|t| t.to_string().replace("T", " ")).unwrap_or("N/A".to_string());
+            
+            let time = match zk.get_time() {
+                Ok(t) => {
+                    let s = t.to_string().replace("T", " ");
+                    debug!("get_time success: {s}");
+                    s
+                },
+                Err(e) => {
+                    warn!("get_time failed: {e:?}");
+                    "N/A".to_string()
+                }
+            };
+
             let firmware = zk.get_firmware_version().unwrap_or("N/A".to_string());
             let mac = zk.get_mac().unwrap_or("N/A".to_string());
             let serial = zk.get_serial_number().unwrap_or("N/A".to_string());
@@ -185,6 +201,7 @@ impl ZkWorker {
             
             let info = serde_json::json!({
                 "users_count": users_count,
+                "users_capacity": zk.users_cap,
                 "logs_count": logs_count,
                 "logs_capacity": zk.rec_cap,
                 "device_time": time,

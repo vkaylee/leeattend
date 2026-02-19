@@ -3,6 +3,19 @@
 ## [Unreleased]
 
 ### Added
+- **Device Management Enhancements:**
+    - **Device Capacity**: Agent now reports User and Log capacity (used/total) from ZK devices.
+    - **Device Time**: Agent fetches and reports device system time.
+    - **On-Demand Info**: Replaced periodic status updates with on-demand fetching for `device_info`.
+    - **UI Updates**: Frontend now displays Device Time, User Capacity, and Log Capacity in the device list.
+
+### Fixed
+- **Code Quality:**
+    - Resolved `clippy::collapsible_if` and `clippy::uninlined_format_args` in `agent-main`.
+    - Resolved `clippy::redundant_closure` in `apiserver`.
+    - Verified clean linting and passing tests for `agent` and `apiserver`. 
+
+### Added
 - **Production Environment Setup**:
     - **Dockerized Deployment**: Implemented a comprehensive `docker-compose.yml` for production, orchestrating API Server, Frontend (Nginx), PostgreSQL, and Redis.
     - **Multi-Stage Dockerfiles**: Created optimized, security-focused Dockerfiles for `apiserver` and `webdashboard`.
