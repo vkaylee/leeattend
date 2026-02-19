@@ -40,9 +40,9 @@ async fn test_clear_startup_config_deactivates_devices() {
         .expect("Failed to create in-memory DB");
 
     // Insert some active devices
-    db.upsert_device("device1", "Office", "192.168.1.100", 4370, "zkteco", "UTC", true).await.unwrap();
-    db.upsert_device("device2", "Warehouse", "192.168.1.101", 4370, "zkteco", "UTC", true).await.unwrap();
-    db.upsert_device("device3", "Factory", "192.168.1.102", 4370, "zkteco", "UTC", true).await.unwrap();
+    db.upsert_device("device1", "Office", "192.168.1.100", 4370, "zkteco", "UTC", None, true).await.unwrap();
+    db.upsert_device("device2", "Warehouse", "192.168.1.101", 4370, "zkteco", "UTC", None, true).await.unwrap();
+    db.upsert_device("device3", "Factory", "192.168.1.102", 4370, "zkteco", "UTC", None, true).await.unwrap();
 
     // Verify devices are active
     let active_devices = db.get_active_devices().await.unwrap();
@@ -126,7 +126,7 @@ async fn test_startup_simulation_with_config_push() {
 
     // Step 1: Simulate previous session with stale config
     db.upsert_agent_config("max_concurrent_workers", "2").await.unwrap();
-    db.upsert_device("old_device", "Old Office", "192.168.1.50", 4370, "zkteco", "UTC", true).await.unwrap();
+    db.upsert_device("old_device", "Old Office", "192.168.1.50", 4370, "zkteco", "UTC", None, true).await.unwrap();
 
     // Verify stale config exists
     let stale_config = db.get_agent_config("max_concurrent_workers").await.unwrap();
@@ -147,8 +147,8 @@ async fn test_startup_simulation_with_config_push() {
 
     // Step 3: Simulate ConfigPush from server (fresh config)
     db.upsert_agent_config("max_concurrent_workers", "4").await.unwrap();
-    db.upsert_device("device1", "New Office", "192.168.1.100", 4370, "zkteco", "UTC", true).await.unwrap();
-    db.upsert_device("device2", "New Warehouse", "192.168.1.101", 4370, "zkteco", "UTC", true).await.unwrap();
+    db.upsert_device("device1", "New Office", "192.168.1.100", 4370, "zkteco", "UTC", None, true).await.unwrap();
+    db.upsert_device("device2", "New Warehouse", "192.168.1.101", 4370, "zkteco", "UTC", None, true).await.unwrap();
 
     // Verify fresh config applied
     let fresh_config = db.get_agent_config("max_concurrent_workers").await.unwrap();
@@ -169,7 +169,7 @@ async fn test_multiple_consecutive_startups() {
 
     // First startup cycle
     db.upsert_agent_config("key1", "value1").await.unwrap();
-    db.upsert_device("d1", "Device 1", "10.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
+    db.upsert_device("d1", "Device 1", "10.0.0.1", 4370, "zkteco", "UTC", None, true).await.unwrap();
     db.clear_startup_config().await.unwrap();
 
     let config1 = db.get_agent_config("key1").await.unwrap();
@@ -177,7 +177,7 @@ async fn test_multiple_consecutive_startups() {
 
     // Second startup cycle
     db.upsert_agent_config("key2", "value2").await.unwrap();
-    db.upsert_device("d2", "Device 2", "10.0.0.2", 4370, "zkteco", "UTC", true).await.unwrap();
+    db.upsert_device("d2", "Device 2", "10.0.0.2", 4370, "zkteco", "UTC", None, true).await.unwrap();
     db.clear_startup_config().await.unwrap();
 
     let config2 = db.get_agent_config("key2").await.unwrap();
@@ -185,7 +185,7 @@ async fn test_multiple_consecutive_startups() {
 
     // Third startup cycle
     db.upsert_agent_config("key3", "value3").await.unwrap();
-    db.upsert_device("d3", "Device 3", "10.0.0.3", 4370, "zkteco", "UTC", true).await.unwrap();
+    db.upsert_device("d3", "Device 3", "10.0.0.3", 4370, "zkteco", "UTC", None, true).await.unwrap();
     db.clear_startup_config().await.unwrap();
 
     let config3 = db.get_agent_config("key3").await.unwrap();

@@ -715,7 +715,7 @@ mod tests {
         let hybrid = HybridDatabase::new(db_url, 1000, 90).await.unwrap();
         
         // Setup device
-        hybrid.disk_db().upsert_device("DevZ", "Test Device", "127.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
+        hybrid.disk_db().upsert_device("DevZ", "Test Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true).await.unwrap();
         
         // 2. Save some logs (this adds to both memory signatures and disk)
         let data = AttendanceData { user_id: "U1".into(), timestamp: "2026-01-01 09:00:00".into(), status: Some(1), punch: Some(1) };
@@ -787,7 +787,7 @@ mod tests {
         let hybrid = HybridDatabase::new(&db_url, 1000, 7).await.unwrap();
 
         // Setup device
-        hybrid.disk_db().upsert_device("DEV1", "Test", "127.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
+        hybrid.disk_db().upsert_device("DEV1", "Test", "127.0.0.1", 4370, "zkteco", "UTC", None, true).await.unwrap();
 
         // Insert recent log (2 days ago — within TTL)
         let recent_ts = chrono::Utc::now().timestamp() - (2 * 86400);
@@ -900,7 +900,7 @@ mod tests {
         let hybrid = HybridDatabase::new(&db_url, 1000, 90).await.unwrap();
 
         // Setup device
-        hybrid.disk_db().upsert_device("DEV1", "Test", "127.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
+        hybrid.disk_db().upsert_device("DEV1", "Test", "127.0.0.1", 4370, "zkteco", "UTC", None, true).await.unwrap();
 
         // Insert 3 logs
         let ts_base = chrono::Utc::now().timestamp();
@@ -950,7 +950,7 @@ mod tests {
         let db_url = format!("sqlite:file:{}?mode=memory&cache=shared", uuid::Uuid::new_v4());
         let hybrid = HybridDatabase::new(&db_url, 1000, 90).await.unwrap();
 
-        hybrid.disk_db().upsert_device("DEV1", "Test", "127.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
+        hybrid.disk_db().upsert_device("DEV1", "Test", "127.0.0.1", 4370, "zkteco", "UTC", None, true).await.unwrap();
 
         let ts = chrono::Utc::now().timestamp();
         let data = AttendanceData {

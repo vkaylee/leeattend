@@ -56,7 +56,7 @@ async fn test_concurrent_ack_processing_during_bulk_send() {
         // Setup agent with 20 logs (enough to test concurrent behavior)
         let db_url = in_memory_db_url();
         let db = Database::new(&db_url).await.unwrap();
-        db.upsert_device("DEV_BULK", "Bulk Device", "127.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
+        db.upsert_device("DEV_BULK", "Bulk Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true).await.unwrap();
 
         for i in 0..20 {
             db.save_raw_attendance("DEV_BULK", AttendanceData {
@@ -141,7 +141,7 @@ async fn test_reconnect_after_server_close() {
         // Setup agent with 1 log
         let db_url = in_memory_db_url();
         let db = Database::new(&db_url).await.unwrap();
-        db.upsert_device("DEV_RC", "Reconnect Device", "127.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
+        db.upsert_device("DEV_RC", "Reconnect Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true).await.unwrap();
         db.save_raw_attendance("DEV_RC", AttendanceData {
             user_id: "USER_RC".into(),
             timestamp: "2026-01-26 12:00:00".into(),
@@ -182,7 +182,7 @@ async fn test_connection_failure_preserves_receiver() {
 
         let db_url = in_memory_db_url();
         let db = Database::new(&db_url).await.unwrap();
-        db.upsert_device("DEV_FAIL", "Fail Device", "127.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
+        db.upsert_device("DEV_FAIL", "Fail Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true).await.unwrap();
         db.save_raw_attendance("DEV_FAIL", AttendanceData {
             user_id: "USER_FAIL".into(),
             timestamp: "2026-01-26 12:00:00".into(),
@@ -247,7 +247,7 @@ async fn test_no_ack_starvation_under_load() {
         // Setup agent with 50 logs for load testing
         let db_url = in_memory_db_url();
         let db = Database::new(&db_url).await.unwrap();
-        db.upsert_device("DEV_LOAD", "Load Device", "127.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
+        db.upsert_device("DEV_LOAD", "Load Device", "127.0.0.1", 4370, "zkteco", "UTC", None, true).await.unwrap();
 
         for i in 0..50 {
             db.save_raw_attendance("DEV_LOAD", AttendanceData {

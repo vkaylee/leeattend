@@ -12,7 +12,7 @@ async fn test_zk_worker_timeout_logic() {
     // For now, we can verify that basic instantiation works and that
     // connecting to an unreachable IP returns the expected timeout/error.
     
-    let mut worker = ZkWorker::new();
+    let mut worker = ZkWorker::new(None);
     
     // Test connection to a local closed port should fail immediately (Connection refused)
     // This verifies the failure path without waiting for a long TCP timeout.

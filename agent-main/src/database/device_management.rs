@@ -39,18 +39,19 @@ impl Database {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub async fn upsert_device(&self, id: &str, name: &str, ip: &str, port: i32, brand: &str, timezone: &str, is_enabled: bool) -> Result<(), Error> {
+    pub async fn upsert_device(&self, id: &str, name: &str, ip: &str, port: i32, brand: &str, timezone: &str, password: Option<&str>, is_enabled: bool) -> Result<(), Error> {
         let is_active = if is_enabled { 1 } else { 0 };
         sqlx::query(
             r#"
-            INSERT INTO devices (id, name, ip, port, brand, timezone, last_seen, is_active)
-            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+            INSERT INTO devices (id, name, ip, port, brand, timezone, password, last_seen, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
             ON CONFLICT(id) DO UPDATE SET
                 name = excluded.name,
                 ip = excluded.ip,
                 port = excluded.port,
                 brand = excluded.brand,
                 timezone = excluded.timezone,
+                password = excluded.password,
                 last_seen = CURRENT_TIMESTAMP,
                 is_active = excluded.is_active
             "#,
@@ -61,6 +62,7 @@ impl Database {
         .bind(port)
         .bind(brand)
         .bind(timezone)
+        .bind(password)
         .bind(is_active)
         .execute(&self.pool)
         .await?;
@@ -219,5 +221,32 @@ impl Database {
 
         let res = q.execute(&self.pool).await?;
         Ok(res.rows_affected())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use crate::hybrid_database::HybridDatabase;
+
+    #[tokio::test]
+    async fn test_device_password_persistence() {
+        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.expect("DB setup failed");
+        let db = hybrid_db.disk_db();
+        
+        // Insert device with password
+        db.upsert_device("dev_pwd_test", "Password Test Device", "1.1.1.1", 4370, "zkteco", "UTC", Some("12345"), true).await.unwrap();
+
+        // Retrieve and verify password
+        let devices = db.get_active_devices().await.unwrap();
+        let dev = devices.iter().find(|d| d.id == "dev_pwd_test").unwrap();
+        
+        assert_eq!(dev.password.as_deref(), Some("12345"));
+
+        // Update without password (passing None should clear it in our current SQL implementation)
+        db.upsert_device("dev_pwd_test", "Password Test Device", "1.1.1.1", 4370, "zkteco", "UTC", None, true).await.unwrap();
+        let devices_updated = db.get_active_devices().await.unwrap();
+        let dev_updated = devices_updated.iter().find(|d| d.id == "dev_pwd_test").unwrap();
+        assert_eq!(dev_updated.password, None);
     }
 }

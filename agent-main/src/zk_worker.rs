@@ -30,10 +30,11 @@ pub struct ZkWorker {
     device_name: Option<String>,
     users_capacity: Option<usize>,
     logs_capacity: Option<usize>,
+    password: Option<u32>,
 }
 
 impl ZkWorker {
-    pub fn new() -> Self {
+    pub fn new(password: Option<u32>) -> Self {
         Self {
             zk: None,
             ip: String::new(),
@@ -44,6 +45,7 @@ impl ZkWorker {
             device_name: None,
             users_capacity: None,
             logs_capacity: None,
+            password,
         }
     }
 }
@@ -57,6 +59,10 @@ impl Worker for ZkWorker {
         let ip_clone = self.ip.clone();
         let mut zk = ZK::new(&ip_clone, port);
         
+        if let Some(pwd) = self.password {
+            zk.set_password(pwd);
+        }
+
         let join_handle = tokio::task::spawn_blocking(move || {
             let res = zk.connect(rustzk::ZKProtocol::Auto); 
             
@@ -249,6 +255,6 @@ impl Worker for ZkWorker {
 
 impl Default for ZkWorker {
     fn default() -> Self {
-        Self::new()
+        Self::new(None)
     }
 }

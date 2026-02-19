@@ -63,6 +63,7 @@ pub struct DeviceConfig {
     pub logs_count: Option<i64>,
     pub users_capacity: Option<i64>,
     pub logs_capacity: Option<i64>,
+    pub password: Option<String>,
     pub device_time: Option<String>,
     pub last_info_update: Option<chrono::NaiveDateTime>,
 }
@@ -79,6 +80,7 @@ pub struct DeviceConfigPush {
     pub ip: String,
     pub port: i32,
     pub brand: String,
+    pub password: Option<String>,
     pub timezone: Option<String>,
     #[serde(default = "default_enabled")]
     pub is_enabled: bool,

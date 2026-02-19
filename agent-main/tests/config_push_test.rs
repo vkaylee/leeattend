@@ -15,6 +15,7 @@ async fn test_handle_config_push_with_brand() {
                     port: 4370,
                     brand: "zkteco".to_string(),
                     timezone: Some("UTC".to_string()),
+                    password: None,
                     is_enabled: true,
                 },
             ],
@@ -25,7 +26,7 @@ async fn test_handle_config_push_with_brand() {
     if let CentralMessage::ConfigPush { data } = config_msg {
         for d in data.devices {
             let tz = d.timezone.as_deref().unwrap_or("UTC");
-            db.upsert_device(&d.device_id, &d.name, &d.ip, d.port, &d.brand, tz, d.is_enabled).await.unwrap();
+            db.upsert_device(&d.device_id, &d.name, &d.ip, d.port, &d.brand, tz, None, d.is_enabled).await.unwrap();
         }
     }
 

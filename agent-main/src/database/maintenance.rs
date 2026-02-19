@@ -142,9 +142,9 @@ mod tests {
     #[tokio::test]
     async fn test_deactivate_devices_not_in_removes_stale() {
         let db = setup_db().await;
-        db.upsert_device("dev1", "Device 1", "192.168.1.1", 4370, "zkteco", "UTC", true).await.unwrap();
-        db.upsert_device("dev2", "Device 2", "192.168.1.2", 4370, "zkteco", "UTC", true).await.unwrap();
-        db.upsert_device("dev3", "Device 3", "192.168.1.3", 4370, "zkteco", "UTC", true).await.unwrap();
+        db.upsert_device("dev1", "Device 1", "192.168.1.1", 4370, "zkteco", "UTC", None, true).await.unwrap();
+        db.upsert_device("dev2", "Device 2", "192.168.1.2", 4370, "zkteco", "UTC", None, true).await.unwrap();
+        db.upsert_device("dev3", "Device 3", "192.168.1.3", 4370, "zkteco", "UTC", None, true).await.unwrap();
 
         let active_ids = vec!["dev1".to_string(), "dev3".to_string()];
         let deactivated = db.deactivate_devices_not_in(&active_ids).await.unwrap();
@@ -160,8 +160,8 @@ mod tests {
     #[tokio::test]
     async fn test_deactivate_devices_not_in_empty_list_deactivates_all() {
         let db = setup_db().await;
-        db.upsert_device("dev1", "Device 1", "192.168.1.1", 4370, "zkteco", "UTC", true).await.unwrap();
-        db.upsert_device("dev2", "Device 2", "192.168.1.2", 4370, "zkteco", "UTC", true).await.unwrap();
+        db.upsert_device("dev1", "Device 1", "192.168.1.1", 4370, "zkteco", "UTC", None, true).await.unwrap();
+        db.upsert_device("dev2", "Device 2", "192.168.1.2", 4370, "zkteco", "UTC", None, true).await.unwrap();
 
         let deactivated = db.deactivate_devices_not_in(&[]).await.unwrap();
         assert_eq!(deactivated, 2, "Should deactivate all devices");
@@ -172,8 +172,8 @@ mod tests {
     #[tokio::test]
     async fn test_deactivate_devices_not_in_no_changes_when_all_match() {
         let db = setup_db().await;
-        db.upsert_device("dev1", "Device 1", "192.168.1.1", 4370, "zkteco", "UTC", true).await.unwrap();
-        db.upsert_device("dev2", "Device 2", "192.168.1.2", 4370, "zkteco", "UTC", true).await.unwrap();
+        db.upsert_device("dev1", "Device 1", "192.168.1.1", 4370, "zkteco", "UTC", None, true).await.unwrap();
+        db.upsert_device("dev2", "Device 2", "192.168.1.2", 4370, "zkteco", "UTC", None, true).await.unwrap();
 
         let active_ids = vec!["dev1".to_string(), "dev2".to_string()];
         let deactivated = db.deactivate_devices_not_in(&active_ids).await.unwrap();
@@ -185,7 +185,7 @@ mod tests {
     #[tokio::test]
     async fn test_deactivate_devices_case_sensitive() {
         let db = setup_db().await;
-        db.upsert_device("office", "Office Device", "192.168.1.1", 4370, "zkteco", "UTC", true).await.unwrap();
+        db.upsert_device("office", "Office Device", "192.168.1.1", 4370, "zkteco", "UTC", None, true).await.unwrap();
 
         let active_ids = vec!["OFFICE".to_string()];
         let deactivated = db.deactivate_devices_not_in(&active_ids).await.unwrap();
@@ -615,8 +615,8 @@ mod tests {
     #[tokio::test]
     async fn test_count_unsynced_logs_for_device() {
         let db = setup_db().await;
-        db.upsert_device("Device A", "Device A", "127.0.0.1", 4370, "zkteco", "UTC", true).await.unwrap();
-        db.upsert_device("Device B", "Device B", "127.0.0.2", 4370, "zkteco", "UTC", true).await.unwrap();
+        db.upsert_device("Device A", "Device A", "127.0.0.1", 4370, "zkteco", "UTC", None, true).await.unwrap();
+        db.upsert_device("Device B", "Device B", "127.0.0.2", 4370, "zkteco", "UTC", None, true).await.unwrap();
 
         for i in 1..=5 {
             let data = AttendanceData {

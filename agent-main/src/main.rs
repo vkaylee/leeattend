@@ -31,6 +31,7 @@ struct WorkerConfig {
     brand: String,
     ip: String,
     port: u32,
+    password: Option<u32>,
 }
 
 #[tokio::main]
@@ -334,6 +335,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 brand: d.brand,
                 ip: d.ip,
                 port: d.port as u32,
+                password: d.password.and_then(|p| p.parse::<u32>().ok()),
             }
         }).collect();
 
@@ -365,7 +367,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         Box::new(mock_worker::MockWorker::new())
                     } else {
                         // Default to ZKTeco
-                        Box::new(zk_worker::ZkWorker::new())
+                        Box::new(zk_worker::ZkWorker::new(worker.password))
                     };
 
                     info!("[{}] Worker ready.", worker.name);

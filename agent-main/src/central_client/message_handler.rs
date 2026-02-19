@@ -31,7 +31,7 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                 // 3. Upsert devices (might enable or disable specific ones)
                 for d in data.devices {
                     let timezone = d.timezone.as_deref().unwrap_or("UTC");
-                    let _ = hybrid_db.disk_db().upsert_device(&d.device_id, &d.name, &d.ip, d.port, &d.brand, timezone, d.is_enabled).await;
+                    let _ = hybrid_db.disk_db().upsert_device(&d.device_id, &d.name, &d.ip, d.port, &d.brand, timezone, d.password.as_deref(), d.is_enabled).await;
                 }
 
                 // 4. Capture new active state
@@ -183,7 +183,7 @@ mod tests {
         let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.expect("DB setup failed");
         let (reload_tx, _reload_rx) = mpsc::channel(1);
 
-        hybrid_db.disk_db().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", true).await.expect("upsert failed");
+        hybrid_db.disk_db().upsert_device("DEV1", "Device 1", "1.2.3.4", 4370, "zkteco", "UTC", None, true).await.expect("upsert failed");
 
         let timestamp_str = "2026-01-31 12:00:00";
         let data = AttendanceData {
@@ -244,7 +244,7 @@ mod tests {
 
         hybrid_db
             .disk_db()
-            .upsert_device("dev1", "Device 1", "192.168.1.100", 4370, "zkteco", "UTC", true)
+            .upsert_device("dev1", "Device 1", "192.168.1.100", 4370, "zkteco", "UTC", None, true)
             .await
             .expect("upsert failed");
 
@@ -259,7 +259,7 @@ mod tests {
 
         hybrid_db
             .disk_db()
-            .upsert_device("dev1", "Device 1", "192.168.1.100", 4370, "zkteco", "UTC", true)
+            .upsert_device("dev1", "Device 1", "192.168.1.100", 4370, "zkteco", "UTC", None, true)
             .await
             .expect("upsert failed");
 
@@ -278,7 +278,7 @@ mod tests {
         let db = hybrid_db.disk_db();
         
         // Setup initial device
-        db.upsert_device("dev_123", "Test Device", "1.1.1.1", 4370, "zkteco", "UTC", true).await.unwrap();
+        db.upsert_device("dev_123", "Test Device", "1.1.1.1", 4370, "zkteco", "UTC", None, true).await.unwrap();
 
         // Update metadata
         db.update_device_metadata(
@@ -318,7 +318,7 @@ mod tests {
         // Here we just insert directly.
         
         // Setup device with metadata
-        hybrid_db.disk_db().upsert_device("dev_info_test", "Test Device", "1.2.3.4", 4370, "zkteco", "UTC", true).await.unwrap();
+        hybrid_db.disk_db().upsert_device("dev_info_test", "Test Device", "1.2.3.4", 4370, "zkteco", "UTC", None, true).await.unwrap();
         
         hybrid_db.disk_db().update_device_metadata(
             "dev_info_test", "MAC_ADDR", "SERIAL_NUM", "FW_VER", "PLATFORM", "HW_NAME", 
@@ -351,5 +351,38 @@ mod tests {
         } else {
             panic!("Expected CommandResponse");
         }
+    }
+
+    #[tokio::test]
+    async fn test_handle_config_push_with_password() {
+        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.expect("DB setup failed");
+        let (reload_tx, _reload_rx) = mpsc::channel(1);
+        let (central_tx, _central_rx) = mpsc::channel(1);
+
+        let config_json = r#"{
+            "type": "config_push",
+            "data": {
+                "devices": [
+                    {
+                        "device_id": "dev_pwd_push",
+                        "name": "Push Password Device",
+                        "ip": "1.2.3.4",
+                        "port": 4370,
+                        "brand": "zkteco",
+                        "timezone": "UTC",
+                        "password": "98765",
+                        "is_enabled": true
+                    }
+                ],
+                "max_concurrent_workers": 5
+            }
+        }"#;
+
+        handle_incoming_text(config_json, &hybrid_db, &reload_tx, &central_tx).await;
+
+        // Verify device was inserted with password
+        let devices = hybrid_db.disk_db().get_active_devices().await.unwrap();
+        let dev = devices.iter().find(|d| d.id == "dev_pwd_push").unwrap();
+        assert_eq!(dev.password.as_deref(), Some("98765"));
     }
 }
