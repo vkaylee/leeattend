@@ -27,6 +27,7 @@ RUN curl -L https://github.com/mozilla/sccache/releases/download/v0.8.2/sccache-
 
 ENV RUSTC_WRAPPER=sccache
 ENV SCCACHE_DIR=/sccache
+ENV SQLX_OFFLINE=true
 
 COPY . .
 # Copy pre-compiled dependencies from cacher

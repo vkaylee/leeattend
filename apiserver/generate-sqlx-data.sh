@@ -12,7 +12,7 @@ sleep 10
 DATABASE_URL="postgres://test_user:test_password@test_db:5432/test_database"
 
 echo "Building temporary container with sqlx-cli..."
-docker run --rm -it \
+docker run --rm \
   --network leeattend-test_default \
   -v "$(pwd):/workspace" \
   -w /workspace \

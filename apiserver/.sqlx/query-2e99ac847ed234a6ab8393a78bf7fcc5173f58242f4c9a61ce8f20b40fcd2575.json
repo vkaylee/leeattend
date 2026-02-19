@@ -1,0 +1,113 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n            s.id, s.workspace_id, s.name, s.start_time, s.end_time, \n            s.break_duration_minutes, s.break_start, s.break_end, \n            s.is_break_auto_deduct, s.break_is_overtime, \n            s.early_punch_in_grace_period_minutes, s.allow_early_ot, s.is_active, s.parent_shift_id,\n            s.created_at as \"created_at!\", s.updated_at as \"updated_at!\"\n         FROM shifts s\n         JOIN employee_shifts es ON s.id = es.shift_id\n         WHERE es.employee_id = $1 \n           AND es.start_date <= $2 \n           AND (es.end_date IS NULL OR es.end_date >= $2)\n         ORDER BY es.created_at DESC\n         LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "start_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 4,
+        "name": "end_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 5,
+        "name": "break_duration_minutes",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "break_start",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 7,
+        "name": "break_end",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_break_auto_deduct",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "break_is_overtime",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "early_punch_in_grace_period_minutes",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "allow_early_ot",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "parent_shift_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 14,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "2e99ac847ed234a6ab8393a78bf7fcc5173f58242f4c9a61ce8f20b40fcd2575"
+}

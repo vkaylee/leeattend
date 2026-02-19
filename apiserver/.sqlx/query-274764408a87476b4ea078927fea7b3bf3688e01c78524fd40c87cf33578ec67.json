@@ -1,0 +1,57 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT\n                        id,\n                        timezone,\n                        rounding_policy,\n                        work_unit_minutes,\n                        early_arrival_strategy as \"early_arrival_strategy: EarlyArrivalStrategy\"\n                    FROM workspaces\n                    WHERE id = $1\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "timezone",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "rounding_policy",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "work_unit_minutes",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "early_arrival_strategy: EarlyArrivalStrategy",
+        "type_info": {
+          "Custom": {
+            "name": "early_arrival_strategy_type",
+            "kind": {
+              "Enum": [
+                "allow",
+                "block",
+                "clamp"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "274764408a87476b4ea078927fea7b3bf3688e01c78524fd40c87cf33578ec67"
+}

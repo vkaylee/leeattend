@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT system_detected_ot_minutes FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "system_detected_ot_minutes",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b28b014d9e0d91628ab3803ca0d43ef1f6d62be1bd6f23fae53b7b4c0434cfeb"
+}

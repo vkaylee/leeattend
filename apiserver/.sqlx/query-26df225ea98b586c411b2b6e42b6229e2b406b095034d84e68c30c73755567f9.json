@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT policy_id FROM overtime_policy_assignments\n            WHERE workspace_id = $1 AND assignee_type = 'employee' AND assignee_id = $2\n            AND effective_from <= $3 AND (effective_to IS NULL OR effective_to >= $3)\n            ORDER BY created_at DESC LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "policy_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "26df225ea98b586c411b2b6e42b6229e2b406b095034d84e68c30c73755567f9"
+}
