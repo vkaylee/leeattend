@@ -14,5 +14,6 @@ pub mod utils;
 
 pub mod worker_processor;
 pub mod mock_worker;
+pub mod worker;
 
 pub mod zk_worker;

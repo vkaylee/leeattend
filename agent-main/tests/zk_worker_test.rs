@@ -1,5 +1,5 @@
 use agent::zk_worker::ZkWorker;
-use std::time::Duration;
+use agent::worker::Worker;
 
 #[tokio::test]
 async fn test_zk_worker_timeout_logic() {

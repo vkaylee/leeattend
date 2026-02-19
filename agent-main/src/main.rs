@@ -1,6 +1,4 @@
 mod cli;
-mod zk_worker;
-mod mock_worker;
 
 // use std::process::Stdio;
 use std::sync::Arc;
@@ -22,50 +20,9 @@ use log::{info, error, warn};
 use tokio_util::sync::CancellationToken;
 use tokio::sync::{mpsc, Semaphore};
 use dashmap::DashMap;
-
-enum WorkerAdapter {
-    Zk(Box<zk_worker::ZkWorker>),
-    Mock(mock_worker::MockWorker),
-}
-
-impl WorkerAdapter {
-    async fn call(&mut self, method: &str, params: serde_json::Value) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
-        match self {
-            WorkerAdapter::Zk(worker) => {
-                match method {
-                    "device.connect" => {
-                        let ip = params["ip"].as_str().unwrap_or("");
-                        let port = params["port"].as_u64().unwrap_or(4370) as u16;
-                        worker.connect(ip, port).await.map(|_| serde_json::json!(true)).map_err(|e| e.into())
-                    },
-                    "device.get_logs" => {
-                        worker.get_attendance_logs().await.map(serde_json::Value::Array).map_err(|e| e.into())
-                    },
-                    "device.get_info" => {
-                        worker.get_info().await.map_err(|e| e.into())
-                    },
-                    _ => Err(format!("Unknown method: {method}").into())
-                }
-            }
-            WorkerAdapter::Mock(worker) => {
-                 match method {
-                    "device.connect" => {
-                        let ip = params["ip"].as_str().unwrap_or("");
-                        let port = params["port"].as_u64().unwrap_or(4370) as u16;
-                        worker.connect(ip, port).await.map(|_| serde_json::json!(true)).map_err(|e| e.into())
-                    },
-                    "device.get_logs" => {
-                        worker.get_attendance_logs().await.map(serde_json::Value::Array).map_err(|e| e.into())
-                    },
-                    "device.get_info" => {
-                        worker.get_info().await.map_err(|e| e.into())
-                    },
-                    _ => Err(format!("Unknown method: {method}").into())
-                }
-            }
-        }
-    }
-}
+use agent::worker::Worker;
+use agent::zk_worker;
+use agent::mock_worker;
 
 #[derive(Clone)]
 struct WorkerConfig {
@@ -403,26 +360,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         sleep(delay).await;
                     }
 
-                    let mut adapter: WorkerAdapter;
-                    
-                    if worker.brand == "mock" {
-                        adapter = WorkerAdapter::Mock(mock_worker::MockWorker::new());
+                    // Dynamically select worker based on brand
+                    let mut worker_impl: Box<dyn Worker> = if worker.brand == "mock" {
+                        Box::new(mock_worker::MockWorker::new())
                     } else {
                         // Default to ZKTeco
-                        adapter = WorkerAdapter::Zk(Box::default());
-                    }
+                        Box::new(zk_worker::ZkWorker::new())
+                    };
 
                     info!("[{}] Worker ready.", worker.name);
                     stable_since = Some(Instant::now());
 
-                    if let Err(e) = adapter.call("device.connect", json!({"ip": worker.ip, "port": worker.port})).await {
+                    if let Err(e) = worker_impl.connect(&worker.ip, worker.port as u16).await {
                         error!("[{}] Device connection failed: {}", worker.name, e);
                         retry_count = std::cmp::min(retry_count + 1, SIDECAR_MAX_RETRY_COUNT);
                         continue;
                     }
 
                     // Send initial status update immediately
-                    if let Ok(info) = adapter.call("device.get_info", json!({})).await {
+                    if let Ok(info) = worker_impl.get_info().await {
                         // NEW: Persist to local SQLite
                         if let Some(obj) = info.as_object() {
                             let _ = hybrid_db.disk_db().update_device_metadata(
@@ -466,7 +422,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         poll_count += 1;
 
                         // Periodically fetch device info (every 5 polls or when just connected)
-                        if poll_count % 5 == 1 && let Ok(mut info) = adapter.call("device.get_info", json!({})).await {
+                        if poll_count % 5 == 1 && let Ok(mut info) = worker_impl.get_info().await {
                                 // NEW: Persist to local SQLite
                                 if let Some(obj) = info.as_object() {
                                     let _ = hybrid_db.disk_db().update_device_metadata(
@@ -493,8 +449,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 // Removed periodic status send
                         }
 
-                        match adapter.call("device.get_logs", json!({})).await {
-                            Ok(res) => {
+                        match worker_impl.get_attendance_logs().await {
+                            Ok(logs_vec) => {
                                 // Check stability and reset retry count if stable
                                 if let Some(since) = stable_since
                                     && since.elapsed() >= Duration::from_secs(SIDECAR_STABILITY_THRESHOLD_SECS) && retry_count > 0 {
@@ -503,59 +459,62 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     }
 
                                 let mut new_count = 0;
-                                if let Some(logs) = res.as_array() {
-                                    let fetched_count = logs.len();
+                                // Convert Vec<Value> (logs_vec) to needed logic
+                                {
+                                    let fetched_count = logs_vec.len();
                                     let mut duplicate_count = 0;
-
-                                                                                                            // Update hardware snapshot count in DB (preserve users_count by passing -1)
-                                                                                                            let _ = hybrid_db.disk_db().update_device_counts(&worker.id, -1, fetched_count as i64).await;
-                                                                        
-                                                                                                            // NEW: Trigger immediate status reporting with the fresh count
-                                                                                                            let mut quick_info = json!({
-                                                                                                                "logs_count": fetched_count,
-                                                                                                            });
-                                                                                                            // Enrich users_count from DB if possible
-                                                                                                            if let Ok(Some(meta)) = hybrid_db.disk_db().get_device_metadata(&worker.id).await {
-                                                                                                                quick_info["users_count"] = json!(meta.users_count.unwrap_or(0));
-                                                                                                                if let Some(mac) = meta.mac { quick_info["mac"] = json!(mac); }
-                                                                                                            }
-                                                                        
-                                                    // Removed periodic status send
-                                                                        
-                                                                                                            if !logs.is_empty() {                                                                            // Filter duplicates before sending to queue
-                                                                            // Consume array values to avoid clone; use hash-based dedup key
-                                                                            let logs_owned: Vec<serde_json::Value> = logs.to_vec();
-                                                                            for log_val in logs_owned {
-                                                                                if let Ok(attendance) = serde_json::from_value::<models::AttendanceData>(log_val) {
-                                                                                    // Hash-based dedup key (8 bytes vs ~40 for String)
-                                                                                    let mut hasher = rustc_hash::FxHasher::default();
-                                                                                    attendance.user_id.hash(&mut hasher);
-                                                                                    attendance.timestamp.hash(&mut hasher);
-                                                                                    let key = hasher.finish();
                                     
-                                                                                    if seen_logs.insert(key) {
-                                                                                        let _ = log_tx.send((worker.id.clone(), attendance)).await;
-                                                                                        new_count += 1;
-                                                                                    } else {
-                                                                                        duplicate_count += 1;
-                                                                                    }
-                                                                                }
-                                                                            }
-                                    
-                                                                            // Eviction: clear when exceeding cap (secondary dedup; memory store signatures are primary)
-                                                                            if seen_logs.len() > SEEN_LOGS_CAP {
-                                                                                seen_logs.clear();
-                                                                                info!("[{}] Cleared seen_logs cache (>{} entries)", worker.name, SEEN_LOGS_CAP);
-                                                                            }
-                                    
-                                                                            if duplicate_count > 0 {
-                                                                                info!("[{}] Fetched {} logs ({} new, {} duplicates filtered) [interval: {}s]",
-                                                                                      worker.name, fetched_count, new_count, duplicate_count, polling_state.interval());
-                                                                            } else {
-                                                                                info!("[{}] Fetched {} logs [interval: {}s]", worker.name, fetched_count, polling_state.interval());
-                                                                            }
-                                                                        }
-                                                                    }
+                                    // Update hardware snapshot count in DB (preserve users_count by passing -1)
+                                    let _ = hybrid_db.disk_db().update_device_counts(&worker.id, -1, fetched_count as i64).await;
+                                        
+                                    // NEW: Trigger immediate status reporting with the fresh count
+                                    #[allow(unused_variables)]
+                                    let mut quick_info = json!({
+                                        "logs_count": fetched_count,
+                                    });
+                                    // Enrich users_count from DB if possible
+                                    if let Ok(Some(meta)) = hybrid_db.disk_db().get_device_metadata(&worker.id).await {
+                                        quick_info["users_count"] = json!(meta.users_count.unwrap_or(0));
+                                        if let Some(mac) = meta.mac { quick_info["mac"] = json!(mac); }
+                                    }
+                                
+                                    // Removed periodic status send
+                                
+                                    if !logs_vec.is_empty() {
+                                        // Filter duplicates before sending to queue
+                                        // Consume array values to avoid clone; use hash-based dedup key
+                                        for log_val in logs_vec {
+                                            if let Ok(attendance) = serde_json::from_value::<models::AttendanceData>(log_val) {
+                                                // Hash-based dedup key (8 bytes vs ~40 for String)
+                                                let mut hasher = rustc_hash::FxHasher::default();
+                                                attendance.user_id.hash(&mut hasher);
+                                                attendance.timestamp.hash(&mut hasher);
+                                                let key = hasher.finish();
+                            
+                                                if seen_logs.insert(key) {
+                                                    let _ = log_tx.send((worker.id.clone(), attendance)).await;
+                                                    new_count += 1;
+                                                } else {
+                                                    duplicate_count += 1;
+                                                }
+                                            }
+                                        }
+                    
+                                        // Eviction: clear when exceeding cap (secondary dedup; memory store signatures are primary)
+                                        if seen_logs.len() > SEEN_LOGS_CAP {
+                                            seen_logs.clear();
+                                            info!("[{}] Cleared seen_logs cache (>{} entries)", worker.name, SEEN_LOGS_CAP);
+                                        }
+                    
+                                        if duplicate_count > 0 {
+                                            info!("[{}] Fetched {} logs ({} new, {} duplicates filtered) [interval: {}s]",
+                                                    worker.name, fetched_count, new_count, duplicate_count, polling_state.interval());
+                                        } else {
+                                            info!("[{}] Fetched {} logs [interval: {}s]", worker.name, fetched_count, polling_state.interval());
+                                        }
+                                    }
+                                }
+                                
                                 // Adaptive polling: adjust interval based on new data
                                 let (new_interval, changed) = polling_state.update(new_count > 0);
                                 if changed && new_count == 0 {

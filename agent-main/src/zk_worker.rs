@@ -1,3 +1,5 @@
+use crate::worker::Worker;
+use async_trait::async_trait;
 use rustzk::ZK;
 use serde_json::Value;
 use log::{info, warn, debug, error};
@@ -20,6 +22,14 @@ impl std::error::Error for ZkError {}
 pub struct ZkWorker {
     zk: Option<ZK>,
     ip: String,
+    // Cached static info
+    mac: Option<String>,
+    serial: Option<String>,
+    firmware: Option<String>,
+    platform: Option<String>,
+    device_name: Option<String>,
+    users_capacity: Option<usize>,
+    logs_capacity: Option<usize>,
 }
 
 impl ZkWorker {
@@ -27,10 +37,20 @@ impl ZkWorker {
         Self {
             zk: None,
             ip: String::new(),
+            mac: None,
+            serial: None,
+            firmware: None,
+            platform: None,
+            device_name: None,
+            users_capacity: None,
+            logs_capacity: None,
         }
     }
+}
 
-    pub async fn connect(&mut self, ip: &str, port: u16) -> Result<bool, ZkError> {
+#[async_trait]
+impl Worker for ZkWorker {
+    async fn connect(&mut self, ip: &str, port: u16) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         info!("[{ip}] Connecting to ZK device...");
         
         self.ip = ip.to_string();
@@ -39,34 +59,68 @@ impl ZkWorker {
         
         let join_handle = tokio::task::spawn_blocking(move || {
             let res = zk.connect(rustzk::ZKProtocol::Auto); 
-            (zk, res)
+            
+            // If connected successfully, fetch static info immediately
+            let static_info = if res.is_ok() {
+                let mac = zk.get_mac().ok();
+                let serial = zk.get_serial_number().ok();
+                let firmware = zk.get_firmware_version().ok();
+                let platform = zk.get_platform().ok();
+                let device_name = zk.get_device_name().ok();
+                
+                // Read capacities
+                let _ = zk.read_sizes();
+                let users_cap = Some(zk.users_cap as usize);
+                let logs_cap = Some(zk.rec_cap as usize);
+                
+                Some((mac, serial, firmware, platform, device_name, users_cap, logs_cap))
+            } else {
+                None
+            };
+
+            (zk, res, static_info)
         });
 
-        match tokio::time::timeout(Duration::from_secs(10), join_handle).await {
-            Ok(Ok((zk_instance, Ok(_)))) => {
+        match tokio::time::timeout(Duration::from_secs(20), join_handle).await {
+            Ok(Ok((zk_instance, Ok(_), static_info))) => {
                  self.zk = Some(zk_instance);
-                 info!("✅ [{ip}] Successfully connected to ZK device");
+                 
+                 // Cache static info
+                 if let Some((mac, serial, firmware, platform, device_name, users_cap, logs_cap)) = static_info {
+                     self.mac = mac;
+                     self.serial = serial;
+                     self.firmware = firmware;
+                     self.platform = platform;
+                     self.device_name = device_name;
+                     self.users_capacity = users_cap;
+                     self.logs_capacity = logs_cap;
+                     
+                     info!("✅ [{ip}] Connected & cached info: MAC={:?}, Serial={:?}", self.mac, self.serial);
+                 } else {
+                     info!("✅ [{ip}] Successfully connected to ZK device (no static info)");
+                 }
+                 
                  Ok(true)
             }
-            Ok(Ok((_, Err(e)))) => {
+            Ok(Ok((_, Err(e), _))) => {
                 let msg = format!("❌ [{ip}] Device connection failed: {e}");
                 warn!("{msg}");
-                Err(ZkError { message: msg })
+                Err(Box::new(ZkError { message: msg }))
             },
             Ok(Err(e)) => {
                 let msg = format!("❌ [{ip}] Task join error: {e}");
                 error!("{msg}");
-                Err(ZkError { message: msg })
+                Err(Box::new(ZkError { message: msg }))
             },
             Err(_) => {
-                let msg = format!("❌ [{ip}] Connection timed out after 10s");
+                let msg = format!("❌ [{ip}] Connection timed out after 20s");
                 warn!("{msg}");
-                Err(ZkError { message: msg })
+                Err(Box::new(ZkError { message: msg }))
             }
         }
     }
 
-    pub async fn get_attendance_logs(&mut self) -> Result<Vec<Value>, ZkError> {
+    async fn get_attendance_logs(&mut self) -> Result<Vec<Value>, Box<dyn std::error::Error + Send + Sync>> {
         let ip = self.ip.clone();
         let mut zk = self.zk.take().ok_or(ZkError {
             message: "Device not connected".to_string(),
@@ -99,67 +153,52 @@ impl ZkWorker {
                 self.zk = Some(zk_instance);
                 let msg = format!("[{ip}] Failed to get logs: {e}");
                 warn!("{msg}");
-                Err(ZkError { message: msg })
+                Err(Box::new(ZkError { message: msg }))
             }
             Ok(Err(e)) => {
                 let msg = format!("[{ip}] Task join error during get_logs: {e}");
                 error!("{msg}");
-                Err(ZkError { message: msg })
+                Err(Box::new(ZkError { message: msg }))
             }
             Err(_) => {
-                let msg = format!("[{ip}] Getting logs timed out after 30s");
+                let msg = format!("[{ip}] Getting logs timed out after 300s");
                 warn!("{msg}");
-                Err(ZkError { message: msg })
+                Err(Box::new(ZkError { message: msg }))
             }
         }
     }
 
-    #[allow(dead_code)]
-    pub async fn get_time(&mut self) -> Result<String, ZkError> {
-        let mut zk = self.zk.take().ok_or(ZkError {
-            message: "Device not connected".to_string(),
-        })?;
-
-        let res = tokio::task::spawn_blocking(move || {
-            let time = zk.get_time();
-            (zk, time)
-        }).await;
-
-        match res {
-            Ok((zk_instance, Ok(time))) => {
-                self.zk = Some(zk_instance);
-                // time is DateTime<FixedOffset>
-                Ok(time.naive_local().to_string().replace("T", " "))
-            }
-            Ok((zk_instance, Err(e))) => {
-                self.zk = Some(zk_instance);
-                Err(ZkError {
-                    message: format!("Failed to get time: {e}"),
-                })
-            }
-            Err(e) => Err(ZkError {
-                message: format!("Task join error: {e}"),
-            }),
-        }
-    }
-
-    pub async fn get_info(&mut self) -> Result<Value, ZkError> {
+    async fn get_info(&mut self) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
         let ip = self.ip.clone();
         let ip_thread = ip.clone();
         let mut zk = self.zk.take().ok_or(ZkError {
             message: "Device not connected".to_string(),
         })?;
 
+        // Clone cached values for thread safety
+        let cached_firmware = self.firmware.clone().unwrap_or("N/A".to_string());
+        let cached_mac = self.mac.clone().unwrap_or("N/A".to_string());
+        let cached_serial = self.serial.clone().unwrap_or("N/A".to_string());
+        let cached_platform = self.platform.clone().unwrap_or("N/A".to_string());
+        let cached_name = self.device_name.clone().unwrap_or("N/A".to_string());
+        let cached_users_cap = self.users_capacity.unwrap_or(0);
+        let cached_logs_cap = self.logs_capacity.unwrap_or(0);
+
         let join_handle = tokio::task::spawn_blocking(move || {
-            debug!("[{ip_thread}] Starting read_sizes...");
-            match zk.read_sizes() {
-                Ok(_) => debug!("[{ip_thread}] read_sizes success: users_cap={}, rec_cap={}", zk.users_cap, zk.rec_cap),
-                Err(e) => warn!("[{ip_thread}] read_sizes failed: {e:?}"),
-            }
-            
-            // OPTIMIZATION: Use cached counts from read_sizes instead of fetching all data
-            let users_count = zk.users as usize;
-            let logs_count = zk.records as usize;
+            // Only fetch dynamic checks: get_time and read_sizes (for current counts)
+            debug!("[{ip_thread}] Starting read_sizes (dynamic)...");
+            // Note: read_sizes updates zk.users and zk.records internally if successful
+            let (users_count, logs_count) = match zk.read_sizes() {
+                Ok(_) => {
+                    // zk.users and zk.records are u16 in rustzk, cast to usize
+                    (zk.users as usize, zk.records as usize)
+                },
+                Err(e) => {
+                    warn!("[{ip_thread}] read_sizes failed: {e:?}");
+                    // Fallback: return -1 to signal error/unknown
+                    (0, 0)
+                }
+            };
             
             debug!("[{ip_thread}] Starting get_time...");
             let time = match zk.get_time() {
@@ -174,48 +213,35 @@ impl ZkWorker {
                 }
             };
 
-            debug!("[{ip_thread}] Starting hardware info fetching...");
-            debug!("[{ip_thread}] - Fetching firmware...");
-            let firmware = zk.get_firmware_version().unwrap_or("N/A".to_string());
-            debug!("[{ip_thread}] - Fetching mac...");
-            let mac = zk.get_mac().unwrap_or("N/A".to_string());
-            debug!("[{ip_thread}] - Fetching serial...");
-            let serial = zk.get_serial_number().unwrap_or("N/A".to_string());
-            debug!("[{ip_thread}] - Fetching platform...");
-            let platform = zk.get_platform().unwrap_or("N/A".to_string());
-            debug!("[{ip_thread}] - Fetching name...");
-            let device_name = zk.get_device_name().unwrap_or("N/A".to_string());
-            
             let info = serde_json::json!({
                 "users_count": users_count,
-                "users_capacity": zk.users_cap,
+                "users_capacity": cached_users_cap,
                 "logs_count": logs_count,
-                "logs_capacity": zk.rec_cap,
+                "logs_capacity": cached_logs_cap,
                 "device_time": time,
-                "firmware": firmware,
-                "mac": mac,
-                "serial": serial,
-                "platform": platform,
-                "hw_name": device_name,
+                "firmware": cached_firmware,
+                "mac": cached_mac,
+                "serial": cached_serial,
+                "platform": cached_platform,
+                "hw_name": cached_name,
                 "last_sync": chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
             });
             
             (zk, info)
         });
 
-        match tokio::time::timeout(Duration::from_secs(60), join_handle).await {
+        match tokio::time::timeout(Duration::from_secs(30), join_handle).await {
             Ok(Ok((zk_instance, info))) => {
                 self.zk = Some(zk_instance);
                 Ok(info)
             }
-            Ok(Err(e)) => Err(ZkError {
+            Ok(Err(e)) => Err(Box::new(ZkError {
                 message: format!("[{ip}] Task join error during get_info: {e}"),
-            }),
+            })),
             Err(_) => {
-                // If timeout occurs, the ZK instance is lost because it's still in the spawned thread
                 let msg = format!("[{ip}] Getting device info timed out after 30s");
                 warn!("{msg}");
-                Err(ZkError { message: msg })
+                Err(Box::new(ZkError { message: msg }))
             }
         }
     }

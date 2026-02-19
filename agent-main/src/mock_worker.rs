@@ -1,3 +1,5 @@
+use crate::worker::Worker;
+use async_trait::async_trait;
 use serde_json::Value;
 use std::time::Duration;
 use chrono::Local;
@@ -14,14 +16,17 @@ impl MockWorker {
     pub fn new() -> Self {
         Self
     }
+}
 
-    pub async fn connect(&self, _ip: &str, _port: u16) -> Result<bool, String> {
+#[async_trait]
+impl Worker for MockWorker {
+    async fn connect(&mut self, _ip: &str, _port: u16) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         // Simulate connection delay
         tokio::time::sleep(Duration::from_millis(100)).await;
         Ok(true)
     }
 
-    pub async fn get_attendance_logs(&self) -> Result<Vec<Value>, String> {
+    async fn get_attendance_logs(&mut self) -> Result<Vec<Value>, Box<dyn std::error::Error + Send + Sync>> {
         // Return a static mock log similar to the Python version
         let log = serde_json::json!({
             "user_id": "999",
@@ -32,7 +37,7 @@ impl MockWorker {
         Ok(vec![log])
     }
 
-    pub async fn get_info(&self) -> Result<Value, String> {
+    async fn get_info(&mut self) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
         Ok(serde_json::json!({
             "users_count": 100,
             "users_capacity": 1000,
@@ -55,7 +60,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_mock_worker_capacity() {
-        let worker = MockWorker::new();
+        let mut worker = MockWorker::new();
         let info = worker.get_info().await.expect("Failed to get info");
         
         assert_eq!(info["users_count"], 100);
