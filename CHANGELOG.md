@@ -10,6 +10,8 @@
     - **UI Updates**: Frontend now displays Device Time, User Capacity, and Log Capacity in the device list.
 
 ### Fixed
+- **Dependencies:**
+    - Updated `rustzk` to `0.3.1`.
 - **Code Quality:**
     - Resolved `clippy::collapsible_if` and `clippy::uninlined_format_args` in `agent-main`.
     - Resolved `clippy::redundant_closure` in `apiserver`.
