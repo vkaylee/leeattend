@@ -67,3 +67,22 @@ If running manually, you MUST use the `test` environment layer:
 - [ ] **Manual Verification**: Test run inside Docker succeeds
 - [ ] **Regression**: `./run-tests.sh` passes relevant suites
 - [ ] **Documentation**: `PROJECT_OS.md` or `README.md` updated if logic changed
+
+---
+
+## 🤖 AI INTERACTION & OVERRIDES
+
+Dự án này tích hợp **AI Standard Layer** (Cursor, Antigravity, Claude Code) để đảm bảo an toàn hệ thống và hiệu suất build.
+
+### 1. File Quy tắc (AI Protocols):
+- `.agent/instructions.md`: Chỉ dẫn chuyên biệt cho Antigravity/Gemini.
+- `.cursorrules`: Quy tắc dành riêng cho Cursor AI.
+- `CLAUDE.md`: Các chỉ dẫn cốt lõi áp dụng cho mọi AI.
+
+### 2. Quyền Override (Dành cho Teammates):
+Các file này hỗ trợ bạn làm việc nhanh hơn, không phải cản trở bạn. Nếu cần thay đổi quy chuẩn:
+- **Tạm thời**: Nhắc AI trong chat: *"Ignore the line limit for this file"* hoặc *"Bypass docker-helper for this run"*.
+- **Lâu dài**: Trực tiếp sửa nội dung trong các file AI Protocols trên để phù hợp với quy trình làm việc mới của team.
+
+> [!TIP]
+> Hãy coi AI Rules là code - chúng cần được cập nhật và duy trì song song với sự phát triển của dự án.
