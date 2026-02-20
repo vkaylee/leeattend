@@ -1,0 +1,20 @@
+# LeeAttend - Full Documentation Index
+
+This file provides a comprehensive list of all documentation intended for AI consumption.
+
+## Infrastructure & Docker
+- [Docker Workflow](file:///home/elt1541/lee/leeattend/docs/docker-workflow.md): Layered architecture (dev/test/prod).
+- [Deployment Guide](file:///home/elt1541/lee/leeattend/docs/deployment-guide.md): Environment variables and production checklists.
+
+## Technical Standards
+- [PROJECT_OS.md](file:///home/elt1541/lee/leeattend/PROJECT_OS.md): Critical execution protocols.
+- [Code Standards](file:///home/elt1541/lee/leeattend/docs/code-standards.md): Rust and TypeScript conventions.
+- [UI/UX Standards](file:///home/elt1541/lee/leeattend/docs/ui-ux-standards.md): Tailwind V4 and Metro-style design principles.
+
+## Business Logic & Architecture
+- [System Architecture](file:///home/elt1541/lee/leeattend/docs/system-architecture.md): Detailed logic for sync, pairing, and payroll.
+- [Codebase Summary](file:///home/elt1541/lee/leeattend/docs/codebase-summary.md): High-level feature map and directory structure.
+- [API Reference](file:///home/elt1541/lee/leeattend/docs/api-reference.md): OpenAPI/REST definitions.
+
+## Project History
+- [Changelog](file:///home/elt1541/lee/leeattend/docs/project-changelog.md): Version history and key milestones.

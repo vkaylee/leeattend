@@ -384,21 +384,25 @@ This is the most reliable way to deploy LeeAttend in a production environment. I
    Edit the `.env` file and set secure values:
    - `DB_PASSWORD`: Set a strong database password.
    - `JWT_SECRET`: Set a secure JWT secret.
-   - `DB_NAME`, `DB_USER`: (Optional) Change defaults.
-   - `DATABASE_URL`: (Optional) Override full connection string, takes priority over `DB_*` vars.
 
 3. **Build and Launch**:
+   You can use the helper script or run docker compose directly using the base file:
    ```bash
-   # Build images and start services in detached mode
-   docker compose up --build -d
+   # Option A: Using helper script
+   ./scripts/docker-helper.sh prod up --build -d
+
+   # Option B: Direct docker compose
+   docker compose -f docker-compose.yml up --build -d
    ```
 
 ### 🏗 Architecture in Docker
-- **`webdashboard`**: React Frontend served by Nginx (Port 80).
+The production setup uses the `runtime` stage of our multi-stage Dockerfiles for minimal image size and maximum security.
+
+- **`webdashboard`**: React Frontend served by Nginx (Port 80 by default).
 - **`apiserver`**: Rust API Server (Internal Port 3000).
-- **`db`**: PostgreSQL 16 database with persistent volume `postgres_data`.
-- **`redis`**: Redis 7 for task queuing with persistent volume `redis_data`.
-- **`agent-main`**: Edge Orchestrator connected via WebSocket.
+- **`db`**: PostgreSQL 16 database.
+- **`redis`**: Redis 7.
+- **`agent-main`**: Edge Orchestrator.
 
 ### 🔄 Automatic Proxy & Routing
 The Nginx server in the `webdashboard` container acts as a reverse proxy:

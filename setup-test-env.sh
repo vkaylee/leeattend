@@ -9,7 +9,7 @@ set -euo pipefail
 
 # --- Configuration ---
 export PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export COMPOSE_FILE="$PROJECT_ROOT/docker-compose.test.yml"
+export COMPOSE_FILE="$PROJECT_ROOT/docker-compose.yml:$PROJECT_ROOT/docker-compose.test.yml"
 export COMPOSE_PROJECT_NAME="leeattend-test"
 export LOG_DIR="$PROJECT_ROOT/.test_logs"
 mkdir -p "$LOG_DIR"

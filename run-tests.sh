@@ -59,7 +59,7 @@ show_help() {
 # --- Environment Setup ---
 export USE_DOCKER=true
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export DOCKER_COMPOSE_CMD="docker compose -p leeattend-test -f $PROJECT_ROOT/docker-compose.test.yml"
+export DOCKER_COMPOSE_CMD="docker compose -p leeattend-test -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/docker-compose.test.yml"
 
 # Source all script modules
 for script in "test-utils.sh" "test-lint.sh" "test-unit.sh" "test-integration.sh"; do

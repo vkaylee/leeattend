@@ -1,0 +1,19 @@
+# LeeAttend
+
+LeeAttend is a high-performance attendance management system with a Rust core and React dashboard.
+
+## Core Documentation
+- [PROJECT_OS.md](file:///home/elt1541/lee/leeattend/PROJECT_OS.md): Mandatory technical protocols, build/test commands, and Definition of Done. **Read this first.**
+- [README.md](file:///home/elt1541/lee/leeattend/README.md): High-level architecture and project overview.
+
+## Guides
+- [Docker Workflow](file:///home/elt1541/lee/leeattend/docs/docker-workflow.md): Detailed explanation of layered compose files and multi-stage builds.
+- [Deployment Guide](file:///home/elt1541/lee/leeattend/docs/deployment-guide.md): Production setup and infrastructure requirements.
+
+## Reference
+- [System Architecture](file:///home/elt1541/lee/leeattend/docs/system-architecture.md): Deep dive into sync logic, payroll engines, and reliability patterns.
+- [API Reference](file:///home/elt1541/lee/leeattend/docs/api-reference.md): Endpoint documentation for apiserver.
+- [Code Standards](file:///home/elt1541/lee/leeattend/docs/code-standards.md): Domain modeling and naming conventions.
+
+## Full Context
+- [Full LLMs Index](file:///home/elt1541/lee/leeattend/docs/llms-full.txt): Comprehensive index for long-context agents.

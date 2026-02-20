@@ -6,10 +6,8 @@ services:
       POSTGRES_DB: ${DB_NAME:-leeattend}
       POSTGRES_USER: ${DB_USER:-admin}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-password_required}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-leeattend}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-leeattend}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -18,7 +16,7 @@ services:
     image: redis:7-alpine
     restart: always
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,6 +25,7 @@ services:
     build:
       context: ./apiserver
       dockerfile: Dockerfile
+      target: runtime
     restart: always
     depends_on:
       db:
@@ -38,43 +37,26 @@ services:
       - REDIS_URL=redis://redis:6379
       - API_HOST=0.0.0.0
       - API_PORT=3000
-      - JWT_SECRET=${JWT_SECRET:-changeme}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://tauri.localhost}
       - RUST_LOG=info
-    volumes:
-      - ./apiserver/storage:/app/storage
-    expose:
-      - "3000"
 
   webdashboard:
     build:
       context: ./webdashboard
       dockerfile: Dockerfile
+      target: runtime
     restart: always
     depends_on:
       - apiserver
-    ports:
-      - "80:80"
-    environment:
-      - VITE_API_BASE_URL=/api
 
   agent-main:
     build:
       context: ./agent-main
       dockerfile: Dockerfile
+      target: runtime
     restart: always
     depends_on:
       - apiserver
     environment:
-      - AGENT_ID=${AGENT_ID:-test-agent}
-      - AGENT_TOKEN=${AGENT_TOKEN:-test-token}
       - CENTRAL_SERVER_URL=${AGENT_CENTRAL_SERVER_URL:-ws://apiserver:3000/api/ws}
       - DATABASE_URL=${AGENT_DATABASE_URL:-sqlite:///app/data/agent.db}
-      - RPC_TIMEOUT_SECONDS=${AGENT_RPC_TIMEOUT_SECONDS:-30}
       - RUST_LOG=info
-    volumes:
-      - agent_data:/app/data
-
-volumes:
-  postgres_data:
-  agent_data:

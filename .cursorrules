@@ -1,0 +1,16 @@
+# LeeAttend - Cursor Rules
+
+## Core Rules (Absolute)
+- **Docker-First:** Never run builds/tests on host. Use `./scripts/docker-helper.sh`.
+- **Instruction Density:** Read `PROJECT_OS.md` for mandatory technical protocols.
+- **File Length:** Maximum 200 lines per file.
+
+## Project Structure
+- `apiserver/`: Rust backend
+- `agent-main/`: Rust edge agent
+- `webdashboard/`: React frontend
+- `docs/`: Documentation
+
+## Context Discovery
+- Read `llms.txt` for an index of all high-value documentation.
+- Refer to `docs/docker-workflow.md` for understanding the layered Compose system.

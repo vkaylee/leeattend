@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: test_password
       POSTGRES_HOST_AUTH_METHOD: trust
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U test_user -d test_database"]
+      test: [ "CMD-SHELL", "pg_isready -U test_user -d test_database" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -18,7 +18,7 @@ services:
   apiserver_test:
     build:
       context: ./apiserver
-      dockerfile: Dockerfile.test
+      target: test
     depends_on:
       test_db:
         condition: service_healthy
@@ -27,13 +27,12 @@ services:
     working_dir: /workspace/apiserver
     environment:
       - DATABASE_URL=postgres://test_user:test_password@test_db:5432/test_database
-      - RUST_LOG=info
       - SQLX_OFFLINE=false
       - SCCACHE_DIR=/sccache
       - RUSTC_WRAPPER=sccache
       - CARGO_INCREMENTAL=0
     volumes:
-      - ${PWD}/apiserver:/workspace/apiserver
+      - .:/workspace
       - apiserver-target:/workspace/apiserver/target
       - sccache-storage:/sccache
       - ./.test_logs:/workspace/apiserver/.test_logs
@@ -42,19 +41,18 @@ services:
   agent_test:
     build:
       context: ./agent-main
-      dockerfile: Dockerfile.test
+      target: test
     tty: true
     entrypoint: tail -f /dev/null
     working_dir: /workspace/agent-main
     environment:
       - "DATABASE_URL=sqlite::memory:"
       - "CENTRAL_SERVER_URL=ws://apiserver_test:3001/api/ws"
-      - RUST_LOG=info
       - SCCACHE_DIR=/sccache
       - RUSTC_WRAPPER=sccache
       - CARGO_INCREMENTAL=0
     volumes:
-      - ${PWD}/agent-main:/workspace/agent-main
+      - .:/workspace
       - agent-target:/workspace/agent-main/target
       - sccache-storage:/sccache
       - ./.test_logs:/workspace/agent-main/.test_logs
@@ -62,14 +60,14 @@ services:
   web_test:
     build:
       context: ./webdashboard
-      dockerfile: Dockerfile.test
+      target: test
     tty: true
     entrypoint: tail -f /dev/null
     working_dir: /workspace/webdashboard
     environment:
       - CI=true
     volumes:
-      - ${PWD}/webdashboard:/workspace/webdashboard
+      - .:/workspace
       - web-node-modules:/workspace/webdashboard/node_modules
       - ./.test_logs:/workspace/webdashboard/.test_logs
       - shared-data:/workspace/shared
@@ -77,31 +75,16 @@ services:
 volumes:
   apiserver-target:
     driver: local
-    driver_opts:
-      type: tmpfs
-      device: tmpfs
-      o: "size=3072M"
+    driver_opts: { type: tmpfs, device: tmpfs, o: "size=4G" }
   agent-target:
     driver: local
-    driver_opts:
-      type: tmpfs
-      device: tmpfs
-      o: "size=1536M"
+    driver_opts: { type: tmpfs, device: tmpfs, o: "size=2G" }
   sccache-storage:
     driver: local
-    driver_opts:
-      type: tmpfs
-      device: tmpfs
-      o: "size=1024M"
+    driver_opts: { type: tmpfs, device: tmpfs, o: "size=2G" }
   shared-data:
     driver: local
-    driver_opts:
-      type: tmpfs
-      device: tmpfs
-      o: "size=64M"
+    driver_opts: { type: tmpfs, device: tmpfs, o: "size=64M" }
   web-node-modules:
     driver: local
-    driver_opts:
-      type: tmpfs
-      device: tmpfs
-      o: "size=800M"
+    driver_opts: { type: tmpfs, device: tmpfs, o: "size=1G" }

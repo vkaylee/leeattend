@@ -1,30 +1,57 @@
 # syntax=docker/dockerfile:1
-# Multi-stage build for Rust Agent
-FROM rust:1.88 AS builder
+# Multi-stage build for Rust Agent supporting Dev, Test, and Prod
 
+# Stage 1: Cargo Chef base
+FROM rust:1.88-slim-bookworm AS chef
+RUN cargo install cargo-chef
+RUN apt-get update && apt-get install -y build-essential pkg-config libssl-dev clang mold curl tar && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-RUN apt-get update && apt-get install -y build-essential pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
 
-COPY Cargo.toml Cargo.lock ./
-COPY src ./src
-COPY migrations ./migrations
+# Stage 2: Planner (Prepare recipe)
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
 
-# Build with BuildKit cache mounts for cargo registry + target dir
+# Stage 3: Cacher (Compile dependencies)
+FROM chef AS cacher
+COPY --from=planner /app/recipe.json recipe.json
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/target \
+    cargo chef cook --release --recipe-path recipe.json
+
+# Stage 4: Dev (for hot-reloading)
+FROM rust:1.88-bookworm AS dev
+RUN apt-get update && apt-get install -y clang mold git && rm -rf /var/lib/apt/lists/*
+RUN cargo install cargo-watch
+WORKDIR /app
+CMD ["cargo", "watch", "-x", "run"]
+
+# Stage 5: Test (for running tests)
+FROM chef AS tester
+RUN curl -LsSf https://get.nexte.st/0.9.96/linux | tar zxf - -C /usr/local/bin
+COPY --from=planner /app/recipe.json recipe.json
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/target \
+    cargo chef cook --tests --recipe-path recipe.json
+COPY . .
+CMD ["cargo", "nextest", "run"]
+
+# Stage 6: Builder (Prod build)
+FROM chef AS builder
+COPY --from=cacher /app/target target
+COPY --from=cacher $CARGO_HOME $CARGO_HOME
+COPY . .
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/target \
     cargo build --release && \
     cp target/release/agent /usr/local/bin/agent
 
-# Final runtime stage
-FROM debian:bookworm-slim
-
+# Stage 7: Runtime (Production image)
+FROM debian:bookworm-slim AS runtime
 WORKDIR /app
 RUN apt-get update && apt-get install -y ca-certificates openssl libssl3 && rm -rf /var/lib/apt/lists/*
 RUN useradd -r -u 1001 -s /usr/sbin/nologin appuser
-
 COPY --from=builder /usr/local/bin/agent /usr/local/bin/agent
-
 RUN mkdir -p /app/data && chown -R appuser:appuser /app
 USER appuser
-
 CMD ["agent"]

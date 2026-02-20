@@ -24,42 +24,18 @@ leeattend/
 5.  **docs**: Tài liệu hướng dẫn chi tiết.
 
 
-## 🤖 For AI Agents: How to Run Commands
+## 🤖 For AI Agents & Developers
 
-> ⚠️ **NEVER** run `cargo`, `npm`, or `pytest` directly on the host. Always use Docker containers. See [PROJECT_OS.md](./PROJECT_OS.md) for details.
+> [!IMPORTANT]
+> **MANDATORY RULES:** Before running any commands or starting implementation, you MUST read:
+> 👉 **[PROJECT_OS.md](./PROJECT_OS.md)**
+>
+> This file contains the mandatory technical protocols, build/test commands (via `docker-helper.sh`), and the Definition of Done required for this project.
 
-### Start the dev environment
+### Quick Start (Dev Mode)
+To spin up the entire environment with hot-reloading:
 ```bash
-docker compose -f docker-compose.dev.yml up -d
-```
-
-### Running commands inside containers
-```bash
-# Rust (apiserver) — build, test, lint, migrations
-docker compose -f docker-compose.dev.yml exec apiserver cargo build
-docker compose -f docker-compose.dev.yml exec apiserver cargo test
-docker compose -f docker-compose.dev.yml exec apiserver cargo clippy -- -D warnings
-docker compose -f docker-compose.dev.yml exec apiserver cargo sqlx migrate run
-
-# Rust (agent-main)
-docker compose -f docker-compose.dev.yml exec agent-main cargo build
-docker compose -f docker-compose.dev.yml exec agent-main cargo test
-
-# Node.js (webdashboard) — install, build, lint, test
-docker compose -f docker-compose.dev.yml exec webdashboard npm install
-docker compose -f docker-compose.dev.yml exec webdashboard npm run build
-docker compose -f docker-compose.dev.yml exec webdashboard npm run lint
-docker compose -f docker-compose.dev.yml exec webdashboard npx playwright test
-```
-
-### Debug UI flows
-```bash
-docker compose -f docker-compose.dev.yml exec webdashboard npx playwright test tests/debug-ui.spec.ts --reporter=line
-```
-
-### Stop the dev environment
-```bash
-docker compose -f docker-compose.dev.yml down
+./scripts/docker-helper.sh dev up -d
 ```
 
 

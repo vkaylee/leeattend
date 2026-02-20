@@ -87,9 +87,13 @@ LeeAttend is a high-performance attendance and payroll system split into three p
     - **Official Payslip UI**: High-fidelity, print-ready payslip generation using Radix-UI.
     - **Real-Time Report Export**: WebSocket-based streaming with automatic HTTP fallback (NEW - Feb 2026).
     - **ESS Portal**: Self-service for employees to view attendance, payslips, and request leave.
+    - Start environment: `./scripts/docker-helper.sh dev up -d`
+    - Command execution: `./scripts/docker-helper.sh dev exec apiserver cargo build`
     - **Performance**: Server-side pagination and fuzzy search for large employee datasets (5000+ records).
 
 ### 5. Production Infrastructure (Dockerized)
+- **Docker Helper Script**: `scripts/docker-helper.sh` simplifies common Docker Compose operations (up, down, exec, logs) for `dev`, `test`, and `prod` environments.
+- **Layered Configuration**: `docker-compose.yml` (base) combined with environment-specific overrides (`docker-compose.dev.yml`, `docker-compose.test.yml`, `docker-compose.prod.yml`) for flexible setup.
 - **Containerization**: Standardized Dockerfiles for `apiserver` and `webdashboard` using multi-stage builds to minimize image size and maximize security.
 - **Orchestration**: `docker-compose.yml` provides a turn-key production environment including PostgreSQL, Redis, and automated Nginx reverse proxying.
 - **Reverse Proxy**: Nginx integration for serving static frontend assets and routing API/WebSocket traffic to the backend.
