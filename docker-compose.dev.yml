@@ -4,6 +4,11 @@ services:
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
     environment:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-dev_password}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
 
@@ -11,6 +16,14 @@ services:
     build:
       target: dev
     command: cargo watch -w src -x run
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:3000/api/health > /dev/null || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     environment:
       - RUST_BACKTRACE=1
       - DATABASE_URL=${API_DATABASE_URL:-postgres://${DB_USER:-admin}:${DB_PASSWORD:-dev_password}@db:5432/${DB_NAME:-leeattend}}
@@ -26,7 +39,11 @@ services:
     build:
       target: dev
     command: cargo watch -w src -x run
+    depends_on:
+      apiserver:
+        condition: service_healthy
     environment:
+      - CENTRAL_SERVER_URL=${AGENT_CENTRAL_SERVER_URL:-ws://apiserver:3000/api/ws}
       - DATABASE_URL=${AGENT_DATABASE_URL:-sqlite:///app/data/agent.db?mode=rwc}
       - RUST_LOG=info,sqlx::query=error
     volumes:
@@ -50,8 +67,10 @@ services:
     image: nginx:alpine
     restart: unless-stopped
     depends_on:
-      - apiserver
-      - webdashboard
+      apiserver:
+        condition: service_healthy
+      webdashboard:
+        condition: service_started
     ports:
       - "${DEV_PORT:-8080}:80"
     volumes:

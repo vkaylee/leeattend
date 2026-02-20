@@ -16,12 +16,12 @@ leeattend/
 └── docs/             # System Documentation
 ```
 
-## Dự án bao gồm các thành phần:
+## Project Components
 
-1.  **apiserver**: Viết bằng **Rust (Axum)**, chịu trách nhiệm quản lý Agent, nhận log và cung cấp API cho Dashboard.
-2.  **agent-main**: Viết bằng **Rust**, đóng vai trò Agent Orchestrator + ZK Worker giao tiếp thiết bị ZKTeco trực tiếp qua `rustzk`.
-3.  **webdashboard**: Viết bằng **React (Vite)**, giao diện web để quản lý và theo dõi hệ thống.
-5.  **docs**: Tài liệu hướng dẫn chi tiết.
+1.  **apiserver**: Built with **Rust (Axum)**, responsible for agent management, log ingestion, and providing API for the Dashboard.
+2.  **agent-main**: Built with **Rust**, acts as the Agent Orchestrator + ZK Worker, communicating directly with ZKTeco devices via `rustzk`.
+3.  **webdashboard**: Built with **React (Vite)**, a web interface for system management and monitoring.
+4.  **docs**: Detailed guidance and documentation.
 
 
 ## 🤖 For AI Agents & Developers

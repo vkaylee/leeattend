@@ -173,13 +173,13 @@ export default function AgentAccordionCard({
       )}>
         <div className="border-t border-slate-100 dark:border-slate-800 mx-8" />
         <div className="p-8 pt-6">
-          {devices.length === 0 ? (
-            <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-widest">
-              {t("devices.no_devices_for_agent")}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {devices.map(device => (
+          <div className="flex flex-col gap-4">
+            {devices.length === 0 ? (
+              <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-widest">
+                {t("devices.no_devices_for_agent")}
+              </div>
+            ) : (
+              devices.map(device => (
                 <DeviceListItem
                   key={device.id}
                   device={device}
@@ -190,23 +190,23 @@ export default function AgentAccordionCard({
                   onEdit={onEditDevice}
                   onRefresh={onRefreshDevice}
                 />
-              ))}
+              ))
+            )}
 
-              {/* Add Device Button - Horizontal Style */}
-              {onAddDevice && (
-                <button
-                  data-testid={`add-device-btn-${agent.id}`}
-                  onClick={() => onAddDevice(agent.id)}
-                  className="group relative flex items-center justify-center p-6 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[1.5rem] text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-300 hover:bg-primary-50 dark:bg-primary-950/30 transition-all gap-4"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                    <Plus size={20} />
-                  </div>
-                  <span className="text-xs font-black uppercase tracking-widest">{t("devices.add_btn")}</span>
-                </button>
-              )}
-            </div>
-          )}
+            {/* Add Device Button - Horizontal Style */}
+            {onAddDevice && (
+              <button
+                data-testid={`add-device-btn-${agent.id}`}
+                onClick={() => onAddDevice(agent.id)}
+                className="group relative flex items-center justify-center p-6 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[1.5rem] text-slate-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-300 hover:bg-primary-50 dark:bg-primary-950/30 transition-all gap-4"
+              >
+                <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                  <Plus size={20} />
+                </div>
+                <span className="text-xs font-black uppercase tracking-widest">{t("devices.add_btn")}</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

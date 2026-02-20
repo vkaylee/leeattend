@@ -233,9 +233,23 @@ export default function ConnectivityTopology() {
           <button
             data-testid="add-agent-btn"
             onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"
+            className="flex items-center gap-3 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:border-primary-200 dark:hover:border-primary-800 transition-all border border-slate-200 dark:border-slate-700 active:scale-95"
           >
             <Plus size={18} /> {t("agents.add_btn")}
+          </button>
+          <button
+            data-testid="global-add-device-btn"
+            onClick={() => {
+              if (agents.length > 0) {
+                setNewDevice({ ...newDevice, agent_id: agents[0].id });
+                setShowAddDeviceForm(true);
+              } else {
+                toast.error(t("agents.messages.no_agents"));
+              }
+            }}
+            className="flex items-center gap-3 bg-primary-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 dark:shadow-black/30 active:scale-95"
+          >
+            <Plus size={18} /> {t("devices.add_btn")}
           </button>
         </div>
       </div>

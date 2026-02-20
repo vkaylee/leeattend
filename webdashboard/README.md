@@ -1,53 +1,53 @@
 # LeeAttend Web Dashboard
 
-Bảng điều khiển quản lý tập trung cho hệ thống LeeAttend, được xây dựng bằng React + Vite + Tailwind CSS và tích hợp với Tauri để đóng gói ứng dụng desktop.
+A centralized management dashboard for the LeeAttend system, built with React + Vite + Tailwind CSS and integrated with Tauri for desktop application packaging.
 
-## Công nghệ sử dụng
+## Technology Stack
 
-- **React 19**: Thư viện UI chính.
-- **Vite**: Công cụ build và dev server cực nhanh.
-- **React Router 7**: Quản lý điều hướng trong ứng dụng SPA.
-- **Tailwind CSS 4**: Framework CSS utility-first.
-- **Lucide React**: Bộ icon đẹp mắt.
-- **TanStack Query**: Quản lý state server và caching.
-- **Tauri**: Đóng gói ứng dụng desktop bằng Rust.
+- **React 19**: The core UI library.
+- **Vite**: Extremely fast build tool and dev server.
+- **React Router 7**: SPA navigation management.
+- **Tailwind CSS 4**: Utility-first CSS framework.
+- **Lucide React**: Beautiful icon set.
+- **TanStack Query**: Server state and caching management.
+- **Tauri**: Rust-based desktop application packaging.
 
-## Hướng dẫn phát triển
+## Development Guide
 
-### 1. Cài đặt
+### 1. Installation
 
 ```bash
 npm install
 ```
 
-### 2. Cấu hình
+### 2. Configuration
 
-Sao chép file `.env.example` thành `.env.local` và điều chỉnh `VITE_API_URL` trỏ tới địa chỉ của API Server (mặc định là `http://localhost:3000`).
+Copy the `.env.example` file to `.env.local` and adjust `VITE_API_URL` to point to the address of the API Server (default is `http://localhost:3000`).
 
-### 3. Chạy môi trường phát triển
+### 3. Run Development Environment
 
 ```bash
-# Chạy web dashboard trong trình duyệt (mặc định port 1420)
+# Run web dashboard in the browser (default port 1420)
 npm run dev
 
-# Chạy ứng dụng Desktop (Tauri)
+# Run Desktop application (Tauri)
 npm run tauri dev
 ```
 
-### 4. Xây dựng ứng dụng
+### 4. Build Application
 
 ```bash
-# Build web tĩnh
+# Build static web
 npm run build
 
-# Build ứng dụng Desktop (Tauri)
+# Build Desktop application (Tauri)
 npm run tauri build
 ```
 
-## Cấu trúc thư mục
+## Directory Structure
 
-- `src/app.tsx`: Cấu hình Router và Layout chính.
-- `src/pages/`: Các trang (Dashboard, Agents, Devices, v.v.).
-- `src/components/`: Các component dùng chung.
-- `src/lib/api.ts`: Các hàm gọi API tới apiserver.
-- `src-tauri/`: Mã nguồn Rust cho ứng dụng Desktop.
+- `src/app.tsx`: Main Router and Layout configuration.
+- `src/pages/`: Pages (Dashboard, Agents, Devices, etc.).
+- `src/components/`: Shared components.
+- `src/lib/api.ts`: API call functions to apiserver.
+- `src-tauri/`: Rust source code for the Desktop application.

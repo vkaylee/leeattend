@@ -1,17 +1,14 @@
-> [!CAUTION]
-> **CORE DIRECTIVES (NON-NEGOTIABLE):**
-> 1. **SSOT:** [PROJECT_OS.md](./PROJECT_OS.md) is the absolute authority. Read it before ANY action.
-> 2. **DOCKER ONLY:** NEVER run `cargo`, `npm`, or `pytest` on the host. Use `./scripts/docker-helper.sh`.
-> 3. **SSD SAFETY:** Use `tmpfs` mounts via Docker to prevent WSL2 freezes.
-> 4. **MODULARITY:** Hard limit of 200 lines per file. Split immediately.
+# 🤖 Adapter: CLAUDE.md (L1)
 
-## 🧭 Discovery Paths
-- **Full Rules:** [PROJECT_OS.md](./PROJECT_OS.md)
-- **Architecture:** [docs/system-architecture.md](./docs/system-architecture.md)
-- **Docker/Layers:** [docs/docker-workflow.md](./docs/docker-workflow.md)
-- **AI Index:** [llms.txt](./llms.txt)
+> [!IMPORTANT]
+> **[PRIME DIRECTIVE]**: You are operating under the AI Context OS. Your VERY FIRST action in a new session MUST be to silently **READ** the file `.ai-context-os/.ultp_state` to synchronize environment state. DO NOT execute shell commands for boot.
+> **[MEMORY]**: Read `.ai-context-os/memory/session.md` (if exists) to establish continuity from previous agents.
+> **Law:** Read and adhere to the entire AI Operating System at: `.ai-context-os/PROJECT_OS.md`.
+> **Localization:** Reply to the user in their initial prompt language (e.g., Vietnamese).
 
-## 🛠️ Stack Summary
-- **Backend:** Rust (Axum, SQLx/Postgres, Redis)
-- **Frontend:** React 19 (Vite, TS, Tailwind V4)
-- **Edge:** Rust (Device Orchestration) + Python (Device Drivers)
+## Claude-Specific Capabilities
+- **Artifacts:** Use Claude Artifacts (markdown, html, react) to present complex code changes or diagrams when modifying over 50 lines.
+- **Thinking:** You are encouraged to provide a brief architectural thought process before writing code.
+- **Terminal:** If the user allows tool usage, logically group bash commands minimizing intermediate steps.
+
+Default AI adapter reference: `.ai-context-os/CLAUDE.md`

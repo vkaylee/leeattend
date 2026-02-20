@@ -3,13 +3,13 @@
 ## 🦀 Rust (Backend)
 
 ### 1. Linter & Quality
-- **Multi-Tenancy Isolation**: Tất cả các bảng chứa dữ liệu của tenant (workspace) **PHẢI** bao gồm cột `workspace_id`. Điều này được thực thi tự động thông qua `schema_isolation_tests.rs`. Không bao giờ truy vấn dữ liệu mà không lọc theo `workspace_id`.
-- **Zero-Warning Policy**: Dự án thực thi chính sách không cảnh báo nghiêm ngặt. Code phải vượt qua `cargo clippy -- -D warnings` trước khi commit.
-- **Test Module Placement**: Luôn đặt khối `mod tests` ở cuối tệp tin để tránh cảnh báo Clippy về việc sắp xếp các mục sau module test.
-- **Type Complexity**: Tránh các kiểu dữ liệu lồng nhau quá sâu (ví dụ: `OnceLock<Arc<Mutex<HashSet<...>>>>`). Hãy sử dụng `type` alias để cải thiện khả năng đọc và bảo trì.
-- **SQLx Validation (Online Mode)**: Dự án ưu tiên sử dụng Database thật (trên RAM/tmpfs) để kiểm tra lỗi câu lệnh SQL trực tiếp trong quá trình biên dịch. Không còn yêu cầu duy trì thư mục `.sqlx/` cho môi trường phát triển và kiểm thử.
-- **Method Size (Rule of 30)**: Một hàm không nên dài quá 30 dòng code. Nếu dài hơn, hãy cân nhắc tách nhỏ ra các private methods hoặc helper functions.
-- **Single Responsibility (SRP)**: Một hàm chỉ làm một việc duy nhất. Tên hàm phải phản ánh đúng hành động (ví dụ: `validate_agent_token` thay vì `check_agent`).
+- **Multi-Tenancy Isolation**: All tables containing tenant (workspace) data **MUST** include a `workspace_id` column. This is automatically enforced through `schema_isolation_tests.rs`. Never query data without filtering by `workspace_id`.
+- **Zero-Warning Policy**: The project enforces a strict no-warning policy. Code must pass `cargo clippy -- -D warnings` before commit.
+- **Test Module Placement**: Always place the `mod tests` block at the end of the file to avoid Clippy warnings about item ordering after test modules.
+- **Type Complexity**: Avoid overly deep nested data types (e.g., `OnceLock<Arc<Mutex<HashSet<...>>>>`). Use `type` aliases to improve readability and maintainability.
+- **SQLx Validation (Online Mode)**: The project prioritizes using a real Database (on RAM/tmpfs) to validate SQL queries directly during compilation. Maintaining the `.sqlx/` directory is no longer required for development and testing environments.
+- **Method Size (Rule of 30)**: A function should not exceed 30 lines of code. If it's longer, consider splitting it into private methods or helper functions.
+- **Single Responsibility (SRP)**: A function should perform only one task. The function name must accurately reflect the action (e.g., `validate_agent_token` instead of `check_agent`).
 
 ### 1.1. Error Handling Best Practices
 - **NO `.unwrap()` in Production Code**: Avoid `.unwrap()` and `.expect()` in handler/service/repository code. Use `?` operator or explicit error handling instead.
@@ -217,10 +217,10 @@ The main orchestrator uses hash-based signature caching for persistent duplicate
   ```
 
 ### 2. Architecture Layers (Handler-Service-Repository)
-Để đảm bảo tính linh hoạt và dễ kiểm thử (Mockable), dự án tuân thủ mô hình 3 lớp:
-- **Handlers (API Layer)**: Chỉ trích xuất tham số từ Request, gọi Service và trả về Response.
-- **Services (Domain Layer)**: Chứa logic nghiệp vụ. Services nhận các Repositories thông qua Dependency Injection (DI) để tương tác với dữ liệu.
-- **Repositories (Data Layer)**: Định nghĩa các Trait (sử dụng `#[async_trait]`) để trừu tượng hóa việc truy vấn dữ liệu (SQLx, In-memory, etc.).
+To ensure flexibility and testability (Mockable), the project follows a 3-layer model:
+- **Handlers (API Layer)**: Only extracts parameters from Request, calls Service, and returns Response.
+- **Services (Domain Layer)**: Contains business logic. Services receive Repositories via Dependency Injection (DI) to interact with data.
+- **Repositories (Data Layer)**: Defines Traits (using `#[async_trait]`) to abstract data querying (SQLx, In-memory, etc.).
 
 ### 2.1. Database Pagination Pattern
 For optimal performance, pagination MUST be implemented at the database level, not in-memory:
@@ -381,29 +381,29 @@ let shift = query_results.iter()
 **Use Case**: Schedule resolution where inner loops repeatedly query pattern details across multiple (pattern_id, day_of_week) combinations. Pre-fetching and indexing eliminates per-lookup DB queries or linear scans.
 
 ### 3. Dependency Injection
-Sử dụng `Arc<dyn RepositoryTrait>` để inject vào Services. Khởi tạo toàn bộ dependencies tại `main.rs` và đưa vào `AppState`.
+Use `Arc<dyn RepositoryTrait>` to inject into Services. Initialize all dependencies in `main.rs` and pass them into `AppState`.
 
 ## 🐍 Python (Worker Agents)
 
 ### 1. Environment Management
-- **Venv Required**: Luôn sử dụng môi trường ảo (`venv`) để phát triển và chạy test. Thư mục chuẩn là `venv/` bên trong module.
-- **Dependencies**: Quản lý qua `requirements.txt`.
-- **Formatting**: Sử dụng `black` hoặc `ruff` để format code.
+- **Venv Required**: Always use a virtual environment (`venv`) for development and testing. The standard directory is `venv/` within the module.
+- **Dependencies**: Managed via `requirements.txt`.
+- **Formatting**: Use `black` or `ruff` to format code.
 
 ### 2. Testing
-- **Pytest**: Sử dụng `pytest` kết hợp với `pytest-asyncio` cho các task bất đồng bộ.
-- **Execution**: Luôn chạy test thông qua môi trường ảo: `source venv/bin/activate && pytest`.
+- **Pytest**: Use `pytest` combined with `pytest-asyncio` for asynchronous tasks.
+- **Execution**: Always run tests via the virtual environment: `source venv/bin/activate && pytest`.
 
 ## 🐍 Python (Worker Agents)
 
 ### 1. Environment Management (Linux Priority)
-- **Linux Venv**: Bắt buộc sử dụng `python3 -m venv venv`. Kích hoạt bằng `source venv/bin/activate`.
-- **Windows Note**: Tránh dùng chung thư mục `venv` giữa Linux và Windows do sự khác biệt về cấu trúc script (`bin/` vs `Scripts/`) và đường dẫn thư viện.
-- **Dependencies**: Luôn cập nhật `requirements.txt` sau khi cài package mới.
+- **Linux Venv**: Mandatory use of `python3 -m venv venv`. Activate with `source venv/bin/activate`.
+- **Windows Note**: Avoid sharing the `venv` directory between Linux and Windows due to differences in script structures (`bin/` vs `Scripts/`) and library paths.
+- **Dependencies**: Always update `requirements.txt` after installing new packages.
 
 ### 2. Testing & Execution
-- **Pytest**: Chạy test trong môi trường đã kích hoạt: `pytest -v`.
-- **Hardware Access**: Trên Linux, cần kiểm tra quyền truy cập cổng Serial/USB (thường thuộc group `dialout`).
+- **Pytest**: Run tests in the activated environment: `pytest -v`.
+- **Hardware Access**: On Linux, verify access permissions for Serial/USB ports (typically belonging to the `dialout` group).
 
 ## Testing Standards
 
@@ -435,14 +435,14 @@ To ensure high-quality delivery and fast feedback loops, the project uses a unif
 - **Container Logs**: Use `docker compose logs` or inspect `.test_logs/` to debug failures within the Docker environment.
 
 ### 🚀 Mandatory Passing Tests
-- **Zero Tolerance**: Tất cả các bài kiểm tra (Unit tests, Integration tests, Frontend tests) **BẮT BUỘC** phải vượt qua (PASS) trước khi thực hiện bất kỳ lệnh commit hoặc merge nào. Code có test thất bại sẽ không được chấp nhận.
-- **Automated Linting (Phase 0)**: Hệ thống thực thi kiểm tra code quality tự động (Linting) ở bước đầu tiên của pipeline.
+- **Zero Tolerance**: All tests (Unit tests, Integration tests, Frontend tests) **MUST** pass before any commit or merge command. Code with failing tests will not be accepted.
+- **Automated Linting (Phase 0)**: The system automatically executes code quality checks (Linting) in the first step of the pipeline.
     - **Rust**: `cargo clippy -- -D warnings` (Deny all warnings).
-    - **Frontend**: `npm run lint` (ESLint with cache) và `npm run type-check`.
-    - Bất kỳ cảnh báo (warning) nào từ linter hoặc lỗi type đều bị coi là lỗi và sẽ dừng pipeline ngay lập tức.
+    - **Frontend**: `npm run lint` (ESLint with cache) and `npm run type-check`.
+    - Any warnings from the linter or type errors are treated as errors and will stop the pipeline immediately.
 - **Unit Tests (Phase 1)**: 
-    - **Vitest**: Timeouts 10s, `isolate: false` để tăng tốc độ thực thi.
-- **Recommended Execution**: Sử dụng script hợp nhất để chạy toàn bộ suite một cách nhanh nhất (hỗ trợ thực thi song song và tự động setup môi trường):
+    - **Vitest**: Timeouts 10s, `isolate: false` to speed up execution.
+- **Recommended Execution**: Use the unified script to run the entire suite as quickly as possible (supports parallel execution and automated environment setup):
   ```bash
   ./run-tests.sh
   ```
@@ -469,15 +469,15 @@ For E2E stability and performance, we adhere to the **Isolated Sequential Enviro
     - **Page Object Model (POM)**: BẮT BUỘC đóng gói selector và hành động vào các class trong `tests/pom/` (ví dụ: `LoginPage`, `EmployeesPage`).
     - **Custom Fixtures**: Sử dụng Playwright Fixtures để inject Page Objects vào test. Ưu tiên sử dụng `authPage` để tự động login cho các test yêu cầu quyền admin.
 4. **Hybrid Locators (Priority Order)**: 
-    - **Level 1: Data-TestID (Primary Strategy)**: BẮT BUỘC sử dụng `page.getByTestId('sidebar-link-members')` cho các thành phần điều hướng, hành động chính và tiêu đề trang. Đây là cách duy nhất đảm bảo test không bị fail khi thay đổi ngôn ngữ (i18n) hoặc refactor CSS.
+    - **Level 1: Data-TestID (Primary Strategy)**: **MUST** use `page.getByTestId('sidebar-link-members')` for navigation components, primary actions, and page headers. This is the only way to ensure tests don't fail when language (i18n) changes or CSS is refactored.
         - **Standard Naming Convention**: `[context]-[sub-element]-[type/action]`
         - **Examples**: `sidebar-link-employees`, `login-email-input`, `employees-btn-edit`, `employees-row-123`.
-        - **Format**: Luôn sử dụng `kebab-case`. Tránh gán ID động trừ khi cần xác định cụ thể một bản ghi (dùng DB ID).
-    - **Level 2: Semantic Attributes**: Sử dụng `page.locator('input[name="email"]')` hoặc `getByPlaceholder`.
-    - **Level 3: Stable Roles**: Sử dụng `getByRole('button', { name: 'submit' })` nếu attribute `type="submit"` ổn định.
-    - **Avoid**: Tuyệt đối tránh sử dụng `getByText(/Regex/i)` cho các element quan trọng vì nội dung dịch (copy) thay đổi thường xuyên sẽ làm gãy test.
+        - **Format**: Always use `kebab-case`. Avoid dynamic IDs unless specifically needed to identify a specific record (use DB ID).
+    - **Level 2: Semantic Attributes**: Use `page.locator('input[name="email"]')` or `getByPlaceholder`.
+    - **Level 3: Stable Roles**: Use `getByRole('button', { name: 'submit' })` if the `type="submit"` attribute is stable.
+    - **Avoid**: Absolutely avoid using `getByText(/Regex/i)` for critical elements as localization changes (copy) will frequently break tests.
 5. **Navigation Reliability**: 
-    - Ưu tiên sử dụng `page.goto('/target-path')` trong các test regression để bỏ qua các animation của sidebar hoặc menu lồng nhau, giúp test chạy nhanh và ổn định hơn.
+    - Prioritize using `page.goto('/target-path')` in regression tests to bypass sidebar animations or nested menus, making tests faster and more stable.
 6. **Resilient Timeouts**: 
     - **Global Test Timeout**: 90 giây (Docker environment overhead).
     - **Expect Timeout**: 10 giây.
@@ -578,95 +578,95 @@ submitAttendanceAdjustment() API
 
 ---
 
-### 🔢 Hệ thống Đơn vị công (Integer Work Unit - WU)
+### 🔢 Integer Work Unit (WU) System
 
-Để đảm bảo tính chính xác tuyệt đối (không sai số floating-point) và bảo toàn dữ liệu lịch sử, hệ thống tuân thủ các nguyên tắc sau:
+To ensure absolute precision (no floating-point errors) and preserve historical data, the system adheres to the following principles:
 
-1.  **Atomic Unit**: Đơn vị nhỏ nhất để tính toán công và lương là **Work Unit (Số nguyên)**. Tuyệt đối không lưu trữ hoặc tính toán số giờ dưới dạng số thập phân (float) ở tầng Service/Database.
+1.  **Atomic Unit**: The smallest unit for work and payroll calculation is the **Work Unit (Integer)**. Never store or calculate hours as decimal numbers (floats) at the Service/Database layer.
 2.  **Calculation Rule**: 
     - `Minutes / work_unit_minutes = Units`. 
-    - Phải áp dụng quy tắc làm tròn (`rounding_policy`) của Workspace ngay tại thời điểm chuyển đổi sang Unit.
+    - The Workspace's `rounding_policy` must be applied at the moment of conversion to Units.
 3.  **Temporal Integrity (Snapshotting)**: 
-    - Khi chốt lương, **PHẢI** snapshot số lượng Unit (`standard_units`, `overtime_units`) vào bảng `payslips`. 
-    - Tuyệt đối không tính toán lại số unit từ log thô khi xem lại phiếu lương cũ, vì cấu hình Workspace (độ dài unit, quy tắc làm tròn) có thể đã thay đổi theo thời gian.
+    - When finalizing payroll, you **MUST** snapshot the unit counts (`standard_units`, `overtime_units`) into the `payslips` table. 
+    - Never recalculate units from raw logs when viewing old payslips, as Workspace configurations (unit length, rounding rules) may have changed over time.
 4.  **UI Representation**: 
-    - Frontend hiển thị số giờ (`Decimal Hours`) phục vụ UX: `Hours = Units * (work_unit_minutes / 60)`.
-    - Tuy nhiên, khi nhập liệu hoặc hiển thị chi tiết, nên hiển thị kèm số lượng Unit thô để người dùng đối soát.
+    - The frontend displays `Decimal Hours` for UX: `Hours = Units * (work_unit_minutes / 60)`.
+    - However, during data entry or detailed viewing, raw Unit counts should also be displayed for reconciliation.
 
 ---
 
 ## ⚛️ React (Frontend)
 
 ### 1. Development
-- **Vite**: Sử dụng Vite làm build tool.
-- **Server State (React Query)**: Sử dụng `@tanstack/react-query` để quản lý Server State. Toàn bộ logic fetching, caching và mutation phải nằm trong **Domain-specific Custom Hooks** (ví dụ: `useAgents`, `useDevices`).
-- **Component Design**: Component chỉ nên chịu trách nhiệm hiển thị (UI) và nhận sự kiện từ người dùng. Tránh sử dụng `useEffect` và `useState` thủ công để fetch dữ liệu.
-- **Tailwind CSS 4**: Sử dụng các tiện ích của Tailwind 4 để styling.
-- **Lucide React**: Thư viện icon chuẩn.
+- **Vite**: Use Vite as the build tool.
+- **Server State (React Query)**: Use `@tanstack/react-query` to manage Server State. All fetching, caching, and mutation logic must reside in **Domain-specific Custom Hooks** (e.g., `useAgents`, `useDevices`).
+- **Component Design**: Components should only be responsible for display (UI) and receiving user events. Avoid using `useEffect` and `useState` manually for data fetching.
+- **Tailwind CSS 4**: Use Tailwind 4 utilities for styling.
+- **Lucide React**: Standard icon library.
 
-### 📅 Logic Lịch trình & Ca làm việc (Effective Schedule)
+### 📅 Effective Schedule Logic
 
-Khi tính toán ca làm việc hiệu lực của nhân viên tại một thời điểm, **PHẢI** tuân thủ thứ tự ưu tiên 5 cấp sau:
+When calculating an employee's effective shift at a given time, you **MUST** follow this 5-tier priority order:
 
-1.  **Mức 1: Lịch trực tuần (Manual Roster)** - `shift_rosters`. Bản ghi gán cho một ngày cụ thể. Nếu gán là NULL, nghĩa là nhân viên ĐƯỢC NGHỈ (Day Off) bất chấp các mức dưới.
-2.  **Mức 2: Mẫu lịch cá nhân (Individual Working Pattern)** - `employee_working_patterns`. Mẫu lịch lặp lại gán cho nhân viên trong một khoảng thời gian.
-3.  **Mức 3: Mẫu lịch phòng ban (Department Working Pattern)** - Mẫu lịch mặc định của phòng ban mà nhân viên đang thuộc về.
-4.  **Mức 4: Gán cố định (Fixed Assignment - Legacy)** - `employee_shifts`. Lấy bản ghi có ngày hiệu lực (`start_date`) thỏa mãn và có thời điểm tạo (`created_at`) mới nhất.
-5.  **Mức 5: Ca mặc định phòng ban (Department Default Shift)** - Ca làm việc mặc định cuối cùng của phòng ban.
+1.  **Tier 1: Manual Roster** - `shift_rosters`. Record assigned to a specific date. If assigned as NULL, it means the employee is OFF (Day Off) regardless of lower tiers.
+2.  **Tier 2: Individual Working Pattern** - `employee_working_patterns`. Recurring schedule pattern assigned to an employee for a period.
+3.  **Tier 3: Department Working Pattern** - Default schedule pattern of the department the employee currently belongs to.
+4.  **Tier 4: Fixed Assignment (Legacy)** - `employee_shifts`. Use records with a matching `start_date` and the latest `created_at`.
+5.  **Tier 5: Department Default Shift** - The final default shift of the department.
 
-**Lưu ý**: Tuyệt đối không tính toán logic này ở Frontend. Luôn sử dụng API `/api/workspaces/:id/schedules` để lấy kết quả đã tính toán từ Backend.
+**Note**: Never calculate this logic on the Frontend. Always use the `/api/workspaces/:id/schedules` API to retrieve pre-calculated results from the Backend.
 
 ---
 
-### 🔍 Tìm kiếm nhân viên (Unified Search Pattern)
+### 🔍 Unified Search Pattern
 
-Để đảm bảo trải nghiệm người dùng nhất quán, việc tìm kiếm nhân viên phải tuân thủ mẫu thiết kế sau:
+To ensure a consistent user experience, employee searching must follow this design pattern:
 
-1.  **Component**: Luôn sử dụng component `EmployeeSearch` (Combobox) thay vì các input text đơn giản.
+1.  **Component**: Always use the `EmployeeSearch` (Combobox) component instead of simple text inputs.
 2.  **Behavior**:
-    - **Debounced Remote Search**: Tìm kiếm server-side với delay 400ms để tối ưu hiệu năng.
-    - **Offline Result Shadowing**: Tắt tính năng tự động filter của thư viện client (như `cmdk`) để hiển thị chính xác kết quả từ Server (đặc biệt khi tìm theo mã nhân viên).
-    - **Label Persistence**: Phải capture và lưu trữ label (tên nhân viên) của item đã chọn để hiển thị đúng ngay cả khi item đó không còn nằm trong tập kết quả search hiện tại.
-3.  **Backend API**: Luôn sử dụng endpoint `/workspaces/:ws_id/employees?q=...` hỗ trợ tìm kiếm không phân biệt hoa thường (Case-insensitive) trên Tên, Họ, và Mã nhân viên.
+    - **Debounced Remote Search**: Server-side search with a 400ms delay for performance optimization.
+    - **Offline Result Shadowing**: Disable the client library's automatic filtering (like `cmdk`) to accurately display results from the Server (especially when searching by employee ID).
+    - **Label Persistence**: Must capture and store the label (employee name) of the selected item to display correctly even if that item is no longer in the current search result set.
+3.  **Backend API**: Always use the `/workspaces/:ws_id/employees?q=...` endpoint, which supports case-insensitive searching on First Name, Last Name, and Employee ID.
 
 ---
 
-### 🌐 Định danh Workspace (Path Priority)
+### 🌐 Workspace Identification (Path Priority)
 
-Hệ thống ưu tiên định danh tổ chức dựa trên URI để tăng tính tường minh và khả năng tương thích:
+The system prioritizes organization identification based on the URI for clarity and compatibility:
 
-1.  **Path over Header**: Ưu tiên sử dụng tham số `:ws_id` hoặc `:id` trong URL.
-2.  **Client Responsibility**: Frontend phải đảm bảo truyền ID vào path của request. Utility `apiFetch` hỗ trợ việc này một cách tự động khi kết hợp với `WorkspaceGuard`.
-3.  **Optional Header**: Header `X-Workspace-Id` chỉ mang tính dự phòng và không được coi là bắt buộc cho các routes đã có ID trong path.
+1.  **Path over Header**: Prioritize using the `:ws_id` or `:id` parameter in the URL.
+2.  **Client Responsibility**: The frontend must ensure the ID is passed in the request path. The `apiFetch` utility automatically supports this when combined with `WorkspaceGuard`.
+3.  **Optional Header**: The `X-Workspace-Id` header is for backup only and is not mandatory for routes that already include the ID in the path.
 
 ---
 
-### 🎨 Frontend: Thông báo (Toasts)
-- **No Browser Dialogs**: Tuyệt đối **KHÔNG** sử dụng `window.alert()`, `window.confirm()` hoặc `window.prompt()` cho các thông báo hành động thông thường.
-- **Global Toast**: Sử dụng custom hook `useToast()` để hiển thị thông báo.
-  - `toast.success()`: Khi hành động thành công (Lưu, Cập nhật).
-  - `toast.error()`: Khi có lỗi API hoặc lỗi logic nghiêm trọng.
-  - `toast.warning()`: Khi người dùng nhập thiếu dữ liệu.
-- **Transitions**: Sử dụng Tailwind `animate-in` cho tất cả các Modals và Toast items để tạo cảm giác mượt mà.
+### 🎨 Frontend: Notifications (Toasts)
+- **No Browser Dialogs**: Absolutely **DO NOT** use `window.alert()`, `window.confirm()`, or `window.prompt()` for routine action notifications.
+- **Global Toast**: Use the custom `useToast()` hook to display notifications.
+  - `toast.success()`: On successful actions (Save, Update).
+  - `toast.error()`: On API errors or critical logic errors.
+  - `toast.warning()`: When user input is missing data.
+- **Transitions**: Use Tailwind `animate-in` for all Modals and Toast items to create a smooth experience.
 
 ### 🕒 Date & Time Display
-- **Standardized Formatter**: Tuyệt đối **KHÔNG** sử dụng `toLocaleDateString()`, `toLocaleTimeString()` hoặc các hàm format cứng của thư viện bên ngoài trực tiếp trong Component.
-- **Unified Hook**: Luôn sử dụng custom hook `useDateTimeFormatter()` để hiển thị thời gian. Hook này tự động lấy cấu hình `date_format` và `time_format` của Workspace hiện tại.
-  - `formatDate(date)`: Hiển thị ngày (ví dụ: 14/01/2026).
-  - `formatTime(date)`: Hiển thị giờ (ví dụ: 08:30 hoặc 08:30 AM).
-  - `formatDateTime(date)`: Hiển thị cả ngày và giờ.
-  - `formatMonthYear(date)`: Hiển thị tháng và năm (ví dụ: 01/2026 hoặc 2026-01) tùy theo cấu hình workspace.
+- **Standardized Formatter**: Absolutely **DO NOT** use `toLocaleDateString()`, `toLocaleTimeString()`, or hardcoded format functions from external libraries directly in Components.
+- **Unified Hook**: Always use the custom `useDateTimeFormatter()` hook for displaying time. This hook automatically retrieves the `date_format` and `time_format` settings of the current Workspace.
+  - `formatDate(date)`: Displays date (e.g., 14/01/2026).
+  - `formatTime(date)`: Displays time (e.g., 08:30 or 08:30 AM).
+  - `formatDateTime(date)`: Displays both date and time.
+  - `formatMonthYear(date)`: Displays month and year (e.g., 01/2026 or 2026-01) depending on workspace config.
 
 - **Internal/API Format**: 
-  - **BẮT BUỘC** sử dụng `format(date, 'yyyy-MM-dd')` từ `date-fns` khi cần lấy chuỗi ngày cho API hoặc internal state. 
-  - **CẤM** sử dụng `date.toISOString().split('T')[0]` vì phương thức này chuyển về UTC, gây lệch ngày ở các múi giờ dương (như Việt Nam UTC+7) vào thời điểm rạng sáng.
+  - **MANDATORY** use `format(date, 'yyyy-MM-dd')` from `date-fns` when needing a date string for the API or internal state. 
+  - **FORBIDDEN** use `date.toISOString().split('T')[0]` because this method converts to UTC, causing date shifts in positive timezones (like Vietnam UTC+7) during early morning hours.
 
 ---
 
 ## 🛡️ Security
 
-- **Multi-Tenancy**: Luôn kiểm tra `workspace_id` trong mọi query.
-- **RBAC**: Sử dụng `MemberContext` để xác thực quyền hạn. Không hard-code check role ở tầng handler nếu có thể dùng chung logic kiểm tra quyền.
+- **Multi-Tenancy**: Always check `workspace_id` in every query.
+- **RBAC**: Use `MemberContext` to verify permissions. Avoid hardcoded role checks at the handler level if a common permission logic can be used.
 
 ### Security Anti-Patterns (Rust Backend)
 
