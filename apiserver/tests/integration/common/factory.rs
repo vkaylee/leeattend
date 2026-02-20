@@ -195,7 +195,7 @@ impl WorkspaceBuilder {
                 ($1, 'vacation', 'Vacation', true),
                 ($1, 'sick', 'Sick Leave', true),
                 ($1, 'personal', 'Personal Leave', true),
-                ($1, 'unpaid', 'Unpaid Leave', false)"
+                ($1, 'unpaid', 'Unpaid Leave', false)",
             )
             .bind(ws_id)
             .execute(&self.pool)
@@ -729,7 +729,9 @@ impl LeaveRequestBuilder {
         let leave_type_id = if let Some(id) = self.leave_type_id {
             id
         } else {
-            let emp_id = self.employee_id.expect("Employee ID is required for LeaveRequest");
+            let emp_id = self
+                .employee_id
+                .expect("Employee ID is required for LeaveRequest");
             sqlx::query_scalar!(
                 "SELECT id FROM leave_types WHERE workspace_id = (SELECT workspace_id FROM employees WHERE id = $1) AND code = 'vacation'",
                 emp_id
@@ -798,7 +800,9 @@ impl LeaveBalanceBuilder {
         let leave_type_id = if let Some(id) = self.leave_type_id {
             id
         } else {
-            let emp_id = self.employee_id.expect("Employee ID is required for LeaveBalance");
+            let emp_id = self
+                .employee_id
+                .expect("Employee ID is required for LeaveBalance");
             sqlx::query_scalar!(
                 "SELECT id FROM leave_types WHERE workspace_id = (SELECT workspace_id FROM employees WHERE id = $1) AND code = 'vacation'",
                 emp_id
@@ -865,7 +869,7 @@ impl LeavePolicyBuilder {
     pub async fn create(self) -> Uuid {
         let ws_id = self.workspace_id.expect("Workspace ID required");
         let pool = self.pool.clone();
-        
+
         // Fetch vacation ID as default
         let leave_type_id = sqlx::query_scalar!(
             "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",

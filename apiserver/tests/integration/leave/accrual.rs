@@ -94,14 +94,17 @@ async fn test_performance_based_accrual() {
         .create()
         .await;
 
-    factory.leave_policy().assign_to(
-        ws_id,
-        policy,
-        "employee",
-        Some(emp),
-        NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
-        None
-    ).await;
+    factory
+        .leave_policy()
+        .assign_to(
+            ws_id,
+            policy,
+            "employee",
+            Some(emp),
+            NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
+            None,
+        )
+        .await;
 
     // 10 work days (below threshold)
     for i in 1..=10 {
@@ -117,8 +120,10 @@ async fn test_performance_based_accrual() {
         &pool,
         ws_id,
         NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
-        false
-    ).await.unwrap();
+        false,
+    )
+    .await
+    .unwrap();
 
     assert!(logs.is_empty());
 
@@ -136,8 +141,10 @@ async fn test_performance_based_accrual() {
         &pool,
         ws_id,
         NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
-        false
-    ).await.unwrap();
+        false,
+    )
+    .await
+    .unwrap();
 
     assert_eq!(logs.len(), 1);
 }

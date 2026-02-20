@@ -10,7 +10,10 @@ use uuid::Uuid;
 use crate::errors::{AppError, AppResult};
 use crate::{
     handlers::common::MemberContext,
-    models::{AssignPatternRequest, BulkAssignPatternRequest, CreateWorkingPatternRequest, WorkingPattern, WorkingPatternDetail, EmployeeWorkingPattern, BulkAssignResponse},
+    models::{
+        AssignPatternRequest, BulkAssignPatternRequest, BulkAssignResponse,
+        CreateWorkingPatternRequest, EmployeeWorkingPattern, WorkingPattern, WorkingPatternDetail,
+    },
     services::working_pattern_service as service,
     AppState,
 };

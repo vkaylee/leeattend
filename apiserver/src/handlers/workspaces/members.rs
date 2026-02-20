@@ -42,7 +42,9 @@ pub async fn add_workspace_member(
     Json(req): Json<AddMemberRequest>,
 ) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can invite members".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can invite members".to_string(),
+        ));
     }
 
     let user_id: Uuid = sqlx::query_scalar("SELECT id FROM users WHERE email = $1")
@@ -71,10 +73,13 @@ pub async fn update_workspace_member_role(
     Json(req): Json<UpdateMemberRoleRequest>,
 ) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can change roles".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can change roles".to_string(),
+        ));
     }
 
-    state.workspace_repo
+    state
+        .workspace_repo
         .update_member_role(ctx.workspace_id, user_id, req.role)
         .await
         .map_err(AppError::from)?;
@@ -88,15 +93,20 @@ pub async fn remove_workspace_member(
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can remove members".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can remove members".to_string(),
+        ));
     }
 
     // Don't allow removing yourself (prevent lockout if only one admin, though owner should probably remain)
     if user_id == ctx.user_id {
-        return Err(AppError::Validation("You cannot remove yourself from the workspace".to_string()));
+        return Err(AppError::Validation(
+            "You cannot remove yourself from the workspace".to_string(),
+        ));
     }
 
-    state.workspace_repo
+    state
+        .workspace_repo
         .remove_member(ctx.workspace_id, user_id)
         .await
         .map_err(AppError::from)?;

@@ -1,6 +1,6 @@
 use axum::http::StatusCode;
 use calamine::{Data, DataType, Reader, Xls, Xlsx};
-use chrono::{DateTime, NaiveDate, Utc, TimeZone};
+use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use sqlx::PgPool;
 use std::collections::HashSet;
@@ -8,15 +8,13 @@ use std::io::Cursor;
 use tracing::{error, info};
 use uuid::Uuid;
 
-use crate::utils::normalize_employee_id;
 use crate::models::{
     AdjustmentStatus, AttendanceImportJob, CreateAttendanceAdjustmentRequest, Employee,
     ImportJobStatus, LogSource,
 };
-use crate::repositories::{
-    employee_repository, import_job_repository,
-};
+use crate::repositories::{employee_repository, import_job_repository};
 use crate::services::attendance_adjustment_service::AttendanceAdjustmentService;
+use crate::utils::normalize_employee_id;
 
 struct PendingRow {
     emp_id_number: String,
@@ -232,41 +230,42 @@ impl AttendanceImportService {
             .collect();
         let unique_emp_ids_vec: Vec<String> = unique_emp_ids.iter().cloned().collect();
 
-        let known_emp_ids: HashSet<String> = match employee_repository::get_existing_employee_ids_by_numbers(
-            &pool,
-            job.workspace_id,
-            &unique_emp_ids_vec,
-        )
-        .await
-        {
-            Ok(existing_ids) => {
-                let known: HashSet<String> = existing_ids.into_iter().collect();
-                let missing_ids: Vec<String> =
-                    unique_emp_ids.difference(&known).cloned().collect();
+        let known_emp_ids: HashSet<String> =
+            match employee_repository::get_existing_employee_ids_by_numbers(
+                &pool,
+                job.workspace_id,
+                &unique_emp_ids_vec,
+            )
+            .await
+            {
+                Ok(existing_ids) => {
+                    let known: HashSet<String> = existing_ids.into_iter().collect();
+                    let missing_ids: Vec<String> =
+                        unique_emp_ids.difference(&known).cloned().collect();
 
-                if !missing_ids.is_empty() {
-                    errors.push(format!(
-                        "Bỏ qua {} mã nhân viên không tồn tại: {}",
-                        missing_ids.len(),
-                        missing_ids.join(", ")
-                    ));
+                    if !missing_ids.is_empty() {
+                        errors.push(format!(
+                            "Bỏ qua {} mã nhân viên không tồn tại: {}",
+                            missing_ids.len(),
+                            missing_ids.join(", ")
+                        ));
+                    }
+                    known
                 }
-                known
-            }
-            Err(e) => {
-                error!("VALIDATION_ERROR: {:?}", e);
-                let _ = import_job_repository::update_job_progress(
-                    &pool,
-                    job_id,
-                    0,
-                    ImportJobStatus::Failed,
-                    Some("Database error during validation".to_string()),
-                )
-                .await;
-                let _ = tokio::fs::remove_file(file_path).await;
-                return Err(());
-            }
-        };
+                Err(e) => {
+                    error!("VALIDATION_ERROR: {:?}", e);
+                    let _ = import_job_repository::update_job_progress(
+                        &pool,
+                        job_id,
+                        0,
+                        ImportJobStatus::Failed,
+                        Some("Database error during validation".to_string()),
+                    )
+                    .await;
+                    let _ = tokio::fs::remove_file(file_path).await;
+                    return Err(());
+                }
+            };
 
         let mut skipped_rows = 0;
         let rows_to_process = pending_rows.into_iter().skip(processed_rows as usize);
@@ -284,7 +283,7 @@ impl AttendanceImportService {
                     } else {
                         skipped_rows += 1;
                     }
-                    
+
                     if (processed_rows + skipped_rows) % 10 == 0 {
                         let _ = import_job_repository::update_job_progress(
                             &pool,
@@ -306,7 +305,9 @@ impl AttendanceImportService {
         }
 
         if skipped_rows > 0 {
-            errors.push(format!("Đã bỏ qua {skipped_rows} dòng (trùng lặp hoặc NV không tồn tại)."));
+            errors.push(format!(
+                "Đã bỏ qua {skipped_rows} dòng (trùng lặp hoặc NV không tồn tại)."
+            ));
         }
 
         let status = if processed_rows > 0 || errors.is_empty() {
@@ -387,20 +388,22 @@ impl AttendanceImportService {
                 let hire_date_str = record.get(2).unwrap_or("").trim();
 
                 if id_number.is_empty() || full_name.is_empty() {
-                    errors.push(format!(
-                        "Dòng {current_line}: Thiếu ID hoặc Tên nhân viên"
-                    ));
+                    errors.push(format!("Dòng {current_line}: Thiếu ID hoặc Tên nhân viên"));
                     continue;
                 }
 
                 let hire_date = if hire_date_str.is_empty() {
-                    Utc::now().with_timezone(&Tz::Asia__Ho_Chi_Minh).date_naive()
+                    Utc::now()
+                        .with_timezone(&Tz::Asia__Ho_Chi_Minh)
+                        .date_naive()
                 } else {
                     NaiveDate::parse_from_str(hire_date_str, "%Y-%m-%d")
                         .or_else(|_| NaiveDate::parse_from_str(hire_date_str, "%d/%m/%Y"))
                         .or_else(|_| NaiveDate::parse_from_str(hire_date_str, "%m/%d/%Y"))
                         .unwrap_or_else(|_| {
-                            Utc::now().with_timezone(&Tz::Asia__Ho_Chi_Minh).date_naive()
+                            Utc::now()
+                                .with_timezone(&Tz::Asia__Ho_Chi_Minh)
+                                .date_naive()
                         })
                 };
 
@@ -435,7 +438,7 @@ impl AttendanceImportService {
 
         let mut processed_rows = 0;
         let mut skipped_rows = 0;
-        
+
         for emp in pending_employees {
             match Self::process_employee_import_row(&pool, job, &emp).await {
                 Ok(maybe_id) => {
@@ -445,12 +448,18 @@ impl AttendanceImportService {
                     } else {
                         skipped_rows += 1;
                         // If already exists, we still want to try claiming logs for this ID
-                        match employee_repository::get_employee_by_id_number(&pool, &emp.id_number, job.workspace_id).await {
+                        match employee_repository::get_employee_by_id_number(
+                            &pool,
+                            &emp.id_number,
+                            job.workspace_id,
+                        )
+                        .await
+                        {
                             Ok(Some(e)) => e.id,
                             _ => continue,
                         }
                     };
-                    
+
                     // Auto-claim any staged logs for this employee
                     if let Err(e) = crate::services::attendance_log_service::AttendanceLogService::claim_staged_logs(
                         &pool,
@@ -460,31 +469,56 @@ impl AttendanceImportService {
                     ).await {
                         error!("Failed to auto-claim logs for employee {}: {}", emp.id_number, e);
                     }
-                    
+
                     if (processed_rows + skipped_rows) % 10 == 0 {
-                        let _ = import_job_repository::update_job_progress(&pool, job_id, processed_rows, ImportJobStatus::Processing, None).await;
+                        let _ = import_job_repository::update_job_progress(
+                            &pool,
+                            job_id,
+                            processed_rows,
+                            ImportJobStatus::Processing,
+                            None,
+                        )
+                        .await;
                     }
-                },
+                }
                 Err(e) => {
-                    errors.push(format!("Dòng {} (ID {}): Lỗi khi lưu vào DB: {}", emp.line_number, emp.id_number, e));
+                    errors.push(format!(
+                        "Dòng {} (ID {}): Lỗi khi lưu vào DB: {}",
+                        emp.line_number, emp.id_number, e
+                    ));
                 }
             }
         }
 
-        let status = if !errors.is_empty() { ImportJobStatus::Failed } else { ImportJobStatus::Completed };
-        
-        let mut final_log = if errors.is_empty() { None } else { Some(errors.join("\n")) };
+        let status = if !errors.is_empty() {
+            ImportJobStatus::Failed
+        } else {
+            ImportJobStatus::Completed
+        };
+
+        let mut final_log = if errors.is_empty() {
+            None
+        } else {
+            Some(errors.join("\n"))
+        };
         if skipped_rows > 0 {
-             let skip_msg = format!("Đã bỏ qua {skipped_rows} nhân viên trùng mã.");
-             final_log = Some(match final_log {
-                 Some(log) => format!("{log}\n{skip_msg}"),
-                 None => skip_msg
-             });
+            let skip_msg = format!("Đã bỏ qua {skipped_rows} nhân viên trùng mã.");
+            final_log = Some(match final_log {
+                Some(log) => format!("{log}\n{skip_msg}"),
+                None => skip_msg,
+            });
         }
 
-        let _ = import_job_repository::update_job_progress(&pool, job_id, processed_rows, status, final_log).await;
+        let _ = import_job_repository::update_job_progress(
+            &pool,
+            job_id,
+            processed_rows,
+            status,
+            final_log,
+        )
+        .await;
         let _ = tokio::fs::remove_file(file_path).await;
-        
+
         Ok(())
     }
 
@@ -499,24 +533,39 @@ impl AttendanceImportService {
                 Some(Data::String(s)) => s.clone(),
                 Some(Data::Float(f)) => f.to_string(),
                 Some(Data::Int(i)) => i.to_string(),
-                _ => { errors.push(format!("Dòng {current_line}: Thiếu ID nhân viên")); continue; }
+                _ => {
+                    errors.push(format!("Dòng {current_line}: Thiếu ID nhân viên"));
+                    continue;
+                }
             };
             let id_number = normalize_employee_id(&raw_id);
             let full_name = match row.get(1) {
                 Some(Data::String(s)) => s.trim().to_string(),
-                _ => { errors.push(format!("Dòng {current_line}: Thiếu Tên nhân viên")); continue; }
+                _ => {
+                    errors.push(format!("Dòng {current_line}: Thiếu Tên nhân viên"));
+                    continue;
+                }
             };
             let hire_date = match row.get(2) {
-                Some(Data::String(s)) => {
-                    NaiveDate::parse_from_str(s.trim(), "%Y-%m-%d")
-                        .or_else(|_| NaiveDate::parse_from_str(s.trim(), "%d/%m/%Y"))
-                        .or_else(|_| NaiveDate::parse_from_str(s.trim(), "%m/%d/%Y"))
-                        .unwrap_or_else(|_| Utc::now().with_timezone(&Tz::Asia__Ho_Chi_Minh).date_naive())
-                },
-                Some(cell_data) => {
-                    cell_data.as_datetime().map(|ndt| ndt.date()).unwrap_or_else(|| Utc::now().with_timezone(&Tz::Asia__Ho_Chi_Minh).date_naive())
-                },
-                _ => Utc::now().with_timezone(&Tz::Asia__Ho_Chi_Minh).date_naive()
+                Some(Data::String(s)) => NaiveDate::parse_from_str(s.trim(), "%Y-%m-%d")
+                    .or_else(|_| NaiveDate::parse_from_str(s.trim(), "%d/%m/%Y"))
+                    .or_else(|_| NaiveDate::parse_from_str(s.trim(), "%m/%d/%Y"))
+                    .unwrap_or_else(|_| {
+                        Utc::now()
+                            .with_timezone(&Tz::Asia__Ho_Chi_Minh)
+                            .date_naive()
+                    }),
+                Some(cell_data) => cell_data
+                    .as_datetime()
+                    .map(|ndt| ndt.date())
+                    .unwrap_or_else(|| {
+                        Utc::now()
+                            .with_timezone(&Tz::Asia__Ho_Chi_Minh)
+                            .date_naive()
+                    }),
+                _ => Utc::now()
+                    .with_timezone(&Tz::Asia__Ho_Chi_Minh)
+                    .date_naive(),
             };
 
             pending.push(PendingEmployee {
@@ -661,7 +710,9 @@ impl AttendanceImportService {
                 LogSource::Import,
                 None,
                 None,
-            ).await {
+            )
+            .await
+            {
                 Ok(true) => Ok(1),
                 Ok(false) => Ok(0),
                 Err(e) => {

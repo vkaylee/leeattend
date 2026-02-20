@@ -19,18 +19,18 @@ pub async fn get_incentive_policies(
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
 ) -> AppResult<Json<Vec<PayrollIncentivePolicyResponse>>> {
-    let policies = crate::repositories::payroll_repository::get_active_incentive_policies(&state.db, workspace_id)
-        .await?;
-    
+    let policies = crate::repositories::payroll_repository::get_active_incentive_policies(
+        &state.db,
+        workspace_id,
+    )
+    .await?;
+
     let mut response = Vec::new();
     for policy in policies {
         let tiers = crate::repositories::payroll_repository::get_policy_tiers(&state.db, policy.id)
             .await
             .unwrap_or_default();
-        response.push(PayrollIncentivePolicyResponse {
-            policy,
-            tiers,
-        });
+        response.push(PayrollIncentivePolicyResponse { policy, tiers });
     }
     Ok(Json(response))
 }
@@ -72,21 +72,27 @@ pub async fn create_incentive_policy(
         .await?;
     }
 
-    Ok((StatusCode::CREATED, Json(PayrollIncentivePolicy {
-        id: row.get("id"),
-        workspace_id: row.get("workspace_id"),
-        name: row.get("name"),
-        base_amount: row.get("base_amount"),
-        payout_type: row.get("payout_type"),
-        is_active: row.get("is_active"),
-        created_at: row.get("created_at"),
-    })))
+    Ok((
+        StatusCode::CREATED,
+        Json(PayrollIncentivePolicy {
+            id: row.get("id"),
+            workspace_id: row.get("workspace_id"),
+            name: row.get("name"),
+            base_amount: row.get("base_amount"),
+            payout_type: row.get("payout_type"),
+            is_active: row.get("is_active"),
+            created_at: row.get("created_at"),
+        }),
+    ))
 }
 
 pub async fn delete_incentive_policy(
     State(state): State<Arc<AppState>>,
     Path((_ws_id, policy_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<StatusCode> {
-    sqlx::query("DELETE FROM payroll_incentive_policies WHERE id = $1").bind(policy_id).execute(&state.db).await?;
+    sqlx::query("DELETE FROM payroll_incentive_policies WHERE id = $1")
+        .bind(policy_id)
+        .execute(&state.db)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }

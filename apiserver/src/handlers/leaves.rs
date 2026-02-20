@@ -12,9 +12,9 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
     AdjustBalanceRequest, ApproveLeaveRequest, AssignLeavePolicyRequest, CreateLeavePolicyRequest,
-    EmployeeLeaveBalance, LeaveHistoryItem, LeavePolicyAssignment, LeaveRequest, LeaveStatus,
-    PaginatedResponse, PaginationParams, SubmitLeaveRequest, UpdateLeavePolicyRequest,
-    WorkspaceLeaveBalance, LeavePolicyDefinition,
+    EmployeeLeaveBalance, LeaveHistoryItem, LeavePolicyAssignment, LeavePolicyDefinition,
+    LeaveRequest, LeaveStatus, PaginatedResponse, PaginationParams, SubmitLeaveRequest,
+    UpdateLeavePolicyRequest, WorkspaceLeaveBalance,
 };
 use crate::repositories::leave_policy_repository;
 use crate::services::leave_accrual_service::LeaveAccrualService;
@@ -37,7 +37,7 @@ pub async fn submit_leave_request(
     )
     .await
     .map_err(|s| AppError::from((s, "Failed to submit leave request".to_string())))?;
-    
+
     Ok((StatusCode::CREATED, Json(request)))
 }
 
@@ -49,7 +49,9 @@ pub async fn approve_leave_request(
     Json(req): Json<ApproveLeaveRequest>,
 ) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can approve leave".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can approve leave".to_string(),
+        ));
     }
     crate::services::leave_service::LeaveService::approve_leave_request(
         &state.db,
@@ -60,7 +62,7 @@ pub async fn approve_leave_request(
     )
     .await
     .map_err(|s| AppError::from((s, "Failed to approve leave request".to_string())))?;
-    
+
     Ok(StatusCode::OK)
 }
 
@@ -69,7 +71,9 @@ pub async fn get_my_leave_requests(
     UserId(_user_id): UserId,
     State(state): State<Arc<AppState>>,
 ) -> AppResult<Json<Vec<LeaveRequest>>> {
-    let requests = crate::repositories::leave_request_repository::get_employee_leave_requests(&state.db, id).await?;
+    let requests =
+        crate::repositories::leave_request_repository::get_employee_leave_requests(&state.db, id)
+            .await?;
     Ok(Json(requests))
 }
 
@@ -91,7 +95,7 @@ pub async fn get_workspace_leave_balances(
     )
     .await
     .map_err(|s| AppError::from((s, "Failed to get workspace balances".to_string())))?;
-    
+
     Ok(Json(balances))
 }
 
@@ -105,7 +109,7 @@ pub async fn get_employee_leave_balances(
     )
     .await
     .map_err(|s| AppError::from((s, "Failed to get employee balances".to_string())))?;
-    
+
     Ok(Json(balances))
 }
 
@@ -130,7 +134,7 @@ pub async fn get_workspace_leave_requests(
     )
     .await
     .map_err(|s| AppError::from((s, "Failed to get workspace leave requests".to_string())))?;
-    
+
     Ok(Json(requests))
 }
 
@@ -154,7 +158,7 @@ pub async fn get_employee_leave_history(
     )
     .await
     .map_err(|s| AppError::from((s, "Failed to get employee history".to_string())))?;
-    
+
     Ok(Json(history))
 }
 
@@ -167,12 +171,10 @@ pub async fn adjust_leave_balance(
     if !ctx.is_admin_or_owner() {
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
-    crate::services::leave_service::LeaveService::adjust_balance(
-        &state.db, ws_id, emp_id, req,
-    )
-    .await
-    .map_err(|s| AppError::from((s, "Failed to adjust balance".to_string())))?;
-    
+    crate::services::leave_service::LeaveService::adjust_balance(&state.db, ws_id, emp_id, req)
+        .await
+        .map_err(|s| AppError::from((s, "Failed to adjust balance".to_string())))?;
+
     Ok(StatusCode::OK)
 }
 
@@ -183,7 +185,9 @@ pub async fn create_leave_policy(
     Json(req): Json<CreateLeavePolicyRequest>,
 ) -> AppResult<(StatusCode, Json<LeavePolicyDefinition>)> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can manage policies".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can manage policies".to_string(),
+        ));
     }
 
     let policy = leave_policy_repository::create_policy_definition(
@@ -195,7 +199,7 @@ pub async fn create_leave_policy(
         req.rule_config,
     )
     .await?;
-    
+
     Ok((StatusCode::CREATED, Json(policy)))
 }
 
@@ -206,7 +210,9 @@ pub async fn update_leave_policy(
     Json(req): Json<UpdateLeavePolicyRequest>,
 ) -> AppResult<Json<LeavePolicyDefinition>> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can manage policies".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can manage policies".to_string(),
+        ));
     }
 
     let policy = leave_policy_repository::update_policy_definition(
@@ -219,7 +225,7 @@ pub async fn update_leave_policy(
         req.rule_config,
     )
     .await?;
-    
+
     Ok(Json(policy))
 }
 
@@ -229,11 +235,15 @@ pub async fn delete_leave_policy(
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can manage policies".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can manage policies".to_string(),
+        ));
     }
 
-    let rows = leave_policy_repository::delete_policy_definition(&state.db, policy_id, workspace_id).await?;
-    
+    let rows =
+        leave_policy_repository::delete_policy_definition(&state.db, policy_id, workspace_id)
+            .await?;
+
     if rows > 0 {
         Ok(StatusCode::NO_CONTENT)
     } else {
@@ -257,7 +267,9 @@ pub async fn assign_leave_policy(
     Json(req): Json<AssignLeavePolicyRequest>,
 ) -> AppResult<(StatusCode, Json<LeavePolicyAssignment>)> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can assign policies".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can assign policies".to_string(),
+        ));
     }
 
     let assignment = LeavePolicyAssignment {
@@ -282,17 +294,19 @@ pub async fn trigger_accrual_run(
     Json(payload): Json<serde_json::Value>,
 ) -> AppResult<Json<Vec<crate::models::LeaveAccrualLog>>> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can trigger accrual".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can trigger accrual".to_string(),
+        ));
     }
 
     let date_str = payload["date"].as_str().unwrap_or_default();
     let date = NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
         .map_err(|_| AppError::Validation("Invalid date format YYYY-MM-DD".to_string()))?;
 
-    let logs = LeaveAccrualService::process_workspace_accruals(&state.db, workspace_id, date, true).await?;
+    let logs = LeaveAccrualService::process_workspace_accruals(&state.db, workspace_id, date, true)
+        .await?;
     Ok(Json(logs))
 }
-
 
 pub async fn get_leave_policy_assignments(
     Path(_ws_id): Path<Uuid>,
@@ -302,6 +316,10 @@ pub async fn get_leave_policy_assignments(
     if !ctx.is_admin_or_owner() {
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
-    let assignments = crate::repositories::leave_policy_repository::get_policy_assignments(&state.db, ctx.workspace_id).await?;
+    let assignments = crate::repositories::leave_policy_repository::get_policy_assignments(
+        &state.db,
+        ctx.workspace_id,
+    )
+    .await?;
     Ok(Json(assignments))
 }

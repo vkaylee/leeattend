@@ -40,6 +40,17 @@ export default function ConnectivityTopology() {
     return map;
   }, [agentsStatus]);
 
+  // Create a flattened map of device_id -> status
+  const deviceStatuses = useMemo(() => {
+    const map: Record<string, any> = {};
+    agentsStatus.forEach(a => {
+      a.devices.forEach(d => {
+        map[d.device_id.toLowerCase()] = d;
+      });
+    });
+    return map;
+  }, [agentsStatus]);
+
   async function handleRefreshDevice(agentId: string, deviceId: string) {
     try {
       console.log(`Refreshing device ${deviceId} on agent ${agentId}`);
@@ -315,6 +326,7 @@ export default function ConnectivityTopology() {
               key={agent.id}
               agent={agent}
               devices={groupedDevices[agent.id] || []}
+              deviceStatuses={deviceStatuses}
               isOnline={agentOnlineMap[agent.id] || false}
               isExpanded={expandedAgents.has(agent.id)}
               onToggleExpand={() => toggleExpanded(agent.id)}

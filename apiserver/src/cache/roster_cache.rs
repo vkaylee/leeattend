@@ -109,7 +109,10 @@ pub struct RosterData {
 ///
 /// Standalone (not a method on `RosterCache`) so it can be called directly
 /// as a fallback when Redis is unavailable.
-pub async fn build_roster_data(pool: &PgPool, workspace_id: Uuid) -> Result<Arc<RosterData>, String> {
+pub async fn build_roster_data(
+    pool: &PgPool,
+    workspace_id: Uuid,
+) -> Result<Arc<RosterData>, String> {
     // Q1 — shifts
     let shift_rows = sqlx::query!(
         r#"
@@ -391,10 +394,7 @@ impl RosterCache {
     pub async fn invalidate(&self, workspace_id: Uuid) {
         let key = Self::version_key(workspace_id);
         let mut conn = self.redis.conn();
-        if let Err(e) = conn
-            .set::<_, _, ()>(&key, Utc::now().timestamp())
-            .await
-        {
+        if let Err(e) = conn.set::<_, _, ()>(&key, Utc::now().timestamp()).await {
             tracing::warn!(workspace_id = %workspace_id, error = %e, "Redis SET version failed during invalidate");
         }
         self.cache.invalidate(&workspace_id).await;
@@ -482,12 +482,10 @@ impl RosterCache {
 
             // wait_for borrows rx mutably; we only need to know whether it
             // succeeded so we can drop the borrow before calling rx.borrow().
-            let leader_finished = tokio::time::timeout(
-                Duration::from_secs(30),
-                rx.wait_for(|v| v.is_some()),
-            )
-            .await
-            .is_ok();
+            let leader_finished =
+                tokio::time::timeout(Duration::from_secs(30), rx.wait_for(|v| v.is_some()))
+                    .await
+                    .is_ok();
             // Mutable borrow from wait_for is now fully dropped.
 
             if leader_finished {
@@ -520,7 +518,8 @@ mod tests {
 
     #[test]
     fn test_version_key_format() {
-        let ws_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").expect("valid UUID constant");
+        let ws_id =
+            Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").expect("valid UUID constant");
         let key = RosterCache::version_key(ws_id);
         assert_eq!(key, "roster:version:550e8400-e29b-41d4-a716-446655440000");
     }
@@ -693,53 +692,60 @@ mod tests {
     /// Fast path: entry is returned when local version == remote version.
     #[tokio::test]
     async fn test_moka_hit_when_version_matches() {
-        let cache: Cache<Uuid, (Arc<RosterData>, i64)> =
-            Cache::builder().max_capacity(100).build();
+        let cache: Cache<Uuid, (Arc<RosterData>, i64)> = Cache::builder().max_capacity(100).build();
         let ws = Uuid::new_v4();
         let data = Arc::new(make_empty_roster_data());
         cache.insert(ws, (data.clone(), 1000)).await;
 
         // Mirror the fast-path check from get_roster_data
         let remote_version: i64 = 1000;
-        let hit = cache.get(&ws).await.and_then(|(d, v)| {
-            if v == remote_version {
-                Some(d)
-            } else {
-                None
-            }
-        });
+        let hit = cache.get(&ws).await.and_then(
+            |(d, v)| {
+                if v == remote_version {
+                    Some(d)
+                } else {
+                    None
+                }
+            },
+        );
 
-        assert!(hit.is_some(), "Should hit when stored version == remote version");
+        assert!(
+            hit.is_some(),
+            "Should hit when stored version == remote version"
+        );
         assert!(Arc::ptr_eq(&hit.expect("should hit"), &data));
     }
 
     /// Slow path: entry is skipped when local version != remote version.
     #[tokio::test]
     async fn test_moka_miss_when_version_differs() {
-        let cache: Cache<Uuid, (Arc<RosterData>, i64)> =
-            Cache::builder().max_capacity(100).build();
+        let cache: Cache<Uuid, (Arc<RosterData>, i64)> = Cache::builder().max_capacity(100).build();
         let ws = Uuid::new_v4();
         cache
             .insert(ws, (Arc::new(make_empty_roster_data()), 100))
             .await;
 
         let remote_version: i64 = 200; // differs from stored 100
-        let hit = cache.get(&ws).await.and_then(|(d, v)| {
-            if v == remote_version {
-                Some(d)
-            } else {
-                None
-            }
-        });
+        let hit = cache.get(&ws).await.and_then(
+            |(d, v)| {
+                if v == remote_version {
+                    Some(d)
+                } else {
+                    None
+                }
+            },
+        );
 
-        assert!(hit.is_none(), "Should miss when stored version != remote version");
+        assert!(
+            hit.is_none(),
+            "Should miss when stored version != remote version"
+        );
     }
 
     /// invalidate() removes the entry from the LRU.
     #[tokio::test]
     async fn test_moka_invalidate_evicts_entry() {
-        let cache: Cache<Uuid, (Arc<RosterData>, i64)> =
-            Cache::builder().max_capacity(100).build();
+        let cache: Cache<Uuid, (Arc<RosterData>, i64)> = Cache::builder().max_capacity(100).build();
         let ws = Uuid::new_v4();
         cache
             .insert(ws, (Arc::new(make_empty_roster_data()), 42))
@@ -757,8 +763,7 @@ mod tests {
     /// LRU eviction fires when capacity is exceeded.
     #[tokio::test]
     async fn test_moka_lru_evicts_on_capacity_overflow() {
-        let cache: Cache<Uuid, (Arc<RosterData>, i64)> =
-            Cache::builder().max_capacity(2).build();
+        let cache: Cache<Uuid, (Arc<RosterData>, i64)> = Cache::builder().max_capacity(2).build();
         let ids: Vec<Uuid> = (0..3).map(|_| Uuid::new_v4()).collect();
         for (i, &id) in ids.iter().enumerate() {
             cache
@@ -767,7 +772,10 @@ mod tests {
         }
         cache.run_pending_tasks().await;
 
-        assert!(cache.entry_count() <= 2, "LRU cache must not exceed max_capacity");
+        assert!(
+            cache.entry_count() <= 2,
+            "LRU cache must not exceed max_capacity"
+        );
     }
 
     // --- singleflight (watch-channel) pattern -------------------------------------
@@ -775,12 +783,13 @@ mod tests {
     /// Follower receives the Ok result published by the leader.
     #[tokio::test]
     async fn test_singleflight_follower_receives_leader_ok() {
-        let (tx, mut rx) =
-            watch::channel::<Option<Result<Arc<RosterData>, String>>>(None);
+        let (tx, mut rx) = watch::channel::<Option<Result<Arc<RosterData>, String>>>(None);
         let data = Arc::new(make_empty_roster_data());
 
         let follower = tokio::spawn(async move {
-            rx.wait_for(|v| v.is_some()).await.expect("watch channel failed");
+            rx.wait_for(|v| v.is_some())
+                .await
+                .expect("watch channel failed");
             let value = rx.borrow();
             match value.as_ref() {
                 Some(Ok(d)) => Ok(d.clone()),
@@ -793,18 +802,22 @@ mod tests {
         tokio::time::sleep(Duration::from_millis(10)).await;
         tx.send(Some(Ok(data.clone()))).expect("send failed");
 
-        let result = follower.await.expect("follower panicked").expect("result error");
+        let result = follower
+            .await
+            .expect("follower panicked")
+            .expect("result error");
         assert!(Arc::ptr_eq(&result, &data));
     }
 
     /// Follower surfaces the Err published by the leader.
     #[tokio::test]
     async fn test_singleflight_follower_receives_leader_error() {
-        let (tx, mut rx) =
-            watch::channel::<Option<Result<Arc<RosterData>, String>>>(None);
-        
+        let (tx, mut rx) = watch::channel::<Option<Result<Arc<RosterData>, String>>>(None);
+
         let follower = tokio::spawn(async move {
-            rx.wait_for(|v| v.is_some()).await.expect("watch channel failed");
+            rx.wait_for(|v| v.is_some())
+                .await
+                .expect("watch channel failed");
             let value = rx.borrow();
             match value.as_ref() {
                 Some(Ok(d)) => Ok(d.clone()),
@@ -814,7 +827,8 @@ mod tests {
         });
 
         tokio::time::sleep(Duration::from_millis(10)).await;
-        tx.send(Some(Err("DB Error".to_string()))).expect("send failed");
+        tx.send(Some(Err("DB Error".to_string())))
+            .expect("send failed");
 
         let result = follower.await.expect("follower panicked");
         assert!(result.is_err());
@@ -851,24 +865,23 @@ mod tests {
         // 4. Verify Map is Empty
         {
             let map = inflight.lock().expect("mutex poisoned");
-            assert!(map.is_empty(), "Inflight map should be empty after leader exit");
+            assert!(
+                map.is_empty(),
+                "Inflight map should be empty after leader exit"
+            );
         }
     }
-
 
     /// Timeout fires cleanly when leader never publishes (simulates the
     /// 30 s fallback path in singleflight_load).
     #[tokio::test]
     async fn test_singleflight_follower_timeout_does_not_panic() {
-        let (_tx, mut rx) =
-            watch::channel::<Option<Result<Arc<RosterData>, String>>>(None);
+        let (_tx, mut rx) = watch::channel::<Option<Result<Arc<RosterData>, String>>>(None);
 
-        let timed_out = tokio::time::timeout(
-            Duration::from_millis(50),
-            rx.wait_for(|v| v.is_some()),
-        )
-        .await
-        .is_err();
+        let timed_out =
+            tokio::time::timeout(Duration::from_millis(50), rx.wait_for(|v| v.is_some()))
+                .await
+                .is_err();
 
         assert!(
             timed_out,

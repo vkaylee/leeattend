@@ -4,7 +4,10 @@ use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::AppState;
-use axum::{body::Body, http::{Request, StatusCode}};
+use axum::{
+    body::Body,
+    http::{Request, StatusCode},
+};
 use serde_json::json;
 use std::sync::Arc;
 use tower::ServiceExt;
@@ -12,9 +15,14 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_agent_scaling_config() {
-    let (_test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
-    let user_id: Uuid = factory.user().with_email("scaling@example.com").create().await;
+    let user_id: Uuid = factory
+        .user()
+        .with_email("scaling@example.com")
+        .create()
+        .await;
     let workspace_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
     // Generate token for auth

@@ -60,11 +60,12 @@ pub async fn report_stream_ws(
     State(state): State<Arc<AppState>>,
 ) -> Response {
     // 1. Authenticate user and extract ID
-    let user_id = match query.token.as_deref()
-        .and_then(|t| crate::services::auth_service::AuthService::verify_token(t, &state.jwt_secret).ok()) {
-            Some(uid) => uid,
-            None => return (StatusCode::UNAUTHORIZED, "Invalid or missing token").into_response(),
-        };
+    let user_id = match query.token.as_deref().and_then(|t| {
+        crate::services::auth_service::AuthService::verify_token(t, &state.jwt_secret).ok()
+    }) {
+        Some(uid) => uid,
+        None => return (StatusCode::UNAUTHORIZED, "Invalid or missing token").into_response(),
+    };
 
     // 2. Check if Redis is available
     let redis = match &state.redis {
@@ -83,11 +84,21 @@ pub async fn report_stream_ws(
     let metadata = match queue.get_job_metadata(job_id).await {
         Ok(Some(m)) => m,
         Ok(None) => return (StatusCode::NOT_FOUND, "Job not found").into_response(),
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, format!("Queue error: {e}")).into_response(),
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Queue error: {e}"),
+            )
+                .into_response()
+        }
     };
 
     // Check if user belongs to the workspace of this job
-    let is_member = match state.workspace_repo.find_primary_role(metadata.workspace_id, user_id).await {
+    let is_member = match state
+        .workspace_repo
+        .find_primary_role(metadata.workspace_id, user_id)
+        .await
+    {
         Ok(Some(_)) => true,
         Ok(None) => false,
         Err(e) => {
@@ -98,7 +109,11 @@ pub async fn report_stream_ws(
 
     if !is_member {
         warn!(job_id = %job_id, user_id = %user_id, "Unauthorized WS access attempt");
-        return (StatusCode::FORBIDDEN, "Not authorized to access this report stream").into_response();
+        return (
+            StatusCode::FORBIDDEN,
+            "Not authorized to access this report stream",
+        )
+            .into_response();
     }
 
     info!(job_id = %job_id, user_id = %user_id, "WebSocket upgrade authorized for report stream");
@@ -107,11 +122,7 @@ pub async fn report_stream_ws(
 }
 
 /// Handle the WebSocket connection for report streaming.
-async fn handle_report_socket(
-    socket: WebSocket,
-    job_id: Uuid,
-    redis: crate::queue::RedisPool,
-) {
+async fn handle_report_socket(socket: WebSocket, job_id: Uuid, redis: crate::queue::RedisPool) {
     let (mut sender, mut receiver) = socket.split();
 
     // Create Redis subscriber

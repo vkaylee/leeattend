@@ -2,16 +2,16 @@ pub mod agents;
 pub mod assignment_rules;
 pub mod attendance;
 pub mod auth;
-pub mod debug;
 pub mod common;
+pub mod debug;
 pub mod employees;
 pub mod ess;
 pub mod leaves;
 pub mod payroll;
 pub mod report_export;
 pub mod report_websocket;
-pub mod worker_monitor;
 pub mod shifts;
+pub mod worker_monitor;
 pub mod working_patterns;
 pub mod workspaces;
 

@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::{BulkOtEntryError, BulkOtUploadResult, MemberRole, AttendanceDailySummary};
+use crate::models::{AttendanceDailySummary, BulkOtEntryError, BulkOtUploadResult, MemberRole};
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::AppState;
 
@@ -33,38 +33,44 @@ pub async fn enter_paper_ot(
     Json(req): Json<EnterPaperOtRequest>,
 ) -> AppResult<Json<AttendanceDailySummary>> {
     // 1. RBAC: Admin/Owner only
-    let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository { pool: state.db.clone() }
-        .find_primary_role(ws_id, user_id)
-        .await?
-        .ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?;
+    let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
+        pool: state.db.clone(),
+    }
+    .find_primary_role(ws_id, user_id)
+    .await?
+    .ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?;
 
     if !matches!(role, MemberRole::Admin | MemberRole::Owner) {
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
 
     // 2. Validate employee exists in workspace
-    let _employee = crate::repositories::employee_repository::get_employee_by_id(&state.db, employee_id, ws_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
+    let _employee =
+        crate::repositories::employee_repository::get_employee_by_id(&state.db, employee_id, ws_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
     // 3. Validate minutes
     if req.claimed_minutes <= 0 {
-        return Err(AppError::Validation("Minutes must be greater than 0".to_string()));
+        return Err(AppError::Validation(
+            "Minutes must be greater than 0".to_string(),
+        ));
     }
 
     // 4. Call service
-    let result = crate::services::attendance_summary_service::AttendanceSummaryService::enter_paper_ot(
-        &state.db,
-        employee_id,
-        req.date,
-        req.claimed_minutes,
-        req.reason,
-        user_id,
-        req.paper_form_photo_url,
-        req.allow_exceed_system_detected,
-    )
-    .await
-    .map_err(|e| AppError::Validation(format!("Enter Paper OT Error: {e}")))?;
+    let result =
+        crate::services::attendance_summary_service::AttendanceSummaryService::enter_paper_ot(
+            &state.db,
+            employee_id,
+            req.date,
+            req.claimed_minutes,
+            req.reason,
+            user_id,
+            req.paper_form_photo_url,
+            req.allow_exceed_system_detected,
+        )
+        .await
+        .map_err(|e| AppError::Validation(format!("Enter Paper OT Error: {e}")))?;
 
     Ok(Json(result))
 }
@@ -96,7 +102,9 @@ pub async fn bulk_upload_paper_ot(
     {
         let name = field.name().unwrap_or("").to_string();
         if name == "file" {
-            let data = field.bytes().await
+            let data = field
+                .bytes()
+                .await
                 .map_err(|e| AppError::Validation(format!("Failed to read file bytes: {e}")))?;
 
             // File size limit check
@@ -120,11 +128,15 @@ pub async fn bulk_upload_paper_ot(
     // Collect all rows first to validate count
     let mut rows: Vec<(usize, csv::StringRecord)> = Vec::new();
     for (idx, result) in rdr.records().enumerate() {
-        let record = result.map_err(|e| AppError::Validation(format!("CSV parsing error at row {}: {e}", idx + 2)))?;
+        let record = result.map_err(|e| {
+            AppError::Validation(format!("CSV parsing error at row {}: {e}", idx + 2))
+        })?;
         rows.push((idx + 2, record)); // +2 because CSV line 1 is header, records start at line 2
 
         if rows.len() > MAX_BULK_UPLOAD_ROWS {
-            return Err(AppError::Validation(format!("Max {MAX_BULK_UPLOAD_ROWS} rows allowed")));
+            return Err(AppError::Validation(format!(
+                "Max {MAX_BULK_UPLOAD_ROWS} rows allowed"
+            )));
         }
     }
 
@@ -133,7 +145,8 @@ pub async fn bulk_upload_paper_ot(
     let mut success_count = 0;
 
     // Track duplicates within this upload
-    let mut seen_keys: std::collections::HashSet<(String, NaiveDate)> = std::collections::HashSet::new();
+    let mut seen_keys: std::collections::HashSet<(String, NaiveDate)> =
+        std::collections::HashSet::new();
 
     // 4. Process each row
     for (line_number, record) in rows {
@@ -280,7 +293,7 @@ pub async fn bulk_upload_paper_ot(
             minutes,
             reason,
             user_id,
-            None, // No photo URL for bulk upload
+            None,  // No photo URL for bulk upload
             false, // Don't allow exceed for bulk upload
         )
         .await

@@ -18,7 +18,8 @@ pub async fn find_by_number(
     employee_id_number: &str,
 ) -> Result<Option<Employee>, sqlx::Error> {
     let normalized_id = normalize_employee_id(employee_id_number);
-    let query = format!("{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND e.employee_id_number = $2");
+    let query =
+        format!("{EMPLOYEE_SELECT_QUERY} WHERE e.workspace_id = $1 AND e.employee_id_number = $2");
     sqlx::query_as::<_, Employee>(&query)
         .bind(workspace_id)
         .bind(normalized_id)
@@ -65,13 +66,11 @@ pub async fn delete_working_condition(
     id: Uuid,
     employee_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query(
-        "DELETE FROM working_conditions WHERE id = $1 AND employee_id = $2",
-    )
-    .bind(id)
-    .bind(employee_id)
-    .execute(pool)
-    .await?;
+    let result = sqlx::query("DELETE FROM working_conditions WHERE id = $1 AND employee_id = $2")
+        .bind(id)
+        .bind(employee_id)
+        .execute(pool)
+        .await?;
     Ok(result.rows_affected() > 0)
 }
 
@@ -163,9 +162,8 @@ pub async fn get_employee_by_id_number(
     workspace_id: Uuid,
 ) -> Result<Option<Employee>, sqlx::Error> {
     let normalized_id = normalize_employee_id(id_number);
-    let query = format!(
-        "{EMPLOYEE_SELECT_QUERY} WHERE e.employee_id_number = $1 AND e.workspace_id = $2"
-    );
+    let query =
+        format!("{EMPLOYEE_SELECT_QUERY} WHERE e.employee_id_number = $1 AND e.workspace_id = $2");
     query_as::<_, Employee>(&query)
         .bind(normalized_id)
         .bind(workspace_id)
@@ -178,9 +176,7 @@ pub async fn get_employee_by_id(
     id: Uuid,
     workspace_id: Uuid,
 ) -> Result<Option<Employee>, sqlx::Error> {
-    let query = format!(
-        "{EMPLOYEE_SELECT_QUERY} WHERE e.id = $1 AND e.workspace_id = $2"
-    );
+    let query = format!("{EMPLOYEE_SELECT_QUERY} WHERE e.id = $1 AND e.workspace_id = $2");
     query_as::<_, Employee>(&query)
         .bind(id)
         .bind(workspace_id)
@@ -205,9 +201,8 @@ pub async fn get_all_employees(
     let count_sql = format!("SELECT COUNT(*) FROM employees e {where_clause}");
     let mut count_query = query_scalar::<_, i64>(&count_sql).bind(workspace_id);
 
-    let sql = format!(
-        "{EMPLOYEE_SELECT_QUERY} {where_clause} ORDER BY e.full_name LIMIT $3 OFFSET $4"
-    );
+    let sql =
+        format!("{EMPLOYEE_SELECT_QUERY} {where_clause} ORDER BY e.full_name LIMIT $3 OFFSET $4");
     let mut db_query = query_as::<_, Employee>(&sql).bind(workspace_id);
 
     if let Some(ref q) = search_query {
@@ -245,7 +240,9 @@ pub async fn update_employee(
 ) -> Result<Option<Employee>, sqlx::Error> {
     let mut tx = pool.begin().await?;
 
-    let normalized_id = employee_id_number.as_ref().map(|id| normalize_employee_id(id));
+    let normalized_id = employee_id_number
+        .as_ref()
+        .map(|id| normalize_employee_id(id));
 
     // Update base employee info
     sqlx::query(
@@ -339,7 +336,10 @@ pub async fn get_existing_employee_ids_by_numbers(
         return Ok(Vec::new());
     }
 
-    let normalized_ids: Vec<String> = id_numbers.iter().map(|id| normalize_employee_id(id)).collect();
+    let normalized_ids: Vec<String> = id_numbers
+        .iter()
+        .map(|id| normalize_employee_id(id))
+        .collect();
 
     let query = "SELECT employee_id_number FROM employees WHERE workspace_id = $1 AND employee_id_number = ANY($2)";
     let result: Vec<String> = sqlx::query_scalar(query)

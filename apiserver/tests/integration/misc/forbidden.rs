@@ -16,5 +16,7 @@ async fn test_access_without_token_is_forbidden() {
 
     // Should be Unauthorized or Forbidden depending on endpoint config
     // Assuming 401 Unauthorized for missing token
-    assert!(response.status() == StatusCode::UNAUTHORIZED || response.status() == StatusCode::FORBIDDEN);
+    assert!(
+        response.status() == StatusCode::UNAUTHORIZED || response.status() == StatusCode::FORBIDDEN
+    );
 }

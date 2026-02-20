@@ -56,7 +56,7 @@ export default function DeviceListItem({
   const [showToggleModal, setShowToggleModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Fetch detailed info on demand - enable only if the managing agent is online
+  // Fetch detailed info automatically on mount (if agent is active)
   const { data: deviceInfo, refetch: refetchInfo, error: infoError } = useDeviceInfo(device.id, parentAgentActive);
 
   // Merge status.info (heartbeat data) with deviceInfo (on-demand data)

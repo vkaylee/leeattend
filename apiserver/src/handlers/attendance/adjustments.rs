@@ -6,14 +6,15 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
-use serde::Deserialize;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    AdjustmentStatus, ApproveAttendanceAdjustmentRequest, CreateAttendanceAdjustmentRequest, AttendanceAdjustmentRequest,
+    AdjustmentStatus, ApproveAttendanceAdjustmentRequest, AttendanceAdjustmentRequest,
+    CreateAttendanceAdjustmentRequest,
 };
-use crate::UserId;
 use crate::AppState;
+use crate::UserId;
+use serde::Deserialize;
 
 pub async fn submit_attendance_adjustment(
     Path(_ws_id): Path<Uuid>,
@@ -30,7 +31,7 @@ pub async fn submit_attendance_adjustment(
     )
     .await
     .map_err(|s| AppError::from((s, "Failed to submit adjustment".to_string())))?;
-    
+
     Ok((StatusCode::CREATED, Json(adjustment)))
 }
 
@@ -53,7 +54,7 @@ pub async fn approve_attendance_adjustment(
     )
     .await
     .map_err(|s| AppError::from((s, "Failed to approve adjustment".to_string())))?;
-    
+
     Ok(StatusCode::OK)
 }
 
@@ -67,7 +68,7 @@ pub async fn get_my_attendance_adjustments(
     )
     .await
     .map_err(|s| AppError::from((s, "Failed to get adjustments".to_string())))?;
-    
+
     Ok(Json(requests))
 }
 
@@ -86,6 +87,6 @@ pub async fn get_workspace_attendance_adjustments(
         &state.db, workspace_id, query.status
     ).await
     .map_err(|s| AppError::from((s, "Failed to get workspace adjustments".to_string())))?;
-    
+
     Ok(Json(requests))
 }

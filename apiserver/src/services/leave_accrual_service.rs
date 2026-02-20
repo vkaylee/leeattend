@@ -1,7 +1,5 @@
 use crate::models::{AccrualFrequency, LeaveAccrualLog, LeavePolicyConfig};
-use crate::repositories::{
-    department_repository, employee_repository, leave_policy_repository,
-};
+use crate::repositories::{department_repository, employee_repository, leave_policy_repository};
 use chrono::{DateTime, Datelike, NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use sqlx::PgPool;
@@ -28,7 +26,7 @@ impl LeaveAccrualService {
         // Apply seniority bonus (highest milestone reached)
         let mut bonus_to_apply = 0.0;
         let mut max_milestone_months = -1;
-        
+
         for bonus in &config.seniority_bonus {
             if months_service >= bonus.months && bonus.months > max_milestone_months {
                 bonus_to_apply = bonus.bonus_amount;
@@ -41,15 +39,12 @@ impl LeaveAccrualService {
     }
 
     /// Calculate how many days can be carried over to the next year
-    pub fn calculate_carry_over_amount(
-        remaining_days: f64,
-        carry_over_limit: i32,
-    ) -> f64 {
+    pub fn calculate_carry_over_amount(remaining_days: f64, carry_over_limit: i32) -> f64 {
         let limit = carry_over_limit as f64;
         if remaining_days > limit {
             limit
         } else if remaining_days < 0.0 {
-            0.0 
+            0.0
         } else {
             remaining_days
         }
@@ -147,11 +142,7 @@ impl LeaveAccrualService {
     }
 
     /// Determines if an accrual should run on this date based on frequency.
-    pub fn should_run_accrual(
-        frequency: &AccrualFrequency,
-        timing: &str,
-        date: NaiveDate,
-    ) -> bool {
+    pub fn should_run_accrual(frequency: &AccrualFrequency, timing: &str, date: NaiveDate) -> bool {
         let is_start = timing == "start_of_period";
 
         match frequency {
@@ -242,11 +233,11 @@ impl LeaveAccrualService {
                             employee_repository::get_employment_history(pool, emp.id).await?;
                         let months_service =
                             Self::calculate_total_months_seniority(&periods, current_check_date);
-                        
+
                         // Default work days to threshold to pass check if not configured
                         let mut work_days = 20.0;
                         if config.min_work_days_threshold.is_some() {
-                             let (check_start, check_end) = match config.frequency {
+                            let (check_start, check_end) = match config.frequency {
                                 AccrualFrequency::Monthly => {
                                     if config.accrual_timing == "start_of_period" {
                                         let prev_month_date = if current_check_date.month() == 1 {
@@ -255,23 +246,43 @@ impl LeaveAccrualService {
                                                 12,
                                                 1,
                                             )
-                                            .ok_or_else(|| sqlx::Error::Protocol("Invalid date calculation (prev year)".to_string()))?
+                                            .ok_or_else(|| {
+                                                sqlx::Error::Protocol(
+                                                    "Invalid date calculation (prev year)"
+                                                        .to_string(),
+                                                )
+                                            })?
                                         } else {
                                             NaiveDate::from_ymd_opt(
                                                 current_check_date.year(),
                                                 current_check_date.month() - 1,
                                                 1,
                                             )
-                                            .ok_or_else(|| sqlx::Error::Protocol("Invalid date calculation (prev month)".to_string()))?
+                                            .ok_or_else(|| {
+                                                sqlx::Error::Protocol(
+                                                    "Invalid date calculation (prev month)"
+                                                        .to_string(),
+                                                )
+                                            })?
                                         };
                                         let end = NaiveDate::from_ymd_opt(
                                             current_check_date.year(),
                                             current_check_date.month(),
                                             1,
                                         )
-                                        .ok_or_else(|| sqlx::Error::Protocol("Invalid date calculation (current month start)".to_string()))?
+                                        .ok_or_else(|| {
+                                            sqlx::Error::Protocol(
+                                                "Invalid date calculation (current month start)"
+                                                    .to_string(),
+                                            )
+                                        })?
                                         .pred_opt()
-                                        .ok_or_else(|| sqlx::Error::Protocol("Invalid date calculation (predecessor)".to_string()))?;
+                                        .ok_or_else(|| {
+                                            sqlx::Error::Protocol(
+                                                "Invalid date calculation (predecessor)"
+                                                    .to_string(),
+                                            )
+                                        })?;
                                         (prev_month_date, end)
                                     } else {
                                         let start = NaiveDate::from_ymd_opt(
@@ -279,16 +290,28 @@ impl LeaveAccrualService {
                                             current_check_date.month(),
                                             1,
                                         )
-                                        .ok_or_else(|| sqlx::Error::Protocol("Invalid date calculation (start)".to_string()))?;
+                                        .ok_or_else(|| {
+                                            sqlx::Error::Protocol(
+                                                "Invalid date calculation (start)".to_string(),
+                                            )
+                                        })?;
                                         (start, current_check_date)
                                     }
                                 }
                                 _ => (current_check_date, current_check_date),
                             };
-                            work_days = Self::count_qualifying_days(pool, emp.id, check_start, check_end, tz).await? as f64;
+                            work_days = Self::count_qualifying_days(
+                                pool,
+                                emp.id,
+                                check_start,
+                                check_end,
+                                tz,
+                            )
+                            .await? as f64;
                         }
 
-                        let amount = Self::calculate_accrual_amount(config, months_service, work_days);
+                        let amount =
+                            Self::calculate_accrual_amount(config, months_service, work_days);
 
                         if amount > 0.0 {
                             use rust_decimal::prelude::FromPrimitive;
@@ -410,8 +433,15 @@ impl LeaveAccrualService {
 }
 
 /// Convert local date/time to UTC DateTime, handling DST edge cases
-fn local_to_utc(tz: &Tz, date: NaiveDate, h: u32, m: u32, s: u32) -> Result<DateTime<Utc>, sqlx::Error> {
-    let naive = date.and_hms_opt(h, m, s)
+fn local_to_utc(
+    tz: &Tz,
+    date: NaiveDate,
+    h: u32,
+    m: u32,
+    s: u32,
+) -> Result<DateTime<Utc>, sqlx::Error> {
+    let naive = date
+        .and_hms_opt(h, m, s)
         .ok_or_else(|| sqlx::Error::Protocol(format!("Invalid time: {h}:{m}:{s}")))?;
     match tz.from_local_datetime(&naive) {
         chrono::LocalResult::Single(dt) => Ok(dt.with_timezone(&Utc)),
@@ -455,19 +485,37 @@ mod tests {
         };
 
         // 0 months service, enough work days
-        assert_eq!(LeaveAccrualService::calculate_accrual_amount(&config, 0, 15.0), 1.0);
-        
+        assert_eq!(
+            LeaveAccrualService::calculate_accrual_amount(&config, 0, 15.0),
+            1.0
+        );
+
         // 0 months service, NOT enough work days
-        assert_eq!(LeaveAccrualService::calculate_accrual_amount(&config, 0, 10.0), 0.0);
+        assert_eq!(
+            LeaveAccrualService::calculate_accrual_amount(&config, 0, 10.0),
+            0.0
+        );
 
         // 12 months service milestone
-        assert_eq!(LeaveAccrualService::calculate_accrual_amount(&config, 12, 15.0), 1.5);
+        assert_eq!(
+            LeaveAccrualService::calculate_accrual_amount(&config, 12, 15.0),
+            1.5
+        );
     }
 
     #[test]
     fn test_carry_over_limit_logic() {
-        assert_eq!(LeaveAccrualService::calculate_carry_over_amount(10.0, 5), 5.0);
-        assert_eq!(LeaveAccrualService::calculate_carry_over_amount(3.0, 5), 3.0);
-        assert_eq!(LeaveAccrualService::calculate_carry_over_amount(0.0, 5), 0.0);
+        assert_eq!(
+            LeaveAccrualService::calculate_carry_over_amount(10.0, 5),
+            5.0
+        );
+        assert_eq!(
+            LeaveAccrualService::calculate_carry_over_amount(3.0, 5),
+            3.0
+        );
+        assert_eq!(
+            LeaveAccrualService::calculate_carry_over_amount(0.0, 5),
+            0.0
+        );
     }
 }

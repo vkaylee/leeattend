@@ -146,7 +146,6 @@ pub async fn create_policy_assignment(
     .execute(&mut *tx)
     .await?;
 
-
     // 2. Auto-close existing assignments of the same type and category that overlap
     // Only close assignments that started before or on the new effective_from date
     // and are either still open (NULL) or end after the new effective_from.
@@ -310,7 +309,6 @@ pub async fn find_active_assignment_for_employee(
 
     Ok(None)
 }
-
 
 pub async fn get_policy_assignments(
     pool: &PgPool,

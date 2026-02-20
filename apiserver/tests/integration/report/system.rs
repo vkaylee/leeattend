@@ -1,6 +1,6 @@
 //! Report system logic tests (type safety checks)
 
-use apiserver::queue::{ReportJob, ReportType, TaskType, DateRange, ReportConfig};
+use apiserver::queue::{DateRange, ReportConfig, ReportJob, ReportType, TaskType};
 use chrono::NaiveDate;
 use uuid::Uuid;
 

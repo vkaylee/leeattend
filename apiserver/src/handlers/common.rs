@@ -1,6 +1,6 @@
+use crate::errors::{AppError, AppResult};
 use crate::models::{GenericResponse, MemberRole};
 use crate::{AppState, UserId};
-use crate::errors::{AppError, AppResult};
 use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts},
@@ -48,9 +48,8 @@ where
                     .to_string())
             })?;
 
-        let workspace_id = Uuid::parse_str(workspace_id_str).map_err(|_| {
-            AppError::Validation("Invalid Workspace ID format".to_string())
-        })?;
+        let workspace_id = Uuid::parse_str(workspace_id_str)
+            .map_err(|_| AppError::Validation("Invalid Workspace ID format".to_string()))?;
 
         Ok(WorkspaceId(workspace_id))
     }
@@ -92,9 +91,7 @@ where
             .find_primary_role(workspace_id, user_id)
             .await
             .map_err(AppError::from)?
-            .ok_or_else(|| {
-                AppError::Forbidden("Not a member of this workspace".to_string())
-            })?;
+            .ok_or_else(|| AppError::Forbidden("Not a member of this workspace".to_string()))?;
 
         // 2. Fetch Active Extra Roles
         let all_extra_roles = app_state

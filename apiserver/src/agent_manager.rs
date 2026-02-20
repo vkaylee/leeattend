@@ -1,6 +1,8 @@
-use crate::models::{AgentStatus, DeviceStatus};
+use crate::models::{AgentStatus, AuthorizedAgent, DeviceStatus};
+use crate::queue::RedisPool;
 use axum::extract::ws::Message;
 use chrono::{DateTime, Utc};
+use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -25,7 +27,9 @@ pub struct ConfigData {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum CentralMessage {
-    ConfigPush { data: ConfigData },
+    ConfigPush {
+        data: ConfigData,
+    },
     StatusUpdate {
         agent_id: String,
         devices: Vec<DeviceStatus>,
@@ -48,6 +52,60 @@ pub struct AgentCommand {
     pub data: Option<serde_json::Value>,
 }
 
+#[async_trait::async_trait]
+pub trait PresenceStore: Send + Sync {
+    async fn fetch_presence(&self, agent_ids: &[String]) -> HashMap<String, DateTime<Utc>>;
+    async fn record_presence(&self, agent_id: String);
+}
+
+#[async_trait::async_trait]
+impl PresenceStore for RedisPool {
+    async fn fetch_presence(&self, agent_ids: &[String]) -> HashMap<String, DateTime<Utc>> {
+        let mut conn = self.conn();
+        let keys: Vec<String> = agent_ids
+            .iter()
+            .map(|id| format!("agent:presence:{}", id))
+            .collect();
+        let mut redis_presence = HashMap::new();
+
+        match conn.mget::<Vec<String>, Vec<Option<String>>>(keys).await {
+            Ok(values) => {
+                for (id, val_opt) in agent_ids.iter().zip(values.iter()) {
+                    if let Some(val) = val_opt {
+                        if let Ok(ts) = DateTime::parse_from_rfc3339(val) {
+                            redis_presence.insert(id.clone(), ts.with_timezone(&Utc));
+                        }
+                    }
+                }
+            }
+            Err(e) => tracing::error!("Redis MGET failed: {}", e),
+        }
+        redis_presence
+    }
+
+    async fn record_presence(&self, agent_id: String) {
+        let mut conn = self.conn();
+        let key = format!("agent:presence:{}", agent_id);
+        let val = Utc::now().to_rfc3339();
+
+        // Set presence key with 60 second TTL and 500ms timeout
+        let _: () = match tokio::time::timeout(
+            std::time::Duration::from_millis(500),
+            conn.set_ex::<String, String, ()>(key, val, 60),
+        )
+        .await
+        {
+            Ok(Ok(())) => {}
+            Ok(Err(e)) => tracing::error!(
+                "Failed to set presence in Redis for agent {}: {}",
+                agent_id,
+                e
+            ),
+            Err(_) => tracing::warn!("Redis set_ex timed out for agent {}", agent_id),
+        };
+    }
+}
+
 #[derive(Clone)]
 pub struct AgentManager {
     pub inner: Arc<AgentManagerInner>,
@@ -60,21 +118,24 @@ pub struct AgentManagerInner {
     pub agent_last_seen: RwLock<HashMap<String, DateTime<Utc>>>,
     // Registry for pending commands: command_id -> Sender to resolve the command result
     pub command_registry: RwLock<HashMap<String, tokio::sync::oneshot::Sender<CentralMessage>>>,
+    // Redis presence store
+    pub redis: Option<Arc<dyn PresenceStore>>,
 }
 
 impl Default for AgentManager {
     fn default() -> Self {
-        Self::new()
+        Self::new(None)
     }
 }
 
 impl AgentManager {
-    pub fn new() -> Self {
+    pub fn new(redis: Option<Arc<dyn PresenceStore>>) -> Self {
         Self {
             inner: Arc::new(AgentManagerInner {
                 agents: RwLock::new(HashMap::new()),
                 agent_last_seen: RwLock::new(HashMap::new()),
                 command_registry: RwLock::new(HashMap::new()),
+                redis,
             }),
         }
     }
@@ -92,9 +153,19 @@ impl AgentManager {
         agents.remove(agent_id);
     }
 
-    pub async fn update_status(&self, agent_id: String) {
-        let mut last_seen = self.inner.agent_last_seen.write().await;
-        last_seen.insert(agent_id, Utc::now());
+    pub async fn record_heartbeat(&self, agent_id: String) {
+        let now = Utc::now();
+
+        // 1. Update internal RAM cache for fast access
+        {
+            let mut last_seen = self.inner.agent_last_seen.write().await;
+            last_seen.insert(agent_id.clone(), now);
+        }
+
+        // 2. Update Redis with TTL if available
+        if let Some(ref redis) = self.inner.redis {
+            redis.record_presence(agent_id).await;
+        }
     }
 
     pub async fn send_command(&self, agent_id: &str, command: AgentCommand) -> Result<(), String> {
@@ -109,27 +180,42 @@ impl AgentManager {
         }
     }
 
-    pub async fn get_all_agents_status(&self) -> Vec<AgentStatus> {
-        let last_seen_map = self.inner.agent_last_seen.read().await;
-        let active_agents = self.inner.agents.read().await;
-
-        let now = Utc::now();
+    pub async fn get_all_agents_status(&self, db_agents: Vec<AuthorizedAgent>) -> Vec<AgentStatus> {
         let mut results = Vec::new();
+        let agent_ids: Vec<String> = db_agents.iter().map(|a| a.id.clone()).collect();
 
-        for (agent_id, last_seen) in last_seen_map.iter() {
-            let is_online =
-                active_agents.contains_key(agent_id) && (now - *last_seen).num_seconds() < 65;
+        if agent_ids.is_empty() {
+            return results;
+        }
+
+        // 1. Fetch presence from Redis if available
+        let redis_presence = self.fetch_redis_presence(&agent_ids).await;
+
+        // 2. Combine DB data with Redis presence
+        let active_local_agents = self.inner.agents.read().await;
+
+        for db_agent in db_agents {
+            let agent_id = db_agent.id;
+
+            // Check Redis first
+            let presence_ts = redis_presence.get(&agent_id).cloned();
+
+            // is_online is true if Redis key exists (within 60s TTL) OR locally connected
+            let is_online = presence_ts.is_some() || active_local_agents.contains_key(&agent_id);
+
+            // Use Redis timestamp if available, else DB's last_seen_at
+            let last_seen = presence_ts.unwrap_or(db_agent.last_seen_at);
 
             results.push(AgentStatus {
-                agent_id: agent_id.clone(),
-                last_seen: *last_seen,
-                devices: Vec::new(), // Device info now fetched on-demand
+                agent_id,
+                last_seen,
+                devices: Vec::new(),
                 is_online,
             });
         }
+
         results
     }
-
 
     pub async fn push_message(&self, agent_id: &str, msg: CentralMessage) -> Result<(), String> {
         let agents = self.inner.agents.read().await;
@@ -168,7 +254,11 @@ impl AgentManager {
         agents.contains_key(agent_id)
     }
 
-    pub async fn get_device_info(&self, agent_id: &str, device_id: &str) -> Result<serde_json::Value, String> {
+    pub async fn get_device_info(
+        &self,
+        agent_id: &str,
+        device_id: &str,
+    ) -> Result<serde_json::Value, String> {
         let command_id = uuid::Uuid::new_v4().to_string();
         let command = AgentCommand {
             id: command_id.clone(),
@@ -188,7 +278,12 @@ impl AgentManager {
 
         // Wait for response with timeout
         match tokio::time::timeout(std::time::Duration::from_secs(10), rx).await {
-            Ok(Ok(CentralMessage::CommandResponse { status, data, error, .. })) => {
+            Ok(Ok(CentralMessage::CommandResponse {
+                status,
+                data,
+                error,
+                ..
+            })) => {
                 if status == "success" {
                     data.ok_or_else(|| "No data in success response".to_string())
                 } else {
@@ -214,15 +309,52 @@ impl AgentManager {
             }
         }
     }
+
+    async fn fetch_redis_presence(&self, agent_ids: &[String]) -> HashMap<String, DateTime<Utc>> {
+        if let Some(ref redis) = self.inner.redis {
+            match tokio::time::timeout(
+                std::time::Duration::from_millis(500),
+                redis.fetch_presence(agent_ids),
+            )
+            .await
+            {
+                Ok(res) => res,
+                Err(_) => {
+                    tracing::warn!("Presence check timed out (500ms)");
+                    HashMap::new()
+                }
+            }
+        } else {
+            HashMap::new()
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::Duration;
+    use tokio::time::sleep;
+
+    struct MockPresenceStore {
+        delay: Duration,
+    }
+
+    #[async_trait::async_trait]
+    impl PresenceStore for MockPresenceStore {
+        async fn fetch_presence(&self, _agent_ids: &[String]) -> HashMap<String, DateTime<Utc>> {
+            if self.delay > Duration::from_millis(0) {
+                sleep(self.delay).await;
+            }
+            HashMap::new()
+        }
+
+        async fn record_presence(&self, _agent_id: String) {}
+    }
 
     #[tokio::test]
     async fn test_agent_lifecycle() {
-        let manager = AgentManager::new();
+        let manager = AgentManager::new(None);
         let (tx, mut rx) = mpsc::unbounded_channel();
         let agent_id = "agent_123".to_string();
 
@@ -235,13 +367,27 @@ mod tests {
             assert!(last_seen.contains_key(&agent_id));
         }
 
-        // Test update status (heartbeat only)
-        manager.update_status(agent_id.clone()).await;
+        // Test heartbeat
+        manager.record_heartbeat(agent_id.clone()).await;
 
-        let statuses = manager.get_all_agents_status().await;
+        // Mock DB agents for status check
+        let db_agents = vec![crate::models::AuthorizedAgent {
+            id: agent_id.clone(),
+            name: "Test".to_string(),
+            token: "token".to_string(),
+            last_seen_at: Utc::now(),
+            workspace_id: uuid::Uuid::new_v4(),
+            is_active: true,
+            is_trusted: true,
+            last_ip: None,
+            created_at: Utc::now(),
+            max_concurrent_workers: 5,
+        }];
+
+        let statuses = manager.get_all_agents_status(db_agents.clone()).await;
         assert_eq!(statuses.len(), 1);
         assert_eq!(statuses[0].agent_id, agent_id);
-        assert!(statuses[0].devices.is_empty());
+        assert!(statuses[0].is_online);
 
         // Test send command
         let command = AgentCommand {
@@ -266,5 +412,56 @@ mod tests {
             let agents = manager.inner.agents.read().await;
             assert!(!agents.contains_key(&agent_id));
         }
+
+        // Test offline status
+        let statuses = manager.get_all_agents_status(db_agents).await;
+        assert_eq!(statuses.len(), 1);
+        assert!(!statuses[0].is_online);
+    }
+
+    #[tokio::test]
+    async fn test_redis_timeout_handling() {
+        // Use a mock store with a 2-second delay (exceeds 500ms limit)
+        let mock_store = Arc::new(MockPresenceStore {
+            delay: Duration::from_secs(2),
+        });
+        let manager = AgentManager::new(Some(mock_store));
+
+        let agent_id = "timeout_agent".to_string();
+        let db_agents = vec![crate::models::AuthorizedAgent {
+            id: agent_id.clone(),
+            name: "Test".to_string(),
+            token: "token".to_string(),
+            last_seen_at: Utc::now(),
+            workspace_id: uuid::Uuid::new_v4(),
+            is_active: true,
+            is_trusted: true,
+            last_ip: None,
+            created_at: Utc::now(),
+            max_concurrent_workers: 5,
+        }];
+
+        // The inner 500ms timeout in fetch_presence logic should trigger
+        // Verification: get_all_agents_status should finish in ~500ms, not 2s
+        let start = tokio::time::Instant::now();
+        let _statuses = tokio::time::timeout(
+            Duration::from_millis(1500),
+            manager.get_all_agents_status(db_agents),
+        )
+        .await
+        .expect("Method totally hung!");
+
+        let elapsed = start.elapsed();
+        // Since the timeout is 500ms, it should finish around that time
+        assert!(
+            elapsed >= Duration::from_millis(500),
+            "Should have waited for the timeout, got {:?}",
+            elapsed
+        );
+        assert!(
+            elapsed < Duration::from_millis(1000),
+            "Timeout logic failed to cap duration, got {:?}",
+            elapsed
+        );
     }
 }

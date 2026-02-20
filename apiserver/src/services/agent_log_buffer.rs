@@ -173,7 +173,10 @@ async fn process_batch(pool: &PgPool, batch: &mut Vec<AgentLogEntry>) {
 
     if parsed_logs.is_empty() {
         if parse_errors > 0 {
-            warn!("Batch had {} parse errors, no valid logs to insert", parse_errors);
+            warn!(
+                "Batch had {} parse errors, no valid logs to insert",
+                parse_errors
+            );
         }
         return;
     }
@@ -236,10 +239,25 @@ async fn parse_log_entry(pool: &PgPool, entry: &AgentLogEntry) -> Result<ParsedL
         Some(&entry.date_fmt),
         Some(&entry.time_fmt),
     )
-    .map_err(|e| format!("Failed to parse timestamp '{}': {}", entry.punch_time_raw, e))?;
+    .map_err(|e| {
+        format!(
+            "Failed to parse timestamp '{}': {}",
+            entry.punch_time_raw, e
+        )
+    })?;
 
-    let punch = entry.raw_data.as_ref().and_then(|d| d["punch"].as_i64()).map(|v| v as i32).unwrap_or(-1);
-    let status = entry.raw_data.as_ref().and_then(|d| d["status"].as_i64()).map(|v| v as i32).unwrap_or(-1);
+    let punch = entry
+        .raw_data
+        .as_ref()
+        .and_then(|d| d["punch"].as_i64())
+        .map(|v| v as i32)
+        .unwrap_or(-1);
+    let status = entry
+        .raw_data
+        .as_ref()
+        .and_then(|d| d["status"].as_i64())
+        .map(|v| v as i32)
+        .unwrap_or(-1);
 
     let raw_log = RawAttendanceLog {
         id: Uuid::new_v4(),

@@ -1,4 +1,4 @@
-use crate::models::{IncentiveTier, PayrollIncentivePolicy, IncentiveEvaluationResult};
+use crate::models::{IncentiveEvaluationResult, IncentiveTier, PayrollIncentivePolicy};
 use rust_decimal::prelude::*;
 
 pub struct PayrollEvaluator;
@@ -27,9 +27,11 @@ impl PayrollEvaluator {
                     rust_decimal::Decimal::from_f64(policy.base_amount * tier.payout_amount)
                 } else {
                     rust_decimal::Decimal::from_f64(tier.payout_amount)
-                }.unwrap_or_default();
+                }
+                .unwrap_or_default();
 
-                let standard_amount = rust_decimal::Decimal::from_f64(policy.base_amount).unwrap_or_default();
+                let standard_amount =
+                    rust_decimal::Decimal::from_f64(policy.base_amount).unwrap_or_default();
 
                 return IncentiveEvaluationResult {
                     policy_name: policy.name.clone(),
@@ -44,7 +46,8 @@ impl PayrollEvaluator {
         IncentiveEvaluationResult {
             policy_name: policy.name.clone(),
             amount: rust_decimal::Decimal::ZERO,
-            standard_amount: rust_decimal::Decimal::from_f64(policy.base_amount).unwrap_or_default(),
+            standard_amount: rust_decimal::Decimal::from_f64(policy.base_amount)
+                .unwrap_or_default(),
             tier_id: None,
         }
     }
@@ -77,7 +80,7 @@ impl PayrollEvaluator {
                 return false;
             }
         }
-        
+
         true
     }
 }

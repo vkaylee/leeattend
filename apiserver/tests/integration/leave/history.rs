@@ -13,7 +13,8 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_leave_adjustment() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
@@ -46,7 +47,9 @@ async fn test_leave_adjustment() {
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(serde_json::to_string(&adjust_req).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&adjust_req).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
@@ -72,10 +75,15 @@ async fn test_leave_adjustment() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let history: Vec<LeaveHistoryItem> = serde_json::from_slice(&body).unwrap();
 
     assert_eq!(history.len(), 1);
-    assert_eq!(history[0].transaction_type, LeaveTransactionType::Adjustment);
+    assert_eq!(
+        history[0].transaction_type,
+        LeaveTransactionType::Adjustment
+    );
     assert_eq!(history[0].amount, 5.0);
 }

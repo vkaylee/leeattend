@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::{CreateAssignmentRuleRequest, UpdateAssignmentRuleRequest, AssignmentRule};
+use crate::models::{AssignmentRule, CreateAssignmentRuleRequest, UpdateAssignmentRuleRequest};
 use crate::repositories::assignment_rule_repository::AssignmentRuleRepository;
 use crate::AppState;
 
@@ -19,7 +19,9 @@ pub async fn get_assignment_rules(
     ctx: MemberContext,
 ) -> AppResult<Json<Vec<AssignmentRule>>> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can manage rules".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can manage rules".to_string(),
+        ));
     }
 
     let rules = AssignmentRuleRepository::get_rules(&state.db, ws_id).await?;
@@ -33,15 +35,17 @@ pub async fn create_assignment_rule(
     Json(req): Json<CreateAssignmentRuleRequest>,
 ) -> AppResult<impl IntoResponse> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can manage rules".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can manage rules".to_string(),
+        ));
     }
 
     let rule = AssignmentRuleRepository::create_rule(&state.db, ws_id, &req).await?;
-    
+
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(ws_id).await;
     }
-    
+
     Ok((StatusCode::CREATED, Json(rule)))
 }
 
@@ -52,15 +56,17 @@ pub async fn update_assignment_rule(
     Json(req): Json<UpdateAssignmentRuleRequest>,
 ) -> AppResult<Json<AssignmentRule>> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can manage rules".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can manage rules".to_string(),
+        ));
     }
 
     let rule = AssignmentRuleRepository::update_rule(&state.db, rule_id, &req).await?;
-    
+
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(ws_id).await;
     }
-    
+
     Ok(Json(rule))
 }
 
@@ -70,14 +76,16 @@ pub async fn delete_assignment_rule(
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can manage rules".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can manage rules".to_string(),
+        ));
     }
 
     AssignmentRuleRepository::delete_rule(&state.db, rule_id).await?;
-    
+
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(ws_id).await;
     }
-    
+
     Ok(StatusCode::NO_CONTENT)
 }

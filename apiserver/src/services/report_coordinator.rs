@@ -9,8 +9,8 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::queue::{
-    DateRange, JobMetadata, JobStatus, RedisPool, ReportConfig, ReportJob, ReportQueue,
-    ReportType, TaskType,
+    DateRange, JobMetadata, JobStatus, RedisPool, ReportConfig, ReportJob, ReportQueue, ReportType,
+    TaskType,
 };
 use crate::repositories::employee_repository;
 
@@ -215,9 +215,7 @@ impl ReportCoordinator {
             status: "pending".to_string(),
             total_batches,
             estimated_seconds,
-            status_url: format!(
-                "/api/workspaces/{workspace_id}/reports/jobs/{parent_job_id}"
-            ),
+            status_url: format!("/api/workspaces/{workspace_id}/reports/jobs/{parent_job_id}"),
         })
     }
 

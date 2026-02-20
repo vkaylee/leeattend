@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Json},
-    routing::{get, delete, put},
+    routing::{delete, get, put},
     Router,
 };
 use serde::Deserialize;
@@ -46,7 +46,7 @@ pub async fn list_leave_types(
     )
     .fetch_all(&state.db)
     .await?;
-    
+
     Ok(Json(types))
 }
 
@@ -57,7 +57,9 @@ pub async fn create_leave_type(
     Json(req): Json<CreateLeaveTypeRequest>,
 ) -> AppResult<impl IntoResponse> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can create leave types".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can create leave types".to_string(),
+        ));
     }
 
     let config = req.policy_config.unwrap_or_default();
@@ -90,7 +92,9 @@ pub async fn update_leave_type_config(
     Json(req): Json<UpdateLeaveTypeConfigRequest>,
 ) -> AppResult<Json<LeaveType>> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can configure leave types".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can configure leave types".to_string(),
+        ));
     }
 
     let lt = sqlx::query_as!(
@@ -120,21 +124,32 @@ pub async fn delete_leave_type(
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can delete leave types".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can delete leave types".to_string(),
+        ));
     }
 
-    let in_balances = sqlx::query!("SELECT 1 as has_data FROM leave_balances WHERE leave_type_id = $1 LIMIT 1", id)
-        .fetch_optional(&state.db)
-        .await
-        .unwrap_or(None);
+    let in_balances = sqlx::query!(
+        "SELECT 1 as has_data FROM leave_balances WHERE leave_type_id = $1 LIMIT 1",
+        id
+    )
+    .fetch_optional(&state.db)
+    .await
+    .unwrap_or(None);
 
     if in_balances.is_some() {
-        return Err(AppError::Conflict("Cannot delete: Leave type is currently used in employee balances".to_string()));
+        return Err(AppError::Conflict(
+            "Cannot delete: Leave type is currently used in employee balances".to_string(),
+        ));
     }
 
-    let res = sqlx::query!("DELETE FROM leave_types WHERE id = $1 AND workspace_id = $2", id, workspace_id)
-        .execute(&state.db)
-        .await?;
+    let res = sqlx::query!(
+        "DELETE FROM leave_types WHERE id = $1 AND workspace_id = $2",
+        id,
+        workspace_id
+    )
+    .execute(&state.db)
+    .await?;
 
     if res.rows_affected() > 0 {
         Ok(StatusCode::NO_CONTENT)

@@ -19,7 +19,10 @@ impl RedisPool {
     pub async fn new(redis_url: &str) -> Result<Self, RedisError> {
         let client = Client::open(redis_url)?;
         let conn_manager = ConnectionManager::new(client.clone()).await?;
-        Ok(Self { conn_manager, client })
+        Ok(Self {
+            conn_manager,
+            client,
+        })
     }
 
     /// Get a clone of the connection manager for executing commands.
@@ -30,7 +33,9 @@ impl RedisPool {
 
     /// Get an async connection for Pub/Sub operations.
     /// Unlike ConnectionManager, this connection supports `into_pubsub()`.
-    pub async fn get_async_connection(&self) -> Result<redis::aio::MultiplexedConnection, RedisError> {
+    pub async fn get_async_connection(
+        &self,
+    ) -> Result<redis::aio::MultiplexedConnection, RedisError> {
         self.client.get_multiplexed_async_connection().await
     }
 

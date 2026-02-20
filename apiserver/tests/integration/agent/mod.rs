@@ -1,7 +1,7 @@
 //! Agent domain integration tests
 
-mod crud;
 mod archive;
+mod crud;
 mod extended;
 mod manager_api;
 mod scaling;

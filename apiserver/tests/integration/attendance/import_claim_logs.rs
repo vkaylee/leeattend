@@ -1,11 +1,14 @@
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::services::AttendanceImportService;
 use apiserver::models::ImportJobStatus;
-use apiserver::repositories::{import_job_repository, staging_log_repository, employee_repository, raw_attendance_log_repository};
+use apiserver::repositories::{
+    employee_repository, import_job_repository, raw_attendance_log_repository,
+    staging_log_repository,
+};
+use apiserver::services::AttendanceImportService;
+use chrono::Utc;
 use std::time::Duration;
 use tokio::time::sleep;
-use chrono::Utc;
 use uuid::Uuid;
 
 #[tokio::test]
@@ -30,16 +33,15 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
         punch_time,
         None,
         &fingerprint,
-    ).await?;
+    )
+    .await?;
 
     // Verify it's pending
     let pending_count = staging_log_repository::count_pending_staging_logs(&pool, ws_id).await?;
     assert_eq!(pending_count, 1);
 
     // 2. Import employee with this ID
-    let csv_content = format!(
-        "ID,Name,HireDate\n{emp_id_number},Imported User,2026-01-01"
-    );
+    let csv_content = format!("ID,Name,HireDate\n{emp_id_number},Imported User,2026-01-01");
 
     let file_path = format!("storage/test_imports/{}.csv", Uuid::new_v4());
     tokio::fs::create_dir_all("storage/test_imports").await?;
@@ -77,18 +79,33 @@ async fn test_import_employee_claims_staged_logs() -> Result<(), Box<dyn std::er
         .ok_or("Employee should be created")?;
 
     // 4. Verify staged log was claimed
-    let pending_count_after = staging_log_repository::count_pending_staging_logs(&pool, ws_id).await?;
+    let pending_count_after =
+        staging_log_repository::count_pending_staging_logs(&pool, ws_id).await?;
     assert_eq!(pending_count_after, 0, "Staged log should be processed");
 
     // 5. Verify raw log exists for this employee
-    let raw_logs = raw_attendance_log_repository::get_paginated_raw_logs(&pool, ws_id, Some(employee.id), None, None, 10, 0).await?;
-    assert_eq!(raw_logs.len(), 1, "One raw log should exist for the employee");
+    let raw_logs = raw_attendance_log_repository::get_paginated_raw_logs(
+        &pool,
+        ws_id,
+        Some(employee.id),
+        None,
+        None,
+        10,
+        0,
+    )
+    .await?;
+    assert_eq!(
+        raw_logs.len(),
+        1,
+        "One raw log should exist for the employee"
+    );
     assert_eq!(raw_logs[0].punch_time.timestamp(), punch_time.timestamp());
     Ok(())
 }
 
 #[tokio::test]
-async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dyn std::error::Error>>
+{
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool().clone();
     let factory = TestFactory::new(pool.clone());
@@ -97,12 +114,14 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
     let emp_id_number = "CLAIM-002";
-    
+
     // Create employee first
-    let employee_id = factory.employee()
+    let employee_id = factory
+        .employee()
         .with_workspace(ws_id)
         .with_employee_id_number(emp_id_number)
-        .create().await;
+        .create()
+        .await;
 
     let punch_time = Utc::now();
     let fingerprint = format!("fp-{}", Uuid::new_v4());
@@ -116,16 +135,15 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
         punch_time,
         None,
         &fingerprint,
-    ).await?;
+    )
+    .await?;
 
     // Verify it's pending
     let pending_count = staging_log_repository::count_pending_staging_logs(&pool, ws_id).await?;
     assert_eq!(pending_count, 1);
 
     // 2. Import employee with same ID (will be skipped for creation but should trigger claim)
-    let csv_content = format!(
-        "ID,Name,HireDate\n{emp_id_number},Existing User,2026-01-01"
-    );
+    let csv_content = format!("ID,Name,HireDate\n{emp_id_number},Existing User,2026-01-01");
 
     let file_path = format!("storage/test_imports/{}.csv", Uuid::new_v4());
     tokio::fs::create_dir_all("storage/test_imports").await?;
@@ -155,11 +173,28 @@ async fn test_import_existing_employee_claims_staged_logs() -> Result<(), Box<dy
     assert!(job_finished, "Job timed out");
 
     // 3. Verify staged log was claimed even though employee already existed
-    let pending_count_after = staging_log_repository::count_pending_staging_logs(&pool, ws_id).await?;
-    assert_eq!(pending_count_after, 0, "Staged log should be processed for existing employee");
+    let pending_count_after =
+        staging_log_repository::count_pending_staging_logs(&pool, ws_id).await?;
+    assert_eq!(
+        pending_count_after, 0,
+        "Staged log should be processed for existing employee"
+    );
 
     // 4. Verify raw log exists for this employee
-    let raw_logs = raw_attendance_log_repository::get_paginated_raw_logs(&pool, ws_id, Some(employee_id), None, None, 10, 0).await?;
-    assert_eq!(raw_logs.len(), 1, "One raw log should exist for the employee");
+    let raw_logs = raw_attendance_log_repository::get_paginated_raw_logs(
+        &pool,
+        ws_id,
+        Some(employee_id),
+        None,
+        None,
+        10,
+        0,
+    )
+    .await?;
+    assert_eq!(
+        raw_logs.len(),
+        1,
+        "One raw log should exist for the employee"
+    );
     Ok(())
 }

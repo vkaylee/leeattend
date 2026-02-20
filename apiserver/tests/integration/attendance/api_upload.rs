@@ -18,10 +18,8 @@ fn create_multipart_body(filename: &str, content: &str) -> (String, Vec<u8>) {
 
     body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
     body.extend_from_slice(
-        format!(
-            "Content-Disposition: form-data; name=\"file\"; filename=\"{filename}\"\r\n\r\n"
-        )
-        .as_bytes(),
+        format!("Content-Disposition: form-data; name=\"file\"; filename=\"{filename}\"\r\n\r\n")
+            .as_bytes(),
     );
     body.extend_from_slice(content.as_bytes());
     body.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
@@ -31,7 +29,8 @@ fn create_multipart_body(filename: &str, content: &str) -> (String, Vec<u8>) {
 
 #[tokio::test]
 async fn test_upload_attendance_csv_api() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -45,9 +44,7 @@ async fn test_upload_attendance_csv_api() {
 
     let now = chrono::Utc::now();
     let csv_date = now.format("%d/%m/%Y %H:%M").to_string();
-    let csv_content = format!(
-        "empNo,empName,empDt\n{emp_id_number},Test User,{csv_date}"
-    );
+    let csv_content = format!("empNo,empName,empDt\n{emp_id_number},Test User,{csv_date}");
     let (content_type, body) = create_multipart_body("test.csv", &csv_content);
 
     let response = app

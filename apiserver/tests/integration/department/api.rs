@@ -13,7 +13,8 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_department_management() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     // 1. Setup: User, Workspace, Employee
     let user_id: Uuid = factory.user().create().await;
@@ -126,7 +127,8 @@ async fn test_department_management() {
 
 #[tokio::test]
 async fn test_department_working_pattern_api() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
@@ -203,7 +205,8 @@ async fn test_department_working_pattern_api() {
 
 #[tokio::test]
 async fn test_department_api_lifecycle() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let admin_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(admin_id).await;

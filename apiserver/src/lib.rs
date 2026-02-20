@@ -38,6 +38,7 @@ pub struct AppState {
     pub agent_service: Arc<AgentService>,
     pub jwt_secret: String,
     pub attendance_service: Arc<AttendanceLogService>,
+
     /// Optional Redis pool for distributed job processing.
     /// When None, report generation falls back to synchronous processing.
     pub redis: Option<RedisPool>,
@@ -72,7 +73,11 @@ mod ax_auth {
         async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
             #[cfg(debug_assertions)]
             {
-                if let Some(imp_id_str) = parts.headers.get("X-Debug-Impersonate-Id").and_then(|h| h.to_str().ok()) {
+                if let Some(imp_id_str) = parts
+                    .headers
+                    .get("X-Debug-Impersonate-Id")
+                    .and_then(|h| h.to_str().ok())
+                {
                     if let Ok(user_id) = Uuid::parse_str(imp_id_str) {
                         return Ok(UserId(user_id));
                     }
@@ -314,7 +319,8 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         )
         .route(
             "/workspaces/:ws_id/leave/types",
-            get(handlers::leave_types::list_leave_types).post(handlers::leave_types::create_leave_type),
+            get(handlers::leave_types::list_leave_types)
+                .post(handlers::leave_types::create_leave_type),
         )
         .route(
             "/workspaces/:ws_id/leave/types/:id",
@@ -444,8 +450,12 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         // Auth middleware runs before WebSocketUpgrade extractor to return 401 properly
         .route(
             "/ws/reports/:job_id",
-            get(handlers::report_websocket::report_stream_ws)
-                .layer(middleware::from_fn_with_state(state.clone(), handlers::report_websocket::ws_auth_middleware)),
+            get(handlers::report_websocket::report_stream_ws).layer(
+                middleware::from_fn_with_state(
+                    state.clone(),
+                    handlers::report_websocket::ws_auth_middleware,
+                ),
+            ),
         )
         // Worker monitoring endpoints (global infrastructure)
         .route(
@@ -527,7 +537,8 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         )
         .route(
             "/workspaces/:ws_id/departments/:id/payroll-config",
-            post(handlers::set_department_payroll_config).get(handlers::get_department_payroll_configs),
+            post(handlers::set_department_payroll_config)
+                .get(handlers::get_department_payroll_configs),
         )
         .route(
             "/workspaces/:ws_id/employees/:id/departments",

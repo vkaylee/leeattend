@@ -207,12 +207,11 @@ impl ReportPublisher {
         let channel = Self::channel_name(job_id);
 
         // PUBSUB NUMSUB returns pairs of (channel, count)
-        let result: Vec<(String, usize)> =
-            redis::cmd("PUBSUB")
-                .arg("NUMSUB")
-                .arg(&channel)
-                .query_async(&mut conn)
-                .await?;
+        let result: Vec<(String, usize)> = redis::cmd("PUBSUB")
+            .arg("NUMSUB")
+            .arg(&channel)
+            .query_async(&mut conn)
+            .await?;
 
         Ok(result.first().map(|(_, count)| *count).unwrap_or(0))
     }

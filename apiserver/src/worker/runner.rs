@@ -281,7 +281,10 @@ impl ReportWorker {
         // Wait for in-flight tasks to complete
         let pending = worker.config.max_concurrent_jobs - semaphore.available_permits();
         if pending > 0 {
-            info!(pending = pending, "Waiting for in-flight jobs to complete...");
+            info!(
+                pending = pending,
+                "Waiting for in-flight jobs to complete..."
+            );
 
             // Acquire all permits to ensure tasks complete
             match semaphore
@@ -340,8 +343,9 @@ impl ReportWorker {
             last_seen_at: Utc::now(),
         };
 
-        let json = serde_json::to_string(&heartbeat)
-            .map_err(|e| redis::RedisError::from((redis::ErrorKind::TypeError, "JSON error", e.to_string())))?;
+        let json = serde_json::to_string(&heartbeat).map_err(|e| {
+            redis::RedisError::from((redis::ErrorKind::TypeError, "JSON error", e.to_string()))
+        })?;
 
         redis::pipe()
             .set(&key, json)
@@ -376,7 +380,15 @@ impl ReportWorker {
         // Route to appropriate handler
         let result = match job.task_type {
             TaskType::AttendanceReport => {
-                AttendanceHandler::handle(&self.db, &self.queue, &self.cache, &job, &self.redis, self.roster_cache.as_deref()).await
+                AttendanceHandler::handle(
+                    &self.db,
+                    &self.queue,
+                    &self.cache,
+                    &job,
+                    &self.redis,
+                    self.roster_cache.as_deref(),
+                )
+                .await
             }
             TaskType::MergeResults => {
                 MergeHandler::handle(&self.db, &self.queue, &job, &self.redis).await
@@ -450,8 +462,9 @@ mod tests {
         let employees_per_batch = 20;
         let approx_mb_per_employee = 2.5;
 
-        let estimated_memory_mb =
-            (config.max_concurrent_jobs as f64) * (employees_per_batch as f64) * approx_mb_per_employee;
+        let estimated_memory_mb = (config.max_concurrent_jobs as f64)
+            * (employees_per_batch as f64)
+            * approx_mb_per_employee;
 
         assert!(estimated_memory_mb < 200.0); // Leave room for overhead
     }

@@ -7,7 +7,7 @@ use apiserver::services::auth_service::AuthService;
 use apiserver::AppState;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
-use chrono::{NaiveDate, NaiveTime, Utc, Duration};
+use chrono::{Duration, NaiveDate, NaiveTime, Utc};
 use chrono_tz::Tz;
 use serde_json::json;
 use std::sync::Arc;
@@ -15,7 +15,8 @@ use tower::ServiceExt;
 
 #[tokio::test]
 async fn test_punch_in_grace_period_enforcement() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;

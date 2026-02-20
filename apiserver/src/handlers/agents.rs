@@ -11,16 +11,16 @@ use futures_util::{sink::SinkExt, stream::StreamExt};
 use serde::Deserialize;
 use std::sync::Arc;
 use tokio::sync::mpsc;
+use tokio::time::Duration;
 use tracing::{info, warn};
 use uuid::Uuid;
-use tokio::time::Duration;
 
 use crate::agent_manager::AgentCommand;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    AgentStatus, AuthorizedAgent, CreateAuthorizedAgentRequest, CreateDeviceRequest, Device, TrustAgentRequest,
-    UpdateAuthorizedAgentRequest, UpdateDeviceRequest,
+    AgentStatus, AuthorizedAgent, CreateAuthorizedAgentRequest, CreateDeviceRequest, Device,
+    TrustAgentRequest, UpdateAuthorizedAgentRequest, UpdateDeviceRequest,
 };
 use crate::services::AgentLogEntry;
 use crate::AppState;
@@ -60,8 +60,12 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                     if let Ok(v) = serde_json::from_str::<serde_json::Value>(&text) {
                         if v["type"] == "attendance" {
                             if !agent_id.is_empty() && !workspace_id.is_nil() {
-                                if let (Some(device_id), Some(data)) = (v["device_id"].as_str(), v.get("data")) {
-                                    if let (Some(user_id_number), Some(punch_time_str)) = (data["user_id"].as_str(), data["timestamp"].as_str()) {
+                                if let (Some(device_id), Some(data)) =
+                                    (v["device_id"].as_str(), v.get("data"))
+                                {
+                                    if let (Some(user_id_number), Some(punch_time_str)) =
+                                        (data["user_id"].as_str(), data["timestamp"].as_str())
+                                    {
                                         // Send to buffered channel for async processing
                                         // Send to buffered channel for async processing
                                         let entry = AgentLogEntry::new(
@@ -74,7 +78,10 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                             ws_date_fmt.clone(),
                                             ws_time_fmt.clone(),
                                         );
-                                        let result = state_clone.attendance_service.ingest_agent_log(entry).await;
+                                        let result = state_clone
+                                            .attendance_service
+                                            .ingest_agent_log(entry)
+                                            .await;
                                         if let Some(msg_id) = v["msg_id"].as_str() {
                                             let (status, message) = match result {
                                                 Ok(_) => ("success", None),
@@ -93,14 +100,20 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                 }
                             }
                         } else if v["type"] == "command_response" {
-                            if let Ok(resp) = serde_json::from_value::<crate::agent_manager::CentralMessage>(v.clone()) {
+                            if let Ok(resp) = serde_json::from_value::<
+                                crate::agent_manager::CentralMessage,
+                            >(v.clone())
+                            {
                                 state_clone.agent_manager.handle_response(resp).await;
                             }
                         } else if v["type"] == "heartbeat" {
                             if let Some(id) = v["agent_id"].as_str() {
                                 // Ensure agent updates only their own timestamp
                                 if id == agent_id {
-                                    let _ = state_clone.agent_service.update_last_seen(id).await;
+                                    state_clone
+                                        .agent_manager
+                                        .record_heartbeat(id.to_string())
+                                        .await;
                                 }
                             }
                         } else if (v["type"] == "handshake" || !agent_id.is_empty())
@@ -115,7 +128,11 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                         workspace_id = agent.workspace_id;
 
                                         // Fetch workspace config for timezone aware parsing
-                                        if let Ok(Some(ws)) = state_clone.workspace_repo.get_workspace_by_id(workspace_id).await {
+                                        if let Ok(Some(ws)) = state_clone
+                                            .workspace_repo
+                                            .get_workspace_by_id(workspace_id)
+                                            .await
+                                        {
                                             ws_tz = ws.timezone;
                                             ws_date_fmt = ws.date_format;
                                             ws_time_fmt = ws.time_format;
@@ -138,7 +155,10 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                             .await;
                                     }
                                     Ok(None) => {
-                                        warn!("Agent authorization failed for {}: UNAUTHORIZED_AGENT", id);
+                                        warn!(
+                                            "Agent authorization failed for {}: UNAUTHORIZED_AGENT",
+                                            id
+                                        );
                                         let _ = tx.send(Message::Text(
                                             serde_json::json!({
                                                 "type": "error",
@@ -199,8 +219,55 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
     )
 )]
 pub async fn get_agents(State(state): State<Arc<AppState>>) -> AppResult<Json<Vec<AgentStatus>>> {
-    let agents = state.agent_manager.get_all_agents_status().await;
-    Ok(Json(agents))
+    // 1. Fetch all authorized agents from DB
+    let db_agents = sqlx::query_as::<_, AuthorizedAgent>(
+        "SELECT * FROM authorized_agents WHERE is_active = true",
+    )
+    .fetch_all(&state.db)
+    .await?;
+
+    // 2. Get status (online/offline) from AgentManager (Redis-backed)
+    let mut agents_status = state.agent_manager.get_all_agents_status(db_agents).await;
+
+    if agents_status.is_empty() {
+        return Ok(Json(Vec::new()));
+    }
+
+    // 3. Batch fetch all devices for these agents to avoid N+1
+    let agent_ids: Vec<String> = agents_status.iter().map(|a| a.agent_id.clone()).collect();
+    let devices = sqlx::query_as::<_, crate::models::Device>(
+        "SELECT * FROM devices WHERE agent_id = ANY($1) ORDER BY created_at DESC",
+    )
+    .bind(&agent_ids)
+    .fetch_all(&state.db)
+    .await?;
+
+    // Group devices by agent_id
+    let mut devices_by_agent: std::collections::HashMap<String, Vec<crate::models::DeviceStatus>> =
+        std::collections::HashMap::new();
+    for d in devices {
+        devices_by_agent
+            .entry(d.agent_id.clone())
+            .or_default()
+            .push(crate::models::DeviceStatus {
+                device_id: d.id.to_string(),
+                status: if d.is_enabled {
+                    "online".to_string()
+                } else {
+                    "offline".to_string()
+                },
+                last_sync: None,
+                error: None,
+                info: None,
+            });
+    }
+
+    // Final mapping
+    for agent in &mut agents_status {
+        agent.devices = devices_by_agent.remove(&agent.agent_id).unwrap_or_default();
+    }
+
+    Ok(Json(agents_status))
 }
 
 pub async fn send_command(
@@ -219,7 +286,9 @@ pub async fn send_command(
     .await?;
 
     if !agent_exists {
-        return Err(AppError::NotFound("Agent not found in this workspace".to_string()));
+        return Err(AppError::NotFound(
+            "Agent not found in this workspace".to_string(),
+        ));
     }
 
     let command = AgentCommand {
@@ -233,10 +302,16 @@ pub async fn send_command(
         data: command_request.get("data").cloned(),
     };
 
-    state.agent_manager.send_command(&agent_id, command).await
+    state
+        .agent_manager
+        .send_command(&agent_id, command)
+        .await
         .map_err(AppError::NotFound)?;
-    
-    Ok((StatusCode::OK, Json(serde_json::json!({ "message": "Command sent" }))))
+
+    Ok((
+        StatusCode::OK,
+        Json(serde_json::json!({ "message": "Command sent" })),
+    ))
 }
 
 // --- Device Management Handlers ---
@@ -283,8 +358,11 @@ pub async fn create_device(
     .execute(&state.db)
     .await?;
 
-    let _ = state.agent_service.notify_config_update(&req.agent_id).await;
-    
+    let _ = state
+        .agent_service
+        .notify_config_update(&req.agent_id)
+        .await;
+
     Ok((StatusCode::CREATED, Json(serde_json::json!({ "id": id }))))
 }
 
@@ -294,14 +372,13 @@ pub async fn update_device(
     MemberContext { workspace_id, .. }: MemberContext,
     Json(req): Json<UpdateDeviceRequest>,
 ) -> AppResult<impl IntoResponse> {
-    let current_device = sqlx::query_as::<_, Device>(
-        "SELECT * FROM devices WHERE id = $1 AND workspace_id = $2",
-    )
-    .bind(id)
-    .bind(workspace_id)
-    .fetch_one(&state.db)
-    .await
-    .map_err(|_| AppError::NotFound("Device not found".to_string()))?;
+    let current_device =
+        sqlx::query_as::<_, Device>("SELECT * FROM devices WHERE id = $1 AND workspace_id = $2")
+            .bind(id)
+            .bind(workspace_id)
+            .fetch_one(&state.db)
+            .await
+            .map_err(|_| AppError::NotFound("Device not found".to_string()))?;
 
     let name = req.name.unwrap_or(current_device.name);
     let ip = req.ip.unwrap_or(current_device.ip);
@@ -322,8 +399,11 @@ pub async fn update_device(
     .execute(&state.db)
     .await?;
 
-    let _ = state.agent_service.notify_config_update(&current_device.agent_id).await;
-    
+    let _ = state
+        .agent_service
+        .notify_config_update(&current_device.agent_id)
+        .await;
+
     Ok(StatusCode::OK)
 }
 
@@ -528,16 +608,18 @@ pub async fn get_device_info_on_demand(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<serde_json::Value>> {
-    let device = sqlx::query_as::<_, Device>(
-        "SELECT * FROM devices WHERE id = $1 AND workspace_id = $2",
-    )
-    .bind(id)
-    .bind(workspace_id)
-    .fetch_one(&state.db)
-    .await
-    .map_err(|_| AppError::NotFound("Device not found".to_string()))?;
+    let device =
+        sqlx::query_as::<_, Device>("SELECT * FROM devices WHERE id = $1 AND workspace_id = $2")
+            .bind(id)
+            .bind(workspace_id)
+            .fetch_one(&state.db)
+            .await
+            .map_err(|_| AppError::NotFound("Device not found".to_string()))?;
 
-    let info = state.agent_manager.get_device_info(&device.agent_id, &device.id.to_string()).await
+    let info = state
+        .agent_manager
+        .get_device_info(&device.agent_id, &device.id.to_string())
+        .await
         .map_err(AppError::Internal)?;
 
     Ok(Json(info))

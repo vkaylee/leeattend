@@ -2,8 +2,6 @@ pub mod datetime;
 pub mod debug;
 pub mod serde_helpers;
 
-
-
 /// Normalizes an employee ID by trimming whitespace and removing leading zeros if the ID is purely numeric.
 pub fn normalize_employee_id(id: &str) -> String {
     let trimmed = id.trim();
@@ -33,20 +31,20 @@ mod tests {
         // Trimming & Whitespace
         assert_eq!(normalize_employee_id("  123  "), "123");
         assert_eq!(normalize_employee_id("\t456\n"), "456");
-        
+
         // Numeric Normalization (Leading Zeros)
         assert_eq!(normalize_employee_id("000123"), "123");
         assert_eq!(normalize_employee_id("0000"), "0");
         assert_eq!(normalize_employee_id("0"), "0");
         assert_eq!(normalize_employee_id("  00055  "), "55");
         assert_eq!(normalize_employee_id("0026"), "26"); // Issue: ensure 0026 becomes 26
-        
+
         // Alphanumeric & Special (Protection)
         assert_eq!(normalize_employee_id("EMP001"), "EMP001");
         assert_eq!(normalize_employee_id("  EMP001  "), "EMP001");
         assert_eq!(normalize_employee_id("00A1"), "00A1");
         assert_eq!(normalize_employee_id("123-456"), "123-456");
-        
+
         // Edge cases
         assert_eq!(normalize_employee_id(""), "");
         assert_eq!(normalize_employee_id("   "), "");

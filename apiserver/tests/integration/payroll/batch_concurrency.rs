@@ -79,7 +79,15 @@ async fn test_batch_payroll_handles_many_employees() {
     assert_eq!(batch_res.results.len(), 15);
 
     for result in batch_res.results {
-        assert_eq!(result.status, "success", "Employee {} failed: {:?}", result.employee_id, result.error_message);
-        assert!(result.payslip.is_some(), "Employee {} has no payslip", result.employee_id);
+        assert_eq!(
+            result.status, "success",
+            "Employee {} failed: {:?}",
+            result.employee_id, result.error_message
+        );
+        assert!(
+            result.payslip.is_some(),
+            "Employee {} has no payslip",
+            result.employee_id
+        );
     }
 }

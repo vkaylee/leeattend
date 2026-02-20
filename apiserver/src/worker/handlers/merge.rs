@@ -68,19 +68,26 @@ impl MergeHandler {
         let workspace_name = Self::get_workspace_name(pool, meta.workspace_id).await;
 
         // 4. Get date range
-        let date_range = meta.date_range.as_ref().map(|dr| (dr.start, dr.end)).unwrap_or((
-            job.date_range.start,
-            job.date_range.end,
-        ));
+        let date_range = meta
+            .date_range
+            .as_ref()
+            .map(|dr| (dr.start, dr.end))
+            .unwrap_or((job.date_range.start, job.date_range.end));
 
         // 5. Merge results and generate Excel
         let (excel_data, file_name) = match meta.report_type {
-            ReportType::Summary => {
-                Self::merge_summary_results(&batch_results, &workspace_name, date_range, parent_job_id)?
-            }
-            ReportType::Detail => {
-                Self::merge_detail_results(&batch_results, &workspace_name, date_range, parent_job_id)?
-            }
+            ReportType::Summary => Self::merge_summary_results(
+                &batch_results,
+                &workspace_name,
+                date_range,
+                parent_job_id,
+            )?,
+            ReportType::Detail => Self::merge_detail_results(
+                &batch_results,
+                &workspace_name,
+                date_range,
+                parent_job_id,
+            )?,
         };
 
         info!(
@@ -164,9 +171,8 @@ impl MergeHandler {
         let mut all_summaries: Vec<AttendanceSummary> = Vec::new();
 
         for (batch_key, json) in batch_results {
-            let batch: Vec<AttendanceSummary> = serde_json::from_str(json).map_err(|e| {
-                format!("Parse error for {batch_key}: {e}")
-            })?;
+            let batch: Vec<AttendanceSummary> = serde_json::from_str(json)
+                .map_err(|e| format!("Parse error for {batch_key}: {e}"))?;
             all_summaries.extend(batch);
         }
 
@@ -200,9 +206,8 @@ impl MergeHandler {
         let mut all_reports: Vec<DailyAttendanceReport> = Vec::new();
 
         for (batch_key, json) in batch_results {
-            let batch: Vec<DailyAttendanceReport> = serde_json::from_str(json).map_err(|e| {
-                format!("Parse error for {batch_key}: {e}")
-            })?;
+            let batch: Vec<DailyAttendanceReport> = serde_json::from_str(json)
+                .map_err(|e| format!("Parse error for {batch_key}: {e}"))?;
             all_reports.extend(batch);
         }
 
@@ -213,10 +218,7 @@ impl MergeHandler {
                 .then(a.date.cmp(&b.date))
         });
 
-        info!(
-            total_records = all_reports.len(),
-            "Merged detail results"
-        );
+        info!(total_records = all_reports.len(), "Merged detail results");
 
         // Generate Excel
         let excel_data = ExcelWriter::write_detail(&all_reports, workspace_name, date_range)?;
@@ -232,12 +234,9 @@ impl MergeHandler {
 
     /// Get workspace name from database.
     async fn get_workspace_name(pool: &PgPool, workspace_id: uuid::Uuid) -> String {
-        match sqlx::query_scalar!(
-            "SELECT name FROM workspaces WHERE id = $1",
-            workspace_id
-        )
-        .fetch_optional(pool)
-        .await
+        match sqlx::query_scalar!("SELECT name FROM workspaces WHERE id = $1", workspace_id)
+            .fetch_optional(pool)
+            .await
         {
             Ok(Some(name)) => name,
             _ => "Workspace".to_string(),
@@ -275,26 +274,28 @@ mod tests {
 
     #[test]
     fn test_merge_summary_with_data() {
-        let summaries1 = vec![
-            AttendanceSummary {
-                employee_id: Uuid::new_v4(),
-                employee_name: "Charlie Brown".to_string(),
-                total_work_units: 160,
-                total_leave_days: 2,
-            },
-        ];
-        let summaries2 = vec![
-            AttendanceSummary {
-                employee_id: Uuid::new_v4(),
-                employee_name: "Alice Smith".to_string(),
-                total_work_units: 152,
-                total_leave_days: 4,
-            },
-        ];
+        let summaries1 = vec![AttendanceSummary {
+            employee_id: Uuid::new_v4(),
+            employee_name: "Charlie Brown".to_string(),
+            total_work_units: 160,
+            total_leave_days: 2,
+        }];
+        let summaries2 = vec![AttendanceSummary {
+            employee_id: Uuid::new_v4(),
+            employee_name: "Alice Smith".to_string(),
+            total_work_units: 152,
+            total_leave_days: 4,
+        }];
 
         let batch_results: Vec<(String, String)> = vec![
-            ("batch_00000".to_string(), serde_json::to_string(&summaries1).unwrap()),
-            ("batch_00001".to_string(), serde_json::to_string(&summaries2).unwrap()),
+            (
+                "batch_00000".to_string(),
+                serde_json::to_string(&summaries1).unwrap(),
+            ),
+            (
+                "batch_00001".to_string(),
+                serde_json::to_string(&summaries2).unwrap(),
+            ),
         ];
 
         let result = MergeHandler::merge_summary_results(
@@ -350,8 +351,14 @@ mod tests {
         };
 
         let batch_results: Vec<(String, String)> = vec![
-            ("batch_00000".to_string(), serde_json::to_string(&vec![report1]).unwrap()),
-            ("batch_00001".to_string(), serde_json::to_string(&vec![report2]).unwrap()),
+            (
+                "batch_00000".to_string(),
+                serde_json::to_string(&vec![report1]).unwrap(),
+            ),
+            (
+                "batch_00001".to_string(),
+                serde_json::to_string(&vec![report2]).unwrap(),
+            ),
         ];
 
         let result = MergeHandler::merge_detail_results(
@@ -369,9 +376,8 @@ mod tests {
 
     #[test]
     fn test_invalid_json_handling() {
-        let batch_results: Vec<(String, String)> = vec![
-            ("batch_00000".to_string(), "invalid json".to_string()),
-        ];
+        let batch_results: Vec<(String, String)> =
+            vec![("batch_00000".to_string(), "invalid json".to_string())];
 
         let result = MergeHandler::merge_summary_results(
             &batch_results,

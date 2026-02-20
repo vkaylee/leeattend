@@ -108,7 +108,7 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = self.status_code();
         let code = self.error_code();
-        
+
         // Determine the message to send to the client
         let message = match &self {
             // Hide internal details in production

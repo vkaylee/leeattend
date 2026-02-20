@@ -1,19 +1,19 @@
+use crate::{
+    errors::{AppError, AppResult},
+    handlers::common::MemberContext,
+    models::{OvertimePolicy, OvertimeRule},
+    repositories::overtime_policy_repository::OvertimePolicyRepository,
+    AppState,
+};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::Json,
 };
+use chrono::{NaiveDate, NaiveTime};
+use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
-use chrono::{NaiveDate, NaiveTime};
-use crate::{
-    AppState,
-    models::{OvertimePolicy, OvertimeRule},
-    repositories::overtime_policy_repository::OvertimePolicyRepository,
-    handlers::common::MemberContext,
-    errors::{AppError, AppResult},
-};
-use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct CreatePolicyRequest {
@@ -36,8 +36,8 @@ pub async fn list_policies(
     Path(workspace_id): Path<Uuid>,
     _ctx: MemberContext,
 ) -> AppResult<Json<Vec<OvertimePolicy>>> {
-    let policies = OvertimePolicyRepository::get_policy_definitions(&state.db, workspace_id)
-        .await?;
+    let policies =
+        OvertimePolicyRepository::get_policy_definitions(&state.db, workspace_id).await?;
     Ok(Json(policies))
 }
 
@@ -61,8 +61,13 @@ pub async fn create_policy(
     if !ctx.is_admin_or_owner() {
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
-    let policy = OvertimePolicyRepository::create_policy_definition(&state.db, workspace_id, &req.name, req.description.as_deref())
-        .await?;
+    let policy = OvertimePolicyRepository::create_policy_definition(
+        &state.db,
+        workspace_id,
+        &req.name,
+        req.description.as_deref(),
+    )
+    .await?;
     Ok(Json(policy))
 }
 
@@ -88,8 +93,7 @@ pub async fn add_rule(
         updated_at: None,
     };
 
-    let created = OvertimePolicyRepository::add_rule(&state.db, &rule)
-        .await?;
+    let created = OvertimePolicyRepository::add_rule(&state.db, &rule).await?;
     Ok(Json(created))
 }
 

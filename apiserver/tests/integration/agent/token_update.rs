@@ -3,13 +3,14 @@
 use crate::common::app::spawn_app_with_factory;
 use reqwest::StatusCode;
 
-use uuid::Uuid;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
+use uuid::Uuid;
 
 #[tokio::test]
 async fn test_agent_token_update() {
-    let (address, workspace_id, user_id, _, _tdb): (String, Uuid, Uuid, TestFactory, TestDatabase) = spawn_app_with_factory().await;
+    let (address, workspace_id, user_id, _, _tdb): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
     let client = reqwest::Client::new();
 
     let agent_id = "TOKEN_UPDATE_AGENT";

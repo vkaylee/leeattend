@@ -21,14 +21,17 @@ pub async fn get_workspace_schedules(
     .fetch_all(pool)
     .await?;
 
-    let employees: Vec<_> = employees.into_iter().map(|row| {
-        use sqlx::Row;
-        let id: Uuid = row.get(0);
-        let full_name: String = row.get(1);
-        let employee_id_number: String = row.get(2);
-        let tags: Option<Vec<String>> = row.get(3);
-        (id, full_name, employee_id_number, tags)
-    }).collect();
+    let employees: Vec<_> = employees
+        .into_iter()
+        .map(|row| {
+            use sqlx::Row;
+            let id: Uuid = row.get(0);
+            let full_name: String = row.get(1);
+            let employee_id_number: String = row.get(2);
+            let tags: Option<Vec<String>> = row.get(3);
+            (id, full_name, employee_id_number, tags)
+        })
+        .collect();
 
     // Load roster config from cache (or directly from DB if cache unavailable)
     let roster_data = match roster_cache {
@@ -91,12 +94,13 @@ pub async fn get_workspace_schedules(
                 let dow = chrono::Datelike::weekday(&curr_date).num_days_from_sunday() as i32;
 
                 // P2: Individual Pattern
-                let pattern = roster_data.pattern_assignments.get(&emp_id)
-                    .and_then(|v| v.iter().find(|a| {
+                let pattern = roster_data.pattern_assignments.get(&emp_id).and_then(|v| {
+                    v.iter().find(|a| {
                         a.start_date <= curr_date
                             && a.end_date.is_none_or(|ed| ed >= curr_date)
                             && a.day_of_week == dow
-                    }));
+                    })
+                });
 
                 if let Some(p) = pattern {
                     effective_shift_id = p.shift_id;
@@ -110,7 +114,9 @@ pub async fn get_workspace_schedules(
                     });
                 } else {
                     // P3: Dynamic Rules
-                    let emp_dept_id = roster_data.dept_history.get(&emp_id)
+                    let emp_dept_id = roster_data
+                        .dept_history
+                        .get(&emp_id)
                         .and_then(|v| v.iter().find(|h| h.effective_date <= curr_date))
                         .map(|h| h.department_id);
                     let match_ctx = crate::services::rule_evaluator::EmployeeMatchContext {
@@ -131,7 +137,9 @@ pub async fn get_workspace_schedules(
                         // Key-present guard: key-absent = pattern has no detail
                         // for this dow -> fall through to P4. Key-present with
                         // None = explicit day off.
-                        if let Some(&shift_opt) = roster_data.rule_patterns.get(&(rule.pattern_id, dow)) {
+                        if let Some(&shift_opt) =
+                            roster_data.rule_patterns.get(&(rule.pattern_id, dow))
+                        {
                             effective_shift_id = shift_opt;
                             source = "assignment_rule".to_string();
                             p3_applied = true;
@@ -140,11 +148,10 @@ pub async fn get_workspace_schedules(
 
                     if !p3_applied {
                         // P4: Department Pattern
-                        let dept_p = roster_data.dept_patterns.get(&emp_id)
-                            .and_then(|v| v.iter().find(|a| {
-                                a.effective_date <= curr_date
-                                    && a.day_of_week == dow
-                            }));
+                        let dept_p = roster_data.dept_patterns.get(&emp_id).and_then(|v| {
+                            v.iter()
+                                .find(|a| a.effective_date <= curr_date && a.day_of_week == dow)
+                        });
 
                         if let Some(dp) = dept_p {
                             effective_shift_id = dp.shift_id;
@@ -154,15 +161,18 @@ pub async fn get_workspace_schedules(
                                 rule_name: "Department Pattern".to_string(),
                                 priority: 40,
                                 status: "applied".to_string(),
-                                reason: Some("Inherited from department default pattern".to_string()),
+                                reason: Some(
+                                    "Inherited from department default pattern".to_string(),
+                                ),
                             });
                         } else {
                             // P5: Fixed (Individual)
-                            let fixed = roster_data.fixed_assignments.get(&emp_id)
-                                .and_then(|v| v.iter().find(|a| {
+                            let fixed = roster_data.fixed_assignments.get(&emp_id).and_then(|v| {
+                                v.iter().find(|a| {
                                     a.start_date <= curr_date
                                         && a.end_date.is_none_or(|ed| ed >= curr_date)
-                                }));
+                                })
+                            });
 
                             if let Some(f) = fixed {
                                 effective_shift_id = Some(f.shift_id);
@@ -176,10 +186,10 @@ pub async fn get_workspace_schedules(
                                 });
                             } else {
                                 // P6: Department Fixed
-                                let dept_f = roster_data.dept_fixed_shifts.get(&emp_id)
-                                    .and_then(|v| v.iter().find(|a| {
-                                        a.effective_date <= curr_date
-                                    }));
+                                let dept_f = roster_data
+                                    .dept_fixed_shifts
+                                    .get(&emp_id)
+                                    .and_then(|v| v.iter().find(|a| a.effective_date <= curr_date));
 
                                 if let Some(df) = dept_f {
                                     effective_shift_id = Some(df.shift_id);
@@ -189,7 +199,9 @@ pub async fn get_workspace_schedules(
                                         rule_name: "Department Fixed".to_string(),
                                         priority: 10,
                                         status: "applied".to_string(),
-                                        reason: Some("Inherited from department default shift".to_string()),
+                                        reason: Some(
+                                            "Inherited from department default shift".to_string(),
+                                        ),
                                     });
                                 }
                             }
@@ -223,7 +235,8 @@ pub async fn get_workspace_schedules(
                     sched.break_start = shift.break_start;
                     sched.break_end = shift.break_end;
                     sched.is_break_auto_deduct = Some(shift.is_break_auto_deduct);
-                    sched.early_punch_in_grace_period_minutes = Some(shift.early_punch_in_grace_period_minutes);
+                    sched.early_punch_in_grace_period_minutes =
+                        Some(shift.early_punch_in_grace_period_minutes);
                     sched.allow_early_ot = Some(shift.allow_early_ot);
                 }
             }
@@ -502,9 +515,9 @@ pub async fn get_effective_shift(
             .await?;
 
             let rule_patterns_map: HashMap<(Uuid, i32), Option<Uuid>> = raw_rows
-            .into_iter()
-            .map(|d| ((d.pattern_id, d.day_of_week), d.shift_id))
-            .collect();
+                .into_iter()
+                .map(|d| ((d.pattern_id, d.day_of_week), d.shift_id))
+                .collect();
 
             let match_ctx = crate::services::rule_evaluator::EmployeeMatchContext {
                 department_id: info.department_id,
@@ -514,8 +527,7 @@ pub async fn get_effective_shift(
 
             let (matched_rule, rule_traces) =
                 crate::services::rule_evaluator::RuleEvaluator::resolve_with_trace(
-                    &match_ctx,
-                    &rules,
+                    &match_ctx, &rules,
                 );
             traces.extend(rule_traces);
 

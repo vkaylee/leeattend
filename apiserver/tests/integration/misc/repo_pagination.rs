@@ -10,7 +10,7 @@ async fn test_repository_pagination() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
-    
+
     let user_id = factory.user().create().await;
     let _repo = Arc::new(SqlxWorkspaceRepository { pool: pool.clone() });
 
@@ -20,5 +20,4 @@ async fn test_repository_pagination() {
     }
 
     // This is a generic test pattern, actual repo call depends on implementation
-    
 }

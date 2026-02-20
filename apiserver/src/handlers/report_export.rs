@@ -101,9 +101,13 @@ impl From<CoordinatorJobProgress> for JobProgress {
 impl From<ReportError> for AppError {
     fn from(err: ReportError) -> Self {
         match err {
-            ReportError::NoEmployees => AppError::Validation("No active employees found for report".to_string()),
+            ReportError::NoEmployees => {
+                AppError::Validation("No active employees found for report".to_string())
+            }
             ReportError::JobNotFound => AppError::NotFound("Job not found".to_string()),
-            ReportError::CannotCancel => AppError::Conflict("Cannot cancel completed or failed job".to_string()),
+            ReportError::CannotCancel => {
+                AppError::Conflict("Cannot cancel completed or failed job".to_string())
+            }
             ReportError::QueueError(e) => AppError::from(format!("Queue error: {e}")),
             ReportError::DatabaseError(e) => AppError::from(format!("Database error: {e}")),
         }
@@ -112,9 +116,16 @@ impl From<ReportError> for AppError {
 
 /// Get coordinator from state or return 503 Service Unavailable.
 fn get_coordinator(state: &AppState) -> AppResult<&ReportCoordinator> {
-    state.coordinator.as_ref().map(|c| c.as_ref()).ok_or_else(|| {
-        AppError::ServiceUnavailable("Async export not available. Redis is required for distributed processing.".to_string())
-    })
+    state
+        .coordinator
+        .as_ref()
+        .map(|c| c.as_ref())
+        .ok_or_else(|| {
+            AppError::ServiceUnavailable(
+                "Async export not available. Redis is required for distributed processing."
+                    .to_string(),
+            )
+        })
 }
 
 // ============================================================================
@@ -133,19 +144,27 @@ pub async fn create_export_job(
 ) -> AppResult<(StatusCode, Json<ExportJobResponse>)> {
     // RBAC: Require Admin or Owner for report generation
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Admin or Owner role required for report export".to_string()));
+        return Err(AppError::Forbidden(
+            "Admin or Owner role required for report export".to_string(),
+        ));
     }
 
     // Validate report type
     let report_type = match request.report_type.as_str() {
         "summary" => ReportType::Summary,
         "detail" => ReportType::Detail,
-        _ => return Err(AppError::Validation("Invalid report_type. Must be 'summary' or 'detail'.".to_string())),
+        _ => {
+            return Err(AppError::Validation(
+                "Invalid report_type. Must be 'summary' or 'detail'.".to_string(),
+            ))
+        }
     };
 
     // Validate date range
     if request.end_date < request.start_date {
-        return Err(AppError::Validation("end_date must be >= start_date".to_string()));
+        return Err(AppError::Validation(
+            "end_date must be >= start_date".to_string(),
+        ));
     }
 
     let date_diff = request
@@ -153,12 +172,16 @@ pub async fn create_export_job(
         .signed_duration_since(request.start_date)
         .num_days();
     if date_diff > 365 {
-        return Err(AppError::Validation("Date range cannot exceed 365 days".to_string()));
+        return Err(AppError::Validation(
+            "Date range cannot exceed 365 days".to_string(),
+        ));
     }
 
     // Validate format
     if request.format != "xlsx" && request.format != "csv" {
-        return Err(AppError::Validation("Invalid format. Must be 'xlsx' or 'csv'.".to_string()));
+        return Err(AppError::Validation(
+            "Invalid format. Must be 'xlsx' or 'csv'.".to_string(),
+        ));
     }
 
     // Get coordinator
@@ -208,19 +231,20 @@ pub async fn get_job_status(
 ) -> AppResult<Json<JobStatusResponse>> {
     // RBAC: Require Admin or Owner
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Admin or Owner role required".to_string()));
+        return Err(AppError::Forbidden(
+            "Admin or Owner role required".to_string(),
+        ));
     }
 
     let coordinator = get_coordinator(&state)?;
 
-    let status = coordinator
-        .get_job_status(job_id)
-        .await?;
+    let status = coordinator.get_job_status(job_id).await?;
 
     // Verify job belongs to this workspace
-    let redis = state.redis.as_ref().ok_or_else(|| {
-        AppError::ServiceUnavailable("Redis not available".to_string())
-    })?;
+    let redis = state
+        .redis
+        .as_ref()
+        .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?;
     let queue = crate::queue::ReportQueue::new(redis.clone());
     let metadata = queue
         .get_job_metadata(job_id)
@@ -228,7 +252,9 @@ pub async fn get_job_status(
         .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
 
     if metadata.workspace_id != ws_id {
-        return Err(AppError::Forbidden("Job does not belong to this workspace".to_string()));
+        return Err(AppError::Forbidden(
+            "Job does not belong to this workspace".to_string(),
+        ));
     }
 
     Ok(Json(JobStatusResponse {
@@ -252,15 +278,18 @@ pub async fn download_report(
 ) -> AppResult<impl IntoResponse> {
     // RBAC: Require Admin or Owner
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Admin or Owner role required".to_string()));
+        return Err(AppError::Forbidden(
+            "Admin or Owner role required".to_string(),
+        ));
     }
 
     let coordinator = get_coordinator(&state)?;
 
     // Get Redis pool for workspace validation
-    let redis = state.redis.as_ref().ok_or_else(|| {
-        AppError::ServiceUnavailable("Redis not available".to_string())
-    })?;
+    let redis = state
+        .redis
+        .as_ref()
+        .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?;
 
     // Verify job belongs to this workspace
     let queue = crate::queue::ReportQueue::new(redis.clone());
@@ -270,19 +299,17 @@ pub async fn download_report(
         .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
 
     if metadata.workspace_id != ws_id {
-        return Err(AppError::Forbidden("Job does not belong to this workspace".to_string()));
+        return Err(AppError::Forbidden(
+            "Job does not belong to this workspace".to_string(),
+        ));
     }
 
-    let status = coordinator
-        .get_job_status(job_id)
-        .await?;
+    let status = coordinator.get_job_status(job_id).await?;
 
     match status.status.as_str() {
         "completed" => {
             // Fetch Excel data from Redis (queue already initialized above)
-            let result = queue
-                .get_result_data(job_id)
-                .await?;
+            let result = queue.get_result_data(job_id).await?;
 
             match result {
                 Some((data, filename)) => {
@@ -302,15 +329,23 @@ pub async fn download_report(
                     )
                         .into_response())
                 }
-                None => Err(AppError::NotFound("Report data expired or not available".to_string())),
+                None => Err(AppError::NotFound(
+                    "Report data expired or not available".to_string(),
+                )),
             }
         }
-        "failed" => Err(AppError::from(status.error.unwrap_or_else(|| "Job failed".to_string()))),
+        "failed" => Err(AppError::from(
+            status.error.unwrap_or_else(|| "Job failed".to_string()),
+        )),
         "pending" | "processing" => Ok((
             StatusCode::ACCEPTED,
             "Job not yet complete. Continue polling status endpoint.",
-        ).into_response()),
-        _ => Err(AppError::from(format!("Unknown job status: {}", status.status))),
+        )
+            .into_response()),
+        _ => Err(AppError::from(format!(
+            "Unknown job status: {}",
+            status.status
+        ))),
     }
 }
 
@@ -326,7 +361,9 @@ pub async fn cancel_job(
 ) -> AppResult<StatusCode> {
     // RBAC: Require Admin or Owner
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Admin or Owner role required".to_string()));
+        return Err(AppError::Forbidden(
+            "Admin or Owner role required".to_string(),
+        ));
     }
 
     let coordinator = get_coordinator(&state)?;
@@ -345,12 +382,12 @@ pub async fn cancel_job(
         .ok_or_else(|| AppError::NotFound("Job not found".to_string()))?;
 
     if metadata.workspace_id != ws_id {
-        return Err(AppError::Forbidden("Job does not belong to this workspace".to_string()));
+        return Err(AppError::Forbidden(
+            "Job does not belong to this workspace".to_string(),
+        ));
     }
 
-    coordinator
-        .cancel_job(job_id)
-        .await?;
+    coordinator.cancel_job(job_id).await?;
 
     tracing::info!(
         job_id = %job_id,

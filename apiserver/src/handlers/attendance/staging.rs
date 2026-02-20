@@ -69,13 +69,11 @@ pub async fn get_staging_logs(
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(50).clamp(1, 100);
 
-    let logs = staging_log_repository::get_pending_staging_logs(
-        &state.db,
-        ctx.workspace_id,
-        limit,
-    ).await?;
+    let logs = staging_log_repository::get_pending_staging_logs(&state.db, ctx.workspace_id, limit)
+        .await?;
 
-    let total = staging_log_repository::count_pending_staging_logs(&state.db, ctx.workspace_id).await?;
+    let total =
+        staging_log_repository::count_pending_staging_logs(&state.db, ctx.workspace_id).await?;
 
     let response = StagingLogsResponse {
         data: logs.into_iter().map(StagingLogResponse::from).collect(),
@@ -136,8 +134,18 @@ pub async fn resolve_staging_log(
     }
 
     // 2. Create RawAttendanceLog
-    let punch = staged.raw_data.as_ref().and_then(|d| d["punch"].as_i64()).map(|v| v as i32).unwrap_or(-1);
-    let status = staged.raw_data.as_ref().and_then(|d| d["status"].as_i64()).map(|v| v as i32).unwrap_or(-1);
+    let punch = staged
+        .raw_data
+        .as_ref()
+        .and_then(|d| d["punch"].as_i64())
+        .map(|v| v as i32)
+        .unwrap_or(-1);
+    let status = staged
+        .raw_data
+        .as_ref()
+        .and_then(|d| d["status"].as_i64())
+        .map(|v| v as i32)
+        .unwrap_or(-1);
 
     let raw_log = RawAttendanceLog {
         id: Uuid::new_v4(),
@@ -156,7 +164,13 @@ pub async fn resolve_staging_log(
     raw_attendance_log_repository::create_raw_log(&state.db, &raw_log).await?;
 
     // 4. Mark staging log as processed within transaction
-    staging_log_repository::update_staging_status_tx(&mut tx, log_id, ctx.workspace_id, "processed").await?;
+    staging_log_repository::update_staging_status_tx(
+        &mut tx,
+        log_id,
+        ctx.workspace_id,
+        "processed",
+    )
+    .await?;
 
     // 5. Commit transaction
     tx.commit().await?;
@@ -181,8 +195,12 @@ pub async fn dismiss_staging_log(
     }
 
     let updated = staging_log_repository::update_staging_status(
-        &state.db, log_id, ctx.workspace_id, "dismissed",
-    ).await?;
+        &state.db,
+        log_id,
+        ctx.workspace_id,
+        "dismissed",
+    )
+    .await?;
 
     if !updated {
         return Err(AppError::NotFound("Staging log not found".to_string()));

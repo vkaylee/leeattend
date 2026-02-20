@@ -1,7 +1,7 @@
-use chrono::{NaiveTime, Datelike, NaiveDate, Timelike, DateTime, TimeZone};
+use crate::models::OvertimeRule;
+use chrono::{DateTime, Datelike, NaiveDate, NaiveTime, TimeZone, Timelike};
 use chrono_tz::Tz;
 use rust_decimal::Decimal;
-use crate::models::{OvertimeRule};
 
 #[derive(Debug, Clone)]
 pub struct OvertimeSegment {
@@ -53,16 +53,22 @@ impl OvertimeEngine {
         for i in 0..sorted_points.len() - 1 {
             let start = sorted_points[i];
             let end = sorted_points[i + 1];
-            
-            let mid_secs = (start.num_seconds_from_midnight() + end.num_seconds_from_midnight()) / 2;
-            let mid_time = NaiveTime::from_num_seconds_from_midnight_opt(mid_secs, 0).expect("midpoint time is valid");
+
+            let mid_secs =
+                (start.num_seconds_from_midnight() + end.num_seconds_from_midnight()) / 2;
+            let mid_time = NaiveTime::from_num_seconds_from_midnight_opt(mid_secs, 0)
+                .expect("midpoint time is valid");
 
             let best_rule = active_rules
                 .iter()
                 .filter(|r| {
-                    let r_start = r.time_start.unwrap_or(NaiveTime::from_hms_opt(0, 0, 0).expect("midnight is valid"));
-                    let r_end = r.time_end.unwrap_or(NaiveTime::from_hms_opt(23, 59, 59).expect("23:59:59 is valid"));
-                    
+                    let r_start = r
+                        .time_start
+                        .unwrap_or(NaiveTime::from_hms_opt(0, 0, 0).expect("midnight is valid"));
+                    let r_end = r
+                        .time_end
+                        .unwrap_or(NaiveTime::from_hms_opt(23, 59, 59).expect("23:59:59 is valid"));
+
                     if r_start <= r_end {
                         mid_time >= r_start && mid_time < r_end
                     } else {
@@ -120,7 +126,9 @@ impl OvertimeEngine {
                 let inter_end = NaiveTime::min(*ot_end, segment.end);
 
                 if inter_end > inter_start {
-                    let duration_mins = (inter_end.num_seconds_from_midnight() as i32 - inter_start.num_seconds_from_midnight() as i32) / 60;
+                    let duration_mins = (inter_end.num_seconds_from_midnight() as i32
+                        - inter_start.num_seconds_from_midnight() as i32)
+                        / 60;
                     let duration_hours = Decimal::from(duration_mins) / Decimal::from(60);
                     total_pay += duration_hours * hourly_rate * segment.multiplier;
                 }
@@ -147,16 +155,18 @@ impl OvertimeEngine {
         while current < end_tz {
             let date = current.date_naive();
             // 23:59:59 is always valid; DST can make from_local ambiguous but we pick first
-            let day_end = match tz.from_local_datetime(&date.and_hms_opt(23, 59, 59).expect("valid time")) {
-                chrono::LocalResult::Single(dt) => dt,
-                chrono::LocalResult::Ambiguous(dt, _) => dt,
-                chrono::LocalResult::None => {
-                    // Rare: DST gap at 23:59:59 - use 22:59:59 + 1 hour
-                    let shifted = date.and_hms_opt(22, 59, 59).expect("valid time") + chrono::Duration::hours(1);
-                    tz.from_local_datetime(&shifted).single().unwrap_or(current)
-                }
-            };
-            
+            let day_end =
+                match tz.from_local_datetime(&date.and_hms_opt(23, 59, 59).expect("valid time")) {
+                    chrono::LocalResult::Single(dt) => dt,
+                    chrono::LocalResult::Ambiguous(dt, _) => dt,
+                    chrono::LocalResult::None => {
+                        // Rare: DST gap at 23:59:59 - use 22:59:59 + 1 hour
+                        let shifted = date.and_hms_opt(22, 59, 59).expect("valid time")
+                            + chrono::Duration::hours(1);
+                        tz.from_local_datetime(&shifted).single().unwrap_or(current)
+                    }
+                };
+
             let segment_end = if day_end < end_tz {
                 // We add 1 second to day_end to reach the next day boundary roughly
                 // But NaiveTime max is better
@@ -166,7 +176,7 @@ impl OvertimeEngine {
             };
 
             let mut daily_intervals = Vec::new();
-            
+
             // Special case for NaiveTime max
             let s_time = current.time();
             let e_time = if segment_end.date_naive() > date {
@@ -185,14 +195,20 @@ impl OvertimeEngine {
                 break;
             }
             // Move to next day
-            let Some(next_date) = date.succ_opt() else { break };
-            current = match tz.from_local_datetime(&next_date.and_hms_opt(0, 0, 0).expect("midnight valid")) {
+            let Some(next_date) = date.succ_opt() else {
+                break;
+            };
+            current = match tz
+                .from_local_datetime(&next_date.and_hms_opt(0, 0, 0).expect("midnight valid"))
+            {
                 chrono::LocalResult::Single(dt) => dt,
                 chrono::LocalResult::Ambiguous(dt, _) => dt,
                 chrono::LocalResult::None => {
                     // DST gap at midnight - advance by 1 hour
                     let shifted = next_date.and_hms_opt(1, 0, 0).expect("1am valid");
-                    tz.from_local_datetime(&shifted).single().unwrap_or(segment_end)
+                    tz.from_local_datetime(&shifted)
+                        .single()
+                        .unwrap_or(segment_end)
                 }
             };
         }
@@ -201,21 +217,28 @@ impl OvertimeEngine {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use chrono::NaiveTime;
     use uuid::Uuid;
 
-    fn mock_rule(priority: i32, multiplier: Decimal, start: Option<&str>, end: Option<&str>, days: i32) -> OvertimeRule {
+    fn mock_rule(
+        priority: i32,
+        multiplier: Decimal,
+        start: Option<&str>,
+        end: Option<&str>,
+        days: i32,
+    ) -> OvertimeRule {
         OvertimeRule {
             id: Uuid::new_v4(),
             policy_id: Uuid::new_v4(),
             priority,
             multiplier,
-            time_start: start.map(|s| NaiveTime::parse_from_str(s, "%H:%M:%S").expect("valid mock time")),
-            time_end: end.map(|s| NaiveTime::parse_from_str(s, "%H:%M:%S").expect("valid mock time")),
+            time_start: start
+                .map(|s| NaiveTime::parse_from_str(s, "%H:%M:%S").expect("valid mock time")),
+            time_end: end
+                .map(|s| NaiveTime::parse_from_str(s, "%H:%M:%S").expect("valid mock time")),
             days_of_week: days,
             is_holiday: false,
             created_at: None,
@@ -228,11 +251,17 @@ mod tests {
         let date = NaiveDate::from_ymd_opt(2026, 1, 26).expect("valid date"); // Monday
         let rules = vec![
             mock_rule(1, Decimal::new(15, 1), None, None, 127), // Base 1.5x all day
-            mock_rule(10, Decimal::new(20, 1), Some("22:00:00"), Some("06:00:00"), 127), // Night 2.0x (Overnight)
+            mock_rule(
+                10,
+                Decimal::new(20, 1),
+                Some("22:00:00"),
+                Some("06:00:00"),
+                127,
+            ), // Night 2.0x (Overnight)
         ];
 
         let segments = OvertimeEngine::calculate_segments(&rules, date, false);
-        
+
         assert_eq!(segments.len(), 3);
         assert_eq!(segments[0].multiplier, Decimal::new(20, 1));
         assert_eq!(segments[1].multiplier, Decimal::new(15, 1));
@@ -243,35 +272,75 @@ mod tests {
     fn test_pay_calculation() {
         let date = NaiveDate::from_ymd_opt(2026, 1, 26).expect("valid date");
         let rules = vec![
-            mock_rule(1, Decimal::new(15, 1), Some("17:00:00"), Some("22:00:00"), 127),
-            mock_rule(10, Decimal::new(20, 1), Some("22:00:00"), Some("06:00:00"), 127),
+            mock_rule(
+                1,
+                Decimal::new(15, 1),
+                Some("17:00:00"),
+                Some("22:00:00"),
+                127,
+            ),
+            mock_rule(
+                10,
+                Decimal::new(20, 1),
+                Some("22:00:00"),
+                Some("06:00:00"),
+                127,
+            ),
         ];
 
-        let ot_intervals = vec![
-            (NaiveTime::from_hms_opt(18, 0, 0).expect("valid time"), NaiveTime::from_hms_opt(23, 0, 0).expect("valid time")),
-        ];
+        let ot_intervals = vec![(
+            NaiveTime::from_hms_opt(18, 0, 0).expect("valid time"),
+            NaiveTime::from_hms_opt(23, 0, 0).expect("valid time"),
+        )];
 
         let hourly_rate = Decimal::new(100, 0);
-        let pay = OvertimeEngine::calculate_overtime_pay_from_times(&rules, date, false, &ot_intervals, hourly_rate);
-        
+        let pay = OvertimeEngine::calculate_overtime_pay_from_times(
+            &rules,
+            date,
+            false,
+            &ot_intervals,
+            hourly_rate,
+        );
+
         assert_eq!(pay, Decimal::new(800, 0));
     }
 
     #[test]
     fn test_split_interval_by_day() {
-        use chrono_tz::UTC;
         use chrono::TimeZone;
-        let start = UTC.with_ymd_and_hms(2026, 1, 26, 22, 0, 0).single().expect("valid date");
-        let end = UTC.with_ymd_and_hms(2026, 1, 27, 2, 0, 0).single().expect("valid date");
-        
+        use chrono_tz::UTC;
+        let start = UTC
+            .with_ymd_and_hms(2026, 1, 26, 22, 0, 0)
+            .single()
+            .expect("valid date");
+        let end = UTC
+            .with_ymd_and_hms(2026, 1, 27, 2, 0, 0)
+            .single()
+            .expect("valid date");
+
         let days = OvertimeEngine::split_interval_by_day(start, end, &UTC);
-        
+
         assert_eq!(days.len(), 2);
-        assert_eq!(days[0].0, NaiveDate::from_ymd_opt(2026, 1, 26).expect("valid date"));
-        assert_eq!(days[0].1[0].0, NaiveTime::from_hms_opt(22, 0, 0).expect("valid time"));
-        
-        assert_eq!(days[1].0, NaiveDate::from_ymd_opt(2026, 1, 27).expect("valid date"));
-        assert_eq!(days[1].1[0].0, NaiveTime::from_hms_opt(0, 0, 0).expect("midnight is valid"));
-        assert_eq!(days[1].1[0].1, NaiveTime::from_hms_opt(2, 0, 0).expect("valid time"));
+        assert_eq!(
+            days[0].0,
+            NaiveDate::from_ymd_opt(2026, 1, 26).expect("valid date")
+        );
+        assert_eq!(
+            days[0].1[0].0,
+            NaiveTime::from_hms_opt(22, 0, 0).expect("valid time")
+        );
+
+        assert_eq!(
+            days[1].0,
+            NaiveDate::from_ymd_opt(2026, 1, 27).expect("valid date")
+        );
+        assert_eq!(
+            days[1].1[0].0,
+            NaiveTime::from_hms_opt(0, 0, 0).expect("midnight is valid")
+        );
+        assert_eq!(
+            days[1].1[0].1,
+            NaiveTime::from_hms_opt(2, 0, 0).expect("valid time")
+        );
     }
 }

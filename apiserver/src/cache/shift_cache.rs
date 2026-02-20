@@ -87,7 +87,9 @@ impl ShiftCache {
                         break_end: row.break_end,
                         is_break_auto_deduct: Some(row.is_break_auto_deduct),
                         allow_early_ot: Some(row.allow_early_ot),
-                        early_punch_in_grace_period_minutes: Some(row.early_punch_in_grace_period_minutes),
+                        early_punch_in_grace_period_minutes: Some(
+                            row.early_punch_in_grace_period_minutes,
+                        ),
                     })
                     .collect();
 

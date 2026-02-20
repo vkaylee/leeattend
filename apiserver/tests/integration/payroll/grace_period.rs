@@ -19,11 +19,13 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
 
     // Set work_unit to 60 min, no rounding
-    sqlx::query("UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1")
-        .bind(workspace_id)
-        .execute(&pool)
-        .await
-        .unwrap();
+    sqlx::query(
+        "UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1",
+    )
+    .bind(workspace_id)
+    .execute(&pool)
+    .await
+    .unwrap();
 
     let employee_id = factory
         .employee()
@@ -86,15 +88,24 @@ async fn test_grace_period_zero_shift_uses_policy_default() {
     factory
         .time_entry()
         .with_employee(employee_id)
-        .with_punch_in(tz.with_ymd_and_hms(2026, 1, 5, 8, 55, 0).unwrap().with_timezone(&Utc))
-        .with_punch_out(tz.with_ymd_and_hms(2026, 1, 5, 17, 0, 0).unwrap().with_timezone(&Utc))
+        .with_punch_in(
+            tz.with_ymd_and_hms(2026, 1, 5, 8, 55, 0)
+                .unwrap()
+                .with_timezone(&Utc),
+        )
+        .with_punch_out(
+            tz.with_ymd_and_hms(2026, 1, 5, 17, 0, 0)
+                .unwrap()
+                .with_timezone(&Utc),
+        )
         .create()
         .await;
 
     // Calculate payroll
-    let payslip = PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
-        .await
-        .unwrap();
+    let payslip =
+        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
+            .await
+            .unwrap();
 
     // With grace_period=0, policy default should apply (usually allows some grace)
     // The 5-min early punch should be within standard hours
@@ -113,11 +124,13 @@ async fn test_grace_period_nonzero_shift_overrides() {
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
 
-    sqlx::query("UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1")
-        .bind(workspace_id)
-        .execute(&pool)
-        .await
-        .unwrap();
+    sqlx::query(
+        "UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1",
+    )
+    .bind(workspace_id)
+    .execute(&pool)
+    .await
+    .unwrap();
 
     let employee_id = factory
         .employee()
@@ -177,14 +190,23 @@ async fn test_grace_period_nonzero_shift_overrides() {
     factory
         .time_entry()
         .with_employee(employee_id)
-        .with_punch_in(tz.with_ymd_and_hms(2026, 1, 5, 8, 50, 0).unwrap().with_timezone(&Utc))
-        .with_punch_out(tz.with_ymd_and_hms(2026, 1, 5, 17, 0, 0).unwrap().with_timezone(&Utc))
+        .with_punch_in(
+            tz.with_ymd_and_hms(2026, 1, 5, 8, 50, 0)
+                .unwrap()
+                .with_timezone(&Utc),
+        )
+        .with_punch_out(
+            tz.with_ymd_and_hms(2026, 1, 5, 17, 0, 0)
+                .unwrap()
+                .with_timezone(&Utc),
+        )
         .create()
         .await;
 
-    let payslip = PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
-        .await
-        .unwrap();
+    let payslip =
+        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
+            .await
+            .unwrap();
 
     // 10 minutes early is within 15-min grace period
     assert!(

@@ -14,7 +14,7 @@ pub async fn create_error_log(
         INSERT INTO attendance_log_errors
         (workspace_id, agent_id, raw_content, error_message, source)
         VALUES ($1, $2, $3, $4, $5)
-        "#
+        "#,
     )
     .bind(workspace_id)
     .bind(agent_id)
@@ -44,7 +44,7 @@ pub async fn create_error_log_with_fingerprint(
         (workspace_id, agent_id, raw_content, error_message, source, fingerprint)
         VALUES ($1, $2, $3, $4, $5, $6)
         ON CONFLICT (workspace_id, fingerprint) WHERE fingerprint IS NOT NULL DO NOTHING
-        "#
+        "#,
     )
     .bind(workspace_id)
     .bind(agent_id)

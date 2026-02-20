@@ -12,7 +12,8 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_employee_pagination_logic() {
-    let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
     let pool = test_db.pool();
@@ -22,7 +23,7 @@ async fn test_employee_pagination_logic() {
         let employee_id = Uuid::new_v4();
         let name = format!("User {i:02}");
         let id_num = format!("EMP{i:02}");
-        
+
         sqlx::query(
             r#"INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, created_at, updated_at) 
              VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"#
@@ -36,7 +37,7 @@ async fn test_employee_pagination_logic() {
         .unwrap();
 
         sqlx::query(
-            r#"INSERT INTO employment_periods (employee_id, hire_date) VALUES ($1, CURRENT_DATE)"#
+            r#"INSERT INTO employment_periods (employee_id, hire_date) VALUES ($1, CURRENT_DATE)"#,
         )
         .bind(employee_id)
         .execute(&pool)
@@ -45,7 +46,8 @@ async fn test_employee_pagination_logic() {
     }
 
     // Request Page 1, Limit 10
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -59,13 +61,16 @@ async fn test_employee_pagination_logic() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let res: PaginatedResponse<Employee> = serde_json::from_slice(&body).unwrap();
     assert_eq!(res.data.len(), 10);
     assert_eq!(res.total, 25);
 
     // Request Page 3 (Last page with 5 records)
-    let response = app.clone()
+    let response = app
+        .clone()
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
@@ -79,14 +84,17 @@ async fn test_employee_pagination_logic() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let res: PaginatedResponse<Employee> = serde_json::from_slice(&body).unwrap();
     assert_eq!(res.data.len(), 5);
 }
 
 #[tokio::test]
 async fn test_employee_search_limit() {
-    let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
     let pool = test_db.pool();
@@ -95,7 +103,7 @@ async fn test_employee_search_limit() {
         let employee_id = Uuid::new_v4();
         let name = format!("SearchTest User {i:02}");
         let id_num = format!("ST{i:02}");
-        
+
         sqlx::query(
             r#"INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active, created_at, updated_at) 
              VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"#
@@ -109,7 +117,7 @@ async fn test_employee_search_limit() {
         .unwrap();
 
         sqlx::query(
-            r#"INSERT INTO employment_periods (employee_id, hire_date) VALUES ($1, CURRENT_DATE)"#
+            r#"INSERT INTO employment_periods (employee_id, hire_date) VALUES ($1, CURRENT_DATE)"#,
         )
         .bind(employee_id)
         .execute(&pool)
@@ -131,8 +139,14 @@ async fn test_employee_search_limit() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let response_data: PaginatedResponse<Employee> = serde_json::from_slice(&body).unwrap();
-    assert_eq!(response_data.data.len(), 50, "Search results should be limited to 50 by default");
+    assert_eq!(
+        response_data.data.len(),
+        50,
+        "Search results should be limited to 50 by default"
+    );
     assert_eq!(response_data.total, 60);
 }

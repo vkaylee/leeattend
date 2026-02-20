@@ -4,7 +4,8 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::models::{
-    CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmploymentPeriod, RehireEmployeeRequest, UpdateEmployeeRequest, WorkingCondition,
+    CreateEmployeeRequest, CreateWorkingConditionRequest, Employee, EmploymentPeriod,
+    RehireEmployeeRequest, UpdateEmployeeRequest, WorkingCondition,
 };
 use crate::repositories::{employee_repository, user_repository};
 use crate::utils::normalize_employee_id;
@@ -79,7 +80,6 @@ impl EmployeeService {
         Ok(())
     }
 
-
     pub async fn create_employee(
         pool: &PgPool,
         workspace_id: Uuid,
@@ -130,8 +130,14 @@ impl EmployeeService {
             workspace_id,
             employee.id,
             &employee.employee_id_number,
-        ).await {
-            tracing::warn!("Failed to claim staged logs for new employee {}: {}", employee.id, e);
+        )
+        .await
+        {
+            tracing::warn!(
+                "Failed to claim staged logs for new employee {}: {}",
+                employee.id,
+                e
+            );
         }
 
         Ok(employee)
@@ -274,7 +280,9 @@ impl EmployeeService {
             workspace_id,
             req.user_id,
             req.full_name,
-            req.employee_id_number.clone().map(|s| normalize_employee_id(&s)),
+            req.employee_id_number
+                .clone()
+                .map(|s| normalize_employee_id(&s)),
             req.hire_date,
             req.termination_date,
             req.tags,
@@ -295,8 +303,14 @@ impl EmployeeService {
                 workspace_id,
                 id,
                 &normalized,
-            ).await {
-                tracing::warn!("Failed to claim staged logs for updated employee {}: {}", id, e);
+            )
+            .await
+            {
+                tracing::warn!(
+                    "Failed to claim staged logs for updated employee {}: {}",
+                    id,
+                    e
+                );
             }
         }
 

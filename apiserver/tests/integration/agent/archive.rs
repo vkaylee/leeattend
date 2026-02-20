@@ -8,7 +8,13 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_agent_archive_and_restore() {
-    let (address, workspace_id, user_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) = spawn_app_with_factory().await;
+    let (address, workspace_id, user_id, factory, _db): (
+        String,
+        Uuid,
+        Uuid,
+        TestFactory,
+        TestDatabase,
+    ) = spawn_app_with_factory().await;
     let client = reqwest::Client::new();
 
     let agent_id = "AGENT_ARCHIVE_01";

@@ -18,11 +18,13 @@ async fn test_net_pay_formula_with_zero_deductions() {
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
 
-    sqlx::query("UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1")
-        .bind(workspace_id)
-        .execute(&pool)
-        .await
-        .unwrap();
+    sqlx::query(
+        "UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1",
+    )
+    .bind(workspace_id)
+    .execute(&pool)
+    .await
+    .unwrap();
 
     let employee_id = factory
         .employee()
@@ -73,19 +75,18 @@ async fn test_net_pay_formula_with_zero_deductions() {
         .await;
 
     // Calculate payroll
-    let payslip = PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
-        .await
-        .unwrap();
+    let payslip =
+        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
+            .await
+            .unwrap();
 
     // Verify net_pay formula: net_pay = base_pay + overtime_pay - deductions
     // (Note: incentive is not a separate field in Payslip model)
     // Since deductions = 0 currently:
-    let expected_net_pay = payslip.base_pay_amount
-        + payslip.overtime_pay_amount;
+    let expected_net_pay = payslip.base_pay_amount + payslip.overtime_pay_amount;
 
     assert_eq!(
-        payslip.net_pay_amount,
-        expected_net_pay,
+        payslip.net_pay_amount, expected_net_pay,
         "Net pay should equal base_pay + overtime_pay when deductions = 0"
     );
 

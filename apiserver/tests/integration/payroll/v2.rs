@@ -2,8 +2,8 @@
 
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::services::payroll_service::PayrollService;
 use apiserver::repositories::payroll_repository;
+use apiserver::services::payroll_service::PayrollService;
 use chrono::{NaiveDate, TimeZone, Utc};
 use rust_decimal::Decimal;
 
@@ -12,7 +12,7 @@ async fn test_calculate_payroll_multi_segment() {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
     let factory = TestFactory::new(pool.clone());
-    
+
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
 
@@ -71,23 +71,28 @@ async fn test_calculate_payroll_multi_segment() {
 
     // 4. Record Attendance
     // Work 1 day in Segment 1 (Jan 5)
-    factory.time_entry()
+    factory
+        .time_entry()
         .with_employee(employee_id)
         .with_punch_in(Utc.with_ymd_and_hms(2026, 1, 5, 9, 0, 0).unwrap())
         .with_punch_out(Utc.with_ymd_and_hms(2026, 1, 5, 17, 0, 0).unwrap())
-        .create().await;
+        .create()
+        .await;
 
     // Work 1 day in Segment 2 (Jan 20)
-    factory.time_entry()
+    factory
+        .time_entry()
         .with_employee(employee_id)
         .with_punch_in(Utc.with_ymd_and_hms(2026, 1, 20, 9, 0, 0).unwrap())
         .with_punch_out(Utc.with_ymd_and_hms(2026, 1, 20, 17, 0, 0).unwrap())
-        .create().await;
+        .create()
+        .await;
 
     // 5. Calculate Payroll
-    let payslip = PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
-        .await
-        .unwrap();
+    let payslip =
+        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
+            .await
+            .unwrap();
 
     // Verification
     // Segment 1: Base=2600, StdDays=26 -> DailyRate=100. Worked 1 day -> Pay=100.
@@ -96,9 +101,11 @@ async fn test_calculate_payroll_multi_segment() {
     assert_eq!(payslip.base_pay_amount.round_dp(2), Decimal::from(300));
 
     // 6. Verify Segments are stored
-    let segments = payroll_repository::get_payslip_segments(&pool, payslip.id).await.unwrap();
+    let segments = payroll_repository::get_payslip_segments(&pool, payslip.id)
+        .await
+        .unwrap();
     assert_eq!(segments.len(), 2);
-    
+
     let seg1 = &segments[0];
     assert_eq!(seg1.applied_base_salary, Decimal::from(2600));
     assert_eq!(seg1.amount.round_dp(2), Decimal::from(100));

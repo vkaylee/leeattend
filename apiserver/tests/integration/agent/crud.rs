@@ -9,7 +9,8 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_agent_crud_operations() {
-    let (address, workspace_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) = spawn_app_with_factory().await;
+    let (address, workspace_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
     let client = reqwest::Client::new();
     let ws_header = ("X-Workspace-Id", workspace_id.to_string());
     let user_header = ("X-User-Id", user_id.to_string());
@@ -76,7 +77,13 @@ async fn test_agent_crud_operations() {
 
 #[tokio::test]
 async fn test_workspace_isolation() {
-    let (address, workspace_id_1, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) = spawn_app_with_factory().await;
+    let (address, workspace_id_1, user_id, _, _db): (
+        String,
+        Uuid,
+        Uuid,
+        TestFactory,
+        TestDatabase,
+    ) = spawn_app_with_factory().await;
     let client = reqwest::Client::new();
     let user_header = ("X-User-Id", user_id.to_string());
 
@@ -138,7 +145,13 @@ async fn test_workspace_isolation() {
 
 #[tokio::test]
 async fn test_rbac_member_cannot_invite() {
-    let (address, workspace_id, _owner_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) = spawn_app_with_factory().await;
+    let (address, workspace_id, _owner_id, factory, _db): (
+        String,
+        Uuid,
+        Uuid,
+        TestFactory,
+        TestDatabase,
+    ) = spawn_app_with_factory().await;
     let client = reqwest::Client::new();
 
     // 1. Create a "Member" user using factory
@@ -153,9 +166,7 @@ async fn test_rbac_member_cannot_invite() {
 
     // 3. Try to invite someone as this member
     let response = client
-        .post(format!(
-            "{address}/api/workspaces/{workspace_id}/members"
-        ))
+        .post(format!("{address}/api/workspaces/{workspace_id}/members"))
         .header("X-User-Id", member_user_id.to_string())
         .header("X-Workspace-Id", workspace_id.to_string())
         .json(&serde_json::json!({ "email": "other@test.com", "role": "admin" }))

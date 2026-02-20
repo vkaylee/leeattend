@@ -3,12 +3,12 @@ use chrono_tz::Tz;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{AttendanceDailySummary, OtStatus, PolicyRules};
 use crate::repositories::{
-    roster_repository, time_entry_repository,
-    SqlxWorkspaceRepository, workspace_repository::WorkspaceRepository,
+    roster_repository, time_entry_repository, workspace_repository::WorkspaceRepository,
+    SqlxWorkspaceRepository,
 };
-use crate::domain::policy::resolver::PolicyResolver;
 use crate::services::AttendanceCalculator;
 
 pub struct AttendanceSummaryService;
@@ -41,13 +41,17 @@ impl AttendanceSummaryService {
             workspace_id,
             date,
             date,
-            Some(&vec![employee_id])
+            Some(&vec![employee_id]),
         )
         .await
         .map_err(|e| e.to_string())?;
 
         let emp_sched = schedules.first().ok_or("No schedule found for employee")?;
-        let daily_schedule = emp_sched.schedules.iter().find(|s| s.date == date).ok_or("No schedule for date")?;
+        let daily_schedule = emp_sched
+            .schedules
+            .iter()
+            .find(|s| s.date == date)
+            .ok_or("No schedule for date")?;
 
         // 3. Get Time Entries for the date (in UTC range)
         let start_dt_utc = local_midnight_to_utc(&tz, date, 0, 0, 0)?;
@@ -72,46 +76,69 @@ impl AttendanceSummaryService {
         let mut actual_work_minutes = 0;
         let mut system_detected_ot_minutes = 0;
 
-        let actual_punch_in = day_entries.first().map(|e| e.punch_in_time.with_timezone(&tz));
-        let actual_punch_out = day_entries.last().and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
+        let actual_punch_in = day_entries
+            .first()
+            .map(|e| e.punch_in_time.with_timezone(&tz));
+        let actual_punch_out = day_entries
+            .last()
+            .and_then(|e| e.punch_out_time.map(|t| t.with_timezone(&tz)));
 
         if let (Some(punch_in), Some(punch_out)) = (actual_punch_in, actual_punch_out) {
-             let actual_break_minutes: i32 = day_entries
+            let actual_break_minutes: i32 = day_entries
                 .iter()
                 .filter(|e| e.entry_type == "break")
                 .map(|e| e.duration_minutes.unwrap_or(0))
                 .sum();
-            
+
             // Calculate raw duration for "actual_work_minutes"
             let raw_duration = punch_out.signed_duration_since(punch_in).num_minutes() as i32;
             actual_work_minutes = i32::max(0, raw_duration - actual_break_minutes);
 
             // Calculate OT
-            if let (Some(sched_start_time), Some(sched_end_time)) = (daily_schedule.start_time, daily_schedule.end_time) {
-                let start_dt = tz.from_local_datetime(&date.and_time(sched_start_time)).single();
-                let end_dt = tz.from_local_datetime(&date.and_time(sched_end_time)).single();
-                
+            if let (Some(sched_start_time), Some(sched_end_time)) =
+                (daily_schedule.start_time, daily_schedule.end_time)
+            {
+                let start_dt = tz
+                    .from_local_datetime(&date.and_time(sched_start_time))
+                    .single();
+                let end_dt = tz
+                    .from_local_datetime(&date.and_time(sched_end_time))
+                    .single();
+
                 if let (Some(start), Some(mut end)) = (start_dt, end_dt) {
                     if sched_end_time < sched_start_time {
-                         end += chrono::Duration::days(1);
+                        end += chrono::Duration::days(1);
                     }
-                    
+
                     // Resolve Policy Rules
-                    let mut rules = PolicyResolver::resolve_attendance_rules(pool, employee_id, workspace_id, date)
-                        .await
-                        .unwrap_or(PolicyRules {
-                            grace_period_minutes: daily_schedule.early_punch_in_grace_period_minutes.unwrap_or(0),
-                            authorized_early_leave_minutes: 0,
-                            is_early_leave_paid: false,
-                            early_arrival_strategy: workspace.early_arrival_strategy,
-                            is_break_auto_deduct: daily_schedule.is_break_auto_deduct.unwrap_or(false),
-                            is_break_overtime: false,
-                            allow_early_ot: daily_schedule.allow_early_ot.unwrap_or(false),
-                        });
-                    
-                    if let Some(gp) = daily_schedule.early_punch_in_grace_period_minutes { rules.grace_period_minutes = gp; }
-                    if let Some(bad) = daily_schedule.is_break_auto_deduct { rules.is_break_auto_deduct = bad; }
-                    if let Some(aeo) = daily_schedule.allow_early_ot { rules.allow_early_ot = aeo; }
+                    let mut rules = PolicyResolver::resolve_attendance_rules(
+                        pool,
+                        employee_id,
+                        workspace_id,
+                        date,
+                    )
+                    .await
+                    .unwrap_or(PolicyRules {
+                        grace_period_minutes: daily_schedule
+                            .early_punch_in_grace_period_minutes
+                            .unwrap_or(0),
+                        authorized_early_leave_minutes: 0,
+                        is_early_leave_paid: false,
+                        early_arrival_strategy: workspace.early_arrival_strategy,
+                        is_break_auto_deduct: daily_schedule.is_break_auto_deduct.unwrap_or(false),
+                        is_break_overtime: false,
+                        allow_early_ot: daily_schedule.allow_early_ot.unwrap_or(false),
+                    });
+
+                    if let Some(gp) = daily_schedule.early_punch_in_grace_period_minutes {
+                        rules.grace_period_minutes = gp;
+                    }
+                    if let Some(bad) = daily_schedule.is_break_auto_deduct {
+                        rules.is_break_auto_deduct = bad;
+                    }
+                    if let Some(aeo) = daily_schedule.allow_early_ot {
+                        rules.allow_early_ot = aeo;
+                    }
 
                     let buckets = AttendanceCalculator::calculate_buckets(
                         punch_in,
@@ -122,7 +149,7 @@ impl AttendanceSummaryService {
                         actual_break_minutes,
                         &rules,
                     );
-                    
+
                     // System Detected OT = Early OT + Late OT
                     system_detected_ot_minutes = buckets.early_ot_minutes + buckets.late_ot_minutes;
                 }
@@ -146,7 +173,7 @@ impl AttendanceSummaryService {
                 } else {
                     s.ot_status
                 }
-            },
+            }
             None => {
                 if system_detected_ot_minutes > 0 {
                     OtStatus::PendingEmployee
@@ -225,7 +252,7 @@ impl AttendanceSummaryService {
         date: NaiveDate,
         approved_minutes: i32,
         manager_note: Option<String>,
-        status: OtStatus // Approved or Rejected
+        status: OtStatus, // Approved or Rejected
     ) -> Result<(), String> {
         let result: sqlx::postgres::PgQueryResult = sqlx::query!(
             r#"
@@ -326,8 +353,15 @@ impl AttendanceSummaryService {
 }
 
 /// Helper to convert local date+time to UTC, handling DST edge cases
-fn local_midnight_to_utc(tz: &Tz, date: NaiveDate, h: u32, m: u32, s: u32) -> Result<DateTime<Utc>, String> {
-    let naive = date.and_hms_opt(h, m, s)
+fn local_midnight_to_utc(
+    tz: &Tz,
+    date: NaiveDate,
+    h: u32,
+    m: u32,
+    s: u32,
+) -> Result<DateTime<Utc>, String> {
+    let naive = date
+        .and_hms_opt(h, m, s)
         .ok_or_else(|| format!("Invalid time: {h}:{m}:{s}"))?;
     match tz.from_local_datetime(&naive) {
         chrono::LocalResult::Single(dt) => Ok(dt.with_timezone(&Utc)),

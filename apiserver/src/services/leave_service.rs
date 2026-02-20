@@ -218,9 +218,9 @@ impl LeaveService {
         leave_request_repository::create_leave_request(pool, &request)
             .await
             .map_err(|e| {
-            eprintln!("SQLx Error in get_workspace_balances: {e:?}");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+                eprintln!("SQLx Error in get_workspace_balances: {e:?}");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
 
         Ok(request)
     }
@@ -283,9 +283,9 @@ impl LeaveService {
                 let _ = roster_repository::upsert_roster(pool, &roster)
                     .await
                     .map_err(|e| {
-            eprintln!("SQLx Error in get_workspace_balances: {e:?}");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+                        eprintln!("SQLx Error in get_workspace_balances: {e:?}");
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    })?;
 
                 if let Some(next_date) = current_date.succ_opt() {
                     current_date = next_date;

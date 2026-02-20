@@ -12,7 +12,7 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
     AssignShiftRequest, AssignmentHistory, BulkRosterRequest, CreateRosterRequest,
-    CreateShiftRequest, EmployeeSchedule, ShiftRoster, UpdateShiftRequest, Shift,
+    CreateShiftRequest, EmployeeSchedule, Shift, ShiftRoster, UpdateShiftRequest,
 };
 use crate::AppState;
 
@@ -23,13 +23,11 @@ pub async fn get_shifts(
     Path(_ws_id): Path<Uuid>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<Shift>>> {
-    let shifts = crate::services::shift_service::ShiftService::get_workspace_shifts(
-        &state.db,
-        workspace_id,
-    )
-    .await
-    .map_err(|s| AppError::from((s, "Failed to get workspace shifts".to_string())))?;
-    
+    let shifts =
+        crate::services::shift_service::ShiftService::get_workspace_shifts(&state.db, workspace_id)
+            .await
+            .map_err(|s| AppError::from((s, "Failed to get workspace shifts".to_string())))?;
+
     Ok(Json(shifts))
 }
 
@@ -77,8 +75,10 @@ pub async fn update_shift(
     if !ctx.is_admin_or_owner() {
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
-    let shift = crate::services::shift_service::ShiftService::update_shift(&state.db, shift_id, req).await
-        .map_err(|s| AppError::from((s, "Failed to update shift".to_string())))?;
+    let shift =
+        crate::services::shift_service::ShiftService::update_shift(&state.db, shift_id, req)
+            .await
+            .map_err(|s| AppError::from((s, "Failed to update shift".to_string())))?;
 
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
@@ -106,7 +106,7 @@ pub async fn assign_shift(
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(ctx.workspace_id).await;
     }
-    
+
     Ok(StatusCode::OK)
 }
 
@@ -218,7 +218,8 @@ pub async fn bulk_upsert_roster(
     if !ctx.is_admin_or_owner() {
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
-    crate::repositories::roster_repository::bulk_upsert_roster(&state.db, employee_id, req.items).await?;
+    crate::repositories::roster_repository::bulk_upsert_roster(&state.db, employee_id, req.items)
+        .await?;
 
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(ctx.workspace_id).await;

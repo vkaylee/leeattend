@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::{PunchInRequest, PunchOutRequest, UpdateTimeEntryRequest, TimeEntry};
+use crate::models::{PunchInRequest, PunchOutRequest, TimeEntry, UpdateTimeEntryRequest};
 use crate::AppState;
 
 #[derive(Debug, Deserialize)]
@@ -32,7 +32,7 @@ pub async fn punch_in(
     )
     .await
     .map_err(|s| AppError::from((s, "Failed to punch in".to_string())))?;
-    
+
     Ok((StatusCode::CREATED, Json(entry)))
 }
 
@@ -50,7 +50,7 @@ pub async fn punch_out(
     )
     .await
     .map_err(|s| AppError::from((s, "Failed to punch out".to_string())))?;
-    
+
     Ok(Json(entry))
 }
 
@@ -60,16 +60,17 @@ pub async fn get_time_history(
     MemberContext { workspace_id, .. }: MemberContext,
     Query(query): Query<HistoryQuery>,
 ) -> AppResult<Json<Vec<TimeEntry>>> {
-    let entries = crate::services::time_tracking_service::TimeTrackingService::get_employee_history(
-        &state.db,
-        workspace_id,
-        employee_id,
-        query.start,
-        query.end,
-    )
-    .await
-    .map_err(|s| AppError::from((s, "Failed to get time history".to_string())))?;
-    
+    let entries =
+        crate::services::time_tracking_service::TimeTrackingService::get_employee_history(
+            &state.db,
+            workspace_id,
+            employee_id,
+            query.start,
+            query.end,
+        )
+        .await
+        .map_err(|s| AppError::from((s, "Failed to get time history".to_string())))?;
+
     Ok(Json(entries))
 }
 
@@ -87,7 +88,7 @@ pub async fn update_time_entry(
     )
     .await
     .map_err(|s| AppError::from((s, "Failed to update time entry".to_string())))?;
-    
+
     Ok(Json(entry))
 }
 
@@ -103,6 +104,6 @@ pub async fn delete_time_entry(
     )
     .await
     .map_err(|s| AppError::from((s, "Failed to delete time entry".to_string())))?;
-    
+
     Ok(StatusCode::NO_CONTENT)
 }

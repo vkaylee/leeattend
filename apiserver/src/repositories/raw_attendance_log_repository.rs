@@ -56,8 +56,8 @@ pub async fn get_paginated_raw_logs(
     p_limit: i64,
     p_offset: i64,
 ) -> Result<Vec<RawAttendanceLogWithEmployee>, sqlx::Error> {
-    let mut query_builder: sqlx::QueryBuilder<sqlx::Postgres> =
-        sqlx::QueryBuilder::new(r#"
+    let mut query_builder: sqlx::QueryBuilder<sqlx::Postgres> = sqlx::QueryBuilder::new(
+        r#"
             SELECT 
                 rl.*, 
                 e.full_name as employee_full_name, 
@@ -67,7 +67,8 @@ pub async fn get_paginated_raw_logs(
             JOIN employees e ON rl.employee_id = e.id
             LEFT JOIN devices d ON rl.device_id = d.id::text
             WHERE rl.workspace_id = 
-        "#);
+        "#,
+    );
     query_builder.push_bind(workspace_id);
 
     if let Some(emp_id) = p_employee_id {
@@ -157,7 +158,8 @@ pub async fn create_raw_logs_batch(
             .push_bind(log.status);
     });
 
-    query_builder.push(" ON CONFLICT (workspace_id, employee_id, punch_time, punch, status) DO NOTHING");
+    query_builder
+        .push(" ON CONFLICT (workspace_id, employee_id, punch_time, punch, status) DO NOTHING");
 
     let result = query_builder.build().execute(pool).await?;
 

@@ -1,9 +1,9 @@
+use crate::models::{EarlyArrivalStrategy, PolicyRules, WorkingCondition};
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
-use crate::models::{EarlyArrivalStrategy, PolicyRules, WorkingCondition};
 
 #[derive(Debug, Clone)]
 pub struct StandardMonthConfig {
@@ -26,9 +26,10 @@ impl PolicyResolver {
         let emp_config = crate::repositories::employee_repository::get_employee_payroll_config_at(
             pool,
             employee_id,
-            date
-        ).await?;
-        
+            date,
+        )
+        .await?;
+
         if let Some(config) = emp_config {
             return Ok(StandardMonthConfig {
                 std_working_days: config.std_working_days,
@@ -39,11 +40,11 @@ impl PolicyResolver {
 
         // 2. Check Department Override
         if let Some(dept_id) = department_id {
-            let dept_config = crate::repositories::department_repository::get_department_payroll_config_at(
-                pool,
-                dept_id,
-                date
-            ).await?;
+            let dept_config =
+                crate::repositories::department_repository::get_department_payroll_config_at(
+                    pool, dept_id, date,
+                )
+                .await?;
 
             if let Some(config) = dept_config {
                 return Ok(StandardMonthConfig {
@@ -58,15 +59,16 @@ impl PolicyResolver {
         let ws_settings = crate::repositories::payroll_repository::get_payroll_settings_at(
             pool,
             workspace_id,
-            date
-        ).await?;
+            date,
+        )
+        .await?;
 
         if let Some(settings) = ws_settings {
-             return Ok(StandardMonthConfig {
-                 std_working_days: settings.fixed_std_days,
-                 hours_per_day: settings.hours_per_day,
-                 source: "workspace".to_string(),
-             });
+            return Ok(StandardMonthConfig {
+                std_working_days: settings.fixed_std_days,
+                hours_per_day: settings.hours_per_day,
+                source: "workspace".to_string(),
+            });
         }
 
         // 4. System Default fallback
@@ -85,7 +87,9 @@ impl PolicyResolver {
         workspace_id: Uuid,
         date: NaiveDate,
     ) -> Result<Decimal, sqlx::Error> {
-        let config = Self::resolve_standard_month(pool, employee_id, department_id, workspace_id, date).await?;
+        let config =
+            Self::resolve_standard_month(pool, employee_id, department_id, workspace_id, date)
+                .await?;
         Ok(config.std_working_days)
     }
 
@@ -101,7 +105,8 @@ impl PolicyResolver {
             .ok_or_else(|| sqlx::Error::RowNotFound)?;
 
         // 2. Get Employee Special Conditions
-        let conditions = Self::resolve_working_conditions(pool, employee_id, workspace_id, date).await?;
+        let conditions =
+            Self::resolve_working_conditions(pool, employee_id, workspace_id, date).await?;
 
         // 3. Merge logic
         let mut rules = PolicyRules {
@@ -200,7 +205,8 @@ impl PolicyResolver {
         .await?;
 
         // Group by employee_id
-        let mut result: HashMap<Uuid, Vec<WorkingCondition>> = HashMap::with_capacity(employee_ids.len());
+        let mut result: HashMap<Uuid, Vec<WorkingCondition>> =
+            HashMap::with_capacity(employee_ids.len());
         for cond in conditions {
             result.entry(cond.employee_id).or_default().push(cond);
         }
@@ -226,9 +232,10 @@ impl PolicyResolver {
         };
 
         // Filter conditions active on this specific date
-        for cond in conditions.iter().filter(|c| {
-            c.start_date <= date && c.end_date.is_none_or(|end| end >= date)
-        }) {
+        for cond in conditions
+            .iter()
+            .filter(|c| c.start_date <= date && c.end_date.is_none_or(|end| end >= date))
+        {
             match cond.type_.as_str() {
                 "EARLY_LEAVE" => {
                     if cond.minute_allowance > rules.authorized_early_leave_minutes {

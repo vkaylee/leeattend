@@ -3,8 +3,8 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
+use apiserver::models::{AdjustmentStatus, AttendanceAdjustmentRequest};
 use apiserver::AppState;
-use apiserver::models::{AttendanceAdjustmentRequest, AdjustmentStatus};
 use axum::http::StatusCode;
 use chrono::Utc;
 use std::sync::Arc;
@@ -12,7 +12,8 @@ use tower::ServiceExt;
 
 #[tokio::test]
 async fn test_attendance_adjustment_lifecycle() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -42,9 +43,11 @@ async fn test_attendance_adjustment_lifecycle() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::CREATED);
-    
+
     // Verify creation
-    let body = axum::body::to_bytes(response.into_body(), 10000).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), 10000)
+        .await
+        .unwrap();
     let adjustment: AttendanceAdjustmentRequest = serde_json::from_slice(&body).unwrap();
     assert_eq!(adjustment.status, AdjustmentStatus::Pending);
 }

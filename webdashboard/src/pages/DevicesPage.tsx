@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Plus,
@@ -18,9 +18,8 @@ import {
   HardDrive,
   Cpu as BrandIcon
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { useDevices } from "@/hooks/use-devices";
-import { useAuthorizedAgents } from "@/hooks/use-agents";
+import { useAuthorizedAgents, useAgentsStatus } from "@/hooks/use-agents";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,12 +32,52 @@ import { useToast } from "../components/ui/Toast";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
+import DeviceListItem from "@/components/features/connectivity/DeviceListItem";
 
 export default function DevicesPage() {
   const { t } = useTranslation();
   const toast = useToast();
   const { devices, isLoading: devicesLoading, createDevice, updateDevice, deleteDevice } = useDevices();
-  const { agents: authorizedAgents, isLoading: agentsLoading } = useAuthorizedAgents();
+  const { agents: authorizedAgents, isLoading: agentsLoading, sendCommand } = useAuthorizedAgents();
+  const { agents: agentsStatus, refetch: refetchStatus } = useAgentsStatus();
+
+  // Create a map of agent_id -> online status for easy lookup
+  const agentOnlineMap = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    agentsStatus.forEach(a => {
+      map[a.agent_id] = a.is_online;
+    });
+    return map;
+  }, [agentsStatus]);
+
+  // Create a flattened map of device_id -> status
+  const deviceStatuses = useMemo(() => {
+    const map: Record<string, any> = {};
+    agentsStatus.forEach(a => {
+      a.devices.forEach(d => {
+        map[d.device_id.toLowerCase()] = d;
+      });
+    });
+    return map;
+  }, [agentsStatus]);
+
+  async function handleRefreshDevice(agentId: string, deviceId: string) {
+    try {
+      await sendCommand({
+        id: agentId,
+        command: {
+          method: "get_device_info",
+          device_id: deviceId,
+          data: {}
+        }
+      });
+      toast.success(t("devices.toast.refresh_sent"));
+      setTimeout(refetchStatus, 2000);
+    } catch (e: any) {
+      console.error("Refresh failed:", e);
+      toast.error(`${t("devices.toast.refresh_error")}`);
+    }
+  }
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingDevice, setEditingDevice] = useState<any>(null);
@@ -71,22 +110,6 @@ export default function DevicesPage() {
     } catch (e) { console.error(e); }
   }
 
-  async function handleToggleDevice(device: { id: string; name: string; is_enabled: boolean }) {
-    const confirmKey = device.is_enabled ? "devices.confirm_disable" : "devices.confirm_enable";
-    if (!confirm(t(confirmKey, { name: device.name }))) return;
-
-    setTogglingId(device.id);
-    try {
-      await updateDevice(device.id, { is_enabled: !device.is_enabled });
-      toast.success(t(device.is_enabled ? "devices.toast.disabled" : "devices.toast.enabled", { name: device.name }));
-    } catch (e) {
-      console.error(e);
-      toast.error(t("devices.toast.toggle_error"));
-    } finally {
-      setTogglingId(null);
-    }
-  }
-
   const loading = devicesLoading || agentsLoading;
 
   const brandOptions = [
@@ -115,105 +138,23 @@ export default function DevicesPage() {
         ) : devices.length === 0 ? (
           <div className="py-32 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[3rem] bg-slate-50 dark:bg-slate-800/30 flex flex-col items-center animate-in zoom-in-95 duration-500">
             <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm mb-6 border border-slate-100 dark:border-slate-800">
-               <HardDrive size={32} className="text-slate-200 dark:text-slate-700" />
+              <HardDrive size={32} className="text-slate-200 dark:text-slate-700" />
             </div>
             <p className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest text-[10px] opacity-60 mb-8">{t("devices.messages.empty_desc")}</p>
             <button onClick={() => setShowAddForm(true)} className="px-10 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300 hover:border-primary-200 dark:border-primary-800 hover:text-primary-600 dark:text-primary-400 transition-all shadow-sm active:scale-95">{t("devices.add_btn")}</button>
           </div>
         ) : devices.map((device) => (
-            <div key={device.id} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center gap-8 hover:shadow-2xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden">
-              <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-[2rem] group-hover:bg-primary-50 dark:group-hover:bg-primary-950 group-hover:rotate-3 transition-all border border-slate-100 dark:border-slate-800 shadow-inner shrink-0">
-                <Cpu size={32} className="text-slate-500 dark:text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors" />
-              </div>
-
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div>
-                  <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.2em] mb-2">{t("devices.table.device")}</p>
-                  <h3 className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-tight leading-none">{device.name}</h3>
-                  <div className="flex items-center gap-2 mt-2">
-                    <p className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter opacity-70">{device.id}</p>
-                    <span className="text-[8px] bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{device.brand}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.2em] mb-2">{t("devices.table.managed_by")}</p>
-                  <div className="flex items-center gap-2.5 text-slate-700 dark:text-slate-200">
-                    <Server size={14} className="text-primary-500 opacity-50" />
-                    <span className="font-bold text-xs uppercase tracking-tight">{device.agent_id}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.2em] mb-2">{t("devices.table.connection")}</p>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800 shadow-inner">
-                      <Globe size={12} className="text-slate-300 dark:text-slate-600" />
-                      <span className="text-[11px] font-bold font-mono tracking-tighter">{device.ip}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-mono font-bold text-[11px] uppercase opacity-60">
-                      <Hash size={12} /> {device.port}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-4 md:justify-start">
-                   <span className={cn("px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm",
-                    device.is_enabled ? "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800" : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 opacity-60"
-                  )}>
-                    {device.is_enabled ? t("devices.table.active").toUpperCase() : t("devices.table.disabled").toUpperCase()}
-                  </span>
-
-                  <button
-                    onClick={() => handleToggleDevice(device)}
-                    disabled={togglingId === device.id}
-                    className={cn(
-                      "px-4 py-1.5 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all border shadow-sm active:scale-95",
-                      togglingId === device.id && "opacity-50 cursor-not-allowed",
-                      device.is_enabled
-                        ? "text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:bg-rose-950 border-rose-100 dark:border-rose-800 bg-white dark:bg-slate-900"
-                        : "bg-emerald-600 text-white hover:bg-emerald-700 border-transparent shadow-emerald-100"
-                    )}
-                  >
-                    {togglingId === device.id ? (
-                      <RefreshCw size={12} className="animate-spin" />
-                    ) : device.is_enabled ? (
-                      t("common.disable").toUpperCase()
-                    ) : (
-                      t("common.enable").toUpperCase()
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 shrink-0">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="text-slate-300 dark:text-slate-600 hover:text-primary-600 dark:text-primary-400 p-3 hover:bg-white dark:hover:bg-slate-900 rounded-xl transition-all border border-transparent hover:border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md outline-none active:scale-90">
-                      <MoreVertical size={20} />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-64 p-3 rounded-[1.5rem] shadow-premium-2xl border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/90 backdrop-blur-xl">
-                    <DropdownMenuLabel className="text-[9px] font-bold uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400 px-4 py-3 opacity-70">{t("devices.table.actions")}</DropdownMenuLabel>
-                    <DropdownMenuItem className="gap-4 p-4 rounded-xl font-bold text-xs uppercase tracking-widest" onSelect={() => setEditingDevice(device)}>
-                      <Edit2 size={16} className="text-slate-500 dark:text-slate-400" /> {t("devices.table.edit")}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="gap-4 p-4 rounded-xl font-bold text-xs uppercase tracking-widest">
-                      <RefreshCw size={16} className="text-slate-500 dark:text-slate-400" /> {t("devices.table.sync_time")}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="gap-4 p-4 rounded-xl font-bold text-xs uppercase tracking-widest">
-                      <Settings size={16} className="text-slate-500 dark:text-slate-400" /> {t("devices.table.advanced")}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="my-2 bg-slate-50 dark:bg-slate-800" />
-                    <DropdownMenuItem onSelect={() => handleDelete(device.id)} className="gap-4 p-4 rounded-xl font-bold text-xs uppercase tracking-widest text-rose-600 dark:text-rose-300 focus:text-rose-600 dark:text-rose-300 focus:bg-rose-50 dark:bg-rose-950">
-                      <Trash2 size={16} /> {t("devices.table.delete")}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          )
-        )}
+          <DeviceListItem
+            key={device.id}
+            device={device}
+            status={deviceStatuses[device.id.toLowerCase()]}
+            parentAgentActive={agentOnlineMap[device.agent_id] || false}
+            onUpdate={(id, data) => updateDevice(id, data)}
+            onDelete={(id) => deleteDevice(id)}
+            onEdit={setEditingDevice}
+            onRefresh={(deviceId) => handleRefreshDevice(device.agent_id, deviceId)}
+          />
+        ))}
       </div>
 
       <Modal isOpen={showAddForm || !!editingDevice} onClose={() => { setShowAddForm(false); setEditingDevice(null); }} title={editingDevice ? t("devices.form.edit_device") : t("devices.form.new_device")} subtitle={t("devices.form.infrastructure")} icon={<Cpu size={24} />} maxWidth="lg">
@@ -222,7 +163,7 @@ export default function DevicesPage() {
             <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.clock_name")}</label>
             <input required className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm" placeholder={t("devices.form.clock_name_placeholder")} value={editingDevice ? editingDevice.name : newDevice.name} onChange={(e) => editingDevice ? setEditingDevice({ ...editingDevice, name: e.target.value }) : setNewDevice({ ...newDevice, name: e.target.value })} />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-8">
             <div className="space-y-3 px-1">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("devices.form.managed_by")}</label>

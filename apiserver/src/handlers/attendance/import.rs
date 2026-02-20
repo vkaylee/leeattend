@@ -32,19 +32,21 @@ pub async fn upload_attendance_excel(
         let name = field.name().unwrap_or("").to_string();
         if name == "file" {
             let file_name = field.file_name().unwrap_or("upload.xlsx").to_string();
-            let data = field.bytes().await
+            let data = field
+                .bytes()
+                .await
                 .map_err(|e| AppError::Validation(format!("Failed to read file bytes: {e}")))?;
 
             if data.len() > MAX_FILE_SIZE {
-                return Err(AppError::Validation("File too large (max 10MB)".to_string()));
+                return Err(AppError::Validation(
+                    "File too large (max 10MB)".to_string(),
+                ));
             }
 
             let dir = "storage/imports";
-            tokio::fs::create_dir_all(dir)
-                .await?;
+            tokio::fs::create_dir_all(dir).await?;
             let path = format!("{}/{}_{}", dir, Uuid::new_v4(), file_name);
-            tokio::fs::write(&path, data)
-                .await?;
+            tokio::fs::write(&path, data).await?;
             file_path = Some(path);
         }
     }
@@ -56,8 +58,9 @@ pub async fn upload_attendance_excel(
         ws_id,
         ctx.user_id,
         path,
-        "adjustment".to_string()
-    ).await
+        "adjustment".to_string(),
+    )
+    .await
     .map_err(|s| AppError::from((s, "Import failed".to_string())))?;
 
     Ok(Json(serde_json::json!({ "job_id": job_id })))
@@ -85,19 +88,21 @@ pub async fn upload_attendance_logs(
         let name = field.name().unwrap_or("").to_string();
         if name == "file" {
             let file_name = field.file_name().unwrap_or("upload.xlsx").to_string();
-            let data = field.bytes().await
+            let data = field
+                .bytes()
+                .await
                 .map_err(|e| AppError::Validation(format!("Failed to read file bytes: {e}")))?;
 
             if data.len() > MAX_FILE_SIZE {
-                return Err(AppError::Validation("File too large (max 10MB)".to_string()));
+                return Err(AppError::Validation(
+                    "File too large (max 10MB)".to_string(),
+                ));
             }
 
             let dir = "storage/imports";
-            tokio::fs::create_dir_all(dir)
-                .await?;
+            tokio::fs::create_dir_all(dir).await?;
             let path = format!("{}/{}_{}", dir, Uuid::new_v4(), file_name);
-            tokio::fs::write(&path, data)
-                .await?;
+            tokio::fs::write(&path, data).await?;
             file_path = Some(path);
         }
     }
@@ -109,8 +114,9 @@ pub async fn upload_attendance_logs(
         ws_id,
         ctx.user_id,
         path,
-        "log".to_string()
-    ).await
+        "log".to_string(),
+    )
+    .await
     .map_err(|s| AppError::from((s, "Import failed".to_string())))?;
 
     Ok(Json(serde_json::json!({ "job_id": job_id })))
@@ -138,19 +144,21 @@ pub async fn upload_employee_excel(
         let name = field.name().unwrap_or("").to_string();
         if name == "file" {
             let file_name = field.file_name().unwrap_or("upload.xlsx").to_string();
-            let data = field.bytes().await
+            let data = field
+                .bytes()
+                .await
                 .map_err(|e| AppError::Validation(format!("Failed to read file bytes: {e}")))?;
 
             if data.len() > MAX_FILE_SIZE {
-                return Err(AppError::Validation("File too large (max 10MB)".to_string()));
+                return Err(AppError::Validation(
+                    "File too large (max 10MB)".to_string(),
+                ));
             }
 
             let dir = "storage/imports";
-            tokio::fs::create_dir_all(dir)
-                .await?;
+            tokio::fs::create_dir_all(dir).await?;
             let path = format!("{}/{}_{}", dir, Uuid::new_v4(), file_name);
-            tokio::fs::write(&path, data)
-                .await?;
+            tokio::fs::write(&path, data).await?;
             file_path = Some(path);
         }
     }
@@ -161,8 +169,9 @@ pub async fn upload_employee_excel(
         ws_id,
         ctx.user_id,
         path,
-        "employee".to_string()
-    ).await
+        "employee".to_string(),
+    )
+    .await
     .map_err(|s| AppError::from((s, "Import failed".to_string())))?;
 
     Ok(Json(serde_json::json!({ "job_id": job_id })))

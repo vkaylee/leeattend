@@ -9,13 +9,18 @@ use std::collections::{BTreeSet, HashMap};
 use uuid::Uuid;
 
 use crate::domain::policy::overtime::OvertimeEngine;
-use crate::repositories::overtime_policy_repository::OvertimePolicyRepository;
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{Payslip, PolicyRules};
-use crate::repositories::{department_repository, payroll_repository, roster_repository, shift_repository, time_entry_repository, leave_request_repository, SqlxWorkspaceRepository};
+use crate::repositories::overtime_policy_repository::OvertimePolicyRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
-use crate::services::{AttendanceCalculator, payroll_evaluator::{PayrollEvaluator, IncentiveContext}};
-
+use crate::repositories::{
+    department_repository, leave_request_repository, payroll_repository, roster_repository,
+    shift_repository, time_entry_repository, SqlxWorkspaceRepository,
+};
+use crate::services::{
+    payroll_evaluator::{IncentiveContext, PayrollEvaluator},
+    AttendanceCalculator,
+};
 
 pub struct PayrollService;
 
@@ -119,10 +124,7 @@ impl PayrollService {
             HashMap::new();
         for entry in time_entries {
             let local_date = entry.punch_in_time.with_timezone(&tz).date_naive();
-            daily_entries_map
-                .entry(local_date)
-                .or_default()
-                .push(entry);
+            daily_entries_map.entry(local_date).or_default().push(entry);
         }
 
         let mut total_overtime_pay = Decimal::ZERO;
@@ -170,53 +172,83 @@ impl PayrollService {
             let mut current_date = seg_start;
             while current_date <= seg_end {
                 // Fetch shift and calculate
-                let (shift_id, _) = roster_repository::get_effective_shift(pool, employee_id, current_date)
-                    .await
-                    .unwrap_or((None, Vec::new()));
+                let (shift_id, _) =
+                    roster_repository::get_effective_shift(pool, employee_id, current_date)
+                        .await
+                        .unwrap_or((None, Vec::new()));
 
                 if let Some(entries) = daily_entries_map.get(&current_date) {
-                    let work_entries: Vec<_> = entries.iter().filter(|e| e.entry_type == "work" || e.entry_type.is_empty()).collect();
-                    let break_entries: Vec<_> = entries.iter().filter(|e| e.entry_type == "break").collect();
-                    let actual_break_minutes: i32 = break_entries.iter().map(|e| e.duration_minutes.unwrap_or(0)).sum();
+                    let work_entries: Vec<_> = entries
+                        .iter()
+                        .filter(|e| e.entry_type == "work" || e.entry_type.is_empty())
+                        .collect();
+                    let break_entries: Vec<_> =
+                        entries.iter().filter(|e| e.entry_type == "break").collect();
+                    let actual_break_minutes: i32 = break_entries
+                        .iter()
+                        .map(|e| e.duration_minutes.unwrap_or(0))
+                        .sum();
 
                     for entry in work_entries {
                         let punch_in = entry.punch_in_time.with_timezone(&tz);
                         if let Some(punch_out_raw) = entry.punch_out_time {
                             let punch_out = punch_out_raw.with_timezone(&tz);
                             if let Some(sid) = shift_id {
-                                if let Some(s) = shift_repository::get_shift_by_id(pool, sid).await.unwrap_or(None) {
-                                    let start_dt = tz.from_local_datetime(&current_date.and_time(s.start_time)).single();
-                                    let end_dt = tz.from_local_datetime(&current_date.and_time(s.end_time)).single();
+                                if let Some(s) = shift_repository::get_shift_by_id(pool, sid)
+                                    .await
+                                    .unwrap_or(None)
+                                {
+                                    let start_dt = tz
+                                        .from_local_datetime(&current_date.and_time(s.start_time))
+                                        .single();
+                                    let end_dt = tz
+                                        .from_local_datetime(&current_date.and_time(s.end_time))
+                                        .single();
                                     if let (Some(start), Some(mut end)) = (start_dt, end_dt) {
-                                        if s.end_time < s.start_time { end += chrono::Duration::days(1); }
+                                        if s.end_time < s.start_time {
+                                            end += chrono::Duration::days(1);
+                                        }
 
-                                        let mut rules = PolicyResolver::resolve_attendance_rules(pool, employee_id, workspace.id, current_date)
-                                            .await
-                                            .unwrap_or(PolicyRules {
-                                                grace_period_minutes: s.early_punch_in_grace_period_minutes,
-                                                authorized_early_leave_minutes: 0,
-                                                is_early_leave_paid: false,
-                                                early_arrival_strategy: workspace.early_arrival_strategy,
-                                                is_break_auto_deduct: s.is_break_auto_deduct,
-                                                is_break_overtime: entry.is_break_overtime,
-                                                allow_early_ot: s.allow_early_ot,
-                                            });
+                                        let mut rules = PolicyResolver::resolve_attendance_rules(
+                                            pool,
+                                            employee_id,
+                                            workspace.id,
+                                            current_date,
+                                        )
+                                        .await
+                                        .unwrap_or(PolicyRules {
+                                            grace_period_minutes: s
+                                                .early_punch_in_grace_period_minutes,
+                                            authorized_early_leave_minutes: 0,
+                                            is_early_leave_paid: false,
+                                            early_arrival_strategy: workspace
+                                                .early_arrival_strategy,
+                                            is_break_auto_deduct: s.is_break_auto_deduct,
+                                            is_break_overtime: entry.is_break_overtime,
+                                            allow_early_ot: s.allow_early_ot,
+                                        });
 
                                         // Override with shift data only if explicitly configured (non-zero)
                                         if s.early_punch_in_grace_period_minutes > 0 {
-                                            rules.grace_period_minutes = s.early_punch_in_grace_period_minutes;
+                                            rules.grace_period_minutes =
+                                                s.early_punch_in_grace_period_minutes;
                                         }
                                         rules.is_break_auto_deduct = s.is_break_auto_deduct;
                                         rules.is_break_overtime = entry.is_break_overtime;
                                         rules.allow_early_ot = s.allow_early_ot;
 
-                                        let (std_u, ot_u) = AttendanceCalculator::calculate_daily_units(
-                                            punch_in, punch_out, Some(start), Some(end),
-                                            s.break_duration_minutes,
-                                            actual_break_minutes,
-                                            workspace.work_unit_minutes, &workspace.rounding_policy,
-                                            &rules
-                                        );
+                                        let (std_u, ot_u) =
+                                            AttendanceCalculator::calculate_daily_units(
+                                                punch_in,
+                                                punch_out,
+                                                Some(start),
+                                                Some(end),
+                                                s.break_duration_minutes,
+                                                actual_break_minutes,
+                                                workspace.work_unit_minutes,
+                                                &workspace.rounding_policy,
+                                                &rules,
+                                            );
                                         segment_std_units += std_u;
                                         segment_ot_units += ot_u;
 
@@ -260,7 +292,11 @@ impl PayrollService {
                                         }
 
                                         // Violation detection for IncentiveContext
-                                        let is_late = punch_in > start + chrono::Duration::minutes(rules.grace_period_minutes as i64);
+                                        let is_late = punch_in
+                                            > start
+                                                + chrono::Duration::minutes(
+                                                    rules.grace_period_minutes as i64,
+                                                );
                                         let is_early = punch_out < end;
                                         if is_late || is_early {
                                             total_late_early_count += 1;
@@ -270,7 +306,8 @@ impl PayrollService {
                             } else {
                                 segment_std_units += AttendanceCalculator::calculate_units(
                                     (punch_out - punch_in).num_minutes() as i32,
-                                    workspace.work_unit_minutes, &workspace.rounding_policy
+                                    workspace.work_unit_minutes,
+                                    &workspace.rounding_policy,
                                 );
                             }
                         }
@@ -284,35 +321,55 @@ impl PayrollService {
 
             // C. Financials
             let worked_days_dec = Decimal::from(segment_std_units) / seg_units_per_day;
-            let daily_rate = if std_config.std_working_days.is_zero() { Decimal::ZERO } else { segment_total_base / std_config.std_working_days };
+            let daily_rate = if std_config.std_working_days.is_zero() {
+                Decimal::ZERO
+            } else {
+                segment_total_base / std_config.std_working_days
+            };
             let segment_amount = daily_rate * worked_days_dec;
 
             total_base_pay += segment_amount;
             total_std_units += segment_std_units;
             total_ot_units += segment_ot_units;
             total_overtime_pay += segment_ot_pay;
-            
+
             segment_snapshots.push((
-                seg_start, seg_end, dept_id, segment_total_base, std_config.std_working_days,
-                std_config.hours_per_day, worked_days_dec, worked_days_dec, segment_amount,
-                std_config.source
+                seg_start,
+                seg_end,
+                dept_id,
+                segment_total_base,
+                std_config.std_working_days,
+                std_config.hours_per_day,
+                worked_days_dec,
+                worked_days_dec,
+                segment_amount,
+                std_config.source,
             ));
         }
 
-        
-
         // 7. Incentives Calculation
-        let active_policies = payroll_repository::get_active_incentive_policies(pool, workspace_id).await.unwrap_or_default();
+        let active_policies = payroll_repository::get_active_incentive_policies(pool, workspace_id)
+            .await
+            .unwrap_or_default();
         let mut incentive_results = Vec::new();
         let mut total_incentive_amount = Decimal::ZERO;
 
         // Fetch leave breakdown once for the entire period
-        let leave_breakdown = leave_request_repository::get_approved_leave_breakdown(pool, employee_id, start_date, end_date)
-            .await
-            .map_err(|e| {
-                tracing::error!("Failed to fetch leave breakdown for employee {}: {}", employee_id, e);
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?;
+        let leave_breakdown = leave_request_repository::get_approved_leave_breakdown(
+            pool,
+            employee_id,
+            start_date,
+            end_date,
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                "Failed to fetch leave breakdown for employee {}: {}",
+                employee_id,
+                e
+            );
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
         if !active_policies.is_empty() {
             let context = IncentiveContext {
@@ -324,7 +381,9 @@ impl PayrollService {
             };
 
             for policy in active_policies {
-                let tiers = payroll_repository::get_policy_tiers(pool, policy.id).await.unwrap_or_default();
+                let tiers = payroll_repository::get_policy_tiers(pool, policy.id)
+                    .await
+                    .unwrap_or_default();
                 let res = PayrollEvaluator::evaluate_policy(&policy, &tiers, &context);
                 if !res.amount.is_zero() {
                     total_incentive_amount += res.amount;
@@ -338,29 +397,60 @@ impl PayrollService {
         let mut deductions_amount = Decimal::ZERO;
         if leave_breakdown.unpaid_days > 0.0 {
             if let Some(last_snap) = segment_snapshots.last() {
-                let daily_rate = if last_snap.4.is_zero() { Decimal::ZERO } else { last_snap.3 / last_snap.4 };
-                deductions_amount = daily_rate * Decimal::from_f64(leave_breakdown.unpaid_days).unwrap_or(Decimal::ZERO);
+                let daily_rate = if last_snap.4.is_zero() {
+                    Decimal::ZERO
+                } else {
+                    last_snap.3 / last_snap.4
+                };
+                deductions_amount = daily_rate
+                    * Decimal::from_f64(leave_breakdown.unpaid_days).unwrap_or(Decimal::ZERO);
             }
         }
 
         let payslip = Payslip {
-            id: Uuid::new_v4(), employee_id, period_start: start_date, period_end: end_date,
-            base_pay_amount: total_base_pay, overtime_pay_amount: total_overtime_pay,
-            deductions_amount, net_pay_amount: total_base_pay + total_overtime_pay + total_incentive_amount - deductions_amount,
-            standard_units: total_std_units, overtime_units: total_ot_units,
-            status: "draft".to_string(), created_at: Utc::now(), updated_at: Utc::now(),
+            id: Uuid::new_v4(),
+            employee_id,
+            period_start: start_date,
+            period_end: end_date,
+            base_pay_amount: total_base_pay,
+            overtime_pay_amount: total_overtime_pay,
+            deductions_amount,
+            net_pay_amount: total_base_pay + total_overtime_pay + total_incentive_amount
+                - deductions_amount,
+            standard_units: total_std_units,
+            overtime_units: total_ot_units,
+            status: "draft".to_string(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
         };
 
-        let created_payslip = payroll_repository::create_payslip(pool, &payslip).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-            
-        for (start, end, dept, base, std, hours, actual, paid, amount, source) in segment_snapshots {
+        let created_payslip = payroll_repository::create_payslip(pool, &payslip)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        for (start, end, dept, base, std, hours, actual, paid, amount, source) in segment_snapshots
+        {
             payroll_repository::create_payslip_segment(
-                pool, created_payslip.id, start, end, dept, base, std, hours, actual, paid, amount, Some(source)
-            ).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                pool,
+                created_payslip.id,
+                start,
+                end,
+                dept,
+                base,
+                std,
+                hours,
+                actual,
+                paid,
+                amount,
+                Some(source),
+            )
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         }
 
         for res in incentive_results {
-            let _ = payroll_repository::create_payslip_incentive(pool, created_payslip.id, &res).await;
+            let _ =
+                payroll_repository::create_payslip_incentive(pool, created_payslip.id, &res).await;
         }
 
         Ok(created_payslip)
@@ -379,7 +469,15 @@ impl PayrollService {
             .map(|emp_id| {
                 let pool_clone = pool.clone();
                 async move {
-                    match Self::calculate_monthly_payslip(&pool_clone, emp_id, workspace_id, year, month).await {
+                    match Self::calculate_monthly_payslip(
+                        &pool_clone,
+                        emp_id,
+                        workspace_id,
+                        year,
+                        month,
+                    )
+                    .await
+                    {
                         Ok(payslip) => crate::models::BatchCalculateResult {
                             employee_id: emp_id,
                             status: "success".to_string(),
@@ -405,7 +503,8 @@ impl PayrollService {
 
 /// Convert local date/time to UTC DateTime, handling DST edge cases
 fn local_to_utc(tz: &Tz, date: NaiveDate, h: u32, m: u32, s: u32) -> Result<DateTime<Utc>, String> {
-    let naive = date.and_hms_opt(h, m, s)
+    let naive = date
+        .and_hms_opt(h, m, s)
         .ok_or_else(|| format!("Invalid time: {h}:{m}:{s}"))?;
     match tz.from_local_datetime(&naive) {
         chrono::LocalResult::Single(dt) => Ok(dt.with_timezone(&Utc)),

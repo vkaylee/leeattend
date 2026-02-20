@@ -11,7 +11,8 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_agent_commands_api() {
-    let (_test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
@@ -77,9 +78,12 @@ async fn test_agent_commands_api() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    
+
     // Verify response is JSON and contains message
-    let body = axum::body::to_bytes(response.into_body(), 1024).await.unwrap();
-    let json: serde_json::Value = serde_json::from_slice(&body).expect("Response must be valid JSON");
+    let body = axum::body::to_bytes(response.into_body(), 1024)
+        .await
+        .unwrap();
+    let json: serde_json::Value =
+        serde_json::from_slice(&body).expect("Response must be valid JSON");
     assert_eq!(json["message"], "Command sent");
 }

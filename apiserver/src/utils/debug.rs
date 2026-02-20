@@ -19,9 +19,15 @@ where
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         #[cfg(debug_assertions)]
         {
-            if let Some(date_str) = parts.headers.get("X-Debug-Mock-Date").and_then(|h| h.to_str().ok()) {
+            if let Some(date_str) = parts
+                .headers
+                .get("X-Debug-Mock-Date")
+                .and_then(|h| h.to_str().ok())
+            {
                 if let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
-                    return Ok(DebugContext { mock_date: Some(date) });
+                    return Ok(DebugContext {
+                        mock_date: Some(date),
+                    });
                 }
             }
         }

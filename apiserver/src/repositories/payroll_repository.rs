@@ -5,8 +5,8 @@ use sqlx::{query_as, PgPool, Row};
 use uuid::Uuid;
 
 use crate::models::{
-    EmployeeSalaryComponent, PayrollSettings, Payslip, PayslipSegment, SalaryComponentDefinition,
-    PayrollIncentivePolicy, IncentiveTier, IncentiveEvaluationResult,
+    EmployeeSalaryComponent, IncentiveEvaluationResult, IncentiveTier, PayrollIncentivePolicy,
+    PayrollSettings, Payslip, PayslipSegment, SalaryComponentDefinition,
 };
 
 pub async fn get_active_incentive_policies(
@@ -22,8 +22,9 @@ pub async fn get_active_incentive_policies(
     .fetch_all(pool)
     .await?;
 
-    Ok(rows.into_iter().map(|row| {
-        PayrollIncentivePolicy {
+    Ok(rows
+        .into_iter()
+        .map(|row| PayrollIncentivePolicy {
             id: row.get("id"),
             workspace_id: row.get("workspace_id"),
             name: row.get("name"),
@@ -31,8 +32,8 @@ pub async fn get_active_incentive_policies(
             payout_type: row.get("payout_type"),
             is_active: row.get("is_active"),
             created_at: DateTime::from_naive_utc_and_offset(row.get("created_at"), Utc),
-        }
-    }).collect())
+        })
+        .collect())
 }
 
 pub async fn get_policy_tiers(
@@ -49,8 +50,9 @@ pub async fn get_policy_tiers(
     .fetch_all(pool)
     .await?;
 
-    Ok(rows.into_iter().map(|row| {
-        IncentiveTier {
+    Ok(rows
+        .into_iter()
+        .map(|row| IncentiveTier {
             id: row.get("id"),
             policy_id: row.get("policy_id"),
             priority: row.get("priority"),
@@ -59,8 +61,8 @@ pub async fn get_policy_tiers(
             max_sick_leave_days: row.get::<Option<f64>, _>("max_sick_leave_days"),
             max_total_leave_days: row.get::<Option<f64>, _>("max_total_leave_days"),
             payout_amount: row.get::<f64, _>("payout_amount"),
-        }
-    }).collect())
+        })
+        .collect())
 }
 
 pub async fn create_payslip_incentive(
@@ -95,14 +97,15 @@ pub async fn get_payslip_incentives(
     .fetch_all(pool)
     .await?;
 
-    Ok(rows.into_iter().map(|row| {
-        IncentiveEvaluationResult {
+    Ok(rows
+        .into_iter()
+        .map(|row| IncentiveEvaluationResult {
             policy_name: row.get("policy_name"),
             amount: Decimal::from_f64(row.get("amount")).unwrap_or_default(),
             standard_amount: Decimal::from_f64(row.get("standard_amount")).unwrap_or_default(),
             tier_id: row.get("tier_id"),
-        }
-    }).collect())
+        })
+        .collect())
 }
 
 pub async fn get_payroll_settings(

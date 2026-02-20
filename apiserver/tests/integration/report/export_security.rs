@@ -21,7 +21,9 @@ async fn test_create_export_job_requires_admin_role() {
     let ws_id = factory.workspace().create_with_owner(owner_id).await;
 
     let member_id = factory.user().with_email("member@test.com").create().await;
-    factory.add_member(ws_id, member_id, MemberRole::Member).await;
+    factory
+        .add_member(ws_id, member_id, MemberRole::Member)
+        .await;
 
     let body = serde_json::json!({
         "report_type": "summary",
@@ -95,7 +97,9 @@ async fn test_get_job_status_without_redis_returns_503() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{ws_id}/reports/jobs/{fake_job_id}"))
+                .uri(format!(
+                    "/api/workspaces/{ws_id}/reports/jobs/{fake_job_id}"
+                ))
                 .header("X-User-Id", admin_id.to_string())
                 .header("X-Workspace-Id", ws_id.to_string())
                 .body(Body::empty())
@@ -121,7 +125,9 @@ async fn test_cancel_job_without_redis_returns_503() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/workspaces/{ws_id}/reports/jobs/{fake_job_id}"))
+                .uri(format!(
+                    "/api/workspaces/{ws_id}/reports/jobs/{fake_job_id}"
+                ))
                 .header("X-User-Id", admin_id.to_string())
                 .header("X-Workspace-Id", ws_id.to_string())
                 .body(Body::empty())

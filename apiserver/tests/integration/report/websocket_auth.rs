@@ -13,8 +13,12 @@ use tower::ServiceExt;
 
 #[tokio::test]
 async fn test_ws_report_missing_token_returns_401() {
-    let (_test_db, _factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
-        setup_app_tower().await;
+    let (_test_db, _factory, _state, app): (
+        TestDatabase,
+        TestFactory,
+        Arc<AppState>,
+        axum::Router,
+    ) = setup_app_tower().await;
 
     let fake_job_id = uuid::Uuid::new_v4();
     let res = app
@@ -38,8 +42,12 @@ async fn test_ws_report_missing_token_returns_401() {
 
 #[tokio::test]
 async fn test_ws_report_invalid_token_returns_401() {
-    let (_test_db, _factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
-        setup_app_tower().await;
+    let (_test_db, _factory, _state, app): (
+        TestDatabase,
+        TestFactory,
+        Arc<AppState>,
+        axum::Router,
+    ) = setup_app_tower().await;
 
     let fake_job_id = uuid::Uuid::new_v4();
     let res = app
@@ -82,9 +90,7 @@ async fn test_ws_report_valid_token_passes_auth() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(format!(
-                    "/api/ws/reports/{fake_job_id}?token={valid_token}"
-                ))
+                .uri(format!("/api/ws/reports/{fake_job_id}?token={valid_token}"))
                 .header("Connection", "Upgrade")
                 .header("Upgrade", "websocket")
                 .header("Sec-WebSocket-Version", "13")
@@ -98,5 +104,9 @@ async fn test_ws_report_valid_token_passes_auth() {
     // Valid token passes auth; should NOT be 401
     // Will get 503 (Redis unavailable) or 101 (WS upgrade)
     let status = res.status();
-    assert_ne!(status, StatusCode::UNAUTHORIZED, "Valid token should pass auth check");
+    assert_ne!(
+        status,
+        StatusCode::UNAUTHORIZED,
+        "Valid token should pass auth check"
+    );
 }

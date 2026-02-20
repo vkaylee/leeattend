@@ -80,10 +80,7 @@ impl OvertimePolicyRepository {
         }
     }
 
-    pub async fn add_rule(
-        pool: &PgPool,
-        rule: &OvertimeRule,
-    ) -> Result<OvertimeRule, sqlx::Error> {
+    pub async fn add_rule(pool: &PgPool, rule: &OvertimeRule) -> Result<OvertimeRule, sqlx::Error> {
         sqlx::query_as!(
             OvertimeRule,
             r#"

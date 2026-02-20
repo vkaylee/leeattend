@@ -126,13 +126,11 @@ mod tests {
     #[test]
     fn test_anchor_missing_out() {
         let strategy = AnchorFirstStrategy;
-        let logs = vec![
-            LogEvent {
-                id: Uuid::new_v4(),
-                minutes: 480,
-                punch_type: None,
-            },
-        ];
+        let logs = vec![LogEvent {
+            id: Uuid::new_v4(),
+            minutes: 480,
+            punch_type: None,
+        }];
 
         let sessions = strategy.pair(&logs, None);
 
@@ -148,8 +146,16 @@ mod tests {
         // Log 1: 08:00 (480)
         // Log 2: 01:00 next day (1500) -> 17h gap (1020 mins). Should NOT pair.
         let logs = vec![
-            LogEvent { id: Uuid::new_v4(), minutes: 480, punch_type: None },
-            LogEvent { id: Uuid::new_v4(), minutes: 1500, punch_type: None },
+            LogEvent {
+                id: Uuid::new_v4(),
+                minutes: 480,
+                punch_type: None,
+            },
+            LogEvent {
+                id: Uuid::new_v4(),
+                minutes: 1500,
+                punch_type: None,
+            },
         ];
 
         let sessions = strategy.pair(&logs, None);

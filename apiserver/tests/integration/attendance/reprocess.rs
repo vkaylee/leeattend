@@ -6,14 +6,15 @@ use crate::common::factory::TestFactory;
 use apiserver::models::{LogSource, RawAttendanceLog};
 use apiserver::AppState;
 use axum::http::{Request, StatusCode};
-use chrono::{TimeZone, Utc, NaiveDate};
+use chrono::{NaiveDate, TimeZone, Utc};
 use std::sync::Arc;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 #[tokio::test]
 async fn test_force_reprocess_attendance_api() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id = factory.user().create().await;
     let ws_id = factory.workspace().create_with_owner(user_id).await;
@@ -41,20 +42,23 @@ async fn test_force_reprocess_attendance_api() {
             status: -1,
             created_at: Utc::now(),
         };
-        apiserver::repositories::raw_attendance_log_repository::create_raw_log(&factory.pool, &raw_log)
-            .await
-            .unwrap();
+        apiserver::repositories::raw_attendance_log_repository::create_raw_log(
+            &factory.pool,
+            &raw_log,
+        )
+        .await
+        .unwrap();
     }
 
     // 2. Verify time_entries are initially empty
-    let entries = sqlx::query!(
-        "SELECT id FROM time_entries WHERE employee_id = $1",
-        emp_id
-    )
-    .fetch_all(&factory.pool)
-    .await
-    .unwrap();
-    assert!(entries.is_empty(), "Entries should be empty before reprocessing");
+    let entries = sqlx::query!("SELECT id FROM time_entries WHERE employee_id = $1", emp_id)
+        .fetch_all(&factory.pool)
+        .await
+        .unwrap();
+    assert!(
+        entries.is_empty(),
+        "Entries should be empty before reprocessing"
+    );
 
     // 3. Call the reprocess endpoint
     let res = app

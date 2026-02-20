@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::{CreateDepartmentRequest, UpdateDepartmentRequest, Department};
+use crate::models::{CreateDepartmentRequest, Department, UpdateDepartmentRequest};
 use crate::AppState;
 
 pub async fn get_departments(
@@ -16,7 +16,9 @@ pub async fn get_departments(
     State(state): State<Arc<AppState>>,
     MemberContext { workspace_id, .. }: MemberContext,
 ) -> AppResult<Json<Vec<Department>>> {
-    let departments = crate::repositories::department_repository::get_departments(&state.db, workspace_id).await?;
+    let departments =
+        crate::repositories::department_repository::get_departments(&state.db, workspace_id)
+            .await?;
     Ok(Json(departments))
 }
 
@@ -27,7 +29,9 @@ pub async fn create_department(
     Json(req): Json<CreateDepartmentRequest>,
 ) -> AppResult<impl IntoResponse> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can manage departments".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can manage departments".to_string(),
+        ));
     }
     let dept = crate::repositories::department_repository::create_department(
         &state.db,
@@ -38,7 +42,7 @@ pub async fn create_department(
         req.default_working_pattern_id,
     )
     .await?;
-    
+
     Ok((StatusCode::CREATED, Json(dept)))
 }
 
@@ -49,7 +53,9 @@ pub async fn update_department(
     Json(req): Json<UpdateDepartmentRequest>,
 ) -> AppResult<Json<Department>> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can manage departments".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can manage departments".to_string(),
+        ));
     }
     let dept = crate::repositories::department_repository::update_department(
         &state.db,
@@ -61,7 +67,7 @@ pub async fn update_department(
         req.default_working_pattern_id,
     )
     .await?;
-    
+
     Ok(Json(dept))
 }
 
@@ -71,14 +77,12 @@ pub async fn delete_department(
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can manage departments".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can manage departments".to_string(),
+        ));
     }
-    crate::repositories::department_repository::delete_department(
-        &state.db,
-        ctx.workspace_id,
-        id,
-    )
-    .await?;
-    
+    crate::repositories::department_repository::delete_department(&state.db, ctx.workspace_id, id)
+        .await?;
+
     Ok(StatusCode::NO_CONTENT)
 }

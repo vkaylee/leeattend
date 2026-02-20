@@ -12,7 +12,8 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_employee_crud_lifecycle() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
@@ -40,7 +41,9 @@ async fn test_employee_crud_lifecycle() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let emp: Employee = serde_json::from_slice(&body).unwrap();
     assert_eq!(emp.full_name, "Test Employee");
 
@@ -82,7 +85,9 @@ async fn test_employee_crud_lifecycle() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let updated_emp: Employee = serde_json::from_slice(&body).unwrap();
     assert_eq!(updated_emp.full_name, "Updated Name");
 
@@ -106,7 +111,8 @@ async fn test_employee_crud_lifecycle() {
 
 #[tokio::test]
 async fn test_get_employees_list() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
@@ -135,7 +141,8 @@ async fn test_get_employees_list() {
 
 #[tokio::test]
 async fn test_delete_non_existent_employee() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;

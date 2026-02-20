@@ -118,10 +118,14 @@ pub async fn force_reprocess_attendance(
 
     let date_range = (query.end_date - query.start_date).num_days();
     if date_range < 0 {
-        return Err(AppError::Validation("end_date must be after start_date".to_string()));
+        return Err(AppError::Validation(
+            "end_date must be after start_date".to_string(),
+        ));
     }
     if date_range > MAX_REPROCESS_DAYS {
-        return Err(AppError::Validation(format!("Max reprocess range is {MAX_REPROCESS_DAYS} days")));
+        return Err(AppError::Validation(format!(
+            "Max reprocess range is {MAX_REPROCESS_DAYS} days"
+        )));
     }
 
     let workspace = crate::repositories::workspace_repository::SqlxWorkspaceRepository {

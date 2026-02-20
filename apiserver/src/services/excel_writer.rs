@@ -4,9 +4,9 @@
 //! - Summary: single "Summary" sheet.
 //! - Detail: "Timesheet View" (matrix) + "Raw Details" (list) sheets.
 
-use std::collections::BTreeMap;
-use chrono::{Datelike, DateTime, Duration, NaiveDate, NaiveTime, Utc};
+use chrono::{DateTime, Datelike, Duration, NaiveDate, NaiveTime, Utc};
 use rust_xlsxwriter::{Color, Format, FormatAlign, Workbook};
+use std::collections::BTreeMap;
 
 use crate::models::{AttendanceSummary, DailyAttendanceReport};
 
@@ -85,9 +85,15 @@ impl ExcelWriter {
                 .map_err(|e| e.to_string())?;
         }
 
-        worksheet.set_column_width(0, 35).map_err(|e| e.to_string())?;
-        worksheet.set_column_width(1, 18).map_err(|e| e.to_string())?;
-        worksheet.set_column_width(2, 18).map_err(|e| e.to_string())?;
+        worksheet
+            .set_column_width(0, 35)
+            .map_err(|e| e.to_string())?;
+        worksheet
+            .set_column_width(1, 18)
+            .map_err(|e| e.to_string())?;
+        worksheet
+            .set_column_width(2, 18)
+            .map_err(|e| e.to_string())?;
 
         workbook
             .save_to_buffer()
@@ -180,12 +186,7 @@ impl ExcelWriter {
             .map_err(|e| e.to_string())?;
         for (i, date) in dates.iter().enumerate() {
             worksheet
-                .write_string_with_format(
-                    3,
-                    (i + 1) as u16,
-                    date.day().to_string(),
-                    &header_fmt,
-                )
+                .write_string_with_format(3, (i + 1) as u16, date.day().to_string(), &header_fmt)
                 .map_err(|e| e.to_string())?;
         }
 
@@ -208,9 +209,13 @@ impl ExcelWriter {
         }
 
         // Column widths
-        worksheet.set_column_width(0, 35).map_err(|e| e.to_string())?;
+        worksheet
+            .set_column_width(0, 35)
+            .map_err(|e| e.to_string())?;
         for i in 1..=(dates.len() as u16) {
-            worksheet.set_column_width(i, 8).map_err(|e| e.to_string())?;
+            worksheet
+                .set_column_width(i, 8)
+                .map_err(|e| e.to_string())?;
         }
 
         // Freeze panes: row 4 (first data), col 1 (first day col)
@@ -244,22 +249,21 @@ impl ExcelWriter {
             .set_background_color(Color::RGB(0x4472C4))
             .set_font_color(Color::RGB(0xFFFFFF));
         let time_fmt = Format::new().set_align(FormatAlign::Center);
-        let status_present =
-            Format::new().set_font_color(Color::RGB(0x2E7D32)).set_align(FormatAlign::Center);
-        let status_late =
-            Format::new().set_font_color(Color::RGB(0xF57C00)).set_align(FormatAlign::Center);
-        let status_absent =
-            Format::new().set_font_color(Color::RGB(0xD32F2F)).set_align(FormatAlign::Center);
-        let status_off =
-            Format::new().set_font_color(Color::RGB(0x757575)).set_align(FormatAlign::Center);
+        let status_present = Format::new()
+            .set_font_color(Color::RGB(0x2E7D32))
+            .set_align(FormatAlign::Center);
+        let status_late = Format::new()
+            .set_font_color(Color::RGB(0xF57C00))
+            .set_align(FormatAlign::Center);
+        let status_absent = Format::new()
+            .set_font_color(Color::RGB(0xD32F2F))
+            .set_align(FormatAlign::Center);
+        let status_off = Format::new()
+            .set_font_color(Color::RGB(0x757575))
+            .set_align(FormatAlign::Center);
 
         worksheet
-            .write_string_with_format(
-                0,
-                0,
-                format!("Raw Details - {workspace_name}"),
-                &title_fmt,
-            )
+            .write_string_with_format(0, 0, format!("Raw Details - {workspace_name}"), &title_fmt)
             .map_err(|e| e.to_string())?;
         worksheet
             .write_string_with_format(
@@ -299,12 +303,7 @@ impl ExcelWriter {
                 .write_string(row, 1, &report.employee_name)
                 .map_err(|e| e.to_string())?;
             worksheet
-                .write_string_with_format(
-                    row,
-                    2,
-                    format_time(report.scheduled_start),
-                    &time_fmt,
-                )
+                .write_string_with_format(row, 2, format_time(report.scheduled_start), &time_fmt)
                 .map_err(|e| e.to_string())?;
             worksheet
                 .write_string_with_format(row, 3, format_time(report.scheduled_end), &time_fmt)
@@ -348,16 +347,36 @@ impl ExcelWriter {
         }
 
         // Column widths
-        worksheet.set_column_width(0, 12).map_err(|e| e.to_string())?;
-        worksheet.set_column_width(1, 30).map_err(|e| e.to_string())?;
-        worksheet.set_column_width(2, 15).map_err(|e| e.to_string())?;
-        worksheet.set_column_width(3, 15).map_err(|e| e.to_string())?;
-        worksheet.set_column_width(4, 12).map_err(|e| e.to_string())?;
-        worksheet.set_column_width(5, 12).map_err(|e| e.to_string())?;
-        worksheet.set_column_width(6, 12).map_err(|e| e.to_string())?;
-        worksheet.set_column_width(7, 12).map_err(|e| e.to_string())?;
-        worksheet.set_column_width(8, 12).map_err(|e| e.to_string())?;
-        worksheet.set_column_width(9, 12).map_err(|e| e.to_string())?;
+        worksheet
+            .set_column_width(0, 12)
+            .map_err(|e| e.to_string())?;
+        worksheet
+            .set_column_width(1, 30)
+            .map_err(|e| e.to_string())?;
+        worksheet
+            .set_column_width(2, 15)
+            .map_err(|e| e.to_string())?;
+        worksheet
+            .set_column_width(3, 15)
+            .map_err(|e| e.to_string())?;
+        worksheet
+            .set_column_width(4, 12)
+            .map_err(|e| e.to_string())?;
+        worksheet
+            .set_column_width(5, 12)
+            .map_err(|e| e.to_string())?;
+        worksheet
+            .set_column_width(6, 12)
+            .map_err(|e| e.to_string())?;
+        worksheet
+            .set_column_width(7, 12)
+            .map_err(|e| e.to_string())?;
+        worksheet
+            .set_column_width(8, 12)
+            .map_err(|e| e.to_string())?;
+        worksheet
+            .set_column_width(9, 12)
+            .map_err(|e| e.to_string())?;
 
         Ok(())
     }

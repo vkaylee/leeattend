@@ -2,10 +2,7 @@
 //!
 //! Provides real-time monitoring endpoints for distributed worker system.
 
-use axum::{
-    extract::State,
-    Json,
-};
+use axum::{extract::State, Json};
 use chrono::{DateTime, Utc};
 use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
@@ -56,9 +53,10 @@ pub struct MonitorStatsResponse {
 pub async fn get_monitor_stats(
     State(state): State<Arc<AppState>>,
 ) -> AppResult<Json<MonitorStatsResponse>> {
-    let redis = state.redis.as_ref().ok_or_else(|| {
-        AppError::ServiceUnavailable("Redis not available".to_string())
-    })?;
+    let redis = state
+        .redis
+        .as_ref()
+        .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?;
 
     let mut conn = redis.conn();
 
@@ -113,9 +111,10 @@ pub async fn get_monitor_stats(
 pub async fn get_worker_list(
     State(state): State<Arc<AppState>>,
 ) -> AppResult<Json<Vec<WorkerHeartbeat>>> {
-    let redis = state.redis.as_ref().ok_or_else(|| {
-        AppError::ServiceUnavailable("Redis not available".to_string())
-    })?;
+    let redis = state
+        .redis
+        .as_ref()
+        .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?;
 
     let mut conn = redis.conn();
 
@@ -180,8 +179,10 @@ mod tests {
         let idle = WorkerStatus::Idle;
         let processing = WorkerStatus::Processing;
 
-        let idle_json = serde_json::to_string(&idle).expect("WorkerStatus serialization should not fail");
-        let processing_json = serde_json::to_string(&processing).expect("WorkerStatus serialization should not fail");
+        let idle_json =
+            serde_json::to_string(&idle).expect("WorkerStatus serialization should not fail");
+        let processing_json =
+            serde_json::to_string(&processing).expect("WorkerStatus serialization should not fail");
 
         assert_eq!(idle_json, "\"IDLE\"");
         assert_eq!(processing_json, "\"PROCESSING\"");
@@ -197,7 +198,8 @@ mod tests {
             last_seen_at: Utc::now(),
         };
 
-        let json = serde_json::to_string(&heartbeat).expect("WorkerHeartbeat serialization should not fail");
+        let json = serde_json::to_string(&heartbeat)
+            .expect("WorkerHeartbeat serialization should not fail");
         assert!(json.contains("\"status\":\"PROCESSING\""));
         assert!(json.contains("\"current_task_type\":\"EXPORT_CHUNK\""));
         assert!(json.contains("\"host\":\"worker-pod-1\""));
@@ -214,7 +216,8 @@ mod tests {
             failed_today: 3,
         };
 
-        let json = serde_json::to_string(&stats).expect("MonitorStatsResponse serialization should not fail");
+        let json = serde_json::to_string(&stats)
+            .expect("MonitorStatsResponse serialization should not fail");
         assert!(json.contains("\"pending_tasks\":150"));
         assert!(json.contains("\"total_workers\":50"));
         assert!(json.contains("\"active_workers\":45"));
@@ -245,7 +248,8 @@ mod tests {
             "last_seen_at": "2026-01-30T12:00:00Z"
         }"#;
 
-        let heartbeat: WorkerHeartbeat = serde_json::from_str(json).expect("WorkerHeartbeat deserialization should not fail");
+        let heartbeat: WorkerHeartbeat =
+            serde_json::from_str(json).expect("WorkerHeartbeat deserialization should not fail");
         assert_eq!(heartbeat.host, "worker-1");
         assert_eq!(heartbeat.status, WorkerStatus::Idle);
         assert!(heartbeat.current_task_type.is_none());

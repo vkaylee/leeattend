@@ -5,15 +5,16 @@ use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::models::{CreateEmployeeRequest, Employee, UpdateEmployeeRequest};
 use apiserver::AppState;
-use axum::http::StatusCode;
 use axum::body::Body;
+use axum::http::StatusCode;
 use std::sync::Arc;
 use tower::ServiceExt;
 use uuid::Uuid;
 
 #[tokio::test]
 async fn test_create_employee_id_normalization() {
-    let (_test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
@@ -43,33 +44,38 @@ async fn test_create_employee_id_normalization() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::CREATED);
-    
-    let body = axum::body::to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+
+    let body = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+        .await
+        .unwrap();
     let created_emp: Employee = serde_json::from_slice(&body).unwrap();
 
     // Verify response has normalized ID
     assert_eq!(created_emp.employee_id_number, "123");
 
     // Verify in DB
-    let db_emp: (String,) = sqlx::query_as("SELECT employee_id_number FROM employees WHERE id = $1")
-        .bind(created_emp.id)
-        .fetch_one(&state.db)
-        .await
-        .unwrap();
-    
+    let db_emp: (String,) =
+        sqlx::query_as("SELECT employee_id_number FROM employees WHERE id = $1")
+            .bind(created_emp.id)
+            .fetch_one(&state.db)
+            .await
+            .unwrap();
+
     assert_eq!(db_emp.0, "123");
 }
 
 #[tokio::test]
 async fn test_update_employee_id_normalization() {
-    let (_test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
     let token = factory.auth().create_token(user_id);
 
     // Create initial employee "100"
-    let emp_id: Uuid = factory.employee()
+    let emp_id: Uuid = factory
+        .employee()
         .with_workspace(ws_id)
         .with_employee_id_number("100")
         .with_full_name("Original Name")
@@ -104,32 +110,37 @@ async fn test_update_employee_id_normalization() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = axum::body::to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+        .await
+        .unwrap();
     let updated_emp: Employee = serde_json::from_slice(&body).unwrap();
 
     // Verify response has normalized ID
     assert_eq!(updated_emp.employee_id_number, "200");
 
     // Verify in DB
-    let db_emp: (String,) = sqlx::query_as("SELECT employee_id_number FROM employees WHERE id = $1")
-        .bind(emp_id)
-        .fetch_one(&state.db)
-        .await
-        .unwrap();
-    
+    let db_emp: (String,) =
+        sqlx::query_as("SELECT employee_id_number FROM employees WHERE id = $1")
+            .bind(emp_id)
+            .fetch_one(&state.db)
+            .await
+            .unwrap();
+
     assert_eq!(db_emp.0, "200");
 }
 
 #[tokio::test]
 async fn test_employee_id_uniqueness_on_normalized_values() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
     let token = factory.auth().create_token(user_id);
 
     // Create first employee "555"
-    let _: Uuid = factory.employee()
+    let _: Uuid = factory
+        .employee()
         .with_workspace(ws_id)
         .with_employee_id_number("555")
         .with_full_name("First Employee")

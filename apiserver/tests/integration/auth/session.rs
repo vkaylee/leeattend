@@ -12,7 +12,8 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_auth_session_lifecycle() {
-    let (_test_db, factory, state, _app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, state, _app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
     let user_id: Uuid = factory.user().create().await;
 
     // 1. Create session
@@ -50,7 +51,8 @@ async fn test_auth_session_lifecycle() {
 
 #[tokio::test]
 async fn test_revoke_all_sessions() {
-    let (_test_db, factory, state, _app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, state, _app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
     let user_id: Uuid = factory.user().create().await;
 
     let token1 = AuthService::create_session(&state.db, user_id)
@@ -80,7 +82,8 @@ async fn test_revoke_all_sessions() {
 
 #[tokio::test]
 async fn test_get_me_and_logout() {
-    let (_test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
     let refresh_token = AuthService::create_session(&state.db, user_id)
@@ -127,7 +130,12 @@ async fn test_get_me_and_logout() {
 
 #[tokio::test]
 async fn test_get_me_not_found() {
-    let (_test_db, _factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, _factory, _state, app): (
+        TestDatabase,
+        TestFactory,
+        Arc<AppState>,
+        axum::Router,
+    ) = setup_app_tower().await;
 
     let response = app
         .clone()
@@ -146,7 +154,8 @@ async fn test_get_me_not_found() {
 
 #[tokio::test]
 async fn test_refresh_token_api() {
-    let (_test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
     let refresh_token = AuthService::create_session(&state.db, user_id)
@@ -174,7 +183,12 @@ async fn test_refresh_token_api() {
 
 #[tokio::test]
 async fn test_invalid_refresh_token() {
-    let (_test_db, _factory, state, _app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, _factory, state, _app): (
+        TestDatabase,
+        TestFactory,
+        Arc<AppState>,
+        axum::Router,
+    ) = setup_app_tower().await;
     let result =
         AuthService::refresh_session(&state.db, "non-existent-token", &state.jwt_secret).await;
     assert!(result.is_err());

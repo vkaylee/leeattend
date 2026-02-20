@@ -279,6 +279,6 @@ mod tests {
         assert!(!job.increment_retry()); // 1 <= 3
         assert!(!job.increment_retry()); // 2 <= 3
         assert!(!job.increment_retry()); // 3 <= 3
-        assert!(job.increment_retry());  // 4 > 3, exhausted
+        assert!(job.increment_retry()); // 4 > 3, exhausted
     }
 }

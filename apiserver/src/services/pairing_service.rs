@@ -94,11 +94,12 @@ impl PairingService {
         );
 
         // 1. Fetch effective schedule
-        let (shift_id_opt, traces) = roster_repository::get_effective_shift(pool, employee_id, date).await?;
+        let (shift_id_opt, traces) =
+            roster_repository::get_effective_shift(pool, employee_id, date).await?;
 
         let mut shift_config = None;
         if let Some(shift_id) = shift_id_opt {
-// ... (rest of shift fetching logic)
+            // ... (rest of shift fetching logic)
             let shift = sqlx::query!(
                 "SELECT start_time, end_time, break_start, break_end FROM shifts WHERE id = $1",
                 shift_id
@@ -115,8 +116,12 @@ impl PairingService {
                     end_m += 1440;
                 }
 
-                let mut bs_m = s.break_start.map(|t: chrono::NaiveTime| t.hour() * 60 + t.minute());
-                let mut be_m = s.break_end.map(|t: chrono::NaiveTime| t.hour() * 60 + t.minute());
+                let mut bs_m = s
+                    .break_start
+                    .map(|t: chrono::NaiveTime| t.hour() * 60 + t.minute());
+                let mut be_m = s
+                    .break_end
+                    .map(|t: chrono::NaiveTime| t.hour() * 60 + t.minute());
 
                 // Handle break overnight transition if needed
                 if let (Some(bs), Some(be)) = (bs_m, be_m) {
@@ -141,14 +146,14 @@ impl PairingService {
         // Search window: strictly bounded by shift hours + buffer to avoid cross-day stealing.
         let start_of_day_local = local_to_tz(&tz, date, 0, 0, 0)?;
         let start_of_day_utc = start_of_day_local.with_timezone(&Utc);
-        
+
         let (window_start_utc, window_end_utc) = if let Some(s) = &shift_config {
             // Use shift start/end with a generous buffer to allow for early/late punches.
             // 6 hours is generous enough for most workplaces but bounded to avoid picking up logs from other days.
-            const LOG_SEARCH_BUFFER_MINUTES: i64 = 360; 
+            const LOG_SEARCH_BUFFER_MINUTES: i64 = 360;
             let start_mins = s.start_minutes as i64 - LOG_SEARCH_BUFFER_MINUTES;
             let end_mins = s.end_minutes as i64 + LOG_SEARCH_BUFFER_MINUTES;
-            
+
             let s_utc = (start_of_day_local + Duration::minutes(start_mins)).with_timezone(&Utc);
             let e_utc = (start_of_day_local + Duration::minutes(end_mins)).with_timezone(&Utc);
             (s_utc, e_utc)
@@ -204,17 +209,16 @@ impl PairingService {
         }
 
         if filtered_log_events.is_empty() {
-            Self::clear_auto_entries(
-                pool,
-                employee_id,
-                start_of_day_utc,
-                next_day_utc,
+            Self::clear_auto_entries(pool, employee_id, start_of_day_utc, next_day_utc).await?;
+
+            let workspace_id = sqlx::query_scalar!(
+                "SELECT workspace_id FROM employees WHERE id = $1",
+                employee_id
             )
+            .fetch_one(pool)
             .await?;
-            
-            let workspace_id = sqlx::query_scalar!("SELECT workspace_id FROM employees WHERE id = $1", employee_id).fetch_one(pool).await?;
             let _ = crate::services::attendance_summary_service::AttendanceSummaryService::recalculate_daily_summary(pool, workspace_id, employee_id, date).await;
-            
+
             return Ok(());
         }
 
@@ -244,8 +248,8 @@ impl PairingService {
 
         for session in sessions {
             // Calculate timestamps based on local day start to ensure accuracy
-            let start_dt_local = local_to_tz(&tz, date, 0, 0, 0)?
-                + Duration::minutes(session.start_minutes as i64);
+            let start_dt_local =
+                local_to_tz(&tz, date, 0, 0, 0)? + Duration::minutes(session.start_minutes as i64);
             let start_dt_utc = start_dt_local.with_timezone(&Utc);
 
             // Important: Only save sessions that actually START on the target date.
@@ -254,8 +258,7 @@ impl PairingService {
             }
 
             let end_dt_utc = if let Some(m) = session.end_minutes {
-                let end_dt_local = local_to_tz(&tz, date, 0, 0, 0)?
-                    + Duration::minutes(m as i64);
+                let end_dt_local = local_to_tz(&tz, date, 0, 0, 0)? + Duration::minutes(m as i64);
                 Some(end_dt_local.with_timezone(&Utc))
             } else {
                 None
@@ -290,7 +293,7 @@ impl PairingService {
         }
 
         tx.commit().await?;
-        
+
         // Recalculate daily summary for OT workflow
         if let Err(e) = crate::services::attendance_summary_service::AttendanceSummaryService::recalculate_daily_summary(pool, workspace_id, employee_id, date).await {
             tracing::error!("Failed to recalculate attendance summary for emp {} on {}: {}", employee_id, date, e);
@@ -315,8 +318,15 @@ impl PairingService {
 }
 
 /// Convert local date/time to timezone-aware DateTime, handling DST edge cases
-fn local_to_tz(tz: &Tz, date: NaiveDate, h: u32, m: u32, s: u32) -> Result<DateTime<Tz>, sqlx::Error> {
-    let naive = date.and_hms_opt(h, m, s)
+fn local_to_tz(
+    tz: &Tz,
+    date: NaiveDate,
+    h: u32,
+    m: u32,
+    s: u32,
+) -> Result<DateTime<Tz>, sqlx::Error> {
+    let naive = date
+        .and_hms_opt(h, m, s)
         .ok_or_else(|| sqlx::Error::Protocol(format!("Invalid time: {h}:{m}:{s}")))?;
     match tz.from_local_datetime(&naive) {
         chrono::LocalResult::Single(dt) => Ok(dt),
@@ -325,13 +335,16 @@ fn local_to_tz(tz: &Tz, date: NaiveDate, h: u32, m: u32, s: u32) -> Result<DateT
             // DST gap - shift forward in 15-minute increments until valid time found
             // This is more robust for 30-min or other non-standard DST zones.
             let mut shifted = naive;
-            for _ in 0..8 { // Try up to 2 hours
+            for _ in 0..8 {
+                // Try up to 2 hours
                 shifted += Duration::minutes(15);
                 if let chrono::LocalResult::Single(dt) = tz.from_local_datetime(&shifted) {
                     return Ok(dt);
                 }
             }
-            Err(sqlx::Error::Protocol("Cannot resolve DST gap after 2 hours of searching".to_string()))
+            Err(sqlx::Error::Protocol(
+                "Cannot resolve DST gap after 2 hours of searching".to_string(),
+            ))
         }
     }
 }

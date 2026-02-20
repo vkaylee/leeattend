@@ -9,7 +9,8 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_workspace_theme_color_update() {
-    let (address, workspace_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) = spawn_app_with_factory().await;
+    let (address, workspace_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
     let client = reqwest::Client::new();
 
     // 1. Check default color (Violet #7c3aed)
@@ -61,21 +62,27 @@ async fn test_update_workspace_time_format() {
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
 
     // 1. Verify default time format is 24h
-    let ws: apiserver::models::Workspace =
-        sqlx::query_as("SELECT * FROM workspaces WHERE id = $1")
-            .bind(ws_id)
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+    let ws: apiserver::models::Workspace = sqlx::query_as("SELECT * FROM workspaces WHERE id = $1")
+        .bind(ws_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
     assert_eq!(ws.time_format, "24h");
 
     // 2. Update to 12h
     let updated_ws = WorkspaceService::update_workspace(
         &pool,
         ws_id,
-        None, None, None, None,
+        None,
+        None,
+        None,
+        None,
         Some("12h".to_string()),
-        None, None, None, None, None,
+        None,
+        None,
+        None,
+        None,
+        None,
     )
     .await
     .expect("Failed to update workspace");

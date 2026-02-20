@@ -112,8 +112,7 @@ impl ReportQueue {
     pub async fn create_job_metadata(&self, meta: &JobMetadata) -> Result<(), redis::RedisError> {
         let mut conn = self.pool.conn();
         let key = format!("{}{}", META_PREFIX, meta.job_id);
-        let json =
-            serde_json::to_string(meta).expect("JobMetadata serialization should not fail");
+        let json = serde_json::to_string(meta).expect("JobMetadata serialization should not fail");
 
         redis::pipe()
             .set(&key, json)
@@ -158,8 +157,7 @@ impl ReportQueue {
     pub async fn update_job_metadata(&self, meta: &JobMetadata) -> Result<(), redis::RedisError> {
         let mut conn = self.pool.conn();
         let key = format!("{}{}", META_PREFIX, meta.job_id);
-        let json =
-            serde_json::to_string(meta).expect("JobMetadata serialization should not fail");
+        let json = serde_json::to_string(meta).expect("JobMetadata serialization should not fail");
 
         // Get current TTL before update (compatible with Redis 3.0+)
         let ttl: i64 = redis::cmd("TTL")
@@ -551,7 +549,7 @@ impl ReportQueue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::queue::{DateRange, ReportConfig, ReportType, TaskType, JobStatus, RedisPool};
+    use crate::queue::{DateRange, JobStatus, RedisPool, ReportConfig, ReportType, TaskType};
     use chrono::NaiveDate;
 
     // Helper to create test Redis pool with 5s timeout (avoids 60s+ hang when Redis unavailable)
@@ -565,15 +563,14 @@ mod tests {
         )
         .await
         {
-            Ok(Ok(pool)) => match tokio::time::timeout(
-                tokio::time::Duration::from_secs(5),
-                pool.health_check(),
-            )
-            .await
-            {
-                Ok(Ok(())) => Some(pool),
-                _ => None,
-            },
+            Ok(Ok(pool)) => {
+                match tokio::time::timeout(tokio::time::Duration::from_secs(5), pool.health_check())
+                    .await
+                {
+                    Ok(Ok(())) => Some(pool),
+                    _ => None,
+                }
+            }
             _ => None,
         }
     }
@@ -620,8 +617,14 @@ mod tests {
         let counter_key = format!("{COUNTER_PREFIX}{job_id}");
         let failed_key = format!("{COUNTER_PREFIX}{job_id}:failed");
 
-        assert_eq!(counter_key, "report:counter:550e8400-e29b-41d4-a716-446655440000");
-        assert_eq!(failed_key, "report:counter:550e8400-e29b-41d4-a716-446655440000:failed");
+        assert_eq!(
+            counter_key,
+            "report:counter:550e8400-e29b-41d4-a716-446655440000"
+        );
+        assert_eq!(
+            failed_key,
+            "report:counter:550e8400-e29b-41d4-a716-446655440000:failed"
+        );
     }
 
     #[test]
@@ -681,8 +684,14 @@ mod tests {
         let job_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
         let data_key = format!("{RESULTS_PREFIX}{job_id}:data");
         let filename_key = format!("{RESULTS_PREFIX}{job_id}:filename");
-        assert_eq!(data_key, "report:results:550e8400-e29b-41d4-a716-446655440000:data");
-        assert_eq!(filename_key, "report:results:550e8400-e29b-41d4-a716-446655440000:filename");
+        assert_eq!(
+            data_key,
+            "report:results:550e8400-e29b-41d4-a716-446655440000:data"
+        );
+        assert_eq!(
+            filename_key,
+            "report:results:550e8400-e29b-41d4-a716-446655440000:filename"
+        );
     }
 
     #[test]
@@ -988,10 +997,7 @@ mod tests {
             .await
             .unwrap_or(-1);
 
-        assert!(
-            ttl_after > 0,
-            "TTL should be preserved after status update"
-        );
+        assert!(ttl_after > 0, "TTL should be preserved after status update");
         assert!(
             ttl_after <= ttl_before,
             "TTL should not increase after status update"

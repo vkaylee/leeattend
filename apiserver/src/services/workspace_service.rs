@@ -68,7 +68,6 @@ impl WorkspaceService {
             .map_err(|e| e.to_string())?;
         }
 
-
         tx.commit().await.map_err(|e| e.to_string())?;
 
         Ok(workspace)

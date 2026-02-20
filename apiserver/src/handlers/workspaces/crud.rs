@@ -76,7 +76,7 @@ pub async fn get_workspace_stats(
             GROUP BY esc.employee_id
         )
         SELECT COALESCE(SUM(total_amount), 0) FROM dynamic_payroll
-        "#
+        "#,
     )
     .bind(workspace_id)
     .fetch_one(&state.db)
@@ -127,7 +127,8 @@ pub async fn create_workspace(
     UserId(user_id): UserId,
     Json(req): Json<CreateWorkspaceRequest>,
 ) -> AppResult<Json<Workspace>> {
-    WorkspaceService::create_workspace(&state.db, &req.name, user_id).await
+    WorkspaceService::create_workspace(&state.db, &req.name, user_id)
+        .await
         .map(Json)
         .map_err(AppError::from)
 }
@@ -139,7 +140,9 @@ pub async fn update_workspace(
     Json(req): Json<UpdateWorkspaceRequest>,
 ) -> AppResult<Json<Workspace>> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Admin or Owner role required to update workspace".to_string()));
+        return Err(AppError::Forbidden(
+            "Admin or Owner role required to update workspace".to_string(),
+        ));
     }
     crate::services::workspace_service::WorkspaceService::update_workspace(
         &state.db,

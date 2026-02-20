@@ -1,28 +1,30 @@
 use chrono::{DateTime, Utc};
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 use std::sync::Arc;
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
 use crate::models::{LogSource, RawAttendanceLog};
-use crate::repositories::{employee_repository, raw_attendance_log_repository, attendance_log_error_repository, staging_log_repository};
+use crate::repositories::{
+    attendance_log_error_repository, employee_repository, raw_attendance_log_repository,
+    staging_log_repository,
+};
 use crate::services::pairing_service::PairingService;
+use crate::services::{agent_log_buffer, AgentLogBuffer, AgentLogEntry};
 use crate::utils::datetime::parse_datetime_with_tz;
-use crate::services::{AgentLogBuffer, AgentLogEntry, agent_log_buffer};
 
 #[derive(Clone)]
 pub struct AttendanceLogService {
     #[allow(dead_code)]
     pool: PgPool,
-    #[allow(dead_code)]  // Buffer kept for potential batch operations
+    #[allow(dead_code)] // Buffer kept for potential batch operations
     log_buffer: Arc<AgentLogBuffer>,
 }
 
 impl AttendanceLogService {
     pub fn new(
-        #[allow(dead_code)]
-    pool: PgPool,
+        #[allow(dead_code)] pool: PgPool,
         buffer_capacity: usize,
         batch_size: usize,
         flush_interval_ms: u64,
@@ -41,10 +43,7 @@ impl AttendanceLogService {
             .await;
         });
 
-        let service = Self {
-            pool,
-            log_buffer,
-        };
+        let service = Self { pool, log_buffer };
 
         (service, worker_handle)
     }
@@ -107,7 +106,7 @@ impl AttendanceLogService {
     /// - Case 3: Parse/validation error → insert to attendance_log_errors → Ok(false)
     /// - Case 4: Database connection error → Err(msg) (agent should retry)
     #[allow(clippy::too_many_arguments)]
-        pub async fn process_log(
+    pub async fn process_log(
         pool: &PgPool,
         workspace_id: Uuid,
         employee_id_number: &str,
@@ -121,45 +120,54 @@ impl AttendanceLogService {
         time_fmt: Option<&str>,
     ) -> Result<bool, String> {
         // 1. Resolve employee_id from employee_id_number and workspace_id
-        let employee = match employee_repository::find_by_number(pool, workspace_id, employee_id_number).await {
-            Ok(Some(emp)) => emp,
-            Ok(None) => {
-                // Case 2: Unknown user → Stage for later review (NOT an error)
-                let fingerprint = Self::calculate_fingerprint(
-                    device_id.as_deref(),
-                    employee_id_number,
-                    punch_time_raw,
-                    raw_data.as_ref(),
-                );
+        let employee =
+            match employee_repository::find_by_number(pool, workspace_id, employee_id_number).await
+            {
+                Ok(Some(emp)) => emp,
+                Ok(None) => {
+                    // Case 2: Unknown user → Stage for later review (NOT an error)
+                    let fingerprint = Self::calculate_fingerprint(
+                        device_id.as_deref(),
+                        employee_id_number,
+                        punch_time_raw,
+                        raw_data.as_ref(),
+                    );
 
-                // Parse timestamp for staging (best effort)
-                let punch_time = parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt)
-                    .unwrap_or_else(|_| Utc::now());
+                    // Parse timestamp for staging (best effort)
+                    let punch_time =
+                        parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt)
+                            .unwrap_or_else(|_| Utc::now());
 
-                let _ = staging_log_repository::create_staging_log(
-                    pool,
-                    workspace_id,
-                    device_id,
-                    employee_id_number,
-                    punch_time,
-                    raw_data,
-                    &fingerprint,
-                ).await;
+                    let _ = staging_log_repository::create_staging_log(
+                        pool,
+                        workspace_id,
+                        device_id,
+                        employee_id_number,
+                        punch_time,
+                        raw_data,
+                        &fingerprint,
+                    )
+                    .await;
 
-                warn!("Unknown user {} staged for workspace {} (fingerprint: {})",
-                    employee_id_number, workspace_id, &fingerprint[..8]);
-                return Ok(false); // SUCCESS - don't retry
-            }
-            Err(e) => {
-                // Case 4: Database error → Agent should retry
-                let msg = format!("Database error finding employee: {e}");
-                error!("{}", msg);
-                return Err(msg);
-            }
-        };
+                    warn!(
+                        "Unknown user {} staged for workspace {} (fingerprint: {})",
+                        employee_id_number,
+                        workspace_id,
+                        &fingerprint[..8]
+                    );
+                    return Ok(false); // SUCCESS - don't retry
+                }
+                Err(e) => {
+                    // Case 4: Database error → Agent should retry
+                    let msg = format!("Database error finding employee: {e}");
+                    error!("{}", msg);
+                    return Err(msg);
+                }
+            };
 
         // 2. Parse punch_time with workspace configuration
-        let punch_time = match parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt) {
+        let punch_time = match parse_datetime_with_tz(punch_time_raw, timezone, date_fmt, time_fmt)
+        {
             Ok(dt) => dt,
             Err(e) => {
                 // Case 3: Validation error → Log with fingerprint (NOT retry)
@@ -181,15 +189,24 @@ impl AttendanceLogService {
                     &msg,
                     &format!("{source:?}"),
                     &fingerprint,
-                ).await;
+                )
+                .await;
 
                 return Ok(false); // SUCCESS - don't retry
             }
         };
 
         // 3. Create RawAttendanceLog
-        let punch = raw_data.as_ref().and_then(|d| d["punch"].as_i64()).map(|v| v as i32).unwrap_or(-1);
-        let status = raw_data.as_ref().and_then(|d| d["status"].as_i64()).map(|v| v as i32).unwrap_or(-1);
+        let punch = raw_data
+            .as_ref()
+            .and_then(|d| d["punch"].as_i64())
+            .map(|v| v as i32)
+            .unwrap_or(-1);
+        let status = raw_data
+            .as_ref()
+            .and_then(|d| d["status"].as_i64())
+            .map(|v| v as i32)
+            .unwrap_or(-1);
 
         let raw_log = RawAttendanceLog {
             id: Uuid::new_v4(),
@@ -220,7 +237,10 @@ impl AttendanceLogService {
                 Ok(true)
             }
             Ok(false) => {
-                info!("Duplicate log skipped for {} at {}", employee_id_number, punch_time);
+                info!(
+                    "Duplicate log skipped for {} at {}",
+                    employee_id_number, punch_time
+                );
                 Ok(false)
             }
             Err(e) => {
@@ -241,8 +261,16 @@ impl AttendanceLogService {
         device_id: Option<String>,
         raw_data: Option<serde_json::Value>,
     ) -> Result<bool, String> {
-        let punch = raw_data.as_ref().and_then(|d| d["punch"].as_i64()).map(|v| v as i32).unwrap_or(-1);
-        let status = raw_data.as_ref().and_then(|d| d["status"].as_i64()).map(|v| v as i32).unwrap_or(-1);
+        let punch = raw_data
+            .as_ref()
+            .and_then(|d| d["punch"].as_i64())
+            .map(|v| v as i32)
+            .unwrap_or(-1);
+        let status = raw_data
+            .as_ref()
+            .and_then(|d| d["status"].as_i64())
+            .map(|v| v as i32)
+            .unwrap_or(-1);
 
         let raw_log = RawAttendanceLog {
             id: Uuid::new_v4(),
@@ -300,8 +328,18 @@ impl AttendanceLogService {
 
         for staged in &staged_logs {
             // 2. Create RawAttendanceLog from staging
-            let punch = staged.raw_data.as_ref().and_then(|d| d["punch"].as_i64()).map(|v| v as i32).unwrap_or(-1);
-            let status = staged.raw_data.as_ref().and_then(|d| d["status"].as_i64()).map(|v| v as i32).unwrap_or(-1);
+            let punch = staged
+                .raw_data
+                .as_ref()
+                .and_then(|d| d["punch"].as_i64())
+                .map(|v| v as i32)
+                .unwrap_or(-1);
+            let status = staged
+                .raw_data
+                .as_ref()
+                .and_then(|d| d["status"].as_i64())
+                .map(|v| v as i32)
+                .unwrap_or(-1);
 
             let raw_log = RawAttendanceLog {
                 id: Uuid::new_v4(),
@@ -323,11 +361,23 @@ impl AttendanceLogService {
                     dates_to_reprocess.insert(staged.punch_time.date_naive());
 
                     // Mark staging log as processed
-                    let _ = staging_log_repository::update_staging_status(pool, staged.id, staged.workspace_id, "processed").await;
+                    let _ = staging_log_repository::update_staging_status(
+                        pool,
+                        staged.id,
+                        staged.workspace_id,
+                        "processed",
+                    )
+                    .await;
                 }
                 Ok(false) => {
                     // Duplicate - still mark as processed
-                    let _ = staging_log_repository::update_staging_status(pool, staged.id, staged.workspace_id, "processed").await;
+                    let _ = staging_log_repository::update_staging_status(
+                        pool,
+                        staged.id,
+                        staged.workspace_id,
+                        "processed",
+                    )
+                    .await;
                 }
                 Err(e) => {
                     error!("Failed to claim staged log {}: {}", staged.id, e);
@@ -343,16 +393,31 @@ impl AttendanceLogService {
             .flatten();
         let tz_str = ws.as_ref().map(|w| w.timezone.as_str()).unwrap_or("UTC");
         let tz: chrono_tz::Tz = tz_str.parse().unwrap_or(chrono_tz::UTC);
-        let algorithm = ws.as_ref().map(|w| w.pairing_algorithm.as_str()).unwrap_or("anchor_first");
+        let algorithm = ws
+            .as_ref()
+            .map(|w| w.pairing_algorithm.as_str())
+            .unwrap_or("anchor_first");
 
         for date in dates_to_reprocess {
-            info!("Reprocessing attendance for employee {} on {}", employee_id, date);
-            if let Err(e) = PairingService::reprocess_daily_attendance(pool, employee_id, date, tz, algorithm).await {
-                error!("Pairing error for employee {} on {}: {:?}", employee_id, date, e);
+            info!(
+                "Reprocessing attendance for employee {} on {}",
+                employee_id, date
+            );
+            if let Err(e) =
+                PairingService::reprocess_daily_attendance(pool, employee_id, date, tz, algorithm)
+                    .await
+            {
+                error!(
+                    "Pairing error for employee {} on {}: {:?}",
+                    employee_id, date, e
+                );
             }
         }
 
-        info!("Claimed {} staged logs for employee {}", claimed_count, employee_id_number);
+        info!(
+            "Claimed {} staged logs for employee {}",
+            claimed_count, employee_id_number
+        );
         Ok(claimed_count)
     }
 }

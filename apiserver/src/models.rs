@@ -4,7 +4,16 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[derive(
-    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display, ToSchema,
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
+    ToSchema,
 )]
 #[sqlx(type_name = "member_role_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -15,7 +24,16 @@ pub enum MemberRole {
 }
 
 #[derive(
-    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display, ToSchema,
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
+    ToSchema,
 )]
 #[sqlx(type_name = "leave_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -26,7 +44,16 @@ pub enum LeaveStatus {
 }
 
 #[derive(
-    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display, ToSchema,
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
+    ToSchema,
 )]
 #[sqlx(type_name = "adjustment_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -37,7 +64,16 @@ pub enum AdjustmentStatus {
 }
 
 #[derive(
-    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display, ToSchema,
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
+    ToSchema,
 )]
 #[sqlx(type_name = "log_source_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -48,7 +84,16 @@ pub enum LogSource {
 }
 
 #[derive(
-    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display, ToSchema,
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
+    ToSchema,
 )]
 #[sqlx(type_name = "import_job_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -60,7 +105,16 @@ pub enum ImportJobStatus {
 }
 
 #[derive(
-    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display, ToSchema,
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
+    ToSchema,
 )]
 #[sqlx(type_name = "leave_transaction_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -187,7 +241,18 @@ pub struct UpdateDeviceRequest {
     pub is_enabled: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display, ToSchema)]
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
+    ToSchema,
+)]
 #[sqlx(type_name = "early_arrival_strategy_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum EarlyArrivalStrategy {
@@ -235,7 +300,6 @@ pub struct CreateWorkingConditionRequest {
     pub start_date: NaiveDate,
     pub end_date: Option<NaiveDate>,
 }
-
 
 // --- Workspace Management Models ---
 
@@ -1495,8 +1559,7 @@ pub struct MyProfileResponse {
     pub emergency_contacts: Vec<EmployeeEmergencyContact>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
-#[derive(Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow, Default)]
 pub struct OvertimePolicy {
     pub id: Uuid,
     pub workspace_id: Uuid,
@@ -1546,8 +1609,9 @@ pub struct LeavePolicyAssignmentDetail {
     pub leave_type_name: String,
 }
 
-
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display)]
+#[derive(
+    Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, sqlx::Type, strum_macros::Display,
+)]
 #[sqlx(type_name = "ot_status_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum OtStatus {

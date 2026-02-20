@@ -63,10 +63,7 @@ impl AttendanceHandler {
             .await
             .map_err(|e| format!("Failed to get workspace config: {e}"))?;
 
-        let tz: Tz = workspace_config
-            .timezone
-            .parse()
-            .unwrap_or(chrono_tz::UTC);
+        let tz: Tz = workspace_config.timezone.parse().unwrap_or(chrono_tz::UTC);
 
         // 3. Convert dates to UTC for time entry query
         let start_dt = tz
@@ -80,11 +77,7 @@ impl AttendanceHandler {
             .with_timezone(&Utc);
 
         let end_dt = tz
-            .from_local_datetime(
-                &end_date
-                    .and_hms_opt(23, 59, 59)
-                    .ok_or("Invalid end date")?,
-            )
+            .from_local_datetime(&end_date.and_hms_opt(23, 59, 59).ok_or("Invalid end date")?)
             .single()
             .ok_or("Ambiguous end datetime")?
             .with_timezone(&Utc);
@@ -147,7 +140,12 @@ impl AttendanceHandler {
             .map_err(|e| format!("Failed to parse result JSON: {e}"))?;
 
         publisher
-            .publish_chunk(job.parent_job_id, job.batch_index, metadata.total_batches, chunk_data)
+            .publish_chunk(
+                job.parent_job_id,
+                job.batch_index,
+                metadata.total_batches,
+                chunk_data,
+            )
             .await
             .map_err(|e| format!("Failed to publish chunk: {e}"))?;
 
@@ -450,7 +448,8 @@ impl AttendanceHandler {
                     .collect();
 
                 if !log_metadata.is_empty() {
-                    metadata_map.insert("time_entries".to_string(), serde_json::json!(log_metadata));
+                    metadata_map
+                        .insert("time_entries".to_string(), serde_json::json!(log_metadata));
                 }
 
                 if !daily.traces.is_empty() {
@@ -500,9 +499,9 @@ mod tests {
     #[test]
     fn test_status_determination_present() {
         let status = determine_status(
-            Some(NaiveTime::from_hms_opt(8, 0, 0).unwrap()),  // punch_in
+            Some(NaiveTime::from_hms_opt(8, 0, 0).unwrap()), // punch_in
             Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()), // sched_start
-            true,                                              // has_shift
+            true,                                            // has_shift
         );
         assert_eq!(status, "present");
     }
@@ -510,7 +509,7 @@ mod tests {
     #[test]
     fn test_status_determination_late() {
         let status = determine_status(
-            Some(NaiveTime::from_hms_opt(9, 0, 0).unwrap()),  // punch_in (late)
+            Some(NaiveTime::from_hms_opt(9, 0, 0).unwrap()), // punch_in (late)
             Some(NaiveTime::from_hms_opt(8, 30, 0).unwrap()), // sched_start
             true,
         );
@@ -539,7 +538,10 @@ mod tests {
         ];
 
         let target_date = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
-        let filtered: Vec<_> = entries_dates.iter().filter(|d| **d == target_date).collect();
+        let filtered: Vec<_> = entries_dates
+            .iter()
+            .filter(|d| **d == target_date)
+            .collect();
 
         assert_eq!(filtered.len(), 2);
     }

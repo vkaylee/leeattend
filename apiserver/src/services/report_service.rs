@@ -6,15 +6,13 @@ use uuid::Uuid;
 
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{
-    AttendanceReportSort, DailyAttendanceReport, AttendanceSummary, PaginatedResponse, PolicyRules,
-};
-use crate::repositories::{
-    employee_repository, roster_repository, time_entry_repository,
-    SqlxWorkspaceRepository,
+    AttendanceReportSort, AttendanceSummary, DailyAttendanceReport, PaginatedResponse, PolicyRules,
 };
 use crate::repositories::workspace_repository::WorkspaceRepository;
+use crate::repositories::{
+    employee_repository, roster_repository, time_entry_repository, SqlxWorkspaceRepository,
+};
 use crate::services::AttendanceCalculator;
-
 
 pub struct ReportService;
 
@@ -46,19 +44,20 @@ impl ReportService {
         let limit = limit.unwrap_or(20);
 
         // Daily report always uses ASC sort (no sort parameter exposed)
-        let (paginated_employees, total_employees) = employee_repository::get_paginated_employee_ids(
-            pool,
-            workspace_id,
-            employee_ids.as_ref(),
-            page,
-            limit,
-            false, // sort_desc = false -> ORDER BY full_name ASC
-        )
-        .await
-        .map_err(|e| {
-            tracing::error!("Error fetching paginated employees: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+        let (paginated_employees, total_employees) =
+            employee_repository::get_paginated_employee_ids(
+                pool,
+                workspace_id,
+                employee_ids.as_ref(),
+                page,
+                limit,
+                false, // sort_desc = false -> ORDER BY full_name ASC
+            )
+            .await
+            .map_err(|e| {
+                tracing::error!("Error fetching paginated employees: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
 
         // Early return if no employees
         if paginated_employees.is_empty() {
@@ -108,10 +107,7 @@ impl ReportService {
 
         // 5. BATCH fetch time entries (eliminates N+1)
         let entries_map = time_entry_repository::get_workspace_time_entries_batch(
-            pool,
-            &emp_ids,
-            start_dt,
-            end_dt,
+            pool, &emp_ids, start_dt, end_dt,
         )
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -121,7 +117,10 @@ impl ReportService {
 
         for emp_sched in schedules {
             // Get entries from HashMap (O(1) lookup instead of DB query)
-            let entries = entries_map.get(&emp_sched.employee_id).cloned().unwrap_or_default();
+            let entries = entries_map
+                .get(&emp_sched.employee_id)
+                .cloned()
+                .unwrap_or_default();
 
             for daily in emp_sched.schedules {
                 let date = daily.date;
@@ -157,33 +156,47 @@ impl ReportService {
                         .end_time
                         .and_then(|t| tz.from_local_datetime(&date.and_time(t)).single());
 
-                    let mut rules = PolicyResolver::resolve_attendance_rules(pool, emp_sched.employee_id, workspace.id, date)
-                        .await
-                        .unwrap_or(PolicyRules {
-                            grace_period_minutes: daily.early_punch_in_grace_period_minutes.unwrap_or(0),
-                            authorized_early_leave_minutes: 0,
-                            is_early_leave_paid: false,
-                            early_arrival_strategy: workspace.early_arrival_strategy,
-                            is_break_auto_deduct: daily.is_break_auto_deduct.unwrap_or(false),
-                            is_break_overtime: false,
-                            allow_early_ot: daily.allow_early_ot.unwrap_or(false),
-                        });
+                    let mut rules = PolicyResolver::resolve_attendance_rules(
+                        pool,
+                        emp_sched.employee_id,
+                        workspace.id,
+                        date,
+                    )
+                    .await
+                    .unwrap_or(PolicyRules {
+                        grace_period_minutes: daily
+                            .early_punch_in_grace_period_minutes
+                            .unwrap_or(0),
+                        authorized_early_leave_minutes: 0,
+                        is_early_leave_paid: false,
+                        early_arrival_strategy: workspace.early_arrival_strategy,
+                        is_break_auto_deduct: daily.is_break_auto_deduct.unwrap_or(false),
+                        is_break_overtime: false,
+                        allow_early_ot: daily.allow_early_ot.unwrap_or(false),
+                    });
 
                     // Override rules with shift-specific settings if they exist
-                    if let Some(gp) = daily.early_punch_in_grace_period_minutes { rules.grace_period_minutes = gp; }
-                    if let Some(bad) = daily.is_break_auto_deduct { rules.is_break_auto_deduct = bad; }
-                    if let Some(aeo) = daily.allow_early_ot { rules.allow_early_ot = aeo; }
+                    if let Some(gp) = daily.early_punch_in_grace_period_minutes {
+                        rules.grace_period_minutes = gp;
+                    }
+                    if let Some(bad) = daily.is_break_auto_deduct {
+                        rules.is_break_auto_deduct = bad;
+                    }
+                    if let Some(aeo) = daily.allow_early_ot {
+                        rules.allow_early_ot = aeo;
+                    }
 
                     // Handle shift boundaries (with overnight shift support)
-                    let (shift_start, shift_end) = if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
-                        if daily.end_time < daily.start_time {
-                            end += chrono::Duration::days(1);
-                        }
-                        (Some(start), Some(end))
-                    } else {
-                        // No shift assigned - calculate as raw duration
-                        (None, None)
-                    };
+                    let (shift_start, shift_end) =
+                        if let (Some(start), Some(mut end)) = (shift_start_dt, shift_end_dt) {
+                            if daily.end_time < daily.start_time {
+                                end += chrono::Duration::days(1);
+                            }
+                            (Some(start), Some(end))
+                        } else {
+                            // No shift assigned - calculate as raw duration
+                            (None, None)
+                        };
 
                     let (std_units, ot_units) = AttendanceCalculator::calculate_daily_units(
                         punch_in,
@@ -225,12 +238,16 @@ impl ReportService {
                     .collect();
 
                 if !log_metadata.is_empty() {
-                    metadata_map.insert("time_entries".to_string(), serde_json::json!(log_metadata));
+                    metadata_map
+                        .insert("time_entries".to_string(), serde_json::json!(log_metadata));
                 }
 
                 // Add schedule traces from effective schedule
                 if !daily.traces.is_empty() {
-                    metadata_map.insert("schedule_traces".to_string(), serde_json::json!(daily.traces));
+                    metadata_map.insert(
+                        "schedule_traces".to_string(),
+                        serde_json::json!(daily.traces),
+                    );
                 }
 
                 let combined_metadata = if metadata_map.is_empty() {
@@ -263,7 +280,7 @@ impl ReportService {
         // 7. Return paginated response (NO in-memory skip/take)
         Ok(PaginatedResponse {
             data: reports,
-            total: total_employees as usize,  // Total from DB pagination
+            total: total_employees as usize, // Total from DB pagination
             page,
             limit,
         })
@@ -290,8 +307,8 @@ impl ReportService {
         limit: Option<i64>,
         employee_ids: Option<Vec<Uuid>>,
     ) -> Result<PaginatedResponse<AttendanceSummary>, StatusCode> {
-        use std::collections::HashMap;
         use sqlx::Row;
+        use std::collections::HashMap;
 
         // 0. Get Workspace Settings
         let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
@@ -314,19 +331,20 @@ impl ReportService {
         // NameDesc -> ORDER BY full_name DESC; all others -> ORDER BY full_name ASC
         let sort_desc = matches!(sort, Some(AttendanceReportSort::NameDesc));
 
-        let (paginated_employees, total_employees) = employee_repository::get_paginated_employee_ids(
-            pool,
-            workspace_id,
-            employee_ids.as_ref(),
-            page,
-            limit,
-            sort_desc,
-        )
-        .await
-        .map_err(|e| {
-            tracing::error!("Error fetching paginated employees: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+        let (paginated_employees, total_employees) =
+            employee_repository::get_paginated_employee_ids(
+                pool,
+                workspace_id,
+                employee_ids.as_ref(),
+                page,
+                limit,
+                sort_desc,
+            )
+            .await
+            .map_err(|e| {
+                tracing::error!("Error fetching paginated employees: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
 
         // Early return if no employees
         if paginated_employees.is_empty() {
@@ -376,10 +394,7 @@ impl ReportService {
 
         // 5. BATCH fetch time entries (eliminates N+1)
         let entries_map = time_entry_repository::get_workspace_time_entries_batch(
-            pool,
-            &emp_ids,
-            start_dt,
-            end_dt,
+            pool, &emp_ids, start_dt, end_dt,
         )
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -421,7 +436,10 @@ impl ReportService {
 
         for emp_sched in schedules {
             // Get entries from HashMap (O(1) lookup instead of DB query)
-            let entries = entries_map.get(&emp_sched.employee_id).cloned().unwrap_or_default();
+            let entries = entries_map
+                .get(&emp_sched.employee_id)
+                .cloned()
+                .unwrap_or_default();
             let mut employee_total_units = 0i32;
 
             // Calculate for each day (same logic as get_daily_attendance_report)

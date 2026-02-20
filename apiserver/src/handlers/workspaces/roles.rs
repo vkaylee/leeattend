@@ -40,11 +40,15 @@ pub async fn assign_extra_role(
     Json(req): Json<AssignRoleRequest>,
 ) -> AppResult<(StatusCode, Json<MemberExtraRole>)> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can assign roles".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can assign roles".to_string(),
+        ));
     }
 
     if req.expires_at <= chrono::Utc::now() {
-        return Err(AppError::Validation("Expiration time must be in the future".to_string()));
+        return Err(AppError::Validation(
+            "Expiration time must be in the future".to_string(),
+        ));
     }
 
     let extra_role = sqlx::query_as::<_, MemberExtraRole>(
@@ -66,7 +70,9 @@ pub async fn revoke_extra_role(
     ctx: MemberContext,
 ) -> AppResult<StatusCode> {
     if !ctx.is_admin_or_owner() {
-        return Err(AppError::Forbidden("Only admins can revoke roles".to_string()));
+        return Err(AppError::Forbidden(
+            "Only admins can revoke roles".to_string(),
+        ));
     }
 
     let res = sqlx::query("DELETE FROM member_extra_roles WHERE id = $1 AND workspace_id = $2")

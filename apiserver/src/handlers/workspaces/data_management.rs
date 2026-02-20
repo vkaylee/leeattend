@@ -49,7 +49,10 @@ pub async fn clear_workspace_data(
         "payroll" => {
             sqlx::query("DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await?;
             sqlx::query("DELETE FROM employee_salary_components WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await?;
-            sqlx::query("DELETE FROM salary_component_definitions WHERE workspace_id = $1").bind(ws_id).execute(&mut *tx).await?;
+            sqlx::query("DELETE FROM salary_component_definitions WHERE workspace_id = $1")
+                .bind(ws_id)
+                .execute(&mut *tx)
+                .await?;
         }
         "full_reset" => {
             sqlx::query("DELETE FROM time_entries WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await?;
@@ -72,7 +75,10 @@ pub async fn clear_workspace_data(
             sqlx::query("DELETE FROM leave_balances WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await?;
             sqlx::query("DELETE FROM payslips WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await?;
             sqlx::query("DELETE FROM employee_salary_components WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await?;
-            sqlx::query("DELETE FROM salary_component_definitions WHERE workspace_id = $1").bind(ws_id).execute(&mut *tx).await?;
+            sqlx::query("DELETE FROM salary_component_definitions WHERE workspace_id = $1")
+                .bind(ws_id)
+                .execute(&mut *tx)
+                .await?;
             sqlx::query("DELETE FROM employee_department_history WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)").bind(ws_id).execute(&mut *tx).await?;
             sqlx::query("DELETE FROM leave_policy_assignments WHERE workspace_id = $1")
                 .bind(ws_id)

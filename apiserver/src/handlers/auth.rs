@@ -23,23 +23,26 @@ const MAX_PASSWORD_LEN: usize = 128;
 
 fn validate_password(password: &str) -> AppResult<()> {
     if password.len() < MIN_PASSWORD_LEN {
-        return Err(AppError::Validation(
-            format!("Password must be at least {MIN_PASSWORD_LEN} characters"),
-        ));
+        return Err(AppError::Validation(format!(
+            "Password must be at least {MIN_PASSWORD_LEN} characters"
+        )));
     }
     if password.len() > MAX_PASSWORD_LEN {
-        return Err(AppError::Validation(
-            format!("Password must not exceed {MAX_PASSWORD_LEN} characters"),
-        ));
+        return Err(AppError::Validation(format!(
+            "Password must not exceed {MAX_PASSWORD_LEN} characters"
+        )));
     }
-    
+
     // Simple strength check: must have at least one digit or special char
-    if !password.chars().any(|c| c.is_ascii_digit() || c.is_ascii_punctuation()) {
+    if !password
+        .chars()
+        .any(|c| c.is_ascii_digit() || c.is_ascii_punctuation())
+    {
         return Err(AppError::Validation(
             "Password must contain at least one digit or special character".to_string(),
         ));
     }
-    
+
     Ok(())
 }
 
@@ -71,8 +74,7 @@ pub async fn register(
     }
 
     // 3. Hash password
-    let password_hash = AuthService::hash_password(&req.password)
-        .map_err(AppError::from)?;
+    let password_hash = AuthService::hash_password(&req.password).map_err(AppError::from)?;
 
     // 3. Begin transaction for atomicity
     let mut tx = state.db.begin().await?;
@@ -120,8 +122,8 @@ pub async fn register(
     };
 
     // 7. Generate access token (stateless, no DB write needed)
-    let access_token = AuthService::generate_token(user.id, &state.jwt_secret, 60)
-        .map_err(AppError::from)?;
+    let access_token =
+        AuthService::generate_token(user.id, &state.jwt_secret, 60).map_err(AppError::from)?;
 
     Ok(Json(AuthResponse {
         access_token,
@@ -134,7 +136,8 @@ pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(req): Json<LoginRequest>,
 ) -> AppResult<Json<AuthResponse>> {
-    let user = user_repository::get_user_by_email(&state.db, &req.email).await?
+    let user = user_repository::get_user_by_email(&state.db, &req.email)
+        .await?
         .ok_or_else(|| AppError::Auth("Invalid email or password".to_string()))?;
 
     if !AuthService::verify_password(&req.password, &user.password_hash) {
@@ -152,10 +155,11 @@ pub async fn login(
         created_at: user.created_at,
     };
 
-    let access_token = AuthService::generate_token(user.id, &state.jwt_secret, 60)
-        .map_err(AppError::from)?;
+    let access_token =
+        AuthService::generate_token(user.id, &state.jwt_secret, 60).map_err(AppError::from)?;
 
-    let refresh_token = AuthService::create_session(&state.db, user.id).await
+    let refresh_token = AuthService::create_session(&state.db, user.id)
+        .await
         .map_err(AppError::from)?;
 
     Ok(Json(AuthResponse {
@@ -169,7 +173,8 @@ pub async fn refresh_token(
     State(state): State<Arc<AppState>>,
     Json(req): Json<RefreshRequest>,
 ) -> AppResult<Json<AuthResponse>> {
-    AuthService::refresh_session(&state.db, &req.refresh_token, &state.jwt_secret).await
+    AuthService::refresh_session(&state.db, &req.refresh_token, &state.jwt_secret)
+        .await
         .map(Json)
         .map_err(AppError::Auth)
 }
@@ -180,7 +185,8 @@ pub async fn change_password(
     Json(req): Json<ChangePasswordRequest>,
 ) -> AppResult<impl IntoResponse> {
     // 1. Get current user to verify old password
-    let user = user_repository::get_user_by_id(&state.db, user_id).await?
+    let user = user_repository::get_user_by_id(&state.db, user_id)
+        .await?
         .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
     // 2. Verify old password
@@ -192,8 +198,7 @@ pub async fn change_password(
     validate_password(&req.new_password)?;
 
     // 4. Hash new password
-    let new_hash = AuthService::hash_password(&req.new_password)
-        .map_err(AppError::from)?;
+    let new_hash = AuthService::hash_password(&req.new_password).map_err(AppError::from)?;
 
     // 5. Update DB
     sqlx::query("UPDATE users SET password_hash = $1 WHERE id = $2")
@@ -217,7 +222,8 @@ pub async fn logout(
     State(state): State<Arc<AppState>>,
     Json(req): Json<RefreshRequest>,
 ) -> AppResult<StatusCode> {
-    AuthService::revoke_session(&state.db, &req.refresh_token).await
+    AuthService::revoke_session(&state.db, &req.refresh_token)
+        .await
         .map(|_| StatusCode::OK)
         .map_err(AppError::from)
 }
@@ -227,7 +233,8 @@ pub async fn get_me(
     UserId(user_id): UserId,
 ) -> AppResult<Json<UserResponse>> {
     tracing::debug!("Fetching profile for user: {}", user_id);
-    let user = user_repository::get_user_by_id(&state.db, user_id).await?
+    let user = user_repository::get_user_by_id(&state.db, user_id)
+        .await?
         .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
     Ok(Json(UserResponse {
@@ -272,7 +279,8 @@ pub async fn get_user_profile(
     UserId(user_id): UserId,
 ) -> AppResult<Json<UserResponse>> {
     tracing::debug!("Fetching profile for user: {}", user_id);
-    let user = user_repository::get_user_by_id(&state.db, user_id).await?
+    let user = user_repository::get_user_by_id(&state.db, user_id)
+        .await?
         .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
     Ok(Json(UserResponse {
@@ -295,7 +303,7 @@ pub async fn get_users(
         "SELECT u.* FROM users u \
          JOIN workspace_members wm ON u.id = wm.user_id \
          WHERE wm.workspace_id = $1 \
-         ORDER BY u.created_at DESC"
+         ORDER BY u.created_at DESC",
     )
     .bind(ctx.workspace_id)
     .fetch_all(&state.db)
@@ -345,7 +353,9 @@ pub async fn update_user_profile(
 }
 
 #[cfg(debug_assertions)]
-pub async fn get_dev_super_user(State(state): State<Arc<AppState>>) -> AppResult<Json<serde_json::Value>> {
+pub async fn get_dev_super_user(
+    State(state): State<Arc<AppState>>,
+) -> AppResult<Json<serde_json::Value>> {
     use serde_json::json;
     tracing::info!("Dev fast login requested");
 
@@ -377,12 +387,10 @@ pub async fn get_dev_super_user(State(state): State<Arc<AppState>>) -> AppResult
         Ok(id) => id,
         Err(_) => {
             // Nếu user đầu tiên không có workspace, thử tìm bất kỳ workspace nào
-            sqlx::query_scalar::<_, Uuid>(
-                "SELECT workspace_id FROM workspace_members LIMIT 1",
-            )
-            .fetch_one(&state.db)
-            .await
-            .map_err(|e| AppError::NotFound(format!("No workspace memberships found: {e}")))?
+            sqlx::query_scalar::<_, Uuid>("SELECT workspace_id FROM workspace_members LIMIT 1")
+                .fetch_one(&state.db)
+                .await
+                .map_err(|e| AppError::NotFound(format!("No workspace memberships found: {e}")))?
         }
     };
 

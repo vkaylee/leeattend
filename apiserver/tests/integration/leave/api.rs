@@ -3,7 +3,9 @@
 use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::models::{EmployeeLeaveBalance, LeaveStatus, SubmitLeaveRequest, ApproveLeaveRequest, LeaveRequest};
+use apiserver::models::{
+    ApproveLeaveRequest, EmployeeLeaveBalance, LeaveRequest, LeaveStatus, SubmitLeaveRequest,
+};
 use apiserver::AppState;
 use axum::http::StatusCode;
 use std::sync::Arc;
@@ -12,7 +14,8 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_leave_request_lifecycle() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
@@ -45,14 +48,18 @@ async fn test_leave_request_lifecycle() {
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(serde_json::to_string(&submit_req).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&submit_req).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::CREATED);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let leave_req: LeaveRequest = serde_json::from_slice(&body).unwrap();
     assert_eq!(leave_req.status, LeaveStatus::Pending);
 
@@ -66,11 +73,16 @@ async fn test_leave_request_lifecycle() {
         .oneshot(
             axum::http::Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{}/leave/requests/{}/approve", ws_id, leave_req.id))
+                .uri(format!(
+                    "/api/workspaces/{}/leave/requests/{}/approve",
+                    ws_id, leave_req.id
+                ))
                 .header("Content-Type", "application/json")
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
-                .body(axum::body::Body::from(serde_json::to_string(&approve_req).unwrap()))
+                .body(axum::body::Body::from(
+                    serde_json::to_string(&approve_req).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
@@ -85,7 +97,8 @@ async fn test_leave_request_lifecycle() {
 
 #[tokio::test]
 async fn test_leave_balances() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
@@ -100,7 +113,8 @@ async fn test_leave_balances() {
     .await
     .unwrap();
 
-    factory.leave_balance()
+    factory
+        .leave_balance()
         .with_employee(emp_id)
         .with_leave_type(vacation_id)
         .with_entitlement(12)
@@ -112,7 +126,9 @@ async fn test_leave_balances() {
         .oneshot(
             axum::http::Request::builder()
                 .method("GET")
-                .uri(format!("/api/workspaces/{ws_id}/employees/{emp_id}/leave/balances"))
+                .uri(format!(
+                    "/api/workspaces/{ws_id}/employees/{emp_id}/leave/balances"
+                ))
                 .header("X-Workspace-Id", ws_id.to_string())
                 .header("X-User-Id", user_id.to_string())
                 .body(axum::body::Body::empty())
@@ -122,7 +138,9 @@ async fn test_leave_balances() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let balances: Vec<EmployeeLeaveBalance> = serde_json::from_slice(&body).unwrap();
     assert!(!balances.is_empty());
 }

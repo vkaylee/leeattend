@@ -9,7 +9,13 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_department_crud() {
-    let (address, workspace_id, user_id, _factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) = spawn_app_with_factory().await;
+    let (address, workspace_id, user_id, _factory, _db): (
+        String,
+        Uuid,
+        Uuid,
+        TestFactory,
+        TestDatabase,
+    ) = spawn_app_with_factory().await;
     let client = reqwest::Client::new();
 
     // 1. Create a department
@@ -95,7 +101,13 @@ async fn test_department_crud() {
 
 #[tokio::test]
 async fn test_department_rbac() {
-    let (address, workspace_id, _owner_id, factory, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) = spawn_app_with_factory().await;
+    let (address, workspace_id, _owner_id, factory, _db): (
+        String,
+        Uuid,
+        Uuid,
+        TestFactory,
+        TestDatabase,
+    ) = spawn_app_with_factory().await;
     let client = reqwest::Client::new();
 
     // Create a regular member

@@ -66,7 +66,8 @@ impl AttendanceCalculator {
                         .clone()
                         .signed_duration_since(standard_out.clone())
                         .num_minutes();
-                    if missing_minutes > 0 && missing_minutes <= rules.authorized_early_leave_minutes as i64
+                    if missing_minutes > 0
+                        && missing_minutes <= rules.authorized_early_leave_minutes as i64
                     {
                         standard_out = end.clone();
                     }
@@ -251,16 +252,19 @@ mod tests {
         rules.allow_early_ot = true;
 
         // Case 1: Within grace -> No OT
-        let b1 = AttendanceCalculator::calculate_buckets(dt(7, 15), dt(17, 0), start, end, 0, 0, &rules);
+        let b1 =
+            AttendanceCalculator::calculate_buckets(dt(7, 15), dt(17, 0), start, end, 0, 0, &rules);
         assert_eq!(b1.early_ot_minutes, 0);
 
         // Case 2: Before grace -> Full OT
-        let b2 = AttendanceCalculator::calculate_buckets(dt(6, 45), dt(17, 0), start, end, 0, 0, &rules);
+        let b2 =
+            AttendanceCalculator::calculate_buckets(dt(6, 45), dt(17, 0), start, end, 0, 0, &rules);
         assert_eq!(b2.early_ot_minutes, 45);
 
         // Case 3: Clamp
         rules.early_arrival_strategy = EarlyArrivalStrategy::Clamp;
-        let b3 = AttendanceCalculator::calculate_buckets(dt(6, 45), dt(17, 0), start, end, 0, 0, &rules);
+        let b3 =
+            AttendanceCalculator::calculate_buckets(dt(6, 45), dt(17, 0), start, end, 0, 0, &rules);
         assert_eq!(b3.early_ot_minutes, 30);
     }
 
@@ -273,11 +277,13 @@ mod tests {
         rules.is_early_leave_paid = true;
 
         // Exit 30m early -> Paid as full day
-        let b1 = AttendanceCalculator::calculate_buckets(dt(8, 0), dt(16, 30), start, end, 0, 0, &rules);
+        let b1 =
+            AttendanceCalculator::calculate_buckets(dt(8, 0), dt(16, 30), start, end, 0, 0, &rules);
         assert_eq!(b1.standard_minutes, 540);
 
         // Exit 90m early -> Not paid
-        let b2 = AttendanceCalculator::calculate_buckets(dt(8, 0), dt(15, 30), start, end, 0, 0, &rules);
+        let b2 =
+            AttendanceCalculator::calculate_buckets(dt(8, 0), dt(15, 30), start, end, 0, 0, &rules);
         assert_eq!(b2.standard_minutes, 450);
     }
 
@@ -288,9 +294,17 @@ mod tests {
         let rules = mock_rules();
 
         let (std, _) = AttendanceCalculator::calculate_daily_units(
-            dt(8, 0), dt(16, 55), start, end, 60, 0, 30, "floor", &rules
+            dt(8, 0),
+            dt(16, 55),
+            start,
+            end,
+            60,
+            0,
+            30,
+            "floor",
+            &rules,
         );
-        // (17:00 - 08:00) = 540m. 
+        // (17:00 - 08:00) = 540m.
         // Actual work = 08:00 - 16:55 = 535m.
         // Net = 535 - 0 (no auto deduct) = 535.
         // Floor(535, 30) = 17 units.
@@ -299,7 +313,15 @@ mod tests {
         let mut r2 = rules.clone();
         r2.is_break_auto_deduct = true;
         let (std2, _) = AttendanceCalculator::calculate_daily_units(
-            dt(8, 0), dt(16, 55), start, end, 60, 0, 30, "floor", &r2
+            dt(8, 0),
+            dt(16, 55),
+            start,
+            end,
+            60,
+            0,
+            30,
+            "floor",
+            &r2,
         );
         // Net = 535 - 60 = 475. Floor(475, 30) = 15 units.
         assert_eq!(std2, 15);

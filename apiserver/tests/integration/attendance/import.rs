@@ -2,9 +2,9 @@
 
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
-use apiserver::services::attendance_import_service::AttendanceImportService;
 use apiserver::models::{AttendanceImportJob, ImportJobStatus};
 use apiserver::repositories::import_job_repository;
+use apiserver::services::attendance_import_service::AttendanceImportService;
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -18,14 +18,21 @@ async fn test_import_csv_with_line_errors() {
     let ws_id = factory.workspace().create_with_owner(user_id).await;
 
     let emp_id_number = "ERR-001";
-    factory.employee().with_workspace(ws_id).with_employee_id_number(emp_id_number).create().await;
+    factory
+        .employee()
+        .with_workspace(ws_id)
+        .with_employee_id_number(emp_id_number)
+        .create()
+        .await;
 
     let csv_content = format!(
         "empNo,empName,empDt\n{emp_id_number},User 1,14/01/2026 08:00\n{emp_id_number},User 1,not-a-date\n{emp_id_number},User 1,"
     );
 
     let file_path = format!("storage/test_imports/{}.csv", uuid::Uuid::new_v4());
-    tokio::fs::create_dir_all("storage/test_imports").await.unwrap();
+    tokio::fs::create_dir_all("storage/test_imports")
+        .await
+        .unwrap();
     tokio::fs::write(&file_path, csv_content).await.unwrap();
 
     let job_id = AttendanceImportService::batch_import_from_file(
@@ -51,7 +58,10 @@ async fn test_import_csv_with_line_errors() {
 
     let job = job.expect("Job timed out");
     let errors = job.error_log.expect("No error log found");
-    
-    assert!(errors.contains("Không thể nhận diện") || errors.contains("Cannot parse"), "Should identify recognition error");
+
+    assert!(
+        errors.contains("Không thể nhận diện") || errors.contains("Cannot parse"),
+        "Should identify recognition error"
+    );
     assert!(errors.contains("not-a-date"));
 }

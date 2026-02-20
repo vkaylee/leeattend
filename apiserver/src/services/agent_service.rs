@@ -19,17 +19,18 @@ impl AgentService {
         let max_workers = agent.map(|a| a.max_concurrent_workers);
 
         let config_data = ConfigData {
-            devices: devices.into_iter().map(|d| {
-                DeviceConfigPush {
+            devices: devices
+                .into_iter()
+                .map(|d| DeviceConfigPush {
                     device_id: d.id.to_string(),
                     name: d.name,
                     ip: d.ip,
                     port: d.port,
                     brand: d.brand,
                     is_enabled: d.is_enabled,
-                }
-            }).collect(),
-            max_concurrent_workers: max_workers
+                })
+                .collect(),
+            max_concurrent_workers: max_workers,
         };
 
         self.manager
@@ -68,11 +69,11 @@ impl AgentService {
 
 #[cfg(test)]
 mod tests {
-    use uuid::Uuid;
     use super::*;
     use crate::models::{AuthorizedAgent, Device};
     use async_trait::async_trait;
     use std::sync::Arc;
+    use uuid::Uuid;
 
     struct MockAgentRepo;
 
@@ -126,7 +127,7 @@ mod tests {
     #[tokio::test]
     async fn test_authorize_agent_success() {
         let repo = Arc::new(MockAgentRepo);
-        let manager = AgentManager::new();
+        let manager = AgentManager::new(None);
         let service = AgentService::new(repo, manager);
 
         let res = service
@@ -139,7 +140,7 @@ mod tests {
     #[tokio::test]
     async fn test_authorize_agent_wrong_token() {
         let repo = Arc::new(MockAgentRepo);
-        let manager = AgentManager::new();
+        let manager = AgentManager::new(None);
         let service = AgentService::new(repo, manager);
 
         let res = service
@@ -152,7 +153,7 @@ mod tests {
     #[tokio::test]
     async fn test_authorize_agent_untrusted() {
         let repo = Arc::new(MockAgentRepo);
-        let manager = AgentManager::new();
+        let manager = AgentManager::new(None);
         let service = AgentService::new(repo, manager);
 
         let res = service
@@ -165,7 +166,7 @@ mod tests {
     #[tokio::test]
     async fn test_authorize_agent_not_found() {
         let repo = Arc::new(MockAgentRepo);
-        let manager = AgentManager::new();
+        let manager = AgentManager::new(None);
         let service = AgentService::new(repo, manager);
 
         let res = service.authorize_agent("unknown", "any").await;

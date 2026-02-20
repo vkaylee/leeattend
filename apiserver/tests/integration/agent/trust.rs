@@ -7,7 +7,8 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_authorized_agent_lifecycle() {
-    let (address, workspace_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) = spawn_app_with_factory().await;
+    let (address, workspace_id, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
     let client = reqwest::Client::new();
     let ws_header = ("X-Workspace-Id", workspace_id.to_string());
     let user_header = ("X-User-Id", user_id.to_string());
@@ -49,9 +50,7 @@ async fn test_authorized_agent_lifecycle() {
 
     // 3. Phê duyệt Agent (Trust)
     let response = client
-        .put(format!(
-            "{address}/api/authorized-agents/{agent_id}/trust"
-        ))
+        .put(format!("{address}/api/authorized-agents/{agent_id}/trust"))
         .header(ws_header.0, ws_header.1.clone())
         .header(user_header.0, user_header.1.clone())
         .json(&serde_json::json!({ "is_trusted": true }))

@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::{MemberRole, AttendanceDailySummary};
+use crate::models::{AttendanceDailySummary, MemberRole};
 use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::AppState;
 
@@ -28,27 +28,36 @@ pub async fn claim_ot(
     Json(req): Json<ClaimOtRequest>,
 ) -> AppResult<StatusCode> {
     // 1. Verify ownership (Employee can only claim for themselves) or Admin
-    let employee = crate::repositories::employee_repository::get_employee_by_id(&state.db, employee_id, ws_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
+    let employee =
+        crate::repositories::employee_repository::get_employee_by_id(&state.db, employee_id, ws_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
     if let Some(uid) = employee.user_id {
         if uid != user_id {
-             // If not the user, check if Admin/Owner/Manager?
-             let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository { pool: state.db.clone() }
-                .find_primary_role(ws_id, user_id).await.unwrap_or(None);
+            // If not the user, check if Admin/Owner/Manager?
+            let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
+                pool: state.db.clone(),
+            }
+            .find_primary_role(ws_id, user_id)
+            .await
+            .unwrap_or(None);
 
-             if !matches!(role, Some(MemberRole::Admin) | Some(MemberRole::Owner)) {
-                 return Err(AppError::Forbidden("Forbidden".to_string()));
-             }
+            if !matches!(role, Some(MemberRole::Admin) | Some(MemberRole::Owner)) {
+                return Err(AppError::Forbidden("Forbidden".to_string()));
+            }
         }
     } else {
-         let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository { pool: state.db.clone() }
-            .find_primary_role(ws_id, user_id).await.unwrap_or(None);
+        let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
+            pool: state.db.clone(),
+        }
+        .find_primary_role(ws_id, user_id)
+        .await
+        .unwrap_or(None);
 
-         if !matches!(role, Some(MemberRole::Admin) | Some(MemberRole::Owner)) {
-             return Err(AppError::Forbidden("Forbidden".to_string()));
-         }
+        if !matches!(role, Some(MemberRole::Admin) | Some(MemberRole::Owner)) {
+            return Err(AppError::Forbidden("Forbidden".to_string()));
+        }
     }
 
     crate::services::attendance_summary_service::AttendanceSummaryService::claim_ot(
@@ -79,12 +88,16 @@ pub async fn approve_ot(
     Json(req): Json<ApproveOtRequest>,
 ) -> AppResult<StatusCode> {
     // RBAC: Only Admin/Owner/Manager
-     let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository { pool: state.db.clone() }
-        .find_primary_role(ws_id, user_id).await.unwrap_or(None);
+    let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
+        pool: state.db.clone(),
+    }
+    .find_primary_role(ws_id, user_id)
+    .await
+    .unwrap_or(None);
 
-     if !matches!(role, Some(MemberRole::Admin) | Some(MemberRole::Owner)) {
-         return Err(AppError::Forbidden("Forbidden".to_string()));
-     }
+    if !matches!(role, Some(MemberRole::Admin) | Some(MemberRole::Owner)) {
+        return Err(AppError::Forbidden("Forbidden".to_string()));
+    }
 
     let status_enum = match req.status.as_str() {
         "approved" => crate::models::OtStatus::Approved,
@@ -119,12 +132,13 @@ pub async fn get_attendance_summaries(
     MemberContext { user_id, .. }: MemberContext,
     Query(query): Query<SummaryQuery>,
 ) -> AppResult<Json<Vec<AttendanceDailySummary>>> {
-
     // RBAC and ID Resolution
-    let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository { pool: state.db.clone() }
-        .find_primary_role(ws_id, user_id)
-        .await?
-        .ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?;
+    let role = crate::repositories::workspace_repository::SqlxWorkspaceRepository {
+        pool: state.db.clone(),
+    }
+    .find_primary_role(ws_id, user_id)
+    .await?
+    .ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?;
 
     let is_admin = matches!(role, MemberRole::Admin | MemberRole::Owner);
 
@@ -132,10 +146,17 @@ pub async fn get_attendance_summaries(
         query.employee_id
     } else {
         // Find my employee ID
-        let emp_record = sqlx::query!("SELECT id FROM employees WHERE workspace_id = $1 AND user_id = $2", ws_id, user_id)
-            .fetch_optional(&state.db).await?;
+        let emp_record = sqlx::query!(
+            "SELECT id FROM employees WHERE workspace_id = $1 AND user_id = $2",
+            ws_id,
+            user_id
+        )
+        .fetch_optional(&state.db)
+        .await?;
 
-        let my_id = emp_record.ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?.id;
+        let my_id = emp_record
+            .ok_or_else(|| AppError::Forbidden("Forbidden".to_string()))?
+            .id;
 
         if let Some(req_id) = query.employee_id {
             if req_id != my_id {

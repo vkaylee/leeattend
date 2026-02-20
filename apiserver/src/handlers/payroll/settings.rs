@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::{UpdatePayrollSettingsRequest, PayrollSettings};
+use crate::models::{PayrollSettings, UpdatePayrollSettingsRequest};
 use crate::AppState;
 
 pub async fn get_payroll_settings(
@@ -16,10 +16,11 @@ pub async fn get_payroll_settings(
     State(state): State<Arc<AppState>>,
     MemberContext { .. }: MemberContext,
 ) -> AppResult<Json<PayrollSettings>> {
-    let settings = crate::repositories::payroll_repository::get_payroll_settings(&state.db, workspace_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Settings not found".to_string()))?;
-    
+    let settings =
+        crate::repositories::payroll_repository::get_payroll_settings(&state.db, workspace_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Settings not found".to_string()))?;
+
     Ok(Json(settings))
 }
 
@@ -49,11 +50,16 @@ pub async fn update_payroll_settings(
     Json(req): Json<UpdatePayrollSettingsRequest>,
 ) -> AppResult<Json<PayrollSettings>> {
     // Get current settings first to fill in missing fields if needed
-    let effective_date = req.effective_date.unwrap_or_else(|| Utc::now().date_naive());
-    let current =
-        crate::repositories::payroll_repository::get_payroll_settings_at(&state.db, workspace_id, effective_date)
-            .await
-            .unwrap_or(None);
+    let effective_date = req
+        .effective_date
+        .unwrap_or_else(|| Utc::now().date_naive());
+    let current = crate::repositories::payroll_repository::get_payroll_settings_at(
+        &state.db,
+        workspace_id,
+        effective_date,
+    )
+    .await
+    .unwrap_or(None);
 
     let mode = req.std_working_day_mode.unwrap_or_else(|| {
         current
@@ -90,6 +96,6 @@ pub async fn update_payroll_settings(
         effective_date,
     )
     .await?;
-    
+
     Ok(Json(settings))
 }

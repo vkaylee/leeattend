@@ -1,5 +1,5 @@
 //! Shared application spawning utilities for integration tests.
-//! 
+//!
 //! This module provides various `spawn_app` variants to avoid duplication
 //! across test files.
 
@@ -20,7 +20,7 @@ pub async fn spawn_app() -> (String, TestDatabase) {
     let test_db = TestDatabase::new().await;
     let pool = test_db.pool();
 
-    let agent_manager = AgentManager::new();
+    let agent_manager = AgentManager::new(None);
     let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: pool.clone() });
     let workspace_repo =
         Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
@@ -71,7 +71,7 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
         .create_with_owner(user_id)
         .await;
 
-    let agent_manager = AgentManager::new();
+    let agent_manager = AgentManager::new(None);
     let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository {
         pool: db_pool.clone(),
     });
@@ -119,10 +119,16 @@ pub async fn spawn_app_with_factory() -> (String, Uuid, Uuid, TestFactory, TestD
 #[allow(dead_code)]
 pub async fn spawn_app_with_member() -> (String, Uuid, Uuid, Uuid, TestFactory, TestDatabase) {
     let (address, workspace_id, owner_id, factory, test_db) = spawn_app_with_factory().await;
-    
-    let member_id = factory.user().with_email("member@example.com").create().await;
-    factory.add_member(workspace_id, member_id, MemberRole::Member).await;
-    
+
+    let member_id = factory
+        .user()
+        .with_email("member@example.com")
+        .create()
+        .await;
+    factory
+        .add_member(workspace_id, member_id, MemberRole::Member)
+        .await;
+
     (address, workspace_id, owner_id, member_id, factory, test_db)
 }
 
@@ -133,9 +139,12 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
     let pool = test_db.pool().clone();
     let factory = TestFactory::new(pool.clone());
 
-    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(pool.clone()));
-    let workspace_repo = Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
-    let agent_manager = AgentManager::new();
+    let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository::new(
+        pool.clone(),
+    ));
+    let workspace_repo =
+        Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
+    let agent_manager = AgentManager::new(None);
     let agent_service = Arc::new(apiserver::services::AgentService::new(
         agent_repo.clone(),
         agent_manager.clone(),
@@ -157,4 +166,3 @@ pub async fn setup_app_tower() -> (TestDatabase, TestFactory, Arc<AppState>, axu
     let app = apiserver::create_app(app_state.clone());
     (test_db, factory, app_state, app)
 }
-

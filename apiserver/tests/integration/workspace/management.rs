@@ -1,6 +1,6 @@
 //! Workspace management and RBAC integration tests
 
-use crate::common::app::{spawn_app_with_factory, setup_app_tower};
+use crate::common::app::{setup_app_tower, spawn_app_with_factory};
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::models::MemberRole;
@@ -14,7 +14,8 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_workspace_creation_and_membership() {
-    let (address, _, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) = spawn_app_with_factory().await;
+    let (address, _, user_id, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
     let client = reqwest::Client::new();
 
     // 1. Create new workspace
@@ -47,7 +48,8 @@ async fn test_workspace_creation_and_membership() {
 
 #[tokio::test]
 async fn test_create_workspace_with_non_existent_user() {
-    let (address, _, _, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) = spawn_app_with_factory().await;
+    let (address, _, _, _, _db): (String, Uuid, Uuid, TestFactory, TestDatabase) =
+        spawn_app_with_factory().await;
     let client = reqwest::Client::new();
     let fake_user_id = Uuid::new_v4();
 
@@ -59,12 +61,16 @@ async fn test_create_workspace_with_non_existent_user() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), reqwest::StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(
+        response.status(),
+        reqwest::StatusCode::INTERNAL_SERVER_ERROR
+    );
 }
 
 #[tokio::test]
 async fn test_workspace_rbac_flow() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let owner_id: Uuid = factory.user().create().await;
     let member_id: Uuid = factory.user().create().await;

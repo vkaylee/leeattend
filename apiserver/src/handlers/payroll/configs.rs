@@ -8,7 +8,10 @@ use uuid::Uuid;
 
 use crate::errors::AppResult;
 use crate::handlers::common::MemberContext;
-use crate::models::{SetDepartmentPayrollConfigRequest, SetEmployeePayrollConfigRequest, DepartmentPayrollConfig, EmployeePayrollConfig};
+use crate::models::{
+    DepartmentPayrollConfig, EmployeePayrollConfig, SetDepartmentPayrollConfigRequest,
+    SetEmployeePayrollConfigRequest,
+};
 use crate::AppState;
 
 pub async fn set_department_payroll_config(
@@ -25,7 +28,7 @@ pub async fn set_department_payroll_config(
         req.effective_date,
     )
     .await?;
-    
+
     Ok((StatusCode::CREATED, Json(config)))
 }
 
@@ -43,7 +46,7 @@ pub async fn set_employee_payroll_config(
         req.effective_date,
     )
     .await?;
-    
+
     Ok((StatusCode::CREATED, Json(config)))
 }
 

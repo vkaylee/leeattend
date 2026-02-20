@@ -8,7 +8,10 @@ use uuid::Uuid;
 
 use crate::errors::AppResult;
 use crate::handlers::common::MemberContext;
-use crate::models::{AssignSalaryComponentRequest, CreateSalaryComponentRequest, SalaryComponentDefinition, EmployeeSalaryComponent};
+use crate::models::{
+    AssignSalaryComponentRequest, CreateSalaryComponentRequest, EmployeeSalaryComponent,
+    SalaryComponentDefinition,
+};
 use crate::AppState;
 
 pub async fn get_salary_components(
@@ -21,7 +24,7 @@ pub async fn get_salary_components(
         workspace_id,
     )
     .await?;
-    
+
     Ok(Json(components))
 }
 
@@ -40,7 +43,7 @@ pub async fn create_salary_component(
         req.is_taxable,
     )
     .await?;
-    
+
     Ok((StatusCode::CREATED, Json(component)))
 }
 
@@ -75,7 +78,7 @@ pub async fn get_employee_salary_components(
             })
         })
         .collect();
-    
+
     Ok(Json(response))
 }
 
@@ -93,6 +96,6 @@ pub async fn assign_employee_salary_component(
         req.effective_date,
     )
     .await?;
-    
+
     Ok((StatusCode::CREATED, Json(component)))
 }

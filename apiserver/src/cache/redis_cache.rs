@@ -54,9 +54,13 @@ impl RedisCache {
     }
 
     /// Set a value in cache with TTL, serializing to JSON.
-    pub async fn set<T: Serialize>(&self, key: &str, value: &T, ttl: Duration) -> Result<(), String> {
-        let json = serde_json::to_string(value)
-            .map_err(|e| format!("Serialize error: {e}"))?;
+    pub async fn set<T: Serialize>(
+        &self,
+        key: &str,
+        value: &T,
+        ttl: Duration,
+    ) -> Result<(), String> {
+        let json = serde_json::to_string(value).map_err(|e| format!("Serialize error: {e}"))?;
 
         let mut conn = self.pool.conn();
         conn.set_ex::<_, _, ()>(key, json, ttl.as_secs())
@@ -162,4 +166,3 @@ mod tests {
         assert!(ttl.as_secs() <= 3600);
     }
 }
-

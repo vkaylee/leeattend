@@ -1,14 +1,14 @@
+use apiserver::openapi::ApiDoc;
 use apiserver::queue::RedisPool;
 use apiserver::services::{AttendanceImportService, AttendanceLogService, ReportCoordinator};
 use apiserver::worker::{ReportWorker, WorkerConfig};
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
-use apiserver::openapi::ApiDoc;
-use utoipa::OpenApi;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tokio::time::timeout;
 use tokio_util::sync::CancellationToken;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use utoipa::OpenApi;
 
 struct PortFileGuard {
     filename: String,
@@ -30,12 +30,12 @@ impl Drop for PortFileGuard {
 async fn main() {
     // Check for openapi generation flag before everything else
     if std::env::args().any(|arg| arg == "gen-openapi") {
-        let openapi_json = ApiDoc::openapi().to_pretty_json().expect("Failed to generate OpenAPI JSON");
+        let openapi_json = ApiDoc::openapi()
+            .to_pretty_json()
+            .expect("Failed to generate OpenAPI JSON");
         println!("{openapi_json}");
         return;
     }
-
-
 
     tracing_subscriber::registry()
         .with(
@@ -67,7 +67,59 @@ async fn main() {
             .expect("Failed to seed dev data");
     }
 
-    let agent_manager = AgentManager::new();
+    // Initialize Redis for distributed job processing and presence tracking (optional)
+    tracing::info!("Initializing Redis connection...");
+    let redis_pool = match std::env::var("REDIS_URL") {
+        Ok(url) => {
+            tracing::info!("Connecting to Redis at {}", url);
+            match timeout(std::time::Duration::from_secs(5), RedisPool::new(&url)).await {
+                Ok(pool_result) => match pool_result {
+                    Ok(pool) => {
+                        // Verify connection with health check
+                        tracing::info!("Redis pool created, checking health...");
+                        match timeout(std::time::Duration::from_secs(5), pool.health_check()).await
+                        {
+                            Ok(Ok(())) => {
+                                tracing::info!(
+                                    "Redis connected for distributed processing and presence"
+                                );
+                                Some(pool)
+                            }
+                            Ok(Err(e)) => {
+                                tracing::warn!("Redis health check failed: {}", e);
+                                None
+                            }
+                            Err(_) => {
+                                tracing::warn!("Redis health check timed out");
+                                None
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        tracing::warn!("Redis connection failed: {}", e);
+                        None
+                    }
+                },
+                Err(_) => {
+                    tracing::warn!("Redis connection timed out");
+                    None
+                }
+            }
+        }
+        Err(_) => {
+            tracing::info!(
+                "REDIS_URL not set, distributed processing and presence tracking disabled"
+            );
+            None
+        }
+    };
+    tracing::info!("Redis initialization complete");
+
+    let agent_manager = AgentManager::new(
+        redis_pool
+            .clone()
+            .map(|p| Arc::new(p) as Arc<dyn apiserver::agent_manager::PresenceStore>),
+    );
     let agent_repo = Arc::new(apiserver::repositories::SqlxAgentRepository { pool: pool.clone() });
     let workspace_repo =
         Arc::new(apiserver::repositories::SqlxWorkspaceRepository { pool: pool.clone() });
@@ -91,61 +143,14 @@ async fn main() {
         .and_then(|s| s.parse().ok())
         .unwrap_or(1000);
 
-    let (attendance_service, log_worker_handle) = AttendanceLogService::new(
-        pool.clone(),
-        buffer_capacity,
-        batch_size,
-        flush_interval_ms,
-    );
+    let (attendance_service, log_worker_handle) =
+        AttendanceLogService::new(pool.clone(), buffer_capacity, batch_size, flush_interval_ms);
     let attendance_service = Arc::new(attendance_service);
 
-    // Initialize Redis for distributed job processing (optional)
-    tracing::info!("Initializing Redis connection...");
-    let redis_pool = match std::env::var("REDIS_URL") {
-        Ok(url) => {
-            tracing::info!("Connecting to Redis at {}", url);
-            match timeout(std::time::Duration::from_secs(5), RedisPool::new(&url)).await {
-                Ok(pool_result) => match pool_result {
-                    Ok(pool) => {
-                         // Verify connection with health check
-                        tracing::info!("Redis pool created, checking health...");
-                        match timeout(std::time::Duration::from_secs(5), pool.health_check()).await {
-                            Ok(Ok(())) => {
-                                tracing::info!("Redis connected for distributed processing");
-                                Some(pool)
-                            }
-                            Ok(Err(e)) => {
-                                tracing::warn!("Redis health check failed: {}", e);
-                                None
-                            }
-                            Err(_) => {
-                                tracing::warn!("Redis health check timed out");
-                                None
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        tracing::warn!("Redis connection failed: {}", e);
-                        None
-                    }
-                },
-                Err(_) => {
-                    tracing::warn!("Redis connection timed out");
-                    None
-                }
-            }
-        },
-        Err(_) => {
-            tracing::info!("REDIS_URL not set, distributed processing disabled");
-            None
-        }
-    };
-    tracing::info!("Redis initialization complete");
-
     // Roster cache (requires Redis; shared between app state and worker)
-    let roster_cache = redis_pool.as_ref().map(|rpool| {
-        Arc::new(apiserver::cache::RosterCache::new(rpool.clone()))
-    });
+    let roster_cache = redis_pool
+        .as_ref()
+        .map(|rpool| Arc::new(apiserver::cache::RosterCache::new(rpool.clone())));
 
     // Initialize report worker if Redis is available
     let worker_cancel_token = CancellationToken::new();
@@ -167,7 +172,10 @@ async fn main() {
             roster_cache.clone(),
         );
 
-        (Some(coordinator), Some(worker.start(worker_cancel_token.clone())))
+        (
+            Some(coordinator),
+            Some(worker.start(worker_cancel_token.clone())),
+        )
     } else {
         (None, None)
     };
@@ -211,15 +219,17 @@ async fn main() {
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
                     tracing::warn!("Port {} is in use, trying next port", port);
-                    continue
-                },
+                    continue;
+                }
                 Err(e) => panic!("Failed to bind to {addr_str}: {e}"),
             }
         }
         listener.expect("Could not find an available port")
     };
 
-    let actual_addr = listener.local_addr().expect("Failed to get listener local address");
+    let actual_addr = listener
+        .local_addr()
+        .expect("Failed to get listener local address");
     if std::fs::write(&port_file_name, actual_addr.port().to_string()).is_ok() {
         tracing::info!("Actual listening on {}", actual_addr);
     }
@@ -236,7 +246,7 @@ async fn main() {
     // Graceful shutdown sequence
     tracing::info!("Starting graceful shutdown...");
 
-    // Cancel report worker first
+    // Cancel worker tokens first
     worker_cancel_token.cancel();
     if let Some(handle) = worker_handle {
         tracing::info!("Waiting for report worker to complete...");

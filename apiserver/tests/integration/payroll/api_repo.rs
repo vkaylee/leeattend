@@ -8,8 +8,8 @@ use apiserver::repositories::payroll_repository;
 use apiserver::AppState;
 use axum::http::StatusCode;
 use chrono::Utc;
-use rust_decimal::Decimal;
 use rust_decimal::prelude::FromPrimitive;
+use rust_decimal::Decimal;
 use std::sync::Arc;
 use tower::ServiceExt;
 use uuid::Uuid;
@@ -55,7 +55,8 @@ async fn test_payroll_payslips() {
 
 #[tokio::test]
 async fn test_get_employee_payslips_api() {
-    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
     let user_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
     let emp_id: Uuid = factory.employee().with_workspace(ws_id).create().await;

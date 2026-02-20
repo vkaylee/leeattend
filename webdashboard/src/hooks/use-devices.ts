@@ -65,6 +65,7 @@ export function useDeviceInfo(id: string, enabled: boolean = true) {
     queryKey: devicesKeys.info(id),
     queryFn: () => fetchDeviceInfo(id),
     enabled: !!id && enabled,
-    staleTime: 60000, // Cache for 1 minute
+    staleTime: 60000 * 30, // Cache for 30 minutes
+    refetchOnWindowFocus: false, // Don't refetch on window focus to avoid noise
   });
 }

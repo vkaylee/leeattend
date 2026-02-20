@@ -11,16 +11,20 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test_leave_policy_api_lifecycle() {
-    let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) = setup_app_tower().await;
+    let (test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
 
     let admin_id: Uuid = factory.user().create().await;
     let ws_id: Uuid = factory.workspace().create_with_owner(admin_id).await;
 
     // 1. Create Policy
-    let vacation_id: Uuid = sqlx::query_scalar!("SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'", ws_id)
-        .fetch_one(&test_db.pool())
-        .await
-        .unwrap();
+    let vacation_id: Uuid = sqlx::query_scalar!(
+        "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
+        ws_id
+    )
+    .fetch_one(&test_db.pool())
+    .await
+    .unwrap();
 
     let policy_req = serde_json::json!({
         "name": "Standard Annual Leave",

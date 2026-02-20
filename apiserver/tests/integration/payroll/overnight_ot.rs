@@ -18,11 +18,13 @@ async fn test_overnight_ot_payroll_calculation() {
     let user_id = factory.user().create().await;
     let workspace_id = factory.workspace().create_with_owner(user_id).await;
 
-    sqlx::query("UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1")
-        .bind(workspace_id)
-        .execute(&pool)
-        .await
-        .unwrap();
+    sqlx::query(
+        "UPDATE workspaces SET work_unit_minutes = 60, rounding_policy = 'none' WHERE id = $1",
+    )
+    .bind(workspace_id)
+    .execute(&pool)
+    .await
+    .unwrap();
 
     let employee_id = factory
         .employee()
@@ -85,15 +87,24 @@ async fn test_overnight_ot_payroll_calculation() {
     factory
         .time_entry()
         .with_employee(employee_id)
-        .with_punch_in(tz.with_ymd_and_hms(2026, 1, 5, 22, 0, 0).unwrap().with_timezone(&Utc))
-        .with_punch_out(tz.with_ymd_and_hms(2026, 1, 6, 6, 0, 0).unwrap().with_timezone(&Utc))
+        .with_punch_in(
+            tz.with_ymd_and_hms(2026, 1, 5, 22, 0, 0)
+                .unwrap()
+                .with_timezone(&Utc),
+        )
+        .with_punch_out(
+            tz.with_ymd_and_hms(2026, 1, 6, 6, 0, 0)
+                .unwrap()
+                .with_timezone(&Utc),
+        )
         .create()
         .await;
 
     // Calculate payroll
-    let payslip = PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
-        .await
-        .unwrap();
+    let payslip =
+        PayrollService::calculate_monthly_payslip(&pool, employee_id, workspace_id, 2026, 1)
+            .await
+            .unwrap();
 
     // Verify payroll was calculated
     assert!(
