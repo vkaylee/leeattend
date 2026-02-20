@@ -76,8 +76,8 @@ impl Worker for ZkWorker {
                 
                 // Read capacities
                 let _ = zk.read_sizes();
-                let users_cap = Some(zk.users_cap as usize);
-                let logs_cap = Some(zk.rec_cap as usize);
+                let users_cap = Some(zk.users_cap() as usize);
+                let logs_cap = Some(zk.records_cap() as usize);
                 
                 Some((mac, serial, firmware, platform, device_name, users_cap, logs_cap))
             } else {
@@ -203,7 +203,7 @@ impl Worker for ZkWorker {
             let (users_count, logs_count) = match zk.read_sizes() {
                 Ok(_) => {
                     // zk.users and zk.records are u16 in rustzk, cast to usize
-                    (zk.users as usize, zk.records as usize)
+                    (zk.users() as usize, zk.records() as usize)
                 },
                 Err(e) => {
                     warn!("[{ip_thread}] read_sizes failed: {e:?}");
