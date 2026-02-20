@@ -1,11 +1,9 @@
-# LeeAttend - AI Context Header
-
 > [!CAUTION]
-> **CORE DIRECTIVES:**
-> 1. **DOCKER ONLY:** NEVER run `cargo`, `npm`, or `pytest` on the host. Use `./scripts/docker-helper.sh`.
-> 2. **SSD SAFETY:** Always use `tmpfs` mounts via Docker for builds/tests to prevent WSL2 freezes.
-> 3. **SSOT:** Read `PROJECT_OS.md` before ANY implementation.
-> 4. **MODULARITY:** Files MUST be < 200 lines. Split immediately if exceeded.
+> **CORE DIRECTIVES (NON-NEGOTIABLE):**
+> 1. **SSOT:** [PROJECT_OS.md](./PROJECT_OS.md) is the absolute authority. Read it before ANY action.
+> 2. **DOCKER ONLY:** NEVER run `cargo`, `npm`, or `pytest` on the host. Use `./scripts/docker-helper.sh`.
+> 3. **SSD SAFETY:** Use `tmpfs` mounts via Docker to prevent WSL2 freezes.
+> 4. **MODULARITY:** Hard limit of 200 lines per file. Split immediately.
 
 ## 🧭 Discovery Paths
 - **Full Rules:** [PROJECT_OS.md](./PROJECT_OS.md)

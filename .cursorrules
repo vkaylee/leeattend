@@ -1,16 +1,15 @@
-# LeeAttend - Cursor Rules
+# Cursor Rules - LeeAttend Project
 
-## Core Rules (Absolute)
-- **Docker-First:** Never run builds/tests on host. Use `./scripts/docker-helper.sh`.
-- **Instruction Density:** Read `PROJECT_OS.md` for mandatory technical protocols.
-- **File Length:** Maximum 200 lines per file.
+MANDATORY: All AI interactions must adhere to the project's technical protocols.
 
-## Project Structure
-- `apiserver/`: Rust backend
-- `agent-main/`: Rust edge agent
-- `webdashboard/`: React frontend
-- `docs/`: Documentation
+## 📐 Protocols
+- **Primary Rulebook:** Follow [PROJECT_OS.md](./PROJECT_OS.md) at all times.
+- **Execution:** Do NOT suggest or run commands directly on the host. Always wrap them in `./scripts/docker-helper.sh`.
+- **Performance:** Respect the WSL2 I/O constraints by using the provided Docker-based tooling.
+- **Clean Code:** Enforcement of < 200 lines per file.
 
-## Context Discovery
-- Read `llms.txt` for an index of all high-value documentation.
-- Refer to `docs/docker-workflow.md` for understanding the layered Compose system.
+## ⌨️ Command Shortcuts
+- Start: `./scripts/docker-helper.sh dev up -d`
+- Stop: `./scripts/docker-helper.sh dev down`
+- Logs: `./scripts/docker-helper.sh dev logs -f`
+- Test: `./run-tests.sh --all`
