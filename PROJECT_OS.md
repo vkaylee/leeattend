@@ -72,17 +72,17 @@ If running manually, you MUST use the `test` environment layer:
 
 ## 🤖 AI INTERACTION & OVERRIDES
 
-Dự án này tích hợp **AI Standard Layer** (Cursor, Antigravity, Claude Code) để đảm bảo an toàn hệ thống và hiệu suất build.
+This project integrates an **AI Standard Layer** (Cursor, Antigravity, Claude Code) to ensure system safety and build performance.
 
-### 1. File Quy tắc (AI Protocols):
-- `.agent/instructions.md`: Chỉ dẫn chuyên biệt cho Antigravity/Gemini.
-- `.cursorrules`: Quy tắc dành riêng cho Cursor AI.
-- `CLAUDE.md`: Các chỉ dẫn cốt lõi áp dụng cho mọi AI.
+### 1. AI Protocols:
+- `.agent/instructions.md`: Specialized instructions for Antigravity/Gemini.
+- `.cursorrules`: Rules specific to Cursor AI.
+- `CLAUDE.md`: Core directives applicable to all AI agents.
 
-### 2. Quyền Override (Dành cho Teammates):
-Các file này hỗ trợ bạn làm việc nhanh hơn, không phải cản trở bạn. Nếu cần thay đổi quy chuẩn:
-- **Tạm thời**: Nhắc AI trong chat: *"Ignore the line limit for this file"* hoặc *"Bypass docker-helper for this run"*.
-- **Lâu dài**: Trực tiếp sửa nội dung trong các file AI Protocols trên để phù hợp với quy trình làm việc mới của team.
+### 2. Override Authority (For Teammates):
+These files are designed to help you work faster, not to hinder you. If you need to change the standards:
+- **Temporary**: Instruct the AI in chat: *"Ignore the line limit for this file"* or *"Bypass docker-helper for this run"*.
+- **Permanent**: Directly modify the content in the AI Protocol files above to suit the team's evolving workflow.
 
 > [!TIP]
-> Hãy coi AI Rules là code - chúng cần được cập nhật và duy trì song song với sự phát triển của dự án.
+> Treat AI Rules as code - they need to be updated and maintained alongside the project's evolution.
