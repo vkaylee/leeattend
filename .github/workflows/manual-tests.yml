@@ -1,0 +1,69 @@
+name: Manual Test Suite
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_target:
+        description: 'Test target to run'
+        required: true
+        default: '--all'
+        type: choice
+        options:
+          - '--all'
+          - '--api'
+          - '--web'
+          - '--integration'
+      filter:
+        description: 'Specific test pattern (optional) e.g. "auth" or "attendance"'
+        required: false
+        type: string
+        default: ''
+      timeout:
+        description: 'Global Timeout (seconds)'
+        required: false
+        type: string
+        default: '1800'
+
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  run-tests:
+    name: Run LeeAttend Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Pull Docker images (Cache)
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.test.yml pull --ignore-pull-failures || true
+
+      - name: Make scripts executable
+        run: |
+          chmod +x run-tests.sh setup-test-env.sh scripts/*.sh
+          
+      - name: Run LeeAttend Test Suite
+        env:
+          TIMEOUT_GLOBAL: ${{ github.event.inputs.timeout }}
+        run: |
+          if [ -n "${{ github.event.inputs.filter }}" ]; then
+            # Run with specific pattern
+            ./run-tests.sh ${{ github.event.inputs.test_target }} --test="${{ github.event.inputs.filter }}"
+          else
+            # Run all tests in target
+            ./run-tests.sh ${{ github.event.inputs.test_target }}
+          fi
+          
+      - name: Upload Test Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: .test_logs/
+          retention-days: 5
