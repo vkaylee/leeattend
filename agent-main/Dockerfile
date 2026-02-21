@@ -27,7 +27,7 @@ WORKDIR /app
 CMD ["cargo", "watch", "-x", "run"]
 
 # Stage 5: Test (for running tests)
-FROM chef AS tester
+FROM chef AS test
 RUN curl -LsSf https://get.nexte.st/0.9.96/linux | tar zxf - -C /usr/local/bin
 COPY --from=planner /app/recipe.json recipe.json
 RUN --mount=type=cache,target=/usr/local/cargo/registry \

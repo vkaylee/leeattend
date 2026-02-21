@@ -27,7 +27,7 @@ WORKDIR /app
 CMD ["cargo", "watch", "-x", "run"]
 
 # Stage 5: Test
-FROM chef AS tester
+FROM chef AS test
 RUN cargo install sqlx-cli --locked --no-default-features --features postgres
 RUN curl -LsSf https://get.nexte.st/0.9.96/linux | tar zxf - -C /usr/local/bin
 COPY --from=planner /app/recipe.json recipe.json
