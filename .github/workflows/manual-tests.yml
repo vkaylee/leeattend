@@ -71,9 +71,22 @@ jobs:
         run: |
           chmod +x run-tests.sh setup-test-env.sh scripts/*.sh
           
+      - name: Generate CI Docker Compose Override
+        run: |
+          cat <<EOF > docker-compose.ci.yml
+          services:
+            apiserver_test:
+              volumes:
+                - /workspace/apiserver/target
+            agent_test:
+              volumes:
+                - /workspace/agent-main/target
+          EOF
+          
       - name: Run LeeAttend Test Suite
         env:
           TIMEOUT_GLOBAL: ${{ inputs.timeout }}
+          DOCKER_COMPOSE_CMD: docker compose -p leeattend-test -f ./docker-compose.yml -f ./docker-compose.test.yml -f ./docker-compose.ci.yml
         run: |
           # The images are already built and loaded into Docker by Buildx
           if [ -n "${{ inputs.filter }}" ]; then

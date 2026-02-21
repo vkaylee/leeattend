@@ -28,6 +28,7 @@ services:
     environment:
       - DATABASE_URL=postgres://test_user:test_password@test_db:5432/test_database
       - SQLX_OFFLINE=false
+      - CARGO_TARGET_DIR=/app/target
       - SCCACHE_DIR=/sccache
       - RUSTC_WRAPPER=sccache
       - CARGO_INCREMENTAL=0
@@ -50,6 +51,7 @@ services:
     environment:
       - "DATABASE_URL=sqlite::memory:"
       - "CENTRAL_SERVER_URL=ws://apiserver_test:3001/api/ws"
+      - CARGO_TARGET_DIR=/app/target
       - SCCACHE_DIR=/sccache
       - RUSTC_WRAPPER=sccache
       - CARGO_INCREMENTAL=0
