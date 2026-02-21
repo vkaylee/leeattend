@@ -1,4 +1,4 @@
-name: Manual Test Suite
+name: '🧪 Manual Test Suite'
 
 on:
   workflow_dispatch:
