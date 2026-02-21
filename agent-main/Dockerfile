@@ -4,7 +4,12 @@
 # Stage 1: Cargo Chef base
 FROM rust:1.88-slim-bookworm AS chef
 RUN cargo install cargo-chef
-RUN apt-get update && apt-get install -y build-essential pkg-config libssl-dev clang mold curl tar && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y build-essential pkg-config libssl-dev clang mold curl tar wget && rm -rf /var/lib/apt/lists/*
+RUN wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz && \
+    tar xzf sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz && \
+    mv sccache-v0.8.1-x86_64-unknown-linux-musl/sccache /usr/local/bin/sccache && \
+    chmod +x /usr/local/bin/sccache && \
+    rm -rf sccache*
 WORKDIR /app
 
 # Stage 2: Planner (Prepare recipe)
