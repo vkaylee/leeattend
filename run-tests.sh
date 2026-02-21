@@ -61,6 +61,11 @@ export USE_DOCKER=true
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export DOCKER_COMPOSE_CMD="docker compose -p leeattend-test -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/docker-compose.test.yml"
 
+# Auto-include CI override if it exists (e.g., on GitHub Actions)
+if [[ -f "$PROJECT_ROOT/docker-compose.ci.yml" ]]; then
+    export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD -f $PROJECT_ROOT/docker-compose.ci.yml"
+fi
+
 # Source all script modules
 for script in "test-utils.sh" "test-lint.sh" "test-unit.sh" "test-integration.sh"; do
     if [[ -f "$PROJECT_ROOT/scripts/$script" ]]; then
@@ -198,6 +203,9 @@ fi
 FILTER=""
 MODE=""
 PATTERN=""
+PHASE_LINT=false
+PHASE_UNIT=false
+PHASE_INTEGRATION=false
 
 # Parse flags and find mode/pattern
 for arg in "$@"; do
@@ -209,12 +217,15 @@ for arg in "$@"; do
         export NO_COLOR=1
         GREEN='' RED='' YELLOW='' BLUE='' BOLD='' NC=''
     elif [[ "$arg" == --* ]]; then
-        # Handle modes
+        # Handle modes and phases
         case "$arg" in
             --all) MODE="all"; FILTER="";;
             --api) MODE="api"; FILTER="apiserver|agent";;
             --web) MODE="web"; FILTER="webdashboard";;
             --integration) MODE="integration"; FILTER="apiserver|agent";;
+            --lint) PHASE_LINT=true;;
+            --unit) PHASE_UNIT=true;;
+            --integration-only) PHASE_INTEGRATION=true;;
             --clean)
                 echo -e "${BLUE}${BOLD}🧹 Cleaning up test containers and volumes...${NC}"
                 $DOCKER_COMPOSE_CMD down --volumes --remove-orphans
@@ -303,12 +314,27 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# Run all test phases
-if [[ "$MODE" != "integration" ]]; then
+# Determine if we should run all phases (legacy compatibility)
+if [[ "$PHASE_LINT" == "false" && "$PHASE_UNIT" == "false" && "$PHASE_INTEGRATION" == "false" ]]; then
+    if [[ "$MODE" != "integration" ]]; then
+        PHASE_LINT=true
+        PHASE_UNIT=true
+    fi
+    PHASE_INTEGRATION=true
+fi
+
+# Run specific test phases
+if [[ "$PHASE_LINT" == "true" ]]; then
     run_lint "$FILTER"
+fi
+
+if [[ "$PHASE_UNIT" == "true" ]]; then
     run_unit "$FILTER:$PATTERN"
 fi
-run_integration "$FILTER:$PATTERN"
+
+if [[ "$PHASE_INTEGRATION" == "true" ]]; then
+    run_integration "$FILTER:$PATTERN"
+fi
 
 # Kill watchdog since we succeeded
 kill "$WATCHDOG_PID" 2>/dev/null || true

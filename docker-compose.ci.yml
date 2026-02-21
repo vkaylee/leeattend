@@ -1,0 +1,17 @@
+# CI-specific override to nullify tmpfs volumes and use standard Docker volumes. 
+# This ensures that pre-built layers from 'cargo-chef' are preserved in CI.
+
+services:
+  apiserver_test:
+    volumes:
+      - /app/target
+      - /sccache
+
+  agent_test:
+    volumes:
+      - /app/target
+      - /sccache
+
+  web_test:
+    volumes:
+      - /workspace/webdashboard/node_modules
