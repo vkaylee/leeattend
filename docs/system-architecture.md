@@ -334,6 +334,9 @@ Every request can include an optional `X-Debug-Mock-Date` header. This is parsed
                                                   (Report Jobs)
 ```
 
+## 🏗️ Docker & CI/CD Architecture
+For comprehensive details on our multi-stage Docker builds, hybrid caching strategies (`cargo-chef`, `sccache`, `tmpfs`/GHA), and the multi-environment compose setup (Dev, Test, Prod), please refer to the dedicated [Docker Workflow Guide](./docker-workflow.md).
+
 ## 1. Agent (Client Side)
 Hệ thống sử dụng mô hình **Worker Architecture** để tối ưu hóa hiệu năng và độ ổn định:
 
