@@ -50,14 +50,14 @@ jobs:
           
       - name: Run LeeAttend Test Suite
         env:
-          TIMEOUT_GLOBAL: ${{ github.event.inputs.timeout }}
+          TIMEOUT_GLOBAL: ${{ inputs.timeout }}
         run: |
-          if [ -n "${{ github.event.inputs.filter }}" ]; then
+          if [ -n "${{ inputs.filter }}" ]; then
             # Run with specific pattern
-            ./run-tests.sh ${{ github.event.inputs.test_target }} --test="${{ github.event.inputs.filter }}"
+            ./run-tests.sh ${{ inputs.test_target }} --test="${{ inputs.filter }}"
           else
             # Run all tests in target
-            ./run-tests.sh ${{ github.event.inputs.test_target }}
+            ./run-tests.sh ${{ inputs.test_target }}
           fi
           
       - name: Upload Test Logs on Failure
