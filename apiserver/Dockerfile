@@ -16,7 +16,6 @@ RUN cargo chef prepare --recipe-path recipe.json
 FROM chef AS cacher
 COPY --from=planner /app/recipe.json recipe.json
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/app/target \
     cargo chef cook --release --recipe-path recipe.json
 
 # Stage 4: Dev
@@ -32,7 +31,6 @@ RUN cargo install sqlx-cli --locked --no-default-features --features postgres
 RUN curl -LsSf https://get.nexte.st/0.9.96/linux | tar zxf - -C /usr/local/bin
 COPY --from=planner /app/recipe.json recipe.json
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/app/target \
     cargo chef cook --tests --recipe-path recipe.json
 COPY . .
 CMD ["cargo", "nextest", "run"]
@@ -44,7 +42,6 @@ COPY --from=cacher $CARGO_HOME $CARGO_HOME
 COPY . .
 ENV SQLX_OFFLINE=true
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/app/target \
     cargo build --release && \
     cp target/release/apiserver /usr/local/bin/apiserver
 
