@@ -16,3 +16,6 @@
 - **Run Tests:** `./run-tests.sh --all`
 - **Build Service:** `./scripts/docker-helper.sh dev build [service]`
 - **Interactive Shell:** `./scripts/docker-helper.sh dev exec [service] bash`
+- **AI Toolkit:** Use `./scripts/ai-tools/*.sh` for direct DB/API/Redis access.
+
+---

@@ -61,6 +61,20 @@ If running manually, you MUST use the `test` environment layer:
 
 ---
 
+## 5. 🛠️ AI DEVELOPER TOOLKIT
+
+A set of wrapper scripts in `scripts/ai-tools/` to interact with containers directly from the host.
+
+| Tool | Purpose |
+| :--- | :--- |
+| `./scripts/ai-tools/redis-cli.sh [args]` | Execute Redis commands (auto-auth) |
+| `./scripts/ai-tools/psql.sh [args]` | Execute Postgres commands |
+| `./scripts/ai-tools/sqlite.sh [args]` | Query Agent local SQLite database |
+| `./scripts/ai-tools/curl-api.sh [args]` | Call API from within `apiserver` net |
+| `./scripts/ai-tools/shell.sh [service]` | Quick bash login to service container |
+
+---
+
 ## 🎯 DEFINITION OF DONE (AI Checklist)
 - [ ] Code is formatted (`cargo fmt`, `prettier`)
 - [ ] Linter is clean (`clippy`, `eslint`)
