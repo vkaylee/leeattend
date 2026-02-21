@@ -15,16 +15,29 @@ services:
   redis:
     image: redis:7-alpine
     command: redis-server --requirepass ${REDIS_PASSWORD:-dev_password}
-    ports:
-      - "6379:6379"
     healthcheck:
       test: [ "CMD", "sh", "-c", "redis-cli -a $${REDIS_PASSWORD:-dev_password} ping" ]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  redisinsight:
+    image: redis/redisinsight:latest
+    ports:
+      - "5540:5540"
+    environment:
+      - RI_REDIS_HOST=redis
+      - RI_REDIS_PORT=6379
+      - RI_REDIS_PASSWORD=${REDIS_PASSWORD:-dev_password}
+      - RI_REDIS_ALIAS=LeeAttend-Redis
+    depends_on:
+      redis:
+        condition: service_healthy
+
   apiserver:
     build:
+      context: ./apiserver
+      dockerfile: Dockerfile
       target: dev
     command: cargo watch -w src -x run
     depends_on:
@@ -51,6 +64,8 @@ services:
 
   agent-main:
     build:
+      context: ./agent-main
+      dockerfile: Dockerfile
       target: dev
     command: cargo watch -w src -x run
     depends_on:
