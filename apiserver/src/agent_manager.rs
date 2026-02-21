@@ -64,7 +64,7 @@ impl PresenceStore for RedisPool {
         let mut conn = self.conn();
         let keys: Vec<String> = agent_ids
             .iter()
-            .map(|id| format!("agent:presence:{}", id))
+            .map(|id| format!("agent:presence:{id}"))
             .collect();
         let mut redis_presence = HashMap::new();
 
@@ -85,7 +85,7 @@ impl PresenceStore for RedisPool {
 
     async fn record_presence(&self, agent_id: String) {
         let mut conn = self.conn();
-        let key = format!("agent:presence:{}", agent_id);
+        let key = format!("agent:presence:{agent_id}");
         let val = Utc::now().to_rfc3339();
 
         // Set presence key with 60 second TTL and 500ms timeout
