@@ -40,9 +40,32 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Pull Docker images (Cache)
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.test.yml pull --ignore-pull-failures || true
+      - name: Build and Cache API Server
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apiserver
+          target: test
+          load: true
+          cache-from: type=gha,scope=apiserver
+          cache-to: type=gha,mode=max,scope=apiserver
+
+      - name: Build and Cache Agent
+        uses: docker/build-push-action@v5
+        with:
+          context: ./agent-main
+          target: test
+          load: true
+          cache-from: type=gha,scope=agent
+          cache-to: type=gha,mode=max,scope=agent
+
+      - name: Build and Cache Web
+        uses: docker/build-push-action@v5
+        with:
+          context: ./webdashboard
+          target: test
+          load: true
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
 
       - name: Make scripts executable
         run: |
@@ -52,11 +75,10 @@ jobs:
         env:
           TIMEOUT_GLOBAL: ${{ inputs.timeout }}
         run: |
+          # The images are already built and loaded into Docker by Buildx
           if [ -n "${{ inputs.filter }}" ]; then
-            # Run with specific pattern
             ./run-tests.sh ${{ inputs.test_target }} --test="${{ inputs.filter }}"
           else
-            # Run all tests in target
             ./run-tests.sh ${{ inputs.test_target }}
           fi
           
