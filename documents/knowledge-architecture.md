@@ -559,7 +559,7 @@ Or:
 
 **API Server**:
 - PostgreSQL 13+ (required)
-- Redis (optional, for session caching)
+- Redis 7+ (job queues, caching, and background tasks)
 
 **Edge Agent**:
 - SQLite 3.37+ (bundled)
@@ -570,7 +570,11 @@ Or:
 - Node.js 18+ (build-time)
 - API server (runtime)
 
-### External Services
+### External Services & Tools
+
+**Dev Tools (Docker)**:
+- RedisInsight (Redis UI on port 5540)
+- AI Developer Toolkit (`scripts/ai-tools/*.sh`)
 
 **Biometric Devices**:
 - ZKTeco T&A system

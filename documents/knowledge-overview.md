@@ -163,7 +163,9 @@ SQLite schema for local persistence:
 - Python 3.9+ (for agent-zk-worker)
 - Node.js 18+ (for webdashboard)
 - PostgreSQL 13+ (central server)
+- Redis 7+ (job queues and caching)
 - Docker (for test environment)
+- AI Developer Toolkit (scripts in `scripts/ai-tools/`)
 
 ### Quick Start
 

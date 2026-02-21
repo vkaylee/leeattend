@@ -878,6 +878,15 @@ python -m py_compile script.py     # Syntax check
 ./setup-test-env.sh               # Test database
 ```
 
+**AI Developer Toolkit** (for container access):
+```bash
+./scripts/ai-tools/redis-cli.sh   # Redis console
+./scripts/ai-tools/psql.sh        # Postgres console
+./scripts/ai-tools/sqlite.sh      # Agent local DB console
+./scripts/ai-tools/curl-api.sh    # Call internal API 
+./scripts/ai-tools/shell.sh [svc] # Open container shell
+```
+
 ## Standards Evolution
 
 Documentation is living. When updating standards:
