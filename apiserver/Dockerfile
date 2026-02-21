@@ -4,12 +4,13 @@
 # Stage 1: Cargo Chef base
 FROM rust:1.88-slim-bookworm AS chef
 RUN cargo install cargo-chef
-RUN apt-get update && apt-get install -y build-essential pkg-config libssl-dev clang mold curl tar postgresql-client wget && rm -rf /var/lib/apt/lists/*
-RUN wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz && \
+RUN apt-get update && apt-get install -y wget && \
+    wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz && \
     tar xzf sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz && \
     mv sccache-v0.8.1-x86_64-unknown-linux-musl/sccache /usr/local/bin/sccache && \
     chmod +x /usr/local/bin/sccache && \
-    rm -rf sccache*
+    rm -rf sccache* && \
+    apt-get install -y build-essential pkg-config libssl-dev clang mold curl tar postgresql-client && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 # Stage 2: Planner
@@ -28,8 +29,9 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 # Stage 4: Dev
 FROM rust:1.88-bookworm AS dev
-RUN apt-get update && apt-get install -y clang mold git redis-tools postgresql-client sqlite3 netcat-traditional curl dnsutils iputils-ping iproute2 nmap jq htop bash && rm -rf /var/lib/apt/lists/*
-RUN cargo install cargo-watch
+RUN apt-get update && apt-get install -y clang mold git redis-tools postgresql-client sqlite3 netcat-traditional curl dnsutils iputils-ping iproute2 nmap jq htop bash && \
+    rm -rf /var/lib/apt/lists/* && \
+    cargo install cargo-watch
 WORKDIR /app
 CMD ["cargo", "watch", "-x", "run"]
 
