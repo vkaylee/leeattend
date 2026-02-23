@@ -66,6 +66,9 @@ export DOCKER_COMPOSE_CMD="docker compose -p leeattend-test -f $PROJECT_ROOT/doc
 # Enable cargo incremental builds
 export CARGO_INCREMENTAL=1
 export CARGO_TARGET_DIR="$PROJECT_ROOT/target"
+export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+export RUSTC_WRAPPER=sccache
+export SCCACHE_DIR="$PROJECT_ROOT/.sccache"
 
 # Auto-include CI override if it exists (e.g., on GitHub Actions)
 if [[ -f "$PROJECT_ROOT/docker-compose.ci.yml" ]]; then

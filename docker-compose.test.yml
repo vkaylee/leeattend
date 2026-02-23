@@ -28,13 +28,16 @@ services:
     environment:
       - DATABASE_URL=postgres://test_user:test_password@test_db:5432/test_database
       - SQLX_OFFLINE=false
-      - CARGO_TARGET_DIR=/app/target
+      - CARGO_TARGET_DIR=/workspace/target
+      - CARGO_HOME=/workspace/cargo
       - SCCACHE_DIR=/sccache
       - RUSTC_WRAPPER=sccache
-      - CARGO_INCREMENTAL=0
+      - CARGO_INCREMENTAL=1
+      - SCCACHE_GHA_ENABLED=true
     volumes:
       - .:/workspace
-      - apiserver-target:/workspace/apiserver/target
+      - ./target:/workspace/target
+      - cargo-home:/workspace/cargo
       - sccache-storage:/sccache
       - ./.test_logs:/workspace/apiserver/.test_logs
       - shared-data:/workspace/shared
@@ -51,13 +54,16 @@ services:
     environment:
       - "DATABASE_URL=sqlite::memory:"
       - "CENTRAL_SERVER_URL=ws://apiserver_test:3001/api/ws"
-      - CARGO_TARGET_DIR=/app/target
+      - CARGO_TARGET_DIR=/workspace/target
+      - CARGO_HOME=/workspace/cargo
       - SCCACHE_DIR=/sccache
       - RUSTC_WRAPPER=sccache
-      - CARGO_INCREMENTAL=0
+      - CARGO_INCREMENTAL=1
+      - SCCACHE_GHA_ENABLED=true
     volumes:
       - .:/workspace
-      - agent-target:/workspace/agent-main/target
+      - ./target:/workspace/target
+      - cargo-home:/workspace/cargo
       - sccache-storage:/sccache
       - ./.test_logs:/workspace/agent-main/.test_logs
 
@@ -79,12 +85,12 @@ services:
       - npm-cache:/workspace/.npm-cache
 
 volumes:
-  apiserver-target:
+  target:
     driver: local
     driver_opts: { type: tmpfs, device: tmpfs, o: "size=4G" }
-  agent-target:
+  cargo-home:
     driver: local
-    driver_opts: { type: tmpfs, device: tmpfs, o: "size=2G" }
+    driver_opts: { type: tmpfs, device: tmpfs, o: "size=1G" }
   sccache-storage:
     driver: local
     driver_opts: { type: tmpfs, device: tmpfs, o: "size=2G" }
