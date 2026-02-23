@@ -28,34 +28,40 @@ show_help() {
     echo ""
     echo -e "${BOLD}Options:${NC}"
     echo -e "  ${GREEN}--all${NC}          Run all tests (Lint, Unit, Integration, E2E)"
-    echo -e "  ${GREEN}--api${NC}          Run tests for API components (Rust, Python)"
-    echo -e "  ${GREEN}--web${NC}          Run tests for Web component (Vite, Playwright)"
+    echo -e "  ${GREEN}--api${NC}          Run tests for API components (Rust: apiserver, agent-main)"
+    echo -e "  ${GREEN}--web${NC}          Run tests for Web component (webdashboard)"
     echo -e "  ${GREEN}--integration${NC}  Run ONLY Integration & E2E tests"
     echo -e "  ${GREEN}--test=NAME${NC}    Run specific test(s) by name/pattern"
-    echo -e "  ${GREEN}--clean${NC}        Clean up containers and volumes (run this standalone)"
+    echo -e "  ${GREEN}--test-only${NC}   Skip lint/unit, run ONLY test pattern (fast debug)"
+    echo -e "  ${GREEN}--component=NAME${NC}  Limit to specific component: apiserver, agent-main, webdashboard"
+    echo -e "  ${GREEN}--clean${NC}        Clean up containers and volumes"
     echo -e "  ${GREEN}--no-color${NC}     Disable color output"
     echo -e "  ${GREEN}--help${NC}         Show this help message"
-    echo -e "  ${GREEN}--timeout=N${NC}    Set global timeout in seconds (default: 1800 = 30min)"
+    echo -e "  ${GREEN}--timeout=N${NC}    Set global timeout in seconds (default: 1800)"
     echo -e "  ${GREEN}--shard=N/M${NC}    Run shard N of M (for CI parallelization)"
     echo ""
-    echo -e "${BOLD}Timeout Configuration (env vars):${NC}"
+    echo -e "${BOLD}Environment Variables:${NC}"
     echo -e "  TIMEOUT_LINT=900           Per lint task (default: 15 min)"
     echo -e "  TIMEOUT_UNIT=900           Per unit test task (default: 15 min)"
     echo -e "  TIMEOUT_INTEGRATION=600    Per integration task (default: 10 min)"
-    echo -e "  TIMEOUT_BUILD=600          Pre-compilation (default: 10 min)"
-    echo -e "  TIMEOUT_DB_WAIT=120        Database ready wait (default: 2 min)"
     echo -e "  TIMEOUT_GLOBAL=1800        Global timeout (default: 30 min)"
     echo ""
-    echo -e "${BOLD}Pattern:${NC}"
-    echo -e "  Optional. Filter test cases by name (e.g., 'auth', 'attendance')."
-    echo -e "  Works for both API (cargo/nextest) and Web (playwright grep)."
+    echo -e "${BOLD}Quick Examples (for AI agents):${NC}"
+    echo -e "  ${YELLOW}# Run new unit test named 'test_new_feature'${NC}"
+    echo -e "  ./run-tests.sh --api --test=test_new_feature"
+    echo -e ""
+    echo -e "  ${YELLOW}# Run only the test, skip lint (faster debug)${NC}"
+    echo -e "  ./run-tests.sh --api --test-only --test=test_new_feature"
+    echo -e ""
+    echo -e "  ${YELLOW}# Run specific component only${NC}"
+    echo -e "  ./run-tests.sh --api --component=apiserver --test=my_test"
+    echo -e ""
+    echo -e "  ${YELLOW}# Run webdashboard test${NC}"
+    echo -e "  ./run-tests.sh --web --test=login_page"
     echo ""
-    echo -e "${BOLD}Examples:${NC}"
-    echo -e "  ./run-tests.sh --api robustness   # Lint all API, then run 'robustness' tests"
-    echo -e "  ./run-tests.sh --web login        # Lint all Web, then run 'login' tests"
-    echo -e "  ./run-tests.sh --all"
-    echo -e "  TIMEOUT_GLOBAL=600 ./run-tests.sh --api  # 10 min global timeout"
-    echo -e "  ./run-tests.sh --api --shard=1/3   # Run 1st of 3 parallel shards"
+    echo -e "${BOLD}Pattern Format:${NC}"
+    echo -e "  API: cargo nextest filter (e.g., 'mod::test_name', 'test_name')"
+    echo -e "  Web: playwright grep pattern (e.g., 'login', '@tag')"
 }
 
 # --- Environment Setup ---
@@ -217,9 +223,11 @@ fi
 FILTER=""
 MODE=""
 PATTERN=""
+COMPONENT=""
 PHASE_LINT=false
 PHASE_UNIT=false
 PHASE_INTEGRATION=false
+TEST_ONLY=false
 SHARD_N=""
 SHARD_M=""
 
@@ -229,6 +237,8 @@ for arg in "$@"; do
         GLOBAL_TIMEOUT="${arg#*=}"
     elif [[ "$arg" == --test=* ]]; then
         PATTERN="${arg#*=}"
+    elif [[ "$arg" == --component=* ]]; then
+        COMPONENT="${arg#*=}"
     elif [[ "$arg" == --shard=* ]]; then
         local shard_str="${arg#*=}"
         SHARD_N="${shard_str%%/*}"
@@ -246,6 +256,7 @@ for arg in "$@"; do
             --lint) PHASE_LINT=true;;
             --unit) PHASE_UNIT=true;;
             --integration-only) PHASE_INTEGRATION=true;;
+            --test-only) TEST_ONLY=true;;
             --clean)
                 echo -e "${BLUE}${BOLD}🧹 Cleaning up test containers and volumes...${NC}"
                 $DOCKER_COMPOSE_CMD down --volumes --remove-orphans
@@ -276,6 +287,36 @@ if [[ -n "$SHARD_N" || -n "$SHARD_M" ]]; then
         exit 1
     fi
     echo -e "${BLUE}${BOLD}🧩 Running shard $SHARD_N of $SHARD_M${NC}"
+fi
+
+# Apply component filter
+if [[ -n "$COMPONENT" ]]; then
+    case "$COMPONENT" in
+        apiserver)
+            FILTER="apiserver"
+            echo -e "${BLUE}🎯 Component filter: ${YELLOW}apiserver only${NC}"
+            ;;
+        agent|agent-main)
+            FILTER="agent"
+            echo -e "${BLUE}🎯 Component filter: ${YELLOW}agent-main only${NC}"
+            ;;
+        web|webdashboard)
+            FILTER="webdashboard"
+            echo -e "${BLUE}🎯 Component filter: ${YELLOW}webdashboard only${NC}"
+            ;;
+        *)
+            echo -e "${RED}Error: Invalid component. Use: apiserver, agent-main, webdashboard${NC}"
+            exit 1
+            ;;
+    esac
+fi
+
+# Apply test-only mode (skip lint/unit, run only pattern)
+if [[ "$TEST_ONLY" == "true" ]]; then
+    PHASE_LINT=false
+    PHASE_UNIT=false
+    PHASE_INTEGRATION=true
+    echo -e "${BLUE}⚡ Test-only mode: skipping lint and unit phases${NC}"
 fi
 
 echo -e "${BLUE}${BOLD}🚀 Starting LeeAttend Test Suite in [$MODE] mode${NC}"
