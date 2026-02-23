@@ -41,7 +41,7 @@ show_help() {
     echo -e "    ${GREEN}--test=PATTERN${NC}     Run tests matching PATTERN"
     echo -e "    ${GREEN}--test-only${NC}         Skip lint+unit, run ONLY test pattern (fast debug)"
     echo -e "    ${GREEN}--component=NAME${NC}    Limit to: apiserver, agent-main, webdashboard"
-    echo -e "    ${GREEN}--smoke${NC}            Quick smoke test: lint + unit + smoke integration"
+    echo -e "    ${GREEN}--smoke${NC}            Quick smoke test: lint + unit only (no integration)"
     echo -e "    ${GREEN}--list${NC}              List available tests without running"
     echo -e "    ${GREEN}--dry-run${NC}           Show what would run without executing"
     echo ""
@@ -446,12 +446,12 @@ if [[ "$TEST_ONLY" == "true" ]]; then
     echo -e "${BLUE}⚡ Test-only mode: skipping lint and unit phases${NC}"
 fi
 
-# Apply smoke mode (lint + unit + smoke integration)
+# Apply smoke mode (lint + unit only, skip integration for speed)
 if [[ "$SMOKE" == "true" ]]; then
     PHASE_LINT=true
     PHASE_UNIT=true
-    PHASE_INTEGRATION=true
-    echo -e "${BLUE}🔥 Smoke mode: running lint + unit + smoke integration${NC}"
+    PHASE_INTEGRATION=false
+    echo -e "${BLUE}🔥 Smoke mode: running lint + unit only${NC}"
 fi
 
 # Set default phases if not specified
