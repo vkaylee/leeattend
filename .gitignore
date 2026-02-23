@@ -66,3 +66,6 @@ webdashboard/repomix-output.xml
 
 .gemini/
 gha-creds-*.json
+
+# Docker Test Cache
+docker-test-cache/

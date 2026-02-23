@@ -30,15 +30,17 @@ services:
       - SQLX_OFFLINE=false
       - CARGO_TARGET_DIR=/workspace/target
       - CARGO_HOME=/workspace/cargo
-      # sccache temporarily disabled - uncomment for caching
-      # - SCCACHE_DIR=/sccache
-      # - RUSTC_WRAPPER=sccache
-      # - SCCACHE_GHA_ENABLED=true
+      - SCCACHE_DIR=/sccache
+      - RUSTC_WRAPPER=sccache
+      - SCCACHE_GHA_ENABLED=true
+      - RUSTFLAGS=-C linker=mold
+      - CARGO_BUILD_JOBS=4
     volumes:
       - .:/workspace
       - ./target:/workspace/target
-      - cargo-home:/workspace/cargo
-      - sccache-storage:/sccache
+      - ./docker-test-cache/cargo-home:/workspace/cargo
+      - ./docker-test-cache/cargo-registry-cache:/usr/local/cargo/registry
+      - ./docker-test-cache/sccache-storage:/sccache
       - ./.test_logs:/workspace/apiserver/.test_logs
       - shared-data:/workspace/shared
 
@@ -56,15 +58,17 @@ services:
       - "CENTRAL_SERVER_URL=ws://apiserver_test:3001/api/ws"
       - CARGO_TARGET_DIR=/workspace/target
       - CARGO_HOME=/workspace/cargo
-      # sccache temporarily disabled - uncomment for caching
-      # - SCCACHE_DIR=/sccache
-      # - RUSTC_WRAPPER=sccache
-      # - SCCACHE_GHA_ENABLED=true
+      - SCCACHE_DIR=/sccache
+      - RUSTC_WRAPPER=sccache
+      - SCCACHE_GHA_ENABLED=true
+      - RUSTFLAGS=-C linker=mold
+      - CARGO_BUILD_JOBS=4
     volumes:
       - .:/workspace
       - ./target:/workspace/target
-      - cargo-home:/workspace/cargo
-      - sccache-storage:/sccache
+      - ./docker-test-cache/cargo-home:/workspace/cargo
+      - ./docker-test-cache/cargo-registry-cache:/usr/local/cargo/registry
+      - ./docker-test-cache/sccache-storage:/sccache
       - ./.test_logs:/workspace/agent-main/.test_logs
 
   web_test:
@@ -79,27 +83,12 @@ services:
       - npm_config_cache=/workspace/.npm-cache
     volumes:
       - .:/workspace
-      - web-node-modules:/workspace/webdashboard/node_modules
+      - ./docker-test-cache/web-node-modules:/workspace/webdashboard/node_modules
       - ./.test_logs:/workspace/webdashboard/.test_logs
       - shared-data:/workspace/shared
-      - npm-cache:/workspace/.npm-cache
+      - ./docker-test-cache/npm-cache:/workspace/.npm-cache
 
 volumes:
-  target:
-    driver: local
-    driver_opts: { type: tmpfs, device: tmpfs, o: "size=4G" }
-  cargo-home:
-    driver: local
-    driver_opts: { type: tmpfs, device: tmpfs, o: "size=1G" }
-  sccache-storage:
-    driver: local
-    driver_opts: { type: tmpfs, device: tmpfs, o: "size=2G" }
   shared-data:
     driver: local
     driver_opts: { type: tmpfs, device: tmpfs, o: "size=64M" }
-  web-node-modules:
-    driver: local
-    driver_opts: { type: tmpfs, device: tmpfs, o: "size=1G" }
-  npm-cache:
-    driver: local
-    driver_opts: { type: tmpfs, device: tmpfs, o: "size=256M" }

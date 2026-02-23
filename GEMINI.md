@@ -12,3 +12,4 @@
 - **Tool Selection:** Always prioritize native API tools over raw bash commands. Use `task_boundary` mechanic stringently.
 
 Default AI adapter reference: `.ai-context-os/GEMINI.md`
+ 
