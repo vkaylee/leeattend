@@ -27,7 +27,7 @@ services:
     working_dir: /workspace/apiserver
     environment:
       - DATABASE_URL=postgres://test_user:test_password@test_db:5432/test_database
-      - SQLX_OFFLINE=false
+      - SQLX_OFFLINE=true
       - CARGO_TARGET_DIR=/workspace/target
       - CARGO_HOME=/workspace/cargo
       - CARGO_BUILD_JOBS=4
