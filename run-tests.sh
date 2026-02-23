@@ -37,7 +37,11 @@ show_help() {
     echo -e "  ${GREEN}--list${NC}       List available tests (no execution)"
     echo -e "  ${GREEN}--dry-run${NC}    Show what would run without executing"
     echo -e "  ${GREEN}--smoke${NC}       Quick smoke test (lint + unit only, no integration)"
+    echo -e "  ${GREEN}--warm-cache${NC}  Pre-compile dependencies (for faster first run)"
+    echo -e "  ${GREEN}--cache-stats${NC} Show cargo/npm cache statistics"
+    echo -e "  ${GREEN}--no-cache${NC}    Disable cache, force fresh build"
     echo -e "  ${GREEN}--clean${NC}        Clean up containers and volumes"
+    echo -e "  ${GREEN}--clean-cache${NC} Clean only cache (keep containers)"
     echo -e "  ${GREEN}--no-color${NC}     Disable color output"
     echo -e "  ${GREEN}--help${NC}         Show this help message"
     echo -e "  ${GREEN}--timeout=N${NC}    Set global timeout in seconds (default: 1800)"
@@ -59,17 +63,14 @@ show_help() {
     echo -e "  ${YELLOW}# Run specific component only${NC}"
     echo -e "  ./run-tests.sh --api --component=apiserver --test=my_test"
     echo -e ""
-    echo -e "  ${YELLOW}# Run webdashboard test${NC}"
-    echo -e "  ./run-tests.sh --web --test=login_page"
+    echo -e "  ${YELLOW}# Warm cache before CI (run on fresh machine)${NC}"
+    echo -e "  ./run-tests.sh --api --warm-cache"
     echo -e ""
-    echo -e "  ${YELLOW}# List all available API tests${NC}"
-    echo -e "  ./run-tests.sh --api --list"
+    echo -e "  ${YELLOW}# Show cache statistics${NC}"
+    echo -e "  ./run-tests.sh --cache-stats"
     echo -e ""
-    echo -e "  ${YELLOW}# Dry-run to see what would execute${NC}"
-    echo -e "  ./run-tests.sh --api --dry-run"
-    echo -e ""
-    echo -e "  ${YELLOW}# Quick smoke test (lint + unit only)${NC}"
-    echo -e "  ./run-tests.sh --api --smoke"
+    echo -e "  ${YELLOW}# Clean cache only (keep containers)${NC}"
+    echo -e "  ./run-tests.sh --clean-cache"
     echo ""
     echo -e "${BOLD}Pattern Format:${NC}"
     echo -e "  API: cargo nextest filter (e.g., 'mod::test_name', 'test_name')"
@@ -243,6 +244,9 @@ TEST_ONLY=false
 LIST_TESTS=false
 DRY_RUN=false
 SMOKE=false
+WARM_CACHE=false
+CACHE_STATS=false
+NO_CACHE=false
 SHARD_N=""
 SHARD_M=""
 
@@ -275,10 +279,25 @@ for arg in "$@"; do
             --list) LIST_TESTS=true;;
             --dry-run) DRY_RUN=true;;
             --smoke) SMOKE=true;;
+            --warm-cache) WARM_CACHE=true;;
+            --cache-stats) CACHE_STATS=true;;
+            --no-cache) NO_CACHE=true;;
             --clean)
                 echo -e "${BLUE}${BOLD}🧹 Cleaning up test containers and volumes...${NC}"
                 $DOCKER_COMPOSE_CMD down --volumes --remove-orphans
+                rm -rf "$PROJECT_ROOT/target" "$PROJECT_ROOT/.sccache"
                 echo -e "${GREEN}✅ Cleanup complete!${NC}"
+                exit 0
+                ;;
+            --clean-cache)
+                echo -e "${BLUE}${BOLD}🧹 Cleaning cache only (keeping containers)...${NC}"
+                rm -rf "$PROJECT_ROOT/target" "$PROJECT_ROOT/.sccache"
+                if [[ "${USE_DOCKER:-}" == "true" ]]; then
+                    $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "rm -rf /workspace/target /sccache 2>/dev/null || true"
+                    $DOCKER_COMPOSE_CMD exec -T agent_test bash -c "rm -rf /workspace/target /sccache 2>/dev/null || true"
+                    $DOCKER_COMPOSE_CMD exec -T web_test bash -c "rm -rf /workspace/.npm-cache /workspace/webdashboard/node_modules 2>/dev/null || true"
+                fi
+                echo -e "${GREEN}✅ Cache cleaned!${NC}"
                 exit 0
                 ;;
             --help) show_help; exit 0;;
@@ -327,6 +346,37 @@ if [[ -n "$COMPONENT" ]]; then
             exit 1
             ;;
     esac
+fi
+
+# Handle --cache-stats
+if [[ "$CACHE_STATS" == "true" ]]; then
+    echo -e "${BLUE}${BOLD}📊 Cache Statistics${NC}"
+    echo ""
+    
+    if [[ "${USE_DOCKER:-}" == "true" ]]; then
+        echo -e "${YELLOW}=== Cargo (apiserver) ===${NC}"
+        $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "du -sh /workspace/target 2>/dev/null || echo 'No cache'" || true
+        $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "sccache --show-stats 2>/dev/null | head -10 || echo 'sccache not available'" || true
+        
+        echo ""
+        echo -e "${YELLOW}=== Cargo (agent-main) ===${NC}"
+        $DOCKER_COMPOSE_CMD exec -T agent_test bash -c "du -sh /workspace/target 2>/dev/null || echo 'No cache'" || true
+        $DOCKER_COMPOSE_CMD exec -T agent_test bash -c "sccache --show-stats 2>/dev/null | head -10 || echo 'sccache not available'" || true
+        
+        echo ""
+        echo -e "${YELLOW}=== NPM ===${NC}"
+        $DOCKER_COMPOSE_CMD exec -T web_test bash -c "du -sh /workspace/.npm-cache 2>/dev/null || echo 'No cache'" || true
+        $DOCKER_COMPOSE_CMD exec -T web_test bash -c "du -sh /workspace/webdashboard/node_modules 2>/dev/null || echo 'No node_modules'" || true
+    else
+        echo -e "${YELLOW}=== Local Cargo ===${NC}"
+        du -sh "$PROJECT_ROOT/target" 2>/dev/null || echo "No cache"
+        
+        echo ""
+        echo -e "${YELLOW}=== Local NPM ===${NC}"
+        du -sh "$HOME/.npm" 2>/dev/null || echo "No npm cache"
+    fi
+    
+    exit 0
 fi
 
 # Apply test-only mode (skip lint/unit, run only pattern)
@@ -416,6 +466,42 @@ export TIMEOUT_DB_WAIT="${TIMEOUT_DB_WAIT:-120}"
 export TIMEOUT_WEB_READY="${TIMEOUT_WEB_READY:-300}"
 export SHARD_N="$SHARD_N"
 export SHARD_M="$SHARD_M"
+
+# Handle --no-cache
+if [[ "$NO_CACHE" == "true" ]]; then
+    echo -e "${YELLOW}⚠️ Cache disabled - forcing fresh build${NC}"
+    export CARGO_INCREMENTAL=0
+    export CARGO_NET_OFFLINE=true
+    export NPM_CONFIG_CACHE=/dev/null
+fi
+
+# Handle --warm-cache (pre-compile dependencies)
+if [[ "$WARM_CACHE" == "true" ]]; then
+    echo -e "${BLUE}${BOLD}🔥 Warming up cache - pre-compiling dependencies...${NC}"
+    
+    if [[ "${USE_DOCKER:-}" == "true" ]]; then
+        # Start containers
+        $DOCKER_COMPOSE_CMD up -d --build=false apiserver_test agent_test web_test
+        
+        echo -e "${BLUE}📦 Pre-compiling apiserver...${NC}"
+        $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "cargo check --lib 2>/dev/null || true" &
+        
+        echo -e "${BLUE}📦 Pre-compiling agent-main...${NC}"
+        $DOCKER_COMPOSE_CMD exec -T agent_test bash -c "cargo check --lib 2>/dev/null || true" &
+        
+        echo -e "${BLUE}📦 Installing web dependencies...${NC}"
+        $DOCKER_COMPOSE_CMD exec -T web_test npm install --no-audit --no-fund &
+        
+        # Wait for all to complete
+        wait
+        
+        echo -e "${GREEN}✅ Cache warmed up!${NC}"
+        echo -e "${BLUE}💡 Run tests now: ./run-tests.sh --api${NC}"
+    else
+        echo -e "${YELLOW}⚠️ Warm-cache only works with Docker. Use --help for options.${NC}"
+    fi
+    exit 0
+fi
 
 # Clear previous results
 if [[ -L "$PROJECT_ROOT/.test_logs" ]]; then
