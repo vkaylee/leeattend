@@ -41,7 +41,7 @@ show_help() {
     echo -e "    ${GREEN}--test=PATTERN${NC}     Run tests matching PATTERN"
     echo -e "    ${GREEN}--test-only${NC}         Skip lint+unit, run ONLY test pattern (fast debug)"
     echo -e "    ${GREEN}--component=NAME${NC}    Limit to: apiserver, agent-main, webdashboard"
-    echo -e "    ${GREEN}--smoke${NC}            Quick smoke test: lint + unit only (no integration)"
+    echo -e "    ${GREEN}--smoke${NC}            Quick smoke test: lint + unit + smoke integration"
     echo -e "    ${GREEN}--list${NC}              List available tests without running"
     echo -e "    ${GREEN}--dry-run${NC}           Show what would run without executing"
     echo ""
@@ -446,12 +446,12 @@ if [[ "$TEST_ONLY" == "true" ]]; then
     echo -e "${BLUE}⚡ Test-only mode: skipping lint and unit phases${NC}"
 fi
 
-# Apply smoke mode (lint + unit only, skip integration)
+# Apply smoke mode (lint + unit + smoke integration)
 if [[ "$SMOKE" == "true" ]]; then
     PHASE_LINT=true
     PHASE_UNIT=true
-    PHASE_INTEGRATION=false
-    echo -e "${BLUE}🔥 Smoke mode: running lint + unit only${NC}"
+    PHASE_INTEGRATION=true
+    echo -e "${BLUE}🔥 Smoke mode: running lint + unit + smoke integration${NC}"
 fi
 
 # Set default phases if not specified
@@ -490,21 +490,6 @@ if [[ "$LIST_TESTS" == "true" ]]; then
         echo "  npm test -- --list 2>/dev/null || echo 'Run in container for full list'"
     fi
     echo -e "${GREEN}💡 Tip: Run with USE_DOCKER=true to get actual list${NC}"
-    exit 0
-fi
-
-# Handle --dry-run (show what would execute)
-if [[ "$DRY_RUN" == "true" ]]; then
-    echo -e "${BLUE}${BOLD}🔍 Dry-run: showing what would execute...${NC}"
-    echo -e "${BLUE}Mode: $MODE${NC}"
-    echo -e "${BLUE}Filter: $FILTER${NC}"
-    echo -e "${BLUE}Pattern: ${PATTERN:-none}${NC}"
-    echo -e "${BLUE}Component: ${COMPONENT:-all}${NC}"
-    echo -e "${BLUE}Phases:${NC}"
-    [[ "$PHASE_LINT" == "true" ]] && echo -e "  ✓ Lint"
-    [[ "$PHASE_UNIT" == "true" ]] && echo -e "  ✓ Unit Tests"
-    [[ "$PHASE_INTEGRATION" == "true" ]] && echo -e "  ✓ Integration Tests"
-    echo -e "${GREEN}💡 This is a dry-run. No tests were executed.${NC}"
     exit 0
 fi
 
@@ -621,7 +606,11 @@ if [[ "$PHASE_UNIT" == "true" ]]; then
 fi
 
 if [[ "$PHASE_INTEGRATION" == "true" ]]; then
-    run_integration "$FILTER:$PATTERN"
+    INT_PATTERN="$PATTERN"
+    if [[ "$SMOKE" == "true" && -z "$INT_PATTERN" ]]; then
+        INT_PATTERN="smoke"
+    fi
+    run_integration "$FILTER:$INT_PATTERN"
 fi
 
 # Kill watchdog since we succeeded
