@@ -30,10 +30,10 @@ services:
       - SQLX_OFFLINE=false
       - CARGO_TARGET_DIR=/workspace/target
       - CARGO_HOME=/workspace/cargo
-      - SCCACHE_DIR=/sccache
-      - RUSTC_WRAPPER=sccache
-      - CARGO_INCREMENTAL=1
-      - SCCACHE_GHA_ENABLED=true
+      # sccache temporarily disabled - uncomment for caching
+      # - SCCACHE_DIR=/sccache
+      # - RUSTC_WRAPPER=sccache
+      # - SCCACHE_GHA_ENABLED=true
     volumes:
       - .:/workspace
       - ./target:/workspace/target
@@ -56,10 +56,10 @@ services:
       - "CENTRAL_SERVER_URL=ws://apiserver_test:3001/api/ws"
       - CARGO_TARGET_DIR=/workspace/target
       - CARGO_HOME=/workspace/cargo
-      - SCCACHE_DIR=/sccache
-      - RUSTC_WRAPPER=sccache
-      - CARGO_INCREMENTAL=1
-      - SCCACHE_GHA_ENABLED=true
+      # sccache temporarily disabled - uncomment for caching
+      # - SCCACHE_DIR=/sccache
+      # - RUSTC_WRAPPER=sccache
+      # - SCCACHE_GHA_ENABLED=true
     volumes:
       - .:/workspace
       - ./target:/workspace/target

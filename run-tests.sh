@@ -144,12 +144,9 @@ export USE_DOCKER=true
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export DOCKER_COMPOSE_CMD="docker compose -p leeattend-test -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/docker-compose.test.yml"
 
-# Enable cargo incremental builds
-export CARGO_INCREMENTAL=1
+# Cargo cache settings (sccache disabled for now - see docker-compose.test.yml)
 export CARGO_TARGET_DIR="$PROJECT_ROOT/target"
 export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
-export RUSTC_WRAPPER=sccache
-export SCCACHE_DIR="$PROJECT_ROOT/.sccache"
 
 # Auto-include CI override if it exists (e.g., on GitHub Actions)
 if [[ -f "$PROJECT_ROOT/docker-compose.ci.yml" ]]; then
@@ -532,7 +529,7 @@ export SHARD_M="$SHARD_M"
 # Handle --no-cache
 if [[ "$NO_CACHE" == "true" ]]; then
     echo -e "${YELLOW}⚠️ Cache disabled - forcing fresh build${NC}"
-    export CARGO_INCREMENTAL=0
+    unset RUSTC_WRAPPER
     export CARGO_NET_OFFLINE=true
     export NPM_CONFIG_CACHE=/dev/null
 fi
