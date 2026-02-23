@@ -34,6 +34,9 @@ show_help() {
     echo -e "  ${GREEN}--test=NAME${NC}    Run specific test(s) by name/pattern"
     echo -e "  ${GREEN}--test-only${NC}   Skip lint/unit, run ONLY test pattern (fast debug)"
     echo -e "  ${GREEN}--component=NAME${NC}  Limit to specific component: apiserver, agent-main, webdashboard"
+    echo -e "  ${GREEN}--list${NC}       List available tests (no execution)"
+    echo -e "  ${GREEN}--dry-run${NC}    Show what would run without executing"
+    echo -e "  ${GREEN}--smoke${NC}       Quick smoke test (lint + unit only, no integration)"
     echo -e "  ${GREEN}--clean${NC}        Clean up containers and volumes"
     echo -e "  ${GREEN}--no-color${NC}     Disable color output"
     echo -e "  ${GREEN}--help${NC}         Show this help message"
@@ -58,6 +61,15 @@ show_help() {
     echo -e ""
     echo -e "  ${YELLOW}# Run webdashboard test${NC}"
     echo -e "  ./run-tests.sh --web --test=login_page"
+    echo -e ""
+    echo -e "  ${YELLOW}# List all available API tests${NC}"
+    echo -e "  ./run-tests.sh --api --list"
+    echo -e ""
+    echo -e "  ${YELLOW}# Dry-run to see what would execute${NC}"
+    echo -e "  ./run-tests.sh --api --dry-run"
+    echo -e ""
+    echo -e "  ${YELLOW}# Quick smoke test (lint + unit only)${NC}"
+    echo -e "  ./run-tests.sh --api --smoke"
     echo ""
     echo -e "${BOLD}Pattern Format:${NC}"
     echo -e "  API: cargo nextest filter (e.g., 'mod::test_name', 'test_name')"
@@ -228,6 +240,9 @@ PHASE_LINT=false
 PHASE_UNIT=false
 PHASE_INTEGRATION=false
 TEST_ONLY=false
+LIST_TESTS=false
+DRY_RUN=false
+SMOKE=false
 SHARD_N=""
 SHARD_M=""
 
@@ -257,6 +272,9 @@ for arg in "$@"; do
             --unit) PHASE_UNIT=true;;
             --integration-only) PHASE_INTEGRATION=true;;
             --test-only) TEST_ONLY=true;;
+            --list) LIST_TESTS=true;;
+            --dry-run) DRY_RUN=true;;
+            --smoke) SMOKE=true;;
             --clean)
                 echo -e "${BLUE}${BOLD}🧹 Cleaning up test containers and volumes...${NC}"
                 $DOCKER_COMPOSE_CMD down --volumes --remove-orphans
@@ -317,6 +335,68 @@ if [[ "$TEST_ONLY" == "true" ]]; then
     PHASE_UNIT=false
     PHASE_INTEGRATION=true
     echo -e "${BLUE}⚡ Test-only mode: skipping lint and unit phases${NC}"
+fi
+
+# Apply smoke mode (lint + unit only, skip integration)
+if [[ "$SMOKE" == "true" ]]; then
+    PHASE_LINT=true
+    PHASE_UNIT=true
+    PHASE_INTEGRATION=false
+    echo -e "${BLUE}🔥 Smoke mode: running lint + unit only${NC}"
+fi
+
+# Set default phases if not specified
+if [[ "$PHASE_LINT" == "false" && "$PHASE_UNIT" == "false" && "$PHASE_INTEGRATION" == "false" ]]; then
+    if [[ "$MODE" != "integration" ]]; then
+        PHASE_LINT=true
+        PHASE_UNIT=true
+    fi
+    PHASE_INTEGRATION=true
+fi
+
+# Handle --dry-run (show what would execute)
+if [[ "$DRY_RUN" == "true" ]]; then
+    echo -e "${BLUE}${BOLD}🔍 Dry-run: showing what would execute...${NC}"
+    echo -e "${BLUE}Mode: $MODE${NC}"
+    echo -e "${BLUE}Filter: $FILTER${NC}"
+    echo -e "${BLUE}Pattern: ${PATTERN:-none}${NC}"
+    echo -e "${BLUE}Component: ${COMPONENT:-all}${NC}"
+    echo -e "${BLUE}Phases:${NC}"
+    [[ "$PHASE_LINT" == "true" ]] && echo -e "  ✓ Lint"
+    [[ "$PHASE_UNIT" == "true" ]] && echo -e "  ✓ Unit Tests"
+    [[ "$PHASE_INTEGRATION" == "true" ]] && echo -e "  ✓ Integration Tests"
+    echo -e "${GREEN}💡 This is a dry-run. No tests were executed.${NC}"
+    exit 0
+fi
+
+# Handle --list (show available tests)
+if [[ "$LIST_TESTS" == "true" ]]; then
+    echo -e "${BLUE}${BOLD}📋 Listing available tests...${NC}"
+    if [[ "$MODE" == "api" || "$MODE" == "all" ]]; then
+        echo -e "\n${YELLOW}=== API Tests (apiserver) ===${NC}"
+        echo "  cargo nextest list --message-format=plain 2>/dev/null || echo 'Run in container for full list'"
+    fi
+    if [[ "$MODE" == "web" || "$MODE" == "all" ]]; then
+        echo -e "\n${YELLOW}=== Web Tests (webdashboard) ===${NC}"
+        echo "  npm test -- --list 2>/dev/null || echo 'Run in container for full list'"
+    fi
+    echo -e "${GREEN}💡 Tip: Run with USE_DOCKER=true to get actual list${NC}"
+    exit 0
+fi
+
+# Handle --dry-run (show what would execute)
+if [[ "$DRY_RUN" == "true" ]]; then
+    echo -e "${BLUE}${BOLD}🔍 Dry-run: showing what would execute...${NC}"
+    echo -e "${BLUE}Mode: $MODE${NC}"
+    echo -e "${BLUE}Filter: $FILTER${NC}"
+    echo -e "${BLUE}Pattern: ${PATTERN:-none}${NC}"
+    echo -e "${BLUE}Component: ${COMPONENT:-all}${NC}"
+    echo -e "${BLUE}Phases:${NC}"
+    [[ "$PHASE_LINT" == "true" ]] && echo -e "  ✓ Lint"
+    [[ "$PHASE_UNIT" == "true" ]] && echo -e "  ✓ Unit Tests"
+    [[ "$PHASE_INTEGRATION" == "true" ]] && echo -e "  ✓ Integration Tests"
+    echo -e "${GREEN}💡 This is a dry-run. No tests were executed.${NC}"
+    exit 0
 fi
 
 echo -e "${BLUE}${BOLD}🚀 Starting LeeAttend Test Suite in [$MODE] mode${NC}"
@@ -385,15 +465,6 @@ cleanup() {
     exit "$exit_code"
 }
 trap cleanup EXIT INT TERM
-
-# Determine if we should run all phases (legacy compatibility)
-if [[ "$PHASE_LINT" == "false" && "$PHASE_UNIT" == "false" && "$PHASE_INTEGRATION" == "false" ]]; then
-    if [[ "$MODE" != "integration" ]]; then
-        PHASE_LINT=true
-        PHASE_UNIT=true
-    fi
-    PHASE_INTEGRATION=true
-fi
 
 # Run specific test phases
 if [[ "$PHASE_LINT" == "true" ]]; then
