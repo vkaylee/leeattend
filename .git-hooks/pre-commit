@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# ==============================================================================
+# Pre-commit hook: Run tests before commit
+# ==============================================================================
+# Install: cp pre-commit.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+# Skip:   git commit --no-verify -m "message"
+# ==============================================================================
+
+echo "========================================"
+echo "🔒 Running pre-commit tests..."
+echo "========================================"
+
+# Change to project root
+cd "$(git rev-parse --show-toplevel)"
+
+# Run quick smoke test (lint + unit, no integration)
+# Use --smoke for fast feedback, use --all for full tests
+./run-tests.sh --all --smoke
+
+# Check exit code
+if [ $? -ne 0 ]; then
+    echo "========================================"
+    echo "❌ TESTS FAILED - Commit aborted"
+    echo "========================================"
+    echo "💡 Fix failing tests or use --no-verify to skip:"
+    echo "   git commit --no-verify -m 'message'"
+    exit 1
+fi
+
+echo "========================================"
+echo "✅ All tests passed! Proceeding with commit."
+echo "========================================"
