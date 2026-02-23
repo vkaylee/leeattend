@@ -36,30 +36,36 @@ show_help() {
     echo -e "  ${GREEN}--no-color${NC}     Disable color output"
     echo -e "  ${GREEN}--help${NC}         Show this help message"
     echo -e "  ${GREEN}--timeout=N${NC}    Set global timeout in seconds (default: 1800 = 30min)"
+    echo -e "  ${GREEN}--shard=N/M${NC}    Run shard N of M (for CI parallelization)"
     echo ""
     echo -e "${BOLD}Timeout Configuration (env vars):${NC}"
-    echo -e "  TIMEOUT_LINT=180         Per lint task (default: 3 min)"
-    echo -e "  TIMEOUT_UNIT=180         Per unit test task (default: 3 min)"
-    echo -e "  TIMEOUT_INTEGRATION=300  Per integration task (default: 5 min)"
-    echo -e "  TIMEOUT_BUILD=600        Pre-compilation (default: 10 min)"
-    echo -e "  TIMEOUT_DB_WAIT=120      Database ready wait (default: 2 min)"
-    echo -e "  TIMEOUT_GLOBAL=1800      Global timeout (default: 30 min)"
+    echo -e "  TIMEOUT_LINT=900           Per lint task (default: 15 min)"
+    echo -e "  TIMEOUT_UNIT=900           Per unit test task (default: 15 min)"
+    echo -e "  TIMEOUT_INTEGRATION=600    Per integration task (default: 10 min)"
+    echo -e "  TIMEOUT_BUILD=600          Pre-compilation (default: 10 min)"
+    echo -e "  TIMEOUT_DB_WAIT=120        Database ready wait (default: 2 min)"
+    echo -e "  TIMEOUT_GLOBAL=1800        Global timeout (default: 30 min)"
     echo ""
     echo -e "${BOLD}Pattern:${NC}"
     echo -e "  Optional. Filter test cases by name (e.g., 'auth', 'attendance')."
-    echo -e "  Works for both API (cargo/pytest) and Web (playwright grep)."
+    echo -e "  Works for both API (cargo/nextest) and Web (playwright grep)."
     echo ""
     echo -e "${BOLD}Examples:${NC}"
     echo -e "  ./run-tests.sh --api robustness   # Lint all API, then run 'robustness' tests"
     echo -e "  ./run-tests.sh --web login        # Lint all Web, then run 'login' tests"
     echo -e "  ./run-tests.sh --all"
     echo -e "  TIMEOUT_GLOBAL=600 ./run-tests.sh --api  # 10 min global timeout"
+    echo -e "  ./run-tests.sh --api --shard=1/3   # Run 1st of 3 parallel shards"
 }
 
 # --- Environment Setup ---
 export USE_DOCKER=true
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export DOCKER_COMPOSE_CMD="docker compose -p leeattend-test -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/docker-compose.test.yml"
+
+# Enable cargo incremental builds
+export CARGO_INCREMENTAL=1
+export CARGO_TARGET_DIR="$PROJECT_ROOT/target"
 
 # Auto-include CI override if it exists (e.g., on GitHub Actions)
 if [[ -f "$PROJECT_ROOT/docker-compose.ci.yml" ]]; then
@@ -87,13 +93,18 @@ wait_for_web_test() {
         echo -e "${BLUE}⏳ Waiting for web dependencies to be ready...${NC}"
         local timeout="${TIMEOUT_WEB_READY:-300}"
         local start_time=$SECONDS
+        local wait_time=1
         while ! $DOCKER_COMPOSE_CMD exec -T web_test ls /workspace/webdashboard/node_modules/.bin/eslint > /dev/null 2>&1; do
             if (( SECONDS - start_time > timeout )); then
                 echo -e "${RED}❌ Timeout waiting for web dependencies!${NC}"
                 return 1
             fi
-            sleep 2
+            echo -ne "  ${BLUE}waiting ${wait_time}s...${NC}\r"
+            sleep $wait_time
+            wait_time=$((wait_time * 2))
+            [ $wait_time -gt 10 ] && wait_time=10
         done
+        echo -e "                                                        \r"
         echo -e "${GREEN}✅ Web dependencies ready.${NC}"
     fi
 }
@@ -118,7 +129,7 @@ run_lint() {
             need_web=true
         fi
         
-        $DOCKER_COMPOSE_CMD up -d $services
+        $DOCKER_COMPOSE_CMD up -d --build=false $services
         if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
     fi
 
@@ -146,7 +157,7 @@ run_unit() {
             need_web=true
         fi
         
-        $DOCKER_COMPOSE_CMD up -d $services
+        $DOCKER_COMPOSE_CMD up -d --build=false $services
         if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
     fi
     
@@ -178,7 +189,7 @@ run_integration() {
             fi
         fi
 
-        $DOCKER_COMPOSE_CMD up -d $services
+        $DOCKER_COMPOSE_CMD up -d --build=false $services
         if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
     fi
 
@@ -206,6 +217,8 @@ PATTERN=""
 PHASE_LINT=false
 PHASE_UNIT=false
 PHASE_INTEGRATION=false
+SHARD_N=""
+SHARD_M=""
 
 # Parse flags and find mode/pattern
 for arg in "$@"; do
@@ -213,6 +226,10 @@ for arg in "$@"; do
         GLOBAL_TIMEOUT="${arg#*=}"
     elif [[ "$arg" == --test=* ]]; then
         PATTERN="${arg#*=}"
+    elif [[ "$arg" == --shard=* ]]; then
+        local shard_str="${arg#*=}"
+        SHARD_N="${shard_str%%/*}"
+        SHARD_M="${shard_str##*/}"
     elif [[ "$arg" == "--no-color" ]]; then
         export NO_COLOR=1
         GREEN='' RED='' YELLOW='' BLUE='' BOLD='' NC=''
@@ -249,6 +266,15 @@ if [[ -z "$MODE" ]]; then
     exit 1
 fi
 
+# Validate shard parameters
+if [[ -n "$SHARD_N" || -n "$SHARD_M" ]]; then
+    if [[ -z "$SHARD_N" || -z "$SHARD_M" || "$SHARD_N" -lt 1 || "$SHARD_M" -lt 1 || "$SHARD_N" -gt "$SHARD_M" ]]; then
+        echo -e "${RED}Error: Invalid shard format. Use --shard=N/M (e.g., 1/3)${NC}"
+        exit 1
+    fi
+    echo -e "${BLUE}${BOLD}🧩 Running shard $SHARD_N of $SHARD_M${NC}"
+fi
+
 echo -e "${BLUE}${BOLD}🚀 Starting LeeAttend Test Suite in [$MODE] mode${NC}"
 echo -e "${BLUE}⏱️ Global timeout: ${GLOBAL_TIMEOUT}s ($(( GLOBAL_TIMEOUT / 60 )) min)${NC}"
 if [[ -n "$PATTERN" ]]; then
@@ -257,13 +283,15 @@ fi
 echo -e "${BLUE}================================================================${NC}"
 
 # Export timeout vars for sub-scripts
-export TIMEOUT_GLOBAL="$GLOBAL_TIMEOUT"
-export TIMEOUT_LINT="${TIMEOUT_LINT:-600}"
-export TIMEOUT_UNIT="${TIMEOUT_UNIT:-1800}"
-export TIMEOUT_INTEGRATION="${TIMEOUT_INTEGRATION:-1200}"
+export TIMEOUT_GLOBAL="${TIMEOUT_GLOBAL:-1800}"
+export TIMEOUT_LINT="${TIMEOUT_LINT:-900}"
+export TIMEOUT_UNIT="${TIMEOUT_UNIT:-900}"
+export TIMEOUT_INTEGRATION="${TIMEOUT_INTEGRATION:-600}"
 export TIMEOUT_BUILD="${TIMEOUT_BUILD:-600}"
 export TIMEOUT_DB_WAIT="${TIMEOUT_DB_WAIT:-120}"
 export TIMEOUT_WEB_READY="${TIMEOUT_WEB_READY:-300}"
+export SHARD_N="$SHARD_N"
+export SHARD_M="$SHARD_M"
 
 # Clear previous results
 if [[ -L "$PROJECT_ROOT/.test_logs" ]]; then

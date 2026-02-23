@@ -75,9 +75,8 @@ run_with_timeout() {
 
 # ==============================================================================
 # Resource Auto-Detection
-# ==============================================================================
-CPU_CORES=$(nproc)
-TOTAL_MEM_KB=$(awk "/MemTotal/ {print \$2}" /proc/meminfo)
+CPU_CORES=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+TOTAL_MEM_KB=$(awk "/MemTotal/ {print \$2}" /proc/meminfo 2>/dev/null || echo 8388608)
 TOTAL_MEM_GB=$((TOTAL_MEM_KB / 1024 / 1024))
 
 if [ -z "${NUM_WORKERS:-}" ]; then

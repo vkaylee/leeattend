@@ -70,11 +70,13 @@ services:
     working_dir: /workspace/webdashboard
     environment:
       - CI=true
+      - npm_config_cache=/workspace/.npm-cache
     volumes:
       - .:/workspace
       - web-node-modules:/workspace/webdashboard/node_modules
       - ./.test_logs:/workspace/webdashboard/.test_logs
       - shared-data:/workspace/shared
+      - npm-cache:/workspace/.npm-cache
 
 volumes:
   apiserver-target:
@@ -92,3 +94,6 @@ volumes:
   web-node-modules:
     driver: local
     driver_opts: { type: tmpfs, device: tmpfs, o: "size=1G" }
+  npm-cache:
+    driver: local
+    driver_opts: { type: tmpfs, device: tmpfs, o: "size=256M" }
