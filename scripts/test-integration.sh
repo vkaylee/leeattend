@@ -1,6 +1,12 @@
 #!/bin/bash
 
 # ==============================================================================
+# ⚠️ FOR AI AGENTS: Use ./run-tests.sh instead of running this script directly!
+# ==============================================================================
+# This script is a module sourced by run-tests.sh
+# Run: ./run-tests.sh --api --integration   or   ./run-tests.sh --all
+# ==============================================================================
+
 # LeeAttend Integration Testing Methods
 # ==============================================================================
 
