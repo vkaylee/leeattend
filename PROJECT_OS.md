@@ -1,4 +1,4 @@
-# 🚀 LeeAttend Project OS (AI-Standard V2)
+# 🚀 LeeAttend Project OS (AI-Standard V3)
 
 > [!IMPORTANT]
 > **Single Source of Truth** for technical protocols. Failure to follow these rules causes system instability and build freezes.
@@ -9,47 +9,61 @@
 
 **WSL2 Bottleneck:** VirtioFS I/O freezes the system. **RAM-based (tmpfs)** mounts are REQUIRED.
 
-### 1.1 Docker Helper Protocol
-ALWAYS use `./scripts/docker-helper.sh` to ensure correct mounting and layering.
+### 1.1 Docker Management via `run-tests.sh --docker=ENV`
+
+`./run-tests.sh` is the **ONLY** entry point for all Docker and test operations.
 
 | Goal | Command |
 | :--- | :--- |
-| **Start Dev** | `./scripts/docker-helper.sh dev up -d` |
-| **Stop Dev** | `./scripts/docker-helper.sh dev down` |
-| **Full Logs** | `./scripts/docker-helper.sh dev logs -f [service]` |
-| **Shell Access**| `./scripts/docker-helper.sh dev exec [service] bash` |
+| **Start Dev** | `./run-tests.sh --docker=dev up -d` |
+| **Stop Dev** | `./run-tests.sh --docker=dev down` |
+| **Full Logs** | `./run-tests.sh --docker=dev logs -f` |
+| **Service Logs** | `./run-tests.sh --docker=dev logs -f SERVICE` |
+| **Shell Access** | `./run-tests.sh --docker=dev exec SERVICE bash` |
 
 ### 1.2 Development Cycle
-| Service | Build (Cached) | Common Commands |
+
+| Service | Build (Cached) | Ad-hoc Commands |
 | :--- | :--- | :--- |
-| **apiserver** | `./scripts/docker-helper.sh dev build apiserver` | `./scripts/docker-helper.sh dev exec apiserver cargo [test\|clippy\|add\|sqlx]` |
-| **agent-main**| `./scripts/docker-helper.sh dev build agent-main` | `./scripts/docker-helper.sh dev exec agent-main cargo [test\|clippy]` |
-| **dashboard** | `./scripts/docker-helper.sh dev exec webdashboard npm install` | `./scripts/docker-helper.sh dev exec webdashboard npm run [build\|lint]` |
+| **apiserver** | `./run-tests.sh --docker=dev build apiserver` | `./run-tests.sh --docker=dev exec apiserver cargo [test\|clippy\|add\|sqlx]` |
+| **agent-main** | `./run-tests.sh --docker=dev build agent-main` | `./run-tests.sh --docker=dev exec agent-main cargo [test\|clippy]` |
+| **dashboard** | `./run-tests.sh --docker=dev exec webdashboard npm install` | `./run-tests.sh --docker=dev exec webdashboard npm run [build\|lint]` |
 
 ---
 
 ## 2. 🧪 TESTING PROTOCOL
 
-### 2.1 Unified Runner
-Use `./run-tests.sh` for all gated automation.
-- `--all`: Full suite (Gatekeeper)
-- `--api [pattern]`: Rust/Python backend logic
-- `--web [pattern]`: Playwright E2E with mock interception
+### 2.1 Unified Runner — `./run-tests.sh`
 
-### 2.2 Manual Verification
-If running manually, you MUST use the `test` environment layer:
-1. `up`: `./scripts/docker-helper.sh test up -d`
-2. `exec`: `./scripts/docker-helper.sh test exec [service] [cmd]`
+**NEVER run scripts/ files directly.** Always use `./run-tests.sh`.
+
+| Goal | Command |
+| :--- | :--- |
+| Full suite | `./run-tests.sh --all` |
+| API tests only | `./run-tests.sh --api` |
+| Web/E2E only | `./run-tests.sh --web` |
+| Run one test | `./run-tests.sh --api --test=TEST_NAME` |
+| Skip lint, run test | `./run-tests.sh --api --test-only --test=TEST_NAME` |
+| Quick smoke check | `./run-tests.sh --api --smoke` |
+| Dry run (preview) | `./run-tests.sh --api --dry-run` |
+| Read test logs | `./run-tests.sh --logs` |
+
+### 2.2 Test Pattern Format
+
+- **Rust (cargo nextest):** `./run-tests.sh --api --test=module::test_name`
+- **Playwright:** `./run-tests.sh --web --test=login_page`
 
 ---
 
 ## 3. 🔍 LOGGING & OBSERVABILITY
 
+All logs are stored in Docker volume `test-logs`. Access via:
+
 | Tool | Purpose |
 | :--- | :--- |
-| `./scripts/debug-logs.sh --errors` | Scans all components for FATAL/ERROR |
-| `./scripts/debug-logs.sh --last` | Shows tail of the last failed component |
-| `./scripts/debug-logs.sh --cat [svc]` | Full dump of component logs from RAM |
+| `./run-tests.sh --logs` | Dump all test logs from Docker volume |
+| `./run-tests.sh --tail-logs` | Live-tail test logs |
+| `./run-tests.sh --docker=dev logs -f SERVICE` | Live-tail service container logs |
 
 ---
 
@@ -63,7 +77,7 @@ If running manually, you MUST use the `test` environment layer:
 
 ## 5. 🛠️ AI DEVELOPER TOOLKIT
 
-A set of wrapper scripts in `scripts/ai-tools/` to interact with containers directly from the host.
+Wrapper scripts for direct host → container access:
 
 | Tool | Purpose |
 | :--- | :--- |
@@ -95,7 +109,7 @@ This project integrates an **AI Standard Layer** (Cursor, Antigravity, Claude Co
 
 ### 2. Override Authority (For Teammates):
 These files are designed to help you work faster, not to hinder you. If you need to change the standards:
-- **Temporary**: Instruct the AI in chat: *"Ignore the line limit for this file"* or *"Bypass docker-helper for this run"*.
+- **Temporary**: Instruct the AI in chat: *"Ignore the line limit for this file"* or *"Bypass docker for this run"*.
 - **Permanent**: Directly modify the content in the AI Protocol files above to suit the team's evolving workflow.
 
 > [!TIP]

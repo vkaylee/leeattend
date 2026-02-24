@@ -15,8 +15,8 @@ Location: `/home/elt1541/leeattend/`
 - `setup-test-env.sh` - Docker-based test database provisioning
 - `docker-compose.test.yml` - Test environment configuration
 - `scripts/` - Shell scripts for Docker and AI dev workflows
-  - `docker-helper.sh` - Standardized environment manager
   - `ai-tools/` - Wrappers for AI agent container access (`redis-cli.sh`, `psql.sh`, `sqlite.sh`, etc.)
+  - Internal modules (`test-utils.sh`, `test-lint.sh`, `test-unit.sh`, `test-integration.sh`, `debug-logs.sh`) — sourced by `run-tests.sh`, not for direct execution
 
 ## Component Directory Structure
 

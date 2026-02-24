@@ -30,12 +30,12 @@ leeattend/
 > **MANDATORY RULES:** Before running any commands or starting implementation, you MUST read:
 > 👉 **[PROJECT_OS.md](./PROJECT_OS.md)**
 >
-> This file contains the mandatory technical protocols, build/test commands (via `docker-helper.sh`), and the Definition of Done required for this project.
+> This file contains the mandatory technical protocols, build/test commands (via `run-tests.sh`), and the Definition of Done required for this project.
 
 ### Quick Start (Dev Mode)
 To spin up the entire environment with hot-reloading:
 ```bash
-./scripts/docker-helper.sh dev up -d
+./run-tests.sh --docker=dev up -d
 ```
 
 

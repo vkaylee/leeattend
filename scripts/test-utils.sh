@@ -1,10 +1,14 @@
 #!/bin/bash
 
 # ==============================================================================
-# ⚠️ FOR AI AGENTS: Use ./run-tests.sh instead of running this script directly!
+# ⚠️ INTERNAL MODULE — DO NOT RUN DIRECTLY
+# Sourced by: ./run-tests.sh
 # ==============================================================================
-# This script is a module sourced by run-tests.sh
-# Run: ./run-tests.sh [options]
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "❌ This script is an internal module. Do not run directly."
+    echo "👉 Use: ./run-tests.sh --help"
+    exit 1
+fi
 # ==============================================================================
 
 # Shared Test Utilities

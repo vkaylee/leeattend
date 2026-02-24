@@ -1,9 +1,14 @@
 #!/bin/bash
 
 # ==============================================================================
-# LeeAttend Debug Log Utilities
-# This script defines methods for analyzing test logs.
-# Sourced by other scripts, not intended for direct execution.
+# ⚠️ INTERNAL MODULE — DO NOT RUN DIRECTLY
+# Sourced by: ./run-tests.sh
+# ==============================================================================
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "❌ This script is an internal module. Do not run directly."
+    echo "👉 Use: ./run-tests.sh --logs  (or --tail-logs)"
+    exit 1
+fi
 # ==============================================================================
 
 # Default log directory if not set

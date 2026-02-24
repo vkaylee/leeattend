@@ -1,64 +1,104 @@
 # Docker Workflow & Multi-Environment Setup
 
-LeeAttend uses a highly optimized, layered Docker architecture to ensure fast development, reliable testing, and secure production deployments.
+LeeAttend uses a layered Docker architecture for fast development, reliable testing, and production deployments.
+
+All Docker operations go through **`./run-tests.sh --docker=ENV CMD`**.
+
+---
 
 ## 🏗 Architecture Overview
 
-Our Docker setup is split into three layers:
+| Layer | File | Purpose |
+|-------|------|---------|
+| **Base/Prod** | `docker-compose.yml` | Core service definitions, networking, healthchecks |
+| **Dev** | `docker-compose.dev.yml` | Volume mounts for hot-reload (cargo-watch, Vite HMR), debug logging |
+| **Test** | `docker-compose.test.yml` | `tmpfs` RAM volumes, `sccache`, isolated test databases |
+| **CI** | `docker-compose.ci.yml` | Generated at CI time — nullifies `tmpfs` to use GitHub Actions cache |
 
-1.  **Base Layer (`docker-compose.yml`)**: Contains the fundamental service definitions, network setup, and default healthchecks. This corresponds to the **Production** environment.
-2.  **Dev Layer (`docker-compose.dev.yml`)**: Adds volume mounts for hot-reloading (`cargo-watch`, Vite dev server), debug logging, and dev-friendly database settings.
-3.  **Test Layer (`docker-compose.test.yml`)**: Optimized for CI/automation. Uses `tmpfs` for lightning-fast database I/O, enables `sccache` for Rust, and sets up isolated test databases.
+---
 
 ## 🐳 Multi-Stage Dockerfiles
 
-Each service (`apiserver`, `agent-main`, `webdashboard`) uses a single multi-stage `Dockerfile` with these targets:
+Each service (`apiserver`, `agent-main`, `webdashboard`) uses a single `Dockerfile` with stages:
 
--   `dev`: Includes development tools like `cargo-watch` and uses the standard local target.
--   `test`: Includes test runners like `nextest` and Playwright dependencies.
--   `runtime`: (Default) The minimal production image containing only the final binary and essential system libraries.
+- `dev` — includes `cargo-watch`, local target dir
+- `test` — includes `nextest`, Playwright dependencies, `sccache`
+- `runtime` — minimal production binary image
 
-## 🛠 Using the Docker Helper
+---
 
-We provide a helper script at `./scripts/docker-helper.sh` to manage environment switching easily.
+## 🛠 Environment Management
+
+Use `./run-tests.sh --docker=ENV CMD` for all environments.
 
 ### Development
+
 ```bash
-./scripts/docker-helper.sh dev up -d    # Start everything
-./scripts/docker-helper.sh dev build    # Rebuild all (uses cache)
-./scripts/docker-helper.sh dev logs -f  # Tail logs
+./run-tests.sh --docker=dev up -d                # Start all services
+./run-tests.sh --docker=dev down                 # Stop all services
+./run-tests.sh --docker=dev build                # Rebuild all images
+./run-tests.sh --docker=dev build apiserver      # Rebuild one service
+./run-tests.sh --docker=dev logs -f              # Tail all logs
+./run-tests.sh --docker=dev logs -f apiserver    # Tail one service
+./run-tests.sh --docker=dev exec apiserver bash  # Open shell in container
+./run-tests.sh --docker=dev exec apiserver cargo clippy
+./run-tests.sh --docker=dev exec webdashboard npm install
 ```
 
-### Testing
+### Test Environment
+
 ```bash
-./scripts/docker-helper.sh test up -d   # Start the test environment
-./scripts/docker-helper.sh test build   # Rebuild test stages
+./run-tests.sh --docker=test up -d    # Start test environment manually
+./run-tests.sh --docker=test build    # Rebuild test images
+./run-tests.sh --docker=test ps       # Check service status
 ```
+
+> [!NOTE]
+> For running tests, prefer `./run-tests.sh --api` or `./run-tests.sh --all` which manage the test
+> environment automatically.
 
 ### Production
+
 ```bash
-./scripts/docker-helper.sh prod up -d   # Equivalent to using only docker-compose.yml
+./run-tests.sh --docker=prod up -d    # Start production (base compose only)
+./run-tests.sh --docker=prod ps       # Check status
+./run-tests.sh --docker=prod down     # Stop
 ```
 
-### ⚡ Build Performance & Advanced Caching
+---
 
-We employ several advanced strategies to achieve minimal build times both locally and on CI:
+## ⚡ Build Performance & Caching
 
-#### 1. Rust Build Acceleration (`cargo-chef` & `sccache`)
-- **Dependency Caching:** We use `cargo-chef` in a multi-stage process (`planner`, `cacher`, `builder`). Dependencies are fully compiled in the `cacher` stage. As long as `Cargo.toml` doesn't change, Docker completely skips downloading and recompiling the 300+ libraries.
-- **Layer Optimization:** Environment setup layers (like `apt-get` and downloading the `sccache` binary) are pushed to the absolute top (`chef` stage). Fast-changing layers (source code `COPY`) are kept at the absolute bottom.
-- **`sccache` Integration:** We inject `sccache` (Mozilla's compiler cache) directly into both the Docker build stages AND the `docker-compose` runtime. This ensures that even when dependencies *do* change, `sccache` intercepts the compilation and serving previously compiled artifacts, minimizing the penalty.
+### 1. Rust Build Acceleration (`cargo-chef` & `sccache`)
+- **`cargo-chef`**: `planner` → `cacher` → `builder` stages. As long as `Cargo.toml` doesn't change, the 300+ dependency crate compilation is fully skipped.
+- **`sccache`**: Intercepts Rust compilation at both build-time and runtime, serving cached objects across runs.
 
-#### 2. The Hybrid Run-Time Cache Strategy (`tmpfs` vs CI)
-There is an inherent conflict between protecting local SSDs and maximizing CI caching:
-- **Local Dev/Test:** `docker-compose.test.yml` mounts massive `tmpfs` (RAM disk) volumes over `/app/target`. This prevents Docker from wearing out your physical SSD when you run `cargo test` hundreds of times a day.
-- **GitHub Actions (CI):** `tmpfs` is counter-productive in ephemeral CI runners because it overwrites the pre-built `cargo-chef` cache with a blank RAM drive, forcing a full 10-minute recompile. Therefore, our CI workflow `.github/workflows/manual-tests.yml` intentionally generates a `docker-compose.ci.yml` override file. This file nullifies the `tmpfs` mounts, coercing the CI to use the blazingly fast `type=gha` Docker Buildx cache baked into the hard drive. 
+### 2. Hybrid Cache Strategy (`tmpfs` vs CI)
+- **Local (dev/test):** `docker-compose.test.yml` mounts `tmpfs` over `/app/target`. Protects SSD from heavy Rust compile I/O.
+- **CI (GitHub Actions):** `docker-compose.ci.yml` nullifies `tmpfs` to allow `type=gha` buildx cache to persist compiled artifacts across CI runs.
 
-#### 3. Build Context Optimization (`.dockerignore`)
-Every service maintains a strict `.dockerignore` file blocking `target/`, `node_modules/`, and `.test_logs/`. This guarantees the Docker daemon only receives kilobyte-sized source code payloads instead of gigabytes of metadata, making the build initialization instant.
+### 3. Build Context Optimization
+`.dockerignore` blocks `target/`, `node_modules/`, `.test_logs/` — Docker gets only kilobytes of source instead of gigabytes.
 
-#### 4. Node.js (webdashboard)
-The `base` stage handles `npm install`. The `dev` stage mounts your local folder, so changes you make on your host are immediately reflected in the container via Vite's HMR.
+### 4. Cache Management
+
+```bash
+./run-tests.sh --warm-cache     # Pre-compile deps (first run / CI setup)
+./run-tests.sh --cache-stats    # Show cache sizes
+./run-tests.sh --clean-cache    # Wipe cache, keep containers
+./run-tests.sh --clean          # Full reset: containers + volumes + cache
+```
+
+---
 
 ## 🧪 Integration with Test Runner
-The `./run-tests.sh` script is fully integrated with this architecture. It automatically layers the Compose files and uses the `test` stage containers to execute linting, unit tests, and integration tests.
+
+`./run-tests.sh` automatically composes the correct Docker files and uses `test` stage containers:
+
+```bash
+./run-tests.sh --all            # Full test pipeline (manages Docker automatically)
+./run-tests.sh --api --smoke    # Lint + unit only (fast)
+./run-tests.sh --logs           # Read test output from Docker volume
+```
+
+See `./run-tests.sh --help` for the complete reference.

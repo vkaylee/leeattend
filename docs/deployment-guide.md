@@ -388,8 +388,8 @@ This is the most reliable way to deploy LeeAttend in a production environment. I
 3. **Build and Launch**:
    You can use the helper script or run docker compose directly using the base file:
    ```bash
-   # Option A: Using helper script
-   ./scripts/docker-helper.sh prod up --build -d
+   # Option A: Using run-tests.sh
+   ./run-tests.sh --docker=prod up --build -d
 
    # Option B: Direct docker compose
    docker compose -f docker-compose.yml up --build -d
