@@ -1,3 +1,20 @@
+# ==============================================================================
+# Docker Compose — Development (Hot Reload)
+# ==============================================================================
+# Full development environment with hot-reload for all services.
+# Source code is bind-mounted so changes are reflected immediately.
+#
+# FEATURES:
+#   - cargo watch for Rust services (auto-restart on save)
+#   - Vite dev server for webdashboard (HMR)
+#   - Nginx reverse proxy on port 8080
+#   - Persistent volumes for cargo registry, target dirs, and DB data
+#   - Postgres with fsync=off for faster local development
+#   - RedisInsight UI on port 5540 for Redis debugging
+#
+# USAGE:
+#   docker compose -f docker-compose.dev.yml up
+# ==============================================================================
 services:
   db:
     image: postgres:16-alpine

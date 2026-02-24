@@ -1,4 +1,27 @@
+# ==============================================================================
+# Docker Compose — Test Environment
+# ==============================================================================
+# Used by: ./run-tests.sh (primary) and ./setup-test-env.sh
+# Override:  docker-compose.ci.yml (applied only when CI=true)
+#
+# ARCHITECTURE:
+#   - Containers stay idle (tail -f /dev/null) and tests are exec'd into them
+#   - Source code is bind-mounted from host (.:/workspace) for live iteration
+#   - Cargo registry is shared with host (~/.cargo/registry) to avoid re-downloads
+#   - Target artifacts use persistent named volumes (survives restarts, cleared with down -v)
+#   - PostgreSQL runs entirely in RAM (tmpfs + fsync=off) for maximum test speed
+#
+# IMPORTANT — SQLX_OFFLINE=false:
+#   All Rust compilation requires a live, migrated database because sqlx macros
+#   verify queries at compile time. run-tests.sh calls ensure_db_migrated()
+#   before any lint/unit/compile phase.
+# ==============================================================================
+
 services:
+
+  # --- Test Database ---
+  # Runs entirely in RAM for speed. Data is disposable (recreated each session).
+  # fsync=off + synchronous_commit=off eliminate disk I/O entirely.
   test_db:
     image: postgres:16
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
@@ -6,38 +29,48 @@ services:
       POSTGRES_DB: test_database
       POSTGRES_USER: test_user
       POSTGRES_PASSWORD: test_password
-      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_HOST_AUTH_METHOD: trust  # No password needed inside test network
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U test_user -d test_database" ]
       interval: 5s
       timeout: 5s
       retries: 5
     tmpfs:
-      - /var/lib/postgresql/data:size=2048M
+      - /var/lib/postgresql/data:size=2048M  # 2GB RAM disk for DB data
 
+  # --- API Server Test Container ---
+  # Builds from Dockerfile "test" stage (includes cargo-chef pre-cooked deps, sqlx-cli, nextest).
+  # Stays idle; run-tests.sh exec's cargo clippy / cargo nextest into it.
   apiserver_test:
     build:
       context: ./apiserver
-      target: test
+      target: test  # Dockerfile stage with test tools + pre-compiled deps
     depends_on:
       test_db:
         condition: service_healthy
     tty: true
-    entrypoint: tail -f /dev/null
+    entrypoint: tail -f /dev/null  # Stay idle, tests are exec'd in
     working_dir: /workspace/apiserver
     environment:
       - DATABASE_URL=postgres://test_user:test_password@test_db:5432/test_database
-      - SQLX_OFFLINE=false
-      - CARGO_TARGET_DIR=/workspace/target
-      - CARGO_HOME=/workspace/cargo
+      - SQLX_OFFLINE=false        # Verify SQL queries against live DB at compile time
+      - CARGO_TARGET_DIR=/workspace/target  # Shared target across apiserver + agent
       - CARGO_BUILD_JOBS=4
+      - SCCACHE_DIR=/workspace/.sccache     # Compile cache to avoid redundant recompilation
+      - RUSTC_WRAPPER=sccache
     volumes:
-      - .:/workspace
-      - ./target:/workspace/target
-      - cargo-home:/workspace/cargo
+      - .:/workspace                        # Bind-mount source code from host
+      - target-cache:/workspace/target      # Persistent: compiled artifacts survive restarts
+      # Share host's cargo registry — avoids re-downloading crates and benefits
+      # all Rust projects on the machine (not just this one)
+      - ${CARGO_HOME:-${HOME}/.cargo}/registry:/usr/local/cargo/registry
+      - sccache-cache:/workspace/.sccache   # Persistent: sccache objects
       - ./.test_logs:/workspace/apiserver/.test_logs
-      - shared-data:/workspace/shared
+      - shared-data:/workspace/shared       # Ephemeral: for inter-container data (e.g. openapi.json)
 
+  # --- Agent Test Container ---
+  # Same architecture as apiserver_test. Uses SQLite in-memory for its own DB.
+  # Shares the same target-cache and cargo registry as apiserver_test.
   agent_test:
     build:
       context: ./agent-main
@@ -48,47 +81,57 @@ services:
     entrypoint: tail -f /dev/null
     working_dir: /workspace/agent-main
     environment:
-      - "DATABASE_URL=sqlite::memory:"
+      - "DATABASE_URL=sqlite::memory:"  # Agent uses SQLite, no external DB needed
       - "CENTRAL_SERVER_URL=ws://apiserver_test:3001/api/ws"
-      - CARGO_TARGET_DIR=/workspace/target
-      - CARGO_HOME=/workspace/cargo
+      - CARGO_TARGET_DIR=/workspace/target  # Shared with apiserver_test
       - CARGO_BUILD_JOBS=4
+      - SCCACHE_DIR=/workspace/.sccache
+      - RUSTC_WRAPPER=sccache
     volumes:
       - .:/workspace
-      - ./target:/workspace/target
-      - cargo-home:/workspace/cargo
+      - target-cache:/workspace/target
+      - ${CARGO_HOME:-${HOME}/.cargo}/registry:/usr/local/cargo/registry
+      - sccache-cache:/workspace/.sccache
       - ./.test_logs:/workspace/agent-main/.test_logs
 
+  # --- Web Dashboard Test Container ---
+  # Builds from webdashboard Dockerfile "test" stage (includes Playwright + Chromium).
+  # node_modules use a persistent named volume to avoid re-installing on each run.
   web_test:
     build:
       context: ./webdashboard
-      target: test
+      target: test  # Dockerfile stage with Playwright + browser deps
     tty: true
     entrypoint: tail -f /dev/null
     working_dir: /workspace/webdashboard
     environment:
-      - CI=true
+      - CI=true                             # Tells tools to run in non-interactive mode
       - npm_config_cache=/workspace/.npm-cache
     volumes:
       - .:/workspace
-      - web-node-modules:/workspace/webdashboard/node_modules
+      - web-node-modules:/workspace/webdashboard/node_modules  # Persistent npm packages
       - ./.test_logs:/workspace/webdashboard/.test_logs
       - shared-data:/workspace/shared
-      - npm-cache:/workspace/.npm-cache
+      - npm-cache:/workspace/.npm-cache     # Persistent npm download cache
 
+# ==============================================================================
+# Volume Strategy:
+#   - Named volumes (persistent): survive "docker compose down", cleared with "down -v"
+#     → Use for compilation artifacts that are expensive to recreate
+#   - tmpfs (ephemeral): RAM-only, lost on container stop
+#     → Use only for small, truly disposable data
+#   - Bind-mount (host-shared): ~/.cargo/registry
+#     → Shared across host and containers, benefits all Rust projects
+# ==============================================================================
 volumes:
-  target:
+  target-cache:           # Rust compiled artifacts (~3-4GB). Saves 5-15 min recompilation.
     driver: local
-    driver_opts: { type: tmpfs, device: tmpfs, o: "size=4G" }
-  cargo-home:
+  sccache-cache:          # sccache compilation cache. Shared across apiserver + agent.
     driver: local
-    driver_opts: { type: tmpfs, device: tmpfs, o: "size=1G" }
-  shared-data:
+  npm-cache:              # NPM download cache. Avoids re-downloading packages.
+    driver: local
+  web-node-modules:       # node_modules for webdashboard. Avoids re-install on each run.
+    driver: local
+  shared-data:            # Small ephemeral data for inter-container communication.
     driver: local
     driver_opts: { type: tmpfs, device: tmpfs, o: "size=64M" }
-  web-node-modules:
-    driver: local
-    driver_opts: { type: tmpfs, device: tmpfs, o: "size=1G" }
-  npm-cache:
-    driver: local
-    driver_opts: { type: tmpfs, device: tmpfs, o: "size=256M" }

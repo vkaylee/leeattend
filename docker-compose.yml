@@ -1,3 +1,17 @@
+# ==============================================================================
+# Docker Compose — Production
+# ==============================================================================
+# Deploys all services using optimized multi-stage "runtime" images.
+# Each service builds to the final "runtime" stage (minimal Debian/Nginx base).
+# No source code or build tools are included — only compiled binaries.
+#
+# SERVICES:
+#   db          — PostgreSQL 16 (persistent data)
+#   redis       — Redis 7 (session cache, job queues)
+#   apiserver   — Rust API server (port 3000)
+#   webdashboard — React SPA served by Nginx (port 80)
+#   agent-main  — Rust agent connecting to apiserver via WebSocket
+# ==============================================================================
 services:
   db:
     image: postgres:16-alpine

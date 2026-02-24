@@ -20,7 +20,7 @@ leeattend_run_lint() {
     local SYNC_API_CMD="./scripts/sync-api.sh"
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        # Lint does NOT need migrations - skip for speed
+        # Lint requires DB with migrations (SQLX_OFFLINE=false needs live schema)
         APISERVER_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"SQLX_OFFLINE=false cargo clippy -- -D warnings\""
         AGENT_MAIN_CMD="$DOCKER_COMPOSE_CMD exec -T agent_test bash -c \"SQLX_OFFLINE=false cargo clippy -- -D warnings\""
         WEB_LINT_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run lint"

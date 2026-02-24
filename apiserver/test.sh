@@ -71,7 +71,12 @@ cd "$SCRIPT_DIR"
 set +e
 if [ "$USE_COVERAGE" = true ]; then
   echo "Running cargo tarpaulin (Coverage mode)..."
-  cargo tarpaulin --workspace --timeout 120 --exclude-files "src/main.rs" "${TEST_ARGS[@]}"
+  cargo tarpaulin --workspace --timeout 300 \
+    --engine llvm \
+    --exclude-files "src/main.rs" \
+    --out xml html \
+    --output-dir "${SCRIPT_DIR}/.test_logs/coverage" \
+    "${TEST_ARGS[@]}"
   EXIT_CODE=$?
 else
   echo "Running cargo test (Standard mode)..."

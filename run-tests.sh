@@ -144,12 +144,12 @@ export USE_DOCKER=true
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export DOCKER_COMPOSE_CMD="docker compose -p leeattend-test -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/docker-compose.test.yml"
 
-# Cargo cache settings (sccache disabled for now - see docker-compose.test.yml)
+# Cargo cache settings
 export CARGO_TARGET_DIR="$PROJECT_ROOT/target"
 export CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
 
-# Auto-include CI override if it exists (e.g., on GitHub Actions)
-if [[ -f "$PROJECT_ROOT/docker-compose.ci.yml" ]]; then
+# Auto-include CI override only in CI environments (GitHub Actions, etc.)
+if [[ "${CI:-}" == "true" && -f "$PROJECT_ROOT/docker-compose.ci.yml" ]]; then
     export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD -f $PROJECT_ROOT/docker-compose.ci.yml"
 fi
 
@@ -190,6 +190,43 @@ wait_for_web_test() {
     fi
 }
 
+# Ensure DB is migrated before any cargo compile (required for SQLX_OFFLINE=false)
+_DB_MIGRATED=false
+ensure_db_migrated() {
+    if [[ "$_DB_MIGRATED" == "true" ]]; then return 0; fi
+    if [[ "${USE_DOCKER:-}" != "true" ]]; then return 0; fi
+
+    echo -e "${BLUE}🗄️ Ensuring database is migrated (required for sqlx compile checks)...${NC}"
+
+    # Start test_db + apiserver_test (which has sqlx-cli)
+    $DOCKER_COMPOSE_CMD up -d --build=false test_db apiserver_test
+
+    # Wait for DB healthy
+    local timeout="${TIMEOUT_DB_WAIT:-120}"
+    local start_time=$SECONDS
+    echo -n "  Waiting for database..."
+    until $DOCKER_COMPOSE_CMD exec -T test_db pg_isready -U test_user -d test_database > /dev/null 2>&1; do
+        printf "."
+        sleep 1
+        if (( SECONDS - start_time > timeout )); then
+            echo -e "\n${RED}❌ Database wait timed out after ${timeout}s${NC}"
+            return 1
+        fi
+    done
+    echo -e " ${GREEN}Ready!${NC}"
+
+    # Run migrations
+    local DB_URL="postgres://test_user:test_password@test_db:5432/test_database?sslmode=disable"
+    if $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "sqlx migrate run --database-url '$DB_URL'" > /dev/null 2>&1; then
+        echo -e "  ${GREEN}✅ Migrations applied.${NC}"
+    else
+        echo -e "  ${RED}❌ Migration failed!${NC}"
+        return 1
+    fi
+
+    _DB_MIGRATED=true
+}
+
 run_lint() {
     local filter=$1
     echo -e "\n${BLUE}🔹 Running Linting [$filter]...${NC}"
@@ -212,6 +249,11 @@ run_lint() {
         
         $DOCKER_COMPOSE_CMD up -d --build=false $services
         if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
+
+        # Migrations must run before clippy/compile (SQLX_OFFLINE=false)
+        if [[ "$filter" != *"web"* ]] || [[ "$filter" == "" ]]; then
+            ensure_db_migrated
+        fi
     fi
 
     leeattend_run_lint "$filter"
@@ -240,6 +282,11 @@ run_unit() {
         
         $DOCKER_COMPOSE_CMD up -d --build=false $services
         if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
+
+        # Migrations must run before cargo compile (SQLX_OFFLINE=false)
+        if [[ "$filter" != *"web"* ]] || [[ "$filter" == "" ]]; then
+            ensure_db_migrated
+        fi
     fi
     
     leeattend_run_unit "$filter"
