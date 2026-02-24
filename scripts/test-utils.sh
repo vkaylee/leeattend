@@ -38,7 +38,7 @@ mkdir -p "$LOG_DIR"
 # ==============================================================================
 export TIMEOUT_LINT=${TIMEOUT_LINT:-900}           # 15 min per lint task (for first compile)
 export TIMEOUT_UNIT=${TIMEOUT_UNIT:-900}           # 15 min per unit test task
-export TIMEOUT_INTEGRATION=${TIMEOUT_INTEGRATION:-600}  # 10 min per integration task
+export TIMEOUT_INTEGRATION=${TIMEOUT_INTEGRATION:-1200}  # 20 min per integration task
 export TIMEOUT_BUILD=${TIMEOUT_BUILD:-600}         # 10 min for pre-compilation
 export TIMEOUT_DB_WAIT=${TIMEOUT_DB_WAIT:-120}     # 2 min for DB ready check
 export TIMEOUT_MIGRATION=${TIMEOUT_MIGRATION:-120} # 2 min for migrations

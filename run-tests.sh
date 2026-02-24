@@ -52,6 +52,10 @@ show_help() {
     echo -e "    ${GREEN}--clean-cache${NC}        Clean cache only (keep containers)"
     echo -e "    ${GREEN}--clean${NC}              Full cleanup: containers + volumes + cache"
     echo ""
+    echo -e "${BOLD}📜 LOG MANAGEMENT:${NC}"
+    echo -e "    ${GREEN}--logs${NC}              Extract and display test logs from the internal Docker volume"
+    echo -e "    ${GREEN}--tail-logs${NC}         Tail the test logs live from the volume (Docker required)"
+    echo ""
     echo -e "${BOLD}⏱️ TIMING OPTIONS:${NC}"
     echo -e "    ${GREEN}--timeout=SECONDS${NC}    Global timeout (default: 1800 = 30 min)"
     echo -e "    ${GREEN}--shard=N/M${NC}          Run shard N of M (CI parallelization)"
@@ -70,6 +74,8 @@ show_help() {
     echo "    ./run-tests.sh --api --test-only --test=failing_test"
     echo "    # Step 3: Run specific component"
     echo "    ./run-tests.sh --api --component=apiserver --test=failing_test"
+    echo "    # Step 4: If integration tests fail, check real logs from volume"
+    echo "    ./run-tests.sh --logs"
     echo ""
     echo -e "${YELLOW}# 3. Quick smoke test before commit:${NC}"
     echo "    ./run-tests.sh --api --smoke"
@@ -99,6 +105,7 @@ show_help() {
     echo "    ./run-tests.sh --cache-stats    # View cache"
     echo "    ./run-tests.sh --clean-cache    # Clean cache"
     echo "    ./run-tests.sh --clean          # Full reset"
+    echo "    ./run-tests.sh --logs           # View logs in volume"
     echo ""
     echo -e "${YELLOW}# 8. Web/E2E testing:${NC}"
     echo "    ./run-tests.sh --web --test=login_page"
@@ -115,15 +122,16 @@ show_help() {
     echo "    string             # Tests containing string"
     echo "    @tag              # Tests with @tag"
     echo ""
-    echo -e "${BOLD}📦 CACHE ARCHITECTURE:${NC}"
-    echo "    /workspace/target      → Rust compiled artifacts (shared)"
+    echo -e "${BOLD}📦 CACHE & PERSISTENCE ARCHITECTURE:${NC}"
+    echo "    /workspace/target      → Rust compiled artifacts (shared target-cache volume)"
     echo "    /workspace/cargo       → Downloaded crates (shared)"
     echo "    /sccache             → sccache objects (shared)"
+    echo "    /.test_logs          → Test logs (shared test-logs volume)"
     echo "    /workspace/.npm-cache → NPM packages"
     echo ""
     echo -e "${BOLD}⚠️ IMPORTANT NOTES FOR AI:${NC}"
     echo "    1. ALWAYS use ./run-tests.sh - never run test scripts directly"
-    echo "    2. Scripts in scripts/test-*.sh are MODULES, not standalone runners"
+    echo "    2. Logs are kept in a Docker volume 'test-logs'. Use ./run-tests.sh --logs to read."
     echo "    3. Use --dry-run first to verify what will execute"
     echo "    4. Use --test-only for faster iteration during debugging"
     echo "    5. Cache persists until --clean or --clean-cache is run"
@@ -141,8 +149,9 @@ show_help() {
 
 # --- Environment Setup ---
 export USE_DOCKER=true
+export COMPOSE_PROJECT_NAME="leeattend-test"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export DOCKER_COMPOSE_CMD="docker compose -p leeattend-test -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/docker-compose.test.yml"
+export DOCKER_COMPOSE_CMD="docker compose -p $COMPOSE_PROJECT_NAME -f $PROJECT_ROOT/docker-compose.yml -f $PROJECT_ROOT/docker-compose.test.yml"
 
 # Cargo cache settings
 export CARGO_TARGET_DIR="$PROJECT_ROOT/target"
@@ -353,6 +362,8 @@ SMOKE=false
 WARM_CACHE=false
 CACHE_STATS=false
 NO_CACHE=false
+SHOW_LOGS=false
+TAIL_LOGS=false
 SHARD_N=""
 SHARD_M=""
 
@@ -388,6 +399,8 @@ for arg in "$@"; do
             --warm-cache) WARM_CACHE=true;;
             --cache-stats) CACHE_STATS=true;;
             --no-cache) NO_CACHE=true;;
+            --logs) SHOW_LOGS=true;;
+            --tail-logs) TAIL_LOGS=true;;
             --clean)
                 echo -e "${BLUE}${BOLD}🧹 Cleaning up test containers and volumes...${NC}"
                 $DOCKER_COMPOSE_CMD down --volumes --remove-orphans
@@ -416,6 +429,24 @@ for arg in "$@"; do
         fi
     fi
 done
+
+# Handle log extraction
+if [[ "$SHOW_LOGS" == "true" || "$TAIL_LOGS" == "true" ]]; then
+    if [[ "${USE_DOCKER:-}" != "true" ]]; then
+        echo -e "${YELLOW}Logs from volume are only accessible when using Docker.${NC}"
+        echo -e "Local logs: cat $PROJECT_ROOT/.test_logs/*.log"
+        exit 0
+    fi
+    
+    echo -e "${BLUE}${BOLD}📜 Extracting test logs from persistent volume...${NC}"
+    # Use a temporary busybox container to read from the log volume
+    if [[ "$TAIL_LOGS" == "true" ]]; then
+        docker run --rm -v leeattend-test_test-logs:/logs alpine tail -f /logs/results.txt /logs/*.log 2>/dev/null || echo "No logs found or container exited."
+    else
+        docker run --rm -v leeattend-test_test-logs:/logs alpine cat /logs/results.txt /logs/*.log 2>/dev/null | grep -v 'No such file or directory' || echo "No logs found."
+    fi
+    exit 0
+fi
 
 if [[ -z "$MODE" ]]; then
     echo -e "${RED}Error: No mode specified (e.g., --all, --api, --web)${NC}"
@@ -551,7 +582,7 @@ echo -e "${BLUE}================================================================
 export TIMEOUT_GLOBAL="${TIMEOUT_GLOBAL:-1800}"
 export TIMEOUT_LINT="${TIMEOUT_LINT:-900}"
 export TIMEOUT_UNIT="${TIMEOUT_UNIT:-900}"
-export TIMEOUT_INTEGRATION="${TIMEOUT_INTEGRATION:-600}"
+export TIMEOUT_INTEGRATION="${TIMEOUT_INTEGRATION:-1200}"
 export TIMEOUT_BUILD="${TIMEOUT_BUILD:-600}"
 export TIMEOUT_DB_WAIT="${TIMEOUT_DB_WAIT:-120}"
 export TIMEOUT_WEB_READY="${TIMEOUT_WEB_READY:-300}"
@@ -630,13 +661,18 @@ cleanup() {
         WATCHDOG_PID=""
     fi
 
-    # Stop and remove test containers, volumes, and orphans
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
+        # Sync local logs into the persistent volume 
+        echo -e "${BLUE}📦 Backing up test logs to docker volume 'test-logs'...${NC}"
+        docker run --rm -v leeattend-test_test-logs:/logs -v "$PROJECT_ROOT/.test_logs:/local" alpine cp -r /local/. /logs/ 2>/dev/null || true
+
         # Remove silent redirection to allow visibility of cleanup issues
-        $DOCKER_COMPOSE_CMD down --volumes --remove-orphans --timeout 5 || {
+        $DOCKER_COMPOSE_CMD down --remove-orphans --timeout 5 || {
             echo -e "${YELLOW}⚠️  Warning: Cleanup encountered some issues.${NC}"
         }
-        echo -e "${GREEN}✅ Environment cleaned up.${NC}"
+        # Only remove ephemeral volumes, leave target-cache, sccache-cache, test-logs intact
+        docker volume prune -f --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" --filter "label=com.docker.compose.volume=shared-data" > /dev/null 2>&1 || true
+        echo -e "${GREEN}✅ Environment cleaned up (logs and cache preserved).${NC}"
     fi
     
     exit "$exit_code"

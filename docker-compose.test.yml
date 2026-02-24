@@ -62,10 +62,9 @@ services:
       - .:/workspace                        # Bind-mount source code from host
       - target-cache:/workspace/target      # Persistent: compiled artifacts survive restarts
       # Share host's cargo registry — avoids re-downloading crates and benefits
-      # all Rust projects on the machine (not just this one)
       - ${CARGO_HOME:-${HOME}/.cargo}/registry:/usr/local/cargo/registry
       - sccache-cache:/workspace/.sccache   # Persistent: sccache objects
-      - ./.test_logs:/workspace/apiserver/.test_logs
+      - test-logs:/workspace/.test_logs
       - shared-data:/workspace/shared       # Ephemeral: for inter-container data (e.g. openapi.json)
 
   # --- Agent Test Container ---
@@ -92,7 +91,7 @@ services:
       - target-cache:/workspace/target
       - ${CARGO_HOME:-${HOME}/.cargo}/registry:/usr/local/cargo/registry
       - sccache-cache:/workspace/.sccache
-      - ./.test_logs:/workspace/agent-main/.test_logs
+      - test-logs:/workspace/.test_logs
 
   # --- Web Dashboard Test Container ---
   # Builds from webdashboard Dockerfile "test" stage (includes Playwright + Chromium).
@@ -110,7 +109,7 @@ services:
     volumes:
       - .:/workspace
       - web-node-modules:/workspace/webdashboard/node_modules  # Persistent npm packages
-      - ./.test_logs:/workspace/webdashboard/.test_logs
+      - test-logs:/workspace/.test_logs
       - shared-data:/workspace/shared
       - npm-cache:/workspace/.npm-cache     # Persistent npm download cache
 
@@ -135,3 +134,5 @@ volumes:
   shared-data:            # Small ephemeral data for inter-container communication.
     driver: local
     driver_opts: { type: tmpfs, device: tmpfs, o: "size=64M" }
+  test-logs:              # Persistent test logs volume. Can be inspected or exported.
+    driver: local
