@@ -134,3 +134,74 @@ impl IntoResponse for AppError {
 
 // Convert common result types to AppError
 pub type AppResult<T> = Result<T, AppError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_status_codes() {
+        assert_eq!(AppError::Auth("x".into()).status_code(), StatusCode::UNAUTHORIZED);
+        assert_eq!(AppError::Forbidden("x".into()).status_code(), StatusCode::FORBIDDEN);
+        assert_eq!(AppError::NotFound("x".into()).status_code(), StatusCode::NOT_FOUND);
+        assert_eq!(AppError::Validation("x".into()).status_code(), StatusCode::BAD_REQUEST);
+        assert_eq!(AppError::Internal("x".into()).status_code(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(AppError::Conflict("x".into()).status_code(), StatusCode::CONFLICT);
+        assert_eq!(AppError::ServiceUnavailable("x".into()).status_code(), StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(AppError::Redis("x".into()).status_code(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[test]
+    fn test_error_codes() {
+        assert_eq!(AppError::Auth("x".into()).error_code(), "UNAUTHORIZED");
+        assert_eq!(AppError::Forbidden("x".into()).error_code(), "FORBIDDEN");
+        assert_eq!(AppError::NotFound("x".into()).error_code(), "NOT_FOUND");
+        assert_eq!(AppError::Validation("x".into()).error_code(), "VALIDATION_ERROR");
+        assert_eq!(AppError::Internal("x".into()).error_code(), "INTERNAL_ERROR");
+        assert_eq!(AppError::Conflict("x".into()).error_code(), "CONFLICT");
+        assert_eq!(AppError::ServiceUnavailable("x".into()).error_code(), "SERVICE_UNAVAILABLE");
+        assert_eq!(AppError::Redis("x".into()).error_code(), "REDIS_ERROR");
+    }
+
+    #[test]
+    fn test_from_string() {
+        let err = AppError::from("oops".to_string());
+        assert!(matches!(err, AppError::Internal(_)));
+        assert_eq!(err.status_code(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[test]
+    fn test_from_str_slice() {
+        let err = AppError::from("bad things");
+        assert!(matches!(err, AppError::Internal(_)));
+    }
+
+    #[test]
+    fn test_from_status_code_tuple() {
+        let cases: &[(u16, &str)] = &[
+            (401, "Unauthorized"),
+            (403, "Forbidden"),
+            (404, "Not found"),
+            (409, "Conflict"),
+            (400, "Bad request"),
+            (500, "Internal"),
+        ];
+        let expected_variants: &[&str] = &[
+            "Auth", "Forbidden", "NotFound", "Conflict", "Validation", "Internal",
+        ];
+        for (&(code, msg), &variant) in cases.iter().zip(expected_variants.iter()) {
+            let sc = StatusCode::from_u16(code).expect("valid status code");
+            let err = AppError::from((sc, msg.to_string()));
+            let name = format!("{err:?}");
+            assert!(name.starts_with(variant), "Expected {variant}, got {name}");
+        }
+    }
+
+    #[test]
+    fn test_display_shows_message() {
+        let err = AppError::NotFound("user 42".into());
+        assert!(err.to_string().contains("user 42"));
+        let err = AppError::Validation("email invalid".into());
+        assert!(err.to_string().contains("email invalid"));
+    }
+}

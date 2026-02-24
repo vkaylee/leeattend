@@ -43,6 +43,9 @@ ENV SCCACHE_DIR=/sccache
 ENV RUSTC_WRAPPER=sccache
 RUN cargo install sqlx-cli --locked --no-default-features --features postgres
 RUN curl -LsSf https://get.nexte.st/0.9.96/linux | tar zxf - -C /usr/local/bin
+# Coverage tooling: llvm-cov requires llvm-tools-preview component + cargo-llvm-cov binary
+RUN rustup component add llvm-tools-preview && \
+    cargo install cargo-llvm-cov --locked
 COPY --from=planner /app/recipe.json recipe.json
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/sccache \

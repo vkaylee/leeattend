@@ -460,7 +460,25 @@ fn local_to_utc(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{AccrualFrequency, LeavePolicyConfig, SeniorityBonus};
+    use crate::models::{AccrualFrequency, EmploymentPeriod, LeavePolicyConfig, SeniorityBonus};
+    use chrono::NaiveDate;
+    use uuid::Uuid;
+
+    fn nd(y: i32, m: u32, d: u32) -> NaiveDate {
+        NaiveDate::from_ymd_opt(y, m, d).expect("valid test date")
+    }
+
+    fn mock_period(hire: NaiveDate, term: Option<NaiveDate>) -> EmploymentPeriod {
+        EmploymentPeriod {
+            id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            hire_date: hire,
+            termination_date: term,
+            is_rehire: false,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        }
+    }
 
     #[test]
     fn test_calculate_accrual_amount() {
@@ -518,4 +536,143 @@ mod tests {
             0.0
         );
     }
+
+    // -------------------------------------------------------------------------
+    // should_run_accrual
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_should_run_accrual_monthly_start() {
+        // Monthly start_of_period → day == 1
+        assert!(LeaveAccrualService::should_run_accrual(
+            &AccrualFrequency::Monthly,
+            "start_of_period",
+            nd(2026, 3, 1)
+        ));
+        assert!(!LeaveAccrualService::should_run_accrual(
+            &AccrualFrequency::Monthly,
+            "start_of_period",
+            nd(2026, 3, 15)
+        ));
+    }
+
+    #[test]
+    fn test_should_run_accrual_monthly_end() {
+        // Monthly end_of_period → last day of month (next day is a different month)
+        assert!(LeaveAccrualService::should_run_accrual(
+            &AccrualFrequency::Monthly,
+            "end_of_period",
+            nd(2026, 3, 31) // last day of March
+        ));
+        assert!(!LeaveAccrualService::should_run_accrual(
+            &AccrualFrequency::Monthly,
+            "end_of_period",
+            nd(2026, 3, 30)
+        ));
+        // February non-leap year
+        assert!(LeaveAccrualService::should_run_accrual(
+            &AccrualFrequency::Monthly,
+            "end_of_period",
+            nd(2026, 2, 28)
+        ));
+    }
+
+    #[test]
+    fn test_should_run_accrual_quarterly_start() {
+        // Quarter starts: Jan 1, Apr 1, Jul 1, Oct 1
+        for &(m, d, expected) in &[(1u32, 1u32, true), (4, 1, true), (7, 1, true), (10, 1, true), (2, 1, false), (1, 5, false)] {
+            assert_eq!(
+                LeaveAccrualService::should_run_accrual(
+                    &AccrualFrequency::Quarterly,
+                    "start_of_period",
+                    nd(2026, m, d)
+                ),
+                expected,
+                "Quarterly start m={m} d={d}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_should_run_accrual_yearly() {
+        // Yearly start → Jan 1
+        assert!(LeaveAccrualService::should_run_accrual(
+            &AccrualFrequency::Yearly,
+            "start_of_period",
+            nd(2026, 1, 1)
+        ));
+        assert!(!LeaveAccrualService::should_run_accrual(
+            &AccrualFrequency::Yearly,
+            "start_of_period",
+            nd(2026, 6, 1)
+        ));
+        // Yearly end → Dec 31
+        assert!(LeaveAccrualService::should_run_accrual(
+            &AccrualFrequency::Yearly,
+            "end_of_period",
+            nd(2026, 12, 31)
+        ));
+        assert!(!LeaveAccrualService::should_run_accrual(
+            &AccrualFrequency::Yearly,
+            "end_of_period",
+            nd(2026, 12, 30)
+        ));
+    }
+
+    // -------------------------------------------------------------------------
+    // calculate_total_months_seniority
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_seniority_single_period_no_termination() {
+        // Hired 2025-01-01, as_of 2026-01-01 → ~12 months (365 days / 30 ≈ 12)
+        let periods = vec![mock_period(nd(2025, 1, 1), None)];
+        let months = LeaveAccrualService::calculate_total_months_seniority(
+            &periods,
+            nd(2026, 1, 1),
+        );
+        // 366 days (2025 not a leap year but 2025-01-01 to 2026-01-01 = 365 days +1 = 366 / 30 = 12)
+        assert_eq!(months, 12);
+    }
+
+    #[test]
+    fn test_seniority_terminated_before_as_of() {
+        // Hired 2024-01-01, terminated 2024-06-30 → 181 days / 30 = 6 months
+        let periods = vec![mock_period(nd(2024, 1, 1), Some(nd(2024, 6, 30)))];
+        let months = LeaveAccrualService::calculate_total_months_seniority(
+            &periods,
+            nd(2026, 1, 1),
+        );
+        assert_eq!(months, 6);
+    }
+
+    #[test]
+    fn test_seniority_future_hire_date_excluded() {
+        // Hired in the future → 0 months
+        let periods = vec![mock_period(nd(2030, 1, 1), None)];
+        let months = LeaveAccrualService::calculate_total_months_seniority(
+            &periods,
+            nd(2026, 1, 1),
+        );
+        assert_eq!(months, 0);
+    }
+
+    #[test]
+    fn test_seniority_rehire_gap_accumulates() {
+        // Period 1: 2020-01-01 → 2021-01-01 (12 months)
+        // Period 2: 2022-01-01 → unspecified, as_of = 2022-07-01 (6 months)
+        // Total ≈ 18 months
+        let periods = vec![
+            mock_period(nd(2020, 1, 1), Some(nd(2021, 1, 1))),
+            mock_period(nd(2022, 1, 1), None),
+        ];
+        let months = LeaveAccrualService::calculate_total_months_seniority(
+            &periods,
+            nd(2022, 7, 1),
+        );
+        // Phase 1: 366+1 = 367 days ≈ 12 months
+        // Phase 2: 181 days ≈ 6 months
+        assert!(months >= 17 && months <= 18, "Expected 17-18 months, got {months}");
+    }
 }
+

@@ -37,6 +37,10 @@ show_help() {
     echo -e "    ${GREEN}--web${NC}              Run Web tests: webdashboard (React + Playwright)"
     echo -e "    ${GREEN}--integration${NC}      Run ONLY integration + E2E tests (skip lint/unit)"
     echo ""
+    echo -e "${BOLD}📊 COVERAGE MODE (combine with test modes):${NC}"
+    echo -e "    ${GREEN}--coverage${NC}         Measure test coverage (Rust: llvm-cov, Web: vitest)"
+    echo -e "                       Outputs: .test_logs/coverage-*.lcov + HTML reports"
+    echo ""
     echo -e "${BOLD}🐳 DOCKER ENVIRONMENT MODE:${NC}"
     echo -e "    ${GREEN}--docker=ENV CMD${NC}   Run any docker compose command for ENV (dev|test|prod)"
     echo -e "                       ENV profiles: dev → docker-compose.dev.yml"
@@ -196,7 +200,7 @@ if [[ "${CI:-}" == "true" && -f "$PROJECT_ROOT/docker-compose.ci.yml" ]]; then
 fi
 
 # Source all script modules
-for script in "test-utils.sh" "test-lint.sh" "test-unit.sh" "test-integration.sh"; do
+for script in "test-utils.sh" "test-lint.sh" "test-unit.sh" "test-integration.sh" "test-coverage.sh"; do
     if [[ -f "$PROJECT_ROOT/scripts/$script" ]]; then
         source "$PROJECT_ROOT/scripts/$script"
     else
@@ -388,6 +392,7 @@ COMPONENT=""
 PHASE_LINT=false
 PHASE_UNIT=false
 PHASE_INTEGRATION=false
+COVERAGE=false
 TEST_ONLY=false
 LIST_TESTS=false
 DRY_RUN=false
@@ -425,6 +430,7 @@ for arg in "$@"; do
             --lint) PHASE_LINT=true;;
             --unit) PHASE_UNIT=true;;
             --integration-only) PHASE_INTEGRATION=true;;
+            --coverage) COVERAGE=true;;
             --test-only) TEST_ONLY=true;;
             --list) LIST_TESTS=true;;
             --dry-run) DRY_RUN=true;;
@@ -585,6 +591,7 @@ if [[ "$DRY_RUN" == "true" ]]; then
     [[ "$PHASE_LINT" == "true" ]] && echo -e "  ✓ Lint"
     [[ "$PHASE_UNIT" == "true" ]] && echo -e "  ✓ Unit Tests"
     [[ "$PHASE_INTEGRATION" == "true" ]] && echo -e "  ✓ Integration Tests"
+    [[ "$COVERAGE" == "true" ]] && echo -e "  ✓ Coverage (cargo llvm-cov / vitest)"
     echo -e "${GREEN}💡 This is a dry-run. No tests were executed.${NC}"
     exit 0
 fi
@@ -727,6 +734,28 @@ if [[ "$PHASE_INTEGRATION" == "true" ]]; then
         INT_PATTERN="smoke"
     fi
     run_integration "$FILTER:$INT_PATTERN"
+fi
+
+if [[ "$COVERAGE" == "true" ]]; then
+    # Coverage requires containers to be running
+    if [[ "${USE_DOCKER:-}" == "true" ]]; then
+        _cov_services=""
+        if [[ "$FILTER" == *"web"* ]]; then
+            _cov_services="web_test"
+        elif [[ "$FILTER" == *"apiserver"* || "$FILTER" == *"agent"* ]]; then
+            _cov_services="test_db apiserver_test agent_test"
+        else
+            _cov_services="test_db apiserver_test agent_test web_test"
+        fi
+        $DOCKER_COMPOSE_CMD up -d --build=false $_cov_services
+        if [[ "$FILTER" == *"web"* || -z "$FILTER" ]]; then
+            wait_for_web_test
+        fi
+        if [[ "$FILTER" != *"web"* ]] || [[ -z "$FILTER" ]]; then
+            ensure_db_migrated
+        fi
+    fi
+    leeattend_run_coverage "$FILTER"
 fi
 
 # Kill watchdog since we succeeded

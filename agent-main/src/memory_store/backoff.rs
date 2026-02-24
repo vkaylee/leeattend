@@ -27,3 +27,64 @@ pub(super) fn calculate_backoff_with_jitter(retry_count: i64) -> i64 {
         base_delay
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_backoff_first_attempt_is_one_second() {
+        // 2^0 = 1. No jitter (range = 0), returns 1.
+        assert_eq!(calculate_backoff_with_jitter(0), 1);
+    }
+
+    #[test]
+    fn test_backoff_exponential_growth() {
+        // Base delays: 2^1=2, 2^4=16, 2^8=256 (capped to 300)
+        for _ in 0..10 {
+            let d1 = calculate_backoff_with_jitter(1);
+            let d4 = calculate_backoff_with_jitter(4);
+            assert!(d4 > d1, "Higher retry should produce larger delay");
+        }
+    }
+
+    #[test]
+    fn test_backoff_cap_at_max() {
+        // At high retry counts: 2^MAX_RETRY_SHIFT = 2^8 = 256, which is < MAX_RETRY_DELAY_SECS (300).
+        // With ±10% jitter the exact value varies, but must always satisfy these invariants:
+        //   1. delay >= 1 (never zero or negative)
+        //   2. delay <= MAX_RETRY_DELAY_SECS (hard cap)
+        for _ in 0..30 {
+            let delay = calculate_backoff_with_jitter(20); // Well past MAX_RETRY_SHIFT
+            assert!(
+                delay >= 1,
+                "Delay must be >= 1s, got {delay}"
+            );
+            assert!(
+                delay <= MAX_RETRY_DELAY_SECS,
+                "Delay must not exceed MAX_RETRY_DELAY_SECS ({MAX_RETRY_DELAY_SECS}s), got {delay}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_backoff_never_below_one() {
+        for count in 0..15 {
+            let delay = calculate_backoff_with_jitter(count);
+            assert!(delay >= 1, "Delay must never be below 1s, got {delay} for count={count}");
+        }
+    }
+
+    #[test]
+    fn test_backoff_jitter_produces_variation() {
+        // Run multiple times at a count where jitter should apply (base=16 → jitter_range=1)
+        let delays: Vec<i64> = (0..30).map(|_| calculate_backoff_with_jitter(4)).collect();
+        let has_variation = delays.windows(2).any(|w| w[0] != w[1]);
+        // Jitter_range at count=4 is 1 (floor(16*0.10)=1), so values vary by ±1
+        assert!(
+            has_variation,
+            "Expected jitter to produce variation in delays: {:?}",
+            &delays[..5]
+        );
+    }
+}
