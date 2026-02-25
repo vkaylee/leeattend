@@ -12,4 +12,35 @@
 - **Tool Selection:** Always prioritize native API tools over raw bash commands. Use `task_boundary` mechanic stringently.
 
 Default AI adapter reference: `.ai-context-os/GEMINI.md`
- 
+
+## ⚠️ PTY Compatibility — CRITICAL for `run_command`
+
+> [!CAUTION]
+> The `run_command` tool monitors PTY file descriptors to detect command completion.
+> If a command spawns child processes that inherit PTY FDs, `command_status` will
+> report "running" **forever** even after the main process exits.
+
+**ALWAYS append `</dev/null` to these commands:**
+
+| Command | Why |
+|---------|-----|
+| `git commit`, `git push`, `git pull` | GPG agent holds PTY |
+| `docker compose up/down/exec/build` | Docker CLI spawns children |
+| Any script with `&` (background jobs) | Background process inherits PTY |
+
+**Examples:**
+```bash
+# ✅ Correct
+git commit --no-verify -m "message" </dev/null
+docker compose down </dev/null
+./run-tests.sh --api --smoke </dev/null
+
+# ❌ Wrong — will cause command_status to hang
+git commit -m "message"
+docker compose down
+```
+
+**For shell scripts:** redirect background process I/O inside the script:
+```bash
+background_function </dev/null >/dev/null 2>&1 &
+```

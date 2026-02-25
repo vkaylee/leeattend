@@ -12,3 +12,44 @@
 - **Indexing:** Rely on Cursor's fast codebase indexing. Do not blindly `grep` or `find` if you can use semantic search.
 
 Default AI adapter reference: `.ai-context-os/.cursorrules`
+
+## ⚠️ PTY Compatibility — CRITICAL for terminal commands
+
+> [!CAUTION]
+> When running commands via Cursor's terminal, child processes can inherit PTY file
+> descriptors and prevent command completion detection. The agent will hang
+> waiting for a "done" status that never arrives.
+
+**ALWAYS append `</dev/null` to these commands:**
+
+| Command | Why |
+|---------|-----|
+| `git commit`, `git push`, `git pull` | GPG agent holds PTY |
+| `docker compose up/down/exec/build` | Docker CLI spawns children |
+| Any script with `&` (background jobs) | Background process inherits PTY |
+
+```bash
+# ✅ Correct
+git commit --no-verify -m "message" </dev/null
+docker compose down </dev/null
+./run-tests.sh --api --smoke </dev/null
+
+# ❌ Wrong — will cause hang
+git commit -m "message"
+docker compose down
+```
+
+## 🧪 Testing — MANDATORY RULES
+
+> [!WARNING]
+> **NEVER run `cargo test`, `npm test`, `npx playwright test`, or any test
+> command directly.** This project uses Docker-based test isolation.
+> The ONLY way to run tests is through `./run-tests.sh`.
+
+| What you want | Command |
+|---------------|---------|
+| Quick lint + unit | `./run-tests.sh --api --smoke </dev/null` |
+| Full test suite | `./run-tests.sh --all </dev/null` |
+| Single test | `./run-tests.sh --api --test-only --test=test_name </dev/null` |
+
+**After fixing code, ALWAYS verify with `./run-tests.sh` before claiming done.**

@@ -1,0 +1,63 @@
+# AGENTS.md — Rules for AI Coding Assistants
+
+> This file is read by AI coding tools (Claude Code, Cursor, Copilot, Windsurf,
+> Gemini, etc.) to provide project-specific instructions.
+
+## ⚠️ PTY Compatibility — CRITICAL for terminal commands
+
+> [!CAUTION]
+> When running commands via terminal tools, child processes can inherit PTY file
+> descriptors and prevent command completion detection. The agent will hang
+> waiting for a "done" status that never arrives.
+
+**ALWAYS append `</dev/null` to these commands:**
+
+| Command | Why |
+|---------|-----|
+| `git commit`, `git push`, `git pull` | GPG agent holds PTY |
+| `docker compose up/down/exec/build` | Docker CLI spawns children |
+| Any script with `&` (background jobs) | Background process inherits PTY |
+
+```bash
+# ✅ Correct
+git commit --no-verify -m "message" </dev/null
+docker compose down </dev/null
+./run-tests.sh --api --smoke </dev/null
+
+# ❌ Wrong — will hang
+git commit -m "message"
+docker compose down
+```
+
+## 🧪 Testing — MANDATORY RULES
+
+> [!WARNING]
+> **NEVER run `cargo test`, `npm test`, `npx playwright test`, or any test
+> command directly.** This project uses Docker-based test isolation.
+> The ONLY way to run tests is through `./run-tests.sh`.
+
+| What you want | Command |
+|---------------|---------|
+| Quick lint + unit | `./run-tests.sh --api --smoke </dev/null` |
+| Full test suite | `./run-tests.sh --all </dev/null` |
+| Single test | `./run-tests.sh --api --test-only --test=test_name </dev/null` |
+| Web tests only | `./run-tests.sh --web --smoke </dev/null` |
+| See what would run | `./run-tests.sh --api --dry-run` |
+| Read failure logs | `cat .test_logs/latest-failure.log` |
+| Full help | `./run-tests.sh --help` |
+
+**After fixing code, ALWAYS verify with `./run-tests.sh` before claiming done.**
+
+## 🏗️ Project Structure
+
+| Component | Language | Path |
+|-----------|----------|------|
+| API Server | Rust (Axum) | `apiserver/` |
+| Agent (ZK Worker) | Rust | `agent-main/` |
+| Web Dashboard | React + TypeScript | `webdashboard/` |
+| Docker | Compose | `docker-compose*.yml` |
+| Tests | Rust + Playwright | `./run-tests.sh` |
+
+## 📝 Commit Convention
+
+Use conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`
