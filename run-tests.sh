@@ -677,46 +677,17 @@ else
 fi
 rm -f "$PROJECT_ROOT/.test_logs/results.txt"
 
-# Global timeout watchdog (background process)
-MAIN_PID=$$
-WATCHDOG_PID=""
+# NOTE: Global watchdog removed. Per-phase timeouts (TIMEOUT_LINT,
+# TIMEOUT_UNIT, TIMEOUT_INTEGRATION, TIMEOUT_BUILD) already protect
+# each stage individually. The background watchdog process caused PTY
+# file descriptor inheritance issues when run-tests.sh was invoked from
+# git hooks or AI agent terminals, making commands appear to hang
+# indefinitely even after successful completion.
 
-global_timeout_watchdog() {
-    sleep "$GLOBAL_TIMEOUT"
-    echo -e "\n${RED}================================================================${NC}"
-    echo -e "${RED}${BOLD}⏰ GLOBAL TIMEOUT: Test suite exceeded ${GLOBAL_TIMEOUT}s limit${NC}"
-    echo -e "${RED}================================================================${NC}"
-    # Kill the main process, let cleanup trap handle the rest
-    kill -TERM "$MAIN_PID" 2>/dev/null || true
-}
-
-# Start watchdog in background.
-#
-# CRITICAL: Redirect all I/O (stdin/stdout/stderr) to /dev/null.
-# Without this, the background process inherits the parent's file descriptors.
-# When this script is run via agent tools (e.g. Antigravity's run_command),
-# the tool monitors the PTY (pseudo-terminal) and considers the command
-# "running" as long as ANY process holds the PTY's file descriptors open.
-# The watchdog sleeps for up to 1800s (30 min), so without the redirect,
-# the PTY stays open and `command_status` reports "running" indefinitely
-# even after the main script has exited.
-#
-# Trade-off: The watchdog's timeout warning message (lines 682-684) will
-# not appear on the terminal. However, the watchdog still functions correctly —
-# it sends SIGTERM to the main process, triggering the cleanup trap.
-global_timeout_watchdog </dev/null >/dev/null 2>&1 &
-WATCHDOG_PID=$!
-
-# Cleanup handler: kill watchdog and stop containers on exit
+# Cleanup handler: stop containers on exit
 cleanup() {
     local exit_code=$?
     echo -e "\n${BLUE}🧹 Cleaning up test environment...${NC}"
-
-    # Kill watchdog safely
-    if [[ -n "${WATCHDOG_PID:-}" ]]; then
-        kill "$WATCHDOG_PID" 2>/dev/null && wait "$WATCHDOG_PID" 2>/dev/null || true
-        WATCHDOG_PID=""
-    fi
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         # CRITICAL: All docker commands below use `</dev/null` to detach stdin
@@ -783,8 +754,6 @@ if [[ "$COVERAGE" == "true" ]]; then
     leeattend_run_coverage "$FILTER"
 fi
 
-# Kill watchdog since we succeeded
-kill "$WATCHDOG_PID" 2>/dev/null || true
 
 # Print final results summary
 print_summary_table
