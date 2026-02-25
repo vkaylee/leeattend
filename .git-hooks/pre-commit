@@ -31,3 +31,12 @@ fi
 echo "========================================"
 echo "✅ All tests passed! Proceeding with commit."
 echo "========================================"
+
+# Re-stage any tracked files modified by tests (e.g. Cargo.lock updated by Docker/cargo)
+# Safe: `git add -u` only stages already-tracked files, never new untracked files
+MODIFIED=$(git diff --name-only)
+if [ -n "$MODIFIED" ]; then
+    echo "📎 Re-staging tracked files modified during tests:"
+    echo "$MODIFIED" | sed 's/^/   /'
+    git add -u
+fi
