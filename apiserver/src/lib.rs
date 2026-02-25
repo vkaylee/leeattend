@@ -14,6 +14,7 @@ pub mod repositories;
 pub mod services;
 pub mod utils;
 pub mod worker;
+pub mod mw;
 
 use axum::{
     middleware,
@@ -176,6 +177,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         )
         .route("/auth/login", post(handlers::login))
         .route("/auth/register", post(handlers::register))
+        .route_layer(mw::RateLimitLayer::new(
+            state.redis.clone(),
+            mw::rate_limit::RateLimitConfig::default(),
+        ))
         .route("/auth/refresh", post(handlers::refresh_token))
         .route("/auth/logout", post(handlers::logout));
 
