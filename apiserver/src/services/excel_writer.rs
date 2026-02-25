@@ -401,23 +401,24 @@ mod tests {
     use uuid::Uuid;
 
     #[test]
-    fn test_write_summary_empty() {
+    fn test_write_summary_empty() -> Result<(), Box<dyn std::error::Error>> {
         let result = ExcelWriter::write_summary(
             &[],
             "Test Workspace",
             (
-                NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-                NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+                NaiveDate::from_ymd_opt(2026, 1, 1).ok_or("Invalid start date")?,
+                NaiveDate::from_ymd_opt(2026, 1, 31).ok_or("Invalid end date")?,
             ),
         );
         assert!(result.is_ok());
-        let data = result.unwrap();
+        let data = result?;
         assert!(data.len() > 100);
         assert_eq!(&data[0..2], b"PK");
+        Ok(())
     }
 
     #[test]
-    fn test_write_summary_with_data() {
+    fn test_write_summary_with_data() -> Result<(), Box<dyn std::error::Error>> {
         let summaries = vec![
             AttendanceSummary {
                 employee_id: Uuid::new_v4(),
@@ -437,43 +438,45 @@ mod tests {
             &summaries,
             "Test Workspace",
             (
-                NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-                NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+                NaiveDate::from_ymd_opt(2026, 1, 1).ok_or("Invalid start date")?,
+                NaiveDate::from_ymd_opt(2026, 1, 31).ok_or("Invalid end date")?,
             ),
         );
         assert!(result.is_ok());
-        assert!(result.unwrap().len() > 100);
+        assert!(result?.len() > 100);
+        Ok(())
     }
 
     #[test]
-    fn test_write_detail_empty() {
+    fn test_write_detail_empty() -> Result<(), Box<dyn std::error::Error>> {
         let result = ExcelWriter::write_detail(
             &[],
             "Test Workspace",
             (
-                NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-                NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+                NaiveDate::from_ymd_opt(2026, 1, 1).ok_or("Invalid start date")?,
+                NaiveDate::from_ymd_opt(2026, 1, 31).ok_or("Invalid end date")?,
             ),
         );
         assert!(result.is_ok());
-        let data = result.unwrap();
+        let data = result?;
         assert!(data.len() > 100);
         assert_eq!(&data[0..2], b"PK");
+        Ok(())
     }
 
     #[test]
-    fn test_write_detail_with_data() {
+    fn test_write_detail_with_data() -> Result<(), Box<dyn std::error::Error>> {
         let emp_alice = Uuid::new_v4();
         let reports = vec![
             DailyAttendanceReport {
-                date: NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(),
+                date: NaiveDate::from_ymd_opt(2026, 1, 15).ok_or("Invalid date")?,
                 employee_id: emp_alice,
                 employee_name: "Alice Smith".to_string(),
-                scheduled_start: Some(NaiveTime::from_hms_opt(8, 0, 0).unwrap()),
-                scheduled_end: Some(NaiveTime::from_hms_opt(17, 0, 0).unwrap()),
+                scheduled_start: Some(NaiveTime::from_hms_opt(8, 0, 0).ok_or("Invalid time")?),
+                scheduled_end: Some(NaiveTime::from_hms_opt(17, 0, 0).ok_or("Invalid time")?),
                 break_duration_minutes: Some(60),
-                break_start: Some(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
-                break_end: Some(NaiveTime::from_hms_opt(13, 0, 0).unwrap()),
+                break_start: Some(NaiveTime::from_hms_opt(12, 0, 0).ok_or("Invalid time")?),
+                break_end: Some(NaiveTime::from_hms_opt(13, 0, 0).ok_or("Invalid time")?),
                 is_break_auto_deduct: Some(true),
                 actual_punch_in: None,
                 actual_punch_out: None,
@@ -484,11 +487,11 @@ mod tests {
                 generation_metadata: None,
             },
             DailyAttendanceReport {
-                date: NaiveDate::from_ymd_opt(2026, 1, 16).unwrap(),
+                date: NaiveDate::from_ymd_opt(2026, 1, 16).ok_or("Invalid date")?,
                 employee_id: emp_alice,
                 employee_name: "Alice Smith".to_string(),
-                scheduled_start: Some(NaiveTime::from_hms_opt(8, 0, 0).unwrap()),
-                scheduled_end: Some(NaiveTime::from_hms_opt(17, 0, 0).unwrap()),
+                scheduled_start: Some(NaiveTime::from_hms_opt(8, 0, 0).ok_or("Invalid time")?),
+                scheduled_end: Some(NaiveTime::from_hms_opt(17, 0, 0).ok_or("Invalid time")?),
                 break_duration_minutes: Some(60),
                 break_start: None,
                 break_end: None,
@@ -502,11 +505,11 @@ mod tests {
                 generation_metadata: None,
             },
             DailyAttendanceReport {
-                date: NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(),
+                date: NaiveDate::from_ymd_opt(2026, 1, 15).ok_or("Invalid date")?,
                 employee_id: Uuid::new_v4(),
                 employee_name: "Bob Jones".to_string(),
-                scheduled_start: Some(NaiveTime::from_hms_opt(9, 0, 0).unwrap()),
-                scheduled_end: Some(NaiveTime::from_hms_opt(18, 0, 0).unwrap()),
+                scheduled_start: Some(NaiveTime::from_hms_opt(9, 0, 0).ok_or("Invalid time")?),
+                scheduled_end: Some(NaiveTime::from_hms_opt(18, 0, 0).ok_or("Invalid time")?),
                 break_duration_minutes: Some(60),
                 break_start: None,
                 break_end: None,
@@ -525,14 +528,15 @@ mod tests {
             &reports,
             "Test Workspace",
             (
-                NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(),
-                NaiveDate::from_ymd_opt(2026, 1, 16).unwrap(),
+                NaiveDate::from_ymd_opt(2026, 1, 15).ok_or("Invalid start date")?,
+                NaiveDate::from_ymd_opt(2026, 1, 16).ok_or("Invalid end date")?,
             ),
         );
         assert!(result.is_ok());
-        let data = result.unwrap();
+        let data = result?;
         assert!(data.len() > 100);
         assert_eq!(&data[0..2], b"PK");
+        Ok(())
     }
 
     #[test]
