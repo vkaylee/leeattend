@@ -31,7 +31,7 @@ Default AI adapter reference: `.ai-context-os/GEMINI.md`
 **Examples:**
 ```bash
 # ✅ Correct
-git commit --no-verify -m "message" </dev/null
+git commit -m "message" </dev/null
 docker compose down </dev/null
 ./run-tests.sh --api --smoke </dev/null
 
