@@ -127,8 +127,14 @@ async fn main() {
         agent_repo.clone(),
         agent_manager.clone(),
     ));
-    let jwt_secret =
-        std::env::var("JWT_SECRET").unwrap_or_else(|_| "dev_secret_key_leeattend_2026".to_string());
+    let jwt_secret = if cfg!(debug_assertions) {
+        std::env::var("JWT_SECRET").unwrap_or_else(|_| {
+            tracing::warn!("⚠️ JWT_SECRET not set — using insecure dev fallback. DO NOT use in production!");
+            "dev_secret_key_leeattend_2026".to_string()
+        })
+    } else {
+        std::env::var("JWT_SECRET").expect("JWT_SECRET must be set in production")
+    };
 
     let buffer_capacity: usize = std::env::var("AGENT_LOG_BUFFER_CAPACITY")
         .ok()
@@ -171,7 +177,6 @@ async fn main() {
             coordinator.clone(),
             roster_cache.clone(),
         );
-
         (
             Some(coordinator),
             Some(worker.start(worker_cancel_token.clone())),
@@ -208,7 +213,7 @@ async fn main() {
 
     let listener = {
         let mut listener = None;
-        let max_port = preferred_port + 100;
+        let max_port = preferred_port + 10;
 
         for port in preferred_port..max_port {
             let addr_str = format!("{host}:{port}");

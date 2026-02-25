@@ -63,37 +63,47 @@ export default function Sidebar({ isOpen, onClose, openSections, toggleSection, 
 
   const menuItems = [
     { to: "/", icon: LayoutDashboard, label: t("common.dashboard"), exact: true, testId: "sidebar-link-dashboard" },
-    { section: "org", sectionIcon: Folder, label: t("common.sections.organization"), testId: "sidebar-section-org", items: [
-      { to: "/employees", icon: UserRound, label: t("common.employees"), testId: "sidebar-link-employees" },
-      { to: "/departments", icon: Building2, label: t("common.departments"), testId: "sidebar-link-departments" },
-      { to: "/members", icon: Users, label: t("members.title"), testId: "sidebar-link-members" }
-    ]},
-    { section: "time", sectionIcon: Timer, label: t("common.sections.time_leave"), testId: "sidebar-section-time", items: [
-      { to: "/attendance-logs", icon: CalendarCheck, label: t("attendance_logs.title"), testId: "sidebar-link-attendance-logs" },
-      { to: "/leave-requests", icon: Plane, label: t("leave_requests.title"), testId: "sidebar-link-leave-requests" },
-      { to: "/workspace/leave/balances", icon: Scale, label: t("common.leave_balances"), testId: "sidebar-link-leave-balances" },
-      { to: "/attendance-adjustments", icon: ClipboardCheck, label: t("common.attendance_confirm"), testId: "sidebar-link-attendance-adjustments" },
-      { to: "/workspace/reports", icon: BarChart3, label: t("common.reports"), testId: "sidebar-link-reports" },
-      { to: "/approvals/ot", icon: CheckCircle, label: "OT Approvals", testId: "sidebar-link-approvals-ot" }
-    ]},
-    { section: "payroll", sectionIcon: Wallet, label: t("common.sections.payroll_shifts"), testId: "sidebar-section-payroll", items: [
-      { to: "/shifts", icon: CalendarRange, label: t("common.shifts"), testId: "sidebar-link-shifts" },
-      { to: "/payroll", icon: DollarSign, label: t("payroll.title"), testId: "sidebar-link-payroll" }
-    ]},
-    { section: "system", sectionIcon: Wrench, label: t("settings.title"), testId: "sidebar-section-system", items: [
-      { to: "/infra/monitor", icon: Activity, label: t("monitor.title"), testId: "sidebar-link-monitor" },
-      { to: "/workspace/settings/general", icon: Globe, label: t("settings.categories.general"), testId: "sidebar-link-settings-general" },
-      { to: "/workspace/settings/people", icon: UserCog, label: t("settings.categories.people"), testId: "sidebar-link-settings-people" },
-      { to: "/workspace/settings/time", icon: TimerIcon, label: t("settings.categories.time"), testId: "sidebar-link-settings-time" },
-      { to: "/workspace/settings/payroll", icon: Banknote, label: t("settings.categories.payroll"), testId: "sidebar-link-settings-payroll" },
-      { to: "/workspace/settings/leave", icon: CalendarDays, label: t("settings.categories.leave"), testId: "sidebar-link-settings-leave" },
-      { to: "/workspace/settings/connectivity", icon: Share2, label: t("settings.categories.connectivity"), testId: "sidebar-link-settings-connectivity" }
-    ]},
-    { section: "ess", sectionIcon: User, label: t("common.sections.self_service"), testId: "sidebar-section-ess", items: [
-      { to: "/ess/profile", icon: UserCircle, label: t("ess.profile.title"), testId: "sidebar-link-ess-profile" },
-      { to: "/ess/attendance", icon: History, label: t("ess.attendance.title"), testId: "sidebar-link-ess-attendance" },
-      { to: "/ess/clock", icon: Clock, label: t("ess.clock.title"), testId: "sidebar-link-ess-clock" }
-    ]}
+    {
+      section: "org", sectionIcon: Folder, label: t("common.sections.organization"), testId: "sidebar-section-org", items: [
+        { to: "/employees", icon: UserRound, label: t("common.employees"), testId: "sidebar-link-employees" },
+        { to: "/departments", icon: Building2, label: t("common.departments"), testId: "sidebar-link-departments" },
+        { to: "/members", icon: Users, label: t("members.title"), testId: "sidebar-link-members" }
+      ]
+    },
+    {
+      section: "time", sectionIcon: Timer, label: t("common.sections.time_leave"), testId: "sidebar-section-time", items: [
+        { to: "/attendance-logs", icon: CalendarCheck, label: t("attendance_logs.title"), testId: "sidebar-link-attendance-logs" },
+        { to: "/leave-requests", icon: Plane, label: t("leave_requests.title"), testId: "sidebar-link-leave-requests" },
+        { to: "/leave-balances", icon: Scale, label: t("common.leave_balances"), testId: "sidebar-link-leave-balances" },
+        { to: "/attendance-adjustments", icon: ClipboardCheck, label: t("common.attendance_confirm"), testId: "sidebar-link-attendance-adjustments" },
+        { to: "/reports", icon: BarChart3, label: t("common.reports"), testId: "sidebar-link-reports" },
+        { to: "/approvals/ot", icon: CheckCircle, label: "OT Approvals", testId: "sidebar-link-approvals-ot" }
+      ]
+    },
+    {
+      section: "payroll", sectionIcon: Wallet, label: t("common.sections.payroll_shifts"), testId: "sidebar-section-payroll", items: [
+        { to: "/shifts", icon: CalendarRange, label: t("common.shifts"), testId: "sidebar-link-shifts" },
+        { to: "/payroll", icon: DollarSign, label: t("payroll.title"), testId: "sidebar-link-payroll" }
+      ]
+    },
+    {
+      section: "system", sectionIcon: Wrench, label: t("settings.title"), testId: "sidebar-section-system", items: [
+        { to: "/infra/monitor", icon: Activity, label: t("monitor.title"), testId: "sidebar-link-monitor" },
+        { to: "/workspace/settings/general", icon: Globe, label: t("settings.categories.general"), testId: "sidebar-link-settings-general" },
+        { to: "/workspace/settings/people", icon: UserCog, label: t("settings.categories.people"), testId: "sidebar-link-settings-people" },
+        { to: "/workspace/settings/time", icon: TimerIcon, label: t("settings.categories.time"), testId: "sidebar-link-settings-time" },
+        { to: "/workspace/settings/payroll", icon: Banknote, label: t("settings.categories.payroll"), testId: "sidebar-link-settings-payroll" },
+        { to: "/workspace/settings/leave", icon: CalendarDays, label: t("settings.categories.leave"), testId: "sidebar-link-settings-leave" },
+        { to: "/workspace/settings/connectivity", icon: Share2, label: t("settings.categories.connectivity"), testId: "sidebar-link-settings-connectivity" }
+      ]
+    },
+    {
+      section: "ess", sectionIcon: User, label: t("common.sections.self_service"), testId: "sidebar-section-ess", items: [
+        { to: "/ess/profile", icon: UserCircle, label: t("ess.profile.title"), testId: "sidebar-link-ess-profile" },
+        { to: "/ess/attendance", icon: History, label: t("ess.attendance.title"), testId: "sidebar-link-ess-attendance" },
+        { to: "/ess/clock", icon: Clock, label: t("ess.clock.title"), testId: "sidebar-link-ess-clock" }
+      ]
+    }
   ];
 
   return (

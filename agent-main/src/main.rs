@@ -1,11 +1,9 @@
 mod cli;
 
-// use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Instant;
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
-// use tokio::process::Command;
 use tokio::time::{sleep, Duration};
 use agent::database::Database;
 use agent::central_client::CentralClient;
@@ -16,7 +14,6 @@ use agent::crash_recovery::{CrashMarker, recover_from_crash};
 use agent::adaptive_polling::AdaptivePollingState;
 use serde_json::json;
 use log::{info, error, warn};
-// use dotenvy::dotenv;
 use tokio_util::sync::CancellationToken;
 use tokio::sync::{mpsc, Semaphore};
 use dashmap::DashMap;

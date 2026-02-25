@@ -47,9 +47,34 @@ fn validate_password(password: &str) -> AppResult<()> {
 }
 
 fn validate_email(email: &str) -> AppResult<()> {
-    if email.is_empty() || !email.contains('@') || !email.contains('.') {
+    // Basic structural validation: local@domain.tld
+    let trimmed = email.trim();
+    if trimmed.is_empty() || trimmed.len() > 254 {
         return Err(AppError::Validation("Invalid email format".to_string()));
     }
+
+    let parts: Vec<&str> = trimmed.splitn(2, '@').collect();
+    if parts.len() != 2 {
+        return Err(AppError::Validation("Invalid email format".to_string()));
+    }
+
+    let (local, domain) = (parts[0], parts[1]);
+
+    // Local part must not be empty
+    if local.is_empty() || local.len() > 64 {
+        return Err(AppError::Validation("Invalid email format".to_string()));
+    }
+
+    // Domain must have at least one dot, no consecutive dots, no leading/trailing dots
+    if domain.is_empty()
+        || !domain.contains('.')
+        || domain.starts_with('.')
+        || domain.ends_with('.')
+        || domain.contains("..")
+    {
+        return Err(AppError::Validation("Invalid email format".to_string()));
+    }
+
     Ok(())
 }
 
@@ -191,7 +216,7 @@ pub async fn change_password(
 
     // 2. Verify old password
     if !AuthService::verify_password(&req.old_password, &user.password_hash) {
-        return Err(AppError::Auth("Mật khẩu cũ không chính xác".to_string()));
+        return Err(AppError::Auth("Current password is incorrect".to_string()));
     }
 
     // 3. Validate new password strength
@@ -214,7 +239,7 @@ pub async fn change_password(
 
     Ok((
         StatusCode::OK,
-        "Mật khẩu đã được thay đổi. Vui lòng đăng nhập lại.",
+        "Password changed successfully. Please log in again.",
     ))
 }
 
@@ -274,26 +299,6 @@ pub async fn update_me(
     }))
 }
 
-pub async fn get_user_profile(
-    State(state): State<Arc<AppState>>,
-    UserId(user_id): UserId,
-) -> AppResult<Json<UserResponse>> {
-    tracing::debug!("Fetching profile for user: {}", user_id);
-    let user = user_repository::get_user_by_id(&state.db, user_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
-
-    Ok(Json(UserResponse {
-        id: user.id,
-        email: user.email,
-        full_name: user.full_name,
-        avatar_url: user.avatar_url,
-        bio: user.bio,
-        preferred_language: user.preferred_language,
-        created_at: user.created_at,
-    }))
-}
-
 pub async fn get_users(
     State(state): State<Arc<AppState>>,
     ctx: crate::handlers::common::MemberContext,
@@ -325,32 +330,6 @@ pub async fn get_users(
     Ok(Json(user_responses))
 }
 
-pub async fn update_user_profile(
-    State(state): State<Arc<AppState>>,
-    UserId(user_id): UserId,
-    Json(req): Json<UpdateUserRequest>,
-) -> AppResult<Json<UserResponse>> {
-    let user = sqlx::query_as::<_, User>(
-        "UPDATE users SET full_name = COALESCE($1, full_name), avatar_url = COALESCE($2, avatar_url), bio = COALESCE($3, bio), preferred_language = COALESCE($4, preferred_language) WHERE id = $5 RETURNING *"
-    )
-    .bind(req.full_name)
-    .bind(req.avatar_url)
-    .bind(req.bio)
-    .bind(req.preferred_language)
-    .bind(user_id)
-    .fetch_one(&state.db)
-    .await?;
-
-    Ok(Json(UserResponse {
-        id: user.id,
-        email: user.email,
-        full_name: user.full_name,
-        avatar_url: user.avatar_url,
-        bio: user.bio,
-        preferred_language: user.preferred_language,
-        created_at: user.created_at,
-    }))
-}
 
 #[cfg(debug_assertions)]
 pub async fn get_dev_super_user(

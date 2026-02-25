@@ -23,7 +23,6 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
       "/": t("common.dashboard"), "/members": t("members.title"), "/employees": t("common.employees"), "/departments": t("common.departments"),
       "/attendance-logs": t("common.logs"), "/leave-requests": t("leave_requests.title"),
       "/leave-balances": t("common.leave_balances"), "/attendance-adjustments": t("common.attendance_confirm"), "/reports": t("common.reports"),
-      "/workspace/leave/balances": t("common.leave_balances"), "/workspace/reports": t("common.reports"),
       "/shifts": t("common.shifts"), "/payroll": t("payroll.title"),
       "/agents": t("agents.title"), "/devices": t("common.devices"), "/workspace/settings": t("settings.title"), "/workspace/settings/general": t("settings.categories.general"),
       "/workspace/settings/people": t("settings.categories.people"), "/workspace/settings/time": t("settings.categories.time"),
@@ -57,7 +56,7 @@ export default function Navbar({ currentWorkspaceName, onOpenSidebar, isCollapse
           </span>
         </nav>
       </div>
-      
+
       <div className="flex items-center gap-6 ml-auto">
         {/* Theme Toggle */}
         <ThemeToggle />

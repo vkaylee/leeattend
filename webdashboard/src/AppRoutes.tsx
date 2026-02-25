@@ -7,7 +7,7 @@ import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import OnboardingPage from "./pages/OnboardingPage";
-import EmployeesPage from "./pages/EmployeesPage"; 
+import EmployeesPage from "./pages/EmployeesPage";
 import DepartmentsPage from "./pages/DepartmentsPage";
 import LeaveRequestsPage from "./pages/LeaveRequestsPage";
 import LeaveBalancesPage from "./pages/LeaveBalancesPage";
@@ -55,18 +55,15 @@ export function AppRoutes() {
             <Route path="members" element={<MembersPage />} />
             <Route path="agents" element={<AgentsPage />} />
             <Route path="devices" element={<DevicesPage />} />
-            <Route path="workspace/reports" element={<ReportsPage />} />
-            <Route path="workspace/payroll" element={<PayrollPage />} />
             <Route path="attendance-logs" element={<AttendanceLogsPage />} />
             <Route path="leave-requests" element={<LeaveRequestsPage />} />
             <Route path="leave-balances" element={<LeaveBalancesPage />} />
-            <Route path="workspace/leave/balances" element={<LeaveBalancesPage />} />
             <Route path="attendance-adjustments" element={<AttendanceAdjustmentsPage />} />
             <Route path="approvals/ot" element={<OtApprovalsPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="shifts" element={<ShiftsPage />} />
             <Route path="payroll" element={<PayrollPage />} />
-            
+
             <Route path="workspace/settings" element={<SettingsLayout />}>
               <Route index element={<GeneralSettings />} />
               <Route path="general" element={<GeneralSettings />} />

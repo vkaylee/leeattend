@@ -161,7 +161,11 @@ pub fn create_app(state: Arc<AppState>) -> Router {
                 Method::PATCH,
                 Method::DELETE,
             ])
-            .allow_headers(Any)
+            .allow_headers([
+                axum::http::header::AUTHORIZATION,
+                axum::http::header::CONTENT_TYPE,
+                axum::http::HeaderName::from_static("x-requested-with"),
+            ])
     };
 
     let mut router = Router::new()
@@ -187,6 +191,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/dev/workspaces/:ws_id/clear",
             post(handlers::clear_workspace_data),
         );
+        tracing::warn!("⚠️ DEV MODE ACTIVE: Debug auth bypass & data-clearing endpoints are enabled. Never ship this to production!");
     }
 
     router = router
