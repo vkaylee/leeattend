@@ -4,13 +4,13 @@ use uuid::Uuid;
 
 use crate::queue::{JobMetadata, RedisPool, ReportJob};
 
-const QUEUE_KEY: &str = "report:jobs:attendance";
-const META_PREFIX: &str = "report:meta:";
-const RESULTS_PREFIX: &str = "report:results:";
-const COUNTER_PREFIX: &str = "report:counter:";
-const MERGE_FLAG_PREFIX: &str = "report:merge_triggered:";
-const DLQ_KEY: &str = "report:dlq";
-const JOB_TTL_SECS: i64 = 86400; // 24 hours
+pub(crate) const QUEUE_KEY: &str = "report:jobs:attendance";
+pub(crate) const META_PREFIX: &str = "report:meta:";
+pub(crate) const RESULTS_PREFIX: &str = "report:results:";
+pub(crate) const COUNTER_PREFIX: &str = "report:counter:";
+pub(crate) const MERGE_FLAG_PREFIX: &str = "report:merge_triggered:";
+pub(crate) const DLQ_KEY: &str = "report:dlq";
+pub(crate) const JOB_TTL_SECS: i64 = 86400; // 24 hours
 
 // Global daily stats keys
 const STATS_COMPLETED_PREFIX: &str = "stats:completed:";

@@ -414,9 +414,13 @@ for arg in "$@"; do
     elif [[ "$arg" == --component=* ]]; then
         COMPONENT="${arg#*=}"
     elif [[ "$arg" == --shard=* ]]; then
-        local shard_str="${arg#*=}"
-        SHARD_N="${shard_str%%/*}"
-        SHARD_M="${shard_str##*/}"
+        # FIX: Cannot use `local` outside a function in bash.
+        # `local shard_str=...` here would cause: "bash: local: can only be used in a function"
+        # With `set -e` enabled, this error silently terminates the entire script.
+        # Using a prefixed temp variable (_shard_str) instead.
+        _shard_str="${arg#*=}"
+        SHARD_N="${_shard_str%%/*}"
+        SHARD_M="${_shard_str##*/}"
     elif [[ "$arg" == "--no-color" ]]; then
         export NO_COLOR=1
         GREEN='' RED='' YELLOW='' BLUE='' BOLD='' NC=''
@@ -686,8 +690,21 @@ global_timeout_watchdog() {
     kill -TERM "$MAIN_PID" 2>/dev/null || true
 }
 
-# Start watchdog in background
-global_timeout_watchdog &
+# Start watchdog in background.
+#
+# CRITICAL: Redirect all I/O (stdin/stdout/stderr) to /dev/null.
+# Without this, the background process inherits the parent's file descriptors.
+# When this script is run via agent tools (e.g. Antigravity's run_command),
+# the tool monitors the PTY (pseudo-terminal) and considers the command
+# "running" as long as ANY process holds the PTY's file descriptors open.
+# The watchdog sleeps for up to 1800s (30 min), so without the redirect,
+# the PTY stays open and `command_status` reports "running" indefinitely
+# even after the main script has exited.
+#
+# Trade-off: The watchdog's timeout warning message (lines 682-684) will
+# not appear on the terminal. However, the watchdog still functions correctly —
+# it sends SIGTERM to the main process, triggering the cleanup trap.
+global_timeout_watchdog </dev/null >/dev/null 2>&1 &
 WATCHDOG_PID=$!
 
 # Cleanup handler: kill watchdog and stop containers on exit
@@ -702,16 +719,24 @@ cleanup() {
     fi
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        # Sync local logs into the persistent volume 
-        echo -e "${BLUE}📦 Backing up test logs to docker volume 'test-logs'...${NC}"
-        docker run --rm -v leeattend-test_test-logs:/logs -v "$PROJECT_ROOT/.test_logs:/local" alpine cp -r /local/. /logs/ 2>/dev/null || true
+        # CRITICAL: All docker commands below use `</dev/null` to detach stdin
+        # from the PTY. Same reason as the watchdog redirect above:
+        # Docker CLI can spawn child processes that inherit file descriptors.
+        # If any child process outlives this script (even briefly), it holds
+        # the PTY open and prevents agent tools from detecting script completion.
+        # Redirecting stdin is sufficient — stdout/stderr are kept for visibility
+        # (except where output is intentionally suppressed).
 
-        # Remove silent redirection to allow visibility of cleanup issues
-        $DOCKER_COMPOSE_CMD down --remove-orphans --timeout 5 || {
+        # Sync local logs into the persistent volume
+        echo -e "${BLUE}📦 Backing up test logs to docker volume 'test-logs'...${NC}"
+        docker run --rm -v leeattend-test_test-logs:/logs -v "$PROJECT_ROOT/.test_logs:/local" alpine cp -r /local/. /logs/ </dev/null 2>/dev/null || true
+
+        # Stop containers
+        $DOCKER_COMPOSE_CMD down --remove-orphans --timeout 5 </dev/null || {
             echo -e "${YELLOW}⚠️  Warning: Cleanup encountered some issues.${NC}"
         }
         # Only remove ephemeral volumes, leave target-cache, sccache-cache, test-logs intact
-        docker volume prune -f --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" --filter "label=com.docker.compose.volume=shared-data" > /dev/null 2>&1 || true
+        docker volume prune -f --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" --filter "label=com.docker.compose.volume=shared-data" </dev/null > /dev/null 2>&1 || true
         echo -e "${GREEN}✅ Environment cleaned up (logs and cache preserved).${NC}"
     fi
     

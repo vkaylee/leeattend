@@ -1,8 +1,15 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::queue::{DateRange, JobStatus, RedisPool, ReportConfig, ReportType, TaskType};
+    use crate::queue::report_queue::{
+        COUNTER_PREFIX, DLQ_KEY, JOB_TTL_SECS, MERGE_FLAG_PREFIX, META_PREFIX, QUEUE_KEY,
+        RESULTS_PREFIX,
+    };
+    use crate::queue::{
+        DateRange, JobMetadata, JobStatus, RedisPool, ReportConfig, ReportQueue, ReportType,
+        TaskType,
+    };
     use chrono::NaiveDate;
+    use uuid::Uuid;
 
     // Helper to create test Redis pool with 5s timeout (avoids 60s+ hang when Redis unavailable)
     async fn get_test_redis() -> Option<RedisPool> {

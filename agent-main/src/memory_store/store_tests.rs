@@ -1,7 +1,11 @@
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::memory_store::{InMemoryStore, StoreError};
+    use crate::memory_store::types::MemoryLog;
+    use crate::models::{AttendanceData, RawAttendanceLog, SignatureRow};
     use chrono::NaiveDateTime;
+    use std::sync::Arc;
 
     fn ts(timestamp_str: &str) -> i64 {
         NaiveDateTime::parse_from_str(timestamp_str, "%Y-%m-%d %H:%M:%S")

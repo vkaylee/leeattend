@@ -7,7 +7,6 @@ use axum::{
 };
 use redis::AsyncCommands;
 use std::net::SocketAddr;
-use std::sync::Arc;
 use std::task::{Context, Poll};
 use tower::{Layer, Service};
 
@@ -108,7 +107,7 @@ where
                 });
 
             let path = req.uri().path().to_string();
-            let key = format!("rate:{}:{}", ip, path);
+            let key = format!("rate:{ip}:{path}");
 
             // Try rate check — fail-open on Redis errors
             match check_rate(&pool, &key, &config).await {
@@ -150,7 +149,7 @@ async fn check_rate(
     let count: u64 = conn.incr(key, 1u64).await?;
     if count == 1 {
         // First request in window — set expiry
-        conn.expire(key, config.window_secs as i64).await?;
+        conn.expire::<_, ()>(key, config.window_secs as i64).await?;
     }
     Ok(count <= config.max_requests)
 }
