@@ -96,6 +96,14 @@ pub async fn handle_incoming_text(text: &str, hybrid_db: &HybridDatabase, reload
                                     "logs_capacity": meta.logs_capacity,
                                     "device_time": meta.device_time,
                                     "last_info_update": meta.last_info_update,
+                                    "last_sync": meta.last_info_update.as_ref().map(|t| {
+                                        // SQLite CURRENT_TIMESTAMP is UTC; convert to device's timezone
+                                        let tz: chrono_tz::Tz = meta.timezone.parse().unwrap_or(chrono_tz::UTC);
+                                        chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(*t, chrono::Utc)
+                                            .with_timezone(&tz)
+                                            .format("%Y-%m-%dT%H:%M:%S%:z")
+                                            .to_string()
+                                    }),
                                 });
                                 let response = CentralMessage::CommandResponse {
                                     command_id: id,
@@ -348,6 +356,52 @@ mod tests {
             assert_eq!(info["users_capacity"], 1000);
             assert_eq!(info["logs_capacity"], 10000);
             assert_eq!(info["device_time"], "2023-10-27 10:00:00");
+            // Verify last_sync is returned with timezone offset info
+            assert!(info["last_sync"].is_string(), "last_sync should be a string");
+            let last_sync = info["last_sync"].as_str().unwrap();
+            // Device timezone is "UTC" → expect +00:00 offset
+            assert!(last_sync.contains("+00:00"), "last_sync should have UTC offset (+00:00), got: {last_sync}");
+        } else {
+            panic!("Expected CommandResponse");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_last_sync_uses_device_timezone() {
+        let hybrid_db = HybridDatabase::new(":memory:", 1000, 90).await.expect("DB setup failed");
+        let (reload_tx, _reload_rx) = mpsc::channel(1);
+        let (central_tx, mut central_rx) = mpsc::channel(1);
+
+        // Setup device with Asia/Ho_Chi_Minh timezone (+07:00)
+        hybrid_db.disk_db().upsert_device(
+            "dev_tz_test", "TZ Device", "10.0.0.1", 4370, "zkteco",
+            "Asia/Ho_Chi_Minh", None, true
+        ).await.unwrap();
+
+        hybrid_db.disk_db().update_device_metadata(
+            "dev_tz_test", "MAC", "SN", "FW", "PLT", "HW",
+            10, 100, 500, 5000, "2023-01-01 12:00:00"
+        ).await.unwrap();
+
+        let cmd_json = r#"{
+            "type": "command",
+            "id": "cmd_tz",
+            "method": "get_device_info",
+            "device_id": "dev_tz_test",
+            "params": {}
+        }"#;
+
+        handle_incoming_text(cmd_json, &hybrid_db, &reload_tx, &central_tx).await;
+
+        if let Some(CentralMessage::CommandResponse { status, data, .. }) = central_rx.recv().await {
+            assert_eq!(status, "success");
+            let info = data.expect("Should have data");
+            let last_sync = info["last_sync"].as_str().unwrap();
+            // Device timezone is Asia/Ho_Chi_Minh → expect +07:00 offset
+            assert!(
+                last_sync.ends_with("+07:00"),
+                "last_sync should have +07:00 offset for Asia/Ho_Chi_Minh, got: {last_sync}"
+            );
         } else {
             panic!("Expected CommandResponse");
         }

@@ -246,12 +246,18 @@ pub async fn get_agents(State(state): State<Arc<AppState>>) -> AppResult<Json<Ve
     let mut devices_by_agent: std::collections::HashMap<String, Vec<crate::models::DeviceStatus>> =
         std::collections::HashMap::new();
     for d in devices {
+        let is_online = agents_status
+            .iter()
+            .find(|a| a.agent_id == d.agent_id)
+            .map(|a| a.is_online)
+            .unwrap_or(false);
+
         devices_by_agent
             .entry(d.agent_id.clone())
             .or_default()
             .push(crate::models::DeviceStatus {
                 device_id: d.id.to_string(),
-                status: if d.is_enabled {
+                status: if d.is_enabled && is_online {
                     "online".to_string()
                 } else {
                     "offline".to_string()

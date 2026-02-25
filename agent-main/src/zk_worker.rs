@@ -236,7 +236,7 @@ impl Worker for ZkWorker {
                 "serial": cached_serial,
                 "platform": cached_platform,
                 "hw_name": cached_name,
-                "last_sync": chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
+                "last_sync": chrono::Utc::now().to_rfc3339()
             });
             
             (zk, info)

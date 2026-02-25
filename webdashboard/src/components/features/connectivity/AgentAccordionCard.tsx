@@ -185,6 +185,7 @@ export default function AgentAccordionCard({
                   device={device}
                   status={deviceStatuses[device.id.toLowerCase()]}
                   parentAgentActive={isOnline}
+                  isVisible={isExpanded}
                   onUpdate={onUpdateDevice}
                   onDelete={onDeleteDevice}
                   onEdit={onEditDevice}

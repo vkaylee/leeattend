@@ -1755,6 +1755,18 @@
       "delete": "Xóa thiết bị",
       "no_data": "Chưa có thiết bị nào được thiết lập."
     },
+    "info": {
+      "users_capacity": "Số người / Dung lượng",
+      "logs_capacity": "Bản ghi / Dung lượng",
+      "device_time": "Giờ thiết bị",
+      "serial": "Số Serial",
+      "mac": "Địa chỉ MAC",
+      "hw_fw": "Phần cứng / FW",
+      "last_synced": "Đồng bộ lần cuối: {{time}}",
+      "loading": "Đang tải thông tin thiết bị...",
+      "enable_btn": "Bật thiết bị",
+      "disable_btn": "Tắt thiết bị"
+    },
     "label": "Devices"
   },
   "connectivity": {

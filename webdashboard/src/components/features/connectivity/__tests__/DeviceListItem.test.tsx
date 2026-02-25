@@ -38,7 +38,7 @@ const mockStatus: DeviceStatus = {
   },
 };
 
-const LOGS_LABEL = "Logs / Capacity";
+const LOGS_LABEL = "devices.info.logs_capacity";
 
 describe("DeviceListItem", () => {
   it("renders basic device info", () => {
@@ -186,4 +186,88 @@ describe("DeviceListItem", () => {
     expect(text).toContain("1,337");
     expect(text).not.toContain("/");
   });
+
+  // ===== LAST SYNC TESTS =====
+
+  it("renders last_sync converted to locale string when UTC timestamp provided", () => {
+    const statusWithSync: DeviceStatus = {
+      ...mockStatus,
+      info: { ...mockStatus.info!, last_sync: "2026-02-25T15:43:52" },
+    };
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={mockDevice}
+          status={statusWithSync}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    // The raw UTC string should NOT appear — it should be converted via toLocaleString()
+    const allText = document.body.textContent || "";
+    expect(allText).not.toContain("2026-02-25T15:43:52");
+  });
+
+  it("renders '—' when last_sync is missing", () => {
+    const statusNoSync: DeviceStatus = {
+      ...mockStatus,
+      info: { ...mockStatus.info!, last_sync: undefined as any },
+    };
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={mockDevice}
+          status={statusNoSync}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    // With the mock t() which only returns keys, assert the key is rendered
+    // (the "—" fallback is inside the i18n interpolation params, not in the key)
+    const allText = document.body.textContent || "";
+    expect(allText).toContain("devices.info.last_synced");
+  });
+
+  it("handles last_sync with Z suffix correctly", () => {
+    const statusWithZ: DeviceStatus = {
+      ...mockStatus,
+      info: { ...mockStatus.info!, last_sync: "2026-02-25T15:43:52Z" },
+    };
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={mockDevice}
+          status={statusWithZ}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    // Raw UTC string should NOT appear
+    const allText = document.body.textContent || "";
+    expect(allText).not.toContain("2026-02-25T15:43:52Z");
+  });
+
+  it("handles last_sync with timezone offset correctly", () => {
+    const statusWithOffset: DeviceStatus = {
+      ...mockStatus,
+      info: { ...mockStatus.info!, last_sync: "2026-02-25T22:43:52+07:00" },
+    };
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={mockDevice}
+          status={statusWithOffset}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    // Raw ISO string with offset should NOT appear — should be converted via toLocaleString()
+    const allText = document.body.textContent || "";
+    expect(allText).not.toContain("2026-02-25T22:43:52+07:00");
+  });
 });
+

@@ -1755,6 +1755,18 @@
       "delete": "删除设备",
       "no_data": "尚未设置设备。"
     },
+    "info": {
+      "users_capacity": "用户 / 容量",
+      "logs_capacity": "日志 / 容量",
+      "device_time": "设备时间",
+      "serial": "序列号",
+      "mac": "MAC 地址",
+      "hw_fw": "硬件 / 固件",
+      "last_synced": "上次同步: {{time}}",
+      "loading": "加载设备信息...",
+      "enable_btn": "启用设备",
+      "disable_btn": "禁用设备"
+    },
     "label": "Devices"
   },
   "connectivity": {

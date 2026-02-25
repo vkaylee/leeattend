@@ -1755,6 +1755,18 @@
       "delete": "Delete Device",
       "no_data": "No devices set up yet."
     },
+    "info": {
+      "users_capacity": "Users / Capacity",
+      "logs_capacity": "Logs / Capacity",
+      "device_time": "Device Time",
+      "serial": "Serial Number",
+      "mac": "MAC Address",
+      "hw_fw": "Hardware / FW",
+      "last_synced": "Last synced: {{time}}",
+      "loading": "Loading device info...",
+      "enable_btn": "Enable Device",
+      "disable_btn": "Disable Device"
+    },
     "label": "Devices"
   },
   "connectivity": {

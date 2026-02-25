@@ -25,6 +25,7 @@ export function useDevices() {
     mutationFn: createDevice,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: devicesKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["agents-status"] });
     },
   });
 
@@ -33,6 +34,7 @@ export function useDevices() {
       updateDevice(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: devicesKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["agents-status"] });
     },
   });
 
@@ -40,6 +42,7 @@ export function useDevices() {
     mutationFn: deleteDevice,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: devicesKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["agents-status"] });
     },
   });
 

@@ -33,6 +33,7 @@ interface DeviceListItemProps {
   device: Device;
   status?: DeviceStatus;
   parentAgentActive?: boolean;
+  isVisible?: boolean;
   onUpdate: (id: string, data: Partial<Device>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onEdit?: (device: Device) => void;
@@ -46,7 +47,8 @@ export default function DeviceListItem({
   onUpdate,
   onDelete,
   onEdit,
-  onRefresh
+  onRefresh,
+  isVisible = true
 }: DeviceListItemProps) {
   const { t } = useTranslation();
   const toast = useToast();
@@ -57,15 +59,10 @@ export default function DeviceListItem({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Fetch detailed info automatically on mount (if agent is active)
-  const { data: deviceInfo, refetch: refetchInfo, error: infoError } = useDeviceInfo(device.id, parentAgentActive);
+  const { data: deviceInfo, refetch: refetchInfo, error: infoError } = useDeviceInfo(device.id, parentAgentActive && isVisible);
 
   // Merge status.info (heartbeat data) with deviceInfo (on-demand data)
-  const displayInfo = deviceInfo || status?.info;
-
-  // DEBUG: Inspect displayInfo
-  if (deviceInfo || status?.info) {
-    console.log(`[DeviceListItem] ${device.name} displayInfo:`, displayInfo);
-  }
+  const displayInfo = deviceInfo ?? status?.info ?? null;
 
   async function handleRefresh() {
     if (!onRefresh) return;
@@ -175,7 +172,7 @@ export default function DeviceListItem({
       <div className="flex flex-wrap gap-y-6 gap-x-8">
         {/* Users */}
         <div className="flex flex-col gap-1 min-w-[80px]">
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Users / Capacity</span>
+          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t("devices.info.users_capacity")}</span>
           <div className="flex items-center gap-1.5">
             <User size={12} className="text-slate-300" />
             <span className="text-sm font-black text-slate-700 dark:text-slate-200">
@@ -193,7 +190,7 @@ export default function DeviceListItem({
 
         {/* Logs / Capacity */}
         <div className="flex flex-col gap-1 min-w-[80px]">
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Logs / Capacity</span>
+          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t("devices.info.logs_capacity")}</span>
           <div className="flex items-center gap-1.5">
             <ClipboardList size={12} className="text-amber-400" />
             <span className="text-sm font-black text-amber-600">
@@ -211,7 +208,7 @@ export default function DeviceListItem({
 
         {/* Device Time - Moved up in priority to avoid being the last item cut off */}
         <div className="flex flex-col gap-1 min-w-[150px]">
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Device Time</span>
+          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t("devices.info.device_time")}</span>
           <div className="flex items-center gap-1.5 text-primary-600 dark:text-primary-400">
             <Clock size={12} />
             <span className="text-[10px] font-mono font-black tracking-tighter">{displayInfo?.device_time || "--:--:--"}</span>
@@ -220,7 +217,7 @@ export default function DeviceListItem({
 
         {/* Serial Number */}
         <div className="flex flex-col gap-1 min-w-[130px]">
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Serial Number</span>
+          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t("devices.info.serial")}</span>
           <div className="flex items-center gap-1.5">
             <Terminal size={12} className="text-slate-300" />
             <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 truncate">{displayInfo?.serial || "N/A"}</span>
@@ -229,7 +226,7 @@ export default function DeviceListItem({
 
         {/* MAC Address */}
         <div className="flex flex-col gap-1 min-w-[130px]">
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">MAC Address</span>
+          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t("devices.info.mac")}</span>
           <div className="flex items-center gap-1.5">
             <Globe size={12} className="text-slate-300" />
             <span className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 truncate">{displayInfo?.mac || "N/A"}</span>
@@ -238,7 +235,7 @@ export default function DeviceListItem({
 
         {/* HW & FW */}
         <div className="flex flex-col gap-1 min-w-[120px]">
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Hardware / FW</span>
+          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{t("devices.info.hw_fw")}</span>
           <div className="flex flex-wrap gap-1">
             <span className="text-[9px] font-black px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-slate-500 border border-slate-200/50 dark:border-slate-700/50">{displayInfo?.hw_name || "N/A"}</span>
             <span className="text-[9px] font-black px-1.5 py-0.5 bg-primary-50 dark:bg-primary-950 text-primary-600 rounded border border-primary-100/50">v{displayInfo?.firmware || "?.?"}</span>
@@ -251,10 +248,10 @@ export default function DeviceListItem({
         <div className="text-[10px] font-bold text-slate-400">
           {displayInfo ? (
             <span className="text-emerald-500 flex items-center gap-1.5">
-              <Activity size={10} /> {deviceInfo ? "Dữ liệu real-time" : "Dữ liệu từ Agent"}
+              <Activity size={10} /> {t("devices.info.last_synced", { time: displayInfo?.last_sync ? new Date(displayInfo.last_sync).toLocaleString() : "—" })}
             </span>
           ) : (
-            <span className="italic">Đang tải thông tin thiết bị...</span>
+            <span className="italic">{t("devices.info.loading")}</span>
           )}
         </div>
         <button
@@ -267,7 +264,7 @@ export default function DeviceListItem({
               : "bg-emerald-600 text-white border-transparent hover:bg-emerald-700"
           )}
         >
-          {device.is_enabled ? "Tắt thiết bị" : "Bật thiết bị"}
+          {device.is_enabled ? t("devices.info.disable_btn") : t("devices.info.enable_btn")}
         </button>
       </div>
 
