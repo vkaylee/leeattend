@@ -34,6 +34,7 @@ impl MergeHandler {
         redis: &RedisPool,
     ) -> Result<(), String> {
         let parent_job_id = job.parent_job_id;
+        let t0 = std::time::Instant::now();
 
         info!(
             parent_job_id = %parent_job_id,
@@ -63,6 +64,8 @@ impl MergeHandler {
             batch_count = batch_results.len(),
             "Retrieved batch results for merge"
         );
+
+        let t_fetch = t0.elapsed();
 
         // 3. Get workspace name and timezone for Excel title
         let (workspace_name, workspace_tz) = Self::get_workspace_info(pool, meta.workspace_id).await;
@@ -98,6 +101,8 @@ impl MergeHandler {
             "Excel file generated"
         );
 
+        let t_merge_excel = t0.elapsed();
+
         // 6. Store Excel data in Redis for direct client download (TTL: 1 hour)
         queue
             .set_result_data(parent_job_id, &excel_data, &file_name)
@@ -108,6 +113,20 @@ impl MergeHandler {
             parent_job_id = %parent_job_id,
             file_size = excel_data.len(),
             "Report data stored in Redis for client download"
+        );
+
+        let t_store = t0.elapsed();
+
+        // Timing breakdown for merge phase
+        tracing::info!(
+            parent_job_id = %parent_job_id,
+            fetch_ms = t_fetch.as_millis() as u64,
+            merge_excel_ms = (t_merge_excel - t_fetch).as_millis() as u64,
+            store_ms = (t_store - t_merge_excel).as_millis() as u64,
+            total_ms = t_store.as_millis() as u64,
+            total_records = total_records,
+            file_size = excel_data.len(),
+            "Merge phase timing breakdown"
         );
 
         // 7. Update job status to completed

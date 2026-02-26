@@ -80,7 +80,10 @@ impl ReportQueue {
         // BLPOP expects timeout as integer in Redis protocol
         let timeout_int = timeout_secs.round() as i64;
 
-        let mut conn = self.pool.conn();
+        // Use dedicated blocking connection to avoid head-of-line blocking.
+        // BLPOP blocks for up to timeout_secs; using the shared conn() would
+        // stall all concurrent HSET/PUBLISH/GET operations from other workers.
+        let mut conn = self.pool.blocking_conn();
 
         // Use redis::cmd instead of blpop method to ensure correct type serialization
         let result: Option<(String, String)> = redis::cmd("BLPOP")

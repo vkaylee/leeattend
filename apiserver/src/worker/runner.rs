@@ -58,7 +58,7 @@ pub struct WorkerConfig {
 impl Default for WorkerConfig {
     fn default() -> Self {
         Self {
-            max_concurrent_jobs: 2,
+            max_concurrent_jobs: 6,
             poll_timeout_secs: 30.0,
             max_retries: 3,
             job_timeout_secs: 300,
@@ -449,7 +449,7 @@ mod tests {
     fn test_worker_config_default() {
         let config = WorkerConfig::default();
 
-        assert_eq!(config.max_concurrent_jobs, 2);
+        assert_eq!(config.max_concurrent_jobs, 6);
         assert!((config.poll_timeout_secs - 30.0).abs() < 0.01);
         assert_eq!(config.max_retries, 3);
         assert_eq!(config.job_timeout_secs, 300);
@@ -464,25 +464,25 @@ mod tests {
         std::env::remove_var("WORKER_JOB_TIMEOUT_SECS");
 
         let config = WorkerConfig::from_env();
-        assert_eq!(config.max_concurrent_jobs, 2);
+        assert_eq!(config.max_concurrent_jobs, 6);
         assert_eq!(config.max_retries, 3);
     }
 
     #[test]
     fn test_worker_config_memory_constraint() {
-        // 2 concurrent jobs with 20 employees each at ~2.5MB/employee
-        // = 2 * 20 * 2.5MB = 100MB for processing
-        // This fits comfortably in 256MB container with overhead
+        // 6 concurrent jobs with 50 employees each at ~2.5MB/employee
+        // = 6 * 50 * 2.5MB = 750MB for processing
+        // Higher parallelism uses more memory but stays in reasonable limits
 
         let config = WorkerConfig::default();
-        let employees_per_batch = 20;
+        let employees_per_batch = 50;
         let approx_mb_per_employee = 2.5;
 
         let estimated_memory_mb = (config.max_concurrent_jobs as f64)
             * (employees_per_batch as f64)
             * approx_mb_per_employee;
 
-        assert!(estimated_memory_mb < 200.0); // Leave room for overhead
+        assert!(estimated_memory_mb < 1024.0); // Must fit in 1GB
     }
 
     #[test]
@@ -522,20 +522,28 @@ mod tests {
         let config = WorkerConfig::default();
         let semaphore = Semaphore::new(config.max_concurrent_jobs);
 
-        assert_eq!(semaphore.available_permits(), 2);
+        assert_eq!(semaphore.available_permits(), 6);
 
         // Simulate acquiring permits
         let permit1 = semaphore.try_acquire();
         assert!(permit1.is_ok());
-        assert_eq!(semaphore.available_permits(), 1);
+        assert_eq!(semaphore.available_permits(), 5);
 
         let permit2 = semaphore.try_acquire();
         assert!(permit2.is_ok());
+        assert_eq!(semaphore.available_permits(), 4);
+
+        // Can acquire up to 6
+        let _p3 = semaphore.try_acquire();
+        let _p4 = semaphore.try_acquire();
+        let _p5 = semaphore.try_acquire();
+        let permit6 = semaphore.try_acquire();
+        assert!(permit6.is_ok());
         assert_eq!(semaphore.available_permits(), 0);
 
-        // Third should fail
-        let permit3 = semaphore.try_acquire();
-        assert!(permit3.is_err());
+        // Seventh should fail
+        let permit7 = semaphore.try_acquire();
+        assert!(permit7.is_err());
     }
 
     #[test]

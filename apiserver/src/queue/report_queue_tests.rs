@@ -507,4 +507,230 @@ mod tests {
             .ok()
             .unwrap_or(());
     }
+
+    // ====== BLPOP HEAD-OF-LINE BLOCKING FIX TESTS ======
+    //
+    // These tests verify the dual-connection architecture that prevents
+    // BLPOP from blocking other Redis operations.
+    //
+    // Background: ConnectionManager in redis-rs is a single multiplexed TCP connection.
+    // BLPOP blocks the entire pipeline for its timeout duration (up to 30s),
+    // causing all concurrent HSET/PUBLISH/GET operations to wait.
+    //
+    // Fix: RedisPool now has two ConnectionManagers:
+    //   - conn()          → non-blocking operations (HSET, GET, PUBLISH, etc.)
+    //   - blocking_conn() → blocking operations (BLPOP only)
+
+    #[tokio::test]
+    async fn test_redis_pool_has_dual_connections() {
+        // Test: RedisPool should successfully create both connection managers
+        let pool = setup_redis_or_skip!();
+
+        // Both connections should be usable independently
+        let mut conn = pool.conn();
+        let mut blocking = pool.blocking_conn();
+
+        // PING should work on both connections
+        let pong1: String = redis::cmd("PING")
+            .query_async(&mut conn)
+            .await
+            .expect("conn() PING failed");
+        assert_eq!(pong1, "PONG");
+
+        let pong2: String = redis::cmd("PING")
+            .query_async(&mut blocking)
+            .await
+            .expect("blocking_conn() PING failed");
+        assert_eq!(pong2, "PONG");
+    }
+
+    #[tokio::test]
+    async fn test_conn_and_blocking_conn_are_independent() {
+        // Test: Operations on conn() and blocking_conn() should not interfere
+        let pool = setup_redis_or_skip!();
+        let test_key_1 = format!("test:dual:conn:{}", Uuid::new_v4());
+        let test_key_2 = format!("test:dual:blocking:{}", Uuid::new_v4());
+
+        let mut conn = pool.conn();
+        let mut blocking = pool.blocking_conn();
+
+        // Write via conn(), read via blocking_conn() — both see the same Redis instance
+        let _: () = redis::cmd("SET")
+            .arg(&test_key_1)
+            .arg("from_conn")
+            .arg("EX")
+            .arg(10)
+            .query_async(&mut conn)
+            .await
+            .expect("SET via conn() failed");
+
+        let _: () = redis::cmd("SET")
+            .arg(&test_key_2)
+            .arg("from_blocking")
+            .arg("EX")
+            .arg(10)
+            .query_async(&mut blocking)
+            .await
+            .expect("SET via blocking_conn() failed");
+
+        // Cross-read: both connections see each other's writes
+        let val1: String = redis::cmd("GET")
+            .arg(&test_key_1)
+            .query_async(&mut blocking)
+            .await
+            .expect("GET via blocking_conn() failed");
+        assert_eq!(val1, "from_conn");
+
+        let val2: String = redis::cmd("GET")
+            .arg(&test_key_2)
+            .query_async(&mut conn)
+            .await
+            .expect("GET via conn() failed");
+        assert_eq!(val2, "from_blocking");
+
+        // Cleanup
+        let _: () = redis::cmd("DEL")
+            .arg(&test_key_1)
+            .arg(&test_key_2)
+            .query_async(&mut conn)
+            .await
+            .ok()
+            .unwrap_or(());
+    }
+
+    #[tokio::test]
+    async fn test_dequeue_job_uses_blocking_conn() {
+        // Test: dequeue_job should return None on timeout without blocking conn()
+        // This is an integration test that proves BLPOP uses the dedicated connection.
+        let pool = setup_redis_or_skip!();
+        let queue = ReportQueue::new(pool.clone());
+
+        // Ensure the queue is empty (use a very short timeout)
+        let result = queue
+            .dequeue_job(1.0) // 1 second timeout
+            .await
+            .expect("dequeue_job should not error on empty queue");
+
+        assert!(
+            result.is_none(),
+            "dequeue_job should return None on empty queue"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_blpop_does_not_block_concurrent_operations() {
+        // CRITICAL TEST: This is the regression test for the BLPOP head-of-line blocking bug.
+        //
+        // Before the fix, this test would take ~2 seconds because BLPOP on the shared
+        // connection would block the concurrent SET operation.
+        // After the fix, SET completes in <10ms while BLPOP waits on its own connection.
+        let pool = setup_redis_or_skip!();
+        let test_key = format!("test:blpop_nonblock:{}", Uuid::new_v4());
+
+        // Start BLPOP on blocking_conn (will wait 2 seconds)
+        let blocking_pool = pool.clone();
+        let blpop_handle = tokio::spawn(async move {
+            let mut blocking = blocking_pool.blocking_conn();
+            let dummy_key = format!("test:blpop_queue:{}", Uuid::new_v4());
+            let _: Option<(String, String)> = redis::cmd("BLPOP")
+                .arg(&dummy_key)
+                .arg(2) // 2 second timeout
+                .query_async(&mut blocking)
+                .await
+                .unwrap_or(None);
+        });
+
+        // Give BLPOP a moment to start
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+
+        // Now try a SET on conn() — this should complete INSTANTLY, not wait for BLPOP
+        let start = std::time::Instant::now();
+        let mut conn = pool.conn();
+        let _: () = redis::cmd("SET")
+            .arg(&test_key)
+            .arg("not_blocked")
+            .arg("EX")
+            .arg(10)
+            .query_async(&mut conn)
+            .await
+            .expect("SET should succeed while BLPOP is running on blocking_conn");
+
+        let elapsed = start.elapsed();
+
+        // The SET should complete in well under 1 second.
+        // Before the fix, it would take ~2 seconds (waiting for BLPOP timeout).
+        assert!(
+            elapsed.as_millis() < 500,
+            "SET on conn() should NOT be blocked by BLPOP on blocking_conn(). \
+             Elapsed: {}ms (should be <500ms). \
+             If this fails, BLPOP is likely sharing conn() — check dequeue_job().",
+            elapsed.as_millis()
+        );
+
+        // Verify the SET actually worked
+        let val: String = redis::cmd("GET")
+            .arg(&test_key)
+            .query_async(&mut conn)
+            .await
+            .expect("GET should succeed");
+        assert_eq!(val, "not_blocked");
+
+        // Wait for BLPOP to finish
+        blpop_handle.await.ok();
+
+        // Cleanup
+        let _: () = redis::cmd("DEL")
+            .arg(&test_key)
+            .query_async(&mut conn)
+            .await
+            .ok()
+            .unwrap_or(());
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_store_while_dequeue_running() {
+        // Test: store_result should complete quickly even while dequeue_job is waiting.
+        // This simulates the real-world scenario where 6 workers run concurrently,
+        // some storing results while the main loop dequeues new jobs.
+        let pool = setup_redis_or_skip!();
+        let queue = ReportQueue::new(pool.clone());
+        let job_id = Uuid::new_v4();
+
+        // Start dequeue on a separate task (will wait 2 seconds on empty queue)
+        let queue_for_dequeue = ReportQueue::new(pool.clone());
+        let dequeue_handle = tokio::spawn(async move {
+            let _ = queue_for_dequeue.dequeue_job(2.0).await;
+        });
+
+        // Give dequeue a moment to start BLPOP
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+
+        // store_result should complete instantly (uses conn(), not blocking_conn())
+        let start = std::time::Instant::now();
+        queue
+            .store_result(job_id, 0, r#"{"test": "data"}"#)
+            .await
+            .expect("store_result should work while dequeue is running");
+        let elapsed = start.elapsed();
+
+        assert!(
+            elapsed.as_millis() < 500,
+            "store_result should NOT be blocked by concurrent dequeue_job. \
+             Elapsed: {}ms (should be <500ms)",
+            elapsed.as_millis()
+        );
+
+        // Wait for dequeue to finish
+        dequeue_handle.await.ok();
+
+        // Cleanup
+        let mut conn = pool.conn();
+        let results_key = format!("{RESULTS_PREFIX}{job_id}");
+        let _: () = redis::cmd("DEL")
+            .arg(&results_key)
+            .query_async(&mut conn)
+            .await
+            .ok()
+            .unwrap_or(());
+    }
 }

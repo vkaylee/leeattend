@@ -46,21 +46,7 @@ impl AttendanceHandler {
 
         let t0 = std::time::Instant::now();
 
-        // 1. Fetch schedules for this batch's employees
-        let schedules = roster_repository::get_workspace_schedules(
-            pool,
-            roster_cache,
-            workspace_id,
-            start_date,
-            end_date,
-            Some(employee_ids),
-        )
-        .await
-        .map_err(|e| format!("Failed to fetch schedules: {e}"))?;
-
-        let t_schedules = t0.elapsed();
-
-        // 2. Get workspace config from cache (cache-aside pattern)
+        // 1. Get workspace config from cache first (needed for timezone)
         let workspace_config = cache
             .workspace
             .get(workspace_id)
@@ -69,7 +55,7 @@ impl AttendanceHandler {
 
         let tz: Tz = workspace_config.timezone.parse().unwrap_or(chrono_tz::UTC);
 
-        // 3. Convert dates to UTC for time entry query
+        // 2. Convert dates to UTC for time entry query
         let start_dt = tz
             .from_local_datetime(
                 &start_date
@@ -86,17 +72,31 @@ impl AttendanceHandler {
             .ok_or("Ambiguous end datetime")?
             .with_timezone(&Utc);
 
-        // 4. Batch fetch time entries (dynamic data, always from DB)
-        let entries_map = time_entry_repository::get_workspace_time_entries_batch(
-            pool,
-            employee_ids,
-            start_dt,
-            end_dt,
-        )
-        .await
-        .map_err(|e| format!("Failed to fetch time entries: {e}"))?;
+        // 3. Fetch schedules AND time entries in parallel (biggest latency win)
+        let (schedules_result, entries_result) = tokio::join!(
+            roster_repository::get_workspace_schedules(
+                pool,
+                roster_cache,
+                workspace_id,
+                start_date,
+                end_date,
+                Some(employee_ids),
+            ),
+            time_entry_repository::get_workspace_time_entries_batch(
+                pool,
+                employee_ids,
+                start_dt,
+                end_dt,
+            )
+        );
 
-        let t_entries = t0.elapsed();
+        let schedules = schedules_result
+            .map_err(|e| format!("Failed to fetch schedules: {e}"))?;
+
+        let t_fetch = t0.elapsed();
+
+        let entries_map = entries_result
+            .map_err(|e| format!("Failed to fetch time entries: {e}"))?;
 
         // 5. Calculate based on report type
         let result_json = match job.config.report_type {
@@ -127,6 +127,8 @@ impl AttendanceHandler {
                 .await?
             }
         };
+
+        let t_calc = t0.elapsed();
 
         // 6. Store result in Redis
         queue
@@ -166,10 +168,11 @@ impl AttendanceHandler {
             tracing::warn!(
                 job_id = %job.job_id,
                 employees = employee_ids.len(),
-                schedules_ms = t_schedules.as_millis() as u64,
-                entries_ms = (t_entries - t_schedules).as_millis() as u64,
-                calc_ms = (t_store - t_entries).as_millis() as u64,
-                store_publish_ms = (t_total - t_store).as_millis() as u64,
+                fetch_parallel_ms = t_fetch.as_millis() as u64,
+                calc_ms = (t_calc - t_fetch).as_millis() as u64,
+                store_ms = (t_store - t_calc).as_millis() as u64,
+                publish_ms = (t_total - t_store).as_millis() as u64,
+                result_bytes = result_json.len(),
                 total_ms = t_total.as_millis() as u64,
                 "Slow attendance batch breakdown"
             );

@@ -85,7 +85,7 @@ services:
       # - AGENT_LOG_BATCH_SIZE=100
       # - AGENT_LOG_FLUSH_MS=1000
       # --- Report Worker ---
-      - WORKER_MAX_CONCURRENT=2
+      - WORKER_MAX_CONCURRENT=6
       # - WORKER_POLL_TIMEOUT_SECS=30
       # - WORKER_MAX_RETRIES=3
       # - WORKER_JOB_TIMEOUT_SECS=300

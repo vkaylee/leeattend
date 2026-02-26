@@ -15,9 +15,9 @@ use crate::queue::{
 use crate::repositories::employee_repository;
 
 // Configuration constants for batch processing
-pub const BATCH_SIZE: usize = 200;
+pub const BATCH_SIZE: usize = 50;
 pub const JOB_TIMEOUT_SECS: u64 = 3600; // 1 hour max job duration
-pub const ESTIMATED_SECONDS_PER_BATCH: u64 = 2;
+pub const ESTIMATED_SECONDS_PER_BATCH: u64 = 1;
 
 /// Request to create a new distributed report job.
 #[derive(Debug, Deserialize)]
@@ -430,32 +430,31 @@ mod tests {
             .map(|chunk| chunk.to_vec())
             .collect();
 
-        // 550 employees / 200 = 2 full batches + 1 partial
-        assert_eq!(batches.len(), 3);
-        assert_eq!(batches[0].len(), 200);
-        assert_eq!(batches[1].len(), 200);
-        assert_eq!(batches[2].len(), 150);
+        // 550 employees / 50 = 11 full batches
+        assert_eq!(batches.len(), 11);
+        assert_eq!(batches[0].len(), 50);
+        assert_eq!(batches[10].len(), 50);
     }
 
     #[test]
     fn test_edge_cases() {
-        // Exactly 200 employees - 1 batch
-        let employees: Vec<Uuid> = (0..200).map(|_| Uuid::new_v4()).collect();
+        // Exactly 50 employees - 1 batch
+        let employees: Vec<Uuid> = (0..50).map(|_| Uuid::new_v4()).collect();
         let batches: Vec<Vec<Uuid>> = employees
             .chunks(BATCH_SIZE)
             .map(|chunk| chunk.to_vec())
             .collect();
         assert_eq!(batches.len(), 1);
-        assert_eq!(batches[0].len(), 200);
+        assert_eq!(batches[0].len(), 50);
 
-        // 201 employees - 2 batches
-        let employees: Vec<Uuid> = (0..201).map(|_| Uuid::new_v4()).collect();
+        // 51 employees - 2 batches
+        let employees: Vec<Uuid> = (0..51).map(|_| Uuid::new_v4()).collect();
         let batches: Vec<Vec<Uuid>> = employees
             .chunks(BATCH_SIZE)
             .map(|chunk| chunk.to_vec())
             .collect();
         assert_eq!(batches.len(), 2);
-        assert_eq!(batches[0].len(), 200);
+        assert_eq!(batches[0].len(), 50);
         assert_eq!(batches[1].len(), 1);
 
         // 1 employee - 1 batch
@@ -470,8 +469,8 @@ mod tests {
 
     #[test]
     fn test_estimated_time_calculation() {
-        let total_batches = 35u32; // 7000 employees / 200
+        let total_batches = 140u32; // 7000 employees / 50
         let estimated = (total_batches as u64) * ESTIMATED_SECONDS_PER_BATCH;
-        assert_eq!(estimated, 70); // 70 seconds
+        assert_eq!(estimated, 140); // 140 seconds
     }
 }
