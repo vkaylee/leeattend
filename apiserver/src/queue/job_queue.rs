@@ -1,10 +1,23 @@
+//! Job Queue — Redis-backed FIFO queue for distributed job processing.
+//!
+//! Uses Redis LIST (`worker:jobs`) for job distribution via BLPOP,
+//! HASH for batch result storage, and STRING keys for metadata/counters.
+//!
+//! Key patterns:
+//! - `worker:jobs` — main job queue (LIST)
+//! - `report:meta:{job_id}` — job metadata (STRING, JSON)
+//! - `report:results:{job_id}` — batch results (HASH, `batch_NNNNN` → JSON)
+//! - `report:counter:{job_id}` — completed batch counter (STRING, atomic INCR)
+//! - `report:merge_triggered:{job_id}` — merge dedup flag (STRING, SETNX)
+//! - `report:dlq` — dead letter queue for failed jobs (LIST)
+
 use redis::AsyncCommands;
 use tracing::{debug, error};
 use uuid::Uuid;
 
-use crate::queue::{JobMetadata, RedisPool, ReportJob};
+use crate::queue::{Job, JobMetadata, RedisPool};
 
-pub(crate) const QUEUE_KEY: &str = "report:jobs:attendance";
+pub(crate) const QUEUE_KEY: &str = "worker:jobs";
 pub(crate) const META_PREFIX: &str = "report:meta:";
 pub(crate) const RESULTS_PREFIX: &str = "report:results:";
 pub(crate) const COUNTER_PREFIX: &str = "report:counter:";
@@ -17,14 +30,14 @@ const STATS_COMPLETED_PREFIX: &str = "stats:completed:";
 const STATS_FAILED_PREFIX: &str = "stats:failed:";
 const STATS_TTL_SECS: i64 = 604800; // 7 days retention
 
-/// Queue for report processing jobs.
+/// Queue for worker job processing.
 /// Uses Redis LIST for FIFO job distribution and HASH for result storage.
-pub struct ReportQueue {
+pub struct JobQueue {
     pool: RedisPool,
 }
 
-impl ReportQueue {
-    /// Create a new ReportQueue with the given Redis pool.
+impl JobQueue {
+    /// Create a new JobQueue with the given Redis pool.
     pub fn new(pool: RedisPool) -> Self {
         Self { pool }
     }
@@ -37,7 +50,7 @@ impl ReportQueue {
     ///
     /// # Errors
     /// Returns `RedisError` if the operation fails.
-    pub async fn enqueue_jobs(&self, jobs: Vec<ReportJob>) -> Result<(), redis::RedisError> {
+    pub async fn enqueue_jobs(&self, jobs: Vec<Job>) -> Result<(), redis::RedisError> {
         if jobs.is_empty() {
             return Ok(());
         }
@@ -66,7 +79,7 @@ impl ReportQueue {
     pub async fn dequeue_job(
         &self,
         timeout_secs: f64,
-    ) -> Result<Option<ReportJob>, redis::RedisError> {
+    ) -> Result<Option<Job>, redis::RedisError> {
         // Validate timeout value (Redis protocol requires valid positive number)
         if !timeout_secs.is_finite() || timeout_secs < 0.0 {
             return Err(redis::RedisError::from((
@@ -94,7 +107,7 @@ impl ReportQueue {
 
         match result {
             Some((_, json)) => {
-                let job: ReportJob = serde_json::from_str(&json).map_err(|e| {
+                let job: Job = serde_json::from_str(&json).map_err(|e| {
                     redis::RedisError::from((
                         redis::ErrorKind::TypeError,
                         "JSON parse error",
@@ -324,12 +337,12 @@ impl ReportQueue {
     /// # Arguments
     /// * `job` - The failed job
     /// * `error` - Error message describing the failure
-    pub async fn move_to_dlq(&self, job: &ReportJob, error: &str) -> Result<(), redis::RedisError> {
+    pub async fn move_to_dlq(&self, job: &Job, error: &str) -> Result<(), redis::RedisError> {
         let mut conn = self.pool.conn();
 
         #[derive(serde::Serialize)]
         struct DlqEntry<'a> {
-            job: &'a ReportJob,
+            job: &'a Job,
             error: &'a str,
             failed_at: chrono::DateTime<chrono::Utc>,
         }
@@ -525,6 +538,6 @@ impl ReportQueue {
 }
 
 #[cfg(test)]
-#[path = "report_queue_tests.rs"]
-mod report_queue_tests;
+#[path = "job_queue_tests.rs"]
+mod job_queue_tests;
 

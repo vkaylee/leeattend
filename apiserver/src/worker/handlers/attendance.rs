@@ -1,6 +1,6 @@
 //! Attendance Report Handler
 //!
-//! Processes attendance report jobs for a batch of employees.
+//! Processes attendance jobs for a batch of employees.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -14,26 +14,32 @@ use uuid::Uuid;
 use crate::cache::{CacheManager, CachedWorkspaceConfig, RosterCache};
 use crate::domain::policy::resolver::PolicyResolver;
 use crate::models::{AttendanceSummary, DailyAttendanceReport, TimeEntry};
-use crate::queue::{RedisPool, ReportJob, ReportPublisher, ReportQueue, ReportType};
+use crate::queue::{Job, JobPayload, RedisPool, ReportPublisher, JobQueue, ReportType};
 use crate::repositories::{roster_repository, time_entry_repository};
 use crate::services::AttendanceCalculator;
 
 /// Handler for attendance report jobs.
+/// Extracts `ReportPayload` from `Job.payload` and processes
+/// summary or detail attendance calculations.
 pub struct AttendanceHandler;
 
 impl AttendanceHandler {
-    /// Process an attendance report job for a batch of employees.
+    /// Process an attendance job for a batch of employees.
     pub async fn handle(
         pool: &PgPool,
-        queue: &ReportQueue,
+        queue: &JobQueue,
         cache: &Arc<CacheManager>,
-        job: &ReportJob,
+        job: &Job,
         redis: &RedisPool,
         roster_cache: Option<&RosterCache>,
     ) -> Result<(), String> {
-        let employee_ids = &job.employee_ids;
-        let start_date = job.date_range.start;
-        let end_date = job.date_range.end;
+        let payload = match &job.payload {
+            JobPayload::AttendanceReport(p) => p,
+            _ => return Err(format!("Expected AttendanceReport payload, got {:?}", job.task_type)),
+        };
+        let employee_ids = &payload.employee_ids;
+        let start_date = payload.date_range.start;
+        let end_date = payload.date_range.end;
         let workspace_id = job.workspace_id;
 
         info!(
@@ -99,7 +105,7 @@ impl AttendanceHandler {
             .map_err(|e| format!("Failed to fetch time entries: {e}"))?;
 
         // 5. Calculate based on report type
-        let result_json = match job.config.report_type {
+        let result_json = match payload.config.report_type {
             ReportType::Summary => {
                 Self::calculate_summary(
                     pool,

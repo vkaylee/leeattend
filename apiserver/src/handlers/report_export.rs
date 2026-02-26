@@ -22,7 +22,7 @@ use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::queue::ReportType;
 use crate::services::report_coordinator::{
-    CreateReportJobRequest, JobProgress as CoordinatorJobProgress, ReportCoordinator, ReportError,
+    CreateJobRequest, JobProgress as CoordinatorJobProgress, ReportCoordinator, ReportError,
 };
 use crate::AppState;
 
@@ -188,7 +188,7 @@ pub async fn create_export_job(
     let coordinator = get_coordinator(&state)?;
 
     // Create job request
-    let create_request = CreateReportJobRequest {
+    let create_request = CreateJobRequest {
         report_type,
         start_date: request.start_date,
         end_date: request.end_date,
@@ -245,7 +245,7 @@ pub async fn get_job_status(
         .redis
         .as_ref()
         .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?;
-    let queue = crate::queue::ReportQueue::new(redis.clone());
+    let queue = crate::queue::JobQueue::new(redis.clone());
     let metadata = queue
         .get_job_metadata(job_id)
         .await?
@@ -292,7 +292,7 @@ pub async fn download_report(
         .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?;
 
     // Verify job belongs to this workspace
-    let queue = crate::queue::ReportQueue::new(redis.clone());
+    let queue = crate::queue::JobQueue::new(redis.clone());
     let metadata = queue
         .get_job_metadata(job_id)
         .await?
@@ -369,7 +369,7 @@ pub async fn cancel_job(
     let coordinator = get_coordinator(&state)?;
 
     // Verify job belongs to this workspace
-    let queue = crate::queue::ReportQueue::new(
+    let queue = crate::queue::JobQueue::new(
         state
             .redis
             .as_ref()

@@ -1,19 +1,21 @@
 //! Merge Handler
 //!
 //! Aggregates batch results into final Excel report and streams directly to client via Pub/Sub.
+//! Receives a [`Job`] with [`MergePayload`] containing date_range and config.
 
 use chrono::{NaiveDate, Utc};
 use sqlx::PgPool;
 use tracing::{info, warn};
 
 use crate::models::{AttendanceSummary, DailyAttendanceReport};
-use crate::queue::{JobStatus, RedisPool, ReportJob, ReportPublisher, ReportQueue, ReportType};
+use crate::queue::{Job, JobStatus, RedisPool, ReportPublisher, JobQueue, ReportType};
 use crate::services::ExcelWriter;
 
 /// Presigned URL validity duration - no longer used, kept for backward compatibility.
 const _PRESIGNED_URL_EXPIRY: std::time::Duration = std::time::Duration::from_secs(86400);
 
 /// Handler for merging batch results into final report.
+/// Processes [`Job`] with [`JobPayload::MergeResults`].
 pub struct MergeHandler;
 
 impl MergeHandler {
@@ -29,8 +31,8 @@ impl MergeHandler {
     /// 7. Cleanup batch results
     pub async fn handle(
         pool: &PgPool,
-        queue: &ReportQueue,
-        job: &ReportJob,
+        queue: &JobQueue,
+        job: &Job,
         redis: &RedisPool,
     ) -> Result<(), String> {
         let parent_job_id = job.parent_job_id;
@@ -75,7 +77,15 @@ impl MergeHandler {
             .date_range
             .as_ref()
             .map(|dr| (dr.start, dr.end))
-            .unwrap_or((job.date_range.start, job.date_range.end));
+            .unwrap_or_else(|| {
+                // Fallback: try to get from merge payload
+                job.merge_payload()
+                    .map(|p| (p.date_range.start, p.date_range.end))
+                    .unwrap_or_else(|| {
+                        let d = chrono::NaiveDate::from_ymd_opt(2000, 1, 1).expect("valid date");
+                        (d, d)
+                    })
+            });
 
         // 5. Merge results and generate Excel
         let (excel_data, file_name, total_records) = match meta.report_type {

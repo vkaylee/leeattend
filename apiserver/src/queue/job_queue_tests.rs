@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests {
-    use crate::queue::report_queue::{
+    use crate::queue::job_queue::{
         COUNTER_PREFIX, DLQ_KEY, JOB_TTL_SECS, MERGE_FLAG_PREFIX, META_PREFIX, QUEUE_KEY,
         RESULTS_PREFIX,
     };
     use crate::queue::{
-        DateRange, JobMetadata, JobStatus, RedisPool, ReportConfig, ReportQueue, ReportType,
+        DateRange, Job, JobMetadata, JobPayload, JobQueue, JobStatus, RedisPool, ReportConfig, ReportPayload, ReportType,
         TaskType,
     };
     use chrono::NaiveDate;
@@ -48,7 +48,7 @@ mod tests {
 
     #[test]
     fn test_queue_key_constants() {
-        assert_eq!(QUEUE_KEY, "report:jobs:attendance");
+        assert_eq!(QUEUE_KEY, "worker:jobs");
         assert_eq!(META_PREFIX, "report:meta:");
         assert_eq!(RESULTS_PREFIX, "report:results:");
         assert_eq!(COUNTER_PREFIX, "report:counter:");
@@ -109,22 +109,24 @@ mod tests {
 
     #[test]
     fn test_job_serialization_for_queue() {
-        let job = crate::queue::ReportJob::new(
+        let job = Job::new(
             Uuid::new_v4(),
             5,
             TaskType::AttendanceReport,
             Uuid::new_v4(),
-            vec![Uuid::new_v4(), Uuid::new_v4()],
-            DateRange {
-                start: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-                end: NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
-            },
-            ReportConfig {
-                report_type: ReportType::Summary,
-                timezone: "UTC".to_string(),
-                rounding_policy: "floor".to_string(),
-                work_unit_minutes: 30,
-            },
+            JobPayload::AttendanceReport(ReportPayload {
+                employee_ids: vec![Uuid::new_v4(), Uuid::new_v4()],
+                date_range: DateRange {
+                    start: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    end: NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
+                },
+                config: ReportConfig {
+                    report_type: ReportType::Summary,
+                    timezone: "UTC".to_string(),
+                    rounding_policy: "floor".to_string(),
+                    work_unit_minutes: 30,
+                },
+            }),
         );
 
         // Jobs should serialize to JSON for Redis (snake_case)
@@ -133,7 +135,7 @@ mod tests {
         assert!(json.contains("summary"));
 
         // Verify roundtrip
-        let decoded: crate::queue::ReportJob = serde_json::from_str(&json).unwrap();
+        let decoded: Job = serde_json::from_str(&json).unwrap();
         assert_eq!(job.job_id, decoded.job_id);
         assert_eq!(job.batch_index, decoded.batch_index);
     }
@@ -193,7 +195,7 @@ mod tests {
     async fn test_update_job_metadata_preserves_existing_ttl() {
         // Test: When updating metadata with existing TTL, preserve that TTL
         let pool = setup_redis_or_skip!();
-        let queue = ReportQueue::new(pool.clone());
+        let queue = JobQueue::new(pool.clone());
         let job_id = Uuid::new_v4();
         let workspace_id = Uuid::new_v4();
 
@@ -276,7 +278,7 @@ mod tests {
     async fn test_update_job_metadata_applies_default_ttl_when_missing() {
         // Test: When updating metadata without TTL (new key), apply default 24h TTL
         let pool = setup_redis_or_skip!();
-        let queue = ReportQueue::new(pool.clone());
+        let queue = JobQueue::new(pool.clone());
         let job_id = Uuid::new_v4();
         let workspace_id = Uuid::new_v4();
 
@@ -328,7 +330,7 @@ mod tests {
     async fn test_multiple_updates_preserve_ttl() {
         // Test: Multiple updates should preserve and not reset TTL
         let pool = setup_redis_or_skip!();
-        let queue = ReportQueue::new(pool.clone());
+        let queue = JobQueue::new(pool.clone());
         let job_id = Uuid::new_v4();
         let workspace_id = Uuid::new_v4();
 
@@ -409,7 +411,7 @@ mod tests {
     async fn test_update_job_status_preserves_ttl() {
         // Test: update_job_status (which calls update_job_metadata) preserves TTL
         let pool = setup_redis_or_skip!();
-        let queue = ReportQueue::new(pool.clone());
+        let queue = JobQueue::new(pool.clone());
         let job_id = Uuid::new_v4();
         let workspace_id = Uuid::new_v4();
 
@@ -603,7 +605,7 @@ mod tests {
         // Test: dequeue_job should return None on timeout without blocking conn()
         // This is an integration test that proves BLPOP uses the dedicated connection.
         let pool = setup_redis_or_skip!();
-        let queue = ReportQueue::new(pool.clone());
+        let queue = JobQueue::new(pool.clone());
 
         // Ensure the queue is empty (use a very short timeout)
         let result = queue
@@ -693,11 +695,11 @@ mod tests {
         // This simulates the real-world scenario where 6 workers run concurrently,
         // some storing results while the main loop dequeues new jobs.
         let pool = setup_redis_or_skip!();
-        let queue = ReportQueue::new(pool.clone());
+        let queue = JobQueue::new(pool.clone());
         let job_id = Uuid::new_v4();
 
         // Start dequeue on a separate task (will wait 2 seconds on empty queue)
-        let queue_for_dequeue = ReportQueue::new(pool.clone());
+        let queue_for_dequeue = JobQueue::new(pool.clone());
         let dequeue_handle = tokio::spawn(async move {
             let _ = queue_for_dequeue.dequeue_job(2.0).await;
         });

@@ -1,4 +1,4 @@
-//! Job handlers for different report types.
+//! Job handlers for different task types.
 
 pub mod attendance;
 pub mod merge;

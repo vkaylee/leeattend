@@ -1,7 +1,7 @@
 use apiserver::openapi::ApiDoc;
 use apiserver::queue::RedisPool;
 use apiserver::services::{AttendanceImportService, AttendanceLogService, ReportCoordinator};
-use apiserver::worker::{ReportWorker, WorkerConfig};
+use apiserver::worker::{JobWorker, WorkerConfig};
 use apiserver::{agent_manager::AgentManager, create_app, AppState};
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
@@ -158,19 +158,19 @@ async fn main() {
         .as_ref()
         .map(|rpool| Arc::new(apiserver::cache::RosterCache::new(rpool.clone())));
 
-    // Initialize report worker if Redis is available
+    // Initialize job worker if Redis is available
     let worker_cancel_token = CancellationToken::new();
     let (coordinator, worker_handle) = if let Some(ref redis) = redis_pool {
         let worker_config = WorkerConfig::from_env();
         tracing::info!(
             max_concurrent = worker_config.max_concurrent_jobs,
             poll_timeout = worker_config.poll_timeout_secs,
-            "Initializing report worker"
+            "Initializing job worker"
         );
 
         let coordinator = Arc::new(ReportCoordinator::new(redis.clone(), pool.clone()));
 
-        let worker = ReportWorker::new(
+        let worker = JobWorker::new(
             redis.clone(),
             pool.clone(),
             worker_config,
@@ -254,9 +254,9 @@ async fn main() {
     // Cancel worker tokens first
     worker_cancel_token.cancel();
     if let Some(handle) = worker_handle {
-        tracing::info!("Waiting for report worker to complete...");
+        tracing::info!("Waiting for job worker to complete...");
         if let Err(e) = handle.await {
-            tracing::error!("Report worker task panicked: {:?}", e);
+            tracing::error!("Job worker task panicked: {:?}", e);
         }
     }
 

@@ -76,7 +76,7 @@ pub async fn report_stream_ws(
     };
 
     // 3. Verify job ownership
-    let queue = crate::queue::ReportQueue::new(redis.clone());
+    let queue = crate::queue::JobQueue::new(redis.clone());
     let metadata = match queue.get_job_metadata(job_id).await {
         Ok(Some(m)) => m,
         Ok(None) => return (StatusCode::NOT_FOUND, "Job not found").into_response(),

@@ -1,6 +1,7 @@
 //! Report Coordinator Service
 //!
-//! Splits large report requests into micro-jobs for distributed processing.
+//! Splits large report requests into micro-jobs ([`Job`] with [`JobPayload`])
+//! and enqueues them via [`JobQueue`] for distributed worker processing.
 //! Tracks job progress and triggers result aggregation when all batches complete.
 
 use chrono::{DateTime, NaiveDate, Utc};
@@ -9,8 +10,8 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::queue::{
-    DateRange, JobMetadata, JobStatus, RedisPool, ReportConfig, ReportJob, ReportQueue, ReportType,
-    TaskType,
+    DateRange, Job, JobMetadata, JobPayload, JobQueue, JobStatus, MergePayload, RedisPool,
+    ReportConfig, ReportPayload, ReportType, TaskType,
 };
 use crate::repositories::employee_repository;
 
@@ -19,9 +20,9 @@ pub const BATCH_SIZE: usize = 50;
 pub const JOB_TIMEOUT_SECS: u64 = 3600; // 1 hour max job duration
 pub const ESTIMATED_SECONDS_PER_BATCH: u64 = 1;
 
-/// Request to create a new distributed report job.
+/// Request to create a new distributed job.
 #[derive(Debug, Deserialize)]
-pub struct CreateReportJobRequest {
+pub struct CreateJobRequest {
     pub report_type: ReportType,
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,
@@ -31,9 +32,9 @@ pub struct CreateReportJobRequest {
     pub sort: Option<String>,
 }
 
-/// Response after creating a report job.
+/// Response after creating a job.
 #[derive(Debug, Serialize)]
-pub struct CreateReportJobResponse {
+pub struct CreateJobResponse {
     pub job_id: Uuid,
     pub status: String,
     pub total_batches: u32,
@@ -96,7 +97,7 @@ struct WorkspaceConfig {
 /// Coordinates distributed report generation.
 /// Splits requests into micro-jobs and tracks completion.
 pub struct ReportCoordinator {
-    queue: ReportQueue,
+    queue: JobQueue,
     db: PgPool,
 }
 
@@ -104,12 +105,12 @@ impl ReportCoordinator {
     /// Create a new ReportCoordinator.
     pub fn new(redis: RedisPool, db: PgPool) -> Self {
         Self {
-            queue: ReportQueue::new(redis),
+            queue: JobQueue::new(redis),
             db,
         }
     }
 
-    /// Create a new distributed report job.
+    /// Create a new distributed job.
     ///
     /// Splits employees into batches of BATCH_SIZE, creates micro-jobs,
     /// and enqueues them for worker processing.
@@ -125,8 +126,8 @@ impl ReportCoordinator {
         &self,
         workspace_id: Uuid,
         requester_id: Uuid,
-        request: CreateReportJobRequest,
-    ) -> Result<CreateReportJobResponse, ReportError> {
+        request: CreateJobRequest,
+    ) -> Result<CreateJobResponse, ReportError> {
         // 1. Fetch employee list
         let employees = self
             .fetch_employees(workspace_id, request.employee_ids.as_ref())
@@ -151,26 +152,28 @@ impl ReportCoordinator {
         let total_batches = batches.len() as u32;
 
         // 5. Create micro-jobs
-        let jobs: Vec<ReportJob> = batches
+        let jobs: Vec<Job> = batches
             .into_iter()
             .enumerate()
             .map(|(idx, emp_ids)| {
-                ReportJob::new(
+                Job::new(
                     parent_job_id,
                     idx as u32,
                     TaskType::AttendanceReport,
                     workspace_id,
-                    emp_ids,
-                    DateRange {
-                        start: request.start_date,
-                        end: request.end_date,
-                    },
-                    ReportConfig {
-                        report_type: request.report_type.clone(),
-                        timezone: workspace.timezone.clone(),
-                        rounding_policy: workspace.rounding_policy.clone(),
-                        work_unit_minutes: workspace.work_unit_minutes,
-                    },
+                    JobPayload::AttendanceReport(ReportPayload {
+                        employee_ids: emp_ids,
+                        date_range: DateRange {
+                            start: request.start_date,
+                            end: request.end_date,
+                        },
+                        config: ReportConfig {
+                            report_type: request.report_type.clone(),
+                            timezone: workspace.timezone.clone(),
+                            rounding_policy: workspace.rounding_policy.clone(),
+                            work_unit_minutes: workspace.work_unit_minutes,
+                        },
+                    }),
                 )
             })
             .collect();
@@ -210,7 +213,7 @@ impl ReportCoordinator {
         // 8. Calculate estimated time
         let estimated_seconds = (total_batches as u64) * ESTIMATED_SECONDS_PER_BATCH;
 
-        Ok(CreateReportJobResponse {
+        Ok(CreateJobResponse {
             job_id: parent_job_id,
             status: "pending".to_string(),
             total_batches,
@@ -350,19 +353,20 @@ impl ReportCoordinator {
                     end: NaiveDate::from_ymd_opt(2000, 1, 1).expect("2000-01-01 is valid"),
                 });
 
-                let merge_job = ReportJob::new(
+                let merge_job = Job::new(
                     parent_job_id,
                     0, // batch_index 0 for merge
                     TaskType::MergeResults,
                     meta.workspace_id,
-                    vec![], // Not needed for merge
-                    date_range,
-                    ReportConfig {
-                        report_type: meta.report_type.clone(),
-                        timezone: "UTC".to_string(),
-                        rounding_policy: "floor".to_string(),
-                        work_unit_minutes: 30,
-                    },
+                    JobPayload::MergeResults(MergePayload {
+                        date_range,
+                        config: ReportConfig {
+                            report_type: meta.report_type.clone(),
+                            timezone: "UTC".to_string(),
+                            rounding_policy: "floor".to_string(),
+                            work_unit_minutes: 30,
+                        },
+                    }),
                 );
 
                 self.queue
@@ -393,7 +397,7 @@ impl ReportCoordinator {
             .map_err(|e| ReportError::DatabaseError(e.to_string()))
     }
 
-    /// Fetch workspace configuration for report jobs.
+    /// Fetch workspace configuration for jobs.
     async fn fetch_workspace_config(
         &self,
         workspace_id: Uuid,

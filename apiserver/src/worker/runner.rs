@@ -1,4 +1,4 @@
-//! Report Worker Runner
+//! Job Worker Runner
 //!
 //! Main worker loop that polls Redis queue and dispatches jobs to handlers.
 
@@ -15,7 +15,7 @@ use tracing::{error, info, warn};
 use uuid::Uuid;
 
 use crate::cache::{CacheManager, RosterCache};
-use crate::queue::{RedisPool, ReportJob, ReportQueue, TaskType};
+use crate::queue::{Job, JobQueue, RedisPool, TaskType};
 use crate::services::ReportCoordinator;
 use crate::worker::handlers::{AttendanceHandler, MergeHandler};
 
@@ -45,7 +45,7 @@ pub struct WorkerHeartbeat {
 /// Configuration for worker behavior.
 #[derive(Debug, Clone)]
 pub struct WorkerConfig {
-    /// Max concurrent jobs per worker (default: 2)
+    /// Max concurrent jobs per worker (default: 6)
     pub max_concurrent_jobs: usize,
     /// BLPOP timeout in seconds (default: 30)
     pub poll_timeout_secs: f64,
@@ -116,9 +116,9 @@ impl WorkerConfig {
     }
 }
 
-/// Background worker that processes report jobs from Redis queue.
-pub struct ReportWorker {
-    queue: ReportQueue,
+/// Background worker that processes jobs from Redis queue.
+pub struct JobWorker {
+    queue: JobQueue,
     redis: RedisPool,
     db: PgPool,
     config: WorkerConfig,
@@ -132,8 +132,8 @@ pub struct ReportWorker {
     current_task_type: Arc<Mutex<Option<String>>>,
 }
 
-impl ReportWorker {
-    /// Create a new ReportWorker.
+impl JobWorker {
+    /// Create a new JobWorker.
     pub fn new(
         redis: RedisPool,
         db: PgPool,
@@ -147,7 +147,7 @@ impl ReportWorker {
             .unwrap_or_else(|_| "unknown".to_string());
 
         Self {
-            queue: ReportQueue::new(redis.clone()),
+            queue: JobQueue::new(redis.clone()),
             redis,
             db,
             config,
@@ -176,7 +176,7 @@ impl ReportWorker {
             hostname = %self.hostname,
             max_concurrent = self.config.max_concurrent_jobs,
             poll_timeout = self.config.poll_timeout_secs,
-            "Report worker started"
+            "Job worker started"
         );
 
         let semaphore = Arc::new(Semaphore::new(self.config.max_concurrent_jobs));
@@ -306,7 +306,7 @@ impl ReportWorker {
         // Wait for heartbeat task to finish
         let _ = heartbeat_task.await;
 
-        info!("Report worker stopped");
+        info!("Job worker stopped");
     }
 
     /// Background loop that sends heartbeats every 5 seconds.
@@ -363,11 +363,10 @@ impl ReportWorker {
     }
 
     /// Process a single job by routing to appropriate handler.
-    async fn process_job(&self, job: ReportJob) -> Result<(), String> {
+    async fn process_job(&self, job: Job) -> Result<(), String> {
         let job_id = job.job_id;
         let parent_id = job.parent_job_id;
         let batch_index = job.batch_index;
-        let employee_count = job.employee_ids.len();
         let start = std::time::Instant::now();
 
         info!(
@@ -375,7 +374,6 @@ impl ReportWorker {
             parent_id = %parent_id,
             batch_index = batch_index,
             task_type = ?job.task_type,
-            employees = employee_count,
             "Processing job"
         );
 
@@ -410,12 +408,11 @@ impl ReportWorker {
                 parent_id = %parent_id,
                 batch_index = batch_index,
                 elapsed_ms = elapsed.as_millis() as u64,
-                employees = employee_count,
                 "Slow batch detected"
             );
         }
 
-        // Report completion to coordinator
+        // Report completion to coordinator (for batch-based jobs)
         let success = result.is_ok();
         if let Err(e) = self
             .coordinator
@@ -434,9 +431,9 @@ impl ReportWorker {
 }
 
 /// Get the underlying queue for handlers.
-impl ReportWorker {
+impl JobWorker {
     /// Get queue reference (for internal use by handlers).
-    pub fn queue(&self) -> &ReportQueue {
+    pub fn queue(&self) -> &JobQueue {
         &self.queue
     }
 }
@@ -444,6 +441,7 @@ impl ReportWorker {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     #[test]
     fn test_worker_config_default() {
@@ -684,5 +682,17 @@ mod tests {
             config.job_timeout_secs,
             slow_batch_threshold_secs
         );
+    }
+
+    #[test]
+    fn test_task_type_hashable() {
+        // TaskType must be Hash for HashMap-based handler registry
+        let mut map: HashMap<TaskType, &str> = HashMap::new();
+        map.insert(TaskType::AttendanceReport, "attendance");
+        map.insert(TaskType::MergeResults, "merge");
+        map.insert(TaskType::PayrollReport, "payroll");
+
+        assert_eq!(map.len(), 3);
+        assert_eq!(map.get(&TaskType::AttendanceReport), Some(&"attendance"));
     }
 }
