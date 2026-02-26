@@ -9,8 +9,8 @@ import { useReportStream } from "../use-report-stream";
 
 describe("useReportStream Hook", () => {
   beforeEach(() => {
-    vi.spyOn(console, "debug").mockImplementation(() => {});
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "debug").mockImplementation(() => { });
+    vi.spyOn(console, "error").mockImplementation(() => { });
   });
 
   afterEach(() => {
@@ -320,6 +320,63 @@ describe("useReportStream Hook", () => {
       );
 
       expect(result.current.status).toBe("idle");
+    });
+  });
+
+  describe("WebSocket Auth Token", () => {
+    let capturedUrl: string | undefined;
+
+    class MockWebSocket {
+      readyState = 0;
+      constructor(url: string) {
+        capturedUrl = url;
+      }
+      close = vi.fn();
+      addEventListener = vi.fn();
+      removeEventListener = vi.fn();
+      set onopen(_: unknown) { }
+      set onmessage(_: unknown) { }
+      set onerror(_: unknown) { }
+      set onclose(_: unknown) { }
+    }
+
+    beforeEach(() => {
+      capturedUrl = undefined;
+      vi.stubGlobal("WebSocket", MockWebSocket);
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      localStorage.clear();
+    });
+
+    it("should include auth token in WebSocket URL when available", () => {
+      localStorage.setItem("access_token", "test-jwt-token-123");
+
+      renderHook(() => useReportStream({ jobId: "job-abc" }));
+
+      expect(capturedUrl).toContain("?token=test-jwt-token-123");
+      expect(capturedUrl).toContain("/api/ws/reports/job-abc");
+    });
+
+    it("should not include token param when no auth token exists", () => {
+      localStorage.removeItem("access_token");
+
+      renderHook(() => useReportStream({ jobId: "job-xyz" }));
+
+      expect(capturedUrl).toContain("/api/ws/reports/job-xyz");
+      expect(capturedUrl).not.toContain("?token=");
+    });
+
+    it("should URL-encode special characters in token", () => {
+      localStorage.setItem("access_token", "token+with spaces&special=chars");
+
+      renderHook(() => useReportStream({ jobId: "job-enc" }));
+
+      expect(capturedUrl).toContain("?token=");
+      // encodeURIComponent encodes + as %2B and spaces as %20
+      expect(capturedUrl).not.toContain(" ");
+      expect(capturedUrl).toContain("%2B");
     });
   });
 });

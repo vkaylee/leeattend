@@ -6,6 +6,7 @@ import type {
   StreamStatus,
   ChunkMessage,
 } from "@/types/report-stream";
+import { getAccessToken } from "@/lib/api/helpers";
 
 interface UseReportStreamOptions {
   jobId: string | null;
@@ -25,11 +26,14 @@ interface UseReportStreamResult {
 /**
  * Build WebSocket URL for report streaming
  * Uses wss: for HTTPS, ws: for HTTP
+ * Includes JWT token as query param (required by ws_auth_middleware)
  */
 function buildWebSocketUrl(jobId: string): string {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const host = window.location.host;
-  return `${protocol}//${host}/api/ws/reports/${jobId}`;
+  const token = getAccessToken();
+  const params = token ? `?token=${encodeURIComponent(token)}` : "";
+  return `${protocol}//${host}/api/ws/reports/${jobId}${params}`;
 }
 
 /**
