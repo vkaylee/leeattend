@@ -68,11 +68,27 @@ services:
       timeout: 5s
       retries: 5
     environment:
+      # --- Core ---
       - RUST_BACKTRACE=1
-      - DATABASE_URL=${API_DATABASE_URL:-postgres://${DB_USER:-admin}:${DB_PASSWORD:-dev_password}@db:5432/${DB_NAME:-leeattend}}
       - RUST_LOG=apiserver=debug,tower_http=debug,sqlx=info
       - SQLX_OFFLINE=false
+      - DATABASE_URL=${API_DATABASE_URL:-postgres://${DB_USER:-admin}:${DB_PASSWORD:-dev_password}@db:5432/${DB_NAME:-leeattend}}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-dev_password}@redis:6379
+      # --- Server ---
+      - API_HOST=0.0.0.0
+      - API_PORT=3000
+      # --- Auth & Security ---
+      - JWT_SECRET=${JWT_SECRET:-dev_secret_key_leeattend_2026}
+      # - ALLOWED_ORIGINS=  # CORS origins, empty = allow all in dev
+      # --- Agent Log Buffer ---
+      # - AGENT_LOG_BUFFER_CAPACITY=5000
+      # - AGENT_LOG_BATCH_SIZE=100
+      # - AGENT_LOG_FLUSH_MS=1000
+      # --- Report Worker ---
+      - WORKER_MAX_CONCURRENT=2
+      # - WORKER_POLL_TIMEOUT_SECS=30
+      # - WORKER_MAX_RETRIES=3
+      # - WORKER_JOB_TIMEOUT_SECS=300
     volumes:
       - ./apiserver:/app
       - cargo-registry:/usr/local/cargo/registry
@@ -89,9 +105,18 @@ services:
       apiserver:
         condition: service_healthy
     environment:
+      # --- Core ---
+      - RUST_LOG=info,sqlx::query=error
       - CENTRAL_SERVER_URL=${AGENT_CENTRAL_SERVER_URL:-ws://apiserver:3000/api/ws}
       - DATABASE_URL=${AGENT_DATABASE_URL:-sqlite:///app/data/agent.db?mode=rwc}
-      - RUST_LOG=info,sqlx::query=error
+      - AGENT_ID=${AGENT_ID:-test-agent}
+      - AGENT_TOKEN=${AGENT_TOKEN:-test-token}
+      # --- Runtime Tuning (max_concurrent_workers is server-managed via ConfigPush) ---
+      # - POLL_INTERVAL_SECONDS=300
+      # - INFLIGHT_TIMEOUT_SECS=300
+      # --- Memory Management ---
+      # - SIGNATURE_TTL_DAYS=90
+      # - SIGNATURE_CLEANUP_HOURS=24
     volumes:
       - ./agent-main:/app
       - cargo-registry:/usr/local/cargo/registry

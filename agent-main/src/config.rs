@@ -8,6 +8,7 @@ pub struct Config {
     pub central_server_url: String,
     pub database_url: String,
     pub poll_interval_seconds: u64,
+    /// Initial max concurrent workers (server overrides via ConfigPush)
     pub max_concurrent_workers: usize,
     pub signature_ttl_days: i64,
     pub signature_cleanup_hours: u64,
@@ -40,10 +41,8 @@ impl Config {
         });
 
 
-        let max_concurrent_workers = env::var("MAX_CONCURRENT_WORKERS")
-            .unwrap_or_default()
-            .parse()
-            .unwrap_or(5);
+        // max_concurrent_workers: server-managed via ConfigPush, hardcode conservative default
+        let max_concurrent_workers = 2;
 
         let poll_interval_seconds = env::var("POLL_INTERVAL_SECONDS")
             .unwrap_or_default()
@@ -97,7 +96,7 @@ impl Config {
         info!("⚙️  RUNTIME SETTINGS");
         info!("------------------------------------------------------------");
         info!("Poll Interval      : {}s", self.poll_interval_seconds);
-        info!("Max Workers        : {}", self.max_concurrent_workers);
+        info!("Max Workers        : {} (initial, server overrides via ConfigPush)", self.max_concurrent_workers);
         info!("------------------------------------------------------------");
         info!("🧹 MEMORY MANAGEMENT");
         info!("------------------------------------------------------------");
@@ -132,7 +131,7 @@ mod tests {
             central_server_url: "ws://localhost:3001/api/ws".to_string(),
             database_url: "sqlite:test.db".to_string(),
             poll_interval_seconds: 300,
-            max_concurrent_workers: 5,
+            max_concurrent_workers: 2,
             signature_ttl_days: 90,
             signature_cleanup_hours: 24,
             inflight_timeout_secs: 300,
@@ -143,7 +142,7 @@ mod tests {
         assert_eq!(config.central_server_url, "ws://localhost:3001/api/ws");
         assert_eq!(config.database_url, "sqlite:test.db");
         assert_eq!(config.poll_interval_seconds, 300);
-        assert_eq!(config.max_concurrent_workers, 5);
+        assert_eq!(config.max_concurrent_workers, 2);
         assert_eq!(config.signature_ttl_days, 90);
         assert_eq!(config.signature_cleanup_hours, 24);
         assert_eq!(config.inflight_timeout_secs, 300);
@@ -160,7 +159,7 @@ mod tests {
             std::env::set_var("CENTRAL_SERVER_URL", "wss://prod.example.com/ws");
             std::env::set_var("DATABASE_URL", "sqlite:prod.db");
             std::env::set_var("POLL_INTERVAL_SECONDS", "120");
-            std::env::set_var("MAX_CONCURRENT_WORKERS", "10");
+            // MAX_CONCURRENT_WORKERS is no longer env-configurable
             std::env::set_var("SIGNATURE_TTL_DAYS", "30");
             std::env::set_var("SIGNATURE_CLEANUP_HOURS", "12");
             std::env::set_var("INFLIGHT_TIMEOUT_SECS", "600");
@@ -173,7 +172,7 @@ mod tests {
         assert_eq!(config.central_server_url, "wss://prod.example.com/ws");
         assert_eq!(config.database_url, "sqlite:prod.db");
         assert_eq!(config.poll_interval_seconds, 120);
-        assert_eq!(config.max_concurrent_workers, 10);
+        assert_eq!(config.max_concurrent_workers, 2); // hardcoded, not from env
         assert_eq!(config.signature_ttl_days, 30);
         assert_eq!(config.signature_cleanup_hours, 12);
         assert_eq!(config.inflight_timeout_secs, 600);
@@ -222,7 +221,7 @@ mod tests {
         // Should fall back to defaults for invalid values
         assert_eq!(config.poll_interval_seconds, 300);
         // "-5" parses as invalid for usize, falls back to default
-        assert_eq!(config.max_concurrent_workers, 5);
+        assert_eq!(config.max_concurrent_workers, 2); // hardcoded default
         assert_eq!(config.signature_ttl_days, 90);
         assert_eq!(config.signature_cleanup_hours, 24);
         assert_eq!(config.inflight_timeout_secs, 300);
@@ -246,7 +245,7 @@ mod tests {
             central_server_url: "ws://localhost".to_string(),
             database_url: "sqlite:test.db".to_string(),
             poll_interval_seconds: 300,
-            max_concurrent_workers: 5,
+            max_concurrent_workers: 2,
             signature_ttl_days: 90,
             signature_cleanup_hours: 24,
             inflight_timeout_secs: 300,

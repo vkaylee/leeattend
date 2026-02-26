@@ -61,7 +61,7 @@ pub fn print_help() {
     println!("CONFIGURATION KEYS:");
     println!("  max_retry_count          Maximum retry attempts before DLQ (default: 10)");
     println!("  retry_ttl_minutes        Retry timeout in minutes (default: 60)");
-    println!("  max_concurrent_workers   Max parallel device connections (default: 2)");
+    println!("  max_concurrent_workers   Max parallel device connections (server-managed)");
     println!();
     println!("UNDERSTANDING THE SYSTEM:");
     println!();
@@ -370,7 +370,7 @@ pub async fn handle_config_command(db: &Database, args: &[String]) -> Result<(),
             println!("No custom configuration set. Using defaults:");
             println!("  max_retry_count      = 10");
             println!("  retry_ttl_minutes    = 60");
-            println!("  max_concurrent_workers = 2");
+            println!("  max_concurrent_workers = 2 (server-managed)");
             println!();
         } else {
             println!("Current Configuration:");
