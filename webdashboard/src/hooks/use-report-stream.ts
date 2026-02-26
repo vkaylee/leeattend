@@ -79,14 +79,8 @@ export function useReportStream({
       switch (message.type) {
         case "CHUNK": {
           const chunkMsg = message as ChunkMessage;
-          // Accumulate data from chunk
-          if (Array.isArray(chunkMsg.data)) {
-            chunksRef.current = [...chunksRef.current, ...chunkMsg.data];
-          } else {
-            chunksRef.current = [...chunksRef.current, chunkMsg.data];
-          }
 
-          // Update progress
+          // Update progress (data is no longer sent in CHUNK messages)
           totalBatchesRef.current = chunkMsg.total_batches;
           const newProgress =
             ((chunkMsg.batch_index + 1) / chunkMsg.total_batches) * 100;

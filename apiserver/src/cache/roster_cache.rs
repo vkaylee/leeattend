@@ -5,7 +5,8 @@
 //! on cache miss.  Falls back to direct DB load when Redis is unavailable.
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use std::time::Duration;
 
 use chrono::{NaiveDate, NaiveTime, Utc};
@@ -113,8 +114,8 @@ pub async fn build_roster_data(
     pool: &PgPool,
     workspace_id: Uuid,
 ) -> Result<Arc<RosterData>, String> {
-    // Q1 — shifts
-    let shift_rows = sqlx::query!(
+    // Create futures at top level for sqlx::query! type inference to work
+    let q1 = sqlx::query!(
         r#"
         SELECT id, name, start_time, end_time, break_duration_minutes,
                break_start, break_end, is_break_auto_deduct,
@@ -123,10 +124,110 @@ pub async fn build_roster_data(
         "#,
         workspace_id,
     )
-    .fetch_all(pool)
-    .await
-    .map_err(|e| format!("shifts: {e}"))?;
+    .fetch_all(pool);
 
+    let q2 = sqlx::query!(
+        r#"
+        SELECT employee_id, shift_id, start_date, end_date
+        FROM employee_shifts
+        WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)
+        ORDER BY created_at DESC
+        "#,
+        workspace_id,
+    )
+    .fetch_all(pool);
+
+    let q3 = sqlx::query!(
+        r#"
+        SELECT ewp.employee_id, ewp.pattern_id, ewp.start_date, ewp.end_date,
+               wpd.day_of_week, wpd.shift_id as pattern_shift_id
+        FROM employee_working_patterns ewp
+        JOIN working_pattern_details wpd ON ewp.pattern_id = wpd.pattern_id
+        WHERE ewp.workspace_id = $1
+        ORDER BY ewp.created_at DESC
+        "#,
+        workspace_id,
+    )
+    .fetch_all(pool);
+
+    let q4 = sqlx::query!(
+        r#"
+        SELECT edh.employee_id, d.default_working_pattern_id, edh.effective_date,
+               wpd.day_of_week, wpd.shift_id as pattern_shift_id
+        FROM employee_department_history edh
+        JOIN departments d ON edh.department_id = d.id
+        JOIN working_pattern_details wpd ON d.default_working_pattern_id = wpd.pattern_id
+        WHERE d.workspace_id = $1
+        ORDER BY edh.effective_date DESC
+        "#,
+        workspace_id,
+    )
+    .fetch_all(pool);
+
+    let q5 = sqlx::query!(
+        r#"
+        SELECT edh.employee_id, dds.shift_id, edh.effective_date
+        FROM employee_department_history edh
+        JOIN department_default_shifts dds ON edh.department_id = dds.department_id
+        JOIN departments d ON dds.department_id = d.id
+        WHERE d.workspace_id = $1
+        ORDER BY edh.effective_date DESC
+        "#,
+        workspace_id,
+    )
+    .fetch_all(pool);
+
+    let q6 = crate::repositories::assignment_rule_repository::AssignmentRuleRepository::get_active_rules(
+        pool,
+        workspace_id,
+    );
+
+    let q7 = sqlx::query!(
+        r#"
+        SELECT pattern_id, day_of_week, shift_id
+        FROM working_pattern_details
+        WHERE pattern_id IN (
+            SELECT pattern_id FROM assignment_rules
+            WHERE workspace_id = $1 AND is_active = true
+        )
+        "#,
+        workspace_id,
+    )
+    .fetch_all(pool);
+
+    let q8 = sqlx::query!(
+        r#"
+        SELECT edh.employee_id, edh.department_id, edh.effective_date
+        FROM employee_department_history edh
+        WHERE edh.employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)
+        ORDER BY edh.effective_date DESC
+        "#,
+        workspace_id,
+    )
+    .fetch_all(pool);
+
+    // Run all 8 independent queries concurrently
+    let (
+        shift_rows,
+        fixed_rows,
+        pattern_rows,
+        dept_pattern_rows,
+        dept_fixed_rows,
+        active_rules,
+        rule_pattern_rows,
+        dept_history_rows,
+    ) = tokio::try_join!(
+        async { q1.await.map_err(|e| format!("shifts: {e}")) },
+        async { q2.await.map_err(|e| format!("fixed_assignments: {e}")) },
+        async { q3.await.map_err(|e| format!("pattern_assignments: {e}")) },
+        async { q4.await.map_err(|e| format!("dept_patterns: {e}")) },
+        async { q5.await.map_err(|e| format!("dept_fixed_shifts: {e}")) },
+        async { q6.await.map_err(|e| format!("active_rules: {e}")) },
+        async { q7.await.map_err(|e| format!("rule_patterns: {e}")) },
+        async { q8.await.map_err(|e| format!("dept_history: {e}")) },
+    )?;
+
+    // Transform rows into lookup structures
     let shifts: HashMap<Uuid, RosterShift> = shift_rows
         .into_iter()
         .map(|r| {
@@ -147,20 +248,6 @@ pub async fn build_roster_data(
         })
         .collect();
 
-    // Q2 — fixed_assignments
-    let fixed_rows = sqlx::query!(
-        r#"
-        SELECT employee_id, shift_id, start_date, end_date
-        FROM employee_shifts
-        WHERE employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)
-        ORDER BY created_at DESC
-        "#,
-        workspace_id,
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(|e| format!("fixed_assignments: {e}"))?;
-
     let mut fixed_assignments: HashMap<Uuid, Vec<RosterFixedAssignment>> = HashMap::new();
     for r in fixed_rows {
         fixed_assignments
@@ -172,22 +259,6 @@ pub async fn build_roster_data(
                 end_date: r.end_date,
             });
     }
-
-    // Q3 — pattern_assignments
-    let pattern_rows = sqlx::query!(
-        r#"
-        SELECT ewp.employee_id, ewp.pattern_id, ewp.start_date, ewp.end_date,
-               wpd.day_of_week, wpd.shift_id as pattern_shift_id
-        FROM employee_working_patterns ewp
-        JOIN working_pattern_details wpd ON ewp.pattern_id = wpd.pattern_id
-        WHERE ewp.workspace_id = $1
-        ORDER BY ewp.created_at DESC
-        "#,
-        workspace_id,
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(|e| format!("pattern_assignments: {e}"))?;
 
     let mut pattern_assignments: HashMap<Uuid, Vec<RosterPatternEntry>> = HashMap::new();
     for r in pattern_rows {
@@ -203,23 +274,6 @@ pub async fn build_roster_data(
             });
     }
 
-    // Q4 — dept_patterns
-    let dept_pattern_rows = sqlx::query!(
-        r#"
-        SELECT edh.employee_id, d.default_working_pattern_id, edh.effective_date,
-               wpd.day_of_week, wpd.shift_id as pattern_shift_id
-        FROM employee_department_history edh
-        JOIN departments d ON edh.department_id = d.id
-        JOIN working_pattern_details wpd ON d.default_working_pattern_id = wpd.pattern_id
-        WHERE d.workspace_id = $1
-        ORDER BY edh.effective_date DESC
-        "#,
-        workspace_id,
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(|e| format!("dept_patterns: {e}"))?;
-
     let mut dept_patterns: HashMap<Uuid, Vec<RosterDeptPattern>> = HashMap::new();
     for r in dept_pattern_rows {
         dept_patterns
@@ -233,22 +287,6 @@ pub async fn build_roster_data(
             });
     }
 
-    // Q5 — dept_fixed_shifts
-    let dept_fixed_rows = sqlx::query!(
-        r#"
-        SELECT edh.employee_id, dds.shift_id, edh.effective_date
-        FROM employee_department_history edh
-        JOIN department_default_shifts dds ON edh.department_id = dds.department_id
-        JOIN departments d ON dds.department_id = d.id
-        WHERE d.workspace_id = $1
-        ORDER BY edh.effective_date DESC
-        "#,
-        workspace_id,
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(|e| format!("dept_fixed_shifts: {e}"))?;
-
     let mut dept_fixed_shifts: HashMap<Uuid, Vec<RosterDeptFixedShift>> = HashMap::new();
     for r in dept_fixed_rows {
         dept_fixed_shifts
@@ -260,49 +298,10 @@ pub async fn build_roster_data(
             });
     }
 
-    // Q6 — active_rules (via existing repository)
-    let active_rules =
-        crate::repositories::assignment_rule_repository::AssignmentRuleRepository::get_active_rules(
-            pool,
-            workspace_id,
-        )
-        .await
-        .map_err(|e| format!("active_rules: {e}"))?;
-
-    // Q7 — rule_patterns
-    let rule_pattern_rows = sqlx::query!(
-        r#"
-        SELECT pattern_id, day_of_week, shift_id
-        FROM working_pattern_details
-        WHERE pattern_id IN (
-            SELECT pattern_id FROM assignment_rules
-            WHERE workspace_id = $1 AND is_active = true
-        )
-        "#,
-        workspace_id,
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(|e| format!("rule_patterns: {e}"))?;
-
     let rule_patterns: HashMap<(Uuid, i32), Option<Uuid>> = rule_pattern_rows
         .into_iter()
         .map(|r| ((r.pattern_id, r.day_of_week), r.shift_id))
         .collect();
-
-    // Q8 — dept_history
-    let dept_history_rows = sqlx::query!(
-        r#"
-        SELECT edh.employee_id, edh.department_id, edh.effective_date
-        FROM employee_department_history edh
-        WHERE edh.employee_id IN (SELECT id FROM employees WHERE workspace_id = $1)
-        ORDER BY edh.effective_date DESC
-        "#,
-        workspace_id,
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(|e| format!("dept_history: {e}"))?;
 
     let mut dept_history: HashMap<Uuid, Vec<RosterDeptHistory>> = HashMap::new();
     for r in dept_history_rows {
@@ -440,7 +439,7 @@ impl RosterCache {
     ) -> Result<Arc<RosterData>, String> {
         // Determine leader vs follower while holding the mutex only briefly.
         let (is_leader, mut rx) = {
-            let mut map = self.inflight.lock().expect("inflight mutex poisoned");
+            let mut map = self.inflight.lock().await;
             if let Some(sender) = map.get(&workspace_id) {
                 // Follower: subscribe to the leader's result.
                 (false, Some(sender.subscribe()))
@@ -460,7 +459,7 @@ impl RosterCache {
             let sender = self
                 .inflight
                 .lock()
-                .expect("inflight mutex poisoned")
+                .await
                 .remove(&workspace_id);
 
             // Notify all followers (ignore error if no receivers remain).
@@ -838,7 +837,7 @@ mod tests {
     /// Prove that the singleflight map pattern does not leak entries.
     #[test]
     fn test_singleflight_map_lifecycle_no_leak() {
-        let inflight = Mutex::new(HashMap::new());
+        let inflight = std::sync::Mutex::new(HashMap::new());
         let ws_id = Uuid::new_v4();
 
         // 1. Simulate Leader entering

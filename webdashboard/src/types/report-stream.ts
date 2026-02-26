@@ -7,7 +7,6 @@ export interface ChunkMessage {
   type: "CHUNK";
   batch_index: number;
   total_batches: number;
-  data: unknown; // JSON data for this batch
 }
 
 export interface DoneMessage {

@@ -5,6 +5,7 @@
 //! - Detail: "Timesheet View" (matrix) + "Raw Details" (list) sheets.
 
 use chrono::{DateTime, Datelike, Duration, NaiveDate, NaiveTime, Utc};
+use chrono_tz::Tz;
 use rust_xlsxwriter::{Color, Format, FormatAlign, Workbook};
 use std::collections::BTreeMap;
 
@@ -105,10 +106,14 @@ impl ExcelWriter {
         reports: &[DailyAttendanceReport],
         workspace_name: &str,
         date_range: (NaiveDate, NaiveDate),
+        timezone: &str,
     ) -> Result<Vec<u8>, String> {
+        let tz: Tz = timezone
+            .parse()
+            .unwrap_or(chrono_tz::UTC);
         let mut workbook = Workbook::new();
         Self::write_timesheet_matrix(&mut workbook, reports, workspace_name, date_range)?;
-        Self::write_raw_details(&mut workbook, reports, workspace_name, date_range)?;
+        Self::write_raw_details(&mut workbook, reports, workspace_name, date_range, tz)?;
         workbook
             .save_to_buffer()
             .map_err(|e| format!("Excel write error: {e}"))
@@ -230,6 +235,7 @@ impl ExcelWriter {
         reports: &[DailyAttendanceReport],
         workspace_name: &str,
         date_range: (NaiveDate, NaiveDate),
+        tz: Tz,
     ) -> Result<(), String> {
         let worksheet = workbook
             .add_worksheet()
@@ -312,7 +318,7 @@ impl ExcelWriter {
                 .write_string_with_format(
                     row,
                     4,
-                    format_datetime(report.actual_punch_in),
+                    format_datetime(report.actual_punch_in, tz),
                     &time_fmt,
                 )
                 .map_err(|e| e.to_string())?;
@@ -320,7 +326,7 @@ impl ExcelWriter {
                 .write_string_with_format(
                     row,
                     5,
-                    format_datetime(report.actual_punch_out),
+                    format_datetime(report.actual_punch_out, tz),
                     &time_fmt,
                 )
                 .map_err(|e| e.to_string())?;
@@ -388,9 +394,9 @@ fn format_time(time: Option<NaiveTime>) -> String {
         .unwrap_or_default()
 }
 
-/// Format optional DateTime to HH:MM string.
-fn format_datetime(dt: Option<DateTime<Utc>>) -> String {
-    dt.map(|t| t.format("%H:%M").to_string())
+/// Format optional DateTime to HH:MM string in the given timezone.
+fn format_datetime(dt: Option<DateTime<Utc>>, tz: Tz) -> String {
+    dt.map(|t| t.with_timezone(&tz).format("%H:%M").to_string())
         .unwrap_or_default()
 }
 
@@ -456,6 +462,7 @@ mod tests {
                 NaiveDate::from_ymd_opt(2026, 1, 1).ok_or("Invalid start date")?,
                 NaiveDate::from_ymd_opt(2026, 1, 31).ok_or("Invalid end date")?,
             ),
+            "UTC",
         );
         assert!(result.is_ok());
         let data = result?;
@@ -531,6 +538,7 @@ mod tests {
                 NaiveDate::from_ymd_opt(2026, 1, 15).ok_or("Invalid start date")?,
                 NaiveDate::from_ymd_opt(2026, 1, 16).ok_or("Invalid end date")?,
             ),
+            "Asia/Ho_Chi_Minh",
         );
         assert!(result.is_ok());
         let data = result?;
@@ -548,6 +556,91 @@ mod tests {
 
     #[test]
     fn test_format_datetime() {
-        assert_eq!(format_datetime(None), "");
+        assert_eq!(format_datetime(None, chrono_tz::UTC), "");
+    }
+
+    /// Optimization #12: format_datetime must convert UTC to workspace timezone.
+    /// A user in Asia/Ho_Chi_Minh (UTC+7) punching in at UTC 01:00 should see 08:00.
+    #[test]
+    fn test_format_datetime_timezone_conversion() {
+        use chrono::TimeZone;
+        // UTC 01:00 → Ho_Chi_Minh 08:00 (UTC+7)
+        let utc_time = chrono::Utc.with_ymd_and_hms(2026, 1, 15, 1, 0, 0).unwrap();
+        let tz: chrono_tz::Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
+
+        let result = format_datetime(Some(utc_time), tz);
+        assert_eq!(result, "08:00", "UTC 01:00 should display as 08:00 in UTC+7");
+    }
+
+    /// Verify UTC timezone produces unchanged time.
+    #[test]
+    fn test_format_datetime_utc_unchanged() {
+        use chrono::TimeZone;
+        let utc_time = chrono::Utc.with_ymd_and_hms(2026, 1, 15, 14, 30, 0).unwrap();
+
+        let result = format_datetime(Some(utc_time), chrono_tz::UTC);
+        assert_eq!(result, "14:30");
+    }
+
+    /// Test timezone conversion that crosses midnight (day boundary).
+    #[test]
+    fn test_format_datetime_crosses_midnight() {
+        use chrono::TimeZone;
+        // UTC 21:00 → Ho_Chi_Minh 04:00 next day
+        let utc_time = chrono::Utc.with_ymd_and_hms(2026, 1, 15, 21, 0, 0).unwrap();
+        let tz: chrono_tz::Tz = "Asia/Ho_Chi_Minh".parse().unwrap();
+
+        let result = format_datetime(Some(utc_time), tz);
+        assert_eq!(result, "04:00", "UTC 21:00 should display as 04:00 in UTC+7");
+    }
+
+    /// Test negative offset timezone (US/Eastern = UTC-5).
+    #[test]
+    fn test_format_datetime_negative_offset() {
+        use chrono::TimeZone;
+        // UTC 15:00 → US/Eastern 10:00 (UTC-5)
+        let utc_time = chrono::Utc.with_ymd_and_hms(2026, 1, 15, 15, 0, 0).unwrap();
+        let tz: chrono_tz::Tz = "US/Eastern".parse().unwrap();
+
+        let result = format_datetime(Some(utc_time), tz);
+        assert_eq!(result, "10:00", "UTC 15:00 should display as 10:00 in US/Eastern");
+    }
+
+    /// Test write_detail accepts timezone string and produces valid Excel.
+    #[test]
+    fn test_write_detail_with_different_timezones() -> Result<(), Box<dyn std::error::Error>> {
+        let reports = vec![DailyAttendanceReport {
+            date: NaiveDate::from_ymd_opt(2026, 1, 15).ok_or("Invalid date")?,
+            employee_id: Uuid::new_v4(),
+            employee_name: "Test Employee".to_string(),
+            scheduled_start: None,
+            scheduled_end: None,
+            break_duration_minutes: None,
+            break_start: None,
+            break_end: None,
+            is_break_auto_deduct: None,
+            actual_punch_in: None,
+            actual_punch_out: None,
+            std_work_units: 8,
+            ot_work_units: 0,
+            ot_claim_status: None,
+            status: "present".to_string(),
+            generation_metadata: None,
+        }];
+
+        let date_range = (
+            NaiveDate::from_ymd_opt(2026, 1, 15).ok_or("d")?,
+            NaiveDate::from_ymd_opt(2026, 1, 15).ok_or("d")?,
+        );
+
+        // Valid timezone
+        let result = ExcelWriter::write_detail(&reports, "W", date_range, "Asia/Ho_Chi_Minh");
+        assert!(result.is_ok());
+
+        // Invalid timezone falls back to UTC (shouldn't panic)
+        let result = ExcelWriter::write_detail(&reports, "W", date_range, "Invalid/TZ");
+        assert!(result.is_ok());
+
+        Ok(())
     }
 }

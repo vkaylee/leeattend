@@ -377,7 +377,7 @@ impl ReportQueue {
     }
 
     /// Store the final Excel data directly in Redis for client download.
-    /// The data is base64 encoded and stored with a 1-hour TTL.
+    /// The data is stored directly as binary bytes with a 1-hour TTL.
     ///
     /// # Arguments
     /// * `job_id` - Parent job ID
@@ -389,14 +389,9 @@ impl ReportQueue {
         data: &[u8],
         filename: &str,
     ) -> Result<(), redis::RedisError> {
-        use base64::{engine::general_purpose::STANDARD, Engine as _};
-
         let mut conn = self.pool.conn();
         let data_key = format!("{RESULTS_PREFIX}{job_id}:data");
         let filename_key = format!("{RESULTS_PREFIX}{job_id}:filename");
-
-        // Encode data as base64 for Redis storage
-        let encoded = STANDARD.encode(data);
 
         debug!(
             job_id = %job_id,
@@ -406,16 +401,8 @@ impl ReportQueue {
         );
 
         // Store both data and filename with 1-hour TTL
-        // Use pipeline for atomic operation, but with reasonable size limits
-        let encoded_size = encoded.len();
-        debug!(
-            job_id = %job_id,
-            encoded_size = encoded_size,
-            "Writing data to Redis pipeline"
-        );
-
         redis::pipe()
-            .set(&data_key, &encoded)
+            .set(&data_key, data)
             .expire(&data_key, 3600) // 1 hour TTL
             .set(&filename_key, filename)
             .expire(&filename_key, 3600)
@@ -426,8 +413,7 @@ impl ReportQueue {
                     job_id = %job_id,
                     error = %e,
                     data_size = data.len(),
-                    encoded_size = encoded_size,
-                    "Failed to store result data in Redis (timeout or error)"
+                    "Failed to store result data in Redis"
                 );
                 e
             })?;
@@ -449,26 +435,15 @@ impl ReportQueue {
         &self,
         job_id: Uuid,
     ) -> Result<Option<(Vec<u8>, String)>, redis::RedisError> {
-        use base64::{engine::general_purpose::STANDARD, Engine as _};
-
         let mut conn = self.pool.conn();
         let data_key = format!("{RESULTS_PREFIX}{job_id}:data");
         let filename_key = format!("{RESULTS_PREFIX}{job_id}:filename");
 
-        let encoded: Option<String> = conn.get(&data_key).await?;
+        let data: Option<Vec<u8>> = conn.get(&data_key).await?;
         let filename: Option<String> = conn.get(&filename_key).await?;
 
-        match (encoded, filename) {
-            (Some(enc), Some(fname)) => {
-                let data = STANDARD.decode(&enc).map_err(|e| {
-                    redis::RedisError::from((
-                        redis::ErrorKind::TypeError,
-                        "Base64 decode error",
-                        e.to_string(),
-                    ))
-                })?;
-                Ok(Some((data, fname)))
-            }
+        match (data, filename) {
+            (Some(bytes), Some(fname)) => Ok(Some((bytes, fname))),
             _ => Ok(None),
         }
     }

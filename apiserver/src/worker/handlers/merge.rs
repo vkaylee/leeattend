@@ -64,8 +64,8 @@ impl MergeHandler {
             "Retrieved batch results for merge"
         );
 
-        // 3. Get workspace name for Excel title
-        let workspace_name = Self::get_workspace_name(pool, meta.workspace_id).await;
+        // 3. Get workspace name and timezone for Excel title
+        let (workspace_name, workspace_tz) = Self::get_workspace_info(pool, meta.workspace_id).await;
 
         // 4. Get date range
         let date_range = meta
@@ -75,7 +75,7 @@ impl MergeHandler {
             .unwrap_or((job.date_range.start, job.date_range.end));
 
         // 5. Merge results and generate Excel
-        let (excel_data, file_name) = match meta.report_type {
+        let (excel_data, file_name, total_records) = match meta.report_type {
             ReportType::Summary => Self::merge_summary_results(
                 &batch_results,
                 &workspace_name,
@@ -87,6 +87,7 @@ impl MergeHandler {
                 &workspace_name,
                 date_range,
                 parent_job_id,
+                &workspace_tz,
             )?,
         };
 
@@ -120,10 +121,6 @@ impl MergeHandler {
         // 8. Publish DONE signal to Pub/Sub for streaming clients
         info!(parent_job_id = %parent_job_id, "Publishing DONE signal to clients");
         let publisher = ReportPublisher::new(redis.clone());
-        let total_records = batch_results.iter().fold(0usize, |acc, (_, json)| {
-            // Count records in each batch (approximate from JSON array length)
-            acc + json.matches("employee_id").count()
-        });
 
         if let Err(e) = publisher
             .publish_done(parent_job_id, meta.total_batches, total_records)
@@ -167,7 +164,7 @@ impl MergeHandler {
         workspace_name: &str,
         date_range: (NaiveDate, NaiveDate),
         parent_job_id: uuid::Uuid,
-    ) -> Result<(Vec<u8>, String), String> {
+    ) -> Result<(Vec<u8>, String, usize), String> {
         let mut all_summaries: Vec<AttendanceSummary> = Vec::new();
 
         for (batch_key, json) in batch_results {
@@ -187,13 +184,15 @@ impl MergeHandler {
         // Generate Excel
         let excel_data = ExcelWriter::write_summary(&all_summaries, workspace_name, date_range)?;
 
+        let total_records = all_summaries.len();
+
         let file_name = format!(
             "attendance_summary_{}_{}.xlsx",
             parent_job_id,
             Utc::now().format("%Y%m%d_%H%M%S")
         );
 
-        Ok((excel_data, file_name))
+        Ok((excel_data, file_name, total_records))
     }
 
     /// Merge detail results from all batches.
@@ -202,7 +201,8 @@ impl MergeHandler {
         workspace_name: &str,
         date_range: (NaiveDate, NaiveDate),
         parent_job_id: uuid::Uuid,
-    ) -> Result<(Vec<u8>, String), String> {
+        timezone: &str,
+    ) -> Result<(Vec<u8>, String, usize), String> {
         let mut all_reports: Vec<DailyAttendanceReport> = Vec::new();
 
         for (batch_key, json) in batch_results {
@@ -221,7 +221,9 @@ impl MergeHandler {
         info!(total_records = all_reports.len(), "Merged detail results");
 
         // Generate Excel
-        let excel_data = ExcelWriter::write_detail(&all_reports, workspace_name, date_range)?;
+        let excel_data = ExcelWriter::write_detail(&all_reports, workspace_name, date_range, timezone)?;
+
+        let total_records = all_reports.len();
 
         let file_name = format!(
             "attendance_detail_{}_{}.xlsx",
@@ -229,17 +231,20 @@ impl MergeHandler {
             Utc::now().format("%Y%m%d_%H%M%S")
         );
 
-        Ok((excel_data, file_name))
+        Ok((excel_data, file_name, total_records))
     }
 
-    /// Get workspace name from database.
-    async fn get_workspace_name(pool: &PgPool, workspace_id: uuid::Uuid) -> String {
-        match sqlx::query_scalar!("SELECT name FROM workspaces WHERE id = $1", workspace_id)
-            .fetch_optional(pool)
-            .await
+    /// Get workspace name and timezone from database.
+    async fn get_workspace_info(pool: &PgPool, workspace_id: uuid::Uuid) -> (String, String) {
+        match sqlx::query!(
+            "SELECT name, timezone FROM workspaces WHERE id = $1",
+            workspace_id
+        )
+        .fetch_optional(pool)
+        .await
         {
-            Ok(Some(name)) => name,
-            _ => "Workspace".to_string(),
+            Ok(Some(row)) => (row.name, row.timezone),
+            _ => ("Workspace".to_string(), "UTC".to_string()),
         }
     }
 }
@@ -267,9 +272,10 @@ mod tests {
         );
 
         assert!(result.is_ok());
-        let (data, name) = result.unwrap();
+        let (data, name, count) = result.unwrap();
         assert!(data.len() > 100); // Valid Excel file
         assert!(name.contains("attendance_summary_"));
+        assert_eq!(count, 0);
     }
 
     #[test]
@@ -369,6 +375,7 @@ mod tests {
                 NaiveDate::from_ymd_opt(2026, 1, 31).unwrap(),
             ),
             Uuid::new_v4(),
+            "UTC",
         );
 
         assert!(result.is_ok());
@@ -391,5 +398,88 @@ mod tests {
 
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Parse error"));
+    }
+
+    /// Optimization #9: total_records must equal the actual number of deserialized records,
+    /// not a fragile string match count.
+    #[test]
+    fn test_merge_summary_returns_accurate_total_records() {
+        let s1 = vec![
+            AttendanceSummary {
+                employee_id: Uuid::new_v4(),
+                employee_name: "A".to_string(),
+                total_work_units: 160,
+                total_leave_days: 0,
+            },
+            AttendanceSummary {
+                employee_id: Uuid::new_v4(),
+                employee_name: "B".to_string(),
+                total_work_units: 120,
+                total_leave_days: 3,
+            },
+        ];
+        let s2 = vec![AttendanceSummary {
+            employee_id: Uuid::new_v4(),
+            employee_name: "C".to_string(),
+            total_work_units: 80,
+            total_leave_days: 1,
+        }];
+
+        let batch_results = vec![
+            ("batch_00000".to_string(), serde_json::to_string(&s1).unwrap()),
+            ("batch_00001".to_string(), serde_json::to_string(&s2).unwrap()),
+        ];
+
+        let (_, _, total_records) = MergeHandler::merge_summary_results(
+            &batch_results,
+            "W",
+            (NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(), NaiveDate::from_ymd_opt(2026, 1, 31).unwrap()),
+            Uuid::new_v4(),
+        )
+        .unwrap();
+
+        assert_eq!(total_records, 3, "Should be 2 + 1 = 3 total records");
+    }
+
+    /// Verify detail merge also returns accurate total_records.
+    #[test]
+    fn test_merge_detail_returns_accurate_total_records() {
+        let make_report = |name: &str, day: u32| DailyAttendanceReport {
+            date: NaiveDate::from_ymd_opt(2026, 1, day).unwrap(),
+            employee_id: Uuid::new_v4(),
+            employee_name: name.to_string(),
+            scheduled_start: None,
+            scheduled_end: None,
+            break_duration_minutes: None,
+            break_start: None,
+            break_end: None,
+            is_break_auto_deduct: None,
+            actual_punch_in: None,
+            actual_punch_out: None,
+            std_work_units: 8,
+            ot_work_units: 0,
+            ot_claim_status: None,
+            status: "present".to_string(),
+            generation_metadata: None,
+        };
+
+        let b1 = vec![make_report("Alice", 1), make_report("Alice", 2), make_report("Bob", 1)];
+        let b2 = vec![make_report("Charlie", 1)];
+
+        let batch_results = vec![
+            ("batch_00000".to_string(), serde_json::to_string(&b1).unwrap()),
+            ("batch_00001".to_string(), serde_json::to_string(&b2).unwrap()),
+        ];
+
+        let (_, _, total_records) = MergeHandler::merge_detail_results(
+            &batch_results,
+            "W",
+            (NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(), NaiveDate::from_ymd_opt(2026, 1, 31).unwrap()),
+            Uuid::new_v4(),
+            "UTC",
+        )
+        .unwrap();
+
+        assert_eq!(total_records, 4, "Should be 3 + 1 = 4 total records");
     }
 }

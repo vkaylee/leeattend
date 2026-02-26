@@ -33,7 +33,7 @@ pub struct WsQuery {
 pub async fn ws_auth_middleware(
     State(state): State<Arc<AppState>>,
     Query(query): Query<WsQuery>,
-    request: Request<axum::body::Body>,
+    mut request: Request<axum::body::Body>,
     next: Next,
 ) -> Response {
     let token = match query.token.as_deref() {
@@ -44,7 +44,10 @@ pub async fn ws_auth_middleware(
     };
 
     match crate::services::auth_service::AuthService::verify_token(token, &state.jwt_secret) {
-        Ok(_) => next.run(request).await,
+        Ok(user_id) => {
+            request.extensions_mut().insert(user_id);
+            next.run(request).await
+        }
         Err(_) => (StatusCode::UNAUTHORIZED, "Invalid or expired token").into_response(),
     }
 }
@@ -56,16 +59,9 @@ pub async fn ws_auth_middleware(
 pub async fn report_stream_ws(
     ws: WebSocketUpgrade,
     Path(job_id): Path<Uuid>,
-    Query(query): Query<WsQuery>,
+    axum::Extension(user_id): axum::Extension<Uuid>,
     State(state): State<Arc<AppState>>,
 ) -> Response {
-    // 1. Authenticate user and extract ID
-    let user_id = match query.token.as_deref().and_then(|t| {
-        crate::services::auth_service::AuthService::verify_token(t, &state.jwt_secret).ok()
-    }) {
-        Some(uid) => uid,
-        None => return (StatusCode::UNAUTHORIZED, "Invalid or missing token").into_response(),
-    };
 
     // 2. Check if Redis is available
     let redis = match &state.redis {

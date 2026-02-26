@@ -136,15 +136,12 @@ impl AttendanceHandler {
             .ok_or_else(|| "Job metadata not found".to_string())?;
 
         let publisher = ReportPublisher::new(redis.clone());
-        let chunk_data: serde_json::Value = serde_json::from_str(&result_json)
-            .map_err(|e| format!("Failed to parse result JSON: {e}"))?;
 
         publisher
             .publish_chunk(
                 job.parent_job_id,
                 job.batch_index,
                 metadata.total_batches,
-                chunk_data,
             )
             .await
             .map_err(|e| format!("Failed to publish chunk: {e}"))?;
@@ -218,8 +215,8 @@ impl AttendanceHandler {
         for emp_sched in schedules {
             let entries = entries_map
                 .get(&emp_sched.employee_id)
-                .cloned()
-                .unwrap_or_default();
+                .map(|v| v.as_slice())
+                .unwrap_or(&[]);
             let mut total_units = 0i32;
 
             // Get this employee's conditions once
@@ -228,13 +225,20 @@ impl AttendanceHandler {
                 .map(|v| v.as_slice())
                 .unwrap_or(&[]);
 
+            // Pre-group entries by date once — O(entries) instead of O(entries × days)
+            let mut entries_by_date: HashMap<NaiveDate, Vec<&TimeEntry>> = HashMap::new();
+            for entry in entries {
+                let date = entry.punch_in_time.with_timezone(&tz).date_naive();
+                entries_by_date.entry(date).or_default().push(entry);
+            }
+
             for daily in &emp_sched.schedules {
                 let date = daily.date;
 
-                let day_entries: Vec<_> = entries
-                    .iter()
-                    .filter(|e| e.punch_in_time.with_timezone(&tz).date_naive() == date)
-                    .collect();
+                let day_entries = entries_by_date
+                    .get(&date)
+                    .map(|v| v.as_slice())
+                    .unwrap_or(&[]);
 
                 let actual_punch_in = day_entries
                     .first()
@@ -342,8 +346,8 @@ impl AttendanceHandler {
         for emp_sched in schedules {
             let entries = entries_map
                 .get(&emp_sched.employee_id)
-                .cloned()
-                .unwrap_or_default();
+                .map(|v| v.as_slice())
+                .unwrap_or(&[]);
 
             // Get this employee's conditions once
             let emp_conditions = conditions_map
@@ -351,13 +355,20 @@ impl AttendanceHandler {
                 .map(|v| v.as_slice())
                 .unwrap_or(&[]);
 
+            // Pre-group entries by date once — O(entries) instead of O(entries × days)
+            let mut entries_by_date: HashMap<NaiveDate, Vec<&TimeEntry>> = HashMap::new();
+            for entry in entries {
+                let date = entry.punch_in_time.with_timezone(&tz).date_naive();
+                entries_by_date.entry(date).or_default().push(entry);
+            }
+
             for daily in &emp_sched.schedules {
                 let date = daily.date;
 
-                let day_entries: Vec<_> = entries
-                    .iter()
-                    .filter(|e| e.punch_in_time.with_timezone(&tz).date_naive() == date)
-                    .collect();
+                let day_entries = entries_by_date
+                    .get(&date)
+                    .map(|v| v.as_slice())
+                    .unwrap_or(&[]);
 
                 let actual_punch_in = day_entries
                     .first()
@@ -648,5 +659,146 @@ mod tests {
         } else {
             "off"
         }
+    }
+
+    /// Test that entries are correctly pre-grouped by date using timezone-aware conversion.
+    /// This validates optimization #3: O(entries) pre-grouping instead of O(entries × days) scanning.
+    #[test]
+    fn test_entries_pregrouping_by_date_with_timezone() {
+        use chrono::TimeZone;
+        let tz: Tz = "Asia/Ho_Chi_Minh".parse().unwrap(); // UTC+7
+
+        // Create entries at specific UTC times that map to different local dates
+        // UTC 2026-01-14 20:00 → Ho_Chi_Minh 2026-01-15 03:00
+        let entry_jan15_early = TimeEntry {
+            id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            workspace_id: Uuid::new_v4(),
+            punch_in_time: chrono::Utc.with_ymd_and_hms(2026, 1, 14, 20, 0, 0).unwrap(),
+            punch_out_time: None,
+            entry_type: "work".to_string(),
+            duration_minutes: Some(480),
+            shift_id: None,
+            is_break_overtime: false,
+            note: None,
+            generation_metadata: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
+        // UTC 2026-01-15 02:00 → Ho_Chi_Minh 2026-01-15 09:00
+        let entry_jan15_morning = TimeEntry {
+            id: Uuid::new_v4(),
+            employee_id: entry_jan15_early.employee_id,
+            workspace_id: entry_jan15_early.workspace_id,
+            punch_in_time: chrono::Utc.with_ymd_and_hms(2026, 1, 15, 2, 0, 0).unwrap(),
+            punch_out_time: None,
+            entry_type: "work".to_string(),
+            duration_minutes: Some(480),
+            shift_id: None,
+            is_break_overtime: false,
+            note: None,
+            generation_metadata: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
+        // UTC 2026-01-15 18:00 → Ho_Chi_Minh 2026-01-16 01:00 (next day!)
+        let entry_jan16 = TimeEntry {
+            id: Uuid::new_v4(),
+            employee_id: entry_jan15_early.employee_id,
+            workspace_id: entry_jan15_early.workspace_id,
+            punch_in_time: chrono::Utc.with_ymd_and_hms(2026, 1, 15, 18, 0, 0).unwrap(),
+            punch_out_time: None,
+            entry_type: "work".to_string(),
+            duration_minutes: Some(480),
+            shift_id: None,
+            is_break_overtime: false,
+            note: None,
+            generation_metadata: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
+
+        let entries = vec![entry_jan15_early, entry_jan15_morning, entry_jan16];
+
+        // Pre-group by date (the same pattern used in calculate_summary/calculate_detail)
+        let mut entries_by_date: HashMap<NaiveDate, Vec<&TimeEntry>> = HashMap::new();
+        for entry in &entries {
+            let date = entry.punch_in_time.with_timezone(&tz).date_naive();
+            entries_by_date.entry(date).or_default().push(entry);
+        }
+
+        let jan15 = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
+        let jan16 = NaiveDate::from_ymd_opt(2026, 1, 16).unwrap();
+
+        // 2 entries on Jan 15 (in Ho_Chi_Minh timezone)
+        assert_eq!(entries_by_date.get(&jan15).map(|v| v.len()).unwrap_or(0), 2);
+        // 1 entry on Jan 16 (UTC 18:00 → local 01:00 next day)
+        assert_eq!(entries_by_date.get(&jan16).map(|v| v.len()).unwrap_or(0), 1);
+    }
+
+    /// Test that pre-grouping produces the same results as the old filter-per-day approach.
+    #[test]
+    fn test_pregrouping_matches_filter_approach() {
+        use chrono::TimeZone;
+        let tz: Tz = "UTC".parse().unwrap();
+
+        let emp_id = Uuid::new_v4();
+        let ws_id = Uuid::new_v4();
+        let entries: Vec<TimeEntry> = (1..=5)
+            .map(|day| TimeEntry {
+                id: Uuid::new_v4(),
+                employee_id: emp_id,
+                workspace_id: ws_id,
+                punch_in_time: chrono::Utc.with_ymd_and_hms(2026, 1, day, 8, 0, 0).unwrap(),
+                punch_out_time: None,
+                entry_type: "work".to_string(),
+                duration_minutes: Some(480),
+                shift_id: None,
+                is_break_overtime: false,
+                note: None,
+                generation_metadata: None,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+            })
+            .collect();
+
+        // Pre-group approach (new)
+        let mut entries_by_date: HashMap<NaiveDate, Vec<&TimeEntry>> = HashMap::new();
+        for entry in &entries {
+            let date = entry.punch_in_time.with_timezone(&tz).date_naive();
+            entries_by_date.entry(date).or_default().push(entry);
+        }
+
+        // Filter approach (old) — for each target date, scan all entries
+        for day in 1..=5 {
+            let target = NaiveDate::from_ymd_opt(2026, 1, day).unwrap();
+            let filtered: Vec<_> = entries
+                .iter()
+                .filter(|e| e.punch_in_time.with_timezone(&tz).date_naive() == target)
+                .collect();
+
+            let grouped = entries_by_date.get(&target).map(|v| v.len()).unwrap_or(0);
+            assert_eq!(filtered.len(), grouped, "Mismatch on day {day}");
+        }
+    }
+
+    /// Test that empty entries produce an empty grouping.
+    #[test]
+    fn test_pregrouping_empty_entries() {
+        let tz: Tz = "UTC".parse().unwrap();
+        let entries: Vec<TimeEntry> = vec![];
+
+        let mut entries_by_date: HashMap<NaiveDate, Vec<&TimeEntry>> = HashMap::new();
+        for entry in &entries {
+            let date = entry.punch_in_time.with_timezone(&tz).date_naive();
+            entries_by_date.entry(date).or_default().push(entry);
+        }
+
+        assert!(entries_by_date.is_empty());
+
+        // Looking up any date returns empty
+        let jan1 = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+        let day_entries = entries_by_date.get(&jan1).map(|v| v.as_slice()).unwrap_or(&[]);
+        assert!(day_entries.is_empty());
     }
 }
