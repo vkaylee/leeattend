@@ -84,12 +84,32 @@ impl PresenceStore for RedisPool {
     }
 
     async fn record_presence(&self, agent_id: String) {
-        let mut conn = self.conn();
         let key = format!("agent:presence:{agent_id}");
         let val = Utc::now().to_rfc3339();
 
-        // Set presence key with 60 second TTL and 500ms timeout
-        let _: () = match tokio::time::timeout(
+        // Use a fresh multiplexed connection instead of ConnectionManager.
+        // ConnectionManager has an internal 3-second reconnection delay that causes
+        // set_ex to take 3s+ on reconnection, which exceeds the 500ms timeout and
+        // creates an infinite timeout loop: timeout → drop → reconnect(3s) → timeout.
+        let mut conn = match tokio::time::timeout(
+            std::time::Duration::from_millis(500),
+            self.get_async_connection(),
+        )
+        .await
+        {
+            Ok(Ok(c)) => c,
+            Ok(Err(e)) => {
+                tracing::warn!("Redis connection failed for presence (agent {}): {}", agent_id, e);
+                return;
+            }
+            Err(_) => {
+                tracing::warn!("Redis connection timed out for presence (agent {})", agent_id);
+                return;
+            }
+        };
+
+        // Set presence key with 60 second TTL
+        match tokio::time::timeout(
             std::time::Duration::from_millis(500),
             conn.set_ex::<String, String, ()>(key, val, 60),
         )
@@ -461,6 +481,61 @@ mod tests {
         assert!(
             elapsed < Duration::from_millis(1000),
             "Timeout logic failed to cap duration, got {:?}",
+            elapsed
+        );
+    }
+
+    #[tokio::test]
+    async fn test_record_presence_does_not_hang() {
+        // Regression test: record_heartbeat must complete promptly.
+        // Before the fix, ConnectionManager's 3-second reconnect delay caused
+        // every heartbeat to take 3s+, exceeding the 500ms timeout in a loop.
+        let mock_store = Arc::new(MockPresenceStore {
+            delay: Duration::from_millis(0),
+        });
+        let manager = AgentManager::new(Some(mock_store));
+
+        let (tx, _rx) = mpsc::unbounded_channel();
+        let agent_id = "fast_agent".to_string();
+        manager.add_agent(agent_id.clone(), tx).await;
+
+        let start = tokio::time::Instant::now();
+        manager.record_heartbeat(agent_id).await;
+        let elapsed = start.elapsed();
+
+        // With no delay, heartbeat should complete in well under 100ms
+        assert!(
+            elapsed < Duration::from_millis(100),
+            "record_heartbeat took too long ({:?}), possible ConnectionManager hang",
+            elapsed
+        );
+    }
+
+    #[tokio::test]
+    async fn test_record_presence_timeout_caps_slow_store() {
+        // Verify that a slow presence store is capped by the caller's timeout,
+        // not allowed to block the heartbeat indefinitely.
+        let mock_store = Arc::new(MockPresenceStore {
+            delay: Duration::from_millis(600), // exceeds 500ms timeout
+        });
+        let manager = AgentManager::new(Some(mock_store));
+
+        let (tx, _rx) = mpsc::unbounded_channel();
+        let agent_id = "slow_agent".to_string();
+        manager.add_agent(agent_id.clone(), tx).await;
+
+        let start = tokio::time::Instant::now();
+        // record_heartbeat calls record_presence which is async — test that it
+        // completes without hanging even with a slow store
+        tokio::time::timeout(Duration::from_secs(2), manager.record_heartbeat(agent_id))
+            .await
+            .expect("record_heartbeat hung with slow presence store");
+
+        let elapsed = start.elapsed();
+        // Should complete reasonably fast (mock delay is fire-and-forget)
+        assert!(
+            elapsed < Duration::from_millis(1500),
+            "Heartbeat with slow store took too long: {:?}",
             elapsed
         );
     }

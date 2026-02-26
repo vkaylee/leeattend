@@ -170,7 +170,6 @@ pub fn create_app(state: Arc<AppState>) -> Router {
     };
 
     let mut router = Router::new()
-        .route("/health", get(handlers::health_check))
         .route(
             "/dashboard/workspace-stats",
             get(handlers::get_workspace_stats),
@@ -181,6 +180,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             state.redis.clone(),
             mw::rate_limit::RateLimitConfig::default(),
         ))
+        .route("/health", get(handlers::health_check))
         .route("/auth/refresh", post(handlers::refresh_token))
         .route("/auth/logout", post(handlers::logout));
 
