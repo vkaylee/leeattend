@@ -260,6 +260,8 @@ impl ReportService {
                     date,
                     employee_id: emp_sched.employee_id,
                     employee_name: emp_sched.full_name.clone(),
+                    employee_id_number: emp_sched.employee_id_number.clone(),
+                    shift_symbol: daily.shift_symbol.clone(),
                     scheduled_start: daily.start_time,
                     scheduled_end: daily.end_time,
                     break_duration_minutes: daily.break_duration_minutes,

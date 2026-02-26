@@ -9,6 +9,7 @@ pub async fn create_shift<'a, E>(
     executor: E,
     workspace_id: Uuid,
     name: String,
+    report_symbol: Option<String>,
     start_time: NaiveTime,
     end_time: NaiveTime,
     break_duration_minutes: i32,
@@ -27,20 +28,21 @@ where
     query_as!(
         Shift,
         r#"INSERT INTO shifts (
-            workspace_id, name, start_time, end_time, 
+            workspace_id, name, report_symbol, start_time, end_time, 
             break_duration_minutes, break_start, break_end, 
             is_break_auto_deduct, break_is_overtime, 
             early_punch_in_grace_period_minutes, allow_early_ot, is_active, parent_shift_id
         )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
          RETURNING 
-            id, workspace_id, name, start_time, end_time, 
+            id, workspace_id, name, report_symbol, start_time, end_time, 
             break_duration_minutes, break_start, break_end, 
             is_break_auto_deduct, break_is_overtime, 
             early_punch_in_grace_period_minutes, allow_early_ot, is_active, parent_shift_id,
             created_at as "created_at!", updated_at as "updated_at!""#,
         workspace_id,
         name,
+        report_symbol,
         start_time,
         end_time,
         break_duration_minutes,
@@ -61,7 +63,7 @@ pub async fn get_shift_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Shift>, s
     query_as!(
         Shift,
         r#"SELECT 
-            id, workspace_id, name, start_time, end_time, 
+            id, workspace_id, name, report_symbol, start_time, end_time, 
             break_duration_minutes, break_start, break_end, 
             is_break_auto_deduct, break_is_overtime, 
             early_punch_in_grace_period_minutes, allow_early_ot, is_active, parent_shift_id,
@@ -80,7 +82,7 @@ pub async fn get_workspace_shifts(
     query_as!(
         Shift,
         r#"SELECT 
-            id, workspace_id, name, start_time, end_time, 
+            id, workspace_id, name, report_symbol, start_time, end_time, 
             break_duration_minutes, break_start, break_end, 
             is_break_auto_deduct, break_is_overtime, 
             early_punch_in_grace_period_minutes, allow_early_ot, is_active, parent_shift_id,
@@ -99,6 +101,7 @@ pub async fn update_shift_direct(
     pool: &PgPool,
     id: Uuid,
     name: String,
+    report_symbol: Option<String>,
     start_time: NaiveTime,
     end_time: NaiveTime,
     break_duration_minutes: i32,
@@ -112,19 +115,20 @@ pub async fn update_shift_direct(
     query_as!(
         Shift,
         r#"UPDATE shifts 
-         SET name = $2, start_time = $3, end_time = $4, 
-             break_duration_minutes = $5, break_start = $6, break_end = $7, 
-             is_break_auto_deduct = $8, break_is_overtime = $9, 
-             early_punch_in_grace_period_minutes = $10, allow_early_ot = $11, updated_at = CURRENT_TIMESTAMP
+         SET name = $2, report_symbol = $3, start_time = $4, end_time = $5, 
+             break_duration_minutes = $6, break_start = $7, break_end = $8, 
+             is_break_auto_deduct = $9, break_is_overtime = $10, 
+             early_punch_in_grace_period_minutes = $11, allow_early_ot = $12, updated_at = CURRENT_TIMESTAMP
          WHERE id = $1
          RETURNING 
-            id, workspace_id, name, start_time, end_time, 
+            id, workspace_id, name, report_symbol, start_time, end_time, 
             break_duration_minutes, break_start, break_end, 
             is_break_auto_deduct, break_is_overtime, 
             early_punch_in_grace_period_minutes, allow_early_ot, is_active, parent_shift_id,
             created_at as "created_at!", updated_at as "updated_at!""#,
         id,
         name,
+        report_symbol,
         start_time,
         end_time,
         break_duration_minutes,
@@ -180,7 +184,7 @@ pub async fn get_employee_active_shift(
     query_as!(
         Shift,
         r#"SELECT 
-            s.id, s.workspace_id, s.name, s.start_time, s.end_time, 
+            s.id, s.workspace_id, s.name, s.report_symbol, s.start_time, s.end_time, 
             s.break_duration_minutes, s.break_start, s.break_end, 
             s.is_break_auto_deduct, s.break_is_overtime, 
             s.early_punch_in_grace_period_minutes, s.allow_early_ot, s.is_active, s.parent_shift_id,

@@ -57,6 +57,8 @@ pub struct DailyAttendanceReport {
     pub date: NaiveDate,
     pub employee_id: Uuid,
     pub employee_name: String,
+    pub employee_id_number: String,
+    pub shift_symbol: Option<String>,
     pub scheduled_start: Option<NaiveTime>,
     pub scheduled_end: Option<NaiveTime>,
     pub break_duration_minutes: Option<i32>,

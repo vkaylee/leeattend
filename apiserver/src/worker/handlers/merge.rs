@@ -95,13 +95,19 @@ impl MergeHandler {
                 date_range,
                 parent_job_id,
             )?,
-            ReportType::Detail => Self::merge_detail_results(
-                &batch_results,
-                &workspace_name,
-                date_range,
-                parent_job_id,
-                &workspace_tz,
-            )?,
+            ReportType::Detail => {
+                let work_unit_minutes = job
+                    .merge_payload()
+                    .map(|p| p.config.work_unit_minutes)
+                    .unwrap_or(30);
+                Self::merge_detail_results(
+                    &batch_results,
+                    &workspace_name,
+                    date_range,
+                    parent_job_id,
+                    &workspace_tz,
+                    work_unit_minutes,
+                )?}
         };
 
         info!(
@@ -231,6 +237,7 @@ impl MergeHandler {
         date_range: (NaiveDate, NaiveDate),
         parent_job_id: uuid::Uuid,
         timezone: &str,
+        work_unit_minutes: i32,
     ) -> Result<(Vec<u8>, String, usize), String> {
         let mut all_reports: Vec<DailyAttendanceReport> = Vec::new();
 
@@ -250,7 +257,7 @@ impl MergeHandler {
         info!(total_records = all_reports.len(), "Merged detail results");
 
         // Generate Excel
-        let excel_data = ExcelWriter::write_detail(&all_reports, workspace_name, date_range, timezone)?;
+        let excel_data = ExcelWriter::write_detail(&all_reports, workspace_name, date_range, timezone, work_unit_minutes)?;
 
         let total_records = all_reports.len();
 
@@ -352,6 +359,8 @@ mod tests {
             date: NaiveDate::from_ymd_opt(2026, 1, 2).unwrap(),
             employee_id: Uuid::new_v4(),
             employee_name: "Bob Jones".to_string(),
+            employee_id_number: "EMP002".to_string(),
+            shift_symbol: None,
             scheduled_start: None,
             scheduled_end: None,
             break_duration_minutes: None,
@@ -370,6 +379,8 @@ mod tests {
             date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
             employee_id: Uuid::new_v4(),
             employee_name: "Alice Smith".to_string(),
+            employee_id_number: "EMP001".to_string(),
+            shift_symbol: None,
             scheduled_start: None,
             scheduled_end: None,
             break_duration_minutes: None,
@@ -405,6 +416,7 @@ mod tests {
             ),
             Uuid::new_v4(),
             "UTC",
+            30,
         );
 
         assert!(result.is_ok());
@@ -477,6 +489,8 @@ mod tests {
             date: NaiveDate::from_ymd_opt(2026, 1, day).unwrap(),
             employee_id: Uuid::new_v4(),
             employee_name: name.to_string(),
+            employee_id_number: "EMP001".to_string(),
+            shift_symbol: None,
             scheduled_start: None,
             scheduled_end: None,
             break_duration_minutes: None,
@@ -506,6 +520,7 @@ mod tests {
             (NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(), NaiveDate::from_ymd_opt(2026, 1, 31).unwrap()),
             Uuid::new_v4(),
             "UTC",
+            30,
         )
         .unwrap();
 

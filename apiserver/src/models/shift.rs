@@ -26,6 +26,7 @@ pub struct Shift {
     pub id: Uuid,
     pub workspace_id: Uuid,
     pub name: String,
+    pub report_symbol: Option<String>,
     pub start_time: NaiveTime,
     pub end_time: NaiveTime,
     pub break_duration_minutes: i32,
@@ -48,6 +49,8 @@ pub(super) fn default_true() -> bool {
 #[derive(Debug, Deserialize)]
 pub struct CreateShiftRequest {
     pub name: String,
+    #[serde(default)]
+    pub report_symbol: Option<String>,
     pub start_time: NaiveTime,
     pub end_time: NaiveTime,
     pub break_duration_minutes: i32,
@@ -68,6 +71,8 @@ pub struct CreateShiftRequest {
 #[derive(Debug, Deserialize)]
 pub struct UpdateShiftRequest {
     pub name: String,
+    #[serde(default)]
+    pub report_symbol: Option<String>,
     pub start_time: NaiveTime,
     pub end_time: NaiveTime,
     pub break_duration_minutes: i32,

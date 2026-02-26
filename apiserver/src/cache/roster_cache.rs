@@ -26,6 +26,7 @@ use crate::queue::RedisPool;
 #[derive(Debug, Clone)]
 pub struct RosterShift {
     pub name: String,
+    pub report_symbol: Option<String>,
     pub start_time: NaiveTime,
     pub end_time: NaiveTime,
     pub break_duration_minutes: i32,
@@ -117,7 +118,7 @@ pub async fn build_roster_data(
     // Create futures at top level for sqlx::query! type inference to work
     let q1 = sqlx::query!(
         r#"
-        SELECT id, name, start_time, end_time, break_duration_minutes,
+        SELECT id, name, report_symbol, start_time, end_time, break_duration_minutes,
                break_start, break_end, is_break_auto_deduct,
                early_punch_in_grace_period_minutes, allow_early_ot
         FROM shifts WHERE workspace_id = $1
@@ -235,6 +236,7 @@ pub async fn build_roster_data(
                 r.id,
                 RosterShift {
                     name: r.name,
+                    report_symbol: r.report_symbol,
                     start_time: r.start_time,
                     end_time: r.end_time,
                     break_duration_minutes: r.break_duration_minutes,
@@ -534,6 +536,7 @@ mod tests {
     fn test_roster_shift_construction() {
         let shift = RosterShift {
             name: "Morning".to_string(),
+            report_symbol: None,
             start_time: chrono::NaiveTime::from_hms_opt(8, 0, 0).expect("valid time"),
             end_time: chrono::NaiveTime::from_hms_opt(17, 0, 0).expect("valid time"),
             break_duration_minutes: 60,

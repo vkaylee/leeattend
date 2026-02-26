@@ -75,6 +75,7 @@ export default function ShiftsPage() {
   // Create Shift Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newShiftName, setNewShiftName] = useState("");
+  const [newShiftSymbol, setNewShiftSymbol] = useState("");
   const [newShiftStart, setNewShiftStart] = useState("08:00");
   const [newShiftEnd, setNewShiftEnd] = useState("17:00");
   const [newShiftBreak, setNewShiftBreak] = useState(60);
@@ -188,6 +189,7 @@ export default function ShiftsPage() {
     onSuccess: () => {
       toast.success(t("shifts.messages.create_shift_success", { name: newShiftName }));
       setNewShiftName("");
+      setNewShiftSymbol("");
       setNewShiftStart("08:00");
       setNewShiftEnd("17:00");
       setNewShiftBreak(60);
@@ -255,7 +257,10 @@ export default function ShiftsPage() {
   const handleCreateShift = () => {
     if (!newShiftName || !newShiftStart || !newShiftEnd) return;
     createShiftMutation.mutate({
-      name: newShiftName, start_time: newShiftStart + ":00", end_time: newShiftEnd + ":00",
+      name: newShiftName,
+      report_symbol: newShiftSymbol || undefined,
+      start_time: newShiftStart + ":00",
+      end_time: newShiftEnd + ":00",
       break_duration_minutes: newShiftBreak,
       early_punch_in_grace_period_minutes: newShiftGrace,
       is_break_overtime: false,
@@ -272,7 +277,10 @@ export default function ShiftsPage() {
     updateShiftMutation.mutate({
       id: editingShift.id,
       data: {
-        name: newShiftName, start_time: newShiftStart, end_time: newShiftEnd,
+        name: newShiftName,
+        report_symbol: newShiftSymbol || null,
+        start_time: newShiftStart,
+        end_time: newShiftEnd,
         break_duration_minutes: newShiftBreak,
         early_punch_in_grace_period_minutes: newShiftGrace,
         is_break_overtime: false,
@@ -293,6 +301,7 @@ export default function ShiftsPage() {
   const openEditModal = (shift: Shift) => {
     setEditingShift(shift);
     setNewShiftName(shift.name);
+    setNewShiftSymbol(shift.report_symbol || "");
     setNewShiftStart(shift.start_time.substring(0, 5));
     setNewShiftEnd(shift.end_time.substring(0, 5));
     setNewShiftBreak(shift.break_duration_minutes);
@@ -425,6 +434,8 @@ export default function ShiftsPage() {
         onClose={() => setIsCreateModalOpen(false)}
         newShiftName={newShiftName}
         setNewShiftName={setNewShiftName}
+        newShiftSymbol={newShiftSymbol}
+        setNewShiftSymbol={setNewShiftSymbol}
         newShiftStart={newShiftStart}
         setNewShiftStart={setNewShiftStart}
         newShiftEnd={newShiftEnd}
@@ -459,6 +470,8 @@ export default function ShiftsPage() {
         onClose={() => setEditingShift(null)}
         newShiftName={newShiftName}
         setNewShiftName={setNewShiftName}
+        newShiftSymbol={newShiftSymbol}
+        setNewShiftSymbol={setNewShiftSymbol}
         newShiftStart={newShiftStart}
         setNewShiftStart={setNewShiftStart}
         newShiftEnd={newShiftEnd}

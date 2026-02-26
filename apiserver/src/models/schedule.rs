@@ -76,6 +76,7 @@ pub struct EffectiveSchedule {
     pub shift_id: Option<Uuid>, // None means Day Off
     pub source: String,         // "roster", "fixed", "department", "none"
     pub shift_name: Option<String>,
+    pub shift_symbol: Option<String>,
     pub start_time: Option<NaiveTime>,
     pub end_time: Option<NaiveTime>,
     pub break_duration_minutes: Option<i32>,
@@ -91,6 +92,7 @@ pub struct EffectiveSchedule {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EmployeeSchedule {
     pub employee_id: Uuid,
+    pub employee_id_number: String,
     pub full_name: String,
     pub schedules: Vec<EffectiveSchedule>,
 }

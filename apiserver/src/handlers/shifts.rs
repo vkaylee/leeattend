@@ -46,6 +46,7 @@ pub async fn create_shift(
         &state.db,
         workspace_id,
         req.name,
+        req.report_symbol,
         req.start_time,
         req.end_time,
         req.break_duration_minutes,

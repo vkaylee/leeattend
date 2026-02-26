@@ -259,6 +259,7 @@ export interface Shift {
   id: string;
   workspace_id: string;
   name: string;
+  report_symbol?: string | null;
   start_time: string;
   end_time: string;
   break_duration_minutes: number;

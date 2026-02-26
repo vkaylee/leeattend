@@ -215,6 +215,7 @@ pub async fn get_workspace_schedules(
                 shift_id: effective_shift_id,
                 source,
                 shift_name: None,
+                shift_symbol: None,
                 start_time: None,
                 end_time: None,
                 break_duration_minutes: None,
@@ -229,6 +230,7 @@ pub async fn get_workspace_schedules(
             if let Some(sid) = effective_shift_id {
                 if let Some(shift) = roster_data.shifts.get(&sid) {
                     sched.shift_name = Some(shift.name.clone());
+                    sched.shift_symbol = shift.report_symbol.clone();
                     sched.start_time = Some(shift.start_time);
                     sched.end_time = Some(shift.end_time);
                     sched.break_duration_minutes = Some(shift.break_duration_minutes);
@@ -251,6 +253,7 @@ pub async fn get_workspace_schedules(
 
         result.push(EmployeeSchedule {
             employee_id: emp_id,
+            employee_id_number: emp_id_number,
             full_name: emp_full_name,
             schedules: daily_schedules,
         });

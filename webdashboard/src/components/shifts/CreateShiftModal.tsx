@@ -8,6 +8,8 @@ interface CreateShiftModalProps {
   onClose: () => void;
   newShiftName: string;
   setNewShiftName: (value: string) => void;
+  newShiftSymbol: string;
+  setNewShiftSymbol: (value: string) => void;
   newShiftStart: string;
   setNewShiftStart: (value: string) => void;
   newShiftEnd: string;
@@ -31,6 +33,8 @@ export function CreateShiftModal({
   onClose,
   newShiftName,
   setNewShiftName,
+  newShiftSymbol,
+  setNewShiftSymbol,
   newShiftStart,
   setNewShiftStart,
   newShiftEnd,
@@ -67,6 +71,20 @@ export function CreateShiftModal({
                 value={newShiftName}
                 onChange={(e) => setNewShiftName(e.target.value)}
                 placeholder={t("shifts.modal.name_placeholder")}
+                className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                {t("shifts.modal.report_symbol", "Ký hiệu báo cáo")}
+                <span className="ml-1 normal-case font-normal text-slate-400">(tối đa 10 ký tự)</span>
+              </label>
+              <input
+                type="text"
+                value={newShiftSymbol}
+                onChange={(e) => setNewShiftSymbol(e.target.value.slice(0, 10))}
+                placeholder={t("shifts.modal.report_symbol_placeholder", "VD: S8, T8, FX...")}
+                maxLength={10}
                 className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 transition-all"
               />
             </div>
