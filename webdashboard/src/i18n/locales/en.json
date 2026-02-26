@@ -1618,6 +1618,7 @@
   "monitor": {
     "title": "Worker Monitor",
     "subtitle": "Real-time distributed worker status",
+    "error_loading": "Failed to load monitor data",
     "pending_tasks": "Pending Tasks",
     "active_workers": "Active Workers",
     "idle_workers": "Idle Workers",

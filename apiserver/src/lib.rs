@@ -467,14 +467,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
                 ),
             ),
         )
-        // Worker monitoring endpoints (global infrastructure)
+        // Worker monitoring endpoint (global infrastructure, single combined call)
         .route(
-            "/monitor/stats",
-            get(handlers::worker_monitor::get_monitor_stats),
-        )
-        .route(
-            "/monitor/workers",
-            get(handlers::worker_monitor::get_worker_list),
+            "/monitor/overview",
+            get(handlers::worker_monitor::get_monitor_overview),
         )
         .route(
             "/workspaces/:ws_id/overtime/policies",

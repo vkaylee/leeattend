@@ -3,7 +3,7 @@
 //! Provides real-time monitoring endpoints for distributed worker system.
 
 use axum::{extract::State, Json};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeDelta, Utc};
 use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -17,6 +17,9 @@ const WORKER_HEARTBEAT_PREFIX: &str = "monitor:worker:";
 const STATS_COMPLETED_PREFIX: &str = "stats:completed:";
 const STATS_FAILED_PREFIX: &str = "stats:failed:";
 const QUEUE_KEY: &str = "report:jobs:attendance";
+
+/// Workers not seen within this duration are considered stale and excluded.
+const STALE_THRESHOLD_SECS: i64 = 60;
 
 /// Worker status enum
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -36,23 +39,24 @@ pub struct WorkerHeartbeat {
     pub last_seen_at: DateTime<Utc>,
 }
 
-/// Dashboard overview statistics response
+/// Combined monitor overview response — stats + worker list in one call.
 #[derive(Debug, Serialize)]
-pub struct MonitorStatsResponse {
+pub struct MonitorOverviewResponse {
     pub pending_tasks: u64,
     pub total_workers: u64,
     pub active_workers: u64,
     pub idle_workers: u64,
     pub completed_today: u64,
     pub failed_today: u64,
+    pub workers: Vec<WorkerHeartbeat>,
 }
 
-/// Get dashboard overview statistics.
+/// Get combined monitor overview: stats + worker list in a single call.
 ///
-/// Route: GET /monitor/stats
-pub async fn get_monitor_stats(
+/// Route: GET /monitor/overview
+pub async fn get_monitor_overview(
     State(state): State<Arc<AppState>>,
-) -> AppResult<Json<MonitorStatsResponse>> {
+) -> AppResult<Json<MonitorOverviewResponse>> {
     let redis = state
         .redis
         .as_ref()
@@ -75,67 +79,55 @@ pub async fn get_monitor_stats(
     let pattern = format!("{WORKER_HEARTBEAT_PREFIX}*");
     let worker_keys = scan_keys(&mut conn, &pattern).await;
 
-    // 4. Get worker statuses and count
-    let mut total_workers = 0u64;
-    let mut active_workers = 0u64;
-    let mut idle_workers = 0u64;
+    // 4. Parse heartbeats and filter stale workers
+    let now = Utc::now();
+    let stale_cutoff = now - TimeDelta::seconds(STALE_THRESHOLD_SECS);
 
-    if !worker_keys.is_empty() {
-        // MGET all worker heartbeat values
+    let (active_workers, idle_workers, workers) = if !worker_keys.is_empty() {
         let values: Vec<Option<String>> = conn.mget(&worker_keys).await.unwrap_or_default();
+        filter_stale_workers(values, stale_cutoff)
+    } else {
+        (0, 0, Vec::new())
+    };
 
-        for value in values.into_iter().flatten() {
-            if let Ok(heartbeat) = serde_json::from_str::<WorkerHeartbeat>(&value) {
-                total_workers += 1;
-                match heartbeat.status {
-                    WorkerStatus::Processing => active_workers += 1,
-                    WorkerStatus::Idle => idle_workers += 1,
-                }
-            }
-        }
-    }
+    let total_workers = workers.len() as u64;
 
-    Ok(Json(MonitorStatsResponse {
+    Ok(Json(MonitorOverviewResponse {
         pending_tasks,
         total_workers,
         active_workers,
         idle_workers,
         completed_today,
         failed_today,
+        workers,
     }))
 }
 
-/// Get list of all worker heartbeats.
-///
-/// Route: GET /monitor/workers
-pub async fn get_worker_list(
-    State(state): State<Arc<AppState>>,
-) -> AppResult<Json<Vec<WorkerHeartbeat>>> {
-    let redis = state
-        .redis
-        .as_ref()
-        .ok_or_else(|| AppError::ServiceUnavailable("Redis not available".to_string()))?;
+/// Helper to parse worker heartbeats from Redis strings and filter out stale ones.
+/// Returns (active_workers_count, idle_workers_count, filtered_workers_list).
+fn filter_stale_workers(
+    values: Vec<Option<String>>,
+    stale_cutoff: DateTime<Utc>,
+) -> (u64, u64, Vec<WorkerHeartbeat>) {
+    let mut workers = Vec::new();
+    let mut active = 0u64;
+    let mut idle = 0u64;
 
-    let mut conn = redis.conn();
-
-    // Scan all worker heartbeat keys
-    let pattern = format!("{WORKER_HEARTBEAT_PREFIX}*");
-    let worker_keys = scan_keys(&mut conn, &pattern).await;
-
-    if worker_keys.is_empty() {
-        return Ok(Json(vec![]));
+    for value in values.into_iter().flatten() {
+        if let Ok(heartbeat) = serde_json::from_str::<WorkerHeartbeat>(&value) {
+            // Skip stale workers (not seen within threshold)
+            if heartbeat.last_seen_at < stale_cutoff {
+                continue;
+            }
+            match heartbeat.status {
+                WorkerStatus::Processing => active += 1,
+                WorkerStatus::Idle => idle += 1,
+            }
+            workers.push(heartbeat);
+        }
     }
 
-    // MGET all worker heartbeat values
-    let values: Vec<Option<String>> = conn.mget(&worker_keys).await.unwrap_or_default();
-
-    let workers: Vec<WorkerHeartbeat> = values
-        .into_iter()
-        .flatten()
-        .filter_map(|v| serde_json::from_str(&v).ok())
-        .collect();
-
-    Ok(Json(workers))
+    (active, idle, workers)
 }
 
 /// Scan Redis keys matching a pattern using SCAN iterator.
@@ -145,7 +137,6 @@ async fn scan_keys(conn: &mut redis::aio::ConnectionManager, pattern: &str) -> V
     let mut cursor = 0u64;
 
     loop {
-        // SCAN cursor MATCH pattern COUNT 100
         let result: Result<(u64, Vec<String>), _> = redis::cmd("SCAN")
             .arg(cursor)
             .arg("MATCH")
@@ -163,7 +154,10 @@ async fn scan_keys(conn: &mut redis::aio::ConnectionManager, pattern: &str) -> V
                     break;
                 }
             }
-            Err(_) => break,
+            Err(err) => {
+                tracing::warn!(pattern, error = %err, "Redis SCAN failed during worker monitoring");
+                break;
+            }
         }
     }
 
@@ -206,21 +200,23 @@ mod tests {
     }
 
     #[test]
-    fn test_monitor_stats_response_serialization() {
-        let stats = MonitorStatsResponse {
+    fn test_monitor_overview_response_serialization() {
+        let overview = MonitorOverviewResponse {
             pending_tasks: 150,
             total_workers: 50,
             active_workers: 45,
             idle_workers: 5,
             completed_today: 1200,
             failed_today: 3,
+            workers: vec![],
         };
 
-        let json = serde_json::to_string(&stats)
-            .expect("MonitorStatsResponse serialization should not fail");
+        let json = serde_json::to_string(&overview)
+            .expect("MonitorOverviewResponse serialization should not fail");
         assert!(json.contains("\"pending_tasks\":150"));
         assert!(json.contains("\"total_workers\":50"));
         assert!(json.contains("\"active_workers\":45"));
+        assert!(json.contains("\"workers\":[]"));
     }
 
     #[test]
@@ -253,5 +249,59 @@ mod tests {
         assert_eq!(heartbeat.host, "worker-1");
         assert_eq!(heartbeat.status, WorkerStatus::Idle);
         assert!(heartbeat.current_task_type.is_none());
+    }
+
+    #[test]
+    fn test_filter_stale_workers() {
+        let now = Utc::now();
+        let stale_cutoff = now - TimeDelta::seconds(STALE_THRESHOLD_SECS);
+
+        // Worker 1: Active, very recent
+        let w1 = WorkerHeartbeat {
+            id: Uuid::new_v4(),
+            host: "h1".to_string(),
+            status: WorkerStatus::Processing,
+            current_task_type: None,
+            last_seen_at: now - TimeDelta::seconds(10),
+        };
+
+        // Worker 2: Idle, just before cutoff
+        let w2 = WorkerHeartbeat {
+            id: Uuid::new_v4(),
+            host: "h2".to_string(),
+            status: WorkerStatus::Idle,
+            current_task_type: None,
+            last_seen_at: stale_cutoff + TimeDelta::seconds(5),
+        };
+
+        // Worker 3: Processing, stale (should be dropped)
+        let w3 = WorkerHeartbeat {
+            id: Uuid::new_v4(),
+            host: "h3".to_string(),
+            status: WorkerStatus::Processing,
+            current_task_type: None,
+            last_seen_at: stale_cutoff - TimeDelta::seconds(5),
+        };
+
+        let values = vec![
+            Some(serde_json::to_string(&w1).unwrap()),
+            Some(serde_json::to_string(&w2).unwrap()),
+            Some(serde_json::to_string(&w3).unwrap()),
+            Some("invalid json...".to_string()),
+            None,
+        ];
+
+        let (active, idle, workers) = filter_stale_workers(values, stale_cutoff);
+
+        // Should only count w1 (active) and w2 (idle). w3 is stale, others invalid
+        assert_eq!(active, 1);
+        assert_eq!(idle, 1);
+        assert_eq!(workers.len(), 2);
+
+        // Ensure w3 was dropped
+        let hosts: Vec<String> = workers.into_iter().map(|w| w.host).collect();
+        assert!(hosts.contains(&"h1".to_string()));
+        assert!(hosts.contains(&"h2".to_string()));
+        assert!(!hosts.contains(&"h3".to_string()));
     }
 }

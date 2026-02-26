@@ -10,6 +10,7 @@ import {
   Loader2,
   Zap,
   Coffee,
+  AlertTriangle,
 } from "lucide-react";
 import { useWorkerMonitor } from "@/hooks/use-worker-monitor";
 import { cn } from "@/lib/utils";
@@ -17,7 +18,7 @@ import { formatDistanceToNow } from "date-fns";
 
 export default function WorkerMonitorPage() {
   const { t } = useTranslation();
-  const { stats, workers, isLoading, isFetching, refetch } = useWorkerMonitor();
+  const { stats, workers, isLoading, isFetching, error, refetch } = useWorkerMonitor();
 
   const statCards = [
     {
@@ -59,8 +60,8 @@ export default function WorkerMonitorPage() {
       label: t("monitor.total_workers"),
       value: stats?.total_workers ?? 0,
       icon: Server,
-      color: "bg-violet-50 text-violet-600 border-violet-100",
-      bgIcon: "text-violet-100",
+      color: "bg-violet-50 dark:bg-violet-950 text-violet-600 dark:text-violet-300 border-violet-100 dark:border-violet-800",
+      bgIcon: "text-violet-100 dark:text-violet-800",
     },
   ];
 
@@ -91,6 +92,14 @@ export default function WorkerMonitorPage() {
           {t("common.refresh")}
         </button>
       </div>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-rose-50 dark:bg-rose-950 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-sm font-medium">
+          <AlertTriangle size={18} className="shrink-0" />
+          {t("monitor.error_loading", { defaultValue: "Failed to load monitoring data. Retrying..." })}
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
@@ -159,7 +168,7 @@ export default function WorkerMonitorPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/50 dark:bg-slate-800/50">
+                <tr className="bg-slate-50 dark:bg-slate-800/50">
                   <th className="text-left px-6 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                     {t("monitor.worker_id")}
                   </th>
@@ -181,10 +190,13 @@ export default function WorkerMonitorPage() {
                 {workers.map((worker) => (
                   <tr
                     key={worker.id}
-                    className="border-t border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:hover:bg-slate-800/50 transition-colors"
+                    className="border-t border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
                     <td className="px-6 py-4">
-                      <code className="text-xs font-mono text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
+                      <code
+                        title={worker.id}
+                        className="text-xs font-mono text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded cursor-help"
+                      >
                         {worker.id.slice(0, 8)}...
                       </code>
                     </td>

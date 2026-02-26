@@ -494,6 +494,7 @@ export interface WorkerMonitorStats {
   idle_workers: number;
   completed_today: number;
   failed_today: number;
+  workers: WorkerHeartbeat[];
 }
 
 export interface WorkerHeartbeat {

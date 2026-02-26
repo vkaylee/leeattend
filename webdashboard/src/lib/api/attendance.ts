@@ -13,7 +13,6 @@ import {
   CreateReportExportRequest,
   CreateReportExportResponse,
   WorkerMonitorStats,
-  WorkerHeartbeat
 } from "./types";
 
 export async function punchIn(
@@ -96,7 +95,7 @@ export async function fetchWorkspaceAttendanceAdjustments(
   wsId: string,
   status?: string
 ): Promise<AttendanceAdjustmentRequest[]> {
-  const url = status 
+  const url = status
     ? `${API_BASE_URL}/workspaces/${wsId}/attendance/adjustments?status=${status}`
     : `${API_BASE_URL}/workspaces/${wsId}/attendance/adjustments`;
   const response = await apiFetch(url);
@@ -137,9 +136,9 @@ export async function fetchAttendanceLogs(params: {
   if (params.to) searchParams.append("to", params.to);
   if (params.page) searchParams.append("page", params.page.toString());
   if (params.limit) searchParams.append("limit", params.limit.toString());
-  
+
   const wsId = getCurrentWorkspaceId();
-  const url = wsId 
+  const url = wsId
     ? `${API_BASE_URL}/workspaces/${wsId}/attendance/logs?${searchParams.toString()}`
     : `${API_BASE_URL}/attendance/logs?${searchParams.toString()}`;
 
@@ -161,10 +160,10 @@ export async function fetchRawAttendanceLogs(params: {
   if (params.to) searchParams.append("to", params.to);
   if (params.page) searchParams.append("page", params.page.toString());
   if (params.limit) searchParams.append("limit", params.limit.toString());
-  
+
   const wsId = getCurrentWorkspaceId();
   if (!wsId) throw new Error("Workspace not selected");
-  
+
   const url = `${API_BASE_URL}/workspaces/${wsId}/attendance/raw-logs?${searchParams.toString()}`;
 
   const response = await apiFetch(url);
@@ -235,7 +234,7 @@ export async function fetchLatestImportJob(
   wsId: string,
   targetType?: string
 ): Promise<AttendanceImportJob | null> {
-  const url = targetType 
+  const url = targetType
     ? `${API_BASE_URL}/workspaces/${wsId}/attendance/import-jobs/latest?target_type=${targetType}`
     : `${API_BASE_URL}/workspaces/${wsId}/attendance/import-jobs/latest`;
   const response = await apiFetch(url);
@@ -493,14 +492,8 @@ export async function downloadExportReport(
 
 // --- Worker Monitoring (Global Infrastructure) ---
 
-export async function fetchMonitorStats(): Promise<WorkerMonitorStats> {
-  const response = await apiFetch(`${API_BASE_URL}/monitor/stats`);
-  if (!response.ok) throw new Error("Failed to fetch monitor stats");
-  return response.json();
-}
-
-export async function fetchWorkerList(): Promise<WorkerHeartbeat[]> {
-  const response = await apiFetch(`${API_BASE_URL}/monitor/workers`);
-  if (!response.ok) throw new Error("Failed to fetch worker list");
+export async function fetchMonitorOverview(): Promise<WorkerMonitorStats> {
+  const response = await apiFetch(`${API_BASE_URL}/monitor/overview`);
+  if (!response.ok) throw new Error("Failed to fetch monitor overview");
   return response.json();
 }
