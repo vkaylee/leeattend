@@ -66,12 +66,15 @@ export function useReportStream({
   const retryCountRef = useRef(0);
   const shouldReconnectRef = useRef(true);
   const totalBatchesRef = useRef(0);
+  const statusRef = useRef<StreamStatus>("idle");
 
   // Store callbacks in refs to avoid dependency issues
   const onCompleteRef = useRef(onComplete);
   const onErrorRef = useRef(onError);
   onCompleteRef.current = onComplete;
   onErrorRef.current = onError;
+  // Keep statusRef in sync so onclose handler reads latest value
+  statusRef.current = status;
 
   /**
    * Handle incoming WebSocket message
@@ -167,8 +170,8 @@ export function useReportStream({
         if (
           shouldReconnectRef.current &&
           retryCountRef.current < maxRetries &&
-          status !== "completed" &&
-          status !== "error"
+          statusRef.current !== "completed" &&
+          statusRef.current !== "error"
         ) {
           const delay = getBackoffDelay(retryCountRef.current);
           console.debug(
@@ -178,12 +181,13 @@ export function useReportStream({
           retryCountRef.current++;
           setTimeout(() => {
             if (shouldReconnectRef.current) {
+              // eslint-disable-next-line react-hooks/immutability
               connect();
             }
           }, delay);
         } else if (
           retryCountRef.current >= maxRetries &&
-          status !== "completed"
+          statusRef.current !== "completed"
         ) {
           setStatus("error");
           setError("Connection lost. Max retries exceeded.");
@@ -195,7 +199,6 @@ export function useReportStream({
       setStatus("error");
       setError("Failed to establish connection");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId, handleMessage, maxRetries]);
 
   /**

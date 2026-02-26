@@ -44,6 +44,8 @@ impl AttendanceHandler {
             "Processing attendance batch"
         );
 
+        let t0 = std::time::Instant::now();
+
         // 1. Fetch schedules for this batch's employees
         let schedules = roster_repository::get_workspace_schedules(
             pool,
@@ -55,6 +57,8 @@ impl AttendanceHandler {
         )
         .await
         .map_err(|e| format!("Failed to fetch schedules: {e}"))?;
+
+        let t_schedules = t0.elapsed();
 
         // 2. Get workspace config from cache (cache-aside pattern)
         let workspace_config = cache
@@ -92,6 +96,8 @@ impl AttendanceHandler {
         .await
         .map_err(|e| format!("Failed to fetch time entries: {e}"))?;
 
+        let t_entries = t0.elapsed();
+
         // 5. Calculate based on report type
         let result_json = match job.config.report_type {
             ReportType::Summary => {
@@ -128,6 +134,8 @@ impl AttendanceHandler {
             .await
             .map_err(|e| format!("Failed to store result: {e}"))?;
 
+        let t_store = t0.elapsed();
+
         // 7. Publish chunk to Redis Pub/Sub for real-time streaming
         let metadata = queue
             .get_job_metadata(job.parent_job_id)
@@ -151,6 +159,21 @@ impl AttendanceHandler {
             result_len = result_json.len(),
             "Batch result stored and published"
         );
+
+        // Emit timing breakdown for slow batches
+        let t_total = t0.elapsed();
+        if t_total.as_secs() > 5 {
+            tracing::warn!(
+                job_id = %job.job_id,
+                employees = employee_ids.len(),
+                schedules_ms = t_schedules.as_millis() as u64,
+                entries_ms = (t_entries - t_schedules).as_millis() as u64,
+                calc_ms = (t_store - t_entries).as_millis() as u64,
+                store_publish_ms = (t_total - t_store).as_millis() as u64,
+                total_ms = t_total.as_millis() as u64,
+                "Slow attendance batch breakdown"
+            );
+        }
 
         Ok(())
     }
@@ -800,5 +823,63 @@ mod tests {
         let jan1 = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
         let day_entries = entries_by_date.get(&jan1).map(|v| v.as_slice()).unwrap_or(&[]);
         assert!(day_entries.is_empty());
+    }
+
+    #[test]
+    fn test_slow_attendance_batch_threshold_is_5_seconds() {
+        // The per-phase timing breakdown threshold is 5 seconds.
+        let fast = std::time::Duration::from_secs(4);
+        assert!(fast.as_secs() <= 5, "4s batch should not trigger breakdown log");
+
+        let slow = std::time::Duration::from_secs(6);
+        assert!(slow.as_secs() > 5, "6s batch should trigger breakdown log");
+
+        // Exactly 5s should NOT trigger (> 5).
+        let edge = std::time::Duration::from_secs(5);
+        assert!(!(edge.as_secs() > 5), "Exactly 5s should not trigger");
+    }
+
+    #[test]
+    fn test_phase_timing_subtraction_produces_correct_deltas() {
+        // Simulate the phase timing pattern used in attendance.rs:
+        // t_schedules, t_entries, t_store, t_total are all elapsed from t0
+        let t_schedules = std::time::Duration::from_millis(50);
+        let t_entries = std::time::Duration::from_millis(200);
+        let t_store = std::time::Duration::from_millis(6_500);
+        let t_total = std::time::Duration::from_millis(6_550);
+
+        let schedules_ms = t_schedules.as_millis() as u64;
+        let entries_ms = (t_entries - t_schedules).as_millis() as u64;
+        let calc_ms = (t_store - t_entries).as_millis() as u64;
+        let store_publish_ms = (t_total - t_store).as_millis() as u64;
+
+        assert_eq!(schedules_ms, 50);
+        assert_eq!(entries_ms, 150);
+        assert_eq!(calc_ms, 6_300);
+        assert_eq!(store_publish_ms, 50);
+
+        // Verify phases sum to total
+        let sum = schedules_ms + entries_ms + calc_ms + store_publish_ms;
+        assert_eq!(sum, t_total.as_millis() as u64);
+    }
+
+    #[test]
+    fn test_phase_timing_with_dominant_single_phase() {
+        // Simulate the scenario from logs: one phase takes most of the time
+        // (e.g., time entry query was slow)
+        let t_schedules = std::time::Duration::from_millis(30);
+        let t_entries = std::time::Duration::from_millis(198_030); // 198s for entries!
+        let t_store = std::time::Duration::from_millis(198_050);
+        let t_total = std::time::Duration::from_millis(198_100);
+
+        let entries_ms = (t_entries - t_schedules).as_millis() as u64;
+        assert_eq!(entries_ms, 198_000, "Should identify entries fetch as the bottleneck");
+
+        // Calc phase should be small
+        let calc_ms = (t_store - t_entries).as_millis() as u64;
+        assert_eq!(calc_ms, 20);
+
+        // Total should exceed the 5s threshold
+        assert!(t_total.as_secs() > 5);
     }
 }

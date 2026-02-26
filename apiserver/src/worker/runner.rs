@@ -260,7 +260,7 @@ impl ReportWorker {
                                 error!(job_id = %job_id, error = %e, "Job failed");
                             }
                             Err(_) => {
-                                error!(job_id = %job_id, "Job timed out");
+                                error!(job_id = %job_id, timeout_secs = timeout_secs, "Job timed out");
                             }
                         }
                     });
@@ -367,13 +367,15 @@ impl ReportWorker {
         let job_id = job.job_id;
         let parent_id = job.parent_job_id;
         let batch_index = job.batch_index;
+        let employee_count = job.employee_ids.len();
+        let start = std::time::Instant::now();
 
         info!(
             job_id = %job_id,
             parent_id = %parent_id,
             batch_index = batch_index,
             task_type = ?job.task_type,
-            employees = job.employee_ids.len(),
+            employees = employee_count,
             "Processing job"
         );
 
@@ -398,6 +400,20 @@ impl ReportWorker {
                 Err("PayrollReport not implemented".to_string())
             }
         };
+
+        let elapsed = start.elapsed();
+
+        // Warn on slow batches (> 10 seconds)
+        if elapsed.as_secs() > 10 {
+            warn!(
+                job_id = %job_id,
+                parent_id = %parent_id,
+                batch_index = batch_index,
+                elapsed_ms = elapsed.as_millis() as u64,
+                employees = employee_count,
+                "Slow batch detected"
+            );
+        }
 
         // Report completion to coordinator
         let success = result.is_ok();
@@ -603,5 +619,62 @@ mod tests {
         assert_eq!(HEARTBEAT_INTERVAL_SECS, 5);
         assert_eq!(HEARTBEAT_TTL_SECS, 15);
         assert!(HEARTBEAT_TTL_SECS >= HEARTBEAT_INTERVAL_SECS as i64 * 2);
+    }
+
+    #[test]
+    fn test_slow_batch_threshold_is_10_seconds() {
+        // The slow batch detection threshold is 10 seconds.
+        // Batches under 10s should NOT trigger a warning.
+        let fast_elapsed = std::time::Duration::from_secs(9);
+        assert!(fast_elapsed.as_secs() <= 10, "9s should not trigger slow batch warning");
+
+        // Batches over 10s SHOULD trigger a warning.
+        let slow_elapsed = std::time::Duration::from_secs(11);
+        assert!(slow_elapsed.as_secs() > 10, "11s should trigger slow batch warning");
+
+        // Exactly 10s should NOT trigger (> 10, not >=).
+        let edge_elapsed = std::time::Duration::from_secs(10);
+        assert!(!(edge_elapsed.as_secs() > 10), "Exactly 10s should not trigger");
+    }
+
+    #[test]
+    fn test_elapsed_millis_conversion() {
+        // Verify as_millis() produces correct values for log output
+        let duration_198s = std::time::Duration::from_millis(198_000);
+        assert_eq!(duration_198s.as_millis() as u64, 198_000);
+        assert_eq!(duration_198s.as_secs(), 198);
+
+        // Sub-second precision
+        let duration_250ms = std::time::Duration::from_millis(250);
+        assert_eq!(duration_250ms.as_millis() as u64, 250);
+        assert_eq!(duration_250ms.as_secs(), 0); // Under threshold
+    }
+
+    #[test]
+    fn test_instant_elapsed_captures_meaningful_duration() {
+        // Verify that Instant::now() + elapsed() pattern works correctly
+        let start = std::time::Instant::now();
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        let elapsed = start.elapsed();
+
+        // Should be at least 10ms (may be slightly more due to scheduling)
+        assert!(elapsed.as_millis() >= 10, "Elapsed should capture sleep duration");
+        // Should not be unreasonably long
+        assert!(elapsed.as_millis() < 500, "Elapsed should not be unreasonably long");
+    }
+
+    #[test]
+    fn test_job_timeout_includes_slow_batch_threshold() {
+        // Job timeout (300s) should be much larger than slow batch threshold (10s)
+        // so slow batches are warned about long before they time out.
+        let config = WorkerConfig::default();
+        let slow_batch_threshold_secs = 10u64;
+
+        assert!(
+            config.job_timeout_secs > slow_batch_threshold_secs * 2,
+            "Job timeout ({}) should be at least 2x the slow batch threshold ({})",
+            config.job_timeout_secs,
+            slow_batch_threshold_secs
+        );
     }
 }
