@@ -27,7 +27,8 @@ describe("DailyReportTable", () => {
             generation_metadata: null,
             workspace_id: "WS1",
             employee_identifier: "E01",
-            is_break_auto_deduct: false
+            is_break_auto_deduct: false,
+            is_holiday: false
         } as DailyAttendanceReport,
         {
             date: "2024-03-21",
@@ -47,7 +48,8 @@ describe("DailyReportTable", () => {
             generation_metadata: null,
             workspace_id: "WS1",
             employee_identifier: "E02",
-            is_break_auto_deduct: false
+            is_break_auto_deduct: false,
+            is_holiday: false
         } as DailyAttendanceReport
     ];
 

@@ -19,6 +19,7 @@ pub struct PaginationParams {
     pub page: Option<i64>,
     pub limit: Option<i64>,
     pub q: Option<String>,
+    pub year: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]

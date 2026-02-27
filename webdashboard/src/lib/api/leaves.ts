@@ -57,12 +57,13 @@ export async function fetchEmployeeLeaveBalances(
 
 export async function fetchWorkspaceLeaveBalances(
   wsId: string,
-  params?: { page?: number; limit?: number; q?: string }
+  params?: { page?: number; limit?: number; q?: string; year?: number }
 ): Promise<PaginatedResponse<WorkspaceLeaveBalance>> {
   const query = new URLSearchParams();
   if (params?.page) query.append('page', params.page.toString());
   if (params?.limit) query.append('limit', params.limit.toString());
   if (params?.q) query.append('q', params.q);
+  if (params?.year) query.append('year', params.year.toString());
 
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/balances?${query.toString()}`);
   if (!response.ok) throw new Error('Failed to fetch workspace leave balances');
@@ -74,7 +75,7 @@ export async function fetchLeaveHistory(
   employeeId: string,
   leaveTypeId?: string,
 ): Promise<LeaveHistoryItem[]> {
-  const url = leaveTypeId 
+  const url = leaveTypeId
     ? `${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/leave/history?leave_type_id=${leaveTypeId}`
     : `${API_BASE_URL}/workspaces/${wsId}/employees/${employeeId}/leave/history`;
   const response = await apiFetch(url);

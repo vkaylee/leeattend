@@ -86,7 +86,7 @@ pub async fn get_workspace_leave_balances(
     if !ctx.is_admin_or_owner() {
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
-    let year = Utc::now().year();
+    let year = params.year.unwrap_or_else(|| Utc::now().year());
     let balances = crate::services::leave_service::LeaveService::get_workspace_balances(
         &state.db,
         ctx.workspace_id,
@@ -144,14 +144,19 @@ pub struct LeaveHistoryQuery {
 }
 
 pub async fn get_employee_leave_history(
-    Path((ws_id, emp_id)): Path<(Uuid, Uuid)>,
+    Path((_ws_id, emp_id)): Path<(Uuid, Uuid)>,
     Query(query): Query<LeaveHistoryQuery>,
     State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeaveHistoryItem>>> {
+    // Allow admins to see anyone's history; non-admins can only access via employee self-service
+    if !ctx.is_admin_or_owner() {
+        return Err(AppError::Forbidden("Access denied".to_string()));
+    }
     let year = Utc::now().year();
     let history = crate::services::leave_service::LeaveService::get_employee_leave_history(
         &state.db,
-        ws_id,
+        ctx.workspace_id,
         emp_id,
         year,
         query.leave_type_id,
@@ -287,11 +292,16 @@ pub async fn assign_leave_policy(
     Ok((StatusCode::CREATED, Json(saved)))
 }
 
+#[derive(Debug, Deserialize)]
+pub struct TriggerAccrualRequest {
+    pub date: String,
+}
+
 pub async fn trigger_accrual_run(
     Path(workspace_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
-    Json(payload): Json<serde_json::Value>,
+    Json(payload): Json<TriggerAccrualRequest>,
 ) -> AppResult<Json<Vec<crate::models::LeaveAccrualLog>>> {
     if !ctx.is_admin_or_owner() {
         return Err(AppError::Forbidden(
@@ -299,8 +309,7 @@ pub async fn trigger_accrual_run(
         ));
     }
 
-    let date_str = payload["date"].as_str().unwrap_or_default();
-    let date = NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
+    let date = NaiveDate::parse_from_str(&payload.date, "%Y-%m-%d")
         .map_err(|_| AppError::Validation("Invalid date format YYYY-MM-DD".to_string()))?;
 
     let logs = LeaveAccrualService::process_workspace_accruals(&state.db, workspace_id, date, true)

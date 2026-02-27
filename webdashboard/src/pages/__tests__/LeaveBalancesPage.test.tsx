@@ -1,0 +1,224 @@
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React from "react";
+
+vi.mock("react-i18next", () => ({
+    useTranslation: () => ({
+        t: (key: string, fallback?: string) => fallback || key,
+    }),
+}));
+
+// Mock useDebounce to return value immediately (no delay)
+vi.mock("@/hooks/use-debounce", () => ({
+    useDebounce: (value: any) => value,
+}));
+
+vi.mock("@/lib/api", async () => {
+    const actual = await vi.importActual("@/lib/api");
+    return {
+        ...actual,
+        fetchWorkspaceLeaveBalances: vi.fn(),
+        triggerAccrualRun: vi.fn(),
+        getCurrentWorkspaceId: () => "test-ws-id",
+    };
+});
+
+vi.mock("@/components/leave/LeaveHistoryModal", () => ({
+    LeaveHistoryModal: () => <div data-testid="leave-history-modal" />,
+}));
+
+vi.mock("@/components/leave/LeaveBalanceDetailModal", () => ({
+    LeaveBalanceDetailModal: ({ isOpen }: { isOpen: boolean }) =>
+        isOpen ? <div data-testid="leave-balance-detail-modal" /> : null,
+}));
+
+import LeaveBalancesPage from "../LeaveBalancesPage";
+import * as api from "@/lib/api";
+import { ToastProvider } from "@/components/ui/Toast";
+
+const mockBalances = {
+    data: [
+        {
+            employee_id: "emp-1",
+            employee_name: "Nguyen Van A",
+            leave_type_id: "lt-1",
+            leave_type_code: "AL",
+            leave_type_name: "Annual Leave",
+            is_paid: true,
+            entitlement: 12,
+            accrued_amount: 3,
+            carried_over: 2,
+            used: 4,
+            remaining: 13,
+            policy_name: "Standard Policy",
+            assignment_type: "workspace",
+        },
+        {
+            employee_id: "emp-2",
+            employee_name: "Tran Thi B",
+            leave_type_id: "lt-2",
+            leave_type_code: "SL",
+            leave_type_name: "Sick Leave",
+            is_paid: true,
+            entitlement: 5,
+            accrued_amount: 0,
+            carried_over: 0,
+            used: 5,
+            remaining: 0,
+            policy_name: null,
+            assignment_type: null,
+        },
+    ],
+    total: 2,
+    page: 1,
+    limit: 20,
+};
+
+describe("LeaveBalancesPage", () => {
+    let queryClient: QueryClient;
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        });
+        (api.fetchWorkspaceLeaveBalances as any).mockResolvedValue(mockBalances);
+        (api.triggerAccrualRun as any).mockResolvedValue([]);
+    });
+
+    function renderPage() {
+        return render(
+            <QueryClientProvider client={queryClient}>
+                <ToastProvider>
+                    <LeaveBalancesPage />
+                </ToastProvider>
+            </QueryClientProvider>
+        );
+    }
+
+    it("renders page title", async () => {
+        renderPage();
+        expect(screen.getByText("leave_balances.title")).toBeDefined();
+    });
+
+    it("renders employee data after loading", async () => {
+        renderPage();
+        // Wait for async data to render
+        await waitFor(() => {
+            expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
+        }, { timeout: 3000 });
+
+        expect(screen.getAllByText("Tran Thi B").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("Annual Leave").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("Sick Leave").length).toBeGreaterThan(0);
+    });
+
+    it("shows remaining balance values", async () => {
+        renderPage();
+        await waitFor(() => {
+            expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
+        }, { timeout: 3000 });
+
+        // emp-1 remaining = 13
+        const remainingEls = screen.getAllByText("13");
+        expect(remainingEls.length).toBeGreaterThan(0);
+    });
+
+    it("renders usage progress bars with correct percentage", async () => {
+        renderPage();
+        await waitFor(() => {
+            expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
+        }, { timeout: 3000 });
+
+        // emp-1: used 4 / total (12 + 3 + 2) = 4/17 ≈ 24%
+        expect(screen.getAllByText("24%").length).toBeGreaterThan(0);
+        // emp-2: used 5 / total (5 + 0 + 0) = 5/5 = 100%
+        expect(screen.getAllByText("100%").length).toBeGreaterThan(0);
+    });
+
+    it("shows year selector with current year", async () => {
+        renderPage();
+        await waitFor(() => {
+            expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
+        }, { timeout: 3000 });
+
+        const yearSelect = screen.getByRole("combobox") as HTMLSelectElement;
+        expect(yearSelect.value).toBe(String(new Date().getFullYear()));
+    });
+
+    it("calls API with year param when year is changed", async () => {
+        renderPage();
+        await waitFor(() => {
+            expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
+        }, { timeout: 3000 });
+
+        const yearSelect = screen.getByRole("combobox");
+        fireEvent.change(yearSelect, { target: { value: "2024" } });
+
+        await waitFor(() => {
+            expect(api.fetchWorkspaceLeaveBalances).toHaveBeenCalledWith(
+                "test-ws-id",
+                expect.objectContaining({ year: 2024, page: 1 })
+            );
+        });
+    });
+
+    it("shows custom confirm dialog when accrual button clicked", async () => {
+        renderPage();
+        await waitFor(() => {
+            expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
+        }, { timeout: 3000 });
+
+        fireEvent.click(screen.getByText("CẬP NHẬT SỐ DƯ"));
+        expect(screen.getByText("Xác nhận")).toBeDefined();
+        expect(screen.getByText("Huỷ")).toBeDefined();
+    });
+
+    it("cancels accrual when Huỷ is clicked", async () => {
+        renderPage();
+        await waitFor(() => {
+            expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
+        }, { timeout: 3000 });
+
+        fireEvent.click(screen.getByText("CẬP NHẬT SỐ DƯ"));
+        fireEvent.click(screen.getByText("Huỷ"));
+        expect(api.triggerAccrualRun).not.toHaveBeenCalled();
+    });
+
+    it("triggers accrual mutation when confirmed", async () => {
+        renderPage();
+        await waitFor(() => {
+            expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
+        }, { timeout: 3000 });
+
+        fireEvent.click(screen.getByText("CẬP NHẬT SỐ DƯ"));
+        fireEvent.click(screen.getByText("Xác nhận"));
+
+        await waitFor(() => {
+            expect(api.triggerAccrualRun).toHaveBeenCalledWith(
+                "test-ws-id",
+                expect.objectContaining({ date: expect.any(String) })
+            );
+        });
+    });
+
+    it("shows loading state when data is pending", () => {
+        (api.fetchWorkspaceLeaveBalances as any).mockReturnValue(new Promise(() => { }));
+        renderPage();
+        expect(screen.getAllByText("common.loading").length).toBeGreaterThan(0);
+    });
+
+    it("shows empty state when no data", async () => {
+        (api.fetchWorkspaceLeaveBalances as any).mockResolvedValue({
+            data: [],
+            total: 0,
+            page: 1,
+            limit: 20,
+        });
+        renderPage();
+        await waitFor(() => {
+            expect(screen.getAllByText("attendance_logs.messages.no_data").length).toBeGreaterThan(0);
+        }, { timeout: 3000 });
+    });
+});

@@ -1,5 +1,5 @@
 use axum::http::StatusCode;
-use chrono::Utc;
+use chrono::{Datelike, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -121,12 +121,25 @@ impl LeaveService {
         }
 
         for req in requests {
-            let days = (req.end_date - req.start_date).num_days() + 1;
+            // Count only weekdays (Mon-Fri) between start_date and end_date
+            let mut weekday_count = 0i64;
+            let mut d = req.start_date;
+            while d <= req.end_date {
+                let dow = d.weekday();
+                if dow != chrono::Weekday::Sat && dow != chrono::Weekday::Sun {
+                    weekday_count += 1;
+                }
+                if let Some(next) = d.succ_opt() {
+                    d = next;
+                } else {
+                    break;
+                }
+            }
             history.push(LeaveHistoryItem {
                 id: Uuid::new_v4(),
                 date: req.start_date,
                 transaction_type: LeaveTransactionType::Usage,
-                amount: -(days as f64),
+                amount: -(weekday_count as f64),
                 reason: req.reason,
                 reference_id: Some(req.id),
                 created_at: req.created_at.unwrap_or_else(chrono::Utc::now),

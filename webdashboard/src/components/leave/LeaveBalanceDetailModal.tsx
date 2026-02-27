@@ -103,9 +103,9 @@ export function LeaveBalanceDetailModal({ balance, isOpen, onClose }: LeaveBalan
                 <div
                   className={cn(
                     "h-full rounded-full transition-all duration-1000 shadow-sm",
-                    usagePercent > 80 ? "bg-rose-50 dark:bg-rose-950 shadow-rose-200" :
-                    usagePercent > 50 ? "bg-amber-50 dark:bg-amber-950 shadow-amber-200" :
-                    "bg-primary-600 shadow-primary-200"
+                    usagePercent > 80 ? "bg-rose-500 dark:bg-rose-400 shadow-rose-200" :
+                      usagePercent > 50 ? "bg-amber-500 dark:bg-amber-400 shadow-amber-200" :
+                        "bg-primary-600 shadow-primary-200"
                   )}
                   style={{ width: `${Math.min(100, usagePercent)}%` }}
                 />
@@ -244,7 +244,7 @@ function HistoryItemRow({ item }: { item: LeaveHistoryItem }) {
       )}>
         {isPositive ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
       </div>
-      
+
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
           <span className="font-bold text-slate-800 dark:text-slate-100 text-sm uppercase tracking-tight truncate">

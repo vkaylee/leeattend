@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { fetchWorkspaceLeaveBalances, getCurrentWorkspaceId, triggerAccrualRun } from "@/lib/api";
 import { WorkspaceLeaveBalance } from "@/lib/api/types";
-import { Search, Filter, History, PlayCircle, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Filter, History, PlayCircle, Eye, ChevronLeft, ChevronRight, AlertTriangle, X, Calendar } from "lucide-react";
 import { LeaveHistoryModal } from "@/components/leave/LeaveHistoryModal";
 import { LeaveBalanceDetailModal } from "@/components/leave/LeaveBalanceDetailModal";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/use-debounce";
+import { createPortal } from "react-dom";
 
 export default function LeaveBalancesPage() {
   const { t } = useTranslation();
@@ -17,15 +18,21 @@ export default function LeaveBalancesPage() {
   const wsId = getCurrentWorkspaceId();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [showAccrualConfirm, setShowAccrualConfirm] = useState(false);
   const limit = 20;
   const debouncedSearch = useDebounce(searchTerm, 500);
+
+  // Generate year options: current year ± 2
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
   const [selectedEmployee, setSelectedEmployee] = useState<{ id: string, name: string } | null>(null);
   const [selectedBalance, setSelectedBalance] = useState<WorkspaceLeaveBalance | null>(null);
 
-  const { data: paginatedData, isLoading } = useQuery({ 
-    queryKey: ["workspace-leave-balances", wsId, page, debouncedSearch], 
-    queryFn: () => fetchWorkspaceLeaveBalances(wsId!, { page, limit, q: debouncedSearch }), 
+  const { data: paginatedData, isLoading } = useQuery({
+    queryKey: ["workspace-leave-balances", wsId, page, debouncedSearch, selectedYear],
+    queryFn: () => fetchWorkspaceLeaveBalances(wsId!, { page, limit, q: debouncedSearch, year: selectedYear }),
     enabled: !!wsId,
     placeholderData: (previousData) => previousData
   });
@@ -51,11 +58,7 @@ export default function LeaveBalancesPage() {
           <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("leave_balances.subtitle")}</p>
         </div>
         <button
-          onClick={() => {
-            if (confirm(t("leave_balances.confirm_accrual"))) {
-              accrualMutation.mutate();
-            }
-          }}
+          onClick={() => setShowAccrualConfirm(true)}
           disabled={accrualMutation.isPending}
           className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 md:px-8 py-3.5 md:py-3 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95 text-xs uppercase tracking-widest disabled:opacity-50 min-h-[44px] w-full md:w-auto"
         >
@@ -73,6 +76,22 @@ export default function LeaveBalancesPage() {
                 {totalItems}
               </span>
             )}
+            {/* Year Selector */}
+            <div className="flex items-center gap-2 ml-2">
+              <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+              <select
+                value={selectedYear}
+                onChange={(e) => {
+                  setSelectedYear(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider focus:ring-2 focus:ring-primary-500/20 outline-none transition-all cursor-pointer min-h-[36px]"
+              >
+                {yearOptions.map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="relative group w-full md:w-80">
@@ -139,53 +158,53 @@ export default function LeaveBalancesPage() {
         {/* Pagination Controls */}
         {totalItems > 0 && (
           <div className="p-5 md:p-8 border-t border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 flex flex-col md:flex-row items-center justify-between gap-4">
-             <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-               {t("common.showing")} <span className="text-slate-600 dark:text-slate-300">{(page - 1) * limit + 1}</span> - <span className="text-slate-600 dark:text-slate-300">{Math.min(page * limit, totalItems)}</span> {t("common.of")} <span className="text-slate-600 dark:text-slate-300">{totalItems}</span>
-             </div>
-             
-             <div className="flex items-center gap-2">
-               <button
-                 onClick={() => setPage(p => Math.max(1, p - 1))}
-                 disabled={page === 1}
-                 className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-               >
-                 <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-               </button>
-               
-               <div className="flex items-center gap-1">
-                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    // Simple logic to show window around current page
-                    let p = i + 1;
-                    if (totalPages > 5) {
-                      if (page > 3) p = page - 2 + i;
-                      if (p > totalPages) p = totalPages - (4 - i);
-                    }
-                    
-                    return (
-                      <button
-                        key={p}
-                        onClick={() => setPage(p)}
-                        className={cn(
-                          "w-8 h-8 flex items-center justify-center rounded-xl text-xs font-bold transition-all",
-                          page === p 
-                            ? "bg-primary-600 text-white shadow-md shadow-indigo-100" 
-                            : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                        )}
-                      >
-                        {p}
-                      </button>
-                    );
-                 })}
-               </div>
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              {t("common.showing")} <span className="text-slate-600 dark:text-slate-300">{(page - 1) * limit + 1}</span> - <span className="text-slate-600 dark:text-slate-300">{Math.min(page * limit, totalItems)}</span> {t("common.of")} <span className="text-slate-600 dark:text-slate-300">{totalItems}</span>
+            </div>
 
-               <button
-                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                 disabled={page === totalPages}
-                 className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-               >
-                 <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-               </button>
-             </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+              </button>
+
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  // Simple logic to show window around current page
+                  let p = i + 1;
+                  if (totalPages > 5) {
+                    if (page > 3) p = page - 2 + i;
+                    if (p > totalPages) p = totalPages - (4 - i);
+                  }
+
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={cn(
+                        "w-8 h-8 flex items-center justify-center rounded-xl text-xs font-bold transition-all",
+                        page === p
+                          ? "bg-primary-600 text-white shadow-md shadow-indigo-100"
+                          : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      )}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -196,6 +215,42 @@ export default function LeaveBalancesPage() {
 
       {selectedBalance && (
         <LeaveBalanceDetailModal balance={selectedBalance} isOpen={!!selectedBalance} onClose={() => setSelectedBalance(null)} />
+      )}
+
+      {/* Custom Accrual Confirm Dialog */}
+      {showAccrualConfirm && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowAccrualConfirm(false)}>
+          <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm" />
+          <div className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95 duration-300 space-y-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-amber-50 dark:bg-amber-950 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight uppercase">{t("leave_balances.run_accrual", "Cập nhật số dư")}</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{t("leave_balances.confirm_accrual", "Bạn có chắc chắn muốn cập nhật số dư nghỉ phép?")}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={() => setShowAccrualConfirm(false)}
+                className="flex-1 px-5 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95 min-h-[44px]"
+              >
+                {t("common.cancel", "Huỷ")}
+              </button>
+              <button
+                onClick={() => {
+                  setShowAccrualConfirm(false);
+                  accrualMutation.mutate();
+                }}
+                className="flex-1 px-5 py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-lg shadow-primary-200 min-h-[44px]"
+              >
+                {t("common.confirm", "Xác nhận")}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -256,9 +311,9 @@ function DesktopBalanceRow({ balance, onViewDetails, onViewHistory }: {
             <div
               className={cn(
                 "h-full rounded-full transition-all duration-1000 shadow-sm",
-                usagePercent > 80 ? "bg-rose-50 dark:bg-rose-950 shadow-rose-200" :
-                usagePercent > 50 ? "bg-amber-50 dark:bg-amber-950 shadow-amber-200" :
-                "bg-primary-600 shadow-primary-200"
+                usagePercent > 80 ? "bg-rose-500 dark:bg-rose-400 shadow-rose-200" :
+                  usagePercent > 50 ? "bg-amber-500 dark:bg-amber-400 shadow-amber-200" :
+                    "bg-primary-600 shadow-primary-200"
               )}
               style={{ width: `${Math.min(100, usagePercent)}%` }}
             />
@@ -271,7 +326,7 @@ function DesktopBalanceRow({ balance, onViewDetails, onViewHistory }: {
 
       {/* Action Buttons */}
       <td className="px-6 py-6 text-right" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+        <div className="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-all">
           <button
             onClick={onViewDetails}
             className="p-2.5 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:bg-primary-900 rounded-xl border border-primary-200 dark:border-primary-800 transition-all active:scale-90 min-w-[44px] min-h-[44px]"
@@ -347,9 +402,9 @@ function MobileBalanceCard({ balance, onViewDetails, onViewHistory }: {
           <div
             className={cn(
               "h-full rounded-full transition-all duration-1000 shadow-sm",
-              usagePercent > 80 ? "bg-rose-50 dark:bg-rose-950 shadow-rose-200" :
-              usagePercent > 50 ? "bg-amber-50 dark:bg-amber-950 shadow-amber-200" :
-              "bg-primary-600 shadow-primary-200"
+              usagePercent > 80 ? "bg-rose-500 dark:bg-rose-400 shadow-rose-200" :
+                usagePercent > 50 ? "bg-amber-500 dark:bg-amber-400 shadow-amber-200" :
+                  "bg-primary-600 shadow-primary-200"
             )}
             style={{ width: `${Math.min(100, usagePercent)}%` }}
           />
