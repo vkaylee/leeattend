@@ -202,7 +202,12 @@ export default function DailyReportTable({
 
                     <td className="px-6 py-6 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {/* Confirm attendance button — always visible with text label */}
+                        {/* 
+                          Confirm attendance button.
+                          - Always visible and enabled for every row (even empty/absent ones)
+                          - Opens a Confirm Modal for admins to review/edit before submitting
+                          - Color changes based on whether there's a pending adjustment request
+                        */}
                         <button
                           onClick={() => onConfirmClick(row, existingAdjustment)}
                           disabled={isConfirming}

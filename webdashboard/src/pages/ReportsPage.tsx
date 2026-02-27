@@ -195,12 +195,14 @@ export default function ReportsPage() {
   };
 
   const handleConfirmClick = (row: DailyAttendanceReport, existing?: AttendanceAdjustmentRequest) => {
-    // Helper: extract local HH:mm from a UTC ISO string (e.g. "2026-01-15T01:00:00Z" → "08:00" in UTC+7)
+    // Helper: extract local HH:mm from a UTC ISO string (e.g. "2026-01-15T01:00:00Z" → "08:00" in UTC+7).
+    // This is needed because HTML <input type="time"> only accepts local 24h string values.
+    // By instantiating `new Date(utcString)`, the browser naturally converts it to local time.
     const utcToLocalHHmm = (iso: string | null | undefined): string => {
       if (!iso) return "";
       const d = new Date(iso);
       if (isNaN(d.getTime())) {
-        // Might be plain "HH:MM:SS" (scheduled_start) — not UTC, use directly
+        // Might be plain "HH:MM:SS" (e.g. scheduled_start fallback) — not UTC, use directly
         return iso.substring(0, 5);
       }
       return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
@@ -229,12 +231,15 @@ export default function ReportsPage() {
       // Approve existing request directly
       confirmMutation.mutate({ row, existingRequestId: existingRequest.id });
     } else {
-      // Convert local date and HH:mm to a full UTC ISO string
+      // Convert local date and HH:mm back into a full UTC ISO string for backend storage.
+      // Why? The modal gives us local times, but `actual_punch_in` must be transmitted
+      // as `DateTime<Utc>` (Z suffixed) according to the Rust API model conventions.
       const createIsoFromLocal = (dateStr: string, hhmm: string): string | null => {
         if (!hhmm) return null;
         const [y, m, d] = dateStr.split('-').map(Number);
         const [hours, mins] = hhmm.split(':').map(Number);
-        // new Date(Y, M, D, h, m, s) creates a LOCAL date object
+        // new Date(Y, M, D, h, m, s) strictly builds a LOCAL date object based on OS settings.
+        // Calling toISOString() then perfectly shifts those local values into standard UTC space.
         return new Date(y, m - 1, d, hours, mins, 0).toISOString();
       };
 

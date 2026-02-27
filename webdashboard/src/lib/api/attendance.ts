@@ -270,9 +270,17 @@ export async function reprocessAttendance(
 // --- Admin Confirm Attendance ---
 
 /**
- * Admin shortcut: confirm attendance for a row in one action.
- * - If existingRequestId is provided: approve that pending request directly.
- * - Otherwise: submit a new adjustment (preserving current punch times) then approve it.
+ * Admin shortcut: confirm attendance for a row in one action via the Confirm Modal.
+ * 
+ * - If an `existingRequestId` is provided (meaning the employee already submitted an adjustment),
+ *   this function will bypass the creation step and directly approve that pending request.
+ * - Otherwise, it submits a new adjustment using the times provided by the admin in the modal,
+ *   and then immediately approves it in a subsequent API call.
+ * 
+ * @param wsId - The ID of the current workspace
+ * @param row - The DailyAttendanceReport record being confirmed
+ * @param existingRequestId - Optional ID of a pending adjustment request to approve
+ * @param reason - The reason text entered by the admin in the confirmation modal
  */
 export async function adminConfirmAttendance(
   wsId: string,
@@ -283,7 +291,9 @@ export async function adminConfirmAttendance(
   let requestId = existingRequestId;
 
   if (!requestId) {
-    // Safely convert any time string (either full ISO or raw HH:mm:ss) into a UTC ISO string 
+    // Helper: Safely convert any time string (either full ISO or raw HH:mm:ss) into a UTC ISO string.
+    // This is crucial because `actual_punch_in` from the modal might be a full ISO string (Z-suffixed),
+    // but fallbacks like `scheduled_start` are just raw time strings.
     const toDatetime = (date: string, time: string) => {
       // If it's already a complete UTC ISO string (has 'T' and 'Z'), use it directly
       if (time.includes('T') && time.includes('Z')) {
@@ -291,7 +301,8 @@ export async function adminConfirmAttendance(
       }
 
       // Otherwise, it's a raw local time like "08:00:00" from scheduled_start or fallback.
-      // We parse it as a local time on the given date, then convert to UTC automatically.
+      // We parse it as a local time on the given date, then convert to UTC automatically 
+      // via `toISOString()` to avoid AM/PM timezone wrap-around bugs.
       const [h, m, s] = time.substring(0, 8).split(':').map(Number);
       const [Y, M, D] = date.split('-').map(Number);
       return new Date(Y, M - 1, D, h, m, s || 0).toISOString();
