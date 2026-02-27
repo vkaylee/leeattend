@@ -2101,6 +2101,23 @@
       "confirm": "Tính lại",
       "error": "Không thể tính lại dữ liệu chấm công. Vui lòng thử lại."
     },
+    "confirm": {
+      "tooltip": "Xác nhận công cho ngày này",
+      "success": "Đã xác nhận công thành công",
+      "error": "Xác nhận công thất bại",
+      "pending_badge": "Chờ xác nhận",
+      "modal_title": "Xác nhận công",
+      "modal_subtitle": "Xác nhận dữ liệu chấm công",
+      "employee": "Nhân viên",
+      "date": "Ngày",
+      "punch_in": "Giờ vào",
+      "punch_out": "Giờ ra",
+      "reason": "Lý do",
+      "reason_placeholder": "Nhập lý do xác nhận...",
+      "existing_request": "Đã có yêu cầu điều chỉnh trước đó",
+      "submit": "Xác nhận công",
+      "approve": "Duyệt yêu cầu"
+    },
     "debug_mode_on": "Gỡ lỗi: Bật",
     "debug_mode_off": "Gỡ lỗi: Tắt",
     "label": "Reports"

@@ -2101,6 +2101,23 @@
       "confirm": "Recalculate",
       "error": "Could not recalculate attendance. Please try again."
     },
+    "confirm": {
+      "tooltip": "Confirm attendance for this day",
+      "success": "Attendance confirmed successfully",
+      "error": "Failed to confirm attendance",
+      "pending_badge": "Pending Confirmation",
+      "modal_title": "Confirm Attendance",
+      "modal_subtitle": "Review attendance data",
+      "employee": "Employee",
+      "date": "Date",
+      "punch_in": "Punch In",
+      "punch_out": "Punch Out",
+      "reason": "Reason",
+      "reason_placeholder": "Enter confirmation reason...",
+      "existing_request": "Existing adjustment request found",
+      "submit": "Confirm Attendance",
+      "approve": "Approve Request"
+    },
     "debug_mode_on": "Debug: ON",
     "debug_mode_off": "Debug: OFF",
     "label": "Reports"

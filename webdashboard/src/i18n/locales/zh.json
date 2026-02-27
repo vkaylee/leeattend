@@ -2101,6 +2101,23 @@
       "confirm": "重新计算",
       "error": "无法重新计算考勤。请再试一次。"
     },
+    "confirm": {
+      "tooltip": "确认当天的考勤",
+      "success": "考勤确认成功",
+      "error": "确认考勤失败",
+      "pending_badge": "待确认",
+      "modal_title": "确认考勤",
+      "modal_subtitle": "审核考勤数据",
+      "employee": "员工",
+      "date": "日期",
+      "punch_in": "上班打卡",
+      "punch_out": "下班打卡",
+      "reason": "原因",
+      "reason_placeholder": "输入确认原因...",
+      "existing_request": "已有考勤调整请求",
+      "submit": "确认考勤",
+      "approve": "审批请求"
+    },
     "debug_mode_on": "调试：开启",
     "debug_mode_off": "调试：关闭",
     "label": "Reports"

@@ -1,6 +1,6 @@
 import React from "react";
-import { RefreshCw, Bug } from "lucide-react";
-import { DailyAttendanceReport } from "@/lib/api";
+import { RefreshCw, Bug, CheckCircle } from "lucide-react";
+import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
 import { formatUnitsToHours } from "@/lib/utils/attendance";
 import { cn } from "@/lib/utils";
 
@@ -11,11 +11,14 @@ interface DailyReportTableProps {
   isDebugMode: boolean;
   expandedDebugRows: Set<string>;
   reprocessingRow: string | null;
+  confirmingRow: string | null;
+  adjustmentMap: Record<string, AttendanceAdjustmentRequest>;
   t: (key: string) => string;
   formatDate: (date: string) => string;
   formatTime: (time: string | null) => string;
   onToggleExpandRow: (rowKey: string) => void;
   onReprocessClick: (row: DailyAttendanceReport) => void;
+  onConfirmClick: (row: DailyAttendanceReport, existing?: AttendanceAdjustmentRequest) => void;
 }
 
 export default function DailyReportTable({
@@ -25,11 +28,14 @@ export default function DailyReportTable({
   isDebugMode,
   expandedDebugRows,
   reprocessingRow,
+  confirmingRow,
+  adjustmentMap,
   t,
   formatDate,
   formatTime,
   onToggleExpandRow,
   onReprocessClick,
+  onConfirmClick,
 }: DailyReportTableProps) {
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
@@ -116,7 +122,9 @@ export default function DailyReportTable({
             data.map((row: DailyAttendanceReport, idx: number) => {
               const rowKey = `${row.employee_id}-${row.date}`;
               const isReprocessing = reprocessingRow === rowKey;
+              const isConfirming = confirmingRow === rowKey;
               const isExpanded = expandedDebugRows.has(rowKey);
+              const existingAdjustment = adjustmentMap[rowKey];
 
               return (
                 <React.Fragment key={`${rowKey}-${idx}`}>
@@ -172,7 +180,9 @@ export default function DailyReportTable({
                       </span>
                     </td>
 
-                    <td className="px-8 py-6 text-center">{getStatusBadge(row.status)}</td>
+                    <td className="px-8 py-6 text-center">
+                      {getStatusBadge(row.status)}
+                    </td>
 
                     {isDebugMode && (
                       <td className="px-8 py-6 text-center">
@@ -190,15 +200,41 @@ export default function DailyReportTable({
                       </td>
                     )}
 
-                    <td className="px-10 py-6 text-right">
-                      <button
-                        onClick={() => onReprocessClick(row)}
-                        disabled={isReprocessing}
-                        className="p-3 bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-300 hover:text-blue-700 dark:text-blue-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90 opacity-0 group-hover:opacity-100 disabled:opacity-50"
-                        title={t("reports.reprocess.tooltip")}
-                      >
-                        <RefreshCw size={18} className={cn(isReprocessing && "animate-spin")} />
-                      </button>
+                    <td className="px-6 py-6 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {/* Confirm attendance button — always visible with text label */}
+                        <button
+                          onClick={() => onConfirmClick(row, existingAdjustment)}
+                          disabled={isConfirming}
+                          className={cn(
+                            "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider shadow-sm border transition-all active:scale-95 whitespace-nowrap",
+                            existingAdjustment
+                              ? "bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-300 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900"
+                              : "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900",
+                            isConfirming && "opacity-70 cursor-wait"
+                          )}
+                          title={t("reports.confirm.tooltip")}
+                        >
+                          {isConfirming
+                            ? <RefreshCw size={14} className="animate-spin" />
+                            : <CheckCircle size={14} />
+                          }
+                          {existingAdjustment
+                            ? t("reports.confirm.pending_badge")
+                            : t("common.attendance_confirm")
+                          }
+                        </button>
+
+                        {/* Reprocess button */}
+                        <button
+                          onClick={() => onReprocessClick(row)}
+                          disabled={isReprocessing}
+                          className="p-3 bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-300 hover:text-blue-700 dark:text-blue-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90 opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                          title={t("reports.reprocess.tooltip")}
+                        >
+                          <RefreshCw size={18} className={cn(isReprocessing && "animate-spin")} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
 

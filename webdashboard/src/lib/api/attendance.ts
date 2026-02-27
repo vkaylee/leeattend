@@ -80,12 +80,13 @@ export async function submitAttendanceAdjustment(
     time_entry_id?: string;
     requested_punch_in_time: string;
     requested_punch_out_time?: string;
+    is_break_overtime?: boolean;
     reason?: string;
   }
 ): Promise<AttendanceAdjustmentRequest> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/attendance/adjustments`, {
     method: "POST",
-    body: JSON.stringify(data),
+    body: JSON.stringify({ is_break_overtime: false, ...data }),
   });
   if (!response.ok) throw new Error("Failed to submit attendance adjustment");
   return response.json();
@@ -266,6 +267,53 @@ export async function reprocessAttendance(
   if (!response.ok) throw new Error("Failed to reprocess attendance");
 }
 
+// --- Admin Confirm Attendance ---
+
+/**
+ * Admin shortcut: confirm attendance for a row in one action.
+ * - If existingRequestId is provided: approve that pending request directly.
+ * - Otherwise: submit a new adjustment (preserving current punch times) then approve it.
+ */
+export async function adminConfirmAttendance(
+  wsId: string,
+  row: DailyAttendanceReport,
+  existingRequestId?: string,
+  reason?: string,
+): Promise<void> {
+  let requestId = existingRequestId;
+
+  if (!requestId) {
+    // Safely convert any time string (either full ISO or raw HH:mm:ss) into a UTC ISO string 
+    const toDatetime = (date: string, time: string) => {
+      // If it's already a complete UTC ISO string (has 'T' and 'Z'), use it directly
+      if (time.includes('T') && time.includes('Z')) {
+        return time;
+      }
+
+      // Otherwise, it's a raw local time like "08:00:00" from scheduled_start or fallback.
+      // We parse it as a local time on the given date, then convert to UTC automatically.
+      const [h, m, s] = time.substring(0, 8).split(':').map(Number);
+      const [Y, M, D] = date.split('-').map(Number);
+      return new Date(Y, M - 1, D, h, m, s || 0).toISOString();
+    };
+
+    // Use actual punch times if available; otherwise use scheduled times or midnight fallback
+    const punchIn = row.actual_punch_in || row.scheduled_start || "00:00:00";
+    const punchOut = row.actual_punch_out || row.scheduled_end || undefined;
+
+    const adjustment = await submitAttendanceAdjustment(wsId, {
+      employee_id: row.employee_id,
+      requested_punch_in_time: toDatetime(row.date, punchIn),
+      requested_punch_out_time: punchOut
+        ? toDatetime(row.date, punchOut)
+        : undefined,
+      reason: reason || "Admin confirmation",
+    });
+    requestId = adjustment.id;
+  }
+
+  await approveAttendanceAdjustment(wsId, requestId, { status: "approved" });
+}
 
 // --- OT Claim & Approval ---
 

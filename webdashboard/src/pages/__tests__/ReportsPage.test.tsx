@@ -16,6 +16,8 @@ vi.mock("../../lib/api", () => ({
   fetchWorkspace: vi.fn(),
   reprocessAttendance: vi.fn(),
   fetchEmployees: vi.fn(),
+  fetchWorkspaceAttendanceAdjustments: vi.fn(),
+  adminConfirmAttendance: vi.fn(),
 }));
 
 // Mock DebugContext
@@ -41,11 +43,12 @@ describe("ReportsPage", () => {
     (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
     (api.fetchWorkspace as any).mockResolvedValue({ id: "test-ws-id", name: "Test Workspace", work_unit_minutes: 60 });
     (api.fetchEmployees as any).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe" }], total: 1 });
-    // Mock for any arguments to be safe
     (api.fetchAttendanceReport as any).mockImplementation(() => Promise.resolve({
       data: [{ employee_id: "emp-1", employee_name: "John Doe", total_work_units: 480, total_leave_days: 0 }],
       total: 1
     }));
+    (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([]);
+    (api.adminConfirmAttendance as any).mockResolvedValue(undefined);
   });
 
   const renderWithProviders = (ui: React.ReactElement) => {
@@ -93,4 +96,104 @@ describe("ReportsPage", () => {
       expect(calls[0][5]).toBe(31);
     });
   });
-});
+
+  it("shows confirm button on all daily rows and opens modal when clicked", async () => {
+    const user = userEvent.setup();
+    const mockRow = {
+      employee_id: "emp-1",
+      employee_name: "John Doe",
+      date: "2026-01-15",
+      actual_punch_in: "2026-01-15T01:00:00Z", // 08:00 Local
+      actual_punch_out: "2026-01-15T10:00:00Z", // 17:00 Local
+      scheduled_start: "08:00:00",
+      scheduled_end: "17:00:00",
+      break_duration_minutes: 60,
+      break_start: null,
+      break_end: null,
+      is_break_auto_deduct: false,
+      std_work_units: 480,
+      ot_work_units: 0,
+      status: "present",
+      generation_metadata: null,
+    };
+    (api.fetchAttendanceReport as any).mockResolvedValue({
+      data: [mockRow],
+      total: 1
+    });
+
+    renderWithProviders(<ReportsPage />);
+    const dailyBtn = await screen.findByText(/Daily Details|Chi ti[eế]t/i);
+    await user.click(dailyBtn);
+
+    // Find the confirm button (it's always visible now)
+    const confirmBtn = await screen.findByRole('button', { name: /Xác nhận|Confirm/i });
+    expect(confirmBtn).toBeDefined();
+
+    // Click it to open the modal
+    await user.click(confirmBtn);
+
+    // Modal should appear
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toBeDefined();
+
+    // Verify pre-filled times
+    const timeInputs = document.querySelectorAll('input[type="time"]');
+    expect(timeInputs.length).toBeGreaterThan(0);
+    // It should have some value pre-filled
+    expect((timeInputs[0] as HTMLInputElement).value).not.toBe("");
+  });
+
+  it("calls adminConfirmAttendance with edited times from the modal", async () => {
+    const user = userEvent.setup();
+    const mockRow = {
+      employee_id: "emp-1",
+      employee_name: "John Doe",
+      date: "2026-01-15",
+      actual_punch_in: "2026-01-15T01:00:00Z",
+      actual_punch_out: "2026-01-15T10:00:00Z",
+      scheduled_start: "08:00:00",
+      scheduled_end: "17:00:00",
+      break_duration_minutes: 60,
+      break_start: null,
+      break_end: null,
+      is_break_auto_deduct: false,
+      std_work_units: 480,
+      ot_work_units: 0,
+      status: "present",
+      generation_metadata: null,
+    };
+    (api.fetchAttendanceReport as any).mockResolvedValue({ data: [mockRow], total: 1 });
+    (api.adminConfirmAttendance as any).mockResolvedValue(undefined);
+
+    renderWithProviders(<ReportsPage />);
+    const dailyBtn = await screen.findByText(/Daily Details|Chi ti[eế]t/i);
+    await user.click(dailyBtn);
+
+    // Click the confirm button to open the modal
+    const confirmBtn = await screen.findByRole('button', { name: /Xác nhận|Confirm/i });
+    await user.click(confirmBtn);
+
+    // Modal should appear
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toBeDefined();
+
+    // Enter reason
+    const reasonInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+    await user.type(reasonInput, "Test reason");
+
+    // Click submit inside the modal
+    // Filter to get the modal's primary button, ignoring the one in the table
+    const buttons = await screen.findAllByRole('button', { name: /Xác nhận công|Confirm Attendance/i });
+    const modalSubmitBtn = buttons[buttons.length - 1]; // The last one mounted (in the modal)
+    await user.click(modalSubmitBtn);
+
+    // Verify the API was called
+    await waitFor(() => {
+      expect(api.adminConfirmAttendance).toHaveBeenCalled();
+    });
+
+    // Verify the reason payload was passed
+    const callArgs = (api.adminConfirmAttendance as any).mock.calls[0];
+    expect(callArgs[3]).toBe("Test reason");
+  });
+})
