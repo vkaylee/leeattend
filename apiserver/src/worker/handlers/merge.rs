@@ -319,13 +319,15 @@ mod tests {
         let summaries1 = vec![AttendanceSummary {
             employee_id: Uuid::new_v4(),
             employee_name: "Charlie Brown".to_string(),
-            total_work_units: 160,
+            total_std_units: 160,
+            total_ot_units: 0,
             total_leave_days: 2,
         }];
         let summaries2 = vec![AttendanceSummary {
             employee_id: Uuid::new_v4(),
             employee_name: "Alice Smith".to_string(),
-            total_work_units: 152,
+            total_std_units: 152,
+            total_ot_units: 0,
             total_leave_days: 4,
         }];
 
@@ -373,6 +375,8 @@ mod tests {
             ot_work_units: 0,
             ot_claim_status: None,
             status: "present".to_string(),
+            is_holiday: false,
+            holiday_name: None,
             generation_metadata: None,
         };
         let report2 = DailyAttendanceReport {
@@ -393,6 +397,8 @@ mod tests {
             ot_work_units: 0,
             ot_claim_status: None,
             status: "present".to_string(),
+            is_holiday: false,
+            holiday_name: None,
             generation_metadata: None,
         };
 
@@ -449,20 +455,23 @@ mod tests {
             AttendanceSummary {
                 employee_id: Uuid::new_v4(),
                 employee_name: "A".to_string(),
-                total_work_units: 160,
+                total_std_units: 160,
+                total_ot_units: 0,
                 total_leave_days: 0,
             },
             AttendanceSummary {
                 employee_id: Uuid::new_v4(),
                 employee_name: "B".to_string(),
-                total_work_units: 120,
+                total_std_units: 120,
+                total_ot_units: 0,
                 total_leave_days: 3,
             },
         ];
         let s2 = vec![AttendanceSummary {
             employee_id: Uuid::new_v4(),
             employee_name: "C".to_string(),
-            total_work_units: 80,
+            total_std_units: 80,
+            total_ot_units: 0,
             total_leave_days: 1,
         }];
 
@@ -503,6 +512,8 @@ mod tests {
             ot_work_units: 0,
             ot_claim_status: None,
             status: "present".to_string(),
+            is_holiday: false,
+            holiday_name: None,
             generation_metadata: None,
         };
 

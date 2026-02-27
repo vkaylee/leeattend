@@ -21,6 +21,7 @@ import TimeSettings from "./pages/settings/TimeSettings";
 import PayrollSettings from "./pages/settings/PayrollSettings";
 import ConnectivitySettings from "./pages/settings/ConnectivitySettings";
 import LeaveSettings from "./pages/settings/LeaveSettings";
+import HolidaysPage from "./pages/settings/HolidaysPage";
 import AuthGuard from "./components/common/AuthGuard";
 import WorkspaceGuard from "./components/common/WorkspaceGuard";
 import AttendanceAdjustmentsPage from "./pages/AttendanceAdjustmentsPage";
@@ -71,6 +72,7 @@ export function AppRoutes() {
               <Route path="time" element={<TimeSettings />} />
               <Route path="payroll" element={<PayrollSettings />} />
               <Route path="leave" element={<LeaveSettings />} />
+              <Route path="holidays" element={<HolidaysPage />} />
               <Route path="connectivity" element={<ConnectivitySettings />} />
             </Route>
 

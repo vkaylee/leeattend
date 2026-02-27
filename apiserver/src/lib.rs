@@ -489,6 +489,17 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             post(handlers::assign_policy),
         )
         .route(
+            "/workspaces/:ws_id/holidays",
+            get(handlers::holidays::list_holidays)
+                .post(handlers::holidays::create_holiday),
+        )
+        .route(
+            "/workspaces/:ws_id/holidays/:id",
+            get(handlers::holidays::get_holiday)
+                .put(handlers::holidays::update_holiday)
+                .delete(handlers::holidays::delete_holiday),
+        )
+        .route(
             "/workspaces/:ws_id/payroll-settings",
             get(handlers::get_payroll_settings).patch(handlers::update_payroll_settings),
         )

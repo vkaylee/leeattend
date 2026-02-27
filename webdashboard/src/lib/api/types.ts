@@ -238,6 +238,19 @@ export interface AttendanceSummary {
   total_leave_days: number;
 }
 
+export interface Holiday {
+  id: string;
+  workspace_id: string;
+  name: string;
+  date: string;
+  holiday_type: string;
+  is_paid: boolean;
+  ot_multiplier?: number;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DailyAttendanceReport {
   date: string;
   employee_id: string;
@@ -254,6 +267,8 @@ export interface DailyAttendanceReport {
   ot_work_units: number;
   ot_claim_status?: string | null;
   status: string;
+  is_holiday: boolean;
+  holiday_name?: string | null;
   generation_metadata?: any;
 }
 

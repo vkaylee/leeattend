@@ -343,4 +343,53 @@ mod tests {
             NaiveTime::from_hms_opt(2, 0, 0).expect("valid time")
         );
     }
+
+    /// Holiday-specific rule (is_holiday=true) should only activate when is_holiday=true.
+    #[test]
+    fn test_holiday_rule_filtering() {
+        let date = NaiveDate::from_ymd_opt(2026, 5, 1).expect("valid date"); // Thursday
+        let normal_rule = mock_rule(1, Decimal::new(15, 1), None, None, 127); // 1.5x all week
+        let mut holiday_rule = mock_rule(10, Decimal::new(30, 1), None, None, 127); // 3.0x holiday
+        holiday_rule.is_holiday = true;
+
+        let rules = vec![normal_rule, holiday_rule];
+
+        // Non-holiday: only normal rule should produce segments (holiday rule excluded)
+        let segments_normal = OvertimeEngine::calculate_segments(&rules, date, false);
+        assert!(!segments_normal.is_empty());
+        for seg in &segments_normal {
+            assert_eq!(seg.multiplier, Decimal::new(15, 1), "Non-holiday should use 1.5x");
+        }
+
+        // Holiday: holiday rule (priority 10) wins over normal rule (priority 1)
+        let segments_holiday = OvertimeEngine::calculate_segments(&rules, date, true);
+        assert!(!segments_holiday.is_empty());
+        for seg in &segments_holiday {
+            assert_eq!(seg.multiplier, Decimal::new(30, 1), "Holiday should use 3.0x");
+        }
+    }
+
+    /// calculate_overtime_pay_from_times should use holiday multiplier on holiday
+    #[test]
+    fn test_holiday_ot_pay_uses_correct_multiplier() {
+        let date = NaiveDate::from_ymd_opt(2026, 5, 1).expect("valid date");
+        let normal_rule = mock_rule(1, Decimal::new(15, 1), Some("17:00:00"), Some("22:00:00"), 127);
+        let mut holiday_rule = mock_rule(10, Decimal::new(30, 1), Some("17:00:00"), Some("22:00:00"), 127);
+        holiday_rule.is_holiday = true;
+        let rules = vec![normal_rule, holiday_rule];
+
+        let ot_intervals = vec![(
+            NaiveTime::from_hms_opt(18, 0, 0).unwrap(),
+            NaiveTime::from_hms_opt(20, 0, 0).unwrap(), // 2 hours OT
+        )];
+        let hourly_rate = Decimal::new(100, 0);
+
+        // Non-holiday: 2h × 100 × 1.5 = 300
+        let pay_normal = OvertimeEngine::calculate_overtime_pay_from_times(&rules, date, false, &ot_intervals, hourly_rate);
+        assert_eq!(pay_normal, Decimal::new(300, 0));
+
+        // Holiday: 2h × 100 × 3.0 = 600
+        let pay_holiday = OvertimeEngine::calculate_overtime_pay_from_times(&rules, date, true, &ot_intervals, hourly_rate);
+        assert_eq!(pay_holiday, Decimal::new(600, 0));
+    }
 }

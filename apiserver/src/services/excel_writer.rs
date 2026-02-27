@@ -159,6 +159,9 @@ impl ExcelWriter {
         let ot_fmt = Format::new()
             .set_align(FormatAlign::Center)
             .set_background_color(Color::RGB(0xFFF9C4)); // light yellow
+        let holiday_fmt = Format::new()
+            .set_align(FormatAlign::Center)
+            .set_background_color(Color::RGB(0xC8E6C9)); // light green for holidays
 
         // Title (row 0) and subtitle (row 1)
         worksheet
@@ -191,13 +194,13 @@ impl ExcelWriter {
         #[allow(clippy::type_complexity)]
         let mut emp_days: BTreeMap<
             &str,
-            (String, BTreeMap<NaiveDate, (i32, i32, Option<DateTime<Utc>>, Option<DateTime<Utc>>, Option<chrono::NaiveTime>, Option<chrono::NaiveTime>, Option<String>)>),
+            (String, BTreeMap<NaiveDate, (i32, i32, Option<DateTime<Utc>>, Option<DateTime<Utc>>, Option<chrono::NaiveTime>, Option<chrono::NaiveTime>, Option<String>, bool)>),
         > = BTreeMap::new();
         for r in reports {
             let entry = emp_days
                 .entry(r.employee_name.as_str())
                 .or_insert_with(|| (r.employee_id_number.clone(), BTreeMap::new()));
-            entry.1.insert(r.date, (r.std_work_units, r.ot_work_units, r.actual_punch_in, r.actual_punch_out, r.scheduled_start, r.scheduled_end, r.shift_symbol.clone()));
+            entry.1.insert(r.date, (r.std_work_units, r.ot_work_units, r.actual_punch_in, r.actual_punch_out, r.scheduled_start, r.scheduled_end, r.shift_symbol.clone(), r.is_holiday));
         }
 
         // Header row (row 3): "Employee ID" | "Employee" | day numbers
@@ -224,7 +227,7 @@ impl ExcelWriter {
                 .map_err(|e| e.to_string())?;
 
             for (day_idx, date) in dates.iter().enumerate() {
-                if let Some(&(std_u, ot_u, punch_in_utc, punch_out_utc, sched_start, sched_end, ref shift_sym)) = day_map.get(date) {
+                if let Some(&(std_u, ot_u, punch_in_utc, punch_out_utc, sched_start, sched_end, ref shift_sym, is_hol)) = day_map.get(date) {
                     // Symbol prefix: "S8" → "S8", None → ""
                     let prefix = shift_sym.as_deref().unwrap_or("");
 
@@ -265,7 +268,13 @@ impl ExcelWriter {
 
                     let ot_h = (ot_u as f64 * work_unit_minutes as f64) / 60.0;
                     let text = format!("{}{}/{}/{}/{}", prefix, fmt_h(std_h), fmt_h(late_h), fmt_h(early_leave_h), fmt_h(ot_h));
-                    let fmt = if ot_u > 0 { &ot_fmt } else { &cell_fmt };
+                    let fmt = if is_hol {
+                        &holiday_fmt
+                    } else if ot_u > 0 {
+                        &ot_fmt
+                    } else {
+                        &cell_fmt
+                    };
                     worksheet
                         .write_string_with_format(row, (day_idx + 2) as u16, &text, fmt)
                         .map_err(|e| e.to_string())?;
@@ -320,6 +329,14 @@ impl ExcelWriter {
         let status_off = Format::new()
             .set_font_color(Color::RGB(0x757575))
             .set_align(FormatAlign::Center);
+        let status_holiday = Format::new()
+            .set_font_color(Color::RGB(0x1B5E20))
+            .set_align(FormatAlign::Center)
+            .set_background_color(Color::RGB(0xC8E6C9)); // light green
+        let status_holiday_work = Format::new()
+            .set_font_color(Color::RGB(0xE65100))
+            .set_align(FormatAlign::Center)
+            .set_background_color(Color::RGB(0xFFE0B2)); // light orange
 
         worksheet
             .write_string_with_format(0, 0, format!("Raw Details - {workspace_name}"), &title_fmt)
@@ -346,6 +363,7 @@ impl ExcelWriter {
             "OT Units",
             "OT Status",
             "Status",
+            "Holiday",
         ];
         for (col, header) in headers.iter().enumerate() {
             worksheet
@@ -402,10 +420,21 @@ impl ExcelWriter {
                 "late" => &status_late,
                 "absent" => &status_absent,
                 "off" => &status_off,
+                "holiday" => &status_holiday,
+                "holiday_work" => &status_holiday_work,
                 _ => &time_fmt,
             };
             worksheet
                 .write_string_with_format(row, 10, &report.status, status_fmt)
+                .map_err(|e| e.to_string())?;
+
+            // Holiday column (col 11)
+            worksheet
+                .write_string(
+                    row,
+                    11,
+                    report.holiday_name.as_deref().unwrap_or(""),
+                )
                 .map_err(|e| e.to_string())?;
         }
 
@@ -533,6 +562,8 @@ mod tests {
                 ot_work_units: 2,
                 ot_claim_status: Some("approved".to_string()),
                 status: "present".to_string(),
+                is_holiday: false,
+                holiday_name: None,
                 generation_metadata: None,
             },
             DailyAttendanceReport {
@@ -553,6 +584,8 @@ mod tests {
                 ot_work_units: 0,
                 ot_claim_status: None,
                 status: "present".to_string(),
+                is_holiday: false,
+                holiday_name: None,
                 generation_metadata: None,
             },
             DailyAttendanceReport {
@@ -573,6 +606,8 @@ mod tests {
                 ot_work_units: 3,
                 ot_claim_status: Some("pending".to_string()),
                 status: "present".to_string(),
+                is_holiday: false,
+                holiday_name: None,
                 generation_metadata: None,
             },
         ];
@@ -674,6 +709,8 @@ mod tests {
             ot_work_units: 0,
             ot_claim_status: None,
             status: "present".to_string(),
+            is_holiday: false,
+            holiday_name: None,
             generation_metadata: None,
         }];
 
@@ -797,6 +834,8 @@ mod tests {
             ot_work_units: 0,
             ot_claim_status: None,
             status: "late".to_string(),
+            is_holiday: false,
+            holiday_name: None,
             generation_metadata: None,
         }];
 
@@ -842,6 +881,8 @@ mod tests {
             ot_work_units: 0,
             ot_claim_status: None,
             status: "present".to_string(),
+            is_holiday: false,
+            holiday_name: None,
             generation_metadata: None,
         };
 
@@ -877,6 +918,8 @@ mod tests {
             ot_work_units: 0,
             ot_claim_status: None,
             status: "absent".to_string(),
+            is_holiday: false,
+            holiday_name: None,
             generation_metadata: None,
         };
 
@@ -906,6 +949,8 @@ mod tests {
             ot_work_units: 0,
             ot_claim_status: None,
             status: "present".to_string(),
+            is_holiday: false,
+            holiday_name: None,
             generation_metadata: None,
         };
 

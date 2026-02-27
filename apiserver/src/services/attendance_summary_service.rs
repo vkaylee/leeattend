@@ -9,6 +9,7 @@ use crate::repositories::{
     roster_repository, time_entry_repository, workspace_repository::WorkspaceRepository,
     SqlxWorkspaceRepository,
 };
+use crate::repositories::holiday_repository::HolidayRepository;
 use crate::services::AttendanceCalculator;
 
 pub struct AttendanceSummaryService;
@@ -156,10 +157,17 @@ impl AttendanceSummaryService {
             }
         }
 
+        // 4b. Check if this date is a holiday
+        let holiday = HolidayRepository::is_holiday(pool, workspace_id, date)
+            .await
+            .unwrap_or(None);
+        let is_holiday = holiday.is_some();
+        let holiday_name = holiday.map(|h| h.name);
+
         // 5. Upsert into DB
         let existing: Option<AttendanceDailySummary> = sqlx::query_as!(
             AttendanceDailySummary,
-            "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, created_at, updated_at FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
+            "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
             employee_id, date
         )
         .fetch_optional(pool)
@@ -188,12 +196,14 @@ impl AttendanceSummaryService {
             INSERT INTO attendance_daily_summaries (
                 workspace_id, employee_id, date, 
                 actual_work_minutes, system_detected_ot_minutes, 
-                ot_status
+                ot_status, is_holiday, holiday_name
             )
-            VALUES ($1, $2, $3, $4, $5, $6)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (employee_id, date) DO UPDATE SET
                 actual_work_minutes = EXCLUDED.actual_work_minutes,
                 system_detected_ot_minutes = EXCLUDED.system_detected_ot_minutes,
+                is_holiday = EXCLUDED.is_holiday,
+                holiday_name = EXCLUDED.holiday_name,
                 ot_status = CASE 
                     WHEN attendance_daily_summaries.ot_status = 'none'::ot_status_type AND EXCLUDED.system_detected_ot_minutes > 0 THEN 'pending_employee'::ot_status_type
                     ELSE attendance_daily_summaries.ot_status 
@@ -205,7 +215,9 @@ impl AttendanceSummaryService {
             date,
             actual_work_minutes,
             system_detected_ot_minutes,
-            new_status as OtStatus
+            new_status as OtStatus,
+            is_holiday,
+            holiday_name as Option<String>
         )
         .execute(pool)
         .await
@@ -294,7 +306,7 @@ impl AttendanceSummaryService {
         // 1. Check existing summary
         let existing: Option<AttendanceDailySummary> = sqlx::query_as!(
             AttendanceDailySummary,
-            "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, created_at, updated_at FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
+            "SELECT id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as \"ot_status: OtStatus\", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
             employee_id, date
         )
         .fetch_optional(pool)
@@ -339,7 +351,7 @@ impl AttendanceSummaryService {
                 paper_form_photo_url = EXCLUDED.paper_form_photo_url,
                 entered_via = 'paper_form',
                 updated_at = CURRENT_TIMESTAMP
-            RETURNING id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as "ot_status: OtStatus", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, created_at, updated_at
+            RETURNING id, workspace_id, employee_id, date, actual_work_minutes, system_detected_ot_minutes, claimed_ot_minutes, approved_ot_minutes, ot_status as "ot_status: OtStatus", ot_reason, manager_note, claim_entered_by_user_id, claim_entered_at, paper_form_photo_url, entered_via, is_holiday, holiday_name, created_at, updated_at
             "#,
             employee_id, date, claimed_minutes, reason,
             entered_by_user_id, now, photo_url

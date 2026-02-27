@@ -3,6 +3,7 @@ pub mod assignment_rule_repository;
 pub mod attendance_adjustment_repository;
 pub mod department_repository;
 pub mod employee_repository;
+pub mod holiday_repository;
 pub mod import_job_repository;
 pub mod leave_balance_repository;
 pub mod leave_request_repository;

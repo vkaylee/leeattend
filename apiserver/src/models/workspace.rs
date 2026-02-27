@@ -1,4 +1,5 @@
 use chrono::{DateTime, NaiveDate, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -49,6 +50,8 @@ pub struct Workspace {
     pub default_language: String,
     pub pairing_algorithm: String,
     pub early_arrival_strategy: EarlyArrivalStrategy,
+    pub holiday_overnight_strategy: String,
+    pub default_holiday_ot_multiplier: Decimal,
     pub created_at: DateTime<Utc>,
 }
 
@@ -69,6 +72,8 @@ pub struct UpdateWorkspaceRequest {
     pub default_language: Option<String>,
     pub pairing_algorithm: Option<String>,
     pub early_arrival_strategy: Option<EarlyArrivalStrategy>,
+    pub holiday_overnight_strategy: Option<String>,
+    pub default_holiday_ot_multiplier: Option<Decimal>,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]

@@ -17,6 +17,7 @@ use crate::repositories::{
     department_repository, leave_request_repository, payroll_repository, roster_repository,
     shift_repository, time_entry_repository, SqlxWorkspaceRepository,
 };
+use crate::repositories::holiday_repository::HolidayRepository;
 use crate::services::{
     payroll_evaluator::{IncentiveContext, PayrollEvaluator},
     AttendanceCalculator,
@@ -83,6 +84,13 @@ impl PayrollService {
             time_entry_repository::get_employee_time_entries(pool, employee_id, start_dt, end_dt)
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        // 4b. Fetch holidays for the period (for OT holiday rule filtering)
+        let holidays_map = HolidayRepository::get_holidays_in_range(
+            pool, workspace_id, start_date, end_date,
+        )
+        .await
+        .unwrap_or_default();
 
         // 5. Determine Segments
         let mut change_points = BTreeSet::new();
@@ -274,14 +282,16 @@ impl PayrollService {
                                                     let ot_end = std::cmp::min(punch_out, start);
                                                     let daily_splits = OvertimeEngine::split_interval_by_day(punch_in, ot_end, &tz);
                                                     for (date, intervals) in daily_splits {
-                                                        total_ot_pay += OvertimeEngine::calculate_overtime_pay_from_times(&rules, date, false, &intervals, hourly_rate);
+                                                        let day_is_holiday = holidays_map.contains_key(&date);
+                                                        total_ot_pay += OvertimeEngine::calculate_overtime_pay_from_times(&rules, date, day_is_holiday, &intervals, hourly_rate);
                                                     }
                                                 }
                                                 if punch_out > end {
                                                     let ot_start = std::cmp::max(punch_in, end);
                                                     let daily_splits = OvertimeEngine::split_interval_by_day(ot_start, punch_out, &tz);
                                                     for (date, intervals) in daily_splits {
-                                                        total_ot_pay += OvertimeEngine::calculate_overtime_pay_from_times(&rules, date, false, &intervals, hourly_rate);
+                                                        let day_is_holiday = holidays_map.contains_key(&date);
+                                                        total_ot_pay += OvertimeEngine::calculate_overtime_pay_from_times(&rules, date, day_is_holiday, &intervals, hourly_rate);
                                                     }
                                                 }
                                                 segment_ot_pay += total_ot_pay;
@@ -292,14 +302,18 @@ impl PayrollService {
                                         }
 
                                         // Violation detection for IncentiveContext
-                                        let is_late = punch_in
-                                            > start
-                                                + chrono::Duration::minutes(
-                                                    rules.grace_period_minutes as i64,
-                                                );
-                                        let is_early = punch_out < end;
-                                        if is_late || is_early {
-                                            total_late_early_count += 1;
+                                        // Skip holidays — employees should not be penalized
+                                        // for arriving "late" on a holiday
+                                        if !holidays_map.contains_key(&current_date) {
+                                            let is_late = punch_in
+                                                > start
+                                                    + chrono::Duration::minutes(
+                                                        rules.grace_period_minutes as i64,
+                                                    );
+                                            let is_early = punch_out < end;
+                                            if is_late || is_early {
+                                                total_late_early_count += 1;
+                                            }
                                         }
                                     }
                                 }

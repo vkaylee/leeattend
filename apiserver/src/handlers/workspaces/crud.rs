@@ -157,6 +157,8 @@ pub async fn update_workspace(
         req.default_language,
         req.pairing_algorithm,
         req.early_arrival_strategy,
+        req.holiday_overnight_strategy,
+        req.default_holiday_ot_multiplier,
     )
     .await
     .map(Json)

@@ -9,6 +9,7 @@ pub mod attendance;
 pub mod auth;
 pub mod department;
 pub mod employee;
+pub mod holiday;
 pub mod leave;
 pub mod payroll;
 pub mod report;

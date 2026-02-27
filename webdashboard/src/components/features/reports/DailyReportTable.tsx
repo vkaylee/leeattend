@@ -40,12 +40,14 @@ export default function DailyReportTable({
   onConfirmClick,
   onApproveOt,
 }: DailyReportTableProps) {
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, holidayName?: string | null) => {
     const styles: Record<string, string> = {
       present: "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800",
       late: "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800",
       absent: "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100 dark:border-rose-800",
       off: "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800",
+      holiday: "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
+      holiday_work: "bg-orange-50 dark:bg-orange-950 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800",
     };
 
     const labels: Record<string, string> = {
@@ -53,6 +55,8 @@ export default function DailyReportTable({
       late: t("reports.status.late"),
       absent: t("reports.status.absent"),
       off: t("reports.status.off"),
+      holiday: "🏖️ Holiday",
+      holiday_work: "🔶 Holiday Work",
     };
 
     return (
@@ -61,6 +65,7 @@ export default function DailyReportTable({
           "px-1.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border shadow-sm",
           styles[status] || styles.off
         )}
+        title={holidayName || undefined}
       >
         {labels[status] || status}
       </span>
@@ -253,7 +258,7 @@ export default function DailyReportTable({
                     </td>
 
                     <td className="px-4 py-2.5 text-center">
-                      {getStatusBadge(row.status)}
+                      {getStatusBadge(row.status, row.holiday_name)}
                     </td>
 
                     {isDebugMode && (

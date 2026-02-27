@@ -1,14 +1,15 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { 
-  Settings2, 
-  Users, 
-  Clock, 
-  Banknote, 
-  Cpu, 
+import {
+  Settings2,
+  Users,
+  Clock,
+  Banknote,
+  Cpu,
   ChevronRight,
   ShieldCheck,
-  CalendarDays
+  CalendarDays,
+  Palmtree
 } from "lucide-react";
 
 export default function SettingsLayout() {
@@ -16,39 +17,45 @@ export default function SettingsLayout() {
   const location = useLocation();
 
   const navItems = [
-    { 
-      path: "/workspace/settings/general", 
-      label: t("settings.categories.general"), 
+    {
+      path: "/workspace/settings/general",
+      label: t("settings.categories.general"),
       icon: <Settings2 className="w-4 h-4" />,
       description: t("settings.categories.general_desc")
     },
-    { 
-      path: "/workspace/settings/people", 
-      label: t("settings.categories.people"), 
+    {
+      path: "/workspace/settings/people",
+      label: t("settings.categories.people"),
       icon: <Users className="w-4 h-4" />,
       description: t("settings.categories.people_desc")
     },
-    { 
-      path: "/workspace/settings/time", 
-      label: t("settings.categories.time"), 
+    {
+      path: "/workspace/settings/time",
+      label: t("settings.categories.time"),
       icon: <Clock className="w-4 h-4" />,
       description: t("settings.categories.time_desc")
     },
-    { 
-      path: "/workspace/settings/payroll", 
-      label: t("settings.categories.payroll"), 
+    {
+      path: "/workspace/settings/payroll",
+      label: t("settings.categories.payroll"),
       icon: <Banknote className="w-4 h-4" />,
       description: t("settings.categories.payroll_desc")
     },
-        { 
-      path: "/workspace/settings/leave", 
-      label: "Leave Management", 
+    {
+      path: "/workspace/settings/leave",
+      label: "Leave Management",
       icon: <CalendarDays className="w-4 h-4" />,
       description: "Manage leave types and policies"
     },
-    { 
-      path: "/workspace/settings/connectivity", 
-      label: t("settings.categories.connectivity"), 
+    {
+      path: "/workspace/settings/holidays",
+      label: "Holidays",
+      icon: <Palmtree className="w-4 h-4" />,
+      description: "Manage public holidays"
+    },
+    {
+      path: "/workspace/settings/connectivity",
+      label: t("settings.categories.connectivity"),
       icon: <Cpu className="w-4 h-4" />,
       description: t("settings.categories.connectivity_desc")
     }
@@ -74,15 +81,13 @@ export default function SettingsLayout() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-start gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group ${
-                  isActive(item.path)
+                className={`flex items-start gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group ${isActive(item.path)
                     ? "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 shadow-sm shadow-primary-100/50"
                     : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
-                }`}
+                  }`}
               >
-                <div className={`p-2 rounded-xl transition-colors ${
-                  isActive(item.path) ? "bg-white dark:bg-slate-900 shadow-sm" : "bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:hover:bg-slate-900"
-                }`}>
+                <div className={`p-2 rounded-xl transition-colors ${isActive(item.path) ? "bg-white dark:bg-slate-900 shadow-sm" : "bg-slate-50 dark:bg-slate-800 group-hover:bg-white dark:hover:bg-slate-900"
+                  }`}>
                   {item.icon}
                 </div>
                 <div className="flex flex-col min-w-0">

@@ -73,6 +73,9 @@ pub struct DailyAttendanceReport {
     #[serde(default)]
     pub ot_claim_status: Option<String>,
     pub status: String,
+    #[serde(default)]
+    pub is_holiday: bool,
+    pub holiday_name: Option<String>,
     pub generation_metadata: Option<serde_json::Value>,
 }
 
@@ -139,6 +142,8 @@ pub struct AttendanceDailySummary {
     pub claim_entered_at: Option<DateTime<Utc>>,
     pub paper_form_photo_url: Option<String>,
     pub entered_via: Option<String>,
+    pub is_holiday: bool,
+    pub holiday_name: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

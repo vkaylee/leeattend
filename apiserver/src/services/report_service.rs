@@ -13,6 +13,7 @@ use crate::repositories::workspace_repository::WorkspaceRepository;
 use crate::repositories::{
     employee_repository, roster_repository, time_entry_repository, SqlxWorkspaceRepository,
 };
+use crate::repositories::holiday_repository::HolidayRepository;
 use crate::services::AttendanceCalculator;
 
 pub struct ReportService;
@@ -112,6 +113,13 @@ impl ReportService {
         )
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        // 5a. BATCH fetch holidays for the date range
+        let holidays_map = HolidayRepository::get_holidays_in_range(
+            pool, workspace_id, start_date, end_date,
+        )
+        .await
+        .unwrap_or_default();
 
         // 5b. BATCH fetch OT claim statuses from attendance_daily_summaries
         let ot_status_rows = sqlx::query!(
@@ -237,19 +245,31 @@ impl ReportService {
                 }
                 // -----------------------------
 
-                let mut status = "absent".to_string();
-                if actual_punch_in.is_some() {
-                    status = "present".to_string();
+                // --- STATUS DETERMINATION (holiday-aware) ---
+                let holiday_entry = holidays_map.get(&date);
+                let is_hol = holiday_entry.is_some();
 
-                    if let (Some(punch_in), Some(sched_start)) = (actual_punch_in, daily.start_time)
+                let status = if actual_punch_in.is_some() {
+                    if is_hol {
+                        "holiday_work".to_string()
+                    } else if let (Some(punch_in), Some(sched_start)) =
+                        (actual_punch_in, daily.start_time)
                     {
                         if punch_in.time() > sched_start + chrono::Duration::minutes(5) {
-                            status = "late".to_string();
+                            "late".to_string()
+                        } else {
+                            "present".to_string()
                         }
+                    } else {
+                        "present".to_string()
                     }
+                } else if is_hol {
+                    "holiday".to_string()
                 } else if daily.shift_id.is_none() {
-                    status = "off".to_string();
-                }
+                    "off".to_string()
+                } else {
+                    "absent".to_string()
+                };
 
                 // Collect metadata from all entries for this day
                 let mut metadata_map = serde_json::Map::new();
@@ -298,6 +318,8 @@ impl ReportService {
                         .get(&(emp_sched.employee_id, date))
                         .cloned(),
                     status,
+                    is_holiday: is_hol,
+                    holiday_name: holiday_entry.map(|h| h.name.clone()),
                     generation_metadata: combined_metadata,
                 });
             }

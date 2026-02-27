@@ -529,6 +529,8 @@ impl AttendanceHandler {
                     ot_work_units,
                     ot_claim_status: None,
                     status,
+                    is_holiday: false,
+                    holiday_name: None,
                     generation_metadata: combined_metadata,
                 });
             }
@@ -658,6 +660,8 @@ mod tests {
             ot_work_units: 0,
             ot_claim_status: None,
             status: "absent".to_string(),
+            is_holiday: false,
+            holiday_name: None,
             generation_metadata: None,
         }];
 

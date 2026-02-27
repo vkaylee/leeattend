@@ -102,6 +102,8 @@ impl WorkspaceService {
         default_language: Option<String>,
         pairing_algorithm: Option<String>,
         early_arrival_strategy: Option<crate::models::EarlyArrivalStrategy>,
+        holiday_overnight_strategy: Option<String>,
+        default_holiday_ot_multiplier: Option<rust_decimal::Decimal>,
     ) -> Result<Workspace, String> {
         let mut query = String::from("UPDATE workspaces SET ");
         let mut has_fields = false;
@@ -184,6 +186,22 @@ impl WorkspaceService {
             arg_idx += 1;
             has_fields = true;
         }
+        if holiday_overnight_strategy.is_some() {
+            if has_fields {
+                query.push_str(", ");
+            }
+            query.push_str(&format!("holiday_overnight_strategy = ${arg_idx}"));
+            arg_idx += 1;
+            has_fields = true;
+        }
+        if default_holiday_ot_multiplier.is_some() {
+            if has_fields {
+                query.push_str(", ");
+            }
+            query.push_str(&format!("default_holiday_ot_multiplier = ${arg_idx}"));
+            arg_idx += 1;
+            has_fields = true;
+        }
 
         if !has_fields {
             return Err("No fields to update".to_string());
@@ -222,6 +240,12 @@ impl WorkspaceService {
         }
         if let Some(eas) = early_arrival_strategy {
             q = q.bind(eas);
+        }
+        if let Some(hos) = holiday_overnight_strategy {
+            q = q.bind(hos);
+        }
+        if let Some(dhom) = default_holiday_ot_multiplier {
+            q = q.bind(dhom);
         }
         q = q.bind(ws_id);
 
