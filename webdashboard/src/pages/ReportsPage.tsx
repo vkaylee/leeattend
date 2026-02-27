@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Download, RefreshCw, Check, CheckCircle } from "lucide-react";
-import { format, endOfMonth, getDaysInMonth } from "date-fns";
+import { format, endOfMonth, getDaysInMonth, differenceInCalendarDays } from "date-fns";
 import {
   fetchAttendanceReport,
   getCurrentWorkspaceId,
@@ -120,9 +120,17 @@ export default function ReportsPage() {
     setExpandedDebugRows(next);
   };
 
+  // Backend paginates by employees. For daily reports, each employee generates
+  // `daysInRange` rows. Convert the user's "rows per page" to "employees per page"
+  // so the actual row count on screen matches the dropdown selection.
+  const daysInRange = differenceInCalendarDays(new Date(dateRange.end), new Date(dateRange.start)) + 1;
+  const apiLimit = reportType === "daily"
+    ? Math.max(1, Math.floor(pageSize / daysInRange))
+    : pageSize;
+
   const { data: reportResponse, isLoading } = useQuery({
-    queryKey: ["attendance-report", wsId, dateRange, reportType, page, pageSize, sortBy, selectedEmployeeIds],
-    queryFn: () => fetchAttendanceReport(wsId!, dateRange.start, dateRange.end, reportType, page, pageSize, sortBy, selectedEmployeeIds),
+    queryKey: ["attendance-report", wsId, dateRange, reportType, page, apiLimit, sortBy, selectedEmployeeIds],
+    queryFn: () => fetchAttendanceReport(wsId!, dateRange.start, dateRange.end, reportType, page, apiLimit, sortBy, selectedEmployeeIds),
     enabled: !!wsId,
   });
 
@@ -142,8 +150,11 @@ export default function ReportsPage() {
   }, [pendingAdjustments]);
 
   const reportData = reportResponse?.data || (Array.isArray(reportResponse) ? reportResponse : []);
-  const totalItems = reportResponse?.total || reportData.length;
-  const totalPages = reportResponse?.total ? Math.ceil(reportResponse.total / pageSize) : 1;
+  // For daily: show actual rendered row count; for summary: use backend total
+  const totalItems = reportType === "daily"
+    ? reportData.length
+    : (reportResponse?.total || reportData.length);
+  const totalPages = reportResponse?.total ? Math.ceil(reportResponse.total / apiLimit) : 1;
 
   const handleSort = (field: 'name' | 'work_hours' | 'leave_days') => {
     let nextSort: AttendanceReportSort;

@@ -92,8 +92,36 @@ describe("ReportsPage", () => {
     await waitFor(() => {
       const calls = (api.fetchAttendanceReport as any).mock.calls;
       expect(calls.length).toBeGreaterThan(0);
-      // The 6th argument (index 5) is pageSize. December 2025 has 31 days.
+      // Default mode is summary, so apiLimit = pageSize = days in month (31 for Jan)
       expect(calls[0][5]).toBe(31);
+    });
+  });
+
+  it("converts pageSize to employees-per-page for daily reports", async () => {
+    // For daily tab: apiLimit = max(1, floor(pageSize / daysInRange))
+    // Default pageSize = 31, daysInRange for a full month = 31
+    // So apiLimit = floor(31/31) = 1
+    const user = userEvent.setup();
+    (api.fetchAttendanceReport as any).mockResolvedValue({ data: [], total: 0 });
+
+    renderWithProviders(<ReportsPage />);
+    // Wait for initial render
+    await waitFor(() => {
+      expect((api.fetchAttendanceReport as any).mock.calls.length).toBeGreaterThan(0);
+    });
+
+    // Switch to daily tab
+    const dailyBtn = await screen.findByText(/Daily Details|Chi ti[eế]t/i);
+    await user.click(dailyBtn);
+
+    // After switching to daily, the API should be called with apiLimit = 1
+    // (pageSize=31, daysInRange=31, floor(31/31) = 1)
+    await waitFor(() => {
+      const calls = (api.fetchAttendanceReport as any).mock.calls;
+      const dailyCalls = calls.filter((c: any[]) => c[3] === "daily");
+      expect(dailyCalls.length).toBeGreaterThan(0);
+      // 6th argument (index 5) = limit sent to backend
+      expect(dailyCalls[0][5]).toBe(1);
     });
   });
 
