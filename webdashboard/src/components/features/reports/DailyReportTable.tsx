@@ -58,7 +58,7 @@ export default function DailyReportTable({
     return (
       <span
         className={cn(
-          "px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border shadow-sm",
+          "px-1.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border shadow-sm",
           styles[status] || styles.off
         )}
       >
@@ -85,7 +85,7 @@ export default function DailyReportTable({
     };
 
     return (
-      <span className={cn("px-2 py-0.5 rounded-md border text-[8px] font-bold uppercase tracking-wider", styles[status] || "")}>
+      <span className={cn("px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wide", styles[status] || "")}>
         {labels[status] || status}
       </span>
     );
@@ -96,36 +96,36 @@ export default function DailyReportTable({
       <table className="w-full text-left min-w-[1200px] border-collapse">
         <thead>
           <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-            <th className="px-10 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest sticky left-0 z-10 bg-slate-50 dark:bg-slate-800/50">
               {t("common.date")}
             </th>
-            <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest sticky left-[80px] sm:left-[100px] z-10 bg-slate-50 dark:bg-slate-800/50">
               {t("common.employee")}
             </th>
-            <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
               {t("common.shift")}
             </th>
-            <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">
+            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">
               {t("common.in")}
             </th>
-            <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">
+            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">
               {t("common.out")}
             </th>
-            <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-right">
+            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">
               {t("reports.table.std_hours")}
             </th>
-            <th className="px-8 py-6 text-[10px] font-bold text-orange-500 dark:text-orange-400 uppercase tracking-[0.25em] text-right">
+            <th className="px-4 py-2.5 text-[10px] font-bold text-orange-500 dark:text-orange-400 uppercase tracking-widest text-right">
               {t("reports.table.ot_hours")}
             </th>
-            <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">
+            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center">
               {t("common.status")}
             </th>
             {isDebugMode && (
-              <th className="px-8 py-6 text-[10px] font-bold text-amber-600 dark:text-amber-300 uppercase tracking-[0.25em] text-center">
+              <th className="px-4 py-2.5 text-[10px] font-bold text-amber-600 dark:text-amber-300 uppercase tracking-widest text-center">
                 DEBUG
               </th>
             )}
-            <th className="px-8 py-6"></th>
+            <th className="px-4 py-2.5"></th>
           </tr>
         </thead>
 
@@ -164,15 +164,15 @@ export default function DailyReportTable({
                       isExpanded ? "bg-amber-50 dark:bg-amber-950/20" : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
                     )}
                   >
-                    <td className="px-10 py-6 font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                    <td className="px-4 py-2.5 font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap sticky left-0 z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
                       {formatDate(row.date)}
                     </td>
 
-                    <td className="px-8 py-6 font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">
+                    <td className="px-4 py-2.5 font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none whitespace-nowrap sticky left-[80px] sm:left-[100px] z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
                       {row.employee_name}
                     </td>
 
-                    <td className="px-8 py-6">
+                    <td className="px-4 py-2.5">
                       {row.scheduled_start ? (
                         <div className="flex flex-col">
                           <span className="font-bold text-slate-700 dark:text-slate-200 text-xs uppercase tracking-tighter shadow-sm bg-white dark:bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-100 dark:border-slate-800 w-fit">
@@ -193,15 +193,19 @@ export default function DailyReportTable({
                       )}
                     </td>
 
-                    <td className="px-8 py-6 text-center font-mono font-bold text-xs text-slate-700 dark:text-slate-200 tracking-tighter shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-xl m-2">
-                      {formatTime(row.actual_punch_in)}
+                    <td className="px-4 py-2.5 text-center font-mono font-bold text-xs text-slate-700 dark:text-slate-200 tracking-tighter">
+                      <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">
+                        {formatTime(row.actual_punch_in)}
+                      </div>
                     </td>
 
-                    <td className="px-8 py-6 text-center font-mono font-bold text-xs text-slate-700 dark:text-slate-200 tracking-tighter shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-xl m-2">
-                      {formatTime(row.actual_punch_out)}
+                    <td className="px-4 py-2.5 text-center font-mono font-bold text-xs text-slate-700 dark:text-slate-200 tracking-tighter">
+                      <div className="shadow-inner bg-slate-50 dark:bg-slate-800/50 rounded-md py-1 px-2 inline-block">
+                        {formatTime(row.actual_punch_out)}
+                      </div>
                     </td>
 
-                    <td className="px-8 py-6 text-right">
+                    <td className="px-4 py-2.5 text-right">
                       <div className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter leading-none">
                         {formatUnitsToHours(row.std_work_units, workUnitMinutes)}h
                       </div>
@@ -210,7 +214,7 @@ export default function DailyReportTable({
                       </span>
                     </td>
 
-                    <td className="px-8 py-6 text-right">
+                    <td className="px-4 py-2.5 text-right">
                       {row.ot_work_units > 0 ? (
                         <div className="flex flex-col items-end gap-1">
                           <div>
@@ -248,16 +252,16 @@ export default function DailyReportTable({
                       )}
                     </td>
 
-                    <td className="px-8 py-6 text-center">
+                    <td className="px-4 py-2.5 text-center">
                       {getStatusBadge(row.status)}
                     </td>
 
                     {isDebugMode && (
-                      <td className="px-8 py-6 text-center">
+                      <td className="px-4 py-2.5 text-center">
                         <button
                           onClick={() => onToggleExpandRow(rowKey)}
                           className={cn(
-                            "p-2 rounded-xl transition-all shadow-md border active:scale-90",
+                            "p-1.5 rounded-lg transition-all shadow-sm border active:scale-95",
                             isExpanded
                               ? "bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 border-amber-200"
                               : "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-300 border-slate-100 dark:border-slate-800 hover:bg-amber-50 dark:bg-amber-950"
@@ -268,8 +272,8 @@ export default function DailyReportTable({
                       </td>
                     )}
 
-                    <td className="px-6 py-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-4 py-2.5 text-right">
+                      <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
                         {/* 
                           Confirm attendance button.
                           - Always visible and enabled for every row (even empty/absent ones)
@@ -280,21 +284,17 @@ export default function DailyReportTable({
                           onClick={() => onConfirmClick(row, existingAdjustment)}
                           disabled={isConfirming}
                           className={cn(
-                            "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider shadow-sm border transition-all active:scale-95 whitespace-nowrap",
+                            "flex items-center justify-center p-1.5 rounded-lg transition-all shadow-sm border active:scale-95",
                             existingAdjustment
                               ? "bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-300 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900"
                               : "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900",
                             isConfirming && "opacity-70 cursor-wait"
                           )}
-                          title={t("reports.confirm.tooltip")}
+                          title={existingAdjustment ? t("reports.confirm.pending_badge") : t("common.attendance_confirm")}
                         >
                           {isConfirming
                             ? <RefreshCw size={14} className="animate-spin" />
                             : <CheckCircle size={14} />
-                          }
-                          {existingAdjustment
-                            ? t("reports.confirm.pending_badge")
-                            : t("common.attendance_confirm")
                           }
                         </button>
 
@@ -302,7 +302,7 @@ export default function DailyReportTable({
                         <button
                           onClick={() => onReprocessClick(row)}
                           disabled={isReprocessing}
-                          className="p-3 bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-300 hover:text-blue-700 dark:text-blue-300 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 transition-all active:scale-90 opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                          className="p-1.5 bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 transition-all active:scale-95 disabled:opacity-50"
                           title={t("reports.reprocess.tooltip")}
                         >
                           <RefreshCw size={18} className={cn(isReprocessing && "animate-spin")} />
