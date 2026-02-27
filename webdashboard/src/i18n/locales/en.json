@@ -2079,6 +2079,8 @@
     },
     "table": {
       "total_hours": "Total Hours",
+      "std_hours": "Regular Hours",
+      "ot_hours": "Overtime",
       "leave_days": "Leave Days",
       "hours": "Hours",
       "units": "Units"
@@ -2086,6 +2088,8 @@
     "quick_stats": {
       "title": "Quick Stats",
       "total_hours": "Total Hours",
+      "std_hours": "Regular Hours",
+      "ot_hours": "Overtime Hours",
       "total_units": "Total Units"
     },
     "messages": {
@@ -2120,6 +2124,19 @@
     },
     "debug_mode_on": "Debug: ON",
     "debug_mode_off": "Debug: OFF",
+    "ot_status": {
+      "pending_employee": "Pending Emp",
+      "pending_manager": "Pending Approval",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "ot_approve": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "success_approved": "OT approved successfully",
+      "success_rejected": "OT rejected",
+      "error": "Failed to process OT"
+    },
     "label": "Reports"
   },
   "patterns": {

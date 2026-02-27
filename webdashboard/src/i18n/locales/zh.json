@@ -2081,12 +2081,16 @@
       "total_hours": "总工时",
       "leave_days": "休假天数",
       "hours": "小时",
-      "units": "单位"
+      "units": "单位",
+      "std_hours": "标准工时",
+      "ot_hours": "加班工时"
     },
     "quick_stats": {
       "title": "快速统计",
       "total_hours": "总工时",
-      "total_units": "总单位"
+      "total_units": "总单位",
+      "std_hours": "标准工时",
+      "ot_hours": "加班工时"
     },
     "messages": {
       "generating": "正在生成报告...",
@@ -2100,6 +2104,19 @@
       "confirm_message": "系统将使用最新的匹配算法和班次设置重新计算员工 {{employee}} 在 {{date}} 的考勤。",
       "confirm": "重新计算",
       "error": "无法重新计算考勤。请再试一次。"
+    },
+    "ot_status": {
+      "pending_employee": "待员工确认",
+      "pending_manager": "待经理审批",
+      "approved": "已批准",
+      "rejected": "已拒绝"
+    },
+    "ot_approve": {
+      "approve": "批准",
+      "reject": "拒绝",
+      "success_approved": "加班已批准",
+      "success_rejected": "加班已拒绝",
+      "error": "更新加班状态失败"
     },
     "confirm": {
       "tooltip": "确认当天的考勤",

@@ -50,13 +50,17 @@ export default function SummaryReportTable({
           </th>
 
           <th
-            className="px-10 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-right cursor-pointer hover:text-primary-600 dark:text-primary-400 transition-colors group"
+            className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-right cursor-pointer hover:text-primary-600 dark:text-primary-400 transition-colors group"
             onClick={() => onSort('work_hours')}
           >
             <div className="flex items-center justify-end">
-              {t("reports.table.total_hours")}
+              {t("reports.table.std_hours")}
               {getSortIcon('work_hours')}
             </div>
+          </th>
+
+          <th className="px-8 py-6 text-[10px] font-bold text-orange-500 dark:text-orange-400 uppercase tracking-[0.25em] text-right">
+            {t("reports.table.ot_hours")}
           </th>
 
           <th
@@ -78,13 +82,13 @@ export default function SummaryReportTable({
       <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
         {isLoading ? (
           <tr>
-            <td colSpan={4} className="px-10 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">
+            <td colSpan={5} className="px-10 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">
               {t("reports.messages.generating")}
             </td>
           </tr>
         ) : data.length === 0 ? (
           <tr>
-            <td colSpan={4} className="px-10 py-32 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
+            <td colSpan={5} className="px-10 py-32 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
               {t("reports.messages.no_data")}
             </td>
           </tr>
@@ -95,13 +99,28 @@ export default function SummaryReportTable({
                 {row.employee_name}
               </td>
 
-              <td className="px-10 py-6 text-right">
+              <td className="px-8 py-6 text-right">
                 <div className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter">
-                  {formatUnitsToHours(row.total_work_units, workUnitMinutes)}h
+                  {formatUnitsToHours(row.total_std_units, workUnitMinutes)}h
                 </div>
                 <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-60">
-                  {row.total_work_units} UNITS
+                  {row.total_std_units} U
                 </span>
+              </td>
+
+              <td className="px-8 py-6 text-right">
+                {row.total_ot_units > 0 ? (
+                  <>
+                    <div className="font-mono font-bold text-orange-600 dark:text-orange-400 text-base tracking-tighter">
+                      {formatUnitsToHours(row.total_ot_units, workUnitMinutes)}h
+                    </div>
+                    <span className="text-[9px] font-bold text-orange-500 dark:text-orange-400 uppercase tracking-widest opacity-60">
+                      {row.total_ot_units} OT
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-slate-200 dark:text-slate-700 font-bold">—</span>
+                )}
               </td>
 
               <td className="px-10 py-6 text-right font-mono font-bold text-orange-600 dark:text-orange-300 text-base tracking-tighter">

@@ -26,7 +26,8 @@ export interface ExcelColumn {
 // Column definitions matching backend excel_writer.rs
 const SUMMARY_COLUMNS: ExcelColumn[] = [
   { header: "Employee Name", key: "employee_name", width: 35 },
-  { header: "Total Work Units", key: "total_work_units", width: 18 },
+  { header: "Std Units", key: "total_std_units", width: 15 },
+  { header: "OT Units", key: "total_ot_units", width: 15 },
   { header: "Total Leave Days", key: "total_leave_days", width: 18 },
 ];
 
@@ -190,7 +191,7 @@ export async function generateExcel(
  * Type guard to check if row is SummaryRow
  */
 export function isSummaryRow(row: AttendanceRow): row is SummaryRow {
-  return "total_work_units" in row;
+  return "total_std_units" in row;
 }
 
 /**

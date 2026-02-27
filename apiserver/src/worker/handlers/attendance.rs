@@ -249,7 +249,8 @@ impl AttendanceHandler {
                 .get(&emp_sched.employee_id)
                 .map(|v| v.as_slice())
                 .unwrap_or(&[]);
-            let mut total_units = 0i32;
+            let mut total_std_units = 0i32;
+            let mut total_ot_units = 0i32;
 
             // Get this employee's conditions once
             let emp_conditions = conditions_map
@@ -334,14 +335,16 @@ impl AttendanceHandler {
                         &rules,
                     );
 
-                    total_units += std_units + ot_units;
+                    total_std_units += std_units;
+                    total_ot_units += ot_units;
                 }
             }
 
             summaries.push(AttendanceSummary {
                 employee_id: emp_sched.employee_id,
                 employee_name: emp_sched.full_name.clone(),
-                total_work_units: total_units,
+                total_std_units,
+                total_ot_units,
                 total_leave_days: leave_data.get(&emp_sched.employee_id).copied().unwrap_or(0),
             });
         }
@@ -613,13 +616,15 @@ mod tests {
             AttendanceSummary {
                 employee_id: Uuid::new_v4(),
                 employee_name: "Alice".to_string(),
-                total_work_units: 160,
+                total_std_units: 140,
+                total_ot_units: 20,
                 total_leave_days: 2,
             },
             AttendanceSummary {
                 employee_id: Uuid::new_v4(),
                 employee_name: "Bob".to_string(),
-                total_work_units: 152,
+                total_std_units: 152,
+                total_ot_units: 0,
                 total_leave_days: 4,
             },
         ];
@@ -629,7 +634,8 @@ mod tests {
 
         assert_eq!(decoded.len(), 2);
         assert_eq!(decoded[0].employee_name, "Alice");
-        assert_eq!(decoded[0].total_work_units, 160);
+        assert_eq!(decoded[0].total_std_units, 140);
+        assert_eq!(decoded[0].total_ot_units, 20);
     }
 
     #[test]

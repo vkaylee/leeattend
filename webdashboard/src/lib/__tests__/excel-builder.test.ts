@@ -70,12 +70,14 @@ describe("excel-builder", () => {
     const summaryRows: SummaryRow[] = [
       {
         employee_name: "John Doe",
-        total_work_units: 160,
+        total_std_units: 140,
+        total_ot_units: 20,
         total_leave_days: 2,
       },
       {
         employee_name: "Jane Smith",
-        total_work_units: 152,
+        total_std_units: 152,
+        total_ot_units: 0,
         total_leave_days: 1,
       },
     ];
@@ -128,19 +130,20 @@ describe("excel-builder", () => {
       // Verify workbook creation
       expect(mockWorkbook.addWorksheet).toHaveBeenCalledWith("Summary");
 
-      // Verify worksheet columns set (summary has 3 columns)
-      expect(mockWorksheet.columns).toHaveLength(3);
+      // Verify worksheet columns set (summary has 4 columns)
+      expect(mockWorksheet.columns).toHaveLength(4);
       expect(mockWorksheet.columns[0].header).toBe("Employee Name");
-      expect(mockWorksheet.columns[1].header).toBe("Total Work Units");
-      expect(mockWorksheet.columns[2].header).toBe("Total Leave Days");
+      expect(mockWorksheet.columns[1].header).toBe("Std Units");
+      expect(mockWorksheet.columns[2].header).toBe("OT Units");
+      expect(mockWorksheet.columns[3].header).toBe("Total Leave Days");
 
       // Verify title row creation
       expect(mockGetCell).toHaveBeenCalledWith("A1");
-      expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(1, 1, 1, 3);
+      expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(1, 1, 1, 4);
 
       // Verify date range row
       expect(mockGetCell).toHaveBeenCalledWith("A2");
-      expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(2, 1, 2, 3);
+      expect(mockWorksheet.mergeCells).toHaveBeenCalledWith(2, 1, 2, 4);
 
       // Verify header row (row 4)
       expect(mockGetRow).toHaveBeenCalledWith(4);
@@ -233,7 +236,8 @@ describe("excel-builder", () => {
       // Create 2500 rows to test chunking (chunk size is 1000)
       const largeDataset: SummaryRow[] = Array.from({ length: 2500 }, (_, i) => ({
         employee_name: `Employee ${i + 1}`,
-        total_work_units: 160,
+        total_std_units: 140,
+        total_ot_units: 20,
         total_leave_days: 0,
       }));
 
@@ -287,7 +291,7 @@ describe("excel-builder", () => {
       expect(mockWorksheet.autoFilter).toBeDefined();
       expect(mockWorksheet.autoFilter).toEqual({
         from: { row: 4, column: 1 },
-        to: { row: 6, column: 3 }, // 2 data rows + header row
+        to: { row: 6, column: 4 }, // 2 data rows + header row
       });
     });
 
@@ -372,7 +376,8 @@ describe("excel-builder", () => {
       it("returns true for valid SummaryRow", () => {
         const summaryRow: SummaryRow = {
           employee_name: "John Doe",
-          total_work_units: 160,
+          total_std_units: 140,
+          total_ot_units: 20,
           total_leave_days: 2,
         };
 
@@ -395,7 +400,7 @@ describe("excel-builder", () => {
         expect(isSummaryRow(detailRow)).toBe(false);
       });
 
-      it("returns false for object without total_work_units", () => {
+      it("returns false for object without total_std_units", () => {
         const invalidRow = {
           employee_name: "John Doe",
           total_leave_days: 2,
@@ -407,7 +412,8 @@ describe("excel-builder", () => {
       it("returns true even with additional properties", () => {
         const rowWithExtra = {
           employee_name: "John Doe",
-          total_work_units: 160,
+          total_std_units: 140,
+          total_ot_units: 20,
           total_leave_days: 2,
           extra_field: "value",
         };
@@ -436,7 +442,8 @@ describe("excel-builder", () => {
       it("returns false for SummaryRow", () => {
         const summaryRow: SummaryRow = {
           employee_name: "John Doe",
-          total_work_units: 160,
+          total_std_units: 140,
+          total_ot_units: 20,
           total_leave_days: 2,
         };
 
@@ -499,7 +506,8 @@ describe("excel-builder", () => {
       it("SummaryRow and DetailRow are mutually exclusive", () => {
         const summaryRow: SummaryRow = {
           employee_name: "John Doe",
-          total_work_units: 160,
+          total_std_units: 140,
+          total_ot_units: 20,
           total_leave_days: 2,
         };
 

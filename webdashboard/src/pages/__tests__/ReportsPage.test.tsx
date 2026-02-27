@@ -44,7 +44,7 @@ describe("ReportsPage", () => {
     (api.fetchWorkspace as any).mockResolvedValue({ id: "test-ws-id", name: "Test Workspace", work_unit_minutes: 60 });
     (api.fetchEmployees as any).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe" }], total: 1 });
     (api.fetchAttendanceReport as any).mockImplementation(() => Promise.resolve({
-      data: [{ employee_id: "emp-1", employee_name: "John Doe", total_work_units: 480, total_leave_days: 0 }],
+      data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }],
       total: 1
     }));
     (api.fetchWorkspaceAttendanceAdjustments as any).mockResolvedValue([]);

@@ -2079,6 +2079,8 @@
     },
     "table": {
       "total_hours": "Tổng giờ công",
+      "std_hours": "Giờ trong ca",
+      "ot_hours": "Tăng ca",
       "leave_days": "Số ngày nghỉ",
       "hours": "Giờ công",
       "units": "Đơn vị"
@@ -2086,6 +2088,8 @@
     "quick_stats": {
       "title": "Thống kê nhanh",
       "total_hours": "Tổng giờ công",
+      "std_hours": "Giờ trong ca",
+      "ot_hours": "Giờ tăng ca",
       "total_units": "Tổng đơn vị"
     },
     "messages": {
@@ -2120,6 +2124,19 @@
     },
     "debug_mode_on": "Gỡ lỗi: Bật",
     "debug_mode_off": "Gỡ lỗi: Tắt",
+    "ot_status": {
+      "pending_employee": "Chờ NV",
+      "pending_manager": "Chờ duyệt",
+      "approved": "Đã duyệt",
+      "rejected": "Từ chối"
+    },
+    "ot_approve": {
+      "approve": "Duyệt",
+      "reject": "Từ chối",
+      "success_approved": "Đã duyệt OT thành công",
+      "success_rejected": "Đã từ chối OT",
+      "error": "Lỗi khi xử lý OT"
+    },
     "label": "Reports"
   },
   "patterns": {

@@ -13,6 +13,7 @@ import {
   fetchWorkspaceAttendanceAdjustments,
   adminConfirmAttendance,
   AttendanceAdjustmentRequest,
+  approveOt,
 } from "../lib/api";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import Modal from "@/components/ui/Modal";
@@ -183,6 +184,29 @@ export default function ReportsPage() {
       toast.error(t("reports.confirm.error"));
     },
   });
+
+  const approveOtMutation = useMutation({
+    mutationFn: ({ row, action }: { row: DailyAttendanceReport; action: "approved" | "rejected" }) =>
+      approveOt(wsId!, row.employee_id, {
+        date: row.date,
+        approved_minutes: row.ot_work_units * (workUnitMinutes || 60),
+        status: action,
+      }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
+      const msg = variables.action === "approved"
+        ? t("reports.ot_approve.success_approved")
+        : t("reports.ot_approve.success_rejected");
+      toast.success(msg);
+    },
+    onError: () => {
+      toast.error(t("reports.ot_approve.error"));
+    },
+  });
+
+  const handleApproveOt = (row: DailyAttendanceReport, action: "approved" | "rejected") => {
+    approveOtMutation.mutate({ row, action });
+  };
 
   const handleReprocessClick = (row: DailyAttendanceReport) => {
     setConfirmDialog({ show: true, employeeId: row.employee_id, employeeName: row.employee_name, date: row.date });
@@ -357,6 +381,7 @@ export default function ReportsPage() {
             onToggleExpandRow={toggleExpandRow}
             onReprocessClick={handleReprocessClick}
             onConfirmClick={handleConfirmClick}
+            onApproveOt={handleApproveOt}
           />
         )}
 

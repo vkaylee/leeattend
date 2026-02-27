@@ -66,7 +66,7 @@ impl ExcelWriter {
             )
             .map_err(|e| e.to_string())?;
 
-        let headers = ["Employee Name", "Total Work Units", "Total Leave Days"];
+        let headers = ["Employee Name", "Std Units", "OT Units", "Total Leave Days"];
         for (col, header) in headers.iter().enumerate() {
             worksheet
                 .write_string_with_format(3, col as u16, *header, &header_format)
@@ -79,10 +79,13 @@ impl ExcelWriter {
                 .write_string(row, 0, &summary.employee_name)
                 .map_err(|e| e.to_string())?;
             worksheet
-                .write_number_with_format(row, 1, summary.total_work_units as f64, &number_format)
+                .write_number_with_format(row, 1, summary.total_std_units as f64, &number_format)
                 .map_err(|e| e.to_string())?;
             worksheet
-                .write_number_with_format(row, 2, summary.total_leave_days as f64, &number_format)
+                .write_number_with_format(row, 2, summary.total_ot_units as f64, &number_format)
+                .map_err(|e| e.to_string())?;
+            worksheet
+                .write_number_with_format(row, 3, summary.total_leave_days as f64, &number_format)
                 .map_err(|e| e.to_string())?;
         }
 
@@ -90,10 +93,13 @@ impl ExcelWriter {
             .set_column_width(0, 35)
             .map_err(|e| e.to_string())?;
         worksheet
-            .set_column_width(1, 18)
+            .set_column_width(1, 15)
             .map_err(|e| e.to_string())?;
         worksheet
-            .set_column_width(2, 18)
+            .set_column_width(2, 15)
+            .map_err(|e| e.to_string())?;
+        worksheet
+            .set_column_width(3, 18)
             .map_err(|e| e.to_string())?;
 
         workbook
@@ -460,13 +466,15 @@ mod tests {
             AttendanceSummary {
                 employee_id: Uuid::new_v4(),
                 employee_name: "Alice Smith".to_string(),
-                total_work_units: 160,
+                total_std_units: 140,
+                total_ot_units: 20,
                 total_leave_days: 2,
             },
             AttendanceSummary {
                 employee_id: Uuid::new_v4(),
                 employee_name: "Bob Jones".to_string(),
-                total_work_units: 152,
+                total_std_units: 152,
+                total_ot_units: 0,
                 total_leave_days: 4,
             },
         ];

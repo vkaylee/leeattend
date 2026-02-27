@@ -1,8 +1,9 @@
 import React from "react";
-import { RefreshCw, Bug, CheckCircle } from "lucide-react";
+import { RefreshCw, Bug, CheckCircle, ThumbsUp, ThumbsDown } from "lucide-react";
 import { DailyAttendanceReport, AttendanceAdjustmentRequest } from "@/lib/api";
 import { formatUnitsToHours } from "@/lib/utils/attendance";
 import { cn } from "@/lib/utils";
+import type { OtStatus } from "@/lib/api";
 
 interface DailyReportTableProps {
   data: DailyAttendanceReport[];
@@ -19,6 +20,7 @@ interface DailyReportTableProps {
   onToggleExpandRow: (rowKey: string) => void;
   onReprocessClick: (row: DailyAttendanceReport) => void;
   onConfirmClick: (row: DailyAttendanceReport, existing?: AttendanceAdjustmentRequest) => void;
+  onApproveOt?: (row: DailyAttendanceReport, action: "approved" | "rejected") => void;
 }
 
 export default function DailyReportTable({
@@ -36,6 +38,7 @@ export default function DailyReportTable({
   onToggleExpandRow,
   onReprocessClick,
   onConfirmClick,
+  onApproveOt,
 }: DailyReportTableProps) {
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
@@ -64,6 +67,30 @@ export default function DailyReportTable({
     );
   };
 
+  const getOtStatusBadge = (status?: string | null) => {
+    if (!status || status === "none") return null;
+
+    const styles: Record<string, string> = {
+      pending_employee: "bg-yellow-50 dark:bg-yellow-950 text-yellow-600 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800",
+      pending_manager: "bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-300 border-orange-200 dark:border-orange-800",
+      approved: "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+      rejected: "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-800",
+    };
+
+    const labels: Record<string, string> = {
+      pending_employee: t("reports.ot_status.pending_employee"),
+      pending_manager: t("reports.ot_status.pending_manager"),
+      approved: t("reports.ot_status.approved"),
+      rejected: t("reports.ot_status.rejected"),
+    };
+
+    return (
+      <span className={cn("px-2 py-0.5 rounded-md border text-[8px] font-bold uppercase tracking-wider", styles[status] || "")}>
+        {labels[status] || status}
+      </span>
+    );
+  };
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left min-w-[1200px] border-collapse">
@@ -85,7 +112,10 @@ export default function DailyReportTable({
               {t("common.out")}
             </th>
             <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-right">
-              {t("reports.table.hours")}
+              {t("reports.table.std_hours")}
+            </th>
+            <th className="px-8 py-6 text-[10px] font-bold text-orange-500 dark:text-orange-400 uppercase tracking-[0.25em] text-right">
+              {t("reports.table.ot_hours")}
             </th>
             <th className="px-8 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-center">
               {t("common.status")}
@@ -103,7 +133,7 @@ export default function DailyReportTable({
           {isLoading ? (
             <tr>
               <td
-                colSpan={isDebugMode ? 9 : 8}
+                colSpan={isDebugMode ? 10 : 9}
                 className="px-10 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse"
               >
                 {t("common.loading")}
@@ -112,7 +142,7 @@ export default function DailyReportTable({
           ) : data.length === 0 ? (
             <tr>
               <td
-                colSpan={isDebugMode ? 9 : 8}
+                colSpan={isDebugMode ? 10 : 9}
                 className="px-10 py-32 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50"
               >
                 {t("reports.messages.no_data")}
@@ -173,11 +203,49 @@ export default function DailyReportTable({
 
                     <td className="px-8 py-6 text-right">
                       <div className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter leading-none">
-                        {formatUnitsToHours(row.std_work_units + row.ot_work_units, workUnitMinutes)}h
+                        {formatUnitsToHours(row.std_work_units, workUnitMinutes)}h
                       </div>
                       <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-60">
-                        {row.std_work_units + row.ot_work_units}U
+                        {row.std_work_units}U
                       </span>
+                    </td>
+
+                    <td className="px-8 py-6 text-right">
+                      {row.ot_work_units > 0 ? (
+                        <div className="flex flex-col items-end gap-1">
+                          <div>
+                            <span className="font-mono font-bold text-orange-600 dark:text-orange-400 text-base tracking-tighter leading-none">
+                              {formatUnitsToHours(row.ot_work_units, workUnitMinutes)}h
+                            </span>
+                            <span className="text-[9px] font-bold text-orange-500 dark:text-orange-400 uppercase tracking-widest opacity-60 ml-1">
+                              {row.ot_work_units}U
+                            </span>
+                          </div>
+                          {getOtStatusBadge(row.ot_claim_status)}
+                          {row.ot_claim_status === "pending_manager" && onApproveOt && (
+                            <div className="flex gap-1 mt-1">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onApproveOt(row, "approved"); }}
+                                className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-wider bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-sm active:scale-95"
+                                title={t("reports.ot_approve.approve")}
+                              >
+                                <ThumbsUp size={10} />
+                                {t("reports.ot_approve.approve")}
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onApproveOt(row, "rejected"); }}
+                                className="flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-wider bg-rose-500 text-white hover:bg-rose-600 transition-colors shadow-sm active:scale-95"
+                                title={t("reports.ot_approve.reject")}
+                              >
+                                <ThumbsDown size={10} />
+                                {t("reports.ot_approve.reject")}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-slate-200 dark:text-slate-700 font-bold">—</span>
+                      )}
                     </td>
 
                     <td className="px-8 py-6 text-center">
@@ -245,7 +313,7 @@ export default function DailyReportTable({
 
                   {isDebugMode && isExpanded && (
                     <tr className="bg-slate-900/5 animate-in slide-in-from-top-2 duration-500">
-                      <td colSpan={9} className="px-10 py-10">
+                      <td colSpan={10} className="px-10 py-10">
                         <div className="bg-slate-900 rounded-[3rem] p-10 shadow-2xl border-2 border-amber-200/20 overflow-hidden relative">
                           <div className="flex items-center gap-4 mb-8 border-b border-white/10 pb-6 relative z-10">
                             <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/10 flex items-center justify-center text-amber-400 shadow-inner border border-amber-500/20">
