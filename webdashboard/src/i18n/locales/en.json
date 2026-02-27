@@ -2268,7 +2268,9 @@
       "select_shift_title": "Select Shift",
       "select_shift_subtitle": "Select shift for {{count}} selected days",
       "mark_as_off": "Mark selected days as OFF",
-      "assign_to_days": "Assign to {{days}}"
+      "assign_to_days": "Assign to {{days}}",
+      "report_symbol": "Report Symbol",
+      "report_symbol_placeholder": "E.g: S8, T8, FX..."
     },
     "messages": {
       "assign_success": "Shift assigned to employee successfully.",

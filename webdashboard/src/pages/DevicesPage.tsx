@@ -32,6 +32,7 @@ import { useToast } from "../components/ui/Toast";
 import { Combobox } from "@/components/ui/Combobox";
 import Modal from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
+import { DeviceStatus } from "@/lib/api";
 import DeviceListItem from "@/components/features/connectivity/DeviceListItem";
 
 export default function DevicesPage() {
@@ -52,7 +53,7 @@ export default function DevicesPage() {
 
   // Create a flattened map of device_id -> status
   const deviceStatuses = useMemo(() => {
-    const map: Record<string, any> = {};
+    const map: Record<string, DeviceStatus> = {};
     agentsStatus.forEach(a => {
       a.devices.forEach(d => {
         map[d.device_id.toLowerCase()] = d;

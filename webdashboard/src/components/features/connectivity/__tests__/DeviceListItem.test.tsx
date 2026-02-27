@@ -269,5 +269,213 @@ describe("DeviceListItem", () => {
     const allText = document.body.textContent || "";
     expect(allText).not.toContain("2026-02-25T22:43:52+07:00");
   });
-});
 
+  // ===== DEVICE INFO FIELDS TESTS =====
+
+  it("renders serial number from status info", () => {
+    const statusWithSerial: DeviceStatus = {
+      ...mockStatus,
+      info: { ...mockStatus.info!, serial: "BSXQ203760345" },
+    };
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={mockDevice}
+          status={statusWithSerial}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    expect(screen.getByText("BSXQ203760345")).toBeDefined();
+  });
+
+  it("renders MAC address from status info", () => {
+    const statusWithMac: DeviceStatus = {
+      ...mockStatus,
+      info: { ...mockStatus.info!, mac: "AA:BB:CC:DD:EE:FF" },
+    };
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={mockDevice}
+          status={statusWithMac}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    expect(screen.getByText("AA:BB:CC:DD:EE:FF")).toBeDefined();
+  });
+
+  it("renders hw_name from status info", () => {
+    const statusWithHw: DeviceStatus = {
+      ...mockStatus,
+      info: { ...mockStatus.info!, hw_name: "ZK-F22" },
+    };
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={mockDevice}
+          status={statusWithHw}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    expect(screen.getByText("ZK-F22")).toBeDefined();
+  });
+
+  it("renders 'N/A' for serial when not provided", () => {
+    const statusNoSerial: DeviceStatus = {
+      ...mockStatus,
+      info: { ...mockStatus.info!, serial: undefined },
+    };
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={mockDevice}
+          status={statusNoSerial}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    const serialLabel = screen.getByText("devices.info.serial");
+    const serialValue = serialLabel.nextElementSibling?.textContent;
+    expect(serialValue).toContain("N/A");
+  });
+
+  // ===== USERS/CAPACITY TESTS =====
+
+  it("renders users count with capacity when both available", () => {
+    const statusWithCap: DeviceStatus = {
+      ...mockStatus,
+      info: { ...mockStatus.info!, users_count: 120, users_capacity: 500 },
+    };
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={mockDevice}
+          status={statusWithCap}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    const usersSection = screen.getByText("devices.info.users_capacity").nextElementSibling;
+    const text = usersSection?.textContent || "";
+    expect(text).toContain("120");
+    expect(text).toContain("500");
+    expect(text).toContain("/");
+  });
+
+  it("renders only users count when users_capacity is missing", () => {
+    const statusNoCap: DeviceStatus = {
+      ...mockStatus,
+      info: { ...mockStatus.info!, users_count: 42, users_capacity: undefined },
+    };
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={mockDevice}
+          status={statusNoCap}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    const usersSection = screen.getByText("devices.info.users_capacity").nextElementSibling;
+    const text = usersSection?.textContent || "";
+    expect(text).toContain("42");
+    expect(text).not.toContain("/");
+  });
+
+  // ===== DEVICE TIME TESTS =====
+
+  it("renders device_time when provided", () => {
+    const statusWithTime: DeviceStatus = {
+      ...mockStatus,
+      info: { ...mockStatus.info!, device_time: "2026-02-27 14:30:00" },
+    };
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={mockDevice}
+          status={statusWithTime}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    expect(screen.getByText("2026-02-27 14:30:00")).toBeDefined();
+  });
+
+  it("renders '--:--:--' when device_time is missing", () => {
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={mockDevice}
+          status={undefined}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    expect(screen.getByText("--:--:--")).toBeDefined();
+  });
+
+  // ===== FIRMWARE FALLBACK TESTS =====
+
+  it("renders 'v?.?' when firmware is missing", () => {
+    const statusNoFw: DeviceStatus = {
+      ...mockStatus,
+      info: { ...mockStatus.info!, firmware: undefined },
+    };
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={mockDevice}
+          status={statusNoFw}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    expect(screen.getByText("v?.?")).toBeDefined();
+  });
+
+  // ===== DIMMING BEHAVIOR TESTS =====
+
+  it("applies dimmed styling when device is disabled", () => {
+    const disabledDevice = { ...mockDevice, is_enabled: false };
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={disabledDevice}
+          status={mockStatus}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    const deviceItem = screen.getByTestId("device-item-dev-1");
+    expect(deviceItem.className).toContain("opacity-60");
+  });
+
+  it("applies dimmed styling when parent agent is not active", () => {
+    renderWithClient(
+      <ToastProvider>
+        <DeviceListItem
+          device={mockDevice}
+          status={mockStatus}
+          parentAgentActive={false}
+          onUpdate={async () => { }}
+          onDelete={async () => { }}
+        />
+      </ToastProvider>
+    );
+    const deviceItem = screen.getByTestId("device-item-dev-1");
+    expect(deviceItem.className).toContain("opacity-60");
+  });
+});

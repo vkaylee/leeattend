@@ -2268,7 +2268,9 @@
       "select_shift_title": "选择班次",
       "select_shift_subtitle": "为选中的 {{count}} 天选择班次",
       "mark_as_off": "将选中日期标记为休息",
-      "assign_to_days": "分配给 {{days}}"
+      "assign_to_days": "分配给 {{days}}",
+      "report_symbol": "报表符号",
+      "report_symbol_placeholder": "例: S8, T8, FX..."
     },
     "messages": {
       "assign_success": "员工班次分配成功。",

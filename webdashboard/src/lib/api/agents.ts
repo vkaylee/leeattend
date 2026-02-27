@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "./config";
 import { apiFetch } from "./helpers";
-import { AgentStatus, Device, AuthorizedAgent } from "./types";
+import { AgentStatus, Device, AuthorizedAgent, DeviceInfo } from "./types";
 
 export async function fetchAgents(): Promise<AgentStatus[]> {
   const response = await apiFetch(`${API_BASE_URL}/agents`);
@@ -112,7 +112,7 @@ export async function deleteAuthorizedAgent(id: string): Promise<void> {
   if (!response.ok) throw new Error("Failed to delete authorized agent");
 }
 
-export async function fetchDeviceInfo(id: string): Promise<any> {
+export async function fetchDeviceInfo(id: string): Promise<DeviceInfo> {
   const response = await apiFetch(`${API_BASE_URL}/devices/${id}/info`);
   if (!response.ok) throw new Error("Failed to fetch device info");
   return response.json();

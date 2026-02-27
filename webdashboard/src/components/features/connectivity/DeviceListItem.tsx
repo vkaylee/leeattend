@@ -22,7 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Device, DeviceStatus } from "@/lib/api";
+import { Device, DeviceInfo, DeviceStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
 import Modal from "@/components/ui/Modal";
@@ -62,7 +62,7 @@ export default function DeviceListItem({
   const { data: deviceInfo, refetch: refetchInfo, error: infoError } = useDeviceInfo(device.id, parentAgentActive && isVisible);
 
   // Merge status.info (heartbeat data) with deviceInfo (on-demand data)
-  const displayInfo = deviceInfo ?? status?.info ?? null;
+  const displayInfo: DeviceInfo | null = deviceInfo ?? status?.info ?? null;
 
   async function handleRefresh() {
     if (!onRefresh) return;

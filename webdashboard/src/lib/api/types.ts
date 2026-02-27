@@ -1,21 +1,24 @@
+export interface DeviceInfo {
+  mac?: string;
+  serial?: string;
+  firmware?: string;
+  platform?: string;
+  hw_name?: string;
+  users_count: number;
+  users_capacity?: number;
+  logs_count: number;
+  logs_capacity?: number;
+  device_time: string;
+  last_info_update?: string;
+  last_sync?: string;
+}
+
 export interface DeviceStatus {
   device_id: string;
   status: "online" | "offline";
   last_sync?: string;
   error?: string;
-  info?: {
-    users_count: number;
-    users_capacity?: number;
-    logs_count: number;
-    logs_capacity?: number;
-    device_time: string;
-    firmware: string;
-    mac?: string;
-    serial?: string;
-    platform?: string;
-    hw_name?: string;
-    last_sync: string;
-  };
+  info?: DeviceInfo;
 }
 
 export interface AgentStatus {

@@ -72,15 +72,14 @@ The AI Context OS is a living system. AI Agents are granted "Legislative Rights"
 
 ### 3.5 Testing & Documentation
 - **Testing**: No code is committed without passing tests. If skipping new tests, a clear justification must be provided. Every change requires a full execution of the project's regression suite to ensure zero regressions. **Diamond Requirement**: Combined test coverage must exceed **90%**.
-- **Test Debugging (Log Volume)**: All test logs are written to an internal Docker volume (`test-logs`) to survive container tear-downs. **[CRITICAL]**: If `run-tests.sh` fails, AI agents MUST NOT use `cat .test_logs/*`. Instead, agents MUST run `./run-tests.sh --logs` to extract and read the logs from the persistent volume.
 - **Documentation**: All architectural and logic changes must be documented immediately. No documentation drift is permitted.
 
 ### 3.6 Engineering Benchmarks
 - **🥇 Gold Standard**: Mandatory for all production features. Includes audit compliance, English docs, and modularity.
 - **💎 Diamond Standard**: The ultimate goal. Includes predictive self-healing, architectural purity, and zero technical debt. Agents are encouraged to self-elect to Diamond mode for complex refactors.
 - **Containerization**: ALL meaningful execution happens inside Docker.
-- **Language**: Rust (axum), React (Vite/Tailwind)
-- **Style**: Rustfmt, Prettier
+- **Language**: [Define your primary languages here, e.g., TypeScript, Rust]
+- **Style**: [Define your style guide, e.g., Prettier, Rustfmt]
 
 ---
 
