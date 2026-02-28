@@ -13,30 +13,32 @@ interface LeaveHistoryModalProps {
   wsId: string;
   employeeId: string;
   employeeName: string;
+  leaveTypeId?: string;
+  leaveTypeName?: string;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onClose }: LeaveHistoryModalProps) {
+export function LeaveHistoryModal({ wsId, employeeId, employeeName, leaveTypeId, leaveTypeName, isOpen, onClose }: LeaveHistoryModalProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
   const { formatDate } = useDateTimeFormatter();
   const [activeTab, setActiveTab] = useState("history");
 
-  const { data: history = [], isLoading } = useQuery({ queryKey: ["leave-history", wsId, employeeId], queryFn: () => fetchLeaveHistory(wsId, employeeId), enabled: isOpen });
+  const { data: history = [], isLoading } = useQuery({ queryKey: ["leave-history", wsId, employeeId, leaveTypeId], queryFn: () => fetchLeaveHistory(wsId, employeeId, leaveTypeId), enabled: isOpen });
   const { data: leaveTypes = [] } = useQuery({ queryKey: ["leave-types", wsId], queryFn: () => fetchLeaveTypes(wsId), enabled: isOpen });
 
   const adjustMutation = useMutation({
     mutationFn: (data: { leave_type_id: string; amount: number; reason: string; transaction_date: string }) => adjustLeaveBalance(wsId, employeeId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leave-history"] });
-      queryClient.invalidateQueries({ queryKey: ["leave-balances"] });
+      queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
       toast.success(t("leave_balances.history.messages.adjust_success")); setActiveTab("history");
     },
   });
 
-  const [adjustForm, setAdjustForm] = useState({ type: "add", leave_type_id: "", amount: "", reason: "", date: format(new Date(), 'yyyy-MM-dd') });
+  const [adjustForm, setAdjustForm] = useState({ type: "add", leave_type_id: leaveTypeId || "", amount: "", reason: "", date: format(new Date(), 'yyyy-MM-dd') });
 
   const handleAdjustSubmit = (e: React.FormEvent) => {
     e.preventDefault(); const amount = parseFloat(adjustForm.amount);
@@ -57,7 +59,7 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`${t("leave_balances.history.title")}: ${employeeName}`} subtitle={t("leave_balances.history.subtitle")} icon={<History size={24} />} maxWidth="2xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={`${t("leave_balances.history.title")}: ${employeeName}${leaveTypeName ? ` — ${leaveTypeName}` : ''}`} subtitle={t("leave_balances.history.subtitle")} icon={<History size={24} />} maxWidth="2xl">
       <div className="space-y-8 pt-4 animate-in fade-in duration-500">
         <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
           <button onClick={() => setActiveTab("history")} className={cn("flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all", activeTab === 'history' ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700")}>{t("leave_balances.history.tab_history")}</button>
@@ -107,7 +109,7 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
               </div>
               <div className="space-y-3">
                 <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("leave_requests.policy.table.type")}</label>
-                <select value={adjustForm.leave_type_id} onChange={(e) => setAdjustForm({...adjustForm, leave_type_id: e.target.value})} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm">
+                <select value={adjustForm.leave_type_id} onChange={(e) => setAdjustForm({ ...adjustForm, leave_type_id: e.target.value })} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm uppercase tracking-tight shadow-sm">
                   <option value="">{t("common.select")}</option>
                   {leaveTypes.map(lt => <option key={lt.id} value={lt.id}>{lt.name}</option>)}
                 </select>
@@ -117,17 +119,17 @@ export function LeaveHistoryModal({ wsId, employeeId, employeeName, isOpen, onCl
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-3">
                 <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("leave_balances.history.amount_placeholder").split('.')[0]}</label>
-                <input type="number" step="0.5" min="0.5" required value={adjustForm.amount} onChange={(e) => setAdjustForm({...adjustForm, amount: e.target.value})} placeholder={t("leave_balances.history.amount_placeholder")} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm font-mono" />
+                <input type="number" step="0.5" min="0.5" required value={adjustForm.amount} onChange={(e) => setAdjustForm({ ...adjustForm, amount: e.target.value })} placeholder={t("leave_balances.history.amount_placeholder")} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm font-mono" />
               </div>
               <div className="space-y-3">
                 <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("common.date")}</label>
-                <div className="relative group"><input type="date" required value={adjustForm.date} onChange={(e) => setAdjustForm({...adjustForm, date: e.target.value})} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm" /><Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" /></div>
+                <div className="relative group"><input type="date" required value={adjustForm.date} onChange={(e) => setAdjustForm({ ...adjustForm, date: e.target.value })} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-bold text-sm" /><Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 dark:text-slate-600 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" /></div>
               </div>
             </div>
 
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("leave_balances.history.reason_label")}</label>
-              <div className="relative group"><textarea required rows={3} placeholder={t("leave_balances.history.reason_placeholder")} value={adjustForm.reason} onChange={(e) => setAdjustForm({...adjustForm, reason: e.target.value})} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none font-medium text-sm transition-all resize-none shadow-sm" /><MessageSquare className="absolute right-4 top-4 w-4 h-4 text-slate-200 dark:text-slate-700 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" /></div>
+              <div className="relative group"><textarea required rows={3} placeholder={t("leave_balances.history.reason_placeholder")} value={adjustForm.reason} onChange={(e) => setAdjustForm({ ...adjustForm, reason: e.target.value })} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none font-medium text-sm transition-all resize-none shadow-sm" /><MessageSquare className="absolute right-4 top-4 w-4 h-4 text-slate-200 dark:text-slate-700 group-focus-within:text-primary-500 dark:group-focus-within:text-primary-400 transition-colors" /></div>
             </div>
 
             <div className="flex gap-4 pt-4 border-t border-slate-50 dark:border-slate-800">

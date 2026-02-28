@@ -27,7 +27,7 @@ export default function LeaveBalancesPage() {
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
-  const [selectedEmployee, setSelectedEmployee] = useState<{ id: string, name: string } | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<{ id: string, name: string, leaveTypeId?: string, leaveTypeName?: string } | null>(null);
   const [selectedBalance, setSelectedBalance] = useState<WorkspaceLeaveBalance | null>(null);
 
   const { data: paginatedData, isLoading } = useQuery({
@@ -59,7 +59,8 @@ export default function LeaveBalancesPage() {
         </div>
         <button
           onClick={() => setShowAccrualConfirm(true)}
-          disabled={accrualMutation.isPending}
+          disabled={accrualMutation.isPending || selectedYear !== currentYear}
+          title={selectedYear !== currentYear ? t("leave_balances.accrual_current_year_only", "Chỉ có thể cập nhật số dư cho năm hiện tại") : undefined}
           className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 md:px-8 py-3.5 md:py-3 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95 text-xs uppercase tracking-widest disabled:opacity-50 min-h-[44px] w-full md:w-auto"
         >
           <PlayCircle size={18} /> <span className="whitespace-nowrap">{accrualMutation.isPending ? t("common.processing").toUpperCase() : t("leave_balances.run_accrual", "Cập nhật số dư").toUpperCase()}</span>
@@ -132,7 +133,7 @@ export default function LeaveBalancesPage() {
                   key={`${balance.employee_id}-${balance.leave_type_id}-${idx}`}
                   balance={balance}
                   onViewDetails={() => setSelectedBalance(balance)}
-                  onViewHistory={() => setSelectedEmployee({ id: balance.employee_id, name: balance.employee_name })}
+                  onViewHistory={() => setSelectedEmployee({ id: balance.employee_id, name: balance.employee_name, leaveTypeId: balance.leave_type_id, leaveTypeName: balance.leave_type_name })}
                 />
               ))}
             </tbody>
@@ -150,7 +151,7 @@ export default function LeaveBalancesPage() {
               key={`${balance.employee_id}-${balance.leave_type_id}-${idx}`}
               balance={balance}
               onViewDetails={() => setSelectedBalance(balance)}
-              onViewHistory={() => setSelectedEmployee({ id: balance.employee_id, name: balance.employee_name })}
+              onViewHistory={() => setSelectedEmployee({ id: balance.employee_id, name: balance.employee_name, leaveTypeId: balance.leave_type_id, leaveTypeName: balance.leave_type_name })}
             />
           ))}
         </div>
@@ -210,7 +211,7 @@ export default function LeaveBalancesPage() {
       </div>
 
       {selectedEmployee && (
-        <LeaveHistoryModal wsId={wsId!} employeeId={selectedEmployee.id} employeeName={selectedEmployee.name} isOpen={!!selectedEmployee} onClose={() => setSelectedEmployee(null)} />
+        <LeaveHistoryModal wsId={wsId!} employeeId={selectedEmployee.id} employeeName={selectedEmployee.name} leaveTypeId={selectedEmployee.leaveTypeId} leaveTypeName={selectedEmployee.leaveTypeName} isOpen={!!selectedEmployee} onClose={() => setSelectedEmployee(null)} />
       )}
 
       {selectedBalance && (

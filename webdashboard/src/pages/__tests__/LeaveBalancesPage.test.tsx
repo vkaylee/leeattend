@@ -25,7 +25,11 @@ vi.mock("@/lib/api", async () => {
 });
 
 vi.mock("@/components/leave/LeaveHistoryModal", () => ({
-    LeaveHistoryModal: () => <div data-testid="leave-history-modal" />,
+    LeaveHistoryModal: (props: any) => (
+        <div data-testid="leave-history-modal" data-leavetypeid={props.leaveTypeId} data-leavetypename={props.leaveTypeName} data-employeeid={props.employeeId}>
+            {props.isOpen ? "MOCKED_LEAVE_HISTORY_MODAL" : null}
+        </div>
+    ),
 }));
 
 vi.mock("@/components/leave/LeaveBalanceDetailModal", () => ({
@@ -209,6 +213,36 @@ describe("LeaveBalancesPage", () => {
         expect(screen.getAllByText("common.loading").length).toBeGreaterThan(0);
     });
 
+    it("disables accrual button when viewing past or future years", async () => {
+        renderPage();
+        await waitFor(() => {
+            expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
+        }, { timeout: 3000 });
+
+        const accrualBtn = screen.getByText("CẬP NHẬT SỐ DƯ").closest("button");
+        expect(accrualBtn).not.toBeDisabled();
+
+        // Change year to prev year
+        const yearSelect = screen.getByRole("combobox");
+        fireEvent.change(yearSelect, { target: { value: String(new Date().getFullYear() - 1) } });
+
+        await waitFor(() => {
+            expect(accrualBtn).toBeDisabled();
+        });
+    });
+
+    it("passes leaveTypeId and leaveTypeName to LeaveHistoryModal when View History is clicked", async () => {
+        renderPage();
+        await waitFor(() => {
+            expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
+        }, { timeout: 3000 });
+
+        // The first "View History" button in DesktopBalanceRow
+        // They are rendered with <button title="leave_balances.table.history_tooltip"... 
+        // Or we can find by a specific icon or screen.getAllByRole("button") that have that action.
+        // It's probably easier to mock LeaveHistoryModal and check its props. Let's update the mock to render the props.
+    });
+
     it("shows empty state when no data", async () => {
         (api.fetchWorkspaceLeaveBalances as any).mockResolvedValue({
             data: [],
@@ -220,5 +254,24 @@ describe("LeaveBalancesPage", () => {
         await waitFor(() => {
             expect(screen.getAllByText("attendance_logs.messages.no_data").length).toBeGreaterThan(0);
         }, { timeout: 3000 });
+    });
+
+    it("passes leaveTypeId and leaveTypeName to LeaveHistoryModal when View History is clicked", async () => {
+        renderPage();
+        await waitFor(() => {
+            expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
+        }, { timeout: 3000 });
+
+        // Get the "Lịch sử" buttons from table rows (it uses History icon, but we can look for tooltip)
+        // DesktopBalanceRow uses: title={t("leave_balances.table.history_tooltip")}
+        const historyBtns = screen.getAllByTitle("leave_balances.table.history_tooltip");
+        fireEvent.click(historyBtns[0]); // Click on Nguyen Van A / Annual Leave
+
+        await waitFor(() => {
+            const modal = screen.getByTestId("leave-history-modal");
+            expect(modal.getAttribute("data-employeeid")).toBe("emp-1");
+            expect(modal.getAttribute("data-leavetypeid")).toBe("lt-1");
+            expect(modal.getAttribute("data-leavetypename")).toBe("Annual Leave");
+        });
     });
 });

@@ -1274,6 +1274,7 @@
     "summary_table": "Bảng tổng hợp số dư",
     "run_accrual": "Cập nhật số dư",
     "confirm_accrual": "Bạn có chắc chắn muốn chạy tính toán tích lũy cho hôm nay? Hệ thống sẽ tự động cộng thêm phép dựa trên chính sách đã gán.",
+    "accrual_current_year_only": "Chỉ có thể cập nhật số dư cho năm hiện tại",
     "view_details": "Xem Chi tiết",
     "table": {
       "base": "Định mức",

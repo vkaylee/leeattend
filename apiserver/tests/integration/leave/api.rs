@@ -4,7 +4,8 @@ use crate::common::app::setup_app_tower;
 use crate::common::db::TestDatabase;
 use crate::common::factory::TestFactory;
 use apiserver::models::{
-    ApproveLeaveRequest, EmployeeLeaveBalance, LeaveRequest, LeaveStatus, SubmitLeaveRequest,
+    ApproveLeaveRequest, EmployeeLeaveBalance, LeaveRequest, LeaveStatus, PaginatedResponse,
+    SubmitLeaveRequest, WorkspaceLeaveBalance,
 };
 use apiserver::AppState;
 use axum::http::StatusCode;
@@ -143,4 +144,62 @@ async fn test_leave_balances() {
         .unwrap();
     let balances: Vec<EmployeeLeaveBalance> = serde_json::from_slice(&body).unwrap();
     assert!(!balances.is_empty());
+}
+
+#[tokio::test]
+async fn test_workspace_leave_balances_filtering() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id: Uuid = factory.user().create().await;
+    let ws_id: Uuid = factory.workspace().create_with_owner(user_id).await;
+    
+    // emp_1 will have a balance
+    let emp_1: Uuid = factory.employee().with_workspace(ws_id).create().await;
+    // emp_2 will NOT have a balance and NO policy
+    let emp_2: Uuid = factory.employee().with_workspace(ws_id).create().await;
+
+    let vacation_id: Uuid = sqlx::query_scalar!(
+        "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
+        ws_id
+    )
+    .fetch_one(&factory.pool)
+    .await
+    .unwrap();
+
+    // Give emp_1 a balance
+    factory
+        .leave_balance()
+        .with_employee(emp_1)
+        .with_leave_type(vacation_id)
+        .with_entitlement(12)
+        .create()
+        .await;
+
+    // Request the workspace balances
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .method("GET")
+                .uri(format!("/api/workspaces/{ws_id}/leave/balances"))
+                .header("X-Workspace-Id", ws_id.to_string())
+                .header("X-User-Id", user_id.to_string())
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+        
+    let res: PaginatedResponse<WorkspaceLeaveBalance> = serde_json::from_slice(&body).unwrap();
+    
+    // Verify emp_1 is included
+    assert!(res.data.iter().any(|b| b.employee_id == emp_1));
+    // Verify emp_2 is filtered out (has no balance or policy)
+    assert!(!res.data.iter().any(|b| b.employee_id == emp_2));
 }

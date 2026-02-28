@@ -62,13 +62,32 @@ pub async fn get_workspace_balances(
 ) -> Result<(Vec<WorkspaceLeaveBalance>, i64), sqlx::Error> {
     let search_term = format!("%{}%", search.unwrap_or_default());
 
-    // Get total count (per employee-leave_type pair)
+    // Get total count (per employee-leave_type pair, only those with balance or policy)
     let count_sql = r#"
         SELECT COUNT(*)
         FROM employees e
         CROSS JOIN leave_types lt
+        LEFT JOIN leave_balances lb ON e.id = lb.employee_id AND lt.id = lb.leave_type_id AND lb.year = $2
         WHERE e.workspace_id = $1 AND e.is_active = TRUE AND lt.workspace_id = $1
           AND ($3 = '%%' OR e.full_name ILIKE $3 OR e.employee_id_number ILIKE $3 OR lt.name ILIKE $3 OR lt.code ILIKE $3)
+          AND (
+            lb.employee_id IS NOT NULL
+            OR EXISTS (
+              SELECT 1 FROM leave_policy_assignments a
+              JOIN leave_policy_definitions d ON a.policy_id = d.id
+              WHERE d.leave_type_id = lt.id AND a.workspace_id = $1
+                AND a.effective_from <= NOW()
+                AND (a.effective_to IS NULL OR a.effective_to > NOW())
+                AND (
+                  (a.assignee_type = 'employee' AND a.assignee_id = e.id)
+                  OR (a.assignee_type = 'workspace')
+                  OR (a.assignee_type = 'department' AND a.assignee_id = (
+                    SELECT department_id FROM employee_department_history
+                    WHERE employee_id = e.id ORDER BY effective_date DESC LIMIT 1
+                  ))
+                )
+            )
+          )
     "#;
 
     let total: i64 = sqlx::query_scalar(count_sql)
@@ -150,6 +169,7 @@ pub async fn get_workspace_balances(
         LEFT JOIN best_policy bp ON e.id = bp.emp_id AND lt.id = bp.lt_id
         WHERE e.workspace_id = $1 AND e.is_active = TRUE AND lt.workspace_id = $1
           AND ($3 = '%%' OR e.full_name ILIKE $3 OR e.employee_id_number ILIKE $3 OR lt.name ILIKE $3 OR lt.code ILIKE $3)
+          AND (lb.employee_id IS NOT NULL OR bp.emp_id IS NOT NULL)
         ORDER BY e.full_name ASC, lt.name ASC
         LIMIT $4 OFFSET $5
     "#;
