@@ -8,6 +8,7 @@ import { ToastProvider } from "../../components/ui/Toast";
 import * as api from "../../lib/api";
 import React from "react";
 import i18n from "../../i18n/config";
+import { getDaysInMonth } from "date-fns";
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
@@ -16,6 +17,7 @@ vi.mock("../../lib/api", () => ({
   fetchWorkspace: vi.fn(),
   reprocessAttendance: vi.fn(),
   fetchEmployees: vi.fn(),
+  searchEmployees: vi.fn(),
   fetchWorkspaceAttendanceAdjustments: vi.fn(),
   adminConfirmAttendance: vi.fn(),
 }));
@@ -43,6 +45,7 @@ describe("ReportsPage", () => {
     (api.getCurrentWorkspaceId as any).mockReturnValue("test-ws-id");
     (api.fetchWorkspace as any).mockResolvedValue({ id: "test-ws-id", name: "Test Workspace", work_unit_minutes: 60 });
     (api.fetchEmployees as any).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe" }], total: 1 });
+    (api.searchEmployees as any).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", employee_id_number: "E01" }], total: 1 });
     (api.fetchAttendanceReport as any).mockImplementation(() => Promise.resolve({
       data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }],
       total: 1
@@ -63,10 +66,9 @@ describe("ReportsPage", () => {
     );
   };
 
-  it("renders report table and default to current month", async () => {
+  it("renders report table and defaults to last month", async () => {
     renderWithProviders(<ReportsPage />);
     expect(await screen.findByText(/John Doe/i, {}, { timeout: 30000 })).toBeDefined();
-    // In ReportsPage, filterMode defaults to "last_month"
     const lastMonthBtn = await screen.findByText(/Last Month|Tháng trước/i, {}, { timeout: 30000 });
     expect(lastMonthBtn).toBeDefined();
   });
@@ -87,93 +89,22 @@ describe("ReportsPage", () => {
     expect(await screen.findByText(/From Date|Từ ngày/i)).toBeDefined();
   });
 
-  it("defaults pageSize to the number of days in the month", async () => {
+  it("defaults pageSize to the number of days in last month", async () => {
     renderWithProviders(<ReportsPage />);
+    const now = new Date();
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const expectedDays = getDaysInMonth(lastMonth);
     await waitFor(() => {
       const calls = (api.fetchAttendanceReport as any).mock.calls;
       expect(calls.length).toBeGreaterThan(0);
-      // Default mode is summary, so apiLimit = pageSize = days in month (31 for Jan)
-      expect(calls[0][5]).toBe(31);
+      expect(calls[0][5]).toBe(expectedDays);
     });
   });
 
-  it("converts pageSize to employees-per-page for daily reports", async () => {
-    // For daily tab: apiLimit = max(1, floor(pageSize / daysInRange))
-    // Default pageSize = 31, daysInRange for a full month = 31
-    // So apiLimit = floor(31/31) = 1
+  it("opens slide-over drawer when clicking an employee row", async () => {
     const user = userEvent.setup();
-    (api.fetchAttendanceReport as any).mockResolvedValue({ data: [], total: 0 });
 
-    renderWithProviders(<ReportsPage />);
-    // Wait for initial render
-    await waitFor(() => {
-      expect((api.fetchAttendanceReport as any).mock.calls.length).toBeGreaterThan(0);
-    });
-
-    // Switch to daily tab
-    const dailyBtn = await screen.findByText(/Daily Details|Chi ti[eế]t/i);
-    await user.click(dailyBtn);
-
-    // After switching to daily, the API should be called with apiLimit = 1
-    // (pageSize=31, daysInRange=31, floor(31/31) = 1)
-    await waitFor(() => {
-      const calls = (api.fetchAttendanceReport as any).mock.calls;
-      const dailyCalls = calls.filter((c: any[]) => c[3] === "daily");
-      expect(dailyCalls.length).toBeGreaterThan(0);
-      // 6th argument (index 5) = limit sent to backend
-      expect(dailyCalls[0][5]).toBe(1);
-    });
-  });
-
-  it("shows confirm button on all daily rows and opens modal when clicked", async () => {
-    const user = userEvent.setup();
-    const mockRow = {
-      employee_id: "emp-1",
-      employee_name: "John Doe",
-      date: "2026-01-15",
-      actual_punch_in: "2026-01-15T01:00:00Z", // 08:00 Local
-      actual_punch_out: "2026-01-15T10:00:00Z", // 17:00 Local
-      scheduled_start: "08:00:00",
-      scheduled_end: "17:00:00",
-      break_duration_minutes: 60,
-      break_start: null,
-      break_end: null,
-      is_break_auto_deduct: false,
-      std_work_units: 480,
-      ot_work_units: 0,
-      status: "present",
-      generation_metadata: null,
-    };
-    (api.fetchAttendanceReport as any).mockResolvedValue({
-      data: [mockRow],
-      total: 1
-    });
-
-    renderWithProviders(<ReportsPage />);
-    const dailyBtn = await screen.findByText(/Daily Details|Chi ti[eế]t/i);
-    await user.click(dailyBtn);
-
-    // Find the confirm button (it's always visible now)
-    const confirmBtn = await screen.findByRole('button', { name: /Xác nhận|Confirm/i });
-    expect(confirmBtn).toBeDefined();
-
-    // Click it to open the modal
-    await user.click(confirmBtn);
-
-    // Modal should appear
-    const dialog = await screen.findByRole('dialog');
-    expect(dialog).toBeDefined();
-
-    // Verify pre-filled times
-    const timeInputs = document.querySelectorAll('input[type="time"]');
-    expect(timeInputs.length).toBeGreaterThan(0);
-    // It should have some value pre-filled
-    expect((timeInputs[0] as HTMLInputElement).value).not.toBe("");
-  });
-
-  it("calls adminConfirmAttendance with edited times from the modal", async () => {
-    const user = userEvent.setup();
-    const mockRow = {
+    const mockDailyRow = {
       employee_id: "emp-1",
       employee_name: "John Doe",
       date: "2026-01-15",
@@ -190,38 +121,61 @@ describe("ReportsPage", () => {
       status: "present",
       generation_metadata: null,
     };
-    (api.fetchAttendanceReport as any).mockResolvedValue({ data: [mockRow], total: 1 });
-    (api.adminConfirmAttendance as any).mockResolvedValue(undefined);
+
+    (api.fetchAttendanceReport as any).mockImplementation(
+      (_wsId: string, _start: string, _end: string, type: string) => {
+        if (type === "daily") {
+          return Promise.resolve({ data: [mockDailyRow], total: 1 });
+        }
+        return Promise.resolve({
+          data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }],
+          total: 1
+        });
+      }
+    );
 
     renderWithProviders(<ReportsPage />);
-    const dailyBtn = await screen.findByText(/Daily Details|Chi ti[eế]t/i);
-    await user.click(dailyBtn);
+    const employeeRow = await screen.findByText(/John Doe/i);
+    await user.click(employeeRow);
 
-    // Click the confirm button to open the modal
-    const confirmBtn = await screen.findByRole('button', { name: /Xác nhận|Confirm/i });
-    await user.click(confirmBtn);
+    const sheetPanel = await screen.findByTestId("sheet-panel");
+    expect(sheetPanel).toBeDefined();
+  });
 
-    // Modal should appear
-    const dialog = await screen.findByRole('dialog');
-    expect(dialog).toBeDefined();
-
-    // Enter reason
-    const reasonInput = document.querySelector('input[type="text"]') as HTMLInputElement;
-    await user.type(reasonInput, "Test reason");
-
-    // Click submit inside the modal
-    // Filter to get the modal's primary button, ignoring the one in the table
-    const buttons = await screen.findAllByRole('button', { name: /Xác nhận công|Confirm Attendance/i });
-    const modalSubmitBtn = buttons[buttons.length - 1]; // The last one mounted (in the modal)
-    await user.click(modalSubmitBtn);
-
-    // Verify the API was called
+  it("always fetches summary data (no daily tab)", async () => {
+    renderWithProviders(<ReportsPage />);
     await waitFor(() => {
-      expect(api.adminConfirmAttendance).toHaveBeenCalled();
+      const calls = (api.fetchAttendanceReport as any).mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      expect(calls[0][3]).toBe("summary");
     });
 
-    // Verify the reason payload was passed
-    const callArgs = (api.adminConfirmAttendance as any).mock.calls[0];
-    expect(callArgs[3]).toBe("Test reason");
+    const dailyTab = screen.queryByText(/Daily Details|Chi tiết hàng ngày/i);
+    expect(dailyTab).toBeNull();
+  });
+
+  it("renders a search input that is autofocused", async () => {
+    renderWithProviders(<ReportsPage />);
+    await screen.findByText(/John Doe/i);
+
+    // Search input should exist
+    const searchInput = screen.getByRole("textbox");
+    expect(searchInput).toBeDefined();
+    // Should have autoFocus
+    expect(searchInput).toHaveFocus();
+  });
+
+  it("triggers searchEmployees API on search input with debounce", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ReportsPage />);
+    await screen.findByText(/John Doe/i);
+
+    const searchInput = screen.getByRole("textbox");
+    await user.type(searchInput, "John");
+
+    // searchEmployees should be called after debounce (400ms)
+    await waitFor(() => {
+      expect(api.searchEmployees).toHaveBeenCalledWith("test-ws-id", "John");
+    }, { timeout: 2000 });
   });
 })

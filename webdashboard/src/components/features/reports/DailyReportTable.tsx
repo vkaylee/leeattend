@@ -21,6 +21,7 @@ interface DailyReportTableProps {
   onReprocessClick: (row: DailyAttendanceReport) => void;
   onConfirmClick: (row: DailyAttendanceReport, existing?: AttendanceAdjustmentRequest) => void;
   onApproveOt?: (row: DailyAttendanceReport, action: "approved" | "rejected") => void;
+  hideEmployeeName?: boolean;
 }
 
 export default function DailyReportTable({
@@ -39,6 +40,7 @@ export default function DailyReportTable({
   onReprocessClick,
   onConfirmClick,
   onApproveOt,
+  hideEmployeeName = false,
 }: DailyReportTableProps) {
   const getStatusBadge = (status: string, holidayName?: string | null) => {
     const styles: Record<string, string> = {
@@ -110,9 +112,11 @@ export default function DailyReportTable({
             <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest sticky left-0 z-10 bg-slate-50 dark:bg-slate-800/50">
               {t("common.date")}
             </th>
-            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest sticky left-[80px] sm:left-[100px] z-10 bg-slate-50 dark:bg-slate-800/50">
-              {t("common.employee")}
-            </th>
+            {!hideEmployeeName && (
+              <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest sticky left-[80px] sm:left-[100px] z-10 bg-slate-50 dark:bg-slate-800/50">
+                {t("common.employee")}
+              </th>
+            )}
             <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
               {t("common.shift")}
             </th>
@@ -144,7 +148,7 @@ export default function DailyReportTable({
           {isLoading ? (
             <tr>
               <td
-                colSpan={isDebugMode ? 10 : 9}
+                colSpan={isDebugMode ? (hideEmployeeName ? 9 : 10) : (hideEmployeeName ? 8 : 9)}
                 className="px-10 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse"
               >
                 {t("common.loading")}
@@ -153,7 +157,7 @@ export default function DailyReportTable({
           ) : data.length === 0 ? (
             <tr>
               <td
-                colSpan={isDebugMode ? 10 : 9}
+                colSpan={isDebugMode ? (hideEmployeeName ? 9 : 10) : (hideEmployeeName ? 8 : 9)}
                 className="px-10 py-32 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50"
               >
                 {t("reports.messages.no_data")}
@@ -179,9 +183,11 @@ export default function DailyReportTable({
                       {formatDate(row.date)}
                     </td>
 
-                    <td className="px-4 py-2.5 font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none whitespace-nowrap sticky left-[80px] sm:left-[100px] z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
-                      {row.employee_name}
-                    </td>
+                    {!hideEmployeeName && (
+                      <td className="px-4 py-2.5 font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none whitespace-nowrap sticky left-[80px] sm:left-[100px] z-10 bg-white group-hover:bg-slate-50 dark:bg-slate-900 dark:group-hover:bg-slate-800/50 transition-colors">
+                        {row.employee_name}
+                      </td>
+                    )}
 
                     <td className="px-4 py-2.5">
                       {row.scheduled_start ? (

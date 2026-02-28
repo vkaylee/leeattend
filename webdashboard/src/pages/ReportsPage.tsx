@@ -1,37 +1,26 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Download, RefreshCw, Check, CheckCircle } from "lucide-react";
-import { format, endOfMonth, getDaysInMonth, differenceInCalendarDays } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { Download } from "lucide-react";
+import { format, endOfMonth, getDaysInMonth } from "date-fns";
 import {
   fetchAttendanceReport,
   getCurrentWorkspaceId,
   fetchWorkspace,
-  DailyAttendanceReport,
-  reprocessAttendance,
+  searchEmployees,
   AttendanceReportSort,
-  fetchWorkspaceAttendanceAdjustments,
-  adminConfirmAttendance,
-  AttendanceAdjustmentRequest,
-  approveOt,
 } from "../lib/api";
-import { useDateTimeFormatter } from "@/hooks/use-datetime";
-import Modal from "@/components/ui/Modal";
-import { useDebug } from "@/context/DebugContext";
-import { useToast } from "@/components/ui/Toast";
+import { useDebounce } from "@/hooks/use-debounce";
 import PaginationControls from "@/components/common/PaginationControls";
 import ReportExportDialog from "@/components/features/reports/ReportExportDialog";
 import ReportFilters from "@/components/features/reports/ReportFilters";
 import SummaryReportTable from "@/components/features/reports/SummaryReportTable";
-import DailyReportTable from "@/components/features/reports/DailyReportTable";
 import ReportStats from "@/components/features/reports/ReportStats";
+import EmployeeDailyDrawer from "@/components/features/reports/EmployeeDailyDrawer";
 
 export default function ReportsPage() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
-  const { formatDate, formatTime } = useDateTimeFormatter();
-  const queryClient = useQueryClient();
-  const { isEnabled: isDebugMode } = useDebug();
 
   const { data: workspace } = useQuery({
     queryKey: ["workspace", wsId],
@@ -55,24 +44,33 @@ export default function ReportsPage() {
     year: new Date().getMonth() === 0 ? new Date().getFullYear() - 1 : new Date().getFullYear()
   });
 
-  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
-  const [reportType, setReportType] = useState<"summary" | "daily">("summary");
-  const [expandedDebugRows, setExpandedDebugRows] = useState<Set<string>>(new Set());
-  const [reprocessingRow, setReprocessingRow] = useState<string | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState<{ show: boolean; employeeId: string; employeeName: string; date: string; } | null>(null);
-  const [confirmingRow, setConfirmingRow] = useState<string | null>(null);
-  const [confirmModal, setConfirmModal] = useState<{
-    row: DailyAttendanceReport;
-    existingRequest?: AttendanceAdjustmentRequest;
-    punchIn: string;
-    punchOut: string;
-    reason: string;
-  } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 400);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const focusSearch = () => setTimeout(() => searchInputRef.current?.focus(), 100);
+
+  // Drill-down state
+  const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string } | null>(null);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(() => getDaysInMonth(new Date(getMonthRange(-1).start)));
   const [sortBy, setSortBy] = useState<AttendanceReportSort | undefined>(undefined);
+
+  // Resolve search query → employee IDs (server-side)
+  const { data: searchResults } = useQuery({
+    queryKey: ["employees", wsId, "search", debouncedSearch],
+    queryFn: () => searchEmployees(wsId!, debouncedSearch),
+    enabled: !!wsId && debouncedSearch.trim().length > 0,
+  });
+
+  // Derive employee IDs from search results for server-side filtering
+  const employeeIdsFilter = useMemo(() => {
+    if (!debouncedSearch.trim()) return undefined; // No filter — show all
+    if (!searchResults?.data?.length) return ["__none__"]; // Search returned nothing — show empty
+    return searchResults.data.map((emp) => emp.id);
+  }, [debouncedSearch, searchResults]);
 
   const updatePageSizeForDateRange = (start: string, end: string) => {
     const startDate = new Date(start);
@@ -86,6 +84,7 @@ export default function ReportsPage() {
   const handleFilterModeChange = (mode: "this_month" | "last_month" | "custom" | "specific_month") => {
     setFilterMode(mode);
     let range;
+    focusSearch();
     if (mode === "this_month") range = getMonthRange(0);
     else if (mode === "last_month") range = getMonthRange(-1);
 
@@ -104,57 +103,26 @@ export default function ReportsPage() {
     updatePageSizeForDateRange(start, end);
   };
 
-  const handleReportTypeChange = (type: "summary" | "daily") => {
-    setReportType(type);
-    setPage(1);
-  };
-
   const handleDateRangeChange = (newRange: { start: string; end: string }) => {
     setDateRange(newRange);
     updatePageSizeForDateRange(newRange.start, newRange.end);
   };
 
-  const toggleExpandRow = (rowKey: string) => {
-    const next = new Set(expandedDebugRows);
-    if (next.has(rowKey)) next.delete(rowKey); else next.add(rowKey);
-    setExpandedDebugRows(next);
+  const handleSearchQueryChange = (query: string) => {
+    setSearchQuery(query);
+    setPage(1); // Reset to first page when searching
   };
 
-  // Backend paginates by employees. For daily reports, each employee generates
-  // `daysInRange` rows. Convert the user's "rows per page" to "employees per page"
-  // so the actual row count on screen matches the dropdown selection.
-  const daysInRange = differenceInCalendarDays(new Date(dateRange.end), new Date(dateRange.start)) + 1;
-  const apiLimit = reportType === "daily"
-    ? Math.max(1, Math.floor(pageSize / daysInRange))
-    : pageSize;
-
+  // Fetch summary with server-side employee filter
   const { data: reportResponse, isLoading } = useQuery({
-    queryKey: ["attendance-report", wsId, dateRange, reportType, page, apiLimit, sortBy, selectedEmployeeIds],
-    queryFn: () => fetchAttendanceReport(wsId!, dateRange.start, dateRange.end, reportType, page, apiLimit, sortBy, selectedEmployeeIds),
+    queryKey: ["attendance-report", wsId, dateRange, "summary", page, pageSize, sortBy, employeeIdsFilter],
+    queryFn: () => fetchAttendanceReport(wsId!, dateRange.start, dateRange.end, "summary", page, pageSize, sortBy, employeeIdsFilter),
     enabled: !!wsId,
   });
 
-  const { data: pendingAdjustments } = useQuery({
-    queryKey: ["attendance-adjustments", wsId, "pending"],
-    queryFn: () => fetchWorkspaceAttendanceAdjustments(wsId!, "pending"),
-    enabled: !!wsId && reportType === "daily",
-  });
-
-  const adjustmentMap = useMemo(() => {
-    const map: Record<string, AttendanceAdjustmentRequest> = {};
-    pendingAdjustments?.forEach((req) => {
-      const key = `${req.employee_id}-${req.requested_date}`;
-      map[key] = req;
-    });
-    return map;
-  }, [pendingAdjustments]);
-
   const reportData = reportResponse?.data || (Array.isArray(reportResponse) ? reportResponse : []);
-  // For daily: show actual rendered row count; for summary: use backend total
-  const totalItems = reportType === "daily"
-    ? reportData.length
-    : (reportResponse?.total || reportData.length);
-  const totalPages = reportResponse?.total ? Math.ceil(reportResponse.total / apiLimit) : 1;
+  const totalItems = reportResponse?.total || reportData.length;
+  const totalPages = reportResponse?.total ? Math.ceil(reportResponse.total / pageSize) : 1;
 
   const handleSort = (field: 'name' | 'work_hours' | 'leave_days') => {
     let nextSort: AttendanceReportSort;
@@ -169,142 +137,26 @@ export default function ReportsPage() {
     setPage(1);
   };
 
-  const toast = useToast();
-
-  const reprocessMutation = useMutation({
-    mutationFn: ({ employeeId, date }: { employeeId: string; date: string }) => reprocessAttendance(wsId!, employeeId, date, date),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
-      setReprocessingRow(null); setConfirmDialog(null);
-      toast.success(t("common.success"));
-    },
-  });
-
-  const confirmMutation = useMutation({
-    mutationFn: ({ row, existingRequestId, reason }: { row: DailyAttendanceReport; existingRequestId?: string; reason?: string }) =>
-      adminConfirmAttendance(wsId!, row, existingRequestId, reason),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
-      queryClient.invalidateQueries({ queryKey: ["attendance-adjustments"] });
-      setConfirmingRow(null);
-      setConfirmModal(null);
-      toast.success(t("reports.confirm.success"));
-    },
-    onError: () => {
-      setConfirmingRow(null);
-      toast.error(t("reports.confirm.error"));
-    },
-  });
-
-  const approveOtMutation = useMutation({
-    mutationFn: ({ row, action }: { row: DailyAttendanceReport; action: "approved" | "rejected" }) =>
-      approveOt(wsId!, row.employee_id, {
-        date: row.date,
-        approved_minutes: row.ot_work_units * (workUnitMinutes || 60),
-        status: action,
-      }),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["attendance-report"] });
-      const msg = variables.action === "approved"
-        ? t("reports.ot_approve.success_approved")
-        : t("reports.ot_approve.success_rejected");
-      toast.success(msg);
-    },
-    onError: () => {
-      toast.error(t("reports.ot_approve.error"));
-    },
-  });
-
-  const handleApproveOt = (row: DailyAttendanceReport, action: "approved" | "rejected") => {
-    approveOtMutation.mutate({ row, action });
+  const handleEmployeeClick = (employeeId: string, employeeName: string) => {
+    setSelectedEmployee({ id: employeeId, name: employeeName });
   };
 
-  const handleReprocessClick = (row: DailyAttendanceReport) => {
-    setConfirmDialog({ show: true, employeeId: row.employee_id, employeeName: row.employee_name, date: row.date });
-  };
-
-  const handleConfirmReprocess = () => {
-    if (!confirmDialog) return;
-    setReprocessingRow(`${confirmDialog.employeeId}-${confirmDialog.date}`);
-    reprocessMutation.mutate({ employeeId: confirmDialog.employeeId, date: confirmDialog.date });
-  };
-
-  const handleConfirmClick = (row: DailyAttendanceReport, existing?: AttendanceAdjustmentRequest) => {
-    // Helper: extract local HH:mm from a UTC ISO string (e.g. "2026-01-15T01:00:00Z" → "08:00" in UTC+7).
-    // This is needed because HTML <input type="time"> only accepts local 24h string values.
-    // By instantiating `new Date(utcString)`, the browser naturally converts it to local time.
-    const utcToLocalHHmm = (iso: string | null | undefined): string => {
-      if (!iso) return "";
-      const d = new Date(iso);
-      if (isNaN(d.getTime())) {
-        // Might be plain "HH:MM:SS" (e.g. scheduled_start fallback) — not UTC, use directly
-        return iso.substring(0, 5);
-      }
-      return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-    };
-
-    // Pre-fill times from: existing request > actual punch > scheduled > empty
-    const punchIn = utcToLocalHHmm(existing?.requested_punch_in_time)
-      || utcToLocalHHmm(row.actual_punch_in)
-      || row.scheduled_start?.substring(0, 5)
-      || "";
-    const punchOut = utcToLocalHHmm(existing?.requested_punch_out_time)
-      || utcToLocalHHmm(row.actual_punch_out)
-      || row.scheduled_end?.substring(0, 5)
-      || "";
-    const reason = existing?.reason || "";
-    setConfirmModal({ row, existingRequest: existing, punchIn, punchOut, reason });
-  };
-
-  const handleConfirmSubmit = () => {
-    if (!confirmModal) return;
-    const { row, existingRequest } = confirmModal;
-    const rowKey = `${row.employee_id}-${row.date}`;
-    setConfirmingRow(rowKey);
-
-    if (existingRequest) {
-      // Approve existing request directly
-      confirmMutation.mutate({ row, existingRequestId: existingRequest.id });
-    } else {
-      // Convert local date and HH:mm back into a full UTC ISO string for backend storage.
-      // Why? The modal gives us local times, but `actual_punch_in` must be transmitted
-      // as `DateTime<Utc>` (Z suffixed) according to the Rust API model conventions.
-      const createIsoFromLocal = (dateStr: string, hhmm: string): string | null => {
-        if (!hhmm) return null;
-        const [y, m, d] = dateStr.split('-').map(Number);
-        const [hours, mins] = hhmm.split(':').map(Number);
-        // new Date(Y, M, D, h, m, s) strictly builds a LOCAL date object based on OS settings.
-        // Calling toISOString() then perfectly shifts those local values into standard UTC space.
-        return new Date(y, m - 1, d, hours, mins, 0).toISOString();
-      };
-
-      const modifiedRow = {
-        ...row,
-        actual_punch_in: createIsoFromLocal(row.date, confirmModal.punchIn),
-        actual_punch_out: createIsoFromLocal(row.date, confirmModal.punchOut),
-      };
-      confirmMutation.mutate({ row: modifiedRow as DailyAttendanceReport, reason: confirmModal.reason });
-    }
+  const handleDrawerClose = () => {
+    setSelectedEmployee(null);
+    focusSearch();
   };
 
   const filteredData = Array.isArray(reportData) ? reportData : [];
 
   if (!wsId) return <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
 
-
-
   return (
-
     <div className="space-y-10 pb-20 animate-in fade-in duration-700">
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
-
         <div className="space-y-1">
-
           <h1 className="text-4xl font-bold tracking-tighter text-slate-700 dark:text-slate-200 uppercase leading-none">{t("reports.title")}</h1>
-
           <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("reports.subtitle")}</p>
-
         </div>
 
         <button
@@ -313,264 +165,68 @@ export default function ReportsPage() {
         >
           <Download size={18} /> {t("reports.export_excel").toUpperCase()}
         </button>
-
       </div>
 
       <ReportFilters
         filterMode={filterMode}
-        reportType={reportType}
         dateRange={dateRange}
         specificMonth={specificMonth}
-        selectedEmployeeIds={selectedEmployeeIds}
-        workspaceId={wsId}
+        searchQuery={searchQuery}
+        searchInputRef={searchInputRef}
         t={t}
         onFilterModeChange={handleFilterModeChange}
-        onReportTypeChange={handleReportTypeChange}
         onDateRangeChange={handleDateRangeChange}
         onSpecificMonthChange={handleSpecificMonthChange}
-        onEmployeeIdsChange={setSelectedEmployeeIds}
+        onSearchQueryChange={handleSearchQueryChange}
       />
 
-
-
       <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700">
-
-
-
         <PaginationControls
-
-
-
           currentPage={page}
-
-
-
           totalPages={totalPages}
-
-
-
           onPageChange={setPage}
-
-
-
           pageSize={pageSize}
-
-
-
           totalItems={totalItems}
-
-
-
           onPageSizeChange={setPageSize}
-
-
-
         />
 
-        {reportType === "summary" ? (
-          <SummaryReportTable
-            data={filteredData}
-            isLoading={isLoading}
-            workUnitMinutes={workUnitMinutes}
-            sortBy={sortBy}
-            t={t}
-            onSort={handleSort}
-          />
-        ) : (
-          <DailyReportTable
-            data={filteredData}
-            isLoading={isLoading}
-            workUnitMinutes={workUnitMinutes}
-            isDebugMode={isDebugMode}
-            expandedDebugRows={expandedDebugRows}
-            reprocessingRow={reprocessingRow}
-            confirmingRow={confirmingRow}
-            adjustmentMap={adjustmentMap}
-            t={t}
-            formatDate={formatDate}
-            formatTime={formatTime}
-            onToggleExpandRow={toggleExpandRow}
-            onReprocessClick={handleReprocessClick}
-            onConfirmClick={handleConfirmClick}
-            onApproveOt={handleApproveOt}
-          />
-        )}
-
-
-
-        <PaginationControls
-
-
-
-          currentPage={page}
-
-
-
-          totalPages={totalPages}
-
-
-
-          onPageChange={setPage}
-
-
-
-          pageSize={pageSize}
-
-
-
-          totalItems={totalItems}
-
-
-
-          onPageSizeChange={setPageSize}
-
-
-
+        <SummaryReportTable
+          data={filteredData}
+          isLoading={isLoading}
+          workUnitMinutes={workUnitMinutes}
+          sortBy={sortBy}
+          t={t}
+          onSort={handleSort}
+          onEmployeeClick={handleEmployeeClick}
         />
 
-
-
+        <PaginationControls
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageSizeChange={setPageSize}
+        />
       </div>
 
-
-
       <ReportStats
-        reportType={reportType}
+        reportType="summary"
         filteredData={filteredData}
         workUnitMinutes={workUnitMinutes}
         t={t}
       />
 
-
-
-      <Modal isOpen={!!confirmDialog} onClose={() => !reprocessMutation.isPending && setConfirmDialog(null)} title={t("reports.reprocess.confirm_title")} icon={<RefreshCw size={24} />} maxWidth="md">
-
-        <div className="space-y-10 pt-4 animate-in fade-in duration-500">
-
-          <div className="p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-inner">
-
-            <p className="text-base font-bold text-slate-700 dark:text-slate-200 uppercase tracking-tight leading-relaxed text-center italic opacity-80">"{confirmDialog && t("reports.reprocess.confirm_message", { employee: confirmDialog.employeeName, date: formatDate(confirmDialog.date) })}"</p>
-
-          </div>
-
-          <div className="flex gap-6 border-t border-slate-50 dark:border-slate-800 pt-2">
-
-            <button onClick={() => setConfirmDialog(null)} className="flex-1 px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95" disabled={reprocessMutation.isPending}>{t("common.cancel")}</button>
-
-            <button onClick={handleConfirmReprocess} disabled={reprocessMutation.isPending} className="flex-[1.5] bg-slate-900 hover:bg-primary-700 text-white font-bold px-8 py-4 rounded-2xl flex items-center justify-center gap-4 transition-all active:scale-95 disabled:opacity-50 shadow-2xl shadow-slate-400 dark:shadow-black/40 text-xs uppercase tracking-widest">
-
-              {reprocessMutation.isPending ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Check size={20} />} {t("reports.reprocess.confirm").toUpperCase()}
-
-            </button>
-
-          </div>
-
-        </div>
-
-      </Modal>
-
-      {/* Confirm Attendance Modal */}
-      <Modal
-        isOpen={!!confirmModal}
-        onClose={() => !confirmMutation.isPending && setConfirmModal(null)}
-        title={t("reports.confirm.modal_title")}
-        subtitle={t("reports.confirm.modal_subtitle")}
-        icon={<CheckCircle size={24} />}
-        maxWidth="md"
-      >
-        {confirmModal && (
-          <div className="space-y-6 pt-2 animate-in fade-in duration-500">
-            {/* Employee & Date info */}
-            <div className="grid grid-cols-2 gap-4 p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800">
-              <div>
-                <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("reports.confirm.employee")}</label>
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mt-1">{confirmModal.row.employee_name}</p>
-              </div>
-              <div>
-                <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("reports.confirm.date")}</label>
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mt-1">{formatDate(confirmModal.row.date)}</p>
-              </div>
-            </div>
-
-            {/* Existing request banner */}
-            {confirmModal.existingRequest && (
-              <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-2xl border border-orange-200 dark:border-orange-800">
-                <p className="text-xs font-bold text-orange-600 dark:text-orange-300 uppercase tracking-wider">
-                  {t("reports.confirm.existing_request")}
-                </p>
-                {confirmModal.existingRequest.reason && (
-                  <p className="text-sm text-orange-700 dark:text-orange-200 mt-2 italic">
-                    &ldquo;{confirmModal.existingRequest.reason}&rdquo;
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Punch In / Out fields — editable only when creating new */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">{t("reports.confirm.punch_in")}</label>
-                <input
-                  type="time"
-                  value={confirmModal.punchIn}
-                  onChange={(e) => setConfirmModal({ ...confirmModal, punchIn: e.target.value })}
-                  disabled={!!confirmModal.existingRequest}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-              </div>
-              <div>
-                <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">{t("reports.confirm.punch_out")}</label>
-                <input
-                  type="time"
-                  value={confirmModal.punchOut}
-                  onChange={(e) => setConfirmModal({ ...confirmModal, punchOut: e.target.value })}
-                  disabled={!!confirmModal.existingRequest}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-              </div>
-            </div>
-
-            {/* Reason field — only for new requests */}
-            {!confirmModal.existingRequest && (
-              <div>
-                <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">{t("reports.confirm.reason")}</label>
-                <input
-                  type="text"
-                  value={confirmModal.reason}
-                  onChange={(e) => setConfirmModal({ ...confirmModal, reason: e.target.value })}
-                  placeholder={t("reports.confirm.reason_placeholder")}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              </div>
-            )}
-
-            {/* Buttons */}
-            <div className="flex gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
-              <button
-                onClick={() => setConfirmModal(null)}
-                className="flex-1 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
-                disabled={confirmMutation.isPending}
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                onClick={handleConfirmSubmit}
-                disabled={confirmMutation.isPending || (!confirmModal.existingRequest && !confirmModal.punchIn)}
-                className="flex-[1.5] bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3.5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 shadow-xl text-xs uppercase tracking-widest"
-              >
-                {confirmMutation.isPending
-                  ? <RefreshCw className="w-4 h-4 animate-spin" />
-                  : <CheckCircle size={18} />
-                }
-                {confirmModal.existingRequest
-                  ? t("reports.confirm.approve")
-                  : t("reports.confirm.submit")
-                }
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+      {/* Employee Daily Drill-down Drawer */}
+      <EmployeeDailyDrawer
+        isOpen={!!selectedEmployee}
+        onClose={handleDrawerClose}
+        workspaceId={wsId}
+        employeeId={selectedEmployee?.id || ""}
+        employeeName={selectedEmployee?.name || ""}
+        dateRange={dateRange}
+        workUnitMinutes={workUnitMinutes}
+      />
 
       <ReportExportDialog
         isOpen={isExportDialogOpen}
@@ -578,12 +234,10 @@ export default function ReportsPage() {
         wsId={wsId || ""}
         startDate={dateRange.start}
         endDate={dateRange.end}
-        reportType={reportType === "daily" ? "detail" : "summary"}
-        employeeIds={selectedEmployeeIds.length > 0 ? selectedEmployeeIds : undefined}
+        reportType="detail"
+        employeeIds={employeeIdsFilter && employeeIdsFilter[0] !== "__none__" ? employeeIdsFilter : undefined}
       />
 
     </div>
-
   );
-
 }

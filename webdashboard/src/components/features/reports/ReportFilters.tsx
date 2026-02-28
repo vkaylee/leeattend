@@ -1,6 +1,6 @@
-import { Calendar, CalendarRange, List, TableProperties } from "lucide-react";
+import React from "react";
+import { Calendar, CalendarRange, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
 import {
   DropdownMenu,
@@ -10,63 +10,34 @@ import {
 
 interface ReportFiltersProps {
   filterMode: "this_month" | "last_month" | "custom" | "specific_month";
-  reportType: "summary" | "daily";
   dateRange: { start: string; end: string };
   specificMonth: { month: number; year: number };
-  selectedEmployeeIds: string[];
-  workspaceId: string;
+  searchQuery: string;
+  searchInputRef?: React.RefObject<HTMLInputElement | null>;
   t: (key: string) => string;
   onFilterModeChange: (mode: "this_month" | "last_month" | "custom" | "specific_month") => void;
-  onReportTypeChange: (type: "summary" | "daily") => void;
   onDateRangeChange: (range: { start: string; end: string }) => void;
   onSpecificMonthChange: (month: number, year: number) => void;
-  onEmployeeIdsChange: (ids: string[]) => void;
+  onSearchQueryChange: (query: string) => void;
 }
 
 export default function ReportFilters({
   filterMode,
-  reportType,
   dateRange,
   specificMonth,
-  selectedEmployeeIds,
-  workspaceId,
+  searchQuery,
+  searchInputRef,
   t,
   onFilterModeChange,
-  onReportTypeChange,
   onDateRangeChange,
   onSpecificMonthChange,
-  onEmployeeIdsChange,
+  onSearchQueryChange,
 }: ReportFiltersProps) {
   return (
     <>
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
-        <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
-          <button
-            onClick={() => onReportTypeChange("summary")}
-            className={cn(
-              "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
-              reportType === 'summary'
-                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
-            )}
-          >
-            <List size={14} /> {t("reports.tabs.summary")}
-          </button>
 
-          <button
-            onClick={() => onReportTypeChange("daily")}
-            className={cn(
-              "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
-              reportType === 'daily'
-                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-100 dark:border-slate-800"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-700"
-            )}
-          >
-            <TableProperties size={14} /> {t("reports.tabs.daily")}
-          </button>
-        </div>
-
-        <div className="flex flex-col md:flex-row md:items-center gap-6 bg-white dark:bg-slate-900 p-3 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-900/5 pr-6">
+        <div className="flex flex-col md:flex-row md:items-center gap-6 bg-white dark:bg-slate-900 p-3 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-900/5">
           <div className="flex items-center bg-slate-100 dark:bg-slate-700/50 rounded-[1.5rem] p-1.5 shadow-inner border border-slate-200 dark:border-slate-700/50">
             {["this_month", "last_month"].map(mode => (
               <button
@@ -127,20 +98,29 @@ export default function ReportFilters({
               {t("common.filters.custom").toUpperCase()}
             </button>
           </div>
-
-          <div className="h-10 w-px bg-slate-100 dark:bg-slate-700 hidden md:block opacity-50" />
-
-          <div className="w-full md:w-80">
-            <EmployeeSearch
-              workspaceId={workspaceId}
-              value={selectedEmployeeIds}
-              onChange={onEmployeeIdsChange}
-              multiple={true}
-              autoFocus={true}
-              placeholder={t("reports.search_placeholder")}
-            />
-          </div>
         </div>
+      </div>
+
+      {/* Search input — standalone row for prominence */}
+      <div className="relative">
+        <Search size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+        <input
+          ref={searchInputRef}
+          autoFocus
+          type="text"
+          value={searchQuery}
+          onChange={(e) => onSearchQueryChange(e.target.value)}
+          placeholder={t("reports.search_placeholder")}
+          className="w-full pl-14 pr-12 py-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:font-medium focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 dark:focus:border-primary-700 transition-all shadow-sm uppercase tracking-tight"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => onSearchQueryChange("")}
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-90"
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
 
       {filterMode === "custom" && (
@@ -168,7 +148,8 @@ export default function ReportFilters({
             />
           </div>
         </div>
-      )}
+      )
+      }
     </>
   );
 }

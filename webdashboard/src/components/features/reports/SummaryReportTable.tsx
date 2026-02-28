@@ -1,4 +1,4 @@
-import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpDown, ChevronRight } from "lucide-react";
 import { AttendanceSummary, AttendanceReportSort } from "@/lib/api";
 import { formatUnitsToHours } from "@/lib/utils/attendance";
 
@@ -9,6 +9,7 @@ interface SummaryReportTableProps {
   sortBy: AttendanceReportSort | undefined;
   t: (key: string) => string;
   onSort: (field: 'name' | 'work_hours' | 'leave_days') => void;
+  onEmployeeClick: (employeeId: string, employeeName: string) => void;
 }
 
 export default function SummaryReportTable({
@@ -18,6 +19,7 @@ export default function SummaryReportTable({
   sortBy,
   t,
   onSort,
+  onEmployeeClick,
 }: SummaryReportTableProps) {
   const getSortIcon = (field: 'name' | 'work_hours' | 'leave_days') => {
     if (field === 'name') {
@@ -76,25 +78,26 @@ export default function SummaryReportTable({
           <th className="px-10 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] text-right">
             {t("common.notes")}
           </th>
+          <th className="px-4 py-6 w-10"></th>
         </tr>
       </thead>
 
       <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
         {isLoading ? (
           <tr>
-            <td colSpan={5} className="px-10 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">
+            <td colSpan={6} className="px-10 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">
               {t("reports.messages.generating")}
             </td>
           </tr>
         ) : data.length === 0 ? (
           <tr>
-            <td colSpan={5} className="px-10 py-32 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
+            <td colSpan={6} className="px-10 py-32 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
               {t("reports.messages.no_data")}
             </td>
           </tr>
         ) : (
           data.map((row: AttendanceSummary) => (
-            <tr key={row.employee_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group">
+            <tr key={row.employee_id} onClick={() => onEmployeeClick(row.employee_id, row.employee_name)} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group cursor-pointer">
               <td className="px-10 py-6 font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">
                 {row.employee_name}
               </td>
@@ -128,6 +131,10 @@ export default function SummaryReportTable({
               </td>
 
               <td className="px-10 py-6 text-right text-slate-200 dark:text-slate-700 font-bold tracking-widest">—</td>
+
+              <td className="px-4 py-6 text-right">
+                <ChevronRight size={16} className="text-slate-300 dark:text-slate-600 group-hover:text-primary-500 dark:group-hover:text-primary-400 transition-colors group-hover:translate-x-1 transform duration-200" />
+              </td>
             </tr>
           ))
         )}

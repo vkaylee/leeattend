@@ -131,4 +131,27 @@ describe("DailyReportTable", () => {
         fireEvent.click(reprocessButtons[0]);
         expect(defaultProps.onReprocessClick).toHaveBeenCalledWith(mockData[0]);
     });
+
+    it("hides employee name column when hideEmployeeName is true", () => {
+        render(<DailyReportTable {...defaultProps} hideEmployeeName />);
+
+        // Employee header should be gone
+        expect(screen.queryByText("common.employee")).not.toBeInTheDocument();
+
+        // Employee names should not be rendered in cells
+        expect(screen.queryByText("John Doe")).not.toBeInTheDocument();
+        expect(screen.queryByText("Jane Smith")).not.toBeInTheDocument();
+
+        // But dates and other columns still work
+        expect(screen.getByText("common.date")).toBeInTheDocument();
+        expect(screen.getByText("common.shift")).toBeInTheDocument();
+    });
+
+    it("shows employee name column by default (hideEmployeeName=false)", () => {
+        render(<DailyReportTable {...defaultProps} hideEmployeeName={false} />);
+
+        expect(screen.getByText("common.employee")).toBeInTheDocument();
+        expect(screen.getByText("John Doe")).toBeInTheDocument();
+        expect(screen.getByText("Jane Smith")).toBeInTheDocument();
+    });
 });
