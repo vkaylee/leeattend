@@ -33,7 +33,8 @@ FROM rust:1.88-bookworm AS dev
 RUN apt-get update && apt-get install -y clang mold git redis-tools postgresql-client sqlite3 netcat-traditional curl dnsutils iputils-ping iproute2 nmap jq htop bash && \
     rm -rf /var/lib/apt/lists/* && \
     rustup component add clippy && \
-    cargo install cargo-watch
+    cargo install cargo-watch && \
+    cargo install sqlx-cli --locked --no-default-features --features postgres
 WORKDIR /app
 CMD ["cargo", "watch", "-x", "run"]
 
