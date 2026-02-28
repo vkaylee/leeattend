@@ -2488,5 +2488,54 @@
         "created_at": "Created At"
       }
     }
+  },
+  "holidays": {
+    "title": "Holidays",
+    "subtitle": "Manage public holidays and special days for your workspace",
+    "add_btn": "Add Holiday",
+    "no_holidays": "No holidays configured for {{year}}",
+    "modal_title_new": "New Holiday",
+    "modal_title_edit": "Edit Holiday",
+    "fields": {
+      "name": "Name",
+      "name_placeholder": "e.g. Tết Dương Lịch",
+      "date": "Date",
+      "type": "Type",
+      "types": {
+        "national": "National",
+        "company": "Company",
+        "regional": "Regional"
+      },
+      "ot_multiplier": "OT Multiplier",
+      "ot_multiplier_placeholder": "3.0",
+      "description": "Description",
+      "description_placeholder": "Optional description",
+      "paid_holiday": "Paid holiday",
+      "deduct_leave_type": "Deduct from Leave Type",
+      "auto_first_paid": "Auto (first paid leave type)",
+      "deduction_warning": "Employees without enough leave balance will have this day marked as unpaid."
+    },
+    "table": {
+      "date": "Date",
+      "name": "Name",
+      "type": "Type",
+      "paid": "Paid",
+      "ot": "OT ×",
+      "description": "Description",
+      "paid_status": "Paid",
+      "deduct_leave": "Deduct leave"
+    },
+    "messages": {
+      "load_error": "Failed to load holidays",
+      "save_error": "Failed to save holiday",
+      "delete_error": "Failed to delete holiday",
+      "confirm_delete": "Are you sure you want to delete this holiday?"
+    },
+    "info": {
+      "title": "Unpaid Holiday & Leave Deduction Rules",
+      "body_1": "When a holiday is marked as Unpaid, the system handles it automatically based on the employee's leave balance:",
+      "rule_1": "Sufficient Balance: Deducts 1 day of leave and pays the salary.",
+      "rule_2": "Insufficient Balance: Marked as Unpaid leave for the day."
+    }
   }
 }

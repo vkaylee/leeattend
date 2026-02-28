@@ -2488,5 +2488,54 @@
         "created_at": "Ngày tạo"
       }
     }
+  },
+  "holidays": {
+    "title": "Ngày lễ",
+    "subtitle": "Quản lý các ngày nghỉ lễ chung và ngày đặc biệt của tổ chức",
+    "add_btn": "Thêm ngày lễ",
+    "no_holidays": "Chưa có ngày lễ nào được cấu hình cho năm {{year}}",
+    "modal_title_new": "Thêm ngày lễ mới",
+    "modal_title_edit": "Cập nhật ngày lễ",
+    "fields": {
+      "name": "Tên ngày lễ",
+      "name_placeholder": "VD: Tết Dương Lịch",
+      "date": "Ngày",
+      "type": "Phân loại",
+      "types": {
+        "national": "Quốc gia",
+        "company": "Công ty",
+        "regional": "Khu vực"
+      },
+      "ot_multiplier": "Hệ số tăng ca (OT)",
+      "ot_multiplier_placeholder": "3.0",
+      "description": "Mô tả",
+      "description_placeholder": "Nội dung ghi chú thêm",
+      "paid_holiday": "Nghỉ lễ có lương",
+      "deduct_leave_type": "Trừ vào loại phép",
+      "auto_first_paid": "Tự động (loại phép có lương đầu tiên xếp theo tự tự ngày tạo)",
+      "deduction_warning": "Nhân viên không đủ số dư phép sẽ bị hệ thống tự động ghi nhận là nghỉ không lương."
+    },
+    "table": {
+      "date": "Ngày",
+      "name": "Tên ngày lễ",
+      "type": "Loại",
+      "paid": "Có lương",
+      "ot": "HS OT",
+      "description": "Mô tả",
+      "paid_status": "Có lương",
+      "deduct_leave": "Trừ phép"
+    },
+    "messages": {
+      "load_error": "Lỗi khi tải danh sách ngày lễ",
+      "save_error": "Lỗi khi lưu ngày lễ",
+      "delete_error": "Lỗi khi xóa ngày lễ",
+      "confirm_delete": "Bạn có chắc chắn muốn xóa ngày lễ này không?"
+    },
+    "info": {
+      "title": "Quy tắc trừ phép đối với Ngày lễ không lương",
+      "body_1": "Khi một kỳ nghỉ lễ được cấu hình là KHÔNG LƯƠNG, hệ thống sẽ tự động đối chiếu số dư phép của từng nhân viên:",
+      "rule_1": "Đủ số dư phép: Tự động trừ 1 ngày phép và tính công có lương.",
+      "rule_2": "Không đủ số dư phép: Tự động ghi nhận là nghỉ Không Lương (Unpaid)."
+    }
   }
 }

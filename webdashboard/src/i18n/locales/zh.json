@@ -2488,5 +2488,54 @@
         "created_at": "创建于"
       }
     }
+  },
+  "holidays": {
+    "title": "节假日",
+    "subtitle": "管理您工作空间的公共假日和特殊日子",
+    "add_btn": "添加假假日",
+    "no_holidays": "没有为 {{year}} 配置节假日",
+    "modal_title_new": "新假期",
+    "modal_title_edit": "编辑假期",
+    "fields": {
+      "name": "名称",
+      "name_placeholder": "例如: 元旦",
+      "date": "日期",
+      "type": "类型",
+      "types": {
+        "national": "国家级",
+        "company": "公司级",
+        "regional": "地方级"
+      },
+      "ot_multiplier": "加班倍数",
+      "ot_multiplier_placeholder": "3.0",
+      "description": "描述",
+      "description_placeholder": "可选描述",
+      "paid_holiday": "带薪休假",
+      "deduct_leave_type": "扣除休假类型",
+      "auto_first_paid": "自动 (第一个带薪休假类型)",
+      "deduction_warning": "休假余额不足的员工，此日将被标记为无薪假。"
+    },
+    "table": {
+      "date": "日期",
+      "name": "名称",
+      "type": "类型",
+      "paid": "带薪",
+      "ot": "加班倍数",
+      "description": "描述",
+      "paid_status": "带薪",
+      "deduct_leave": "扣除假期"
+    },
+    "messages": {
+      "load_error": "加载假期失败",
+      "save_error": "保存假期失败",
+      "delete_error": "删除假期失败",
+      "confirm_delete": "您确定要删除此假期吗？"
+    },
+    "info": {
+      "title": "无薪假和休假扣除规则",
+      "body_1": "当假期被标记为无薪时，系统会根据员工的休假余额自动处理：",
+      "rule_1": "余额充足：扣除 1 天休假并支付工资。",
+      "rule_2": "余额不足：当天标记为无薪假。"
+    }
   }
 }

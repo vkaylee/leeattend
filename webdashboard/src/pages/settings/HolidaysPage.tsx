@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Trash2, Pencil, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Trash2, Pencil, CalendarDays, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { fetchHolidays, createHoliday, updateHoliday, deleteHoliday } from "@/lib/api/holidays";
 import { fetchLeaveTypes } from "@/lib/api/leaves";
 import { getCurrentWorkspaceId } from "@/lib/api";
@@ -34,11 +34,11 @@ export default function HolidaysPage() {
             const data = await fetchHolidays(wsId, year);
             setHolidays(data);
         } catch {
-            setError("Failed to load holidays");
+            setError(t('holidays.messages.load_error'));
         } finally {
             setIsLoading(false);
         }
-    }, [wsId, year]);
+    }, [wsId, year, t]);
 
     useEffect(() => {
         loadHolidays();
@@ -98,18 +98,18 @@ export default function HolidaysPage() {
             resetForm();
             loadHolidays();
         } catch (err: any) {
-            setError(err.message || "Failed to save holiday");
+            setError(err.message || t('holidays.messages.save_error'));
         }
     };
 
     const handleDelete = async (id: string) => {
         if (!wsId) return;
-        if (!confirm("Are you sure you want to delete this holiday?")) return;
+        if (!confirm(t('holidays.messages.confirm_delete'))) return;
         try {
             await deleteHoliday(wsId, id);
             loadHolidays();
         } catch {
-            setError("Failed to delete holiday");
+            setError(t('holidays.messages.delete_error'));
         }
     };
 
@@ -119,10 +119,10 @@ export default function HolidaysPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-                        🏖️ Holidays
+                        🏖️ {t('holidays.title')}
                     </h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Manage public holidays and special days for your workspace
+                        {t('holidays.subtitle')}
                     </p>
                 </div>
                 <button
@@ -130,7 +130,7 @@ export default function HolidaysPage() {
                     className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-xl font-bold text-sm hover:bg-primary-700 transition-colors shadow-sm"
                 >
                     <Plus size={16} />
-                    Add Holiday
+                    {t('holidays.add_btn')}
                 </button>
             </div>
 
@@ -164,26 +164,26 @@ export default function HolidaysPage() {
             {showForm && (
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-lg">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
-                        {editingHoliday ? "Edit Holiday" : "New Holiday"}
+                        {editingHoliday ? t('holidays.modal_title_edit') : t('holidays.modal_title_new')}
                     </h2>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                                    Name *
+                                    {t('holidays.fields.name')} *
                                 </label>
                                 <input
                                     type="text"
                                     value={formName}
                                     onChange={(e) => setFormName(e.target.value)}
                                     required
-                                    placeholder="e.g. Tết Dương Lịch"
+                                    placeholder={t('holidays.fields.name_placeholder')}
                                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
                                 />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                                    Date *
+                                    {t('holidays.fields.date')} *
                                 </label>
                                 <input
                                     type="date"
@@ -195,41 +195,41 @@ export default function HolidaysPage() {
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                                    Type
+                                    {t('holidays.fields.type')}
                                 </label>
                                 <select
                                     value={formType}
                                     onChange={(e) => setFormType(e.target.value)}
                                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
                                 >
-                                    <option value="national">National</option>
-                                    <option value="company">Company</option>
-                                    <option value="regional">Regional</option>
+                                    <option value="national">{t('holidays.fields.types.national')}</option>
+                                    <option value="company">{t('holidays.fields.types.company')}</option>
+                                    <option value="regional">{t('holidays.fields.types.regional')}</option>
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                                    OT Multiplier
+                                    {t('holidays.fields.ot_multiplier')}
                                 </label>
                                 <input
                                     type="number"
                                     step="0.1"
                                     value={formOtMultiplier}
                                     onChange={(e) => setFormOtMultiplier(e.target.value)}
-                                    placeholder="3.0"
+                                    placeholder={t('holidays.fields.ot_multiplier_placeholder')}
                                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
                                 />
                             </div>
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                                Description
+                                {t('holidays.fields.description')}
                             </label>
                             <input
                                 type="text"
                                 value={formDescription}
                                 onChange={(e) => setFormDescription(e.target.value)}
-                                placeholder="Optional description"
+                                placeholder={t('holidays.fields.description_placeholder')}
                                 className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
                             />
                         </div>
@@ -242,27 +242,44 @@ export default function HolidaysPage() {
                                 className="rounded"
                             />
                             <label htmlFor="isPaid" className="text-sm text-slate-700 dark:text-slate-300">
-                                Paid holiday
+                                {t('holidays.fields.paid_holiday')}
                             </label>
                         </div>
                         {!formIsPaid && (
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                                    Deduct from Leave Type
-                                </label>
-                                <select
-                                    value={formLeaveTypeId}
-                                    onChange={(e) => setFormLeaveTypeId(e.target.value)}
-                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
-                                >
-                                    <option value="">Auto (first paid leave type)</option>
-                                    {leaveTypes.filter(lt => lt.is_paid).map(lt => (
-                                        <option key={lt.id} value={lt.id}>{lt.name} ({lt.code})</option>
-                                    ))}
-                                </select>
-                                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                                    ⚠️ Employees without enough leave balance will have this day marked as unpaid.
-                                </p>
+                            <div className="space-y-3">
+                                <div className="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50 rounded-xl flex items-start gap-3">
+                                    <Info className="w-5 h-5 text-blue-500 dark:text-blue-400 mt-0.5 shrink-0" />
+                                    <div>
+                                        <h4 className="text-sm font-bold text-blue-900 dark:text-blue-200 mb-1">
+                                            {t('holidays.info.title')}
+                                        </h4>
+                                        <p className="text-xs text-blue-800 dark:text-blue-300 font-medium mb-2">
+                                            {t('holidays.info.body_1')}
+                                        </p>
+                                        <ul className="text-xs text-blue-800 dark:text-blue-300 space-y-1 list-disc list-inside">
+                                            <li><span className="font-bold">{t('holidays.info.rule_1').split(':')[0]}:</span> {t('holidays.info.rule_1').split(':')[1]}</li>
+                                            <li><span className="font-bold">{t('holidays.info.rule_2').split(':')[0]}:</span> {t('holidays.info.rule_2').split(':')[1]}</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                                        {t('holidays.fields.deduct_leave_type')}
+                                    </label>
+                                    <select
+                                        value={formLeaveTypeId}
+                                        onChange={(e) => setFormLeaveTypeId(e.target.value)}
+                                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+                                    >
+                                        <option value="">{t('holidays.fields.auto_first_paid')}</option>
+                                        {leaveTypes.filter(lt => lt.is_paid).map(lt => (
+                                            <option key={lt.id} value={lt.id}>{lt.name} ({lt.code})</option>
+                                        ))}
+                                    </select>
+                                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                                        ⚠️ {t('holidays.fields.deduction_warning')}
+                                    </p>
+                                </div>
                             </div>
                         )}
                         <div className="flex gap-2 justify-end">
@@ -271,13 +288,13 @@ export default function HolidaysPage() {
                                 onClick={resetForm}
                                 className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                             >
-                                Cancel
+                                {t('common.cancel')}
                             </button>
                             <button
                                 type="submit"
                                 className="px-4 py-2 bg-primary-600 text-white rounded-xl font-bold text-sm hover:bg-primary-700 transition-colors"
                             >
-                                {editingHoliday ? "Update" : "Create"}
+                                {editingHoliday ? t('common.update') : t('common.create')}
                             </button>
                         </div>
                     </form>
@@ -288,25 +305,25 @@ export default function HolidaysPage() {
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
                 {isLoading ? (
                     <div className="p-12 text-center text-slate-400 text-sm font-bold uppercase tracking-widest animate-pulse">
-                        Loading...
+                        {t('common.loading')}
                     </div>
                 ) : holidays.length === 0 ? (
                     <div className="p-12 text-center">
                         <CalendarDays className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                         <p className="text-slate-400 text-sm font-medium">
-                            No holidays configured for {year}
+                            {t('holidays.no_holidays', { year })}
                         </p>
                     </div>
                 ) : (
                     <table className="w-full text-left">
                         <thead>
                             <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Date</th>
-                                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Name</th>
-                                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Type</th>
-                                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Paid</th>
-                                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">OT ×</th>
-                                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Description</th>
+                                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('holidays.table.date')}</th>
+                                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('holidays.table.name')}</th>
+                                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('holidays.table.type')}</th>
+                                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">{t('holidays.table.paid')}</th>
+                                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">{t('holidays.table.ot')}</th>
+                                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('holidays.table.description')}</th>
                                 <th className="px-4 py-3"></th>
                             </tr>
                         </thead>
@@ -321,15 +338,15 @@ export default function HolidaysPage() {
                                     </td>
                                     <td className="px-4 py-3">
                                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                                            {h.holiday_type}
+                                            {t(`holidays.fields.types.${h.holiday_type}`)}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         {h.is_paid ? (
-                                            <span className="text-emerald-600">✅ Paid</span>
+                                            <span className="text-emerald-600">✅ {t('holidays.table.paid_status')}</span>
                                         ) : (
                                             <span className="text-amber-600 text-xs font-bold">
-                                                ⚡ Deduct leave
+                                                ⚡ {t('holidays.table.deduct_leave')}
                                                 {h.leave_type_id && leaveTypes.find(lt => lt.id === h.leave_type_id) && (
                                                     <span className="block text-[10px] text-slate-400 font-normal">
                                                         → {leaveTypes.find(lt => lt.id === h.leave_type_id)?.name}
