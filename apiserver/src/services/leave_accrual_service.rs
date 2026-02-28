@@ -194,15 +194,11 @@ impl LeaveAccrualService {
                     let mut y = from.year();
                     let mut m = from.month();
                     // If from is after the 1st, start from 1st of from's month only if it's >= from
-                    loop {
-                        if let Some(d) = NaiveDate::from_ymd_opt(y, m, 1) {
+                    while let Some(d) = NaiveDate::from_ymd_opt(y, m, 1) {
                             if d > to { break; }
                             if d >= from { dates.push(d); }
                             // Next month
                             if m == 12 { m = 1; y += 1; } else { m += 1; }
-                        } else {
-                            break;
-                        }
                     }
                 } else {
                     // Last day of each month

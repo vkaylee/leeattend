@@ -504,6 +504,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
                 .delete(handlers::holidays::delete_holiday),
         )
         .route(
+            "/workspaces/:ws_id/holidays/:id/process-leave",
+            post(handlers::holidays::process_holiday_leave),
+        )
+        .route(
             "/workspaces/:ws_id/payroll-settings",
             get(handlers::get_payroll_settings).patch(handlers::update_payroll_settings),
         )

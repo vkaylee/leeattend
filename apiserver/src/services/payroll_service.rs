@@ -421,6 +421,42 @@ impl PayrollService {
             }
         }
 
+        // 8b. Deductions for unpaid holidays (is_paid=false) where employee has NO leave request
+        // These are days the employee didn't work AND had no leave deducted → unpaid day
+        let unpaid_holiday_days: i64 = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) as "count!"
+               FROM holidays h
+               WHERE h.workspace_id = $1
+                 AND h.is_paid = false
+                 AND h.date >= $2
+                 AND h.date <= $3
+                 AND NOT EXISTS (
+                     SELECT 1 FROM leave_requests lr
+                     WHERE lr.employee_id = $4
+                       AND lr.status = 'approved'
+                       AND lr.start_date <= h.date
+                       AND lr.end_date >= h.date
+                 )"#,
+            workspace_id,
+            start_date,
+            end_date,
+            employee_id
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap_or(0);
+
+        if unpaid_holiday_days > 0 {
+            if let Some(last_snap) = segment_snapshots.last() {
+                let daily_rate = if last_snap.4.is_zero() {
+                    Decimal::ZERO
+                } else {
+                    last_snap.3 / last_snap.4
+                };
+                deductions_amount += daily_rate * Decimal::from(unpaid_holiday_days);
+            }
+        }
+
         let payslip = Payslip {
             id: Uuid::new_v4(),
             employee_id,

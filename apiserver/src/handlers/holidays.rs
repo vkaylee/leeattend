@@ -11,7 +11,8 @@ use uuid::Uuid;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{CreateHolidayRequest, Holiday, UpdateHolidayRequest};
-use crate::repositories::holiday_repository::HolidayRepository;
+use crate::repositories::holiday_repository::{HolidayRepository, HolidayLeaveResult};
+use crate::services::HolidayLeaveService;
 use crate::AppState;
 
 #[derive(Debug, Deserialize)]
@@ -65,6 +66,7 @@ pub async fn create_holiday(
         req.date,
         &req.holiday_type,
         req.is_paid,
+        req.leave_type_id,
         req.ot_multiplier,
         req.description.as_deref(),
     )
@@ -100,6 +102,7 @@ pub async fn update_holiday(
         req.date,
         req.holiday_type.as_deref(),
         req.is_paid,
+        req.leave_type_id,
         req.ot_multiplier,
         req.description.as_deref(),
     )
@@ -131,4 +134,33 @@ pub async fn delete_holiday(
     } else {
         Err(AppError::NotFound("Holiday not found".to_string()))
     }
+}
+
+/// POST /workspaces/:ws_id/holidays/:id/process-leave
+/// Triggers automatic leave deduction for employees on an unpaid holiday.
+pub async fn process_holiday_leave(
+    State(state): State<Arc<AppState>>,
+    Path((_ws_id, id)): Path<(Uuid, Uuid)>,
+    ctx: MemberContext,
+) -> AppResult<Json<Vec<HolidayLeaveResult>>> {
+    if !ctx.is_admin_or_owner() {
+        return Err(AppError::Forbidden(
+            "Admin or Owner role required to process holiday leave".to_string(),
+        ));
+    }
+
+    let holiday = HolidayRepository::get_by_id(&state.db, id)
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?
+        .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
+
+    let results = HolidayLeaveService::process_holiday_leave(
+        &state.db,
+        ctx.workspace_id,
+        &holiday,
+    )
+    .await
+    .map_err(AppError::Internal)?;
+
+    Ok(Json(results))
 }

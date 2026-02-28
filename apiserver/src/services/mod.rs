@@ -36,3 +36,6 @@ pub mod attendance_log_service;
 pub use agent_log_buffer::{AgentLogBuffer, AgentLogEntry};
 
 pub mod attendance_summary_service;
+pub mod holiday_leave_service;
+
+pub use holiday_leave_service::HolidayLeaveService;

@@ -1638,7 +1638,15 @@
     "host": "Máy chủ",
     "status": "Trạng thái",
     "current_task": "Tác vụ hiện tại",
-    "last_seen": "Lần cuối thấy"
+    "last_seen": "Lần cuối thấy",
+    "recent_jobs": "Công việc gần đây",
+    "recent_jobs_subtitle": "Các tác vụ chạy nền vừa xử lý gần đây",
+    "job_id": "Mã Job",
+    "job_type": "Loại",
+    "error": "Lỗi",
+    "created_at": "Ngày tạo",
+    "batches": "Lô",
+    "no_jobs": "Không có tác vụ gần đây"
   },
   "agents": {
     "title": "Quản lý Agent",

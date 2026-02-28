@@ -2,12 +2,14 @@ import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, Trash2, Pencil, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { fetchHolidays, createHoliday, updateHoliday, deleteHoliday } from "@/lib/api/holidays";
+import { fetchLeaveTypes } from "@/lib/api/leaves";
 import { getCurrentWorkspaceId } from "@/lib/api";
-import type { Holiday } from "@/lib/api/types";
+import type { Holiday, LeaveType } from "@/lib/api/types";
 
 export default function HolidaysPage() {
     const { t } = useTranslation();
     const [holidays, setHolidays] = useState<Holiday[]>([]);
+    const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [year, setYear] = useState(new Date().getFullYear());
     const [showForm, setShowForm] = useState(false);
@@ -19,6 +21,7 @@ export default function HolidaysPage() {
     const [formDate, setFormDate] = useState("");
     const [formType, setFormType] = useState("national");
     const [formIsPaid, setFormIsPaid] = useState(true);
+    const [formLeaveTypeId, setFormLeaveTypeId] = useState("");
     const [formOtMultiplier, setFormOtMultiplier] = useState("");
     const [formDescription, setFormDescription] = useState("");
 
@@ -41,11 +44,17 @@ export default function HolidaysPage() {
         loadHolidays();
     }, [loadHolidays]);
 
+    useEffect(() => {
+        if (!wsId) return;
+        fetchLeaveTypes(wsId).then(setLeaveTypes).catch(() => { });
+    }, [wsId]);
+
     const resetForm = () => {
         setFormName("");
         setFormDate("");
         setFormType("national");
         setFormIsPaid(true);
+        setFormLeaveTypeId("");
         setFormOtMultiplier("");
         setFormDescription("");
         setEditingHoliday(null);
@@ -59,6 +68,7 @@ export default function HolidaysPage() {
         setFormDate(h.date);
         setFormType(h.holiday_type);
         setFormIsPaid(h.is_paid);
+        setFormLeaveTypeId(h.leave_type_id || "");
         setFormOtMultiplier(h.ot_multiplier?.toString() || "");
         setFormDescription(h.description || "");
         setShowForm(true);
@@ -74,6 +84,7 @@ export default function HolidaysPage() {
             date: formDate,
             holiday_type: formType,
             is_paid: formIsPaid,
+            leave_type_id: !formIsPaid && formLeaveTypeId ? formLeaveTypeId : undefined,
             description: formDescription || undefined,
             ot_multiplier: formOtMultiplier ? parseFloat(formOtMultiplier) : undefined,
         };
@@ -227,13 +238,33 @@ export default function HolidaysPage() {
                                 type="checkbox"
                                 id="isPaid"
                                 checked={formIsPaid}
-                                onChange={(e) => setFormIsPaid(e.target.checked)}
+                                onChange={(e) => { setFormIsPaid(e.target.checked); if (e.target.checked) setFormLeaveTypeId(""); }}
                                 className="rounded"
                             />
                             <label htmlFor="isPaid" className="text-sm text-slate-700 dark:text-slate-300">
                                 Paid holiday
                             </label>
                         </div>
+                        {!formIsPaid && (
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                                    Deduct from Leave Type
+                                </label>
+                                <select
+                                    value={formLeaveTypeId}
+                                    onChange={(e) => setFormLeaveTypeId(e.target.value)}
+                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+                                >
+                                    <option value="">Auto (first paid leave type)</option>
+                                    {leaveTypes.filter(lt => lt.is_paid).map(lt => (
+                                        <option key={lt.id} value={lt.id}>{lt.name} ({lt.code})</option>
+                                    ))}
+                                </select>
+                                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                                    ⚠️ Employees without enough leave balance will have this day marked as unpaid.
+                                </p>
+                            </div>
+                        )}
                         <div className="flex gap-2 justify-end">
                             <button
                                 type="button"
@@ -294,7 +325,18 @@ export default function HolidaysPage() {
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                        {h.is_paid ? "✅" : "❌"}
+                                        {h.is_paid ? (
+                                            <span className="text-emerald-600">✅ Paid</span>
+                                        ) : (
+                                            <span className="text-amber-600 text-xs font-bold">
+                                                ⚡ Deduct leave
+                                                {h.leave_type_id && leaveTypes.find(lt => lt.id === h.leave_type_id) && (
+                                                    <span className="block text-[10px] text-slate-400 font-normal">
+                                                        → {leaveTypes.find(lt => lt.id === h.leave_type_id)?.name}
+                                                    </span>
+                                                )}
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="px-4 py-3 text-center font-mono font-bold text-sm text-orange-600 dark:text-orange-400">
                                         {h.ot_multiplier ? `${h.ot_multiplier}×` : "—"}

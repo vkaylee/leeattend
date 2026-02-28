@@ -1628,6 +1628,71 @@ Gán chính sách tăng ca cho đối tượng (Global, Dept, Employee).
   ```
 - **Response (200 OK)**
 
+### 17. Holidays & Leave Deductions (New)
+
+Quản lý ngày nghỉ lễ của công ty và tự động trừ phép (Leave Deduction) đối với các ngày nghỉ lễ không hưởng lương.
+
+#### Holiday Model
+```json
+{
+  "id": "uuid",
+  "workspace_id": "uuid",
+  "name": "Tết Nguyên Đán",
+  "date": "2026-02-14",
+  "holiday_type": "national",
+  "is_paid": true,
+  "ot_multiplier": 3.0,
+  "leave_type_id": null, // UUID của loại phép sẽ bị trừ nếu is_paid = false
+  "description": "Nghỉ Tết Âm Lịch"
+}
+```
+
+#### GET /workspaces/:ws_id/holidays
+Lấy danh sách các ngày nghỉ lễ, có thể lọc theo năm.
+- **Query Params**: `?year=2026`
+- **Response (200)**: `Array<Holiday>`
+
+#### POST /workspaces/:ws_id/holidays
+Tạo mới ngày nghỉ lễ.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**:
+  ```json
+  {
+    "name": "Company Trip",
+    "date": "2026-06-15",
+    "holiday_type": "company",
+    "is_paid": false,
+    "leave_type_id": "uuid-cua-vacation-leave" // Bắt buộc nếu muốn tự động trừ phép
+  }
+  ```
+- **Response (201)**: `Holiday` object
+
+#### PUT /workspaces/:ws_id/holidays/:id
+Cập nhật thông tin ngày nghỉ lễ.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Request**: Tương tự Create
+- **Response (200)**: `Holiday` object (updated)
+
+#### DELETE /workspaces/:ws_id/holidays/:id
+Xóa ngày nghỉ lễ.
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Response (204)**: No Content
+
+#### POST /workspaces/:ws_id/holidays/:id/process-leave
+Thực thi quy trình tự động trừ phép cho một ngày nghỉ lễ không hưởng lương (`is_paid=false`).
+- **Mô tả**: Tự động duyệt qua tất cả nhân viên. Nếu nhân viên có đủ số dư phép, hệ thống sẽ tạo một đơn nghỉ phép (`LeaveRequest`) tự động phê duyệt để trừ phép hợp lệ. Nếu không đủ phép, hệ thống đánh dấu là ngày nghỉ không lương (`holiday_unpaid`).
+- **Quyền hạn**: Chỉ `owner` hoặc `admin`.
+- **Response (200)**:
+  ```json
+  [
+    {
+      "employee_id": "uuid",
+      "employee_name": "Nguyen Van A",
+      "status": "LeaveDeducted" // "Paid", "LeaveDeducted", hoặc "Unpaid"
+    }
+  ]
+  ```
+
 ## WebSocket Agent Protocol
 
 The Agent communicates with the Server via a persistent WebSocket connection. All messages use a type-safe JSON format with a discriminator field `type`.

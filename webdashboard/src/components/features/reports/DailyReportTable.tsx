@@ -47,6 +47,9 @@ export default function DailyReportTable({
       absent: "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100 dark:border-rose-800",
       off: "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-100 dark:border-slate-800",
       holiday: "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
+      holiday_paid: "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
+      holiday_leave: "bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+      holiday_unpaid: "bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800",
       holiday_work: "bg-orange-50 dark:bg-orange-950 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800",
     };
 
@@ -56,6 +59,9 @@ export default function DailyReportTable({
       absent: t("reports.status.absent"),
       off: t("reports.status.off"),
       holiday: "🏖️ Holiday",
+      holiday_paid: "🏖️ Holiday (Paid)",
+      holiday_leave: "⚡ Holiday (Leave)",
+      holiday_unpaid: "🔴 Holiday (Unpaid)",
       holiday_work: "🔶 Holiday Work",
     };
 

@@ -245,6 +245,7 @@ export interface Holiday {
   date: string;
   holiday_type: string;
   is_paid: boolean;
+  leave_type_id?: string | null;
   ot_multiplier?: number;
   description?: string;
   created_at: string;

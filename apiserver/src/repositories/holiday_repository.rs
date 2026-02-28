@@ -5,6 +5,23 @@ use uuid::Uuid;
 
 use crate::models::Holiday;
 
+/// Result of processing holiday leave deductions for employees.
+#[derive(Debug, Clone, serde::Serialize)]
+pub enum HolidayLeaveResult {
+    /// Holiday is paid — no deduction needed.
+    Paid,
+    /// Leave was auto-deducted from employee balance.
+    LeaveDeducted {
+        employee_id: Uuid,
+        leave_request_id: Uuid,
+        leave_type_name: String,
+    },
+    /// Employee has no remaining leave — unpaid day.
+    Unpaid {
+        employee_id: Uuid,
+    },
+}
+
 /// Repository for holiday calendar CRUD and batch lookups.
 pub struct HolidayRepository;
 
@@ -60,13 +77,14 @@ impl HolidayRepository {
         date: NaiveDate,
         holiday_type: &str,
         is_paid: bool,
+        leave_type_id: Option<Uuid>,
         ot_multiplier: Option<rust_decimal::Decimal>,
         description: Option<&str>,
     ) -> Result<Holiday, sqlx::Error> {
         sqlx::query_as::<_, Holiday>(
             "INSERT INTO holidays
-                (workspace_id, name, date, holiday_type, is_paid, ot_multiplier, description)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
+                (workspace_id, name, date, holiday_type, is_paid, leave_type_id, ot_multiplier, description)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
              RETURNING *",
         )
         .bind(workspace_id)
@@ -74,6 +92,7 @@ impl HolidayRepository {
         .bind(date)
         .bind(holiday_type)
         .bind(is_paid)
+        .bind(leave_type_id)
         .bind(ot_multiplier)
         .bind(description)
         .fetch_one(pool)
@@ -89,6 +108,7 @@ impl HolidayRepository {
         date: Option<NaiveDate>,
         holiday_type: Option<&str>,
         is_paid: Option<bool>,
+        leave_type_id: Option<Uuid>,
         ot_multiplier: Option<rust_decimal::Decimal>,
         description: Option<&str>,
     ) -> Result<Option<Holiday>, sqlx::Error> {
@@ -98,8 +118,9 @@ impl HolidayRepository {
                 date = COALESCE($3, date),
                 holiday_type = COALESCE($4, holiday_type),
                 is_paid = COALESCE($5, is_paid),
-                ot_multiplier = COALESCE($6, ot_multiplier),
-                description = COALESCE($7, description),
+                leave_type_id = COALESCE($6, leave_type_id),
+                ot_multiplier = COALESCE($7, ot_multiplier),
+                description = COALESCE($8, description),
                 updated_at = NOW()
              WHERE id = $1
              RETURNING *",
@@ -109,6 +130,7 @@ impl HolidayRepository {
         .bind(date)
         .bind(holiday_type)
         .bind(is_paid)
+        .bind(leave_type_id)
         .bind(ot_multiplier)
         .bind(description)
         .fetch_optional(pool)

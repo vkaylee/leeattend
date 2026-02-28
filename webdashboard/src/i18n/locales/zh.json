@@ -1638,7 +1638,15 @@
     "host": "主机",
     "status": "状态",
     "current_task": "当前任务",
-    "last_seen": "最后心跳"
+    "last_seen": "最后心跳",
+    "recent_jobs": "近期工作",
+    "recent_jobs_subtitle": "最近处理的后台工作",
+    "job_id": "工作 ID",
+    "job_type": "类型",
+    "error": "错误",
+    "created_at": "创建于",
+    "batches": "批次",
+    "no_jobs": "没有近期工作"
   },
   "agents": {
     "title": "代理管理",

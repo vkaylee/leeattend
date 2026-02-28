@@ -83,7 +83,7 @@ async fn test_report_status_holiday_no_punch() {
     assert_eq!(report.data.len(), 1);
 
     let row = &report.data[0];
-    assert_eq!(row.status, "holiday", "No punch on holiday → status should be 'holiday'");
+    assert_eq!(row.status, "holiday_paid", "No punch on paid holiday → status should be 'holiday_paid'");
     assert!(row.is_holiday, "is_holiday should be true");
     assert_eq!(row.holiday_name.as_deref(), Some("Test Holiday"));
 }

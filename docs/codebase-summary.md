@@ -14,6 +14,7 @@ LeeAttend is a high-performance attendance and payroll system split into three p
 - **Core Responsibility**: Manages workspaces, employees, complex pairing algorithms (FSM), hierarchical temporal payroll calculation, and serves as the WebSocket hub for Edge Agents.
 - **Key Modules**:
     - **Leave Management V2**: Relational design with `leave_types` reference table (FK-enforced), dynamic policy assignment, and accrual logic.
+    - **Holiday Leave Deduction**: 3-way automatic resolution for unpaid holidays (Paid / Leave Deducted / Unpaid) with API-driven auto-deduction.
     - **Overtime Engine**: Flexible, rule-based overtime calculation with priority-based segment evaluation.
     - **Payroll Engine**: Temporal, 3-tier settings (Global -> Group -> Individual) with traceability.
     - `src/handlers`: REST API endpoints and WebSocket handlers.

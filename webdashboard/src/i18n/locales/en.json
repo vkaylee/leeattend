@@ -1638,7 +1638,15 @@
     "host": "Host",
     "status": "Status",
     "current_task": "Current Task",
-    "last_seen": "Last Seen"
+    "last_seen": "Last Seen",
+    "recent_jobs": "Recent Jobs",
+    "recent_jobs_subtitle": "Recently processed background jobs",
+    "job_id": "Job ID",
+    "job_type": "Type",
+    "error": "Error",
+    "created_at": "Created",
+    "batches": "Batches",
+    "no_jobs": "No recent jobs"
   },
   "agents": {
     "title": "Agent Management",

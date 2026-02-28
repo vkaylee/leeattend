@@ -1,5 +1,5 @@
-import { API_BASE_URL } from './config';
-import { apiFetch } from './helpers';
+import { API_BASE_URL } from "./config";
+import { apiFetch } from "./helpers";
 import { Holiday } from './types';
 
 export async function fetchHolidays(

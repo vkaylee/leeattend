@@ -13,6 +13,8 @@ pub struct Holiday {
     /// national | company | half_day
     pub holiday_type: String,
     pub is_paid: bool,
+    /// When is_paid=false, which leave type to auto-deduct from employee balance.
+    pub leave_type_id: Option<Uuid>,
     /// Per-holiday OT multiplier override. None = use workspace default.
     pub ot_multiplier: Option<Decimal>,
     pub description: Option<String>,
@@ -29,6 +31,8 @@ pub struct CreateHolidayRequest {
     pub holiday_type: String,
     #[serde(default = "default_true")]
     pub is_paid: bool,
+    /// When is_paid=false, which leave type to auto-deduct.
+    pub leave_type_id: Option<Uuid>,
     pub ot_multiplier: Option<Decimal>,
     pub description: Option<String>,
 }
@@ -40,6 +44,7 @@ pub struct UpdateHolidayRequest {
     pub date: Option<NaiveDate>,
     pub holiday_type: Option<String>,
     pub is_paid: Option<bool>,
+    pub leave_type_id: Option<Uuid>,
     pub ot_multiplier: Option<Decimal>,
     pub description: Option<String>,
 }

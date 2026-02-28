@@ -142,6 +142,40 @@ impl ReportService {
             .map(|r| ((r.employee_id, r.date), r.ot_status.to_string().to_lowercase()))
             .collect();
 
+        // 5c. BATCH fetch approved leave requests for holiday-leave status detection
+        let leave_rows = sqlx::query!(
+            r#"SELECT lr.employee_id, lr.start_date, lr.end_date
+               FROM leave_requests lr
+               JOIN employees e ON lr.employee_id = e.id
+               WHERE e.workspace_id = $1
+                 AND lr.employee_id = ANY($2)
+                 AND lr.status = 'approved'
+                 AND lr.start_date <= $4
+                 AND lr.end_date >= $3"#,
+            workspace_id,
+            &emp_ids,
+            start_date,
+            end_date
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        // Build a set of (employee_id, date) that have approved leave
+        let mut leave_date_set: std::collections::HashSet<(Uuid, NaiveDate)> = std::collections::HashSet::new();
+        for lr in &leave_rows {
+            let mut d = lr.start_date;
+            while d <= lr.end_date {
+                if d >= start_date && d <= end_date {
+                    leave_date_set.insert((lr.employee_id, d));
+                }
+                d = match d.succ_opt() {
+                    Some(next) => next,
+                    None => break,
+                };
+            }
+        }
+
         // 6. Calculate reports (same logic as before)
         let mut reports = Vec::new();
 
@@ -245,7 +279,7 @@ impl ReportService {
                 }
                 // -----------------------------
 
-                // --- STATUS DETERMINATION (holiday-aware) ---
+                // --- STATUS DETERMINATION (3-way holiday status) ---
                 let holiday_entry = holidays_map.get(&date);
                 let is_hol = holiday_entry.is_some();
 
@@ -264,7 +298,14 @@ impl ReportService {
                         "present".to_string()
                     }
                 } else if is_hol {
-                    "holiday".to_string()
+                    let holiday_is_paid = holiday_entry.map(|h| h.is_paid).unwrap_or(true);
+                    if holiday_is_paid {
+                        "holiday_paid".to_string()
+                    } else if leave_date_set.contains(&(emp_sched.employee_id, date)) {
+                        "holiday_leave".to_string()
+                    } else {
+                        "holiday_unpaid".to_string()
+                    }
                 } else if daily.shift_id.is_none() {
                     "off".to_string()
                 } else {
