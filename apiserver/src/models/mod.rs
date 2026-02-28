@@ -19,6 +19,7 @@ pub mod overtime;
 pub mod payroll;
 pub mod schedule;
 pub mod shift;
+pub mod shift_swap;
 pub mod time_tracking;
 pub mod workspace;
 
@@ -37,5 +38,6 @@ pub use overtime::*;
 pub use payroll::*;
 pub use schedule::*;
 pub use shift::*;
+pub use shift_swap::*;
 pub use time_tracking::*;
 pub use workspace::*;

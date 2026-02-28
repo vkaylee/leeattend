@@ -29,3 +29,4 @@ pub mod overtime;
 pub use overtime::*;
 pub mod holidays;
 pub mod leave_types;
+pub mod shift_swaps;

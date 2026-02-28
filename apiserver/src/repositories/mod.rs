@@ -11,6 +11,7 @@ pub mod payroll_repository;
 pub mod raw_attendance_log_repository;
 pub mod roster_repository;
 pub mod shift_repository;
+pub mod shift_swap_repository;
 pub mod time_entry_repository;
 pub mod user_repository;
 pub mod working_pattern_repository;

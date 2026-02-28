@@ -14,6 +14,7 @@ pub mod leave;
 pub mod payroll;
 pub mod report;
 pub mod roster;
+pub mod shift_swap;
 pub mod workspace;
 // pub mod workspace;
 pub mod misc;

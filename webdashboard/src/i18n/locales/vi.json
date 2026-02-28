@@ -2537,5 +2537,43 @@
       "rule_1": "Đủ số dư phép: Tự động trừ 1 ngày phép và tính công có lương.",
       "rule_2": "Không đủ số dư phép: Tự động ghi nhận là nghỉ Không Lương (Unpaid)."
     }
+  },
+  "shift_swaps": {
+    "title": "Đổi ca",
+    "subtitle": "Quản lý yêu cầu đổi ca giữa các nhân viên",
+    "create_btn": "Tạo yêu cầu đổi ca",
+    "requester": "Người xin đổi",
+    "target": "Người nhận ca",
+    "swap_date": "Ngày đổi",
+    "reason": "Lý do",
+    "reason_placeholder": "Nhập lý do đổi ca...",
+    "select_employee": "Chọn nhân viên...",
+    "day_off": "Nghỉ",
+    "status": {
+      "pending_target": "Chờ xác nhận",
+      "pending_admin": "Chờ duyệt",
+      "approved": "Đã duyệt",
+      "rejected": "Từ chối",
+      "cancelled": "Đã hủy"
+    },
+    "messages": {
+      "no_data": "Hiện tại chưa có yêu cầu đổi ca nào.",
+      "create_success": "Đã tạo yêu cầu đổi ca thành công!",
+      "create_error": "Lỗi khi tạo yêu cầu đổi ca."
+    },
+    "guide": {
+      "title": "Hướng dẫn sử dụng",
+      "intro": "Tính năng Đổi ca cho phép admin hoán đổi lịch làm việc giữa hai nhân viên trong cùng một ngày. Hệ thống sẽ tự động phát hiện ca làm hiện tại và cập nhật lịch phân ca khi được duyệt.",
+      "step1_title": "Tạo yêu cầu đổi ca",
+      "step1_desc": "Nhấn nút \"Tạo yêu cầu đổi ca\", chọn Người xin đổi và Người nhận ca (không được trùng nhau), chọn ngày đổi và nhập lý do nếu cần.",
+      "step2_title": "Kiểm tra thông tin ca làm",
+      "step2_desc": "Sau khi tạo, hệ thống tự động tra cứu ca làm hiện tại của cả hai nhân viên vào ngày đổi. Thông tin ca sẽ hiển thị trong bảng danh sách.",
+      "step3_title": "Duyệt hoặc từ chối",
+      "step3_desc": "Di chuột qua dòng yêu cầu ở tab \"Chờ duyệt\" để hiện nút Duyệt (✓) hoặc Từ chối (✗). Khi duyệt, ca làm sẽ được hoán đổi tự động.",
+      "notes_title": "Lưu ý quan trọng",
+      "note1": "Ca làm được tự động phát hiện theo thứ tự ưu tiên: Phân ca thủ công → Lịch làm cá nhân → Quy tắc phân bổ → Lịch phòng ban.",
+      "note2": "Khi duyệt, hệ thống sẽ tự động đổi ca trong bảng phân ca (Roster). Nhân viên A nhận ca của B và ngược lại.",
+      "note3": "Khi từ chối, lịch phân ca giữ nguyên không thay đổi. Không thể duyệt lại yêu cầu đã được xử lý."
+    }
   }
 }

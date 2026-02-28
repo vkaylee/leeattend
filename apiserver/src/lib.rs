@@ -609,6 +609,16 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/assignment-rules/:rule_id",
             patch(handlers::assignment_rules::update_assignment_rule)
                 .delete(handlers::assignment_rules::delete_assignment_rule),
+        )
+        // Shift swap routes
+        .route(
+            "/workspaces/:ws_id/shift-swaps",
+            get(handlers::shift_swaps::list_shift_swaps)
+                .post(handlers::shift_swaps::create_shift_swap),
+        )
+        .route(
+            "/workspaces/:ws_id/shift-swaps/:id/approve",
+            put(handlers::shift_swaps::approve_shift_swap),
         );
 
     let roster_routes = Router::new()

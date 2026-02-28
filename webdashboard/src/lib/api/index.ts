@@ -13,3 +13,4 @@ export * from "./departments";
 export * from "./working-patterns";
 export * from "./rules";
 export * from "./ess";
+export * from "./shift-swaps";

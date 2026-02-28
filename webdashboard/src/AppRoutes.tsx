@@ -14,6 +14,7 @@ import LeaveBalancesPage from "./pages/LeaveBalancesPage";
 import ReportsPage from "./pages/ReportsPage";
 import PayrollPage from "./pages/PayrollPage";
 import ShiftsPage from "./pages/ShiftsPage";
+import ShiftSwapsPage from "./pages/ShiftSwapsPage";
 import SettingsLayout from "./pages/settings/SettingsLayout";
 import GeneralSettings from "./pages/settings/GeneralSettings";
 import PeopleSettings from "./pages/settings/PeopleSettings";
@@ -63,6 +64,7 @@ export function AppRoutes() {
             <Route path="approvals/ot" element={<OtApprovalsPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="shifts" element={<ShiftsPage />} />
+            <Route path="shift-swaps" element={<ShiftSwapsPage />} />
             <Route path="payroll" element={<PayrollPage />} />
 
             <Route path="workspace/settings" element={<SettingsLayout />}>

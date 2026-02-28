@@ -29,7 +29,7 @@ export default function MainLayout() {
     const path = location.pathname;
     return {
       org: ["/members", "/employees", "/departments"].includes(path),
-      time: ["/time-tracking", "/attendance-logs", "/leave-requests", "/attendance-adjustments", "/reports", "/leave-balances"].includes(path) || path === "/",
+      time: ["/time-tracking", "/attendance-logs", "/leave-requests", "/attendance-adjustments", "/reports", "/leave-balances", "/shift-swaps"].includes(path) || path === "/",
       payroll: ["/shifts", "/payroll"].includes(path),
       system: path.startsWith("/workspace/settings"),
       ess: path.startsWith("/ess/"),
@@ -37,7 +37,7 @@ export default function MainLayout() {
   };
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(getInitialOpenSections());
-  
+
   const { workspaces } = useWorkspaces();
   const currentWsId = getCurrentWorkspaceId();
   const currentWorkspace = workspaces.find(ws => ws.id === currentWsId);
@@ -64,7 +64,7 @@ export default function MainLayout() {
   useEffect(() => {
     const path = location.pathname;
     const isOrg = ["/members", "/employees", "/departments"].includes(path);
-    const isTime = ["/time-tracking", "/attendance-logs", "/leave-requests", "/attendance-adjustments", "/reports", "/leave-balances"].includes(path);
+    const isTime = ["/time-tracking", "/attendance-logs", "/leave-requests", "/attendance-adjustments", "/reports", "/leave-balances", "/shift-swaps"].includes(path);
     const isPayroll = ["/shifts", "/payroll"].includes(path);
     const isSystem = path.startsWith("/workspace/settings");
     const isEss = path.startsWith("/ess/");
@@ -89,7 +89,7 @@ export default function MainLayout() {
   return (
     <div className="flex min-h-screen bg-background text-foreground font-sans relative overflow-x-hidden">
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-900/50 dark:bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-500"
           onClick={() => setIsSidebarOpen(false)}
         />
@@ -134,7 +134,7 @@ export default function MainLayout() {
           <p className="text-sm text-slate-500 dark:text-slate-400 font-medium px-1">{t("common.select_workspace_desc")}</p>
           <WorkspaceSwitcher />
           <div className="pt-6 border-t border-slate-50 dark:border-slate-800 flex justify-end">
-            <button 
+            <button
               onClick={() => setShowSwitcher(false)}
               className="px-8 py-3 bg-slate-100 dark:bg-slate-800 text-foreground/70 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
             >
