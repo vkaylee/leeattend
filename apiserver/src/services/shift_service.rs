@@ -57,10 +57,11 @@ impl ShiftService {
 
     pub async fn update_shift(
         pool: &PgPool,
+        workspace_id: Uuid,
         shift_id: Uuid,
         req: UpdateShiftRequest,
     ) -> Result<Shift, StatusCode> {
-        let old_shift = shift_repository::get_shift_by_id(pool, shift_id)
+        let old_shift = shift_repository::get_shift_by_id(pool, workspace_id, shift_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
@@ -76,6 +77,7 @@ impl ShiftService {
             // Direct update
             shift_repository::update_shift_direct(
                 pool,
+                workspace_id,
                 shift_id,
                 req.name,
                 req.report_symbol,
@@ -103,7 +105,7 @@ impl ShiftService {
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
             // 1. Archive old version
-            shift_repository::archive_shift(&mut *tx, shift_id)
+            shift_repository::archive_shift(&mut *tx, workspace_id, shift_id)
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 

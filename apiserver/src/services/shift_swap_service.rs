@@ -62,8 +62,8 @@ impl ShiftSwapService {
                 ).await {
                     if let Some(max_daily) = ps.max_ot_hours_per_day {
                         // Compare shift durations: will the receiving employee get a much longer shift?
-                        let req_shift = crate::repositories::shift_repository::get_shift_by_id(pool, req_shift_id).await.unwrap_or(None);
-                        let tgt_shift = crate::repositories::shift_repository::get_shift_by_id(pool, tgt_shift_id).await.unwrap_or(None);
+                        let req_shift = crate::repositories::shift_repository::get_shift_by_id(pool, ws_id, req_shift_id).await.unwrap_or(None);
+                        let tgt_shift = crate::repositories::shift_repository::get_shift_by_id(pool, ws_id, tgt_shift_id).await.unwrap_or(None);
                         if let (Some(rs), Some(ts)) = (req_shift, tgt_shift) {
                             let compute_duration_minutes = |s: &crate::models::Shift| -> i64 {
                                 let mut dur = (s.end_time - s.start_time).num_minutes();

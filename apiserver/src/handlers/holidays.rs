@@ -37,9 +37,9 @@ pub async fn list_holidays(
 pub async fn get_holiday(
     State(state): State<Arc<AppState>>,
     Path((_ws_id, id)): Path<(Uuid, Uuid)>,
-    _ctx: MemberContext,
+    ctx: MemberContext,
 ) -> AppResult<Json<Holiday>> {
-    let holiday = HolidayRepository::get_by_id(&state.db, id)
+    let holiday = HolidayRepository::get_by_id(&state.db, ctx.workspace_id, id)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?
         .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;
@@ -97,6 +97,7 @@ pub async fn update_holiday(
 
     let holiday = HolidayRepository::update(
         &state.db,
+        ctx.workspace_id,
         id,
         req.name.as_deref(),
         req.date,
@@ -125,7 +126,7 @@ pub async fn delete_holiday(
         ));
     }
 
-    let deleted = HolidayRepository::delete(&state.db, id)
+    let deleted = HolidayRepository::delete(&state.db, ctx.workspace_id, id)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -149,7 +150,7 @@ pub async fn process_holiday_leave(
         ));
     }
 
-    let holiday = HolidayRepository::get_by_id(&state.db, id)
+    let holiday = HolidayRepository::get_by_id(&state.db, ctx.workspace_id, id)
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?
         .ok_or_else(|| AppError::NotFound("Holiday not found".to_string()))?;

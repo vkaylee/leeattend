@@ -58,12 +58,14 @@ impl HolidayRepository {
     /// Gets a single holiday by ID.
     pub async fn get_by_id(
         pool: &PgPool,
+        workspace_id: Uuid,
         id: Uuid,
     ) -> Result<Option<Holiday>, sqlx::Error> {
         sqlx::query_as::<_, Holiday>(
-            "SELECT * FROM holidays WHERE id = $1",
+            "SELECT * FROM holidays WHERE id = $1 AND workspace_id = $2",
         )
         .bind(id)
+        .bind(workspace_id)
         .fetch_optional(pool)
         .await
     }
@@ -103,6 +105,7 @@ impl HolidayRepository {
     #[allow(clippy::too_many_arguments)]
     pub async fn update(
         pool: &PgPool,
+        workspace_id: Uuid,
         id: Uuid,
         name: Option<&str>,
         date: Option<NaiveDate>,
@@ -122,7 +125,7 @@ impl HolidayRepository {
                 ot_multiplier = COALESCE($7, ot_multiplier),
                 description = COALESCE($8, description),
                 updated_at = NOW()
-             WHERE id = $1
+             WHERE id = $1 AND workspace_id = $9
              RETURNING *",
         )
         .bind(id)
@@ -133,6 +136,7 @@ impl HolidayRepository {
         .bind(leave_type_id)
         .bind(ot_multiplier)
         .bind(description)
+        .bind(workspace_id)
         .fetch_optional(pool)
         .await
     }
@@ -140,10 +144,12 @@ impl HolidayRepository {
     /// Deletes a holiday by ID. Returns true if a row was deleted.
     pub async fn delete(
         pool: &PgPool,
+        workspace_id: Uuid,
         id: Uuid,
     ) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query("DELETE FROM holidays WHERE id = $1")
+        let result = sqlx::query("DELETE FROM holidays WHERE id = $1 AND workspace_id = $2")
             .bind(id)
+            .bind(workspace_id)
             .execute(pool)
             .await?;
         Ok(result.rows_affected() > 0)

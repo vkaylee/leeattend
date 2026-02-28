@@ -75,6 +75,7 @@ impl AssignmentRuleRepository {
 
     pub async fn update_rule(
         pool: &PgPool,
+        workspace_id: Uuid,
         id: Uuid,
         req: &UpdateAssignmentRuleRequest,
     ) -> Result<AssignmentRule, sqlx::Error> {
@@ -89,7 +90,7 @@ impl AssignmentRuleRepository {
                 conditions = COALESCE($4, conditions),
                 is_active = COALESCE($5, is_active),
                 updated_at = NOW()
-            WHERE id = $6
+            WHERE id = $6 AND workspace_id = $7
             RETURNING id, workspace_id, pattern_id, name, priority, conditions as "conditions: sqlx::types::Json<AssignmentRuleConditions>", is_active, created_at as "created_at!", updated_at as "updated_at!"
             "#,
             req.pattern_id,
@@ -97,7 +98,8 @@ impl AssignmentRuleRepository {
             req.priority,
             req.conditions.as_ref().map(|c| serde_json::to_value(c).map_err(|e| sqlx::Error::Decode(Box::new(e)))).transpose()?,
             req.is_active,
-            id
+            id,
+            workspace_id
         )
         .fetch_one(pool)
         .await?;
@@ -105,8 +107,8 @@ impl AssignmentRuleRepository {
         Ok(rule)
     }
 
-    pub async fn delete_rule(pool: &PgPool, id: Uuid) -> Result<(), sqlx::Error> {
-        sqlx::query!("DELETE FROM assignment_rules WHERE id = $1", id)
+    pub async fn delete_rule(pool: &PgPool, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error> {
+        sqlx::query!("DELETE FROM assignment_rules WHERE id = $1 AND workspace_id = $2", id, workspace_id)
             .execute(pool)
             .await?;
         Ok(())

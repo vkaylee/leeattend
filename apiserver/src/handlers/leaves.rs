@@ -70,9 +70,10 @@ pub async fn get_my_leave_requests(
     Path(id): Path<Uuid>,
     UserId(_user_id): UserId,
     State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<LeaveRequest>>> {
     let requests =
-        crate::repositories::leave_request_repository::get_employee_leave_requests(&state.db, id)
+        crate::repositories::leave_request_repository::get_employee_leave_requests(&state.db, ctx.workspace_id, id)
             .await?;
     Ok(Json(requests))
 }

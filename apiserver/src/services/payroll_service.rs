@@ -202,7 +202,7 @@ impl PayrollService {
                         if let Some(punch_out_raw) = entry.punch_out_time {
                             let punch_out = punch_out_raw.with_timezone(&tz);
                             if let Some(sid) = shift_id {
-                                if let Some(s) = shift_repository::get_shift_by_id(pool, sid)
+                                if let Some(s) = shift_repository::get_shift_by_id(pool, workspace_id, sid)
                                     .await
                                     .unwrap_or(None)
                                 {
@@ -265,7 +265,7 @@ impl PayrollService {
                                                 let rules = if let Some(r) = policy_cache.get(&policy_id) {
                                                     r.clone()
                                                 } else {
-                                                    let r = OvertimePolicyRepository::get_policy_with_rules(pool, policy_id).await.unwrap_or(None).map(|(_, rules)| rules).unwrap_or_default();
+                                                    let r = OvertimePolicyRepository::get_policy_with_rules(pool, workspace_id, policy_id).await.unwrap_or(None).map(|(_, rules)| rules).unwrap_or_default();
                                                     policy_cache.insert(policy_id, r.clone());
                                                     r
                                                 };

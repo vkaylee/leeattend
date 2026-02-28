@@ -61,7 +61,7 @@ pub async fn update_assignment_rule(
         ));
     }
 
-    let rule = AssignmentRuleRepository::update_rule(&state.db, rule_id, &req).await?;
+    let rule = AssignmentRuleRepository::update_rule(&state.db, ws_id, rule_id, &req).await?;
 
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(ws_id).await;
@@ -81,7 +81,7 @@ pub async fn delete_assignment_rule(
         ));
     }
 
-    AssignmentRuleRepository::delete_rule(&state.db, rule_id).await?;
+    AssignmentRuleRepository::delete_rule(&state.db, ws_id, rule_id).await?;
 
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(ws_id).await;

@@ -77,7 +77,7 @@ pub async fn update_shift(
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
     let shift =
-        crate::services::shift_service::ShiftService::update_shift(&state.db, shift_id, req)
+        crate::services::shift_service::ShiftService::update_shift(&state.db, ctx.workspace_id, shift_id, req)
             .await
             .map_err(|s| AppError::from((s, "Failed to update shift".to_string())))?;
 

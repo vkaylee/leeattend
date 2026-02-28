@@ -27,22 +27,26 @@ pub async fn create_raw_log(pool: &PgPool, log: &RawAttendanceLog) -> Result<boo
 
 pub async fn get_raw_log_by_id(
     pool: &PgPool,
+    workspace_id: Uuid,
     id: Uuid,
 ) -> Result<Option<RawAttendanceLog>, sqlx::Error> {
-    query_as::<_, RawAttendanceLog>("SELECT * FROM raw_attendance_logs WHERE id = $1")
+    query_as::<_, RawAttendanceLog>("SELECT * FROM raw_attendance_logs WHERE id = $1 AND workspace_id = $2")
         .bind(id)
+        .bind(workspace_id)
         .fetch_optional(pool)
         .await
 }
 
 pub async fn get_latest_log(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
 ) -> Result<Option<RawAttendanceLog>, sqlx::Error> {
     query_as::<_, RawAttendanceLog>(
-        "SELECT * FROM raw_attendance_logs WHERE employee_id = $1 ORDER BY punch_time DESC LIMIT 1",
+        "SELECT * FROM raw_attendance_logs WHERE employee_id = $1 AND workspace_id = $2 ORDER BY punch_time DESC LIMIT 1",
     )
     .bind(employee_id)
+    .bind(workspace_id)
     .fetch_optional(pool)
     .await
 }

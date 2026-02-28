@@ -27,12 +27,14 @@ pub async fn create_request(
 
 pub async fn get_request_by_id(
     pool: &PgPool,
+    workspace_id: Uuid,
     id: Uuid,
 ) -> Result<Option<AttendanceAdjustmentRequest>, sqlx::Error> {
     query_as!(
         AttendanceAdjustmentRequest,
-        "SELECT id, employee_id, time_entry_id, requested_punch_in_time as \"requested_punch_in_time!\", requested_punch_out_time, is_break_overtime, reason, status as \"status: AdjustmentStatus\", requested_by_user_id, approved_by_user_id, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM attendance_adjustment_requests WHERE id = $1",
-        id
+        "SELECT r.id, r.employee_id, r.time_entry_id, r.requested_punch_in_time as \"requested_punch_in_time!\", r.requested_punch_out_time, r.is_break_overtime, r.reason, r.status as \"status: AdjustmentStatus\", r.requested_by_user_id, r.approved_by_user_id, r.created_at as \"created_at!\", r.updated_at as \"updated_at!\" FROM attendance_adjustment_requests r JOIN employees e ON r.employee_id = e.id WHERE r.id = $1 AND e.workspace_id = $2",
+        id,
+        workspace_id
     )
     .fetch_optional(pool)
     .await
@@ -40,15 +42,17 @@ pub async fn get_request_by_id(
 
 pub async fn update_adjustment_status(
     pool: &PgPool,
+    workspace_id: Uuid,
     id: Uuid,
     status: AdjustmentStatus,
     approved_by: Option<Uuid>,
 ) -> Result<(), sqlx::Error> {
     query!(
-        "UPDATE attendance_adjustment_requests SET status = $1, approved_by_user_id = $2, updated_at = NOW() WHERE id = $3",
+        "UPDATE attendance_adjustment_requests SET status = $1, approved_by_user_id = $2, updated_at = NOW() WHERE id = $3 AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $4)",
         status as AdjustmentStatus,
         approved_by,
-        id
+        id,
+        workspace_id
     )
     .execute(pool)
     .await?;
@@ -83,12 +87,14 @@ pub async fn get_workspace_adjustment_requests(
 
 pub async fn get_employee_adjustment_requests(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
 ) -> Result<Vec<AttendanceAdjustmentRequest>, sqlx::Error> {
     query_as!(
         AttendanceAdjustmentRequest,
-        "SELECT id, employee_id, time_entry_id, requested_punch_in_time as \"requested_punch_in_time!\", requested_punch_out_time, is_break_overtime, reason, status as \"status: AdjustmentStatus\", requested_by_user_id, approved_by_user_id, created_at as \"created_at!\", updated_at as \"updated_at!\" FROM attendance_adjustment_requests WHERE employee_id = $1 ORDER BY created_at DESC",
-        employee_id
+        "SELECT r.id, r.employee_id, r.time_entry_id, r.requested_punch_in_time as \"requested_punch_in_time!\", r.requested_punch_out_time, r.is_break_overtime, r.reason, r.status as \"status: AdjustmentStatus\", r.requested_by_user_id, r.approved_by_user_id, r.created_at as \"created_at!\", r.updated_at as \"updated_at!\" FROM attendance_adjustment_requests r JOIN employees e ON r.employee_id = e.id WHERE r.employee_id = $1 AND e.workspace_id = $2 ORDER BY r.created_at DESC",
+        employee_id,
+        workspace_id
     )
     .fetch_all(pool)
     .await

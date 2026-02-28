@@ -47,6 +47,7 @@ impl OvertimePolicyRepository {
 
     pub async fn get_policy_with_rules(
         pool: &PgPool,
+        workspace_id: Uuid,
         id: Uuid,
     ) -> Result<Option<(OvertimePolicy, Vec<OvertimeRule>)>, sqlx::Error> {
         let policy = sqlx::query_as!(
@@ -54,9 +55,10 @@ impl OvertimePolicyRepository {
             r#"
             SELECT id, workspace_id, name, description, created_at, updated_at
             FROM overtime_policy_definitions
-            WHERE id = $1
+            WHERE id = $1 AND workspace_id = $2
             "#,
-            id
+            id,
+            workspace_id
         )
         .fetch_optional(pool)
         .await?;

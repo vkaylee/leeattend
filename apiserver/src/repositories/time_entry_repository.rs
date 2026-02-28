@@ -27,10 +27,12 @@ pub async fn create_time_entry(pool: &PgPool, entry: &TimeEntry) -> Result<(), s
 
 pub async fn get_time_entry_by_id(
     pool: &PgPool,
+    workspace_id: Uuid,
     id: Uuid,
 ) -> Result<Option<TimeEntry>, sqlx::Error> {
-    query_as::<_, TimeEntry>("SELECT * FROM time_entries WHERE id = $1")
+    query_as::<_, TimeEntry>("SELECT * FROM time_entries WHERE id = $1 AND workspace_id = $2")
         .bind(id)
+        .bind(workspace_id)
         .fetch_optional(pool)
         .await
 }
@@ -59,9 +61,9 @@ pub async fn get_latest_active_entry(
     .await
 }
 
-pub async fn update_time_entry(pool: &PgPool, entry: &TimeEntry) -> Result<(), sqlx::Error> {
+pub async fn update_time_entry(pool: &PgPool, workspace_id: Uuid, entry: &TimeEntry) -> Result<(), sqlx::Error> {
     query(
-        "UPDATE time_entries SET punch_in_time = $1, punch_out_time = $2, duration_minutes = $3, is_break_overtime = $4, note = $5, updated_at = $6 WHERE id = $7"
+        "UPDATE time_entries SET punch_in_time = $1, punch_out_time = $2, duration_minutes = $3, is_break_overtime = $4, note = $5, updated_at = $6 WHERE id = $7 AND workspace_id = $8"
     )
     .bind(entry.punch_in_time)
     .bind(entry.punch_out_time)
@@ -70,14 +72,16 @@ pub async fn update_time_entry(pool: &PgPool, entry: &TimeEntry) -> Result<(), s
     .bind(&entry.note)
     .bind(entry.updated_at)
     .bind(entry.id)
+    .bind(workspace_id)
     .execute(pool)
     .await?;
     Ok(())
 }
 
-pub async fn delete_time_entry(pool: &PgPool, id: Uuid) -> Result<(), sqlx::Error> {
-    query("DELETE FROM time_entries WHERE id = $1")
+pub async fn delete_time_entry(pool: &PgPool, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error> {
+    query("DELETE FROM time_entries WHERE id = $1 AND workspace_id = $2")
         .bind(id)
+        .bind(workspace_id)
         .execute(pool)
         .await?;
     Ok(())

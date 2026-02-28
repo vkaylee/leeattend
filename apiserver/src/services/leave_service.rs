@@ -245,7 +245,7 @@ impl LeaveService {
         request_id: Uuid,
         req: ApproveLeaveRequest,
     ) -> Result<(), StatusCode> {
-        let request = leave_request_repository::get_leave_request_by_id(pool, request_id)
+        let request = leave_request_repository::get_leave_request_by_id(pool, workspace_id, request_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
@@ -258,6 +258,7 @@ impl LeaveService {
 
         leave_request_repository::update_leave_request_status(
             pool,
+            workspace_id,
             request_id,
             req.status,
             Some(user_id),
@@ -322,7 +323,7 @@ impl LeaveService {
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
-        leave_request_repository::get_employee_leave_requests(pool, employee_id)
+        leave_request_repository::get_employee_leave_requests(pool, workspace_id, employee_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }

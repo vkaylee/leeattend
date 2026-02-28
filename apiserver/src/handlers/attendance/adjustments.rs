@@ -62,9 +62,10 @@ pub async fn get_my_attendance_adjustments(
     Path(id): Path<Uuid>,
     UserId(_user_id): UserId,
     State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
 ) -> AppResult<Json<Vec<AttendanceAdjustmentRequest>>> {
     let requests = crate::services::attendance_adjustment_service::AttendanceAdjustmentService::get_my_requests(
-        &state.db, id,
+        &state.db, ctx.workspace_id, id,
     )
     .await
     .map_err(|s| AppError::from((s, "Failed to get adjustments".to_string())))?;

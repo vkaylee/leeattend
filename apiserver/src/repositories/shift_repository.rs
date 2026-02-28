@@ -59,7 +59,7 @@ where
     .await
 }
 
-pub async fn get_shift_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Shift>, sqlx::Error> {
+pub async fn get_shift_by_id(pool: &PgPool, workspace_id: Uuid, id: Uuid) -> Result<Option<Shift>, sqlx::Error> {
     query_as!(
         Shift,
         r#"SELECT 
@@ -68,8 +68,9 @@ pub async fn get_shift_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Shift>, s
             is_break_auto_deduct, break_is_overtime, 
             early_punch_in_grace_period_minutes, allow_early_ot, is_active, parent_shift_id,
             created_at as "created_at!", updated_at as "updated_at!" 
-         FROM shifts WHERE id = $1"#,
-        id
+         FROM shifts WHERE id = $1 AND workspace_id = $2"#,
+        id,
+        workspace_id
     )
     .fetch_optional(pool)
     .await
@@ -99,6 +100,7 @@ pub async fn get_workspace_shifts(
 #[allow(clippy::too_many_arguments)]
 pub async fn update_shift_direct(
     pool: &PgPool,
+    workspace_id: Uuid,
     id: Uuid,
     name: String,
     report_symbol: Option<String>,
@@ -119,7 +121,7 @@ pub async fn update_shift_direct(
              break_duration_minutes = $6, break_start = $7, break_end = $8, 
              is_break_auto_deduct = $9, break_is_overtime = $10, 
              early_punch_in_grace_period_minutes = $11, allow_early_ot = $12, updated_at = CURRENT_TIMESTAMP
-         WHERE id = $1
+         WHERE id = $1 AND workspace_id = $13
          RETURNING 
             id, workspace_id, name, report_symbol, start_time, end_time, 
             break_duration_minutes, break_start, break_end, 
@@ -137,19 +139,21 @@ pub async fn update_shift_direct(
         is_break_auto_deduct,
         break_is_overtime,
         early_punch_in_grace_period_minutes,
-        allow_early_ot
+        allow_early_ot,
+        workspace_id
     )
     .fetch_one(pool)
     .await
 }
 
-pub async fn archive_shift<'a, E>(executor: E, id: Uuid) -> Result<(), sqlx::Error>
+pub async fn archive_shift<'a, E>(executor: E, workspace_id: Uuid, id: Uuid) -> Result<(), sqlx::Error>
 where
     E: Executor<'a, Database = Postgres>,
 {
     query!(
-        "UPDATE shifts SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $1",
-        id
+        "UPDATE shifts SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND workspace_id = $2",
+        id,
+        workspace_id
     )
     .execute(executor)
     .await?;

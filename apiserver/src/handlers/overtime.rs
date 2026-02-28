@@ -43,10 +43,10 @@ pub async fn list_policies(
 
 pub async fn get_policy(
     State(state): State<Arc<AppState>>,
-    Path((_workspace_id, policy_id)): Path<(Uuid, Uuid)>,
+    Path((workspace_id, policy_id)): Path<(Uuid, Uuid)>,
     _ctx: MemberContext,
 ) -> AppResult<Json<(OvertimePolicy, Vec<OvertimeRule>)>> {
-    let result = OvertimePolicyRepository::get_policy_with_rules(&state.db, policy_id)
+    let result = OvertimePolicyRepository::get_policy_with_rules(&state.db, workspace_id, policy_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Policy not found".to_string()))?;
     Ok(Json(result))

@@ -33,18 +33,21 @@ pub async fn create_leave_request(
 
 pub async fn get_leave_request_by_id(
     pool: &PgPool,
+    workspace_id: Uuid,
     id: Uuid,
 ) -> Result<Option<LeaveRequest>, sqlx::Error> {
     query_as!(
         LeaveRequest,
         r#"
-        SELECT id, employee_id, leave_type_id, start_date, end_date, reason,
-               status as "status: LeaveStatus", requested_by_user_id, approved_by_user_id,
-               created_at as "created_at!", updated_at as "updated_at!"
-        FROM leave_requests
-        WHERE id = $1
+        SELECT lr.id, lr.employee_id, lr.leave_type_id, lr.start_date, lr.end_date, lr.reason,
+               lr.status as "status: LeaveStatus", lr.requested_by_user_id, lr.approved_by_user_id,
+               lr.created_at as "created_at!", lr.updated_at as "updated_at!"
+        FROM leave_requests lr
+        JOIN employees e ON lr.employee_id = e.id
+        WHERE lr.id = $1 AND e.workspace_id = $2
         "#,
-        id
+        id,
+        workspace_id
     )
     .fetch_optional(pool)
     .await
@@ -52,16 +55,18 @@ pub async fn get_leave_request_by_id(
 
 pub async fn update_leave_request_status(
     pool: &PgPool,
+    workspace_id: Uuid,
     id: Uuid,
     status: LeaveStatus,
     approved_by: Option<Uuid>,
 ) -> Result<(), sqlx::Error> {
     query!(
-        "UPDATE leave_requests SET status = $1, approved_by_user_id = $2, updated_at = $3 WHERE id = $4",
+        "UPDATE leave_requests SET status = $1, approved_by_user_id = $2, updated_at = $3 WHERE id = $4 AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $5)",
         status as LeaveStatus,
         approved_by,
         Utc::now(),
-        id
+        id,
+        workspace_id
     )
     .execute(pool)
     .await?;
@@ -70,19 +75,22 @@ pub async fn update_leave_request_status(
 
 pub async fn get_employee_leave_requests(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
 ) -> Result<Vec<LeaveRequest>, sqlx::Error> {
     query_as!(
         LeaveRequest,
         r#"
-        SELECT id, employee_id, leave_type_id, start_date, end_date, reason,
-               status as "status: LeaveStatus", requested_by_user_id, approved_by_user_id,
-               created_at as "created_at!", updated_at as "updated_at!"
-        FROM leave_requests
-        WHERE employee_id = $1
-        ORDER BY start_date DESC
+        SELECT lr.id, lr.employee_id, lr.leave_type_id, lr.start_date, lr.end_date, lr.reason,
+               lr.status as "status: LeaveStatus", lr.requested_by_user_id, lr.approved_by_user_id,
+               lr.created_at as "created_at!", lr.updated_at as "updated_at!"
+        FROM leave_requests lr
+        JOIN employees e ON lr.employee_id = e.id
+        WHERE lr.employee_id = $1 AND e.workspace_id = $2
+        ORDER BY lr.start_date DESC
         "#,
-        employee_id
+        employee_id,
+        workspace_id
     )
     .fetch_all(pool)
     .await

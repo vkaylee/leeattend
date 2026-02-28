@@ -60,7 +60,7 @@ impl TimeTrackingService {
         let mut final_is_break_overtime = req.is_break_overtime.unwrap_or(false);
 
         if let Some(sid) = shift_id {
-            let shift = shift_repository::get_shift_by_id(pool, sid)
+            let shift = shift_repository::get_shift_by_id(pool, workspace_id, sid)
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
                 .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -141,7 +141,7 @@ impl TimeTrackingService {
         }
         entry.updated_at = Utc::now();
 
-        time_entry_repository::update_time_entry(pool, &entry)
+        time_entry_repository::update_time_entry(pool, workspace_id, &entry)
             .await
             .map_err(|e| {
                 eprintln!("Error punching out: {e:?}");
@@ -183,7 +183,7 @@ impl TimeTrackingService {
         id: Uuid,
         req: UpdateTimeEntryRequest,
     ) -> Result<TimeEntry, StatusCode> {
-        let mut entry = time_entry_repository::get_time_entry_by_id(pool, id)
+        let mut entry = time_entry_repository::get_time_entry_by_id(pool, workspace_id, id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
@@ -212,7 +212,7 @@ impl TimeTrackingService {
             entry.duration_minutes = Some(duration.num_minutes() as i32);
         }
 
-        time_entry_repository::update_time_entry(pool, &entry)
+        time_entry_repository::update_time_entry(pool, workspace_id, &entry)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -232,7 +232,7 @@ impl TimeTrackingService {
         workspace_id: Uuid,
         id: Uuid,
     ) -> Result<(), StatusCode> {
-        let entry = time_entry_repository::get_time_entry_by_id(pool, id)
+        let entry = time_entry_repository::get_time_entry_by_id(pool, workspace_id, id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
@@ -243,7 +243,7 @@ impl TimeTrackingService {
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::FORBIDDEN)?;
 
-        time_entry_repository::delete_time_entry(pool, id)
+        time_entry_repository::delete_time_entry(pool, workspace_id, id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 

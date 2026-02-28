@@ -51,18 +51,19 @@ impl AttendanceAdjustmentService {
 
     pub async fn approve_request(
         pool: &PgPool,
-        _workspace_id: Uuid,
+        workspace_id: Uuid,
         approver_id: Uuid,
         request_id: Uuid,
         status: AdjustmentStatus,
     ) -> Result<(), StatusCode> {
-        let request = attendance_adjustment_repository::get_request_by_id(pool, request_id)
+        let request = attendance_adjustment_repository::get_request_by_id(pool, workspace_id, request_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
 
         attendance_adjustment_repository::update_adjustment_status(
             pool,
+            workspace_id,
             request_id,
             status,
             Some(approver_id),
@@ -72,7 +73,7 @@ impl AttendanceAdjustmentService {
 
         if status == AdjustmentStatus::Approved {
             if let Some(time_entry_id) = request.time_entry_id {
-                let mut entry = time_entry_repository::get_time_entry_by_id(pool, time_entry_id)
+                let mut entry = time_entry_repository::get_time_entry_by_id(pool, workspace_id, time_entry_id)
                     .await
                     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
                     .ok_or(StatusCode::NOT_FOUND)?;
@@ -86,7 +87,7 @@ impl AttendanceAdjustmentService {
                     entry.duration_minutes = Some(duration.num_minutes() as i32);
                 }
 
-                time_entry_repository::update_time_entry(pool, &entry)
+                time_entry_repository::update_time_entry(pool, workspace_id, &entry)
                     .await
                     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
             } else {
@@ -158,9 +159,10 @@ impl AttendanceAdjustmentService {
 
     pub async fn get_my_requests(
         pool: &PgPool,
+        workspace_id: Uuid,
         employee_id: Uuid,
     ) -> Result<Vec<AttendanceAdjustmentRequest>, StatusCode> {
-        attendance_adjustment_repository::get_employee_adjustment_requests(pool, employee_id)
+        attendance_adjustment_repository::get_employee_adjustment_requests(pool, workspace_id, employee_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
