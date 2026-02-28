@@ -2574,6 +2574,19 @@
       "note1": "班次按优先级自动检测：手动排班 → 个人工作模式 → 分配规则 → 部门工作模式。",
       "note2": "审批通过后，系统自动交换排班记录。员工A获得B的班次，反之亦然。",
       "note3": "拒绝后排班保持不变。已处理的请求不能重新审批。"
+    },
+    "ess": {
+      "my_swaps": "我的换班请求",
+      "send_request": "发送换班请求",
+      "accept": "接受",
+      "decline": "拒绝",
+      "cancel_request": "取消请求",
+      "waiting_colleague": "等待同事确认",
+      "waiting_admin": "等待管理员审批",
+      "accepted": "同事已接受",
+      "create_success": "换班请求已发送！",
+      "respond_success": "已回复换班请求！",
+      "cancel_success": "换班请求已取消！"
     }
   }
 }

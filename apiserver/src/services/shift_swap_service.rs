@@ -175,4 +175,166 @@ impl ShiftSwapService {
                 StatusCode::INTERNAL_SERVER_ERROR
             })
     }
+
+    // -----------------------------------------------------------------------
+    // ESS (Employee Self-Service) methods — Phase 2
+    // -----------------------------------------------------------------------
+
+    /// Employee creates a swap request. Status starts as `pending_target`.
+    pub async fn create_ess_swap(
+        pool: &PgPool,
+        workspace_id: Uuid,
+        requester_employee_id: Uuid,
+        user_id: Uuid,
+        req: crate::models::shift_swap::EssCreateShiftSwapRequest,
+    ) -> Result<ShiftSwapRequest, StatusCode> {
+        if requester_employee_id == req.target_id {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        // Validate target belongs to same workspace
+        let target_exists: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM employees WHERE id = $1 AND workspace_id = $2 AND is_active = true)",
+        )
+        .bind(req.target_id)
+        .bind(workspace_id)
+        .fetch_one(pool)
+        .await
+        .map_err(|e| {
+            error!("ESS_SWAP_VALIDATE_TARGET: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+        if !target_exists {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        // Look up effective shifts
+        let (requester_shift_id, _) =
+            roster_repository::get_effective_shift(pool, requester_employee_id, req.swap_date)
+                .await
+                .map_err(|e| {
+                    error!("ESS_SWAP_LOOKUP_REQUESTER: {:?}", e);
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?;
+
+        let (target_shift_id, _) =
+            roster_repository::get_effective_shift(pool, req.target_id, req.swap_date)
+                .await
+                .map_err(|e| {
+                    error!("ESS_SWAP_LOOKUP_TARGET: {:?}", e);
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?;
+
+        let now = Utc::now();
+        let swap = ShiftSwapRequest {
+            id: Uuid::new_v4(),
+            workspace_id,
+            requester_id: requester_employee_id,
+            target_id: req.target_id,
+            swap_date: req.swap_date,
+            requester_shift_id,
+            target_shift_id,
+            status: ShiftSwapStatus::PendingTarget, // Phase 2: starts with target acceptance
+            reason: req.reason,
+            requested_by_user_id: Some(user_id),
+            approved_by_user_id: None,
+            created_at: now,
+            updated_at: now,
+        };
+
+        shift_swap_repository::create_swap_request(pool, &swap)
+            .await
+            .map_err(|e| {
+                error!("ESS_SWAP_CREATE_ERROR: {:?}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
+    }
+
+    /// Target employee responds to a swap request.
+    /// Accept: `pending_target` → `pending_admin`
+    /// Reject: `pending_target` → `rejected`
+    pub async fn respond_to_swap(
+        pool: &PgPool,
+        target_employee_id: Uuid,
+        request_id: Uuid,
+        accept: bool,
+    ) -> Result<(), StatusCode> {
+        let request = shift_swap_repository::get_swap_request_by_id(pool, request_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        // Only the target can respond
+        if request.target_id != target_employee_id {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        // Only pending_target requests can be responded to
+        if request.status != ShiftSwapStatus::PendingTarget {
+            return Err(StatusCode::CONFLICT);
+        }
+
+        let new_status = if accept {
+            ShiftSwapStatus::PendingAdmin
+        } else {
+            ShiftSwapStatus::Rejected
+        };
+
+        shift_swap_repository::update_swap_status(pool, request_id, new_status, None)
+            .await
+            .map_err(|e| {
+                error!("ESS_SWAP_RESPOND_ERROR: {:?}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
+    }
+
+    /// Requester cancels a swap request (only if still pending).
+    pub async fn cancel_swap(
+        pool: &PgPool,
+        requester_employee_id: Uuid,
+        request_id: Uuid,
+    ) -> Result<(), StatusCode> {
+        let request = shift_swap_repository::get_swap_request_by_id(pool, request_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        // Only the requester can cancel
+        if request.requester_id != requester_employee_id {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        // Can only cancel pending requests
+        if request.status != ShiftSwapStatus::PendingTarget
+            && request.status != ShiftSwapStatus::PendingAdmin
+        {
+            return Err(StatusCode::CONFLICT);
+        }
+
+        shift_swap_repository::update_swap_status(
+            pool,
+            request_id,
+            ShiftSwapStatus::Cancelled,
+            None,
+        )
+        .await
+        .map_err(|e| {
+            error!("ESS_SWAP_CANCEL_ERROR: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
+    }
+
+    /// List swaps for an employee (as requester or target).
+    pub async fn get_employee_swaps(
+        pool: &PgPool,
+        employee_id: Uuid,
+    ) -> Result<Vec<ShiftSwapRequestWithNames>, StatusCode> {
+        shift_swap_repository::get_employee_swaps(pool, employee_id)
+            .await
+            .map_err(|e| {
+                error!("ESS_SWAP_LIST_ERROR: {:?}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
+    }
 }

@@ -2574,6 +2574,19 @@
       "note1": "Shifts are auto-detected by priority: Manual Roster → Individual Pattern → Assignment Rules → Department Pattern.",
       "note2": "On approval, the system swaps roster entries automatically. Employee A receives B's shift and vice versa.",
       "note3": "On rejection, rosters remain unchanged. Already processed requests cannot be re-approved."
+    },
+    "ess": {
+      "my_swaps": "My Shift Swap Requests",
+      "send_request": "Send Swap Request",
+      "accept": "Accept",
+      "decline": "Decline",
+      "cancel_request": "Cancel Request",
+      "waiting_colleague": "Waiting for colleague's confirmation",
+      "waiting_admin": "Waiting for admin approval",
+      "accepted": "Colleague accepted",
+      "create_success": "Swap request sent!",
+      "respond_success": "Responded to swap request!",
+      "cancel_success": "Swap request cancelled!"
     }
   }
 }

@@ -80,3 +80,21 @@ pub struct CreateShiftSwapRequest {
 pub struct ApproveShiftSwapRequest {
     pub status: ShiftSwapStatus, // approved or rejected
 }
+
+// ---------------------------------------------------------------------------
+// ESS (Employee Self-Service) request types
+// ---------------------------------------------------------------------------
+
+/// Employee creates a swap request (requester_id comes from EmployeeContext)
+#[derive(Debug, Deserialize)]
+pub struct EssCreateShiftSwapRequest {
+    pub target_id: Uuid,
+    pub swap_date: NaiveDate,
+    pub reason: Option<String>,
+}
+
+/// Target employee responds to a swap request
+#[derive(Debug, Deserialize)]
+pub struct RespondShiftSwapRequest {
+    pub accept: bool,
+}

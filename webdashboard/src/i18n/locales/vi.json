@@ -2574,6 +2574,19 @@
       "note1": "Ca làm được tự động phát hiện theo thứ tự ưu tiên: Phân ca thủ công → Lịch làm cá nhân → Quy tắc phân bổ → Lịch phòng ban.",
       "note2": "Khi duyệt, hệ thống sẽ tự động đổi ca trong bảng phân ca (Roster). Nhân viên A nhận ca của B và ngược lại.",
       "note3": "Khi từ chối, lịch phân ca giữ nguyên không thay đổi. Không thể duyệt lại yêu cầu đã được xử lý."
+    },
+    "ess": {
+      "my_swaps": "Yêu cầu đổi ca của tôi",
+      "send_request": "Gửi yêu cầu đổi ca",
+      "accept": "Chấp nhận",
+      "decline": "Từ chối",
+      "cancel_request": "Hủy yêu cầu",
+      "waiting_colleague": "Đang chờ đồng nghiệp xác nhận",
+      "waiting_admin": "Đang chờ quản trị viên duyệt",
+      "accepted": "Đồng nghiệp đã chấp nhận",
+      "create_success": "Đã gửi yêu cầu đổi ca!",
+      "respond_success": "Đã phản hồi yêu cầu đổi ca!",
+      "cancel_success": "Đã hủy yêu cầu đổi ca!"
     }
   }
 }

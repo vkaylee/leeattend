@@ -321,3 +321,69 @@ pub async fn ess_get_my_leave_requests(
 
     Ok(Json(requests))
 }
+
+// --- Shift Swap ESS Endpoints (Phase 2) ---
+
+use crate::models::shift_swap::{
+    EssCreateShiftSwapRequest, RespondShiftSwapRequest, ShiftSwapRequest,
+    ShiftSwapRequestWithNames,
+};
+use crate::services::shift_swap_service::ShiftSwapService;
+
+/// GET /ess/shift-swaps — list swap requests where I am requester or target
+pub async fn ess_get_my_shift_swaps(
+    State(state): State<Arc<AppState>>,
+    employee: EmployeeContext,
+) -> AppResult<Json<Vec<ShiftSwapRequestWithNames>>> {
+    let swaps = ShiftSwapService::get_employee_swaps(&state.db, employee.employee_id)
+        .await
+        .map_err(|s| AppError::from((s, "Failed to list shift swaps".to_string())))?;
+
+    Ok(Json(swaps))
+}
+
+/// POST /ess/shift-swaps — employee creates a swap request (status: pending_target)
+pub async fn ess_create_shift_swap(
+    State(state): State<Arc<AppState>>,
+    employee: EmployeeContext,
+    Json(req): Json<EssCreateShiftSwapRequest>,
+) -> AppResult<(StatusCode, Json<ShiftSwapRequest>)> {
+    let swap = ShiftSwapService::create_ess_swap(
+        &state.db,
+        employee.workspace_id,
+        employee.employee_id,
+        employee.user_id,
+        req,
+    )
+    .await
+    .map_err(|s| AppError::from((s, "Failed to create shift swap".to_string())))?;
+
+    Ok((StatusCode::CREATED, Json(swap)))
+}
+
+/// PUT /ess/shift-swaps/:id/respond — target employee accepts or rejects
+pub async fn ess_respond_to_swap(
+    State(state): State<Arc<AppState>>,
+    employee: EmployeeContext,
+    Path(id): Path<Uuid>,
+    Json(req): Json<RespondShiftSwapRequest>,
+) -> AppResult<StatusCode> {
+    ShiftSwapService::respond_to_swap(&state.db, employee.employee_id, id, req.accept)
+        .await
+        .map_err(|s| AppError::from((s, "Failed to respond to shift swap".to_string())))?;
+
+    Ok(StatusCode::OK)
+}
+
+/// DELETE /ess/shift-swaps/:id — requester cancels their swap request
+pub async fn ess_cancel_swap(
+    State(state): State<Arc<AppState>>,
+    employee: EmployeeContext,
+    Path(id): Path<Uuid>,
+) -> AppResult<StatusCode> {
+    ShiftSwapService::cancel_swap(&state.db, employee.employee_id, id)
+        .await
+        .map_err(|s| AppError::from((s, "Failed to cancel shift swap".to_string())))?;
+
+    Ok(StatusCode::NO_CONTENT)
+}

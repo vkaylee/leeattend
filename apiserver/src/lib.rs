@@ -667,6 +667,20 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route(
             "/ess/leave/requests",
             get(handlers::ess::ess_get_my_leave_requests),
+        )
+        // ESS Shift Swap routes (Phase 2)
+        .route(
+            "/ess/shift-swaps",
+            get(handlers::ess::ess_get_my_shift_swaps)
+                .post(handlers::ess::ess_create_shift_swap),
+        )
+        .route(
+            "/ess/shift-swaps/:id/respond",
+            put(handlers::ess::ess_respond_to_swap),
+        )
+        .route(
+            "/ess/shift-swaps/:id",
+            delete(handlers::ess::ess_cancel_swap),
         );
 
     Router::new()

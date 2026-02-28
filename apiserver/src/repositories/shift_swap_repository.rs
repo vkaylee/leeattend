@@ -100,3 +100,30 @@ pub async fn update_swap_status(
 
     Ok(())
 }
+
+pub async fn get_employee_swaps(
+    pool: &PgPool,
+    employee_id: Uuid,
+) -> Result<Vec<ShiftSwapRequestWithNames>, sqlx::Error> {
+    sqlx::query_as::<_, ShiftSwapRequestWithNames>(
+        r#"
+        SELECT
+            s.*,
+            req.full_name AS requester_name,
+            tgt.full_name AS target_name,
+            req_shift.name AS requester_shift_name,
+            tgt_shift.name AS target_shift_name
+        FROM shift_swap_requests s
+        LEFT JOIN employees req ON req.id = s.requester_id
+        LEFT JOIN employees tgt ON tgt.id = s.target_id
+        LEFT JOIN shifts req_shift ON req_shift.id = s.requester_shift_id
+        LEFT JOIN shifts tgt_shift ON tgt_shift.id = s.target_shift_id
+        WHERE s.requester_id = $1 OR s.target_id = $1
+        ORDER BY s.created_at DESC
+        LIMIT 50
+        "#,
+    )
+    .bind(employee_id)
+    .fetch_all(pool)
+    .await
+}
