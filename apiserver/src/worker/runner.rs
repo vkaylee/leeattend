@@ -17,7 +17,7 @@ use uuid::Uuid;
 use crate::cache::{CacheManager, RosterCache};
 use crate::queue::{Job, JobQueue, RedisPool, TaskType};
 use crate::services::ReportCoordinator;
-use crate::worker::handlers::{AttendanceHandler, MergeHandler};
+use crate::worker::handlers::{AccrualHandler, AttendanceHandler, MergeHandler};
 
 // Redis key patterns for monitoring
 const WORKER_HEARTBEAT_PREFIX: &str = "monitor:worker:";
@@ -397,6 +397,9 @@ impl JobWorker {
                 // Future implementation
                 Err("PayrollReport not implemented".to_string())
             }
+            TaskType::LeaveAccrual => {
+                AccrualHandler::handle(&self.db, &job, &self.redis).await
+            }
         };
 
         let elapsed = start.elapsed();
@@ -562,12 +565,13 @@ mod tests {
             TaskType::AttendanceReport,
             TaskType::MergeResults,
             TaskType::PayrollReport,
+            TaskType::LeaveAccrual,
         ];
 
         for task_type in task_types {
             let is_implemented = matches!(
                 task_type,
-                TaskType::AttendanceReport | TaskType::MergeResults
+                TaskType::AttendanceReport | TaskType::MergeResults | TaskType::LeaveAccrual
             );
 
             // PayrollReport should be not implemented yet

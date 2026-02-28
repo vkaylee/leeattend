@@ -362,6 +362,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             post(handlers::trigger_accrual_run),
         )
         .route(
+            "/workspaces/:ws_id/jobs/:job_id/status",
+            get(handlers::leaves::get_job_status),
+        )
+        .route(
             "/employees/:id/leave/requests",
             get(handlers::get_my_leave_requests),
         )

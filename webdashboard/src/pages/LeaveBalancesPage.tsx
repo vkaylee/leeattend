@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { fetchWorkspaceLeaveBalances, getCurrentWorkspaceId, triggerAccrualRun } from "@/lib/api";
+import { fetchWorkspaceLeaveBalances, getCurrentWorkspaceId, triggerAccrualRun, fetchJobStatus } from "@/lib/api";
 import { WorkspaceLeaveBalance } from "@/lib/api/types";
 import { Search, Filter, History, PlayCircle, Eye, ChevronLeft, ChevronRight, AlertTriangle, X, Calendar } from "lucide-react";
 import { LeaveHistoryModal } from "@/components/leave/LeaveHistoryModal";
@@ -37,11 +37,44 @@ export default function LeaveBalancesPage() {
     placeholderData: (previousData) => previousData
   });
 
+  const pollJobStatus = useCallback(async (jobId: string) => {
+    const POLL_INTERVAL = 2000; // 2 seconds
+    const MAX_POLLS = 60; // 2 min max
+
+    for (let i = 0; i < MAX_POLLS; i++) {
+      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
+      try {
+        const status = await fetchJobStatus(wsId!, jobId);
+        if (status.status === 'completed') {
+          queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
+          toast.success(t("leave_balances.accrual_completed", "Cập nhật số dư phép thành công!"));
+          return;
+        }
+        if (status.status === 'failed') {
+          toast.error(status.error_message || t("common.error"));
+          return;
+        }
+        // Still processing — continue polling
+      } catch {
+        // Network error — stop polling
+        toast.error(t("common.error"));
+        return;
+      }
+    }
+    // Timed out
+    toast.error(t("leave_balances.accrual_timeout", "Quá thời gian chờ. Vui lòng kiểm tra lại sau."));
+  }, [wsId, queryClient, toast, t]);
+
   const accrualMutation = useMutation({
     mutationFn: () => triggerAccrualRun(wsId!, { date: new Date().toISOString().split('T')[0] }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
-      toast.success(t("common.success"));
+    onSuccess: (data) => {
+      if (data.status === 'queued' && data.job_id) {
+        toast.success(t("leave_balances.accrual_queued", "Đang xử lý tích lũy phép trong nền..."));
+        pollJobStatus(data.job_id);
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["workspace-leave-balances"] });
+        toast.success(data.message || t("common.success"));
+      }
     },
     onError: () => toast.error(t("common.error"))
   });

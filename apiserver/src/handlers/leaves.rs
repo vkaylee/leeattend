@@ -297,12 +297,19 @@ pub struct TriggerAccrualRequest {
     pub date: String,
 }
 
+#[derive(Debug, serde::Serialize)]
+pub struct AccrualJobResponse {
+    pub job_id: String,
+    pub status: String,
+    pub message: String,
+}
+
 pub async fn trigger_accrual_run(
     Path(workspace_id): Path<Uuid>,
     State(state): State<Arc<AppState>>,
     ctx: MemberContext,
     Json(payload): Json<TriggerAccrualRequest>,
-) -> AppResult<Json<Vec<crate::models::LeaveAccrualLog>>> {
+) -> AppResult<(StatusCode, Json<AccrualJobResponse>)> {
     if !ctx.is_admin_or_owner() {
         return Err(AppError::Forbidden(
             "Only admins can trigger accrual".to_string(),
@@ -312,9 +319,101 @@ pub async fn trigger_accrual_run(
     let date = NaiveDate::parse_from_str(&payload.date, "%Y-%m-%d")
         .map_err(|_| AppError::Validation("Invalid date format YYYY-MM-DD".to_string()))?;
 
-    let logs = LeaveAccrualService::process_workspace_accruals(&state.db, workspace_id, date, true)
-        .await?;
-    Ok(Json(logs))
+    // Try to enqueue as background job if Redis is available
+    if let Some(ref redis) = state.redis {
+        use crate::queue::{AccrualPayload, Job, JobMetadata, JobPayload, TaskType, ReportType};
+        use crate::queue::JobQueue;
+
+        let queue = JobQueue::new(redis.clone());
+        let parent_id = Uuid::new_v4();
+        let job = Job::new(
+            parent_id,
+            0,
+            TaskType::LeaveAccrual,
+            workspace_id,
+            JobPayload::LeaveAccrual(AccrualPayload { date, force: true }),
+        );
+
+        // Create job metadata for status polling
+        let meta = JobMetadata::new(
+            parent_id,
+            1, // Single job (not batched)
+            workspace_id,
+            ctx.user_id,
+            ReportType::Summary, // Metadata requires a report type; using Summary as placeholder
+        );
+
+        queue.create_job_metadata(&meta).await.map_err(|e| {
+            AppError::Internal(format!("Failed to create job metadata: {e}"))
+        })?;
+
+        queue.enqueue_jobs(vec![job]).await.map_err(|e| {
+            AppError::Internal(format!("Failed to enqueue accrual job: {e}"))
+        })?;
+
+        Ok((
+            StatusCode::ACCEPTED,
+            Json(AccrualJobResponse {
+                job_id: parent_id.to_string(),
+                status: "queued".to_string(),
+                message: "Accrual job enqueued for background processing".to_string(),
+            }),
+        ))
+    } else {
+        // Fallback: synchronous processing (no Redis)
+        let logs =
+            LeaveAccrualService::process_workspace_accruals(&state.db, workspace_id, date, true)
+                .await?;
+
+        Ok((
+            StatusCode::OK,
+            Json(AccrualJobResponse {
+                job_id: "".to_string(),
+                status: "completed".to_string(),
+                message: format!("Processed {} accrual entries synchronously", logs.len()),
+            }),
+        ))
+    }
+}
+
+/// GET /workspaces/:ws_id/jobs/:job_id/status
+/// Poll the status of a background job.
+#[derive(Debug, serde::Serialize)]
+pub struct JobStatusResponse {
+    pub job_id: String,
+    pub status: String,
+    pub completed_at: Option<String>,
+    pub error_message: Option<String>,
+}
+
+pub async fn get_job_status(
+    Path((_ws_id, job_id)): Path<(Uuid, Uuid)>,
+    State(state): State<Arc<AppState>>,
+    _ctx: MemberContext,
+) -> AppResult<Json<JobStatusResponse>> {
+    let redis = state.redis.as_ref().ok_or_else(|| {
+        AppError::Internal("Redis not available".to_string())
+    })?;
+
+    use crate::queue::JobQueue;
+    let queue = JobQueue::new(redis.clone());
+
+    let meta = queue.get_job_metadata(job_id).await.map_err(|e| {
+        AppError::Internal(format!("Failed to get job metadata: {e}"))
+    })?;
+
+    match meta {
+        Some(m) => Ok(Json(JobStatusResponse {
+            job_id: m.job_id.to_string(),
+            status: serde_json::to_value(&m.status)
+                .ok()
+                .and_then(|v| v.as_str().map(String::from))
+                .unwrap_or_else(|| "unknown".to_string()),
+            completed_at: m.completed_at.map(|t| t.to_rfc3339()),
+            error_message: m.error_message,
+        })),
+        None => Err(AppError::NotFound(format!("Job {job_id} not found"))),
+    }
 }
 
 pub async fn get_leave_policy_assignments(

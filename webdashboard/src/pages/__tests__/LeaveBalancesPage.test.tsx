@@ -20,6 +20,7 @@ vi.mock("@/lib/api", async () => {
         ...actual,
         fetchWorkspaceLeaveBalances: vi.fn(),
         triggerAccrualRun: vi.fn(),
+        fetchJobStatus: vi.fn(),
         getCurrentWorkspaceId: () => "test-ws-id",
     };
 });
@@ -88,7 +89,7 @@ describe("LeaveBalancesPage", () => {
             defaultOptions: { queries: { retry: false } },
         });
         (api.fetchWorkspaceLeaveBalances as any).mockResolvedValue(mockBalances);
-        (api.triggerAccrualRun as any).mockResolvedValue([]);
+        (api.triggerAccrualRun as any).mockResolvedValue({ job_id: "", status: "completed", message: "Processed 2 accrual entries synchronously" });
     });
 
     function renderPage() {
@@ -273,5 +274,127 @@ describe("LeaveBalancesPage", () => {
             expect(modal.getAttribute("data-leavetypeid")).toBe("lt-1");
             expect(modal.getAttribute("data-leavetypename")).toBe("Annual Leave");
         });
+    });
+
+    it("shows queued toast when accrual is processed in background", async () => {
+        (api.triggerAccrualRun as any).mockResolvedValue({
+            job_id: "job-123",
+            status: "queued",
+            message: "Accrual job enqueued for background processing",
+        });
+        renderPage();
+        await waitFor(() => {
+            expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
+        }, { timeout: 3000 });
+
+        // Open confirm dialog and confirm
+        fireEvent.click(screen.getByText("CẬP NHẬT SỐ DƯ"));
+        fireEvent.click(screen.getByText("Xác nhận"));
+
+        await waitFor(() => {
+            expect(api.triggerAccrualRun).toHaveBeenCalledWith(
+                "test-ws-id",
+                expect.objectContaining({ date: expect.any(String) })
+            );
+        });
+    });
+
+    it("shows completed toast when accrual runs synchronously", async () => {
+        (api.triggerAccrualRun as any).mockResolvedValue({
+            job_id: "",
+            status: "completed",
+            message: "Processed 5 accrual entries synchronously",
+        });
+        renderPage();
+        await waitFor(() => {
+            expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
+        }, { timeout: 3000 });
+
+        fireEvent.click(screen.getByText("CẬP NHẬT SỐ DƯ"));
+        fireEvent.click(screen.getByText("Xác nhận"));
+
+        await waitFor(() => {
+            expect(api.triggerAccrualRun).toHaveBeenCalled();
+        });
+    });
+
+    it("polls fetchJobStatus after queued response until completed", async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        (api.triggerAccrualRun as any).mockResolvedValue({
+            job_id: "job-poll-1",
+            status: "queued",
+            message: "Enqueued",
+        });
+        // First poll: still processing. Second poll: completed.
+        (api.fetchJobStatus as any)
+            .mockResolvedValueOnce({ job_id: "job-poll-1", status: "processing", completed_at: null, error_message: null })
+            .mockResolvedValueOnce({ job_id: "job-poll-1", status: "completed", completed_at: "2026-02-28T12:00:00Z", error_message: null });
+
+        renderPage();
+        await waitFor(() => {
+            expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
+        }, { timeout: 3000 });
+
+        fireEvent.click(screen.getByText("CẬP NHẬT SỐ DƯ"));
+        fireEvent.click(screen.getByText("Xác nhận"));
+
+        // Wait for mutation to fire
+        await waitFor(() => {
+            expect(api.triggerAccrualRun).toHaveBeenCalled();
+        });
+
+        // Advance past first poll interval (2s)
+        await act(async () => { vi.advanceTimersByTime(2500); });
+        await waitFor(() => {
+            expect(api.fetchJobStatus).toHaveBeenCalledWith("test-ws-id", "job-poll-1");
+        });
+
+        // Advance past second poll interval
+        await act(async () => { vi.advanceTimersByTime(2500); });
+        await waitFor(() => {
+            expect((api.fetchJobStatus as any).mock.calls.length).toBeGreaterThanOrEqual(2);
+        });
+
+        vi.useRealTimers();
+    });
+
+    it("stops polling and shows error when job fails", async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        (api.triggerAccrualRun as any).mockResolvedValue({
+            job_id: "job-fail-1",
+            status: "queued",
+            message: "Enqueued",
+        });
+        (api.fetchJobStatus as any).mockResolvedValue({
+            job_id: "job-fail-1",
+            status: "failed",
+            completed_at: "2026-02-28T12:00:00Z",
+            error_message: "Accrual processing failed: DB error",
+        });
+
+        renderPage();
+        await waitFor(() => {
+            expect(screen.getAllByText("Nguyen Van A").length).toBeGreaterThan(0);
+        }, { timeout: 3000 });
+
+        fireEvent.click(screen.getByText("CẬP NHẬT SỐ DƯ"));
+        fireEvent.click(screen.getByText("Xác nhận"));
+
+        await waitFor(() => {
+            expect(api.triggerAccrualRun).toHaveBeenCalled();
+        });
+
+        // Advance past first poll interval
+        await act(async () => { vi.advanceTimersByTime(2500); });
+        await waitFor(() => {
+            expect(api.fetchJobStatus).toHaveBeenCalledWith("test-ws-id", "job-fail-1");
+        });
+
+        // Should NOT poll again after failure
+        const callCount = (api.fetchJobStatus as any).mock.calls.length;
+        await act(async () => { vi.advanceTimersByTime(5000); });
+        expect((api.fetchJobStatus as any).mock.calls.length).toBe(callCount);
+
+        vi.useRealTimers();
     });
 });

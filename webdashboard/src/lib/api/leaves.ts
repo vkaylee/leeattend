@@ -194,15 +194,38 @@ export async function assignLeavePolicy(
   if (!response.ok) throw new Error('Failed to assign leave policy');
 }
 
+export interface AccrualJobResponse {
+  job_id: string;
+  status: string;
+  message: string;
+}
+
 export async function triggerAccrualRun(
   wsId: string,
   data: { date: string }
-): Promise<void> {
+): Promise<AccrualJobResponse> {
   const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/leave/accrual/run`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error('Failed to trigger accrual run');
+  return response.json();
+}
+
+export interface JobStatusResponse {
+  job_id: string;
+  status: string;
+  completed_at: string | null;
+  error_message: string | null;
+}
+
+export async function fetchJobStatus(
+  wsId: string,
+  jobId: string
+): Promise<JobStatusResponse> {
+  const response = await apiFetch(`${API_BASE_URL}/workspaces/${wsId}/jobs/${jobId}/status`);
+  if (!response.ok) throw new Error('Failed to fetch job status');
+  return response.json();
 }
 
 export async function updateLeaveTypeConfig(

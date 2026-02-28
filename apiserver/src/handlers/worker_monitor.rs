@@ -16,7 +16,7 @@ use crate::AppState;
 const WORKER_HEARTBEAT_PREFIX: &str = "monitor:worker:";
 const STATS_COMPLETED_PREFIX: &str = "stats:completed:";
 const STATS_FAILED_PREFIX: &str = "stats:failed:";
-const QUEUE_KEY: &str = "report:jobs:attendance";
+const QUEUE_KEY: &str = "worker:jobs";
 
 /// Workers not seen within this duration are considered stale and excluded.
 const STALE_THRESHOLD_SECS: i64 = 60;
@@ -49,6 +49,7 @@ pub struct MonitorOverviewResponse {
     pub completed_today: u64,
     pub failed_today: u64,
     pub workers: Vec<WorkerHeartbeat>,
+    pub recent_jobs: Vec<crate::queue::JobMetadata>,
 }
 
 /// Get combined monitor overview: stats + worker list in a single call.
@@ -92,6 +93,10 @@ pub async fn get_monitor_overview(
 
     let total_workers = workers.len() as u64;
 
+    // 5. Get recent job metadata
+    let queue = crate::queue::JobQueue::new(redis.clone());
+    let recent_jobs = queue.list_recent_jobs(50).await.unwrap_or_default();
+
     Ok(Json(MonitorOverviewResponse {
         pending_tasks,
         total_workers,
@@ -100,6 +105,7 @@ pub async fn get_monitor_overview(
         completed_today,
         failed_today,
         workers,
+        recent_jobs,
     }))
 }
 
@@ -209,6 +215,7 @@ mod tests {
             completed_today: 1200,
             failed_today: 3,
             workers: vec![],
+            recent_jobs: vec![],
         };
 
         let json = serde_json::to_string(&overview)
@@ -217,6 +224,7 @@ mod tests {
         assert!(json.contains("\"total_workers\":50"));
         assert!(json.contains("\"active_workers\":45"));
         assert!(json.contains("\"workers\":[]"));
+        assert!(json.contains("\"recent_jobs\":[]"));
     }
 
     #[test]

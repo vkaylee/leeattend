@@ -1275,6 +1275,9 @@
     "run_accrual": "Update Balances",
     "confirm_accrual": "Are you sure you want to run accrual calculation for today? System will automatically add leave based on assigned policies.",
     "accrual_current_year_only": "Accrual can only be run for the current year",
+    "accrual_queued": "Leave accrual is processing in the background...",
+    "accrual_completed": "Leave balances updated successfully!",
+    "accrual_timeout": "Timed out waiting for accrual. Please check back later.",
     "view_details": "View Details",
     "table": {
       "base": "Base Entitlement",

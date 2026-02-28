@@ -535,6 +535,51 @@ impl JobQueue {
 
         self.update_job_metadata(&meta).await
     }
+
+    /// List recent jobs by scanning all metadata keys in Redis.
+    /// Returns up to `limit` most recent jobs, sorted by `created_at` descending.
+    pub async fn list_recent_jobs(&self, limit: usize) -> Result<Vec<JobMetadata>, redis::RedisError> {
+        let mut conn = self.pool.conn();
+        let pattern = format!("{META_PREFIX}*");
+
+        // Scan for all metadata keys
+        let mut keys: Vec<String> = Vec::new();
+        let mut cursor: u64 = 0;
+        loop {
+            let (next_cursor, batch): (u64, Vec<String>) = redis::cmd("SCAN")
+                .arg(cursor)
+                .arg("MATCH")
+                .arg(&pattern)
+                .arg("COUNT")
+                .arg(100)
+                .query_async(&mut conn)
+                .await?;
+
+            keys.extend(batch);
+            cursor = next_cursor;
+            if cursor == 0 {
+                break;
+            }
+        }
+
+        if keys.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // MGET all values
+        let values: Vec<Option<String>> = conn.mget(&keys).await?;
+
+        let mut jobs: Vec<JobMetadata> = values
+            .into_iter()
+            .filter_map(|v| v.and_then(|s| serde_json::from_str::<JobMetadata>(&s).ok()))
+            .collect();
+
+        // Sort by created_at descending (newest first)
+        jobs.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        jobs.truncate(limit);
+
+        Ok(jobs)
+    }
 }
 
 #[cfg(test)]

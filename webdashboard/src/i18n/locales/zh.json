@@ -1275,6 +1275,9 @@
     "run_accrual": "更新余额",
     "confirm_accrual": "您确定要运行今天的累计计算吗？系统将根据分配的政策自动添加假期。",
     "accrual_current_year_only": "只能更新当前年度的余额",
+    "accrual_queued": "后台正在处理假期积累...",
+    "accrual_completed": "假期余额更新成功！",
+    "accrual_timeout": "等待超时。请稍后再查看。",
     "view_details": "查看详情",
     "table": {
       "base": "基础额度",

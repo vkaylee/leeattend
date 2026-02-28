@@ -19,6 +19,7 @@ pub enum TaskType {
     AttendanceReport,
     PayrollReport,
     MergeResults,
+    LeaveAccrual,
 }
 
 /// Report format type.
@@ -60,6 +61,13 @@ pub struct MergePayload {
     pub config: ReportConfig,
 }
 
+/// Payload for leave accrual jobs.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccrualPayload {
+    pub date: NaiveDate,
+    pub force: bool,
+}
+
 /// Job payload variants — each job type carries its own data.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
@@ -67,6 +75,7 @@ pub enum JobPayload {
     AttendanceReport(ReportPayload),
     MergeResults(MergePayload),
     PayrollReport(ReportPayload),
+    LeaveAccrual(AccrualPayload),
 }
 
 /// A single worker job.
@@ -133,6 +142,14 @@ impl Job {
     pub fn merge_payload(&self) -> Option<&MergePayload> {
         match &self.payload {
             JobPayload::MergeResults(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    /// Helper: extract accrual payload.
+    pub fn accrual_payload(&self) -> Option<&AccrualPayload> {
+        match &self.payload {
+            JobPayload::LeaveAccrual(p) => Some(p),
             _ => None,
         }
     }

@@ -16,6 +16,7 @@ export function useWorkerMonitor() {
   return {
     stats: query.data,
     workers: query.data?.workers ?? [],
+    recentJobs: query.data?.recent_jobs ?? [],
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     error: query.error,

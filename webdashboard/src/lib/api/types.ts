@@ -515,6 +515,21 @@ export interface WorkerMonitorStats {
   completed_today: number;
   failed_today: number;
   workers: WorkerHeartbeat[];
+  recent_jobs: RecentJob[];
+}
+
+export interface RecentJob {
+  job_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  total_batches: number;
+  completed_batches: number;
+  failed_batches: number;
+  workspace_id: string;
+  requester_id: string;
+  report_type: string;
+  created_at: string;
+  completed_at: string | null;
+  error_message: string | null;
 }
 
 export interface WorkerHeartbeat {

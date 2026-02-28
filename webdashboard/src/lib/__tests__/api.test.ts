@@ -182,11 +182,11 @@ describe("api.ts comprehensive tests", () => {
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/upload"), expect.objectContaining({ method: "POST" }));
     });
 
-  it("fetchLatestImportJob", async () => {
-    (fetch as any).mockResolvedValueOnce({ ok: true, json: async () => ({ id: "job-1" }) });
-    await api.fetchLatestImportJob("ws-1", "adjustment");
-    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/import-jobs/latest?target_type=adjustment"), expect.anything());
-  });
+    it("fetchLatestImportJob", async () => {
+      (fetch as any).mockResolvedValueOnce({ ok: true, json: async () => ({ id: "job-1" }) });
+      await api.fetchLatestImportJob("ws-1", "adjustment");
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/attendance/import-jobs/latest?target_type=adjustment"), expect.anything());
+    });
 
     it("fetchImportJobStatus", async () => {
       mockSuccess({});
@@ -258,19 +258,48 @@ describe("api.ts comprehensive tests", () => {
 
     it("assignLeavePolicy", async () => {
       mockSuccess({});
-      await api.assignLeavePolicy("ws-1", { 
-        assignee_type: "employee", 
-        assignee_id: "e1", 
-        policy_id: "p1", 
-        effective_from: "2026-01-01" 
+      await api.assignLeavePolicy("ws-1", {
+        assignee_type: "employee",
+        assignee_id: "e1",
+        policy_id: "p1",
+        effective_from: "2026-01-01"
       });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/leave/policies/assign"), expect.objectContaining({ method: "POST" }));
     });
 
-    it("triggerAccrualRun", async () => {
-      mockSuccess({});
-      await api.triggerAccrualRun("ws-1", { date: "2026-01-01" });
+    it("triggerAccrualRun returns AccrualJobResponse", async () => {
+      mockSuccess({ job_id: "j-123", status: "queued", message: "Accrual job enqueued" });
+      const result = await api.triggerAccrualRun("ws-1", { date: "2026-01-01" });
       expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/leave/accrual/run"), expect.objectContaining({ method: "POST" }));
+      expect(result).toEqual({ job_id: "j-123", status: "queued", message: "Accrual job enqueued" });
+    });
+
+    it("triggerAccrualRun handles completed status", async () => {
+      mockSuccess({ job_id: "", status: "completed", message: "Processed 10 entries synchronously" });
+      const result = await api.triggerAccrualRun("ws-1", { date: "2026-02-01" });
+      expect(result.status).toBe("completed");
+      expect(result.job_id).toBe("");
+    });
+
+    it("fetchJobStatus returns job status", async () => {
+      mockSuccess({ job_id: "j-1", status: "processing", completed_at: null, error_message: null });
+      const result = await api.fetchJobStatus("ws-1", "j-1");
+      expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/workspaces/ws-1/jobs/j-1/status"), expect.any(Object));
+      expect(result.status).toBe("processing");
+    });
+
+    it("fetchJobStatus returns completed with timestamp", async () => {
+      mockSuccess({ job_id: "j-2", status: "completed", completed_at: "2026-02-28T12:00:00Z", error_message: null });
+      const result = await api.fetchJobStatus("ws-1", "j-2");
+      expect(result.status).toBe("completed");
+      expect(result.completed_at).toBe("2026-02-28T12:00:00Z");
+    });
+
+    it("fetchJobStatus returns failed with error message", async () => {
+      mockSuccess({ job_id: "j-3", status: "failed", completed_at: "2026-02-28T12:00:00Z", error_message: "DB error" });
+      const result = await api.fetchJobStatus("ws-1", "j-3");
+      expect(result.status).toBe("failed");
+      expect(result.error_message).toBe("DB error");
     });
   });
 

@@ -1275,6 +1275,9 @@
     "run_accrual": "Cập nhật số dư",
     "confirm_accrual": "Bạn có chắc chắn muốn chạy tính toán tích lũy cho hôm nay? Hệ thống sẽ tự động cộng thêm phép dựa trên chính sách đã gán.",
     "accrual_current_year_only": "Chỉ có thể cập nhật số dư cho năm hiện tại",
+    "accrual_queued": "Đang xử lý tích lũy phép trong nền...",
+    "accrual_completed": "Cập nhật số dư phép thành công!",
+    "accrual_timeout": "Quá thời gian chờ. Vui lòng kiểm tra lại sau.",
     "view_details": "Xem Chi tiết",
     "table": {
       "base": "Định mức",
