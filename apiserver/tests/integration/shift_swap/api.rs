@@ -521,3 +521,173 @@ async fn test_non_admin_cannot_create_swap() {
 
     assert_eq!(res.status(), StatusCode::FORBIDDEN);
 }
+
+// ===========================================================================
+// Phase 3 Tests: Eligibility validation & Stats
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// Test: Duplicate swap is rejected (CONFLICT)
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn test_duplicate_swap_rejected() {
+    let s = setup().await;
+    let client = reqwest::Client::new();
+
+    // First swap — should succeed
+    let res1 = client
+        .post(format!(
+            "{}/api/workspaces/{}/shift-swaps",
+            s.address, s.workspace_id
+        ))
+        .header("Authorization", format!("Bearer {}", s.auth_token))
+        .json(&json!({
+            "requester_id": s.emp_a,
+            "target_id": s.emp_b,
+            "swap_date": s.swap_date.to_string()
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res1.status(), StatusCode::CREATED);
+
+    // Second identical swap — should fail with CONFLICT
+    let res2 = client
+        .post(format!(
+            "{}/api/workspaces/{}/shift-swaps",
+            s.address, s.workspace_id
+        ))
+        .header("Authorization", format!("Bearer {}", s.auth_token))
+        .json(&json!({
+            "requester_id": s.emp_a,
+            "target_id": s.emp_b,
+            "swap_date": s.swap_date.to_string()
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        res2.status(),
+        StatusCode::CONFLICT,
+        "Duplicate active swap should be rejected"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Test: Same-shift swap is rejected (UNPROCESSABLE_ENTITY)
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn test_same_shift_swap_rejected() {
+    let s = setup().await;
+    let client = reqwest::Client::new();
+
+    // Create employee C with the SAME shift as employee A (Morning) via direct SQL
+    let emp_c = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO employees (id, workspace_id, full_name, employee_id_number, is_active) VALUES ($1, $2, $3, $4, true)",
+    )
+    .bind(emp_c)
+    .bind(s.workspace_id)
+    .bind("Employee C")
+    .bind("EMP-C")
+    .execute(&s._db.pool)
+    .await
+    .unwrap();
+
+    // Assign Employee C → Morning shift (same as A)
+    sqlx::query(
+        "INSERT INTO shift_rosters (id, employee_id, shift_id, date, status) VALUES ($1, $2, $3, $4, 'active')",
+    )
+    .bind(Uuid::new_v4())
+    .bind(emp_c)
+    .bind(s.shift_morning)
+    .bind(s.swap_date)
+    .execute(&s._db.pool)
+    .await
+    .unwrap();
+
+    // Try to swap A ↔ C (both have Morning) — should fail
+    let res = client
+        .post(format!(
+            "{}/api/workspaces/{}/shift-swaps",
+            s.address, s.workspace_id
+        ))
+        .header("Authorization", format!("Bearer {}", s.auth_token))
+        .json(&json!({
+            "requester_id": s.emp_a,
+            "target_id": emp_c,
+            "swap_date": s.swap_date.to_string()
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        res.status(),
+        StatusCode::UNPROCESSABLE_ENTITY,
+        "Same-shift swap should be rejected as pointless"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Test: Stats endpoint returns correct counts
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn test_shift_swap_stats() {
+    let s = setup().await;
+    let client = reqwest::Client::new();
+
+    // Create a swap (pending_admin)
+    let swap: ShiftSwapRequest = client
+        .post(format!(
+            "{}/api/workspaces/{}/shift-swaps",
+            s.address, s.workspace_id
+        ))
+        .header("Authorization", format!("Bearer {}", s.auth_token))
+        .json(&json!({
+            "requester_id": s.emp_a,
+            "target_id": s.emp_b,
+            "swap_date": s.swap_date.to_string()
+        }))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+
+    // Approve it
+    client
+        .put(format!(
+            "{}/api/workspaces/{}/shift-swaps/{}/approve",
+            s.address, s.workspace_id, swap.id
+        ))
+        .header("Authorization", format!("Bearer {}", s.auth_token))
+        .json(&json!({ "status": "approved" }))
+        .send()
+        .await
+        .unwrap();
+
+    // Fetch stats
+    let stats_res = client
+        .get(format!(
+            "{}/api/workspaces/{}/shift-swaps/stats",
+            s.address, s.workspace_id
+        ))
+        .header("Authorization", format!("Bearer {}", s.auth_token))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(stats_res.status(), StatusCode::OK);
+
+    let stats: serde_json::Value = stats_res.json().await.unwrap();
+    assert_eq!(stats["approved"], 1, "Should have 1 approved swap");
+    assert_eq!(stats["approved_this_month"], 1, "Should count in current month");
+    assert_eq!(stats["pending_admin"], 0, "No pending after approval");
+}
