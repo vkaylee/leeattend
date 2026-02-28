@@ -68,3 +68,23 @@ export async function approveShiftSwap(
     );
     if (!response.ok) throw new Error("Failed to approve shift swap");
 }
+
+export interface SwapStats {
+    pending_target: number;
+    pending_admin: number;
+    approved: number;
+    rejected: number;
+    cancelled: number;
+    approved_this_month: number;
+    rejected_this_month: number;
+}
+
+export async function fetchShiftSwapStats(
+    wsId: string,
+): Promise<SwapStats> {
+    const response = await apiFetch(
+        `${API_BASE_URL}/workspaces/${wsId}/shift-swaps/stats`,
+    );
+    if (!response.ok) throw new Error("Failed to fetch swap stats");
+    return response.json();
+}

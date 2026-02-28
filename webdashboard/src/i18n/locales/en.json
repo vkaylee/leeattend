@@ -2556,6 +2556,12 @@
       "rejected": "Rejected",
       "cancelled": "Cancelled"
     },
+    "stats": {
+      "pending": "Pending",
+      "approved_month": "Approved This Month",
+      "rejected_month": "Rejected This Month",
+      "total": "Total Processed"
+    },
     "messages": {
       "no_data": "No shift swap requests found.",
       "create_success": "Shift swap request created!",

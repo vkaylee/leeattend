@@ -2556,6 +2556,12 @@
       "rejected": "Từ chối",
       "cancelled": "Đã hủy"
     },
+    "stats": {
+      "pending": "Đang chờ xử lý",
+      "approved_month": "Duyệt tháng này",
+      "rejected_month": "Từ chối tháng này",
+      "total": "Tổng đã xử lý"
+    },
     "messages": {
       "no_data": "Hiện tại chưa có yêu cầu đổi ca nào.",
       "create_success": "Đã tạo yêu cầu đổi ca thành công!",

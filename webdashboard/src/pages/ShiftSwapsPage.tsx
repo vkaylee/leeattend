@@ -25,13 +25,14 @@ import {
     fetchShiftSwaps,
     createShiftSwap,
     approveShiftSwap,
+    fetchShiftSwapStats,
     ShiftSwapStatus,
 } from "../lib/api/shift-swaps";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 
-type TabType = "pending_admin" | "approved" | "rejected";
+type TabType = "pending_target" | "pending_admin" | "approved" | "rejected" | "cancelled";
 
 export default function ShiftSwapsPage() {
     const { t } = useTranslation();
@@ -52,6 +53,12 @@ export default function ShiftSwapsPage() {
     const { data: swaps = [], isLoading } = useQuery({
         queryKey: ["shift-swaps", wsId, activeTab],
         queryFn: () => fetchShiftSwaps(wsId!, activeTab as ShiftSwapStatus),
+        enabled: !!wsId,
+    });
+
+    const { data: stats } = useQuery({
+        queryKey: ["shift-swap-stats", wsId],
+        queryFn: () => fetchShiftSwapStats(wsId!),
         enabled: !!wsId,
     });
 
@@ -292,12 +299,40 @@ export default function ShiftSwapsPage() {
                 </div>
             )}
 
+            {/* Stats Bar */}
+            {stats && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in duration-500">
+                    {[
+                        { label: t("shift_swaps.stats.pending"), value: (stats.pending_target || 0) + (stats.pending_admin || 0), color: "amber" },
+                        { label: t("shift_swaps.stats.approved_month"), value: stats.approved_this_month || 0, color: "emerald" },
+                        { label: t("shift_swaps.stats.rejected_month"), value: stats.rejected_this_month || 0, color: "rose" },
+                        { label: t("shift_swaps.stats.total"), value: (stats.approved || 0) + (stats.rejected || 0) + (stats.cancelled || 0), color: "slate" },
+                    ].map((stat) => (
+                        <div key={stat.label} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+                            <p className={`text-2xl font-black tracking-tighter text-${stat.color}-600 dark:text-${stat.color}-400`}>{stat.value}</p>
+                            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">{stat.label}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {/* Status Tabs */}
-            <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
+            <div className="flex flex-wrap bg-slate-100 dark:bg-slate-700/50 p-1.5 rounded-[22px] w-fit border border-slate-200 dark:border-slate-700/50 shadow-inner">
+                <button
+                    onClick={() => setActiveTab("pending_target")}
+                    className={cn(
+                        "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
+                        activeTab === "pending_target"
+                            ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-300 shadow-sm border border-slate-100 dark:border-slate-800"
+                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200",
+                    )}
+                >
+                    <Clock size={14} /> {t("shift_swaps.status.pending_target")}
+                </button>
                 <button
                     onClick={() => setActiveTab("pending_admin")}
                     className={cn(
-                        "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
+                        "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
                         activeTab === "pending_admin"
                             ? "bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-300 shadow-sm border border-slate-100 dark:border-slate-800"
                             : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200",
@@ -308,7 +343,7 @@ export default function ShiftSwapsPage() {
                 <button
                     onClick={() => setActiveTab("approved")}
                     className={cn(
-                        "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
+                        "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
                         activeTab === "approved"
                             ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-300 shadow-sm border border-slate-100 dark:border-slate-800"
                             : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200",
@@ -319,13 +354,24 @@ export default function ShiftSwapsPage() {
                 <button
                     onClick={() => setActiveTab("rejected")}
                     className={cn(
-                        "flex items-center gap-2 px-8 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
+                        "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
                         activeTab === "rejected"
                             ? "bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-300 shadow-sm border border-slate-100 dark:border-slate-800"
                             : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200",
                     )}
                 >
                     <XCircle size={14} /> {t("shift_swaps.status.rejected")}
+                </button>
+                <button
+                    onClick={() => setActiveTab("cancelled")}
+                    className={cn(
+                        "flex items-center gap-2 px-6 py-2.5 rounded-[18px] text-xs font-bold uppercase tracking-widest transition-all",
+                        activeTab === "cancelled"
+                            ? "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 shadow-sm border border-slate-100 dark:border-slate-800"
+                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200",
+                    )}
+                >
+                    <XCircle size={14} /> {t("shift_swaps.status.cancelled")}
                 </button>
             </div>
 

@@ -617,6 +617,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
                 .post(handlers::shift_swaps::create_shift_swap),
         )
         .route(
+            "/workspaces/:ws_id/shift-swaps/stats",
+            get(handlers::shift_swaps::get_shift_swap_stats),
+        )
+        .route(
             "/workspaces/:ws_id/shift-swaps/:id/approve",
             put(handlers::shift_swaps::approve_shift_swap),
         );

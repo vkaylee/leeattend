@@ -13,6 +13,48 @@ use crate::repositories::{roster_repository, shift_swap_repository};
 pub struct ShiftSwapService;
 
 impl ShiftSwapService {
+    /// Phase 3: Validate swap eligibility (duplicate, conflict, same-shift).
+    async fn validate_eligibility(
+        pool: &PgPool,
+        requester_id: Uuid,
+        target_id: Uuid,
+        swap_date: chrono::NaiveDate,
+        requester_shift_id: Option<Uuid>,
+        target_shift_id: Option<Uuid>,
+    ) -> Result<(), StatusCode> {
+        // 1. Duplicate check
+        let dup = shift_swap_repository::has_active_swap(pool, requester_id, target_id, swap_date)
+            .await
+            .map_err(|e| {
+                error!("SWAP_DUP_CHECK: {:?}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+        if dup {
+            return Err(StatusCode::CONFLICT); // duplicate swap
+        }
+
+        // 2. Conflict check — either employee already has an approved swap on this date
+        for emp_id in [requester_id, target_id] {
+            let conflict =
+                shift_swap_repository::has_approved_swap_on_date(pool, emp_id, swap_date)
+                    .await
+                    .map_err(|e| {
+                        error!("SWAP_CONFLICT_CHECK: {:?}", e);
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    })?;
+            if conflict {
+                return Err(StatusCode::CONFLICT); // already swapped that day
+            }
+        }
+
+        // 3. Same-shift guard — swap is pointless if both have the same shift
+        if requester_shift_id == target_shift_id {
+            return Err(StatusCode::UNPROCESSABLE_ENTITY); // same shift, no point
+        }
+
+        Ok(())
+    }
+
     /// Admin creates a swap request (Phase 1).
     /// Automatically looks up the effective shifts for both employees on the swap date.
     pub async fn create_swap(
@@ -59,6 +101,17 @@ impl ShiftSwapService {
                     error!("SHIFT_SWAP_LOOKUP_TARGET: {:?}", e);
                     StatusCode::INTERNAL_SERVER_ERROR
                 })?;
+
+        // Phase 3: Eligibility validation
+        Self::validate_eligibility(
+            pool,
+            req.requester_id,
+            req.target_id,
+            req.swap_date,
+            requester_shift_id,
+            target_shift_id,
+        )
+        .await?;
 
         let swap = ShiftSwapRequest {
             id: Uuid::new_v4(),
@@ -226,6 +279,17 @@ impl ShiftSwapService {
                     StatusCode::INTERNAL_SERVER_ERROR
                 })?;
 
+        // Phase 3: Eligibility validation
+        Self::validate_eligibility(
+            pool,
+            requester_employee_id,
+            req.target_id,
+            req.swap_date,
+            requester_shift_id,
+            target_shift_id,
+        )
+        .await?;
+
         let now = Utc::now();
         let swap = ShiftSwapRequest {
             id: Uuid::new_v4(),
@@ -235,7 +299,7 @@ impl ShiftSwapService {
             swap_date: req.swap_date,
             requester_shift_id,
             target_shift_id,
-            status: ShiftSwapStatus::PendingTarget, // Phase 2: starts with target acceptance
+            status: ShiftSwapStatus::PendingTarget,
             reason: req.reason,
             requested_by_user_id: Some(user_id),
             approved_by_user_id: None,

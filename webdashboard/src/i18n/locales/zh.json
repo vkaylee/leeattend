@@ -2556,6 +2556,12 @@
       "rejected": "已拒绝",
       "cancelled": "已取消"
     },
+    "stats": {
+      "pending": "待处理",
+      "approved_month": "本月通过",
+      "rejected_month": "本月拒绝",
+      "total": "已处理总计"
+    },
     "messages": {
       "no_data": "暂无换班请求。",
       "create_success": "换班请求创建成功！",

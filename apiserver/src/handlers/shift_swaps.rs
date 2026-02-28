@@ -88,3 +88,32 @@ pub async fn approve_shift_swap(
 
     Ok(StatusCode::OK)
 }
+
+// ---------------------------------------------------------------------------
+// GET /workspaces/:ws_id/shift-swaps/stats
+// ---------------------------------------------------------------------------
+
+pub async fn get_shift_swap_stats(
+    Path(_ws_id): Path<Uuid>,
+    State(state): State<Arc<AppState>>,
+    ctx: MemberContext,
+) -> AppResult<Json<crate::repositories::shift_swap_repository::SwapStats>> {
+    if !ctx.is_admin_or_owner() {
+        return Err(AppError::Forbidden("Forbidden".to_string()));
+    }
+
+    let stats =
+        crate::repositories::shift_swap_repository::get_workspace_swap_stats(
+            &state.db,
+            ctx.workspace_id,
+        )
+        .await
+        .map_err(|e| {
+            AppError::from((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to get swap stats: {e}"),
+            ))
+        })?;
+
+    Ok(Json(stats))
+}

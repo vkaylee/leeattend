@@ -127,3 +127,85 @@ pub async fn get_employee_swaps(
     .fetch_all(pool)
     .await
 }
+
+/// Check if an active (non-cancelled/rejected) swap already exists for requester+target+date.
+pub async fn has_active_swap(
+    pool: &PgPool,
+    requester_id: Uuid,
+    target_id: Uuid,
+    swap_date: chrono::NaiveDate,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar(
+        r#"
+        SELECT EXISTS(
+            SELECT 1 FROM shift_swap_requests
+            WHERE requester_id = $1 AND target_id = $2 AND swap_date = $3
+            AND status NOT IN ('cancelled', 'rejected')
+        )
+        "#,
+    )
+    .bind(requester_id)
+    .bind(target_id)
+    .bind(swap_date)
+    .fetch_one(pool)
+    .await
+}
+
+/// Check if either employee already has an approved swap for a given date.
+pub async fn has_approved_swap_on_date(
+    pool: &PgPool,
+    employee_id: Uuid,
+    swap_date: chrono::NaiveDate,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar(
+        r#"
+        SELECT EXISTS(
+            SELECT 1 FROM shift_swap_requests
+            WHERE (requester_id = $1 OR target_id = $1)
+            AND swap_date = $2
+            AND status = 'approved'
+        )
+        "#,
+    )
+    .bind(employee_id)
+    .bind(swap_date)
+    .fetch_one(pool)
+    .await
+}
+
+/// Status counts for a workspace (for stats dashboard).
+#[derive(Debug, serde::Serialize, sqlx::FromRow)]
+pub struct SwapStats {
+    pub pending_target: i64,
+    pub pending_admin: i64,
+    pub approved: i64,
+    pub rejected: i64,
+    pub cancelled: i64,
+    pub approved_this_month: i64,
+    pub rejected_this_month: i64,
+}
+
+pub async fn get_workspace_swap_stats(
+    pool: &PgPool,
+    workspace_id: Uuid,
+) -> Result<SwapStats, sqlx::Error> {
+    sqlx::query_as::<_, SwapStats>(
+        r#"
+        SELECT
+            COUNT(*) FILTER (WHERE status = 'pending_target') AS pending_target,
+            COUNT(*) FILTER (WHERE status = 'pending_admin') AS pending_admin,
+            COUNT(*) FILTER (WHERE status = 'approved') AS approved,
+            COUNT(*) FILTER (WHERE status = 'rejected') AS rejected,
+            COUNT(*) FILTER (WHERE status = 'cancelled') AS cancelled,
+            COUNT(*) FILTER (WHERE status = 'approved'
+                AND created_at >= date_trunc('month', CURRENT_DATE)) AS approved_this_month,
+            COUNT(*) FILTER (WHERE status = 'rejected'
+                AND created_at >= date_trunc('month', CURRENT_DATE)) AS rejected_this_month
+        FROM shift_swap_requests
+        WHERE workspace_id = $1
+        "#,
+    )
+    .bind(workspace_id)
+    .fetch_one(pool)
+    .await
+}
