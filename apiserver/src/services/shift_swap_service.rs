@@ -13,7 +13,7 @@ use crate::repositories::{roster_repository, shift_swap_repository};
 pub struct ShiftSwapService;
 
 impl ShiftSwapService {
-    /// Phase 3: Validate swap eligibility (duplicate, conflict, same-shift).
+    /// Phase 3: Validate swap eligibility (duplicate, conflict, same-shift, OT max).
     async fn validate_eligibility(
         pool: &PgPool,
         requester_id: Uuid,
@@ -52,7 +52,67 @@ impl ShiftSwapService {
             return Err(StatusCode::UNPROCESSABLE_ENTITY); // same shift, no point
         }
 
+        // 4. OT max daily check — warn if the new shift is significantly longer
+        //    and could push the employee beyond the configured max_ot_hours_per_day.
+        //    This is a best-effort guard; actual OT depends on punch times.
+        if let (Some(req_shift_id), Some(tgt_shift_id)) = (requester_shift_id, target_shift_id) {
+            if let Ok(Some(ws_id)) = Self::get_workspace_id_for_employee(pool, requester_id).await {
+                if let Ok(Some(ps)) = crate::repositories::payroll_repository::get_payroll_settings_at(
+                    pool, ws_id, swap_date,
+                ).await {
+                    if let Some(max_daily) = ps.max_ot_hours_per_day {
+                        // Compare shift durations: will the receiving employee get a much longer shift?
+                        let req_shift = crate::repositories::shift_repository::get_shift_by_id(pool, req_shift_id).await.unwrap_or(None);
+                        let tgt_shift = crate::repositories::shift_repository::get_shift_by_id(pool, tgt_shift_id).await.unwrap_or(None);
+                        if let (Some(rs), Some(ts)) = (req_shift, tgt_shift) {
+                            let compute_duration_minutes = |s: &crate::models::Shift| -> i64 {
+                                let mut dur = (s.end_time - s.start_time).num_minutes();
+                                if dur <= 0 { dur += 24 * 60; } // overnight shift
+                                dur - s.break_duration_minutes as i64
+                            };
+                            let std_hours = ps.hours_per_day;
+                            let max_total_minutes = (std_hours + max_daily) * rust_decimal::Decimal::from(60);
+
+                            // Requester gets target's shift
+                            let req_new_dur = compute_duration_minutes(&ts);
+                            // Target gets requester's shift
+                            let tgt_new_dur = compute_duration_minutes(&rs);
+
+                            use rust_decimal::prelude::ToPrimitive;
+                            let max_minutes = max_total_minutes.to_i64().unwrap_or(i64::MAX);
+                            if req_new_dur > max_minutes || tgt_new_dur > max_minutes {
+                                tracing::warn!(
+                                    requester_id = %requester_id,
+                                    target_id = %target_id,
+                                    "Shift swap may cause daily OT to exceed max {} hours",
+                                    max_daily
+                                );
+                                // Warning only — we don't block, just log.
+                                // If hard-block is desired in the future, uncomment:
+                                // return Err(StatusCode::UNPROCESSABLE_ENTITY);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         Ok(())
+    }
+
+    /// Helper: get workspace_id from employee_id
+    async fn get_workspace_id_for_employee(
+        pool: &PgPool,
+        employee_id: Uuid,
+    ) -> Result<Option<Uuid>, StatusCode> {
+        let ws: Option<Uuid> = sqlx::query_scalar(
+            "SELECT workspace_id FROM employees WHERE id = $1",
+        )
+        .bind(employee_id)
+        .fetch_optional(pool)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        Ok(ws)
     }
 
     /// Admin creates a swap request (Phase 1).

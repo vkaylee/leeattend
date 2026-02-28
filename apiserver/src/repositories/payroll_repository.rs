@@ -123,7 +123,7 @@ pub async fn get_payroll_settings_at(
 ) -> Result<Option<PayrollSettings>, sqlx::Error> {
     query_as!(
         PayrollSettings,
-        r#"SELECT workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, effective_date, created_at as "created_at!", updated_at as "updated_at!" 
+        r#"SELECT workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, max_ot_hours_per_day, max_ot_hours_per_month, effective_date, created_at as "created_at!", updated_at as "updated_at!" 
            FROM payroll_settings 
            WHERE workspace_id = $1 AND effective_date <= $2
            ORDER BY effective_date DESC LIMIT 1"#,
@@ -134,6 +134,7 @@ pub async fn get_payroll_settings_at(
     .await
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn update_payroll_settings(
     pool: &PgPool,
     workspace_id: Uuid,
@@ -141,24 +142,30 @@ pub async fn update_payroll_settings(
     fixed_std_days: Decimal,
     working_days_per_week: i32,
     hours_per_day: Decimal,
+    max_ot_hours_per_day: Option<Decimal>,
+    max_ot_hours_per_month: Option<Decimal>,
     effective_date: NaiveDate,
 ) -> Result<PayrollSettings, sqlx::Error> {
     query_as!(
         PayrollSettings,
-        r#"INSERT INTO payroll_settings (workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, effective_date, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
+        r#"INSERT INTO payroll_settings (workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, max_ot_hours_per_day, max_ot_hours_per_month, effective_date, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
            ON CONFLICT (workspace_id, effective_date) DO UPDATE 
            SET std_working_day_mode = EXCLUDED.std_working_day_mode,
                fixed_std_days = EXCLUDED.fixed_std_days,
                working_days_per_week = EXCLUDED.working_days_per_week,
                hours_per_day = EXCLUDED.hours_per_day,
+               max_ot_hours_per_day = EXCLUDED.max_ot_hours_per_day,
+               max_ot_hours_per_month = EXCLUDED.max_ot_hours_per_month,
                updated_at = EXCLUDED.updated_at
-           RETURNING workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, effective_date, created_at as "created_at!", updated_at as "updated_at!""#,
+           RETURNING workspace_id, std_working_day_mode, fixed_std_days, working_days_per_week, hours_per_day, max_ot_hours_per_day, max_ot_hours_per_month, effective_date, created_at as "created_at!", updated_at as "updated_at!""#,
         workspace_id,
         std_working_day_mode,
         fixed_std_days,
         working_days_per_week,
         hours_per_day,
+        max_ot_hours_per_day,
+        max_ot_hours_per_month,
         effective_date,
         Utc::now()
     )

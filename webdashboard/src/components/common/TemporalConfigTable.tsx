@@ -8,6 +8,8 @@ interface ConfigRecord {
   id?: string;
   std_working_days: number;
   hours_per_day: number;
+  max_ot_hours_per_day?: number | null;
+  max_ot_hours_per_month?: number | null;
   effective_date: string;
   created_at?: string;
   is_virtual?: boolean;
@@ -16,7 +18,7 @@ interface ConfigRecord {
 interface Props {
   title: string;
   records: ConfigRecord[];
-  onSave: (data: { std_working_days: number; hours_per_day: number; effective_date: string }) => Promise<void>;
+  onSave: (data: { std_working_days: number; hours_per_day: number; max_ot_hours_per_day: number | null; max_ot_hours_per_month: number | null; effective_date: string }) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -26,12 +28,20 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
   const [isAdding, setIsAdding] = useState(false);
   const [newDays, setNewDays] = useState<number>(26);
   const [newHours, setNewHours] = useState<number>(8);
-  
+  const [newMaxOtDay, setNewMaxOtDay] = useState<string>("4");
+  const [newMaxOtMonth, setNewMaxOtMonth] = useState<string>("40");
+
   const firstOfMonth = new Date(); firstOfMonth.setDate(1);
   const [newEffectiveDate, setNewEffectiveDate] = useState(firstOfMonth.toISOString().split('T')[0]);
 
   const handleSave = async () => {
-    await onSave({ std_working_days: newDays, hours_per_day: newHours, effective_date: newEffectiveDate });
+    await onSave({
+      std_working_days: newDays,
+      hours_per_day: newHours,
+      max_ot_hours_per_day: newMaxOtDay === '' ? null : parseFloat(newMaxOtDay),
+      max_ot_hours_per_month: newMaxOtMonth === '' ? null : parseFloat(newMaxOtMonth),
+      effective_date: newEffectiveDate,
+    });
     setIsAdding(false);
   };
 
@@ -65,7 +75,7 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
             <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center shadow-inner"><Plus size={16} /></div>
             <h4 className="text-[10px] font-bold uppercase tracking-[0.2em]">{t("payroll.settings.add_version")}</h4>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div className="space-y-3">
               <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.effective_date")}</label>
@@ -80,7 +90,19 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
               <input type="number" value={newHours} onChange={e => setNewHours(parseFloat(e.target.value))} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" />
             </div>
           </div>
-          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div className="space-y-3">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.max_ot_hours_per_day")}</label>
+              <input type="number" step="0.5" value={newMaxOtDay} onChange={e => setNewMaxOtDay(e.target.value)} placeholder={t("payroll.settings.no_limit") || ""} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" />
+              <p className="text-[9px] text-slate-400 ml-1">{t("payroll.settings.ot_empty_hint")}</p>
+            </div>
+            <div className="space-y-3">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t("payroll.settings.max_ot_hours_per_month")}</label>
+              <input type="number" step="0.5" value={newMaxOtMonth} onChange={e => setNewMaxOtMonth(e.target.value)} placeholder={t("payroll.settings.no_limit") || ""} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-primary-500/10 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all font-mono" />
+              <p className="text-[9px] text-slate-400 ml-1">{t("payroll.settings.ot_empty_hint")}</p>
+            </div>
+          </div>
+
           <div className="p-6 bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-800 rounded-[1.5rem] flex gap-4 mb-8 shadow-inner">
             <AlertCircle className="w-6 h-6 text-amber-500 shrink-0" />
             <p className="text-[10px] text-amber-800 leading-relaxed font-bold uppercase tracking-tight opacity-80">{t("payroll.settings.date_warning")}</p>
@@ -104,6 +126,8 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("payroll.settings.effective_date")}</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">{t("payroll.settings.std_days")}</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">{t("payroll.settings.hours_per_day")}</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">{t("payroll.settings.max_ot_day_short")}</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">{t("payroll.settings.max_ot_month_short")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -125,6 +149,8 @@ export default function TemporalConfigTable({ title, records, onSave, isLoading 
                     <td className="px-8 py-6"><div className={cn("text-sm font-bold uppercase tracking-tight", isActive ? "text-slate-700 dark:text-slate-200" : "text-slate-500 dark:text-slate-400")}>{record.is_virtual ? t("common.from_start") : formatDate(record.effective_date)}</div></td>
                     <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-primary-600 dark:text-primary-400" : "text-slate-500 dark:text-slate-400")}>{record.std_working_days} {t("common.days_short")}</span></td>
                     <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-slate-700 dark:text-slate-200" : "text-slate-300 dark:text-slate-600")}>{record.hours_per_day}h / {t("common.day_short")}</span></td>
+                    <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-300 dark:text-slate-600")}>{record.max_ot_hours_per_day != null ? `${record.max_ot_hours_per_day}h` : '∞'}</span></td>
+                    <td className="px-8 py-6 text-right font-mono font-bold"><span className={cn("text-sm", isActive ? "text-amber-600 dark:text-amber-400" : "text-slate-300 dark:text-slate-600")}>{record.max_ot_hours_per_month != null ? `${record.max_ot_hours_per_month}h` : '∞'}</span></td>
                   </tr>
                 );
               })}

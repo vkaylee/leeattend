@@ -2,7 +2,7 @@ use axum::http::StatusCode;
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use futures_util::stream::{self, StreamExt};
-use rust_decimal::prelude::FromPrimitive;
+use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use rust_decimal::Decimal;
 use sqlx::PgPool;
 use std::collections::{BTreeSet, HashMap};
@@ -359,6 +359,35 @@ impl PayrollService {
                 segment_amount,
                 std_config.source,
             ));
+        }
+
+        // 6b. Enforce monthly OT cap from PayrollSettings
+        let payroll_settings = crate::repositories::payroll_repository::get_payroll_settings_at(
+            pool, workspace_id, end_date,
+        )
+        .await
+        .unwrap_or(None);
+        if let Some(ref ps) = payroll_settings {
+            if let Some(max_monthly_hours) = ps.max_ot_hours_per_month {
+                let max_ot_minutes = max_monthly_hours * Decimal::from(60);
+                let max_ot_units_dec = max_ot_minutes / Decimal::from(workspace.work_unit_minutes);
+                let max_ot_units = max_ot_units_dec.to_i32().unwrap_or(i32::MAX);
+                if total_ot_units > max_ot_units {
+                    // Proportionally reduce OT pay
+                    if total_ot_units > 0 {
+                        let ratio = Decimal::from(max_ot_units) / Decimal::from(total_ot_units);
+                        total_overtime_pay = (total_overtime_pay * ratio)
+                            .round_dp(0);
+                    }
+                    total_ot_units = max_ot_units;
+                    tracing::info!(
+                        employee_id = %employee_id,
+                        "Monthly OT capped at {} units (max {} hours)",
+                        max_ot_units,
+                        max_monthly_hours
+                    );
+                }
+            }
         }
 
         // 7. Incentives Calculation

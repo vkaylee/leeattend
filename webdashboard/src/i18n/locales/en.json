@@ -294,7 +294,15 @@
         "add_version": "Create new policy version",
         "date_warning": "Note: Effective date determines the payroll periods affected. Changes apply automatically from this date.",
         "status": "Status",
-        "virtual": "System Default"
+        "virtual": "System Default",
+        "max_ot_hours_per_day": "Max OT Hours / Day",
+        "max_ot_hours_per_month": "Max OT Hours / Month",
+        "max_ot_day_short": "OT/Day",
+        "max_ot_month_short": "OT/Month",
+        "no_limit": "No limit",
+        "ot_empty_hint": "Leave blank = no limit",
+        "max_ot_guide_title": "OT Limit Guide",
+        "max_ot_guide_desc": "When labor law changes, add a new config version with the appropriate effective date. The system will automatically apply the correct OT limit for each payroll period. Default: 4h/day, 40h/month (Vietnam Labor Code 2019, Art. 107). ∞ = unlimited."
       },
       "components": {
         "title": "Salary Components Catalog",
@@ -1970,7 +1978,15 @@
       "add_version": "Create new policy version",
       "date_warning": "Note: Effective date determines the payroll periods affected. Changes apply automatically from this date.",
       "status": "Status",
-      "virtual": "System Default"
+      "virtual": "System Default",
+      "max_ot_hours_per_day": "Max OT Hours / Day",
+      "max_ot_hours_per_month": "Max OT Hours / Month",
+      "max_ot_day_short": "OT/Day",
+      "max_ot_month_short": "OT/Month",
+      "no_limit": "No limit",
+      "ot_empty_hint": "Leave blank = no limit",
+      "max_ot_guide_title": "OT Limit Guide",
+      "max_ot_guide_desc": "When labor law changes, add a new config version with the appropriate effective date. The system will automatically apply the correct OT limit for each payroll period. Default: 4h/day, 40h/month (Vietnam Labor Code 2019, Art. 107). ∞ = unlimited."
     },
     "components": {
       "title": "Salary Components Catalog",

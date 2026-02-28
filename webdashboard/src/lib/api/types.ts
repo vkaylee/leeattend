@@ -300,6 +300,8 @@ export interface PayrollSettings {
   fixed_std_days: number;
   working_days_per_week: number;
   hours_per_day: number;
+  max_ot_hours_per_day?: number | null;
+  max_ot_hours_per_month?: number | null;
   effective_date: string;
   updated_at: string;
 }

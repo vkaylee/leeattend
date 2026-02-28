@@ -249,7 +249,15 @@
         "no_history": "No config history",
         "dept_title": "Department Payroll Config",
         "std_days_history": "Std. Days History",
-        "std_days_override": "Std. Days Override"
+        "std_days_override": "Std. Days Override",
+        "max_ot_hours_per_day": "每日加班上限",
+        "max_ot_hours_per_month": "每月加班上限",
+        "max_ot_day_short": "OT/日",
+        "max_ot_month_short": "OT/月",
+        "no_limit": "无限制",
+        "ot_empty_hint": "留空 = 无限制",
+        "max_ot_guide_title": "加班限制指南",
+        "max_ot_guide_desc": "当劳动法变更时，请添加新的配置版本并设置相应的生效日期。系统将自动为每个薪资周期应用正确的加班限制。默认: 4小时/天, 40小时/月。∞ = 无限制。"
       },
       "table": {
         "net_pay": "实发工资",
@@ -1970,7 +1978,15 @@
       "add_version": "创建新政策版本",
       "date_warning": "注意：生效日期决定受影响的薪资周期。更改将从此日期起自动应用。",
       "status": "状态",
-      "virtual": "系统默认"
+      "virtual": "系统默认",
+      "max_ot_hours_per_day": "每日加班上限",
+      "max_ot_hours_per_month": "每月加班上限",
+      "max_ot_day_short": "OT/日",
+      "max_ot_month_short": "OT/月",
+      "no_limit": "无限制",
+      "ot_empty_hint": "留空 = 无限制",
+      "max_ot_guide_title": "加班限制指南",
+      "max_ot_guide_desc": "当劳动法变更时，请添加新的配置版本并设置相应的生效日期。系统将自动为每个薪资周期应用正确的加班限制。默认: 4小时/天, 40小时/月。∞ = 无限制。"
     },
     "components": {
       "title": "薪资组成部分目录",

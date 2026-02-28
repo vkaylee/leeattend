@@ -128,6 +128,8 @@ pub struct PayrollSettings {
     pub fixed_std_days: rust_decimal::Decimal,
     pub working_days_per_week: i32,
     pub hours_per_day: rust_decimal::Decimal,
+    pub max_ot_hours_per_day: Option<rust_decimal::Decimal>,
+    pub max_ot_hours_per_month: Option<rust_decimal::Decimal>,
     pub effective_date: NaiveDate,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -182,6 +184,8 @@ pub struct UpdatePayrollSettingsRequest {
     pub fixed_std_days: Option<rust_decimal::Decimal>,
     pub working_days_per_week: Option<i32>,
     pub hours_per_day: Option<rust_decimal::Decimal>,
+    pub max_ot_hours_per_day: Option<Option<rust_decimal::Decimal>>,
+    pub max_ot_hours_per_month: Option<Option<rust_decimal::Decimal>>,
     pub effective_date: Option<NaiveDate>,
 }
 

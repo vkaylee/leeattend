@@ -249,7 +249,15 @@
         "no_history": "No config history",
         "dept_title": "Department Payroll Config",
         "std_days_history": "Std. Days History",
-        "std_days_override": "Std. Days Override"
+        "std_days_override": "Std. Days Override",
+        "max_ot_hours_per_day": "OT tối đa / Ngày",
+        "max_ot_hours_per_month": "OT tối đa / Tháng",
+        "max_ot_day_short": "OT/Ngày",
+        "max_ot_month_short": "OT/Tháng",
+        "no_limit": "Không giới hạn",
+        "ot_empty_hint": "Bỏ trống = không giới hạn",
+        "max_ot_guide_title": "Hướng dẫn giới hạn OT",
+        "max_ot_guide_desc": "Khi luật lao động thay đổi, hãy thêm phiên bản cấu hình mới với ngày hiệu lực tương ứng. Hệ thống tự động áp dụng giới hạn OT phù hợp cho từng kỳ lương. Mặc định: 4h/ngày, 40h/tháng (BLLĐ 2019, Điều 107). ∞ = không giới hạn."
       },
       "table": {
         "net_pay": "Thực lĩnh",
@@ -1970,7 +1978,15 @@
       "add_version": "Tạo phiên bản chính sách mới",
       "date_warning": "Lưu ý: Ngày có hiệu lực quyết định các kỳ lương bị ảnh hưởng. Các thay đổi sẽ tự động áp dụng từ ngày này.",
       "status": "Trạng thái",
-      "virtual": "Mặc định hệ thống"
+      "virtual": "Mặc định hệ thống",
+      "max_ot_hours_per_day": "OT tối đa / Ngày",
+      "max_ot_hours_per_month": "OT tối đa / Tháng",
+      "max_ot_day_short": "OT/Ngày",
+      "max_ot_month_short": "OT/Tháng",
+      "no_limit": "Không giới hạn",
+      "ot_empty_hint": "Bỏ trống = không giới hạn",
+      "max_ot_guide_title": "Hướng dẫn giới hạn OT",
+      "max_ot_guide_desc": "Khi luật lao động thay đổi, hãy thêm phiên bản cấu hình mới với ngày hiệu lực tương ứng. Hệ thống tự động áp dụng giới hạn OT phù hợp cho từng kỳ lương. Mặc định: 4h/ngày, 40h/tháng (BLLĐ 2019, Điều 107). ∞ = không giới hạn."
     },
     "components": {
       "title": "Danh mục thành phần lương",
