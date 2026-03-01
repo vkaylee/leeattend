@@ -95,4 +95,20 @@ describe("EmployeeSearch Component", () => {
       expect(allOptions[0].textContent).toContain("16");
     }
   });
+
+  it("passes keyboardShortcut prop to Combobox", () => {
+    (useQuery as any).mockReturnValue({
+      data: { data: mockEmployees },
+      isLoading: false,
+    });
+
+    const onChange = vi.fn();
+    render(
+      <EmployeeSearch workspaceId="ws-1" onChange={onChange} keyboardShortcut="/" />,
+      { wrapper }
+    );
+
+    // Should render without crashing with the keyboardShortcut prop
+    expect(screen.getByRole("combobox")).toBeDefined();
+  });
 });
