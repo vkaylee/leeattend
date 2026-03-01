@@ -240,6 +240,48 @@ describe("ReportsPage", () => {
     expect(searchInput.selectionEnd).toBe(4);
   });
 
+  it("opens the first employee's drawer when pressing Enter in search input", async () => {
+    const user = userEvent.setup();
+    const mockDailyRow = {
+      employee_id: "emp-1",
+      employee_name: "John Doe",
+      date: "2026-01-15",
+      actual_punch_in: "2026-01-15T01:00:00Z",
+      actual_punch_out: "2026-01-15T10:00:00Z",
+      scheduled_start: "08:00:00",
+      scheduled_end: "17:00:00",
+      break_duration_minutes: 60,
+      break_start: null,
+      break_end: null,
+      is_break_auto_deduct: false,
+      std_work_units: 480,
+      ot_work_units: 0,
+      status: "present",
+      generation_metadata: null,
+    };
+    (api.fetchAttendanceReport as any).mockImplementation((_wsId: string, _start: string, _end: string, type: string) => {
+      if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1 });
+      return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }], total: 1 });
+    });
+
+    renderWithProviders(<ReportsPage />);
+    await screen.findByText(/John Doe/i);
+
+    // Get search input and focus it
+    const searchInput = screen.getByRole("textbox");
+
+    // Type something and hit enter mapped directly onto the element
+    await user.type(searchInput, "John{Enter}");
+
+    // The Drawer should open up for John Doe (emp-1)
+    const sheetPanel = await screen.findByTestId("sheet-panel");
+    expect(sheetPanel).toBeInTheDocument();
+
+    // We should see the daily report data because the drawer is open
+    const rawLogsToggle = await screen.findByRole("button", { name: /Nhật ký thô/i });
+    expect(rawLogsToggle).toBeInTheDocument();
+  });
+
   it("renders cross-navigation link to raw logs with preserved date range", async () => {
     renderWithProviders(<ReportsPage />, ["/reports?from=2026-03-01&to=2026-03-31"]);
     // Using string matching that is case-insensitive and covers both EN and VI since i18n isn't mocked the same way

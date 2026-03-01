@@ -204,6 +204,11 @@ export default function ReportsPage() {
         onDateRangeChange={handleDateRangeChange}
         onSpecificMonthChange={handleSpecificMonthChange}
         onSearchQueryChange={handleSearchQueryChange}
+        onSearchPressEnter={() => {
+          if (filteredData.length > 0) {
+            handleEmployeeClick(filteredData[0].employee_id, filteredData[0].employee_name);
+          }
+        }}
       />
 
       <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700">
