@@ -17,6 +17,8 @@ interface EmployeeSearchProps {
   'data-testid'?: string;
   multiple?: boolean;
   autoFocus?: boolean;
+  keyboardShortcut?: string | string[];
+  clearOnEscape?: boolean;
 }
 
 /**
@@ -33,10 +35,12 @@ export function EmployeeSearch({
   'data-testid': testId,
   multiple = false,
   autoFocus = false,
+  keyboardShortcut,
+  clearOnEscape,
 }: EmployeeSearchProps) {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 400);
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   // Fetch employees with debounced query
   const { data: employeesData, isLoading } = useQuery({
@@ -50,7 +54,7 @@ export function EmployeeSearch({
   // Keep track of selected employee objects to show their names in chips
   const [selectedMeta, setSelectedMeta] = useState<Employee[]>([]);
 
-  const selectedIds = React.useMemo(() => 
+  const selectedIds = React.useMemo(() =>
     Array.isArray(value) ? value : value ? [value] : [],
     [value]
   );
@@ -71,7 +75,7 @@ export function EmployeeSearch({
 
   const handleSelect = (selectedId: string) => {
     const emp = employees.find(e => e.id === selectedId);
-    
+
     if (emp && !selectedMeta.find(m => m.id === emp.id)) {
       setSelectedMeta(prev => [...prev, emp]);
     }
@@ -93,25 +97,55 @@ export function EmployeeSearch({
     }
   };
 
+  // Helper to highlight matching text in search results
+  const highlightMatch = (text: string, query: string) => {
+    if (!query.trim()) return text;
+
+    // Escape regex characters from query
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    const parts = text.split(regex);
+
+    return (
+      <>
+        {parts.map((part, i) =>
+          regex.test(part) ? (
+            <span key={i} className="text-primary-600 dark:text-primary-400 font-black">{part}</span>
+          ) : (
+            <span key={i}>{part}</span>
+          )
+        )}
+      </>
+    );
+  };
+
   // Transform to Combobox options
   const baseOptions = employees
-    .filter(emp => !multiple || !selectedIds.includes(emp.id)) 
+    .filter(emp => !multiple || !selectedIds.includes(emp.id))
     .map((emp) => ({
       value: emp.id,
       label: emp.full_name,
+      displayLabel: highlightMatch(emp.full_name, debouncedSearchTerm),
       description: emp.employee_id_number,
+      displayDescription: highlightMatch(emp.employee_id_number, debouncedSearchTerm),
       icon: <User className='h-4 w-4 text-slate-500 dark:text-slate-400' />,
     }));
 
-  const extraOptions = selectedMeta
-    .filter(m => selectedIds.includes(m.id))
-    .filter(m => !baseOptions.find(opt => opt.value === m.id))
-    .map(m => ({
-      value: m.id,
-      label: m.full_name,
-      description: m.employee_id_number,
-      icon: <User className='h-4 w-4 text-slate-500 dark:text-slate-400' />,
-    }));
+  // Only show previously-selected employee at top when NOT actively searching.
+  // During search, only server-filtered results should appear.
+  const extraOptions = searchTerm
+    ? []
+    : selectedMeta
+      .filter(m => selectedIds.includes(m.id))
+      .filter(m => !baseOptions.find(opt => opt.value === m.id))
+      .map(m => ({
+        value: m.id,
+        label: m.full_name,
+        displayLabel: highlightMatch(m.full_name, debouncedSearchTerm),
+        description: m.employee_id_number,
+        displayDescription: highlightMatch(m.employee_id_number, debouncedSearchTerm),
+        icon: <User className='h-4 w-4 text-slate-500 dark:text-slate-400' />,
+      }));
 
   const options = [...extraOptions, ...baseOptions];
 
@@ -126,6 +160,8 @@ export function EmployeeSearch({
         placeholder={placeholder || t('common.search')}
         onSearchChange={setSearchTerm}
         autoFocus={autoFocus}
+        keyboardShortcut={keyboardShortcut}
+        clearOnEscape={clearOnEscape}
       />
 
       {multiple && selectedIds.length > 0 && (
