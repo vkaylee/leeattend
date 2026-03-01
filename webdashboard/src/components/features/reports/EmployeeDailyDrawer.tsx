@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw, Check, CheckCircle, User, CalendarCheck } from "lucide-react";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import { RefreshCw, Check, CheckCircle, User, CalendarCheck, SearchX, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
     fetchAttendanceReport,
@@ -80,16 +80,49 @@ export default function EmployeeDailyDrawer({
         enabled: isOpen && !!workspaceId,
     });
 
-    // Fetch raw logs for this single employee
-    const { data: rawLogsResponse, isLoading: rawLogsLoading } = useQuery({
+    // Fetch raw logs for this single employee with infinite scroll
+    const {
+        data: rawLogsResponse,
+        isLoading: rawLogsLoading,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage
+    } = useInfiniteQuery({
         queryKey: ["raw-logs", workspaceId, dateRange, [employeeId]],
-        queryFn: () => {
+        queryFn: ({ pageParam }) => {
             const from = dateRange.start ? new Date(`${dateRange.start}T00:00:00`).toISOString() : undefined;
             const to = dateRange.end ? new Date(`${dateRange.end}T23:59:59`).toISOString() : undefined;
-            return fetchRawAttendanceLogs({ employee_id: employeeId, from, to, page: 1, limit: 100 });
+            return fetchRawAttendanceLogs({ employee_id: employeeId, from, to, page: pageParam as number, limit: 100 });
         },
+        getNextPageParam: (lastPage, allPages) => {
+            if (!lastPage.data || lastPage.data.length < 100) return undefined;
+            return allPages.length + 1;
+        },
+        initialPageParam: 1,
         enabled: isOpen && !!workspaceId && !!employeeId && viewMode === "raw",
     });
+
+    // Extract flat array of logs
+    const rawLogsData = useMemo(() => {
+        if (!rawLogsResponse) return [];
+        return rawLogsResponse.pages.flatMap((p) => p.data || []);
+    }, [rawLogsResponse]);
+
+    // Intersection observer for infinite scroll
+    const loadMoreRef = useRef<HTMLTableRowElement>(null);
+    useEffect(() => {
+        if (!loadMoreRef.current || !hasNextPage) return;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && !isFetchingNextPage) {
+                    fetchNextPage();
+                }
+            },
+            { threshold: 0.1, rootMargin: "100px" }
+        );
+        observer.observe(loadMoreRef.current);
+        return () => observer.disconnect();
+    }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
     const adjustmentMap = useMemo(() => {
         const map: Record<string, AttendanceAdjustmentRequest> = {};
@@ -101,7 +134,6 @@ export default function EmployeeDailyDrawer({
     }, [pendingAdjustments]);
 
     const reportData = reportResponse?.data || (Array.isArray(reportResponse) ? reportResponse : []);
-    const rawLogsData = rawLogsResponse?.data || [];
 
     const toggleExpandRow = (rowKey: string) => {
         const next = new Set(expandedDebugRows);
@@ -271,7 +303,7 @@ export default function EmployeeDailyDrawer({
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                                    <tr className="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
                                         <th className="px-8 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("common.time")}</th>
                                         <th className="px-8 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("common.source")}</th>
                                         <th className="px-8 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">{t("common.status")}</th>
@@ -279,9 +311,43 @@ export default function EmployeeDailyDrawer({
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                                     {rawLogsLoading ? (
-                                        <tr><td colSpan={3} className="px-8 py-12 text-center text-slate-500 dark:text-slate-400 font-bold italic">{t("common.loading")}</td></tr>
+                                        Array.from({ length: 5 }).map((_, i) => (
+                                            <tr key={`skeleton-log-${i}`} className="border-b border-slate-50 dark:border-slate-800/50">
+                                                <td className="px-8 py-5">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse"></div>
+                                                        <div className="space-y-1">
+                                                            <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 animate-pulse rounded"></div>
+                                                            <div className="h-3 w-16 bg-slate-100 dark:bg-slate-800 animate-pulse rounded"></div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700 animate-pulse rounded"></div>
+                                                </td>
+                                                <td className="px-8 py-5 text-right">
+                                                    <div className="flex justify-end">
+                                                        <div className="h-4 w-16 bg-emerald-100 dark:bg-emerald-900/20 animate-pulse rounded-full"></div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
                                     ) : rawLogsData.length === 0 ? (
-                                        <tr><td colSpan={3} className="px-8 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</td></tr>
+                                        <tr>
+                                            <td colSpan={3} className="px-8 py-20">
+                                                <div className="flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-500 max-w-sm mx-auto">
+                                                    <div className="w-16 h-16 mb-4 rounded-3xl bg-slate-50 dark:bg-slate-800/80 flex items-center justify-center text-slate-300 dark:text-slate-600 shadow-inner border border-slate-100 dark:border-slate-700/50 rotate-3">
+                                                        <SearchX size={24} className="-rotate-3" />
+                                                    </div>
+                                                    <h3 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest mb-1">
+                                                        {t("attendance_logs.messages.no_data")}
+                                                    </h3>
+                                                    <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 max-w-[200px]">
+                                                        No punches were recorded for this day.
+                                                    </p>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     ) : (
                                         rawLogsData.map((log: RawAttendanceLog) => (
                                             <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
@@ -314,6 +380,15 @@ export default function EmployeeDailyDrawer({
                                                 </td>
                                             </tr>
                                         ))
+                                    )}
+                                    {hasNextPage && (
+                                        <tr ref={loadMoreRef}>
+                                            <td colSpan={3} className="px-8 py-6 text-center">
+                                                {isFetchingNextPage && (
+                                                    <Loader2 className="w-5 h-5 animate-spin mx-auto text-slate-400 dark:text-slate-500" />
+                                                )}
+                                            </td>
+                                        </tr>
                                     )}
                                 </tbody>
                             </table>

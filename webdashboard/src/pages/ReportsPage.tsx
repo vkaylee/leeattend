@@ -75,6 +75,12 @@ export default function ReportsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(() => getDaysInMonth(new Date(getMonthRange(-1).start)));
   const [sortBy, setSortBy] = useState<AttendanceReportSort | undefined>(undefined);
+  const [focusedRowIndex, setFocusedRowIndex] = useState(0);
+
+  // Reset focus when data changes
+  useEffect(() => {
+    setFocusedRowIndex(0);
+  }, [searchQuery, page, filterMode, specificMonth, dateRange]);
 
   // Resolve search query → employee IDs (server-side)
   const { data: searchResults } = useQuery({
@@ -204,9 +210,18 @@ export default function ReportsPage() {
         onDateRangeChange={handleDateRangeChange}
         onSpecificMonthChange={handleSpecificMonthChange}
         onSearchQueryChange={handleSearchQueryChange}
-        onSearchPressEnter={() => {
-          if (filteredData.length > 0) {
-            handleEmployeeClick(filteredData[0].employee_id, filteredData[0].employee_name);
+        onSearchKeyDown={(e) => {
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setFocusedRowIndex(prev => Math.min(prev + 1, filteredData.length - 1));
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setFocusedRowIndex(prev => Math.max(prev - 1, 0));
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (filteredData.length > 0 && filteredData[focusedRowIndex]) {
+              handleEmployeeClick(filteredData[focusedRowIndex].employee_id, filteredData[focusedRowIndex].employee_name);
+            }
           }
         }}
       />
@@ -226,6 +241,7 @@ export default function ReportsPage() {
           isLoading={isLoading}
           workUnitMinutes={workUnitMinutes}
           sortBy={sortBy}
+          focusedRowIndex={focusedRowIndex}
           t={t}
           onSort={handleSort}
           onEmployeeClick={handleEmployeeClick}

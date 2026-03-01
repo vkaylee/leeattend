@@ -1,12 +1,14 @@
-import { ArrowUp, ArrowDown, ArrowUpDown, ChevronRight } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpDown, ChevronRight, SearchX } from "lucide-react";
 import { AttendanceSummary, AttendanceReportSort } from "@/lib/api";
 import { formatUnitsToHours } from "@/lib/utils/attendance";
+import { cn } from "@/lib/utils";
 
 interface SummaryReportTableProps {
   data: AttendanceSummary[];
   isLoading: boolean;
   workUnitMinutes: number;
   sortBy: AttendanceReportSort | undefined;
+  focusedRowIndex?: number;
   t: (key: string) => string;
   onSort: (field: 'name' | 'work_hours' | 'leave_days') => void;
   onEmployeeClick: (employeeId: string, employeeName: string) => void;
@@ -17,6 +19,7 @@ export default function SummaryReportTable({
   isLoading,
   workUnitMinutes,
   sortBy,
+  focusedRowIndex = -1,
   t,
   onSort,
   onEmployeeClick,
@@ -40,7 +43,7 @@ export default function SummaryReportTable({
   return (
     <table className="w-full text-left border-collapse">
       <thead>
-        <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+        <tr className="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
           <th
             className="px-10 py-6 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] cursor-pointer hover:text-primary-600 dark:text-primary-400 transition-colors group"
             onClick={() => onSort('name')}
@@ -84,20 +87,58 @@ export default function SummaryReportTable({
 
       <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
         {isLoading ? (
-          <tr>
-            <td colSpan={6} className="px-10 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50 animate-pulse">
-              {t("reports.messages.generating")}
-            </td>
-          </tr>
+          Array.from({ length: 5 }).map((_, i) => (
+            <tr key={`skeleton-${i}`} className="border-b border-slate-50 dark:border-slate-800/50">
+              <td className="px-10 py-6">
+                <div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+              </td>
+              <td className="px-8 py-6">
+                <div className="flex flex-col items-end gap-1">
+                  <div className="h-5 w-16 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+                  <div className="h-2 w-8 bg-slate-100 dark:bg-slate-800/50 rounded animate-pulse"></div>
+                </div>
+              </td>
+              <td className="px-8 py-6">
+                <div className="flex flex-col items-end gap-1">
+                  <div className="h-5 w-12 bg-orange-100 dark:bg-orange-900/20 rounded animate-pulse"></div>
+                  <div className="h-2 w-8 bg-orange-50 dark:bg-orange-900/10 rounded animate-pulse"></div>
+                </div>
+              </td>
+              <td className="px-10 py-6">
+                <div className="flex justify-end">
+                  <div className="h-5 w-16 bg-orange-100 dark:bg-orange-900/20 rounded animate-pulse"></div>
+                </div>
+              </td>
+              <td className="px-10 py-6 text-right">—</td>
+              <td className="px-4 py-6"></td>
+            </tr>
+          ))
         ) : data.length === 0 ? (
           <tr>
-            <td colSpan={6} className="px-10 py-32 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">
-              {t("reports.messages.no_data")}
+            <td colSpan={6} className="px-10 py-32">
+              <div className="flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-500 max-w-sm mx-auto">
+                <div className="w-20 h-20 mb-6 rounded-3xl bg-slate-50 dark:bg-slate-800/80 flex items-center justify-center text-slate-300 dark:text-slate-600 shadow-inner border border-slate-100 dark:border-slate-700/50 rotate-3">
+                  <SearchX size={32} className="-rotate-3" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest mb-2">
+                  {t("reports.messages.no_data")}
+                </h3>
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  Try adjusting the date range or employee filter to find what you're looking for.
+                </p>
+              </div>
             </td>
           </tr>
         ) : (
-          data.map((row: AttendanceSummary) => (
-            <tr key={row.employee_id} onClick={() => onEmployeeClick(row.employee_id, row.employee_name)} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group cursor-pointer">
+          data.map((row: AttendanceSummary, index: number) => (
+            <tr
+              key={row.employee_id}
+              onClick={() => onEmployeeClick(row.employee_id, row.employee_name)}
+              className={cn(
+                "hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group cursor-pointer",
+                focusedRowIndex === index ? "bg-primary-50/50 dark:bg-primary-900/20 ring-1 ring-inset ring-primary-500/50" : ""
+              )}
+            >
               <td className="px-10 py-6 font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase leading-none">
                 {row.employee_name}
               </td>

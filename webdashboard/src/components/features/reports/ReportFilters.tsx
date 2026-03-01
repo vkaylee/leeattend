@@ -19,7 +19,7 @@ interface ReportFiltersProps {
   onDateRangeChange: (range: { start: string; end: string }) => void;
   onSpecificMonthChange: (month: number, year: number) => void;
   onSearchQueryChange: (query: string) => void;
-  onSearchPressEnter?: () => void;
+  onSearchKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
 export default function ReportFilters({
@@ -33,7 +33,7 @@ export default function ReportFilters({
   onDateRangeChange,
   onSpecificMonthChange,
   onSearchQueryChange,
-  onSearchPressEnter,
+  onSearchKeyDown,
 }: ReportFiltersProps) {
   return (
     <>
@@ -112,12 +112,7 @@ export default function ReportFilters({
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchQueryChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && onSearchPressEnter) {
-              e.preventDefault();
-              onSearchPressEnter();
-            }
-          }}
+          onKeyDown={onSearchKeyDown}
           onFocus={(e) => e.target.select()}
           placeholder={t("reports.search_placeholder")}
           className="w-full pl-14 pr-12 py-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:font-medium focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-300 dark:focus:border-primary-700 transition-all shadow-sm uppercase tracking-tight"

@@ -108,12 +108,12 @@ export default function DailyReportTable({
     <div className="overflow-x-auto">
       <table className="w-full text-left min-w-[1200px] border-collapse">
         <thead>
-          <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest sticky left-0 z-10 bg-slate-50 dark:bg-slate-800/50">
+          <tr className="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 sticky top-0 z-20">
+            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest sticky left-0 z-20 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm">
               {t("common.date")}
             </th>
             {!hideEmployeeName && (
-              <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest sticky left-[80px] sm:left-[100px] z-10 bg-slate-50 dark:bg-slate-800/50">
+              <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest sticky left-[80px] sm:left-[100px] z-20 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm">
                 {t("common.employee")}
               </th>
             )}
