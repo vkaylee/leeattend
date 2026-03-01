@@ -1,0 +1,18 @@
+# Nextest configuration for apiserver
+# Prevents tests from hanging indefinitely
+
+[profile.default]
+# Per-test timeout: 30s handles migration fallback when template DB is busy
+slow-timeout = { period = "30s", terminate-after = 1 }
+fail-fast = true
+# Cap at 4 parallel threads to avoid disk exhaustion from concurrent test databases
+# (16 threads × DB creation = too many temp DBs → "No space left on device")
+test-threads = 4
+
+[profile.default.junit]
+path = "test-results/results.xml"
+
+[profile.ci]
+slow-timeout = { period = "30s", terminate-after = 1 }
+fail-fast = true
+test-threads = 4

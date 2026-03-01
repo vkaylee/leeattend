@@ -341,8 +341,7 @@ run_unit() {
 run_integration() {
     local filter=$1
 
-    # Force sequential for integration to save resources and ensure stability
-    export NUM_WORKERS=1
+    # Integration tests use isolated DBs — parallel is safe, keep auto-detected NUM_WORKERS
     echo -e "\n${BLUE}🔹 Running Integration & E2E Tests [$filter]...${NC}"
     
     if [[ "$USE_DOCKER" == "true" ]]; then
@@ -688,6 +687,24 @@ rm -f "$PROJECT_ROOT/.test_logs/results.txt"
 cleanup() {
     local exit_code=$?
     echo -e "\n${BLUE}🧹 Cleaning up test environment...${NC}"
+
+    # ── PTY Safety: Kill all child processes ──────────────────────────
+    # When run from AI agents or git hooks, orphan docker-exec processes
+    # can hold PTY file descriptors open, making the parent appear hung.
+    # Kill direct children of this script (not ourselves) to clean up.
+    # Ignore TERM in this handler so we survive our own cleanup kills.
+    trap '' TERM
+    pkill -TERM -P $$ 2>/dev/null || true
+    sleep 1
+    pkill -KILL -P $$ 2>/dev/null || true
+
+    # Also kill any cargo/nextest processes left inside Docker containers
+    if [[ "${USE_DOCKER:-}" == "true" ]]; then
+        for ctr in apiserver_test agent_test; do
+            docker exec "${COMPOSE_PROJECT_NAME}-${ctr}-1" \
+                pkill -f 'cargo|nextest' </dev/null 2>/dev/null || true
+        done
+    fi
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         # CRITICAL: All docker commands below use `</dev/null` to detach stdin

@@ -32,6 +32,8 @@ pub struct Payslip {
     pub standard_units: i32,
     pub overtime_units: i32,
     pub status: String,
+    /// Premium paid when employee works on a holiday (configurable per-holiday via ot_multiplier).
+    pub holiday_work_premium_amount: rust_decimal::Decimal,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

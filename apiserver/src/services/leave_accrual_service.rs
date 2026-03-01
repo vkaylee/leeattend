@@ -403,11 +403,35 @@ impl LeaveAccrualService {
                 }
 
                 // OPTIMIZED: Batch-fetch qualifying days for all months at once
+                // For start_of_period, the threshold check looks at the PREVIOUS month,
+                // so we need to extend the query range back by one month to capture those entries.
+                let qualifying_range_start = if config.min_work_days_threshold.is_some()
+                    && config.accrual_timing == "start_of_period"
+                {
+                    if assignment.effective_from.month() == 1 {
+                        NaiveDate::from_ymd_opt(
+                            assignment.effective_from.year() - 1,
+                            12,
+                            1,
+                        )
+                        .unwrap_or(assignment.effective_from)
+                    } else {
+                        NaiveDate::from_ymd_opt(
+                            assignment.effective_from.year(),
+                            assignment.effective_from.month() - 1,
+                            1,
+                        )
+                        .unwrap_or(assignment.effective_from)
+                    }
+                } else {
+                    assignment.effective_from
+                };
+
                 let qualifying_days_map = if config.min_work_days_threshold.is_some() {
                     Self::batch_count_qualifying_days(
                         pool,
                         emp.id,
-                        assignment.effective_from,
+                        qualifying_range_start,
                         date,
                         tz,
                     )

@@ -2528,12 +2528,18 @@
       },
       "ot_multiplier": "OT Multiplier",
       "ot_multiplier_placeholder": "3.0",
+      "ot_multiplier_help": "E.g: 3× = 300% pay for each hour worked",
       "description": "Description",
       "description_placeholder": "Optional description",
       "paid_holiday": "Paid holiday",
       "deduct_leave_type": "Deduct from Leave Type",
       "auto_first_paid": "Auto (first paid leave type)",
-      "deduction_warning": "Employees without enough leave balance will have this day marked as unpaid."
+      "deduction_warning": "Employees without enough leave balance will have this day marked as unpaid.",
+      "work_policy_title": "Policy when employee works on holiday",
+      "credit_on_work": "Credit holiday pay",
+      "credit_on_work_help": "Employee still receives holiday pay + work pay",
+      "threshold_percent": "Leave refund threshold",
+      "threshold_help": "Employee works ≥ threshold → refund leave. < threshold → keep leave deducted"
     },
     "table": {
       "date": "Date",
@@ -2543,7 +2549,9 @@
       "ot": "OT ×",
       "description": "Description",
       "paid_status": "Paid",
-      "deduct_leave": "Deduct leave"
+      "deduct_leave": "Deduct leave",
+      "credit": "Credit",
+      "threshold": "Threshold"
     },
     "messages": {
       "load_error": "Failed to load holidays",

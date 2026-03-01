@@ -22,6 +22,7 @@ describe("PayrollTable", () => {
       overtime_pay_amount: "500000",
       deductions_amount: "0",
       net_pay_amount: "10500000",
+      holiday_work_premium_amount: "0",
       status: "published",
       standard_units: 200,
       overtime_units: 10,
@@ -56,11 +57,11 @@ describe("PayrollTable", () => {
 
   it("renders payslip summary rows", async () => {
     renderWithProviders(
-      <PayrollTable employee={null} workspace={null} 
-        payslips={mockPayslips} 
-        isLoading={false} 
-        adjustments={[]} 
-        onResolveAdjustments={vi.fn()} 
+      <PayrollTable employee={null} workspace={null}
+        payslips={mockPayslips}
+        isLoading={false}
+        adjustments={[]}
+        onResolveAdjustments={vi.fn()}
       />
     );
 
@@ -71,11 +72,11 @@ describe("PayrollTable", () => {
 
   it("expands card to show segments when clicked", async () => {
     renderWithProviders(
-      <PayrollTable employee={null} workspace={null} 
-        payslips={mockPayslips} 
-        isLoading={false} 
-        adjustments={[]} 
-        onResolveAdjustments={vi.fn()} 
+      <PayrollTable employee={null} workspace={null}
+        payslips={mockPayslips}
+        isLoading={false}
+        adjustments={[]}
+        onResolveAdjustments={vi.fn()}
       />
     );
 
@@ -100,11 +101,11 @@ describe("PayrollTable", () => {
     ];
 
     renderWithProviders(
-      <PayrollTable employee={null} workspace={null} 
-        payslips={mockPayslips} 
-        isLoading={false} 
-        adjustments={mockAdjustments as any} 
-        onResolveAdjustments={vi.fn()} 
+      <PayrollTable employee={null} workspace={null}
+        payslips={mockPayslips}
+        isLoading={false}
+        adjustments={mockAdjustments as any}
+        onResolveAdjustments={vi.fn()}
       />
     );
 

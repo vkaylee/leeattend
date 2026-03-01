@@ -290,10 +290,21 @@ run_parallel_ordered() {
             echo -e "  [${BLUE}START${NC}] $name (timeout: ${task_timeout}s)"
 
             if [ "$RUN_SERIAL" = "true" ]; then
-                # SERIAL EXECUTION
+                # SERIAL EXECUTION — Stream live output safely
+                > "$log_file" # truncate
+                
+                # Chạy test trong background nhưng lấy PID ngay lập tức
                 set +e
-                (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd") </dev/null > "$log_file" 2>&1
+                (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd" </dev/null > "$log_file" 2>&1) &
+                local test_pid=$!
+                
+                # tail -f sẽ tự động thoát khi test_pid kết thúc (PTY-safe)
+                tail -f "$log_file" --pid=$test_pid 2>/dev/null || true
+                
+                # Chờ lấy exit code thực sự của test
+                wait $test_pid
                 local status=$?
+                set -e
                 set -e
                 local duration=$(( SECONDS - start_time ))
 
@@ -327,6 +338,18 @@ run_parallel_ordered() {
 
         # Wait for at least one task to complete
         if [ ${#running_pids[@]} -gt 0 ]; then
+            echo -e "  [WAIT] Running: ${running_names[*]}  \n"
+            
+            # Start a background tail to show progress (PASS/FAIL/TIMEOUT lines only)
+            # This gives the user feedback that tests are actually running, not frozen
+            local tail_pids=()
+            for log in "${running_logs[@]}"; do
+                touch "$log" # ensure file exists
+                # Extract only important test execution lines to prevent flooding
+                tail -f "$log" 2>/dev/null | grep --line-buffered -E "^(    PASS|    FAIL|    TIMEOUT|panicked|test result:)" &
+                tail_pids+=($!)
+            done
+
             local still_running_pids=()
             local still_running_logs=()
             local still_running_names=()
@@ -385,6 +408,13 @@ run_parallel_ordered() {
             fi
         fi
     done
+
+    # Cleanup the live tail streaming processes created for parallel progress viewing (if any)
+    if [ ${#tail_pids[@]} -gt 0 ]; then
+        for tp in "${tail_pids[@]}"; do
+            kill "$tp" 2>/dev/null || true
+        done
+    fi
 
     echo -ne "                                                                \r"
     echo -e "${GREEN}✅ $phase_name Completed Successfully!${NC}"

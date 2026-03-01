@@ -50,7 +50,7 @@ run_with_timeout() {
 
 leeattend_cleanup() {
     echo -e "\n${YELLOW}🧹 [Parent] Cleaning up test environment...${NC}"
-    $DOCKER_COMPOSE_CMD down --remove-orphans > /dev/null 2>&1
+    $DOCKER_COMPOSE_CMD down --remove-orphans </dev/null > /dev/null 2>&1
     docker volume prune -f --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" --filter "label=com.docker.compose.volume=shared-data" > /dev/null 2>&1 || true
     rm -f apiserver/.api_port* webdashboard/.web_port*
     echo -e "${GREEN}✅ Cleanup complete.${NC}"
@@ -60,11 +60,11 @@ leeattend_setup() {
     echo -e "${BLUE}🏗️ [Parent] Setting up Postgres Environment...${NC}"
 
     # We need apiserver_test up to run migrations inside it
-    $DOCKER_COMPOSE_CMD up -d test_db apiserver_test > /dev/null 2>&1
+    $DOCKER_COMPOSE_CMD up -d test_db apiserver_test </dev/null > /dev/null 2>&1
 
     echo -n "  Waiting for database to be ready (timeout: ${TIMEOUT_DB_WAIT}s)..."
     local db_wait_start=$(date +%s)
-    until $DOCKER_COMPOSE_CMD exec test_db pg_isready -U test_user -d test_database > /dev/null 2>&1; do
+    until $DOCKER_COMPOSE_CMD exec test_db pg_isready -U test_user -d test_database </dev/null > /dev/null 2>&1; do
         printf "."
         sleep 1
         local elapsed=$(($(date +%s) - db_wait_start))
@@ -77,13 +77,22 @@ leeattend_setup() {
 
     echo -e "  Creating isolated databases for $NUM_WORKERS workers..."
 
+    # Clean up zombie test databases from previous runs
+    # When nextest kills tests via SIGKILL (timeout), Rust's Drop trait doesn't run,
+    # leaving orphan test_db_* databases that consume disk space.
+    $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -t -c \
+        "SELECT 'DROP DATABASE IF EXISTS \"' || datname || '\";' FROM pg_database WHERE datname LIKE 'test_db_%';" \
+        </dev/null 2>/dev/null | \
+        $DOCKER_COMPOSE_CMD exec -T -i -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database \
+        </dev/null > /dev/null 2>&1 || true
+
     # Create template database for Rust tests
-    $DOCKER_COMPOSE_CMD exec -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "DROP DATABASE IF EXISTS leeattend_test_template;" > /dev/null 2>&1 || true
-    $DOCKER_COMPOSE_CMD exec -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "CREATE DATABASE leeattend_test_template;" > /dev/null 2>&1 || true
+    $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "DROP DATABASE IF EXISTS leeattend_test_template;" </dev/null > /dev/null 2>&1 || true
+    $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "CREATE DATABASE leeattend_test_template;" </dev/null > /dev/null 2>&1 || true
 
     for i in $(seq 0 $((NUM_WORKERS-1))); do
-        $DOCKER_COMPOSE_CMD exec -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "DROP DATABASE IF EXISTS test_database_e2e_$i;" > /dev/null 2>&1 || true
-        $DOCKER_COMPOSE_CMD exec -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "CREATE DATABASE test_database_e2e_$i;" > /dev/null 2>&1 || true
+        $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "DROP DATABASE IF EXISTS test_database_e2e_$i;" </dev/null > /dev/null 2>&1 || true
+        $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "CREATE DATABASE test_database_e2e_$i;" </dev/null > /dev/null 2>&1 || true
     done
 
     # Internal URLs
@@ -106,8 +115,8 @@ leeattend_setup() {
     # $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" -e DATABASE_URL="$TEMPLATE_DB_URL" apiserver_test bash -c "cargo sqlx prepare -- --all-targets > .test_logs/parent_sqlx_prepare.log 2>&1" || echo -e "${YELLOW}⚠️ SQLx prepare failed (non-fatal).${NC}"
 
     # Ensure no connections hang on template for CREATE DATABASE TEMPLATE usage
-    $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "REVOKE CONNECT ON DATABASE leeattend_test_template FROM public;" > /dev/null 2>&1
-    $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'leeattend_test_template' AND pid <> pg_backend_pid();" > /dev/null 2>&1
+    $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "REVOKE CONNECT ON DATABASE leeattend_test_template FROM public;" </dev/null > /dev/null 2>&1
+    $DOCKER_COMPOSE_CMD exec -T -e PGPASSWORD="$PGPASSWORD" test_db psql -U test_user -d test_database -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'leeattend_test_template' AND pid <> pg_backend_pid();" </dev/null > /dev/null 2>&1
 
     for i in $(seq 0 $((NUM_WORKERS-1))); do
         local E2E_DB_URL="postgres://test_user:test_password@test_db:5432/test_database_e2e_$i?sslmode=disable"

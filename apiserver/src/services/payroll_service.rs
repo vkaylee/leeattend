@@ -136,6 +136,7 @@ impl PayrollService {
         }
 
         let mut total_overtime_pay = Decimal::ZERO;
+        let mut total_holiday_work_premium = Decimal::ZERO;
         let mut policy_cache: HashMap<Uuid, Vec<crate::models::OvertimeRule>> = HashMap::new();
         for (seg_start, seg_end) in segments {
             // A. Context Resolution
@@ -259,6 +260,25 @@ impl PayrollService {
                                             );
                                         segment_std_units += std_u;
                                         segment_ot_units += ot_u;
+
+                                        // --- HOLIDAY WORK COMPENSATION (configurable per-holiday) ---
+                                        if let Some(holiday) = holidays_map.get(&current_date) {
+                                            let daily_rate = if std_config.std_working_days.is_zero() {
+                                                Decimal::ZERO
+                                            } else {
+                                                segment_total_base / std_config.std_working_days
+                                            };
+                                            // 1. Holiday credit: NV đáng lẽ được nghỉ hưởng lương
+                                            if holiday.is_credit_on_work {
+                                                segment_std_units += seg_units_per_day.to_i32().unwrap_or(0);
+                                            }
+                                            // 2. Holiday premium: worked hours × (multiplier - 1)
+                                            let multiplier = holiday.ot_multiplier.unwrap_or(Decimal::from(3));
+                                            if multiplier > Decimal::ONE {
+                                                let worked_fraction = Decimal::from(std_u) / seg_units_per_day;
+                                                total_holiday_work_premium += worked_fraction * daily_rate * (multiplier - Decimal::ONE);
+                                            }
+                                        }
 
                                         if ot_u > 0 {
                                             if let Some(policy_id) = OvertimePolicyRepository::resolve_policy_for_employee(pool, employee_id, workspace_id, current_date).await.unwrap_or(None) {
@@ -416,6 +436,7 @@ impl PayrollService {
             employee_id,
             start_date,
             end_date,
+            workspace_id,
         )
         .await
         .map_err(|e| {
@@ -507,8 +528,9 @@ impl PayrollService {
             base_pay_amount: total_base_pay,
             overtime_pay_amount: total_overtime_pay,
             deductions_amount,
+            holiday_work_premium_amount: total_holiday_work_premium,
             net_pay_amount: total_base_pay + total_overtime_pay + total_incentive_amount
-                - deductions_amount,
+                + total_holiday_work_premium - deductions_amount,
             standard_units: total_std_units,
             overtime_units: total_ot_units,
             status: "draft".to_string(),

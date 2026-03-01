@@ -49,6 +49,7 @@ const mockPayslip: Payslip = {
   base_pay_amount: "10000000",
   overtime_pay_amount: "500000",
   deductions_amount: "500000",
+  holiday_work_premium_amount: "0",
   net_pay_amount: "10000000",
   standard_units: 200,
   overtime_units: 10,
@@ -289,10 +290,10 @@ describe("PayslipModal", () => {
   it("does not crash when payslip data is incomplete/malformed", () => {
     // Create a malformed payslip with missing nested objects in salary_components
     const malformedPayslip = {
-        ...mockPayslip,
-        salary_components: [
-            { component: { amount: '1000000' } } // Missing definition
-        ]
+      ...mockPayslip,
+      salary_components: [
+        { component: { amount: '1000000' } } // Missing definition
+      ]
     } as unknown as Payslip;
 
     renderWithProviders(
@@ -304,7 +305,7 @@ describe("PayslipModal", () => {
         workspace={mockWorkspace}
       />
     );
-    
+
     // Should still render the modal shell
     expect(screen.getAllByText("Official Payslip Preview").length).toBeGreaterThan(0);
   });

@@ -82,11 +82,13 @@ impl HolidayRepository {
         leave_type_id: Option<Uuid>,
         ot_multiplier: Option<rust_decimal::Decimal>,
         description: Option<&str>,
+        work_threshold_percent: Option<i32>,
+        is_credit_on_work: bool,
     ) -> Result<Holiday, sqlx::Error> {
         sqlx::query_as::<_, Holiday>(
             "INSERT INTO holidays
-                (workspace_id, name, date, holiday_type, is_paid, leave_type_id, ot_multiplier, description)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                (workspace_id, name, date, holiday_type, is_paid, leave_type_id, ot_multiplier, description, work_threshold_percent, is_credit_on_work)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
              RETURNING *",
         )
         .bind(workspace_id)
@@ -97,6 +99,8 @@ impl HolidayRepository {
         .bind(leave_type_id)
         .bind(ot_multiplier)
         .bind(description)
+        .bind(work_threshold_percent)
+        .bind(is_credit_on_work)
         .fetch_one(pool)
         .await
     }
@@ -114,6 +118,8 @@ impl HolidayRepository {
         leave_type_id: Option<Uuid>,
         ot_multiplier: Option<rust_decimal::Decimal>,
         description: Option<&str>,
+        work_threshold_percent: Option<i32>,
+        is_credit_on_work: Option<bool>,
     ) -> Result<Option<Holiday>, sqlx::Error> {
         sqlx::query_as::<_, Holiday>(
             "UPDATE holidays SET
@@ -124,8 +130,10 @@ impl HolidayRepository {
                 leave_type_id = COALESCE($6, leave_type_id),
                 ot_multiplier = COALESCE($7, ot_multiplier),
                 description = COALESCE($8, description),
+                work_threshold_percent = COALESCE($9, work_threshold_percent),
+                is_credit_on_work = COALESCE($10, is_credit_on_work),
                 updated_at = NOW()
-             WHERE id = $1 AND workspace_id = $9
+             WHERE id = $1 AND workspace_id = $11
              RETURNING *",
         )
         .bind(id)
@@ -136,6 +144,8 @@ impl HolidayRepository {
         .bind(leave_type_id)
         .bind(ot_multiplier)
         .bind(description)
+        .bind(work_threshold_percent)
+        .bind(is_credit_on_work)
         .bind(workspace_id)
         .fetch_optional(pool)
         .await

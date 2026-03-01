@@ -18,6 +18,10 @@ pub struct Holiday {
     /// Per-holiday OT multiplier override. None = use workspace default.
     pub ot_multiplier: Option<Decimal>,
     pub description: Option<String>,
+    /// Threshold % of shift worked to reverse leave deduction. NULL = default 50%.
+    pub work_threshold_percent: Option<i32>,
+    /// Whether to credit holiday pay when employee works on this holiday.
+    pub is_credit_on_work: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -35,6 +39,9 @@ pub struct CreateHolidayRequest {
     pub leave_type_id: Option<Uuid>,
     pub ot_multiplier: Option<Decimal>,
     pub description: Option<String>,
+    pub work_threshold_percent: Option<i32>,
+    #[serde(default = "default_true")]
+    pub is_credit_on_work: bool,
 }
 
 /// Request payload for updating an existing holiday.
@@ -47,6 +54,8 @@ pub struct UpdateHolidayRequest {
     pub leave_type_id: Option<Uuid>,
     pub ot_multiplier: Option<Decimal>,
     pub description: Option<String>,
+    pub work_threshold_percent: Option<i32>,
+    pub is_credit_on_work: Option<bool>,
 }
 
 /// Workspace-level strategy for calculating OT when a shift crosses midnight

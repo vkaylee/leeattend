@@ -24,6 +24,8 @@ export default function HolidaysPage() {
     const [formLeaveTypeId, setFormLeaveTypeId] = useState("");
     const [formOtMultiplier, setFormOtMultiplier] = useState("");
     const [formDescription, setFormDescription] = useState("");
+    const [formIsCreditOnWork, setFormIsCreditOnWork] = useState(true);
+    const [formThresholdPercent, setFormThresholdPercent] = useState("");
 
     const wsId = getCurrentWorkspaceId();
 
@@ -57,6 +59,8 @@ export default function HolidaysPage() {
         setFormLeaveTypeId("");
         setFormOtMultiplier("");
         setFormDescription("");
+        setFormIsCreditOnWork(true);
+        setFormThresholdPercent("");
         setEditingHoliday(null);
         setShowForm(false);
         setError(null);
@@ -71,6 +75,8 @@ export default function HolidaysPage() {
         setFormLeaveTypeId(h.leave_type_id || "");
         setFormOtMultiplier(h.ot_multiplier?.toString() || "");
         setFormDescription(h.description || "");
+        setFormIsCreditOnWork(h.is_credit_on_work ?? true);
+        setFormThresholdPercent(h.work_threshold_percent?.toString() || "");
         setShowForm(true);
     };
 
@@ -87,6 +93,8 @@ export default function HolidaysPage() {
             leave_type_id: !formIsPaid && formLeaveTypeId ? formLeaveTypeId : undefined,
             description: formDescription || undefined,
             ot_multiplier: formOtMultiplier ? parseFloat(formOtMultiplier) : undefined,
+            is_credit_on_work: formIsCreditOnWork,
+            work_threshold_percent: formThresholdPercent ? parseInt(formThresholdPercent) : undefined,
         };
 
         try {
@@ -207,19 +215,6 @@ export default function HolidaysPage() {
                                     <option value="regional">{t('holidays.fields.types.regional')}</option>
                                 </select>
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                                    {t('holidays.fields.ot_multiplier')}
-                                </label>
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    value={formOtMultiplier}
-                                    onChange={(e) => setFormOtMultiplier(e.target.value)}
-                                    placeholder={t('holidays.fields.ot_multiplier_placeholder')}
-                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
-                                />
-                            </div>
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
@@ -282,6 +277,64 @@ export default function HolidaysPage() {
                                 </div>
                             </div>
                         )}
+                        {/* Work Policy Section */}
+                        <div className="mt-2 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                ⚙️ {t('holidays.fields.work_policy_title', 'Chính sách khi NV đi làm ngày lễ')}
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="flex items-start gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id="isCreditOnWork"
+                                        checked={formIsCreditOnWork}
+                                        onChange={(e) => setFormIsCreditOnWork(e.target.checked)}
+                                        className="rounded mt-0.5"
+                                    />
+                                    <div>
+                                        <label htmlFor="isCreditOnWork" className="text-sm text-slate-700 dark:text-slate-300 font-medium">
+                                            {t('holidays.fields.credit_on_work', 'Credit lương ngày lễ')}
+                                        </label>
+                                        <p className="text-[10px] text-slate-400">
+                                            {t('holidays.fields.credit_on_work_help', 'NV vẫn nhận lương ngày lễ + lương giờ làm')}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                                        {t('holidays.fields.threshold_percent', 'Ngưỡng hoàn phép')} (%)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={100}
+                                        value={formThresholdPercent}
+                                        onChange={(e) => setFormThresholdPercent(e.target.value)}
+                                        placeholder="50"
+                                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+                                    />
+                                    <p className="text-[10px] text-slate-400 mt-0.5">
+                                        {t('holidays.fields.threshold_help', 'NV làm ≥ ngưỡng → hoàn phép. < ngưỡng → giữ phép')}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                                        {t('holidays.fields.ot_multiplier', 'Hệ số nhân giờ làm')}
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={formOtMultiplier}
+                                        onChange={(e) => setFormOtMultiplier(e.target.value)}
+                                        placeholder={t('holidays.fields.ot_multiplier_placeholder', '3.0')}
+                                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+                                    />
+                                    <p className="text-[10px] text-slate-400 mt-0.5">
+                                        {t('holidays.fields.ot_multiplier_help', 'VD: 3× = 300% lương cho mỗi giờ đi làm')}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                         <div className="flex gap-2 justify-end">
                             <button
                                 type="button"
@@ -323,6 +376,8 @@ export default function HolidaysPage() {
                                 <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('holidays.table.type')}</th>
                                 <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">{t('holidays.table.paid')}</th>
                                 <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">{t('holidays.table.ot')}</th>
+                                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">{t('holidays.table.credit', 'Credit')}</th>
+                                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">{t('holidays.table.threshold', 'Ngưỡng')}</th>
                                 <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('holidays.table.description')}</th>
                                 <th className="px-4 py-3"></th>
                             </tr>
@@ -357,6 +412,16 @@ export default function HolidaysPage() {
                                     </td>
                                     <td className="px-4 py-3 text-center font-mono font-bold text-sm text-orange-600 dark:text-orange-400">
                                         {h.ot_multiplier ? `${h.ot_multiplier}×` : "—"}
+                                    </td>
+                                    <td className="px-4 py-3 text-center text-sm">
+                                        {h.is_credit_on_work ? (
+                                            <span className="text-emerald-600">✅</span>
+                                        ) : (
+                                            <span className="text-slate-400">❌</span>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-3 text-center font-mono text-sm text-slate-600 dark:text-slate-400">
+                                        {h.work_threshold_percent != null ? `${h.work_threshold_percent}%` : "—"}
                                     </td>
                                     <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 max-w-[200px] truncate">
                                         {h.description || "—"}

@@ -39,6 +39,7 @@ pub enum LeaveStatus {
     Pending,
     Approved,
     Rejected,
+    Cancelled,
 }
 
 #[derive(

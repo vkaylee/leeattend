@@ -111,7 +111,7 @@ export interface components {
         /** @enum {string} */
         ImportJobStatus: "pending" | "processing" | "completed" | "failed";
         /** @enum {string} */
-        LeaveStatus: "pending" | "approved" | "rejected";
+        LeaveStatus: "pending" | "approved" | "rejected" | "cancelled";
         /** @enum {string} */
         LeaveTransactionType: "accrual" | "usage" | "adjustment" | "carry_over";
         /** @enum {string} */

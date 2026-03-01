@@ -44,6 +44,7 @@ const mockPayslips: Payslip[] = [
     overtime_pay_amount: "500000",
     deductions_amount: "0",
     net_pay_amount: "10500000",
+    holiday_work_premium_amount: "0",
     standard_units: 200,
     overtime_units: 10,
     status: "published",
@@ -61,7 +62,7 @@ describe("PayrollSummaryTable", () => {
   it("renders employee list correctly", () => {
     render(
       <BrowserRouter>
-        <PayrollSummaryTable 
+        <PayrollSummaryTable
           employees={mockEmployees}
           payslips={mockPayslips}
           isLoading={false}
@@ -83,7 +84,7 @@ describe("PayrollSummaryTable", () => {
   it("filters employees based on search term", () => {
     render(
       <BrowserRouter>
-        <PayrollSummaryTable 
+        <PayrollSummaryTable
           employees={mockEmployees}
           payslips={mockPayslips}
           isLoading={false}
@@ -104,7 +105,7 @@ describe("PayrollSummaryTable", () => {
   it("calls onToggleSelect when checkbox is clicked", () => {
     render(
       <BrowserRouter>
-        <PayrollSummaryTable 
+        <PayrollSummaryTable
           employees={mockEmployees}
           payslips={mockPayslips}
           isLoading={false}
@@ -126,7 +127,7 @@ describe("PayrollSummaryTable", () => {
   it("calls onViewDetail when row is clicked", () => {
     render(
       <BrowserRouter>
-        <PayrollSummaryTable 
+        <PayrollSummaryTable
           employees={mockEmployees}
           payslips={mockPayslips}
           isLoading={false}
@@ -147,7 +148,7 @@ describe("PayrollSummaryTable", () => {
   it("maintains input focus when switching to loading state (regression test)", () => {
     const { rerender } = render(
       <BrowserRouter>
-        <PayrollSummaryTable 
+        <PayrollSummaryTable
           employees={mockEmployees}
           payslips={mockPayslips}
           isLoading={false}
@@ -169,7 +170,7 @@ describe("PayrollSummaryTable", () => {
     // 2. Rerender with isLoading=true
     rerender(
       <BrowserRouter>
-        <PayrollSummaryTable 
+        <PayrollSummaryTable
           employees={mockEmployees}
           payslips={mockPayslips}
           isLoading={true}
@@ -186,7 +187,7 @@ describe("PayrollSummaryTable", () => {
     // 3. Verify input is still there and still focused
     expect(screen.getByLabelText("common.search")).toBeInTheDocument();
     expect(screen.getByLabelText("common.search")).toHaveFocus();
-    
+
     // 4. Verify loading state is also visible (somewhere else)
     expect(screen.getByText("common.loading")).toBeInTheDocument();
   });
@@ -194,7 +195,7 @@ describe("PayrollSummaryTable", () => {
   it("auto-focuses the search input on mount", () => {
     render(
       <BrowserRouter>
-        <PayrollSummaryTable 
+        <PayrollSummaryTable
           employees={mockEmployees}
           payslips={mockPayslips}
           isLoading={false}

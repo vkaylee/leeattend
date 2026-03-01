@@ -36,6 +36,7 @@ async fn test_payroll_payslips() {
         standard_units: 160,
         overtime_units: 10,
         status: "paid".to_string(),
+        holiday_work_premium_amount: Decimal::ZERO,
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
@@ -74,6 +75,7 @@ async fn test_get_employee_payslips_api() {
         standard_units: 40,
         overtime_units: 0,
         status: "draft".to_string(),
+        holiday_work_premium_amount: Decimal::ZERO,
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };

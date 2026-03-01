@@ -162,7 +162,77 @@ impl AttendanceSummaryService {
             .await
             .unwrap_or(None);
         let is_holiday = holiday.is_some();
-        let holiday_name = holiday.map(|h| h.name);
+        let holiday_name = holiday.as_ref().map(|h| h.name.clone());
+
+        // 4c. Holiday leave conflict detection:
+        // If employee worked on a holiday that had a system-generated leave request,
+        // check threshold and potentially reverse the leave deduction.
+        if is_holiday && actual_work_minutes > 0 {
+            if let Some(ref hol) = holiday {
+                // Find system-generated leave request for this date
+                let system_leave: Option<(Uuid, Uuid, String)> = sqlx::query_as(
+                    r#"SELECT lr.id, lr.leave_type_id, lt.code
+                       FROM leave_requests lr
+                       JOIN leave_types lt ON lt.id = lr.leave_type_id
+                       WHERE lr.employee_id = $1
+                         AND lr.status = 'approved'::leave_status_type
+                         AND lr.start_date <= $2
+                         AND lr.end_date >= $2
+                         AND lr.requested_by_user_id IS NULL"#,
+                )
+                .bind(employee_id)
+                .bind(date)
+                .fetch_optional(pool)
+                .await
+                .unwrap_or(None);
+
+                if let Some((leave_request_id, _leave_type_id, _leave_code)) = system_leave {
+                    // Calculate work % against shift
+                    let shift_minutes = daily_schedule.start_time
+                        .and_then(|st| daily_schedule.end_time.map(|et| {
+                            let diff = et.signed_duration_since(st).num_minutes() as i32;
+                            let break_mins = daily_schedule.break_duration_minutes.unwrap_or(0);
+                            if diff > 0 { diff - break_mins } else { diff + 1440 - break_mins }
+                        }))
+                        .unwrap_or(480); // default 8h if no shift
+
+                    let threshold = hol.work_threshold_percent.unwrap_or(50);
+                    let work_percent = if shift_minutes > 0 {
+                        (actual_work_minutes * 100) / shift_minutes
+                    } else {
+                        100
+                    };
+
+                    if work_percent >= threshold {
+                        // Work >= threshold → cancel leave (balance is computed from requests)
+                        let _ = sqlx::query(
+                            "UPDATE leave_requests SET status = 'cancelled'::leave_status_type, updated_at = NOW() WHERE id = $1"
+                        )
+                        .bind(leave_request_id)
+                        .execute(pool)
+                        .await;
+
+                        tracing::info!(
+                            employee_id = %employee_id,
+                            date = %date,
+                            work_percent = work_percent,
+                            threshold = threshold,
+                            "Holiday leave reversed: employee worked {}% (>= {}% threshold)",
+                            work_percent, threshold
+                        );
+                    } else {
+                        tracing::info!(
+                            employee_id = %employee_id,
+                            date = %date,
+                            work_percent = work_percent,
+                            threshold = threshold,
+                            "Holiday leave kept: employee worked {}% (< {}% threshold)",
+                            work_percent, threshold
+                        );
+                    }
+                }
+            }
+        }
 
         // 5. Upsert into DB
         let existing: Option<AttendanceDailySummary> = sqlx::query_as!(

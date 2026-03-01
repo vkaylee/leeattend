@@ -2528,12 +2528,18 @@
       },
       "ot_multiplier": "Hệ số tăng ca (OT)",
       "ot_multiplier_placeholder": "3.0",
+      "ot_multiplier_help": "VD: 3× = 300% lương cho mỗi giờ đi làm",
       "description": "Mô tả",
       "description_placeholder": "Nội dung ghi chú thêm",
       "paid_holiday": "Nghỉ lễ có lương",
       "deduct_leave_type": "Trừ vào loại phép",
       "auto_first_paid": "Tự động (loại phép có lương đầu tiên xếp theo tự tự ngày tạo)",
-      "deduction_warning": "Nhân viên không đủ số dư phép sẽ bị hệ thống tự động ghi nhận là nghỉ không lương."
+      "deduction_warning": "Nhân viên không đủ số dư phép sẽ bị hệ thống tự động ghi nhận là nghỉ không lương.",
+      "work_policy_title": "Chính sách khi NV đi làm ngày lễ",
+      "credit_on_work": "Credit lương ngày lễ",
+      "credit_on_work_help": "NV vẫn nhận lương ngày lễ + lương giờ làm",
+      "threshold_percent": "Ngưỡng hoàn phép",
+      "threshold_help": "NV làm ≥ ngưỡng → hoàn phép. < ngưỡng → giữ phép"
     },
     "table": {
       "date": "Ngày",
@@ -2543,7 +2549,9 @@
       "ot": "HS OT",
       "description": "Mô tả",
       "paid_status": "Có lương",
-      "deduct_leave": "Trừ phép"
+      "deduct_leave": "Trừ phép",
+      "credit": "Credit",
+      "threshold": "Ngưỡng"
     },
     "messages": {
       "load_error": "Lỗi khi tải danh sách ngày lễ",

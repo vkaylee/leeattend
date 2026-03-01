@@ -248,6 +248,8 @@ export interface Holiday {
   leave_type_id?: string | null;
   ot_multiplier?: number;
   description?: string;
+  work_threshold_percent?: number | null;
+  is_credit_on_work: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -381,6 +383,7 @@ export interface Payslip {
   period_end: string;
   base_pay_amount: string;
   overtime_pay_amount: string;
+  holiday_work_premium_amount: string;
   deductions_amount: string;
   net_pay_amount: string;
   standard_units: number;

@@ -69,6 +69,8 @@ pub async fn create_holiday(
         req.leave_type_id,
         req.ot_multiplier,
         req.description.as_deref(),
+        req.work_threshold_percent,
+        req.is_credit_on_work,
     )
     .await
     .map_err(|e| {
@@ -106,6 +108,8 @@ pub async fn update_holiday(
         req.leave_type_id,
         req.ot_multiplier,
         req.description.as_deref(),
+        req.work_threshold_percent,
+        req.is_credit_on_work,
     )
     .await
     .map_err(|e| AppError::Internal(e.to_string()))?

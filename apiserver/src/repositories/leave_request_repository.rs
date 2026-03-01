@@ -135,7 +135,9 @@ pub async fn get_approved_leave_breakdown(
     employee_id: Uuid,
     start_date: NaiveDate,
     end_date: NaiveDate,
+    workspace_id: Uuid,
 ) -> Result<LeaveBreakdown, sqlx::Error> {
+    // Step 1: Get raw leave days per type
     let rows = sqlx::query(
         r#"
         SELECT lt.code as leave_type_code, 
@@ -155,6 +157,29 @@ pub async fn get_approved_leave_breakdown(
     .fetch_all(pool)
     .await?;
 
+    // Step 2: Count paid holidays in the period to subtract from total
+    let paid_holiday_count: i64 = sqlx::query_scalar(
+        r#"SELECT COUNT(*) FROM holidays h
+           WHERE h.workspace_id = $1
+             AND h.is_paid = true
+             AND h.date >= $2
+             AND h.date <= $3
+             AND EXISTS (
+                 SELECT 1 FROM leave_requests lr
+                 WHERE lr.employee_id = $4
+                   AND lr.status = 'approved'
+                   AND lr.start_date <= h.date
+                   AND lr.end_date >= h.date
+             )"#,
+    )
+    .bind(workspace_id)
+    .bind(start_date)
+    .bind(end_date)
+    .bind(employee_id)
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0);
+
     let mut breakdown = LeaveBreakdown {
         total_days: 0.0,
         unpaid_days: 0.0,
@@ -171,6 +196,12 @@ pub async fn get_approved_leave_breakdown(
         } else if leave_type_code == "sick" {
             breakdown.sick_days += days_f;
         }
+    }
+
+    // Subtract paid holidays that overlap with leave periods
+    breakdown.total_days -= paid_holiday_count as f64;
+    if breakdown.total_days < 0.0 {
+        breakdown.total_days = 0.0;
     }
 
     Ok(breakdown)

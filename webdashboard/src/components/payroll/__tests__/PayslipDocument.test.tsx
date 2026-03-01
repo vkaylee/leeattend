@@ -50,6 +50,7 @@ const createMockPayslip = (overrides: Partial<Payslip> = {}): Payslip => ({
   base_pay_amount: "10000000",
   overtime_pay_amount: "500000",
   deductions_amount: "500000",
+  holiday_work_premium_amount: "0",
   net_pay_amount: "10000000",
   standard_units: 200,
   overtime_units: 10,
@@ -291,8 +292,8 @@ describe("PayslipDocument", () => {
   });
 
   it("calculates and displays prorated amounts correctly", () => {
-     // 10,000,000 / 22 * 22 = 10,000,000
-     // 1,000,000 / 22 * 22 = 1,000,000
+    // 10,000,000 / 22 * 22 = 10,000,000
+    // 1,000,000 / 22 * 22 = 1,000,000
     const payslip = createMockPayslip({
       salary_components: [
         {
@@ -343,14 +344,14 @@ describe("PayslipDocument", () => {
     // Daily: 10,000,000 / 22 = 454,545.45...
     // Paid Days: 11
     // Prorated: 5,000,000
-    
+
     // We expect to see the formatted amount "5.000.000 ₫" (or similar depending on locale mock)
     // The locale mock might be just returning the key or simple text? 
     // Wait, the component uses Intl.NumberFormat('vi-VN'). 
     // In node environment, full ICU might not be available or might differ.
     // But usually Vitest/JSDOM supports it reasonably well.
     // 5,000,000 VND formatted is usually "5.000.000 ₫" or "5.000.000 ₫" (nbsp).
-    
+
     // Let's use a regex to be safe about spacing/currency symbol
     expect(screen.getByText(/5\.000\.000/)).toBeDefined();
   });
@@ -400,14 +401,14 @@ describe("PayslipDocument", () => {
 
     // This should NOT crash the entire component
     // We expect it might fail to render that row, or render empty, but not throw
-      renderWithProviders(
-        <PayslipDocument
-          employee={createMockEmployee()}
-          payslip={payslip}
-          workspace={createMockWorkspace()}
-        />
-      );
-    
+    renderWithProviders(
+      <PayslipDocument
+        employee={createMockEmployee()}
+        payslip={payslip}
+        workspace={createMockWorkspace()}
+      />
+    );
+
     // If it survives, check if it rendered the document shell
     expect(screen.getByText("payroll.document.title")).toBeDefined();
   });

@@ -2528,12 +2528,18 @@
       },
       "ot_multiplier": "加班倍数",
       "ot_multiplier_placeholder": "3.0",
+      "ot_multiplier_help": "例: 3× = 每小时工作300%工资",
       "description": "描述",
       "description_placeholder": "可选描述",
       "paid_holiday": "带薪休假",
       "deduct_leave_type": "扣除休假类型",
       "auto_first_paid": "自动 (第一个带薪休假类型)",
-      "deduction_warning": "休假余额不足的员工，此日将被标记为无薪假。"
+      "deduction_warning": "休假余额不足的员工，此日将被标记为无薪假。",
+      "work_policy_title": "员工节假日上班政策",
+      "credit_on_work": "节假日薪资补贴",
+      "credit_on_work_help": "员工仍获得节假日工资+工作工资",
+      "threshold_percent": "返还假期阈值",
+      "threshold_help": "员工工作 ≥ 阈值 → 返还假期。< 阈值 → 保持扣除"
     },
     "table": {
       "date": "日期",
@@ -2543,7 +2549,9 @@
       "ot": "加班倍数",
       "description": "描述",
       "paid_status": "带薪",
-      "deduct_leave": "扣除假期"
+      "deduct_leave": "扣除假期",
+      "credit": "补贴",
+      "threshold": "阈值"
     },
     "messages": {
       "load_error": "加载假期失败",

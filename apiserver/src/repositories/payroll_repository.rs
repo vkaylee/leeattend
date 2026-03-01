@@ -290,9 +290,9 @@ pub async fn get_employee_salary_components(
 pub async fn create_payslip(pool: &PgPool, payslip: &Payslip) -> Result<Payslip, sqlx::Error> {
     query_as!(
         Payslip,
-        r#"INSERT INTO payslips (id, employee_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, standard_units, overtime_units, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-         RETURNING id, employee_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, standard_units, overtime_units, status, created_at as "created_at!", updated_at as "updated_at!""#,
+        r#"INSERT INTO payslips (id, employee_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, standard_units, overtime_units, status, holiday_work_premium_amount)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+         RETURNING id, employee_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, standard_units, overtime_units, status, holiday_work_premium_amount, created_at as "created_at!", updated_at as "updated_at!""#,
         payslip.id,
         payslip.employee_id,
         payslip.period_start,
@@ -303,7 +303,8 @@ pub async fn create_payslip(pool: &PgPool, payslip: &Payslip) -> Result<Payslip,
         payslip.net_pay_amount,
         payslip.standard_units,
         payslip.overtime_units,
-        payslip.status
+        payslip.status,
+        payslip.holiday_work_premium_amount
     )
     .fetch_one(pool)
     .await
@@ -315,7 +316,7 @@ pub async fn get_payslips_by_employee(
 ) -> Result<Vec<Payslip>, sqlx::Error> {
     query_as!(
         Payslip,
-        r#"SELECT id, employee_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, standard_units, overtime_units, status, created_at as "created_at!", updated_at as "updated_at!" FROM payslips WHERE employee_id = $1 ORDER BY period_start DESC"#,
+        r#"SELECT id, employee_id, period_start, period_end, base_pay_amount, overtime_pay_amount, deductions_amount, net_pay_amount, standard_units, overtime_units, status, holiday_work_premium_amount, created_at as "created_at!", updated_at as "updated_at!" FROM payslips WHERE employee_id = $1 ORDER BY period_start DESC"#,
         employee_id
     )
     .fetch_all(pool)
@@ -330,7 +331,7 @@ pub async fn get_payslips_by_workspace_period(
 ) -> Result<Vec<Payslip>, sqlx::Error> {
     query_as!(
         Payslip,
-        r#"SELECT p.id, p.employee_id, p.period_start, p.period_end, p.base_pay_amount, p.overtime_pay_amount, p.deductions_amount, p.net_pay_amount, p.standard_units, p.overtime_units, p.status, p.created_at as "created_at!", p.updated_at as "updated_at!" 
+        r#"SELECT p.id, p.employee_id, p.period_start, p.period_end, p.base_pay_amount, p.overtime_pay_amount, p.deductions_amount, p.net_pay_amount, p.standard_units, p.overtime_units, p.status, p.holiday_work_premium_amount, p.created_at as "created_at!", p.updated_at as "updated_at!" 
            FROM payslips p
            JOIN employees e ON e.id = p.employee_id
            WHERE e.workspace_id = $1 AND p.period_start = $2 AND p.period_end = $3
