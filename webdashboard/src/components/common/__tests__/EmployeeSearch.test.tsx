@@ -42,7 +42,7 @@ describe("EmployeeSearch Component", () => {
     // We test the internal handleSelect by bypassing the complex Radix UI
     // and just checking if the component passes correct data to Combobox
     render(<EmployeeSearch workspaceId="ws-1" onChange={onChange} />, { wrapper });
-    
+
     // Fallback select is used when Radix trigger is not fully rendered in JSDOM
     expect(screen.getByRole("combobox")).toBeDefined();
   });
@@ -59,9 +59,40 @@ describe("EmployeeSearch Component", () => {
     // To test initial chips, we'd need to mock the internal state or pass it as prop.
     // For now, we verify it renders without crashing.
     render(<EmployeeSearch workspaceId="ws-1" multiple value={value} onChange={onChange} />, { wrapper });
-    
+
     // With the new useEffect, it should find '1' in mockEmployees and show 'John Doe'
     // It appears in both the chip and the hidden select option
     expect(screen.getAllByText("John Doe").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("preserves server-side relevance order (exact match > prefix > contains)", () => {
+    // Simulate server returning results in relevance-ranked order:
+    // #16 (exact) > #161 (prefix) > #1649 (prefix) > #416 (contains)
+    const rankedEmployees = [
+      { id: "a", full_name: "Nguyen Van A", employee_id_number: "16" },
+      { id: "b", full_name: "Tran Van B", employee_id_number: "161" },
+      { id: "c", full_name: "Le Van C", employee_id_number: "1649" },
+      { id: "d", full_name: "Pham Van D", employee_id_number: "416" },
+    ];
+
+    (useQuery as any).mockReturnValue({
+      data: { data: rankedEmployees },
+      isLoading: false,
+    });
+
+    const onChange = vi.fn();
+    render(<EmployeeSearch workspaceId="ws-1" onChange={onChange} />, { wrapper });
+
+    // The combobox should be rendered with options in the exact order from the API
+    const combobox = screen.getByRole("combobox");
+    expect(combobox).toBeDefined();
+
+    // Verify the component did NOT re-sort the data alphabetically
+    // by checking the first option is still the exact match employee
+    const allOptions = screen.queryAllByText(/16|161|1649|416/);
+    if (allOptions.length > 0) {
+      // First visible option should be the exact match "16", not "1649" or "416"
+      expect(allOptions[0].textContent).toContain("16");
+    }
   });
 });

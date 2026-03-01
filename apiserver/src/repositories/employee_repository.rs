@@ -184,6 +184,34 @@ pub async fn get_employee_by_id(
         .await
 }
 
+/// Build the SQL components for employee search.
+/// Returns (where_clause, order_clause, has_search).
+/// Extracted for testability.
+fn build_employee_search_sql(search_query: &Option<String>) -> (String, &'static str, bool) {
+    let has_search = search_query
+        .as_ref()
+        .map_or(false, |q| !q.trim().is_empty());
+
+    let mut where_clause = "WHERE e.workspace_id = $1".to_string();
+    if has_search {
+        where_clause.push_str(" AND (e.full_name ILIKE $2 OR e.employee_id_number ILIKE $2)");
+    }
+
+    // When searching, rank results: exact id > prefix id > exact name > prefix name > alpha
+    let order_clause = if has_search {
+        "ORDER BY \
+            (e.employee_id_number = $5) DESC, \
+            (e.employee_id_number ILIKE $5 || '%') DESC, \
+            (e.full_name ILIKE $5) DESC, \
+            (e.full_name ILIKE $5 || '%') DESC, \
+            e.full_name ASC"
+    } else {
+        "ORDER BY e.full_name ASC"
+    };
+
+    (where_clause, order_clause, has_search)
+}
+
 pub async fn get_all_employees(
     pool: &PgPool,
     workspace_id: Uuid,
@@ -191,28 +219,21 @@ pub async fn get_all_employees(
     page: i64,
     limit: i64,
 ) -> Result<(Vec<Employee>, i64), sqlx::Error> {
-    let mut where_clause = "WHERE e.workspace_id = $1".to_string();
-    if let Some(ref q) = search_query {
-        if !q.trim().is_empty() {
-            where_clause.push_str(" AND (e.full_name ILIKE $2 OR e.employee_id_number ILIKE $2)");
-        }
-    }
+    let (where_clause, order_clause, has_search) = build_employee_search_sql(&search_query);
 
     let count_sql = format!("SELECT COUNT(*) FROM employees e {where_clause}");
     let mut count_query = query_scalar::<_, i64>(&count_sql).bind(workspace_id);
 
-    let sql =
-        format!("{EMPLOYEE_SELECT_QUERY} {where_clause} ORDER BY e.full_name LIMIT $3 OFFSET $4");
+    let sql = format!(
+        "{EMPLOYEE_SELECT_QUERY} {where_clause} {order_clause} LIMIT $3 OFFSET $4"
+    );
     let mut db_query = query_as::<_, Employee>(&sql).bind(workspace_id);
 
-    if let Some(ref q) = search_query {
-        if !q.trim().is_empty() {
-            let bound_q = format!("%{}%", q.trim());
-            count_query = count_query.bind(bound_q.clone());
-            db_query = db_query.bind(bound_q);
-        } else {
-            db_query = db_query.bind(Option::<String>::None);
-        }
+    if has_search {
+        let raw_q = search_query.as_ref().unwrap().trim().to_string();
+        let bound_q = format!("%{}%", raw_q);
+        count_query = count_query.bind(bound_q.clone());
+        db_query = db_query.bind(bound_q);
     } else {
         db_query = db_query.bind(Option::<String>::None);
     }
@@ -220,7 +241,15 @@ pub async fn get_all_employees(
     let total = count_query.fetch_one(pool).await?;
 
     let offset = (page - 1) * limit;
-    let employees = db_query.bind(limit).bind(offset).fetch_all(pool).await?;
+    db_query = db_query.bind(limit).bind(offset);
+
+    // Bind $5 (raw search term for ranking) only when searching
+    if has_search {
+        let raw_q = search_query.as_ref().unwrap().trim().to_string();
+        db_query = db_query.bind(raw_q);
+    }
+
+    let employees = db_query.fetch_all(pool).await?;
 
     Ok((employees, total))
 }
@@ -512,4 +541,64 @@ pub async fn get_paginated_employee_ids(
         .await?;
 
     Ok((employees, total))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_search_sql_without_query_uses_alpha_order() {
+        let (where_clause, order_clause, has_search) = build_employee_search_sql(&None);
+
+        assert!(!has_search);
+        assert_eq!(where_clause, "WHERE e.workspace_id = $1");
+        assert!(order_clause.contains("ORDER BY e.full_name ASC"));
+        assert!(!order_clause.contains("$5"));
+    }
+
+    #[test]
+    fn test_search_sql_with_empty_query_uses_alpha_order() {
+        let q = Some("   ".to_string());
+        let (where_clause, order_clause, has_search) = build_employee_search_sql(&q);
+
+        assert!(!has_search);
+        assert_eq!(where_clause, "WHERE e.workspace_id = $1");
+        assert!(order_clause.contains("ORDER BY e.full_name ASC"));
+        assert!(!order_clause.contains("$5"));
+    }
+
+    #[test]
+    fn test_search_sql_with_query_adds_relevance_ranking() {
+        let q = Some("16".to_string());
+        let (where_clause, order_clause, has_search) = build_employee_search_sql(&q);
+
+        assert!(has_search);
+        // WHERE should include ILIKE filter
+        assert!(where_clause.contains("ILIKE $2"));
+        // ORDER should include exact match ranking ($5)
+        assert!(order_clause.contains("employee_id_number = $5"));
+        assert!(order_clause.contains("employee_id_number ILIKE $5"));
+        assert!(order_clause.contains("full_name ILIKE $5"));
+        assert!(order_clause.contains("e.full_name ASC"));
+    }
+
+    #[test]
+    fn test_search_sql_ranking_order_exact_before_prefix_before_alpha() {
+        let q = Some("test".to_string());
+        let (_, order_clause, _) = build_employee_search_sql(&q);
+
+        // Verify the ranking tiers appear in correct order:
+        // 1. exact id match, 2. prefix id match, 3. exact name match, 4. prefix name, 5. alpha
+        let exact_id_pos = order_clause.find("employee_id_number = $5").unwrap();
+        let prefix_id_pos = order_clause.find("employee_id_number ILIKE $5 || '%'").unwrap();
+        let exact_name_pos = order_clause.find("full_name ILIKE $5) DESC").unwrap();
+        let prefix_name_pos = order_clause.find("full_name ILIKE $5 || '%'").unwrap();
+        let alpha_pos = order_clause.find("e.full_name ASC").unwrap();
+
+        assert!(exact_id_pos < prefix_id_pos, "Exact ID should come before prefix ID");
+        assert!(prefix_id_pos < exact_name_pos, "Prefix ID should come before exact name");
+        assert!(exact_name_pos < prefix_name_pos, "Exact name should come before prefix name");
+        assert!(prefix_name_pos < alpha_pos, "Prefix name should come before alphabetical");
+    }
 }
