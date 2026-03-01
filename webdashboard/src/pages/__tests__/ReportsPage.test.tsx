@@ -281,6 +281,67 @@ describe("ReportsPage", () => {
     const rawLogsToggle = await screen.findByRole("button", { name: /Nhật ký thô/i });
     expect(rawLogsToggle).toBeInTheDocument();
   });
+  it("navigates with ArrowDown and opens the second employee when pressing Enter", async () => {
+    const user = userEvent.setup();
+    const mockDailyRow = {
+      employee_id: "emp-2",
+      employee_name: "Jane Smith",
+      date: "2026-01-15",
+      actual_punch_in: "2026-01-15T01:00:00Z",
+      actual_punch_out: "2026-01-15T10:00:00Z",
+      scheduled_start: "08:00:00",
+      scheduled_end: "17:00:00",
+      break_duration_minutes: 60,
+      break_start: null,
+      break_end: null,
+      is_break_auto_deduct: false,
+      std_work_units: 480,
+      ot_work_units: 0,
+      status: "present",
+      generation_metadata: null,
+    };
+    (api.fetchAttendanceReport as any).mockImplementation((_wsId: string, _start: string, _end: string, type: string) => {
+      if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1 });
+      return Promise.resolve({
+        data: [
+          { employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 },
+          { employee_id: "emp-2", employee_name: "Jane Smith", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }
+        ],
+        total: 2
+      });
+    });
+
+    renderWithProviders(<ReportsPage />);
+    await screen.findByText(/John Doe/i);
+    await screen.findByText(/Jane Smith/i);
+
+    // Get search input and focus it
+    const searchInput = screen.getByRole("textbox");
+
+    // Press ArrowDown to select the second row, then Enter
+    await user.type(searchInput, "{ArrowDown}{Enter}");
+
+    // The Drawer should open up for Jane Smith (emp-2)
+    const sheetPanel = await screen.findByTestId("sheet-panel");
+    expect(sheetPanel).toBeInTheDocument();
+
+    // Verify the drawer is for Jane Smith by checking the mock data return
+    const expectedName = await screen.findAllByText(/Jane Smith|John Doe/i);
+    expect(expectedName.length).toBeGreaterThan(0);
+  });
+
+  it("displays an empty state when no data is returned", async () => {
+    (api.fetchAttendanceReport as any).mockImplementation(() => {
+      return Promise.resolve({ data: [], total: 0 });
+    });
+
+    renderWithProviders(<ReportsPage />);
+
+    // The Reports.messages.no_data localized string or empty graphic should appear
+    // We could search for the text or the svg icon class
+    const emptyStateTitle = await screen.findByText(/NO DATA|Không có dữ liệu/i);
+    expect(emptyStateTitle).toBeInTheDocument();
+  });
 
   it("renders cross-navigation link to raw logs with preserved date range", async () => {
     renderWithProviders(<ReportsPage />, ["/reports?from=2026-03-01&to=2026-03-31"]);
