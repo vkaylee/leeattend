@@ -84,4 +84,35 @@ describe("AttendanceLogsPage", () => {
     expect(link).toBeDefined();
     expect(link.getAttribute("href")).toBe("/reports?from=2026-01-01&to=2026-01-31");
   });
+
+  it("shows skeleton loading state when fetching data", () => {
+    // Override the mock to simulate loading state (slow promise)
+    (api.fetchRawAttendanceLogs as any).mockImplementation(() => new Promise(() => { }));
+
+    renderWithProviders(<AttendanceLogsPage />);
+
+    // Check if skeleton rows are rendered (we used animate-pulse class)
+    const skeletons = document.querySelectorAll('.animate-pulse');
+    expect(skeletons.length).toBeGreaterThan(0);
+  });
+
+  it("shows beautiful empty state when no data is returned", async () => {
+    // Override the mock to return empty data
+    (api.fetchRawAttendanceLogs as any).mockResolvedValue({
+      data: [],
+      total: 0,
+      page: 1,
+      page_size: 50
+    });
+
+    renderWithProviders(<AttendanceLogsPage />);
+
+    // Check for the new empty state text
+    const emptyStateTitle = await screen.findByText(/No Attendance Logs Found|attendance_logs.messages.no_data/i);
+    expect(emptyStateTitle).toBeDefined();
+
+    // Check for the helpful subtext we added
+    const emptyStateText = await screen.findByText(/Try adjusting your date range filter/i);
+    expect(emptyStateText).toBeDefined();
+  });
 });

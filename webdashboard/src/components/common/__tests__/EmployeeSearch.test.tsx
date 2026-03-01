@@ -111,4 +111,68 @@ describe("EmployeeSearch Component", () => {
     // Should render without crashing with the keyboardShortcut prop
     expect(screen.getByRole("combobox")).toBeDefined();
   });
+
+  it("calls onSelectEmployee with the full Employee object when selected via hidden select", () => {
+    (useQuery as any).mockReturnValue({
+      data: { data: mockEmployees },
+      isLoading: false,
+    });
+
+    const onChange = vi.fn();
+    const onSelectEmployee = vi.fn();
+
+    render(
+      <EmployeeSearch
+        workspaceId="ws-1"
+        onChange={onChange}
+        onSelectEmployee={onSelectEmployee}
+      />,
+      { wrapper }
+    );
+
+    // Use the hidden <select> (sr-only) to simulate selection
+    const hiddenSelect = screen.getByRole("combobox");
+    fireEvent.change(hiddenSelect, { target: { value: "1" } });
+
+    // onChange should have been called with just the id
+    expect(onChange).toHaveBeenCalledWith("1");
+
+    // onSelectEmployee should have been called with the full employee object
+    expect(onSelectEmployee).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "1",
+        full_name: "John Doe",
+        employee_id_number: "E001",
+      })
+    );
+  });
+
+  it("does NOT call onSelectEmployee when employee is not found in data", () => {
+    (useQuery as any).mockReturnValue({
+      data: { data: mockEmployees },
+      isLoading: false,
+    });
+
+    const onChange = vi.fn();
+    const onSelectEmployee = vi.fn();
+
+    render(
+      <EmployeeSearch
+        workspaceId="ws-1"
+        onChange={onChange}
+        onSelectEmployee={onSelectEmployee}
+      />,
+      { wrapper }
+    );
+
+    // Try selecting an ID that does not exist in mockEmployees
+    const hiddenSelect = screen.getByRole("combobox");
+    fireEvent.change(hiddenSelect, { target: { value: "non-existent-id" } });
+
+    // onChange is still called (to update the value)
+    expect(onChange).toHaveBeenCalledWith("non-existent-id");
+
+    // But onSelectEmployee should NOT have been called since no Employee was found
+    expect(onSelectEmployee).not.toHaveBeenCalled();
+  });
 });

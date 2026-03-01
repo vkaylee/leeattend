@@ -18,7 +18,8 @@ import {
   AlertTriangle,
   UserPlus,
   Trash2,
-  Link2
+  Link2,
+  Check
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
@@ -281,7 +282,7 @@ export default function AttendanceLogsPage() {
             </div>
 
             <div className="flex-1 max-w-md flex items-center gap-3 px-2">
-              <div className="flex-1"><EmployeeSearch data-testid="employee-search" workspaceId={wsId!} value={employeeId === "all" ? "" : employeeId} onChange={(val) => { setEmployeeId(val || "all"); setPage(1); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} /></div>
+              <div className="flex-1"><EmployeeSearch data-testid="employee-search" workspaceId={wsId!} value={employeeId === "all" ? "" : employeeId} onChange={(val) => { setEmployeeId(val || "all"); setPage(1); }} placeholder={employeeId === "all" ? t("common.all_employees") : undefined} autoFocus keyboardShortcut={["/", "Enter"]} clearOnEscape /></div>
               {employeeId !== "all" && <button onClick={() => { setEmployeeId("all"); setPage(1); }} className="p-2.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:text-primary-400 rounded-xl transition-all"><Users size={18} /></button>}
             </div>
           </div>
@@ -302,8 +303,8 @@ export default function AttendanceLogsPage() {
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                <thead className="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur pb-2">
+                  <tr className="bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-800 shadow-sm backdrop-blur">
                     <th className="px-8 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("common.time")}</th>
                     <th className="px-8 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("common.employee")}</th>
                     <th className="px-8 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("common.source")}</th>
@@ -312,9 +313,45 @@ export default function AttendanceLogsPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                   {isLoading ? (
-                    <tr><td colSpan={4} className="px-8 py-12 text-center text-slate-500 dark:text-slate-400 font-bold italic">{t("common.loading")}</td></tr>
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={`skeleton-${i}`} className="animate-pulse border-b border-slate-50 dark:border-slate-800/50">
+                        <td className="px-8 py-5">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+                            <div className="space-y-2">
+                              <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                              <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-5">
+                          <div className="space-y-2">
+                            <div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                            <div className="h-3 w-20 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-5">
+                          <div className="h-6 w-20 bg-slate-200 dark:bg-slate-800 rounded-lg"></div>
+                        </td>
+                        <td className="px-8 py-5 text-right">
+                          <div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 rounded-full inline-block"></div>
+                        </td>
+                      </tr>
+                    ))
                   ) : data?.data.length === 0 ? (
-                    <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</td></tr>
+                    <tr>
+                      <td colSpan={4} className="px-8 py-24 text-center">
+                        <div className="flex flex-col items-center justify-center space-y-4">
+                          <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center text-slate-300 dark:text-slate-600">
+                            <CalendarRange size={32} />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">{t("attendance_logs.messages.no_data", "No Attendance Logs Found")}</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-sm mx-auto font-medium">Try adjusting your date range filter or selecting a different employee to find what you're looking for.</p>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
                   ) : (
                     data?.data.map((log: RawAttendanceLog) => (
                       <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
@@ -372,8 +409,8 @@ export default function AttendanceLogsPage() {
         <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-amber-50 dark:bg-amber-950/50 border-b border-amber-100 dark:border-amber-800">
+              <thead className="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur pb-2">
+                <tr className="bg-amber-50/80 dark:bg-amber-950/80 border-b border-amber-100 dark:border-amber-800 shadow-sm backdrop-blur">
                   <th className="px-8 py-4 text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-widest">{t("common.time")}</th>
                   <th className="px-8 py-4 text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-widest">{t("attendance_logs.unknown_id", "Unknown ID")}</th>
                   <th className="px-8 py-4 text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-widest">{t("common.device")}</th>
@@ -382,9 +419,48 @@ export default function AttendanceLogsPage() {
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                 {stagingLoading ? (
-                  <tr><td colSpan={4} className="px-8 py-12 text-center text-slate-500 dark:text-slate-400 font-bold italic">{t("common.loading")}</td></tr>
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <tr key={`skeleton-unknown-${i}`} className="animate-pulse border-b border-slate-50 dark:border-slate-800/50">
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50"></div>
+                          <div className="space-y-2">
+                            <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                            <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="space-y-2">
+                          <div className="h-5 w-24 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                          <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="h-5 w-20 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                      </td>
+                      <td className="px-8 py-5 text-right">
+                        <div className="flex justify-end gap-2">
+                          <div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 rounded-md inline-block"></div>
+                          <div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 rounded-md inline-block"></div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
                 ) : stagingData?.data.length === 0 ? (
-                  <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_unknown_logs", "No unidentified logs")}</td></tr>
+                  <tr>
+                    <td colSpan={4} className="px-8 py-24 text-center">
+                      <div className="flex flex-col items-center justify-center space-y-4">
+                        <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/30 rounded-full flex items-center justify-center text-emerald-500/50">
+                          <Check className="h-8 w-8 text-emerald-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">{t("attendance_logs.messages.no_unknown_logs", "No unidentified logs")}</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">Awesome! All device punch records have been successfully matched to employees in the system.</p>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
                 ) : (
                   stagingData?.data.map((log) => (
                     <tr key={log.id} className="hover:bg-amber-50 dark:bg-amber-950/30 transition-colors group">

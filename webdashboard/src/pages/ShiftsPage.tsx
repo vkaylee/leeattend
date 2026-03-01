@@ -34,7 +34,7 @@ import {
 } from "@/lib/api/types";
 import { useToast } from "@/components/ui/Toast";
 import { format, addDays } from "date-fns";
-import { Combobox } from "@/components/ui/Combobox";
+import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import { ShiftList } from "../components/shifts/ShiftList";
 import { AssignmentHistory } from "../components/shifts/AssignmentHistory";
 import { PriorityLegend } from "../components/shifts/PriorityLegend";
@@ -321,10 +321,7 @@ export default function ShiftsPage() {
     setSelectedDays([]);
   };
 
-  const employeeOptions = employees.map(emp => ({
-    value: emp.id, label: emp.full_name, description: emp.employee_id_number,
-    icon: <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500 dark:text-slate-400">{emp.full_name[0]}</div>
-  })) || [];
+
 
   return (
     <div className="space-y-6">
@@ -363,7 +360,17 @@ export default function ShiftsPage() {
         {activeTab !== "directory" && (
           <div className="max-w-md mb-8">
             <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block ml-1">{t("common.employees")}</label>
-            <Combobox data-testid="employee-select" options={employeeOptions} value={selectedEmployee?.id} onChange={(id) => setSelectedEmployee(employees.find(e => e.id === id) || null)} placeholder={t("shifts.empty_state.title")} searchPlaceholder={t("common.search_employee")} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-sm h-12 rounded-[20px]" />
+            <EmployeeSearch
+              data-testid="employee-select"
+              workspaceId={wsId}
+              value={selectedEmployee?.id || ""}
+              onChange={(id) => { if (!id) setSelectedEmployee(null); }}
+              onSelectEmployee={(emp) => setSelectedEmployee(emp)}
+              placeholder={t("shifts.empty_state.title")}
+              autoFocus
+              keyboardShortcut={["/", "Enter"]}
+              clearOnEscape
+            />
           </div>
         )}
 

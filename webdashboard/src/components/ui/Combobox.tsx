@@ -96,6 +96,7 @@ export function Combobox({
   // Reset highlight to first item whenever options change
   useEffect(() => {
     if (firstItemCmdkValue) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHighlightedValue(firstItemCmdkValue);
     }
   }, [firstItemCmdkValue]);

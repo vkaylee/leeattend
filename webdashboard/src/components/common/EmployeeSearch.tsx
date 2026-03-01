@@ -19,6 +19,7 @@ interface EmployeeSearchProps {
   autoFocus?: boolean;
   keyboardShortcut?: string | string[];
   clearOnEscape?: boolean;
+  onSelectEmployee?: (employee: Employee) => void;
 }
 
 /**
@@ -37,6 +38,7 @@ export function EmployeeSearch({
   autoFocus = false,
   keyboardShortcut,
   clearOnEscape,
+  onSelectEmployee,
 }: EmployeeSearchProps) {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
@@ -78,6 +80,10 @@ export function EmployeeSearch({
 
     if (emp && !selectedMeta.find(m => m.id === emp.id)) {
       setSelectedMeta(prev => [...prev, emp]);
+    }
+
+    if (emp && onSelectEmployee) {
+      onSelectEmployee(emp);
     }
 
     if (multiple) {

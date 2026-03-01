@@ -10,6 +10,7 @@ import { ToastProvider } from "../../components/ui/Toast";
 // Mock the API library
 vi.mock("../../lib/api", () => ({
   fetchEmployees: vi.fn(),
+  searchEmployees: vi.fn(),
   fetchShifts: vi.fn(),
   fetchWorkspace: vi.fn(),
   fetchWorkspaceSchedules: vi.fn(),
@@ -199,6 +200,7 @@ describe("ShiftsPage - Shift Picker Modal", () => {
     (api.fetchAssignmentHistory as any).mockResolvedValue([]);
     (api.bulkUpsertRoster as any).mockResolvedValue({});
     (api.fetchWorkingPatterns as any).mockResolvedValue([]);
+    (api as any).searchEmployees.mockResolvedValue(mockEmployees);
   });
 
   const renderShiftsPage = () => {
