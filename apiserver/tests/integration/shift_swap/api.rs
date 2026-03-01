@@ -628,7 +628,7 @@ async fn test_same_shift_swap_rejected() {
 
     assert_eq!(
         res.status(),
-        StatusCode::UNPROCESSABLE_ENTITY,
+        StatusCode::BAD_REQUEST,
         "Same-shift swap should be rejected as pointless"
     );
 }

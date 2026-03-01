@@ -36,7 +36,7 @@ services:
       timeout: 5s
       retries: 5
     tmpfs:
-      - /var/lib/postgresql/data:size=2048M  # 2GB RAM disk for DB data
+      - /var/lib/postgresql/data:size=3072M  # 3GB RAM disk for DB data
 
   # --- API Server Test Container ---
   # Builds from Dockerfile "test" stage (includes cargo-chef pre-cooked deps, sqlx-cli, nextest).

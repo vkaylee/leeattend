@@ -68,7 +68,7 @@ impl From<(StatusCode, String)> for AppError {
             403 => Self::Forbidden(message),
             404 => Self::NotFound(message),
             409 => Self::Conflict(message),
-            400 => Self::Validation(message),
+            400 | 422 => Self::Validation(message),
             _ => Self::Internal(message),
         }
     }

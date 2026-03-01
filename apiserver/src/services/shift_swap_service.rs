@@ -50,7 +50,7 @@ impl ShiftSwapService {
 
         // 3. Same-shift guard — swap is pointless if both have the same shift
         if requester_shift_id == target_shift_id {
-            return Err(StatusCode::UNPROCESSABLE_ENTITY); // same shift, no point
+            return Err(StatusCode::BAD_REQUEST); // same shift, no point
         }
 
         // 4. OT max daily check — warn if the new shift is significantly longer
