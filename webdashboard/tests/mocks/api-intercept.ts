@@ -15,9 +15,15 @@ export async function setupApiMocks(page: Page) {
     if (pathname.match(/\/api\/auth\/profile/) || pathname.match(/\/api\/me/)) {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_USER) });
     }
-    
+
     if (pathname.match(/\/api\/debug\/login/) || pathname.match(/\/api\/auth\/login/)) {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ message: "Logged in" }) });
+      return route.fulfill({
+        status: 200, contentType: 'application/json', body: JSON.stringify({
+          access_token: "mock-access-token",
+          refresh_token: "mock-refresh-token",
+          user: MOCK_USER
+        })
+      });
     }
 
     // 2. Workspaces
@@ -30,13 +36,13 @@ export async function setupApiMocks(page: Page) {
 
     // 3. Employees
     if (pathname.match(/\/api\/employees/)) {
-      return route.fulfill({ 
-        status: 200, 
-        contentType: 'application/json', 
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
         body: JSON.stringify({
           data: MOCK_EMPLOYEES,
           pagination: { total_count: MOCK_EMPLOYEES.length, page: 1, page_size: 50, total_pages: 1 }
-        }) 
+        })
       });
     }
 
@@ -47,24 +53,24 @@ export async function setupApiMocks(page: Page) {
 
     // 5. Attendance Logs
     if (pathname.match(/\/api\/attendance\/logs/)) {
-      return route.fulfill({ 
-        status: 200, 
-        contentType: 'application/json', 
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
         body: JSON.stringify({
           data: [
             { id: "log-1", employee_id: "emp-mock-1", punch_time: "2026-01-15T08:00:00Z", punch_type: "in", source: "device", device_name: "Main Door" }
           ],
           pagination: { total_count: 1, page: 1, page_size: 50, total_pages: 1 }
-        }) 
+        })
       });
     }
 
     // 6. Dashboard Stats
     if (pathname.match(/\/api\/dashboard\/workspace-stats/)) {
-      return route.fulfill({ 
-        status: 200, 
-        contentType: 'application/json', 
-        body: JSON.stringify({ employee_count: 2, present_today: 1, on_leave: 0, pending_requests: 0 }) 
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ employee_count: 2, present_today: 1, on_leave: 0, pending_requests: 0 })
       });
     }
 
