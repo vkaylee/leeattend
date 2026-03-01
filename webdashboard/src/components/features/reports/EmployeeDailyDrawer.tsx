@@ -300,7 +300,7 @@ export default function EmployeeDailyDrawer({
             >
                 <div className="-mx-10 -mt-4">
                     {viewMode === "raw" ? (
-                        <div className="overflow-x-auto">
+                        <div className="overflow-auto max-h-[calc(100vh-250px)] relative">
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
