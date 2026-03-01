@@ -346,7 +346,7 @@ run_parallel_ordered() {
             for log in "${running_logs[@]}"; do
                 touch "$log" # ensure file exists
                 # Extract only important test execution lines to prevent flooding
-                tail -f "$log" 2>/dev/null | grep --line-buffered -E "^(    PASS|    FAIL|    TIMEOUT|panicked|test result:)" &
+                tail -f "$log" 2>/dev/null | grep --line-buffered -E "^(    PASS|    FAIL|    TIMEOUT|panicked|test result:)" </dev/null &
                 tail_pids+=($!)
             done
 
@@ -395,10 +395,12 @@ run_parallel_ordered() {
                 fi
             done
 
+            set +e
             running_pids=(${still_running_pids[@]+"${still_running_pids[@]}"})
             running_logs=(${still_running_logs[@]+"${still_running_logs[@]}"})
             running_names=(${still_running_names[@]+"${still_running_names[@]}"})
             running_starts=(${still_running_starts[@]+"${still_running_starts[@]}"})
+            set -e
 
             if [ "$finished_any" = "false" ]; then
                 local running_str=""
