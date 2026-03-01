@@ -83,6 +83,8 @@ async fn test_update_workspace_time_format() {
         None,
         None,
         None,
+        None,
+        None,
     )
     .await
     .expect("Failed to update workspace");

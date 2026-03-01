@@ -9,3 +9,4 @@ mod grace_period;
 mod overnight_ot;
 mod traceability;
 mod v2;
+mod holiday_credit;

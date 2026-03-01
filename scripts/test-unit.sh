@@ -41,7 +41,7 @@ leeattend_run_unit() {
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         APISERVER_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"SQLX_OFFLINE=false cargo nextest run --lib $TEST_PATTERN $shard_flag --no-tests=pass || [ \$? -eq 4 ]\""
         AGENT_MAIN_CMD="$DOCKER_COMPOSE_CMD exec -T -e CENTRAL_SERVER_URL=ws://unit-test-invalid:3000 agent_test bash -c \"SQLX_OFFLINE=false cargo nextest run --lib $TEST_PATTERN $shard_flag --no-tests=pass || [ \$? -eq 4 ]\""
-        WEB_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run test -- $TEST_PATTERN $shard_flag --passWithNoTests"
+        WEB_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run test -- $TEST_PATTERN $shard_flag --passWithNoTests </dev/null"
     fi
 
     run_parallel_ordered "Phase 1 (Unit Tests)" "$COMPONENT_FILTER" \

@@ -326,6 +326,19 @@ impl PayrollService {
                             }
                         }
                     }
+                } else if let Some(holiday) = holidays_map.get(&current_date) {
+                    // Paid holiday with no attendance → auto-credit standard day
+                    if holiday.is_paid {
+                        let credit_units = if holiday.holiday_type == "half_day" {
+                            // Half-day holiday: credit half a standard day
+                            (seg_units_per_day / Decimal::from(2))
+                                .to_i32()
+                                .unwrap_or(0)
+                        } else {
+                            seg_units_per_day.to_i32().unwrap_or(0)
+                        };
+                        segment_std_units += credit_units;
+                    }
                 }
                 current_date = match current_date.succ_opt() {
                     Some(d) => d,

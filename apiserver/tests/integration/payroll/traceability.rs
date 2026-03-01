@@ -79,6 +79,8 @@ async fn test_payroll_std_days_source_traceability() {
         Decimal::from(24),
         5,
         Decimal::from(8),
+        None,
+        None,
         NaiveDate::from_ymd_opt(2024, 2, 1).unwrap(),
     )
     .await

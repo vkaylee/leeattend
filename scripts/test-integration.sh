@@ -49,7 +49,7 @@ leeattend_run_integration() {
         if [[ "$COMPONENT_FILTER" != *"web"* ]]; then
             # START API SERVER IN BACKGROUND FOR AGENT INTEGRATION TESTS
             echo -e "  ${BLUE}🚀 Starting API Server in background inside Docker...${NC}"
-            $DOCKER_COMPOSE_CMD exec -d -e DATABASE_URL=$DOCKER_DB_URL apiserver_test bash -c "cargo run --bin apiserver > /workspace/apiserver/apiserver.log 2>&1"
+            $DOCKER_COMPOSE_CMD exec -T -d -e DATABASE_URL=$DOCKER_DB_URL apiserver_test bash -c "cargo run --bin apiserver > /workspace/apiserver/apiserver.log 2>&1" </dev/null
             
             # Wait for server to be ready
             echo -n "  Waiting for API Server (timeout: 60s)..."
@@ -63,14 +63,14 @@ leeattend_run_integration() {
             done
         fi
 
-        APISERVER_INT_CMD="$DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL apiserver_test bash -c \"cargo nextest run --test '*' $TEST_PATTERN --no-tests=pass --test-threads 1\""
-        PW_CMD="$DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx playwright test $PW_ARGS --workers 1\""
+        APISERVER_INT_CMD="$DOCKER_COMPOSE_CMD exec -T -e DATABASE_URL=$DOCKER_DB_URL apiserver_test bash -c \"cargo nextest run --test '*' $TEST_PATTERN --no-tests=pass --test-threads 1\" </dev/null"
+        PW_CMD="$DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx playwright test $PW_ARGS --workers 1\" </dev/null"
     fi
 
     if [[ "$COMPONENT_FILTER" != *"web"* ]]; then
         echo -e "  Pre-compiling backend for integration tests (timeout: ${TIMEOUT_BUILD}s)..."
         if [[ "${USE_DOCKER:-}" == "true" ]]; then
-            $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "SQLX_OFFLINE=false cargo test --no-run -j $CARGO_BUILD_JOBS" > "$LOG_DIR/prebuild.log" 2>&1
+            $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "SQLX_OFFLINE=false cargo test --no-run -j $CARGO_BUILD_JOBS" </dev/null > "$LOG_DIR/prebuild.log" 2>&1
         else
             run_with_timeout "$TIMEOUT_BUILD" bash -c "cd '$PROJECT_ROOT/apiserver' && SQLX_OFFLINE=false cargo test --no-run -j $CARGO_BUILD_JOBS" > "$LOG_DIR/prebuild.log" 2>&1
         fi

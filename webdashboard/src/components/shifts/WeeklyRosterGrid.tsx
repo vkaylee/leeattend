@@ -14,6 +14,7 @@ import {
   Zap,
   ShieldCheck,
   Building2,
+  PartyPopper,
 } from "lucide-react";
 import { Combobox } from "@/components/ui/Combobox";
 import { Employee } from "@/lib/api";
@@ -137,18 +138,21 @@ export function WeeklyRosterGrid({
           const effectiveSchedule = employeeSchedule?.schedules.find((s: any) => s.date === dateStr);
           const isToday = day.toDateString() === new Date().toDateString();
           const source = effectiveSchedule?.source as any;
+          const isHoliday = effectiveSchedule?.is_holiday === true;
+          const holidayName = effectiveSchedule?.holiday_name;
 
           return (
             <div
               key={idx}
               onClick={() => onToggleDaySelection(dateStr)}
-              className={`bg-white dark:bg-slate-900 border p-4 rounded-[32px] flex flex-col min-h-[350px] transition-all relative group cursor-pointer ${
-                isSelected
+              className={`bg-white dark:bg-slate-900 border p-4 rounded-[32px] flex flex-col min-h-[350px] transition-all relative group cursor-pointer ${isSelected
                   ? 'border-primary-500 ring-4 ring-primary-50 shadow-md'
-                  : isToday
-                  ? 'border-primary-300 ring-4 ring-primary-50 shadow-lg'
-                  : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 shadow-sm'
-              }`}
+                  : isHoliday
+                    ? 'border-amber-300 dark:border-amber-700 ring-4 ring-amber-50 dark:ring-amber-950 shadow-lg'
+                    : isToday
+                      ? 'border-primary-300 ring-4 ring-primary-50 shadow-lg'
+                      : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 shadow-sm'
+                }`}
             >
               <div className="text-center mb-5 pb-5 border-b border-slate-50 dark:border-slate-800 relative">
                 {isSelected && (
@@ -162,6 +166,12 @@ export function WeeklyRosterGrid({
                 <div className={`text-2xl font-bold mt-1 ${isToday ? 'text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-200'}`}>
                   {day.getDate()}
                 </div>
+                {isHoliday && (
+                  <div className="mt-1.5 flex items-center justify-center gap-1 text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 uppercase tracking-tighter">
+                    <PartyPopper size={9} />
+                    <span className="truncate max-w-[100px]">{holidayName}</span>
+                  </div>
+                )}
               </div>
               <div className="flex-1 space-y-4">
                 <div className="flex justify-center items-center gap-1">
@@ -196,9 +206,8 @@ export function WeeklyRosterGrid({
                 </div>
                 {effectiveSchedule?.shift_id ? (
                   <div
-                    className={`p-4 rounded-[24px] relative group/item animate-in zoom-in-95 border ${
-                      source === 'roster' ? 'bg-purple-50 dark:bg-purple-950/50 border-purple-100' : 'bg-primary-50 dark:bg-primary-950 border-blue-100 dark:border-blue-800'
-                    }`}
+                    className={`p-4 rounded-[24px] relative group/item animate-in zoom-in-95 border ${source === 'roster' ? 'bg-purple-50 dark:bg-purple-950/50 border-purple-100' : 'bg-primary-50 dark:bg-primary-950 border-blue-100 dark:border-blue-800'
+                      }`}
                   >
                     <div className={`font-bold text-xs mb-1 uppercase tracking-tight leading-tight ${source === 'roster' ? 'text-purple-700 dark:text-purple-300' : 'text-blue-700 dark:text-blue-300'}`}>
                       {effectiveSchedule.shift_name}

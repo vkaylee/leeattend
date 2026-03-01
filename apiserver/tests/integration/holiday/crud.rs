@@ -18,7 +18,7 @@ fn json_request(
     user_id: Uuid,
     body: Option<serde_json::Value>,
 ) -> axum::http::Request<axum::body::Body> {
-    let mut builder = axum::http::Request::builder()
+    let builder = axum::http::Request::builder()
         .method(method)
         .uri(uri)
         .header("Content-Type", "application/json")

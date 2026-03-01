@@ -245,13 +245,13 @@ ensure_db_migrated() {
     echo -e "${BLUE}🗄️ Ensuring database is migrated (required for sqlx compile checks)...${NC}"
 
     # Start test_db + apiserver_test (which has sqlx-cli)
-    $DOCKER_COMPOSE_CMD up -d --build=false test_db apiserver_test
+    $DOCKER_COMPOSE_CMD up -d --build=false test_db apiserver_test </dev/null
 
     # Wait for DB healthy
     local timeout="${TIMEOUT_DB_WAIT:-120}"
     local start_time=$SECONDS
     echo -n "  Waiting for database..."
-    until $DOCKER_COMPOSE_CMD exec -T test_db pg_isready -U test_user -d test_database > /dev/null 2>&1; do
+    until $DOCKER_COMPOSE_CMD exec -T test_db pg_isready -U test_user -d test_database </dev/null > /dev/null 2>&1; do
         printf "."
         sleep 1
         if (( SECONDS - start_time > timeout )); then
@@ -263,7 +263,7 @@ ensure_db_migrated() {
 
     # Run migrations
     local DB_URL="postgres://test_user:test_password@test_db:5432/test_database?sslmode=disable"
-    if $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "sqlx migrate run --database-url '$DB_URL'" > /dev/null 2>&1; then
+    if $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "sqlx migrate run --database-url '$DB_URL'" </dev/null > /dev/null 2>&1; then
         echo -e "  ${GREEN}✅ Migrations applied.${NC}"
     else
         echo -e "  ${RED}❌ Migration failed!${NC}"
@@ -647,16 +647,16 @@ if [[ "$WARM_CACHE" == "true" ]]; then
     
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         # Start containers
-        $DOCKER_COMPOSE_CMD up -d --build=false apiserver_test agent_test web_test
+        $DOCKER_COMPOSE_CMD up -d --build=false apiserver_test agent_test web_test </dev/null
         
         echo -e "${BLUE}📦 Pre-compiling apiserver...${NC}"
-        $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "cargo check --lib 2>/dev/null || true" &
+        $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "cargo check --lib 2>/dev/null || true" </dev/null &
         
         echo -e "${BLUE}📦 Pre-compiling agent-main...${NC}"
-        $DOCKER_COMPOSE_CMD exec -T agent_test bash -c "cargo check --lib 2>/dev/null || true" &
+        $DOCKER_COMPOSE_CMD exec -T agent_test bash -c "cargo check --lib 2>/dev/null || true" </dev/null &
         
         echo -e "${BLUE}📦 Installing web dependencies...${NC}"
-        $DOCKER_COMPOSE_CMD exec -T web_test npm install --no-audit --no-fund &
+        $DOCKER_COMPOSE_CMD exec -T web_test npm install --no-audit --no-fund </dev/null &
         
         # Wait for all to complete
         wait

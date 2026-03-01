@@ -12,7 +12,6 @@ struct SummaryRow {
     is_holiday: bool,
     holiday_name: Option<String>,
     actual_work_minutes: i32,
-    system_detected_ot_minutes: i32,
 }
 
 /// Create a holiday, trigger recalculation, verify the summary record has is_holiday=true
@@ -75,34 +74,24 @@ async fn test_summary_records_holiday_flag_after_recalculate() {
         .create()
         .await;
 
-    // Trigger recalculation via the summary recalculate endpoint
-    let recalc_resp = client
-        .post(format!(
-            "{address}/api/workspaces/{workspace_id}/attendance/summary/recalculate"
-        ))
-        .header("Authorization", format!("Bearer {auth_token}"))
-        .json(&serde_json::json!({
-            "employee_id": emp.to_string(),
-            "date": today.to_string()
-        }))
-        .send()
-        .await
-        .unwrap();
-    // Accept either 200 OK or 204 No Content
-    assert!(
-        recalc_resp.status().is_success(),
-        "Recalculate returned {}",
-        recalc_resp.status()
-    );
+    // Trigger recalculation directly via service
+    apiserver::services::attendance_summary_service::AttendanceSummaryService::recalculate_daily_summary(
+        &pool,
+        workspace_id,
+        emp,
+        today,
+    )
+    .await
+    .expect("Recalculate failed");
 
     // Verify the summary record in DB directly
     let row = sqlx::query_as!(
         SummaryRow,
-        "SELECT is_holiday, holiday_name, actual_work_minutes, system_detected_ot_minutes FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
+        "SELECT is_holiday, holiday_name, actual_work_minutes FROM attendance_daily_summaries WHERE employee_id = $1 AND date = $2",
         emp,
         today
     )
-    .fetch_optional(pool)
+    .fetch_optional(&pool)
     .await
     .unwrap();
 

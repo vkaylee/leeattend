@@ -25,10 +25,10 @@ leeattend_run_lint() {
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         # Lint requires DB with migrations (SQLX_OFFLINE=false needs live schema)
-        APISERVER_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"SQLX_OFFLINE=false cargo clippy -- -D warnings\""
-        AGENT_MAIN_CMD="$DOCKER_COMPOSE_CMD exec -T agent_test bash -c \"SQLX_OFFLINE=false cargo clippy -- -D warnings\""
-        WEB_LINT_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run lint"
-        WEB_TYPECHECK_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run type-check"
+        APISERVER_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"SQLX_OFFLINE=false cargo clippy -- -D warnings\" </dev/null"
+        AGENT_MAIN_CMD="$DOCKER_COMPOSE_CMD exec -T agent_test bash -c \"SQLX_OFFLINE=false cargo clippy -- -D warnings\" </dev/null"
+        WEB_LINT_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run lint </dev/null"
+        WEB_TYPECHECK_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run type-check </dev/null"
         
         # API Sync via shared volume between apiserver_test and web_test:
         SYNC_API_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"SQLX_OFFLINE=false cargo run -- gen-openapi > /workspace/shared/openapi.json\" && $DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx openapi-typescript /workspace/shared/openapi.json -o ./src/types/api-generated.ts\""

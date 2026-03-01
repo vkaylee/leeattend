@@ -292,7 +292,7 @@ run_parallel_ordered() {
             if [ "$RUN_SERIAL" = "true" ]; then
                 # SERIAL EXECUTION
                 set +e
-                (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd") > "$log_file" 2>&1
+                (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd") </dev/null > "$log_file" 2>&1
                 local status=$?
                 set -e
                 local duration=$(( SECONDS - start_time ))
@@ -315,7 +315,7 @@ run_parallel_ordered() {
                 fi
             else
                 # PARALLEL EXECUTION
-                (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd") > "$log_file" 2>&1 &
+                (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd") </dev/null > "$log_file" 2>&1 &
                 running_pids+=($!)
                 running_logs+=("$log_file")
                 running_names+=("$name")

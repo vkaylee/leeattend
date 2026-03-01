@@ -87,6 +87,10 @@ pub struct EffectiveSchedule {
     pub allow_early_ot: Option<bool>,
     #[serde(default)]
     pub traces: Vec<ScheduleTrace>,
+    #[serde(default)]
+    pub is_holiday: bool,
+    #[serde(default)]
+    pub holiday_name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

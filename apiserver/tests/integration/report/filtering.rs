@@ -40,6 +40,7 @@ async fn test_daily_report_employee_filtering() {
         None,
         None,
         Some(vec![emp1]),
+        None,
     )
     .await
     .expect("Failed to get report");
@@ -55,6 +56,7 @@ async fn test_daily_report_employee_filtering() {
         None,
         None,
         Some(vec![emp2, emp3]),
+        None,
     )
     .await
     .expect("Failed to get report");

@@ -1,4 +1,5 @@
 use crate::models::{EffectiveSchedule, EmployeeSchedule, ShiftRoster};
+use crate::repositories::holiday_repository::HolidayRepository;
 use chrono::NaiveDate;
 use sqlx::PgPool;
 use std::collections::HashMap;
@@ -43,6 +44,13 @@ pub async fn get_workspace_schedules(
             .await
             .map_err(|e| sqlx::Error::Io(std::io::Error::other(e)))?,
     };
+
+    // 2b. Fetch holidays in range for overlay
+    let holidays_map = HolidayRepository::get_holidays_in_range(
+        pool, workspace_id, start_date, end_date,
+    )
+    .await
+    .unwrap_or_default();
 
     // 3. Fetch Rosters in range (per-request — date-bounded)
     let rosters = sqlx::query_as::<_, ShiftRoster>(
@@ -210,6 +218,7 @@ pub async fn get_workspace_schedules(
                 }
             }
 
+            let holiday = holidays_map.get(&curr_date);
             let mut sched = EffectiveSchedule {
                 date: curr_date,
                 shift_id: effective_shift_id,
@@ -225,6 +234,8 @@ pub async fn get_workspace_schedules(
                 early_punch_in_grace_period_minutes: None,
                 allow_early_ot: None,
                 traces,
+                is_holiday: holiday.is_some(),
+                holiday_name: holiday.map(|h| h.name.clone()),
             };
 
             if let Some(sid) = effective_shift_id {

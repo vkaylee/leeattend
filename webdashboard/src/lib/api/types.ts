@@ -650,6 +650,8 @@ export interface EffectiveSchedule {
   break_end: string | null;
   is_break_auto_deduct: boolean | null;
   traces: ScheduleTrace[];
+  is_holiday?: boolean;
+  holiday_name?: string | null;
 }
 
 export interface EmployeeSchedule {

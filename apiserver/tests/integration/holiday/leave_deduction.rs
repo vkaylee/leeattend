@@ -9,7 +9,7 @@
 
 use crate::common::app::spawn_app;
 use apiserver::models::LeaveStatus;
-use chrono::{Datelike, NaiveDate, NaiveTime, Utc};
+use chrono::{NaiveTime, Utc};
 use reqwest::StatusCode;
 use serde::Deserialize;
 use uuid::Uuid;
@@ -29,7 +29,6 @@ struct ReportRow {
 #[derive(Debug, Deserialize)]
 struct HolidayResponse {
     id: Uuid,
-    name: String,
     is_paid: bool,
     leave_type_id: Option<Uuid>,
 }
@@ -319,6 +318,14 @@ async fn test_process_holiday_leave_api() {
 
     let today = Utc::now().date_naive();
 
+    let vacation_id: Uuid = sqlx::query_scalar!(
+        "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
+        workspace_id
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+
     // Give employee leave balance (12 days)
     factory
         .leave_balance()
@@ -336,6 +343,7 @@ async fn test_process_holiday_leave_api() {
             "date": today.to_string(),
             "holiday_type": "company",
             "is_paid": false,
+            "leave_type_id": vacation_id.to_string(),
         }))
         .send()
         .await
@@ -392,6 +400,14 @@ async fn test_process_holiday_leave_insufficient_balance() {
 
     let today = Utc::now().date_naive();
 
+    let vacation_id: Uuid = sqlx::query_scalar!(
+        "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
+        workspace_id
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+
     // Give employee 0 days balance
     factory
         .leave_balance()
@@ -409,6 +425,7 @@ async fn test_process_holiday_leave_insufficient_balance() {
             "date": today.to_string(),
             "holiday_type": "company",
             "is_paid": false,
+            "leave_type_id": vacation_id.to_string(),
         }))
         .send()
         .await
@@ -461,6 +478,14 @@ async fn test_process_holiday_leave_idempotent() {
 
     let today = Utc::now().date_naive();
 
+    let vacation_id: Uuid = sqlx::query_scalar!(
+        "SELECT id FROM leave_types WHERE workspace_id = $1 AND code = 'vacation'",
+        workspace_id
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+
     factory
         .leave_balance()
         .with_employee(emp)
@@ -476,6 +501,7 @@ async fn test_process_holiday_leave_idempotent() {
             "date": today.to_string(),
             "holiday_type": "company",
             "is_paid": false,
+            "leave_type_id": vacation_id.to_string(),
         }))
         .send()
         .await
@@ -558,8 +584,14 @@ async fn test_process_leave_on_paid_holiday_noop() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     let results: Vec<serde_json::Value> = resp.json().await.unwrap();
-    assert!(
-        results.is_empty(),
-        "Paid holiday should not trigger any leave deductions"
+    assert_eq!(
+        results.len(),
+        1,
+        "Paid holiday should return a single result"
+    );
+    assert_eq!(
+        results[0],
+        serde_json::json!("Paid"),
+        "Paid holiday result should be explicitly Paid"
     );
 }
