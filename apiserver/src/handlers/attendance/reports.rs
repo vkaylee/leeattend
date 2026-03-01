@@ -38,6 +38,7 @@ pub async fn get_attendance_report(
             .filter_map(|id| Uuid::parse_str(id).ok())
             .collect::<Vec<Uuid>>()
     });
+    let department_id = params.get("department_id").and_then(|s| Uuid::parse_str(s).ok());
 
     let start_date = NaiveDate::parse_from_str(start_date_str, "%Y-%m-%d")
         .map_err(|_| AppError::Validation("Invalid start_date format".to_string()))?;
@@ -53,6 +54,7 @@ pub async fn get_attendance_report(
             page,
             limit,
             employee_ids,
+            department_id,
         )
         .await
         .map_err(|s| AppError::from((s, "Failed to get daily report".to_string())))?;
@@ -70,6 +72,7 @@ pub async fn get_attendance_report(
             page,
             limit,
             employee_ids,
+            department_id,
         )
         .await
         .map_err(|s| AppError::from((s, "Failed to get summary report".to_string())))?;

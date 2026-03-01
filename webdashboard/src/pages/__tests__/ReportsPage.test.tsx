@@ -18,6 +18,7 @@ vi.mock("../../lib/api", () => ({
   reprocessAttendance: vi.fn(),
   fetchEmployees: vi.fn(),
   searchEmployees: vi.fn(),
+  fetchDepartments: vi.fn(),
   fetchWorkspaceAttendanceAdjustments: vi.fn(),
   adminConfirmAttendance: vi.fn(),
 }));
@@ -46,6 +47,7 @@ describe("ReportsPage", () => {
     (api.fetchWorkspace as any).mockResolvedValue({ id: "test-ws-id", name: "Test Workspace", work_unit_minutes: 60 });
     (api.fetchEmployees as any).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe" }], total: 1 });
     (api.searchEmployees as any).mockResolvedValue({ data: [{ id: "emp-1", full_name: "John Doe", employee_id_number: "E01" }], total: 1 });
+    (api.fetchDepartments as any).mockResolvedValue([]);
     (api.fetchAttendanceReport as any).mockImplementation(() => Promise.resolve({
       data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }],
       total: 1
@@ -349,5 +351,39 @@ describe("ReportsPage", () => {
     const link = await screen.findByRole("link", { name: /View Raw Logs|Xem nhật ký thô|REPORTS\.VIEW_RAW_LOGS/i });
     expect(link).toBeDefined();
     expect(link.getAttribute("href")).toBe("/attendance-logs?from=2026-03-01&to=2026-03-31");
+  });
+  it("filters the report by selected department", async () => {
+    const user = userEvent.setup();
+    // Setup specific mock for departments
+    (api.fetchDepartments as any).mockResolvedValue([
+      { id: "dept-1", name: "Engineering", managers: [] },
+      { id: "dept-2", name: "HR", managers: [] }
+    ]);
+
+    renderWithProviders(<ReportsPage />);
+
+    // Wait for the department chips to render
+    const engineeringChip = await screen.findByRole("button", { name: /Engineering/i });
+    expect(engineeringChip).toBeDefined();
+
+    // Click the Engineering chip
+    await user.click(engineeringChip);
+
+    // Verify fetchAttendanceReport is called with department_id="dept-1" (9th arg, index 8)
+    await waitFor(() => {
+      const calls = (api.fetchAttendanceReport as any).mock.calls;
+      const latestCall = calls[calls.length - 1];
+      expect(latestCall[8]).toBe("dept-1");
+    });
+
+    // Verify that clicking "All" clears the department filter (null is passed)
+    const allChip = await screen.findByRole("button", { name: /all|tất cả/i });
+    await user.click(allChip);
+
+    await waitFor(() => {
+      const calls = (api.fetchAttendanceReport as any).mock.calls;
+      const latestCall = calls[calls.length - 1];
+      expect(latestCall[8]).toBeNull();
+    });
   });
 });

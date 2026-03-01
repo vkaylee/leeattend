@@ -19,6 +19,7 @@ use crate::services::AttendanceCalculator;
 pub struct ReportService;
 
 impl ReportService {
+    #[allow(clippy::too_many_arguments)]
     pub async fn get_daily_attendance_report(
         pool: &PgPool,
         workspace_id: Uuid,
@@ -27,6 +28,7 @@ impl ReportService {
         page: Option<i64>,
         limit: Option<i64>,
         employee_ids: Option<Vec<Uuid>>,
+        department_id: Option<Uuid>,
     ) -> Result<PaginatedResponse<DailyAttendanceReport>, StatusCode> {
         // 0. Get Workspace Settings for Timezone & Rounding Logic
         let workspace_repo = SqlxWorkspaceRepository { pool: pool.clone() };
@@ -51,6 +53,7 @@ impl ReportService {
                 pool,
                 workspace_id,
                 employee_ids.as_ref(),
+                department_id,
                 page,
                 limit,
                 false, // sort_desc = false -> ORDER BY full_name ASC
@@ -395,6 +398,7 @@ impl ReportService {
         page: Option<i64>,
         limit: Option<i64>,
         employee_ids: Option<Vec<Uuid>>,
+        department_id: Option<Uuid>,
     ) -> Result<PaginatedResponse<AttendanceSummary>, StatusCode> {
         use sqlx::Row;
         use std::collections::HashMap;
@@ -425,6 +429,7 @@ impl ReportService {
                 pool,
                 workspace_id,
                 employee_ids.as_ref(),
+                department_id,
                 page,
                 limit,
                 sort_desc,

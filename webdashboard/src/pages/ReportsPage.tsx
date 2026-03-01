@@ -9,6 +9,7 @@ import {
   getCurrentWorkspaceId,
   fetchWorkspace,
   searchEmployees,
+  fetchDepartments,
   AttendanceReportSort,
 } from "../lib/api";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -65,6 +66,7 @@ export default function ReportsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 400);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const focusSearch = () => setTimeout(() => searchInputRef.current?.focus(), 100);
@@ -87,6 +89,13 @@ export default function ReportsPage() {
     queryKey: ["employees", wsId, "search", debouncedSearch],
     queryFn: () => searchEmployees(wsId!, debouncedSearch),
     enabled: !!wsId && debouncedSearch.trim().length > 0,
+  });
+
+  // Fetch departments for chip filter
+  const { data: departments } = useQuery({
+    queryKey: ["departments", wsId],
+    queryFn: () => fetchDepartments(wsId!),
+    enabled: !!wsId,
   });
 
   // Derive employee IDs from search results for server-side filtering
@@ -137,10 +146,16 @@ export default function ReportsPage() {
     setPage(1); // Reset to first page when searching
   };
 
-  // Fetch summary with server-side employee filter
+  const handleDepartmentChange = (departmentId: string | null) => {
+    setSelectedDepartmentId(departmentId);
+    setPage(1);
+    focusSearch();
+  };
+
+  // Fetch summary with server-side employee + department filter
   const { data: reportResponse, isLoading } = useQuery({
-    queryKey: ["attendance-report", wsId, dateRange, "summary", page, pageSize, sortBy, employeeIdsFilter],
-    queryFn: () => fetchAttendanceReport(wsId!, dateRange.start, dateRange.end, "summary", page, pageSize, sortBy, employeeIdsFilter),
+    queryKey: ["attendance-report", wsId, dateRange, "summary", page, pageSize, sortBy, employeeIdsFilter, selectedDepartmentId],
+    queryFn: () => fetchAttendanceReport(wsId!, dateRange.start, dateRange.end, "summary", page, pageSize, sortBy, employeeIdsFilter, selectedDepartmentId),
     enabled: !!wsId,
   });
 
@@ -210,6 +225,9 @@ export default function ReportsPage() {
         onDateRangeChange={handleDateRangeChange}
         onSpecificMonthChange={handleSpecificMonthChange}
         onSearchQueryChange={handleSearchQueryChange}
+        departments={departments}
+        selectedDepartmentId={selectedDepartmentId}
+        onDepartmentChange={handleDepartmentChange}
         onSearchKeyDown={(e) => {
           if (e.key === 'ArrowDown') {
             e.preventDefault();

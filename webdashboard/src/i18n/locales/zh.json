@@ -2094,6 +2094,7 @@
     "subtitle": "查看和导出员工考勤数据报告。",
     "export_excel": "导出 Excel",
     "view_raw_logs": "查看原始日志",
+    "all_departments": "全部",
     "search_placeholder": "按员工姓名搜索...",
     "no_shift": "无班次",
     "date_range": "日期范围",

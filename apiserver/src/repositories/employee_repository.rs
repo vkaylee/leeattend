@@ -458,10 +458,13 @@ pub async fn get_active_employee_ids(
 ///
 /// # Arguments
 /// * `sort_desc` - If true, ORDER BY full_name DESC; if false, ORDER BY full_name ASC
+/// * `department_id` - Optional: filter employees belonging to this department
+#[allow(clippy::too_many_arguments)]
 pub async fn get_paginated_employee_ids(
     pool: &PgPool,
     workspace_id: Uuid,
     filter_ids: Option<&Vec<Uuid>>,
+    department_id: Option<Uuid>,
     page: i64,
     limit: i64,
     sort_desc: bool,
@@ -470,10 +473,15 @@ pub async fn get_paginated_employee_ids(
     let total: i64 = query_scalar(
         r#"SELECT COUNT(*) FROM employees
            WHERE workspace_id = $1 AND is_active = true
-           AND ($2::uuid[] IS NULL OR id = ANY($2))"#,
+           AND ($2::uuid[] IS NULL OR id = ANY($2))
+           AND ($3::uuid IS NULL OR EXISTS (
+               SELECT 1 FROM employee_department_history edh
+               WHERE edh.employee_id = employees.id AND edh.department_id = $3
+           ))"#,
     )
     .bind(workspace_id)
     .bind(filter_ids)
+    .bind(department_id)
     .fetch_one(pool)
     .await?;
 
@@ -486,6 +494,10 @@ pub async fn get_paginated_employee_ids(
         r#"SELECT id, full_name FROM employees
            WHERE workspace_id = $1 AND is_active = true
            AND ($2::uuid[] IS NULL OR id = ANY($2))
+           AND ($5::uuid IS NULL OR EXISTS (
+               SELECT 1 FROM employee_department_history edh
+               WHERE edh.employee_id = employees.id AND edh.department_id = $5
+           ))
            ORDER BY full_name {order_dir}
            LIMIT $3 OFFSET $4"#
     );
@@ -495,6 +507,7 @@ pub async fn get_paginated_employee_ids(
         .bind(filter_ids)
         .bind(limit)
         .bind(offset)
+        .bind(department_id)
         .fetch_all(pool)
         .await?;
 

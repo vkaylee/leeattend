@@ -2094,6 +2094,7 @@
     "subtitle": "View and export employee attendance data reports.",
     "export_excel": "Export Excel",
     "view_raw_logs": "View Raw Logs",
+    "all_departments": "All",
     "search_placeholder": "Search by employee name...",
     "no_shift": "No shift",
     "date_range": "Date Range",

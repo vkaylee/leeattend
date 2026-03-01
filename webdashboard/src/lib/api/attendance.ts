@@ -180,7 +180,8 @@ export async function fetchAttendanceReport(
   page?: number,
   limit?: number,
   sort?: AttendanceReportSort,
-  employeeIds?: string[]
+  employeeIds?: string[],
+  departmentId?: string | null
 ): Promise<any> {
   const params = new URLSearchParams({
     start_date: start,
@@ -192,6 +193,9 @@ export async function fetchAttendanceReport(
   if (sort) params.append("sort", sort);
   if (employeeIds && employeeIds.length > 0) {
     params.append("employee_ids", employeeIds.join(","));
+  }
+  if (departmentId) {
+    params.append("department_id", departmentId);
   }
 
   const response = await apiFetch(
