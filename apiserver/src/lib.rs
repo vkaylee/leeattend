@@ -501,6 +501,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/holidays/:id",
             get(handlers::holidays::get_holiday)
                 .put(handlers::holidays::update_holiday)
+                .patch(handlers::holidays::update_holiday)
                 .delete(handlers::holidays::delete_holiday),
         )
         .route(

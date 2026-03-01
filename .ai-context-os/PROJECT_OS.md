@@ -71,6 +71,7 @@ The AI Context OS is a living system. AI Agents are granted "Legislative Rights"
 - **Execution**: The `recursive-evolution.md` skill acts as the blueprint for self-healing and capability expansion.
 
 ### 3.5 Testing & Documentation
+- **Auto-Testing Mandate**: [MANDATORY] After any code modification, the AI Agent MUST autonomously execute `./run-tests.sh` to verify the changes. You must NOT wait for the user to ask you to test the code. If tests fail, the Agent must attempt to fix the code autonomously before concluding its turn.
 - **Testing**: No code is committed without passing tests. If skipping new tests, a clear justification must be provided. Every change requires a full execution of the project's regression suite to ensure zero regressions. **Diamond Requirement**: Combined test coverage must exceed **90%**.
 - **Documentation**: All architectural and logic changes must be documented immediately. No documentation drift is permitted.
 

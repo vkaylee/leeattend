@@ -276,6 +276,64 @@ async fn test_holiday_not_found() {
 }
 
 #[tokio::test]
+async fn test_holiday_patch_update() {
+    let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
+        setup_app_tower().await;
+
+    let user_id = factory.user().create().await;
+    let ws_id = factory.workspace().create_with_owner(user_id).await;
+
+    // Create a holiday first
+    let create_body = serde_json::json!({
+        "name": "Giỗ Tổ Hùng Vương",
+        "date": "2026-04-12",
+        "holiday_type": "national",
+        "is_paid": true,
+        "description": "Hung Kings' Temple Festival"
+    });
+
+    let response = app
+        .clone()
+        .oneshot(json_request(
+            "POST",
+            &format!("/api/workspaces/{ws_id}/holidays"),
+            ws_id,
+            user_id,
+            Some(create_body),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let holiday: Holiday = read_body(response).await;
+    let holiday_id = holiday.id;
+
+    // Update via PATCH (the method used by the frontend)
+    let patch_body = serde_json::json!({
+        "name": "Giỗ Tổ Hùng Vương 2026",
+        "is_paid": false
+    });
+
+    let response = app
+        .clone()
+        .oneshot(json_request(
+            "PATCH",
+            &format!("/api/workspaces/{ws_id}/holidays/{holiday_id}"),
+            ws_id,
+            user_id,
+            Some(patch_body),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let updated: Holiday = read_body(response).await;
+    assert_eq!(updated.name, "Giỗ Tổ Hùng Vương 2026");
+    assert!(!updated.is_paid);
+    // Unchanged fields should be preserved
+    assert_eq!(updated.holiday_type, "national");
+    assert_eq!(updated.date.to_string(), "2026-04-12");
+}
+
+#[tokio::test]
 async fn test_holiday_with_ot_multiplier() {
     let (_test_db, factory, _state, app): (TestDatabase, TestFactory, Arc<AppState>, axum::Router) =
         setup_app_tower().await;
