@@ -791,7 +791,8 @@
       },
       "modal": {
         "import_title": "Import punch logs from file"
-      }
+      },
+      "view_reports": "Xem Báo Cáo Tổng Hợp"
     },
     "attendance_import": {
       "subtitle": "Bulk Data Import",
@@ -1584,7 +1585,8 @@
     },
     "modal": {
       "import_title": "Nhập nhật ký quẹt thẻ từ file"
-    }
+    },
+    "view_reports": "Xem Báo Cáo Tổng Hợp"
   },
   "attendance_import": {
     "subtitle": "Nhập dữ liệu hàng loạt",
@@ -2091,6 +2093,7 @@
     "title": "Báo cáo chấm công",
     "subtitle": "Xem và xuất báo cáo dữ liệu chấm công của nhân viên.",
     "export_excel": "Xuất Excel",
+    "view_raw_logs": "Xem Nhật Ký Thô",
     "search_placeholder": "Tìm theo tên nhân viên...",
     "no_shift": "Không có ca",
     "date_range": "Khoảng thời gian",

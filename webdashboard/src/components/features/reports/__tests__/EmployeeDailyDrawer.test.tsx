@@ -2,7 +2,7 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import EmployeeDailyDrawer from "../EmployeeDailyDrawer";
-import { BrowserRouter } from "react-router-dom";
+import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@/components/ui/Toast";
 import * as api from "@/lib/api";
@@ -23,6 +23,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
         fetchWorkspaceAttendanceAdjustments: vi.fn(),
         adminConfirmAttendance: vi.fn(),
         approveOt: vi.fn(),
+        fetchRawAttendanceLogs: vi.fn(),
     };
 });
 
@@ -83,13 +84,19 @@ describe("EmployeeDailyDrawer", () => {
         (api.reprocessAttendance as any).mockResolvedValue(true);
         (api.adminConfirmAttendance as any).mockResolvedValue(true);
         (api.approveOt as any).mockResolvedValue(true);
+        (api.fetchRawAttendanceLogs as any).mockResolvedValue({
+            data: [],
+            total: 0,
+            page: 1,
+            limit: 100
+        });
     });
 
-    const renderWithProviders = (ui: React.ReactElement) => {
+    const renderWithProviders = (ui: React.ReactElement, initialEntries = ["/"]) => {
         return render(
             <QueryClientProvider client={queryClient}>
                 <ToastProvider>
-                    <BrowserRouter>{ui}</BrowserRouter>
+                    <MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>
                 </ToastProvider>
             </QueryClientProvider>
         );
@@ -124,6 +131,10 @@ describe("EmployeeDailyDrawer", () => {
         // Wait for the table row to render
         const shiftText = await screen.findByText(/08:00 — 17:00/i);
         expect(shiftText).toBeDefined();
+
+        // Verify that the sheet panel has the correct width constraints to prevent resizing
+        const sheetPanel = screen.getByTestId("sheet-panel");
+        expect(sheetPanel).toHaveClass("w-[95vw]", "xl:w-[1200px]", "!max-w-[95vw]");
     });
 
     it("opens reprocess modal and calls reprocess mutation", async () => {
@@ -223,4 +234,29 @@ describe("EmployeeDailyDrawer", () => {
         });
     });
 
+    it("toggles to raw logs view and fetches raw logs", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
+
+        // Wait for daily report data to load
+        await screen.findByText(/08:00 — 17:00/i);
+
+        // Find the "View Raw Logs" toggle button
+        const rawLogsToggle = await screen.findByRole("button", { name: /View Raw Logs|reports.view_raw_logs/i });
+        await user.click(rawLogsToggle);
+
+        // Verify the API was called
+        await waitFor(() => {
+            expect(api.fetchRawAttendanceLogs).toHaveBeenCalledWith({
+                employee_id: "emp-1",
+                from: new Date("2026-01-01T00:00:00").toISOString(),
+                to: new Date("2026-01-31T23:59:59").toISOString(),
+                page: 1,
+                limit: 100
+            });
+        });
+
+        // Verify the raw logs table renders header
+        expect(await screen.findByText(/common.source/i)).toBeInTheDocument();
+    });
 });

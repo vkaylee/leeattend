@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { fetchRawAttendanceLogs, fetchEmployees, getCurrentWorkspaceId, fetchDevices, fetchStagingLogs, resolveStagingLog, dismissStagingLog } from "@/lib/api";
@@ -24,7 +24,8 @@ import { cn } from "@/lib/utils";
 import AttendanceImportDialog from "@/components/features/attendance/AttendanceImportDialog";
 import { EmployeeSearch } from "@/components/common/EmployeeSearch";
 import { MonthYearPicker } from "@/components/common/MonthYearPicker";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { BarChart3 } from "lucide-react";
 
 // Simplified UI Components inline
 const Badge = ({ children, variant = "default", className }: { children: React.ReactNode, variant?: "default" | "secondary" | "outline" | "destructive", className?: string }) => {
@@ -69,14 +70,20 @@ type TabType = "recorded" | "unknown";
 export default function AttendanceLogsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const wsId = getCurrentWorkspaceId();
   const { formatDate, formatTime } = useDateTimeFormatter();
   const queryClient = useQueryClient();
 
+  // Initialize from URL search params if present
+  const urlFrom = searchParams.get("from");
+  const urlTo = searchParams.get("to");
+  const urlEmployee = searchParams.get("employee");
+
   const [activeTab, setActiveTab] = useState<TabType>("recorded");
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
-  const [employeeId, setEmployeeId] = useState<string>("all");
+  const [employeeId, setEmployeeId] = useState<string>(urlEmployee || "all");
   const [assigningLogId, setAssigningLogId] = useState<string | null>(null);
 
   const getMonthRange = (offset: number = 0) => {
@@ -86,10 +93,22 @@ export default function AttendanceLogsPage() {
     return { start: firstDay, end: lastDay };
   };
 
-  const [filterMode, setFilterMode] = useState<"this_month" | "last_month" | "custom" | "specific_month">("this_month");
-  const [dateRange, setDateRange] = useState(getMonthRange(0));
+  const [filterMode, setFilterMode] = useState<"this_month" | "last_month" | "custom" | "specific_month">(
+    urlFrom && urlTo ? "custom" : "this_month"
+  );
+  const [dateRange, setDateRange] = useState(
+    urlFrom && urlTo ? { start: urlFrom, end: urlTo } : getMonthRange(0)
+  );
   const [specificMonth, setSpecificMonth] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+
+  // Clear URL params after initialization
+  useEffect(() => {
+    if (urlFrom || urlTo || urlEmployee) {
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleFilterModeChange = (mode: "this_month" | "last_month" | "custom" | "specific_month") => {
     setFilterMode(mode); setPage(1);
@@ -167,15 +186,15 @@ export default function AttendanceLogsPage() {
     },
   });
 
-  const getEmployeeName = (log: RawAttendanceLog) => { 
+  const getEmployeeName = (log: RawAttendanceLog) => {
     if (log.employee_full_name) return log.employee_full_name;
-    const emp = employeeMap.get(log.employee_id); 
-    return emp ? emp.full_name : t("common.system"); 
+    const emp = employeeMap.get(log.employee_id);
+    return emp ? emp.full_name : t("common.system");
   };
-  const getEmployeeID = (log: RawAttendanceLog) => { 
+  const getEmployeeID = (log: RawAttendanceLog) => {
     if (log.employee_id_number) return log.employee_id_number;
-    const emp = employeeMap.get(log.employee_id); 
-    return emp ? emp.employee_id_number : ""; 
+    const emp = employeeMap.get(log.employee_id);
+    return emp ? emp.employee_id_number : "";
   };
 
   const getDeviceName = (deviceId?: string | null) => {
@@ -200,6 +219,12 @@ export default function AttendanceLogsPage() {
           <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">{t("attendance_logs.subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
+          <Link
+            to={`/reports?from=${dateRange.start}&to=${dateRange.end}`}
+            className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary-600 dark:text-primary-400 px-5 py-2.5 rounded-2xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-all font-bold text-[10px] uppercase tracking-widest shadow-sm"
+          >
+            <BarChart3 size={14} /> {t("attendance_logs.view_reports")}
+          </Link>
           <button onClick={() => window.print()} className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-5 py-2.5 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-bold text-[10px] uppercase tracking-widest shadow-sm"><Download size={14} /> {t("attendance_logs.export_btn")}</button>
           <button onClick={() => setIsImportDialogOpen(true)} className="flex items-center gap-2 bg-primary-600 text-white px-6 py-2.5 rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 font-bold text-[10px] uppercase tracking-widest active:scale-95"><Upload size={14} /> {t("attendance_logs.import_btn")}</button>
         </div>

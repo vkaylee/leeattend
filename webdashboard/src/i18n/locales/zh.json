@@ -791,7 +791,8 @@
       },
       "modal": {
         "import_title": "Import punch logs from file"
-      }
+      },
+      "view_reports": "查看摘要报告"
     },
     "attendance_import": {
       "subtitle": "Bulk Data Import",
@@ -1583,8 +1584,9 @@
       "no_unknown_logs": "没有未识别的记录"
     },
     "modal": {
-      "import_title": "从文件导入打卡日志"
-    }
+      "import_title": "从文件导入打卡记录"
+    },
+    "view_reports": "查看摘要报告"
   },
   "attendance_import": {
     "subtitle": "批量数据导入",
@@ -2091,6 +2093,7 @@
     "title": "考勤报告",
     "subtitle": "查看和导出员工考勤数据报告。",
     "export_excel": "导出 Excel",
+    "view_raw_logs": "查看原始日志",
     "search_placeholder": "按员工姓名搜索...",
     "no_shift": "无班次",
     "date_range": "日期范围",

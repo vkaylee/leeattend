@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import ReportsPage from "../ReportsPage";
-import { BrowserRouter } from "react-router-dom";
+import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "../../components/ui/Toast";
 import * as api from "../../lib/api";
@@ -54,13 +54,13 @@ describe("ReportsPage", () => {
     (api.adminConfirmAttendance as any).mockResolvedValue(undefined);
   });
 
-  const renderWithProviders = (ui: React.ReactElement) => {
+  const renderWithProviders = (ui: React.ReactElement, initialEntries = ["/"]) => {
     return render(
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <BrowserRouter>
+          <MemoryRouter initialEntries={initialEntries}>
             {ui}
-          </BrowserRouter>
+          </MemoryRouter>
         </ToastProvider>
       </QueryClientProvider>
     );
@@ -178,4 +178,73 @@ describe("ReportsPage", () => {
       expect(api.searchEmployees).toHaveBeenCalledWith("test-ws-id", "John");
     }, { timeout: 2000 });
   });
-})
+
+  it("auto-selects text on focus and refocuses on drawer close", async () => {
+    const user = userEvent.setup();
+    const mockDailyRow = {
+      employee_id: "emp-1",
+      employee_name: "John Doe",
+      date: "2026-01-15",
+      actual_punch_in: "2026-01-15T01:00:00Z",
+      actual_punch_out: "2026-01-15T10:00:00Z",
+      scheduled_start: "08:00:00",
+      scheduled_end: "17:00:00",
+      break_duration_minutes: 60,
+      break_start: null,
+      break_end: null,
+      is_break_auto_deduct: false,
+      std_work_units: 480,
+      ot_work_units: 0,
+      status: "present",
+      generation_metadata: null,
+    };
+    (api.fetchAttendanceReport as any).mockImplementation((_wsId: string, _start: string, _end: string, type: string) => {
+      if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1 });
+      return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }], total: 1 });
+    });
+
+    renderWithProviders(<ReportsPage />);
+    const employeeRow = await screen.findByText(/John Doe/i);
+
+    // Type into search
+    const searchInput = screen.getByRole("textbox") as HTMLInputElement;
+    await user.type(searchInput, "Test");
+
+    // Test auto-select on focus
+    searchInput.blur();
+    expect(searchInput.selectionStart).toBe(searchInput.selectionEnd);
+    await user.click(searchInput);
+    expect(searchInput.selectionStart).toBe(0);
+    expect(searchInput.selectionEnd).toBe(4); // length of "Test"
+
+    // Open drawer
+    await user.click(employeeRow);
+    const sheetPanel = await screen.findByTestId("sheet-panel");
+    expect(sheetPanel).toBeInTheDocument();
+
+    // Ensure search input lost focus
+    expect(searchInput).not.toHaveFocus();
+
+    // Close drawer
+    const xIcon = sheetPanel.querySelector('svg.lucide-x');
+    const closeBtn = xIcon?.closest('button');
+    await user.click(closeBtn!);
+
+    // wait for the 100ms timeout in focusSearch
+    await new Promise(r => setTimeout(r, 150));
+
+    // search should be focused again
+    expect(searchInput).toHaveFocus();
+    // and its text should be auto-selected because of the onFocus handler
+    expect(searchInput.selectionStart).toBe(0);
+    expect(searchInput.selectionEnd).toBe(4);
+  });
+
+  it("renders cross-navigation link to raw logs with preserved date range", async () => {
+    renderWithProviders(<ReportsPage />, ["/reports?from=2026-03-01&to=2026-03-31"]);
+    // Using string matching that is case-insensitive and covers both EN and VI since i18n isn't mocked the same way
+    const link = await screen.findByRole("link", { name: /View Raw Logs|Xem nhật ký thô|REPORTS\.VIEW_RAW_LOGS/i });
+    expect(link).toBeDefined();
+    expect(link.getAttribute("href")).toBe("/attendance-logs?from=2026-03-01&to=2026-03-31");
+  });
+});

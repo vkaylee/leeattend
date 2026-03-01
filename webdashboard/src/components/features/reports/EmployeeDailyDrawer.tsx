@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw, Check, CheckCircle, User } from "lucide-react";
+import { RefreshCw, Check, CheckCircle, User, CalendarCheck } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
     fetchAttendanceReport,
     DailyAttendanceReport,
@@ -10,6 +11,8 @@ import {
     adminConfirmAttendance,
     AttendanceAdjustmentRequest,
     approveOt,
+    fetchRawAttendanceLogs,
+    RawAttendanceLog,
 } from "@/lib/api";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useDebug } from "@/context/DebugContext";
@@ -17,6 +20,7 @@ import { useToast } from "@/components/ui/Toast";
 import Sheet from "@/components/ui/Sheet";
 import Modal from "@/components/ui/Modal";
 import DailyReportTable from "./DailyReportTable";
+import { Clock, HardDrive } from "lucide-react";
 
 interface EmployeeDailyDrawerProps {
     isOpen: boolean;
@@ -42,6 +46,8 @@ export default function EmployeeDailyDrawer({
     const queryClient = useQueryClient();
     const { isEnabled: isDebugMode } = useDebug();
     const toast = useToast();
+
+    const [viewMode, setViewMode] = useState<"daily" | "raw">("daily");
 
     const [expandedDebugRows, setExpandedDebugRows] = useState<Set<string>>(new Set());
     const [reprocessingRow, setReprocessingRow] = useState<string | null>(null);
@@ -74,6 +80,17 @@ export default function EmployeeDailyDrawer({
         enabled: isOpen && !!workspaceId,
     });
 
+    // Fetch raw logs for this single employee
+    const { data: rawLogsResponse, isLoading: rawLogsLoading } = useQuery({
+        queryKey: ["raw-logs", workspaceId, dateRange, [employeeId]],
+        queryFn: () => {
+            const from = dateRange.start ? new Date(`${dateRange.start}T00:00:00`).toISOString() : undefined;
+            const to = dateRange.end ? new Date(`${dateRange.end}T23:59:59`).toISOString() : undefined;
+            return fetchRawAttendanceLogs({ employee_id: employeeId, from, to, page: 1, limit: 100 });
+        },
+        enabled: isOpen && !!workspaceId && !!employeeId && viewMode === "raw",
+    });
+
     const adjustmentMap = useMemo(() => {
         const map: Record<string, AttendanceAdjustmentRequest> = {};
         pendingAdjustments?.forEach((req) => {
@@ -84,6 +101,7 @@ export default function EmployeeDailyDrawer({
     }, [pendingAdjustments]);
 
     const reportData = reportResponse?.data || (Array.isArray(reportResponse) ? reportResponse : []);
+    const rawLogsData = rawLogsResponse?.data || [];
 
     const toggleExpandRow = (rowKey: string) => {
         const next = new Set(expandedDebugRows);
@@ -224,27 +242,102 @@ export default function EmployeeDailyDrawer({
                 onClose={onClose}
                 title={employeeName}
                 subtitle={`${formatDate(dateRange.start)} — ${formatDate(dateRange.end)}`}
-                className="!max-w-fit"
+                className="w-[95vw] xl:w-[1200px] !max-w-[95vw]"
+                headerExtra={
+                    <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
+                        <button
+                            onClick={() => setViewMode("daily")}
+                            className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all ${viewMode === "daily"
+                                ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
+                                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                                }`}
+                        >
+                            {t("reports.tabs.daily")}
+                        </button>
+                        <button
+                            onClick={() => setViewMode("raw")}
+                            className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all ${viewMode === "raw"
+                                ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
+                                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                                }`}
+                        >
+                            <span className="flex items-center gap-1.5"><CalendarCheck size={12} /> {t("reports.view_raw_logs")}</span>
+                        </button>
+                    </div>
+                }
             >
                 <div className="-mx-10 -mt-4">
-                    <DailyReportTable
-                        data={reportData}
-                        isLoading={isLoading}
-                        workUnitMinutes={workUnitMinutes}
-                        isDebugMode={isDebugMode}
-                        expandedDebugRows={expandedDebugRows}
-                        reprocessingRow={reprocessingRow}
-                        confirmingRow={confirmingRow}
-                        adjustmentMap={adjustmentMap}
-                        t={t}
-                        formatDate={formatDate}
-                        formatTime={formatTime}
-                        onToggleExpandRow={toggleExpandRow}
-                        onReprocessClick={handleReprocessClick}
-                        onConfirmClick={handleConfirmClick}
-                        onApproveOt={handleApproveOt}
-                        hideEmployeeName
-                    />
+                    {viewMode === "raw" ? (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                                        <th className="px-8 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("common.time")}</th>
+                                        <th className="px-8 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t("common.source")}</th>
+                                        <th className="px-8 py-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-right">{t("common.status")}</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                                    {rawLogsLoading ? (
+                                        <tr><td colSpan={3} className="px-8 py-12 text-center text-slate-500 dark:text-slate-400 font-bold italic">{t("common.loading")}</td></tr>
+                                    ) : rawLogsData.length === 0 ? (
+                                        <tr><td colSpan={3} className="px-8 py-20 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("attendance_logs.messages.no_data")}</td></tr>
+                                    ) : (
+                                        rawLogsData.map((log: RawAttendanceLog) => (
+                                            <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                                                <td className="px-8 py-5">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-inner border border-primary-100 dark:border-primary-800/50"><Clock size={18} /></div>
+                                                        <div>
+                                                            <div className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tight uppercase">{formatDate(log.punch_time)}</div>
+                                                            <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 font-mono uppercase tracking-tighter">{formatTime(log.punch_time)}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[9px] font-bold uppercase tracking-widest border border-slate-200 dark:border-slate-700">{log.source}</span>
+                                                            {(log.device_name || log.device_id) && (
+                                                                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase">{log.device_name || log.device_id}</span>
+                                                            )}
+                                                        </div>
+                                                        {log.device_id && (
+                                                            <div className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tighter flex items-center gap-1 ml-0.5">
+                                                                <HardDrive size={10} /> {log.device_id}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-5 text-right">
+                                                    <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 rounded-full text-[9px] font-bold uppercase tracking-widest border border-emerald-100 dark:border-emerald-800 shadow-sm">{t("attendance_logs.status.recorded")}</span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <DailyReportTable
+                            data={reportData}
+                            isLoading={isLoading}
+                            workUnitMinutes={workUnitMinutes}
+                            isDebugMode={isDebugMode}
+                            expandedDebugRows={expandedDebugRows}
+                            reprocessingRow={reprocessingRow}
+                            confirmingRow={confirmingRow}
+                            adjustmentMap={adjustmentMap}
+                            t={t}
+                            formatDate={formatDate}
+                            formatTime={formatTime}
+                            onToggleExpandRow={toggleExpandRow}
+                            onReprocessClick={handleReprocessClick}
+                            onConfirmClick={handleConfirmClick}
+                            onApproveOt={handleApproveOt}
+                            hideEmployeeName
+                        />
+                    )}
                 </div>
             </Sheet>
 

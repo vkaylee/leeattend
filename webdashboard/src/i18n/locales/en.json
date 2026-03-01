@@ -791,7 +791,8 @@
       },
       "modal": {
         "import_title": "Import punch logs from file"
-      }
+      },
+      "view_reports": "View Summary Report"
     },
     "attendance_import": {
       "subtitle": "Bulk Data Import",
@@ -1584,7 +1585,8 @@
     },
     "modal": {
       "import_title": "Import punch logs from file"
-    }
+    },
+    "view_reports": "View Summary Report"
   },
   "attendance_import": {
     "subtitle": "Bulk Data Import",
@@ -2091,6 +2093,7 @@
     "title": "Attendance Reports",
     "subtitle": "View and export employee attendance data reports.",
     "export_excel": "Export Excel",
+    "view_raw_logs": "View Raw Logs",
     "search_placeholder": "Search by employee name...",
     "no_shift": "No shift",
     "date_range": "Date Range",

@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { Download } from "lucide-react";
+import { Download, CalendarCheck } from "lucide-react";
+import { useSearchParams, Link } from "react-router-dom";
 import { format, endOfMonth, getDaysInMonth } from "date-fns";
 import {
   fetchAttendanceReport,
@@ -21,6 +22,11 @@ import EmployeeDailyDrawer from "@/components/features/reports/EmployeeDailyDraw
 export default function ReportsPage() {
   const { t } = useTranslation();
   const wsId = getCurrentWorkspaceId();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Read URL params for cross-navigation
+  const urlFrom = searchParams.get("from");
+  const urlTo = searchParams.get("to");
 
   const { data: workspace } = useQuery({
     queryKey: ["workspace", wsId],
@@ -37,12 +43,24 @@ export default function ReportsPage() {
     return { start: firstDay, end: lastDay };
   };
 
-  const [filterMode, setFilterMode] = useState<"this_month" | "last_month" | "custom" | "specific_month">("last_month");
-  const [dateRange, setDateRange] = useState(getMonthRange(-1));
+  const [filterMode, setFilterMode] = useState<"this_month" | "last_month" | "custom" | "specific_month">(
+    urlFrom && urlTo ? "custom" : "last_month"
+  );
+  const [dateRange, setDateRange] = useState(
+    urlFrom && urlTo ? { start: urlFrom, end: urlTo } : getMonthRange(-1)
+  );
   const [specificMonth, setSpecificMonth] = useState({
     month: new Date().getMonth() === 0 ? 12 : new Date().getMonth(),
     year: new Date().getMonth() === 0 ? new Date().getFullYear() - 1 : new Date().getFullYear()
   });
+
+  // Clear URL params after initialization
+  useEffect(() => {
+    if (urlFrom || urlTo) {
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 400);
@@ -159,12 +177,20 @@ export default function ReportsPage() {
           <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] opacity-60">{t("reports.subtitle")}</p>
         </div>
 
-        <button
-          onClick={() => setIsExportDialogOpen(true)}
-          className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-8 py-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95"
-        >
-          <Download size={18} /> {t("reports.export_excel").toUpperCase()}
-        </button>
+        <div className="flex items-center gap-3">
+          <Link
+            to={`/attendance-logs?from=${dateRange.start}&to=${dateRange.end}`}
+            className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-primary-600 dark:text-primary-400 px-8 py-3 rounded-2xl hover:bg-primary-50 dark:hover:bg-primary-950 transition-all font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95"
+          >
+            <CalendarCheck size={18} /> {t("reports.view_raw_logs").toUpperCase()}
+          </Link>
+          <button
+            onClick={() => setIsExportDialogOpen(true)}
+            className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-8 py-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-bold text-xs uppercase tracking-widest shadow-xl active:scale-95"
+          >
+            <Download size={18} /> {t("reports.export_excel").toUpperCase()}
+          </button>
+        </div>
       </div>
 
       <ReportFilters

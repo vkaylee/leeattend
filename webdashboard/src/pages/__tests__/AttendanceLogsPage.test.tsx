@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import AttendanceLogsPage from "../AttendanceLogsPage";
-import { BrowserRouter } from "react-router-dom";
+import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "../../components/ui/Toast";
 import * as api from "../../lib/api";
@@ -61,13 +61,13 @@ describe("AttendanceLogsPage", () => {
     });
   });
 
-  const renderWithProviders = (ui: React.ReactElement) => {
+  const renderWithProviders = (ui: React.ReactElement, initialEntries = ["/"]) => {
     return render(
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <BrowserRouter>
+          <MemoryRouter initialEntries={initialEntries}>
             {ui}
-          </BrowserRouter>
+          </MemoryRouter>
         </ToastProvider>
       </QueryClientProvider>
     );
@@ -76,5 +76,12 @@ describe("AttendanceLogsPage", () => {
   it("renders the page and logs", async () => {
     renderWithProviders(<AttendanceLogsPage />);
     expect(await screen.findByText(/John Doe/i)).toBeDefined();
+  });
+
+  it("renders cross-navigation link with preserved date range", async () => {
+    renderWithProviders(<AttendanceLogsPage />, ["/attendance-logs?from=2026-01-01&to=2026-01-31"]);
+    const link = await screen.findByRole("link", { name: /View Summary Report|attendance_logs.view_reports/i });
+    expect(link).toBeDefined();
+    expect(link.getAttribute("href")).toBe("/reports?from=2026-01-01&to=2026-01-31");
   });
 });

@@ -11,6 +11,7 @@ interface SheetProps {
   children: React.ReactNode;
   side?: "left" | "right";
   className?: string;
+  headerExtra?: React.ReactNode;
 }
 
 export default function Sheet({
@@ -21,6 +22,7 @@ export default function Sheet({
   children,
   side = "right",
   className,
+  headerExtra,
 }: SheetProps) {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -41,7 +43,7 @@ export default function Sheet({
   return createPortal(
     <div className="fixed inset-0 z-[1000] flex overflow-hidden">
       {/* Backdrop */}
-      <div 
+      <div
         className={cn(
           "fixed inset-0 bg-slate-900/20 backdrop-blur-lg transition-opacity duration-500",
           isOpen ? "opacity-100" : "opacity-0"
@@ -54,18 +56,18 @@ export default function Sheet({
         "absolute inset-y-0 flex max-w-full pointer-events-none",
         side === "right" ? "right-0" : "left-0"
       )}>
-        <div 
+        <div
           data-testid="sheet-panel"
           className={cn(
             "pointer-events-auto w-screen max-w-md transform transition duration-500 ease-in-out bg-white dark:bg-slate-900 shadow-premium-2xl flex flex-col h-full",
-            side === "right" 
+            side === "right"
               ? (isOpen ? "translate-x-0 rounded-l-[3rem]" : "translate-x-full rounded-l-[3rem]")
               : (isOpen ? "translate-x-0 rounded-r-[3rem]" : "-translate-x-full rounded-r-[3rem]"),
             className
           )}
           onClick={(e) => e.stopPropagation()}
         >
-           {/* Header */}
+          {/* Header */}
           <div className="flex items-center justify-between p-10 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-primary-50 dark:bg-primary-950 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-inner border border-primary-100/50 dark:border-primary-800/50">
@@ -84,6 +86,11 @@ export default function Sheet({
                 )}
               </div>
             </div>
+            {headerExtra && (
+              <div className="flex items-center gap-2">
+                {headerExtra}
+              </div>
+            )}
             <button
               onClick={onClose}
               className="p-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all shadow-md border border-slate-100 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 active:scale-90"
