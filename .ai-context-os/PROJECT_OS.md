@@ -82,6 +82,12 @@ The AI Context OS is a living system. AI Agents are granted "Legislative Rights"
 - **Language**: [Define your primary languages here, e.g., TypeScript, Rust]
 - **Style**: [Define your style guide, e.g., Prettier, Rustfmt]
 
+### 3.7 Git Operations & TTY Safety
+- **TTY Inheritance Precaution**: AI Agent terminals use Pseudo-Terminals (PTY). If a command waits for user input (e.g., GPG passphrase) or spawns a background process that inherits stdin, it will hang indefinitely.
+- **Git Commit Mandate**: You MUST NEVER run a standard `git commit -m ...` command, as it may prompt for GPG.
+- **Required Format**: ALWAYS use `git commit --no-gpg-sign -m "your message" </dev/null` to detach stdin and ensure safe execution.
+- **Docker/Background Tasks**: Always append `</dev/null` and verify no detached PTY inheritance when using `docker compose` or long-running scripts.
+
 ---
 
 ## 4. 🤖 AI Agent Responsibilities
