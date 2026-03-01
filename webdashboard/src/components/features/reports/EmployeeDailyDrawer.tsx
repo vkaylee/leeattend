@@ -275,6 +275,7 @@ export default function EmployeeDailyDrawer({
                 title={employeeName}
                 subtitle={`${formatDate(dateRange.start)} — ${formatDate(dateRange.end)}`}
                 className="w-[95vw] xl:w-[1200px] !max-w-[95vw]"
+                contentClassName="!overflow-hidden"
                 headerExtra={
                     <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
                         <button
@@ -298,9 +299,9 @@ export default function EmployeeDailyDrawer({
                     </div>
                 }
             >
-                <div className="-mx-10 -mt-4">
+                <div className="-mx-10 -mt-4 -mb-10 h-[calc(100%+theme(spacing.14))] flex flex-col">
                     {viewMode === "raw" ? (
-                        <div className="overflow-auto max-h-[calc(100vh-250px)] relative">
+                        <div className="overflow-auto flex-1 min-h-0 relative">
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">

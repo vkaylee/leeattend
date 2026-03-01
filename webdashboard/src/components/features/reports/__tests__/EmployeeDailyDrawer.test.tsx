@@ -259,4 +259,52 @@ describe("EmployeeDailyDrawer", () => {
         // Verify the raw logs table renders header
         expect(await screen.findByText(/common.source/i)).toBeInTheDocument();
     });
+
+    it("content wrapper uses flex-col layout to fill drawer height", async () => {
+        renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
+
+        // Wait for the sheet to render
+        await screen.findByText("John Doe");
+
+        // The content wrapper inside the Sheet should have flex flex-col for height filling
+        const sheetPanel = screen.getByTestId("sheet-panel");
+        // Find the content wrapper with -mx-10 class (negative margin wrapper)
+        const contentWrapper = sheetPanel.querySelector(".-mx-10");
+        expect(contentWrapper).not.toBeNull();
+        expect(contentWrapper!.className).toContain("flex");
+        expect(contentWrapper!.className).toContain("flex-col");
+    });
+
+    it("sheet content area has overflow-hidden to let inner tables scroll", async () => {
+        renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
+
+        await screen.findByText("John Doe");
+
+        // The Sheet content area should have !overflow-hidden
+        const sheetPanel = screen.getByTestId("sheet-panel");
+        const contentArea = sheetPanel.querySelector(".flex-1");
+        expect(contentArea).not.toBeNull();
+        expect(contentArea!.className).toContain("!overflow-hidden");
+    });
+
+    it("raw logs view uses flex-1 min-h-0 for dynamic height", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
+
+        await screen.findByText(/08:00 — 17:00/i);
+
+        // Switch to raw logs view
+        const rawLogsToggle = await screen.findByRole("button", { name: /View Raw Logs|reports.view_raw_logs/i });
+        await user.click(rawLogsToggle);
+
+        await waitFor(() => {
+            expect(api.fetchRawAttendanceLogs).toHaveBeenCalled();
+        });
+
+        // The raw logs scroll container should use flex-1 min-h-0
+        const sheetPanel = screen.getByTestId("sheet-panel");
+        const rawScrollContainer = sheetPanel.querySelector(".flex-1.min-h-0");
+        expect(rawScrollContainer).not.toBeNull();
+        expect(rawScrollContainer!.className).toContain("overflow-auto");
+    });
 });

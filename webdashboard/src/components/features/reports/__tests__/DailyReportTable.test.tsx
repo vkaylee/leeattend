@@ -154,4 +154,17 @@ describe("DailyReportTable", () => {
         expect(screen.getByText("John Doe")).toBeInTheDocument();
         expect(screen.getByText("Jane Smith")).toBeInTheDocument();
     });
+    it("uses flex-1 min-h-0 for dynamic height instead of hardcoded max-h", () => {
+        render(<DailyReportTable {...defaultProps} />);
+
+        // The outer scrollable container should use flex-1 and min-h-0
+        const table = screen.getByRole("table");
+        const outerDiv = table.parentElement;
+        expect(outerDiv).not.toBeNull();
+        expect(outerDiv!.className).toContain("flex-1");
+        expect(outerDiv!.className).toContain("min-h-0");
+        expect(outerDiv!.className).toContain("overflow-auto");
+        // Should NOT have hardcoded max-h
+        expect(outerDiv!.className).not.toContain("max-h-[calc");
+    });
 });

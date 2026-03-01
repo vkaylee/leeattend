@@ -11,6 +11,7 @@ interface SheetProps {
   children: React.ReactNode;
   side?: "left" | "right";
   className?: string;
+  contentClassName?: string;
   headerExtra?: React.ReactNode;
 }
 
@@ -22,6 +23,7 @@ export default function Sheet({
   children,
   side = "right",
   className,
+  contentClassName,
   headerExtra,
 }: SheetProps) {
   const [isVisible, setIsVisible] = useState(false);
@@ -100,8 +102,8 @@ export default function Sheet({
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-10 relative scroll-smooth">
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className={cn("flex-1 overflow-y-auto p-10 relative scroll-smooth", contentClassName)}>
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-full">
               {children}
             </div>
           </div>

@@ -105,7 +105,7 @@ export default function DailyReportTable({
   };
 
   return (
-    <div className="overflow-auto max-h-[calc(100vh-250px)]">
+    <div className="overflow-auto flex-1 min-h-0">
       <table className="w-full text-left min-w-[1200px] border-collapse relative">
         <thead>
           <tr className="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 sticky top-0 z-20">
