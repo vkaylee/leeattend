@@ -88,10 +88,11 @@ pub async fn create_incentive_policy(
 
 pub async fn delete_incentive_policy(
     State(state): State<Arc<AppState>>,
-    Path((_ws_id, policy_id)): Path<(Uuid, Uuid)>,
+    Path((ws_id, policy_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<StatusCode> {
-    sqlx::query("DELETE FROM payroll_incentive_policies WHERE id = $1")
+    sqlx::query("DELETE FROM payroll_incentive_policies WHERE id = $1 AND workspace_id = $2")
         .bind(policy_id)
+        .bind(ws_id)
         .execute(&state.db)
         .await?;
     Ok(StatusCode::NO_CONTENT)

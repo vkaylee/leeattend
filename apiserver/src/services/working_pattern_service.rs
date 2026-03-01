@@ -85,6 +85,6 @@ pub async fn get_employee_pattern_history(
     repo::get_employee_pattern_history(pool, employee_id).await
 }
 
-pub async fn delete_working_pattern(pool: &PgPool, pattern_id: Uuid) -> Result<(), sqlx::Error> {
-    repo::delete_pattern(pool, pattern_id).await
+pub async fn delete_working_pattern(pool: &PgPool, workspace_id: Uuid, pattern_id: Uuid) -> Result<(), sqlx::Error> {
+    repo::delete_pattern(pool, workspace_id, pattern_id).await
 }

@@ -107,7 +107,7 @@ pub async fn delete_pattern(
     if !ctx.is_admin_or_owner() {
         return Err(AppError::Forbidden("Forbidden".to_string()));
     }
-    service::delete_working_pattern(&state.db, pattern_id).await?;
+    service::delete_working_pattern(&state.db, ctx.workspace_id, pattern_id).await?;
 
     if let Some(cache) = &state.roster_cache {
         cache.invalidate(ctx.workspace_id).await;

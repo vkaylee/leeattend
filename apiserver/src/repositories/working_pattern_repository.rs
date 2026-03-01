@@ -156,7 +156,7 @@ pub async fn bulk_assign_pattern(
     })
 }
 
-pub async fn delete_pattern(pool: &PgPool, pattern_id: Uuid) -> Result<(), sqlx::Error> {
+pub async fn delete_pattern(pool: &PgPool, workspace_id: Uuid, pattern_id: Uuid) -> Result<(), sqlx::Error> {
     let mut tx = pool.begin().await?;
 
     // 1. Delete details first
@@ -165,9 +165,10 @@ pub async fn delete_pattern(pool: &PgPool, pattern_id: Uuid) -> Result<(), sqlx:
         .execute(&mut *tx)
         .await?;
 
-    // 2. Delete the pattern itself
-    sqlx::query("DELETE FROM working_patterns WHERE id = $1")
+    // 2. Delete the pattern itself (scoped by workspace)
+    sqlx::query("DELETE FROM working_patterns WHERE id = $1 AND workspace_id = $2")
         .bind(pattern_id)
+        .bind(workspace_id)
         .execute(&mut *tx)
         .await?;
 

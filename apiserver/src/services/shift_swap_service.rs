@@ -16,6 +16,7 @@ impl ShiftSwapService {
     /// Phase 3: Validate swap eligibility (duplicate, conflict, same-shift, OT max).
     async fn validate_eligibility(
         pool: &PgPool,
+        workspace_id: Uuid,
         requester_id: Uuid,
         target_id: Uuid,
         swap_date: chrono::NaiveDate,
@@ -23,7 +24,7 @@ impl ShiftSwapService {
         target_shift_id: Option<Uuid>,
     ) -> Result<(), StatusCode> {
         // 1. Duplicate check
-        let dup = shift_swap_repository::has_active_swap(pool, requester_id, target_id, swap_date)
+        let dup = shift_swap_repository::has_active_swap(pool, workspace_id, requester_id, target_id, swap_date)
             .await
             .map_err(|e| {
                 error!("SWAP_DUP_CHECK: {:?}", e);
@@ -36,7 +37,7 @@ impl ShiftSwapService {
         // 2. Conflict check — either employee already has an approved swap on this date
         for emp_id in [requester_id, target_id] {
             let conflict =
-                shift_swap_repository::has_approved_swap_on_date(pool, emp_id, swap_date)
+                shift_swap_repository::has_approved_swap_on_date(pool, workspace_id, emp_id, swap_date)
                     .await
                     .map_err(|e| {
                         error!("SWAP_CONFLICT_CHECK: {:?}", e);
@@ -165,6 +166,7 @@ impl ShiftSwapService {
         // Phase 3: Eligibility validation
         Self::validate_eligibility(
             pool,
+            workspace_id,
             req.requester_id,
             req.target_id,
             req.swap_date,
@@ -206,7 +208,7 @@ impl ShiftSwapService {
         request_id: Uuid,
         new_status: ShiftSwapStatus,
     ) -> Result<(), StatusCode> {
-        let request = shift_swap_repository::get_swap_request_by_id(pool, request_id)
+        let request = shift_swap_repository::get_swap_request_by_id(pool, request_id, _workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
@@ -220,6 +222,7 @@ impl ShiftSwapService {
         shift_swap_repository::update_swap_status(
             pool,
             request_id,
+            _workspace_id,
             new_status,
             Some(approver_id),
         )
@@ -342,6 +345,7 @@ impl ShiftSwapService {
         // Phase 3: Eligibility validation
         Self::validate_eligibility(
             pool,
+            workspace_id,
             requester_employee_id,
             req.target_id,
             req.swap_date,
@@ -380,11 +384,12 @@ impl ShiftSwapService {
     /// Reject: `pending_target` → `rejected`
     pub async fn respond_to_swap(
         pool: &PgPool,
+        workspace_id: Uuid,
         target_employee_id: Uuid,
         request_id: Uuid,
         accept: bool,
     ) -> Result<(), StatusCode> {
-        let request = shift_swap_repository::get_swap_request_by_id(pool, request_id)
+        let request = shift_swap_repository::get_swap_request_by_id(pool, request_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
@@ -405,7 +410,7 @@ impl ShiftSwapService {
             ShiftSwapStatus::Rejected
         };
 
-        shift_swap_repository::update_swap_status(pool, request_id, new_status, None)
+        shift_swap_repository::update_swap_status(pool, request_id, workspace_id, new_status, None)
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_RESPOND_ERROR: {:?}", e);
@@ -416,10 +421,11 @@ impl ShiftSwapService {
     /// Requester cancels a swap request (only if still pending).
     pub async fn cancel_swap(
         pool: &PgPool,
+        workspace_id: Uuid,
         requester_employee_id: Uuid,
         request_id: Uuid,
     ) -> Result<(), StatusCode> {
-        let request = shift_swap_repository::get_swap_request_by_id(pool, request_id)
+        let request = shift_swap_repository::get_swap_request_by_id(pool, request_id, workspace_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .ok_or(StatusCode::NOT_FOUND)?;
@@ -439,6 +445,7 @@ impl ShiftSwapService {
         shift_swap_repository::update_swap_status(
             pool,
             request_id,
+            workspace_id,
             ShiftSwapStatus::Cancelled,
             None,
         )
@@ -453,8 +460,9 @@ impl ShiftSwapService {
     pub async fn get_employee_swaps(
         pool: &PgPool,
         employee_id: Uuid,
+        workspace_id: Uuid,
     ) -> Result<Vec<ShiftSwapRequestWithNames>, StatusCode> {
-        shift_swap_repository::get_employee_swaps(pool, employee_id)
+        shift_swap_repository::get_employee_swaps(pool, employee_id, workspace_id)
             .await
             .map_err(|e| {
                 error!("ESS_SWAP_LIST_ERROR: {:?}", e);

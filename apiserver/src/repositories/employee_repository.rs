@@ -190,7 +190,7 @@ pub async fn get_employee_by_id(
 fn build_employee_search_sql(search_query: &Option<String>) -> (String, &'static str, bool) {
     let has_search = search_query
         .as_ref()
-        .map_or(false, |q| !q.trim().is_empty());
+        .is_some_and(|q| !q.trim().is_empty());
 
     let mut where_clause = "WHERE e.workspace_id = $1".to_string();
     if has_search {
@@ -230,8 +230,8 @@ pub async fn get_all_employees(
     let mut db_query = query_as::<_, Employee>(&sql).bind(workspace_id);
 
     if has_search {
-        let raw_q = search_query.as_ref().unwrap().trim().to_string();
-        let bound_q = format!("%{}%", raw_q);
+        let raw_q = search_query.as_ref().expect("search_query verified non-empty by has_search").trim().to_string();
+        let bound_q = format!("%{raw_q}%");
         count_query = count_query.bind(bound_q.clone());
         db_query = db_query.bind(bound_q);
     } else {
@@ -245,7 +245,7 @@ pub async fn get_all_employees(
 
     // Bind $5 (raw search term for ranking) only when searching
     if has_search {
-        let raw_q = search_query.as_ref().unwrap().trim().to_string();
+        let raw_q = search_query.as_ref().expect("search_query verified non-empty by has_search").trim().to_string();
         db_query = db_query.bind(raw_q);
     }
 

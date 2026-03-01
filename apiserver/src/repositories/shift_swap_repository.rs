@@ -37,11 +37,13 @@ pub async fn create_swap_request(
 pub async fn get_swap_request_by_id(
     pool: &PgPool,
     id: Uuid,
+    workspace_id: Uuid,
 ) -> Result<Option<ShiftSwapRequest>, sqlx::Error> {
     sqlx::query_as::<_, ShiftSwapRequest>(
-        "SELECT * FROM shift_swap_requests WHERE id = $1",
+        "SELECT * FROM shift_swap_requests WHERE id = $1 AND workspace_id = $2",
     )
     .bind(id)
+    .bind(workspace_id)
     .fetch_optional(pool)
     .await
 }
@@ -81,6 +83,7 @@ pub async fn get_workspace_swaps(
 pub async fn update_swap_status(
     pool: &PgPool,
     id: Uuid,
+    workspace_id: Uuid,
     status: ShiftSwapStatus,
     approver_id: Option<Uuid>,
 ) -> Result<(), sqlx::Error> {
@@ -88,13 +91,14 @@ pub async fn update_swap_status(
         r#"
         UPDATE shift_swap_requests
         SET status = $2, approved_by_user_id = $3, updated_at = $4
-        WHERE id = $1
+        WHERE id = $1 AND workspace_id = $5
         "#,
     )
     .bind(id)
     .bind(status)
     .bind(approver_id)
     .bind(Utc::now())
+    .bind(workspace_id)
     .execute(pool)
     .await?;
 
@@ -104,6 +108,7 @@ pub async fn update_swap_status(
 pub async fn get_employee_swaps(
     pool: &PgPool,
     employee_id: Uuid,
+    workspace_id: Uuid,
 ) -> Result<Vec<ShiftSwapRequestWithNames>, sqlx::Error> {
     sqlx::query_as::<_, ShiftSwapRequestWithNames>(
         r#"
@@ -118,12 +123,13 @@ pub async fn get_employee_swaps(
         LEFT JOIN employees tgt ON tgt.id = s.target_id
         LEFT JOIN shifts req_shift ON req_shift.id = s.requester_shift_id
         LEFT JOIN shifts tgt_shift ON tgt_shift.id = s.target_shift_id
-        WHERE s.requester_id = $1 OR s.target_id = $1
+        WHERE s.workspace_id = $2 AND (s.requester_id = $1 OR s.target_id = $1)
         ORDER BY s.created_at DESC
         LIMIT 50
         "#,
     )
     .bind(employee_id)
+    .bind(workspace_id)
     .fetch_all(pool)
     .await
 }
@@ -131,6 +137,7 @@ pub async fn get_employee_swaps(
 /// Check if an active (non-cancelled/rejected) swap already exists for requester+target+date.
 pub async fn has_active_swap(
     pool: &PgPool,
+    workspace_id: Uuid,
     requester_id: Uuid,
     target_id: Uuid,
     swap_date: chrono::NaiveDate,
@@ -139,11 +146,12 @@ pub async fn has_active_swap(
         r#"
         SELECT EXISTS(
             SELECT 1 FROM shift_swap_requests
-            WHERE requester_id = $1 AND target_id = $2 AND swap_date = $3
+            WHERE workspace_id = $1 AND requester_id = $2 AND target_id = $3 AND swap_date = $4
             AND status NOT IN ('cancelled', 'rejected')
         )
         "#,
     )
+    .bind(workspace_id)
     .bind(requester_id)
     .bind(target_id)
     .bind(swap_date)
@@ -154,6 +162,7 @@ pub async fn has_active_swap(
 /// Check if either employee already has an approved swap for a given date.
 pub async fn has_approved_swap_on_date(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
     swap_date: chrono::NaiveDate,
 ) -> Result<bool, sqlx::Error> {
@@ -161,12 +170,13 @@ pub async fn has_approved_swap_on_date(
         r#"
         SELECT EXISTS(
             SELECT 1 FROM shift_swap_requests
-            WHERE (requester_id = $1 OR target_id = $1)
-            AND swap_date = $2
+            WHERE workspace_id = $1 AND (requester_id = $2 OR target_id = $2)
+            AND swap_date = $3
             AND status = 'approved'
         )
         "#,
     )
+    .bind(workspace_id)
     .bind(employee_id)
     .bind(swap_date)
     .fetch_one(pool)
