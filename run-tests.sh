@@ -199,25 +199,23 @@ if [[ "${CI:-}" == "true" && -f "$PROJECT_ROOT/docker-compose.ci.yml" ]]; then
     export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD -f $PROJECT_ROOT/docker-compose.ci.yml"
 fi
 
-# ── PTY-Safe Docker Compose wrapper ─────────────────────────────────
-# ALWAYS use dc() instead of $DOCKER_COMPOSE_CMD for direct calls.
-# This function automatically redirects stdin from /dev/null to prevent
-# Docker CLI from inheriting PTY file descriptors, which causes AI agent
-# terminals and git hooks to hang indefinitely.
+# ── PTY-Safe Docker Compose wrappers ────────────────────────────────
 #
-# For sub-scripts that build commands as STRINGS (e.g. for run_parallel_ordered),
-# use $DC_CMD which is the raw command string with </dev/null appended.
+# dc()          — Normal use. Redirects stdin only (</dev/null).
+#                 Output is preserved so callers can see Docker progress.
+#                 Safe for: dc up, dc exec, dc build, etc.
 #
-# Usage:
-#   dc up -d --build=false apiserver_test     # direct call (function)
-#   CMD="$DC_CMD exec -T web_test npm test"   # string for parallel runner
+# dc_detached() — Cleanup use. Runs in a NEW session (setsid) with ALL
+#                 FDs detached. Guarantees no Docker child can hold PTY.
+#                 Safe for: dc_detached down, dc_detached volume prune.
+#
 dc() {
     $DOCKER_COMPOSE_CMD "$@" </dev/null
 }
-export -f dc
-export DC_CMD="$DOCKER_COMPOSE_CMD"
-# NOTE: DC_CMD is the raw string. Sub-scripts must append </dev/null themselves
-# when building command strings. The dc() function handles it automatically.
+dc_detached() {
+    setsid $DOCKER_COMPOSE_CMD "$@" </dev/null >/dev/null 2>&1
+}
+export -f dc dc_detached
 
 # Source all script modules
 for script in "test-utils.sh" "test-lint.sh" "test-unit.sh" "test-integration.sh" "test-coverage.sh"; do
@@ -719,10 +717,9 @@ cleanup() {
     pkill -KILL -P $$ 2>/dev/null || true
 
     # Also kill any cargo/nextest processes left inside Docker containers
-    # FIX: Use timeout + full FD redirect to prevent docker exec from holding PTY
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         for ctr in apiserver_test agent_test; do
-            timeout 5 docker exec "${COMPOSE_PROJECT_NAME}-${ctr}-1" \
+            timeout 5 setsid docker exec "${COMPOSE_PROJECT_NAME}-${ctr}-1" \
                 pkill -f 'cargo|nextest' </dev/null >/dev/null 2>&1 || true
         done
     fi
@@ -733,19 +730,18 @@ cleanup() {
         # if Docker CLI spawns child processes that inherit them.
 
         # Sync local logs into the persistent volume
-        # FIX: timeout prevents hang if Docker daemon is slow/stuck
         echo -e "${BLUE}📦 Backing up test logs to docker volume 'test-logs'...${NC}"
-        timeout 10 docker run --rm \
+        timeout 10 setsid docker run --rm \
             -v leeattend-test_test-logs:/logs \
             -v "$PROJECT_ROOT/.test_logs:/local" \
             alpine cp -r /local/. /logs/ </dev/null >/dev/null 2>&1 || true
 
-        # Stop containers
-        dc down --remove-orphans --timeout 5 >/dev/null 2>&1 || {
+        # Stop containers — use dc_detached for complete PTY detachment
+        dc_detached down --remove-orphans --timeout 5 || {
             echo -e "${YELLOW}⚠️  Warning: Cleanup encountered some issues.${NC}"
         }
         # Only remove ephemeral volumes, leave target-cache, sccache-cache, test-logs intact
-        docker volume prune -f \
+        setsid docker volume prune -f \
             --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" \
             --filter "label=com.docker.compose.volume=shared-data" \
             </dev/null >/dev/null 2>&1 || true
