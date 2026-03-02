@@ -83,11 +83,107 @@ pub async fn get_workspace_stats(
     .await
     .unwrap_or(rust_decimal::Decimal::ZERO);
 
+    // 5. On Leave Today (approved leave requests spanning today)
+    let on_leave_today: i64 = sqlx::query_scalar(
+        "SELECT COUNT(DISTINCT lr.employee_id) FROM leave_requests lr
+         WHERE lr.status = 'approved'
+         AND lr.start_date <= $1 AND lr.end_date >= $1
+         AND lr.employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)",
+    )
+    .bind(today)
+    .bind(workspace_id)
+    .fetch_one(&state.db)
+    .await
+    .unwrap_or(0);
+
+    // 6. Absent Today = total_employees - present_today - on_leave_today
+    let absent_today = (total_employees - present_today - on_leave_today).max(0);
+
+    // 7. Late Today (employees whose earliest punch-in is > 5 min after scheduled shift start)
+    let late_today: i64 = sqlx::query_scalar(
+        r#"
+        WITH today_entries AS (
+            SELECT te.employee_id, MIN(te.punch_in_time) as first_punch
+            FROM time_entries te
+            WHERE te.punch_in_time >= $1
+            AND te.employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)
+            GROUP BY te.employee_id
+        ),
+        scheduled AS (
+            SELECT re.employee_id, s.start_time
+            FROM roster_entries re
+            JOIN shifts s ON re.shift_id = s.id
+            WHERE re.date = $3
+            AND re.employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)
+        )
+        SELECT COUNT(*) FROM today_entries te
+        JOIN scheduled sc ON te.employee_id = sc.employee_id
+        WHERE te.first_punch::time > (sc.start_time + INTERVAL '5 minutes')
+        "#,
+    )
+    .bind(start_of_day)
+    .bind(workspace_id)
+    .bind(today)
+    .fetch_one(&state.db)
+    .await
+    .unwrap_or(0);
+
+    // 8. Early Departure Today (employees who punched out before scheduled end)
+    let early_departure_today: i64 = sqlx::query_scalar(
+        r#"
+        WITH today_completed AS (
+            SELECT te.employee_id, MAX(te.punch_out_time) as last_punch_out
+            FROM time_entries te
+            WHERE te.punch_in_time >= $1
+            AND te.punch_out_time IS NOT NULL
+            AND te.employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)
+            GROUP BY te.employee_id
+        ),
+        scheduled AS (
+            SELECT re.employee_id, s.end_time
+            FROM roster_entries re
+            JOIN shifts s ON re.shift_id = s.id
+            WHERE re.date = $3
+            AND re.employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)
+        )
+        SELECT COUNT(*) FROM today_completed tc
+        JOIN scheduled sc ON tc.employee_id = sc.employee_id
+        WHERE tc.last_punch_out::time < sc.end_time
+        "#,
+    )
+    .bind(start_of_day)
+    .bind(workspace_id)
+    .bind(today)
+    .fetch_one(&state.db)
+    .await
+    .unwrap_or(0);
+
+    // 9. Average work hours today
+    let avg_work_minutes: Option<f64> = sqlx::query_scalar(
+        "SELECT AVG(duration_minutes)::float8 FROM time_entries
+         WHERE punch_in_time >= $1
+         AND punch_out_time IS NOT NULL
+         AND duration_minutes > 0
+         AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)",
+    )
+    .bind(start_of_day)
+    .bind(workspace_id)
+    .fetch_one(&state.db)
+    .await
+    .unwrap_or(None);
+
+    let avg_work_hours_today = avg_work_minutes.unwrap_or(0.0) / 60.0;
+
     Ok(Json(WorkspaceStats {
         total_employees,
         present_today,
         pending_leave_requests: pending_leave,
         estimated_monthly_payroll: payroll,
+        late_today,
+        absent_today,
+        on_leave_today,
+        early_departure_today,
+        avg_work_hours_today,
     }))
 }
 

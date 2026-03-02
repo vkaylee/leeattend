@@ -12,13 +12,26 @@ import {
   Banknote,
   Users2,
   ArrowRight,
+  Clock,
+  UserX,
+  AlertTriangle,
+  LogOut,
+  Timer,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useAgentsStatus } from "@/hooks/use-agents";
 import { useDevices } from "@/hooks/use-devices";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
 import { useDashboardStats } from "@/hooks/use-dashboard";
 import { cn } from "@/lib/utils";
+
+const DONUT_COLORS = {
+  on_time: "#10b981",   // emerald-500
+  late: "#f59e0b",      // amber-500
+  absent: "#ef4444",    // rose-500
+  on_leave: "#6366f1",  // indigo-500
+};
 
 export default function DashboardPage() {
   const { t, i18n } = useTranslation();
@@ -39,6 +52,16 @@ export default function DashboardPage() {
     return new Intl.NumberFormat(locale, { style: "currency", currency: i18n.language === "vi" ? "VND" : i18n.language === "zh" ? "CNY" : "USD", maximumFractionDigits: 0 }).format(Number(value));
   };
 
+  // Compute donut data from hrStats
+  const onTimeCount = Math.max(0, (hrStats?.present_today ?? 0) - (hrStats?.late_today ?? 0));
+  const donutData = [
+    { name: t("dashboard.hr.on_time"), value: onTimeCount, color: DONUT_COLORS.on_time },
+    { name: t("dashboard.hr.late_today"), value: hrStats?.late_today ?? 0, color: DONUT_COLORS.late },
+    { name: t("dashboard.hr.absent_today"), value: hrStats?.absent_today ?? 0, color: DONUT_COLORS.absent },
+    { name: t("dashboard.hr.on_leave_today"), value: hrStats?.on_leave_today ?? 0, color: DONUT_COLORS.on_leave },
+  ];
+  const hasDonutData = donutData.some((d) => d.value > 0);
+
   return (
     <div className="space-y-12 animate-in fade-in duration-700">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-2">
@@ -56,48 +79,142 @@ export default function DashboardPage() {
       <div className="animate-in slide-in-from-bottom-4 duration-700">
         {activeTab === "hr" ? (
           <div className="space-y-12">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Row 1: 6 Stat Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
               {[
                 { label: "total_employees", value: hrStats?.total_employees, icon: Users2, color: "bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 border-primary-100 dark:border-primary-800" },
                 { label: "present_today", value: hrStats?.present_today, icon: UserCheck, color: "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 border-emerald-100 dark:border-emerald-800" },
-                { label: "pending_requests", value: hrStats?.pending_leave_requests, icon: CalendarClock, color: "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800" },
-                { label: "estimated_payroll", value: hrStats?.estimated_monthly_payroll, icon: Banknote, color: "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100 dark:border-rose-800", isCurrency: true }
+                { label: "late_today", value: hrStats?.late_today, icon: Clock, color: "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 border-amber-100 dark:border-amber-800" },
+                { label: "absent_today", value: hrStats?.absent_today, icon: UserX, color: "bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-300 border-rose-100 dark:border-rose-800" },
+                { label: "on_leave_today", value: hrStats?.on_leave_today, icon: CalendarClock, color: "bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 border-indigo-100 dark:border-indigo-800" },
+                { label: "pending_requests", value: hrStats?.pending_leave_requests, icon: AlertTriangle, color: "bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-300 border-orange-100 dark:border-orange-800" },
               ].map((stat, i) => (
-                <div key={i} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden">
-                  <div className={`${stat.color} w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-3 transition-all shadow-inner border`}><stat.icon size={28} /></div>
-                  <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-2">{t(`dashboard.hr.${stat.label}`)}</p>
-                  <p className={cn("font-bold text-slate-700 dark:text-slate-200 tracking-tighter truncate", stat.isCurrency ? "text-2xl font-mono" : "text-5xl")}>
-                    {isLoading ? "..." : stat.isCurrency ? formatCurrency(stat.value || 0) : stat.value || 0}
+                <div key={i} className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-2xl hover:shadow-primary-100/10 transition-all group relative overflow-hidden">
+                  <div className={`${stat.color} w-12 h-12 rounded-[1rem] flex items-center justify-center mb-5 group-hover:scale-110 group-hover:rotate-3 transition-all shadow-inner border`}><stat.icon size={22} /></div>
+                  <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">{t(`dashboard.hr.${stat.label}`)}</p>
+                  <p className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter">
+                    {isLoading ? "..." : stat.value ?? 0}
                   </p>
-                  <stat.icon className="absolute -right-6 -bottom-6 w-32 h-32 text-slate-50 opacity-10 -rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
+                  <stat.icon className="absolute -right-4 -bottom-4 w-24 h-24 text-slate-50 dark:text-slate-800 opacity-10 -rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
                 </div>
               ))}
             </div>
 
+            {/* Row 2: Donut Chart + Quick Stats */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-               <div className="bg-slate-900 rounded-[3rem] p-14 text-white relative overflow-hidden group shadow-2xl shadow-slate-200 dark:shadow-black/40">
-                  <div className="relative z-10 h-full flex flex-col items-start">
-                    <span className="text-primary-400 text-xs font-bold uppercase tracking-[0.3em] mb-6">{t("dashboard.hr.hr_management")}</span>
-                    <h3 className="text-5xl font-bold mb-8 tracking-tighter leading-[1.1] uppercase">{t("dashboard.hr.hr_management_title")}</h3>
-                    <p className="text-slate-500 dark:text-slate-400 mb-12 text-lg leading-relaxed max-w-sm font-bold uppercase tracking-tight opacity-80">{t("dashboard.hr.hr_management_desc")}</p>
-                    <Link to="/employees" className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 px-10 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all inline-flex items-center gap-4 hover:gap-6 shadow-2xl hover:shadow-primary-500/20 active:scale-95">
-                      {t("dashboard.hr.hr_management_btn").toUpperCase()} <ArrowRight size={20} />
-                    </Link>
+              {/* Donut Chart */}
+              <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm">
+                <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-8">{t("dashboard.hr.attendance_breakdown")}</h2>
+                {hasDonutData ? (
+                  <div className="flex flex-col items-center">
+                    <ResponsiveContainer width="100%" height={260}>
+                      <PieChart>
+                        <Pie
+                          data={donutData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={70}
+                          outerRadius={110}
+                          paddingAngle={3}
+                          dataKey="value"
+                          stroke="none"
+                        >
+                          {donutData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{ borderRadius: "1rem", border: "none", boxShadow: "0 8px 30px rgba(0,0,0,.1)", fontSize: "12px", fontWeight: 600 }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="flex flex-wrap justify-center gap-5 mt-4">
+                      {donutData.map((entry, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
+                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{entry.name}: {entry.value}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <Users2 className="absolute -right-20 -bottom-20 w-80 h-80 text-primary-500 opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
-               </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-[260px]">
+                    <Users2 size={48} className="text-slate-200 dark:text-slate-700 mb-4" />
+                    <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t("common.no_data")}</p>
+                  </div>
+                )}
+              </div>
 
-               <div className="bg-primary-600 rounded-[3rem] p-14 text-white relative overflow-hidden group shadow-2xl shadow-primary-900/20">
-                  <div className="relative z-10 h-full flex flex-col items-start">
-                    <span className="text-primary-200 text-xs font-bold uppercase tracking-[0.3em] mb-6">{t("dashboard.hr.payroll")}</span>
-                    <h3 className="text-5xl font-bold mb-8 tracking-tighter leading-[1.1] uppercase">{t("dashboard.hr.payroll_title")}</h3>
-                    <p className="text-primary-100 mb-12 text-lg leading-relaxed max-w-sm font-bold uppercase tracking-tight opacity-80">{t("dashboard.hr.payroll_desc")}</p>
-                    <Link to="/attendance-logs" className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all inline-flex items-center gap-4 hover:gap-6 shadow-2xl shadow-black/20 active:scale-95">
-                      {t("dashboard.hr.payroll_btn").toUpperCase()} <ArrowRight size={20} />
-                    </Link>
+              {/* Quick Stats Panel */}
+              <div className="space-y-6">
+                <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] px-4">{t("dashboard.hr.quick_stats")}</h2>
+
+                {/* Avg Work Hours */}
+                <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-6 group hover:shadow-2xl hover:shadow-primary-100/10 transition-all">
+                  <div className="bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 w-14 h-14 rounded-[1.2rem] flex items-center justify-center shadow-inner border border-sky-100 dark:border-sky-800 group-hover:scale-110 transition-transform">
+                    <Timer size={26} />
                   </div>
-                  <Banknote className="absolute -right-20 -bottom-20 w-80 h-80 text-white opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
-               </div>
+                  <div>
+                    <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">{t("dashboard.hr.avg_work_hours")}</p>
+                    <p className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter font-mono">
+                      {isLoading ? "..." : `${(hrStats?.avg_work_hours_today ?? 0).toFixed(1)}h`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Early Departures */}
+                <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-6 group hover:shadow-2xl hover:shadow-primary-100/10 transition-all">
+                  <div className="bg-violet-50 dark:bg-violet-950 text-violet-600 dark:text-violet-400 w-14 h-14 rounded-[1.2rem] flex items-center justify-center shadow-inner border border-violet-100 dark:border-violet-800 group-hover:scale-110 transition-transform">
+                    <LogOut size={26} />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">{t("dashboard.hr.early_departures")}</p>
+                    <p className="text-3xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter">
+                      {isLoading ? "..." : hrStats?.early_departure_today ?? 0}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Estimated Payroll */}
+                <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-6 group hover:shadow-2xl hover:shadow-primary-100/10 transition-all">
+                  <div className="bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 w-14 h-14 rounded-[1.2rem] flex items-center justify-center shadow-inner border border-rose-100 dark:border-rose-800 group-hover:scale-110 transition-transform">
+                    <Banknote size={26} />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">{t("dashboard.hr.estimated_payroll")}</p>
+                    <p className="text-2xl font-bold text-slate-700 dark:text-slate-200 tracking-tighter font-mono">
+                      {isLoading ? "..." : formatCurrency(hrStats?.estimated_monthly_payroll || 0)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Row 3: Promotional Cards (preserved from original) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+              <div className="bg-slate-900 rounded-[3rem] p-14 text-white relative overflow-hidden group shadow-2xl shadow-slate-200 dark:shadow-black/40">
+                <div className="relative z-10 h-full flex flex-col items-start">
+                  <span className="text-primary-400 text-xs font-bold uppercase tracking-[0.3em] mb-6">{t("dashboard.hr.hr_management")}</span>
+                  <h3 className="text-5xl font-bold mb-8 tracking-tighter leading-[1.1] uppercase">{t("dashboard.hr.hr_management_title")}</h3>
+                  <p className="text-slate-500 dark:text-slate-400 mb-12 text-lg leading-relaxed max-w-sm font-bold uppercase tracking-tight opacity-80">{t("dashboard.hr.hr_management_desc")}</p>
+                  <Link to="/employees" className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 px-10 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all inline-flex items-center gap-4 hover:gap-6 shadow-2xl hover:shadow-primary-500/20 active:scale-95">
+                    {t("dashboard.hr.hr_management_btn").toUpperCase()} <ArrowRight size={20} />
+                  </Link>
+                </div>
+                <Users2 className="absolute -right-20 -bottom-20 w-80 h-80 text-primary-500 opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
+              </div>
+
+              <div className="bg-primary-600 rounded-[3rem] p-14 text-white relative overflow-hidden group shadow-2xl shadow-primary-900/20">
+                <div className="relative z-10 h-full flex flex-col items-start">
+                  <span className="text-primary-200 text-xs font-bold uppercase tracking-[0.3em] mb-6">{t("dashboard.hr.payroll")}</span>
+                  <h3 className="text-5xl font-bold mb-8 tracking-tighter leading-[1.1] uppercase">{t("dashboard.hr.payroll_title")}</h3>
+                  <p className="text-primary-100 mb-12 text-lg leading-relaxed max-w-sm font-bold uppercase tracking-tight opacity-80">{t("dashboard.hr.payroll_desc")}</p>
+                  <Link to="/attendance-logs" className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all inline-flex items-center gap-4 hover:gap-6 shadow-2xl shadow-black/20 active:scale-95">
+                    {t("dashboard.hr.payroll_btn").toUpperCase()} <ArrowRight size={20} />
+                  </Link>
+                </div>
+                <Banknote className="absolute -right-20 -bottom-20 w-80 h-80 text-white opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
+              </div>
             </div>
           </div>
         ) : (

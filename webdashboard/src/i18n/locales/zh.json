@@ -1063,7 +1063,15 @@
       "payroll": "考勤与薪资",
       "payroll_title": "自动化考勤表和薪资",
       "payroll_desc": "实时同步考勤数据，几秒钟内生成准确的薪资。",
-      "payroll_btn": "查看考勤表"
+      "payroll_btn": "查看考勤表",
+      "late_today": "今日迟到",
+      "absent_today": "今日缺勤",
+      "on_leave_today": "请假中",
+      "early_departures": "早退",
+      "avg_work_hours": "平均工时",
+      "attendance_breakdown": "今日考勤",
+      "on_time": "准时",
+      "quick_stats": "快速统计"
     },
     "system": {
       "total_agents": "代理总数",

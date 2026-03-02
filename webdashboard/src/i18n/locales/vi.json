@@ -1063,7 +1063,15 @@
       "payroll": "Chấm công & Lương",
       "payroll_title": "Bảng công & Lương tự động",
       "payroll_desc": "Đồng bộ dữ liệu chấm công thời gian thực để tạo bảng lương chính xác trong vài giây.",
-      "payroll_btn": "Xem bảng công"
+      "payroll_btn": "Xem bảng công",
+      "late_today": "Đi trễ hôm nay",
+      "absent_today": "Vắng mặt",
+      "on_leave_today": "Nghỉ phép",
+      "early_departures": "Về sớm",
+      "avg_work_hours": "Giờ làm trung bình",
+      "attendance_breakdown": "Chấm công hôm nay",
+      "on_time": "Đúng giờ",
+      "quick_stats": "Thống kê nhanh"
     },
     "system": {
       "total_agents": "Tổng số Agent",

@@ -211,11 +211,11 @@ done
 
 wait_for_web_test() {
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        # Check if node_modules exists, if not run npm install
-        if ! $DOCKER_COMPOSE_CMD exec -T web_test ls /workspace/webdashboard/node_modules/.bin/eslint > /dev/null 2>&1; then
-            echo -e "${BLUE}📦 Installing web dependencies (npm install)...${NC}"
-            $DOCKER_COMPOSE_CMD exec -T web_test npm install --no-audit --no-fund
-        fi
+        # Always run npm install to ensure node_modules are in sync with package.json.
+        # This is idempotent (fast no-op when deps are up-to-date) and prevents
+        # stale named volumes from missing newly added dependencies.
+        echo -e "${BLUE}📦 Syncing web dependencies (npm install)...${NC}"
+        $DOCKER_COMPOSE_CMD exec -T web_test npm install --no-audit --no-fund
 
         echo -e "${BLUE}⏳ Waiting for web dependencies to be ready...${NC}"
         local timeout="${TIMEOUT_WEB_READY:-300}"

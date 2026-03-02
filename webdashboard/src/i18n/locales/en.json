@@ -1063,7 +1063,15 @@
       "payroll": "Attendance & Payroll",
       "payroll_title": "Automated Timesheets & Payroll",
       "payroll_desc": "Sync real-time attendance data to generate accurate payroll in seconds.",
-      "payroll_btn": "View timesheets"
+      "payroll_btn": "View timesheets",
+      "late_today": "Late Today",
+      "absent_today": "Absent Today",
+      "on_leave_today": "On Leave",
+      "early_departures": "Early Departures",
+      "avg_work_hours": "Avg Work Hours",
+      "attendance_breakdown": "Today's Attendance",
+      "on_time": "On Time",
+      "quick_stats": "Quick Stats"
     },
     "system": {
       "total_agents": "Total Agents",

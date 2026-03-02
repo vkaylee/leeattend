@@ -7,6 +7,11 @@ pub struct WorkspaceStats {
     pub present_today: i64,
     pub pending_leave_requests: i64,
     pub estimated_monthly_payroll: rust_decimal::Decimal,
+    pub late_today: i64,
+    pub absent_today: i64,
+    pub on_leave_today: i64,
+    pub early_departure_today: i64,
+    pub avg_work_hours_today: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]

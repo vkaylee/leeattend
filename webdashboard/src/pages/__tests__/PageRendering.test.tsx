@@ -54,7 +54,7 @@ vi.mock("@/hooks/use-devices", () => ({
 }));
 
 vi.mock("@/hooks/use-dashboard", () => ({
-  useDashboardStats: () => ({ data: {}, isLoading: false, error: null }),
+  useDashboardStats: () => ({ data: { total_employees: 10, present_today: 8, pending_leave_requests: 2, estimated_monthly_payroll: "50000", late_today: 1, absent_today: 1, on_leave_today: 1, early_departure_today: 0, avg_work_hours_today: 7.5 }, isLoading: false, error: null }),
 }));
 
 vi.mock("@/lib/api", async (importOriginal) => {
@@ -140,10 +140,10 @@ describe("Page Rendering", () => {
     // MyClockPage might render "No profile found" if API fails, but we mocked it.
     renderPage(<MyClockPage />);
     await waitFor(() => {
-       // Look for anything that indicates it rendered.
-       // In the previous failure it rendered "Không tìm thấy hồ sơ." (No profile found)
-       // because fetchMyEmployeeProfile was missing.
-       expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+      // Look for anything that indicates it rendered.
+      // In the previous failure it rendered "Không tìm thấy hồ sơ." (No profile found)
+      // because fetchMyEmployeeProfile was missing.
+      expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
     });
   });
 });
