@@ -21,6 +21,8 @@ import {
 import { Link } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import AttendanceTrendChart from "@/components/features/dashboard/AttendanceTrendChart";
+import DepartmentAttendanceChart from "@/components/features/dashboard/DepartmentAttendanceChart";
+import OvertimeTrendChart from "@/components/features/dashboard/OvertimeTrendChart";
 import { useAgentsStatus } from "@/hooks/use-agents";
 import { useDevices } from "@/hooks/use-devices";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
@@ -103,6 +105,12 @@ export default function DashboardPage() {
 
             {/* Row 2: Attendance Trend */}
             <AttendanceTrendChart />
+
+            {/* Row 2b: Department Attendance Comparison */}
+            <DepartmentAttendanceChart />
+
+            {/* Row 2c: Overtime Trend */}
+            <OvertimeTrendChart />
 
             {/* Row 3: Donut Chart + Quick Stats */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">

@@ -1,15 +1,17 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     response::Json,
 };
 use chrono::{NaiveDate, Utc};
+use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    AttendanceTrendPoint, CreateWorkspaceRequest, UpdateWorkspaceRequest, Workspace, WorkspaceStats,
+    AttendanceTrendPoint, CreateWorkspaceRequest, DepartmentAttendancePoint, OvertimeTrendPoint,
+    UpdateWorkspaceRequest, Workspace, WorkspaceStats,
 };
 use crate::services::WorkspaceService;
 use crate::{AppState, UserId};
@@ -131,6 +133,249 @@ pub async fn get_attendance_trend(
                 absent,
                 on_leave: r.on_leave,
             }
+        })
+        .collect();
+
+    Ok(Json(trend))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DeptAttendanceQuery {
+    pub range: Option<String>,
+}
+
+pub async fn get_department_attendance(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+    Query(params): Query<DeptAttendanceQuery>,
+) -> AppResult<Json<Vec<DepartmentAttendancePoint>>> {
+    let today = Utc::now().date_naive();
+    let range = params.range.unwrap_or_else(|| "today".to_string());
+    let start_date = match range.as_str() {
+        "week" => today - chrono::Duration::days(6),
+        _ => today,
+    };
+
+    // Departments with employee counts
+    #[derive(Debug, sqlx::FromRow)]
+    struct DeptRow {
+        department_id: Uuid,
+        department_name: String,
+        total_employees: i64,
+    }
+
+    let departments = sqlx::query_as::<_, DeptRow>(
+        r#"
+        SELECT d.id AS department_id,
+               d.name AS department_name,
+               COUNT(DISTINCT e.id) AS total_employees
+        FROM departments d
+        JOIN employee_department_history edh ON edh.department_id = d.id
+        JOIN employees e ON e.id = edh.employee_id AND e.is_active = TRUE AND e.workspace_id = $1
+        WHERE d.workspace_id = $1
+          AND edh.effective_date <= $2
+          AND edh.id = (
+            SELECT edh2.id FROM employee_department_history edh2
+            WHERE edh2.employee_id = edh.employee_id AND edh2.effective_date <= $2
+            ORDER BY edh2.effective_date DESC LIMIT 1
+          )
+        GROUP BY d.id, d.name
+        "#,
+    )
+    .bind(workspace_id)
+    .bind(today)
+    .fetch_all(&state.db)
+    .await?;
+
+    if departments.is_empty() {
+        return Ok(Json(vec![]));
+    }
+
+    // Present per department in date range
+    #[derive(Debug, sqlx::FromRow)]
+    struct PresentRow {
+        department_id: Uuid,
+        present_count: i64,
+    }
+
+    let start_dt = start_date
+        .and_hms_opt(0, 0, 0)
+        .and_then(|t| t.and_local_timezone(Utc).single())
+        .ok_or_else(|| AppError::Internal("Invalid date".to_string()))?;
+
+    let present_rows = sqlx::query_as::<_, PresentRow>(
+        r#"
+        WITH latest_dept AS (
+            SELECT DISTINCT ON (edh.employee_id) edh.employee_id, edh.department_id
+            FROM employee_department_history edh
+            JOIN employees e ON e.id = edh.employee_id AND e.is_active = TRUE AND e.workspace_id = $1
+            WHERE edh.effective_date <= $3
+            ORDER BY edh.employee_id, edh.effective_date DESC
+        )
+        SELECT ld.department_id,
+               COUNT(DISTINCT te.employee_id) AS present_count
+        FROM time_entries te
+        JOIN latest_dept ld ON ld.employee_id = te.employee_id
+        WHERE te.punch_in_time >= $2
+        GROUP BY ld.department_id
+        "#,
+    )
+    .bind(workspace_id)
+    .bind(start_dt)
+    .bind(today)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    let present_map: std::collections::HashMap<Uuid, i64> = present_rows
+        .into_iter()
+        .map(|r| (r.department_id, r.present_count))
+        .collect();
+
+    // Late per department (only for "today")
+    let late_map: std::collections::HashMap<Uuid, i64> = if range == "today" {
+        #[derive(Debug, sqlx::FromRow)]
+        struct LateRow {
+            department_id: Uuid,
+            late_count: i64,
+        }
+        sqlx::query_as::<_, LateRow>(
+            r#"
+            WITH latest_dept AS (
+                SELECT DISTINCT ON (edh.employee_id) edh.employee_id, edh.department_id
+                FROM employee_department_history edh
+                JOIN employees e ON e.id = edh.employee_id AND e.is_active = TRUE AND e.workspace_id = $1
+                WHERE edh.effective_date <= $3
+                ORDER BY edh.employee_id, edh.effective_date DESC
+            ),
+            first_punches AS (
+                SELECT te.employee_id, MIN(te.punch_in_time) AS first_punch
+                FROM time_entries te
+                WHERE te.punch_in_time >= $2
+                  AND te.employee_id IN (SELECT employee_id FROM latest_dept)
+                GROUP BY te.employee_id
+            )
+            SELECT ld.department_id,
+                   COUNT(DISTINCT fp.employee_id) AS late_count
+            FROM first_punches fp
+            JOIN latest_dept ld ON ld.employee_id = fp.employee_id
+            JOIN roster_entries re ON re.employee_id = fp.employee_id AND re.date = $3
+            JOIN shifts s ON s.id = re.shift_id
+            WHERE fp.first_punch::time > (s.start_time + INTERVAL '5 minutes')
+            GROUP BY ld.department_id
+            "#,
+        )
+        .bind(workspace_id)
+        .bind(start_dt)
+        .bind(today)
+        .fetch_all(&state.db)
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .map(|r| (r.department_id, r.late_count))
+        .collect()
+    } else {
+        std::collections::HashMap::new()
+    };
+
+    // On leave per department
+    #[derive(Debug, sqlx::FromRow)]
+    struct LeaveRow {
+        department_id: Uuid,
+        leave_count: i64,
+    }
+
+    let leave_rows = sqlx::query_as::<_, LeaveRow>(
+        r#"
+        WITH latest_dept AS (
+            SELECT DISTINCT ON (edh.employee_id) edh.employee_id, edh.department_id
+            FROM employee_department_history edh
+            JOIN employees e ON e.id = edh.employee_id AND e.is_active = TRUE AND e.workspace_id = $1
+            WHERE edh.effective_date <= $3
+            ORDER BY edh.employee_id, edh.effective_date DESC
+        )
+        SELECT ld.department_id,
+               COUNT(DISTINCT lr.employee_id) AS leave_count
+        FROM leave_requests lr
+        JOIN latest_dept ld ON ld.employee_id = lr.employee_id
+        WHERE lr.status = 'approved'
+          AND lr.start_date <= $3 AND lr.end_date >= $2
+        GROUP BY ld.department_id
+        "#,
+    )
+    .bind(workspace_id)
+    .bind(start_date)
+    .bind(today)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    let leave_map: std::collections::HashMap<Uuid, i64> = leave_rows
+        .into_iter()
+        .map(|r| (r.department_id, r.leave_count))
+        .collect();
+
+    // Build result
+    let result: Vec<DepartmentAttendancePoint> = departments
+        .into_iter()
+        .map(|dept| {
+            let present = *present_map.get(&dept.department_id).unwrap_or(&0);
+            let late = *late_map.get(&dept.department_id).unwrap_or(&0);
+            let on_leave = *leave_map.get(&dept.department_id).unwrap_or(&0);
+            let on_time = (present - late).max(0);
+            let absent = (dept.total_employees - present - on_leave).max(0);
+            DepartmentAttendancePoint {
+                department_id: dept.department_id,
+                department_name: dept.department_name,
+                on_time,
+                late,
+                absent,
+                on_leave,
+            }
+        })
+        .collect();
+
+    Ok(Json(result))
+}
+
+pub async fn get_overtime_trend(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> AppResult<Json<Vec<OvertimeTrendPoint>>> {
+    let today = Utc::now().date_naive();
+
+    #[derive(Debug, sqlx::FromRow)]
+    struct OtRow {
+        date: NaiveDate,
+        system_ot_minutes: i64,
+        approved_ot_minutes: i64,
+    }
+
+    let rows = sqlx::query_as::<_, OtRow>(
+        r#"
+        SELECT ads.date,
+               COALESCE(SUM(ads.system_detected_ot_minutes), 0) AS system_ot_minutes,
+               COALESCE(SUM(ads.approved_ot_minutes), 0) AS approved_ot_minutes
+        FROM attendance_daily_summaries ads
+        WHERE ads.workspace_id = $1
+          AND ads.date >= ($2::date - INTERVAL '29 days')
+          AND ads.date <= $2
+        GROUP BY ads.date
+        ORDER BY ads.date ASC
+        "#,
+    )
+    .bind(workspace_id)
+    .bind(today)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    let trend: Vec<OvertimeTrendPoint> = rows
+        .into_iter()
+        .map(|r| OvertimeTrendPoint {
+            date: r.date,
+            system_ot_hours: r.system_ot_minutes as f64 / 60.0,
+            approved_ot_hours: r.approved_ot_minutes as f64 / 60.0,
         })
         .collect();
 

@@ -1073,7 +1073,15 @@
       "on_time": "准时",
       "quick_stats": "快速统计",
       "attendance_trend": "出勤趋势",
-      "last_30_days": "最近30天"
+      "last_30_days": "最近30天",
+      "dept_attendance": "部门考勤",
+      "dept_attendance_subtitle": "按部门查看考勤",
+      "today": "今天",
+      "this_week": "本周",
+      "overtime_trend": "加班趋势",
+      "overtime_trend_subtitle": "最近30天",
+      "system_ot": "系统检测加班",
+      "approved_ot": "已批准加班"
     },
     "system": {
       "total_agents": "代理总数",

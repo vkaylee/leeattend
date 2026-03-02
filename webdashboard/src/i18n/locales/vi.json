@@ -1073,7 +1073,15 @@
       "on_time": "Đúng giờ",
       "quick_stats": "Thống kê nhanh",
       "attendance_trend": "Xu hướng chấm công",
-      "last_30_days": "30 ngày gần nhất"
+      "last_30_days": "30 ngày gần nhất",
+      "dept_attendance": "Chấm công theo phòng ban",
+      "dept_attendance_subtitle": "Thống kê điểm danh theo từng phòng ban",
+      "today": "Hôm nay",
+      "this_week": "Tuần này",
+      "overtime_trend": "Xu hướng tăng ca",
+      "overtime_trend_subtitle": "30 ngày gần nhất",
+      "system_ot": "OT hệ thống ghi nhận",
+      "approved_ot": "OT đã duyệt"
     },
     "system": {
       "total_agents": "Tổng số Agent",

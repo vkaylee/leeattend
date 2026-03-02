@@ -25,6 +25,23 @@ pub struct WorkspaceStats {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct DepartmentAttendancePoint {
+    pub department_id: uuid::Uuid,
+    pub department_name: String,
+    pub on_time: i64,
+    pub late: i64,
+    pub absent: i64,
+    pub on_leave: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct OvertimeTrendPoint {
+    pub date: NaiveDate,
+    pub system_ot_hours: f64,
+    pub approved_ot_hours: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct EmployeeSearchQuery {
     pub q: Option<String>,
 }

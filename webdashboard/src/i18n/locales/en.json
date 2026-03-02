@@ -1073,7 +1073,15 @@
       "on_time": "On Time",
       "quick_stats": "Quick Stats",
       "attendance_trend": "Attendance Trend",
-      "last_30_days": "Last 30 Days"
+      "last_30_days": "Last 30 Days",
+      "dept_attendance": "Department Attendance",
+      "dept_attendance_subtitle": "Attendance breakdown by department",
+      "today": "Today",
+      "this_week": "This Week",
+      "overtime_trend": "Overtime Trend",
+      "overtime_trend_subtitle": "Last 30 Days",
+      "system_ot": "System Detected OT",
+      "approved_ot": "Approved OT"
     },
     "system": {
       "total_agents": "Total Agents",
