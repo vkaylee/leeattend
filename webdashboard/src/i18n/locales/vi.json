@@ -1111,7 +1111,37 @@
       "device_management_btn": "Mở trình quản lý"
     },
     "connection_error": "Lỗi kết nối",
-    "connection_error_desc": "Không thể kết nối đến API Server hoặc dữ liệu không hợp lệ."
+    "connection_error_desc": "Không thể kết nối đến API Server hoặc dữ liệu không hợp lệ.",
+    "views": {
+      "label": "Chế độ xem Dashboard",
+      "overview": "Tổng quan",
+      "attendance": "Chấm công",
+      "trends": "Xu hướng",
+      "custom": "Tùy chỉnh"
+    },
+    "widgets": {
+      "kpi_cards": "Thẻ KPI",
+      "donut_chart": "Biểu đồ chấm công",
+      "quick_stats": "Thống kê nhanh",
+      "attendance_trend": "Xu hướng chấm công",
+      "department_chart": "Biểu đồ phòng ban",
+      "overtime_trend": "Xu hướng tăng ca",
+      "peak_times": "Giờ cao điểm",
+      "leave_types": "Loại nghỉ phép",
+      "lateness_by_day": "Đi trễ theo ngày",
+      "promo_cards": "Liên kết nhanh"
+    },
+    "customize": {
+      "title": "Tùy chỉnh Dashboard",
+      "widgets": "Kéo để sắp xếp, bật/tắt để hiển thị",
+      "reset": "Khôi phục mặc định",
+      "btn": "Tùy chỉnh"
+    },
+    "sections": {
+      "summary": "Tóm tắt hôm nay",
+      "charts": "Biểu đồ phân tích",
+      "actions": "Thao tác nhanh"
+    }
   },
   "workspace_settings": {
     "title": "Cài đặt Workspace",

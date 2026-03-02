@@ -1,0 +1,241 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useWorkspace } from "./use-workspace";
+import { apiFetch } from "@/lib/api";
+
+// ── Types ──────────────────────────────────────────────────────────
+
+export type WidgetId =
+    | "kpi_cards"
+    | "donut_chart"
+    | "quick_stats"
+    | "attendance_trend"
+    | "department_chart"
+    | "overtime_trend"
+    | "peak_times"
+    | "leave_types"
+    | "lateness_by_day"
+    | "promo_cards";
+
+export type DashboardView = "overview" | "attendance" | "trends" | "custom";
+
+export interface DashboardLayoutPreferences {
+    id: string;
+    user_id: string;
+    workspace_id: string;
+    active_view: DashboardView;
+    visible_widgets: Record<WidgetId, boolean>;
+    widget_order: WidgetId[];
+    collapsed_sections: Record<string, boolean>;
+}
+
+// ── Preset view configurations ─────────────────────────────────────
+
+const PRESET_VIEWS: Record<
+    Exclude<DashboardView, "custom">,
+    {
+        visible: Partial<Record<WidgetId, boolean>>;
+        order: WidgetId[];
+    }
+> = {
+    overview: {
+        visible: {
+            kpi_cards: true,
+            donut_chart: true,
+            quick_stats: true,
+            attendance_trend: true,
+            department_chart: false,
+            overtime_trend: false,
+            peak_times: false,
+            leave_types: false,
+            lateness_by_day: false,
+            promo_cards: false,
+        },
+        order: [
+            "kpi_cards",
+            "donut_chart",
+            "quick_stats",
+            "attendance_trend",
+        ],
+    },
+    attendance: {
+        visible: {
+            kpi_cards: true,
+            donut_chart: false,
+            quick_stats: false,
+            attendance_trend: true,
+            department_chart: true,
+            overtime_trend: false,
+            peak_times: true,
+            leave_types: false,
+            lateness_by_day: false,
+            promo_cards: false,
+        },
+        order: [
+            "kpi_cards",
+            "attendance_trend",
+            "department_chart",
+            "peak_times",
+        ],
+    },
+    trends: {
+        visible: {
+            kpi_cards: false,
+            donut_chart: false,
+            quick_stats: false,
+            attendance_trend: true,
+            department_chart: false,
+            overtime_trend: true,
+            peak_times: false,
+            leave_types: true,
+            lateness_by_day: true,
+            promo_cards: false,
+        },
+        order: [
+            "attendance_trend",
+            "overtime_trend",
+            "leave_types",
+            "lateness_by_day",
+        ],
+    },
+};
+
+// ── All widgets for "custom" mode ────────────────────────────────
+
+export const ALL_WIDGETS: { id: WidgetId; labelKey: string }[] = [
+    { id: "kpi_cards", labelKey: "dashboard.widgets.kpi_cards" },
+    { id: "donut_chart", labelKey: "dashboard.widgets.donut_chart" },
+    { id: "quick_stats", labelKey: "dashboard.widgets.quick_stats" },
+    { id: "attendance_trend", labelKey: "dashboard.widgets.attendance_trend" },
+    { id: "department_chart", labelKey: "dashboard.widgets.department_chart" },
+    { id: "overtime_trend", labelKey: "dashboard.widgets.overtime_trend" },
+    { id: "peak_times", labelKey: "dashboard.widgets.peak_times" },
+    { id: "leave_types", labelKey: "dashboard.widgets.leave_types" },
+    { id: "lateness_by_day", labelKey: "dashboard.widgets.lateness_by_day" },
+    { id: "promo_cards", labelKey: "dashboard.widgets.promo_cards" },
+];
+
+// ── Hook: useDashboardLayout ───────────────────────────────────────
+
+export function useDashboardLayout() {
+    const { workspace } = useWorkspace();
+    const queryClient = useQueryClient();
+
+    const queryKey = ["dashboard-preferences", workspace?.id];
+
+    const {
+        data: preferences,
+        isLoading,
+        error,
+    } = useQuery<DashboardLayoutPreferences>({
+        queryKey,
+        queryFn: async () => {
+            const response = await apiFetch("/dashboard/preferences");
+            if (!response.ok) throw new Error("Failed to fetch dashboard preferences");
+            return response.json();
+        },
+        enabled: !!workspace,
+    });
+
+    const mutation = useMutation({
+        mutationFn: async (update: Partial<Omit<DashboardLayoutPreferences, "id" | "user_id" | "workspace_id">>) => {
+            const response = await apiFetch("/dashboard/preferences", {
+                method: "PUT",
+                body: JSON.stringify(update),
+            });
+            if (!response.ok) throw new Error("Failed to save dashboard preferences");
+            return response.json();
+        },
+        onSuccess: (data) => {
+            queryClient.setQueryData(queryKey, data);
+        },
+    });
+
+    // ── Computed values ──────────────────────────────────────────────
+
+    const activeView: DashboardView = preferences?.active_view ?? "overview";
+
+    const visibleWidgets: Record<WidgetId, boolean> = (() => {
+        if (activeView === "custom") {
+            return (preferences?.visible_widgets ?? {}) as Record<WidgetId, boolean>;
+        }
+        return (PRESET_VIEWS[activeView]?.visible ?? {}) as Record<WidgetId, boolean>;
+    })();
+
+    const widgetOrder: WidgetId[] = (() => {
+        if (activeView === "custom" && preferences?.widget_order?.length) {
+            return preferences.widget_order;
+        }
+        return PRESET_VIEWS[activeView as Exclude<DashboardView, "custom">]?.order ?? ALL_WIDGETS.map((w) => w.id);
+    })();
+
+    const collapsedSections: Record<string, boolean> =
+        (preferences?.collapsed_sections as Record<string, boolean>) ?? {};
+
+    // ── Actions ──────────────────────────────────────────────────────
+
+    const setActiveView = (view: DashboardView) => {
+        mutation.mutate({
+            active_view: view,
+            visible_widgets: view === "custom" ? preferences?.visible_widgets : PRESET_VIEWS[view as Exclude<DashboardView, "custom">]?.visible as Record<string, boolean>,
+            widget_order: view === "custom" ? preferences?.widget_order : PRESET_VIEWS[view as Exclude<DashboardView, "custom">]?.order,
+            collapsed_sections: preferences?.collapsed_sections,
+        });
+    };
+
+    const toggleWidget = (widgetId: WidgetId) => {
+        const updated = { ...visibleWidgets, [widgetId]: !visibleWidgets[widgetId] };
+        mutation.mutate({
+            active_view: "custom",
+            visible_widgets: updated,
+            widget_order: preferences?.widget_order ?? ALL_WIDGETS.map((w) => w.id),
+            collapsed_sections: preferences?.collapsed_sections,
+        });
+    };
+
+    const setWidgetOrder = (order: WidgetId[]) => {
+        mutation.mutate({
+            active_view: "custom",
+            visible_widgets: preferences?.visible_widgets,
+            widget_order: order,
+            collapsed_sections: preferences?.collapsed_sections,
+        });
+    };
+
+    const toggleSection = (sectionId: string) => {
+        const updated = { ...collapsedSections, [sectionId]: !collapsedSections[sectionId] };
+        mutation.mutate({
+            active_view: preferences?.active_view,
+            visible_widgets: preferences?.visible_widgets,
+            widget_order: preferences?.widget_order,
+            collapsed_sections: updated,
+        });
+    };
+
+    const resetToDefault = () => {
+        mutation.mutate({
+            active_view: "overview",
+            visible_widgets: PRESET_VIEWS.overview.visible as Record<string, boolean>,
+            widget_order: PRESET_VIEWS.overview.order,
+            collapsed_sections: { summary: false, charts: false, actions: true },
+        });
+    };
+
+    return {
+        // State
+        activeView,
+        visibleWidgets,
+        widgetOrder,
+        collapsedSections,
+        isLoading,
+        error,
+        isSaving: mutation.isPending,
+        // Actions
+        setActiveView,
+        toggleWidget,
+        setWidgetOrder,
+        toggleSection,
+        resetToDefault,
+        // Raw data for CustomizePanel
+        allWidgets: ALL_WIDGETS,
+    };
+}

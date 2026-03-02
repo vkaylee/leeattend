@@ -1111,7 +1111,37 @@
       "device_management_btn": "打开管理器"
     },
     "connection_error": "连接错误",
-    "connection_error_desc": "无法连接到 API 服务器或数据无效。"
+    "connection_error_desc": "无法连接到 API 服务器或数据无效。",
+    "views": {
+      "label": "仪表板视图",
+      "overview": "概览",
+      "attendance": "出勤",
+      "trends": "趋势",
+      "custom": "自定义"
+    },
+    "widgets": {
+      "kpi_cards": "KPI 卡片",
+      "donut_chart": "出勤分布图",
+      "quick_stats": "快速统计",
+      "attendance_trend": "出勤趋势",
+      "department_chart": "部门考勤图表",
+      "overtime_trend": "加班趋势",
+      "peak_times": "高峰时段",
+      "leave_types": "请假类型",
+      "lateness_by_day": "每日迟到统计",
+      "promo_cards": "促销卡片"
+    },
+    "customize": {
+      "title": "自定义仪表板",
+      "widgets": "部件",
+      "reset": "重置为默认",
+      "btn": "自定义"
+    },
+    "sections": {
+      "summary": "摘要",
+      "charts": "图表",
+      "actions": "操作"
+    }
   },
   "workspace_settings": {
     "title": "工作空间设置",

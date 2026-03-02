@@ -1111,7 +1111,37 @@
       "device_management_btn": "Open manager"
     },
     "connection_error": "Connection Error",
-    "connection_error_desc": "Could not connect to API Server or invalid data."
+    "connection_error_desc": "Could not connect to API Server or invalid data.",
+    "views": {
+      "label": "Dashboard Views",
+      "overview": "Overview",
+      "attendance": "Attendance",
+      "trends": "Trends",
+      "custom": "Custom"
+    },
+    "widgets": {
+      "kpi_cards": "KPI Cards",
+      "donut_chart": "Attendance Breakdown",
+      "quick_stats": "Quick Stats",
+      "attendance_trend": "Attendance Trend",
+      "department_chart": "Department Chart",
+      "overtime_trend": "Overtime Trend",
+      "peak_times": "Peak Times",
+      "leave_types": "Leave Types",
+      "lateness_by_day": "Lateness by Day",
+      "promo_cards": "Quick Links"
+    },
+    "customize": {
+      "title": "Customize Dashboard",
+      "widgets": "Drag to reorder, toggle to show/hide",
+      "reset": "Reset to Default",
+      "btn": "Customize"
+    },
+    "sections": {
+      "summary": "Today's Summary",
+      "charts": "Analysis Charts",
+      "actions": "Quick Actions"
+    }
   },
   "workspace_settings": {
     "title": "Workspace Settings",

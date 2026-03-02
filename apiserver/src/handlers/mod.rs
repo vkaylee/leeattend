@@ -30,3 +30,4 @@ pub use overtime::*;
 pub mod holidays;
 pub mod leave_types;
 pub mod shift_swaps;
+pub mod dashboard_preferences;

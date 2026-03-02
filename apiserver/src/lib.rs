@@ -198,6 +198,11 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/dashboard/lateness-by-day",
             get(handlers::get_lateness_by_day),
         )
+        .route(
+            "/dashboard/preferences",
+            get(handlers::dashboard_preferences::get_dashboard_preferences)
+                .put(handlers::dashboard_preferences::update_dashboard_preferences),
+        )
         .route("/auth/login", post(handlers::login))
         .route("/auth/register", post(handlers::register))
         .route_layer(mw::RateLimitLayer::new(
