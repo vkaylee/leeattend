@@ -1081,7 +1081,18 @@
       "overtime_trend": "加班趋势",
       "overtime_trend_subtitle": "最近30天",
       "system_ot": "系统检测加班",
-      "approved_ot": "已批准加班"
+      "approved_ot": "已批准加班",
+      "peak_times": "打卡高峰时段",
+      "peak_times_subtitle": "按时段分布的刷卡量",
+      "check_in_label": "签到",
+      "check_out_label": "签退",
+      "people": "人",
+      "leave_types": "假期类型分布",
+      "leave_types_subtitle": "月度假期分布",
+      "lateness_by_day": "按星期统计迟到",
+      "lateness_by_day_subtitle": "迟到趋势",
+      "late_count": "迟到次数",
+      "avg_late_minutes": "平均迟到(分钟)"
     },
     "system": {
       "total_agents": "代理总数",

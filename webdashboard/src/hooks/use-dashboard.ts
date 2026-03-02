@@ -118,3 +118,86 @@ export function useOvertimeTrend() {
     enabled: !!workspace,
   });
 }
+
+// ── Peak Check-in/Check-out Times ──────────────────────────
+
+export interface PeakTimeSlot {
+  time_slot: string; // e.g. "07:30-08:00"
+  check_in: number;
+  check_out: number;
+}
+
+export function usePeakTimes() {
+  const { workspace } = useWorkspace();
+
+  return useQuery<PeakTimeSlot[]>({
+    queryKey: ["peak-times", workspace?.id],
+    queryFn: async () => {
+      if (!workspace) throw new Error("No workspace selected");
+
+      const response = await apiFetch(`/dashboard/peak-times`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch peak times");
+      }
+
+      return response.json();
+    },
+    enabled: !!workspace,
+  });
+}
+
+// ── Leave Types Breakdown ──────────────────────────────────
+
+export interface LeaveTypeBreakdown {
+  leave_type: string; // e.g. "Sick", "Annual", "Maternity"
+  count: number;
+}
+
+export function useLeaveTypesBreakdown() {
+  const { workspace } = useWorkspace();
+
+  return useQuery<LeaveTypeBreakdown[]>({
+    queryKey: ["leave-types-breakdown", workspace?.id],
+    queryFn: async () => {
+      if (!workspace) throw new Error("No workspace selected");
+
+      const response = await apiFetch(`/dashboard/leave-types`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch leave types breakdown");
+      }
+
+      return response.json();
+    },
+    enabled: !!workspace,
+  });
+}
+
+// ── Lateness by Day of Week ────────────────────────────────
+
+export interface LatenessByDay {
+  day: string; // e.g. "Mon", "Tue", ...
+  late_count: number;
+  avg_late_minutes: number;
+}
+
+export function useLatenessByDay() {
+  const { workspace } = useWorkspace();
+
+  return useQuery<LatenessByDay[]>({
+    queryKey: ["lateness-by-day", workspace?.id],
+    queryFn: async () => {
+      if (!workspace) throw new Error("No workspace selected");
+
+      const response = await apiFetch(`/dashboard/lateness-by-day`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch lateness by day");
+      }
+
+      return response.json();
+    },
+    enabled: !!workspace,
+  });
+}

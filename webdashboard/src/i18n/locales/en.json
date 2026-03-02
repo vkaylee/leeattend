@@ -1081,7 +1081,18 @@
       "overtime_trend": "Overtime Trend",
       "overtime_trend_subtitle": "Last 30 Days",
       "system_ot": "System Detected OT",
-      "approved_ot": "Approved OT"
+      "approved_ot": "Approved OT",
+      "peak_times": "Peak Check-in/Check-out Times",
+      "peak_times_subtitle": "Hourly distribution of card swipes",
+      "check_in_label": "Check In",
+      "check_out_label": "Check Out",
+      "people": "people",
+      "leave_types": "Leave Types Breakdown",
+      "leave_types_subtitle": "Monthly leave distribution",
+      "lateness_by_day": "Lateness by Day of Week",
+      "lateness_by_day_subtitle": "Late arrivals pattern",
+      "late_count": "Late Count",
+      "avg_late_minutes": "Avg Late (min)"
     },
     "system": {
       "total_agents": "Total Agents",

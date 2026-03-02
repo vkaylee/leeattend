@@ -186,6 +186,18 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/dashboard/overtime-trend",
             get(handlers::get_overtime_trend),
         )
+        .route(
+            "/dashboard/peak-times",
+            get(handlers::get_peak_times),
+        )
+        .route(
+            "/dashboard/leave-types",
+            get(handlers::get_leave_types_breakdown),
+        )
+        .route(
+            "/dashboard/lateness-by-day",
+            get(handlers::get_lateness_by_day),
+        )
         .route("/auth/login", post(handlers::login))
         .route("/auth/register", post(handlers::register))
         .route_layer(mw::RateLimitLayer::new(

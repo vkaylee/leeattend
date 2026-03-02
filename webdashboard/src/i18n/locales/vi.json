@@ -1081,7 +1081,18 @@
       "overtime_trend": "Xu hướng tăng ca",
       "overtime_trend_subtitle": "30 ngày gần nhất",
       "system_ot": "OT hệ thống ghi nhận",
-      "approved_ot": "OT đã duyệt"
+      "approved_ot": "OT đã duyệt",
+      "peak_times": "Giờ quẹt thẻ cao điểm",
+      "peak_times_subtitle": "Phân bổ lượt quẹt thẻ theo khung giờ",
+      "check_in_label": "Giờ vào",
+      "check_out_label": "Giờ ra",
+      "people": "người",
+      "leave_types": "Phân bổ loại nghỉ phép",
+      "leave_types_subtitle": "Thống kê nghỉ phép trong tháng",
+      "lateness_by_day": "Đi muộn theo ngày trong tuần",
+      "lateness_by_day_subtitle": "Xu hướng đi muộn",
+      "late_count": "Số lượt trễ",
+      "avg_late_minutes": "Trễ TB (phút)"
     },
     "system": {
       "total_agents": "Tổng số Agent",

@@ -58,6 +58,9 @@ vi.mock("@/hooks/use-dashboard", () => ({
   useAttendanceTrend: () => ({ data: [], isLoading: false, error: null }),
   useDepartmentAttendance: () => ({ data: [], isLoading: false, error: null }),
   useOvertimeTrend: () => ({ data: [], isLoading: false, error: null }),
+  usePeakTimes: () => ({ data: [], isLoading: false, error: null }),
+  useLeaveTypesBreakdown: () => ({ data: [], isLoading: false, error: null }),
+  useLatenessByDay: () => ({ data: [], isLoading: false, error: null }),
 }));
 
 vi.mock("@/lib/api", async (importOriginal) => {
@@ -83,6 +86,7 @@ vi.mock("recharts", () => ({
   CartesianGrid: () => <div />, Tooltip: () => <div />, Legend: () => <div />,
   LineChart: () => <div />, Line: () => <div />, AreaChart: () => <div />, Area: () => <div />,
   PieChart: () => <div />, Pie: () => <div />, Cell: () => <div />,
+  ComposedChart: () => <div />,
 }));
 
 describe("Page Rendering", () => {

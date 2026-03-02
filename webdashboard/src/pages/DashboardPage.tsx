@@ -23,6 +23,9 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import AttendanceTrendChart from "@/components/features/dashboard/AttendanceTrendChart";
 import DepartmentAttendanceChart from "@/components/features/dashboard/DepartmentAttendanceChart";
 import OvertimeTrendChart from "@/components/features/dashboard/OvertimeTrendChart";
+import PeakTimesChart from "@/components/features/dashboard/PeakTimesChart";
+import LeaveTypesChart from "@/components/features/dashboard/LeaveTypesChart";
+import LatenessByDayChart from "@/components/features/dashboard/LatenessByDayChart";
 import { useAgentsStatus } from "@/hooks/use-agents";
 import { useDevices } from "@/hooks/use-devices";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
@@ -111,6 +114,15 @@ export default function DashboardPage() {
 
             {/* Row 2c: Overtime Trend */}
             <OvertimeTrendChart />
+
+            {/* Row 2d: Peak Check-in/Check-out Times */}
+            <PeakTimesChart />
+
+            {/* Row 2e: Leave Types + Lateness by Day */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+              <LeaveTypesChart />
+              <LatenessByDayChart />
+            </div>
 
             {/* Row 3: Donut Chart + Quick Stats */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">

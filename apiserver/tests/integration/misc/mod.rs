@@ -1,5 +1,6 @@
 //! Misc domain integration tests
 
+mod dashboard;
 mod db_trap;
 mod forbidden;
 mod health;

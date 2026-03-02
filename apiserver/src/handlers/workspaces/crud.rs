@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, Query, State},
     response::Json,
 };
-use chrono::{NaiveDate, Utc};
+use chrono::{Datelike, NaiveDate, Utc};
 use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -10,8 +10,9 @@ use uuid::Uuid;
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
 use crate::models::{
-    AttendanceTrendPoint, CreateWorkspaceRequest, DepartmentAttendancePoint, OvertimeTrendPoint,
-    UpdateWorkspaceRequest, Workspace, WorkspaceStats,
+    AttendanceTrendPoint, CreateWorkspaceRequest, DepartmentAttendancePoint, LatenessByDay,
+    LeaveTypeBreakdown, OvertimeTrendPoint, PeakTimeSlot, UpdateWorkspaceRequest, Workspace,
+    WorkspaceStats,
 };
 use crate::services::WorkspaceService;
 use crate::{AppState, UserId};
@@ -555,6 +556,227 @@ pub async fn get_workspace_stats(
         early_departure_today,
         avg_work_hours_today,
     }))
+}
+
+// ── Peak Check-in/Check-out Times ──────────────────────────────────
+
+pub async fn get_peak_times(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> AppResult<Json<Vec<PeakTimeSlot>>> {
+    let today = Utc::now().date_naive();
+    let start_of_day = today
+        .and_hms_opt(0, 0, 0)
+        .and_then(|t| t.and_local_timezone(Utc).single())
+        .ok_or_else(|| AppError::Internal("Invalid date".to_string()))?;
+
+    // Generate 30-minute time slots and count check-ins/check-outs per slot
+    #[derive(Debug, sqlx::FromRow)]
+    struct SlotRow {
+        time_slot: String,
+        check_in: i64,
+        check_out: i64,
+    }
+
+    let rows = sqlx::query_as::<_, SlotRow>(
+        r#"
+        WITH slots AS (
+            SELECT generate_series(0, 47) AS slot_index
+        ),
+        slot_labels AS (
+            SELECT slot_index,
+                   TO_CHAR((TIME '00:00' + (slot_index * INTERVAL '30 minutes')), 'HH24:MI')
+                   || '-' ||
+                   TO_CHAR((TIME '00:00' + ((slot_index + 1) * INTERVAL '30 minutes')), 'HH24:MI')
+                   AS time_slot,
+                   (TIME '00:00' + (slot_index * INTERVAL '30 minutes')) AS slot_start,
+                   (TIME '00:00' + ((slot_index + 1) * INTERVAL '30 minutes')) AS slot_end
+            FROM slots
+        ),
+        today_entries AS (
+            SELECT punch_in_time, punch_out_time
+            FROM time_entries
+            WHERE punch_in_time >= $1
+              AND employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)
+        )
+        SELECT sl.time_slot,
+               COALESCE(SUM(CASE WHEN te.punch_in_time::time >= sl.slot_start
+                                  AND te.punch_in_time::time < sl.slot_end
+                                 THEN 1 ELSE 0 END), 0) AS check_in,
+               COALESCE(SUM(CASE WHEN te.punch_out_time IS NOT NULL
+                                  AND te.punch_out_time::time >= sl.slot_start
+                                  AND te.punch_out_time::time < sl.slot_end
+                                 THEN 1 ELSE 0 END), 0) AS check_out
+        FROM slot_labels sl
+        LEFT JOIN today_entries te ON TRUE
+        GROUP BY sl.slot_index, sl.time_slot
+        HAVING COALESCE(SUM(CASE WHEN te.punch_in_time::time >= sl.slot_start
+                                  AND te.punch_in_time::time < sl.slot_end
+                                 THEN 1 ELSE 0 END), 0) > 0
+            OR COALESCE(SUM(CASE WHEN te.punch_out_time IS NOT NULL
+                                  AND te.punch_out_time::time >= sl.slot_start
+                                  AND te.punch_out_time::time < sl.slot_end
+                                 THEN 1 ELSE 0 END), 0) > 0
+        ORDER BY sl.slot_index
+        "#,
+    )
+    .bind(start_of_day)
+    .bind(workspace_id)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    let result: Vec<PeakTimeSlot> = rows
+        .into_iter()
+        .map(|r| PeakTimeSlot {
+            time_slot: r.time_slot,
+            check_in: r.check_in,
+            check_out: r.check_out,
+        })
+        .collect();
+
+    Ok(Json(result))
+}
+
+// ── Leave Types Breakdown ──────────────────────────────────────────
+
+pub async fn get_leave_types_breakdown(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> AppResult<Json<Vec<LeaveTypeBreakdown>>> {
+    let today = Utc::now().date_naive();
+    let month_start = NaiveDate::from_ymd_opt(today.year(), today.month(), 1)
+        .ok_or_else(|| AppError::Internal("Invalid date".to_string()))?;
+
+    #[derive(Debug, sqlx::FromRow)]
+    struct LtRow {
+        leave_type: String,
+        count: i64,
+    }
+
+    let rows = sqlx::query_as::<_, LtRow>(
+        r#"
+        SELECT COALESCE(lt.name, 'Other') AS leave_type,
+               COUNT(*) AS count
+        FROM leave_requests lr
+        LEFT JOIN leave_types lt ON lt.id = lr.leave_type_id
+        WHERE lr.status = 'approved'
+          AND lr.start_date <= $2
+          AND lr.end_date >= $1
+          AND lr.employee_id IN (
+              SELECT id FROM employees WHERE workspace_id = $3 AND is_active = TRUE
+          )
+        GROUP BY COALESCE(lt.name, 'Other')
+        ORDER BY count DESC
+        "#,
+    )
+    .bind(month_start)
+    .bind(today)
+    .bind(workspace_id)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    let result: Vec<LeaveTypeBreakdown> = rows
+        .into_iter()
+        .map(|r| LeaveTypeBreakdown {
+            leave_type: r.leave_type,
+            count: r.count,
+        })
+        .collect();
+
+    Ok(Json(result))
+}
+
+// ── Lateness by Day of Week ────────────────────────────────────────
+
+pub async fn get_lateness_by_day(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> AppResult<Json<Vec<LatenessByDay>>> {
+    let today = Utc::now().date_naive();
+
+    #[derive(Debug, sqlx::FromRow)]
+    struct DayRow {
+        dow: i32,
+        late_count: i64,
+        avg_late_minutes: f64,
+    }
+
+    let rows = sqlx::query_as::<_, DayRow>(
+        r#"
+        WITH first_punches AS (
+            SELECT te.employee_id,
+                   te.punch_in_time::date AS work_date,
+                   MIN(te.punch_in_time)::time AS first_punch
+            FROM time_entries te
+            WHERE te.punch_in_time::date >= ($1::date - INTERVAL '29 days')
+              AND te.punch_in_time::date <= $1
+              AND te.employee_id IN (SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE)
+            GROUP BY te.employee_id, te.punch_in_time::date
+        ),
+        resolved_shifts AS (
+            SELECT DISTINCT ON (fp.employee_id, fp.work_date)
+                   fp.employee_id, fp.work_date, fp.first_punch, COALESCE(
+                       -- Priority 1: shift_rosters (manual roster)
+                       (SELECT sr.shift_id FROM shift_rosters sr
+                        WHERE sr.employee_id = fp.employee_id AND sr.date = fp.work_date
+                        LIMIT 1),
+                       -- Priority 2: individual working pattern
+                       (SELECT wpd.shift_id FROM working_pattern_details wpd
+                        JOIN employee_working_patterns ewp ON ewp.pattern_id = wpd.pattern_id
+                        WHERE ewp.employee_id = fp.employee_id
+                          AND ewp.start_date <= fp.work_date
+                          AND (ewp.end_date IS NULL OR ewp.end_date >= fp.work_date)
+                          AND wpd.day_of_week = EXTRACT(DOW FROM fp.work_date)::int
+                        ORDER BY ewp.created_at DESC LIMIT 1),
+                       -- Priority 3: employee_shifts (default assignment)
+                       (SELECT es.shift_id FROM employee_shifts es
+                        WHERE es.employee_id = fp.employee_id
+                          AND es.start_date <= fp.work_date
+                          AND (es.end_date IS NULL OR es.end_date >= fp.work_date)
+                        LIMIT 1)
+                   ) AS shift_id
+            FROM first_punches fp
+        ),
+        late_entries AS (
+            SELECT rs.work_date,
+                   EXTRACT(ISODOW FROM rs.work_date)::int AS dow,
+                   EXTRACT(EPOCH FROM (rs.first_punch - s.start_time)) / 60.0 AS late_minutes
+            FROM resolved_shifts rs
+            JOIN shifts s ON s.id = rs.shift_id
+            WHERE rs.shift_id IS NOT NULL
+              AND rs.first_punch > (s.start_time + INTERVAL '5 minutes')
+        )
+        SELECT dow,
+               COUNT(*) AS late_count,
+               COALESCE(AVG(late_minutes), 0)::float8 AS avg_late_minutes
+        FROM late_entries
+        GROUP BY dow
+        ORDER BY dow
+        "#,
+    )
+    .bind(today)
+    .bind(workspace_id)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    let day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+    let result: Vec<LatenessByDay> = rows
+        .into_iter()
+        .map(|r| {
+            let day_idx = (r.dow - 1).clamp(0, 6) as usize;
+            LatenessByDay {
+                day: day_names[day_idx].to_string(),
+                late_count: r.late_count,
+                avg_late_minutes: (r.avg_late_minutes * 10.0).round() / 10.0,
+            }
+        })
+        .collect();
+
+    Ok(Json(result))
 }
 
 pub async fn get_workspaces(

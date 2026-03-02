@@ -42,6 +42,26 @@ pub struct OvertimeTrendPoint {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct PeakTimeSlot {
+    pub time_slot: String,
+    pub check_in: i64,
+    pub check_out: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct LeaveTypeBreakdown {
+    pub leave_type: String,
+    pub count: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct LatenessByDay {
+    pub day: String,
+    pub late_count: i64,
+    pub avg_late_minutes: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct EmployeeSearchQuery {
     pub q: Option<String>,
 }
