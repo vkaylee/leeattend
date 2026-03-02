@@ -55,6 +55,7 @@ vi.mock("@/hooks/use-devices", () => ({
 
 vi.mock("@/hooks/use-dashboard", () => ({
   useDashboardStats: () => ({ data: { total_employees: 10, present_today: 8, pending_leave_requests: 2, estimated_monthly_payroll: "50000", late_today: 1, absent_today: 1, on_leave_today: 1, early_departure_today: 0, avg_work_hours_today: 7.5 }, isLoading: false, error: null }),
+  useAttendanceTrend: () => ({ data: [], isLoading: false, error: null }),
 }));
 
 vi.mock("@/lib/api", async (importOriginal) => {

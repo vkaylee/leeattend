@@ -169,8 +169,8 @@ describe("EmployeeSearch Component", () => {
     const hiddenSelect = screen.getByRole("combobox");
     fireEvent.change(hiddenSelect, { target: { value: "non-existent-id" } });
 
-    // onChange is still called (to update the value)
-    expect(onChange).toHaveBeenCalledWith("non-existent-id");
+    // onChange is still called (to update the value), but with empty string since it's not found
+    expect(onChange).toHaveBeenCalledWith("");
 
     // But onSelectEmployee should NOT have been called since no Employee was found
     expect(onSelectEmployee).not.toHaveBeenCalled();
