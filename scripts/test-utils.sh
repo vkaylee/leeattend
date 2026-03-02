@@ -274,7 +274,6 @@ run_parallel_ordered() {
     local running_names=()
     local running_starts=()
     local completed_count=0
-    local tail_pids=()  # Must be declared HERE (outside loop) to persist across iterations
 
     while [ $completed_count -lt $total_tasks ]; do
         # Start new tasks if we have room in the pool
@@ -328,10 +327,16 @@ run_parallel_ordered() {
             else
                 # PARALLEL EXECUTION
                 (cd "$PROJECT_ROOT/$dir" && run_with_timeout "$task_timeout" bash -c "$cmd") </dev/null > "$log_file" 2>&1 &
-                running_pids+=($!)
+                local test_pid=$!
+                running_pids+=($test_pid)
                 running_logs+=("$log_file")
                 running_names+=("$name")
                 running_starts+=("$start_time")
+                
+                # Start a background tail to show progress (PASS/FAIL/TIMEOUT lines only)
+                # It will automatically exit when test_pid exits
+                touch "$log_file"
+                tail -f "$log_file" --pid=$test_pid 2>/dev/null | grep --line-buffered -E "^(    PASS|    FAIL|    TIMEOUT|panicked|test result:)" </dev/null &
             fi
         done
 
@@ -339,17 +344,7 @@ run_parallel_ordered() {
 
         # Wait for at least one task to complete
         if [ ${#running_pids[@]} -gt 0 ]; then
-            echo -e "  [WAIT] Running: ${running_names[*]}  \n"
-            
-            # Start a background tail to show progress (PASS/FAIL/TIMEOUT lines only)
-            # This gives the user feedback that tests are actually running, not frozen
-            for log in "${running_logs[@]}"; do
-                touch "$log" # ensure file exists
-                # Extract only important test execution lines to prevent flooding
-                tail -f "$log" 2>/dev/null | grep --line-buffered -E "^(    PASS|    FAIL|    TIMEOUT|panicked|test result:)" </dev/null &
-                tail_pids+=($!)
-            done
-
+            # We don't need to print WAIT every second, just update the same line at the end
             local still_running_pids=()
             local still_running_logs=()
             local still_running_names=()
@@ -409,15 +404,6 @@ run_parallel_ordered() {
                 sleep 1
             fi
         fi
-    done
-
-    # Cleanup ALL tail streaming processes (must be AFTER the loop)
-    for tp in "${tail_pids[@]+"${tail_pids[@]}"}"; do
-        kill "$tp" 2>/dev/null || true
-    done
-    # Wait to suppress bash "Terminated" / "Killed" messages
-    for tp in "${tail_pids[@]+"${tail_pids[@]}"}"; do
-        wait "$tp" 2>/dev/null || true
     done
 
     echo -ne "                                                                \r"
