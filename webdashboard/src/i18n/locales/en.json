@@ -1071,7 +1071,9 @@
       "avg_work_hours": "Avg Work Hours",
       "attendance_breakdown": "Today's Attendance",
       "on_time": "On Time",
-      "quick_stats": "Quick Stats"
+      "quick_stats": "Quick Stats",
+      "attendance_trend": "Attendance Trend",
+      "last_30_days": "Last 30 Days"
     },
     "system": {
       "total_agents": "Total Agents",

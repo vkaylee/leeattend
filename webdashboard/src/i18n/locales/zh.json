@@ -1071,7 +1071,9 @@
       "avg_work_hours": "平均工时",
       "attendance_breakdown": "今日考勤",
       "on_time": "准时",
-      "quick_stats": "快速统计"
+      "quick_stats": "快速统计",
+      "attendance_trend": "出勤趋势",
+      "last_30_days": "最近30天"
     },
     "system": {
       "total_agents": "代理总数",

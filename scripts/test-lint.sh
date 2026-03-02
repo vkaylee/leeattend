@@ -31,7 +31,7 @@ leeattend_run_lint() {
         WEB_TYPECHECK_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run type-check </dev/null"
         
         # API Sync via shared volume between apiserver_test and web_test:
-        SYNC_API_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"SQLX_OFFLINE=false cargo run -- gen-openapi > /workspace/shared/openapi.json\" && $DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx openapi-typescript /workspace/shared/openapi.json -o ./src/types/api-generated.ts\""
+        SYNC_API_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"SQLX_OFFLINE=false cargo run -- gen-openapi > /workspace/shared/openapi.json\" </dev/null && $DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx openapi-typescript /workspace/shared/openapi.json -o ./src/types/api-generated.ts\" </dev/null"
     fi
 
     run_parallel_ordered "Phase 0 Linting" "$filter" \

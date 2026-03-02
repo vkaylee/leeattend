@@ -274,6 +274,7 @@ run_parallel_ordered() {
     local running_names=()
     local running_starts=()
     local completed_count=0
+    local tail_pids=()  # Must be declared HERE (outside loop) to persist across iterations
 
     while [ $completed_count -lt $total_tasks ]; do
         # Start new tasks if we have room in the pool
@@ -342,7 +343,6 @@ run_parallel_ordered() {
             
             # Start a background tail to show progress (PASS/FAIL/TIMEOUT lines only)
             # This gives the user feedback that tests are actually running, not frozen
-            local tail_pids=()
             for log in "${running_logs[@]}"; do
                 touch "$log" # ensure file exists
                 # Extract only important test execution lines to prevent flooding
@@ -411,12 +411,14 @@ run_parallel_ordered() {
         fi
     done
 
-    # Cleanup the live tail streaming processes created for parallel progress viewing (if any)
-    if [ ${#tail_pids[@]} -gt 0 ]; then
-        for tp in "${tail_pids[@]}"; do
-            kill "$tp" 2>/dev/null || true
-        done
-    fi
+    # Cleanup ALL tail streaming processes (must be AFTER the loop)
+    for tp in "${tail_pids[@]+"${tail_pids[@]}"}"; do
+        kill "$tp" 2>/dev/null || true
+    done
+    # Wait to suppress bash "Terminated" / "Killed" messages
+    for tp in "${tail_pids[@]+"${tail_pids[@]}"}"; do
+        wait "$tp" 2>/dev/null || true
+    done
 
     echo -ne "                                                                \r"
     echo -e "${GREEN}✅ $phase_name Completed Successfully!${NC}"

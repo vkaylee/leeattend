@@ -1071,7 +1071,9 @@
       "avg_work_hours": "Giờ làm trung bình",
       "attendance_breakdown": "Chấm công hôm nay",
       "on_time": "Đúng giờ",
-      "quick_stats": "Thống kê nhanh"
+      "quick_stats": "Thống kê nhanh",
+      "attendance_trend": "Xu hướng chấm công",
+      "last_30_days": "30 ngày gần nhất"
     },
     "system": {
       "total_agents": "Tổng số Agent",

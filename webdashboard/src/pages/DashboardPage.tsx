@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import AttendanceTrendChart from "@/components/features/dashboard/AttendanceTrendChart";
 import { useAgentsStatus } from "@/hooks/use-agents";
 import { useDevices } from "@/hooks/use-devices";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
@@ -100,7 +101,10 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            {/* Row 2: Donut Chart + Quick Stats */}
+            {/* Row 2: Attendance Trend */}
+            <AttendanceTrendChart />
+
+            {/* Row 3: Donut Chart + Quick Stats */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
               {/* Donut Chart */}
               <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-sm">

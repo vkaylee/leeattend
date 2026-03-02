@@ -174,6 +174,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/dashboard/workspace-stats",
             get(handlers::get_workspace_stats),
         )
+        .route(
+            "/dashboard/attendance-trend",
+            get(handlers::get_attendance_trend),
+        )
         .route("/auth/login", post(handlers::login))
         .route("/auth/register", post(handlers::register))
         .route_layer(mw::RateLimitLayer::new(

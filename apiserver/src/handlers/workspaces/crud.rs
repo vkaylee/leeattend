@@ -2,15 +2,140 @@ use axum::{
     extract::{Path, State},
     response::Json,
 };
-use chrono::Utc;
+use chrono::{NaiveDate, Utc};
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::errors::{AppError, AppResult};
 use crate::handlers::common::MemberContext;
-use crate::models::{CreateWorkspaceRequest, UpdateWorkspaceRequest, Workspace, WorkspaceStats};
+use crate::models::{
+    AttendanceTrendPoint, CreateWorkspaceRequest, UpdateWorkspaceRequest, Workspace, WorkspaceStats,
+};
 use crate::services::WorkspaceService;
 use crate::{AppState, UserId};
+
+pub async fn get_attendance_trend(
+    State(state): State<Arc<AppState>>,
+    MemberContext { workspace_id, .. }: MemberContext,
+) -> AppResult<Json<Vec<AttendanceTrendPoint>>> {
+    let today = Utc::now().date_naive();
+
+    // Main query: present + on_leave per day (uses only guaranteed tables)
+    #[derive(Debug, sqlx::FromRow)]
+    struct BaseRow {
+        date: NaiveDate,
+        present: i64,
+        on_leave: i64,
+    }
+
+    let base_rows = sqlx::query_as::<_, BaseRow>(
+        r#"
+        WITH days AS (
+            SELECT d::date AS date
+            FROM generate_series(($1::date - INTERVAL '29 days'), $1::date, '1 day'::interval) AS d
+        ),
+        active_employees AS (
+            SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE
+        ),
+        daily_present AS (
+            SELECT d.date,
+                   COUNT(DISTINCT te.employee_id) AS present
+            FROM days d
+            LEFT JOIN time_entries te
+                ON te.punch_in_time::date = d.date
+                AND te.employee_id IN (SELECT id FROM active_employees)
+            GROUP BY d.date
+        ),
+        daily_leave AS (
+            SELECT d.date,
+                   COUNT(DISTINCT lr.employee_id) AS on_leave
+            FROM days d
+            LEFT JOIN leave_requests lr
+                ON lr.status = 'approved'
+                AND lr.start_date <= d.date
+                AND lr.end_date >= d.date
+                AND lr.employee_id IN (SELECT id FROM active_employees)
+            GROUP BY d.date
+        )
+        SELECT dp.date,
+               COALESCE(dp.present, 0) AS present,
+               COALESCE(dle.on_leave, 0) AS on_leave
+        FROM daily_present dp
+        LEFT JOIN daily_leave dle ON dp.date = dle.date
+        ORDER BY dp.date ASC
+        "#,
+    )
+    .bind(today)
+    .bind(workspace_id)
+    .fetch_all(&state.db)
+    .await?;
+
+    // Late detection: separate query (roster_entries may not exist yet)
+    #[derive(Debug, sqlx::FromRow)]
+    struct LateRow {
+        work_date: NaiveDate,
+        late_count: i64,
+    }
+
+    let late_map: std::collections::HashMap<NaiveDate, i64> = sqlx::query_as::<_, LateRow>(
+        r#"
+        WITH active_employees AS (
+            SELECT id FROM employees WHERE workspace_id = $2 AND is_active = TRUE
+        ),
+        first_punches AS (
+            SELECT te.employee_id,
+                   te.punch_in_time::date AS work_date,
+                   MIN(te.punch_in_time)::time AS first_punch
+            FROM time_entries te
+            WHERE te.punch_in_time::date >= ($1::date - INTERVAL '29 days')
+              AND te.punch_in_time::date <= $1::date
+              AND te.employee_id IN (SELECT id FROM active_employees)
+            GROUP BY te.employee_id, te.punch_in_time::date
+        )
+        SELECT fp.work_date,
+               COUNT(DISTINCT fp.employee_id) AS late_count
+        FROM first_punches fp
+        JOIN roster_entries re ON re.employee_id = fp.employee_id AND re.date = fp.work_date
+        JOIN shifts s ON s.id = re.shift_id
+        WHERE fp.first_punch > (s.start_time + INTERVAL '5 minutes')
+        GROUP BY fp.work_date
+        "#,
+    )
+    .bind(today)
+    .bind(workspace_id)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default()
+    .into_iter()
+    .map(|r| (r.work_date, r.late_count))
+    .collect();
+
+    // Total active employees for absent calculation
+    let total_active: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM employees WHERE workspace_id = $1 AND is_active = TRUE",
+    )
+    .bind(workspace_id)
+    .fetch_one(&state.db)
+    .await
+    .unwrap_or(0);
+
+    let trend: Vec<AttendanceTrendPoint> = base_rows
+        .into_iter()
+        .map(|r| {
+            let late = *late_map.get(&r.date).unwrap_or(&0);
+            let absent = (total_active - r.present - r.on_leave).max(0);
+            AttendanceTrendPoint {
+                date: r.date,
+                present: r.present,
+                late,
+                absent,
+                on_leave: r.on_leave,
+            }
+        })
+        .collect();
+
+    Ok(Json(trend))
+}
 
 pub async fn get_workspace_stats(
     State(state): State<Arc<AppState>>,

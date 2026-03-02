@@ -127,7 +127,17 @@ export interface components {
             port?: number | null;
         };
         WorkspaceStats: {
+            /** Format: int64 */
+            absent_today: number;
+            /** Format: double */
+            avg_work_hours_today: number;
+            /** Format: int64 */
+            early_departure_today: number;
             estimated_monthly_payroll: string;
+            /** Format: int64 */
+            late_today: number;
+            /** Format: int64 */
+            on_leave_today: number;
             /** Format: int64 */
             pending_leave_requests: number;
             /** Format: int64 */

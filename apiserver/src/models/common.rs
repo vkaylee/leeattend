@@ -1,5 +1,15 @@
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct AttendanceTrendPoint {
+    pub date: NaiveDate,
+    pub present: i64,
+    pub late: i64,
+    pub absent: i64,
+    pub on_leave: i64,
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct WorkspaceStats {

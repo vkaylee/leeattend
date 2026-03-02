@@ -14,6 +14,14 @@ export interface WorkspaceStats {
   avg_work_hours_today: number;
 }
 
+export interface AttendanceTrendPoint {
+  date: string;
+  present: number;
+  late: number;
+  absent: number;
+  on_leave: number;
+}
+
 export function useDashboardStats() {
   const { workspace } = useWorkspace();
 
@@ -26,6 +34,26 @@ export function useDashboardStats() {
 
       if (!response.ok) {
         throw new Error("Failed to fetch dashboard stats");
+      }
+
+      return response.json();
+    },
+    enabled: !!workspace,
+  });
+}
+
+export function useAttendanceTrend() {
+  const { workspace } = useWorkspace();
+
+  return useQuery<AttendanceTrendPoint[]>({
+    queryKey: ["attendance-trend", workspace?.id],
+    queryFn: async () => {
+      if (!workspace) throw new Error("No workspace selected");
+
+      const response = await apiFetch(`/dashboard/attendance-trend`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch attendance trend");
       }
 
       return response.json();

@@ -199,6 +199,26 @@ if [[ "${CI:-}" == "true" && -f "$PROJECT_ROOT/docker-compose.ci.yml" ]]; then
     export DOCKER_COMPOSE_CMD="$DOCKER_COMPOSE_CMD -f $PROJECT_ROOT/docker-compose.ci.yml"
 fi
 
+# ── PTY-Safe Docker Compose wrapper ─────────────────────────────────
+# ALWAYS use dc() instead of $DOCKER_COMPOSE_CMD for direct calls.
+# This function automatically redirects stdin from /dev/null to prevent
+# Docker CLI from inheriting PTY file descriptors, which causes AI agent
+# terminals and git hooks to hang indefinitely.
+#
+# For sub-scripts that build commands as STRINGS (e.g. for run_parallel_ordered),
+# use $DC_CMD which is the raw command string with </dev/null appended.
+#
+# Usage:
+#   dc up -d --build=false apiserver_test     # direct call (function)
+#   CMD="$DC_CMD exec -T web_test npm test"   # string for parallel runner
+dc() {
+    $DOCKER_COMPOSE_CMD "$@" </dev/null
+}
+export -f dc
+export DC_CMD="$DOCKER_COMPOSE_CMD"
+# NOTE: DC_CMD is the raw string. Sub-scripts must append </dev/null themselves
+# when building command strings. The dc() function handles it automatically.
+
 # Source all script modules
 for script in "test-utils.sh" "test-lint.sh" "test-unit.sh" "test-integration.sh" "test-coverage.sh"; do
     if [[ -f "$PROJECT_ROOT/scripts/$script" ]]; then
@@ -215,13 +235,13 @@ wait_for_web_test() {
         # This is idempotent (fast no-op when deps are up-to-date) and prevents
         # stale named volumes from missing newly added dependencies.
         echo -e "${BLUE}📦 Syncing web dependencies (npm install)...${NC}"
-        $DOCKER_COMPOSE_CMD exec -T web_test npm install --no-audit --no-fund
+        dc exec -T web_test npm install --no-audit --no-fund
 
         echo -e "${BLUE}⏳ Waiting for web dependencies to be ready...${NC}"
         local timeout="${TIMEOUT_WEB_READY:-300}"
         local start_time=$SECONDS
         local wait_time=1
-        while ! $DOCKER_COMPOSE_CMD exec -T web_test ls /workspace/webdashboard/node_modules/.bin/eslint > /dev/null 2>&1; do
+        while ! dc exec -T web_test ls /workspace/webdashboard/node_modules/.bin/eslint > /dev/null 2>&1; do
             if (( SECONDS - start_time > timeout )); then
                 echo -e "${RED}❌ Timeout waiting for web dependencies!${NC}"
                 return 1
@@ -245,13 +265,13 @@ ensure_db_migrated() {
     echo -e "${BLUE}🗄️ Ensuring database is migrated (required for sqlx compile checks)...${NC}"
 
     # Start test_db + apiserver_test (which has sqlx-cli)
-    $DOCKER_COMPOSE_CMD up -d --build=false test_db apiserver_test </dev/null
+    dc up -d --build=false test_db apiserver_test
 
     # Wait for DB healthy
     local timeout="${TIMEOUT_DB_WAIT:-120}"
     local start_time=$SECONDS
     echo -n "  Waiting for database..."
-    until $DOCKER_COMPOSE_CMD exec -T test_db pg_isready -U test_user -d test_database </dev/null > /dev/null 2>&1; do
+    until dc exec -T test_db pg_isready -U test_user -d test_database > /dev/null 2>&1; do
         printf "."
         sleep 1
         if (( SECONDS - start_time > timeout )); then
@@ -263,7 +283,7 @@ ensure_db_migrated() {
 
     # Run migrations
     local DB_URL="postgres://test_user:test_password@test_db:5432/test_database?sslmode=disable"
-    if $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "sqlx migrate run --database-url '$DB_URL'" </dev/null > /dev/null 2>&1; then
+    if dc exec -T apiserver_test bash -c "sqlx migrate run --database-url '$DB_URL'" > /dev/null 2>&1; then
         echo -e "  ${GREEN}✅ Migrations applied.${NC}"
     else
         echo -e "  ${RED}❌ Migration failed!${NC}"
@@ -293,7 +313,7 @@ run_lint() {
             need_web=true
         fi
         
-        $DOCKER_COMPOSE_CMD up -d --build=false $services
+        dc up -d --build=false $services
         if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
 
         # Migrations must run before clippy/compile (SQLX_OFFLINE=false)
@@ -326,7 +346,7 @@ run_unit() {
             need_web=true
         fi
         
-        $DOCKER_COMPOSE_CMD up -d --build=false $services
+        dc up -d --build=false $services
         if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
 
         # Migrations must run before cargo compile (SQLX_OFFLINE=false)
@@ -362,7 +382,7 @@ run_integration() {
             fi
         fi
 
-        $DOCKER_COMPOSE_CMD up -d --build=false $services
+        dc up -d --build=false $services
         if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
     fi
 
@@ -445,7 +465,7 @@ for arg in "$@"; do
             --tail-logs) TAIL_LOGS=true;;
             --clean)
                 echo -e "${BLUE}${BOLD}🧹 Cleaning up test containers and volumes...${NC}"
-                $DOCKER_COMPOSE_CMD down --volumes --remove-orphans
+                dc down --volumes --remove-orphans
                 rm -rf "$PROJECT_ROOT/target" "$PROJECT_ROOT/.sccache"
                 echo -e "${GREEN}✅ Cleanup complete!${NC}"
                 exit 0
@@ -454,9 +474,9 @@ for arg in "$@"; do
                 echo -e "${BLUE}${BOLD}🧹 Cleaning cache only (keeping containers)...${NC}"
                 rm -rf "$PROJECT_ROOT/target" "$PROJECT_ROOT/.sccache"
                 if [[ "${USE_DOCKER:-}" == "true" ]]; then
-                    $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "rm -rf /workspace/target /sccache 2>/dev/null || true"
-                    $DOCKER_COMPOSE_CMD exec -T agent_test bash -c "rm -rf /workspace/target /sccache 2>/dev/null || true"
-                    $DOCKER_COMPOSE_CMD exec -T web_test bash -c "rm -rf /workspace/.npm-cache /workspace/webdashboard/node_modules 2>/dev/null || true"
+                    dc exec -T apiserver_test bash -c "rm -rf /workspace/target /sccache 2>/dev/null || true"
+                    dc exec -T agent_test bash -c "rm -rf /workspace/target /sccache 2>/dev/null || true"
+                    dc exec -T web_test bash -c "rm -rf /workspace/.npm-cache /workspace/webdashboard/node_modules 2>/dev/null || true"
                 fi
                 echo -e "${GREEN}✅ Cache cleaned!${NC}"
                 exit 0
@@ -534,18 +554,18 @@ if [[ "$CACHE_STATS" == "true" ]]; then
     
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         echo -e "${YELLOW}=== Cargo (apiserver) ===${NC}"
-        $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "du -sh /workspace/target 2>/dev/null || echo 'No cache'" || true
-        $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "sccache --show-stats 2>/dev/null | head -10 || echo 'sccache not available'" || true
+        dc exec -T apiserver_test bash -c "du -sh /workspace/target 2>/dev/null || echo 'No cache'" || true
+        dc exec -T apiserver_test bash -c "sccache --show-stats 2>/dev/null | head -10 || echo 'sccache not available'" || true
         
         echo ""
         echo -e "${YELLOW}=== Cargo (agent-main) ===${NC}"
-        $DOCKER_COMPOSE_CMD exec -T agent_test bash -c "du -sh /workspace/target 2>/dev/null || echo 'No cache'" || true
-        $DOCKER_COMPOSE_CMD exec -T agent_test bash -c "sccache --show-stats 2>/dev/null | head -10 || echo 'sccache not available'" || true
+        dc exec -T agent_test bash -c "du -sh /workspace/target 2>/dev/null || echo 'No cache'" || true
+        dc exec -T agent_test bash -c "sccache --show-stats 2>/dev/null | head -10 || echo 'sccache not available'" || true
         
         echo ""
         echo -e "${YELLOW}=== NPM ===${NC}"
-        $DOCKER_COMPOSE_CMD exec -T web_test bash -c "du -sh /workspace/.npm-cache 2>/dev/null || echo 'No cache'" || true
-        $DOCKER_COMPOSE_CMD exec -T web_test bash -c "du -sh /workspace/webdashboard/node_modules 2>/dev/null || echo 'No node_modules'" || true
+        dc exec -T web_test bash -c "du -sh /workspace/.npm-cache 2>/dev/null || echo 'No cache'" || true
+        dc exec -T web_test bash -c "du -sh /workspace/webdashboard/node_modules 2>/dev/null || echo 'No node_modules'" || true
     else
         echo -e "${YELLOW}=== Local Cargo ===${NC}"
         du -sh "$PROJECT_ROOT/target" 2>/dev/null || echo "No cache"
@@ -646,16 +666,16 @@ if [[ "$WARM_CACHE" == "true" ]]; then
     
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         # Start containers
-        $DOCKER_COMPOSE_CMD up -d --build=false apiserver_test agent_test web_test </dev/null
+        dc up -d --build=false apiserver_test agent_test web_test
         
         echo -e "${BLUE}📦 Pre-compiling apiserver...${NC}"
-        $DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c "cargo check --lib 2>/dev/null || true" </dev/null &
+        dc exec -T apiserver_test bash -c "cargo check --lib 2>/dev/null || true" &
         
         echo -e "${BLUE}📦 Pre-compiling agent-main...${NC}"
-        $DOCKER_COMPOSE_CMD exec -T agent_test bash -c "cargo check --lib 2>/dev/null || true" </dev/null &
+        dc exec -T agent_test bash -c "cargo check --lib 2>/dev/null || true" &
         
         echo -e "${BLUE}📦 Installing web dependencies...${NC}"
-        $DOCKER_COMPOSE_CMD exec -T web_test npm install --no-audit --no-fund </dev/null &
+        dc exec -T web_test npm install --no-audit --no-fund &
         
         # Wait for all to complete
         wait
@@ -699,35 +719,44 @@ cleanup() {
     pkill -KILL -P $$ 2>/dev/null || true
 
     # Also kill any cargo/nextest processes left inside Docker containers
+    # FIX: Use timeout + full FD redirect to prevent docker exec from holding PTY
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
         for ctr in apiserver_test agent_test; do
-            docker exec "${COMPOSE_PROJECT_NAME}-${ctr}-1" \
-                pkill -f 'cargo|nextest' </dev/null 2>/dev/null || true
+            timeout 5 docker exec "${COMPOSE_PROJECT_NAME}-${ctr}-1" \
+                pkill -f 'cargo|nextest' </dev/null >/dev/null 2>&1 || true
         done
     fi
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        # CRITICAL: All docker commands below use `</dev/null` to detach stdin
-        # from the PTY. Same reason as the watchdog redirect above:
-        # Docker CLI can spawn child processes that inherit file descriptors.
-        # If any child process outlives this script (even briefly), it holds
-        # the PTY open and prevents agent tools from detecting script completion.
-        # Redirecting stdin is sufficient — stdout/stderr are kept for visibility
-        # (except where output is intentionally suppressed).
+        # CRITICAL: All docker commands use full FD redirect (</dev/null >/dev/null 2>&1)
+        # to completely detach from PTY. Even stdout/stderr can hold FDs open
+        # if Docker CLI spawns child processes that inherit them.
 
         # Sync local logs into the persistent volume
+        # FIX: timeout prevents hang if Docker daemon is slow/stuck
         echo -e "${BLUE}📦 Backing up test logs to docker volume 'test-logs'...${NC}"
-        docker run --rm -v leeattend-test_test-logs:/logs -v "$PROJECT_ROOT/.test_logs:/local" alpine cp -r /local/. /logs/ </dev/null 2>/dev/null || true
+        timeout 10 docker run --rm \
+            -v leeattend-test_test-logs:/logs \
+            -v "$PROJECT_ROOT/.test_logs:/local" \
+            alpine cp -r /local/. /logs/ </dev/null >/dev/null 2>&1 || true
 
         # Stop containers
-        $DOCKER_COMPOSE_CMD down --remove-orphans --timeout 5 </dev/null || {
+        dc down --remove-orphans --timeout 5 >/dev/null 2>&1 || {
             echo -e "${YELLOW}⚠️  Warning: Cleanup encountered some issues.${NC}"
         }
         # Only remove ephemeral volumes, leave target-cache, sccache-cache, test-logs intact
-        docker volume prune -f --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" --filter "label=com.docker.compose.volume=shared-data" </dev/null > /dev/null 2>&1 || true
+        docker volume prune -f \
+            --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" \
+            --filter "label=com.docker.compose.volume=shared-data" \
+            </dev/null >/dev/null 2>&1 || true
         echo -e "${GREEN}✅ Environment cleaned up (logs and cache preserved).${NC}"
     fi
-    
+
+    # ── Final PTY sweep ──────────────────────────────────────────────
+    # Docker commands above may have spawned NEW child processes.
+    # One last aggressive kill to catch any stragglers before exit.
+    pkill -KILL -P $$ 2>/dev/null || true
+
     exit "$exit_code"
 }
 trap cleanup EXIT INT TERM
@@ -760,7 +789,7 @@ if [[ "$COVERAGE" == "true" ]]; then
         else
             _cov_services="test_db apiserver_test agent_test web_test"
         fi
-        $DOCKER_COMPOSE_CMD up -d --build=false $_cov_services
+        dc up -d --build=false $_cov_services
         if [[ "$FILTER" == *"web"* || -z "$FILTER" ]]; then
             wait_for_web_test
         fi
