@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
-import { Download, CalendarCheck } from "lucide-react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { Download, CalendarCheck, FileBarChart, Clock, Users2 } from "lucide-react";
 import { useSearchParams, Link } from "react-router-dom";
-import { format, endOfMonth, getDaysInMonth } from "date-fns";
+import { format, endOfMonth } from "date-fns";
 import {
   fetchAttendanceReport,
   getCurrentWorkspaceId,
@@ -13,12 +13,13 @@ import {
   AttendanceReportSort,
 } from "../lib/api";
 import { useDebounce } from "@/hooks/use-debounce";
-import PaginationControls from "@/components/common/PaginationControls";
+import { formatUnitsToHours } from "@/lib/utils/attendance";
 import ReportExportDialog from "@/components/features/reports/ReportExportDialog";
 import ReportFilters from "@/components/features/reports/ReportFilters";
 import SummaryReportTable from "@/components/features/reports/SummaryReportTable";
-import ReportStats from "@/components/features/reports/ReportStats";
 import EmployeeDailyDrawer from "@/components/features/reports/EmployeeDailyDrawer";
+
+const PAGE_SIZE = 50;
 
 export default function ReportsPage() {
   const { t } = useTranslation();
@@ -74,15 +75,13 @@ export default function ReportsPage() {
   // Drill-down state
   const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string } | null>(null);
 
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(() => getDaysInMonth(new Date(getMonthRange(-1).start)));
   const [sortBy, setSortBy] = useState<AttendanceReportSort | undefined>(undefined);
   const [focusedRowIndex, setFocusedRowIndex] = useState(0);
 
   // Reset focus when data changes
   useEffect(() => {
     setFocusedRowIndex(0);
-  }, [searchQuery, page, filterMode, specificMonth, dateRange]);
+  }, [searchQuery, filterMode, specificMonth, dateRange]);
 
   // Resolve search query → employee IDs (server-side)
   const { data: searchResults } = useQuery({
@@ -105,15 +104,6 @@ export default function ReportsPage() {
     return searchResults.data.map((emp) => emp.id);
   }, [debouncedSearch, searchResults]);
 
-  const updatePageSizeForDateRange = (start: string, end: string) => {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    if (startDate.getDate() === 1 && format(endDate, 'yyyy-MM-dd') === format(endOfMonth(startDate), 'yyyy-MM-dd')) {
-      setPageSize(getDaysInMonth(startDate));
-    }
-    setPage(1);
-  };
-
   const handleFilterModeChange = (mode: "this_month" | "last_month" | "custom" | "specific_month") => {
     setFilterMode(mode);
     let range;
@@ -123,7 +113,6 @@ export default function ReportsPage() {
 
     if (range) {
       setDateRange(range);
-      updatePageSizeForDateRange(range.start, range.end);
     }
   };
 
@@ -133,35 +122,86 @@ export default function ReportsPage() {
     const start = format(new Date(y, m - 1, 1), 'yyyy-MM-dd');
     const end = format(endOfMonth(new Date(y, m - 1, 1)), 'yyyy-MM-dd');
     setDateRange({ start, end });
-    updatePageSizeForDateRange(start, end);
   };
 
   const handleDateRangeChange = (newRange: { start: string; end: string }) => {
     setDateRange(newRange);
-    updatePageSizeForDateRange(newRange.start, newRange.end);
   };
 
   const handleSearchQueryChange = (query: string) => {
     setSearchQuery(query);
-    setPage(1); // Reset to first page when searching
   };
 
   const handleDepartmentChange = (departmentId: string | null) => {
     setSelectedDepartmentId(departmentId);
-    setPage(1);
     focusSearch();
   };
 
-  // Fetch summary with server-side employee + department filter
-  const { data: reportResponse, isLoading } = useQuery({
-    queryKey: ["attendance-report", wsId, dateRange, "summary", page, pageSize, sortBy, employeeIdsFilter, selectedDepartmentId],
-    queryFn: () => fetchAttendanceReport(wsId!, dateRange.start, dateRange.end, "summary", page, pageSize, sortBy, employeeIdsFilter, selectedDepartmentId),
+  // Fetch summary with infinite scroll
+  const {
+    data: reportPages,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["attendance-report", wsId, dateRange, "summary", PAGE_SIZE, sortBy, employeeIdsFilter, selectedDepartmentId],
+    queryFn: ({ pageParam }) =>
+      fetchAttendanceReport(wsId!, dateRange.start, dateRange.end, "summary", pageParam as number, PAGE_SIZE, sortBy, employeeIdsFilter, selectedDepartmentId),
+    getNextPageParam: (lastPage, allPages) => {
+      const totalLoaded = allPages.reduce((sum, p) => sum + (p.data?.length || 0), 0);
+      const total = lastPage.total || 0;
+      if (totalLoaded >= total) return undefined;
+      return allPages.length + 1;
+    },
+    initialPageParam: 1,
     enabled: !!wsId,
   });
 
-  const reportData = reportResponse?.data || (Array.isArray(reportResponse) ? reportResponse : []);
-  const totalItems = reportResponse?.total || reportData.length;
-  const totalPages = reportResponse?.total ? Math.ceil(reportResponse.total / pageSize) : 1;
+  // Flatten all pages into a single array
+  const filteredData = useMemo(() => {
+    if (!reportPages) return [];
+    return reportPages.pages.flatMap((p) => p.data || []);
+  }, [reportPages]);
+
+  // Separate query for ALL employees (unpaginated) — used only for stats computation
+  const { data: allStatsResponse } = useQuery({
+    queryKey: ["attendance-report-stats", wsId, dateRange, "summary", sortBy, employeeIdsFilter, selectedDepartmentId],
+    queryFn: () => fetchAttendanceReport(wsId!, dateRange.start, dateRange.end, "summary", 1, 99999, sortBy, employeeIdsFilter, selectedDepartmentId),
+    enabled: !!wsId,
+  });
+
+  // Compute quick stats from the FULL dataset (all employees, not just loaded pages)
+  const quickStats = useMemo(() => {
+    const allData = allStatsResponse?.data || [];
+    const stdHours = formatUnitsToHours(
+      allData.reduce((acc: number, r: any) => acc + (r.total_std_units || 0), 0),
+      workUnitMinutes
+    );
+    const otHours = formatUnitsToHours(
+      allData.reduce((acc: number, r: any) => acc + (r.total_ot_units || 0), 0),
+      workUnitMinutes
+    );
+    const totalEmployees = new Set(allData.map((r: any) => r.employee_id)).size;
+    return { stdHours, otHours, totalEmployees };
+  }, [allStatsResponse, workUnitMinutes]);
+
+  // Intersection Observer for infinite scroll trigger
+  const loadMoreRef = useRef<HTMLTableRowElement>(null);
+
+  useEffect(() => {
+    if (!loadMoreRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleSort = (field: 'name' | 'work_hours' | 'leave_days') => {
     let nextSort: AttendanceReportSort;
@@ -173,7 +213,6 @@ export default function ReportsPage() {
       nextSort = sortBy === 'leave_days_desc' ? 'leave_days_asc' : 'leave_days_desc';
     }
     setSortBy(nextSort);
-    setPage(1);
   };
 
   const handleEmployeeClick = (employeeId: string, employeeName: string) => {
@@ -184,8 +223,6 @@ export default function ReportsPage() {
     setSelectedEmployee(null);
     focusSearch();
   };
-
-  const filteredData = Array.isArray(reportData) ? reportData : [];
 
   if (!wsId) return <div className="p-12 text-center text-slate-500 dark:text-slate-400 font-bold italic uppercase tracking-widest text-xs opacity-50">{t("common.select_workspace")}</div>;
 
@@ -238,52 +275,53 @@ export default function ReportsPage() {
           } else if (e.key === 'Enter') {
             e.preventDefault();
             if (filteredData.length > 0 && filteredData[focusedRowIndex]) {
+              e.currentTarget.blur();
               handleEmployeeClick(filteredData[focusedRowIndex].employee_id, filteredData[focusedRowIndex].employee_name);
             }
           }
         }}
+        statsSlot={
+          <>
+            <div className="flex items-center gap-2 bg-slate-900 dark:bg-slate-800 px-4 py-2.5 rounded-2xl border border-slate-800 dark:border-slate-700 shadow-lg">
+              <FileBarChart size={14} className="text-primary-400" />
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t("reports.quick_stats.std_hours")}</span>
+              <span className="font-mono font-bold text-white text-sm tracking-tighter">{quickStats.stdHours}h</span>
+            </div>
+            <div className="flex items-center gap-2 bg-gradient-to-r from-orange-900 to-orange-950 px-4 py-2.5 rounded-2xl border border-orange-800 shadow-lg">
+              <Clock size={14} className="text-orange-400" />
+              <span className="text-[10px] font-bold text-orange-400/70 uppercase tracking-widest">{t("reports.quick_stats.ot_hours")}</span>
+              <span className="font-mono font-bold text-orange-100 text-sm tracking-tighter">{quickStats.otHours}h</span>
+            </div>
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg">
+              <Users2 size={14} className="text-primary-600 dark:text-primary-400" />
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t("common.employees")}</span>
+              <span className="font-mono font-bold text-slate-700 dark:text-slate-200 text-sm tracking-tighter">{quickStats.totalEmployees}</span>
+            </div>
+          </>
+        }
       />
 
       <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[3rem] overflow-hidden shadow-sm animate-in slide-in-from-bottom-8 duration-700">
-        <PaginationControls
-          currentPage={page}
-          totalPages={totalPages}
-          onPageChange={setPage}
-          pageSize={pageSize}
-          totalItems={totalItems}
-          onPageSizeChange={setPageSize}
-        />
-
-        <SummaryReportTable
-          data={filteredData}
-          isLoading={isLoading}
-          workUnitMinutes={workUnitMinutes}
-          sortBy={sortBy}
-          focusedRowIndex={focusedRowIndex}
-          t={t}
-          onSort={handleSort}
-          onEmployeeClick={handleEmployeeClick}
-        />
-
-        <PaginationControls
-          currentPage={page}
-          totalPages={totalPages}
-          onPageChange={setPage}
-          pageSize={pageSize}
-          totalItems={totalItems}
-          onPageSizeChange={setPageSize}
-        />
+        <div className="overflow-auto max-h-[60vh]">
+          <SummaryReportTable
+            data={filteredData}
+            isLoading={isLoading}
+            workUnitMinutes={workUnitMinutes}
+            sortBy={sortBy}
+            focusedRowIndex={focusedRowIndex}
+            t={t}
+            onSort={handleSort}
+            onEmployeeClick={handleEmployeeClick}
+            loadMoreRef={loadMoreRef}
+            isFetchingNextPage={isFetchingNextPage}
+            hasNextPage={hasNextPage}
+          />
+        </div>
       </div>
-
-      <ReportStats
-        reportType="summary"
-        filteredData={filteredData}
-        workUnitMinutes={workUnitMinutes}
-        t={t}
-      />
 
       {/* Employee Daily Drill-down Drawer */}
       <EmployeeDailyDrawer
+        key={selectedEmployee?.id || "closed"}
         isOpen={!!selectedEmployee}
         onClose={handleDrawerClose}
         workspaceId={wsId}

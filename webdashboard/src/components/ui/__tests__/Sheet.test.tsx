@@ -103,4 +103,22 @@ describe("Sheet", () => {
         const panel = screen.getByTestId("sheet-panel");
         expect(panel.className).toContain("rounded-l-[3rem]");
     });
+
+    it("calls onClose when Escape key is pressed", () => {
+        const onClose = vi.fn();
+        render(<Sheet {...defaultProps} onClose={onClose} />);
+
+        fireEvent.keyDown(window, { key: "Escape" });
+
+        expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not call onClose when other keys are pressed", () => {
+        const onClose = vi.fn();
+        render(<Sheet {...defaultProps} onClose={onClose} />);
+
+        fireEvent.keyDown(window, { key: "Enter" });
+
+        expect(onClose).not.toHaveBeenCalled();
+    });
 });

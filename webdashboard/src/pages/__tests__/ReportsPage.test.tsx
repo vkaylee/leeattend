@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import ReportsPage from "../ReportsPage";
@@ -8,7 +8,18 @@ import { ToastProvider } from "../../components/ui/Toast";
 import * as api from "../../lib/api";
 import React from "react";
 import i18n from "../../i18n/config";
-import { getDaysInMonth } from "date-fns";
+
+// Mock scrollIntoView and scrollTo for jsdom
+window.HTMLElement.prototype.scrollIntoView = vi.fn();
+
+// Mock IntersectionObserver for jsdom
+class MockIntersectionObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+  constructor() { }
+}
+window.IntersectionObserver = MockIntersectionObserver as any;
 
 // Mock the API library
 vi.mock("../../lib/api", () => ({
@@ -91,16 +102,69 @@ describe("ReportsPage", () => {
     expect(await screen.findByText(/From Date|Từ ngày/i)).toBeDefined();
   });
 
-  it("defaults pageSize to the number of days in last month", async () => {
+  it("uses PAGE_SIZE of 50 for infinite scroll", async () => {
     renderWithProviders(<ReportsPage />);
-    const now = new Date();
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const expectedDays = getDaysInMonth(lastMonth);
     await waitFor(() => {
       const calls = (api.fetchAttendanceReport as any).mock.calls;
       expect(calls.length).toBeGreaterThan(0);
-      expect(calls[0][5]).toBe(expectedDays);
+      // arg index 5 = limit = PAGE_SIZE = 50
+      expect(calls[0][5]).toBe(50);
     });
+  });
+
+  it("fetches full dataset with limit=99999 for stats and renders inline stats badges", async () => {
+    (api.fetchAttendanceReport as any).mockImplementation((_wsId: string, _start: string, _end: string, _type: string, _page: number, limit: number) => {
+      if (limit === 99999) {
+        // Full stats query — return all employees
+        return Promise.resolve({
+          data: [
+            { employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 },
+            { employee_id: "emp-2", employee_name: "Jane Smith", total_std_units: 360, total_ot_units: 60, total_leave_days: 1 },
+          ],
+          total: 2
+        });
+      }
+      // Paginated query — return only page 1
+      return Promise.resolve({
+        data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }],
+        total: 2
+      });
+    });
+
+    renderWithProviders(<ReportsPage />);
+
+    // Verify a call with limit=99999 was made for stats
+    await waitFor(() => {
+      const calls = (api.fetchAttendanceReport as any).mock.calls;
+      const statsCall = calls.find((c: any[]) => c[5] === 99999);
+      expect(statsCall).toBeDefined();
+    });
+
+    // Stats should show totals from ALL employees
+    // emp-1: std=440, ot=40 + emp-2: std=360, ot=60 = total std=800, ot=100
+    // formatUnitsToHours: 800 * 60min / 60 = 800, 100 * 60min / 60 = 100
+    // The "h" suffix is added by JSX: {quickStats.stdHours}h
+    await waitFor(() => {
+      expect(screen.getByText("800h")).toBeInTheDocument();
+      expect(screen.getByText("100h")).toBeInTheDocument();
+      expect(screen.getByText("2")).toBeInTheDocument();
+    });
+  });
+
+  it("shows unit values in tooltips instead of visible text", async () => {
+    renderWithProviders(<ReportsPage />);
+    await screen.findByText(/John Doe/i);
+
+    // Units should NOT be visible as text
+    expect(screen.queryByText("440 U")).toBeNull();
+    expect(screen.queryByText("40 OT")).toBeNull();
+
+    // Units should be in title attributes (tooltips)
+    const stdHoursCell = screen.getByTitle("440 units");
+    expect(stdHoursCell).toBeInTheDocument();
+
+    const otHoursCell = screen.getByTitle("40 OT units");
+    expect(otHoursCell).toBeInTheDocument();
   });
 
   it("opens slide-over drawer when clicking an employee row", async () => {
@@ -279,10 +343,68 @@ describe("ReportsPage", () => {
     const sheetPanel = await screen.findByTestId("sheet-panel");
     expect(sheetPanel).toBeInTheDocument();
 
+    // Ensure the input has lost focus (blur) so arrow navigation works inside the drawer
+    expect(searchInput).not.toHaveFocus();
+
     // We should see the daily report data because the drawer is open
-    const rawLogsToggle = await screen.findByRole("button", { name: /Nhật ký thô/i });
+    const rawLogsToggle = await screen.findByRole("button", { name: /Nhật ký thô|View Raw Logs|reports.view_raw_logs/i });
     expect(rawLogsToggle).toBeInTheDocument();
   });
+  it("allows switching tabs with arrows after opening the drawer via Enter key", async () => {
+    const user = userEvent.setup();
+    const mockDailyRow = {
+      employee_id: "emp-1",
+      employee_name: "John Doe",
+      date: "2026-01-15",
+      actual_punch_in: "2026-01-15T01:00:00Z",
+      actual_punch_out: "2026-01-15T10:00:00Z",
+      scheduled_start: "08:00:00",
+      scheduled_end: "17:00:00",
+      break_duration_minutes: 60,
+      break_start: null,
+      break_end: null,
+      is_break_auto_deduct: false,
+      std_work_units: 480,
+      ot_work_units: 0,
+      status: "present",
+      generation_metadata: null,
+    };
+    (api.fetchAttendanceReport as any).mockImplementation((_wsId: string, _start: string, _end: string, type: string) => {
+      if (type === "daily") return Promise.resolve({ data: [mockDailyRow], total: 1 });
+      return Promise.resolve({ data: [{ employee_id: "emp-1", employee_name: "John Doe", total_std_units: 440, total_ot_units: 40, total_leave_days: 0 }], total: 1 });
+    });
+
+    renderWithProviders(<ReportsPage />);
+    await screen.findByText(/John Doe/i);
+
+    // Get search input and focus it
+    const searchInput = screen.getByRole("textbox");
+
+    // Type something and hit enter mapped directly onto the element
+    await user.type(searchInput, "John{Enter}");
+
+    // The Drawer should open up for John Doe
+    const sheetPanel = await screen.findByTestId("sheet-panel");
+    expect(sheetPanel).toBeInTheDocument();
+
+    // Ensure the input has lost focus
+    expect(searchInput).not.toHaveFocus();
+
+    // Check if we can switch tabs via ArrowRight (since focus is no longer on input)
+    const dailyToggle = await screen.findByRole("button", { name: /Daily|Chi tiết/i });
+    const rawLogsToggle = await screen.findByRole("button", { name: /View Raw Logs|Nhật ký thô/i });
+
+    expect(dailyToggle.className).toContain("text-primary-600");
+
+    // Simulate ArrowRight
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+
+    // Tab should switch
+    await waitFor(() => {
+      expect(rawLogsToggle.className).toContain("text-primary-600");
+    });
+  });
+
   it("navigates with ArrowDown and opens the second employee when pressing Enter", async () => {
     const user = userEvent.setup();
     const mockDailyRow = {
@@ -320,7 +442,24 @@ describe("ReportsPage", () => {
     // Get search input and focus it
     const searchInput = screen.getByRole("textbox");
 
-    // Press ArrowDown to select the second row, then Enter
+    // Clear mocks
+    (window.HTMLElement.prototype.scrollIntoView as any).mockClear();
+    window.HTMLElement.prototype.scrollTo = vi.fn();
+
+    // Press ArrowDown to select the second row
+    await user.type(searchInput, "{ArrowDown}");
+
+    // Verify scrollIntoView was called smooth/nearest for index 1
+    expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "nearest" });
+
+    // Press ArrowUp to go back to the first row (index 0)
+    await user.type(searchInput, "{ArrowUp}");
+
+    // Verify scrollTo({top: 0}) was called on the container instead of scrollIntoView 
+    // We mock window.HTMLElement.prototype.scrollTo which is what closest('.overflow-auto') would fall back to if mocked globally
+    expect(window.HTMLElement.prototype.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
+
+    // Put it back to index 1 and press Enter
     await user.type(searchInput, "{ArrowDown}{Enter}");
 
     // The Drawer should open up for Jane Smith (emp-2)

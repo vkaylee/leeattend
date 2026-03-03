@@ -108,6 +108,25 @@ describe("EmployeeDailyDrawer", () => {
         expect(drawerHeader).toBeNull();
     });
 
+    it("shows total regular and overtime hours summary", async () => {
+        renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
+
+        // Wait for data to load
+        await screen.findByText(/08:00 — 17:00/i);
+
+        // std_work_units=480, workUnitMinutes=60 → 480h (appears in summary + row)
+        const stdElements = await screen.findAllByText("480h");
+        expect(stdElements.length).toBeGreaterThanOrEqual(1);
+
+        // ot_work_units=1, workUnitMinutes=60 → 1h (appears in summary + row)
+        const otElements = await screen.findAllByText("1h");
+        expect(otElements.length).toBeGreaterThanOrEqual(1);
+
+        // Check i18n keys for labels
+        expect(screen.getByText("reports.quick_stats.std_hours")).toBeInTheDocument();
+        expect(screen.getByText("reports.quick_stats.ot_hours")).toBeInTheDocument();
+    });
+
     it("fetches data and renders the drawer content when opened", async () => {
         renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
 
@@ -306,5 +325,128 @@ describe("EmployeeDailyDrawer", () => {
         const rawScrollContainer = sheetPanel.querySelector(".flex-1.min-h-0");
         expect(rawScrollContainer).not.toBeNull();
         expect(rawScrollContainer!.className).toContain("overflow-auto");
+    });
+
+    it("switches tabs using ArrowLeft and ArrowRight keys", async () => {
+        renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
+
+        // By default it is in daily mode
+        const dailyToggle = await screen.findByRole("button", { name: /reports.tabs.daily/i });
+        const rawLogsToggle = await screen.findByRole("button", { name: /reports.view_raw_logs/i });
+
+        // The daily toggle should have the active class initially
+        expect(dailyToggle.className).toContain("text-primary-600");
+
+        // Press ArrowRight to switch to raw mode
+        fireEvent.keyDown(window, { key: "ArrowRight" });
+
+        // Now raw log toggle should be active
+        await waitFor(() => {
+            expect(rawLogsToggle.className).toContain("text-primary-600");
+        });
+
+        expect(api.fetchRawAttendanceLogs).toHaveBeenCalled();
+
+        // Press ArrowLeft to switch back to daily mode
+        fireEvent.keyDown(window, { key: "ArrowLeft" });
+
+        // Now daily toggle should be active again
+        await waitFor(() => {
+            expect(dailyToggle.className).toContain("text-primary-600");
+        });
+    });
+
+    it("does not switch tabs when typing in an input field", async () => {
+        renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
+
+        const dailyToggle = await screen.findByRole("button", { name: /reports.tabs.daily/i });
+        const rawLogsToggle = await screen.findByRole("button", { name: /reports.view_raw_logs/i });
+
+        // Create a dummy input to simulate typing
+        const input = document.createElement("input");
+        document.body.appendChild(input);
+
+        // Simulate pressing ArrowRight while focused on input
+        fireEvent.keyDown(input, { key: "ArrowRight" });
+
+        // Should STILL be daily mode
+        expect(dailyToggle.className).toContain("text-primary-600");
+        expect(rawLogsToggle.className).not.toContain("text-primary-600");
+
+        document.body.removeChild(input);
+    });
+
+    it("resets to daily tab when re-opened", async () => {
+        const { rerender } = renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
+
+        // Find toggles
+        const rawLogsToggle = await screen.findByRole("button", { name: /reports.view_raw_logs/i });
+
+        // Switch to raw
+        fireEvent.click(rawLogsToggle);
+
+        // Verify it switched
+        await waitFor(() => {
+            expect(rawLogsToggle.className).toContain("text-primary-600");
+        });
+
+        // Close drawer
+        rerender(
+            <QueryClientProvider client={queryClient}>
+                <ToastProvider>
+                    <MemoryRouter initialEntries={["/"]}>
+                        <EmployeeDailyDrawer {...defaultProps} isOpen={false} />
+                    </MemoryRouter>
+                </ToastProvider>
+            </QueryClientProvider>
+        );
+
+        // Open drawer again
+        rerender(
+            <QueryClientProvider client={queryClient}>
+                <ToastProvider>
+                    <MemoryRouter initialEntries={["/"]}>
+                        <EmployeeDailyDrawer {...defaultProps} isOpen={true} />
+                    </MemoryRouter>
+                </ToastProvider>
+            </QueryClientProvider>
+        );
+
+        // Find standard toggle again
+        const dailyToggle2 = await screen.findByRole("button", { name: /reports.tabs.daily/i });
+
+        // It should be reset back to daily view
+        await waitFor(() => {
+            expect(dailyToggle2.className).toContain("text-primary-600");
+        });
+    });
+
+    it("scrolls content down/up with ArrowDown/ArrowUp keys", async () => {
+        renderWithProviders(<EmployeeDailyDrawer {...defaultProps} />);
+
+        // Wait for content to render
+        await screen.findByText(/08:00 — 17:00/i);
+
+        // Find the content wrapper that has the ref
+        const sheetPanel = screen.getByTestId("sheet-panel");
+        const contentWrapper = sheetPanel.querySelector(".-mx-10");
+        expect(contentWrapper).not.toBeNull();
+
+        // The scroll container is the overflow-auto child or the wrapper itself
+        const scrollContainer = contentWrapper!.querySelector(".overflow-auto") || contentWrapper!;
+        const scrollBySpy = vi.fn();
+        scrollContainer.scrollBy = scrollBySpy;
+
+        // Press ArrowDown
+        fireEvent.keyDown(window, { key: "ArrowDown" });
+
+        expect(scrollBySpy).toHaveBeenCalledWith({ top: 100, behavior: "smooth" });
+
+        scrollBySpy.mockClear();
+
+        // Press ArrowUp
+        fireEvent.keyDown(window, { key: "ArrowUp" });
+
+        expect(scrollBySpy).toHaveBeenCalledWith({ top: -100, behavior: "smooth" });
     });
 });

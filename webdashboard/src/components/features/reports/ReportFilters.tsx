@@ -24,6 +24,7 @@ interface ReportFiltersProps {
   departments?: Department[];
   selectedDepartmentId: string | null;
   onDepartmentChange: (departmentId: string | null) => void;
+  statsSlot?: React.ReactNode;
 }
 
 export default function ReportFilters({
@@ -41,6 +42,7 @@ export default function ReportFilters({
   departments,
   selectedDepartmentId,
   onDepartmentChange,
+  statsSlot,
 }: ReportFiltersProps) {
   return (
     <>
@@ -108,6 +110,13 @@ export default function ReportFilters({
             </button>
           </div>
         </div>
+
+        {/* Stats slot — compact badges on the right */}
+        {statsSlot && (
+          <div className="flex items-center gap-3 shrink-0">
+            {statsSlot}
+          </div>
+        )}
       </div>
 
       {/* Department chips */}

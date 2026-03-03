@@ -1,4 +1,5 @@
-import { ArrowUp, ArrowDown, ArrowUpDown, ChevronRight, SearchX } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpDown, ChevronRight, SearchX, Loader2 } from "lucide-react";
+import { useEffect, RefObject } from "react";
 import { AttendanceSummary, AttendanceReportSort } from "@/lib/api";
 import { formatUnitsToHours } from "@/lib/utils/attendance";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,9 @@ interface SummaryReportTableProps {
   t: (key: string) => string;
   onSort: (field: 'name' | 'work_hours' | 'leave_days') => void;
   onEmployeeClick: (employeeId: string, employeeName: string) => void;
+  loadMoreRef?: RefObject<HTMLTableRowElement | null>;
+  isFetchingNextPage?: boolean;
+  hasNextPage?: boolean;
 }
 
 export default function SummaryReportTable({
@@ -23,7 +27,29 @@ export default function SummaryReportTable({
   t,
   onSort,
   onEmployeeClick,
+  loadMoreRef,
+  isFetchingNextPage,
+  hasNextPage,
 }: SummaryReportTableProps) {
+  useEffect(() => {
+    if (focusedRowIndex >= 0) {
+      if (focusedRowIndex === 0) {
+        // Special case for first item: scroll the container to exactly top 0 
+        // to avoid sticky header overlapping
+        const row = document.getElementById(`summary-row-0`);
+        const container = row?.closest('.overflow-auto');
+        if (container) {
+          container.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      } else {
+        const row = document.getElementById(`summary-row-${focusedRowIndex}`);
+        if (row) {
+          row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+    }
+  }, [focusedRowIndex]);
+
   const getSortIcon = (field: 'name' | 'work_hours' | 'leave_days') => {
     if (field === 'name') {
       if (sortBy === 'name_asc') return <ArrowUp size={12} className="ml-1 text-primary-600 dark:text-primary-400" />;
@@ -133,6 +159,7 @@ export default function SummaryReportTable({
           data.map((row: AttendanceSummary, index: number) => (
             <tr
               key={row.employee_id}
+              id={`summary-row-${index}`}
               onClick={() => onEmployeeClick(row.employee_id, row.employee_name)}
               className={cn(
                 "hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group cursor-pointer",
@@ -144,24 +171,16 @@ export default function SummaryReportTable({
               </td>
 
               <td className="px-8 py-6 text-right">
-                <div className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter">
+                <div className="font-mono font-bold text-primary-600 dark:text-primary-400 text-base tracking-tighter cursor-default" title={`${row.total_std_units} units`}>
                   {formatUnitsToHours(row.total_std_units, workUnitMinutes)}h
                 </div>
-                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest opacity-60">
-                  {row.total_std_units} U
-                </span>
               </td>
 
               <td className="px-8 py-6 text-right">
                 {row.total_ot_units > 0 ? (
-                  <>
-                    <div className="font-mono font-bold text-orange-600 dark:text-orange-400 text-base tracking-tighter">
-                      {formatUnitsToHours(row.total_ot_units, workUnitMinutes)}h
-                    </div>
-                    <span className="text-[9px] font-bold text-orange-500 dark:text-orange-400 uppercase tracking-widest opacity-60">
-                      {row.total_ot_units} OT
-                    </span>
-                  </>
+                  <div className="font-mono font-bold text-orange-600 dark:text-orange-400 text-base tracking-tighter cursor-default" title={`${row.total_ot_units} OT units`}>
+                    {formatUnitsToHours(row.total_ot_units, workUnitMinutes)}h
+                  </div>
                 ) : (
                   <span className="text-slate-200 dark:text-slate-700 font-bold">—</span>
                 )}
@@ -178,6 +197,19 @@ export default function SummaryReportTable({
               </td>
             </tr>
           ))
+        )}
+        {/* Sentinel row for infinite scroll */}
+        {loadMoreRef && (
+          <tr ref={loadMoreRef}>
+            <td colSpan={6} className="p-0">
+              {isFetchingNextPage && (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 size={20} className="animate-spin text-primary-500" />
+                  <span className="ml-2 text-xs font-bold text-slate-400 uppercase tracking-widest">{t("common.loading")}</span>
+                </div>
+              )}
+            </td>
+          </tr>
         )}
       </tbody>
     </table>

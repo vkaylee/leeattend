@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import { RefreshCw, Check, CheckCircle, User, CalendarCheck, SearchX, Loader2 } from "lucide-react";
+import { RefreshCw, Check, CheckCircle, User, CalendarCheck, SearchX, Loader2, FileBarChart } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
     fetchAttendanceReport,
@@ -15,6 +15,7 @@ import {
     RawAttendanceLog,
 } from "@/lib/api";
 import { useDateTimeFormatter } from "@/hooks/use-datetime";
+import { formatUnitsToHours } from "@/lib/utils/attendance";
 import { useDebug } from "@/context/DebugContext";
 import { useToast } from "@/components/ui/Toast";
 import Sheet from "@/components/ui/Sheet";
@@ -48,6 +49,38 @@ export default function EmployeeDailyDrawer({
     const toast = useToast();
 
     const [viewMode, setViewMode] = useState<"daily" | "raw">("daily");
+    const contentRef = useRef<HTMLDivElement>(null);
+
+    // Reset to daily tab whenever the drawer is (re-)opened
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: reset derived state on prop change
+    useEffect(() => { if (isOpen) setViewMode("daily"); }, [isOpen]);
+
+    // Keyboard navigation for tabs + scroll
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Do not handle if typing in an input
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                return;
+            }
+
+            if (e.key === "ArrowRight" && viewMode === "daily") {
+                setViewMode("raw");
+            } else if (e.key === "ArrowLeft" && viewMode === "raw") {
+                setViewMode("daily");
+            } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                e.preventDefault();
+                const scrollContainer = contentRef.current?.querySelector(".overflow-auto") || contentRef.current;
+                if (scrollContainer) {
+                    scrollContainer.scrollBy({ top: e.key === "ArrowDown" ? 100 : -100, behavior: "smooth" });
+                }
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isOpen, viewMode]);
 
     const [expandedDebugRows, setExpandedDebugRows] = useState<Set<string>>(new Set());
     const [reprocessingRow, setReprocessingRow] = useState<string | null>(null);
@@ -133,7 +166,20 @@ export default function EmployeeDailyDrawer({
         return map;
     }, [pendingAdjustments]);
 
-    const reportData = reportResponse?.data || (Array.isArray(reportResponse) ? reportResponse : []);
+    const reportData = useMemo(
+        () => reportResponse?.data || (Array.isArray(reportResponse) ? reportResponse : []),
+        [reportResponse]
+    );
+
+    // Compute total hours for summary bar
+    const { totalStdHours, totalOtHours } = useMemo(() => {
+        const stdUnits = reportData.reduce((sum: number, r: DailyAttendanceReport) => sum + (r.std_work_units || 0), 0);
+        const otUnits = reportData.reduce((sum: number, r: DailyAttendanceReport) => sum + (r.ot_work_units || 0), 0);
+        return {
+            totalStdHours: formatUnitsToHours(stdUnits, workUnitMinutes),
+            totalOtHours: formatUnitsToHours(otUnits, workUnitMinutes),
+        };
+    }, [reportData, workUnitMinutes]);
 
     const toggleExpandRow = (rowKey: string) => {
         const next = new Set(expandedDebugRows);
@@ -277,29 +323,47 @@ export default function EmployeeDailyDrawer({
                 className="w-[95vw] xl:w-[1200px] !max-w-[95vw]"
                 contentClassName="!overflow-hidden"
                 headerExtra={
-                    <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
-                        <button
-                            onClick={() => setViewMode("daily")}
-                            className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all ${viewMode === "daily"
-                                ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
-                                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                                }`}
-                        >
-                            {t("reports.tabs.daily")}
-                        </button>
-                        <button
-                            onClick={() => setViewMode("raw")}
-                            className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all ${viewMode === "raw"
-                                ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
-                                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                                }`}
-                        >
-                            <span className="flex items-center gap-1.5"><CalendarCheck size={12} /> {t("reports.view_raw_logs")}</span>
-                        </button>
-                    </div>
+                    <>
+                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
+                            <button
+                                onClick={() => setViewMode("daily")}
+                                className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all ${viewMode === "daily"
+                                    ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                                    }`}
+                            >
+                                {t("reports.tabs.daily")}
+                            </button>
+                            <button
+                                onClick={() => setViewMode("raw")}
+                                className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all ${viewMode === "raw"
+                                    ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                                    }`}
+                            >
+                                <span className="flex items-center gap-1.5"><CalendarCheck size={12} /> {t("reports.view_raw_logs")}</span>
+                            </button>
+                        </div>
+                        {viewMode === "daily" && !isLoading && reportData.length > 0 && (
+                            <>
+                                <div className="flex items-center gap-1.5 bg-slate-900 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-800 dark:border-slate-700 shadow-sm">
+                                    <FileBarChart size={12} className="text-primary-400" />
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t("reports.quick_stats.std_hours")}</span>
+                                    <span className="font-mono font-bold text-white text-xs tracking-tighter">{totalStdHours}h</span>
+                                </div>
+                                {Number(totalOtHours) > 0 && (
+                                    <div className="flex items-center gap-1.5 bg-gradient-to-r from-orange-900 to-orange-950 px-3 py-1.5 rounded-lg border border-orange-800 shadow-sm">
+                                        <Clock size={12} className="text-orange-400" />
+                                        <span className="text-[9px] font-bold text-orange-400/70 uppercase tracking-widest">{t("reports.quick_stats.ot_hours")}</span>
+                                        <span className="font-mono font-bold text-orange-100 text-xs tracking-tighter">{totalOtHours}h</span>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </>
                 }
             >
-                <div className="-mx-10 -mt-4 -mb-10 h-[calc(100%+theme(spacing.14))] flex flex-col">
+                <div ref={contentRef} className="-mx-10 -mt-4 -mb-10 h-[calc(100%+theme(spacing.14))] flex flex-col">
                     {viewMode === "raw" ? (
                         <div className="overflow-auto flex-1 min-h-0 relative">
                             <table className="w-full text-left border-collapse">

@@ -33,12 +33,21 @@ export default function Sheet({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsVisible(true);
       document.body.style.overflow = "hidden";
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          onClose();
+        }
+      };
+
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
     } else {
       const timer = setTimeout(() => setIsVisible(false), 500); // Sync with duration-500
       document.body.style.overflow = "unset";
       return () => clearTimeout(timer);
     }
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   if (!isVisible && !isOpen) return null;
 
