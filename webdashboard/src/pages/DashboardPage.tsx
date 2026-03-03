@@ -93,6 +93,7 @@ export default function DashboardPage() {
     "lateness_by_day",
     "recruitment_sources",
     "turnover_analytics",
+    "unexcused_absences",
   ];
 
   // Filter and order visible chart widgets

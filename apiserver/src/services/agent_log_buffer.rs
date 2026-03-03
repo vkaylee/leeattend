@@ -47,7 +47,7 @@ impl AgentLogEntry {
             employee_id_number: Self::sanitize_string(employee_id_number),
             punch_time_raw: Self::sanitize_string(punch_time_raw),
             device_id: device_id.map(Self::sanitize_string),
-            raw_data,
+            raw_data: raw_data.map(Self::sanitize_json_value),
             timezone,
             date_fmt,
             time_fmt,
@@ -56,6 +56,27 @@ impl AgentLogEntry {
 
     fn sanitize_string(s: String) -> String {
         s.replace('\0', "").trim().to_string()
+    }
+
+    /// Recursively strip null bytes (\u0000) from all string values in a JSON tree.
+    /// PostgreSQL jsonb columns reject \u0000 escape sequences.
+    pub fn sanitize_json_value(value: serde_json::Value) -> serde_json::Value {
+        match value {
+            serde_json::Value::String(s) => {
+                serde_json::Value::String(s.replace('\0', ""))
+            }
+            serde_json::Value::Array(arr) => {
+                serde_json::Value::Array(arr.into_iter().map(Self::sanitize_json_value).collect())
+            }
+            serde_json::Value::Object(map) => {
+                serde_json::Value::Object(
+                    map.into_iter()
+                        .map(|(k, v)| (k.replace('\0', ""), Self::sanitize_json_value(v)))
+                        .collect(),
+                )
+            }
+            other => other, // Number, Bool, Null are fine
+        }
     }
 }
 
@@ -326,5 +347,49 @@ mod tests {
         assert_eq!(entry.employee_id_number, "EMP001");
         assert_eq!(entry.punch_time_raw, "2026-01-26 09:00:00");
         assert_eq!(entry.device_id, Some("D1".to_string()));
+    }
+
+    #[test]
+    fn test_sanitize_json_value_strips_null_bytes() {
+        let raw = serde_json::json!({
+            "name": "test\u{0000}value",
+            "punch": 0,
+            "nested": {
+                "field": "hello\u{0000}world"
+            },
+            "list": ["a\u{0000}b", "clean"]
+        });
+
+        let sanitized = AgentLogEntry::sanitize_json_value(raw);
+
+        assert_eq!(sanitized["name"], "testvalue");
+        assert_eq!(sanitized["punch"], 0);
+        assert_eq!(sanitized["nested"]["field"], "helloworld");
+        assert_eq!(sanitized["list"][0], "ab");
+        assert_eq!(sanitized["list"][1], "clean");
+    }
+
+    #[test]
+    fn test_sanitize_raw_data_in_entry() {
+        let raw = serde_json::json!({
+            "user_id": "emp\u{0000}001",
+            "punch": 0,
+            "status": 1
+        });
+
+        let entry = AgentLogEntry::new(
+            Uuid::new_v4(),
+            "EMP001".to_string(),
+            "2026-01-26 09:00:00".to_string(),
+            None,
+            Some(raw),
+            "UTC".to_string(),
+            "YYYY-MM-DD".to_string(),
+            "24h".to_string(),
+        );
+
+        let data = entry.raw_data.unwrap();
+        assert_eq!(data["user_id"], "emp001");
+        assert_eq!(data["punch"], 0);
     }
 }

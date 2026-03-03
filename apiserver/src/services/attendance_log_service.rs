@@ -119,6 +119,8 @@ impl AttendanceLogService {
         date_fmt: Option<&str>,
         time_fmt: Option<&str>,
     ) -> Result<bool, String> {
+        // Sanitize raw_data to strip null bytes that PostgreSQL jsonb rejects
+        let raw_data = raw_data.map(AgentLogEntry::sanitize_json_value);
         // 1. Resolve employee_id from employee_id_number and workspace_id
         let employee =
             match employee_repository::find_by_number(pool, workspace_id, employee_id_number).await
@@ -261,6 +263,8 @@ impl AttendanceLogService {
         device_id: Option<String>,
         raw_data: Option<serde_json::Value>,
     ) -> Result<bool, String> {
+        // Sanitize raw_data to strip null bytes that PostgreSQL jsonb rejects
+        let raw_data = raw_data.map(AgentLogEntry::sanitize_json_value);
         let punch = raw_data
             .as_ref()
             .and_then(|d| d["punch"].as_i64())
