@@ -208,6 +208,7 @@ pub fn create_app(state: Arc<AppState>) -> Router {
         .route_layer(mw::RateLimitLayer::new(
             state.redis.clone(),
             mw::rate_limit::RateLimitConfig::default(),
+            state.jwt_secret.clone(),
         ))
         .route("/health", get(handlers::health_check))
         .route("/auth/refresh", post(handlers::refresh_token))
