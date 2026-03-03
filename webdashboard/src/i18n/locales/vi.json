@@ -1092,7 +1092,9 @@
       "lateness_by_day": "Đi muộn theo ngày trong tuần",
       "lateness_by_day_subtitle": "Xu hướng đi muộn",
       "late_count": "Số lượt trễ",
-      "avg_late_minutes": "Trễ TB (phút)"
+      "avg_late_minutes": "Trễ TB (phút)",
+      "recruitment_sources": "Nguồn Tuyển Dụng",
+      "recruitment_sources_subtitle": "Phân bổ nguồn tuyển nhân viên"
     },
     "system": {
       "total_agents": "Tổng số Agent",
@@ -1129,6 +1131,7 @@
       "peak_times": "Giờ cao điểm",
       "leave_types": "Loại nghỉ phép",
       "lateness_by_day": "Đi trễ theo ngày",
+      "recruitment_sources": "Nguồn Tuyển Dụng",
       "promo_cards": "Liên kết nhanh"
     },
     "customize": {

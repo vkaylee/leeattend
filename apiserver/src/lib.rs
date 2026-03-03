@@ -199,6 +199,10 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             get(handlers::get_lateness_by_day),
         )
         .route(
+            "/dashboard/recruitment-sources",
+            get(handlers::recruitment_sources::get_recruitment_source_breakdown),
+        )
+        .route(
             "/dashboard/preferences",
             get(handlers::dashboard_preferences::get_dashboard_preferences)
                 .put(handlers::dashboard_preferences::update_dashboard_preferences),
@@ -595,6 +599,16 @@ pub fn create_app(state: Arc<AppState>) -> Router {
             "/workspaces/:ws_id/departments/:id/payroll-config",
             post(handlers::set_department_payroll_config)
                 .get(handlers::get_department_payroll_configs),
+        )
+        .route(
+            "/workspaces/:ws_id/recruitment-sources",
+            get(handlers::recruitment_sources::get_recruitment_sources)
+                .post(handlers::recruitment_sources::create_recruitment_source),
+        )
+        .route(
+            "/workspaces/:ws_id/recruitment-sources/:id",
+            put(handlers::recruitment_sources::update_recruitment_source)
+                .delete(handlers::recruitment_sources::delete_recruitment_source),
         )
         .route(
             "/workspaces/:ws_id/employees/:id/departments",

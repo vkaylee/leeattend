@@ -1,6 +1,64 @@
 use chrono::{DateTime, NaiveDate, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+use crate::models::enums::RecruitmentSourceType;
+
+// ── Recruitment Source Models ───────────────────────────────────────
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
+pub struct RecruitmentSource {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub source_type: RecruitmentSourceType,
+    pub name: String,
+    pub referrer_employee_id: Option<Uuid>,
+    pub referral_bonus_amount: Option<Decimal>,
+    pub referral_bonus_paid: bool,
+    pub agency_contact_name: Option<String>,
+    pub agency_contact_email: Option<String>,
+    pub agency_fee_amount: Option<Decimal>,
+    pub agency_fee_paid: bool,
+    pub notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CreateRecruitmentSourceRequest {
+    pub source_type: RecruitmentSourceType,
+    pub name: String,
+    pub referrer_employee_id: Option<Uuid>,
+    pub referral_bonus_amount: Option<Decimal>,
+    pub agency_contact_name: Option<String>,
+    pub agency_contact_email: Option<String>,
+    pub agency_fee_amount: Option<Decimal>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UpdateRecruitmentSourceRequest {
+    pub name: Option<String>,
+    pub referrer_employee_id: Option<Uuid>,
+    pub referral_bonus_amount: Option<Decimal>,
+    pub referral_bonus_paid: Option<bool>,
+    pub agency_contact_name: Option<String>,
+    pub agency_contact_email: Option<String>,
+    pub agency_fee_amount: Option<Decimal>,
+    pub agency_fee_paid: Option<bool>,
+    pub notes: Option<String>,
+}
+
+/// Dashboard chart data point for recruitment source breakdown
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RecruitmentSourceBreakdown {
+    pub source_type: String,
+    pub source_name: String,
+    pub count: i64,
+}
+
+// ── Employment / Employee Models ───────────────────────────────────
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Clone)]
 pub struct EmploymentPeriod {
@@ -78,6 +136,7 @@ pub struct CreateEmployeeRequest {
     pub employee_id_number: String,
     pub hire_date: NaiveDate,
     pub tags: Option<Vec<String>>,
+    pub recruitment_source_id: Option<Uuid>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -90,4 +149,6 @@ pub struct UpdateEmployeeRequest {
     pub tags: Option<Vec<String>>,
     pub is_active: Option<bool>,
     pub max_concurrent_workers: Option<i32>,
+    pub recruitment_source_id: Option<Uuid>,
 }
+

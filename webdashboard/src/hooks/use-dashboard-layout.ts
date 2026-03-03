@@ -14,6 +14,7 @@ export type WidgetId =
     | "peak_times"
     | "leave_types"
     | "lateness_by_day"
+    | "recruitment_sources"
     | "promo_cards";
 
 export type DashboardView = "overview" | "attendance" | "trends" | "custom";
@@ -48,6 +49,7 @@ const PRESET_VIEWS: Record<
             peak_times: false,
             leave_types: false,
             lateness_by_day: false,
+            recruitment_sources: true,
             promo_cards: false,
         },
         order: [
@@ -55,6 +57,7 @@ const PRESET_VIEWS: Record<
             "donut_chart",
             "quick_stats",
             "attendance_trend",
+            "recruitment_sources",
         ],
     },
     attendance: {
@@ -68,6 +71,7 @@ const PRESET_VIEWS: Record<
             peak_times: true,
             leave_types: false,
             lateness_by_day: false,
+            recruitment_sources: false,
             promo_cards: false,
         },
         order: [
@@ -88,6 +92,7 @@ const PRESET_VIEWS: Record<
             peak_times: false,
             leave_types: true,
             lateness_by_day: true,
+            recruitment_sources: true,
             promo_cards: false,
         },
         order: [
@@ -95,6 +100,7 @@ const PRESET_VIEWS: Record<
             "overtime_trend",
             "leave_types",
             "lateness_by_day",
+            "recruitment_sources",
         ],
     },
 };
@@ -111,6 +117,7 @@ export const ALL_WIDGETS: { id: WidgetId; labelKey: string }[] = [
     { id: "peak_times", labelKey: "dashboard.widgets.peak_times" },
     { id: "leave_types", labelKey: "dashboard.widgets.leave_types" },
     { id: "lateness_by_day", labelKey: "dashboard.widgets.lateness_by_day" },
+    { id: "recruitment_sources", labelKey: "dashboard.widgets.recruitment_sources" },
     { id: "promo_cards", labelKey: "dashboard.widgets.promo_cards" },
 ];
 

@@ -1092,7 +1092,9 @@
       "lateness_by_day": "按星期统计迟到",
       "lateness_by_day_subtitle": "迟到趋势",
       "late_count": "迟到次数",
-      "avg_late_minutes": "平均迟到(分钟)"
+      "avg_late_minutes": "平均迟到(分钟)",
+      "recruitment_sources": "招聘来源",
+      "recruitment_sources_subtitle": "员工招聘来源分布"
     },
     "system": {
       "total_agents": "代理总数",
@@ -1128,8 +1130,9 @@
       "overtime_trend": "加班趋势",
       "peak_times": "高峰时段",
       "leave_types": "请假类型",
-      "lateness_by_day": "每日迟到统计",
-      "promo_cards": "促销卡片"
+      "lateness_by_day": "按日迟到",
+      "recruitment_sources": "招聘来源",
+      "promo_cards": "快速链接"
     },
     "customize": {
       "title": "自定义仪表板",

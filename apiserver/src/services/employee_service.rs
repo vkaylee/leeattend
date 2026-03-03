@@ -124,6 +124,16 @@ impl EmployeeService {
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+        // Set recruitment source if provided
+        if let Some(source_id) = req.recruitment_source_id {
+            employee_repository::set_employee_recruitment_source(pool, employee.id, Some(source_id))
+                .await
+                .map_err(|e| {
+                    eprintln!("Error setting recruitment source: {e:?}");
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?;
+        }
+
         // Auto-claim any staged logs for this employee_id_number
         if let Err(e) = crate::services::AttendanceLogService::claim_staged_logs(
             pool,
@@ -295,6 +305,20 @@ impl EmployeeService {
         })?
         .ok_or(StatusCode::NOT_FOUND)?;
 
+        // Update recruitment source if provided
+        if req.recruitment_source_id.is_some() {
+            employee_repository::set_employee_recruitment_source(
+                pool,
+                id,
+                req.recruitment_source_id,
+            )
+            .await
+            .map_err(|e| {
+                eprintln!("Error setting recruitment source: {e:?}");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+        }
+
         // If employee_id_number was updated, try to claim staged logs
         if let Some(new_id_number) = req.employee_id_number {
             let normalized = normalize_employee_id(&new_id_number);
@@ -315,6 +339,107 @@ impl EmployeeService {
         }
 
         Ok(employee)
+    }
+
+    // ── Recruitment Source Service Methods ──────────────────────────
+
+    pub async fn create_recruitment_source(
+        pool: &PgPool,
+        workspace_id: Uuid,
+        req: crate::models::CreateRecruitmentSourceRequest,
+    ) -> Result<crate::models::RecruitmentSource, StatusCode> {
+        let source = crate::models::RecruitmentSource {
+            id: Uuid::new_v4(),
+            workspace_id,
+            source_type: req.source_type,
+            name: req.name,
+            referrer_employee_id: req.referrer_employee_id,
+            referral_bonus_amount: req.referral_bonus_amount,
+            referral_bonus_paid: false,
+            agency_contact_name: req.agency_contact_name,
+            agency_contact_email: req.agency_contact_email,
+            agency_fee_amount: req.agency_fee_amount,
+            agency_fee_paid: false,
+            notes: req.notes,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        employee_repository::create_recruitment_source(pool, &source)
+            .await
+            .map_err(|e| {
+                eprintln!("Error creating recruitment source: {e:?}");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+        Ok(source)
+    }
+
+    pub async fn get_recruitment_sources(
+        pool: &PgPool,
+        workspace_id: Uuid,
+    ) -> Result<Vec<crate::models::RecruitmentSource>, StatusCode> {
+        employee_repository::get_recruitment_sources(pool, workspace_id)
+            .await
+            .map_err(|e| {
+                eprintln!("Error fetching recruitment sources: {e:?}");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
+    }
+
+    pub async fn update_recruitment_source(
+        pool: &PgPool,
+        id: Uuid,
+        workspace_id: Uuid,
+        req: crate::models::UpdateRecruitmentSourceRequest,
+    ) -> Result<crate::models::RecruitmentSource, StatusCode> {
+        employee_repository::update_recruitment_source(
+            pool,
+            id,
+            workspace_id,
+            req.name,
+            req.referrer_employee_id,
+            req.referral_bonus_amount,
+            req.referral_bonus_paid,
+            req.agency_contact_name,
+            req.agency_contact_email,
+            req.agency_fee_amount,
+            req.agency_fee_paid,
+            req.notes,
+        )
+        .await
+        .map_err(|e| {
+            eprintln!("Error updating recruitment source: {e:?}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .ok_or(StatusCode::NOT_FOUND)
+    }
+
+    pub async fn delete_recruitment_source(
+        pool: &PgPool,
+        id: Uuid,
+        workspace_id: Uuid,
+    ) -> Result<(), StatusCode> {
+        let rows = employee_repository::delete_recruitment_source(pool, id, workspace_id)
+            .await
+            .map_err(|e| {
+                eprintln!("Error deleting recruitment source: {e:?}");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+        if rows == 0 {
+            return Err(StatusCode::NOT_FOUND);
+        }
+        Ok(())
+    }
+
+    pub async fn get_recruitment_source_breakdown(
+        pool: &PgPool,
+        workspace_id: Uuid,
+    ) -> Result<Vec<crate::models::RecruitmentSourceBreakdown>, StatusCode> {
+        employee_repository::get_recruitment_source_breakdown(pool, workspace_id)
+            .await
+            .map_err(|e| {
+                eprintln!("Error fetching recruitment source breakdown: {e:?}");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
     }
 
     pub async fn delete_employee(

@@ -91,6 +91,7 @@ export default function DashboardPage() {
     "peak_times",
     "leave_types",
     "lateness_by_day",
+    "recruitment_sources",
   ];
 
   // Filter and order visible chart widgets

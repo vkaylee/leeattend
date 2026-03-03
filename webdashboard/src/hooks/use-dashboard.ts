@@ -201,3 +201,31 @@ export function useLatenessByDay() {
     enabled: !!workspace,
   });
 }
+
+// ── Recruitment Source Breakdown ──────────────────────────────────
+
+export interface RecruitmentSourceBreakdown {
+  source_type: string;
+  source_name: string;
+  count: number;
+}
+
+export function useRecruitmentSourceBreakdown() {
+  const { workspace } = useWorkspace();
+
+  return useQuery<RecruitmentSourceBreakdown[]>({
+    queryKey: ["recruitment-sources-breakdown", workspace?.id],
+    queryFn: async () => {
+      if (!workspace) throw new Error("No workspace selected");
+
+      const response = await apiFetch(`/dashboard/recruitment-sources`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch recruitment source breakdown");
+      }
+
+      return response.json();
+    },
+    enabled: !!workspace,
+  });
+}

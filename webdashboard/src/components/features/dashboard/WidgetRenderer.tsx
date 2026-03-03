@@ -21,6 +21,9 @@ const LeaveTypesChart = lazy(
 const LatenessByDayChart = lazy(
     () => import("@/components/features/dashboard/LatenessByDayChart")
 );
+const RecruitmentSourceChart = lazy(
+    () => import("@/components/features/dashboard/RecruitmentSourceChart")
+);
 
 // ── Loading skeleton ───────────────────────────────────────────────
 
@@ -53,6 +56,7 @@ export default function WidgetRenderer({ widgetId }: WidgetRendererProps) {
         peak_times: PeakTimesChart,
         leave_types: LeaveTypesChart,
         lateness_by_day: LatenessByDayChart,
+        recruitment_sources: RecruitmentSourceChart,
     };
 
     const ChartComponent = chartMap[widgetId];

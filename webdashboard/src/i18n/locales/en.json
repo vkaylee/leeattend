@@ -1092,7 +1092,9 @@
       "lateness_by_day": "Lateness by Day of Week",
       "lateness_by_day_subtitle": "Late arrivals pattern",
       "late_count": "Late Count",
-      "avg_late_minutes": "Avg Late (min)"
+      "avg_late_minutes": "Avg Late (min)",
+      "recruitment_sources": "Recruitment Sources",
+      "recruitment_sources_subtitle": "Employee hire source breakdown"
     },
     "system": {
       "total_agents": "Total Agents",
@@ -1129,6 +1131,7 @@
       "peak_times": "Peak Times",
       "leave_types": "Leave Types",
       "lateness_by_day": "Lateness by Day",
+      "recruitment_sources": "Recruitment Sources",
       "promo_cards": "Quick Links"
     },
     "customize": {

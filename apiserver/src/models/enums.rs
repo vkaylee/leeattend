@@ -201,3 +201,22 @@ pub enum AccrualFrequency {
     Quarterly,
     Yearly,
 }
+
+#[derive(
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    sqlx::Type,
+    strum_macros::Display,
+)]
+#[sqlx(type_name = "recruitment_source_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum RecruitmentSourceType {
+    Direct,
+    Referral,
+    Agency,
+}

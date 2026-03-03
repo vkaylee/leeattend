@@ -31,3 +31,4 @@ pub mod holidays;
 pub mod leave_types;
 pub mod shift_swaps;
 pub mod dashboard_preferences;
+pub mod recruitment_sources;
