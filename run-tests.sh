@@ -254,7 +254,7 @@ wait_for_web_test() {
     fi
 }
 
-# Ensure DB is migrated before any cargo compile (required for SQLX_OFFLINE=false)
+# Ensure DB is migrated before any cargo compile (sqlx verifies queries at compile time)
 _DB_MIGRATED=false
 ensure_db_migrated() {
     if [[ "$_DB_MIGRATED" == "true" ]]; then return 0; fi
@@ -314,7 +314,7 @@ run_lint() {
         dc up -d --build=false $services
         if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
 
-        # Migrations must run before clippy/compile (SQLX_OFFLINE=false)
+        # Migrations must run before clippy/compile (sqlx verifies queries at compile time)
         if [[ "$filter" != *"web"* ]] || [[ "$filter" == "" ]]; then
             ensure_db_migrated
         fi
@@ -347,7 +347,7 @@ run_unit() {
         dc up -d --build=false $services
         if [[ "$need_web" == "true" ]]; then wait_for_web_test; fi
 
-        # Migrations must run before cargo compile (SQLX_OFFLINE=false)
+        # Migrations must run before cargo compile (sqlx verifies queries at compile time)
         if [[ "$filter" != *"web"* ]] || [[ "$filter" == "" ]]; then
             ensure_db_migrated
         fi

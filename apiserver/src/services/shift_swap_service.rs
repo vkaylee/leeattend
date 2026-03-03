@@ -148,7 +148,7 @@ impl ShiftSwapService {
 
         // Look up current effective shifts for both employees
         let (requester_shift_id, _) =
-            roster_repository::get_effective_shift(pool, req.requester_id, req.swap_date)
+            roster_repository::get_effective_shift(pool, workspace_id, req.requester_id, req.swap_date)
                 .await
                 .map_err(|e| {
                     error!("SHIFT_SWAP_LOOKUP_REQUESTER: {:?}", e);
@@ -156,7 +156,7 @@ impl ShiftSwapService {
                 })?;
 
         let (target_shift_id, _) =
-            roster_repository::get_effective_shift(pool, req.target_id, req.swap_date)
+            roster_repository::get_effective_shift(pool, workspace_id, req.target_id, req.swap_date)
                 .await
                 .map_err(|e| {
                     error!("SHIFT_SWAP_LOOKUP_TARGET: {:?}", e);
@@ -327,7 +327,7 @@ impl ShiftSwapService {
 
         // Look up effective shifts
         let (requester_shift_id, _) =
-            roster_repository::get_effective_shift(pool, requester_employee_id, req.swap_date)
+            roster_repository::get_effective_shift(pool, workspace_id, requester_employee_id, req.swap_date)
                 .await
                 .map_err(|e| {
                     error!("ESS_SWAP_LOOKUP_REQUESTER: {:?}", e);
@@ -335,7 +335,7 @@ impl ShiftSwapService {
                 })?;
 
         let (target_shift_id, _) =
-            roster_repository::get_effective_shift(pool, req.target_id, req.swap_date)
+            roster_repository::get_effective_shift(pool, workspace_id, req.target_id, req.swap_date)
                 .await
                 .map_err(|e| {
                     error!("ESS_SWAP_LOOKUP_TARGET: {:?}", e);

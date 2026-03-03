@@ -17,21 +17,21 @@ fi
 leeattend_run_lint() {
     local filter="${1:-}"
     
-    local APISERVER_CMD="SQLX_OFFLINE=false cargo clippy -- -D warnings"
-    local AGENT_MAIN_CMD="SQLX_OFFLINE=false cargo clippy -- -D warnings"
+    local APISERVER_CMD="cargo clippy -- -D warnings"
+    local AGENT_MAIN_CMD="cargo clippy -- -D warnings"
     local WEB_LINT_CMD="npm run lint"
     local WEB_TYPECHECK_CMD="npm run type-check"
     local SYNC_API_CMD="./scripts/sync-api.sh"
 
     if [[ "${USE_DOCKER:-}" == "true" ]]; then
-        # Lint requires DB with migrations (SQLX_OFFLINE=false needs live schema)
-        APISERVER_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"SQLX_OFFLINE=false cargo clippy -- -D warnings\" </dev/null"
-        AGENT_MAIN_CMD="$DOCKER_COMPOSE_CMD exec -T agent_test bash -c \"SQLX_OFFLINE=false cargo clippy -- -D warnings\" </dev/null"
+        # Lint requires DB with migrations (sqlx verifies queries at compile time)
+        APISERVER_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"cargo clippy -- -D warnings\" </dev/null"
+        AGENT_MAIN_CMD="$DOCKER_COMPOSE_CMD exec -T agent_test bash -c \"cargo clippy -- -D warnings\" </dev/null"
         WEB_LINT_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run lint </dev/null"
         WEB_TYPECHECK_CMD="$DOCKER_COMPOSE_CMD exec -T web_test npm run type-check </dev/null"
         
         # API Sync via shared volume between apiserver_test and web_test:
-        SYNC_API_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"SQLX_OFFLINE=false cargo run -- gen-openapi > /workspace/shared/openapi.json\" </dev/null && $DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx openapi-typescript /workspace/shared/openapi.json -o ./src/types/api-generated.ts\" </dev/null"
+        SYNC_API_CMD="$DOCKER_COMPOSE_CMD exec -T apiserver_test bash -c \"cargo run -- gen-openapi > /workspace/shared/openapi.json\" </dev/null && $DOCKER_COMPOSE_CMD exec -T web_test bash -c \"npx openapi-typescript /workspace/shared/openapi.json -o ./src/types/api-generated.ts\" </dev/null"
     fi
 
     run_parallel_ordered "Phase 0 Linting" "$filter" \

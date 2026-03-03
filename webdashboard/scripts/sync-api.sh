@@ -10,7 +10,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # 1. Generate OpenAPI spec from backend
 echo "Generating openapi.json from apiserver..."
 cd "$PROJECT_ROOT/apiserver"
-SQLX_OFFLINE=false cargo run -- gen-openapi > "$PROJECT_ROOT/openapi.json"
+cargo run -- gen-openapi > "$PROJECT_ROOT/openapi.json"
 
 # 2. Generate TypeScript types
 echo "Generating src/types/api-generated.ts from openapi.json..."

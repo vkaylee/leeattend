@@ -41,6 +41,8 @@ services:
       context: ./apiserver
       dockerfile: Dockerfile
       target: runtime
+      args:
+        DATABASE_URL: ${API_DATABASE_URL:-postgres://${DB_USER:-admin}:${DB_PASSWORD:-password_required}@db:5432/${DB_NAME:-leeattend}}
     restart: always
     depends_on:
       db:

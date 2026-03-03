@@ -11,7 +11,7 @@
 #   - Target artifacts use persistent named volumes (survives restarts, cleared with down -v)
 #   - PostgreSQL runs entirely in RAM (tmpfs + fsync=off) for maximum test speed
 #
-# IMPORTANT — SQLX_OFFLINE=false:
+# IMPORTANT — Compile-time SQL validation:
 #   All Rust compilation requires a live, migrated database because sqlx macros
 #   verify queries at compile time. run-tests.sh calls ensure_db_migrated()
 #   before any lint/unit/compile phase.
@@ -53,7 +53,6 @@ services:
     working_dir: /workspace/apiserver
     environment:
       - DATABASE_URL=postgres://test_user:test_password@test_db:5432/test_database
-      - SQLX_OFFLINE=false        # Verify SQL queries against live DB at compile time
       - CARGO_TARGET_DIR=/workspace/target  # Shared target across apiserver + agent
       - CARGO_BUILD_JOBS=4
       - SCCACHE_DIR=/workspace/.sccache     # Compile cache to avoid redundant recompilation

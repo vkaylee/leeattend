@@ -65,7 +65,7 @@ impl PairingService {
         let local_date = local_dt.date_naive();
 
         // 4. Reprocess that day
-        Self::reprocess_daily_attendance(pool, log.employee_id, local_date, tz, &algorithm).await?;
+        Self::reprocess_daily_attendance(pool, log.workspace_id, log.employee_id, local_date, tz, &algorithm).await?;
 
         // 5. Reprocess previous day if early in the morning (Overnight checkouts)
         if local_dt.hour() < 12 {
@@ -74,7 +74,7 @@ impl PairingService {
                 "Log is early in day ({}), reprocessing previous day {} for overnight checkouts",
                 local_dt, prev_date
             );
-            Self::reprocess_daily_attendance(pool, log.employee_id, prev_date, tz, &algorithm)
+            Self::reprocess_daily_attendance(pool, log.workspace_id, log.employee_id, prev_date, tz, &algorithm)
                 .await?;
         }
 
@@ -83,6 +83,7 @@ impl PairingService {
 
     pub async fn reprocess_daily_attendance(
         pool: &PgPool,
+        workspace_id: Uuid,
         employee_id: Uuid,
         date: NaiveDate,
         tz: Tz,
@@ -95,7 +96,7 @@ impl PairingService {
 
         // 1. Fetch effective schedule
         let (shift_id_opt, traces) =
-            roster_repository::get_effective_shift(pool, employee_id, date).await?;
+            roster_repository::get_effective_shift(pool, workspace_id, employee_id, date).await?;
 
         let mut shift_config = None;
         if let Some(shift_id) = shift_id_opt {
@@ -211,12 +212,6 @@ impl PairingService {
         if filtered_log_events.is_empty() {
             Self::clear_auto_entries(pool, employee_id, start_of_day_utc, next_day_utc).await?;
 
-            let workspace_id = sqlx::query_scalar!(
-                "SELECT workspace_id FROM employees WHERE id = $1",
-                employee_id
-            )
-            .fetch_one(pool)
-            .await?;
             let _ = crate::services::attendance_summary_service::AttendanceSummaryService::recalculate_daily_summary(pool, workspace_id, employee_id, date).await;
 
             return Ok(());
@@ -227,12 +222,6 @@ impl PairingService {
         let sessions = strategy.pair(&filtered_log_events, shift_config.as_ref());
 
         // 5. Update Database
-        let workspace_id = sqlx::query_scalar!(
-            "SELECT workspace_id FROM employees WHERE id = $1",
-            employee_id
-        )
-        .fetch_one(pool)
-        .await?;
         let mut tx = pool.begin().await?;
 
         // Delete existing entries starting on THIS day only (24h window)

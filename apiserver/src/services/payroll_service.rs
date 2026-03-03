@@ -92,6 +92,43 @@ impl PayrollService {
         .await
         .unwrap_or_default();
 
+        // 4c. Batch-load roster data for in-memory shift resolution
+        //     (replaces N per-day get_effective_shift DB calls with ~8 parallel queries)
+        let roster_data = crate::cache::build_roster_data(pool, workspace_id)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to build roster data: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+
+        // Fetch employee info needed for rule evaluation
+        let emp_row = sqlx::query(
+            "SELECT employee_id_number, tags FROM employees WHERE id = $1",
+        )
+        .bind(employee_id)
+        .fetch_optional(pool)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+        let emp_id_number: String = {
+            use sqlx::Row;
+            emp_row.get("employee_id_number")
+        };
+        let emp_tags: Option<Vec<String>> = {
+            use sqlx::Row;
+            emp_row.get("tags")
+        };
+
+        // Pre-fetch rosters in range for this employee
+        let rosters = roster_repository::get_employee_rosters(pool, employee_id, start_date, end_date)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let payroll_roster_map: HashMap<(Uuid, NaiveDate), Option<Uuid>> = rosters
+            .into_iter()
+            .map(|r| ((r.employee_id, r.date), r.shift_id))
+            .collect();
+
         // 5. Determine Segments
         let mut change_points = BTreeSet::new();
         change_points.insert(start_date);
@@ -180,11 +217,15 @@ impl PayrollService {
 
             let mut current_date = seg_start;
             while current_date <= seg_end {
-                // Fetch shift and calculate
-                let (shift_id, _) =
-                    roster_repository::get_effective_shift(pool, employee_id, current_date)
-                        .await
-                        .unwrap_or((None, Vec::new()));
+                // Resolve shift from pre-loaded roster data (in-memory, zero DB queries)
+                let (shift_id, _, _) = roster_repository::resolve_effective_shift_from_data(
+                    &roster_data,
+                    &payroll_roster_map,
+                    employee_id,
+                    &emp_id_number,
+                    emp_tags.as_ref(),
+                    current_date,
+                );
 
                 if let Some(entries) = daily_entries_map.get(&current_date) {
                     let work_entries: Vec<_> = entries

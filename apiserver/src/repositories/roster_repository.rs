@@ -1,9 +1,151 @@
-use crate::models::{EffectiveSchedule, EmployeeSchedule, ShiftRoster};
+use crate::cache::RosterData;
+use crate::models::{EffectiveSchedule, EmployeeSchedule, ScheduleTrace, ShiftRoster};
 use crate::repositories::holiday_repository::HolidayRepository;
 use chrono::NaiveDate;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
+
+/// Resolve the effective shift for a single employee on a single date using
+/// pre-loaded [`RosterData`] and a roster override map.
+///
+/// Priority chain (highest wins):
+///   P1 Roster → P2 Individual Pattern → P3 Dynamic Rules →
+///   P4 Department Pattern → P5 Fixed Assignment → P6 Department Fixed
+///
+/// Returns `(shift_id, source_label, traces)`.
+///
+/// This is a **pure function** — no DB access — making it cheap to call in a
+/// tight loop and easy to unit-test.
+pub fn resolve_effective_shift_from_data(
+    roster_data: &RosterData,
+    roster_map: &HashMap<(Uuid, NaiveDate), Option<Uuid>>,
+    employee_id: Uuid,
+    employee_id_number: &str,
+    employee_tags: Option<&Vec<String>>,
+    date: NaiveDate,
+) -> (Option<Uuid>, String, Vec<ScheduleTrace>) {
+    let mut traces = Vec::new();
+
+    // P1: Roster override
+    if let Some(shift_opt) = roster_map.get(&(employee_id, date)) {
+        traces.push(ScheduleTrace {
+            rule_id: None,
+            rule_name: "Manual Roster".to_string(),
+            priority: 100,
+            status: "applied".to_string(),
+            reason: Some("Directly assigned via roster".to_string()),
+        });
+        return (*shift_opt, "roster".to_string(), traces);
+    }
+
+    let dow = chrono::Datelike::weekday(&date).num_days_from_sunday() as i32;
+
+    // P2: Individual Working Pattern
+    let pattern = roster_data
+        .pattern_assignments
+        .get(&employee_id)
+        .and_then(|v| {
+            v.iter().find(|a| {
+                a.start_date <= date
+                    && a.end_date.is_none_or(|ed| ed >= date)
+                    && a.day_of_week == dow
+            })
+        });
+
+    if let Some(p) = pattern {
+        traces.push(ScheduleTrace {
+            rule_id: Some(p.pattern_id),
+            rule_name: "Individual Pattern".to_string(),
+            priority: 80,
+            status: "applied".to_string(),
+            reason: Some("Assigned via individual working pattern".to_string()),
+        });
+        return (p.shift_id, "pattern".to_string(), traces);
+    }
+
+    // P3: Dynamic Assignment Rules
+    let emp_dept_id = roster_data
+        .dept_history
+        .get(&employee_id)
+        .and_then(|v| v.iter().find(|h| h.effective_date <= date))
+        .map(|h| h.department_id);
+
+    let match_ctx = crate::services::rule_evaluator::EmployeeMatchContext {
+        department_id: emp_dept_id,
+        employee_id_number: employee_id_number.to_string(),
+        tags: employee_tags.cloned().unwrap_or_default(),
+    };
+
+    let (matched_rule, rule_traces) =
+        crate::services::rule_evaluator::RuleEvaluator::resolve_with_trace(
+            &match_ctx,
+            &roster_data.active_rules,
+        );
+    traces.extend(rule_traces);
+
+    if let Some(rule) = matched_rule {
+        if let Some(&shift_opt) = roster_data.rule_patterns.get(&(rule.pattern_id, dow)) {
+            return (shift_opt, "assignment_rule".to_string(), traces);
+        }
+    }
+
+    // P4: Department Working Pattern
+    let dept_p = roster_data
+        .dept_patterns
+        .get(&employee_id)
+        .and_then(|v| v.iter().find(|a| a.effective_date <= date && a.day_of_week == dow));
+
+    if let Some(dp) = dept_p {
+        traces.push(ScheduleTrace {
+            rule_id: dp.default_working_pattern_id,
+            rule_name: "Department Pattern".to_string(),
+            priority: 40,
+            status: "applied".to_string(),
+            reason: Some("Inherited from department default pattern".to_string()),
+        });
+        return (dp.shift_id, "department_pattern".to_string(), traces);
+    }
+
+    // P5: Fixed Assignment (Individual)
+    let fixed = roster_data
+        .fixed_assignments
+        .get(&employee_id)
+        .and_then(|v| {
+            v.iter()
+                .find(|a| a.start_date <= date && a.end_date.is_none_or(|ed| ed >= date))
+        });
+
+    if let Some(f) = fixed {
+        traces.push(ScheduleTrace {
+            rule_id: None,
+            rule_name: "Fixed Assignment".to_string(),
+            priority: 20,
+            status: "applied".to_string(),
+            reason: Some("Directly assigned shift".to_string()),
+        });
+        return (Some(f.shift_id), "fixed".to_string(), traces);
+    }
+
+    // P6: Department Fixed Shift
+    let dept_f = roster_data
+        .dept_fixed_shifts
+        .get(&employee_id)
+        .and_then(|v| v.iter().find(|a| a.effective_date <= date));
+
+    if let Some(df) = dept_f {
+        traces.push(ScheduleTrace {
+            rule_id: None,
+            rule_name: "Department Fixed".to_string(),
+            priority: 10,
+            status: "applied".to_string(),
+            reason: Some("Inherited from department default shift".to_string()),
+        });
+        return (Some(df.shift_id), "department_fixed".to_string(), traces);
+    }
+
+    (None, "none".to_string(), traces)
+}
 
 pub async fn get_workspace_schedules(
     pool: &PgPool,
@@ -83,140 +225,14 @@ pub async fn get_workspace_schedules(
         let mut curr_date = start_date;
 
         while curr_date <= end_date {
-            let mut effective_shift_id = None;
-            let mut source = "none".to_string();
-            let mut traces = Vec::new();
-
-            // P1: Roster
-            if let Some(shift_opt) = roster_map.get(&(emp_id, curr_date)) {
-                effective_shift_id = *shift_opt; // Can be None (Day Off)
-                source = "roster".to_string();
-                traces.push(crate::models::ScheduleTrace {
-                    rule_id: None,
-                    rule_name: "Manual Roster".to_string(),
-                    priority: 100,
-                    status: "applied".to_string(),
-                    reason: Some("Directly assigned via roster".to_string()),
-                });
-            } else {
-                let dow = chrono::Datelike::weekday(&curr_date).num_days_from_sunday() as i32;
-
-                // P2: Individual Pattern
-                let pattern = roster_data.pattern_assignments.get(&emp_id).and_then(|v| {
-                    v.iter().find(|a| {
-                        a.start_date <= curr_date
-                            && a.end_date.is_none_or(|ed| ed >= curr_date)
-                            && a.day_of_week == dow
-                    })
-                });
-
-                if let Some(p) = pattern {
-                    effective_shift_id = p.shift_id;
-                    source = "pattern".to_string();
-                    traces.push(crate::models::ScheduleTrace {
-                        rule_id: Some(p.pattern_id),
-                        rule_name: "Individual Pattern".to_string(),
-                        priority: 80,
-                        status: "applied".to_string(),
-                        reason: Some("Assigned via individual working pattern".to_string()),
-                    });
-                } else {
-                    // P3: Dynamic Rules
-                    let emp_dept_id = roster_data
-                        .dept_history
-                        .get(&emp_id)
-                        .and_then(|v| v.iter().find(|h| h.effective_date <= curr_date))
-                        .map(|h| h.department_id);
-                    let match_ctx = crate::services::rule_evaluator::EmployeeMatchContext {
-                        department_id: emp_dept_id,
-                        employee_id_number: emp_id_number.clone(),
-                        tags: emp_tags.clone().unwrap_or_default(),
-                    };
-
-                    let (matched_rule, rule_traces) =
-                        crate::services::rule_evaluator::RuleEvaluator::resolve_with_trace(
-                            &match_ctx,
-                            &roster_data.active_rules,
-                        );
-                    traces.extend(rule_traces);
-
-                    let mut p3_applied = false;
-                    if let Some(rule) = matched_rule {
-                        // Key-present guard: key-absent = pattern has no detail
-                        // for this dow -> fall through to P4. Key-present with
-                        // None = explicit day off.
-                        if let Some(&shift_opt) =
-                            roster_data.rule_patterns.get(&(rule.pattern_id, dow))
-                        {
-                            effective_shift_id = shift_opt;
-                            source = "assignment_rule".to_string();
-                            p3_applied = true;
-                        }
-                    }
-
-                    if !p3_applied {
-                        // P4: Department Pattern
-                        let dept_p = roster_data.dept_patterns.get(&emp_id).and_then(|v| {
-                            v.iter()
-                                .find(|a| a.effective_date <= curr_date && a.day_of_week == dow)
-                        });
-
-                        if let Some(dp) = dept_p {
-                            effective_shift_id = dp.shift_id;
-                            source = "department_pattern".to_string();
-                            traces.push(crate::models::ScheduleTrace {
-                                rule_id: dp.default_working_pattern_id,
-                                rule_name: "Department Pattern".to_string(),
-                                priority: 40,
-                                status: "applied".to_string(),
-                                reason: Some(
-                                    "Inherited from department default pattern".to_string(),
-                                ),
-                            });
-                        } else {
-                            // P5: Fixed (Individual)
-                            let fixed = roster_data.fixed_assignments.get(&emp_id).and_then(|v| {
-                                v.iter().find(|a| {
-                                    a.start_date <= curr_date
-                                        && a.end_date.is_none_or(|ed| ed >= curr_date)
-                                })
-                            });
-
-                            if let Some(f) = fixed {
-                                effective_shift_id = Some(f.shift_id);
-                                source = "fixed".to_string();
-                                traces.push(crate::models::ScheduleTrace {
-                                    rule_id: None,
-                                    rule_name: "Fixed Assignment".to_string(),
-                                    priority: 20,
-                                    status: "applied".to_string(),
-                                    reason: Some("Directly assigned shift".to_string()),
-                                });
-                            } else {
-                                // P6: Department Fixed
-                                let dept_f = roster_data
-                                    .dept_fixed_shifts
-                                    .get(&emp_id)
-                                    .and_then(|v| v.iter().find(|a| a.effective_date <= curr_date));
-
-                                if let Some(df) = dept_f {
-                                    effective_shift_id = Some(df.shift_id);
-                                    source = "department_fixed".to_string();
-                                    traces.push(crate::models::ScheduleTrace {
-                                        rule_id: None,
-                                        rule_name: "Department Fixed".to_string(),
-                                        priority: 10,
-                                        status: "applied".to_string(),
-                                        reason: Some(
-                                            "Inherited from department default shift".to_string(),
-                                        ),
-                                    });
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            let (effective_shift_id, source, traces) = resolve_effective_shift_from_data(
+                &roster_data,
+                &roster_map,
+                emp_id,
+                &emp_id_number,
+                emp_tags.as_ref(),
+                curr_date,
+            );
 
             let holiday = holidays_map.get(&curr_date);
             let mut sched = EffectiveSchedule {
@@ -443,6 +459,7 @@ pub async fn bulk_upsert_roster(
 
 pub async fn get_effective_shift(
     pool: &PgPool,
+    workspace_id: Uuid,
     employee_id: Uuid,
     date: NaiveDate,
 ) -> Result<(Option<Uuid>, Vec<crate::models::ScheduleTrace>), sqlx::Error> {
@@ -450,10 +467,11 @@ pub async fn get_effective_shift(
 
     // Priority 1: Shift Roster
     let roster_shift = sqlx::query_scalar::<_, Option<Uuid>>(
-        "SELECT shift_id FROM shift_rosters WHERE employee_id = $1 AND date = $2",
+        "SELECT sr.shift_id FROM shift_rosters sr JOIN employees e ON e.id = sr.employee_id WHERE sr.employee_id = $1 AND sr.date = $2 AND e.workspace_id = $3",
     )
     .bind(employee_id)
     .bind(date)
+    .bind(workspace_id)
     .fetch_optional(pool)
     .await?;
 
@@ -475,16 +493,19 @@ pub async fn get_effective_shift(
         SELECT wpd.shift_id, ewp.pattern_id
         FROM working_pattern_details wpd
         JOIN employee_working_patterns ewp ON ewp.pattern_id = wpd.pattern_id
+        JOIN employees e ON e.id = ewp.employee_id
         WHERE ewp.employee_id = $1 
           AND ewp.start_date <= $2 
           AND (ewp.end_date IS NULL OR ewp.end_date >= $2)
           AND wpd.day_of_week = $3
+          AND e.workspace_id = $4
         ORDER BY ewp.created_at DESC
         LIMIT 1
         "#,
         employee_id,
         date,
-        day_of_week
+        day_of_week,
+        workspace_id
     )
     .fetch_optional(pool)
     .await?;
@@ -561,15 +582,18 @@ pub async fn get_effective_shift(
         FROM working_pattern_details wpd
         JOIN departments d ON d.default_working_pattern_id = wpd.pattern_id
         JOIN employee_department_history edh ON edh.department_id = d.id
+        JOIN employees e ON e.id = edh.employee_id
         WHERE edh.employee_id = $1 
           AND edh.effective_date <= $2
           AND wpd.day_of_week = $3
+          AND e.workspace_id = $4
         ORDER BY edh.effective_date DESC
         LIMIT 1
         "#,
         employee_id,
         date,
-        day_of_week
+        day_of_week,
+        workspace_id
     )
     .fetch_optional(pool)
     .await?;
@@ -588,17 +612,20 @@ pub async fn get_effective_shift(
     // Priority 5: Employee Default Shift (Legacy Fixed Assignment)
     let employee_shift = sqlx::query_scalar::<_, Uuid>(
         r#"
-        SELECT shift_id 
-        FROM employee_shifts 
-        WHERE employee_id = $1 
-          AND start_date <= $2 
-          AND (end_date IS NULL OR end_date >= $2)
-        ORDER BY created_at DESC 
+        SELECT es.shift_id 
+        FROM employee_shifts es
+        JOIN employees e ON e.id = es.employee_id
+        WHERE es.employee_id = $1 
+          AND es.start_date <= $2 
+          AND (es.end_date IS NULL OR es.end_date >= $2)
+          AND e.workspace_id = $3
+        ORDER BY es.created_at DESC 
         LIMIT 1
         "#,
     )
     .bind(employee_id)
     .bind(date)
+    .bind(workspace_id)
     .fetch_optional(pool)
     .await?;
 
@@ -619,12 +646,15 @@ pub async fn get_effective_shift(
         SELECT dds.shift_id 
         FROM department_default_shifts dds
         JOIN employee_department_history edh ON edh.department_id = dds.department_id
+        JOIN employees e ON e.id = edh.employee_id
         WHERE edh.employee_id = $1 AND edh.effective_date <= $2
+          AND e.workspace_id = $3
         ORDER BY edh.effective_date DESC LIMIT 1
         "#,
     )
     .bind(employee_id)
     .bind(date)
+    .bind(workspace_id)
     .fetch_optional(pool)
     .await?;
 
@@ -654,4 +684,355 @@ pub async fn delete_roster(
         .await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cache::{
+        RosterData, RosterDeptFixedShift, RosterDeptPattern,
+        RosterFixedAssignment, RosterPatternEntry,
+    };
+    use chrono::NaiveDate;
+    use std::sync::Arc;
+
+    fn date(y: i32, m: u32, d: u32) -> NaiveDate {
+        NaiveDate::from_ymd_opt(y, m, d).expect("valid date")
+    }
+
+    fn empty_roster_data() -> Arc<RosterData> {
+        Arc::new(RosterData {
+            shifts: HashMap::new(),
+            fixed_assignments: HashMap::new(),
+            pattern_assignments: HashMap::new(),
+            dept_patterns: HashMap::new(),
+            dept_fixed_shifts: HashMap::new(),
+            active_rules: Vec::new(),
+            rule_patterns: HashMap::new(),
+            dept_history: HashMap::new(),
+        })
+    }
+
+    #[test]
+    fn test_no_match_returns_none() {
+        let data = empty_roster_data();
+        let roster_map = HashMap::new();
+        let emp = Uuid::new_v4();
+
+        let (shift, source, traces) = resolve_effective_shift_from_data(
+            &data,
+            &roster_map,
+            emp,
+            "EMP001",
+            None,
+            date(2026, 3, 3),
+        );
+
+        assert!(shift.is_none());
+        assert_eq!(source, "none");
+        assert!(traces.is_empty());
+    }
+
+    #[test]
+    fn test_p1_roster_wins() {
+        let data = empty_roster_data();
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+
+        let mut roster_map = HashMap::new();
+        roster_map.insert((emp, date(2026, 3, 3)), Some(shift_id));
+
+        let (shift, source, traces) = resolve_effective_shift_from_data(
+            &data,
+            &roster_map,
+            emp,
+            "EMP001",
+            None,
+            date(2026, 3, 3),
+        );
+
+        assert_eq!(shift, Some(shift_id));
+        assert_eq!(source, "roster");
+        assert_eq!(traces.len(), 1);
+        assert_eq!(traces[0].priority, 100);
+    }
+
+    #[test]
+    fn test_p1_roster_day_off() {
+        let data = empty_roster_data();
+        let emp = Uuid::new_v4();
+
+        let mut roster_map = HashMap::new();
+        roster_map.insert((emp, date(2026, 3, 3)), None); // Day off
+
+        let (shift, source, _) = resolve_effective_shift_from_data(
+            &data,
+            &roster_map,
+            emp,
+            "EMP001",
+            None,
+            date(2026, 3, 3),
+        );
+
+        assert!(shift.is_none());
+        assert_eq!(source, "roster");
+    }
+
+    #[test]
+    fn test_p2_individual_pattern_wins() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let pattern_id = Uuid::new_v4();
+        // 2026-03-03 is a Tuesday = num_days_from_sunday = 2
+        let target_date = date(2026, 3, 3);
+        let dow = chrono::Datelike::weekday(&target_date).num_days_from_sunday() as i32;
+
+        let mut data = (*empty_roster_data()).clone();
+        data.pattern_assignments.insert(
+            emp,
+            vec![RosterPatternEntry {
+                pattern_id,
+                start_date: date(2026, 1, 1),
+                end_date: None,
+                day_of_week: dow,
+                shift_id: Some(shift_id),
+            }],
+        );
+
+        let roster_map = HashMap::new();
+
+        let (shift, source, traces) = resolve_effective_shift_from_data(
+            &Arc::new(data),
+            &roster_map,
+            emp,
+            "EMP001",
+            None,
+            target_date,
+        );
+
+        assert_eq!(shift, Some(shift_id));
+        assert_eq!(source, "pattern");
+        assert_eq!(traces[0].priority, 80);
+    }
+
+    #[test]
+    fn test_p4_department_pattern_wins() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let pattern_id = Uuid::new_v4();
+        let target_date = date(2026, 3, 3);
+        let dow = chrono::Datelike::weekday(&target_date).num_days_from_sunday() as i32;
+
+        let mut data = (*empty_roster_data()).clone();
+        data.dept_patterns.insert(
+            emp,
+            vec![RosterDeptPattern {
+                default_working_pattern_id: Some(pattern_id),
+                effective_date: date(2026, 1, 1),
+                day_of_week: dow,
+                shift_id: Some(shift_id),
+            }],
+        );
+
+        let roster_map = HashMap::new();
+
+        let (shift, source, traces) = resolve_effective_shift_from_data(
+            &Arc::new(data),
+            &roster_map,
+            emp,
+            "EMP001",
+            None,
+            target_date,
+        );
+
+        assert_eq!(shift, Some(shift_id));
+        assert_eq!(source, "department_pattern");
+        assert_eq!(traces[0].priority, 40);
+    }
+
+    #[test]
+    fn test_p5_fixed_assignment_wins() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+
+        let mut data = (*empty_roster_data()).clone();
+        data.fixed_assignments.insert(
+            emp,
+            vec![RosterFixedAssignment {
+                shift_id,
+                start_date: date(2026, 1, 1),
+                end_date: None,
+            }],
+        );
+
+        let roster_map = HashMap::new();
+
+        let (shift, source, traces) = resolve_effective_shift_from_data(
+            &Arc::new(data),
+            &roster_map,
+            emp,
+            "EMP001",
+            None,
+            date(2026, 3, 3),
+        );
+
+        assert_eq!(shift, Some(shift_id));
+        assert_eq!(source, "fixed");
+        assert_eq!(traces[0].priority, 20);
+    }
+
+    #[test]
+    fn test_p6_department_fixed_wins() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+
+        let mut data = (*empty_roster_data()).clone();
+        data.dept_fixed_shifts.insert(
+            emp,
+            vec![RosterDeptFixedShift {
+                shift_id,
+                effective_date: date(2026, 1, 1),
+            }],
+        );
+
+        let roster_map = HashMap::new();
+
+        let (shift, source, traces) = resolve_effective_shift_from_data(
+            &Arc::new(data),
+            &roster_map,
+            emp,
+            "EMP001",
+            None,
+            date(2026, 3, 3),
+        );
+
+        assert_eq!(shift, Some(shift_id));
+        assert_eq!(source, "department_fixed");
+        assert_eq!(traces[0].priority, 10);
+    }
+
+    #[test]
+    fn test_p1_beats_all_lower_priorities() {
+        let emp = Uuid::new_v4();
+        let roster_shift = Uuid::new_v4();
+        let fixed_shift = Uuid::new_v4();
+        let dept_fixed_shift = Uuid::new_v4();
+        let target_date = date(2026, 3, 3);
+
+        let mut data = (*empty_roster_data()).clone();
+        // P5
+        data.fixed_assignments.insert(
+            emp,
+            vec![RosterFixedAssignment {
+                shift_id: fixed_shift,
+                start_date: date(2026, 1, 1),
+                end_date: None,
+            }],
+        );
+        // P6
+        data.dept_fixed_shifts.insert(
+            emp,
+            vec![RosterDeptFixedShift {
+                shift_id: dept_fixed_shift,
+                effective_date: date(2026, 1, 1),
+            }],
+        );
+
+        // P1 roster override
+        let mut roster_map = HashMap::new();
+        roster_map.insert((emp, target_date), Some(roster_shift));
+
+        let (shift, source, _) = resolve_effective_shift_from_data(
+            &Arc::new(data),
+            &roster_map,
+            emp,
+            "EMP001",
+            None,
+            target_date,
+        );
+
+        assert_eq!(shift, Some(roster_shift), "P1 roster should beat P5 and P6");
+        assert_eq!(source, "roster");
+    }
+
+    #[test]
+    fn test_expired_pattern_falls_through() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let fixed_shift = Uuid::new_v4();
+        let pattern_id = Uuid::new_v4();
+        let target_date = date(2026, 3, 3);
+        let dow = chrono::Datelike::weekday(&target_date).num_days_from_sunday() as i32;
+
+        let mut data = (*empty_roster_data()).clone();
+        // P2: expired pattern (ended before target date)
+        data.pattern_assignments.insert(
+            emp,
+            vec![RosterPatternEntry {
+                pattern_id,
+                start_date: date(2026, 1, 1),
+                end_date: Some(date(2026, 2, 28)), // expired
+                day_of_week: dow,
+                shift_id: Some(shift_id),
+            }],
+        );
+        // P5: active fixed assignment
+        data.fixed_assignments.insert(
+            emp,
+            vec![RosterFixedAssignment {
+                shift_id: fixed_shift,
+                start_date: date(2026, 1, 1),
+                end_date: None,
+            }],
+        );
+
+        let roster_map = HashMap::new();
+
+        let (shift, source, _) = resolve_effective_shift_from_data(
+            &Arc::new(data),
+            &roster_map,
+            emp,
+            "EMP001",
+            None,
+            target_date,
+        );
+
+        assert_eq!(
+            shift,
+            Some(fixed_shift),
+            "expired P2 should fall through to P5"
+        );
+        assert_eq!(source, "fixed");
+    }
+
+    #[test]
+    fn test_future_dept_history_ignored() {
+        let emp = Uuid::new_v4();
+        let shift_id = Uuid::new_v4();
+        let target_date = date(2026, 3, 3);
+
+        let mut data = (*empty_roster_data()).clone();
+        // Department fixed with future effective date
+        data.dept_fixed_shifts.insert(
+            emp,
+            vec![RosterDeptFixedShift {
+                shift_id,
+                effective_date: date(2026, 4, 1), // future
+            }],
+        );
+
+        let roster_map = HashMap::new();
+
+        let (shift, source, _) = resolve_effective_shift_from_data(
+            &Arc::new(data),
+            &roster_map,
+            emp,
+            "EMP001",
+            None,
+            target_date,
+        );
+
+        assert!(shift.is_none(), "future effective_date should be ignored");
+        assert_eq!(source, "none");
+    }
 }

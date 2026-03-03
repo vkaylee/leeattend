@@ -404,7 +404,7 @@ impl AttendanceLogService {
                 employee_id, date
             );
             if let Err(e) =
-                PairingService::reprocess_daily_attendance(pool, employee_id, date, tz, algorithm)
+                PairingService::reprocess_daily_attendance(pool, workspace_id, employee_id, date, tz, algorithm)
                     .await
             {
                 error!(

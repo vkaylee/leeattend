@@ -59,7 +59,8 @@ FROM chef AS builder
 COPY --from=cacher /app/target target
 COPY --from=cacher $CARGO_HOME $CARGO_HOME
 COPY . .
-ENV SQLX_OFFLINE=true
+# Require real database for compile-time SQL validation (no offline cache)
+ARG DATABASE_URL
 ENV SCCACHE_DIR=/sccache
 ENV RUSTC_WRAPPER=sccache
 RUN --mount=type=cache,target=/usr/local/cargo/registry \

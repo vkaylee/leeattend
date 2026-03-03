@@ -71,7 +71,6 @@ services:
       # --- Core ---
       - RUST_BACKTRACE=1
       - RUST_LOG=apiserver=debug,tower_http=debug,sqlx=info
-      - SQLX_OFFLINE=false
       - DATABASE_URL=${API_DATABASE_URL:-postgres://${DB_USER:-admin}:${DB_PASSWORD:-dev_password}@db:5432/${DB_NAME:-leeattend}}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-dev_password}@redis:6379
       # --- Server ---

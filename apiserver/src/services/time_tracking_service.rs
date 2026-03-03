@@ -53,7 +53,7 @@ impl TimeTrackingService {
         let today = local_now.date_naive();
 
         // 1. Identify effective shift
-        let (shift_id, _) = roster_repository::get_effective_shift(pool, req.employee_id, today)
+        let (shift_id, _) = roster_repository::get_effective_shift(pool, workspace_id, req.employee_id, today)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 

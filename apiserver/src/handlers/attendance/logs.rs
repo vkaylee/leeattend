@@ -145,6 +145,7 @@ pub async fn force_reprocess_attendance(
     while curr_date <= query.end_date {
         crate::services::pairing_service::PairingService::reprocess_daily_attendance(
             &state.db,
+            ctx.workspace_id,
             employee_id,
             curr_date,
             tz,

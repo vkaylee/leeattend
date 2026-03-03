@@ -37,7 +37,7 @@ leeattend_run_coverage() {
     # --- Rust coverage commands ---
     # Disable sccache wrapper: llvm-cov instruments at compile time and is incompatible
     # with sccache when generating coverage data.
-    local COVERAGE_ENV="SQLX_OFFLINE=false RUSTC_WRAPPER=''"
+    local COVERAGE_ENV="RUSTC_WRAPPER=''"
 
     local APISERVER_COV_CMD
     local AGENT_COV_CMD
